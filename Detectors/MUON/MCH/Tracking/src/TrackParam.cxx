@@ -20,7 +20,7 @@
 
 #include <TMath.h>
 
-#include <FairMQLogger.h>
+#include "Framework/Logger.h"
 
 #include "MCHTracking/Cluster.h"
 

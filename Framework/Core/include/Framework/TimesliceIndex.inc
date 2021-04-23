@@ -110,11 +110,34 @@ inline TimesliceSlot TimesliceIndex::findOldestSlot() const
 inline TimesliceId TimesliceIndex::getTimesliceForSlot(TimesliceSlot slot) const
 {
   assert(mVariables.size() > slot.index);
+  // timeslice is always at register 0
   auto pval = std::get_if<uint64_t>(&mVariables[slot.index].get(0));
   if (pval == nullptr) {
     return TimesliceId{TimesliceId::INVALID};
   }
   return TimesliceId{*pval};
+}
+
+inline uint32_t TimesliceIndex::getFirstTFOrbitForSlot(TimesliceSlot slot) const
+{
+  assert(mVariables.size() > slot.index);
+  // firstTForbit is always at register 15
+  auto pval = std::get_if<uint32_t>(&mVariables[slot.index].get(data_matcher::FIRSTTFORBIT_POS));
+  if (pval == nullptr) {
+    return -1;
+  }
+  return *pval;
+}
+
+inline uint32_t TimesliceIndex::getFirstTFCounterForSlot(TimesliceSlot slot) const
+{
+  assert(mVariables.size() > slot.index);
+  // tfCounter is always at register 14
+  auto pval = std::get_if<uint32_t>(&mVariables[slot.index].get(14));
+  if (pval == nullptr) {
+    return -1;
+  }
+  return *pval;
 }
 
 inline data_matcher::VariableContext& TimesliceIndex::getVariablesForSlot(TimesliceSlot slot)

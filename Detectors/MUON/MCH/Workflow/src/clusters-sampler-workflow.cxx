@@ -28,24 +28,24 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/ConfigParamSpec.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
 #include "MCHBase/ClusterBlock.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 
-// add workflow options, note that customization needs to be declared before
-// including Framework/runDataProcessing
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+using namespace o2::framework;
+
+//_________________________________________________________________________________________________
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  std::vector<o2::framework::ConfigParamSpec> options{
-    {"global", o2::framework::VariantType::Bool, false, {"assume the read clusters are in global reference frame"}},
-  };
-  std::swap(workflowOptions, options);
+  /// add workflow options. Note that customization needs to be declared before including Framework/runDataProcessing
+  workflowOptions.emplace_back("global", VariantType::Bool, false,
+                               ConfigParamSpec::HelpString{"assume the read clusters are in global reference frame"});
 }
 
 #include "Framework/runDataProcessing.h"
 
-using namespace o2::framework;
 using namespace o2::mch;
 
 class ClusterSamplerTask
@@ -159,7 +159,7 @@ class ClusterSamplerTask
 o2::framework::DataProcessorSpec getClusterSamplerSpec(bool globalReferenceSystem)
 {
 
-  std::string spec = fmt::format("clusters:MCH/{}CLUSTERS", globalReferenceSystem ? "GLOBAL" : "");
+  std::string spec = fmt::format("clusters:MCH/{}CLUSTERS/0", globalReferenceSystem ? "GLOBAL" : "");
   InputSpec itmp = o2::framework::select(spec.c_str())[0];
 
   return DataProcessorSpec{
@@ -168,11 +168,11 @@ o2::framework::DataProcessorSpec getClusterSamplerSpec(bool globalReferenceSyste
     Outputs{OutputSpec{{"rofs"}, "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
             DataSpecUtils::asOutputSpec(itmp)},
     AlgorithmSpec{adaptFromTask<ClusterSamplerTask>()},
-    Options{
-      {"infile", VariantType::String, "", {"input filename"}},
-      {"nEventsPerTF", VariantType::Int, 1, {"number of events per time frame"}}}}; // namespace mch
+    Options{{"infile", VariantType::String, "", {"input filename"}},
+            {"nEventsPerTF", VariantType::Int, 1, {"number of events per time frame"}}}};
 }
 
+//_________________________________________________________________________________________________
 WorkflowSpec defineDataProcessing(const ConfigContext& cc)
 {
   return WorkflowSpec{getClusterSamplerSpec(cc.options().get<bool>("global"))};

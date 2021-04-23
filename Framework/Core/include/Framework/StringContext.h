@@ -7,20 +7,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_STRINGCONTEXT_H
-#define FRAMEWORK_STRINGCONTEXT_H
+#ifndef O2_FRAMEWORK_STRINGCONTEXT_H_
+#define O2_FRAMEWORK_STRINGCONTEXT_H_
 
 #include "Framework/FairMQDeviceProxy.h"
 #include <vector>
-#include <cassert>
 #include <string>
 #include <memory>
 
 class FairMQMessage;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A context which holds `std::string`s being passed around
@@ -44,12 +41,7 @@ class StringContext
 
   void addString(std::unique_ptr<FairMQMessage> header,
                  std::unique_ptr<std::string> s,
-                 const std::string& channel)
-  {
-    mMessages.push_back(std::move(MessageRef{std::move(header),
-                                             std::move(s),
-                                             channel}));
-  }
+                 const std::string& channel);
 
   Messages::iterator begin()
   {
@@ -66,17 +58,7 @@ class StringContext
     return mMessages.size();
   }
 
-  void clear()
-  {
-    // On send we move the header, but the payload remains
-    // there because what's really sent is the copy of the string
-    // payload will be cleared by the mMessages.clear()
-    for (auto& m : mMessages) {
-      assert(m.header.get() == nullptr);
-      assert(m.payload.get() != nullptr);
-    }
-    mMessages.clear();
-  }
+  void clear();
 
   FairMQDeviceProxy& proxy()
   {
@@ -88,6 +70,5 @@ class StringContext
   Messages mMessages;
 };
 
-} // namespace framework
-} // namespace o2
-#endif // FRAMEWORK_STRINGCONTEXT_H
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_STRINGCONTEXT_H_

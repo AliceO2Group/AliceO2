@@ -85,7 +85,11 @@ struct TPCSpectraReferenceTask {
     histos.fill(HIST(hpt[i]), track.pt());
   }
 
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
+                                                  aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
+                                                  aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                  aod::TrackSelection>>;
   void process(soa::Filtered<aod::Collisions>::iterator const& collision, TrackCandidates const& tracks)
   {
     for (auto track : tracks) {
@@ -110,6 +114,6 @@ struct TPCSpectraReferenceTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraReferenceTask>(cfgc, "tpcspectra-task-skim-reference")};
+  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraReferenceTask>(cfgc, TaskName{"tpcspectra-task-skim-reference"})};
   return workflow;
 }

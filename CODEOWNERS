@@ -13,8 +13,8 @@
 /Algorithm  @matthiasrichter
 
 /Analysis   @jgrosseo @iarsene
-/Analysis/Tasks/ALICE3  @ginnocen
-/Analysis/Tasks/PWGHF  @ginnocen
+/Analysis/Tasks/ALICE3  @ginnocen @vkucera
+/Analysis/Tasks/PWGHF  @ginnocen @vkucera
 
 /CCDB  @costing @Barthelemy @sawenzel @AliceO2Group/framework-admins
 
@@ -30,6 +30,7 @@
 
 /DataFormats                                   @AliceO2Group/framework-admins
 /DataFormats/Detectors/CPV                     @peressounko @kharlov
+/DataFormats/Detectors/CTP                     @shahor02
 /DataFormats/Detectors/EMCAL                   @mfasDa
 /DataFormats/Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
 /DataFormats/Detectors/GlobalTracking          @shahor02
@@ -49,16 +50,18 @@
 #/DataFormats/Legacy
 #/DataFormats/MemoryResources
 /DataFormats/Parameters        @shahor02
+/DataFormats/QualityControl    @knopers8 @Barthelemy @chiarazampolli
 /DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
 /DataFormats/common            @shahor02
 /DataFormats/simulation        @sawenzel
 
 /Detectors/Base                    @sawenzel @shahor02
-/Detectors/Geometry                @sawenzel @shahor02
+/Detectors/Calibration             @chiarazampolli @shahor02
 /Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa
 /Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
+/Detectors/Geometry                @sawenzel @shahor02
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79

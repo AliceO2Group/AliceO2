@@ -24,6 +24,7 @@
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Hit.h"
 #include "TRDBase/Digit.h" // for the Digit type
 #include "TRDBase/Calibrations.h"
@@ -91,13 +92,15 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     for (int collID = 0; collID < irecords.size(); ++collID) {
       currentTime = irecords[collID];
       // Trigger logic implemented here
+      bool isNewTrigger = true; // flag newly accepted readout trigger
       if (firstEvent) {
         triggerTime = currentTime;
         firstEvent = false;
       } else {
         double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
-        if (dT < o2::trd::Digitizer::BUSY_TIME) {
+        if (dT < o2::trd::constants::BUSY_TIME) {
           // BUSY_TIME = READOUT_TIME + DEAD_TIME, if less than that, pile up the signals and update the last time
+          isNewTrigger = false;
           mDigitizer.pileup();
         } else {
           // A new signal can be received, and the detector read it out:
@@ -117,7 +120,10 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         }
       }
 
-      mDigitizer.setEventTime(triggerTime.getTimeNS()); // do we need this?
+      mDigitizer.setEventTime(triggerTime.getTimeNS());
+      if (isNewTrigger) {
+        mDigitizer.setTriggerTime(triggerTime.getTimeNS());
+      }
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -127,7 +133,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         // get the hits for this event and this source and process them
         std::vector<o2::trd::Hit> hits;
         context->retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
-        mDigitizer.process(hits, digits, labels);
+        mDigitizer.process(hits);
       }
     }
 

@@ -56,6 +56,18 @@ class AltroDecoderError : public std::exception
   /// \return Error message
   const char* what() const noexcept override { return mErrorMessage.data(); }
 
+  /// \brief convert the error type from symoblic constant into int
+  /// \return the error number
+  static int errorTypeToInt(ErrorType_t errortype);
+
+  /// \brief convert the error from number into a type (symbolic constant)
+  /// \return the error type
+  static ErrorType_t intToErrorType(int errornumber);
+
+  /// \brief Get the number of error types handled by the AltroDecoderError
+  /// \return Number of error types
+  static constexpr int getNumberOfErrorTypes() noexcept { return 8; }
+
   /// \brief Access to the error type connected to the erro
   /// \return Error type
   const ErrorType_t getErrorType() const noexcept { return mErrorType; }

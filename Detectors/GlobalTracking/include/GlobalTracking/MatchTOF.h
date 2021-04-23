@@ -90,6 +90,13 @@ class MatchTOF
   void init();
   void initTPConly();
 
+  void setCosmics()
+  {
+    mIsCosmics = true;
+    mSpaceTolerance = 150;
+    mTimeTolerance = 50e3;
+  }
+
   ///< attach DPL data and run
   void run(const gsl::span<const o2::dataformats::TrackTPCITS>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& itstpclab);
   void run(const gsl::span<const o2::tpc::TrackTPC>& trackArray, const gsl::span<const Cluster>& clusterArray, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& toflab, const gsl::span<const o2::MCCompLabel>& tpclab);
@@ -273,8 +280,9 @@ class MatchTOF
   float mTPCTBinMUSInv = 0.; ///< inverse TPC time bin duration in microseconds
   float mTPCBin2Z = 0.;      ///< conversion coeff from TPC time-bin to Z
 
-  float mTimeTolerance = 1e3; ///<tolerance in ns for track-TOF time bracket matching
-  float mSpaceTolerance = 10; ///<tolerance in cm for track-TOF time bracket matching
+  bool mIsCosmics = false;    ///< switch on to reconstruct cosmics and match with TPC
+  float mTimeTolerance = 1e3; ///< tolerance in ns for track-TOF time bracket matching
+  float mSpaceTolerance = 10; ///< tolerance in cm for track-TOF time bracket matching
   int mSigmaTimeCut = 30.;    ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   TTree* mInputTreeTracks = nullptr; ///< input tree for tracks

@@ -49,7 +49,8 @@ namespace o2
 class MCCompLabel;
 namespace base
 {
-class Propagator;
+template <typename>
+class PropagatorImpl;
 class MatLayerCylSet;
 } // namespace base
 namespace trd
@@ -103,6 +104,7 @@ struct GPUTPCMCInfo;
 struct GPUTPCClusterData;
 struct GPUTRDTrackletLabels;
 struct GPUTPCDigitsMCInput;
+struct GPUSettingsTF;
 
 class GPUDataTypes
 {
@@ -178,7 +180,7 @@ struct GPUCalibObjectsTemplate {
   typename S<o2::trd::GeometryFlat>::type* trdGeometry = nullptr;
   typename S<TPCdEdxCalibrationSplines>::type* dEdxSplines = nullptr;
   typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
-  typename S<o2::base::Propagator>::type* o2Propagator = nullptr;
+  typename S<o2::base::PropagatorImpl<float>>::type* o2Propagator = nullptr;
 };
 typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 must have identical layout since they are memcopied
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
@@ -205,7 +207,7 @@ struct GPUTrackingInOutDigits {
   static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
   const o2::tpc::Digit* tpcDigits[NSLICES] = {nullptr};
   size_t nTPCDigits[NSLICES] = {0};
-  GPUTPCDigitsMCInput* tpcDigitsMC;
+  GPUTPCDigitsMCInput* tpcDigitsMC = nullptr;
 };
 
 struct GPUTrackingInOutPointers {
@@ -247,6 +249,7 @@ struct GPUTrackingInOutPointers {
   unsigned int nTRDTrackletsMC = 0;
   const GPUTRDTrackGPU* trdTracks = nullptr;
   unsigned int nTRDTracks = 0;
+  const GPUSettingsTF* settingsTF = nullptr;
 };
 #else
 struct GPUTrackingInOutPointers {

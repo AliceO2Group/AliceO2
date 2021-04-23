@@ -136,16 +136,10 @@ struct ExpirationHandlerHelpers {
 
   static RouteConfigurator::ExpirationConfigurator expiringConditionConfigurator(InputSpec const& spec, std::string const& sourceChannel)
   {
-    /// FIXME: seems convoluted... Maybe there is a way to avoid all this checking???
-    auto m = std::get_if<ConcreteDataMatcher>(&spec.matcher);
-    if (m == nullptr) {
-      throw runtime_error("InputSpec for Conditions must be fully qualified");
-    }
-
-    return [s = spec, matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& options) {
+    return [spec, sourceChannel](DeviceState&, ConfigParamRegistry const& options) {
       auto serverUrl = options.get<std::string>("condition-backend");
-      auto timestamp = options.get<std::string>("condition-timestamp");
-      return LifetimeHelpers::fetchFromCCDBCache(matcher, serverUrl, timestamp, sourceChannel);
+      auto forceTimestamp = options.get<std::string>("condition-timestamp");
+      return LifetimeHelpers::fetchFromCCDBCache(spec, serverUrl, forceTimestamp, sourceChannel);
     };
   }
 
@@ -183,7 +177,10 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Timers must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      // Timers do not have any orbit associated to them
+      return LifetimeHelpers::enumerate(matcher, sourceChannel, 0, 0);
+    };
   }
 
   static RouteConfigurator::ExpirationConfigurator expiringEnumerationConfigurator(InputSpec const& spec, std::string const& sourceChannel)
@@ -193,8 +190,10 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
-      return LifetimeHelpers::enumerate(matcher, sourceChannel);
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      size_t orbitOffset = config.get<int64_t>("orbit-offset-enumeration");
+      size_t orbitMultiplier = config.get<int64_t>("orbit-multiplier-enumeration");
+      return LifetimeHelpers::enumerate(matcher, sourceChannel, orbitOffset, orbitMultiplier);
     };
   }
 
@@ -228,17 +227,17 @@ struct ExpirationHandlerHelpers {
   {
     try {
       ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
     } catch (...) {
       ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       ConcreteDataMatcher concrete{dataType.origin, dataType.description, 0xdeadbeef};
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
+      // We copy the matcher to avoid lifetime issues.
     }
-    // We copy the matcher to avoid lifetime issues.
   }
 };
 
@@ -1230,7 +1229,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                       //
     ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                          //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                         //
-    ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                                                //
+    ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                             //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                               //
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                      //
 

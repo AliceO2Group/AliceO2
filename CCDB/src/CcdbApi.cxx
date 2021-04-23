@@ -17,17 +17,13 @@
 #include "CCDB/CCDBQuery.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/MemFileHelper.h"
-#include <regex>
 #include <chrono>
-#include <TMessage.h>
 #include <sstream>
 #include <TFile.h>
 #include <TGrid.h>
 #include <TSystem.h>
 #include <TStreamerInfo.h>
 #include <TMemFile.h>
-#include <TBufferFile.h>
-#include <TWebFile.h>
 #include <TH1F.h>
 #include <TTree.h>
 #include <FairLogger.h>
@@ -307,90 +303,6 @@ static size_t WriteToFileCallback(void* ptr, size_t size, size_t nmemb, FILE* st
   return written;
 }
 
-TObject* CcdbApi::retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
-                           long timestamp) const
-{
-  // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
-  // Thus it does not comply to our coding guidelines as it is a copy paste.
-
-  // Prepare CURL
-  CURL* curl_handle;
-  CURLcode res;
-  struct MemoryStruct chunk {
-    (char*)malloc(1) /*memory*/, 0 /*size*/
-  };
-  TObject* result = nullptr;
-
-  /* init the curl session */
-  curl_handle = curl_easy_init();
-
-  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
-
-  /* specify URL to get */
-  curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
-
-  /* send all data to this function  */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-
-  /* we pass our 'chunk' struct to the callback function */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunk);
-
-  /* some servers don't like requests that are made without a user-agent
-     field, so we provide one */
-  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-  /* if redirected , we tell libcurl to follow redirection */
-  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-  /* get it! */
-  res = curl_easy_perform(curl_handle);
-
-  /* check for errors */
-  if (res != CURLE_OK) {
-    fprintf(stderr, "curl_easy_perform() failed: %s\n",
-            curl_easy_strerror(res));
-  } else {
-    /*
-     * Now, our chunk.memory points to a memory block that is chunk.size
-     * bytes big and contains the remote file.
-     */
-
-    //    printf("%lu bytes retrieved\n", (long) chunk.size);
-
-    long response_code;
-    res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-    if ((res == CURLE_OK) && (response_code != 404)) {
-      std::lock_guard<std::mutex> guard(gIOMutex);
-      TMessage mess(kMESS_OBJECT);
-      mess.SetBuffer(chunk.memory, chunk.size, kFALSE);
-      mess.SetReadMode();
-      mess.Reset();
-      result = (TObject*)(mess.ReadObjectAny(mess.GetClass()));
-      if (result == nullptr) {
-        cerr << "couldn't retrieve the object " << path << endl;
-      }
-    } else {
-      cerr << "invalid URL : " << fullUrl << endl;
-    }
-
-    // Print data
-    //    cout << "size : " << chunk.size << endl;
-    //    cout << "data : " << endl;
-    //    char* mem = (char*)chunk.memory;
-    //    for (int i = 0 ; i < chunk.size/4 ; i++)  {
-    //      cout << mem;
-    //      mem += 4;
-    //    }
-  }
-
-  /* cleanup curl stuff */
-  curl_easy_cleanup(curl_handle);
-
-  free(chunk.memory);
-
-  return result;
-}
-
 std::string CcdbApi::generateFileName(const std::string& inp)
 {
   // generate file name for the CCDB object  (for now augment the input string by the timestamp)
@@ -415,108 +327,6 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
   return size * nitems;
 }
 } // namespace
-
-TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
-                                    long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
-                                    const std::string& createdNotAfter, const std::string& createdNotBefore) const
-{
-  // Note : based on https://curl.haxx.se/libcurl/c/getinmemory.html
-  // Thus it does not comply to our coding guidelines as it is a copy paste.
-
-  //  std::map<std::string, std::string> headers2;
-
-  // Prepare CURL
-  CURL* curl_handle;
-  CURLcode res;
-  struct MemoryStruct chunk {
-    (char*)malloc(1) /*memory*/, 0 /*size*/
-  };
-
-  /* init the curl session */
-  curl_handle = curl_easy_init();
-
-  string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
-
-  /* specify URL to get */
-  curl_easy_setopt(curl_handle, CURLOPT_URL, fullUrl.c_str());
-
-  /* send all data to this function  */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-
-  /* we pass our 'chunk' struct to the callback function */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunk);
-
-  /* some servers don't like requests that are made without a user-agent
-     field, so we provide one */
-  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-
-  /* if redirected , we tell libcurl to follow redirection */
-  curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-  struct curl_slist* list = nullptr;
-  if (!etag.empty()) {
-    list = curl_slist_append(list, ("If-None-Match: " + etag).c_str());
-  }
-
-  if (!createdNotAfter.empty()) {
-    list = curl_slist_append(list, ("If-Not-After: " + createdNotAfter).c_str());
-  }
-
-  if (!createdNotBefore.empty()) {
-    list = curl_slist_append(list, ("If-Not-Before: " + createdNotBefore).c_str());
-  }
-
-  // setup curl for headers handling
-  if (headers != nullptr) {
-    list = curl_slist_append(list, ("If-None-Match: " + to_string(timestamp)).c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<>);
-    curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, headers);
-  }
-
-  if (list) {
-    curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, list);
-  }
-
-  /* get it! */
-  res = curl_easy_perform(curl_handle);
-  std::string errStr;
-  TObject* result = nullptr;
-  if (res == CURLE_OK) {
-    long response_code;
-    res = curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
-    if ((res == CURLE_OK) && (response_code != 404)) {
-      Int_t previousErrorLevel = gErrorIgnoreLevel;
-      gErrorIgnoreLevel = kFatal;
-      std::lock_guard<std::mutex> guard(gIOMutex);
-      TMemFile memFile("name", chunk.memory, chunk.size, "READ");
-      gErrorIgnoreLevel = previousErrorLevel;
-      if (!memFile.IsZombie()) {
-        result = (TObject*)extractFromTFile(memFile, TClass::GetClass("TObject"));
-        if (result == nullptr) {
-          errStr = o2::utils::concat_string("Couldn't retrieve the object ", path);
-          LOG(ERROR) << errStr;
-        }
-        memFile.Close();
-      } else {
-        LOG(DEBUG) << "Object " << path << " is stored in a TMemFile";
-      }
-    } else {
-      errStr = o2::utils::concat_string("Invalid URL : ", fullUrl);
-      LOG(ERROR) << errStr;
-    }
-  } else {
-    errStr = o2::utils::concat_string("curl_easy_perform() failed: ", curl_easy_strerror(res));
-    fprintf(stderr, "%s", errStr.c_str());
-  }
-
-  if (!errStr.empty() && headers) {
-    (*headers)["Error"] = errStr;
-  }
-
-  curl_easy_cleanup(curl_handle);
-  free(chunk.memory);
-  return result;
-}
 
 void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp) const
 {

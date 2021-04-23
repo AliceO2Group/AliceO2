@@ -20,7 +20,7 @@
 
 #include <gsl/span>
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 
 namespace o2
 {

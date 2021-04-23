@@ -23,6 +23,7 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
 
   // Initialize clusterizer and link geometry
   mClusterizer.initialize();
+  mClusterizer.setFullOutput(mFullCluOutput);
 }
 
 void ClusterizerSpec::run(framework::ProcessingContext& ctx)
@@ -45,30 +46,25 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     // const o2::dataformats::MCTruthContainer<MCLabel>* truthcont=nullptr;
     if (mPropagateMC) {
       std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr"));
-      mClusterizer.process(digits, digitsTR, truthcont.get(), &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+      mClusterizer.process(digits, digitsTR, truthcont.get(), &mOutputClusters, &mOutputFullClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
     } else {
-      mClusterizer.process(digits, digitsTR, nullptr, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+      mClusterizer.process(digits, digitsTR, nullptr, &mOutputClusters, &mOutputFullClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
     }
   } else {
 
     LOG(DEBUG) << "PHOSClusterizer - run run on cells called";
 
-    printf("Getting cells \n");
     auto cells = ctx.inputs().get<std::vector<o2::phos::Cell>>("cells");
     // auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
     LOG(DEBUG) << "[PHOSClusterizer - run]  Received " << cells.size() << " cells, running clusterizer ...";
-    printf("Getting TR \n");
     // auto cellsTR = ctx.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cellTriggerRecords");
     auto cellsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("cellTriggerRecords");
     if (mPropagateMC) {
-      printf("Getting MC \n");
       std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("cellsmctr"));
       // truthmap = ctx.inputs().get<gsl::span<uint>>("cellssmcmap");
-      printf("Clustering \n");
-      mClusterizer.processCells(cells, cellsTR, truthcont.get(), &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+      mClusterizer.processCells(cells, cellsTR, truthcont.get(), &mOutputClusters, &mOutputFullClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
     } else {
-      printf("Clustering2 \n");
-      mClusterizer.processCells(cells, cellsTR, nullptr, &mOutputClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
+      mClusterizer.processCells(cells, cellsTR, nullptr, &mOutputClusters, &mOutputFullClusters, &mOutputClusterTrigRecs, &mOutputTruthCont); // Find clusters on digits (pass by ref)
     }
   }
 
@@ -77,16 +73,19 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
   } else {
     LOG(DEBUG) << "[PHOSClusterizer - run] Writing " << mOutputClusters.size() << " clusters and " << mOutputClusterTrigRecs.size() << " TR";
   }
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
-  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
+  if (mFullCluOutput) {
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputFullClusters);
+  } else {
+    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, mOutputClusters);
+  }
+  ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputClusterTrigRecs);
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
   }
-  LOG(INFO) << "Finished ";
   ctx.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
 }
 
-o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(bool propagateMC)
+o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(bool propagateMC, bool fullClu)
 {
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
@@ -96,7 +95,7 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(boo
     inputs.emplace_back("digitsmctr", "PHS", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
   }
   outputs.emplace_back("PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {
     outputs.emplace_back("PHS", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe);
   }
@@ -104,10 +103,10 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getClusterizerSpec(boo
   return o2::framework::DataProcessorSpec{"PHOSClusterizerSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, true)};
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, true, fullClu)};
 }
 
-o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec(bool propagateMC)
+o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec(bool propagateMC, bool fullClu)
 {
   //Cluaterizer with cell input
   std::vector<o2::framework::InputSpec> inputs;
@@ -118,7 +117,7 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec
     inputs.emplace_back("cellsmctr", "PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
   }
   outputs.emplace_back("PHS", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "CLUSTERTRIGRECS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe);
   if (propagateMC) {
     outputs.emplace_back("PHS", "CLUSTERTRUEMC", 0, o2::framework::Lifetime::Timeframe);
   }
@@ -126,5 +125,5 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellClusterizerSpec
   return o2::framework::DataProcessorSpec{"PHOSClusterizerSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, false)};
+                                          o2::framework::adaptFromTask<o2::phos::reco_workflow::ClusterizerSpec>(propagateMC, false, fullClu)};
 }

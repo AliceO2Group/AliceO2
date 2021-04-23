@@ -350,7 +350,7 @@ Integration with the InfoLogger subsystem of O2 happens in two way:
 ```c++
 #include <InfoLogger/InfoLogger.hxx>
 //...
-auto logger = context.services().get<InfoLogger>(); // In the DataProcessor lambda
+auto& logger = context.services().get<InfoLogger>(); // In the DataProcessor processing lambda
 ```
 
 * Implicitly, by using the standard FairLogger `LOG` macro. In order to enable this
@@ -362,6 +362,13 @@ auto logger = context.services().get<InfoLogger>(); // In the DataProcessor lamb
 ```
 
 Finally, one can configure the bahavior of the InfoLogger by using the `--infologger-mode` option.
+
+Notice also that you can actually customise the `InfoLoggerContext` which DPL uses to match your needs. This can be done getting it from the InitContext:
+
+```c++
+auto& context = initContext.services().get<InfoLoggerContext>(); // In the DataProcessor init lambda
+context.setField(InfoLoggerContext::FieldName::Facility, "my-custom-facility");
+```
 
 #### Callback service
 

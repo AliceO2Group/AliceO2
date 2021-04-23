@@ -7,19 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 /*
 I ran this code using following:
-o2-analysis-timestamp| o2-analysis-upc-forward  --aod-file <path to ao2d.txt> [--isPbPb]  --aod-memory-rate-limit 10000000000 --shm-segment-size 16000000000 -b
+o2-analysis-timestamp| o2-analysis-upc-forward | o2-analysis-event-selection  --aod-file <path to ao2d.txt> [--isPbPb] -b
 for now AO2D.root I am using is
-/alice/data/2015/LHC15o/000246392/pass5_lowIR/PWGZZ/Run3_Conversion/138_20210129-0800_child_1/0001/AO2D.root
-it can be copied using
-alien_cp alien:/alice/data/2015/LHC15o/000246392/pass5_lowIR/PWGZZ/Run3_Conversion/138_20210129-0800_child_1/0001/AO2D.root  file:./
+alien:///alice/data/2015/LHC15o/000246392/pass5_lowIR/PWGZZ/Run3_Conversion/148_20210304-0829_child_1/AOD/001/AO2D.root
 */
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
-#include "AnalysisDataModel/TrackSelectionTables.h"
 #include "AnalysisDataModel/EventSelection.h"
 #include <TH1D.h>
 #include <TH2D.h>
@@ -32,43 +28,77 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 #define mmuon 0.1057 //mass of muon
 struct UPCForward {
-  //defining histograms
-  OutputObj<TH1D> hMass{TH1D("hMass", ";#it{m_{#mu#mu}}, GeV/c^{2};", 500, 0, 10)};
-  OutputObj<TH1D> hPt{TH1D("hPt", ";#it{p_{t}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPx{TH1D("hPx", ";#it{p_{x}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPy{TH1D("hPy", ";#it{p_{y}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hPz{TH1D("hPz", ";#it{p_{z}}, GeV/c;", 500, 0., 5.)};
-  OutputObj<TH1D> hRap{TH1D("hRap", ";#it{y},..;", 500, -10., 10.)};
-  OutputObj<TH1D> hCharge{TH1D("hCharge", ";#it{charge},..;", 500, -10., 10.)};
-  OutputObj<TH1D> hSelectionCounter{TH1D("hSelectionCounter", ";#it{Selection},..;", 30, 0., 30.)};
-  OutputObj<TH1D> hPhi{TH1D("hPhi", ";#it{#Phi},;", 500, -6., 6.)};
+  //defining histograms using histogram registry
+  HistogramRegistry registry{
+    "registry",
+    {{"hMass", ";#it{m_{#mu#mu}}, GeV/c^{2};", {HistType::kTH1D, {{500, 0, 10}}}},
+     {"hPt", ";#it{p_{t}}, GeV/c;", {HistType::kTH1D, {{500, 0., 5.}}}},
+     {"hPtsingle_muons", ";#it{p_{t}}, GeV/c;", {HistType::kTH1D, {{500, 0., 5.}}}},
+     {"hPx", ";#it{p_{x}}, GeV/c;", {HistType::kTH1D, {{500, -5., 5.}}}},
+     {"hPy", ";#it{p_{y}}, GeV/c;", {HistType::kTH1D, {{500, -5., 5.}}}},
+     {"hPz", ";#it{p_{z}}, GeV/c;", {HistType::kTH1D, {{500, -5., 5.}}}},
+     {"hRap", ";#it{y},..;", {HistType::kTH1D, {{500, -10., 10.}}}},
+     {"hEta", ";#it{y},..;", {HistType::kTH1D, {{500, -10., 10.}}}},
+     {"hCharge", ";#it{charge},..;", {HistType::kTH1D, {{500, -10., 10.}}}},
+     {"hSelectionCounter", ";#it{Selection},..;", {HistType::kTH1I, {{30, 0., 30.}}}},
+     {"hPhi", ";#it{#Phi},;", {HistType::kTH1D, {{500, -6., 6.}}}}}};
 
   void init(o2::framework::InitContext&)
   {
-    TString SelectionCuts[6] = {"NoSelection", "CMup11Trigger", "twotracks", "oppositecharge", "-2.5<Eta<-4", "Pt<1"};
+    //TString SelectionCuts[8] = {"NoSelection", "CMup11and10Trigger","V0Selection","FDSelection", "twotracks", "oppositecharge", "-2.5<Eta<-4", "Pt<1"};
+
+    /* // commenting out this part now as histogram registry do not seem to suppor the binlabel using AxisSpec() or any other method
     for (int i = 0; i < 6; i++) {
-      hSelectionCounter->GetXaxis()->SetBinLabel(i + 1, SelectionCuts[i].Data());
-    }
+      registry.GetXaxis().(HIST("hSelectionCounter",SetBinLabel(i + 1, SelectionCuts[i].Data())));
+    }*/
   }
-  void process(aod::BC const& bc, aod::Muons const& tracksMuon)
+  //new
+  void process(soa::Join<aod::BCs, aod::BcSels>::iterator const& bc, aod::Muons const& tracksMuon)
   {
-    hSelectionCounter->Fill(0);
+    registry.fill(HIST("hSelectionCounter"), 0);
 
     int iMuonTracknumber = 0;
     TLorentzVector p1, p2, p;
     bool ispositive = kFALSE;
     bool isnegative = kFALSE;
-    /*this code below is suggested by evgeny.
-    this code is now hardcoded for run 246392 as we are not sure if trigger id is same for all the runs*/
-    uint64_t classIndexMUP11 = 54; // 246392
-    bool isMUP11fired = bc.triggerMask() & (1ull << classIndexMUP11);
-    if (!isMUP11fired) {
+
+    // V0 and FD information
+    bool isBeamBeamV0A = bc.bbV0A();
+    bool isBeamGasV0A = bc.bgV0A();
+    bool isBeamBeamV0C = bc.bbV0C();
+    bool isBeamGasV0C = bc.bgV0C();
+
+    bool isBeamBeamFDA = bc.bbFDA();
+    bool isBeamGasFDA = bc.bgFDA();
+    bool isBeamBeamFDC = bc.bbFDC();
+    bool isBeamGasFDC = bc.bgFDC();
+
+    //offline V0 and FD selection
+    bool isV0Selection = isBeamBeamV0A || isBeamGasV0A || isBeamGasV0C;
+    bool isFDSelection = isBeamBeamFDA || isBeamGasFDA || isBeamBeamFDC || isBeamGasFDC;
+
+    //CCUP10 and CCUP11 information
+    bool iskMUP11fired = bc.alias()[kMUP11];
+    bool iskMUP10fired = bc.alias()[kMUP10];
+
+    // selecting kMUP10 and 11 triggers
+    if (!iskMUP11fired && !iskMUP10fired) {
       return;
     }
-    LOGF(info, "mup11 fired");
-    hSelectionCounter->Fill(1);
+    registry.fill(HIST("hSelectionCounter"), 1);
+
+    if (isV0Selection) {
+      return;
+    }
+    registry.fill(HIST("hSelectionCounter"), 2);
+
+    if (isFDSelection) {
+      return;
+    }
+    registry.fill(HIST("hSelectionCounter"), 3);
+
     for (auto& muon : tracksMuon) {
-      hCharge->Fill(muon.sign());
+      registry.fill(HIST("hCharge"), muon.sign());
       iMuonTracknumber++;
       if (muon.sign() > 0) {
         p1.SetXYZM(muon.px(), muon.py(), muon.pz(), mmuon);
@@ -82,33 +112,38 @@ struct UPCForward {
     if (iMuonTracknumber != 2) {
       return;
     }
-    hSelectionCounter->Fill(2);
+    registry.fill(HIST("hSelectionCounter"), 4);
     if (!ispositive || !isnegative) {
       return;
     }
-    hSelectionCounter->Fill(3);
+    registry.fill(HIST("hSelectionCounter"), 5);
 
     if (-4 < p1.Eta() < -2.5 || -4 < p2.Eta() < -2.5) {
+
       return;
     }
-    hSelectionCounter->Fill(4);
+    registry.fill(HIST("hSelectionCounter"), 6);
     p = p1 + p2;
     if (p.Pt() > 1) {
       return;
     }
-    hSelectionCounter->Fill(5);
-    hPt->Fill(p.Pt());
-    hPx->Fill(p.Px());
-    hPy->Fill(p.Py());
-    hPz->Fill(p.Pz());
-    hRap->Fill(p.Rapidity());
-    hMass->Fill(p.M());
-    hPhi->Fill(p.Phi());
+    registry.fill(HIST("hSelectionCounter"), 7);
+    registry.fill(HIST("hPt"), p.Pt());
+    registry.fill(HIST("hPx"), p.Px());
+    registry.fill(HIST("hPy"), p.Py());
+    registry.fill(HIST("hPz"), p.Pz());
+    registry.fill(HIST("hRap"), p.Rapidity());
+    registry.fill(HIST("hMass"), p.M());
+    registry.fill(HIST("hPhi"), p.Phi());
+    registry.fill(HIST("hEta"), p1.Eta());
+    registry.fill(HIST("hEta"), p2.Eta());
+    registry.fill(HIST("hPtsingle_muons"), p1.Pt());
+    registry.fill(HIST("hPtsingle_muons"), p2.Pt());
 
   } //end of process
 };
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<UPCForward>(cfgc, "upc-forward")};
+    adaptAnalysisTask<UPCForward>(cfgc)};
 }

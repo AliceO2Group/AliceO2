@@ -37,7 +37,7 @@
 #include "Framework/runDataProcessing.h"
 
 #include "DPLUtils/DPLRawParser.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHRawDecoder/OrbitInfo.h"
 
 using namespace o2;
@@ -94,7 +94,7 @@ class DigitsSinkTask
       }
       mOutputFile << "---------------" << std::endl;
       for (auto d : digits) {
-        mOutputFile << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
+        mOutputFile << " DE# " << d.getDetID() << "  PadId " << d.getPadID() << "  ADC " << d.getADC() << "  time " << d.getTime() << std::endl;
       }
     } else {
       int nDigits = digits.size();

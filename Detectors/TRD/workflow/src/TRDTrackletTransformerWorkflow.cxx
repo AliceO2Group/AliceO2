@@ -35,7 +35,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec spec;
 
   if (rootIn) {
-    spec.emplace_back(o2::trd::getTRDTrackletReaderSpec(0));
+    spec.emplace_back(o2::trd::getTRDTrackletReaderSpec(false, false));
   }
 
   spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec());

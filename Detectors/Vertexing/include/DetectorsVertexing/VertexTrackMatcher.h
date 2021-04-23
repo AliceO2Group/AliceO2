@@ -23,7 +23,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "MathUtils/Primitive2D.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 namespace o2
 {
@@ -73,7 +73,6 @@ class VertexTrackMatcher
   float mTPCBin2MUS = 0;
   const o2::vertexing::PVertexerParams* mPVParams = nullptr;
 
-  ClassDefNV(VertexTrackMatcher, 1);
 };
 
 } // namespace vertexing

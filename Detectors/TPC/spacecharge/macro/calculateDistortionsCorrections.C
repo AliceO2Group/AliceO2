@@ -183,6 +183,13 @@ void writeToTree(o2::tpc::SpaceCharge<DataT, Nz, Nr, Nphi>& spaceCharge3D, o2::u
         auto lcorrZ = spaceCharge3D.getLocalCorrZ(iZ, iR, iPhi, side);
         auto lcorrRPhi = spaceCharge3D.getLocalCorrRPhi(iZ, iR, iPhi, side);
 
+        auto lvecdistR = spaceCharge3D.getLocalVecDistR(iZ, iR, iPhi, side);
+        auto lvecdistZ = spaceCharge3D.getLocalVecDistZ(iZ, iR, iPhi, side);
+        auto lvecdistRPhi = spaceCharge3D.getLocalVecDistRPhi(iZ, iR, iPhi, side);
+        auto lveccorrR = spaceCharge3D.getLocalVecCorrR(iZ, iR, iPhi, side);
+        auto lveccorrZ = spaceCharge3D.getLocalVecCorrZ(iZ, iR, iPhi, side);
+        auto lveccorrRPhi = spaceCharge3D.getLocalVecCorrRPhi(iZ, iR, iPhi, side);
+
         auto distR = spaceCharge3D.getGlobalDistR(iZ, iR, iPhi, side);
         auto distZ = spaceCharge3D.getGlobalDistZ(iZ, iR, iPhi, side);
         auto distRPhi = spaceCharge3D.getGlobalDistRPhi(iZ, iR, iPhi, side);
@@ -241,6 +248,14 @@ void writeToTree(o2::tpc::SpaceCharge<DataT, Nz, Nr, Nphi>& spaceCharge3D, o2::u
                  << "lcorrR=" << lcorrR
                  << "lcorrZ=" << lcorrZ
                  << "lcorrRPhi=" << lcorrRPhi
+                 // local distortion vector
+                 << "lvecdistR=" << lvecdistR
+                 << "lvecdistZ=" << lvecdistZ
+                 << "lvecdistRPhi=" << lvecdistRPhi
+                 // local correction  vector
+                 << "lveccorrR=" << lveccorrR
+                 << "lveccorrZ=" << lveccorrZ
+                 << "lveccorrRPhi=" << lveccorrRPhi
                  // global distortions
                  << "distR=" << distR
                  << "distZ=" << distZ
@@ -343,7 +358,8 @@ void calculateDistortionsFromHist(const char* path, const char* histoName, const
     spaceCharge3D.setGlobalDistType(distType);
     const auto eType = globalEFieldType == 1 ? SC::GlobalDistCorrMethod::LocalDistCorr : SC::GlobalDistCorrMethod::ElectricalField;
     spaceCharge3D.setGlobalDistCorrMethod(eType);
-    spaceCharge3D.calculateDistortionsCorrections(side);
+    const bool calcLocalVectors = true;
+    spaceCharge3D.calculateDistortionsCorrections(side, calcLocalVectors);
     // write to root file
     pcstream.GetFile()->cd();
     writeToTree(spaceCharge3D, pcstream, side);

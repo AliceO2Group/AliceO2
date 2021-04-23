@@ -74,6 +74,8 @@ class DigitDataReader : public DataReader
 
   Bool_t getNextStripData(StripData& stripData) override;
 
+  const gsl::span<const o2::tof::Digit>* getDigitArray() const { return mDigitArray; }
+
  private:
   const gsl::span<const o2::tof::Digit>* mDigitArray = nullptr;
   const Digit* mLastDigit = nullptr;

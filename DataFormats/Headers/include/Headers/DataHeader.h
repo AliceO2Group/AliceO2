@@ -42,9 +42,7 @@
 #include "MemoryResources/Types.h"
 #include <cerrno>
 
-namespace o2
-{
-namespace header
+namespace o2::header
 {
 
 //__________________________________________________________________________________________________
@@ -148,10 +146,6 @@ struct TraitsIntType<4> {
   using Type = uint32_t;
 };
 
-struct defaultPrinter {
-  void operator()(const char* str) const {}
-};
-
 /// compile time evaluation of a string length, which is either N - 1 or
 /// shorter if one character in the array has been set to 0.
 template <int N>
@@ -253,7 +247,7 @@ struct DescriptorCompareTraits<2> {
 /// solution is working also for multiples of 64 bit, but then the itg member needs
 /// to be an array for all. This has not been enabled yet, first the implications
 /// have to be studied.
-template <std::size_t N, typename PrinterPolicy = internal::defaultPrinter>
+template <std::size_t N>
 struct Descriptor {
   static_assert(internal::NumberOfActiveBits<N>::value == 1,
                 "Descriptor size is required to be a power of 2");
@@ -351,13 +345,6 @@ struct Descriptor {
     std::string ret(str, len);
     return std::move(ret);
   }
-  // print function needs to be implemented for every derivation
-  void print() const
-  {
-    // eventually terminate string before printing
-    PrinterPolicy printer;
-    printer(str);
-  };
 };
 
 //__________________________________________________________________________________________________
@@ -593,20 +580,8 @@ T stoui(const std::string& str, size_t* pos = nullptr, int base = 10)
   }
 };
 
-//__________________________________________________________________________________________________
-/// this 128 bit type for a header field describing the payload data type
-struct printDataDescription {
-  void operator()(const char* str) const;
-};
-
-using DataDescription = Descriptor<gSizeDataDescriptionString, printDataDescription>;
-
-//__________________________________________________________________________________________________
-// 32bit (4 characters) for data origin, ex. the detector or subsystem name
-struct printDataOrigin {
-  void operator()(const char* str) const;
-};
-using DataOrigin = Descriptor<gSizeDataOriginString, printDataOrigin>;
+using DataOrigin = Descriptor<gSizeDataOriginString>;
+using DataDescription = Descriptor<gSizeDataDescriptionString>;
 
 //__________________________________________________________________________________________________
 /// @defgroup data_description_defines Defines for data description
@@ -638,6 +613,8 @@ constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
 #ifdef ENABLE_UPGRADES
 constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
 constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
+constexpr o2::header::DataOrigin gDataOriginFT3{"FT3"};
+
 #endif
 
 //possible data types
@@ -787,7 +764,6 @@ struct DataHeader : public BaseHeader {
   bool operator==(const DataOrigin&) const;          //comparison
   bool operator==(const DataDescription&) const;     //comparison
   bool operator==(const SerializationMethod&) const; //comparison
-  void print() const;                                ///pretty print the contents
 
   static const DataHeader* Get(const BaseHeader* baseHeader)
   {
@@ -816,7 +792,6 @@ struct DataIdentifier {
   }
 
   bool operator==(const DataIdentifier&) const;
-  void print() const;
 };
 
 //__________________________________________________________________________________________________
@@ -837,8 +812,14 @@ static_assert(gSizeMagicString == sizeof(BaseHeader::magicStringInt),
 static_assert(sizeof(BaseHeader::sMagicString) == sizeof(BaseHeader::magicStringInt),
               "Inconsitent size of global magic identifier");
 
-} //namespace header
+template <typename T>
+struct is_descriptor : std::false_type {
+};
 
-} //namespace o2
+template <std::size_t S>
+struct is_descriptor<o2::header::Descriptor<S>> : std::true_type {
+};
+
+} //namespace o2::header
 
 #endif

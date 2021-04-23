@@ -30,7 +30,7 @@ namespace hmpid
 {
 
 const int MAXERRORS = 13;
-const int MAXHMPIDERRORS = 5;
+const int MAXHMPIDERRORS = 6;
 
 const int ERR_NOTKNOWN = 0;
 const int ERR_ROWMARKEMPTY = 1;

@@ -16,7 +16,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;

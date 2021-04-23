@@ -71,14 +71,33 @@ NodeColor
   return result;
 }
 
+/// Color choices
+const static ImColor INPUT_SLOT_COLOR = {150, 150, 150, 150};
+const static ImColor OUTPUT_SLOT_COLOR = {150, 150, 150, 150};
+const static ImVec4& ERROR_MESSAGE_COLOR = PaletteHelpers::RED;
+const static ImVec4& WARNING_MESSAGE_COLOR = PaletteHelpers::YELLOW;
+const static ImColor ARROW_COLOR = {200, 200, 100};
+const static ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
+const static ImColor NODE_BORDER_COLOR = {100, 100, 100};
+const static ImColor LEGEND_COLOR = {100, 100, 100};
+
+/// Layout choices
+const static float GRID_SZ = 64.0f;
+const static float ARROW_THICKNESS = 3.f;
+const static float NODE_BORDER_THICKNESS = 4.f;
+const static ImVec4 LEGEND_BACKGROUND_COLOR = {0.125, 0.180, 0.196, 1};
+
+const static ImVec4 SLOT_EMPTY_COLOR = {0.275, 0.275, 0.275, 1.};
+const static ImVec4& SLOT_PENDING_COLOR = PaletteHelpers::RED;
+const static ImVec4& SLOT_DISPATCHED_COLOR = PaletteHelpers::YELLOW;
+const static ImVec4& SLOT_DONE_COLOR = PaletteHelpers::GREEN;
+
 /// Displays a grid
 void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
 {
   if (show_grid == false) {
     return;
   }
-  ImU32 GRID_COLOR = ImColor(200, 200, 200, 40);
-  float GRID_SZ = 64.0f;
   ImVec2 win_pos = ImGui::GetCursorScreenPos();
   ImVec2 canvas_sz = ImGui::GetWindowSize();
   for (float x = fmodf(offset.x, GRID_SZ); x < canvas_sz.x; x += GRID_SZ) {
@@ -87,6 +106,40 @@ void displayGrid(bool show_grid, ImVec2 offset, ImDrawList* draw_list)
   for (float y = fmodf(offset.y, GRID_SZ); y < canvas_sz.y; y += GRID_SZ) {
     draw_list->AddLine(ImVec2(0.0f, y) + win_pos, ImVec2(canvas_sz.x, y) + win_pos, GRID_COLOR);
   }
+}
+
+void displayLegend(bool show_legend, ImVec2 offset, ImDrawList* draw_list)
+{
+  if (show_legend == false) {
+    return;
+  }
+  struct LegendItem {
+    std::string label;
+    const ImVec4& color;
+  };
+  static auto legend = {
+    LegendItem{"   Slot empty", SLOT_EMPTY_COLOR},
+    LegendItem{"   Slot pending", SLOT_PENDING_COLOR},
+    LegendItem{"   Slot dispatched", SLOT_DISPATCHED_COLOR},
+    LegendItem{"   Slot done", SLOT_DONE_COLOR},
+  };
+  ImGui::PushStyleColor(ImGuiCol_WindowBg, LEGEND_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_TitleBg, LEGEND_BACKGROUND_COLOR);
+  ImGui::PushStyleColor(ImGuiCol_ResizeGrip, 0);
+
+  ImGui::Begin("Legend");
+  ImGui::Dummy(ImVec2(0.0f, 10.0f));
+  for (auto [label, color] : legend) {
+    ImVec2 vMin = ImGui::GetWindowPos() + ImGui::GetCursorPos() + ImVec2(9, 0);
+    ImVec2 vMax = vMin + ImGui::CalcTextSize(" ");
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, color);
+    ImGui::GetWindowDrawList()->AddRectFilled(vMin, vMax, ImColor(color));
+    ImGui::GetWindowDrawList()->AddRect(vMin, vMax, GRID_COLOR);
+    ImGui::Text("%s", label.data());
+    ImGui::PopStyleColor();
+  }
+  ImGui::End();
+  ImGui::PopStyleColor(3);
 }
 
 #define MAX_GROUP_NAME_SIZE 128
@@ -184,6 +237,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   static bool inited = false;
   static ImVec2 scrolling = ImVec2(0.0f, 0.0f);
   static bool show_grid = true;
+  static bool show_legend = true;
   static int node_selected = -1;
 
   auto prepareChannelView = [&specs, &metadata](ImVector<Node>& nodeList, ImVector<Group>& groupList) {
@@ -290,7 +344,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto& node = sortedNodes[si];
       assert(node.index == si);
       int xpos = 40 + 240 * node.layer;
-      int ypos = 300 + (600 / (layerMax[node.layer] + 1)) * (layerEntries[node.layer] - layerMax[node.layer] / 2);
+      int ypos = 300 + (std::max(600, 60 * (int)layerMax[node.layer]) / (layerMax[node.layer] + 1)) * (layerEntries[node.layer] - layerMax[node.layer] / 2);
       positions.push_back(NodePos{ImVec2(xpos, ypos)});
       layerEntries[node.layer] += 1;
     }
@@ -304,6 +358,8 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
   // Create our child canvas
   ImGui::BeginGroup();
   ImGui::Checkbox("Show grid", &show_grid);
+  ImGui::SameLine();
+  ImGui::Checkbox("Show legend", &show_legend);
   ImGui::SameLine();
   if (ImGui::Button("Center")) {
     scrolling = ImVec2(0., 0.);
@@ -408,7 +464,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     NodeLink* link = &links[link_idx];
     ImVec2 p1 = offset + NodePos::GetOutputSlotPos(nodes, positions, link->InputIdx, link->InputSlot);
     ImVec2 p2 = ImVec2(-3 * NODE_SLOT_RADIUS, 0) + offset + NodePos::GetInputSlotPos(nodes, positions, link->OutputIdx, link->OutputSlot);
-    draw_list->AddBezierCurve(p1, p1 + ImVec2(+50, 0), p2 + ImVec2(-50, 0), p2, ImColor(200, 200, 100), 3.0f);
+    draw_list->AddBezierCurve(p1, p1 + ImVec2(+50, 0), p2 + ImVec2(-50, 0), p2, ARROW_COLOR, ARROW_THICKNESS);
   }
 
   // Display nodes
@@ -436,11 +492,11 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     switch (info.maxLogLevel) {
       case LogLevel::Error:
         ImGui::SameLine();
-        ImGui::TextColored(ImVec4(1, 0, 0, 1), "%s", ICON_FA_EXCLAMATION_CIRCLE);
+        ImGui::TextColored(ERROR_MESSAGE_COLOR, "%s", ICON_FA_EXCLAMATION_CIRCLE);
         break;
       case LogLevel::Warning:
         ImGui::SameLine();
-        ImGui::TextColored(ImVec4(0, 1, 1, 1), "%s", ICON_FA_EXCLAMATION_TRIANGLE);
+        ImGui::TextColored(WARNING_MESSAGE_COLOR, "%s", ICON_FA_EXCLAMATION_TRIANGLE);
         break;
       default:
         break;
@@ -498,23 +554,23 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     draw_list->AddRectFilled(node_rect_min + ImVec2(3.f, 3.f), node_rect_max + ImVec2(3.f, 3.f), ImColor(0, 0, 0, 70), 4.0f);
     draw_list->AddRectFilled(node_rect_min, node_rect_max, node_bg_color, 4.0f);
     draw_list->AddRectFilled(node_rect_min, node_rect_title, node_title_color, 4.0f);
-    draw_list->AddRect(node_rect_min, node_rect_max, ImColor(100, 100, 100), 4.0f);
+    draw_list->AddRect(node_rect_min, node_rect_max, NODE_BORDER_COLOR, NODE_BORDER_THICKNESS);
     for (int slot_idx = 0; slot_idx < node->InputsCount; slot_idx++) {
-      auto color = ImColor(200, 200, 100);
       ImVec2 p1(-3 * NODE_SLOT_RADIUS, NODE_SLOT_RADIUS), p2(-3 * NODE_SLOT_RADIUS, -NODE_SLOT_RADIUS), p3(0, 0);
       auto pp1 = p1 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
       auto pp2 = p2 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
       auto pp3 = p3 + offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx);
-      draw_list->AddTriangleFilled(pp1, pp2, pp3, color);
-      draw_list->AddCircleFilled(offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, ImColor(150, 150, 150, 150));
+      draw_list->AddTriangleFilled(pp1, pp2, pp3, ARROW_COLOR);
+      draw_list->AddCircleFilled(offset + NodePos::GetInputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, INPUT_SLOT_COLOR);
     }
     for (int slot_idx = 0; slot_idx < node->OutputsCount; slot_idx++) {
-      draw_list->AddCircleFilled(offset + NodePos::GetOutputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, ImColor(150, 150, 150, 150));
+      draw_list->AddCircleFilled(offset + NodePos::GetOutputSlotPos(nodes, positions, node_idx, slot_idx), NODE_SLOT_RADIUS, OUTPUT_SLOT_COLOR);
     }
 
     ImGui::PopID();
   }
   draw_list->ChannelsMerge();
+  displayLegend(show_legend, offset, draw_list);
 
   // Open context menu
   if (!ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) && ImGui::IsMouseClicked(1)) {

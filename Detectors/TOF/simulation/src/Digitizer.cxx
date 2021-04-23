@@ -105,7 +105,7 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
   for (auto& hit : *hits) {
     //TODO: put readout window counting/selection
 
-    processHit(hit, mEventTime.getTimeOffsetWrtBC());
+    processHit(hit, mEventTime.getTimeOffsetWrtBC() + Geo::LATENCYWINDOW);
   } // end loop over hits
 
   if (!mContinuous) { // fill output container per event

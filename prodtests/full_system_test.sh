@@ -18,6 +18,8 @@
 # --> utilities to query CPU count
 . ${O2_ROOT}/share/scripts/jobutils.sh
 
+# make sure that correct format will be used irrespecive of the locale
+LC_NUMERIC=C
 
 NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 NEventsQED=${NEventsQED:-1000} #35000 for full TF
@@ -32,6 +34,11 @@ TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
 O2SIMSEED=${O2SIMSEED:--1}
 SPLITTRDDIGI=${SPLITTRDDIGI:-1}
+NHBPERTF=${NHBPERTF:-128}
+RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
+FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
+
+[ "$FIRSTSAMPLEDORBIT" -lt "$RUNFIRSTORBIT" ] && FIRSTSAMPLEDORBIT=$RUNFIRSTORBIT
 
 # allow skipping
 JOBUTILS_SKIPDONE=ON
@@ -50,6 +57,9 @@ echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METR
 
 GLOBALDPLOPT="-b" #  --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
+HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT}"
+[ "0$ALLOW_MULTIPLE_TF" != "01" ] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=${NHBPERTF};"
+
 ulimit -n 4096 # Make sure we can open sufficiently many files
 [ $? == 0 ] || (echo Failed setting ulimit && exit 1)
 mkdir -p qed
@@ -60,36 +70,42 @@ QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
 
-DIGITRDOPTREAL="--configKeyValues \"TRDSimParams.digithreads=${NJOBS}\"" # --enable-trd-trapsim
+DIGITRDOPTREAL="--configKeyValues \"${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS}\" "
 if [ $SPLITTRDDIGI == "1" ]; then
-  DIGITRDOPT="--skipDet TRD"
+  DIGITRDOPT="--configKeyValues \"${HBFUTILPARAMS}\" --skipDet TRD"
 else
   DIGITRDOPT=$DIGITRDOPTREAL
 fi
 
-taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --skipModules ZDC --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
-taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
-[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --firstOrbit 0 --firstBC 0 --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
+taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
+[ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
+touch digiTRD.log_done
 
-if [ "0$GENERATE_ITS_DICTIONARY" == "01" ]; then
-  taskwrapper itsdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
-  cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CheckTopologies.C .
-  taskwrapper itsdict2.log root -b -q CheckTopologies.C++
+if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then
+  taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
+  cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CreateDictionaries.C .
+  taskwrapper itsmftdict2.log root -b -q CreateDictionaries.C++
+  taskwrapper itsmftdict3.log o2-mft-reco-workflow --disable-mc
+  cp ~/alice/O2/Detectors/ITSMFT/MFT/macros/test/CheckTopologies.C .
+  taskwrapper itsmftdict4.log root -b -q CheckTopologies.C++
   rm -f CheckTopologies_C*
 fi
 
 mkdir -p raw
-taskwrapper itsraw.log o2-its-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/ITS
-taskwrapper mftraw.log o2-mft-digi2raw --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/MFT
-taskwrapper ft0raw.log o2-ft0-digi2raw --file-per-link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/FT0
-taskwrapper fv0raw.log o2-fv0-digi2raw --file-per-link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/FV0
-taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/FDD
-taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -i tpcdigits.root -o raw/TPC
-taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' --output-type raw --tof-raw-outdir raw/TOF
-taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink  --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"'
-taskwrapper emcraw.log o2-emcal-rawcreator --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/EMC
-taskwrapper phsraw.log o2-phos-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/PHS
-taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link --configKeyValues '"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0"' -o raw/CPV
+taskwrapper itsraw.log o2-its-digi2raw --file-for link  -o raw/ITS
+taskwrapper mftraw.log o2-mft-digi2raw --file-for link  -o raw/MFT
+taskwrapper ft0raw.log o2-ft0-digi2raw --file-per-link  -o raw/FT0
+taskwrapper fv0raw.log o2-fv0-digi2raw --file-per-link  -o raw/FV0
+taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link  -o raw/FDD
+taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link  -i tpcdigits.root -o raw/TPC
+taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --output-type raw --tof-raw-outdir raw/TOF
+taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink
+taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
+taskwrapper phsraw.log o2-phos-digi2raw  --file-for link -o raw/PHS
+taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link -o raw/CPV
+taskwrapper zdcraw.log o2-zdc-digi2raw  --file-per-link -o raw/ZDC
+taskwrapper hmpraw.log o2-hmpid-digits-to-raw-workflow --file-for link --outdir raw/HMP
 cat raw/*/*.cfg > rawAll.cfg
 
 if [ "0$DISABLE_PROCESSING" == "01" ]; then
@@ -130,7 +146,6 @@ for STAGE in $STAGES; do
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY
     export CTFINPUT=0
     export SAVECTF=1
-    JOBUTILS_JOB_SKIPCREATEDONE=1 taskwrapper ${logfile} "rm -f ctf_dictionary.root"
     unset JOBUTILS_JOB_SKIPCREATEDONE
   fi
   export SHMSIZE

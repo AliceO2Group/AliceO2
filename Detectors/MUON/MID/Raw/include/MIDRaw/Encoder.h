@@ -27,7 +27,7 @@
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/FEEIdConfig.h"
 #include "MIDRaw/GBTUserLogicEncoder.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 class RDHAny;
 
@@ -51,22 +51,22 @@ class Encoder
 
  private:
   void completeWord(std::vector<char>& buffer);
-  void writePayload(uint16_t feeId, const InteractionRecord& ir);
+  void writePayload(uint16_t linkId, const InteractionRecord& ir);
   void onOrbitChange(uint32_t orbit);
-  // Returns the interaction record expected for the orbit trigger
+  /// Returns the interaction record expected for the orbit trigger
   inline InteractionRecord getOrbitIR(uint32_t orbit) const { return {o2::constants::lhc::LHCMaxBunches - 1, orbit}; }
 
   o2::raw::RawFileWriter mRawWriter{o2::header::gDataOriginMID}; /// Raw file writer
 
-  std::map<uint16_t, LocalBoardRO> mROData{}; /// Map of data per board
-  ColumnDataToLocalBoard mConverter{};        /// ColumnData to LocalBoardRO converter
-  FEEIdConfig mFEEIdConfig{};                 /// Crate FEEId mapper
-  InteractionRecord mLastIR{};                /// Last interaction record
+  std::map<uint16_t, ROBoard> mROData{}; /// Map of data per board
+  ColumnDataToLocalBoard mConverter{};   /// ColumnData to ROBoard converter
+  FEEIdConfig mFEEIdConfig{};            /// Crate FEEId mapper
+  InteractionRecord mLastIR{};           /// Last interaction record
 
-  std::array<GBTUserLogicEncoder, crateparams::sNGBTs> mGBTEncoders{};     /// Array of encoders per link
-  std::array<std::vector<char>, crateparams::sNGBTs> mOrbitResponse{};     /// Response to orbit trigger
-  std::array<std::vector<char>, crateparams::sNGBTs> mOrbitResponseWord{}; /// CRU word for response to orbit trigger
-  std::array<uint32_t, crateparams::sNGBTs> mGBTIds{};                     /// Array of GBT Ids
+  std::array<uint32_t, crateparams::sNGBTs> mGBTIds{};                 /// Array of GBT Ids
+  std::array<GBTUserLogicEncoder, crateparams::sNGBTs> mGBTEncoders{}; /// Array of encoders per link
+  std::array<std::vector<char>, 4> mOrbitResponse{};                   /// Response to orbit trigger
+  std::array<std::vector<char>, 4> mOrbitResponseWord{};               /// CRU word for response to orbit trigger
 };
 } // namespace mid
 } // namespace o2

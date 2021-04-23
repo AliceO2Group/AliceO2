@@ -136,35 +136,6 @@ class CcdbApi //: public DatabaseInterface
    * @param path The path where the object is to be found.
    * @param metadata Key-values representing the metadata to filter out objects.
    * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
-   * @return the object, or nullptr if none were found.
-   * @deprecated in favour of retrieveFromTFileAny
-   */
-  TObject* retrieve(std::string const& path, std::map<std::string, std::string> const& metadata,
-                    long timestamp = -1) const;
-
-  /**
-   * Retrieve object at the given path for the given timestamp.
-   *
-   * @param path The path where the object is to be found.
-   * @param metadata Key-values representing the metadata to filter out objects.
-   * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
-   * @param headers Map to be populated with the headers we received, if it is not null.
-   * @param optional etag from previous call
-   * @param optional createdNotAfter upper time limit for the object creation timestamp (TimeMachine mode)
-   * @param optional createdNotBefore lower time limit for the object creation timestamp (TimeMachine mode)
-   * @return the object, or nullptr if none were found.
-   * @deprecated in favour of retrieveFromTFileAny as it is not limited to TObjects.
-   */
-  TObject* retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata,
-                             long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
-                             const std::string& createdNotAfter = "", const std::string& createdNotBefore = "") const;
-
-  /**
-   * Retrieve object at the given path for the given timestamp.
-   *
-   * @param path The path where the object is to be found.
-   * @param metadata Key-values representing the metadata to filter out objects.
-   * @param timestamp Timestamp of the object to retrieve. If omitted, current timestamp is used.
    * @param headers Map to be populated with the headers we received, if it is not null.
    * @param optional etag from previous call
    * @param optional createdNotAfter upper time limit for the object creation timestamp (TimeMachine mode)
@@ -362,7 +333,6 @@ class CcdbApi //: public DatabaseInterface
   void storeAsTFile_impl(const void* obj1, std::type_info const& info, std::string const& path, std::map<std::string, std::string> const& metadata,
                          long startValidityTimestamp = -1, long endValidityTimestamp = -1) const;
 
- private:
   /**
    * A generic helper implementation to query obj whose type is given by a std::type_info
    */
@@ -370,6 +340,7 @@ class CcdbApi //: public DatabaseInterface
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
                           const std::string& createdNotAfter = "", const std::string& createdNotBefore = "") const;
 
+ private:
   /**
    * A helper function to extract object from a local ROOT file
    * @param filename name of ROOT file

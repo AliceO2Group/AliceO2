@@ -41,6 +41,13 @@ struct ContextRef {
   inline bool operator==(ContextRef const& other) const;
 };
 
+/// Special positions for variables in context.
+enum ContextPos {
+  STARTTIME_POS = 0,    /// The DataProcessingHeader::startTime associated to the timeslice
+  TFCOUNTER_POS = 14,   /// The DataHeader::tfCounter associated to the timeslice
+  FIRSTTFORBIT_POS = 15 /// The DataHeader::firstTFOrbit associated to the timeslice
+};
+
 /// An element of the matching context. Context itself is really a vector of
 /// those. It's up to the matcher builder to build the vector in a suitable way.
 /// We do not have any float in the value, because AFAICT there is no need for
@@ -189,7 +196,7 @@ class StartTimeValueMatcher : public ValueHolder<uint64_t>
   /// This will match the timing information which is currently in
   /// the DataProcessingHeader. Notice how we apply the scale to the
   /// actual values found.
-  bool match(DataProcessingHeader const& dph, VariableContext& context) const;
+  bool match(header::DataHeader const& dh, DataProcessingHeader const& dph, VariableContext& context) const;
 
  private:
   uint64_t mScale;

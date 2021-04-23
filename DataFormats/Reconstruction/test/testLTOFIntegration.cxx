@@ -32,8 +32,8 @@ BOOST_AUTO_TEST_CASE(TrackLTIntegral)
   const int nStep = 100;
   const float dx2x0 = 0.01f;
   for (int i = 0; i < nStep; i++) {
-    lt.addStep(1., trc);
-    lt1.addStep(1., trc1);
+    lt.addStep(1., trc.getP2Inv());
+    lt1.addStep(1., trc1.getP2Inv());
     lt1.addX2X0(dx2x0);
   }
   trc.printParam();

@@ -65,9 +65,9 @@ struct ETask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<BTask>(cfgc, "consume-v0s"),
-    adaptAnalysisTask<CTask>(cfgc, "consume-cascades"),
-    adaptAnalysisTask<DTask>(cfgc, "consume-grouped-v0s"),
-    adaptAnalysisTask<ETask>(cfgc, "consume-grouped-cascades"),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"consume-v0s"}),
+    adaptAnalysisTask<CTask>(cfgc, TaskName{"consume-cascades"}),
+    adaptAnalysisTask<DTask>(cfgc, TaskName{"consume-grouped-v0s"}),
+    adaptAnalysisTask<ETask>(cfgc, TaskName{"consume-grouped-cascades"}),
   };
 }

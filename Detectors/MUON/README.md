@@ -10,4 +10,5 @@ The MUON subsystem is composed of three detectors : [MFT](../ITSMFT/MFT), [MCH](
 * \subpage refDetectorsITSMFT
 * \subpage refDetectorsMUONMID
 * \subpage refDetectorsMUONMCH
+* \subpage refDetectorsMUONCommon
 /doxy -->

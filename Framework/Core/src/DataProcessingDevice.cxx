@@ -78,15 +78,15 @@ void idle_timer(uv_timer_t* handle)
   ZoneScopedN("Idle timer");
 }
 
-DataProcessingDevice::DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry& registry, DeviceState& state)
-  : mSpec{spec},
+DataProcessingDevice::DataProcessingDevice(RunningWorkflowInfo const& runningWorkflow, RunningDeviceRef ref, ServiceRegistry& registry, DeviceState& state)
+  : mSpec{runningWorkflow.devices[ref.index]},
     mState{state},
-    mInit{spec.algorithm.onInit},
+    mInit{mSpec.algorithm.onInit},
     mStatefulProcess{nullptr},
-    mStatelessProcess{spec.algorithm.onProcess},
-    mError{spec.algorithm.onError},
+    mStatelessProcess{mSpec.algorithm.onProcess},
+    mError{mSpec.algorithm.onError},
     mConfigRegistry{nullptr},
-    mAllocator{&mTimingInfo, &registry, spec.outputs},
+    mAllocator{&mTimingInfo, &registry, mSpec.outputs},
     mServiceRegistry{registry}
 {
   /// FIXME: move erro handling to a service?
@@ -262,6 +262,21 @@ void DataProcessingDevice::Init()
       mState.inputChannelInfos[ci].state = InputChannelState::Pull;
     }
   }
+  uv_async_t* wakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
+  assert(mState.loop);
+  int res = uv_async_init(mState.loop, wakeHandle, nullptr);
+  if (res < 0) {
+    LOG(ERROR) << "Unable to initialise subscription";
+  }
+
+  /// This should post a message on the queue...
+  SubscribeToNewTransition("dpl", [wakeHandle](fair::mq::Transition t) {
+    int res = uv_async_send(wakeHandle);
+    if (res < 0) {
+      LOG(ERROR) << "Unable to notify subscription";
+    }
+    LOG(debug) << "State transition requested";
+  });
 }
 
 void on_signal_callback(uv_signal_t* handle, int signum)
@@ -409,6 +424,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context)
 
 void DataProcessingDevice::PreRun()
 {
+  mServiceRegistry.preStartCallbacks();
   mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start);
 }
 
@@ -433,7 +449,15 @@ bool DataProcessingDevice::ConditionalRun()
     auto shouldNotWait = (mWasActive &&
                           (mDataProcessorContexes.at(0).state->streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ||
                          (mDataProcessorContexes.at(0).state->streaming == StreamingState::EndOfStreaming);
+    if (NewStatePending()) {
+      shouldNotWait = true;
+    }
     uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+
+    // A new state was requested, we exit.
+    if (NewStatePending()) {
+      return false;
+    }
   }
 
   // Notify on the main thread the new region callbacks, making sure
@@ -491,8 +515,10 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       continue;
     }
     int64_t result = -2;
-    auto& fairMQChannel = context.device->GetChannel(channel.name, 0);
-    auto& socket = fairMQChannel.GetSocket();
+    if (info.channel == nullptr) {
+      info.channel = &context.device->GetChannel(channel.name, 0);
+    }
+    auto& socket = info.channel->GetSocket();
     // If we have pending events from a previous iteration,
     // we do receive in any case.
     // Otherwise we check if there is any pending event and skip
@@ -514,7 +540,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
     // to process.
     while (true) {
       FairMQParts parts;
-      result = fairMQChannel.Receive(parts, 0);
+      result = info.channel->Receive(parts, 0);
       if (result >= 0) {
         DataProcessingDevice::handleData(context, parts, info);
         // Receiving data counts as activity now, so that
@@ -543,6 +569,10 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     registry->get<ControlService>().notifyStreamingState(state->streaming);
   };
 
+  if (context.state->streaming == StreamingState::Idle) {
+    return;
+  }
+
   context.completed->clear();
   context.completed->reserve(16);
   *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
@@ -552,7 +582,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   if (*context.wasActive == false) {
     context.registry->get<CallbackService>()(CallbackService::Id::Idle);
   }
-  auto activity = context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry);
+  auto activity = context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
 
   context.completed->clear();
@@ -574,7 +604,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
     while (DataProcessingDevice::tryDispatchComputation(context, *context.completed)) {
-      context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry);
+      context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, *context.allocator};
 
@@ -812,6 +842,10 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return InputRecord{spec->inputs, std::move(span)};
   };
 
+  auto markInputsAsDone = [&relayer = context.relayer](TimesliceSlot slot) -> void {
+    relayer->updateCacheStatus(slot, CacheEntryStatus::RUNNING, CacheEntryStatus::DONE);
+  };
+
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
@@ -821,6 +855,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     ZoneScopedN("DataProcessingDevice::prepareForCurrentTimeslice");
     auto timeslice = relayer->getTimesliceForSlot(i);
     timingInfo->timeslice = timeslice.value;
+    timingInfo->tfCounter = relayer->getFirstTFCounterForSlot(i);
+    timingInfo->firstTFOrbit = relayer->getFirstTFOrbitForSlot(i);
   };
 
   // When processing them, timers will have to be cleaned up
@@ -912,7 +948,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           if (header.get() == nullptr) {
             // FIXME: this should not happen, however it's actually harmless and
             //        we can simply discard it for the moment.
-            // LOG(ERROR) << "Missing header! " << dh->dataDescription.as<std::string>();
+            // LOG(ERROR) << "Missing header! " << dh->dataDescription;
             continue;
           }
           auto fdph = o2::header::get<DataProcessingHeader*>(header.get()->GetData());
@@ -997,6 +1033,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         continue;
       }
     }
+    markInputsAsDone(action.slot);
 
     uint64_t tStart = uv_hrtime();
     preUpdateStats(action, record, tStart);

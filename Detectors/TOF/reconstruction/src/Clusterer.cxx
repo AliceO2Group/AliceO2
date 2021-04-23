@@ -54,7 +54,7 @@ void Clusterer::calibrateStrip()
     double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
     //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
     dig->setIsProblematic(mCalibApi->isProblematic(dig->getChannel()));
-    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
+    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - Geo::LATENCYWINDOW * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
     //printf("calibration correction = %f\n",calib); // toberem
   }
 }
@@ -182,7 +182,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   c.setDigitInfo(0, mContributingDigit[0]->getChannel(), mContributingDigit[0]->getCalibratedTime(), mContributingDigit[0]->getTOT() * Geo::TOTBIN_NS);
 
   int ch1 = mContributingDigit[0]->getChannel();
-  short tot1 = mContributingDigit[0]->getTOT();
+  short tot1 = mContributingDigit[0]->getTOT() < 20000 ? mContributingDigit[0]->getTOT() : 20000;
   double dtime = c.getTimeRaw();
 
   int chan1, chan2;
@@ -235,7 +235,7 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
 
       if (mCalibFromCluster && c.getNumOfContributingChannels() == 2) { // fill info for calibration
         int8_t dch = int8_t(mContributingDigit[idig]->getChannel() - ch1);
-        short tot2 = mContributingDigit[idig]->getTOT();
+        short tot2 = mContributingDigit[idig]->getTOT() < 20000 ? mContributingDigit[idig]->getTOT() : 20000;
         dtime -= mContributingDigit[idig]->getTDC() * Geo::TDCBIN + mContributingDigit[idig]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3;
         addCalibFromCluster(ch1, dch, float(dtime), tot1, tot2);
       }

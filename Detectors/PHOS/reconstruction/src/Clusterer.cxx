@@ -38,17 +38,28 @@ void Clusterer::initialize()
 //____________________________________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
                         const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
-                        std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
+                        std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters, std::vector<TriggerRecord>* trigRec,
                         o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
 {
-  clusters->clear(); //final out list of clusters
+  if (mFullCluOutput) {
+    fullclusters->clear(); //final out list of clusters
+  } else {
+    clusters->clear(); //final out list of clusters
+  }
   trigRec->clear();
   cluMC->clear();
+  mProcessMC = (dmc != nullptr);
 
   for (const auto& tr : dtr) {
     mFirstDigitInEvent = tr.getFirstEntry();
     mLastDigitInEvent = mFirstDigitInEvent + tr.getNumberOfObjects();
-    int indexStart = clusters->size();
+    int indexStart;
+    if (mFullCluOutput) {
+      indexStart = fullclusters->size(); //final out list of clusters
+    } else {
+      indexStart = clusters->size(); //final out list of clusters
+    }
+
     mClusters.clear(); // internal list of FullClusters
 
     LOG(DEBUG) << "Starting clusteriztion digits from " << mFirstDigitInEvent << " to " << mLastDigitInEvent;
@@ -85,41 +96,49 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
     }
 
     // Calculate properties of collected clusters (Local position, energy, disp etc.)
-    evalCluProperties(digits, clusters, dmc, cluMC);
-
-    LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
-
-    trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
+    evalCluProperties(digits, clusters, fullclusters, dmc, cluMC);
+    if (mFullCluOutput) {
+      LOG(DEBUG) << "Found clusters from " << indexStart << " to " << fullclusters->size();
+      trigRec->emplace_back(tr.getBCData(), indexStart, fullclusters->size() - indexStart);
+    } else {
+      LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
+      trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
+    }
   }
 }
 //____________________________________________________________________________
 void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const TriggerRecord> ctr,
                              const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
-                             std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
+                             std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters, std::vector<TriggerRecord>* trigRec,
                              o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
 {
   // Transform input Cells to digits and run standard recontruction
-  clusters->clear(); //final out list of clusters
+  if (mFullCluOutput) {
+    fullclusters->clear(); //final out list of clusters
+  } else {
+    clusters->clear(); //final out list of clusters
+  }
   trigRec->clear();
   cluMC->clear();
   mProcessMC = (dmc != nullptr);
   miCellLabel = 0;
-  printf("start clustering \n");
   for (const auto& tr : ctr) {
-    printf(" tf=%d, %d \n", tr.getFirstEntry(), tr.getNumberOfObjects());
     int firstCellInEvent = tr.getFirstEntry();
     int lastCellInEvent = firstCellInEvent + tr.getNumberOfObjects();
-    int indexStart = clusters->size();
+    int indexStart;
+    if (mFullCluOutput) {
+      indexStart = fullclusters->size(); //final out list of clusters
+    } else {
+      indexStart = clusters->size(); //final out list of clusters
+    }
     mClusters.clear(); // internal list of FullClusters
 
     LOG(DEBUG) << "Starting clusteriztion cells from " << mFirstDigitInEvent << " to " << mLastDigitInEvent;
 
     if (mBadMap.get() == nullptr) {
       if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-        mBadMap.reset(new BadChannelMap(1)); // test default map
-        printf("SetBadMap \n");
+        mBadMap.reset(new BadChannelMap(1));    // test default map
         mCalibParams.reset(new CalibParams(1)); //test calibration map
-        printf("SetCalib \n");
         LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
       } else {
         //   LOG(INFO) << "Getting BadMap object from ccdb";
@@ -137,26 +156,25 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
         //   // }
       }
     }
-    printf("converteing: %d, %d \n", firstCellInEvent, lastCellInEvent);
-    LOG(INFO) << "Converting ";
     convertCellsToDigits(cells, firstCellInEvent, lastCellInEvent);
     // Collect digits to clusters
-    printf("makeClu \n");
     makeClusters(mDigits);
     // Unfold overlapped clusters
     // Split clusters with several local maxima if necessary
     if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters) {
       makeUnfoldings(mDigits);
     }
-    printf("cluprop \n");
 
     // Calculate properties of collected clusters (Local position, energy, disp etc.)
-    evalCluProperties(mDigits, clusters, dmc, cluMC);
-    printf("cdone \n");
+    evalCluProperties(mDigits, clusters, fullclusters, dmc, cluMC);
 
-    LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
-
-    trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
+    if (mFullCluOutput) {
+      LOG(DEBUG) << "Found clusters from " << indexStart << " to " << fullclusters->size();
+      trigRec->emplace_back(tr.getBCData(), indexStart, fullclusters->size() - indexStart);
+    } else {
+      LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
+      trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
+    }
   }
 }
 //____________________________________________________________________________
@@ -169,9 +187,13 @@ void Clusterer::convertCellsToDigits(gsl::span<const Cell> cells, int firstCellI
   }
   for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
     const Cell c = cells[i];
-    //short cell, float amplitude, float time, int label
-    mDigits.emplace_back(c.getAbsId(), c.getEnergy(), c.getTime(), i);
-    mDigits.back().setHighGain(c.getHighGain());
+    if (c.getTRU()) { //TRU digit
+      mDigits.emplace_back(c.getTRUId(), c.getEnergy(), c.getTime(), c.getHighGain(), -1);
+    } else {
+      //short cell, float amplitude, float time, int label
+      mDigits.emplace_back(c.getAbsId(), c.getEnergy(), c.getTime(), i);
+      mDigits.back().setHighGain(c.getHighGain());
+    }
   }
   mFirstDigitInEvent = 0;
   mLastDigitInEvent = mDigits.size();
@@ -194,6 +216,9 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
     }
 
     const Digit& digitSeed = digits[i];
+    if (digitSeed.isTRU()) {
+      continue;
+    }
     float digitSeedEnergy = calibrate(digitSeed.getAmplitude(), digitSeed.getAbsId());
     if (isBadChannel(digitSeed.getAbsId())) {
       digitSeedEnergy = 0.;
@@ -227,6 +252,9 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
           continue; // look through remaining digits
         }
         const Digit* digitN = &(digits[j]);
+        if (digitN->isTRU()) {
+          continue;
+        }
         float digitNEnergy = calibrate(digitN->getAmplitude(), digitN->getAbsId());
         if (isBadChannel(digitN->getAbsId())) { //remove digit
           digitNEnergy = 0.;
@@ -424,13 +452,19 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
 }
 
 //____________________________________________________________________________
-void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
+void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters,
                                   const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
                                   o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
 {
 
-  if (clusters->capacity() - clusters->size() < mClusters.size()) { //avoid expanding vector per element
-    clusters->reserve(clusters->size() + mClusters.size());
+  if (mFullCluOutput) {
+    if (fullclusters->capacity() - fullclusters->size() < mClusters.size()) { //avoid expanding vector per element
+      fullclusters->reserve(fullclusters->size() + mClusters.size());
+    }
+  } else {
+    if (clusters->capacity() - clusters->size() < mClusters.size()) { //avoid expanding vector per element
+      clusters->reserve(clusters->size() + mClusters.size());
+    }
   }
 
   int labelIndex = 0;
@@ -440,7 +474,6 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
   auto clu = mClusters.begin();
 
   while (clu != mClusters.end()) {
-
     if (clu->getEnergy() < 1.e-4) { //Marked earlier for removal
       ++clu;
       continue;
@@ -453,7 +486,11 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
     clu->evalAll();
 
     if (clu->getEnergy() > 1.e-4) { //Non-empty cluster
-      clusters->emplace_back(*clu);
+      if (mFullCluOutput) {
+        fullclusters->emplace_back(*clu);
+      } else {
+        clusters->emplace_back(*clu);
+      }
 
       if (mProcessMC) { //Handle labels
         //Calculate list of primaries
@@ -498,7 +535,6 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
           }
           ++ll;
         }
-        clusters->back().setLabel(labelIndex);
         labelIndex++;
       } // Work with MC
     }

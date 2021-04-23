@@ -8,11 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-
 o2_add_executable(digitizer-workflow
                   COMPONENT_NAME sim
                   SOURCES src/EMCALDigitWriterSpec.cxx
                           src/EMCALDigitizerSpec.cxx
+                          src/CTPDigitizerSpec.cxx
                           src/FT0DigitizerSpec.cxx
                           src/FV0DigitizerSpec.cxx
                           src/FDDDigitizerSpec.cxx
@@ -36,7 +36,9 @@ o2_add_executable(digitizer-workflow
                                         O2::FT0Simulation
                                         O2::FV0Simulation
                                         O2::FDDSimulation
-					O2::FDDWorkflow
+                                        O2::CTPSimulation
+                                        O2::CTPWorkflow
+                                        O2::FDDWorkflow
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation
                                         O2::ITSSimulation
@@ -56,13 +58,14 @@ o2_add_executable(digitizer-workflow
                                         O2::TRDWorkflow
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation
-					O2::ZDCWorkflow)
+					O2::ZDCWorkflow
+					O2::DetectorsRaw)
 
 
 o2_add_executable(mctruth-testworkflow
                   COMPONENT_NAME sim
                   SOURCES src/MCTruthTestWorkflow.cxx
-		          src/MCTruthSourceSpec.cxx
+	                  src/MCTruthSourceSpec.cxx
 	                  src/MCTruthWriterSpec.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::SimulationDataFormat)

@@ -20,6 +20,7 @@
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
 #include "genEvents.h"
+#include "GPUMemorySizeScalers.h"
 
 #include <iostream>
 #include <fstream>
@@ -178,6 +179,7 @@ int ReadConfiguration(int argc, char** argv)
 #ifndef GPUCA_TPC_GEOMETRY_O2
   configStandalone.rec.mergerReadFromTrackerDirectly = 0;
   configStandalone.proc.ompKernels = false;
+  configStandalone.proc.createO2Output = 0;
   if (configStandalone.rundEdx == -1) {
     configStandalone.rundEdx = 0;
   }
@@ -279,7 +281,7 @@ int SetupReconstruction()
       printf("Error reading event config file\n");
       return 1;
     }
-    printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetEventSettings().solenoidBz, (int)rec->GetEventSettings().homemadeEvents, (int)rec->GetEventSettings().constBz, rec->GetEventSettings().continuousMaxTimeBin);
+    printf("Read event settings from dir %s (solenoidBz: %f, home-made events %d, constBz %d, maxTimeBin %d)\n", filename, rec->GetGRPSettings().solenoidBz, (int)rec->GetGRPSettings().homemadeEvents, (int)rec->GetGRPSettings().constBz, rec->GetGRPSettings().continuousMaxTimeBin);
     if (configStandalone.testSyncAsync) {
       recAsync->ReadSettings(filename);
     }
@@ -291,7 +293,7 @@ int SetupReconstruction()
   chainTracking->mConfigQA = &configStandalone.QA;
   chainTracking->mConfigDisplay = &configStandalone.GL;
 
-  GPUSettingsEvent ev = rec->GetEventSettings();
+  GPUSettingsGRP grp = rec->GetGRPSettings();
   GPUSettingsRec recSet;
   GPUSettingsProcessing devProc;
   memcpy((void*)&recSet, (void*)&configStandalone.rec, sizeof(GPUSettingsRec));
@@ -299,16 +301,16 @@ int SetupReconstruction()
   GPURecoStepConfiguration steps;
 
   if (configStandalone.eventGenerator) {
-    ev.homemadeEvents = true;
+    grp.homemadeEvents = true;
   }
   if (configStandalone.solenoidBz != -1e6f) {
-    ev.solenoidBz = configStandalone.solenoidBz;
+    grp.solenoidBz = configStandalone.solenoidBz;
   }
   if (configStandalone.constBz) {
-    ev.constBz = true;
+    grp.constBz = true;
   }
   if (configStandalone.TF.nMerge || configStandalone.TF.bunchSim) {
-    if (ev.continuousMaxTimeBin) {
+    if (grp.continuousMaxTimeBin) {
       printf("ERROR: requested to overlay continuous data - not supported\n");
       return 1;
     }
@@ -317,11 +319,11 @@ int SetupReconstruction()
       configStandalone.cont = true;
     }
     if (chainTracking->GetTPCTransform()) {
-      ev.continuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransform()->getVDrift();
+      grp.continuousMaxTimeBin = configStandalone.TF.timeFrameLen * ((double)GPUReconstructionTimeframe::TPCZ / (double)GPUReconstructionTimeframe::DRIFT_TIME) / chainTracking->GetTPCTransform()->getVDrift();
     }
   }
-  if (configStandalone.cont && ev.continuousMaxTimeBin == 0) {
-    ev.continuousMaxTimeBin = -1;
+  if (configStandalone.cont && grp.continuousMaxTimeBin == 0) {
+    grp.continuousMaxTimeBin = -1;
   }
   if (rec->GetDeviceType() == GPUReconstruction::DeviceType::CPU) {
     printf("Standalone Test Framework for CA Tracker - Using CPU\n");
@@ -389,7 +391,7 @@ int SetupReconstruction()
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
   }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
-  if (ev.needsClusterer) {
+  if (grp.needsClusterer) {
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, true);
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
   } else {
@@ -421,9 +423,9 @@ int SetupReconstruction()
     }
   }
 
-  rec->SetSettings(&ev, &recSet, &devProc, &steps);
+  rec->SetSettings(&grp, &recSet, &devProc, &steps);
   if (configStandalone.proc.doublePipeline) {
-    recPipeline->SetSettings(&ev, &recSet, &devProc, &steps);
+    recPipeline->SetSettings(&grp, &recSet, &devProc, &steps);
   }
   if (configStandalone.testSyncAsync) {
     // Set settings for asynchronous
@@ -443,7 +445,7 @@ int SetupReconstruction()
     recSet.loopInterpolationInExtraPass = 0;
     recSet.MaxTrackQPt = CAMath::Min(recSet.MaxTrackQPt, recSet.tpcRejectQPt);
     recSet.useMatLUT = true;
-    recAsync->SetSettings(&ev, &recSet, &devProc, &steps);
+    recAsync->SetSettings(&grp, &recSet, &devProc, &steps);
   }
 
   if (configStandalone.outputcontrolmem) {
@@ -482,6 +484,7 @@ int SetupReconstruction()
   if (configStandalone.proc.debugLevel >= 4) {
     rec->PrintKernelOccupancies();
   }
+  rec->MemoryScalers()->factor *= configStandalone.memoryBufferScaleFactor;
   return (0);
 }
 
@@ -845,18 +848,18 @@ int main(int argc, char** argv)
         }
 
         if (configStandalone.overrideMaxTimebin && (chainTracking->mIOPtrs.clustersNative || chainTracking->mIOPtrs.tpcPackedDigits || chainTracking->mIOPtrs.tpcZS)) {
-          GPUSettingsEvent ev = rec->GetEventSettings();
-          if (ev.continuousMaxTimeBin == 0) {
+          GPUSettingsGRP grp = rec->GetGRPSettings();
+          if (grp.continuousMaxTimeBin == 0) {
             printf("Cannot override max time bin for non-continuous data!\n");
           } else {
-            ev.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
-            printf("Max time bin set to %d\n", (int)ev.continuousMaxTimeBin);
-            rec->UpdateEventSettings(&ev);
+            grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
+            printf("Max time bin set to %d\n", (int)grp.continuousMaxTimeBin);
+            rec->UpdateGRPSettings(&grp);
             if (recAsync) {
-              recAsync->UpdateEventSettings(&ev);
+              recAsync->UpdateGRPSettings(&grp);
             }
             if (recPipeline) {
-              recPipeline->UpdateEventSettings(&ev);
+              recPipeline->UpdateGRPSettings(&grp);
             }
           }
         }

@@ -22,12 +22,14 @@
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
 #include "../src/DataProcessingStatus.h"
+#include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 
 #include <Configuration/ConfigurationInterface.h>
@@ -35,6 +37,7 @@
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
 
+#include <FairMQDevice.h>
 #include <options/FairMQProgOptions.h>
 
 #include <cstdlib>
@@ -96,6 +99,7 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     nullptr,
                      [](ServiceRegistry& registry, void* service) {
                        Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring;
@@ -121,6 +125,11 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     [](ServiceRegistry& services, void* service) {
+                       auto& infoLoggerContext = services.get<InfoLoggerContext>();
+                       auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+                       infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
+                     },
                      nullptr,
                      ServiceKind::Serial};
 }
@@ -186,11 +195,11 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                      [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
                        auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
                        if (infoLoggerMode != "") {
-                         setenv("INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
+                         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
                        }
                        auto infoLoggerService = new InfoLogger;
                        auto infoLoggerContext = &services.get<InfoLoggerContext>();
-                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, services.get<DeviceSpec const>().name);
+                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
                        infoLoggerService->setContext(*infoLoggerContext);
 
                        auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
@@ -200,6 +209,7 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                        return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
                      },
                      noConfiguration(),
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -230,6 +240,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -276,6 +287,7 @@ o2::framework::ServiceSpec CommonServices::driverClientSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Global};
 }
 
@@ -302,6 +314,7 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -311,6 +324,7 @@ o2::framework::ServiceSpec CommonServices::rootFileSpec()
     "localrootfile",
     simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -352,6 +366,7 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -361,6 +376,7 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
     "timesliceindex",
     simpleServiceInit<TimesliceIndex, TimesliceIndex>(),
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -398,6 +414,7 @@ o2::framework::ServiceSpec CommonServices::callbacksSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -414,6 +431,7 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
                                            services.get<TimesliceIndex>())};
     },
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -463,6 +481,7 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -496,6 +515,7 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
       auto numWorkersS = std::to_string(numWorkers);
       setenv("UV_THREADPOOL_SIZE", numWorkersS.c_str(), 0);
     },
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -607,6 +627,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -626,7 +647,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataRelayer(),
     dataProcessingStats(),
     CommonMessageBackends::fairMQBackendSpec(),
-    CommonMessageBackends::arrowBackendSpec(),
+    ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
   if (numThreads) {

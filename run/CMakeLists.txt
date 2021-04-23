@@ -39,6 +39,7 @@ target_link_libraries(allsim
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::Alice3DetectorsPassive>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::FT3Simulation>
                                 O2::Generators)
 
 add_library(internal::allsim ALIAS allsim)
@@ -55,7 +56,7 @@ o2_add_executable(serial
 
 o2_add_executable(sim
                   SOURCES o2sim_parallel.cxx
-                  PUBLIC_LINK_LIBRARIES internal::allsim)
+                  PUBLIC_LINK_LIBRARIES internal::allsim O2::Version)
 
 o2_add_executable(primary-server-device-runner
                   COMPONENT_NAME sim

@@ -63,15 +63,20 @@ struct ConfigurableObjectDemo {
   Configurable<Array2D<float>> vmatrix{"matrix", {&defaultm[0][0], 3, 4}, "generic matrix"};
   Configurable<LabeledArray<float>> vla{"vla", {defaultm[0], 3, 4, {"r 1", "r 2", "r 3"}, {"c 1", "c 2", "c 3", "c 4"}}, "labeled array"};
 
-  void init(InitContext const&){};
-  void process(aod::Collision const&, aod::Tracks const& tracks)
+  void init(InitContext const&)
   {
-    LOGF(INFO, "Cut1: %.3f; Cut2: %.3f", cut, mutable_cut);
     LOGF(INFO, "Cut1 bins: %s; Cut2 bins: %s", printArray(cut->getBins()), printArray(mutable_cut->getBins()));
     LOGF(INFO, "Cut1 labels: %s; Cut2 labels: %s", printArray(cut->getLabels()), printArray(mutable_cut->getLabels()));
     auto vec = (std::vector<int>)array;
     LOGF(INFO, "Array: %s", printArray(vec).c_str());
     LOGF(INFO, "Matrix: %s", printMatrix((Array2D<float>)vmatrix));
+    LOGF(INFO, "Labeled:\n %s\n %s\n %s", printArray(vla->getLabelsRows()), printArray(vla->getLabelsCols()), printMatrix(vla->getData()));
+  };
+
+  void process(aod::Collision const&, aod::Tracks const& tracks)
+  {
+    LOGF(INFO, "Cut1: %.3f; Cut2: %.3f", cut, mutable_cut);
+
     for (auto const& track : tracks) {
       if (track.globalIndex() % 500 == 0) {
         std::string decision1;
@@ -100,5 +105,5 @@ struct ConfigurableObjectDemo {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ConfigurableObjectDemo>(cfgc, "configurable-demo")};
+    adaptAnalysisTask<ConfigurableObjectDemo>(cfgc, TaskName{"configurable-demo"})};
 }

@@ -132,7 +132,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
       }
       trkl.Clear();
       recordSize = run3Digits.size() - triggerRecordsStart;
-      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize);
+      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize, 0, 0);
       triggerRecordsStart = run3Digits.size();
       ievent++;
     }
@@ -248,7 +248,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         }
       }
       recordSize = run3Digits.size() - triggerRecordsStart;
-      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize);
+      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize, 0, 0);
       triggerRecordsStart = run3Digits.size();
       ievent++;
     }

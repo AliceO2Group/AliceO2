@@ -12,17 +12,22 @@ o2_add_library(EventVisualisationView
                SOURCES src/MultiView.cxx 
                        src/Initializer.cxx 
                        src/EventManager.cxx
+                       src/Options.cxx
                        src/EventManagerFrame.cxx
                PUBLIC_LINK_LIBRARIES O2::EventVisualisationBase
-                                     O2::EventVisualisationDetectors)
+                                     O2::EventVisualisationDetectors
+                                     RapidJSON::RapidJSON)
 
 o2_target_root_dictionary(EventVisualisationView
-                          HEADERS include/EventVisualisationView/MultiView.h
-                                  include/EventVisualisationView/Initializer.h
-                                  include/EventVisualisationView/EventManagerFrame.h
-                          LINKDEF src/EventVisualisationViewLinkDef.h)
+               HEADERS include/EventVisualisationView/MultiView.h
+                       include/EventVisualisationView/Initializer.h
+                       include/EventVisualisationView/Options.h
+                       include/EventVisualisationView/EventManagerFrame.h
+               LINKDEF src/EventVisualisationViewLinkDef.h)
 
 o2_add_executable(eve
-                  SOURCES src/main.cxx
-                  PUBLIC_LINK_LIBRARIES O2::EventVisualisationView
-                  )
+               SOURCES src/main.cxx
+               PUBLIC_LINK_LIBRARIES O2::EventVisualisationView                                     
+               )
+                  
+                  

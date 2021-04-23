@@ -282,8 +282,8 @@ struct lambdakzeroinitializer {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<lambdakzeroprefilter>(cfgc, "lf-lambdakzeroprefilter"),
-    adaptAnalysisTask<lambdakzerofinder>(cfgc, "lf-lambdakzerofinder"),
-    adaptAnalysisTask<lambdakzerofinderQA>(cfgc, "lf-lambdakzerofinderQA"),
-    adaptAnalysisTask<lambdakzeroinitializer>(cfgc, "lf-lambdakzeroinitializer")};
+    adaptAnalysisTask<lambdakzeroprefilter>(cfgc, TaskName{"lf-lambdakzeroprefilter"}),
+    adaptAnalysisTask<lambdakzerofinder>(cfgc, TaskName{"lf-lambdakzerofinder"}),
+    adaptAnalysisTask<lambdakzerofinderQA>(cfgc, TaskName{"lf-lambdakzerofinderQA"}),
+    adaptAnalysisTask<lambdakzeroinitializer>(cfgc, TaskName{"lf-lambdakzeroinitializer"})};
 }

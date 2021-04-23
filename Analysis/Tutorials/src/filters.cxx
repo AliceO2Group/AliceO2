@@ -10,6 +10,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include <arrow/util/config.h>
 
 namespace o2::aod
 {
@@ -52,25 +53,30 @@ struct BTask {
   Spawns<aod::MTracks> mtrk;
 
   float fPI = static_cast<float>(M_PI);
-  float ptlow = 0.5f;
-  float ptup = 2.0f;
+  Configurable<float> ptlow{"ptlow", 0.5f, ""};
+  Configurable<float> ptup{"ptup", 2.0f, ""};
   Filter ptFilter_a = aod::track::pt > ptlow;
   Filter ptFilter_b = aod::track::pt < ptup;
 
-  float etalow = -1.0f;
-  float etaup = 1.0f;
+  Configurable<float> etalow{"etalow", -1.0f, ""};
+  Configurable<float> etaup{"etaup", 1.0f, ""};
   Filter etafilter = (aod::track::eta < etaup) && (aod::track::eta > etalow);
 
   float philow = 1.0f;
   float phiup = 2.0f;
   Filter phifilter = (aod::etaphi::nphi < phiup) && (aod::etaphi::nphi > philow);
 
-  Filter posZfilter = nabs(aod::collision::posZ) < 10.0f;
+  Configurable<float> vtxZ{"vtxZ", 10.f, ""};
+  Filter posZfilter = nabs(aod::collision::posZ) < vtxZ;
+#if ARROW_VERSION_MAJOR < 3
+#else
+  Filter bitwiseFilter = (o2::aod::track::flags & static_cast<uint32_t>(o2::aod::track::TPCrefit)) != 0u;
+#endif
 
   void process(soa::Filtered<aod::Collisions>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TPhi>> const& tracks)
   {
-    LOGF(INFO, "Collision: %d [N = %d out of %d], -10 < %.3f < 10",
-         collision.globalIndex(), tracks.size(), tracks.tableSize(), collision.posZ());
+    LOGF(INFO, "Collision: %d [N = %d out of %d], -%.1f < %.3f < %.1f",
+         collision.globalIndex(), tracks.size(), tracks.tableSize(), vtxZ, collision.posZ(), vtxZ);
     for (auto& track : tracks) {
       LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f < %.3f; pt: %.3f < %.3f < %.3f",
            track.collisionId(), etalow, track.eta(), etaup, philow, track.nphi(), phiup, ptlow, track.pt(), ptup);
@@ -100,8 +106,8 @@ struct DTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, "produce-normalizedphi"),
-    adaptAnalysisTask<BTask>(cfgc, "consume-normalizedphi"),
-    adaptAnalysisTask<CTask>(cfgc, "consume-spawned-ephi"),
-    adaptAnalysisTask<DTask>(cfgc, "consume-spawned-mtracks")};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"produce-normalizedphi"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"consume-normalizedphi"}),
+    adaptAnalysisTask<CTask>(cfgc, TaskName{"consume-spawned-ephi"}),
+    adaptAnalysisTask<DTask>(cfgc, TaskName{"consume-spawned-mtracks"})};
 }

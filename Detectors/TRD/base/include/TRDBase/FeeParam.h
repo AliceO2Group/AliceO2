@@ -27,6 +27,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #include "DataFormatsTRD/Constants.h"
+#include "TRDBase/CommonParam.h"
 
 #include <array>
 #include <vector>
@@ -44,13 +45,11 @@ class FeeParam
 {
 
  public:
-  FeeParam(const FeeParam& p);
-  virtual ~FeeParam();
-  FeeParam& operator=(const FeeParam& p);
-  virtual void Copy(FeeParam& p) const;
+  ~FeeParam() = default;
+  FeeParam(const FeeParam&) = delete;
+  FeeParam& operator=(const FeeParam&) = delete;
 
   static FeeParam* instance(); // Singleton
-  static void terminate();
 
   // Translation from MCM to Pad and vice versa
   static int getPadRowFromMCM(int irob, int imcm);
@@ -60,7 +59,7 @@ class FeeParam
   static int getMCMfromSharedPad(int irow, int icol);
   static int getROBfromPad(int irow, int icol);
   static int getROBfromSharedPad(int irow, int icol);
-  static int getRobSide(int irob);
+  static int getROBSide(int irob);
   static int getColSide(int icol);
 
   // SCSN-related
@@ -72,25 +71,25 @@ class FeeParam
   // wiring
   static int getORI(int detector, int readoutboard);
   static int getORIinSM(int detector, int readoutboard);
-  //  static void createORILookUpTable();
+  //  void createORILookUpTable();
   static int getORIfromHCID(int hcid);
   static int getHCIDfromORI(int ori, int readoutboard); // TODO we need more info than just ori, for now readoutboard is there ... might change
 
   // tracklet simulation
-  bool getTracklet() const { return mgTracklet; }
-  static void setTracklet(bool trackletSim = true) { mgTracklet = trackletSim; }
-  bool getRejectMultipleTracklets() const { return mgRejectMultipleTracklets; }
-  static void setRejectMultipleTracklets(bool rej = true) { mgRejectMultipleTracklets = rej; }
-  bool getUseMisalignCorr() const { return mgUseMisalignCorr; }
-  static void setUseMisalignCorr(bool misalign = true) { mgUseMisalignCorr = misalign; }
-  bool getUseTimeOffset() const { return mgUseTimeOffset; }
-  static void setUseTimeOffset(bool timeOffset = true) { mgUseTimeOffset = timeOffset; }
+  bool getTracklet() const { return mTracklet; }
+  void setTracklet(bool trackletSim = true) { mTracklet = trackletSim; }
+  bool getRejectMultipleTracklets() const { return mRejectMultipleTracklets; }
+  void setRejectMultipleTracklets(bool rej = true) { mRejectMultipleTracklets = rej; }
+  bool getUseMisalignCorr() const { return mUseMisalignCorr; }
+  void setUseMisalignCorr(bool misalign = true) { mUseMisalignCorr = misalign; }
+  bool getUseTimeOffset() const { return mUseTimeOffset; }
+  void setUseTimeOffset(bool timeOffset = true) { mUseTimeOffset = timeOffset; }
 
   // Concerning raw data format
   int getRAWversion() const { return mRAWversion; }
   void setRAWversion(int rawver);
 
-  inline short padMcmLUT(int index) { return mgLUTPadNumbering[index]; }
+  short padMcmLUT(int index) { return mLUTPadNumbering[index]; }
 
   // configuration settings
   // called with special SCSN commands
@@ -138,56 +137,61 @@ class FeeParam
 
  protected:
   static FeeParam* mgInstance; // Singleton instance
-  static bool mgTerminated;    // Defines if this class has already been terminated
 
-  CommonParam* mCP = nullptr; // TRD common parameters class
+  CommonParam* mCP{CommonParam::instance()}; // TRD common parameters class
 
-  static std::vector<short> mgLUTPadNumbering; // Lookup table mapping Pad to MCM
-  static bool mgLUTPadNumberingFilled;         // Lookup table mapping Pad to MCM
+  std::array<short, constants::NCOLUMN> mLUTPadNumbering; // Lookup table mapping Pad to MCM
 
-  void createPad2MCMLookUpTable();
+  void fillPad2MCMLookUpTable();
 
   // Tracklet  processing on/off
-  static bool mgTracklet;                // tracklet processing
-  static bool mgRejectMultipleTracklets; // only accept best tracklet if found more than once
-  static bool mgUseMisalignCorr;         // add correction for mis-alignment in y
-  static bool mgUseTimeOffset;           // add time offset in calculation of fit sums
+  bool mTracklet{true};                 // tracklet processing
+  bool mRejectMultipleTracklets{false}; // only accept best tracklet if found more than once
+  bool mUseMisalignCorr{false};         // add correction for mis-alignment in y
+  bool mUseTimeOffset{false};           // add time offset in calculation of fit sums
 
   // For raw production
   int mRAWversion{3};                    // Raw data production version
-  static const int mgkMaxRAWversion = 3; // Maximum raw version number supported
+  const int mkMaxRAWversion = 3;         // Maximum raw version number supported
 
   // geometry constants
-  static std::array<float, constants::NCHAMBERPERSEC> mgZrow;    // z-position of pad row edge 6x5
-  static std::array<float, constants::NLAYER> mgX;               // x-position for all layers
-  static std::array<float, constants::NLAYER> mgInvX;            // inverse x-position for all layers (to remove divisions)
-  static std::array<float, constants::NLAYER> mgTiltingAngle;    // tilting angle for every layer
-  static std::array<float, constants::NLAYER> mgTiltingAngleTan; // tan of tilting angle for every layer (look up table to avoid tan calculations)
-  static std::array<float, constants::NLAYER> mgWidthPad;        // pad width for all layers
-  static std::array<float, constants::NLAYER> mgInvWidthPad;     // inverse pad width for all layers (to remove divisions)
-  static float mgLengthInnerPadC0;                // inner pad length C0 chamber
-  static float mgLengthOuterPadC0;                // outer pad length C0 chamber
-  static std::array<float, constants::NLAYER> mgLengthInnerPadC1; // inner pad length C1 chambers
-  static std::array<float, constants::NLAYER> mgLengthOuterPadC1; // outer pad length C1 chambers
-  static float mgScalePad;                        // scaling factor for pad width
-  static float mgDriftLength;                     // length of the  parse gaintbl Krypton_2009-01 drift region
-  static float mgBinDy;                           // bin in dy (140 um)
-  static int mgDyMax;                             // max dy for a tracklet (hard limit)
-  static int mgDyMin;                             // min dy for a tracklet (hard limit)
-                                                  //std::array<int,30> mgAsideLUT;                          // A side LUT to map ORI to stack/layer/side
-                                                  //std::array<int,30> mgCsideLUT;                          // C side LUT to map ORI to stack/layer/side
+  std::array<float, constants::NCHAMBERPERSEC> mZrow{// z-position of pad row edge 6x5
+                                                     301, 177, 53, -57, -181,
+                                                     301, 177, 53, -57, -181,
+                                                     315, 184, 53, -57, -188,
+                                                     329, 191, 53, -57, -195,
+                                                     343, 198, 53, -57, -202,
+                                                     347, 200, 53, -57, -204};
+  std::array<float, constants::NLAYER> mX{300.65, 313.25, 325.85, 338.45, 351.05, 363.65};  // x-position for all layers
+  std::array<float, constants::NLAYER> mInvX;                                               // inverse x-position for all layers (to remove divisions)
+  std::array<float, constants::NLAYER> mTiltingAngle{-2., 2., -2., 2., -2., 2.};            // tilting angle for every layer
+  std::array<float, constants::NLAYER> mTiltingAngleTan;                                    // tan of tilting angle for every layer (look up table to avoid tan calculations)
+  std::array<float, constants::NLAYER> mWidthPad{0.635, 0.665, 0.695, 0.725, 0.755, 0.785}; // pad width for all layers
+  std::array<float, constants::NLAYER> mInvWidthPad;                                        // inverse pad width for all layers (to remove divisions)
+  float mLengthInnerPadC0{9.f};                                                             // inner pad length C0 chamber
+  float mLengthOuterPadC0{8.f};                                                             // outer pad length C0 chamber
+  std::array<float, constants::NLAYER> mLengthInnerPadC1{7.5, 7.5, 8.0, 8.5, 9.0, 9.0};     // inner pad length C1 chambers
+  std::array<float, constants::NLAYER> mLengthOuterPadC1{7.5, 7.5, 7.5, 7.5, 7.5, 8.5};     // outer pad length C1 chambers
+  float mScalePad{256. * 32.};                                                              // scaling factor for pad width
+  float mDriftLength{3.};                                                                   // length of the  parse gaintbl Krypton_2009-01 drift region
+  // WARNING: This values for dY are valid for Run 1+2 format only
+  float mBinDy{140e-4}; // bin in dy (140 um)
+  int mDyMax{63};       // max dy for a tracklet (hard limit)
+  int mDyMin{-64};      // min dy for a tracklet (hard limit)
+                        //std::array<int,30> mAsideLUT;                          // A side LUT to map ORI to stack/layer/side
+                        //std::array<int,30> mCsideLUT;                          // C side LUT to map ORI to stack/layer/side
 
   // settings
-  float mMagField;          // magnetic field
-  float mOmegaTau;          // omega tau, i.e. tan(Lorentz angle)
-  float mPtMin;             // min. pt for deflection cut
-  float mInvPtMin;          // min. pt for deflection cut (Inverted to remove division)
-  int mNtimebins;           // drift time in units of timebins << 5n
-  unsigned int mScaleQ0;    // scale factor for accumulated charge Q0
-  unsigned int mScaleQ1;    // scale factor for accumulated charge Q1
-  bool mPidTracklengthCorr; // enable tracklet length correction
-  bool mTiltCorr;           // enable tilt correction
-  bool mPidGainCorr;        // enable MCM gain correction factor for PID
+  float mMagField{0.f};            // magnetic field
+  float mOmegaTau{0.f};            // omega tau, i.e. tan(Lorentz angle)
+  float mPtMin{.1f};               // min. pt for deflection cut
+  float mInvPtMin{1.f / mPtMin};   // min. pt for deflection cut (Inverted to remove division)
+  int mNtimebins{20 << 5};         // drift time in units of timebins << 5n
+  unsigned int mScaleQ0{0};        // scale factor for accumulated charge Q0
+  unsigned int mScaleQ1{0};        // scale factor for accumulated charge Q1
+  bool mPidTracklengthCorr{false}; // enable tracklet length correction
+  bool mTiltCorr{false};           // enable tilt correction
+  bool mPidGainCorr{false};        // enable MCM gain correction factor for PID
 
  private:
   FeeParam();

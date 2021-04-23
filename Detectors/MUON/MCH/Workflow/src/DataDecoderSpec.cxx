@@ -35,7 +35,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawDecoder/DataDecoder.h"
 #include "MCHRawElecMap/Mapper.h"
@@ -147,19 +147,24 @@ class DataDecoderTask
     };
 
     mDecoder->reset();
-    decodeTF(pc);
     for (auto&& input : pc.inputs()) {
+      //std::cout << "input: " << input.spec->binding << std::endl;
       if (input.spec->binding == "readout") {
         decodeReadout(input);
       }
+      if (input.spec->binding == "TF") {
+        decodeTF(pc);
+      }
     }
+    mDecoder->computeDigitsTime();
 
     auto& digits = mDecoder->getOutputDigits();
     auto& orbits = mDecoder->getOrbits();
 
     if (mDebug) {
+      dumpOrbits(orbits);
       for (auto d : digits) {
-        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime().sampaTime << std::endl;
+        std::cout << " DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC() << " time " << d.getTime() << std::endl;
       }
     }
     // send the output buffer via DPL

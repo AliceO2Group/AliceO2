@@ -48,21 +48,21 @@ struct JetFinderHadronRecoilTask {
   template <typename T>
   T relativePhi(T phi1, T phi2)
   {
-    if (phi1 < -TMath::Pi()) {
-      phi1 += (2 * TMath::Pi());
-    } else if (phi1 > TMath::Pi()) {
-      phi1 -= (2 * TMath::Pi());
+    if (phi1 < -M_PI) {
+      phi1 += (2 * M_PI);
+    } else if (phi1 > M_PI) {
+      phi1 -= (2 * M_PI);
     }
-    if (phi2 < -TMath::Pi()) {
-      phi2 += (2 * TMath::Pi());
-    } else if (phi2 > TMath::Pi()) {
-      phi2 -= (2 * TMath::Pi());
+    if (phi2 < -M_PI) {
+      phi2 += (2 * M_PI);
+    } else if (phi2 > M_PI) {
+      phi2 -= (2 * M_PI);
     }
     T deltaPhi = phi2 - phi1;
-    if (deltaPhi < -TMath::Pi()) {
-      deltaPhi += (2 * TMath::Pi());
-    } else if (deltaPhi > TMath::Pi()) {
-      deltaPhi -= (2 * TMath::Pi());
+    if (deltaPhi < -M_PI) {
+      deltaPhi += (2 * M_PI);
+    } else if (deltaPhi > M_PI) {
+      deltaPhi -= (2 * M_PI);
     }
     return deltaPhi;
   }
@@ -110,10 +110,10 @@ struct JetFinderHadronRecoilTask {
 
     for (const auto& jet : jets) {
       auto deltaPhi = TMath::Abs(relativePhi(jet.phi(), trackTTPhi));
-      if (deltaPhi >= (TMath::Pi() - f_recoilWindow)) {
+      if (deltaPhi >= (M_PI - f_recoilWindow)) {
         hJetPt->Fill(jet.pt());
       }
-      if (deltaPhi >= TMath::Pi() / 2.0 && deltaPhi <= TMath::Pi()) {
+      if (deltaPhi >= M_PI / 2.0 && deltaPhi <= M_PI) {
         hJetHadronDeltaPhi->Fill(deltaPhi);
       }
     }
@@ -123,5 +123,5 @@ struct JetFinderHadronRecoilTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetFinderHadronRecoilTask>(cfgc, "jet-finder-hadron-recoil")};
+    adaptAnalysisTask<JetFinderHadronRecoilTask>(cfgc, TaskName{"jet-finder-hadron-recoil"})};
 }

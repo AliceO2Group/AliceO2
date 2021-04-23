@@ -14,6 +14,7 @@ add_subdirectory(CTF)
 
 add_subdirectory(Passive) # must be first as some detector's macros use it
 
+add_subdirectory(CTP)
 add_subdirectory(PHOS)
 add_subdirectory(CPV)
 add_subdirectory(EMCAL)
@@ -38,6 +39,8 @@ endif()
 
 add_subdirectory(Calibration)
 add_subdirectory(DCS)
+
+add_subdirectory(Align)
 
 if(BUILD_SIMULATION)
   add_subdirectory(gconfig)

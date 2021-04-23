@@ -149,13 +149,14 @@ struct CandidateTreeWriter {
   Produces<o2::aod::HfCandProng2Full> rowCandidateFull;
   Produces<o2::aod::HfCandProng2FullEvents> rowCandidateFullEvents;
   Produces<o2::aod::HfCandProng2FullParticles> rowCandidateFullParticles;
+
   void init(InitContext const&)
   {
   }
-  using CandType = soa::Join<aod::HfCandProng2, aod::HfCandProng2MCRec, aod::HFSelD0Candidate>;
+
   void process(aod::Collisions const& collisions,
                aod::McCollisions const& mccollisions,
-               CandType const& candidates,
+               soa::Join<aod::HfCandProng2, aod::HfCandProng2MCRec, aod::HFSelD0Candidate> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particles,
                aod::BigTracksPID const& tracks)
   {
@@ -249,7 +250,7 @@ struct CandidateTreeWriter {
     // Filling particle properties
     rowCandidateFullParticles.reserve(particles.size());
     for (auto& particle : particles) {
-      if (std::abs(particle.flagMCMatchGen()) == 1 << D0ToPiK) {
+      if (std::abs(particle.flagMCMatchGen()) == 1 << DecayType::D0ToPiK) {
         rowCandidateFullParticles(
           particle.mcCollision().bcId(),
           particle.pt(),
@@ -265,6 +266,6 @@ struct CandidateTreeWriter {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow;
-  workflow.push_back(adaptAnalysisTask<CandidateTreeWriter>(cfgc, "hf-tree-creator-d0-tokpi"));
+  workflow.push_back(adaptAnalysisTask<CandidateTreeWriter>(cfgc, TaskName{"hf-tree-creator-d0-tokpi"}));
   return workflow;
 }

@@ -13,7 +13,7 @@ o2_add_library(DataFormatsCPV
                        src/Digit.cxx 
                        src/Cluster.cxx 
                        src/TriggerRecord.cxx
-		       src/CTF.cxx
+                       src/CTF.cxx
                 PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
                                      O2::Headers 
                                      O2::MathUtils 
@@ -27,4 +27,4 @@ o2_target_root_dictionary(DataFormatsCPV
                                   include/DataFormatsCPV/Digit.h
                                   include/DataFormatsCPV/Cluster.h
                                   include/DataFormatsCPV/TriggerRecord.h
-				  include/DataFormatsCPV/CTF.h)
+                                  include/DataFormatsCPV/CTF.h)

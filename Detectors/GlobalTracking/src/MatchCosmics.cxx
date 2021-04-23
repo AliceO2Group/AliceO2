@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTracking/MatchCosmics.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "GPUO2InterfaceRefit.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -27,6 +27,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GlobalTracking/MatchTPCITS.h"
+#include "CommonConstants/GeomConstants.h"
 #include <algorithm>
 #include <numeric>
 
@@ -63,7 +64,7 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
 
   for (int i = 0; i < ntr; i++) {
     for (int j = i + 1; j < ntr; j++) {
-      if (!checkPair(sortID[i], sortID[j])) {
+      if (checkPair(sortID[i], sortID[j]) == RejTime) {
         break;
       }
     }
@@ -71,6 +72,8 @@ void MatchCosmics::process(const o2::globaltracking::RecoContainer& data)
 
   selectWinners();
   refitWinners(data);
+
+  mTFCount++;
 }
 
 //________________________________________________________
@@ -138,9 +141,8 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     const auto& rec = mRecords[winRID];
     int poolEntryID[2] = {rec.id0, rec.id1};
     const o2::track::TrackParCov outerLegs[2] = {data.getTrackParamOut(mSeeds[rec.id0].origID), data.getTrackParamOut(mSeeds[rec.id1].origID)};
-    auto tmin = std::max(mSeeds[rec.id0].tBracket.getMin(), mSeeds[rec.id1].tBracket.getMin());
-    auto tmax = std::min(mSeeds[rec.id0].tBracket.getMax(), mSeeds[rec.id1].tBracket.getMax());
-    auto t0 = 0.5 * (tmin + tmax);
+    auto tOverlap = mSeeds[rec.id0].tBracket.getOverlap(mSeeds[rec.id1].tBracket);
+    float t0 = tOverlap.mean(), dt = tOverlap.delta() * 0.5;
     auto pnt0 = outerLegs[0].getXYZGlo(), pnt1 = outerLegs[1].getXYZGlo();
     int btm = 0, top = 1;
     // we fit topward from bottom
@@ -151,7 +153,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     LOG(DEBUG) << "Winner " << count++ << " Record " << winRID << " Partners:"
                << " B: " << mSeeds[poolEntryID[btm]].origID << "/" << mSeeds[poolEntryID[btm]].origID.getSourceName()
                << " U: " << mSeeds[poolEntryID[top]].origID << "/" << mSeeds[poolEntryID[top]].origID.getSourceName()
-               << " | T[" << tmin << ":" << tmax << "]";
+               << " | T:" << tOverlap.asString();
 
     float chi2 = 0;
     int nclTot = 0;
@@ -172,7 +174,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     } else { // just collect NClusters and chi2
       auto gidxListBtm = data.getSingleDetectorRefs(mSeeds[poolEntryID[btm]].origID);
       if (gidxListBtm[GTrackID::TPC].isIndexSet()) {
-        const auto& tpcTrOrig = data.getTPCTrack<o2::its::TrackITS>(gidxListBtm[GTrackID::TPC]);
+        const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListBtm[GTrackID::TPC]);
         nclTot += tpcTrOrig.getNClusters();
         chi2 += tpcTrOrig.getChi2();
       }
@@ -206,11 +208,14 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     } // ITS refit
     //
     if (gidxListTop[GTrackID::TPC].isIndexSet()) { // outward refit in TPC
-      float xtogo = 0;
-      if (!trCosm.getXatLabR(o2::globaltracking::MatchTPCITS::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
-          !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
-        LOG(DEBUG) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
-        continue;
+      // go to TPC boundary, if needed
+      if (trCosm.getX() * trCosm.getX() + trCosm.getY() * trCosm.getY() <= o2::constants::geom::XTPCInnerRef * o2::constants::geom::XTPCInnerRef) {
+        float xtogo = 0;
+        if (!trCosm.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
+            !o2::base::Propagator::Instance()->PropagateToXBxByBz(trCosm, xtogo, mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
+          LOG(DEBUG) << "Propagation to inner TPC boundary X=" << xtogo << " failed";
+          continue;
+        }
       }
       const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListTop[GTrackID::TPC]);
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
@@ -255,14 +260,14 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       continue;
     }
     // create final track
-    mCosmicTracks.emplace_back(mSeeds[poolEntryID[btm]].origID, mSeeds[poolEntryID[top]].origID, trCosmBtm, trCosmTop, chi2, chi2Match, nclTot);
+    mCosmicTracks.emplace_back(mSeeds[poolEntryID[btm]].origID, mSeeds[poolEntryID[top]].origID, trCosmBtm, trCosmTop, chi2, chi2Match, nclTot, t0, dt);
     if (mUseMC) {
       o2::MCCompLabel lbl[2] = {data.getTrackMCLabel(mSeeds[poolEntryID[btm]].origID), data.getTrackMCLabel(mSeeds[poolEntryID[top]].origID)};
       auto& tlb = mCosmicTracksLbl.emplace_back((nclBtm > nclTot - nclBtm ? lbl[0] : lbl[1]));
       tlb.setFakeFlag(lbl[0] != lbl[1]);
     }
   }
-  LOG(INFO) << "Validated " << mCosmicTracks.size() << " top-bottom tracks";
+  LOG(INFO) << "Validated " << mCosmicTracks.size() << " top-bottom tracks in TF# " << mTFCount;
 }
 
 //________________________________________________________
@@ -348,16 +353,17 @@ void MatchCosmics::suppressMatch(int partner0, int partner1)
 }
 
 //________________________________________________________
-bool MatchCosmics::checkPair(int i, int j)
+MatchCosmics::RejFlag MatchCosmics::checkPair(int i, int j)
 {
   // if validated with given chi2, register match
+  RejFlag rej = RejOther;
   auto& seed0 = mSeeds[i];
   auto& seed1 = mSeeds[j];
   if (seed0.matchID == Reject) {
-    return false;
+    return rej;
   }
   if (seed1.matchID == Reject) {
-    return true;
+    return rej;
   }
 
   LOG(DEBUG) << "Seed " << i << " [" << seed0.tBracket.getMin() << " : " << seed0.tBracket.getMax() << "] | "
@@ -366,19 +372,22 @@ bool MatchCosmics::checkPair(int i, int j)
   LOG(DEBUG) << seed1.origID << " | " << seed1.o2::track::TrackPar::asString();
 
   if (seed1.tBracket > seed0.tBracket) {
-    return false; // since the brackets are sorted in tmin, all following tbj will also exceed tbi
+    return (rej = RejTime); // since the brackets are sorted in tmin, all following tbj will also exceed tbi
   }
-  float chi2 = 0.f;
+  float chi2 = 1.e9f;
+
   // check
   // 1) crude check on tgl and q/pt (if B!=0). Note: back-to-back tracks will have mutually params (see TrackPar::invertParam)
   while (1) {
     auto dTgl = seed0.getTgl() + seed1.getTgl();
     if (dTgl * dTgl > (mMatchParams->systSigma2[o2::track::kTgl] + seed0.getSigmaTgl2() + seed1.getSigmaTgl2()) * mMatchParams->crudeNSigma2Cut[o2::track::kTgl]) {
+      rej = RejTgl;
       break;
     }
     if (mFieldON) {
       auto dQ2Pt = seed0.getQ2Pt() + seed1.getQ2Pt();
       if (dQ2Pt * dQ2Pt > (mMatchParams->systSigma2[o2::track::kQ2Pt] + seed0.getSigma1Pt2() + seed1.getSigma1Pt2()) * mMatchParams->crudeNSigma2Cut[o2::track::kQ2Pt]) {
+        rej = RejQ2Pt;
         break;
       }
     }
@@ -390,20 +399,24 @@ bool MatchCosmics::checkPair(int i, int j)
 
     if (!seed1Inv.rotate(seed0.getAlpha()) ||
         !o2::base::Propagator::Instance()->PropagateToXBxByBz(seed1Inv, seed0.getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
+      rej = RejProp;
       break;
     }
     auto dSnp = seed0.getSnp() - seed1Inv.getSnp();
     if (dSnp * dSnp > (seed0.getSigmaSnp2() + seed1Inv.getSigmaSnp2()) * mMatchParams->crudeNSigma2Cut[o2::track::kSnp]) {
+      rej = RejSnp;
       break;
     }
     auto dY = seed0.getY() - seed1Inv.getY();
     if (dY * dY > (seed0.getSigmaY2() + seed1Inv.getSigmaY2()) * mMatchParams->crudeNSigma2Cut[o2::track::kY]) {
+      rej = RejY;
       break;
     }
     bool ignoreZ = seed0.origID.getSource() == o2d::GlobalTrackID::TPC || seed1.origID.getSource() == o2d::GlobalTrackID::TPC;
     if (!ignoreZ) { // cut on Z makes no sense for TPC only tracks
       auto dZ = seed0.getZ() - seed1Inv.getZ();
       if (dZ * dZ > (seed0.getSigmaZ2() + seed1Inv.getSigmaZ2()) * mMatchParams->crudeNSigma2Cut[o2::track::kZ]) {
+        rej = RejZ;
         break;
       }
     } else { // inflate Z error
@@ -416,15 +429,29 @@ bool MatchCosmics::checkPair(int i, int j)
     // calculate chi2 (expensive)
     chi2 = seed0.getPredictedChi2(seed1Inv);
     if (chi2 > mMatchParams->crudeChi2Cut) {
+      rej = RejChi2;
       break;
     }
-
+    rej = Accept;
     registerMatch(i, j, chi2);
     registerMatch(j, i, chi2); // the reverse reference can be also done in a separate loop
     LOG(DEBUG) << "Chi2 = " << chi2 << " NMatches " << mRecords.size();
     break;
   }
-  return true;
+
+#ifdef _ALLOW_DEBUG_TREES_
+  if (mDBGOut && ((rej == Accept && isDebugFlag(MatchTreeAccOnly)) || isDebugFlag(MatchTreeAll))) {
+    auto seed1I = seed1;
+    seed1I.invert();
+    if (seed1I.rotate(seed0.getAlpha()) && o2::base::Propagator::Instance()->PropagateToXBxByBz(seed1I, seed0.getX(), mMatchParams->maxSnp, mMatchParams->maxStep, mMatchParams->matCorr)) {
+      int rejI = int(rej);
+      (*mDBGOut) << "match"
+                 << "tf=" << mTFCount << "seed0=" << seed0 << "seed1=" << seed1I << "chi2Match=" << chi2 << "rej=" << rejI << "\n";
+    }
+  }
+#endif
+
+  return rej;
 }
 
 //________________________________________________________
@@ -469,6 +496,7 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
       } else {
         terr *= this->mMatchParams->nSigmaTError;
       }
+      terr += this->mMatchParams->timeToleranceMUS;
       mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
     };
 
@@ -497,6 +525,13 @@ void MatchCosmics::updateTimeDependentParams()
 void MatchCosmics::init()
 {
   mMatchParams = &o2::globaltracking::MatchCosmicsParams::Instance();
+
+#ifdef _ALLOW_DEBUG_TREES_COSM
+  // debug streamer
+  if (mDBGFlags) {
+    mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mDebugTreeFileName.data(), "recreate");
+  }
+#endif
 }
 
 //________________________________________________________
@@ -512,3 +547,25 @@ std::vector<o2::BaseCluster<float>> MatchCosmics::prepareITSClusters(const o2::g
   }
   return std::move(itscl);
 }
+
+//______________________________________________
+void MatchCosmics::end()
+{
+#ifdef _ALLOW_DEBUG_TREES_COSM
+  mDBGOut.reset();
+#endif
+}
+
+#ifdef _ALLOW_DEBUG_TREES_
+//______________________________________________
+void MatchCosmics::setDebugFlag(UInt_t flag, bool on)
+{
+  ///< set debug stream flag
+  if (on) {
+    mDBGFlags |= flag;
+  } else {
+    mDBGFlags &= ~flag;
+  }
+}
+
+#endif

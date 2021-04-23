@@ -67,5 +67,5 @@ struct NucleiSpectraAnalyserTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<NucleiSpectraAnalyserTask>(cfgc, "nucleispectra-task-skim-analyser")};
+    adaptAnalysisTask<NucleiSpectraAnalyserTask>(cfgc, TaskName{"nucleispectra-task-skim-analyser"})};
 }

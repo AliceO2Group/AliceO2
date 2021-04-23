@@ -156,11 +156,11 @@ int GPUReconstructionCPU::GetThread()
 int GPUReconstructionCPU::InitDevice()
 {
   if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    if (mDeviceMemorySize > mHostMemorySize) {
-      mHostMemorySize = mDeviceMemorySize;
-    }
     if (mMaster == nullptr) {
-      mHostMemoryBase = operator new(mHostMemorySize);
+      if (mDeviceMemorySize > mHostMemorySize) {
+        mHostMemorySize = mDeviceMemorySize;
+      }
+      mHostMemoryBase = operator new(mHostMemorySize GPUCA_OPERATOR_NEW_ALIGNMENT);
     }
     mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
@@ -177,7 +177,7 @@ int GPUReconstructionCPU::ExitDevice()
 {
   if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     if (mMaster == nullptr) {
-      operator delete(mHostMemoryBase);
+      operator delete(mHostMemoryBase GPUCA_OPERATOR_NEW_ALIGNMENT);
     }
     mHostMemoryPool = mHostMemoryBase = mHostMemoryPoolEnd = mHostMemoryPermanent = nullptr;
     mHostMemorySize = 0;

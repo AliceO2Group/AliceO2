@@ -271,6 +271,35 @@ class OwningMessageSpectatorAllocator
   }
 };
 
+// The NoConstructAllocator behaves like the normal pmr vector but does not call constructors / destructors
+template <typename T>
+class NoConstructAllocator : public boost::container::pmr::polymorphic_allocator<T>
+{
+ public:
+  using boost::container::pmr::polymorphic_allocator<T>::polymorphic_allocator;
+  using propagate_on_container_move_assignment = std::true_type;
+
+  template <typename... Args>
+  NoConstructAllocator(Args&&... args) : boost::container::pmr::polymorphic_allocator<T>(std::forward<Args>(args)...)
+  {
+  }
+
+  // skip default construction of empty elements
+  // this is important for two reasons: one: it allows us to adopt an existing buffer (e.g. incoming message) and
+  // quickly construct large vectors while skipping the element initialization.
+  template <class U>
+  void construct(U*)
+  {
+  }
+
+  // dont try to call destructors, makes no sense since resource is managed externally AND allowed
+  // types cannot have side effects
+  template <typename U>
+  void destroy(U*)
+  {
+  }
+};
+
 //__________________________________________________________________________________________________
 //__________________________________________________________________________________________________
 //__________________________________________________________________________________________________

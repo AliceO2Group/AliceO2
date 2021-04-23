@@ -35,12 +35,17 @@ namespace event_visualisation
 
 DataReader* DataSourceOffline::instance[EVisualisationGroup::NvisualisationGroups];
 
-TObject* DataSourceOffline::getEventData(int no, EVisualisationGroup purpose)
+VisualisationEvent DataSourceOffline::getEventData(int no, EVisualisationGroup purpose, EVisualisationDataType dataType)
 {
   if (instance[purpose] == nullptr) {
-    return nullptr;
+    return VisualisationEvent({.eventNumber = -1,
+                               .runNumber = -1,
+                               .energy = -1,
+                               .multiplicity = -1,
+                               .collidingSystem = "",
+                               .timeStamp = 0});
   }
-  return instance[purpose]->getEventData(no);
+  return instance[purpose]->getEvent(no, dataType);
 }
 
 int DataSourceOffline::GetEventCount()

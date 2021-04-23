@@ -97,14 +97,17 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
     };
     getFromBranch(mDigitBranchName.c_str(), (void**)&digits);
     getFromBranch(mTriggerRecordBranchName.c_str(), (void**)&triggerRecords);
-    getFromBranch(mMCLabelsBranchName.c_str(), (void**)&ioLabels);
+    if (mUseMC) {
+      getFromBranch(mMCLabelsBranchName.c_str(), (void**)&ioLabels);
+      // publish labels in shared memory
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
+      ioLabels->copyandflatten(sharedlabels);
+      LOG(info) << "TRDDigitReader labels size (in bytes) = " << sharedlabels.size();
+    }
 
-    // publish labels in shared memory
-    auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
-    ioLabels->copyandflatten(sharedlabels);
     pc.outputs().snapshot(Output{"TRD", "DIGITS", 0, Lifetime::Timeframe}, *digits);
     pc.outputs().snapshot(Output{"TRD", "TRGRDIG", 0, Lifetime::Timeframe}, *triggerRecords);
-    LOG(info) << "TRDDigitReader digits size=" << digits->size() << " triggerrecords size=" << triggerRecords->size() << " mc labels size (in bytes) = " << sharedlabels.size();
+    LOG(info) << "TRDDigitReader digits size=" << digits->size() << " triggerrecords size=" << triggerRecords->size();
   }
   //delete DPLTree; // next line will delete the pointer as well.
   mFile->Close();
@@ -115,17 +118,18 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
   pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
 }
 
-DataProcessorSpec getTRDDigitReaderSpec(int channels)
+DataProcessorSpec getTRDDigitReaderSpec(int channels, bool useMC)
 {
-
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "TRGRDIG", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back("TRD", "LABELS", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{"TRDDIGITREADER",
                            Inputs{},
-                           Outputs{
-                             OutputSpec{"TRD", "DIGITS", 0, Lifetime::Timeframe},
-                             OutputSpec{"TRD", "TRGRDIG", 0, Lifetime::Timeframe},
-                             OutputSpec{"TRD", "LABELS", 0, Lifetime::Timeframe}},
-                           // outputs,
-                           AlgorithmSpec{adaptFromTask<TRDDigitReaderSpec>(channels)},
+                           outputs,
+                           AlgorithmSpec{adaptFromTask<TRDDigitReaderSpec>(channels, useMC)},
                            Options{
                              {"digitsfile", VariantType::String, "trddigits.root", {"Input data file containing run3 digitizer going into Trap Simulator"}},
                              {"run2digitsfile", VariantType::String, "run2digits.root", {"Input data file containing run2 digitis going into Trap Simulator"}}}};

@@ -83,6 +83,13 @@ class ConfigurableParamHelper : virtual public ConfigurableParam
   }
 
   // ----------------------------------------------------------------
+  // get the provenace of the member with given key
+  EParamProvenance getMemberProvenance(const std::string& key) const final
+  {
+    return getProvenance(getName() + '.' + key);
+  }
+
+  // ----------------------------------------------------------------
 
   // one of the key methods, using introspection to print itself
   void printKeyValues(bool showProv = true) const final

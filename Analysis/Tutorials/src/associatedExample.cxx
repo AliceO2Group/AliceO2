@@ -30,6 +30,14 @@ DECLARE_SOA_COLUMN(Mult, mult, int32_t);
 
 DECLARE_SOA_TABLE(CollisionsExtra, "AOD", "COLEXTRA",
                   collision::Mult);
+
+namespace indices
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);
+DECLARE_SOA_INDEX_COLUMN(HMPID, hmpid);
+} // namespace indices
+
+DECLARE_SOA_INDEX_TABLE_USER(HMPIDTracksIndex, Tracks, "HMPIDTRKIDX", indices::TrackId, indices::HMPIDId);
 } // namespace o2::aod
 
 using namespace o2;
@@ -118,12 +126,32 @@ struct ZTask {
   }
 };
 
+struct BuildHmpidIndex {
+  Builds<aod::HMPIDTracksIndex> idx;
+  void init(InitContext const&){};
+};
+
+struct ConsumeHmpidIndex {
+  using exTracks = soa::Join<aod::Tracks, aod::HMPIDTracksIndex>;
+  void process(aod::Collision const& collision, exTracks const& tracks, aod::HMPIDs const&)
+  {
+    LOGF(INFO, "Collision [%d]", collision.globalIndex());
+    for (auto& track : tracks) {
+      if (track.has_hmpid()) {
+        LOGF(INFO, "Track %d has HMPID info: %.2f", track.globalIndex(), track.hmpid().hmpidSignal());
+      }
+    }
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, "produce-etaphi"),
-    adaptAnalysisTask<BTask>(cfgc, "consume-etaphi"),
-    adaptAnalysisTask<MTask>(cfgc, "produce-mult"),
-    adaptAnalysisTask<TTask>(cfgc, "consume-mult"),
-    adaptAnalysisTask<ZTask>(cfgc, "partition-mult")};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"produce-etaphi"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"consume-etaphi"}),
+    adaptAnalysisTask<MTask>(cfgc, TaskName{"produce-mult"}),
+    adaptAnalysisTask<TTask>(cfgc, TaskName{"consume-mult"}),
+    adaptAnalysisTask<ZTask>(cfgc, TaskName{"partition-mult"}),
+    adaptAnalysisTask<BuildHmpidIndex>(cfgc),
+    adaptAnalysisTask<ConsumeHmpidIndex>(cfgc)};
 }

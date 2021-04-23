@@ -5,14 +5,14 @@ if [ `which StfBuilder 2> /dev/null | wc -l` == "0" ]; then
     echo ERROR: StfBuilder is not in the path
     exit 1
 fi
-if [ `which readout.exe 2> /dev/null | wc -l` == "0" ]; then
-    echo ERROR: readout.exe is not in the path
+if [ `which o2-readout-exe 2> /dev/null | wc -l` == "0" ]; then
+    echo ERROR: o2-readout-exe is not in the path
     exit 1
 fi
 
 pushd raw
 
-rm -Rf timeframe rdo_TF.cfg
+rm -Rf timeframe rdo_TF.cfg *.log
 if [ `ls | grep -v "^[A-Z0-9]\{3\}\$" | wc -l` != "0" ]; then
     echo Unexpected data in raw folder
     exit 1
@@ -28,8 +28,8 @@ echo StfBuilder PID: $STF_PID, waiting 15 seconds
 sleep 15
 
 echo Starting Readout
-export INFOLOGGER_OPTIONS="floodProtection=0"
-readout.exe file:rdo_TF.cfg &> readout.log &
+export O2_INFOLOGGER_OPTIONS="floodProtection=0"
+o2-readout-exe file:rdo_TF.cfg &> readout.log &
 RD_PID=$!
 echo Readout PID: $RD_PID
 
@@ -56,7 +56,7 @@ if [ -d /proc/$STF_PID ]; then
 fi
 
 mv 20* timeframe
-rm -f readout.log stfbuilder.log
+rm -f *.log rdo_TF.cfg
 
 echo Done
 

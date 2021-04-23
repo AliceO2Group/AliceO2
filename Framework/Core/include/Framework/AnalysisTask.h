@@ -26,6 +26,7 @@
 #include "Framework/Traits.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/TypeIdHelpers.h"
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
@@ -106,10 +107,10 @@ struct AnalysisDataProcessorBuilder {
   {
     using dT = std::decay_t<T>;
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
-      eInfos.push_back({at, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      eInfos.push_back({at, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
     } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
       if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({at, o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+        eInfos.push_back({at, dT::parent_t::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
@@ -582,19 +583,51 @@ template <class T>
 inline constexpr bool has_init_v = has_init<T>::value;
 } // namespace
 
+/// Struct to differentiate task names from possible task string arguments
+struct TaskName {
+  TaskName(std::string const& name) : value{name} {}
+  std::string value;
+};
+
+template <typename T>
+std::tuple<std::string, std::shared_ptr<T>> getNameAndTask()
+{
+  auto type_name_str = type_name<T>();
+  std::string name = type_to_task_name(type_name_str);
+  auto task = std::make_shared<T>();
+  return std::make_tuple(name, task);
+}
+
+template <typename T, typename T2, typename... Args>
+std::tuple<std::string, std::shared_ptr<T>> getNameAndTask(T2&& firstArg, Args&&... args)
+{
+  if constexpr (std::is_same_v<typename std::decay<T2>::type, TaskName>) {
+    std::string name = firstArg.value;
+    auto task = std::make_shared<T>(std::forward<Args>(args)...);
+    return std::make_tuple(name, task);
+  } else {
+    auto type_name_str = type_name<T>();
+    std::string name = type_to_task_name(type_name_str);
+    auto task = std::make_shared<T>(std::forward<T2, Args>(firstArg, args)...);
+    return std::make_tuple(name, task);
+  }
+}
+
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
-DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, Args&&... args)
+DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
 
+  auto [name_str, task] = getNameAndTask<T>(args...);
+
   auto suffix = ctx.options().get<std::string>("workflow-suffix");
   if (!suffix.empty()) {
-    name = (name + suffix).c_str();
+    name_str += suffix;
   }
+  const char* name = name_str.c_str();
 
-  auto task = std::make_shared<T>(std::forward<Args>(args)...);
   auto hash = compile_time_hash(name);
 
   std::vector<OutputSpec> outputs;
@@ -628,7 +661,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, 
 
   std::apply([&outputs, &hash](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash), ...); }, tupledTask);
 
-  auto algo = AlgorithmSpec::InitCallback{[task, expressionInfos](InitContext& ic) mutable {
+  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos](InitContext& ic) mutable {
     auto tupledTask = o2::framework::to_tuple_refs(*task.get());
     std::apply([&ic](auto&&... x) { return (OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
     std::apply([&ic](auto&&... x) { return (ServiceManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
@@ -644,11 +677,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, char const* name, 
     if constexpr (has_process_v<T>) {
       /// update configurables in filters
       std::apply(
-        [&ic](auto&&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
+        [&ic](auto&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
         tupledTask);
       /// update configurables in partitions
       std::apply(
-        [&ic](auto&&... x) { return (PartitionManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
+        [&ic](auto&... x) { return (PartitionManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
         tupledTask);
       /// create for filters gandiva trees matched to schemas and store the pointers into expressionInfos
       std::apply([&expressionInfos](auto&... x) {

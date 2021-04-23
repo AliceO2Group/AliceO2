@@ -30,9 +30,9 @@ class V0 : public o2::track::TrackParCov
   using PID = o2::track::PID;
 
   V0() = default;
-  V0(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz,
+  V0(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz,
      const o2::track::TrackParCov& trPos, const o2::track::TrackParCov& trNeg,
-     GIndex trPosID, GIndex trNegID);
+     GIndex trPosID, GIndex trNegID, o2::track::PID pid = o2::track::PID::K0);
 
   GIndex getProngID(int i) const { return mProngIDs[i]; }
   void setProngID(int i, GIndex gid) { mProngIDs[i] = gid; }
@@ -50,17 +50,11 @@ class V0 : public o2::track::TrackParCov
   int getVertexID() const { return mVertexID; }
   void setVertexID(int id) { mVertexID = id; }
 
-  float getMass2() const
-  {
-    return calcMass2(mProngs[0].getPID(), mProngs[1].getPID());
-  }
-
-  float calcMass2(PID pidPos, PID pidNeg) const
-  {
-    return calcMass2(PID::getMass2(pidPos), PID::getMass2(pidNeg));
-  }
-
+  float calcMass2() const { return calcMass2(mProngs[0].getPID(), mProngs[1].getPID()); }
+  float calcMass2(PID pidPos, PID pidNeg) const { return calcMass2(PID::getMass2(pidPos), PID::getMass2(pidNeg)); }
   float calcMass2(float massPos2, float massNeg2) const;
+
+  float calcR2() const { return getX() * getX() + getY() * getY(); }
 
  protected:
   std::array<GIndex, 2> mProngIDs; // global IDs of prongs

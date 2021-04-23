@@ -451,7 +451,7 @@ DataProcessorSpec
                std::back_inserter(unmatched), noTimeframe);
 
   DataProcessorSpec spec{
-    "internal-dpl-global-binary-file-sink",
+    "internal-dpl-injected-global-binary-file-sink",
     validBinaryInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),

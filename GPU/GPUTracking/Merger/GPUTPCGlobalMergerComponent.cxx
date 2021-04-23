@@ -290,10 +290,10 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
 
   // Initialize the merger
 
-  GPUSettingsEvent ev;
+  GPUSettingsGRP grp;
   GPUSettingsRec rec;
   GPUSettingsProcessing devProc;
-  ev.solenoidBz = fSolenoidBz;
+  grp.solenoidBz = fSolenoidBz;
   if (fClusterErrorCorrectionY > 1.e-4) {
     rec.ClusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
   }
@@ -313,7 +313,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   steps.inputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
   steps.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
 
-  fRec->SetSettings(&ev, &rec, &devProc, &steps);
+  fRec->SetSettings(&grp, &rec, &devProc, &steps);
   fChain->LoadClusterErrors();
   if (fRec->Init()) {
     return -EINVAL;

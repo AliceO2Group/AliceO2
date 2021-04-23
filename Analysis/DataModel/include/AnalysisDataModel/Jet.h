@@ -15,25 +15,30 @@
 #pragma once
 
 #include "Framework/AnalysisDataModel.h"
+#include <cmath>
 
 namespace o2::aod
 {
 namespace jet
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(Pt, pt, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Energy, energy, float);
-DECLARE_SOA_COLUMN(Mass, mass, float);
-DECLARE_SOA_COLUMN(Area, area, float);
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) { return pt * TMath::Cos(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) { return pt * TMath::Sin(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) { return pt * TMath::SinH(eta); });
-DECLARE_SOA_DYNAMIC_COLUMN(P, p, [](float pt, float eta) { return pt * TMath::CosH(eta); }); //absolute p
+DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
+DECLARE_SOA_COLUMN(Pt, pt, float);              //!
+DECLARE_SOA_COLUMN(Eta, eta, float);            //!
+DECLARE_SOA_COLUMN(Phi, phi, float);            //!
+DECLARE_SOA_COLUMN(Energy, energy, float);      //!
+DECLARE_SOA_COLUMN(Mass, mass, float);          //!
+DECLARE_SOA_COLUMN(Area, area, float);          //!
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px,              //!
+                           [](float pt, float phi) -> float { return pt * std::cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
+                           [](float pt, float phi) -> float { return pt * std::sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
+                           [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! absolute p
+                           [](float pt, float eta) -> float { return pt * std::cosh(eta); });
 } // namespace jet
 
-DECLARE_SOA_TABLE(Jets, "AOD", "JET",
+DECLARE_SOA_TABLE(Jets, "AOD", "JET", //!
                   o2::soa::Index<>,
                   jet::CollisionId,
                   jet::Pt,
@@ -53,11 +58,11 @@ using Jet = Jets::iterator;
 // when list of references available
 namespace constituents
 {
-DECLARE_SOA_INDEX_COLUMN(Jet, jet);
-DECLARE_SOA_INDEX_COLUMN(Track, track);
+DECLARE_SOA_INDEX_COLUMN(Jet, jet);     //!
+DECLARE_SOA_INDEX_COLUMN(Track, track); //!
 } // namespace constituents
 
-DECLARE_SOA_TABLE(JetConstituents, "AOD", "CONSTITUENTS",
+DECLARE_SOA_TABLE(JetConstituents, "AOD", "CONSTITUENTS", //!
                   constituents::JetId,
                   constituents::TrackId);
 
@@ -65,18 +70,22 @@ using JetConstituent = JetConstituents::iterator;
 
 namespace constituentssub
 {
-DECLARE_SOA_INDEX_COLUMN(Jet, jet);
-DECLARE_SOA_COLUMN(Pt, pt, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(Energy, energy, float);
-DECLARE_SOA_COLUMN(Mass, mass, float);
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px, [](float pt, float phi) { return pt * TMath::Cos(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, [](float pt, float phi) { return pt * TMath::Sin(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, [](float pt, float eta) { return pt * TMath::SinH(eta); });
-DECLARE_SOA_DYNAMIC_COLUMN(P, p, [](float pt, float eta) { return pt * TMath::CosH(eta); }); //absolute p
+DECLARE_SOA_INDEX_COLUMN(Jet, jet);        //!
+DECLARE_SOA_COLUMN(Pt, pt, float);         //!
+DECLARE_SOA_COLUMN(Eta, eta, float);       //!
+DECLARE_SOA_COLUMN(Phi, phi, float);       //!
+DECLARE_SOA_COLUMN(Energy, energy, float); //!
+DECLARE_SOA_COLUMN(Mass, mass, float);     //!
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px,         //!
+                           [](float pt, float phi) -> float { return pt * std::cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
+                           [](float pt, float phi) -> float { return pt * std::sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
+                           [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! absolute p
+                           [](float pt, float eta) -> float { return pt * std::cosh(eta); });
 } //namespace constituentssub
-DECLARE_SOA_TABLE(JetConstituentsSub, "AOD", "CONSTITUENTSSUB",
+DECLARE_SOA_TABLE(JetConstituentsSub, "AOD", "CONSTITUENTSSUB", //!
                   constituentssub::JetId,
                   constituentssub::Pt,
                   constituentssub::Eta,

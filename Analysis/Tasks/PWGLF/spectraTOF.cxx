@@ -60,7 +60,11 @@ struct TOFSpectraTask {
 
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::tofSignal > 0.f);
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOF, aod::pidRespTOFbeta, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                                                  aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
+                                                  aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                                                  aod::pidRespTOFbeta, aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
     histos.fill(HIST("p/Unselected"), track.p());
@@ -90,6 +94,6 @@ struct TOFSpectraTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTask>(cfgc, "tofspectra-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTask>(cfgc, TaskName{"tofspectra-task"})};
   return workflow;
 }

@@ -81,6 +81,7 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
   const My_Float* getPar() const { return GetParameter(); }
   const My_Float* getCov() const { return GetCovariance(); }
   float getTime() const { return -1.f; }
+  GPUd() void resetCovariance(float s) { ResetCovariance(10.); }
   bool CheckNumericalQuality() const { return true; }
 
   // parameter manipulation
@@ -301,7 +302,7 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }
   GPUd() float getTime() const { return -1.f; }
-
+  GPUd() void resetCovariance(float s) { ResetCovariance(); }
   GPUd() void setAlpha(float alpha) { mAlpha = alpha; }
   GPUd() void set(float x, float alpha, const float param[5], const float cov[15])
   {

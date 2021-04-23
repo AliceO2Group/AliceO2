@@ -74,6 +74,12 @@ class TimesliceIndex
   /// could correspond to different slots once we implement wildcards
   /// (e.g. if we ask for InputSpec{"*", "CLUSTERS"}).
   inline TimesliceId getTimesliceForSlot(TimesliceSlot slot) const;
+  /// Given @a slot, @return the firstTFOrbit (i.e. the variable at positiorn 15)
+  /// associated to it.
+  inline uint32_t getFirstTFOrbitForSlot(TimesliceSlot slot) const;
+  /// Given @a slot, @return the TFcounter (i.e. the variable at positiorn 14)
+  /// associated to it.
+  inline uint32_t getFirstTFCounterForSlot(TimesliceSlot slot) const;
   /// Given a slot, @return the VariableContext associated to it.
   /// This effectively means that the TimesliceIndex is now owner of the
   /// VariableContext.

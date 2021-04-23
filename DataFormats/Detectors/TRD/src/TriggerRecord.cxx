@@ -19,7 +19,10 @@ namespace trd
 
 void TriggerRecord::printStream(std::ostream& stream) const
 {
-  stream << "Data for bc " << getBCData().bc << ", orbit " << getBCData().orbit << ", starting from entry " << getFirstEntry() << " with " << getNumberOfObjects() << " objects";
+  stream << "Data for bc " << getBCData().bc << ", orbit " << getBCData().orbit
+         << ", starting from digit entry "
+         << getFirstDigit() << " with " << getNumberOfDigits() << " digits and tracklet entry "
+         << getFirstTracklet() << " with " << getNumberOfTracklets();
 }
 
 std::ostream& operator<<(std::ostream& stream, const TriggerRecord& trg)

@@ -107,3 +107,79 @@ const std::vector<Channel>& AltroDecoder::getChannels() const
   }
   return mChannels;
 }
+
+using AltroErrType = o2::emcal::AltroDecoderError::ErrorType_t;
+
+int AltroDecoderError::errorTypeToInt(AltroErrType errortype)
+{
+
+  int errorNumber = -1;
+
+  switch (errortype) {
+    case AltroErrType::RCU_TRAILER_ERROR:
+      errorNumber = 0;
+      break;
+    case AltroErrType::RCU_VERSION_ERROR:
+      errorNumber = 1;
+      break;
+    case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+      errorNumber = 2;
+      break;
+    case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+      errorNumber = 3;
+      break;
+    case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+      errorNumber = 4;
+      break;
+    case AltroErrType::ALTRO_PAYLOAD_ERROR:
+      errorNumber = 5;
+      break;
+    case AltroErrType::ALTRO_MAPPING_ERROR:
+      errorNumber = 6;
+      break;
+    case AltroErrType::CHANNEL_ERROR:
+      errorNumber = 7;
+      break;
+    default:
+      break;
+  }
+
+  return errorNumber;
+}
+
+AltroErrType AltroDecoderError::intToErrorType(int errornumber)
+{
+
+  AltroErrType errorType;
+
+  switch (errornumber) {
+    case 0:
+      errorType = AltroErrType::RCU_TRAILER_ERROR;
+      break;
+    case 1:
+      errorType = AltroErrType::RCU_VERSION_ERROR;
+      break;
+    case 2:
+      errorType = AltroErrType::RCU_TRAILER_SIZE_ERROR;
+      break;
+    case 3:
+      errorType = AltroErrType::ALTRO_BUNCH_HEADER_ERROR;
+      break;
+    case 4:
+      errorType = AltroErrType::ALTRO_BUNCH_LENGTH_ERROR;
+      break;
+    case 5:
+      errorType = AltroErrType::ALTRO_PAYLOAD_ERROR;
+      break;
+    case 6:
+      errorType = AltroErrType::ALTRO_MAPPING_ERROR;
+      break;
+    case 7:
+      errorType = AltroErrType::CHANNEL_ERROR;
+      break;
+    default:
+      break;
+  }
+
+  return errorType;
+}

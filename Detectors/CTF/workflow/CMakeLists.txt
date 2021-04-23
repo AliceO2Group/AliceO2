@@ -11,30 +11,35 @@
 o2_add_library(CTFWorkflow
                SOURCES src/CTFWriterSpec.cxx
                        src/CTFReaderSpec.cxx
-	       PUBLIC_LINK_LIBRARIES O2::Framework
+         PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsITSMFT
                                      O2::DataFormatsTPC
+                                     O2::DataFormatsTRD
                                      O2::DataFormatsTOF
                                      O2::DataFormatsFT0
                                      O2::DataFormatsFV0
-				     O2::DataFormatsFDD
-				     O2::DataFormatsMID
-				     O2::DataFormatsPHOS
-				     O2::DataFormatsCPV
-				     O2::DataFormatsZDC				     
+                                     O2::DataFormatsFDD
+                                     O2::DataFormatsMID
+                                     O2::DataFormatsPHOS
+                                     O2::DataFormatsCPV
+                                     O2::DataFormatsZDC
+                                     O2::DataFormatsHMP				     
                                      O2::DataFormatsParameters
                                      O2::ITSMFTWorkflow
                                      O2::TPCWorkflow
+                                     O2::TRDWorkflow
                                      O2::FT0Workflow
                                      O2::FV0Workflow
-				     O2::FDDWorkflow
+                                     O2::FDDWorkflow
                                      O2::TOFWorkflow
+                                     O2::MCHWorkflow
                                      O2::MIDWorkflow
                                      O2::EMCALWorkflow
-				     O2::PHOSWorkflow
-				     O2::CPVWorkflow
-				     O2::ZDCWorkflow
+                                     O2::PHOSWorkflow
+                                     O2::CPVWorkflow
+                                     O2::ZDCWorkflow
+				     O2::HMPIDWorkflow
                                      O2::Algorithm
                                      O2::CommonUtils)
 

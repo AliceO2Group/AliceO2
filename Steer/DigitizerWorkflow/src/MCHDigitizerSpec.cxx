@@ -22,7 +22,7 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
@@ -91,7 +91,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         for (auto& d : digits) {
           LOG(DEBUG) << "ADC " << d.getADC();
           LOG(DEBUG) << "PAD " << d.getPadID();
-          LOG(DEBUG) << "TIME " << d.getTime().sampaTime;
+          LOG(DEBUG) << "TIME " << d.getTime();
           LOG(DEBUG) << "DetID " << d.getDetID();
         }
         std::copy(digits.begin(), digits.end(), std::back_inserter(digitsAccum));

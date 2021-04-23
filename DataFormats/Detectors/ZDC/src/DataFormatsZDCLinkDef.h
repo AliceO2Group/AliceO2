@@ -15,7 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::zdc::Hit + ;
-#pragma link C++ class std::vector < std::vector < int>> + ;
+#pragma link C++ class std::vector < o2::zdc::Hit> + ;
 
 #pragma link C++ class o2::zdc::MCLabel + ;
 #include "SimulationDataFormat/MCTruthContainer.h"

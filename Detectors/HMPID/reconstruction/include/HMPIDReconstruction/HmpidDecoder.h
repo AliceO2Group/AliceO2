@@ -23,8 +23,9 @@
 #include <cstring>
 
 #include "FairLogger.h"
+#include "CommonDataFormat/InteractionRecord.h"
 
-#include "HmpidEquipment.h"
+#include "HMPIDReconstruction/HmpidEquipment.h"
 
 #define MAXDESCRIPTIONLENGHT 50
 
@@ -39,6 +40,8 @@
 #define WTYPE_PAD 3
 #define WTYPE_EOE 4
 #define WTYPE_NONE 0
+
+using namespace o2;
 
 // Hmpid Equipment class
 namespace o2
@@ -139,6 +142,8 @@ class HmpidDecoder
 
   float getAverageEventSize(int Equipment);
   float getAverageBusyTime(int Equipment);
+
+  o2::InteractionRecord mIntReco;
 
  protected:
   int checkType(uint32_t wp, int* p1, int* p2, int* p3, int* p4);

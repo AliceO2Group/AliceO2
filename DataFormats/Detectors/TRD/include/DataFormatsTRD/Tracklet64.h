@@ -26,7 +26,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#include "Rtypes.h" // for ClassDef
+#include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
+#include "DataFormatsTRD/Constants.h"
 
 namespace o2
 {
@@ -45,11 +47,11 @@ class Tracklet64
 {
 
  public:
-  Tracklet64() = default;
-  Tracklet64(uint64_t trackletword) { mtrackletWord = trackletword; }
-  Tracklet64(const Tracklet64&) = default;
-  Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
-             uint64_t slope, uint64_t Q0, uint64_t Q1, uint64_t Q2)
+  GPUdDefault() Tracklet64() = default;
+  GPUd() Tracklet64(uint64_t trackletword) { mtrackletWord = trackletword; }
+  GPUdDefault() Tracklet64(const Tracklet64&) = default;
+  GPUd() Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
+                    uint64_t slope, uint64_t Q0, uint64_t Q1, uint64_t Q2)
   {
     mtrackletWord = ((format << formatbs) & formatmask) |
                     ((hcid << hcidbs) & hcidmask) |
@@ -62,66 +64,83 @@ class Tracklet64
                     ((Q0 << Q0bs) & Q0mask);
   }
 
-  ~Tracklet64() = default;
-  Tracklet64& operator=(const Tracklet64& rhs) = default;
+  Tracklet64(uint64_t format, uint64_t hcid, uint64_t padrow, uint64_t col, uint64_t position,
+             uint64_t slope, uint64_t pid)
+  {
+    mtrackletWord = ((format << formatbs) & formatmask) |
+                    ((hcid << hcidbs) & hcidmask) |
+                    ((padrow << padrowbs) & padrowmask) |
+                    ((col << colbs) & colmask) |
+                    ((position << posbs) & posmask) |
+                    ((slope << slopebs) & slopemask) |
+                    (pid & PIDmask);
+  }
+
+  GPUdDefault() ~Tracklet64() = default;
+  GPUdDefault() Tracklet64& operator=(const Tracklet64& rhs) = default;
 
   // ----- Getters for contents of tracklet word -----
-  uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
-  uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // pad row number [0..15]
-  uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); };       // column refers to MCM position in column direction on readout board [0..3]
-  uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 1/80 pads, 11 bit granularity [-12.8..12.8] relative to MCM center
-  uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of 1/1000 pads/timebin, 8 bit granularity [-0.128 to 0.128]
-  uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // no unit, all 3 charge windows combined
-  uint64_t getQ0() const { return ((mtrackletWord & Q0mask) >> Q0bs); };             // no unit
-  uint64_t getQ1() const { return ((mtrackletWord & Q1mask) >> Q1bs); };             // no unit
-  uint64_t getQ2() const { return ((mtrackletWord & Q2mask) >> Q2bs); };             // no unit
+  GPUd() uint64_t getFormat() const { return ((mtrackletWord & formatmask) >> formatbs); }; // no units 0..1077
+  GPUd() uint64_t getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1077
+  GPUd() uint64_t getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // pad row number [0..15]
+  GPUd() uint64_t getColumn() const { return ((mtrackletWord & colmask) >> colbs); };       // column refers to MCM position in column direction on readout board [0..3]
+  GPUd() uint64_t getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 1/80 pads, 11 bit granularity [-12.8..12.8] relative to MCM center
+  GPUd() uint64_t getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of 1/1000 pads/timebin, 8 bit granularity [-0.128 to 0.128]
+  GPUd() uint64_t getPID() const { return ((mtrackletWord & PIDmask)); };                   // no unit, all 3 charge windows combined
+  GPUd() uint64_t getQ0() const { return ((mtrackletWord & Q0mask) >> Q0bs); };             // no unit
+  GPUd() uint64_t getQ1() const { return ((mtrackletWord & Q1mask) >> Q1bs); };             // no unit
+  GPUd() uint64_t getQ2() const { return ((mtrackletWord & Q2mask) >> Q2bs); };             // no unit
 
-  void setTrackletWord(uint64_t trackletword) { mtrackletWord = trackletword; }
+  GPUd() void setTrackletWord(uint64_t trackletword) { mtrackletWord = trackletword; }
 
   // ----- Getters for tracklet information -----
-  int getMCM() const { return 4 * (getPadRow() % 4) + getColumn(); }                                 // returns MCM position on ROB [0..15]
-  int getROB() const { return (getHCID() % 2) ? (getPadRow() / 4) * 2 + 1 : (getPadRow() / 4) * 2; } // returns ROB number [0..5] for C0 chamber and [0..7] for C1 chamber
-  float getUncalibratedY() const;                                                                    // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
-  float getUncalibratedDy(float nTbDrift = 19.4f) const;                                             // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
+  GPUd() int getMCM() const { return 4 * (getPadRow() % 4) + getColumn(); }                                 // returns MCM position on ROB [0..15]
+  GPUd() int getROB() const { return (getHCID() % 2) ? (getPadRow() / 4) * 2 + 1 : (getPadRow() / 4) * 2; } // returns ROB number [0..5] for C0 chamber and [0..7] for C1 chamber
+  GPUd() float getUncalibratedY() const;                                                                    // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
+  GPUd() float getUncalibratedDy(float nTbDrift = 19.4f) const;                                             // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
 
   // ----- Getters for offline corresponding values -----
-  int getDetector() const { return getHCID() / 2; }
+  GPUd() int getDetector() const { return getHCID() / 2; }
 
-  uint64_t getTrackletWord() const { return mtrackletWord; }
+  GPUd() uint64_t getTrackletWord() const { return mtrackletWord; }
 
-  void setQ0(int charge)
+  GPUd() void setQ0(int charge)
   {
     mtrackletWord &= ~Q0mask;
     mtrackletWord |= ((charge << Q0bs) & Q0mask);
   }
-  void setQ1(int charge)
+  GPUd() void setQ1(int charge)
   {
     mtrackletWord &= ~Q1mask;
     mtrackletWord |= ((charge << Q1bs) & Q1mask);
   }
-  void setQ2(int charge)
+  GPUd() void setQ2(int charge)
   {
     mtrackletWord &= ~Q2mask;
     mtrackletWord |= ((charge << Q2bs) & Q2mask);
   }
-  void setPID(uint64_t pid)
+  GPUd() void setPID(uint64_t pid)
   {
     // set the entire pid area of the trackletword, all the 3 Q's
     mtrackletWord &= ~PIDmask;
     mtrackletWord |= ((pid << PIDbs) & PIDmask);
   }
-  void setPosition(uint64_t position)
+  GPUd() void setPosition(uint64_t position)
   {
     mtrackletWord &= ~posmask;
     mtrackletWord |= ((position << posbs) & posmask);
   }
-  void setSlope(uint64_t slope)
+  GPUd() void setSlope(uint64_t slope)
   {
     mtrackletWord &= ~slopemask;
     mtrackletWord |= ((slope << slopebs) & slopemask);
   }
 
+  GPUd() bool operator==(const Tracklet64& o) const { return mtrackletWord == o.mtrackletWord; }
+
+#ifndef GPUCA_GPUCODE_DEVICE
   void printStream(std::ostream& stream) const;
+#endif // GPUCA_GPUCODE_DEVICE
 
   // bit masks for the above raw data;
   static constexpr uint64_t formatmask = 0xf000000000000000;
@@ -152,8 +171,40 @@ class Tracklet64
   ClassDefNV(Tracklet64, 1);
 };
 
+GPUdi() float Tracklet64::getUncalibratedY() const
+{
+  int padLocalBin = getPosition();
+  int padLocal = 0;
+  if (padLocalBin & (1 << (constants::NBITSTRKLPOS - 1))) {
+    padLocal = -((~(padLocalBin - 1)) & ((1 << constants::NBITSTRKLPOS) - 1));
+  } else {
+    padLocal = padLocalBin & ((1 << constants::NBITSTRKLPOS) - 1);
+  }
+  int mcmCol = (getMCM() % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (getROB() % 2);
+  float offset = -63.f + ((float)constants::NCOLMCM) * mcmCol;
+  float padWidth = 0.635f + 0.03f * (getDetector() % constants::NLAYER);
+  return (offset + padLocal * constants::GRANULARITYTRKLPOS) * padWidth;
+}
+
+GPUdi() float Tracklet64::getUncalibratedDy(float nTbDrift) const
+{
+  float dy;
+  int dyLocalBin = getSlope();
+  if (dyLocalBin & (1 << (constants::NBITSTRKLSLOPE - 1))) {
+    dy = (~(dyLocalBin - 1)) & ((1 << constants::NBITSTRKLSLOPE) - 1);
+    dy *= -1.f;
+  } else {
+    dy = dyLocalBin & ((1 << constants::NBITSTRKLSLOPE) - 1);
+  }
+  float padWidth = 0.635f + 0.03f * (getDetector() % constants::NLAYER);
+  return dy * constants::GRANULARITYTRKLSLOPE * padWidth * nTbDrift;
+}
+
+#ifndef GPUCA_GPUCODE_DEVICE
 std::ostream& operator<<(std::ostream& stream, const Tracklet64& trg);
+#endif // GPUCA_GPUCODE_DEVICE
 
 } //namespace trd
 } //namespace o2
+
 #endif

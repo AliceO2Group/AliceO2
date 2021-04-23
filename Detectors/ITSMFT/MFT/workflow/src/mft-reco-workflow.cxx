@@ -10,6 +10,7 @@
 
 #include "MFTWorkflow/RecoWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
 
@@ -21,13 +22,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"digits-from-upstream", o2::framework::VariantType::Bool, false, {"digits will be provided from upstream, skip digits reader"}},
     {"clusters-from-upstream", o2::framework::VariantType::Bool, false, {"clusters will be provided from upstream, skip clusterizer"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
-    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}}};
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
   std::swap(workflowOptions, options);
-
-  std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'ITSDigitizerParam.roFrameLength=6000.;...')");
-
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -44,5 +44,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto extClusters = configcontext.options().get<bool>("clusters-from-upstream");
   auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
 
-  return std::move(o2::mft::reco_workflow::getWorkflow(useMC, extDigits, extClusters, disableRootOutput));
+  auto wf = o2::mft::reco_workflow::getWorkflow(useMC, extDigits, extClusters, disableRootOutput);
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
+
+  return std::move(wf);
 }

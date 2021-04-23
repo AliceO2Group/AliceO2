@@ -11,7 +11,12 @@
 /// @file   CosmicsMatchingSpec.cxx
 
 #include <vector>
-
+#include <string>
+#include "TStopwatch.h"
+#include "GlobalTracking/MatchCosmics.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsTPC/Constants.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "GlobalTrackingWorkflow/CosmicsMatchingSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
@@ -36,10 +41,8 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
-#include "GlobalTracking/RecoContainer.h"
-
-// RSTODO to remove once the framework will start propagating the header.firstTForbit
-#include "DetectorsRaw/HBFUtils.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "Framework/Task.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -51,7 +54,22 @@ namespace o2
 namespace globaltracking
 {
 
-DataRequest dataRequest;
+DataRequest dataRequestCosm;
+
+class CosmicsMatchingSpec : public Task
+{
+ public:
+  CosmicsMatchingSpec(bool useMC) : mUseMC(useMC) {}
+  ~CosmicsMatchingSpec() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+  void endOfStream(framework::EndOfStreamContext& ec) final;
+
+ private:
+  o2::globaltracking::MatchCosmics mMatching; // matching engine
+  bool mUseMC = true;
+  TStopwatch mTimer;
+};
 
 void CosmicsMatchingSpec::init(InitContext& ic)
 {
@@ -90,6 +108,9 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   } else {
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
+
+  mMatching.setDebugFlag(ic.options().get<int>("debug-tree-flags"));
+
   mMatching.setUseMC(mUseMC);
   mMatching.init();
   //
@@ -100,7 +121,7 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   RecoContainer recoData;
-  recoData.collectData(pc, dataRequest);
+  recoData.collectData(pc, dataRequestCosm);
   mMatching.process(recoData);
   pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0, Lifetime::Timeframe}, mMatching.getCosmicTracks());
   if (mUseMC) {
@@ -111,6 +132,7 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
 
 void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
 {
+  mMatching.end();
   LOGF(INFO, "Cosmics matching total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
@@ -121,30 +143,8 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
 
-  if (src[GTrackID::ITS]) {
-    dataRequest.requestITSTracks(useMC);
-  }
-  if (src[GTrackID::TPC]) {
-    dataRequest.requestTPCTracks(useMC);
-  }
-  if (src[GTrackID::ITSTPC]) {
-    dataRequest.requestITSTPCTracks(useMC);
-  }
-  if (src[GTrackID::TPCTOF]) {
-    dataRequest.requestTPCTOFTracks(useMC);
-  }
-  if (src[GTrackID::ITSTPCTOF]) {
-    dataRequest.requestTOFMatches(useMC);
-    dataRequest.requestTOFClusters(false); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
-  }
-
-  // clusters needed for refits
-  if (GTrackID::includesDet(DetID::ITS, src)) {
-    dataRequest.requestITSClusters(false);
-  }
-  if (GTrackID::includesDet(DetID::TPC, src)) {
-    dataRequest.requestTPCClusters(false);
-  }
+  dataRequestCosm.requestTracks(src, useMC);
+  dataRequestCosm.requestClusters(src, false); // no MC labels for clusters needed for refit only
 
   outputs.emplace_back("GLO", "COSMICTRC", 0, Lifetime::Timeframe);
   if (useMC) {
@@ -153,12 +153,13 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 
   return DataProcessorSpec{
     "cosmics-matcher",
-    dataRequest.inputs,
+    dataRequestCosm.inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
-      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
+      {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};
 }
 
 } // namespace globaltracking

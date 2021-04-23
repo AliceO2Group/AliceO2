@@ -87,7 +87,11 @@ struct TPCSpectraTask {
     histos.fill(HIST(hpt[i]), track.pt());
   }
 
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
+                                                  aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
+                                                  aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                  aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
     histos.fill(HIST("p/Unselected"), track.p());
@@ -136,7 +140,14 @@ struct TPCPIDQASignalwTOFTask {
   CANDIDATE_SELECTION
 
   Filter trackFilterTOF = (aod::track::tofSignal > 0.f); // Skip tracks without TOF
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
+                                                  aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
+                                                  aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                  aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
+                                                  aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
+                                                  aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                                                  aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
     // const float mom = track.p();
@@ -156,9 +167,9 @@ struct TPCPIDQASignalwTOFTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   int TPCwTOF = cfgc.options().get<int>("add-tof-histos");
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTask>(cfgc, "tpcspectra-task")};
+  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTask>(cfgc, TaskName{"tpcspectra-task"})};
   if (TPCwTOF) {
-    workflow.push_back(adaptAnalysisTask<TPCPIDQASignalwTOFTask>(cfgc, "TPCpidqa-signalwTOF-task"));
+    workflow.push_back(adaptAnalysisTask<TPCPIDQASignalwTOFTask>(cfgc, TaskName{"TPCpidqa-signalwTOF-task"}));
   }
   return workflow;
 }

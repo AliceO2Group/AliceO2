@@ -27,11 +27,26 @@ o2_add_library(TPCWorkflow
                        src/ClusterSharingMapSpec.cxx
                        src/FileReaderWorkflow.cxx
                        src/CalDetMergerPublisherSpec.cxx
+                       src/KryptonClustererSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
                                      O2::TPCCalibration O2::TPCSimulation
-                                     O2::DetectorsCalibration)
+                                     O2::TPCQC O2::DetectorsCalibration)
+
+
+o2_add_executable(chunkeddigit-merger
+        COMPONENT_NAME tpc
+        TARGETVARNAME mergertargetName
+        SOURCES src/ChunkedDigitPublisher.cxx
+        PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+if(OpenMP_CXX_FOUND)
+  # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
+  target_compile_definitions(${mergertargetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${mergertargetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME tpc
@@ -56,6 +71,11 @@ o2_add_executable(track-reader
 o2_add_executable(file-reader
                   COMPONENT_NAME tpc
                   SOURCES src/FileReaderWorkflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(krypton-clusterer
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-krypton-clusterer.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow

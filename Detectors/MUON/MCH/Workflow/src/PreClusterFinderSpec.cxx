@@ -33,7 +33,7 @@
 #include "Framework/Logger.h"
 
 #include "DataFormatsMCH/ROFRecord.h"
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 
@@ -174,7 +174,7 @@ class PreClusterFinderTask
 //_________________________________________________________________________________________________
 o2::framework::DataProcessorSpec getPreClusterFinderSpec()
 {
-  std::string helpstr = "check that all digits are included in pre-clusters";
+  std::string helpstr = "[off/error/fatal] check that all digits are included in pre-clusters";
   return DataProcessorSpec{
     "PreClusterFinder",
     Inputs{InputSpec{"digitrofs", "MCH", "DIGITROFS", 0, Lifetime::Timeframe},

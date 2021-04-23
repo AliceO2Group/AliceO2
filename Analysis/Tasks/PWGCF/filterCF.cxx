@@ -46,18 +46,22 @@ struct FilterCF {
   {
   }
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>::iterator const& collision, aod::BCs const&, soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>::iterator const& collision, aod::BCsWithTimestamps const&, soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
   {
-    LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
+    LOGF(info, "Tracks for collision: %d | Vertex: %.1f (%d) | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.flags(), collision.sel7(), collision.centV0M());
 
-    if (!collision.alias()[kINT7]) {
-      return;
-    }
-    if (!collision.sel7()) {
+    if (!collision.alias()[kINT7] || !collision.sel7()) {
       return;
     }
 
-    outputCollisions(collision.bc().runNumber(), collision.posZ(), collision.centV0M());
+    // vertex range already checked as filter, but bitwise operations not yet supported
+    // TODO (collision.flags() != 0) can be removed with next conversion (AliPhysics >= 20210305)
+    if ((collision.flags() != 0) && ((collision.flags() & aod::collision::CollisionFlagsRun2::Run2VertexerTracks) != aod::collision::CollisionFlagsRun2::Run2VertexerTracks)) {
+      return;
+    }
+
+    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    outputCollisions(bc.runNumber(), collision.posZ(), collision.centV0M(), bc.timestamp());
 
     for (auto& track : tracks) {
       uint8_t trackType = 0;
@@ -78,5 +82,5 @@ struct FilterCF {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<FilterCF>(cfgc, "filter-cf")};
+    adaptAnalysisTask<FilterCF>(cfgc)};
 }

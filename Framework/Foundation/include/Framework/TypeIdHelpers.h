@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_TYPEIDHELPERS_H_
 
 #include <string_view>
+#include <sstream>
 #include "Framework/StringHelpers.h"
 
 #if defined(__GNUC__) && (__GNUC__ < 8)
@@ -49,6 +50,37 @@ struct TypeIdHelpers {
     return r;
   }
 };
+
+/// Return pure type name with no namespaces etc.
+/// Works fine with GCC and CLANG
+template <typename T>
+constexpr static std::string_view type_name()
+{
+  constexpr std::string_view wrapped_name{unique_type_id_v<T>};
+  const std::string_view left_marker{"T = "};
+  const std::string_view right_marker{"]"};
+  const auto left_marker_index = wrapped_name.find(left_marker);
+  const auto start_index = left_marker_index + left_marker.size();
+  const auto end_index = wrapped_name.find(right_marker, left_marker_index);
+  const auto length = end_index - start_index;
+  return wrapped_name.substr(start_index, length);
+}
+
+/// Convert a CamelCase task struct name to snake-case task name
+inline static std::string type_to_task_name(std::string_view& camelCase)
+{
+  std::ostringstream str;
+  str << static_cast<char>(std::tolower(camelCase[0]));
+
+  for (auto it = camelCase.begin() + 1; it != camelCase.end(); ++it) {
+    if (std::isupper(*it) && *(it - 1) != '-') {
+      str << "-";
+    }
+    str << static_cast<char>(std::tolower(*it));
+  }
+
+  return str.str();
+}
 
 } // namespace o2::framework
 

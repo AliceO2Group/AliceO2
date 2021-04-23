@@ -12,6 +12,7 @@
 /// @brief  TPC CalDet merger and CCDB publisher
 /// @author Jens Wiechula, Jens.Wiechula@ikf.uni-frankfurt.de
 
+#include <bitset>
 #include <unordered_map>
 #include <vector>
 #include <string>
@@ -39,13 +40,14 @@
 using namespace o2::framework;
 using namespace o2::tpc;
 using clbUtils = o2::calibration::Utils;
+using o2::header::gDataOriginTPC;
 
 class CalDetMergerPublisherSpec : public o2::framework::Task
 {
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
 
  public:
-  CalDetMergerPublisherSpec(bool skipCCDB) : mSkipCCDB(skipCCDB) {}
+  CalDetMergerPublisherSpec(uint32_t lanes, bool skipCCDB, bool dumpAfterComplete = false) : mLanesToExpect(lanes), mSkipCCDB(skipCCDB), mPublishAfterComplete(dumpAfterComplete) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -58,10 +60,13 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
     int nSlots = pc.inputs().getNofParts(0);
     assert(pc.inputs().getNofParts(1) == nSlots);
 
-    LOGP(info, "CalDetMergerPublisherSpec run");
     for (int isl = 0; isl < nSlots; isl++) {
       const auto type = pc.inputs().get<int>("clbInfo", isl);
       const auto pld = pc.inputs().get<gsl::span<char>>("clbPayload", isl); // this is actually an image of TMemFile
+      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().get("clbInfo", isl));
+      const auto subSpec = dh->subSpecification;
+      const int lane = subSpec >> 4;
+      const int calibType = subSpec & 0xf;
 
       //const auto& path = wrp->getPath();
       TMemFile f("file", (char*)&pld[0], pld.size(), "READ");
@@ -77,13 +82,32 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
       }
       f.Close();
 
-      LOGP(info, "getting slot {}", isl);
+      LOGP(info, "getting slot {}, subspec {:#8x}, lane {}, type {}", isl, subSpec, lane, calibType);
+      //if (mReceivedLanes.test(lane)) {
+      //LOGP(warning, "lane {} received multiple times", lane);
+      //}
+      mReceivedLanes.set(lane);
+    }
+
+    if (mReceivedLanes.count() == mLanesToExpect) {
+      LOGP(info, "data of all lanes received");
+      if (mPublishAfterComplete) {
+        LOGP(info, "publishing after all data was received");
+        dumpCalibData();
+        sendOutput(pc.outputs());
+        // reset calibration objects
+        for (auto& [type, object] : mMergedCalDets) {
+          object *= 0;
+        }
+        mCalibDumped = false;
+      }
+      mReceivedLanes.reset();
     }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOGP(info, "CalDetMergerPublisherSpec endOfStream");
+    LOGP(info, "endOfStream");
 
     dumpCalibData();
     sendOutput(ec.outputs());
@@ -92,9 +116,12 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
 
  private:
   using dataType = o2::tpc::CalDet<float>;
+  std::bitset<128> mReceivedLanes;                  ///< counter for received lanes
   std::unordered_map<int, dataType> mMergedCalDets; ///< calibration data to merge
+  uint32_t mLanesToExpect{0};                       ///< number of expected lanes sending data
   bool mForceQuit{false};                           ///< for quit after processing finished
   bool mDirectFileDump{false};                      ///< directly dump the calibration data to file
+  bool mPublishAfterComplete{false};                ///< dump calibration directly after data from all lanes received
   bool mCalibDumped{false};                         ///< if calibration object already dumped
   bool mSkipCCDB{false};                            ///< skip sending of calibration data
 
@@ -129,7 +156,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
   void dumpCalibData()
   {
     if (mDirectFileDump && !mCalibDumped) {
-      LOGP(info, "CalDetMergerPublisherSpec Dumping output");
+      LOGP(info, "Dumping output to file");
       TFile f("merged_CalDet.root", "recreate");
       for (auto& [type, object] : mMergedCalDets) {
         f.WriteObject(&object, object.getName().data());
@@ -139,7 +166,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
   }
 };
 
-o2::framework::DataProcessorSpec o2::tpc::getCalDetMergerPublisherSpec(bool skipCCDB)
+o2::framework::DataProcessorSpec o2::tpc::getCalDetMergerPublisherSpec(uint32_t lanes, bool skipCCDB, bool dumpAfterComplete)
 {
   std::vector<OutputSpec> outputs;
   if (!skipCCDB) {
@@ -148,8 +175,8 @@ o2::framework::DataProcessorSpec o2::tpc::getCalDetMergerPublisherSpec(bool skip
   }
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("clbPayload", ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, "TPCCLBPART"});
-  inputs.emplace_back("clbInfo", ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, "TPCCLBPARTINFO"});
+  inputs.emplace_back("clbPayload", ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPART"});
+  inputs.emplace_back("clbInfo", ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPARTINFO"});
 
   const std::string id = "calib-tpc-caldet-merger-publisher";
 
@@ -157,7 +184,7 @@ o2::framework::DataProcessorSpec o2::tpc::getCalDetMergerPublisherSpec(bool skip
     id.data(),
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CalDetMergerPublisherSpec>(skipCCDB)},
+    AlgorithmSpec{adaptFromTask<CalDetMergerPublisherSpec>(lanes, skipCCDB, dumpAfterComplete)},
     Options{
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
       {"direct-file-dump", VariantType::Bool, false, {"directly dump calibration to file"}},

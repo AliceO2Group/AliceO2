@@ -41,28 +41,22 @@ namespace ft0
 
 // Common raw reader for FT0
 template <class DigitBlockFT0type, class DataBlockPMtype, class DataBlockTCMtype>
-class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type>
+class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type, DataBlockPMtype, DataBlockTCMtype>
 {
  public:
-  typedef RawReaderBase<DigitBlockFT0type> RawReaderBaseType;
+  typedef RawReaderBase<DigitBlockFT0type, DataBlockPMtype, DataBlockTCMtype> RawReaderBaseType;
   RawReaderFT0Base() = default;
   ~RawReaderFT0Base() = default;
   //deserialize payload to raw data blocks and proccesss them to digits
-  void process(int linkID, gsl::span<const uint8_t> payload)
+  void process(int linkID, gsl::span<const uint8_t> payload, int ep)
   {
-    if (0 <= linkID && linkID < 19) {
-      //PM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID);
-    } else if (linkID == 19) {
+    if (o2::ft0::SingleLUT::Instance().isTCM(linkID, ep)) {
       //TCM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockTCMtype>(payload, linkID);
+      RawReaderBaseType::template processBinaryData<DataBlockTCMtype>(payload, linkID, ep);
     } else {
-      //put here code in case of bad rdh.linkID value
-      LOG(INFO) << "WARNING! WRONG LINK ID! " << linkID;
-      return;
+      //PM data proccessing
+      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID, ep);
     }
-
-    //
   }
 };
 //Normal TCM mode

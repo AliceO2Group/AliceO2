@@ -9,7 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "HMPIDSimulation/HMPIDDigitizer.h"
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 
 #include "Framework/Logger.h"
 
@@ -31,12 +32,13 @@ void HMPIDDigitizer::zeroSuppress(std::vector<o2::hmpid::Digit> const& digits, s
   int index = 0;
   for (auto& digit : digits) {
     if (digit.getCharge() >= getThreshold(digit)) {
+      //     if(digit.getPx() < 80 && digit.getPy() < 48) {
       newdigits.push_back(digit);
-
       if (newlabels) {
         // copy the labels to the new place with the right new index
         newlabels->addElements(newdigits.size() - 1, labels.getLabels(index));
       }
+      //   }
     }
     index++;
   }
@@ -64,22 +66,26 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
     int chamber, pc, px, py;
     float totalQ;
     // retrieves center pad and the total charge
-    Digit::getPadAndTotalCharge(hit, chamber, pc, px, py, totalQ);
+    o2::hmpid::Digit::getPadAndTotalCharge(hit, chamber, pc, px, py, totalQ);
 
     if (px < 0 || py < 0) {
       continue;
     }
 
     // determine which pads to loop over
-    std::array<int, 9> allpads;
+    std::array<uint32_t, 9> allpads;
     int counter = 0;
     for (int nx = -1; nx <= 1; ++nx) {
       for (int ny = -1; ny <= 1; ++ny) {
-        allpads[counter] = Param::Abs(chamber, pc, px + nx, py + ny);
+        if ((px + nx) < 0 || (px + nx) > 79 || (py + ny) < 0 || (py + ny) > 47) {
+          LOG(INFO) << ">> Pad out the PhotoCathod boundary. Excluded :" << px << " " << py << " :" << nx << "," << ny;
+          continue;
+        }
+        allpads[counter] = o2::hmpid::Digit::abs(chamber, pc, px + nx, py + ny);
         counter++;
       }
     }
-
+    // LOG(INFO) << "." <<  px << " " << py ;
     for (auto& pad : allpads) {
       auto iter = mIndexForPad.find(pad);
       int index = -1;
@@ -87,7 +93,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
         index = iter->second;
       }
       // auto index = mIndexForPad[pad];
-      float fraction = Digit::getFractionalContributionForPad(hit, pad);
+      float fraction = o2::hmpid::Digit::getFractionalContributionForPad(hit, (int)pad);
       // LOG(INFO) << "FRACTION ON PAD " << pad << " IS " << fraction;
       if (index != -1) {
         // digit exists ... reuse
@@ -111,7 +117,7 @@ void HMPIDDigitizer::process(std::vector<o2::hmpid::HitType> const& hits, std::v
       } else {
         // create digit ... and register
         //        mDigits.emplace_back(mCurrentTriggerTime, pad, totalQ * fraction);
-        mDigits.emplace_back(mOrbit, mBc, pad, totalQ * fraction);
+        mDigits.emplace_back(pad, totalQ * fraction);
         mIndexForPad[pad] = mDigits.size() - 1;
         mInvolvedPads.emplace_back(pad);
 

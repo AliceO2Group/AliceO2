@@ -56,7 +56,7 @@ class GPUChain
   virtual void ReadSettings(const char* dir = "") {}
 
   const GPUParam& GetParam() const { return mRec->mHostConstantMem->param; }
-  const GPUSettingsEvent& GetEventSettings() const { return mRec->mEventSettings; }
+  const GPUSettingsGRP& GetGRPSettings() const { return mRec->mGRPSettings; }
   const GPUSettingsDeviceBackend& GetDeviceBackendSettings() const { return mRec->mDeviceBackendSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mRec->mProcessingSettings; }
   GPUReconstruction* rec() { return mRec; }

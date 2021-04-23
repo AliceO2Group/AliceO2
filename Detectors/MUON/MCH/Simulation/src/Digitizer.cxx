@@ -173,11 +173,10 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
       } else {
         q *= chargenon;
       }
-      auto signal = (unsigned long)q * resp.getInverseChargeThreshold();
+      auto signal = (uint32_t)q * resp.getInverseChargeThreshold();
       if (signal > 0) {
-        Digit::Time dtime;
-        dtime.sampaTime = static_cast<uint16_t>(time) & 0x3FF;
-        digits.emplace_back(detID, padid, signal, dtime);
+        /// FIXME: which time definition is used when calling this function?
+        digits.emplace_back(detID, padid, signal, static_cast<int32_t>(time));
         ++ndigits;
       }
     }
@@ -197,9 +196,8 @@ void Digitizer::generateNoiseDigits()
     int nNoisyPads = TMath::Nint(gRandom->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
     for (int i = 0; i < nNoisyPads; i++) {
       int padid = gRandom->Integer(nNoisyPads + 1);
-      Digit::Time dtime;
-      dtime.sampaTime = static_cast<uint16_t>(eventTime) & 0x3FF;
-      digits.emplace_back(detID, padid, 0.6, dtime);
+      // FIXME: can we use eventTime as the digit time?
+      digits.emplace_back(detID, padid, 0.6, static_cast<int32_t>(eventTime));
       //just to roun adbove threshold when added
       MCCompLabel label(-1, eventID, srcID, true);
       mcTruthOutputContainer.addElement(digits.size() - 1, label);
@@ -237,10 +235,10 @@ void Digitizer::mergeDigits()
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime().sampaTime - sortedDigits(j).getTime().sampaTime) < mDeltat)) {
+    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime() - sortedDigits(j).getTime()) < mDeltat)) {
       j++;
     }
-    unsigned long adc{0};
+    uint32_t adc{0};
     float padc{0};
     Response& resp = response(isStation1(sortedDigits(i).getDetID()));
 

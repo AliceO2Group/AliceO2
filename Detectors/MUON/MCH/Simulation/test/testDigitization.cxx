@@ -16,7 +16,7 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHGeometryTransformer/Transformations.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHSimulation/Digitizer.h"

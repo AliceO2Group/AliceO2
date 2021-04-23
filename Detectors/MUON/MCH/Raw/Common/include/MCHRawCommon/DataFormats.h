@@ -34,6 +34,54 @@ using uint10_t = uint16_t;
 using uint20_t = uint32_t;
 using uint50_t = uint64_t;
 
+// Format of 64 bits-words of the UserLogicFormat
+template <int VERSION>
+struct ULHeaderWord;
+
+// initial UL format (2020)
+template <>
+struct ULHeaderWord<0> {
+  union {
+    uint64_t word;
+    struct {
+      uint64_t data : 50;
+      uint64_t error : 2;
+      uint64_t incomplete : 1;
+      uint64_t dsID : 6;
+      uint64_t linkID : 5;
+    };
+  };
+};
+
+// version 1 of UL format (2021)
+// = as initial version with 1 bit less for linkID and 1 bit more for error
+template <>
+struct ULHeaderWord<1> {
+  union {
+    uint64_t word;
+    struct {
+      uint64_t data : 50;
+      uint64_t error : 3;
+      uint64_t incomplete : 1;
+      uint64_t dsID : 6;
+      uint64_t linkID : 4;
+    };
+  };
+};
+
+// structure of the FEEID field (16 bits) in the MCH Raw Data RDH
+struct FEEID {
+  union {
+    uint16_t word;
+    struct {
+      uint16_t id : 8;
+      uint16_t chargeSum : 1;
+      uint16_t reserved : 3;
+      uint16_t ulFormatVersion : 4;
+    };
+  };
+};
+
 }; // namespace o2::mch::raw
 
 #endif

@@ -18,10 +18,6 @@ namespace o2::framework
 
 /// A few ServiceSpecs data sending backends
 struct CommonMessageBackends {
-  // Rate limiting service
-  static ServiceSpec rateLimitingSpec();
-  // Create spec for backend used to send Arrow messages
-  static ServiceSpec arrowBackendSpec();
   static ServiceSpec fairMQBackendSpec();
   static ServiceSpec stringBackendSpec();
   static ServiceSpec rawBufferBackendSpec();

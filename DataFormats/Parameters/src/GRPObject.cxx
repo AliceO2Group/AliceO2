@@ -50,6 +50,7 @@ void GRPObject::print() const
   printf("Start: %s", std::ctime(&t));
   t = mTimeEnd; // system_clock::to_time_t(mTimeEnd);
   printf("End  : %s", std::ctime(&t));
+  printf("1st orbit: %u, %u orbits per TF\n", mFirstOrbit, mNHBFPerTF);
   printf("Beam0: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamClockWise), getBeamA(BeamClockWise),
          getBeamEnergyPerNucleon(BeamClockWise));
   printf("Beam1: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamAntiClockWise), getBeamA(BeamAntiClockWise),

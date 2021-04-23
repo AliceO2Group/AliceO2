@@ -27,12 +27,19 @@ constexpr int NLAYER = 6;          // the number of layers
 constexpr int NCHAMBERPERSEC = 30; // the number of chambers per sector
 constexpr int MAXCHAMBER = 540;    // the maximum number of installed chambers
 constexpr int NCHAMBER = 521;      // the number of chambers actually installed
+constexpr int NHALFCRU = 72;       // the number of half cru (link bundles)
+constexpr int NLINKSPERHALFCRU = 15; // the number of links per half cru or cru end point.
+constexpr int NRU = 36;              // the number of CRU we have
+constexpr int NFLP = 12;             // the number of FLP we have.
+constexpr int NCRUPERFLP = 3;        // the number of CRU per FLP
+constexpr int TRDLINKID = 15;        // hard coded link id, specific to TRD
 
 constexpr int NCOLUMN = 144; // the number of pad columns for each chamber
 constexpr int NROWC0 = 12;   // the number of pad rows for chambers of type C0 (installed stack 0,1,3 and 4)
 constexpr int NROWC1 = 16;   // the number of pad rows for chambers of type C1 (installed in stack 2)
 
 constexpr int NMCMROB = 16;     // the number of MCMs per ROB
+constexpr int NMCMHCMAX = 64;   // the maximum number of MCMs for one half chamber (C1 type)
 constexpr int NMCMROBINROW = 4; // the number of MCMs per ROB in row direction
 constexpr int NMCMROBINCOL = 4; // the number of MCMs per ROB in column direction
 constexpr int NROBC0 = 6;       // the number of ROBs per C0 chamber
@@ -49,6 +56,12 @@ constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granula
 
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins
+constexpr int NBINSANGLEDIFF = 26; // the number of bins for the track angle used for the vDrift and ExB calibration based on the tracking (last bin is for under-/overflow entries)
+
+// Trigger parameters
+constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
+constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
+constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
 
 } //namespace constants
 } // namespace trd

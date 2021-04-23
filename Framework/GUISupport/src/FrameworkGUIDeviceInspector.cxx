@@ -17,6 +17,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/Logger.h"
+#include "Framework/DeviceController.h"
 
 #include "DebugGUI/imgui.h"
 #include <csignal>
@@ -154,7 +155,11 @@ void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
       ImGui::NextColumn();
     }
     for (auto& service : services) {
-      ImGui::TextUnformatted(service.name.c_str());
+      if (!service.name.empty()) {
+        ImGui::TextUnformatted(service.name.c_str());
+      } else {
+        ImGui::TextUnformatted("unknown");
+      }
       ImGui::NextColumn();
       switch (service.kind) {
         case ServiceKind::Serial:
@@ -239,6 +244,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 #endif
+  if (control.controller) {
+    if (ImGui::Button("Say hello")) {
+      control.controller->hello();
+    }
+  }
 
   deviceInfoTable(info, metrics);
   for (auto& option : info.currentConfig) {

@@ -26,7 +26,7 @@ namespace track
 template <typename value_T = float>
 class TrackParametrizationWithError : public TrackParametrization<value_T>
 { // track+error parameterization
-
+ public:
   using typename TrackParametrization<value_T>::value_t;
   using typename TrackParametrization<value_T>::dim3_t;
   using typename TrackParametrization<value_T>::dim2_t;
@@ -36,7 +36,6 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   static_assert(std::is_floating_point_v<value_t>);
 #endif
 
- public:
   using covMat_t = gpu::gpustd::array<value_t, kCovMatSize>;
   using MatrixDSym5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepSym<double, kNParams>>;
   using MatrixD5 = ROOT::Math::SMatrix<double, kNParams, kNParams, ROOT::Math::MatRepStd<double, kNParams, kNParams>>;
@@ -53,8 +52,11 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUdDefault() ~TrackParametrizationWithError() = default;
   using TrackParametrization<value_T>::TrackParametrization;
 
+  using TrackParametrization<value_T>::set;
   GPUd() void set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge = 1, const PID pid = PID::Pion);
-  GPUd() const value_t* getCov() const;
+  GPUd() void set(value_t x, value_t alpha, const value_t* par, const value_t* cov, int charge = 1, const PID pid = PID::Pion);
+  GPUd() void set(const dim3_t& xyz, const dim3_t& pxpypz, const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true, const PID pid = PID::Pion);
+  GPUd() const covMat_t& getCov() const;
   GPUd() value_t getSigmaY2() const;
   GPUd() value_t getSigmaZY() const;
   GPUd() value_t getSigmaZ2() const;
@@ -88,6 +90,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() void invert();
 
   GPUd() value_t getPredictedChi2(const dim2_t& p, const dim3_t& cov) const;
+  GPUd() value_t getPredictedChi2(const value_t* p, const value_t* cov) const;
 
   template <typename T>
   GPUd() value_t getPredictedChi2(const BaseCluster<T>& p) const;
@@ -99,6 +102,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   bool update(const TrackParametrizationWithError& rhs);
 
   GPUd() bool update(const dim2_t& p, const dim3_t& cov);
+  GPUd() bool update(const value_t* p, const value_t* cov);
 
   template <typename T>
   GPUd() bool update(const BaseCluster<T>& p);
@@ -107,13 +111,16 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
   GPUd() void resetCovariance(value_t s2 = 0);
   GPUd() void checkCovariance();
+  GPUd() void setCov(value_t v, size_t i, size_t j);
   GPUd() void setCov(value_t v, int i);
+  GPUd() void setCov(const covMat_t& mat);
 
-  GPUd() void updateCov(const value_t delta[kCovMatSize]);
-  GPUd() void updateCov(value_t delta, int i);
+  GPUd() void updateCov(const covMat_t& delta);
+  GPUd() void updateCov(value_t delta, size_t i, size_t j);
+  GPUd() void updateCov(value_t delta, size_t i);
 
  protected:
-  value_t mC[kCovMatSize] = {0.f}; // 15 covariance matrix elements
+  covMat_t mC{0.f}; // 15 covariance matrix elements
 
   ClassDefNV(TrackParametrizationWithError, 2);
 };
@@ -140,6 +147,13 @@ GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(va
 template <typename value_T>
 GPUdi() void TrackParametrizationWithError<value_T>::set(value_t x, value_t alpha, const params_t& par, const covMat_t& cov, int charge, const PID pid)
 {
+  set(x, alpha, par.data(), cov.data(), charge, pid);
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::set(value_t x, value_t alpha, const value_t* par, const value_t* cov, int charge, const PID pid)
+{
   TrackParametrization<value_T>::set(x, alpha, par, charge, pid);
   for (int i = 0; i < kCovMatSize; i++) {
     mC[i] = cov[i];
@@ -148,126 +162,126 @@ GPUdi() void TrackParametrizationWithError<value_T>::set(value_t x, value_t alph
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() const typename TrackParametrizationWithError<value_T>::value_t* TrackParametrizationWithError<value_T>::getCov() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getCov() const -> const covMat_t&
 {
   return mC;
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaY2() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaY2() const -> value_t
 {
   return mC[kSigY2];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaZY() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaZY() const -> value_t
 {
   return mC[kSigZY];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaZ2() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaZ2() const -> value_t
 {
   return mC[kSigZ2];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaSnpY() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaSnpY() const -> value_t
 {
   return mC[kSigSnpY];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaSnpZ() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaSnpZ() const -> value_t
 {
   return mC[kSigSnpZ];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaSnp2() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaSnp2() const -> value_t
 {
   return mC[kSigSnp2];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaTglY() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaTglY() const -> value_t
 {
   return mC[kSigTglY];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaTglZ() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaTglZ() const -> value_t
 {
   return mC[kSigTglZ];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaTglSnp() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaTglSnp() const -> value_t
 {
   return mC[kSigTglSnp];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigmaTgl2() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigmaTgl2() const -> value_t
 {
   return mC[kSigTgl2];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigma1PtY() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigma1PtY() const -> value_t
 {
   return mC[kSigQ2PtY];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigma1PtZ() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigma1PtZ() const -> value_t
 {
   return mC[kSigQ2PtZ];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigma1PtSnp() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigma1PtSnp() const -> value_t
 {
   return mC[kSigQ2PtSnp];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigma1PtTgl() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigma1PtTgl() const -> value_t
 {
   return mC[kSigQ2PtTgl];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getSigma1Pt2() const
+GPUdi() auto TrackParametrizationWithError<value_T>::getSigma1Pt2() const -> value_t
 {
   return mC[kSigQ2Pt2];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getCovarElem(int i, int j) const
+GPUdi() auto TrackParametrizationWithError<value_T>::getCovarElem(int i, int j) const -> value_t
 {
   return mC[CovarMap[i][j]];
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getDiagError2(int i) const
+GPUdi() auto TrackParametrizationWithError<value_T>::getDiagError2(int i) const -> value_t
 {
   return mC[DiagMap[i]];
 }
@@ -275,11 +289,25 @@ GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametriz
 //__________________________________________________________________________
 template <typename value_T>
 template <typename T>
-GPUdi() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getPredictedChi2(const BaseCluster<T>& p) const
+GPUdi() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const BaseCluster<T>& p) const -> value_t
 {
   const dim2_t pyz = {p.getY(), p.getZ()};
   const dim3_t cov = {p.getSigmaY2(), p.getSigmaYZ(), p.getSigmaZ2()};
   return getPredictedChi2(pyz, cov);
+}
+
+//______________________________________________
+template <typename value_T>
+GPUdi() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const dim2_t& p, const dim3_t& cov) const -> value_t
+{
+  return getPredictedChi2(p.data(), cov.data());
+}
+
+//______________________________________________
+template <typename value_T>
+GPUdi() bool TrackParametrizationWithError<value_T>::update(const dim2_t& p, const dim3_t& cov)
+{
+  return update(p.data(), cov.data());
 }
 
 //__________________________________________________________________________
@@ -301,16 +329,36 @@ GPUdi() void TrackParametrizationWithError<value_T>::setCov(value_t v, int i)
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() void TrackParametrizationWithError<value_T>::updateCov(value_t delta, int i)
+GPUdi() void TrackParametrizationWithError<value_T>::setCov(value_t v, size_t i, size_t j)
+{
+  mC[CovarMap[i][j]] = v;
+}
+
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::setCov(const covMat_t& cov)
+{
+  mC = cov;
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::updateCov(value_t delta, size_t i, size_t j)
+{
+  mC[CovarMap[i][j]] += delta;
+}
+
+//__________________________________________________________________________
+template <typename value_T>
+GPUdi() void TrackParametrizationWithError<value_T>::updateCov(value_t delta, size_t i)
 {
   mC[i] += delta;
 }
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() void TrackParametrizationWithError<value_T>::updateCov(const value_t delta[kCovMatSize])
+GPUdi() void TrackParametrizationWithError<value_T>::updateCov(const covMat_t& delta)
 {
-  for (int i = kCovMatSize; i--;) {
+  for (size_t i = 0; i < kCovMatSize; ++i) {
     mC[i] += delta[i];
   }
 }

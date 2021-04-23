@@ -11,8 +11,7 @@
 /// @file  PrimaryVertexingSpec.cxx
 
 #include <vector>
-#include "GlobalTracking/RecoContainer.h"
-
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
@@ -33,7 +32,7 @@ namespace o2
 {
 namespace vertexing
 {
-o2::globaltracking::DataRequest dataRequest;
+o2::globaltracking::DataRequest dataRequestPV;
 namespace o2d = o2::dataformats;
 
 void PrimaryVertexingSpec::init(InitContext& ic)
@@ -77,7 +76,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   o2::globaltracking::RecoContainer recoData;
-  recoData.collectData(pc, dataRequest);
+  recoData.collectData(pc, dataRequestPV);
   // select tracks of needed type, with minimal cuts, the real selected will be done in the vertexer
 
   std::vector<TrackWithTimeStamp> tracks;
@@ -149,18 +148,10 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWithFT0, bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  if (src[GTrackID::ITS]) {
-    dataRequest.requestITSTracks(useMC);
-  }
-  if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
-    dataRequest.requestITSTPCTracks(useMC);
-  }
-  if (src[GTrackID::ITSTPCTOF]) {
-    dataRequest.requestTOFMatches(useMC);
-    dataRequest.requestTOFClusters(false);
-  }
+
+  dataRequestPV.requestTracks(src, useMC);
   if (validateWithFT0 && src[GTrackID::FT0]) {
-    dataRequest.requestFT0RecPoints(false);
+    dataRequestPV.requestFT0RecPoints(false);
   }
 
   outputs.emplace_back("GLO", "PVTX", 0, Lifetime::Timeframe);
@@ -173,7 +164,7 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWit
 
   return DataProcessorSpec{
     "primary-vertexing",
-    dataRequest.inputs,
+    dataRequestPV.inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(validateWithFT0, useMC)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};

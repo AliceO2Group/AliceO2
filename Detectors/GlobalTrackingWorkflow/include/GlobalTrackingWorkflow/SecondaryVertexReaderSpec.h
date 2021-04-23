@@ -20,6 +20,7 @@
 #include "Framework/Task.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "ReconstructionDataFormats/V0.h"
+#include "ReconstructionDataFormats/Cascade.h"
 
 namespace o2
 {
@@ -31,6 +32,7 @@ class SecondaryVertexReader : public o2::framework::Task
 {
   using RRef = o2::dataformats::RangeReference<int, int>;
   using V0 = o2::dataformats::V0;
+  using Cascade = o2::dataformats::Cascade;
 
  public:
   SecondaryVertexReader() = default;
@@ -45,6 +47,8 @@ class SecondaryVertexReader : public o2::framework::Task
 
   std::vector<V0> mV0s, *mV0sPtr = &mV0s;
   std::vector<RRef> mPV2V0Ref, *mPV2V0RefPtr = &mPV2V0Ref;
+  std::vector<Cascade> mCascs, *mCascsPtr = &mCascs;
+  std::vector<RRef> mPV2CascRef, *mPV2CascRefPtr = &mPV2CascRef;
 
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
@@ -53,6 +57,8 @@ class SecondaryVertexReader : public o2::framework::Task
   std::string mSVertexTreeName = "o2sim";
   std::string mV0BranchName = "V0s";
   std::string mPVertex2V0RefBranchName = "PV2V0Refs";
+  std::string mCascBranchName = "Cascades";
+  std::string mPVertex2CascRefBranchName = "PV2CascRefs";
 };
 
 /// create a processor spec
