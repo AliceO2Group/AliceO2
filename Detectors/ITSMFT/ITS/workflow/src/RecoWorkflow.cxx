@@ -40,7 +40,7 @@ framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::st
   if (!upstreamClusters) {
     specs.emplace_back(o2::its::getClustererSpec(useMC));
   }
-  if (!disableRootOutput) {
+  if (!(disableRootOutput || upstreamClusters)) {
     specs.emplace_back(o2::its::getClusterWriterSpec(useMC));
   }
   if (useCAtracker) {
