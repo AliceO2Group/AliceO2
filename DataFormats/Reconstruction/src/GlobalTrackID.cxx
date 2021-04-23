@@ -113,5 +113,6 @@ std::string GlobalTrackID::getSourcesNames(GlobalTrackID::mask_t srcm)
       s += getSourceName(i);
     }
   }
+  s += ']';
   return std::move(s);
 }
