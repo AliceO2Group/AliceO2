@@ -19,8 +19,6 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
 
 #include <iostream>
 
@@ -56,8 +54,6 @@ TimeFrame::TimeFrame(int nLayers)
   mUsedClusters.resize(nLayers);
   mROframesClusters.resize(nLayers);
 }
-
-void TimeFrame::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label.getRawValue()); }
 
 void TimeFrame::addPrimaryVertices(const std::vector<std::pair<float3, int>>& vertices)
 {
