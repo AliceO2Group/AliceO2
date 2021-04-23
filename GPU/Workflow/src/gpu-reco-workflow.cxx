@@ -38,7 +38,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, zsonthefly, clustersnative, compressed-clusters-root, compressed-clusters-ctf"}},
-    {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters, qa, no-shared-cluster-map"}},
+    {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters-ctf, qa, no-shared-cluster-map"}},
     {"disable-root-input", VariantType::Bool, true, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
@@ -87,7 +87,7 @@ static const std::unordered_map<std::string, ioType> InputMap{
 static const std::unordered_map<std::string, ioType> OutputMap{
   {"clusters", ioType::Clusters},
   {"tracks", ioType::Tracks},
-  {"compressed-clusters", ioType::CompClustCTF},
+  {"compressed-clusters-ctf", ioType::CompClustCTF},
   {"qa", ioType::QA},
   {"no-shared-cluster-map", ioType::NoSharedMap}};
 
