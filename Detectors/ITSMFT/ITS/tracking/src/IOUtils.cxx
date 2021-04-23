@@ -77,107 +77,107 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
   }
 }
 
-std::vector<ROframe> ioutils::loadEventData(const std::string& fileName)
-{
-  std::vector<ROframe> events{};
-  std::ifstream inputStream{};
-  std::string line{}, unusedVariable{};
-  int layerId{}, monteCarlo{};
-  int clusterId{EventLabelsSeparator};
-  float xCoordinate{}, yCoordinate{}, zCoordinate{}, alphaAngle{};
-  float varZ{-1.f}, varY{-1.f};
+// std::vector<ROframe> ioutils::loadEventData(const std::string& fileName)
+// {
+//   std::vector<ROframe> events{};
+//   std::ifstream inputStream{};
+//   std::string line{}, unusedVariable{};
+//   int layerId{}, monteCarlo{};
+//   int clusterId{EventLabelsSeparator};
+//   float xCoordinate{}, yCoordinate{}, zCoordinate{}, alphaAngle{};
+//   float varZ{-1.f}, varY{-1.f};
 
-  inputStream.open(fileName);
+//   inputStream.open(fileName);
 
-  /// THIS IS LEAKING IN THE BACKWARD COMPATIBLE MODE. KEEP IT IN MIND.
-  dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr;
-  while (std::getline(inputStream, line)) {
+//   /// THIS IS LEAKING IN THE BACKWARD COMPATIBLE MODE. KEEP IT IN MIND.
+//   dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr;
+//   while (std::getline(inputStream, line)) {
 
-    std::istringstream inputStringStream(line);
-    if (inputStringStream >> layerId >> xCoordinate >> yCoordinate >> zCoordinate) {
+//     std::istringstream inputStringStream(line);
+//     if (inputStringStream >> layerId >> xCoordinate >> yCoordinate >> zCoordinate) {
 
-      if (layerId == PrimaryVertexLayerId) {
+//       if (layerId == PrimaryVertexLayerId) {
 
-        if (clusterId != 0) {
-          events.emplace_back(events.size(), 7);
-        }
+//         if (clusterId != 0) {
+//           events.emplace_back(events.size(), 7);
+//         }
 
-        events.back().addPrimaryVertex(xCoordinate, yCoordinate, zCoordinate);
-        clusterId = 0;
+//         events.back().addPrimaryVertex(xCoordinate, yCoordinate, zCoordinate);
+//         clusterId = 0;
 
-      } else {
+//       } else {
 
-        if (inputStringStream >> varY >> varZ >> unusedVariable >> alphaAngle >> monteCarlo) {
-          events.back().addClusterToLayer(layerId, xCoordinate, yCoordinate, zCoordinate,
-                                          events.back().getClustersOnLayer(layerId).size());
-          const float sinAlpha = std::sin(alphaAngle);
-          const float cosAlpha = std::cos(alphaAngle);
-          const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
-          const float yTF = xCoordinate * sinAlpha + yCoordinate * cosAlpha;
-          events.back().addTrackingFrameInfoToLayer(layerId, xCoordinate, yCoordinate, zCoordinate, xTF, alphaAngle,
-                                                    std::array<float, 2>{yTF, zCoordinate}, std::array<float, 3>{varY, 0.f, varZ});
-          events.back().addClusterLabelToLayer(layerId, MCCompLabel(monteCarlo));
+//         if (inputStringStream >> varY >> varZ >> unusedVariable >> alphaAngle >> monteCarlo) {
+//           events.back().addClusterToLayer(layerId, xCoordinate, yCoordinate, zCoordinate,
+//                                           events.back().getClustersOnLayer(layerId).size());
+//           const float sinAlpha = std::sin(alphaAngle);
+//           const float cosAlpha = std::cos(alphaAngle);
+//           const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
+//           const float yTF = xCoordinate * sinAlpha + yCoordinate * cosAlpha;
+//           events.back().addTrackingFrameInfoToLayer(layerId, xCoordinate, yCoordinate, zCoordinate, xTF, alphaAngle,
+//                                                     std::array<float, 2>{yTF, zCoordinate}, std::array<float, 3>{varY, 0.f, varZ});
+//           events.back().addClusterLabelToLayer(layerId, MCCompLabel(monteCarlo));
 
-          ++clusterId;
-        }
-      }
-    }
-  }
+//           ++clusterId;
+//         }
+//       }
+//     }
+//   }
 
-  return events;
-}
+//   return events;
+// }
 
-void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
-                            gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                            const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
-{
-  if (clusters.empty()) {
-    std::cerr << "Missing clusters." << std::endl;
-    return;
-  }
-  event.clear();
-  GeometryTGeo* geom = GeometryTGeo::Instance();
-  geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
-  int clusterId{0};
+// void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
+//                             gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
+//                             const dataformats::MCTruthContainer<MCCompLabel>* clsLabels)
+// {
+//   if (clusters.empty()) {
+//     std::cerr << "Missing clusters." << std::endl;
+//     return;
+//   }
+//   event.clear();
+//   GeometryTGeo* geom = GeometryTGeo::Instance();
+//   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
+//   int clusterId{0};
 
-  for (auto& c : clusters) {
-    int layer = geom->getLayer(c.getSensorID());
+//   for (auto& c : clusters) {
+//     int layer = geom->getLayer(c.getSensorID());
 
-    auto pattID = c.getPatternID();
-    o2::math_utils::Point3D<float> locXYZ;
-    float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
-    if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      sigmaY2 = dict.getErr2X(pattID);
-      sigmaZ2 = dict.getErr2Z(pattID);
-      if (!dict.isGroup(pattID)) {
-        locXYZ = dict.getClusterCoordinates(c);
-      } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt);
-      }
-    } else {
-      o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt, false);
-    }
-    auto sensorID = c.getSensorID();
-    // Inverse transformation to the local --> tracking
-    auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
-    // Transformation to the local --> global
-    auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
+//     auto pattID = c.getPatternID();
+//     o2::math_utils::Point3D<float> locXYZ;
+//     float sigmaY2 = ioutils::DefClusError2Row, sigmaZ2 = ioutils::DefClusError2Col, sigmaYZ = 0; //Dummy COG errors (about half pixel size)
+//     if (pattID != itsmft::CompCluster::InvalidPatternID) {
+//       sigmaY2 = dict.getErr2X(pattID);
+//       sigmaZ2 = dict.getErr2Z(pattID);
+//       if (!dict.isGroup(pattID)) {
+//         locXYZ = dict.getClusterCoordinates(c);
+//       } else {
+//         o2::itsmft::ClusterPattern patt(pattIt);
+//         locXYZ = dict.getClusterCoordinates(c, patt);
+//       }
+//     } else {
+//       o2::itsmft::ClusterPattern patt(pattIt);
+//       locXYZ = dict.getClusterCoordinates(c, patt, false);
+//     }
+//     auto sensorID = c.getSensorID();
+//     // Inverse transformation to the local --> tracking
+//     auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
+//     // Transformation to the local --> global
+//     auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
 
-    event.addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
-                                      std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
-                                      std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
+//     event.addTrackingFrameInfoToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), trkXYZ.x(), geom->getSensorRefAlpha(sensorID),
+//                                       std::array<float, 2>{trkXYZ.y(), trkXYZ.z()},
+//                                       std::array<float, 3>{sigmaY2, sigmaYZ, sigmaZ2});
 
-    /// Rotate to the global frame
-    event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
-    if (clsLabels) {
-      event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
-    }
-    event.addClusterExternalIndexToLayer(layer, clusterId);
-    clusterId++;
-  }
-}
+//     /// Rotate to the global frame
+//     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
+//     if (clsLabels) {
+//       event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
+//     }
+//     event.addClusterExternalIndexToLayer(layer, clusterId);
+//     clusterId++;
+//   }
+// }
 
 int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
                              const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
@@ -221,7 +221,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     /// Rotate to the global frame
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
     if (mcLabels) {
-      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+      event.addClusterLabelToLayer(layer, mcLabels->getLabels(first + clusterId));
     }
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
@@ -257,50 +257,50 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
 //   }
 // }
 
-std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int eventsNum, const std::string& fileName)
-{
-  std::vector<std::unordered_map<int, Label>> labelsMap{};
-  std::unordered_map<int, Label> currentEventLabelsMap{};
-  std::ifstream inputStream{};
-  std::string line{};
-  int monteCarloId{}, pdgCode{}, numberOfClusters{};
-  float transverseMomentum{}, phiCoordinate{}, pseudorapidity{};
+// std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int eventsNum, const std::string& fileName)
+// {
+//   std::vector<std::unordered_map<int, Label>> labelsMap{};
+//   std::unordered_map<int, Label> currentEventLabelsMap{};
+//   std::ifstream inputStream{};
+//   std::string line{};
+//   int monteCarloId{}, pdgCode{}, numberOfClusters{};
+//   float transverseMomentum{}, phiCoordinate{}, pseudorapidity{};
 
-  labelsMap.reserve(eventsNum);
+//   labelsMap.reserve(eventsNum);
 
-  inputStream.open(fileName);
-  std::getline(inputStream, line);
+//   inputStream.open(fileName);
+//   std::getline(inputStream, line);
 
-  while (std::getline(inputStream, line)) {
+//   while (std::getline(inputStream, line)) {
 
-    std::istringstream inputStringStream(line);
+//     std::istringstream inputStringStream(line);
 
-    if (inputStringStream >> monteCarloId) {
+//     if (inputStringStream >> monteCarloId) {
 
-      if (monteCarloId == EventLabelsSeparator) {
+//       if (monteCarloId == EventLabelsSeparator) {
 
-        labelsMap.emplace_back(currentEventLabelsMap);
-        currentEventLabelsMap.clear();
+//         labelsMap.emplace_back(currentEventLabelsMap);
+//         currentEventLabelsMap.clear();
 
-      } else {
+//       } else {
 
-        if (inputStringStream >> transverseMomentum >> phiCoordinate >> pseudorapidity >> pdgCode >> numberOfClusters) {
+//         if (inputStringStream >> transverseMomentum >> phiCoordinate >> pseudorapidity >> pdgCode >> numberOfClusters) {
 
-          if (std::abs(pdgCode) == constants::pdgcodes::PionCode && numberOfClusters == 7) {
+//           if (std::abs(pdgCode) == constants::pdgcodes::PionCode && numberOfClusters == 7) {
 
-            currentEventLabelsMap.emplace(std::piecewise_construct, std::forward_as_tuple(monteCarloId),
-                                          std::forward_as_tuple(monteCarloId, transverseMomentum, phiCoordinate,
-                                                                pseudorapidity, pdgCode, numberOfClusters));
-          }
-        }
-      }
-    }
-  }
+//             currentEventLabelsMap.emplace(std::piecewise_construct, std::forward_as_tuple(monteCarloId),
+//                                           std::forward_as_tuple(monteCarloId, transverseMomentum, phiCoordinate,
+//                                                                 pseudorapidity, pdgCode, numberOfClusters));
+//           }
+//         }
+//       }
+//     }
+//   }
 
-  labelsMap.emplace_back(currentEventLabelsMap);
+//   labelsMap.emplace_back(currentEventLabelsMap);
 
-  return labelsMap;
-}
+//   return labelsMap;
+// }
 
 void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofstream& duplicateRoadsOutputStream,
                                std::ofstream& fakeRoadsOutputStream, const std::vector<std::vector<Road>>& roads,

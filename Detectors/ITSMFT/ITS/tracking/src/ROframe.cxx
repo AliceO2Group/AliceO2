@@ -21,7 +21,7 @@ namespace o2
 namespace its
 {
 
-ROframe::ROframe(int ROframeId, int nLayers) : mROframeId{ROframeId}
+ROframe::ROframe(int ROframeId, int nLayers, int maxNLabels) : mROframeId{ROframeId}, mMaxNClusterLabels{maxNLabels}
 {
   mClusters.resize(nLayers);
   mTrackingFrameInfo.resize(nLayers);

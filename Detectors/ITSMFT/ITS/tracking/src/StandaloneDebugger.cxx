@@ -20,6 +20,7 @@
 
 #include "TH1I.h"
 #include "TMath.h"
+#include "TString.h"
 
 namespace o2
 {
@@ -40,8 +41,8 @@ StandaloneDebugger::~StandaloneDebugger()
 // Monte carlo oracle part
 int StandaloneDebugger::getEventId(int firstClusterId, int secondClusterId, ROframe* event)
 {
-  o2::MCCompLabel lblClus0 = event->getClusterLabels(0, firstClusterId);
-  o2::MCCompLabel lblClus1 = event->getClusterLabels(1, secondClusterId);
+  o2::MCCompLabel lblClus0 = event->getClusterFirstLabel(0, firstClusterId);
+  o2::MCCompLabel lblClus1 = event->getClusterFirstLabel(1, secondClusterId);
   return lblClus0.compare(lblClus1) == 1 ? lblClus0.getEventID() : -1;
 }
 
@@ -54,8 +55,8 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
   assert(mTreeStream != nullptr);
 
   for (auto& combination : comb01) {
-    o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][combination.firstClusterIndex].clusterId);
-    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus0 = event->getClusterFirstLabel(0, clusters[0][combination.firstClusterIndex].clusterId);
+    o2::MCCompLabel lblClus1 = event->getClusterFirstLabel(1, clusters[1][combination.secondClusterIndex].clusterId);
     float c0z{clusters[0][combination.firstClusterIndex].zCoordinate};
     float c1z{clusters[1][combination.secondClusterIndex].zCoordinate};
     unsigned char isValidated{lblClus0.compare(lblClus1) == 1};
@@ -72,8 +73,8 @@ void StandaloneDebugger::fillCombinatoricsTree(std::array<std::vector<Cluster>, 
   }
 
   for (auto& combination : comb12) {
-    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][combination.secondClusterIndex].clusterId);
-    o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][combination.secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus1 = event->getClusterFirstLabel(1, clusters[1][combination.secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus2 = event->getClusterFirstLabel(2, clusters[2][combination.secondClusterIndex].clusterId);
     float c1z{clusters[1][combination.firstClusterIndex].zCoordinate};
     float c2z{clusters[2][combination.secondClusterIndex].zCoordinate};
     unsigned char isValidated{lblClus1.compare(lblClus2) == 1};
@@ -100,9 +101,9 @@ void StandaloneDebugger::fillTrackletSelectionTree(std::array<std::vector<Cluste
   assert(mTreeStream != nullptr);
   int id = event->getROFrameId();
   for (auto& trackletPair : allowedTracklets) {
-    o2::MCCompLabel lblClus0 = event->getClusterLabels(0, clusters[0][comb01[trackletPair[0]].firstClusterIndex].clusterId);
-    o2::MCCompLabel lblClus1 = event->getClusterLabels(1, clusters[1][comb01[trackletPair[0]].secondClusterIndex].clusterId);
-    o2::MCCompLabel lblClus2 = event->getClusterLabels(2, clusters[2][comb12[trackletPair[1]].secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus0 = event->getClusterFirstLabel(0, clusters[0][comb01[trackletPair[0]].firstClusterIndex].clusterId);
+    o2::MCCompLabel lblClus1 = event->getClusterFirstLabel(1, clusters[1][comb01[trackletPair[0]].secondClusterIndex].clusterId);
+    o2::MCCompLabel lblClus2 = event->getClusterFirstLabel(2, clusters[2][comb12[trackletPair[1]].secondClusterIndex].clusterId);
     unsigned char isValidated{lblClus0.compare(lblClus1) == 1 && lblClus0.compare(lblClus2) == 1};
     float deltaPhi{comb01[trackletPair[0]].phiCoordinate - comb12[trackletPair[1]].phiCoordinate};
     float deltaTanLambda{comb01[trackletPair[0]].tanLambda - comb12[trackletPair[1]].tanLambda};
@@ -256,7 +257,7 @@ int StandaloneDebugger::getBinIndex(const float value, const int size, const flo
 }
 
 // Tracker
-void StandaloneDebugger::dumpTrackToBranchWithInfo(std::string branchName, o2::its::TrackITSExt track, const ROframe event, PrimaryVertexContext* pvc, const bool dumpClusters)
+void StandaloneDebugger::dumpTrackToBranchWithInfo(std::string branchName, int layer, int iteration, o2::its::TrackITSExt track, const ROframe& event, PrimaryVertexContext* pvc, const bool dumpClusters)
 {
   FakeTrackInfo<7> t{pvc, event, track, dumpClusters};
 
@@ -268,6 +269,40 @@ void StandaloneDebugger::dumpTrackToBranchWithInfo(std::string branchName, o2::i
   (*mTreeStream)
     << "TracksInfo"
     << t
+    << "\n";
+}
+
+void StandaloneDebugger::dumpTmpTrackToBranchWithInfo(std::string branchName, int layer, int iteration, o2::its::TrackITSExt track, const ROframe& event, PrimaryVertexContext* pvc, float pChi2, const bool dumpClusters)
+{
+  FakeTrackInfo<7> t{pvc, event, track, dumpClusters};
+  auto fakeLabel = t.occurrences[1].first;
+  auto nfake = t.nFakeClusters;
+  int layerF{-1};
+  for (int i{0}; i < 7; ++i) {
+    if (t.clusStatuses[i] != 1) {
+      layerF = i;
+      break;
+    }
+  }
+
+  if (nfake < 2) {
+    float chi2 = t.track.getChi2();
+    (*mTreeStream)
+      << branchName.data()
+      << "chi2=" << chi2
+      << "layer=" << layerF
+      << "iteration=" << iteration
+      << "nfake=" << nfake
+      << "\n";
+  }
+}
+
+void StandaloneDebugger::dumpTrkChi2(float chiFake, float chiTrue)
+{
+  (*mTreeStream)
+    << "Chi2s"
+    << "fake=" << chiFake
+    << "correct=" << chiTrue
     << "\n";
 }
 } // namespace its

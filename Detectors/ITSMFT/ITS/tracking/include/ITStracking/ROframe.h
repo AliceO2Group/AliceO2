@@ -38,7 +38,7 @@ using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 class ROframe final
 {
  public:
-  ROframe(int ROframeId, int nLayers);
+  ROframe(int ROframeId, int nLayers, int maxNLabels = 3);
   int getROFrameId() const;
   const float3& getPrimaryVertex(const int) const;
   int getPrimaryVerticesNum() const;
@@ -55,8 +55,10 @@ class ROframe final
   const auto& getTrackingFrameInfo() const { return mTrackingFrameInfo; }
 
   const TrackingFrameInfo& getClusterTrackingFrameInfo(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const Cluster& cl) const;
-  const MCCompLabel& getClusterLabels(int layerId, const int clId) const;
+  const MCCompLabel& getClusterFirstLabel(int layerId, const Cluster& cl) const;
+  const MCCompLabel& getClusterFirstLabel(int layerId, const int clId) const;
+  const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const;
+  int getFirstClusterIDFromLabel(int layerId, const MCCompLabel& label) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
   std::vector<int> getTracksId(const int layerId, const std::vector<Cluster>& cl);
 
@@ -64,7 +66,7 @@ class ROframe final
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
-  void addClusterLabelToLayer(int layer, const MCCompLabel label);
+  void addClusterLabelToLayer(int layer, gsl::span<const MCCompLabel>);
   void addClusterExternalIndexToLayer(int layer, const int idx);
   bool hasMCinformation() const;
 
@@ -72,6 +74,7 @@ class ROframe final
 
  private:
   const int mROframeId;
+  const int mMaxNClusterLabels;
   std::vector<float3> mPrimaryVertices;
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
@@ -102,14 +105,35 @@ inline const TrackingFrameInfo& ROframe::getClusterTrackingFrameInfo(int layerId
   return mTrackingFrameInfo[layerId][cl.clusterId];
 }
 
-inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const Cluster& cl) const
+inline const MCCompLabel& ROframe::getClusterFirstLabel(int layerId, const Cluster& cl) const
 {
-  return mClusterLabels[layerId][cl.clusterId];
+  return mClusterLabels[layerId][mMaxNClusterLabels * cl.clusterId];
 }
 
-inline const MCCompLabel& ROframe::getClusterLabels(int layerId, const int clId) const
+inline const MCCompLabel& ROframe::getClusterFirstLabel(int layerId, const int clId) const
 {
-  return mClusterLabels[layerId][clId];
+  return mClusterLabels[layerId][mMaxNClusterLabels * clId];
+}
+
+inline const gsl::span<const MCCompLabel> ROframe::getClusterLabels(int layerId, const int clId) const
+{
+  gsl::span<const MCCompLabel> sp{mClusterLabels[layerId].data() + mMaxNClusterLabels * clId, mMaxNClusterLabels};
+  return sp;
+}
+
+inline int ROframe::getFirstClusterIDFromLabel(int layerId, const MCCompLabel& label) const
+{
+  // Returns the cluster id of the first label that matches label variable
+  int retVal{-mMaxNClusterLabels};
+  if (!label.isNoise()) {
+    for (size_t i{0}; i < mClusterLabels[layerId].size(); ++i) {
+      if (label == mClusterLabels[layerId][i]) {
+        retVal = i;
+        break;
+      }
+    }
+  }
+  return retVal / mMaxNClusterLabels;
 }
 
 inline int ROframe::getClusterExternalIndex(int layerId, const int clId) const
@@ -121,7 +145,7 @@ inline std::vector<int> ROframe::getTracksId(const int layerId, const std::vecto
 {
   std::vector<int> tracksId;
   for (auto& cluster : cl) {
-    tracksId.push_back(getClusterLabels(layerId, cluster).isNoise() ? -1 : getClusterLabels(layerId, cluster).getTrackID());
+    tracksId.push_back(getClusterFirstLabel(layerId, cluster).isNoise() ? -1 : getClusterFirstLabel(layerId, cluster).getTrackID());
   }
   return tracksId;
 }
@@ -138,7 +162,16 @@ void ROframe::addTrackingFrameInfoToLayer(int layer, T&&... values)
   mTrackingFrameInfo[layer].emplace_back(std::forward<T>(values)...);
 }
 
-inline void ROframe::addClusterLabelToLayer(int layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
+inline void ROframe::addClusterLabelToLayer(int layer, const gsl::span<const MCCompLabel> labels)
+{
+  for (int iLabel{0}; iLabel < mMaxNClusterLabels; ++iLabel) {
+    if (iLabel < labels.size()) {
+      mClusterLabels[layer].emplace_back(labels[iLabel]);
+    } else {
+      mClusterLabels[layer].emplace_back();
+    }
+  }
+}
 
 inline void ROframe::addClusterExternalIndexToLayer(int layer, const int idx)
 {

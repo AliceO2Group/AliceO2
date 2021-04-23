@@ -280,15 +280,16 @@ void TrackerDPL::run(ProcessingContext& pc)
       }
       roFrame++;
     }
-  } else {
-    ioutils::loadEventData(event, compClusters, pattIt, mDict, labels);
-    // RS: FIXME: this part seems to be not functional !!!
-    event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
-    mTracker->clustersToTracks(event);
-    tracks.swap(mTracker->getTracks());
-    copyTracks(tracks, allTracks, allClusIdx);
-    allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
   }
+  //  else {
+  //   // ioutils::loadEventData(event, compClusters, pattIt, mDict, labels);
+  //   // // RS: FIXME: this part seems to be not functional !!!
+  //   // event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
+  //   // mTracker->clustersToTracks(event);
+  //   // tracks.swap(mTracker->getTracks());
+  //   // copyTracks(tracks, allTracks, allClusIdx);
+  //   // allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+  // }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
   if (mIsMC) {
