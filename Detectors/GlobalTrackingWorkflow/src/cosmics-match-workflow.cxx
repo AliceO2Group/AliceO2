@@ -55,7 +55,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   // the TPC sector completion policy checks when the set of TPC/CLUSTERNATIVE data is complete
   // in addition we require to have input from all other routes
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("itstpc-track-matcher",
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("cosmics-matcher",
                                                         o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
                                                         InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
 }
