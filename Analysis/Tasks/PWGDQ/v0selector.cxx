@@ -25,7 +25,6 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
 #include "ReconstructionDataFormats/Track.h"
-#include "AnalysisCore/RecoDecay.h"
 #include "AnalysisCore/trackUtilities.h"
 #include "AnalysisDataModel/StrangenessTables.h"
 #include "AnalysisCore/TrackSelection.h"
@@ -33,13 +32,8 @@
 #include "AnalysisDataModel/EventSelection.h"
 #include "AnalysisDataModel/Centrality.h"
 
-#include <cstdio>
-#include <TH1F.h>
-#include <TH2F.h>
 #include <Math/Vector4D.h>
-#include <cmath>
 #include <array>
-#include <cstdlib>
 #include "Framework/ASoAHelpers.h"
 #include "AnalysisDataModel/PID/PIDResponse.h"
 
