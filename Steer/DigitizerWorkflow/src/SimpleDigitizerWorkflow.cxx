@@ -37,6 +37,7 @@
 
 // for ITS3
 #include "ITS3DigitizerSpec.h"
+#include "ITS3Workflow/DigitWriterSpec.h"
 
 // for TOF
 #include "TOFDigitizerSpec.h"
@@ -480,9 +481,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (isEnabled(o2::detectors::DetID::IT3)) {
     detList.emplace_back(o2::detectors::DetID::IT3);
     // connect the ITS digitization
-    // specs.emplace_back(o2::itsmft::getITSDigitizerSpec(fanoutsize++, mctruth));
+    specs.emplace_back(o2::its3::getITS3DigitizerSpec(fanoutsize++, mctruth));
     // // connect ITS digit writer
-    // specs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
+    specs.emplace_back(o2::its3::getITS3DigitWriterSpec(mctruth));
   }
 
 
