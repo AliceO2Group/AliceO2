@@ -21,7 +21,7 @@
 #include "TPCWorkflow/PublisherSpec.h"
 #include "TPCWorkflow/ClustererSpec.h"
 #include "TPCWorkflow/ClusterDecoderRawSpec.h"
-#include "TPCWorkflow/CATrackerSpec.h"
+#include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "TPCWorkflow/EntropyEncoderSpec.h"
 #include "TPCWorkflow/ZSSpec.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -413,7 +413,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   //
   // selected by output type 'tracks'
   if (runTracker) {
-    ca::Config cfg;
+    o2::gpu::GPUWorkflow::Config cfg;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
     cfg.caClusterer = caClusterer;
@@ -428,7 +428,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.processMC = propagateMC;
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
     cfg.askDISTSTF = askDISTSTF;
-    specs.emplace_back(o2::tpc::getCATrackerSpec(policyData, cfg, tpcSectors, tpcSectorMask));
+    specs.emplace_back(o2::gpu::getGPURecoWorkflowSpec(policyData, cfg, tpcSectors, tpcSectorMask));
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////
