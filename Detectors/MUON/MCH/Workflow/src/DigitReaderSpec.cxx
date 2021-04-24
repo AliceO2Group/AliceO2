@@ -100,10 +100,10 @@ class DigitsReaderDeviceDPL
 
  private:
   std::unique_ptr<TFile> mFile{nullptr};
-  TTree* mTree{nullptr};                                             // not owner
-  std::vector<o2::mch::Digit>* mDigits{nullptr};              // not owner
+  TTree* mTree{nullptr};                                                 // not owner
+  std::vector<o2::mch::Digit>* mDigits{nullptr};                         // not owner
   o2::dataformats::MCTruthContainer<MCCompLabel>* mMCContainer{nullptr}; // not owner
-  std::vector<o2::mch::ROFRecord>* mROFRecords{nullptr};             // not owner
+  std::vector<o2::mch::ROFRecord>* mROFRecords{nullptr};                 // not owner
   std::vector<header::DataDescription> mDescriptions{};
   int mState = 0;
   bool mUseMC = true;
