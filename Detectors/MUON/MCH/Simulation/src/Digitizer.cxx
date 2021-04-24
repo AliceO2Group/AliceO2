@@ -123,14 +123,13 @@ int Digitizer::processHit(const Hit& hit, int detID, int eventTime)
   auto charge = resp.etocharge(hit.GetEnergyLoss());
 
   //convert float ns time to BC counts
-  auto time = int(eventTime/ 25.) & int(hit.GetTime() / 25.);
+  auto time = int(eventTime / 25.) & int(hit.GetTime() / 25.);
   //FIXME: need to put the orbit and the bc into a TimeFrame information and not here
   //Digit::Time time;
   //time.sampaTime = hit.GetTime();
   //time.bunchCrossing = bc;
   //time.orbit = orbit;
 
-  
   //transformation from global to local
   auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
   auto t = transformation(detID);
@@ -184,7 +183,7 @@ int Digitizer::processHit(const Hit& hit, int detID, int eventTime)
 
         /// FIXME: which time definition is used when calling this function?
         digits.emplace_back(detID, padid, signal, time);
-	// Digit::Time dtime;
+        // Digit::Time dtime;
         //dtime.sampaTime = static_cast<uint16_t>(time) & 0x3FF;
         ++ndigits;
       }
@@ -206,7 +205,7 @@ void Digitizer::generateNoiseDigits()
     for (int i = 0; i < nNoisyPads; i++) {
       int padid = gRandom->Integer(nNoisyPads + 1);
       // FIXME: can we use eventTime as the digit time?
-      time = int(time/25.);//not clear if ok
+      time = int(time / 25.); //not clear if ok
       //   time.sampa = 0; //not clear what to do...
       //      time.bunchCrossing = bc;
       //   time.orbit = orbit;
@@ -223,12 +222,12 @@ void Digitizer::generateNoiseDigits()
 //______________________________________________________________________
 void Digitizer::mergeDigits(std::vector<Digit>& rofdigits, std::vector<o2::MCCompLabel>& rofLabels, std::vector<int>& indexhelper)
 {
-  std::vector<int> indices(rofdigits.size());//TODO problematic. since mDigits.reserve in mergeDi
-  std::iota(begin(indices), end(indices), 0);//problem with iota if vector longer than number of non-trivial entries
+  std::vector<int> indices(rofdigits.size()); //TODO problematic. since mDigits.reserve in mergeDi
+  std::iota(begin(indices), end(indices), 0); //problem with iota if vector longer than number of non-trivial entries
   //labels go WRONG!
   std::sort(indices.begin(), indices.end(), [&rofdigits, this](int a, int b) {
     return (getGlobalDigit(rofdigits[a].getDetID(), rofdigits[a].getPadID()) < getGlobalDigit(rofdigits[b].getDetID(), rofdigits[b].getPadID()));
-  });// this is ok!
+  }); // this is ok!
 
   auto sortedDigits = [rofdigits, &indices](int i) {
     return rofdigits[indices[i]];
@@ -245,13 +244,13 @@ void Digitizer::mergeDigits(std::vector<Digit>& rofdigits, std::vector<o2::MCCom
   rofdigits.reserve(sizedigits);
   rofLabels.clear();
   rofLabels.reserve(sizelabels);
-  
+
   int count = mDigits.size();
 
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime() - sortedDigits(j).getTime()) < mDeltat)) {//important that time is unambiguous within one processing, i.e. that simulation only does one TF and that it passes a new processing
+    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime() - sortedDigits(j).getTime()) < mDeltat)) { //important that time is unambiguous within one processing, i.e. that simulation only does one TF and that it passes a new processing
       j++;
     }
     uint32_t adc{0};
@@ -261,12 +260,12 @@ void Digitizer::mergeDigits(std::vector<Digit>& rofdigits, std::vector<o2::MCCom
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
       if (k == i) {
-	rofLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
-	indexhelper.emplace_back(count);
+        rofLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+        indexhelper.emplace_back(count);
       } else {
         if ((sortedLabels(k).getTrackID() != sortedLabels(k - 1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k - 1).getSourceID())) {
           rofLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
-	  indexhelper.emplace_back(count);
+          indexhelper.emplace_back(count);
         }
       }
     }
@@ -289,36 +288,34 @@ void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruth
   //and not touch mDigits
   //always only doing the index from the start to the end of the ROF
   //mDigits only for one Rof used
-  std::vector<Digit> rofDigits;// use accumDIgits for mDigits and pass digits
+  std::vector<Digit> rofDigits; // use accumDIgits for mDigits and pass digits
   std::vector<o2::MCCompLabel> rofLabels;
   std::vector<int> indexhelper;
-  for(int rofindex = 0; rofindex < rofs.size(); ++rofindex)
-    {
-      for (int index = rofs[rofindex].getFirstIdx(); index < (rofs[rofindex].getLastIdx()+1); ++index) {
-	auto digit = digits.at(index);
-	rofDigits.emplace_back(digit.getDetID(), digit.getPadID(), digit.getADC(), digit.getTime());
-      }
-      for (int index = rofs[rofindex].getFirstIdx(); index < (rofs[rofindex].getLastIdx()+1); ++index) {
-	//at this stage label schould still have 1-to-1 corresponds in term of number to number of digits
-	auto label = mcContainer.getElement(index);
-	rofLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), label.isFake());
-      }
-      //mergeDigits does simply merging within 1 ROF
-      mergeDigits(rofDigits, rofLabels, indexhelper);
-      rofs[rofindex].setDataRef(mDigits.size(), rofDigits.size());
-      
-      mDigits.insert(std::end(mDigits), std::begin(rofDigits), std::end(rofDigits));
-      mTrackLabels.insert(std::end(mTrackLabels), std::begin(rofLabels), std::end(rofLabels));
-      rofDigits.clear();
-      rofLabels.clear();
+  for (int rofindex = 0; rofindex < rofs.size(); ++rofindex) {
+    for (int index = rofs[rofindex].getFirstIdx(); index < (rofs[rofindex].getLastIdx() + 1); ++index) {
+      auto digit = digits.at(index);
+      rofDigits.emplace_back(digit.getDetID(), digit.getPadID(), digit.getADC(), digit.getTime());
     }
+    for (int index = rofs[rofindex].getFirstIdx(); index < (rofs[rofindex].getLastIdx() + 1); ++index) {
+      //at this stage label schould still have 1-to-1 corresponds in term of number to number of digits
+      auto label = mcContainer.getElement(index);
+      rofLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), label.isFake());
+    }
+    //mergeDigits does simply merging within 1 ROF
+    mergeDigits(rofDigits, rofLabels, indexhelper);
+    rofs[rofindex].setDataRef(mDigits.size(), rofDigits.size());
 
-  for(int labelindex=0; labelindex < mTrackLabels.size(); ++labelindex)
-    {
-      auto digitindex = indexhelper.at(labelindex);
-      MCCompLabel label(mTrackLabels[labelindex].getTrackID(), mTrackLabels[labelindex].getEventID(), mTrackLabels[labelindex].getSourceID(), mTrackLabels[labelindex].isFake());
-      mMCTruthOutputContainer.addElement(digitindex, label);
-    }
+    mDigits.insert(std::end(mDigits), std::begin(rofDigits), std::end(rofDigits));
+    mTrackLabels.insert(std::end(mTrackLabels), std::begin(rofLabels), std::end(rofLabels));
+    rofDigits.clear();
+    rofLabels.clear();
+  }
+
+  for (int labelindex = 0; labelindex < mTrackLabels.size(); ++labelindex) {
+    auto digitindex = indexhelper.at(labelindex);
+    MCCompLabel label(mTrackLabels[labelindex].getTrackID(), mTrackLabels[labelindex].getEventID(), mTrackLabels[labelindex].getSourceID(), mTrackLabels[labelindex].isFake());
+    mMCTruthOutputContainer.addElement(digitindex, label);
+  }
   fillOutputContainer(digits);
 
   provideMC(mcContainer);
@@ -330,7 +327,7 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits)
   if (mDigits.empty()) {
     return;
   }
-  
+
   digits.clear();
   digits.reserve(mDigits.size());
 

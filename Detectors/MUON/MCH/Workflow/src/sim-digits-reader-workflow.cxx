@@ -23,7 +23,6 @@
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DigitReaderSpec.h"
 
-
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
