@@ -23,7 +23,6 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsMCH/ROFRecord.h"
 
-
 namespace o2
 {
 namespace mch
@@ -49,7 +48,7 @@ class Digitizer
   void fillOutputContainer(std::vector<Digit>& digits);
 
   void setEventTime(double timeNS) { mEventTime = timeNS; }
-  
+
   void setContinuous(bool val) { mContinuous = val; }
   bool isContinuous() const { return mContinuous; }
 

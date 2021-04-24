@@ -73,26 +73,25 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     std::vector<o2::mch::ROFRecord> rofrecords;
     //NEED TO GET TIMEFRAME TIME as start time , is this the case automatically?
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
-        // loop over all composite collisions given from context
+    // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      mDigitizer.setEventTime(irecords[collID].getTimeNS());//assume that event time is w.r.t. time frame beginning, to be verified
+      mDigitizer.setEventTime(irecords[collID].getTimeNS()); //assume that event time is w.r.t. time frame beginning, to be verified
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
         mDigitizer.setEventID(part.entryID);
         mDigitizer.setSrcID(part.sourceID);
-	
+
         // get the hits for this event and this source
         std::vector<o2::mch::Hit> hits;
-	
+
         context->retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
         LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " found MCH " << hits.size() << " hits ";
 
         std::vector<o2::mch::Digit> digits; // digits which get filled
         o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;
-	
-	
+
         mDigitizer.process(hits, digits, labels);
         LOG(DEBUG) << "MCH obtained " << digits.size() << " digits ";
         for (auto& d : digits) {
@@ -106,21 +105,18 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         LOG(DEBUG) << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize();
         LOG(DEBUG) << "labelAccum.getNElements() " << labelAccum.getNElements();
         LOG(DEBUG) << "Have " << digits.size() << " digits ";
-	//problem for pile-up if events are not one after each other
-	digitsperEvent += digits.size();
+        //problem for pile-up if events are not one after each other
+        digitsperEvent += digits.size();
       }
-      
-      
-      if(rofrecords.size()!=0) startdigitEvent = rofrecords.back().getLastIdx()+1; 	  
+
+      if (rofrecords.size() != 0)
+        startdigitEvent = rofrecords.back().getLastIdx() + 1;
       rofrecords.emplace_back(irecords[collID], startdigitEvent, digitsperEvent);
       digitsperEvent = 0;
-	 	  
     }
-  
-    
+
     mDigitizer.mergeDigits(digitsAccum, labelAccum, rofrecords);
 
-    
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
     pc.outputs().snapshot(Output{"MCH", "DIGITROFS", 0, Lifetime::Timeframe}, rofrecords);
