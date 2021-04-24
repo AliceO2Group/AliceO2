@@ -21,13 +21,4 @@ add_subdirectory(Common)
 add_subdirectory(Utils)
 add_subdirectory(TPCFastTransformation)
 add_subdirectory(GPUTracking)
-
-if(ALIGPU_BUILD_TYPE STREQUAL "O2"
-   AND OPENGL_FOUND
-   AND GLFW_FOUND
-   AND TARGET AliceO2::DebugGUI
-   AND OPENGL_GLU_FOUND
-   AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin"
-)
-  add_subdirectory(Workflow)
-endif()
+add_subdirectory(Workflow)
