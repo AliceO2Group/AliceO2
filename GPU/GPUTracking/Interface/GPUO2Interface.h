@@ -62,6 +62,7 @@ class GPUO2Interface
 
   static std::unique_ptr<TPCPadGainCalib> getPadGainCalibDefault();
   static std::unique_ptr<TPCPadGainCalib> getPadGainCalib(const o2::tpc::CalDet<float>& in);
+  static std::unique_ptr<TPCdEdxCalibrationSplines> getdEdxCalibrationSplinesDefault();
 
   int registerMemoryForGPU(const void* ptr, size_t size);
   int unregisterMemoryForGPU(const void* ptr);
