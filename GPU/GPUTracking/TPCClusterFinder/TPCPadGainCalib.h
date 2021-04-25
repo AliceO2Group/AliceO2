@@ -123,8 +123,8 @@ struct TPCPadGainCalib {
     }
   };
 
-  unsigned short mPadOffsetPerRow[TPC_NUM_OF_ROWS];
-  SectorPadGainCorrection<unsigned short> mGainCorrection[TPC_SECTORS];
+  unsigned short mPadOffsetPerRow[GPUCA_ROW_COUNT];
+  SectorPadGainCorrection<unsigned short> mGainCorrection[GPUCA_NSLICES];
 };
 
 } // namespace GPUCA_NAMESPACE::gpu
