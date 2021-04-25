@@ -564,6 +564,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DoTrackingThread(int iTrk, int thread
   mTracks[iTrk] = trkCopy; // copy back the resulting track
 }
 
+#ifndef GPUCA_ALIROOT_LIB // AliRoot TRD geometry functions are non-const, and cannot work with a const geometry
 template <class TRDTRK, class PROP>
 GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::ConvertTrkltToSpacePoint(const GPUTRDGeometry& geo, GPUTRDTrackletWord& trklt, GPUTRDSpacePointInternal& sp)
 {
@@ -595,6 +596,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::ConvertTrkltToSpacePoint(const GPUTRD
   sp.mVolumeId = volId;
   return true;
 }
+#endif
 
 template <class TRDTRK, class PROP>
 GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CalculateSpacePoints(int iCollision)
