@@ -141,13 +141,23 @@ struct pidTOFTaskQA {
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
+  Configurable<int> logAxis{"logAxis", 1, "Flag to use a log momentum axis"};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
-  Configurable<float> MinP{"MinP", 0.1, "Minimum momentum in range"};
-  Configurable<float> MaxP{"MaxP", 5, "Maximum momentum in range"};
+  Configurable<float> MinP{"MinP", 0.1f, "Minimum momentum in range"};
+  Configurable<float> MaxP{"MaxP", 5.f, "Maximum momentum in range"};
+  Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
+  Configurable<float> MinDelta{"MinDelta", -1000.f, "Minimum Delta in range"};
+  Configurable<float> MaxDelta{"MaxDelta", 1000.f, "Maximum Delta in range"};
+  Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
+  Configurable<float> MinNSigma{"MinNSigma", -10.f, "Minimum NSigma in range"};
+  Configurable<float> MaxNSigma{"MaxNSigma", 10.f, "Maximum NSigma in range"};
 
   template <typename T>
   void makelogaxis(T h)
   {
+    if (logAxis == 0) {
+      return;
+    }
     const int nbins = h->GetNbinsX();
     double binp[nbins + 1];
     double max = h->GetXaxis()->GetBinUpEdge(nbins);
@@ -172,11 +182,11 @@ struct pidTOFTaskQA {
     makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
 
     // T-Texp
-    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}});
+    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsDelta, MinDelta, MaxDelta}});
     makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
 
     // NSigma
-    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsNSigma, MinNSigma, MaxNSigma}});
     makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
   }
 
@@ -225,6 +235,9 @@ struct pidTOFTaskQA {
     for (auto t : tracks) {
       //
       if (t.tofSignal() < 0) { // Skipping tracks without TOF
+        continue;
+      }
+      if (!t.isGlobalTrack()) {
         continue;
       }
 

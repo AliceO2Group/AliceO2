@@ -486,6 +486,7 @@ namespace hmpid
 DECLARE_SOA_INDEX_COLUMN(Track, track);                  //!
 DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);     //!
 DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float); //!
+DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, short); //!
 DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);         //!
 } // namespace hmpid
 
@@ -494,6 +495,7 @@ DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID", //!
                   hmpid::TrackId,
                   hmpid::HMPIDSignal,
                   hmpid::HMPIDDistance,
+                  hmpid::HMPIDNPhotons,
                   hmpid::HMPIDQMip);
 using HMPID = HMPIDs::iterator;
 
