@@ -102,7 +102,7 @@ struct pidTOFTaskQA {
 
   void init(o2::framework::InitContext&)
   {
-    histos.add("event/T0", ";Tracks with TOF;T0 (ps);Counts", HistType::kTH2F, {{1000, 0, 100}, {1000, -600, 600}});
+    histos.add("event/T0", ";Tracks with TOF;T0 (ps);Counts", HistType::kTH2F, {{1000, 0, 1000}, {1000, -1000, 1000}});
     histos.add(hnsigma[pid_type].data(), Form(";#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
     makelogaxis(histos.get<TH2>(HIST(hnsigma[pid_type])));
     histos.add(hnsigmaprm[pid_type].data(), Form("Primary;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});

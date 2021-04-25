@@ -19,6 +19,7 @@
 #define O2_ANALYSIS_PID_TPCRESO_H_
 
 #include "AnalysisDataModel/PID/ParamBase.h"
+#include "ReconstructionDataFormats/PID.h"
 
 namespace o2::pid::tpc
 {
@@ -35,6 +36,17 @@ class TPCReso : public Parametrization
   }
   ClassDef(TPCReso, 1);
 };
+
+float TPCResoParam(const float& signal, const float& npoints, const Parameters& parameters)
+{
+  return signal * parameters[0] * (npoints > 0 ? sqrt(1. + parameters[1] / npoints) : 1.f);
+}
+
+template <o2::track::PID::ID id, typename T>
+float TPCResoParamTrack(const T& track, const Parameters& parameters)
+{
+  return TPCResoParam(track.tpcSignal(), (float)track.tpcNClsFound(), parameters);
+}
 
 } // namespace o2::pid::tpc
 

@@ -107,7 +107,7 @@ class ExpTimes
   static float ComputeExpectedTime(const float& tofExpMom, const float& length, const float& massZ);
 
   /// Gets the expected signal of the track of interest under the PID assumption
-  float GetExpectedSignal(const Coll& col, const Trck& trk) const { return ComputeExpectedTime(trk.tofExpMom() / kCSPEED, trk.length(), o2::track::PID::getMass2Z(id)); }
+  static float GetExpectedSignal(const Coll& col, const Trck& trk) { return ComputeExpectedTime(trk.tofExpMom() / kCSPEED, trk.length(), o2::track::PID::getMass2Z(id)); }
 
   /// Gets the expected resolution of the measurement
   float GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
@@ -131,7 +131,7 @@ float ExpTimes<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& respons
   if (trk.tofSignal() <= 0) {
     return -999.f;
   }
-  const float x[4] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id)};
+  const float x[7] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id), trk.length(), trk.sigma1Pt(), trk.pt()};
   return response(response.kSigma, x);
   // return response(response.kSigma, const Coll& col, const Trck& trk, id);
 }
