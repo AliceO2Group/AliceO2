@@ -954,7 +954,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           mGlobalPosTRD[cid].w = tTRDATTACHED;
         }
       }
-      for (unsigned int k = 0; k < nClusters; k++) {
+      for (int k = 0; k < nClusters; k++) {
         if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
           if (mHideRejectedClusters && (mIOPtrs->mergedTrackHits[track->FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject)) {
             continue;
