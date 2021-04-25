@@ -188,7 +188,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
         TPCClusterFinder/GPUTPCCFGather.cxx
-        TPCClusterFinder/TPCPadGainCalib.cxx
+        DataTypes/TPCPadGainCalib.cxx
         Refit/GPUTrackingRefit.cxx
         Refit/GPUTrackingRefitKernel.cxx
         Merger/GPUTPCGMO2Output.cxx)
@@ -203,7 +203,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/CfFragment.h
                      TPCClusterFinder/CfUtils.h
                      TPCClusterFinder/ChargePos.h
-                     TPCClusterFinder/clusterFinderDefs.h
+                     Definitions/clusterFinderDefs.h
                      TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h
                      TPCClusterFinder/GPUTPCCFChainContext.h)
