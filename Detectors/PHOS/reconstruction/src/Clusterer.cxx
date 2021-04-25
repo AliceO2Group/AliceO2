@@ -219,7 +219,7 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
     if (digitSeed.isTRU()) {
       continue;
     }
-    float digitSeedEnergy = calibrate(digitSeed.getAmplitude(), digitSeed.getAbsId());
+    float digitSeedEnergy = calibrate(digitSeed.getAmplitude(), digitSeed.getAbsId(), digitSeed.isHighGain());
     if (isBadChannel(digitSeed.getAbsId())) {
       digitSeedEnergy = 0.;
     }
@@ -255,7 +255,7 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
         if (digitN->isTRU()) {
           continue;
         }
-        float digitNEnergy = calibrate(digitN->getAmplitude(), digitN->getAbsId());
+        float digitNEnergy = calibrate(digitN->getAmplitude(), digitN->getAbsId(), digitN->isHighGain());
         if (isBadChannel(digitN->getAbsId())) { //remove digit
           digitNEnergy = 0.;
         }

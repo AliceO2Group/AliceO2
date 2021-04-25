@@ -39,6 +39,7 @@ enum struct InputType { Digitizer,        // directly read digits from channel {
                         Clusters,         // read native clusters from file
                         CompClusters,     // read compressed cluster container
                         CompClustersCTF,  // compressed clusters from CTF, as flat format
+                        CompClustersFlat, // compressed clusters in flat format, used as input for the entropy encoder
                         EncodedClusters,  // read encoded clusters
                         ZSRaw,
 };
@@ -74,6 +75,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks",      //
+                                    bool disableRootInput = false,                //
                                     int caClusterer = 0,                          //
                                     int zsOnTheFly = 0,
                                     int zs10bit = 0,

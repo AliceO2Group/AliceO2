@@ -58,7 +58,7 @@ class GPUTRDTrackletWord
   GPUd() int GetDetector() const { return mHCId / 2; }
   GPUd() int GetHCId() const { return mHCId; }
   GPUd() float GetdYdX() const { return (GetdYbin() * 140e-4f / 3.f); }
-  GPUd() float GetDy() const { return GetdYbin() * 140e-4f; }
+  GPUd() float GetdY() const { return GetdYbin() * 140e-4f; }
   GPUd() float GetY() const { return (GetYbin() * 160e-4f); }
   GPUd() unsigned int GetTrackletWord() const { return mTrackletWord; }
 

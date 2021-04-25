@@ -81,13 +81,12 @@ class EventManager final : public TEveEventManager, public TQObject
   void RemoveNewEventCommand(const TString& cmd) override;
   void ClearNewEventCommands() override;
 
-  void registerDetector(DataReader* reader, DataInterpreter* interpreter, EVisualisationGroup type);
+  void registerDetector(DataReader* reader, EVisualisationGroup type);
   void DropEvent();
 
  private:
   static EventManager* instance;
   o2::ccdb::CcdbApi ccdbApi;
-  DataInterpreter* dataInterpreters[EVisualisationGroup::NvisualisationGroups];
   DataReader* dataReaders[EVisualisationGroup::NvisualisationGroups];
   TEveElementList* dataTypeLists[EVisualisationDataType::NdataTypes];
   EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;

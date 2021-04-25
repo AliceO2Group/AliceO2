@@ -9,26 +9,22 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFDplusToPiKPiCandidateSelector.cxx
-/// \brief Dplus->piKpi selection task.
+/// \brief Dplus->piKpi selection task
 ///
 /// \author Fabio Catalano <fabio.catalano@cern.ch>, Politecnico and INFN Torino
 
-#include "TMath.h"
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong3;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_dplus_topikpi;
 
 /// Struct for applying Dplus to piKpi selection cuts
 struct HFDplusToPiKPiCandidateSelector {
-
   Produces<aod::HFSelDplusToPiKPiCandidate> hfSelDplusToPiKPiCandidate;
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 1., "Lower bound of candidate pT"};
@@ -80,7 +76,7 @@ struct HFDplusToPiKPiCandidateSelector {
     if (trackPion1.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K") || trackPion2.pt() < cuts->get(pTBin, "pT Pi")) {
       return false; // cut on daughter pT
     }
-    if (TMath::Abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
+    if (std::abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
       return false; // invariant mass cut
     }
     if (hfCandProng3.decayLength() < cuts->get(pTBin, "decay length")) {
@@ -95,7 +91,7 @@ struct HFDplusToPiKPiCandidateSelector {
     if (hfCandProng3.cpaXY() < cuts->get(pTBin, "cos pointing angle XY")) {
       return false;
     }
-    if (TMath::Abs(hfCandProng3.maxNormalisedDeltaIP()) > cuts->get(pTBin, "max normalized deltaIP")) {
+    if (std::abs(hfCandProng3.maxNormalisedDeltaIP()) > cuts->get(pTBin, "max normalized deltaIP")) {
       return false;
     }
     return true;
@@ -108,7 +104,7 @@ struct HFDplusToPiKPiCandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (track.pt() < d_pidTPCMinpT || track.pt() >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) {
@@ -124,7 +120,7 @@ struct HFDplusToPiKPiCandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (track.pt() < d_pidTOFMinpT || track.pt() >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
@@ -140,7 +136,7 @@ struct HFDplusToPiKPiCandidateSelector {
   bool selectionPIDTPC(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kPiPlus) {
       nSigma = track.tpcNSigmaPi();
     } else if (nPDG == kKPlus) {
@@ -148,7 +144,7 @@ struct HFDplusToPiKPiCandidateSelector {
     } else {
       return false;
     }
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
@@ -161,7 +157,7 @@ struct HFDplusToPiKPiCandidateSelector {
   bool selectionPIDTOF(const T& track, int nPDG, int nSigmaCut)
   {
     double nSigma = 100.0; //arbitarily large value
-    nPDG = TMath::Abs(nPDG);
+    nPDG = std::abs(nPDG);
     if (nPDG == kPiPlus) {
       nSigma = track.tofNSigmaPi();
     } else if (nPDG == kKPlus) {
@@ -169,7 +165,7 @@ struct HFDplusToPiKPiCandidateSelector {
     } else {
       return false;
     }
-    return nSigma < nSigmaCut;
+    return std::abs(nSigma) < nSigmaCut;
   }
 
   /// PID selection on daughter track
@@ -215,7 +211,7 @@ struct HFDplusToPiKPiCandidateSelector {
 
       auto statusDplusToPiKPi = 0; // final selection flag : 0-rejected  1-accepted
 
-      if (!(hfCandProng3.hfflag() & 1 << DPlusToPiKPi)) {
+      if (!(hfCandProng3.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }

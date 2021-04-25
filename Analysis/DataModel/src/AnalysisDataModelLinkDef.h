@@ -16,6 +16,7 @@
 #pragma link C++ class o2::pid::Parametrization + ;
 
 #pragma link C++ class o2::pid::tof::TOFReso + ;
+#pragma link C++ class o2::pid::tof::TOFResoALICE3 + ;
 
 #pragma link C++ class o2::pid::tpc::BetheBloch + ;
 #pragma link C++ class o2::pid::tpc::TPCReso + ;

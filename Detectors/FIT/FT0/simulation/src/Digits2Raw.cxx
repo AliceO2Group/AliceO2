@@ -119,7 +119,7 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
     LOG(INFO) << " registered links " << mLinkID << " endpoint " << mEndPointID;
   }
   //TCM
-  std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outDir, "ft0_link", std::to_string(NPMs), ".raw") : o2::utils::concat_string(outDir, "ft0.raw");
+  std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outDir, "ft0_link", std::to_string(NPMs - 1), ".raw") : o2::utils::concat_string(outDir, "ft0.raw");
   mWriter.registerLink(mLinkTCM + 8, mCruID, mLinkTCM, 0, outFileLink);
   LOG(INFO) << " registered link  TCM " << mLinkTCM;
 

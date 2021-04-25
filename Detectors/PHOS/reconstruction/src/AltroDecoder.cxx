@@ -86,6 +86,7 @@ void AltroDecoder::readChannels()
       continue;
     }
     std::vector<uint16_t> bunchwords;
+    bunchwords.reserve(3 * numberofwords);
     for (int iword = 0; iword < numberofwords; iword++) {
       currentword = buffer[currentpos++];
       if ((currentword >> 30) != 0) {

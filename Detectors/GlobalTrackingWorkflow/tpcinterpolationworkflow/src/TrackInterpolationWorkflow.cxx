@@ -14,8 +14,8 @@
 
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/PublisherSpec.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "TPCWorkflow/ClusterReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -32,28 +32,16 @@ framework::WorkflowSpec getTPCInterpolationWorkflow(bool disableRootInp, bool di
 {
   framework::WorkflowSpec specs;
   bool useMC = false;
-  std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
-  std::vector<int> tpcClusLanes = tpcClusSectors;
   if (!disableRootInp) {
     specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
-    specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
-                                                   "tpc-native-cluster-reader",
-                                                   "tpc-native-clusters.root",
-                                                   "tpcrec",
-                                                   {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
-                                                   {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
-                                                   OutputSpec{"TPC", "CLUSTERNATIVE"},
-                                                   OutputSpec{"TPC", "CLNATIVEMCLBL"},
-                                                   tpcClusSectors,
-                                                   tpcClusLanes},
-                                                 useMC));
+    specs.emplace_back(o2::tpc::getClusterReaderSpec(useMC));
     specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(useMC));
   }
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(useMC, tpcClusLanes));
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(useMC));
 
   if (!disableRootOut) {
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(useMC));

@@ -82,11 +82,14 @@ taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2
 [ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
 touch digiTRD.log_done
 
-if [ "0$GENERATE_ITS_DICTIONARY" == "01" ]; then
-  taskwrapper itsdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
+if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then
+  taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
   cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CreateDictionaries.C .
-  taskwrapper itsdict2.log root -b -q CreateDictionaries.C++
-  rm -f CreateDictionaries_C*
+  taskwrapper itsmftdict2.log root -b -q CreateDictionaries.C++
+  taskwrapper itsmftdict3.log o2-mft-reco-workflow --disable-mc
+  cp ~/alice/O2/Detectors/ITSMFT/MFT/macros/test/CheckTopologies.C .
+  taskwrapper itsmftdict4.log root -b -q CheckTopologies.C++
+  rm -f CheckTopologies_C*
 fi
 
 mkdir -p raw
@@ -97,7 +100,7 @@ taskwrapper fv0raw.log o2-fv0-digi2raw --file-per-link  -o raw/FV0
 taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link  -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link  -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --output-type raw --tof-raw-outdir raw/TOF
-taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink 
+taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link -o raw/CPV
@@ -165,7 +168,7 @@ for STAGE in $STAGES; do
     echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
 
     # GPU reconstruction (also in CPU version) processing time
-    gpurecotime=`grep "tpc-tracker" reco_NOGPU.log | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
+    gpurecotime=`grep "gpu-reconstruction" reco_NOGPU.log | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
     echo "gpurecotime_${STAGE},${TAG} value=${gpurecotime}" >> ${METRICFILE}
 
     # memory
@@ -175,7 +178,7 @@ for STAGE in $STAGES; do
     echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
 
     # some physics quantities
-    tpctracks=`grep "tpc-tracker" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
+    tpctracks=`grep "gpu-reconstruction" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
     echo "tpctracks_${STAGE},${TAG} value=${tpctracks}" >> ${METRICFILE}
     tpcclusters=`grep -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
     echo "tpcclusters_${STAGE},${TAG} value=${tpcclusters}" >> ${METRICFILE}

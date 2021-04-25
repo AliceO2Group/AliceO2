@@ -484,11 +484,11 @@ void updateMetricsNames(DriverInfo& driverInfo, std::vector<DeviceMetricsInfo> c
   // Calculate the unique set of metrics, as available in the metrics service
   static std::unordered_set<std::string> allMetricsNames;
   for (const auto& metricsInfo : metricsInfos) {
-    for (const auto& labelsPairs : metricsInfo.metricLabelsIdx) {
+    for (const auto& labelsPairs : metricsInfo.metricLabels) {
       allMetricsNames.insert(std::string(labelsPairs.label));
     }
   }
-  for (const auto& labelsPairs : driverInfo.metrics.metricLabelsIdx) {
+  for (const auto& labelsPairs : driverInfo.metrics.metricLabels) {
     allMetricsNames.insert(std::string(labelsPairs.label));
   }
   std::vector<std::string> result(allMetricsNames.begin(), allMetricsNames.end());
@@ -998,7 +998,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
         ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
         ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
         ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
-        ("infologger-mode", bpo::value<std::string>()->default_value(""), "INFOLOGGER_MODE override");
+        ("infologger-mode", bpo::value<std::string>()->default_value(""), "O2_INFOLOGGER_MODE override");
       r.fConfig.AddToCmdLineOptions(optsDesc, true);
     });
 

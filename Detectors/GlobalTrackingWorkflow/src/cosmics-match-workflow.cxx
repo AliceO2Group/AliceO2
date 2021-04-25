@@ -10,18 +10,18 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
-#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
+#include "GPUWorkflow/TPCSectorCompletionPolicy.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/PublisherSpec.h"
+#include "TPCWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/CosmicsMatchingSpec.h"
 #include "GlobalTrackingWorkflow/TrackCosmicsWriterSpec.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -55,7 +55,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   // the TPC sector completion policy checks when the set of TPC/CLUSTERNATIVE data is complete
   // in addition we require to have input from all other routes
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("itstpc-track-matcher",
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("cosmics-matcher",
                                                         o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll,
                                                         InputSpec{"cluster", o2::framework::ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}})());
 }
@@ -77,9 +77,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
-
-  std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
-  std::vector<int> tpcClusLanes = tpcClusSectors;
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
 
@@ -111,17 +108,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(false, true)); // mc not neaded
     }
     if (GID::includesDet(DetID::TPC, src)) {
-      specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
-                                                     "tpc-native-cluster-reader",
-                                                     "tpc-native-clusters.root",
-                                                     "tpcrec",
-                                                     {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
-                                                     {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
-                                                     OutputSpec{"TPC", "CLUSTERNATIVE"},
-                                                     OutputSpec{"TPC", "CLNATIVEMCLBL"},
-                                                     tpcClusSectors,
-                                                     tpcClusLanes},
-                                                   false));
+      specs.emplace_back(o2::tpc::getClusterReaderSpec(false));
       specs.emplace_back(o2::tpc::getClusterSharingMapSpec());
     }
   }

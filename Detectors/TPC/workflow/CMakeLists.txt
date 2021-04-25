@@ -8,20 +8,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
                      
-
-# FIXME: do we really need a library here ? Is the exe not enough ?
 o2_add_library(TPCWorkflow
                SOURCES src/RecoWorkflow.cxx
+                       src/ClusterReaderSpec.cxx
                        src/PublisherSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterDecoderRawSpec.cxx
-                       src/CATrackerSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/TrackReaderSpec.cxx
                        src/RawToDigitsSpec.cxx
                        src/LinkZSToDigitsSpec.cxx
-                       src/TPCSectorCompletionPolicy.cxx
                        src/ZSSpec.cxx
                        src/CalibProcessingHelper.cxx
                        src/ClusterSharingMapSpec.cxx
@@ -32,7 +29,8 @@ o2_add_library(TPCWorkflow
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
                                      O2::TPCCalibration O2::TPCSimulation
-                                     O2::TPCQC O2::DetectorsCalibration)
+                                     O2::TPCQC O2::DetectorsCalibration
+                                     O2::GPUWorkflow)
 
 
 o2_add_executable(chunkeddigit-merger

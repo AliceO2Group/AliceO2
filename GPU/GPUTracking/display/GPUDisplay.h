@@ -35,15 +35,6 @@
 #include "GPUSettings.h"
 #include "GPUDisplayBackend.h"
 
-namespace GPUCA_NAMESPACE
-{
-namespace gpu
-{
-class GPUChainTracking;
-class GPUQA;
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-
 #ifndef GPUCA_BUILD_EVENT_DISPLAY
 
 namespace GPUCA_NAMESPACE
@@ -53,12 +44,12 @@ namespace gpu
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa) {}
+  GPUDisplay(void* backend, void* chain, void* qa, const void* param = nullptr, const void* calib = nullptr, const void* config = nullptr) {}
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
   int StartDisplay() { return 1; }
-  void ShowNextEvent() {}
+  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr) {}
   void WaitForNextEvent() {}
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
 
@@ -90,16 +81,17 @@ namespace gpu
 {
 class GPUTPCTracker;
 struct GPUParam;
+class GPUQA;
 
 class GPUDisplay
 {
  public:
-  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa);
+  GPUDisplay(GPUDisplayBackend* backend, GPUChainTracking* chain, GPUQA* qa, const GPUParam* param = nullptr, const GPUCalibObjectsConst* calib = nullptr, const GPUSettingsDisplay* config = nullptr);
   ~GPUDisplay() = default;
   GPUDisplay(const GPUDisplay&) = delete;
 
   int StartDisplay();
-  void ShowNextEvent();
+  void ShowNextEvent(const GPUTrackingInOutPointers* ptrs = nullptr);
   void WaitForNextEvent();
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 
@@ -191,10 +183,12 @@ class GPUDisplay
 
   int DrawGLScene_internal(bool mixAnimation, float mAnimateTime);
   int InitGL_internal();
-  const GPUParam& param();
+  int getNumThreads();
+  void disableUnsupportedOptions();
   const GPUTPCTracker& sliceTracker(int iSlice);
   const GPUTRDTrackerGPU& trdTracker();
-  const GPUTrackingInOutPointers ioptrs();
+  const GPUTRDGeometry& trdGeometry();
+  const GPUTrackingInOutPointers* mIOPtrs = nullptr;
   void drawVertices(const vboList& v, const GLenum t);
   void insertVertexList(std::pair<vecpod<GLint>*, vecpod<GLsizei>*>& vBuf, size_t first, size_t last);
   void insertVertexList(int iSlice, size_t first, size_t last);
@@ -238,13 +232,14 @@ class GPUDisplay
   void UpdateOffscreenBuffers(bool clean = false);
   void updateConfig();
   void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT);
-  vboList DrawClusters(const GPUTPCTracker& tracker, int select, int iCol);
+  vboList DrawClusters(int iSlice, int select, int iCol);
   vboList DrawSpacePointsTRD(int iSlice, int select, int iCol);
   vboList DrawSpacePointsTRD(const GPUTPCTracker& tracker, int select, int iCol);
   vboList DrawLinks(const GPUTPCTracker& tracker, int id, bool dodown = false);
   vboList DrawSeeds(const GPUTPCTracker& tracker);
   vboList DrawTracklets(const GPUTPCTracker& tracker);
   vboList DrawTracks(const GPUTPCTracker& tracker, int global);
+  template <class T>
   void DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer);
   vboList DrawGrid(const GPUTPCTracker& tracker);
   vboList DrawGridTRD(int sector);
@@ -261,10 +256,11 @@ class GPUDisplay
 
   GPUDisplayBackend* mBackend;
   GPUChainTracking* mChain;
+  const GPUParam* mParam;
+  const GPUCalibObjectsConst* mCalib;
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfg;
   GPUQA* mQA;
-  const GPUTPCGMMerger& mMerger;
   qSem mSemLockDisplay;
 
   GLfb mMixBuffer;
@@ -298,7 +294,7 @@ class GPUDisplay
   float mFOV = 45.f;
 
   float mAngleRollOrigin = -1e9;
-  float mMaxClusterZ = 0;
+  float mMaxClusterZ = -1;
 
   int screenshot_scale = 1;
 
