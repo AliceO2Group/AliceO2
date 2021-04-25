@@ -31,7 +31,8 @@ o2_add_library(
     O2::TOFCalibration
     O2::SimConfig
     O2::DataFormatsFT0
-    O2::DataFormatsGlobalTracking)
+    O2::DataFormatsGlobalTracking
+    O2::ITStracking)
 
 o2_target_root_dictionary(
   GlobalTracking
