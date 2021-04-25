@@ -45,6 +45,7 @@
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
+#include "GPUO2Interface.h"
 #include "TPCPadGainCalib.h"
 #include "GPUDisplayBackend.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -245,12 +246,12 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       if (boost::filesystem::exists(confParam.gainCalibFile)) {
         LOG(INFO) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
         const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
-        processAttributes->tpcPadGainCalib.reset(new TPCPadGainCalib{*gainMap});
+        processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
       } else {
         if (not confParam.gainCalibFile.empty()) {
           LOG(WARN) << "Couldn't find tpc gain correction file " << confParam.gainCalibFile << ". Not applying any gain correction.";
         }
-        processAttributes->tpcPadGainCalib.reset(new TPCPadGainCalib{});
+        processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
       }
       config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
 
