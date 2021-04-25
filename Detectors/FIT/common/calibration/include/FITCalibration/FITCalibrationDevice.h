@@ -65,6 +65,9 @@ void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
   auto TFCounter = o2::header::get<o2::framework::DataProcessingHeader*>(context.inputs().get(mInputDataLabel).header)->startTime;
   auto data = context.inputs().get<gsl::span<InputCalibrationInfoType>>(mInputDataLabel);
 
+  //something like that probably in the future
+  //  FITCalibrationApi::setProcessingTimestamp( getTimestampForTF(TFCounter)) );
+
   mCalibrator->process(TFCounter, data);
   _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
@@ -88,21 +91,15 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& out
 {
 
   using clbUtils = o2::calibration::Utils;
+  const auto& objectsToSend = mCalibrator->getStoredCalibrationObjects();
 
-  const auto& payloadVec = mCalibrator->getCalibrationObjectVector();
-  auto& infoVec = mCalibrator->getCalibrationInfoVector();
-  assert(payloadVec.size() == infoVec.size());
-
-  for (uint32_t i = 0; i < payloadVec.size(); ++i) {
-    auto& w = infoVec[i];
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image);
-    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, w);
+  uint32_t iSendChannel = 0;
+  for (const auto& [ccdbInfo, calibObject] : objectsToSend) {
+    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, iSendChannel}, *calibObject);
+    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, iSendChannel}, ccdbInfo);
+    ++iSendChannel;
   }
-
-  if (!payloadVec.empty()) {
-    mCalibrator->initOutput();
-  }
+  mCalibrator->initOutput();
 }
 
 #undef FIT_CALIBRATION_DEVICE_TEMPLATES

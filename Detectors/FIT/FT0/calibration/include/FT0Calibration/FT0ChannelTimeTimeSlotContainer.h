@@ -30,7 +30,7 @@ class FT0ChannelTimeTimeSlotContainer final
   static constexpr int HISTOGRAM_RANGE = 200;
   static constexpr unsigned int NUMBER_OF_HISTOGRAM_BINS = 2 * HISTOGRAM_RANGE;
 
-  using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>,
+  using BoostHistogramType = boost::histogram::histogram<std::tuple<boost::histogram::axis::integer<>,
                                                                     boost::histogram::axis::integer<>>,
                                                          boost::histogram::unlimited_storage<std::allocator<char>>>;
 

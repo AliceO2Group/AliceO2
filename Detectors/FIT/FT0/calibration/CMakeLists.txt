@@ -26,6 +26,7 @@ o2_target_root_dictionary(FT0Calibration
         include/FT0Calibration/FT0CalibrationInfoObject.h
         include/FT0Calibration/FT0ChannelTimeCalibrationObject.h
         include/FT0Calibration/FT0ChannelTimeTimeSlotContainer.h
+        include/FT0Calibration/FT0DummyCalibrationObject.h
         )
 
 
@@ -46,6 +47,13 @@ o2_add_executable(ft0-tf-processor
 o2_add_executable(ft0-calibration
         COMPONENT_NAME calibration
         SOURCES testWorkflow/FT0Calibration-Workflow.cxx
+        PUBLIC_LINK_LIBRARIES
+        O2::DataFormatsFT0 O2::FITCalibration
+        )
+
+o2_add_executable(ft0-dummy-example
+        COMPONENT_NAME calibration
+        SOURCES testWorkflow/FT0CalibrationDummy-Workflow.cxx
         PUBLIC_LINK_LIBRARIES
         O2::DataFormatsFT0 O2::FITCalibration
         )

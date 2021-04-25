@@ -19,13 +19,12 @@ FT0ChannelTimeTimeSlotContainer::FT0ChannelTimeTimeSlotContainer(std::size_t min
   : mMinEntries(minEntries)
 {
 
-  mHistogram = boost::histogram::make_histogram(boost::histogram::axis::regular<>(NUMBER_OF_HISTOGRAM_BINS, -HISTOGRAM_RANGE, HISTOGRAM_RANGE, "channel_times"),
+  mHistogram = boost::histogram::make_histogram(boost::histogram::axis::integer<>(-HISTOGRAM_RANGE, HISTOGRAM_RANGE, "channel_times"),
                                                 boost::histogram::axis::integer<>(0, o2::ft0::Nchannels_FT0, "channel_ID"));
 }
 
 bool FT0ChannelTimeTimeSlotContainer::hasEnoughEntries() const
 {
-
   return *std::min_element(mEntriesPerChannel.begin(), mEntriesPerChannel.end()) > mMinEntries;
 }
 void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationInfoObject>& data)
@@ -73,7 +72,7 @@ int16_t FT0ChannelTimeTimeSlotContainer::getMeanGaussianFitValue(std::size_t cha
   double returnCode = math_utils::fitGaus<double>(NUMBER_OF_HISTOGRAM_BINS, channelHistogramData.data(),
                                                   -HISTOGRAM_RANGE, HISTOGRAM_RANGE, outputGaussianFitValues);
   if (returnCode < 0) {
-    //something went wrong during gaussian fit procedure
+    LOG(ERROR) << "Gaussian fit error!";
     return 0;
   }
 

@@ -18,4 +18,10 @@
 #pragma link C++ class o2::ft0::FT0ChannelTimeCalibrationObject + ;
 #pragma link C++ class o2::ft0::FT0ChannelTimeTimeSlotContainer + ;
 
+//delete lines below
+#pragma link C++ class o2::ft0::FT0DummyCalibrationObject + ;
+#pragma link C++ class o2::ft0::FT0DummyCalibrationObjectTime + ;
+#pragma link C++ class o2::ft0::FT0DummyCalibrationObjectCharge + ;
+#pragma link C++ class o2::ft0::FT0DummyNeededCalibrationObject + ;
+
 #endif

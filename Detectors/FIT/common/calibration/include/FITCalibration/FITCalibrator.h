@@ -50,18 +50,14 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
-
-  [[nodiscard]] bool isCalibrationObjectReadyToSend() const { return !mCalibrationObjectVector.empty(); }
-  [[nodiscard]] const std::vector<CalibrationObjectType>& getCalibrationObjectVector() const { return mCalibrationObjectVector; }
-  [[nodiscard]] const std::vector<o2::ccdb::CcdbObjectInfo>& getCalibrationInfoVector() const { return mInfoVector; }
-  [[nodiscard]] std::vector<o2::ccdb::CcdbObjectInfo>& getCalibrationInfoVector() { return mInfoVector; }
+  [[nodiscard]] bool isCalibrationObjectReadyToSend() const { return !mStoredCalibrationObjects.empty(); }
+  [[nodiscard]] const std::vector<std::pair<o2::ccdb::CcdbObjectInfo, std::unique_ptr<std::vector<char>>>>& getStoredCalibrationObjects() const { return mStoredCalibrationObjects; }
 
  private:
   [[nodiscard]] bool _isTestModeEnabled() const { return mTestMode; }
 
  private:
-  std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector;
-  std::vector<CalibrationObjectType> mCalibrationObjectVector;
+  std::vector<std::pair<o2::ccdb::CcdbObjectInfo, std::unique_ptr<std::vector<char>>>> mStoredCalibrationObjects{};
   const unsigned int mMinEntries;
   const bool mTestMode;
 };
@@ -89,22 +85,21 @@ bool FIT_CALIBRATOR_TYPE::hasEnoughData(const Slot& slot) const
 FIT_CALIBRATOR_TEMPLATES
 void FIT_CALIBRATOR_TYPE::initOutput()
 {
-  mInfoVector.clear();
-  mCalibrationObjectVector.clear();
+  mStoredCalibrationObjects.clear();
 }
 
 FIT_CALIBRATOR_TEMPLATES
 void FIT_CALIBRATOR_TYPE::finalizeSlot(Slot& slot)
 {
   static std::map<std::string, std::string> md;
-
   const auto& container = slot.getContainer();
+
   auto calibrationObject = FITCalibrationObjectProducer::generateCalibrationObject<CalibrationObjectType>(*container);
-  auto clName = o2::utils::MemFileHelper::getClassName(calibrationObject);
-  auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
-  // end of validity = -1 means currentTimestamp + 1 year
-  mInfoVector.emplace_back(FITCalibrationApi::getObjectPath<CalibrationObjectType>(), clName, flName, md, ccdb::getCurrentTimestamp(), -1);
-  mCalibrationObjectVector.emplace_back(calibrationObject);
+  auto preparedCalibObjects = FITCalibrationApi::prepareCalibrationObjectToSend(calibrationObject);
+
+  mStoredCalibrationObjects.insert(mStoredCalibrationObjects.end(),
+                                   std::make_move_iterator(preparedCalibObjects.begin()),
+                                   std::make_move_iterator(preparedCalibObjects.end()));
 }
 
 FIT_CALIBRATOR_TEMPLATES

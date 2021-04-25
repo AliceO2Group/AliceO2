@@ -9,9 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(FITCalibration
-        SOURCES
-        src/FITCalibrationObjectProducer.cxx
-        src/FITCalibrationApi.cxx
+        
         PUBLIC_LINK_LIBRARIES
         O2::FT0Calibration
         O2::Framework
