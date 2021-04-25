@@ -27,7 +27,6 @@ string(TOUPPER "${ENABLE_HIP}" ENABLE_HIP)
 
 # Detect and enable CUDA
 if(ENABLE_CUDA)
-  set(CUDA_MINIMUM_VERSION "11.3")
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
   include(CheckLanguage)
@@ -49,6 +48,9 @@ if(ENABLE_CUDA)
     find_path(THRUST_INCLUDE_DIR thrust/version.h PATHS ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES} NO_DEFAULT_PATH)
     if(THRUST_INCLUDE_DIR STREQUAL "THRUST_INCLUDE_DIR-NOTFOUND")
       message(FATAL_ERROR "CUDA found but thrust not available")
+    endif()
+    if (NOT CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "11.3")
+      message(FATAL_ERROR "CUDA Version too old: ${CMAKE_CUDA_COMPILER_VERSION}, 11.3 required")
     endif()
 
     # Forward CXX flags to CUDA C++ Host compiler (for warnings, gdb, etc.)
