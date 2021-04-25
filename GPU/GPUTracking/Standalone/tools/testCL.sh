@@ -6,8 +6,8 @@ LLVM_SPIRV=llvm-spirv
 #COMPILER=/usr/lib/llvm/roc-2.1.0/bin/clang++
 #COMPILER=/usr/lib/llvm/9/bin/clang++
 
-#COMPILER=/home/qon/clang-build/install/bin/clang++
-#LLVM_SPIRV=/home/qon/clang-build/SPIRV-LLVM-Translator/build/tools/llvm-spirv/llvm-spirv
+#COMPILER=/home/qon/alice/llvm-project/build/bin/clang++
+#LLVM_SPIRV=/home/qon/alice/llvm-project/build/bin/llvm-spirv
 
 INCLUDES="-I../. -I../DataTypes -I../Definitions -I../Base -I../SliceTracker -I../Common -I../Merger -I../Refit -I../TRDTracking -I../ITS -I../dEdx -I../TPCConvert -I../TPCFastTransformation -I../DataCompression -I../TPCClusterFinder -I../Global -I ../GPUUtils \
           -I$HOME/alice/O2/DataFormats/Detectors/TPC/include -I$HOME/alice/O2/Detectors/Base/include -I$HOME/alice/O2/Detectors/Base/src -I$HOME/alice/O2/Common/MathUtils/include -I$HOME/alice/O2/DataFormats/Headers/include \
