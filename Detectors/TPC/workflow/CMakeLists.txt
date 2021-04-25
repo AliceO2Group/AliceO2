@@ -30,7 +30,9 @@ o2_add_library(TPCWorkflow
                                      O2::DPLUtils O2::TPCReconstruction
                                      O2::TPCCalibration O2::TPCSimulation
                                      O2::TPCQC O2::DetectorsCalibration
-                                     O2::GPUWorkflow)
+                                     O2::GPUWorkflow
+               PRIVATE_LINK_LIBRARIES O2::GPUTracking # For the Zero Suppression includes
+           )
 
 
 o2_add_executable(chunkeddigit-merger
