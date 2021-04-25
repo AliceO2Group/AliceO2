@@ -42,7 +42,6 @@
 #include "GlobalTracking/MatchTPCITS.h"
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
-#include "GPUParam.inc"     // Consider more universal access
 
 using namespace o2::globaltracking;
 

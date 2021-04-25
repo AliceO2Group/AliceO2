@@ -32,7 +32,7 @@ o2_add_library(TPCReconstruction
                                      O2::SimulationDataFormat
                                      O2::TPCBase
                                      O2::GPUO2Interface
-                                     O2::GPUTracking
+                                     O2::TPCFastTransformation
                                      O2::DetectorsRaw)
 
 o2_target_root_dictionary(
