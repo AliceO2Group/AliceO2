@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
 
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
   config.configCalib.fastTransform = fastTransform.get();
-  std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines(new TPCdEdxCalibrationSplines);
+  std::unique_ptr<o2::gpu::TPCdEdxCalibrationSplines> dEdxSplines = GPUO2Interface::getdEdxCalibrationSplinesDefault();
   config.configCalib.dEdxSplines = dEdxSplines.get();
   std::unique_ptr<TPCPadGainCalib> gainCalib = GPUO2Interface::getPadGainCalibDefault();
   config.configCalib.tpcPadGain = gainCalib.get();
