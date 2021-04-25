@@ -46,8 +46,8 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
         }
         case o2::detectors::DetID::FV0: {
           std::bitset<CTP_NINPUTS> inpmask = std::bitset<CTP_NINPUTS>(
-            (inp->mInputsMask & CTP_INPUTMASK_FT0.second).to_ullong());
-          inpmaskcoll |= inpmask << CTP_INPUTMASK_FT0.first;
+            (inp->mInputsMask & CTP_INPUTMASK_FV0.second).to_ullong());
+          inpmaskcoll |= inpmask << CTP_INPUTMASK_FV0.first;
           break;
         }
         default:
