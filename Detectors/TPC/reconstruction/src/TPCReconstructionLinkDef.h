@@ -25,7 +25,6 @@
 #pragma link C++ class o2::tpc::rawreader::RawReaderCRUManager + ;
 #pragma link C++ class o2::tpc::RawReaderEventSync + ;
 #pragma link C++ class o2::tpc::SyncPatternMonitor + ;
-#pragma link C++ class o2::tpc::GPUCATracking + ;
 #pragma link C++ class o2::tpc::HardwareClusterDecoder + ;
 #pragma link C++ class o2::tpc::KrBoxClusterFinder + ;
 #pragma link C++ class o2::tpc::KrCluster + ;
