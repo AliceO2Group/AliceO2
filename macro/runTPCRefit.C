@@ -40,6 +40,9 @@ using namespace o2::base;
 using namespace o2::track;
 using namespace std;
 
+// This is actually defined in the TPC DataFormats, but for whatever reason ROOT Cling doesn't pick it up from there.
+using TPCClRefElem = uint32_t;
+
 int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc-native-clusters.root")
 {
   GeometryManager::loadGeometry();

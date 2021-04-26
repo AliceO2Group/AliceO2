@@ -21,7 +21,6 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
-#include "TPCReconstruction/GPUCATracking.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 
 #include "TPCFastTransform.h"
@@ -46,7 +45,7 @@ namespace tpc
 /// @brief Test 1 basic class IO tests
 BOOST_AUTO_TEST_CASE(CATracking_test1)
 {
-  GPUCATracking tracker;
+  GPUO2Interface tracker;
 
   float solenoidBz = -5.00668; //B-field
   float refX = 1000.;          //transport tracks to this x after tracking, >500 for disabling
@@ -81,7 +80,7 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   std::unique_ptr<TPCPadGainCalib> gainCalib = GPUO2Interface::getPadGainCalibDefault();
   config.configCalib.tpcPadGain = gainCalib.get();
 
-  tracker.initialize(config);
+  tracker.Initialize(config);
   std::vector<ClusterNativeContainer> cont(constants::MAXGLOBALPADROW);
 
   for (int i = 0; i < constants::MAXGLOBALPADROW; i++) {
@@ -98,12 +97,12 @@ BOOST_AUTO_TEST_CASE(CATracking_test1)
   std::unique_ptr<ClusterNative[]> clusterBuffer;
   std::unique_ptr<ClusterNativeAccess> clusters = ClusterNativeHelper::createClusterNativeIndex(clusterBuffer, cont, nullptr, nullptr);
 
-  GPUO2InterfaceIOPtrs ptrs;
-  ptrs.clusters = clusters.get();
+  GPUTrackingInOutPointers ptrs;
+  ptrs.clustersNative = clusters.get();
 
-  int retVal = tracker.runTracking(&ptrs);
+  int retVal = tracker.RunTracking(&ptrs);
   BOOST_CHECK_EQUAL(retVal, 0);
-  BOOST_CHECK_EQUAL((int)ptrs.outputTracks.size(), 1);
+  BOOST_CHECK_EQUAL((int)ptrs.nMergedTracks, 1);
 }
 } // namespace tpc
 } // namespace o2
