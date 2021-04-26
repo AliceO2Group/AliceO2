@@ -134,7 +134,7 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
     }
     TStopwatch timer;
     timer.Start();
-    LOG(INFO) << " CALLING ITS DIGITIZATION ";
+    LOG(INFO) << " CALLING ITS3 DIGITIZATION ";
 
     mDigitizer.setDigits(&mDigits);
     mDigitizer.setROFRecords(&mROFRecords);
