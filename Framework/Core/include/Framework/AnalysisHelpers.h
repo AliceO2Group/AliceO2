@@ -577,7 +577,7 @@ auto Extend(T const& table)
 {
   static_assert((soa::is_type_spawnable_v<Cs> && ...), "You can only extend a table with expression columns");
   using output_t = Join<T, soa::Table<Cs...>>;
-  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, table.asArrowTable().get()), table.asArrowTable()}, 0};
+  return output_t{{o2::framework::spawner(framework::pack<Cs...>{}, table.asArrowTable().get(), "dynamic extension"), table.asArrowTable()}, 0};
 }
 
 /// Template function to attach dynamic columns on-the-fly (e.g. inside
