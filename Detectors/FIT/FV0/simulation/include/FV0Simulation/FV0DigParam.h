@@ -36,16 +36,17 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   float timeShiftCfd = 5.3;            // TODO: adjust after FV0 with FEE measurements are done
   float singleMipThreshold = 3.0;      // in [MeV] of deposited energy
   float singleHitTimeThreshold = 120.0; // in [ns] to skip very slow particles
-  float waveformNbins = 10000;         // number of bins for the analog pulse waveform
-  float waveformBinWidth = 0.01302;    // number of bins for the analog
-  float avgCfdTimeForMip = 8.63;       // in ns to shift the CFD time to zero TODO do ring wise
+  UInt_t waveformNbins = 10000;         // number of bins for the analog pulse waveform
+  float waveformBinWidth = 0.01302;     // bin width [ns] for analog pulse waveform
+  float avgCfdTimeForMip = 8.63;        // in ns to shift the CFD time to zero TODO do ring wise
   int chargeIntBinMin = (avgCfdTimeForMip - 6.0) / waveformBinWidth;          //Charge integration offset (cfd mean time - 6 ns)
   int chargeIntBinMax = (avgCfdTimeForMip + 14.0) / waveformBinWidth;         //Charge integration offset (cfd mean time + 14 ns)
   bool isIntegrateFull = false;                                               // Full charge integration widow in 25 ns
   float cfdCheckWindow = 2.5;                                                 // time window for the cfd in ns to trigger the charge integration
   int avgNumberPhElectronPerMip = 201;                                        // avg number of photo-electrons per MIP
   float globalTimeOfFlight = 315.0 / o2::constants::physics::LightSpeedCm2NS; //TODO check the correct value for distance of FV0 to IP
-
+  float mCFDdeadTime = 15.6;            // ns
+  float mCFD_trsh = 3.;                 // [mV]
   ///Parameters for trigger simulation
   int adcChargeHighMultTh = 3.0 * 498; //threshold value of ADC charge for high multiplicity trigger
 
