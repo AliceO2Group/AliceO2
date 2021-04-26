@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   pidTPC_split.cxx
+/// \file   pidTPC.cxx
 /// \author Nicolo' Jacazio
 /// \brief  Task to produce PID tables for TPC split for each particle.
 ///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
@@ -18,6 +18,7 @@
 // O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
@@ -38,7 +39,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-struct pidTPCTaskSplit {
+struct tpcPid {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
   // Tables to produce
@@ -60,18 +61,41 @@ struct pidTPCTaskSplit {
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
   // Configuration flags to include and exclude particle hypotheses
-  Configurable<int> pidEl{"pid-el", 0, {"Produce PID information for the Electron mass hypothesis"}};
-  Configurable<int> pidMu{"pid-mu", 0, {"Produce PID information for the Muon mass hypothesis"}};
-  Configurable<int> pidPi{"pid-pi", 0, {"Produce PID information for the Pion mass hypothesis"}};
-  Configurable<int> pidKa{"pid-ka", 0, {"Produce PID information for the Kaon mass hypothesis"}};
-  Configurable<int> pidPr{"pid-pr", 0, {"Produce PID information for the Proton mass hypothesis"}};
-  Configurable<int> pidDe{"pid-de", 0, {"Produce PID information for the Deuterons mass hypothesis"}};
-  Configurable<int> pidTr{"pid-tr", 0, {"Produce PID information for the Triton mass hypothesis"}};
-  Configurable<int> pidHe{"pid-he", 0, {"Produce PID information for the Helium3 mass hypothesis"}};
-  Configurable<int> pidAl{"pid-al", 0, {"Produce PID information for the Alpha mass hypothesis"}};
+  Configurable<int> pidEl{"pid-el", -1, {"Produce PID information for the Electron mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidMu{"pid-mu", -1, {"Produce PID information for the Muon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidPi{"pid-pi", -1, {"Produce PID information for the Pion mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidKa{"pid-ka", -1, {"Produce PID information for the Kaon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidPr{"pid-pr", -1, {"Produce PID information for the Proton mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidDe{"pid-de", -1, {"Produce PID information for the Deuterons mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidTr{"pid-tr", -1, {"Produce PID information for the Triton mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidHe{"pid-he", -1, {"Produce PID information for the Helium3 mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidAl{"pid-al", -1, {"Produce PID information for the Alpha mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
 
-  void init(o2::framework::InitContext&)
+  void init(o2::framework::InitContext& initContext)
   {
+    // Checking the tables are requested in the workflow and enabling them
+    auto& workflows = initContext.services().get<RunningWorkflowInfo const>();
+    for (DeviceSpec device : workflows.devices) {
+      for (auto input : device.inputs) {
+        auto enableFlag = [&input](const std::string particle, Configurable<int>& flag) {
+          if (input.matcher.binding == "pidRespTPC" + particle) {
+            if (flag < 0) {
+              flag.value = 1;
+            }
+          }
+        };
+        enableFlag("El", pidEl);
+        enableFlag("Mu", pidMu);
+        enableFlag("Pi", pidPi);
+        enableFlag("Ka", pidKa);
+        enableFlag("Pr", pidPr);
+        enableFlag("De", pidDe);
+        enableFlag("Tr", pidTr);
+        enableFlag("He", pidHe);
+        enableFlag("Al", pidAl);
+      }
+    }
+    // Getting the parametrization parameters
     ccdb->setURL(url.value);
     ccdb->setTimestamp(timestamp.value);
     ccdb->setCaching(true);
@@ -127,7 +151,7 @@ struct pidTPCTaskSplit {
   }
 };
 
-struct pidTPCTaskQA {
+struct tpcPidQa {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
@@ -234,9 +258,9 @@ struct pidTPCTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTPCTaskSplit>(cfgc, TaskName{"pidTPC-split-task"})};
+  auto workflow = WorkflowSpec{adaptAnalysisTask<tpcPid>(cfgc)};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskQA>(cfgc, TaskName{"pidTOFQA-task"}));
+    workflow.push_back(adaptAnalysisTask<tpcPidQa>(cfgc));
   }
   return workflow;
 }
