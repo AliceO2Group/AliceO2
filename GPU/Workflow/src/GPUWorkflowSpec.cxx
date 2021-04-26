@@ -478,35 +478,47 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       }
 
-      ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clustersMCBuffer;
-      GPUO2InterfaceIOPtrs ptrs;
-      void* ptrEp[NSectors * NEndpoints] = {};
-
       const auto& inputsClustersDigits = getWorkflowTPCInput(pc, verbosity, getWorkflowTPCInput_mc, getWorkflowTPCInput_clusters, processAttributes->tpcSectorMask, getWorkflowTPCInput_digits);
 
+      GPUTrackingInOutPointers ptrs;
+
+      void* ptrEp[NSectors * NEndpoints] = {};
+      bool doInputDigits = false, doInputDigitsMC = false;
       if (specconfig.decompressTPC) {
-        ptrs.compressedClusters = pCompClustersFlat;
+        ptrs.tpcCompressedClusters = pCompClustersFlat;
       } else if (specconfig.zsOnTheFly) {
         const unsigned long long int* buffer = reinterpret_cast<const unsigned long long int*>(&inputZS[0]);
         o2::gpu::GPUReconstructionConvert::RunZSEncoderCreateMeta(buffer, tpcZSonTheFlySizes.data(), *&ptrEp, &tpcZS);
         ptrs.tpcZS = &tpcZS;
-        if (specconfig.processMC) {
-          ptrs.o2Digits = &inputsClustersDigits->inputDigits;
-          ptrs.o2DigitsMC = &inputsClustersDigits->inputDigitsMCPtrs;
-        }
+        doInputDigits = doInputDigitsMC = specconfig.processMC;
       } else if (specconfig.zsDecoder) {
         ptrs.tpcZS = &tpcZS;
         if (specconfig.processMC) {
           throw std::runtime_error("Cannot process MC information, none available");
         }
       } else if (specconfig.caClusterer) {
-        ptrs.o2Digits = &inputsClustersDigits->inputDigits;
-        if (specconfig.processMC) {
-          ptrs.o2DigitsMC = &inputsClustersDigits->inputDigitsMCPtrs;
-        }
+        doInputDigits = true;
+        doInputDigitsMC = specconfig.processMC;
       } else {
-        ptrs.clusters = &inputsClustersDigits->clusterIndex;
+        ptrs.clustersNative = &inputsClustersDigits->clusterIndex;
       }
+
+      GPUTrackingInOutDigits tpcDigitsMap;
+      GPUTPCDigitsMCInput tpcDigitsMapMC;
+      if (doInputDigits) {
+        ptrs.tpcPackedDigits = &tpcDigitsMap;
+        if (doInputDigitsMC) {
+          tpcDigitsMap.tpcDigitsMC = &tpcDigitsMapMC;
+        }
+        for (unsigned int i = 0; i < NSectors; i++) {
+          tpcDigitsMap.tpcDigits[i] = inputsClustersDigits->inputDigits[i].data();
+          tpcDigitsMap.nTPCDigits[i] = inputsClustersDigits->inputDigits[i].size();
+          if (doInputDigitsMC) {
+            tpcDigitsMapMC.v[i] = inputsClustersDigits->inputDigitsMCPtrs[i];
+          }
+        }
+      }
+
       // a byte size resizable vector object, the DataAllocator returns reference to internal object
       // initialize optional pointer to the vector object
       TPCSectorHeader clusterOutputSectorHeader{0};
@@ -586,6 +598,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       setOutputAllocator("TRACKS", specconfig.outputTracks, outputRegions.tpcTracksO2, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKS", 0));
       setOutputAllocator("CLUSREFS", specconfig.outputTracks, outputRegions.tpcTracksO2ClusRefs, std::make_tuple(gDataOriginTPC, (DataDescription) "CLUSREFS", 0));
       setOutputAllocator("TRACKSMCLBL", specconfig.outputTracks && specconfig.processMC, outputRegions.tpcTracksO2Labels, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKSMCLBL", 0));
+      ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clustersMCBuffer;
       if (specconfig.processMC && specconfig.caClusterer) {
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
       }
@@ -610,24 +623,15 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       }
 
-      if ((int)(ptrs.tpcZS != nullptr) + (int)(ptrs.o2Digits != nullptr && (ptrs.tpcZS == nullptr || ptrs.o2DigitsMC == nullptr)) + (int)(ptrs.clusters != nullptr) + (int)(ptrs.compressedClusters != nullptr) != 1) {
+      if ((int)(ptrs.tpcZS != nullptr) + (int)(ptrs.tpcPackedDigits != nullptr && (ptrs.tpcZS == nullptr || ptrs.tpcPackedDigits->tpcDigitsMC == nullptr)) + (int)(ptrs.clustersNative != nullptr) + (int)(ptrs.tpcCompressedClusters != nullptr) != 1) {
         throw std::runtime_error("Invalid input for gpu tracking");
       }
 
-      GPUTrackingInOutPointers ptrs2;
-      ptrs2.settingsTF = ptrs.settingsTF;
-      ptrs2.tpcCompressedClusters = ptrs.compressedClusters;
-      ptrs2.tpcZS = ptrs.tpcZS;
-      ptrs2.clustersNative = ptrs.clusters;
-      const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, &ptrs2, processAttributes->config.get());
-      int retVal = tracker->RunTracking(&ptrs2, &outputRegions);
-      if (ptrs.o2Digits || ptrs.tpcZS || ptrs.compressedClusters) {
-        ptrs.clusters = ptrs2.clustersNative;
-      }
-      ptrs.compressedClusters = ptrs2.tpcCompressedClusters;
-      ptrs.outputTracks = {ptrs2.outputTracksTPCO2, ptrs2.nOutputTracksTPCO2};
-      ptrs.outputClusRefs = {ptrs2.outputClusRefsTPCO2, ptrs2.nOutputClusRefsTPCO2};
-      ptrs.outputTracksMCTruth = {ptrs2.outputTracksTPCO2MC, ptrs2.outputTracksTPCO2MC ? ptrs2.nOutputTracksTPCO2 : 0};
+      const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, processAttributes->config.get());
+      int retVal = tracker->RunTracking(&ptrs, &outputRegions);
+      gsl::span<const o2::tpc::TrackTPC> spanOutputTracks = {ptrs.outputTracksTPCO2, ptrs.nOutputTracksTPCO2};
+      gsl::span<const uint32_t> spanOutputClusRefs = {ptrs.outputClusRefsTPCO2, ptrs.nOutputClusRefsTPCO2};
+      gsl::span<const o2::MCCompLabel> spanOutputTracksMCTruth = {ptrs.outputTracksTPCO2MC, ptrs.outputTracksTPCO2MC ? ptrs.nOutputTracksTPCO2 : 0};
 
       tracker->Clear(false);
 
@@ -649,23 +653,23 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           }
         }
       }
-      downSizeBufferToSpan(outputRegions.tpcTracksO2, ptrs.outputTracks);
-      downSizeBufferToSpan(outputRegions.tpcTracksO2ClusRefs, ptrs.outputClusRefs);
-      downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, ptrs.outputTracksMCTruth);
+      downSizeBufferToSpan(outputRegions.tpcTracksO2, spanOutputTracks);
+      downSizeBufferToSpan(outputRegions.tpcTracksO2ClusRefs, spanOutputClusRefs);
+      downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, spanOutputTracksMCTruth);
 
-      LOG(INFO) << "found " << ptrs.outputTracks.size() << " track(s)";
+      LOG(INFO) << "found " << spanOutputTracks.size() << " track(s)";
 
       if (specconfig.outputCompClusters) {
-        CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
+        CompressedClustersROOT compressedClusters = *ptrs.tpcCompressedClusters;
         pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<CompressedClustersROOT const>(compressedClusters));
       }
 
       if (processAttributes->clusterOutputIds.size() > 0) {
-        if ((void*)ptrs.clusters->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
+        if ((void*)ptrs.clustersNative->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
           throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
         }
 
-        ClusterNativeAccess const& accessIndex = *ptrs.clusters;
+        ClusterNativeAccess const& accessIndex = *ptrs.clustersNative;
         if (specconfig.sendClustersPerSector) {
           // Clusters are shipped by sector, we are copying into per-sector buffers (anyway only for ROOT output)
           for (int i = 0; i < NSectors; i++) {
