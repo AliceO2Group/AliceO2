@@ -20,7 +20,6 @@ namespace o2
 {
 namespace gpu
 {
-struct GPUO2InterfaceIOPtrs;
 struct GPUTrackingInOutPointers;
 struct GPUO2InterfaceConfiguration;
 } // namespace gpu
@@ -45,7 +44,7 @@ class TPCTrackingDigitsPreCheck
     precheckModifiedData(std::unique_ptr<precheckModifiedDataInternal>&& v);
     ~precheckModifiedData();
   };
-  static precheckModifiedData runPrecheck(o2::gpu::GPUO2InterfaceIOPtrs* data, o2::gpu::GPUTrackingInOutPointers* ptrs, o2::gpu::GPUO2InterfaceConfiguration* config);
+  static precheckModifiedData runPrecheck(o2::gpu::GPUTrackingInOutPointers* ptrs, o2::gpu::GPUO2InterfaceConfiguration* config);
 };
 
 } // namespace tpc

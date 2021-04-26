@@ -41,56 +41,54 @@ struct TPCTrackingDigitsPreCheck::precheckModifiedDataInternal {
   std::vector<o2::tpc::Digit> gpuDigits[Sector::MAXSECTOR];
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> gpuDigitsMC[Sector::MAXSECTOR];
   ClusterNativeAccess::ConstMCLabelContainerViewWithBuffer gpuDigitsMCConst[Sector::MAXSECTOR];
-  GPUTrackingInOutDigits gpuDigitsMap;
-  GPUTPCDigitsMCInput gpuDigitsMapMC;
+  GPUTrackingInOutDigits tpcDigitsMap;
+  GPUTPCDigitsMCInput tpcDigitsMapMC;
 };
 
-TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPrecheck(o2::gpu::GPUO2InterfaceIOPtrs* data, o2::gpu::GPUTrackingInOutPointers* ptrs, o2::gpu::GPUO2InterfaceConfiguration* config)
+TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPrecheck(o2::gpu::GPUTrackingInOutPointers* ptrs, o2::gpu::GPUO2InterfaceConfiguration* config)
 {
-  if (data->o2Digits) {
+  if (ptrs->tpcPackedDigits) {
     std::unique_ptr<precheckModifiedDataInternal> retVal = std::make_unique<precheckModifiedDataInternal>();
+    retVal->tpcDigitsMap = *ptrs->tpcPackedDigits;
     const float zsThreshold = config->configReconstruction.tpcZSthreshold;
     const int maxContTimeBin = config->configGRP.continuousMaxTimeBin;
+    bool updateDigits = zsThreshold > 0 && ptrs->tpcZS == nullptr;
+    const auto& d = ptrs->tpcPackedDigits;
     for (int i = 0; i < Sector::MAXSECTOR; i++) {
-      const auto& d = (*data->o2Digits)[i];
-      if (zsThreshold > 0 && data->tpcZS == nullptr) {
-        retVal->gpuDigits[i].reserve(d.size());
+      if (updateDigits) {
+        retVal->gpuDigits[i].reserve(d->nTPCDigits[i]);
       }
-      for (int j = 0; j < d.size(); j++) {
-        if (maxContTimeBin && d[j].getTimeStamp() >= maxContTimeBin) {
+      for (int j = 0; j < d->nTPCDigits[i]; j++) {
+        if (maxContTimeBin && d->tpcDigits[i][j].getTimeStamp() >= maxContTimeBin) {
           throw std::runtime_error("Digit time bin exceeds time frame length");
         }
-        if (zsThreshold > 0 && data->tpcZS == nullptr) {
-          if (d[j].getChargeFloat() >= zsThreshold) {
-            if (data->o2DigitsMC) {
-              for (const auto& element : (*data->o2DigitsMC)[i]->getLabels(j)) {
+        if (updateDigits) {
+          if (d->tpcDigits[i][j].getChargeFloat() >= zsThreshold) {
+            if (d->tpcDigitsMC) {
+              for (const auto& element : d->tpcDigitsMC->v[i]->getLabels(j)) {
                 retVal->gpuDigitsMC[i].addElement(retVal->gpuDigits[i].size(), element);
               }
             }
-            retVal->gpuDigits[i].emplace_back(d[j]);
+            retVal->gpuDigits[i].emplace_back(d->tpcDigits[i][j]);
           }
         }
       }
-      if (zsThreshold > 0 && data->tpcZS == nullptr) {
-        retVal->gpuDigitsMap.tpcDigits[i] = retVal->gpuDigits[i].data();
-        retVal->gpuDigitsMap.nTPCDigits[i] = retVal->gpuDigits[i].size();
-        if (data->o2DigitsMC) {
+      if (updateDigits) {
+        retVal->tpcDigitsMap.tpcDigits[i] = retVal->gpuDigits[i].data();
+        retVal->tpcDigitsMap.nTPCDigits[i] = retVal->gpuDigits[i].size();
+        if (ptrs->tpcPackedDigits->tpcDigitsMC) {
           retVal->gpuDigitsMC[i].flatten_to(retVal->gpuDigitsMCConst[i].first);
           retVal->gpuDigitsMCConst[i].second = retVal->gpuDigitsMCConst[i].first;
-          retVal->gpuDigitsMapMC.v[i] = &retVal->gpuDigitsMCConst[i].second;
-        }
-      } else {
-        retVal->gpuDigitsMap.tpcDigits[i] = (*(data->o2Digits))[i].data();
-        retVal->gpuDigitsMap.nTPCDigits[i] = (*(data->o2Digits))[i].size();
-        if (data->o2DigitsMC) {
-          retVal->gpuDigitsMapMC.v[i] = (*data->o2DigitsMC)[i];
+          retVal->tpcDigitsMapMC.v[i] = &retVal->gpuDigitsMCConst[i].second;
         }
       }
     }
-    if (data->o2DigitsMC) {
-      retVal->gpuDigitsMap.tpcDigitsMC = &retVal->gpuDigitsMapMC;
+    if (updateDigits) {
+      if (ptrs->tpcPackedDigits->tpcDigitsMC) {
+        retVal->tpcDigitsMap.tpcDigitsMC = &retVal->tpcDigitsMapMC;
+      }
+      ptrs->tpcPackedDigits = &retVal->tpcDigitsMap;
     }
-    ptrs->tpcPackedDigits = &retVal->gpuDigitsMap;
     return precheckModifiedData(std::move(retVal));
   }
   return precheckModifiedData();
