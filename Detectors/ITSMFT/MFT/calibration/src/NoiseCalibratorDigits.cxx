@@ -39,23 +39,23 @@ bool NoiseCalibratorDigits::processTimeFrame(gsl::span<const o2::itsmft::Digit> 
       auto row = d.getRow();
       auto col = d.getColumn();
 
-     Int_t half = chipMap[id].half;
-     Int_t layer = chipMap[id].layer;
-     Int_t disk = chipMap[id].disk;
-     Int_t face = layer % 2;
+     int half = chipMap[id].half;
+     int layer = chipMap[id].layer;
+     int disk = chipMap[id].disk;
+     int face = layer % 2;
 
       if (half==0 && face==0){
          mNoiseMapH0F0.increaseNoiseCount(id, row, col);
-	 mPath[0]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
+	 mPath[0]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
       }else if (half==0 && face==1){
          mNoiseMapH0F1.increaseNoiseCount(id, row, col);
-	 mPath[1]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
+	 mPath[1]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
       }else if (half==1 && face==0){
          mNoiseMapH1F0.increaseNoiseCount(id, row, col);
-	 mPath[2]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
+	 mPath[2]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
       }else if (half==1 && face==1){
          mNoiseMapH1F1.increaseNoiseCount(id, row, col);
-	 mPath[3]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-f"+std::to_string(face)+"-d"+std::to_string(disk);
+	 mPath[3]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
       }
     }
   }

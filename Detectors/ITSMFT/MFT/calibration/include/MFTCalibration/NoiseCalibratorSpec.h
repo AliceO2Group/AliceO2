@@ -43,7 +43,6 @@ class NoiseCalibratorSpec : public Task
 
  private:
   void sendOutput(DataAllocator& output);
-  o2::itsmft::NoiseMap mNoiseMap{936};
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
   std::string mPath;
   std::string mMeta;
