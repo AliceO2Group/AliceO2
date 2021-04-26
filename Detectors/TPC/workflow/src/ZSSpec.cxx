@@ -19,7 +19,6 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
-#include "TPCReconstruction/GPUCATracking.h"
 #include "DataFormatsTPC/Digit.h"
 #include "GPUDataTypes.h"
 #include "GPUHostDataTypes.h"

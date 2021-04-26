@@ -31,7 +31,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
-#include "TPCReconstruction/GPUCATracking.h"
+#include "TPCReconstruction/TPCTrackingDigitsPreCheck.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
@@ -97,7 +97,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
   using ClusterGroupParser = o2::algorithm::ForwardParser<ClusterGroupHeader>;
   struct ProcessAttributes {
     std::unique_ptr<ClusterGroupParser> parser;
-    std::unique_ptr<GPUCATracking> tracker;
+    std::unique_ptr<GPUO2Interface> tracker;
     std::unique_ptr<GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
@@ -125,7 +125,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
-      tracker = std::make_unique<GPUCATracking>();
+      tracker = std::make_unique<GPUO2Interface>();
 
       // Create configuration object and fill settings
       const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
@@ -184,7 +184,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       config.configReconstruction.NWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
 
-      // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
+      // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
       config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
                                       GPUDataTypes::RecoStep::TPCSliceTracking,
                                       GPUDataTypes::RecoStep::TPCMerging,
@@ -229,7 +229,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         config.configCalib.fastTransform = processAttributes->fastTransform.get();
       }
       if (config.configCalib.fastTransform == nullptr) {
-        throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
+        throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
       }
 
       if (confParam.matLUTFile.size()) {
@@ -265,8 +265,8 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       config.trdGeometry = gf.get();*/
 
       // Configuration is prepared, initialize the tracker.
-      if (tracker->initialize(config) != 0) {
-        throw std::invalid_argument("GPUCATracking initialization failed");
+      if (tracker->Initialize(config) != 0) {
+        throw std::invalid_argument("GPU Reconstruction initialization failed");
       }
       if (specconfig.outputQA) {
         processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->config.get());
@@ -610,7 +610,27 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       }
 
-      int retVal = tracker->runTracking(&ptrs, &outputRegions);
+      if ((int)(ptrs.tpcZS != nullptr) + (int)(ptrs.o2Digits != nullptr && (ptrs.tpcZS == nullptr || ptrs.o2DigitsMC == nullptr)) + (int)(ptrs.clusters != nullptr) + (int)(ptrs.compressedClusters != nullptr) != 1) {
+        throw std::runtime_error("Invalid input for gpu tracking");
+      }
+
+      GPUTrackingInOutPointers ptrs2;
+      ptrs2.settingsTF = ptrs.settingsTF;
+      ptrs2.tpcCompressedClusters = ptrs.compressedClusters;
+      ptrs2.tpcZS = ptrs.tpcZS;
+      ptrs2.clustersNative = ptrs.clusters;
+      const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, &ptrs2, processAttributes->config.get());
+      int retVal = tracker->RunTracking(&ptrs2, &outputRegions);
+      if (ptrs.o2Digits || ptrs.tpcZS || ptrs.compressedClusters) {
+        ptrs.clusters = ptrs2.clustersNative;
+      }
+      ptrs.compressedClusters = ptrs2.tpcCompressedClusters;
+      ptrs.outputTracks = {ptrs2.outputTracksTPCO2, ptrs2.nOutputTracksTPCO2};
+      ptrs.outputClusRefs = {ptrs2.outputClusRefsTPCO2, ptrs2.nOutputClusRefsTPCO2};
+      ptrs.outputTracksMCTruth = {ptrs2.outputTracksTPCO2MC, ptrs2.outputTracksTPCO2MC ? ptrs2.nOutputTracksTPCO2 : 0};
+
+      tracker->Clear(false);
+
       if (processAttributes->suppressOutput) {
         return;
       }

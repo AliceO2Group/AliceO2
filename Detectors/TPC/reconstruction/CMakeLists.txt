@@ -22,7 +22,7 @@ o2_add_library(TPCReconstruction
                        src/RawReaderCRU.cxx
                        src/RawReaderEventSync.cxx
                        src/SyncPatternMonitor.cxx
-                       src/GPUCATracking.cxx
+                       src/TPCTrackingDigitsPreCheck.cxx
                        src/HardwareClusterDecoder.cxx
                        src/DigitalCurrentClusterIntegrator.cxx
                        src/TPCFastTransformHelperO2.cxx
@@ -51,7 +51,7 @@ o2_target_root_dictionary(
           include/TPCReconstruction/RawReaderCRU.h
           include/TPCReconstruction/RawReaderEventSync.h
           include/TPCReconstruction/SyncPatternMonitor.h
-          include/TPCReconstruction/GPUCATracking.h
+          include/TPCReconstruction/TPCTrackingDigitsPreCheck.h
           include/TPCReconstruction/HardwareClusterDecoder.h
           include/TPCReconstruction/DigitalCurrentClusterIntegrator.h
           include/TPCReconstruction/TPCFastTransformHelperO2.h
