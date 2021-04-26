@@ -167,7 +167,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
           auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          return o2::framework::spawner(expressions{}, original_table.get());
+          return o2::framework::spawner(expressions{}, original_table.get(), input.binding.c_str());
         };
 
         if (description == header::DataDescription{"TRACK"}) {
