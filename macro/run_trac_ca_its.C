@@ -95,20 +95,6 @@ void run_trac_ca_its(bool cosmics = false,
   }
   double origD[3] = {0., 0., 0.};
 
-  //-------- init lookuptable --------//
-  if (useLUT) {
-    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
-    o2::base::Propagator::Instance()->setMatLUT(lut);
-  } else {
-    tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
-  }
-
-  if (tracker.isMatLUT()) {
-    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
-  } else {
-    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
-  }
-
   //
 
   bool isITS = grp->isDetReadOut(o2::detectors::DetID::ITS);
@@ -316,6 +302,21 @@ void run_trac_ca_its(bool cosmics = false,
   tracker.setBz(field->getBz(origD));
   tracker.setParameters(memParams, trackParams);
   tracker.clustersToTracks();
+  //-------- init lookuptable --------//
+  if (useLUT) {
+    auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+    o2::base::Propagator::Instance()->setMatLUT(lut);
+  } else {
+    tracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
+  }
+
+  if (tracker.isMatLUT()) {
+    LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+  } else {
+    LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+  }
+
+  std::cout << "Final number of tracks: " << tracker.getTracks().size() << std::endl;
   for (int iROF{0}; iROF < tf.getNrof(); ++iROF) {
     tracksITS.clear();
     for (auto& trc : tracker.getTracks()) {
@@ -327,7 +328,6 @@ void run_trac_ca_its(bool cosmics = false,
       tracksITS.emplace_back(trc);
     }
     trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-    std::cout << tracker.getTracks().size() << "\t" << trackLabels.size() << std::endl;
     outTree.Fill();
   }
 

@@ -72,7 +72,6 @@ class Tracker
 
   std::vector<TrackITSExt>& getTracks();
   std::vector<MCCompLabel>& getTrackLabels();
-  bool isMatLUT();
 
   void clustersToTracks(std::ostream& = std::cout);
 
