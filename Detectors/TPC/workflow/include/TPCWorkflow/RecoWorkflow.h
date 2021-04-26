@@ -78,8 +78,6 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool disableRootInput = false,                //
                                     int caClusterer = 0,                          //
                                     int zsOnTheFly = 0,
-                                    int zs10bit = 0,
-                                    float zsThreshold = 2.0f,
                                     bool askDISTSTF = true);
 
 } // end namespace reco_workflow

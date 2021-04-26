@@ -317,7 +317,7 @@ AddSubConfig(GPUSettingsDisplay, GL)
 AddSubConfig(GPUSettingsDisplayLight, GLlight)
 AddSubConfig(GPUSettingsEG, EG)
 EndConfig()
-#endif
+#endif // BeginConfig
 
 //Settings for the O2 workfllow
 #if !defined(QCONFIG_PARSER_CXX) && (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE))
