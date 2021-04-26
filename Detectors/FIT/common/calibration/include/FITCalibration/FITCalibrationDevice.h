@@ -75,7 +75,10 @@ void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::endOfStream(o2::framework::EndOfStreamContext& context)
 {
-  //do nothing, if we collected enough data, calib obj will be created anyway (?)
+  //nope, we have to check if we can finalize slot anyway - scenario with one batch
+  static constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
+  mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+  _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
