@@ -110,9 +110,6 @@ void TrackerTraitsCPU::computeLayerTracklets()
                     (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
                      gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
                   const int currentSortedIndex{tf->getSortedIndex(rof0, iLayer, iCluster)};
-                  if (iLayer > 0)
-                    if (currentSortedIndex > tf->getTrackletsLookupTable()[iLayer - 1].size())
-                      std::cout << "Issue with the tracklet LUT" << std::endl;
                   if (iLayer > 0 && tf->getTrackletsLookupTable()[iLayer - 1].size() <= currentSortedIndex) {
                     tf->getTrackletsLookupTable()[iLayer - 1].resize(currentSortedIndex + 1, tf->getTracklets()[iLayer].size());
                   }
@@ -129,11 +126,6 @@ void TrackerTraitsCPU::computeLayerTracklets()
         tf->getTrackletsLookupTable()[iLayer - 1].resize(currentLayerClustersNum + 1, tf->getTracklets()[iLayer].size());
       }
     }
-    // if (iLayer > 0 && iLayer < mTrkParams.TrackletsPerRoad() - 1 &&
-    //     tf->getTracklets()[iLayer].size() > tf->getCellsLookupTable()[iLayer - 1].size()) {
-    //   std::cout << "**** FATAL: not enough memory in the CellsLookupTable, increase the tracklet memory coefficients ****" << std::endl;
-    //   exit(1);
-    // }
   }
 #ifdef CA_DEBUG
   std::cout << "+++ Number of tracklets per layer: ";
@@ -141,10 +133,6 @@ void TrackerTraitsCPU::computeLayerTracklets()
     std::cout << primaryVertexContext->getTracklets()[iLayer].size() << "\t";
   }
 #endif
-  std::cout << "Number of tracklets " << std::endl;
-  for (int iL{0}; iL < 6; ++iL) {
-    std::cout << tf->getTracklets()[iL].size() << std::endl;
-  }
 }
 
 void TrackerTraitsCPU::computeLayerCells()
@@ -261,10 +249,6 @@ void TrackerTraitsCPU::computeLayerCells()
     if (iLayer > 0) {
       tf->getCellsLookupTable()[iLayer - 1].resize(currentLayerTrackletsNum + 1, currentLayerTrackletsNum);
     }
-  }
-  std::cout << "Number of cells " << std::endl;
-  for (int iL{0}; iL < 5; ++iL) {
-    std::cout << tf->getCells()[iL].size() << std::endl;
   }
 }
 

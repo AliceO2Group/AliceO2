@@ -175,6 +175,9 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
     mIndexTableUtils.setTrackingParameters(trkParam);
 
     for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
+      if (mClusters[iLayer].size()) {
+        continue;
+      }
       mClusters[iLayer].clear();
       mClusters[iLayer].resize(mUnsortedClusters[iLayer].size());
       mUsedClusters[iLayer].clear();

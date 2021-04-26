@@ -67,9 +67,7 @@ void Tracker::clustersToTracks(std::ostream& timeBenchmarkOutputStream)
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Context initialisation",
                           timeBenchmarkOutputStream, iteration, mMemParams[iteration], mTrkParams[iteration]);
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
-    mTimeFrame->printTrackletLUTs();
     total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
-    mTimeFrame->printCellLUTs();
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
     total += evaluateTask(&Tracker::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);
     total += evaluateTask(&Tracker::findTracks, "Track finding", timeBenchmarkOutputStream);
@@ -113,7 +111,6 @@ void Tracker::findCellsNeighbours(int& iteration)
 
       const Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
       const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
-      std::cout << iLayer << "\t" << mTimeFrame->getCellsLookupTable()[iLayer].size() << "\t" << nextLayerTrackletIndex << std::endl;
       const int nextLayerFirstCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex]};
       const int nextLayerLastCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex + 1]};
       for (int iNextLayerCell{nextLayerFirstCellIndex}; iNextLayerCell < nextLayerLastCellIndex; ++iNextLayerCell) {
@@ -216,7 +213,6 @@ void Tracker::findRoads(int& iteration)
 
 void Tracker::findTracks()
 {
-  mTracks.resize(mTimeFrame->getNrof());
   std::vector<TrackITSExt> tracks;
   tracks.reserve(mTimeFrame->getRoads().size());
 #ifdef CA_DEBUG
@@ -321,7 +317,6 @@ void Tracker::findTracks()
     tracks.emplace_back(temporaryTrack);
     CA_DEBUGGER(assert(nClusters == temporaryTrack.getNumberOfClusters()));
   }
-  std::cout << "Fitted tracks: " << tracks.size() << std::endl;
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
 
   std::sort(tracks.begin(), tracks.end(),
@@ -336,7 +331,6 @@ void Tracker::findTracks()
   // };
   // std::array<int, 4> xcheckCounters{0};
 #endif
-
   for (auto& track : tracks) {
     CA_DEBUGGER(int nClusters = 0);
     int nShared = 0;
@@ -568,7 +562,7 @@ void Tracker::computeTracksMClabels()
   }
 
   int tracksNum{static_cast<int>(mTracks.size())};
-  mTrackLabels.resize(mTracks.size());
+  mTrackLabels.reserve(mTracks.size());
 
   for (auto& track : mTracks) {
 
@@ -576,7 +570,6 @@ void Tracker::computeTracksMClabels()
                                     constants::its::UnusedIndex, false};
     int count{0};
     bool isFakeTrack{false};
-
     for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
       const int index = track.getClusterIndex(iCluster);
       if (index == constants::its::UnusedIndex) {
