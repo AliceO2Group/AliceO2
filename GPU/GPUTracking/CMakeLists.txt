@@ -153,7 +153,7 @@ set(HDRS_INSTALL
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS} Interface/GPUO2InterfaceConfigurableParam.cxx)
   set(HDRS_CINT_O2 ${HDRS_CINT_O2} DataTypes/TPCdEdxCalibrationSplines.h Interface/GPUO2InterfaceConfigurableParam.h)
-  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h TRDTracking/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
+  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h TRDTracking/GPUTRDTrack.h TRDTracking/GPUTRDO2BaseTrack.h) # Manual dependencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -206,7 +206,8 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      Definitions/clusterFinderDefs.h
                      TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h
-                     TPCClusterFinder/GPUTPCCFChainContext.h)
+                     TPCClusterFinder/GPUTPCCFChainContext.h
+                     TRDTracking/GPUTRDO2BaseTrack.h)
 endif()
 
 # Sources only for AliRoot
