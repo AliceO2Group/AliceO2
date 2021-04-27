@@ -12,6 +12,11 @@
 #
 # authors: D. Rohr / S. Wenzel
 
+if [ "0$O2_ROOT" == "0" ] || [ "0$AEGIS_ROOT" == "0" ]; then
+  echo Missing O2sim environment
+  exit 1
+fi
+
 # include jobutils, which notably brings
 # --> the taskwrapper as a simple control and monitoring tool
 #     (look inside the jobutils.sh file for documentation)
