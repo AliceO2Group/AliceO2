@@ -71,7 +71,7 @@ class Parameters : public TNamed
   void SetParameters(const Parameters* params) { SetParameters(params->mPar); };
 
   /// Printer of the parameter values
-  virtual void Print(Option_t* option = "") const override;
+  void Print(Option_t* option = "") const override;
 
   /// Loader from file
   /// \param FileName name of the input file
@@ -123,7 +123,7 @@ class Parametrization : public TNamed
   virtual pidvar_t operator()(const pidvar_t* x) const;
 
   /// Printer for the parametrization
-  virtual void Print(Option_t* option = "") const override;
+  void Print(Option_t* option = "") const override;
 
   /// Loader from file
   /// \param FileName name of the input file
