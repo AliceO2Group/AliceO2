@@ -64,8 +64,19 @@ struct SelectCollisions {
 
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
   Configurable<std::string> s_trigger_class{"trigger_class", "kINT7", "trigger class"};
   int trigger_class = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, s_trigger_class.value.data()));
+
+  HistogramRegistry registry{
+    "registry",
+    {{"h_events", "Events;;entries", {HistType::kTH1F, {{2, 0.5, 2.5}}}}}};
+
+  void init(InitContext const&)
+  {
+    registry.get<TH1>(HIST("h_events"))->GetXaxis()->SetBinLabel(1, "selected events");
+    registry.get<TH1>(HIST("h_events"))->GetXaxis()->SetBinLabel(2, "rej. trigger class");
+  }
 
   // event selection
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision)
@@ -74,9 +85,15 @@ struct SelectCollisions {
 
     if (!collision.alias()[trigger_class]) {
       status_collision |= BIT(0);
+      registry.get<TH1>(HIST("h_events"))->Fill(2);
     }
 
     //TODO: add more event selection criteria
+
+    // selected events
+    if(b_dovalplots) {
+        registry.get<TH1>(HIST("h_events"))->Fill(1);
+    }
 
     // fill table row
     rowSelectedCollision(status_collision);
