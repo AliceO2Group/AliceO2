@@ -201,7 +201,8 @@ void Digitizer::storeBC(const BCCache& bc,
                         o2::dataformats::MCTruthContainer<o2::fv0::MCLabel>& labels)
 
 {
-  size_t const first = digitsCh.size();
+  size_t const nBC = digitsBC.size();   // save before digitsBC is being modified
+  size_t const first = digitsCh.size(); // save before digitsCh is being modified
   size_t nStored = 0;
   double totalChargeAllRing = 0;
   double nSignalInner = 0;
@@ -253,7 +254,6 @@ void Digitizer::storeBC(const BCCache& bc,
   triggers.setTriggers(isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy, nStored, totalChargeAllRing);
   digitsBC.emplace_back(first, nStored, bc, triggers);
   digitsTrig.emplace_back(bc, isMinBias, isMinBiasInner, isMinBiasOuter, isHighMult, isDummy);
-  size_t const nBC = digitsBC.size();
   for (auto const& lbl : bc.labels) {
     labels.addElement(nBC, lbl);
   }
