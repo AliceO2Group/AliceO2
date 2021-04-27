@@ -138,22 +138,23 @@ bool GBTRawDataChecker::checkMasks(const std::vector<ROBoard>& locs)
   return true;
 }
 
-bool GBTRawDataChecker::checkRegLocConsistency(const std::vector<ROBoard>& regs, const std::vector<ROBoard>& locs)
+bool GBTRawDataChecker::checkRegLocConsistency(const std::vector<ROBoard>& regs, const std::vector<ROBoard>& locs, const InteractionRecord& ir)
 {
   /// Checks consistency between local and regional info
   uint8_t regFired{0};
+  bool isTrig = false;
   for (auto& reg : regs) {
     uint8_t ireg = raw::getLocId(reg.boardId) % 2;
-    auto busyItem = mBusyFlagSelfTrig.find(8 + ireg);
     if (reg.triggerWord == 0) {
       // Self-triggered event: check the decision
       regFired |= (reg.firedChambers << (4 * ireg));
     } else {
       // Triggered event: all active boards must answer
       regFired |= (mCrateMask & (0xF << (4 * ireg)));
+      isTrig = true;
     }
   }
-  uint8_t locFired{0}, locBusy{0};
+  uint8_t locFired{0};
   for (auto& loc : locs) {
     auto linkId = getElinkId(loc);
     uint8_t mask = (1 << linkId);
@@ -165,6 +166,7 @@ bool GBTRawDataChecker::checkRegLocConsistency(const std::vector<ROBoard>& regs,
     } else {
       // Triggered event: all active boards must answer
       locFired |= mask;
+      isTrig = true;
     }
   }
 
@@ -176,8 +178,15 @@ bool GBTRawDataChecker::checkRegLocConsistency(const std::vector<ROBoard>& regs,
     // If the board is still busy it will not answer.
     uint8_t busy{0};
     for (uint8_t iboard = 0; iboard < crateparams::sNELinksPerGBT; ++iboard) {
-      auto busyItem = mBusyFlagSelfTrig.find(iboard);
-      if (busyItem != mBusyFlagSelfTrig.end() && busyItem->second) {
+      auto rawIr = getRawIR(iboard, isTrig, ir);
+      bool isBusy = false;
+      for (auto& busyInfo : mBusyPeriods[iboard]) {
+        if (busyInfo.interactionRecord > rawIr) {
+          break;
+        }
+        isBusy = busyInfo.isBusy;
+      }
+      if (isBusy) {
         busy |= (iboard < crateparams::sMaxNBoardsInLink) ? (1 << iboard) : (0xF << (4 * (iboard % 2)));
       }
     }
@@ -204,11 +213,11 @@ std::string GBTRawDataChecker::printBoards(const std::vector<ROBoard>& boards) c
   return ss.str();
 }
 
-bool GBTRawDataChecker::checkEvent(bool isTriggered, const std::vector<ROBoard>& regs, const std::vector<ROBoard>& locs)
+bool GBTRawDataChecker::checkEvent(bool isTriggered, const std::vector<ROBoard>& regs, const std::vector<ROBoard>& locs, const InteractionRecord& ir)
 {
   /// Checks the cards belonging to the same BC
   mEventDebugMsg.clear();
-  if (!checkRegLocConsistency(regs, locs)) {
+  if (!checkRegLocConsistency(regs, locs, ir)) {
     return false;
   }
 
@@ -229,6 +238,23 @@ bool GBTRawDataChecker::checkEvent(bool isTriggered, const std::vector<ROBoard>&
   return true;
 }
 
+InteractionRecord GBTRawDataChecker::getRawIR(uint8_t id, bool isTrigger, InteractionRecord ir) const
+{
+  /// Returns the bc as it was set by electronics (before corrections)
+  if (isTrigger) {
+    return ir;
+  }
+  ir.bc += mElectronicsDelay.BCToLocal;
+  if (id >= crateparams::sMaxNBoardsInLink) {
+    ir.bc += mElectronicsDelay.regToLocal;
+  }
+  if (ir.bc >= mResetVal) {
+    ir.bc = ir.bc % mResetVal;
+    ++ir.orbit;
+  }
+  return ir;
+}
+
 uint8_t GBTRawDataChecker::getElinkId(const ROBoard& board) const
 {
   /// Returns the e-link ID
@@ -245,23 +271,24 @@ void GBTRawDataChecker::clearChecked(bool isTriggered, bool clearTrigEvents)
   auto& boards = isTriggered ? mBoardsTrig : mBoardsSelfTrig;
   auto& lastIndexes = isTriggered ? mLastIndexTrig : mLastIndexSelfTrig;
   // Create a new board map with the checked events stripped
-  std::unordered_map<uint8_t, std::vector<BoardInfo>> newBoards{};
   for (auto& lastIdxItem : lastIndexes) {
     auto firstIdx = lastIdxItem.second + 1;
     auto& boardVec = boards[lastIdxItem.first];
-    if (firstIdx < boardVec.size()) {
-      auto& newVec = newBoards[lastIdxItem.first];
-      newVec.insert(newVec.end(), boardVec.begin() + firstIdx, boardVec.end());
-    }
+    boards[lastIdxItem.first].erase(boardVec.begin(), boardVec.begin() + firstIdx);
   }
-  boards.swap(newBoards);
 
   if (clearTrigEvents) {
     // Clears the map with the processed triggers
     auto& lastCompleteTrigIR = isTriggered ? mLastCompleteIRTrig : mLastCompleteIRSelfTrig;
-    auto low = mTrigEvents.begin();
     auto up = mTrigEvents.upper_bound(lastCompleteTrigIR);
-    mTrigEvents.erase(low, up);
+    mTrigEvents.erase(mTrigEvents.begin(), up);
+    for (auto& busyInfoVec : mBusyPeriods) {
+      auto upBusy = std::upper_bound(busyInfoVec.begin(), busyInfoVec.end(), lastCompleteTrigIR, [](const InteractionRecord& ir, const BusyInfo& busyInfo) { return ir <= busyInfo.interactionRecord; });
+      if (upBusy != busyInfoVec.begin()) {
+        --upBusy;
+      }
+      busyInfoVec.erase(busyInfoVec.begin(), upBusy);
+    }
   }
 }
 
@@ -275,13 +302,13 @@ bool GBTRawDataChecker::isCompleteSelfTrigEvent(const o2::InteractionRecord& ir)
   // Let us check that we have all boards with the same orbit
 
   bool isIncluded = false;
-  for (uint8_t ireg = 8; ireg < 10; ++ireg) {
-    auto item = mBoardsSelfTrig.find(ireg);
-    if (item != mBoardsSelfTrig.end()) {
-      if (item->second.back().interactionRecord.orbit == ir.orbit) {
+  for (uint8_t ireg = 8; ireg < crateparams::sNELinksPerGBT; ++ireg) {
+    auto& boards = mBoardsSelfTrig[ireg];
+    if (!boards.empty()) {
+      if (boards.back().interactionRecord.orbit == ir.orbit) {
         return false;
       }
-      if (item->second.front().interactionRecord.orbit <= ir.orbit) {
+      if (boards.front().interactionRecord.orbit <= ir.orbit) {
         isIncluded = true;
       }
     }
@@ -344,7 +371,15 @@ bool GBTRawDataChecker::runCheckEvents(unsigned int completeMask)
   if (completeMask & 0x1) {
     sortEvents(true);
     isOk &= checkEvents(true);
-    clearChecked(true, mBoardsSelfTrig.empty());
+    // This is needed to clear vectors in runs with no self-triggered events
+    bool clearTrigger = true;
+    for (auto infos : mBoardsSelfTrig) {
+      if (!infos.empty()) {
+        clearTrigger = false;
+        break;
+      }
+    }
+    clearChecked(true, clearTrigger);
   }
 
   if (completeMask & 0x2) {
@@ -365,16 +400,16 @@ void GBTRawDataChecker::sortEvents(bool isTriggered)
   auto& lastCompleteTrigEventIR = isTriggered ? mLastCompleteIRTrig : mLastCompleteIRSelfTrig;
   orderedIndexes.clear();
   lastIndexes.clear();
-  for (auto& boardItem : boards) {
+  for (uint8_t ilink = 0; ilink < crateparams::sNELinksPerGBT; ++ilink) {
     long int lastIdx = -1;
-    for (auto boardIt = boardItem.second.begin(), end = boardItem.second.end(); boardIt != end; ++boardIt) {
+    for (auto boardIt = boards[ilink].begin(), end = boards[ilink].end(); boardIt != end; ++boardIt) {
       if (boardIt->interactionRecord > lastCompleteTrigEventIR) {
         break;
       }
-      lastIdx = std::distance(boardItem.second.begin(), boardIt);
-      orderedIndexes[boardIt->interactionRecord].emplace_back(boardItem.first, lastIdx);
+      lastIdx = std::distance(boards[ilink].begin(), boardIt);
+      orderedIndexes[boardIt->interactionRecord.toLong()].emplace_back(ilink, lastIdx);
     }
-    lastIndexes[boardItem.first] = lastIdx;
+    lastIndexes[ilink] = lastIdx;
   }
 }
 
@@ -384,26 +419,17 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
   bool isOk = true;
   auto& boards = isTriggered ? mBoardsTrig : mBoardsSelfTrig;
   auto& orderedIndexes = isTriggered ? mOrderedIndexesTrig : mOrderedIndexesSelfTrig;
-  auto& busyFlag = isTriggered ? mBusyFlagTrig : mBusyFlagSelfTrig;
   // Loop on the event indexes
+  o2::InteractionRecord ir;
   for (auto& evtIdxItem : orderedIndexes) {
     // All of these boards have the same timestamp
     GBT gbtEvent;
-    bool busyRaised = false;
+    // bool busyRaised = false;
     for (auto& evtPair : evtIdxItem.second) {
       auto& boardInfo = boards[evtPair.first][evtPair.second];
       uint8_t triggerId = boardInfo.board.triggerWord;
       auto elinkId = getElinkId(boardInfo.board);
 
-      bool isBusy = ((boardInfo.board.statusWord & raw::sREJECTING) != 0);
-      busyRaised |= isBusy;
-      busyFlag[elinkId] = isBusy;
-      if (isBusy && !isTriggered) {
-        // This is a special event that just signals a busy.
-        // Do not add the board to the events to be tested.
-        // Even because this event can have the same IR and triggerWord (0) of a self-triggered event
-        continue;
-      }
       if (raw::isLoc(boardInfo.board.statusWord)) {
         gbtEvent.locs.push_back(boardInfo.board);
       } else {
@@ -415,13 +441,11 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
         }
       }
     }
-    if (busyRaised && !isTriggered) {
-      ++mStatistics[2];
-    }
     ++mStatistics[0];
-    if (!checkEvent(isTriggered, gbtEvent.regs, gbtEvent.locs)) {
+    ir.setFromLong(evtIdxItem.first);
+    if (!checkEvent(isTriggered, gbtEvent.regs, gbtEvent.locs, ir)) {
       std::stringstream ss;
-      ss << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", evtIdxItem.first.bc, evtIdxItem.first.orbit);
+      ss << fmt::format("BCid: 0x{:x} Orbit: 0x{:x}", ir.bc, ir.orbit);
       if (!gbtEvent.pages.empty()) {
         ss << "   [in";
         for (auto& page : gbtEvent.pages) {
@@ -468,30 +492,26 @@ bool GBTRawDataChecker::process(gsl::span<const ROBoard> localBoards, gsl::span<
       auto& elinkVec = (locIt->triggerWord == 0) ? mBoardsSelfTrig[id] : mBoardsTrig[id];
       elinkVec.push_back({*locIt, rofIt->interactionRecord, page});
 
-      if (locIt->triggerWord == 0) {
-        continue;
+      auto& busyVec = mBusyPeriods[id];
+      bool wasBusy = !busyVec.empty() && busyVec.back().isBusy;
+      bool isBusy = locIt->statusWord & raw::sREJECTING;
+      if (isBusy != wasBusy) {
+        if (isBusy) {
+          ++mStatistics[2];
+        }
+        busyVec.push_back({isBusy, getRawIR(id, locIt->triggerWord != 0, rofIt->interactionRecord)});
       }
 
-      // Keep track of the busy
-      if (locIt->statusWord & raw::sREJECTING) {
-        auto& selfVec = mBoardsSelfTrig[id];
-        auto board = *locIt;
-        board.triggerWord = 0;
-        auto ir = rofIt->interactionRecord;
-        if (id >= crateparams::sMaxNBoardsInLink) {
-          uint16_t delayRegLocal = mElectronicsDelay.regToLocal;
-          if (rofIt->interactionRecord.bc < delayRegLocal) {
-            ir -= (constants::lhc::LHCMaxBunches - mResetVal - 1);
-          }
-          ir -= delayRegLocal;
-        }
-        selfVec.push_back({*locIt, ir, page});
+      if (locIt->triggerWord == 0) {
+        continue;
       }
 
       // Keep track of the trigger chosen for synchronisation
       if (locIt->triggerWord & mSyncTrigger) {
         mTrigEvents[rofIt->interactionRecord] |= (1 << id);
-        mResetVal = rofIt->interactionRecord.bc;
+      }
+      if (locIt->triggerWord & raw::sORB) {
+        mResetVal = rofIt->interactionRecord.bc + 1;
       }
 
       // Compute the masks
@@ -515,12 +535,12 @@ bool GBTRawDataChecker::process(gsl::span<const ROBoard> localBoards, gsl::span<
   return runCheckEvents(getLastCompleteTrigEvent());
 }
 
-void GBTRawDataChecker::clear()
+void GBTRawDataChecker::clear(bool all)
 {
   /// Resets the masks and flags
-  mMasks.clear();
-  mBusyFlagTrig.clear();
-  mBusyFlagSelfTrig.clear();
+  if (all) {
+    mMasks.clear();
+  }
   mStatistics.fill(0);
 }
 
