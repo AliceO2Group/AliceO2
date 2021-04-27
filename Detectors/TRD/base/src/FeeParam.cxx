@@ -79,14 +79,11 @@ FeeParam::FeeParam()
   // Default constructor
   //
 
-  // These variables are used internally in the class to elliminate divisions.
-  // putting them at the top was messy.
-  int j = 0;
-  std::for_each(mInvX.begin(), mInvX.end(), [&](float& x) { x = 1. / mX[j]; });
-  j = 0;
-  std::for_each(mInvWidthPad.begin(), mInvWidthPad.end(), [&](float& x) { x = 1. / mWidthPad[j]; });
-  j = 0;
-  std::for_each(mTiltingAngleTan.begin(), mTiltingAngleTan.end(), [&](float& x) { x = std::tan(mTiltingAngle[j] * M_PI / 180.0); });
+  for (int j = 0; j < constants::NLAYER; ++j) {
+    mInvX[j] = 1. / mX[j];
+    mInvWidthPad[j] = 1. / mWidthPad[j];
+    mTiltingAngleTan[j] = std::tan(mTiltingAngle[j] * M_PI / 180.0);
+  }
 
   fillPad2MCMLookUpTable();
 }
