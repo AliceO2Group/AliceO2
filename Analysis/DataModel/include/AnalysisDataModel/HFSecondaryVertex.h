@@ -30,7 +30,7 @@ namespace o2::aod
 namespace hf_selcollision
 {
 DECLARE_SOA_COLUMN(WhyRejectColl, whyRejectColl, int); //!
-} // namespace hf_selcollisions
+} // namespace hf_selcollision
 
 DECLARE_SOA_TABLE(HFSelCollision, "AOD", "HFSELCOLLISION", //!
                   hf_selcollision::WhyRejectColl);

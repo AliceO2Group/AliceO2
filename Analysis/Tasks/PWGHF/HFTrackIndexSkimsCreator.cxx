@@ -59,7 +59,7 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 #define MY_DEBUG_MSG(condition, cmd)
 #endif
 
-/// Event selection 
+/// Event selection
 struct SelectCollisions {
 
   Produces<aod::HFSelCollision> rowSelectedCollision;
@@ -91,8 +91,8 @@ struct SelectCollisions {
     //TODO: add more event selection criteria
 
     // selected events
-    if(b_dovalplots) {
-        registry.get<TH1>(HIST("h_events"))->Fill(1);
+    if (b_dovalplots) {
+      registry.get<TH1>(HIST("h_events"))->Fill(1);
     }
 
     // fill table row
@@ -350,7 +350,7 @@ struct HFTrackIndexSkimsCreator {
 
 
   Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0 && aod::hf_seltrack::isSelProng < 4);
-  Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0);
+  Filter filterSelectCollisions = (aod::hf_selcollision::whyRejectColl == 0);
 
   using SelectedCollisions = soa::Filtered<soa::Join<aod::Collisions, aod::HFSelCollision>>;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
