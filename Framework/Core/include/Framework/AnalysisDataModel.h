@@ -791,6 +791,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //! Pseudorapidity
                            [](float px, float py, float pz) -> float { return 0.5f * std::log((std::sqrt(px * px + py * py + pz * pz) + pz) / (std::sqrt(px * px + py * py + pz * pz) - pz)); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //! Transverse momentum in GeV/c
                            [](float px, float py) -> float { return std::sqrt(px * px + py * py); });
+DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! Total momentum in GeV/c
+                           [](float px, float py, float pz) -> float { return std::sqrt(px * px + py * py + pz * pz); });
+DECLARE_SOA_DYNAMIC_COLUMN(Y, y, //! Particle rapidity
+                           [](float pz, float energy) -> float { return 0.5f * std::log((energy + pz) / (energy - pz)); });
 DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //! Particle produced by the generator or by the transport code
                            [](uint8_t flags) -> bool { return (flags & 0x1) == 0x0; });
 } // namespace mcparticle
@@ -805,6 +809,8 @@ DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE", //! MC particle table
                   mcparticle::Phi<mcparticle::Px, mcparticle::Py>,
                   mcparticle::Eta<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
                   mcparticle::Pt<mcparticle::Px, mcparticle::Py>,
+                  mcparticle::P<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
+                  mcparticle::Y<mcparticle::Pz, mcparticle::E>,
                   mcparticle::ProducedByGenerator<mcparticle::Flags>);
 using McParticle = McParticles::iterator;
 

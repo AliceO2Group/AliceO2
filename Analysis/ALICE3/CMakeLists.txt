@@ -26,6 +26,16 @@ o2_add_dpl_workflow(alice3-qa-multiplicity
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(alice3-qa-singleparticle
+                    SOURCES src/alice3-qa-singleparticle.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(alice3-lutmaker
+                    SOURCES src/alice3-lutmaker.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(alice3-pid-rich-qa
                     SOURCES src/pidRICHqa.cxx
                     PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore O2::ALICE3Analysis

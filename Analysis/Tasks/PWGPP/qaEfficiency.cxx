@@ -17,7 +17,7 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "ReconstructionDataFormats/DCA.h"
-#include "AnalysisCore/trackUtilities.h"
+#include "ReconstructionDataFormats/Track.h"
 #include "AnalysisCore/MC.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
@@ -73,8 +73,11 @@ struct QaTrackingEfficiency {
   Configurable<float> phiMax{"phi-max", 6.284f, "Upper limit in phi"};
   Configurable<float> ptMin{"pt-min", 0.f, "Lower limit in pT"};
   Configurable<float> ptMax{"pt-max", 5.f, "Upper limit in pT"};
+  Configurable<int> selPrim{"sel-prim", 1, "1 select primaries, 0 select all particles"};
+  Configurable<int> pdgSign{"pdgSign", 0, "Sign to give to the PDG. If 0 both signs are accepted."};
+  Configurable<bool> noFakes{"noFakes", false, "Flag to reject tracks that have fake hits"};
   // Event selection
-  Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the vertex"};
+  Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the primary vertex"};
   Configurable<float> vertexZMin{"vertex-z-min", -10.f, "Minimum position of the generated vertez in Z (cm)"};
   Configurable<float> vertexZMax{"vertex-z-max", 10.f, "Maximum position of the generated vertez in Z (cm)"};
   // Histogram configuration
@@ -82,7 +85,6 @@ struct QaTrackingEfficiency {
   Configurable<int> logPt{"log-pt", 0, "Flag to use a logarithmic pT axis"};
   Configurable<int> etaBins{"eta-bins", 500, "Number of eta bins"};
   Configurable<int> phiBins{"phi-bins", 500, "Number of phi bins"};
-  Configurable<int> selPrim{"sel-prim", 1, "1 select primaries, 0 select all particles"};
   // Task configuration
   Configurable<int> makeEff{"make-eff", 0, "Flag to produce the efficiency with TEfficiency"};
 
@@ -91,6 +93,10 @@ struct QaTrackingEfficiency {
 
   void init(InitContext&)
   {
+    if (pdgSign != 0 && pdgSign != 1 && pdgSign != -1) {
+      LOG(FATAL) << "Provide pdgSign as 0, 1, -1. Provided: " << pdgSign.value;
+      return;
+    }
     const TString tagPt = Form("%s #it{#eta} [%.2f,%.2f] #it{#varphi} [%.2f,%.2f] Prim %i",
                                o2::track::pid_constants::sNames[particle],
                                etaMin.value, etaMax.value,
@@ -138,9 +144,21 @@ struct QaTrackingEfficiency {
           list->Add(new TEfficiency(effname, efftitle, axis->GetNbins(), axis->GetXmin(), axis->GetXmax()));
         }
       };
+      auto makeEfficiency2D = [&](TString effname, TString efftitle, auto templateHistoX, auto templateHistoY) {
+        TAxis* axisX = histos.get<TH1>(templateHistoX)->GetXaxis();
+        TAxis* axisY = histos.get<TH1>(templateHistoY)->GetXaxis();
+        if (axisX->IsVariableBinSize() || axisY->IsVariableBinSize()) {
+          list->Add(new TEfficiency(effname, efftitle, axisX->GetNbins(), axisX->GetXbins()->GetArray(), axisY->GetNbins(), axisY->GetXbins()->GetArray()));
+        } else {
+          list->Add(new TEfficiency(effname, efftitle, axisX->GetNbins(), axisX->GetXmin(), axisX->GetXmax(), axisY->GetNbins(), axisY->GetXmin(), axisY->GetXmax()));
+        }
+      };
       makeEfficiency("efficiencyVsPt", "Efficiency " + tagPt + ";" + xPt + ";Efficiency", HIST("pt/num"));
+      makeEfficiency("efficiencyVsP", "Efficiency " + tagPt + ";#it{p} (GeV/#it{c});Efficiency", HIST("pt/num"));
       makeEfficiency("efficiencyVsEta", "Efficiency " + tagEta + ";" + xEta + ";Efficiency", HIST("eta/num"));
       makeEfficiency("efficiencyVsPhi", "Efficiency " + tagPhi + ";" + xPhi + ";Efficiency", HIST("phi/num"));
+
+      makeEfficiency2D("efficiencyVsPtVsEta", Form("Efficiency %s #it{#varphi} [%.2f,%.2f] Prim %i;%s;%s;Efficiency", o2::track::pid_constants::sNames[particle], phiMin.value, phiMax.value, selPrim.value, xPt.Data(), xEta.Data()), HIST("pt/num"), HIST("eta/num"));
     }
   }
 
@@ -179,12 +197,33 @@ struct QaTrackingEfficiency {
       if ((selPrim == 1) && (!MC::isPhysicalPrimary(mcParticles, mcParticle))) { // Requiring is physical primary
         continue;
       }
-      if (abs(mcParticle.pdgCode()) == particlePDG) { // Checking PDG code
-        histos.fill(HIST("pt/num"), mcParticle.pt());
-        histos.fill(HIST("eta/num"), mcParticle.eta());
-        histos.fill(HIST("phi/num"), mcParticle.phi());
-        recoTracks[ntrks++] = mcParticle.globalIndex();
+
+      if (noFakes) { // Selecting tracks with no fake hits
+        bool hasFake = false;
+        for (int i = 0; i < 10; i++) { // From ITS to TPC
+          if (track.mcMask() & 1 << i) {
+            hasFake = true;
+            break;
+          }
+        }
+        if (hasFake) {
+          continue;
+        }
       }
+      // Selecting PDG code
+      if (pdgSign == 0 && abs(mcParticle.pdgCode()) != particlePDG) {
+        continue;
+      } else if (pdgSign == 1 && mcParticle.pdgCode() != particlePDG) {
+        continue;
+      } else if (pdgSign == -1 && mcParticle.pdgCode() != -particlePDG) {
+        continue;
+      } else {
+        continue;
+      }
+      histos.fill(HIST("pt/num"), mcParticle.pt());
+      histos.fill(HIST("eta/num"), mcParticle.eta());
+      histos.fill(HIST("phi/num"), mcParticle.phi());
+      recoTracks[ntrks++] = mcParticle.globalIndex();
     }
 
     for (const auto& mcParticle : mcParticles) {
@@ -205,8 +244,10 @@ struct QaTrackingEfficiency {
         if (makeEff) {
           const auto particleReconstructed = std::find(recoTracks.begin(), recoTracks.end(), mcParticle.globalIndex()) != recoTracks.end();
           static_cast<TEfficiency*>(list->At(0))->Fill(particleReconstructed, mcParticle.pt());
-          static_cast<TEfficiency*>(list->At(1))->Fill(particleReconstructed, mcParticle.eta());
-          static_cast<TEfficiency*>(list->At(2))->Fill(particleReconstructed, mcParticle.phi());
+          static_cast<TEfficiency*>(list->At(1))->Fill(particleReconstructed, mcParticle.p());
+          static_cast<TEfficiency*>(list->At(2))->Fill(particleReconstructed, mcParticle.eta());
+          static_cast<TEfficiency*>(list->At(3))->Fill(particleReconstructed, mcParticle.phi());
+          static_cast<TEfficiency*>(list->At(4))->Fill(particleReconstructed, mcParticle.pt(), mcParticle.eta());
         }
         histos.fill(HIST("pt/den"), mcParticle.pt());
         histos.fill(HIST("eta/den"), mcParticle.eta());
