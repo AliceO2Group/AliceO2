@@ -13,7 +13,6 @@ o2_add_library(TRDBase
                        src/Geometry.cxx
                        src/GeometryFlat.cxx
                        src/CommonParam.cxx
-                       src/Digit.cxx
                        src/DiffAndTimeStructEstimator.cxx
                        src/SimParam.cxx
                        src/PadResponse.cxx
@@ -47,7 +46,6 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/GeometryFlat.h
                                   include/TRDBase/SimParam.h
                                   include/TRDBase/CommonParam.h
-                                  include/TRDBase/Digit.h
                                   include/TRDBase/PadResponse.h
                                   include/TRDBase/MCLabel.h
                                   include/TRDBase/CalDet.h
@@ -85,13 +83,6 @@ o2_add_test(RawData
             COMPONENT_NAME trd
             PUBLIC_LINK_LIBRARIES O2::TRDBase O2::DataFormatsTRD
             SOURCES test/testRawData.cxx
-            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-            LABELS trd
-            )
-o2_add_test(Digit
-            COMPONENT_NAME trd
-            PUBLIC_LINK_LIBRARIES O2::TRDBase O2::DataFormatsTRD
-            SOURCES test/testDigit.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS trd
             )

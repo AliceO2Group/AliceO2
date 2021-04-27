@@ -18,7 +18,7 @@
 #include <numeric>
 #include "Rtypes.h" // for ClassDef
 
-#include "TRDBase/FeeParam.h"
+#include "DataFormatsTRD/HelperMethods.h"
 #include "DataFormatsTRD/Constants.h"
 #include <gsl/span>
 
@@ -54,9 +54,9 @@ class Digit
   Digit& operator=(const Digit&) = default;
   // Modifiers
   void setROB(int rob) { mROB = rob; }
-  void setROB(int row, int pad) { mROB = FeeParam::getROBfromPad(row, pad); }
+  void setROB(int row, int pad) { mROB = HelperMethods::getROBfromPad(row, pad); }
   void setMCM(int mcm) { mMCM = mcm; }
-  void setMCM(int row, int pad) { mMCM = FeeParam::getMCMfromPad(row, pad); }
+  void setMCM(int row, int pad) { mMCM = HelperMethods::getMCMfromPad(row, pad); }
   void setChannel(int channel) { mChannel = channel; }
   void setDetector(int det) { mDetector = det; }
   void setADC(ArrayADC const& adc) { mADC = adc; }
@@ -64,8 +64,8 @@ class Digit
   // Get methods
   int getDetector() const { return mDetector; }
   int getHCId() const { return mDetector * 2 + (mROB % 2); }
-  int getRow() const { return FeeParam::getPadRowFromMCM(mROB, mMCM); }
-  int getPad() const { return FeeParam::getPadColFromADC(mROB, mMCM, mChannel); }
+  int getRow() const { return HelperMethods::getPadRowFromMCM(mROB, mMCM); }
+  int getPad() const { return HelperMethods::getPadColFromADC(mROB, mMCM, mChannel); }
   int getROB() const { return mROB; }
   int getMCM() const { return mMCM; }
   int getChannel() const { return mChannel; }

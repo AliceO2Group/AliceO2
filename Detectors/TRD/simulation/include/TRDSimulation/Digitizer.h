@@ -14,12 +14,12 @@
 #include "TRDSimulation/Detector.h"
 
 #include "TRDBase/Calibrations.h"
-#include "TRDBase/Digit.h"
 #include "TRDBase/MCLabel.h"
 #include "TRDBase/CommonParam.h"
 #include "TRDBase/DiffAndTimeStructEstimator.h"
 #include "TRDSimulation/PileupTool.h"
 
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/SignalArray.h"
 #include "DataFormatsTRD/Constants.h"
 

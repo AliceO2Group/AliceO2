@@ -14,7 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include <SimulationDataFormat/IOMCTruthContainerView.h>

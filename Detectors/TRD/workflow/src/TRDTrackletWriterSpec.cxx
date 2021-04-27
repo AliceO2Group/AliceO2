@@ -15,7 +15,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "TRDWorkflow/TRDTrackletWriterSpec.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "TRDBase/MCLabel.h"
 #include "DataFormatsTRD/TriggerRecord.h"
