@@ -212,7 +212,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
   typename refitTrackTypes<S>::propagator prop;
   S trk;
   float TrackParCovChi2 = 0.f;
-  convertTrack(trk, trkX, prop, &TrackParCovChi2);
+  convertTrack<S, T, typename refitTrackTypes<S>::propagator>(trk, trkX, prop, &TrackParCovChi2);
   int begin = 0, count;
   float tOffset;
   if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
@@ -379,7 +379,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
     static_assert("Invalid template");
   }
 
-  convertTrack(trkX, trk, prop, &TrackParCovChi2);
+  convertTrack<T, S, typename refitTrackTypes<S>::propagator>(trkX, trk, prop, &TrackParCovChi2);
   return nFitted;
 }
 
