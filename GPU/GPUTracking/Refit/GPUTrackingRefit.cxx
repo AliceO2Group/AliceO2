@@ -27,6 +27,7 @@
 #include "GPUCommonArray.h"
 #include "GPUParam.h"
 #include "GPUTrackParamConvert.h"
+#include "GPUCommonTypeTraits.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::track;
@@ -207,7 +208,6 @@ GPUd() static const float* getPar(const TrackParCov& trk) { return trk.getParams
 template <class T, class S>
 GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
 {
-#ifndef __OPENCL__
   CADEBUG(int ii; printf("\nRefitting track\n"));
   typename refitTrackTypes<S>::propagator prop;
   S trk;
@@ -381,9 +381,6 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
 
   convertTrack(trkX, trk, prop, &TrackParCovChi2);
   return nFitted;
-#else
-  return 0; // TODO: Fixme, implement std::isSame for opencl
-#endif
 }
 
 template GPUd() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);
