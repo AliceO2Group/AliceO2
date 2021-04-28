@@ -60,7 +60,7 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 #endif
 
 /// Event selection
-struct SelectCollisions {
+struct HfProduceSelCollisions {
 
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
@@ -70,12 +70,14 @@ struct SelectCollisions {
 
   HistogramRegistry registry{
     "registry",
-    {{"h_events", "Events;;entries", {HistType::kTH1F, {{2, 0.5, 2.5}}}}}};
+    {{"h_events", "Events;;entries", {HistType::kTH1F, {{3, 0.5, 3.5}}}}}};
 
   void init(InitContext const&)
   {
-    registry.get<TH1>(HIST("h_events"))->GetXaxis()->SetBinLabel(1, "selected events");
-    registry.get<TH1>(HIST("h_events"))->GetXaxis()->SetBinLabel(2, "rej. trigger class");
+    std::string labels[3] = {"processed collisions", "selected collisions", "rej. trigger class"};
+    for(int iBin=0; iBin<3; iBin++) {
+      registry.get<TH1>(HIST("h_events"))->GetXaxis()->SetBinLabel(iBin+1, labels[iBin].data());
+    }
   }
 
   // event selection
@@ -83,16 +85,20 @@ struct SelectCollisions {
   {
     int status_collision = 0;
 
+    if (b_dovalplots) {
+      registry.get<TH1>(HIST("h_events"))->Fill(1);
+    }
+
     if (!collision.alias()[trigger_class]) {
       status_collision |= BIT(0);
-      registry.get<TH1>(HIST("h_events"))->Fill(2);
+      registry.get<TH1>(HIST("h_events"))->Fill(3);
     }
 
     //TODO: add more event selection criteria
 
     // selected events
-    if (b_dovalplots) {
-      registry.get<TH1>(HIST("h_events"))->Fill(1);
+    if (b_dovalplots && status_collision == 0) {
+      registry.get<TH1>(HIST("h_events"))->Fill(2);
     }
 
     // fill table row
@@ -1300,7 +1306,7 @@ struct HFTrackIndexSkimsCreatorCascades {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<SelectCollisions>(cfgc, TaskName{"hf-produce-sel-collision"}),
+    adaptAnalysisTask<HfProduceSelCollisions>(cfgc),
     adaptAnalysisTask<SelectTracks>(cfgc, TaskName{"hf-produce-sel-track"}),
     adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
 
