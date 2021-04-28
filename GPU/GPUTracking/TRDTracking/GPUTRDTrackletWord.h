@@ -101,7 +101,13 @@ class GPUTRDTrackletWord : private o2::trd::Tracklet64
   GPUd() float GetdY() const { return getUncalibratedDy(); }
   GPUd() int GetDetector() const { return getDetector(); }
   GPUd() int GetHCId() const { return getHCID(); }
+
+  // IMPORTANT: Do not add members, this class must keep the same memory layout as o2::trd::Tracklet64
 };
+
+#ifdef GPUCA_NOCOMPAT
+static_assert(sizeof(GPUTRDTrackletWord) == sizeof(o2::trd::Tracklet64), "Incorrect memory layout");
+#endif
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

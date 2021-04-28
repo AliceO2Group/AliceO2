@@ -24,7 +24,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}},
-    {"use-tracklet-transformer", VariantType::Bool, false, {"Use calibrated tracklets instead raw Tracklet64"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
     {"tracking-sources", VariantType::String, std::string{o2::dataformats::GlobalTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
@@ -48,10 +47,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2trdtracking-workflow_configuration.ini");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
-  auto useTrackletTransformer = configcontext.options().get<bool>("use-tracklet-transformer");
   o2::dataformats::GlobalTrackID::mask_t srcTRD = allowedSources & o2::dataformats::GlobalTrackID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
 
-  auto wf = o2::trd::getTRDTrackingWorkflow(disableRootInp, disableRootOut, useTrackletTransformer, srcTRD);
+  auto wf = o2::trd::getTRDTrackingWorkflow(disableRootInp, disableRootOut, srcTRD);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

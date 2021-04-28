@@ -109,6 +109,7 @@ set(HDRS_INSTALL
     DataTypes/GPUSettings.h
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrack.h
+    TRDTracking/GPUTRDSpacePoint.h
     TRDTracking/GPUTRDTrackData.h
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrackletLabels.h
