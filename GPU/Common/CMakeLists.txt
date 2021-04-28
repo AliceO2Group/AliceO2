@@ -19,6 +19,7 @@ set(HDRS_INSTALL
     GPUCommonMath.h
     GPUCommonRtypes.h
     GPUCommonArray.h
+    GPUCommonTypeTraits.h
     GPUCommonTransform3D.h
     GPUROOTSMatrixFwd.h
     GPUROOTCartesianFwd.h)
