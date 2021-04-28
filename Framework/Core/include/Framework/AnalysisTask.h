@@ -116,6 +116,12 @@ struct AnalysisDataProcessorBuilder {
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
   }
 
+  template <typename... T>
+  static void inputsFromArgsTuple(std::tuple<T...>& processTuple, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
+  {
+    (inputsFromArgs(std::get<T>(processTuple), inputs, eInfos), ...);
+  }
+
   template <typename R, typename C, typename... Args>
   static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
@@ -440,12 +446,18 @@ struct AnalysisDataProcessorBuilder {
     GroupSlicerIterator mBegin;
   };
 
+  template <typename Task, typename... T>
+  static void invokeProcessTuple(Task& task, InputRecord& inputs, std::tuple<T...> const& processTuple, std::vector<ExpressionInfo> const& infos)
+  {
+    (invokeProcess(task, inputs, std::get<T>(processTuple), infos), ...);
+  }
+
   template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
+  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
   {
     auto tupledTask = o2::framework::to_tuple_refs(task);
     using G = std::decay_t<Grouping>;
-    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, &C::process, infos);
+    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos);
 
     // set filtered tables for partitions with grouping
     std::apply([&groupingTable](auto&... x) {
@@ -462,18 +474,18 @@ struct AnalysisDataProcessorBuilder {
                  tupledTask);
       if constexpr (soa::is_soa_iterator_t<G>::value) {
         for (auto& element : groupingTable) {
-          task.process(*element);
+          (task.*(processingFunction))(*element);
         }
       } else {
         static_assert(soa::is_soa_table_like_t<G>::value,
                       "Single argument of process() should be a table-like or an iterator");
-        task.process(groupingTable);
+        (task.*(processingFunction))(groupingTable);
       }
     } else {
       // multiple arguments to process
       static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                     "Associated arguments of process() should not be iterators");
-      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
+      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, processingFunction, infos);
       auto binder = [&](auto&& x) {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
         std::apply([&x](auto&... t) {
@@ -511,7 +523,7 @@ struct AnalysisDataProcessorBuilder {
           },
                      tupledTask);
 
-          invokeProcessWithArgs(task, slice.groupingElement(), associatedSlices);
+          invokeProcessWithArgsGeneric(task, processingFunction, slice.groupingElement(), associatedSlices);
         }
       } else {
         // non-grouping case
@@ -523,9 +535,15 @@ struct AnalysisDataProcessorBuilder {
         },
                    tupledTask);
 
-        invokeProcessWithArgs(task, groupingTable, associatedTables);
+        invokeProcessWithArgsGeneric(task, processingFunction, groupingTable, associatedTables);
       }
     }
+  }
+
+  template <typename C, typename T, typename G, typename... A>
+  static void invokeProcessWithArgsGeneric(C& task, T processingFunction, G g, std::tuple<A...>& at)
+  {
+    (task.*(processingFunction))(g, std::get<A>(at)...);
   }
 
   template <typename T, typename G, typename... A>
@@ -643,9 +661,11 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   /// make sure options and configurables are set before expression infos are created
   std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
 
+  auto processTuple = std::make_tuple(&T::process);
+
   if constexpr (has_process_v<T>) {
     // this pushes (I,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs, expressionInfos);
+    AnalysisDataProcessorBuilder::inputsFromArgsTuple(processTuple, inputs, expressionInfos);
   }
   //request base tables for spawnable extended tables
   std::apply([&inputs](auto&... x) {
@@ -661,7 +681,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   std::apply([&outputs, &hash](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash), ...); }, tupledTask);
 
-  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos](InitContext& ic) mutable {
+  auto algo = AlgorithmSpec::InitCallback{[task = task, processTuple = processTuple, expressionInfos](InitContext& ic) mutable {
     auto tupledTask = o2::framework::to_tuple_refs(*task.get());
     std::apply([&ic](auto&&... x) { return (OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
     std::apply([&ic](auto&&... x) { return (ServiceManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
@@ -694,14 +714,14 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       task->init(ic);
     }
 
-    return [task, expressionInfos](ProcessingContext& pc) {
+    return [task, processTuple, expressionInfos](ProcessingContext& pc) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x), ...); }, tupledTask);
       if constexpr (has_run_v<T>) {
         task->run(pc);
       }
       if constexpr (has_process_v<T>) {
-        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos);
+        AnalysisDataProcessorBuilder::invokeProcessTuple(*(task.get()), pc.inputs(), processTuple, expressionInfos);
       }
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x), ...); }, tupledTask);
     };
