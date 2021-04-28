@@ -79,7 +79,7 @@ class bitset
   std::string to_string() const;
 #endif
 
- private:
+  //private: // Workaround for OpenCL
   unsigned int v = 0;
 
   ClassDefNV(bitset, 1);
