@@ -49,16 +49,17 @@ class NoiseCalibrator
 
   void finalize();
 
-  const o2::itsmft::NoiseMap& getNoiseMap(int index) const { 
-	  if (index==0){
-		  return mNoiseMapH0F0; 
-	  }else if (index==1){
-		  return mNoiseMapH0F1; 
-	  }else if (index==2){
-		  return mNoiseMapH1F0; 
-	  }else if (index==3){
-		  return mNoiseMapH1F1; 
-	  }
+  const o2::itsmft::NoiseMap& getNoiseMap(int index) const
+  {
+    if (index == 0) {
+      return mNoiseMapH0F0;
+    } else if (index == 1) {
+      return mNoiseMapH0F1;
+    } else if (index == 2) {
+      return mNoiseMapH1F0;
+    } else if (index == 3) {
+      return mNoiseMapH1F1;
+    }
   }
 
   const std::string getPath(int index) const { return mPath[index]; }

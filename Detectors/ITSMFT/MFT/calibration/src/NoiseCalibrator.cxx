@@ -57,19 +57,19 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
 
       // Fast 1-pixel calibration
       if ((rowSpan == 1) && (colSpan == 1)) {
-	      if (half==0 && face==0){
-        	 mNoiseMapH0F0.increaseNoiseCount(id, row, col);
-		 mPath[0]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
-	      }else if (half==0 && face==1){
-	         mNoiseMapH0F1.increaseNoiseCount(id, row, col);
-		 mPath[1]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
-	      }else if (half==1 && face==0){
-	         mNoiseMapH1F0.increaseNoiseCount(id, row, col);
-		 mPath[2]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
-	      }else if (half==1 && face==1){
-	         mNoiseMapH1F1.increaseNoiseCount(id, row, col);
-		 mPath[3]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
-	      }
+        if (half == 0 && face == 0) {
+          mNoiseMapH0F0.increaseNoiseCount(id, row, col);
+          mPath[0] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
+        } else if (half == 0 && face == 1) {
+          mNoiseMapH0F1.increaseNoiseCount(id, row, col);
+          mPath[1] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
+        } else if (half == 1 && face == 0) {
+          mNoiseMapH1F0.increaseNoiseCount(id, row, col);
+          mPath[2] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
+        } else if (half == 1 && face == 1) {
+          mNoiseMapH1F1.increaseNoiseCount(id, row, col);
+          mPath[3] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
+        }
         continue;
       }
       if (m1pix) {
@@ -85,19 +85,19 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
         while (s > 0) {
           if ((tempChar & s) != 0) {
             mNoiseMap.increaseNoiseCount(id, row + ir, col + ic);
-	      if (half==0 && face==0){
-        	 mNoiseMapH0F0.increaseNoiseCount(id, row + ir, col + ic);
-		 mPath[0]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
-	      }else if (half==0 && face==1){
-	         mNoiseMapH0F1.increaseNoiseCount(id, row + ir, col + ic);
-		 mPath[1]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
-	      }else if (half==1 && face==0){
-	         mNoiseMapH1F0.increaseNoiseCount(id, row + ir, col + ic);
-		 mPath[2]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
-	      }else if (half==1 && face==1){
-	         mNoiseMapH1F1.increaseNoiseCount(id, row + ir, col + ic);
-		 mPath[3]="/MFT/Calib/NoiseMap/h"+std::to_string(half)+"-d"+std::to_string(disk)+"-f"+std::to_string(face);
-	      }
+            if (half == 0 && face == 0) {
+              mNoiseMapH0F0.increaseNoiseCount(id, row + ir, col + ic);
+              mPath[0] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
+            } else if (half == 0 && face == 1) {
+              mNoiseMapH0F1.increaseNoiseCount(id, row + ir, col + ic);
+              mPath[1] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
+            } else if (half == 1 && face == 0) {
+              mNoiseMapH1F0.increaseNoiseCount(id, row + ir, col + ic);
+              mPath[2] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
+            } else if (half == 1 && face == 1) {
+              mNoiseMapH1F1.increaseNoiseCount(id, row + ir, col + ic);
+              mPath[3] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
+            }
           }
           ic++;
           s >>= 1;

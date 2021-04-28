@@ -67,7 +67,7 @@ void NoiseCalibratorDigitsSpec::init(InitContext& ic)
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(INFO) << "Setting the probability threshold to " << probT;
 
-//  mPath = ic.options().get<std::string>("path");
+  //  mPath = ic.options().get<std::string>("path");
   mMeta = ic.options().get<std::string>("meta");
   mStart = ic.options().get<int64_t>("tstart");
   mEnd = ic.options().get<int64_t>("tend");
@@ -132,25 +132,25 @@ void NoiseCalibratorDigitsSpec::sendOutput(DataAllocator& output)
 
   using clbUtils = o2::calibration::Utils;
 
-  for (unsigned int i=0; i<4; i++){
-  	o2::ccdb::CcdbObjectInfo info(mCalibrator->getPath(i), "NoiseMap", "noise.root", meta, tstart, tend);
-  	const auto& payload = mCalibrator->getNoiseMap(i);
-  	auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
-	if (i==0){
-  		info.setFileName(flNameH0F0);
-	}else if (i==1){
-  		info.setFileName(flNameH0F1);
-	}else if (i==2){
-  		info.setFileName(flNameH1F0);
-	}else if (i==3){
-  		info.setFileName(flNameH1F1);
-	}
-  	LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
-            << " of size " << image->size()
-            << " bytes, valid for " << info.getStartValidityTimestamp()
-            << " : " << info.getEndValidityTimestamp();
-  	output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image.get());
-  	output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, info);
+  for (unsigned int i = 0; i < 4; i++) {
+    o2::ccdb::CcdbObjectInfo info(mCalibrator->getPath(i), "NoiseMap", "noise.root", meta, tstart, tend);
+    const auto& payload = mCalibrator->getNoiseMap(i);
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+    if (i == 0) {
+      info.setFileName(flNameH0F0);
+    } else if (i == 1) {
+      info.setFileName(flNameH0F1);
+    } else if (i == 2) {
+      info.setFileName(flNameH1F0);
+    } else if (i == 3) {
+      info.setFileName(flNameH1F1);
+    }
+    LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName()
+              << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp()
+              << " : " << info.getEndValidityTimestamp();
+    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image.get());
+    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, info);
   }
 }
 
@@ -183,7 +183,7 @@ DataProcessorSpec getNoiseCalibratorDigitsSpec()
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
-//      {"path", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
+      //      {"path", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},
       {"meta", VariantType::String, "", {"meta data to write in CCDB"}}}};
 }
 
