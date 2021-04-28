@@ -10,7 +10,9 @@
 
 set(MODULE GPUUtils)
 
-set(HDRS_CINT FlatObject.h)
+set(HDRS_CINT FlatObject.h
+              GPUCommonBitSet.h
+)
 
 set(HDRS_INSTALL
 )
