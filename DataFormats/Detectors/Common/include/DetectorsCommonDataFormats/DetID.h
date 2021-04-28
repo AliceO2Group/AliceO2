@@ -186,7 +186,7 @@ GPUconstexpr() DetID::mask_t sMasks[DetID::nDetectors] = ///< detectot masks
 };
 } // namespace detid_internal
 
-GPUdi() constexpr DetID::mask_t DetID::getMask(ID id) { return detid_internal::sMasks[id]; }
+GPUdi() constexpr DetID::mask_t DetID::getMask(ID id) { return detid_internal::sMasks[id].v; }
 
 } // namespace detectors
 } // namespace o2
