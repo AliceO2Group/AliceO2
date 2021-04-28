@@ -14,7 +14,7 @@
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include <cstdio>
 
- ClassImp(o2::its3::SegmentationSuperAlpide);
+ClassImp(o2::its3::SegmentationSuperAlpide);
 
 using namespace o2::its3;
 

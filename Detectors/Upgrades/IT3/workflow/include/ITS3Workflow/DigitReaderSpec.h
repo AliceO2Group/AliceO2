@@ -82,7 +82,7 @@ class ITS3DigitReader : public DigitReader
 /// read ITS/MFT Digit data from a root file
 framework::DataProcessorSpec getITS3DigitReaderSpec(bool useMC = true, bool useCalib = false, std::string defname = "o2_itsdigits.root");
 
-} // namespace itsmft
+} // namespace its3
 } // namespace o2
 
 #endif /* O2_ITS3_DigitREADER */

@@ -477,7 +477,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
   }
 
-   // the ITS3 part
+  // the ITS3 part
   if (isEnabled(o2::detectors::DetID::IT3)) {
     detList.emplace_back(o2::detectors::DetID::IT3);
     // connect the ITS digitization
@@ -485,8 +485,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // // connect ITS digit writer
     specs.emplace_back(o2::its3::getITS3DigitWriterSpec(mctruth));
   }
-
-
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {

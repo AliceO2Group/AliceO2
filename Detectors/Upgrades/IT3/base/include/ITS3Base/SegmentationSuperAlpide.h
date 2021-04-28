@@ -17,6 +17,7 @@
 #include <Rtypes.h>
 #include "MathUtils/Cartesian.h"
 #include "CommonConstants/MathConstants.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 namespace o2
 {
@@ -32,34 +33,34 @@ namespace its3
 class SegmentationSuperAlpide
 {
  public:
-  SegmentationSuperAlpide(int layer = 0) : 
-    mLayer{layer},
-    NRows{static_cast<int>(Radii[layer] * constants::math::TwoPI / 30e-4)},
-    NPixels{NRows * NCols},
-    PitchRow{static_cast<float>(Radii[layer] * constants::math::TwoPI / NRows)},
-    ActiveMatrixSizeRows{PitchRow * NRows},
-    SensorSizeRows{ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut}
-    {}
+  SegmentationSuperAlpide(int layer = 0) : mLayer{layer},
+                                           NRows{static_cast<int>(double(Radii[layer]) * double(constants::math::TwoPI) / double(itsmft::SegmentationAlpide::PitchRow) + 1)},
+                                           NPixels{NRows * NCols},
+                                           PitchRow{static_cast<float>(Radii[layer] * constants::math::TwoPI / NRows)},
+                                           ActiveMatrixSizeRows{PitchRow * NRows},
+                                           SensorSizeRows{ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut}
+  {
+  }
   int mLayer;
   static constexpr int NLayers = 4;
   static constexpr float Length = 27.15f;
-  static constexpr float Radii[NLayers] = {1.8f,2.4f,3.0f,7.0f};
-  static constexpr int NCols = Length / 30e-4;
+  static constexpr float Radii[NLayers] = {1.8f, 2.4f, 3.0f, 7.0f};
+  static constexpr int NCols = Length / itsmft::SegmentationAlpide::PitchCol;
   int NRows;
   int NPixels;
   static constexpr float PitchCol = Length / NCols;
   float PitchRow;
-  static constexpr float PassiveEdgeReadOut = 0.;              // width of the readout edge (Passive bottom)
-  static constexpr float PassiveEdgeTop = 0.;               // Passive area on top
-  static constexpr float PassiveEdgeSide = 0.;              // width of Passive area on left/right of the sensor
+  static constexpr float PassiveEdgeReadOut = 20.e-4;             // width of the readout edge (Passive bottom)
+  static constexpr float PassiveEdgeTop = 0.;                     // Passive area on top
+  static constexpr float PassiveEdgeSide = 0.;                    // width of Passive area on left/right of the sensor
   static constexpr float ActiveMatrixSizeCols = PitchCol * NCols; // Active size along columns
-  float ActiveMatrixSizeRows; // Active size along rows
+  float ActiveMatrixSizeRows;                                     // Active size along rows
 
   // effective thickness of sensitive layer, accounting for charge collection non-unifoemity, https://alice.its.cern.ch/jira/browse/AOC-46
   static constexpr float SensorLayerThicknessEff = 28.e-4;
-  static constexpr float SensorLayerThickness = 30.e-4;                                               // physical thickness of sensitive part
-  static constexpr float SensorSizeCols = ActiveMatrixSizeCols + PassiveEdgeSide + PassiveEdgeSide;   // SensorSize along columns
-  float SensorSizeRows; // SensorSize along rows
+  static constexpr float SensorLayerThickness = 30.e-4;                                             // physical thickness of sensitive part
+  static constexpr float SensorSizeCols = ActiveMatrixSizeCols + PassiveEdgeSide + PassiveEdgeSide; // SensorSize along columns
+  float SensorSizeRows;                                                                             // SensorSize along rows
 
   ~SegmentationSuperAlpide() = default;
 
@@ -180,7 +181,7 @@ inline bool SegmentationSuperAlpide::detectorToLocal(float row, float col, math_
   detectorToLocalUnchecked(row, col, loc);
   return true;
 }
-} // namespace itsmft
+} // namespace its3
 } // namespace o2
 
 #endif

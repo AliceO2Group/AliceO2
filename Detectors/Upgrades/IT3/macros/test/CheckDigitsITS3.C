@@ -25,7 +25,6 @@
 
 #endif
 
-
 void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfile = "o2sim_HitsIT3.root", std::string inputGeom = "", std::string paramfile = "o2sim_par.root")
 {
 
@@ -150,7 +149,7 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
 
       Int_t ix = (*digArr)[iDigit].getRow(), iz = (*digArr)[iDigit].getColumn();
       Float_t x = 0.f, z = 0.f;
-      
+
       Int_t chipID = (*digArr)[iDigit].getChipIndex();
 
       if (chipID < 4) {
@@ -172,7 +171,7 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
         auto gloD = gman->getMatrixL2G(chipID)(locD); // convert to global
         if (chipID < 4) {
           //
-          // invert   
+          // invert
           //xyzLocS = {SegmentationSuperAlpide::Radii[detID] * startPhi, 0.f, startPos.Z()};
           //xyzLocE = {SegmentationSuperAlpide::Radii[detID] * endPhi, 0.f, endPos.Z()};
           //
@@ -199,14 +198,13 @@ void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfil
         // FIXME FOR INNER BARREL
         auto locH = gman->getMatrixL2G(chipID) ^ (hit.GetPos()); // inverse conversion from global to local
         auto locHsta = gman->getMatrixL2G(chipID) ^ (hit.GetPosStart());
-        
+
         if (chipID < 4) {
           float startPhi{std::atan2(-hit.GetPosStart().Y(), -hit.GetPosStart().X())};
           float endPhi{std::atan2(-hit.GetPos().Y(), -hit.GetPos().X())};
           locH.SetXYZ(SegmentationSuperAlpide::Radii[chipID] * endPhi, 0.f, hit.GetPos().Z());
           locHsta.SetXYZ(SegmentationSuperAlpide::Radii[chipID] * startPhi, 0.f, hit.GetPosStart().Z());
         }
-
 
         locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
 

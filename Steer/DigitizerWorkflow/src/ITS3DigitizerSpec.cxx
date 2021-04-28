@@ -35,7 +35,8 @@
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
-namespace {
+namespace
+{
 std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mctruth)
 {
   std::vector<OutputSpec> outputs;
@@ -48,7 +49,7 @@ std::vector<OutputSpec> makeOutChannels(o2::header::DataOrigin detOrig, bool mct
   outputs.emplace_back(detOrig, "ROMode", 0, Lifetime::Timeframe);
   return outputs;
 }
-}
+} // namespace
 
 namespace o2
 {
@@ -58,12 +59,13 @@ namespace its3
 using namespace o2::base;
 class ITS3DPLDigitizerTask : BaseDPLDigitizer
 {
-  public:
+ public:
   static constexpr o2::detectors::DetID::ID DETID = o2::detectors::DetID::IT3;
   static constexpr o2::header::DataOrigin DETOR = o2::header::gDataOriginIT3;
   using BaseDPLDigitizer::init;
 
-  ITS3DPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth) {
+  ITS3DPLDigitizerTask(bool mctruth = true) : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM), mWithMCTruth(mctruth)
+  {
     mID = DETID;
     mOrigin = DETOR;
   }
@@ -236,8 +238,6 @@ class ITS3DPLDigitizerTask : BaseDPLDigitizer
   }
 
  protected:
-
-
   bool mWithMCTruth = true;
   bool mFinished = false;
   bool mDisableQED = false;
@@ -282,5 +282,5 @@ DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth)
                            }};
 }
 
-} // end namespace itsmft
+} // namespace its3
 } // end namespace o2

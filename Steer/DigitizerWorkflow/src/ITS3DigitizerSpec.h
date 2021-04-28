@@ -20,7 +20,7 @@ namespace its3
 
 o2::framework::DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth = true);
 
-} // end namespace itsmft
+} // namespace its3
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_ITS3DIGITIZER_H_ */

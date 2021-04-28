@@ -40,7 +40,7 @@ void Digitizer::init()
     mSuperSegmentations.push_back(SegmentationSuperAlpide(iLayer));
   }
 
-  const Int_t numOfChips = mGeometry->getNumberOfChips();
+  const Int_t numOfChips = mGeometry->getNumberOfChips() + SegmentationSuperAlpide::NLayers;
   mChips.resize(numOfChips);
   for (int i = numOfChips; i--;) {
     mChips[i].setChipIndex(i);
@@ -226,9 +226,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   const auto& matrix = mGeometry->getMatrixL2G(detID);
   bool innerBarrel{detID < SegmentationSuperAlpide::NLayers};
   auto startPos = hit.GetPosStart();
-  float startPhi{std::atan2(-startPos.Y(), -startPos.X()) + constants::math::PI};
+  float startPhi{std::atan2(-startPos.Y(), -startPos.X())};
   auto endPos = hit.GetPos();
-  float endPhi{std::atan2(-endPos.Y(), -endPos.X()) + constants::math::PI};
+  float endPhi{std::atan2(-endPos.Y(), -endPos.X())};
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
   if (innerBarrel) {
     xyzLocS = {SegmentationSuperAlpide::Radii[detID] * startPhi, 0.f, startPos.Z()};
@@ -305,8 +305,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     colE = maxNcols - 1;
   }
   int rowSpan = rowE - rowS + 1, colSpan = colE - colS + 1; // size of plaquet where some response is expected
-
-  float respMatrix[rowSpan][colSpan]; // response accumulated here
+  float respMatrix[rowSpan][colSpan];                       // response accumulated here
   std::fill(&respMatrix[0][0], &respMatrix[0][0] + rowSpan * colSpan, 0.f);
 
   float nElectrons = hit.GetEnergyLoss() * mParams.getEnergyToNElectrons(); // total number of deposited electrons
@@ -329,9 +328,17 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // collect charge in evey pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {
     // Get the pixel ID
-    Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
+    if (innerBarrel) {
+      mSuperSegmentations[detID].localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
+    } else {
+      Segmentation::localToDetector(xyzLocS.X(), xyzLocS.Z(), row, col);
+    }
     if (row != rowPrev || col != colPrev) { // update pixel and coordinates of its center
-      if (!Segmentation::detectorToLocal(row, col, cRowPix, cColPix)) {
+      if (innerBarrel) {
+        if (!mSuperSegmentations[detID].detectorToLocal(row, col, cRowPix, cColPix)) {
+          continue;
+        }
+      } else if (!Segmentation::detectorToLocal(row, col, cRowPix, cColPix)) {
         continue; // should not happen
       }
       rowPrev = row;
@@ -339,7 +346,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     }
     bool flipCol, flipRow;
     // note that response needs coordinates along column row (locX) (locZ) then depth (locY)
-    auto rspmat = resp->getResponse(xyzLocS.X() - cRowPix, xyzLocS.Z() - cColPix, xyzLocS.Y(), flipRow, flipCol);
+    float rowMax{0.5f * (innerBarrel ? mSuperSegmentations[detID].PitchRow : Segmentation::PitchRow)};
+    float colMax{0.5f * (innerBarrel ? mSuperSegmentations[detID].PitchCol : Segmentation::PitchCol)};
+    auto rspmat = resp->getResponse(xyzLocS.X() - cRowPix, xyzLocS.Z() - cColPix, xyzLocS.Y(), flipRow, flipCol, rowMax, colMax);
 
     xyzLocS += step;
     if (!rspmat) {
@@ -369,7 +378,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     uint16_t rowIS = irow + rowS;
     for (int icol = colSpan; icol--;) {
       float nEleResp = respMatrix[irow][icol];
-      if (!nEleResp) {
+      if (nEleResp <= 1.e-36) {
         continue;
       }
       int nEle = gRandom->Poisson(nElectrons * nEleResp); // total charge in given pixel

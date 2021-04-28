@@ -279,7 +279,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   // directly for transformation from sensor frame to global one.
   //
   // Therefore we need to add a shift
-  
+
   static TGeoHMatrix matTmp;
   if (index >= SegmentationSuperAlpide::NLayers) {
     int lay, stav, sstav, mod, chipInMod;

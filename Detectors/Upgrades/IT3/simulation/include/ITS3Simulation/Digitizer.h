@@ -17,7 +17,7 @@
 #include <deque>
 #include <memory>
 
-#include "Rtypes.h" // for Digitizer::Class
+#include "Rtypes.h"  // for Digitizer::Class
 #include "TObject.h" // for TObject
 
 #include "ITSMFTSimulation/ChipDigitsContainer.h"
@@ -108,8 +108,8 @@ class Digitizer : public TObject
   std::vector<SegmentationSuperAlpide> mSuperSegmentations;
   static constexpr float sec2ns = 1e9;
 
-  o2::itsmft::DigiParams mParams; ///< digitization parameters
-  o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
+  o2::itsmft::DigiParams mParams;          ///< digitization parameters
+  o2::InteractionTimeRecord mEventTime;    ///< global event time and interaction record
   o2::InteractionRecord mIRFirstSampledTF; ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
   double mCollisionTimeWrtROF;
   uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits
@@ -132,7 +132,7 @@ class Digitizer : public TObject
 
   ClassDefOverride(Digitizer, 2);
 };
-} // namespace itsmft
+} // namespace its3
 } // namespace o2
 
 #endif /* ALICEO2_ITS3_DIGITIZER_H */

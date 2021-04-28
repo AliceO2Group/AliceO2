@@ -19,7 +19,7 @@ namespace its3
 {
 
 o2::framework::DataProcessorSpec getITS3DigitWriterSpec(bool mctruth = true, bool dec = false, bool calib = false);
-} // end namespace itsmft
+} // namespace its3
 } // end namespace o2
 
 #endif /* STEER_ITSMFTDIGITWRITER_H_ */
