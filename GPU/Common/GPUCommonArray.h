@@ -11,8 +11,8 @@
 /// \file GPUCommonArray.h
 /// \author David Rohr
 
-#ifndef GPUCOMMONFAIRARRAY_H
-#define GPUCOMMONFAIRARRAY_H
+#ifndef GPUCOMMONARRAY_H
+#define GPUCOMMONARRAY_H
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
