@@ -62,6 +62,10 @@
 #define uint32_t unsigned int
 #define uint16_t unsigned short
 #define uint8_t unsigned char
+#define int64_t long
+#define int32_t int
+#define int16_t short
+#define int8_t char
 
 // Disable assertions since they produce errors in GPU Code
 #ifdef assert
