@@ -108,7 +108,9 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     std::unique_ptr<GPUTPCGMMergedTrackHit[]> mergedTrackHits;
     std::unique_ptr<GPUTPCGMMergedTrackHitXYZ[]> mergedTrackHitsXYZ;
     std::unique_ptr<GPUTRDTrackletWord[]> trdTracklets;
-    std::unique_ptr<GPUTRDTrackletLabels[]> trdTrackletsMC;
+    std::unique_ptr<GPUTRDSpacePoint[]> trdSpacePoints;
+    std::unique_ptr<float[]> trdTriggerTimes;
+    std::unique_ptr<int[]> trdTrackletIdxFirst;
     std::unique_ptr<GPUTRDTrackGPU[]> trdTracks;
     std::unique_ptr<char[]> clusterNativeMC;
     std::unique_ptr<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>> clusterNativeMCView;
