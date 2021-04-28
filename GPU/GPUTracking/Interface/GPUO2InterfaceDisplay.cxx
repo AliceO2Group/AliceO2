@@ -17,6 +17,7 @@
 #include "GPUO2InterfaceDisplay.h"
 #include "GPUDisplayBackend.h"
 #include "GPUDisplayBackendGlfw.h"
+#include <unistd.h>
 
 using namespace o2::gpu;
 using namespace o2::tpc;
