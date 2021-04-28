@@ -162,7 +162,8 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
     mTimeSubMax = trkItsTpc.getTimeMUS().getTimeStampError();
     mRefITS = trkItsTpc.getRefITS();
     mRefTPC = trkItsTpc.getRefTPC();
-    updateCov(std::pow(trkItsTpc.getTimeMUS().getTimeStampError() * vDrift, 2), o2::track::CovLabels::kSigZ2); // account for time uncertainty by increasing sigmaZ2
+    float tmp = trkItsTpc.getTimeMUS().getTimeStampError() * vDrift;
+    updateCov(tmp * tmp, o2::track::CovLabels::kSigZ2); // account for time uncertainty by increasing sigmaZ2
   }
   trackInterface<GPUTRDO2BaseTrack>(const o2::tpc::TrackTPC& trkTpc, float tbWidth, float vDrift, unsigned int iTrk) : GPUTRDO2BaseTrack(trkTpc.getParamOut())
   {
@@ -177,7 +178,8 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
     } else {
       // CE-crossing tracks are not shifted along z, but the time uncertainty is taken into account by increasing sigmaZ2
       float timeWindow = (mTimeAddMax + mTimeSubMax) * .5f;
-      updateCov(std::pow(timeWindow * vDrift, 2), o2::track::CovLabels::kSigZ2);
+      float tmp = timeWindow * vDrift;
+      updateCov(tmp * tmp, o2::track::CovLabels::kSigZ2);
     }
   }
   void set(float x, float alpha, const float param[5], const float cov[15])
