@@ -59,6 +59,7 @@ class GeometryFlat;
 } // namespace trd
 namespace dataformats
 {
+class TrackTPCITS;
 template <class T>
 class MCTruthContainer;
 template <class T>
@@ -100,6 +101,7 @@ class GPUTPCGMMergedTrack;
 struct GPUTPCGMMergedTrackHit;
 struct GPUTPCGMMergedTrackHitXYZ;
 class GPUTRDTrackletWord;
+class GPUTRDSpacePoint;
 struct GPUTPCMCInfo;
 struct GPUTPCClusterData;
 struct GPUTRDTrackletLabels;
@@ -243,12 +245,16 @@ struct GPUTrackingInOutPointers {
   unsigned int nOutputClusRefsTPCO2 = 0;
   const o2::MCCompLabel* outputTracksTPCO2MC = nullptr;
   const o2::tpc::CompressedClustersFlat* tpcCompressedClusters = nullptr;
+  const o2::dataformats::TrackTPCITS* tracksTPCITSO2 = nullptr;
+  unsigned int nTracksTPCITSO2 = 0;
   const GPUTRDTrackletWord* trdTracklets = nullptr;
+  const GPUTRDSpacePoint* trdSpacePoints = nullptr;
   unsigned int nTRDTracklets = 0;
-  const GPUTRDTrackletLabels* trdTrackletsMC = nullptr;
-  unsigned int nTRDTrackletsMC = 0;
   const GPUTRDTrackGPU* trdTracks = nullptr;
   unsigned int nTRDTracks = 0;
+  const float* trdTriggerTimes = nullptr;
+  const int* trdTrackletIdxFirst = nullptr;
+  unsigned int nTRDTriggerRecords = 0;
   const GPUSettingsTF* settingsTF = nullptr;
 };
 #else

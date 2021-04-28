@@ -451,8 +451,6 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   fChain->mIOPtrs.nTRDTracklets = nTRDTrackletsTotal;
   fChain->mIOPtrs.trdTracklets = TRDtracklets;
-  fChain->mIOPtrs.nTRDTrackletsMC = nTRDTrackletsMCTotal;
-  fChain->mIOPtrs.trdTrackletsMC = TRDtrackletsMC;
   HLTDebug("Number of TRD tracklets: %d", (int)nTRDTrackletsTotal);
 
   static int nEvent = 0;

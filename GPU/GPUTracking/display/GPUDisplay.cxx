@@ -1399,10 +1399,10 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
-      const auto& sp = trdTracker().SpacePoints()[i];
+      const auto& sp = mIOPtrs->trdSpacePoints[i];
       int iSec = trdGeometry().GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       float4* ptr = &mGlobalPosTRD[i];
-      mParam->Slice2Global(iSec, sp.mR + mXadd, sp.mX[0], sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
+      mParam->Slice2Global(iSec, sp.getX() + mXadd, sp.getY(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
       ptr->x /= GL_SCALE_FACTOR;
       ptr->y /= GL_SCALE_FACTOR;
       ptr->z /= GL_SCALE_FACTOR;
@@ -1411,7 +1411,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       }
       ptr->w = tTRDCLUSTER;
       ptr = &mGlobalPosTRD2[i];
-      mParam->Slice2Global(iSec, sp.mR + mXadd + 4.5f, sp.mX[0] + 1.5f * sp.mDy, sp.mX[1], &ptr->x, &ptr->y, &ptr->z);
+      mParam->Slice2Global(iSec, sp.getX() + mXadd + 4.5f, sp.getY() + 1.5f * sp.getDy(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
       ptr->x /= GL_SCALE_FACTOR;
       ptr->y /= GL_SCALE_FACTOR;
       ptr->z /= GL_SCALE_FACTOR;

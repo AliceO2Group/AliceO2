@@ -21,7 +21,7 @@ namespace o2
 namespace trd
 {
 
-framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, bool useTrackletTransformer, o2::dataformats::GlobalTrackID::mask_t srcTRD);
+framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, o2::dataformats::GlobalTrackID::mask_t srcTRD);
 
 } // namespace trd
 } // namespace o2
