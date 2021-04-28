@@ -178,7 +178,7 @@ GPUconstexpr() DetID::mask_t sMasks[DetID::nDetectors] = ///< detectot masks
   {math_utils::bit2Mask(DetID::ITS), math_utils::bit2Mask(DetID::TPC), math_utils::bit2Mask(DetID::TRD), math_utils::bit2Mask(DetID::TOF), math_utils::bit2Mask(DetID::PHS),
    math_utils::bit2Mask(DetID::CPV), math_utils::bit2Mask(DetID::EMC), math_utils::bit2Mask(DetID::HMP), math_utils::bit2Mask(DetID::MFT), math_utils::bit2Mask(DetID::MCH),
    math_utils::bit2Mask(DetID::MID), math_utils::bit2Mask(DetID::ZDC), math_utils::bit2Mask(DetID::FT0), math_utils::bit2Mask(DetID::FV0), math_utils::bit2Mask(DetID::FDD),
-   math_utils::bit2Mask(DetID::ACO)
+   math_utils::bit2Mask(DetID::ACO), math_utils::bit2Mask(DetID::CTP)
 #ifdef ENABLE_UPGRADES
      ,
    math_utils::bit2Mask(DetID::IT3), math_utils::bit2Mask(DetID::TRK), math_utils::bit2Mask(DetID::FT3)
