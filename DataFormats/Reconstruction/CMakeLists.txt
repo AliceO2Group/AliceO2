@@ -28,6 +28,7 @@ o2_add_library(ReconstructionDataFormats
                        src/TrackTPCTOF.cxx
                        src/TrackCosmics.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                     O2::GPUUtils
                                      O2::FrameworkLogger
                                      O2::DetectorsCommonDataFormats
                                      O2::CommonDataFormat)

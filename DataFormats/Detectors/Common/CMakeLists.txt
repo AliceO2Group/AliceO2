@@ -17,6 +17,7 @@ o2_add_library(DetectorsCommonDataFormats
                ROOT::Core
                ROOT::Geom
                O2::GPUCommon
+               O2::GPUUtils
                O2::MathUtils
                O2::FrameworkLogger
                O2::Headers

@@ -164,7 +164,7 @@ class GRPObject
   std::string mDataPeriod = ""; ///< name of the period
   std::string mLHCState = "";   ///< machine state
 
-  ClassDefNV(GRPObject, 4);
+  ClassDefNV(GRPObject, 5);
 };
 
 //______________________________________________
