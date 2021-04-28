@@ -109,7 +109,7 @@ struct HfProduceSelCollisions {
 };
 
 /// Track selection
-struct SelectTracks {
+struct HfProduceSelTrack {
 
   // enum for candidate type
   enum CandidateType {
@@ -314,7 +314,7 @@ struct SelectTracks {
 //____________________________________________________________________________________________________________________________________________
 
 /// Pre-selection of 2-prong and 3-prong secondary vertices
-struct HFTrackIndexSkimsCreator {
+struct HfTrackIndexSkimsCreator {
   Produces<aod::HfTrackIndexProng2> rowTrackIndexProng2;
   Produces<aod::HfCutStatusProng2> rowProng2CutStatus;
   Produces<aod::HfTrackIndexProng3> rowTrackIndexProng3;
@@ -1307,14 +1307,14 @@ struct HFTrackIndexSkimsCreatorCascades {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
-    adaptAnalysisTask<HfProduceSelCollisions>(cfgc),
-    adaptAnalysisTask<SelectTracks>(cfgc, TaskName{"hf-produce-sel-track"}),
+  WorkflowSpec workflow{
+    adaptAnalysisTask<HfProduceSelTrack>(cfgc),
+    adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc);
     adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
 
   const bool doLcK0Sp = cfgc.options().get<bool>("do-LcK0Sp");
   if (doLcK0Sp) {
-    workflow.push_back(adaptAnalysisTask<HFTrackIndexSkimsCreatorCascades>(cfgc, TaskName{"hf-track-index-skims-cascades-creator"}));
+    workflow.push_back(adaptAnalysisTask<HFTrackIndexSkimsCreatorCascades>(cfgc));
   }
 
   return workflow;
