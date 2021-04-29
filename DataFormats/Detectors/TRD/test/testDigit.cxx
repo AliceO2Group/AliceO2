@@ -19,7 +19,7 @@
 #include <iostream>
 #include <numeric>
 
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Constants.h"
 
 namespace o2
