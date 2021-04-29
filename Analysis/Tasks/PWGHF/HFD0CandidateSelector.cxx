@@ -155,7 +155,15 @@ struct HFD0CandidateSelector {
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
     TrackSelectorPID selectorKaon(kKPlus);
-    TrackSelectorPID selectorPion(kPiPlus);
+    selectorKaon.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
+    selectorKaon.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
+    selectorKaon.setRangeNSigmaTPCCondTOF(-d_nSigmaTPCCombined, d_nSigmaTPCCombined);
+    selectorKaon.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
+    selectorKaon.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
+    selectorKaon.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
+
+    TrackSelectorPID selectorPion(selectorKaon);
+    selectorPion.setPDG(kPiPlus);
 
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
 
