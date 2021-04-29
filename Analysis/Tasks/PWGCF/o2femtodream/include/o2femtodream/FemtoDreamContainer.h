@@ -19,11 +19,11 @@
 #include "TLorentzVector.h"
 #include "TMath.h"
 
-#include "Framework/HistogramRegistry.h"
+//#include "Framework/HistogramRegistry.h"
 
 #include <iostream>
 
-using namespace o2::framework;
+//using namespace o2::framework;
 
 namespace o2::analysis
 {
@@ -42,7 +42,7 @@ class FemtoDreamContainer
   enum class Observable { kstar };
 
   FemtoDreamContainer();
-  FemtoDreamContainer(HistogramRegistry* registry, Observable obs = Observable::kstar);
+  //FemtoDreamContainer(HistogramRegistry* registry, Observable obs = Observable::kstar);
   virtual ~FemtoDreamContainer() = default;
 
   void setMasses(const float m1, const float m2)
@@ -70,7 +70,7 @@ class FemtoDreamContainer
 
  protected:
   Observable mFemtoObs;
-  HistogramRegistry* mHistogramRegistry;
+  //HistogramRegistry* mHistogramRegistry;
 
  private:
   float mMassOne;
@@ -84,7 +84,7 @@ inline void FemtoDreamContainer::setPair(T& part1, T& part2)
   if (mFemtoObs == Observable::kstar) {
     femtoObs = getkstar(part1, mMassOne, part2, mMassTwo);
   }
-  mHistogramRegistry->fill(HIST("relPairDist"), femtoObs);
+  //mHistogramRegistry->fill(HIST("relPairDist"), femtoObs);
 }
 
 //inline float FemtoDreamContainer::getkstar(const ROOT::Math::PtEtaPhiMVector& part1, const ROOT::Math::PtEtaPhiMVector& part2)

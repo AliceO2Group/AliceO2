@@ -16,16 +16,16 @@
 #define ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMTRACKSELECTION_H_
 
 #include "ReconstructionDataFormats/PID.h"
-#include "Framework/HistogramRegistry.h"
-#include "Framework/Expressions.h"
+//#include "Framework/HistogramRegistry.h"
+//#include "Framework/Expressions.h"
 #include <Rtypes.h>
 #include <algorithm>
 #include <string>
 #include <cmath>
 #include <iostream>
 
-using namespace o2::framework;
-using namespace o2::framework::expressions;
+//using namespace o2::framework;
+//using namespace o2::framework::expressions;
 
 namespace o2::analysis
 {
@@ -46,7 +46,7 @@ class FemtoDreamTrackSelection
 
   /// Initialized histograms for the task
   /// \todo folder naming in case of two tracks per task - addon to the folder probably
-  void init(HistogramRegistry* registry = nullptr);
+  void init(); //HistogramRegistry* registry = nullptr);
 
   template <typename T>
   auto getNsigmaTPC(T const& track);
@@ -54,13 +54,13 @@ class FemtoDreamTrackSelection
   template <typename T>
   auto getNsigmaTOF(T const& track);
 
-  const Filter AODFilter()
-  {
-    return (o2::aod::track::pt > mPtMin) &&
-           (o2::aod::track::pt < mPtMax) &&
-           (o2::nabs(aod::track::eta) < mEtaMax) &&
-           (nabs(o2::aod::track::dcaZ) < mDCAzMax);
-  };
+  //const Filter AODFilter()
+  //{
+  //  return (o2::aod::track::pt > mPtMin) &&
+  //         (o2::aod::track::pt < mPtMax) &&
+  //         (o2::nabs(aod::track::eta) < mEtaMax) &&
+  //         (nabs(o2::aod::track::dcaZ) < mDCAzMax);
+  //};
 
   template <typename T>
   bool isSelected(T const& track);
@@ -94,7 +94,7 @@ class FemtoDreamTrackSelection
   float mPIDmomTPC;    ///< Max. p for TPC-only PID (GeV/c)
   int mPIDParticle;    ///< Particle species to select
 
-  HistogramRegistry* mHistogramRegistry; ///< For QA output
+  //HistogramRegistry* mHistogramRegistry; ///< For QA output
   bool mDoQA;                            ///< Switch for protection
 
   ClassDefNV(FemtoDreamTrackSelection, 1);
@@ -205,7 +205,7 @@ inline bool FemtoDreamTrackSelection::isSelected(T const& track)
 
   if (mDoQA) {
     /// this needs to be done before the DCAxy cut, otherwise no template fitting
-    mHistogramRegistry->fill(HIST("TrackCuts/dcaXYhistBefore"), track.pt(), track.dcaXY());
+    //mHistogramRegistry->fill(HIST("TrackCuts/dcaXYhistBefore"), track.pt(), track.dcaXY());
   }
 
   if (std::abs(track.dcaXY()) > mDCAxyMax) {
@@ -231,7 +231,7 @@ int FemtoDreamTrackSelection::getCutContainer(T const& track)
 
 template <typename T>
 inline void FemtoDreamTrackSelection::fillQA(T const& track)
-{
+{ /*
   if (mDoQA) {
     mHistogramRegistry->fill(HIST("TrackCuts/pThist"), track.pt());
     mHistogramRegistry->fill(HIST("TrackCuts/etahist"), track.eta());
@@ -244,7 +244,7 @@ inline void FemtoDreamTrackSelection::fillQA(T const& track)
     mHistogramRegistry->fill(HIST("TrackCuts/dcaZhist"), track.pt(), track.dcaZ());
     mHistogramRegistry->fill(HIST("TrackCuts/tpcdEdx"), track.tpcInnerParam(), track.tpcSignal());
     mHistogramRegistry->fill(HIST("TrackCuts/tofSignal"), track.p(), track.tofSignal());
-  }
+  } */
 }
 
 } // namespace femtoDream

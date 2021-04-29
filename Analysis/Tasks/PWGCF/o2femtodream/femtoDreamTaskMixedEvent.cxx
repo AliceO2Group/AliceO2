@@ -96,7 +96,7 @@ struct femtoDreamTaskMixedEvent {
 
   void init(InitContext&)
   {
-    mixedEventCont = new FemtoDreamContainer(&resultRegistry);
+    mixedEventCont = new FemtoDreamContainer();//(&resultRegistry);
     mixedEventCont->setMasses(TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartOne)->Mass(),
                               TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartTwo)->Mass());
   }

@@ -73,11 +73,11 @@ struct femtoDreamTaskTrackProducer {
   void init(InitContext&)
   {
     colCuts = CfgColSel;
-    colCuts.init(&qaRegistry);
+    colCuts.init(); //)&qaRegistry);
     colCuts.printCuts();
 
     trackCuts = CfgTrackSel;
-    trackCuts.init(&qaRegistry);
+    trackCuts.init(); //&qaRegistry);
     trackCuts.printCuts();
   }
 

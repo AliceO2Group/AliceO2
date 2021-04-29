@@ -16,16 +16,16 @@
 #define ANALYSIS_TASKS_PWGCF_FEMTODREAM_FEMTODREAMCOLLISIONSELECTION_H_
 
 #include "AnalysisCore/TriggerAliases.h"
-#include "Framework/HistogramRegistry.h"
-#include "Framework/Expressions.h"
+//#include "Framework/HistogramRegistry.h"
+//#include "Framework/Expressions.h"
 
 #include <Rtypes.h>
 
 #include <string>
 #include <iostream>
 
-using namespace o2::framework;
-using namespace o2::framework::expressions;
+//using namespace o2::framework;
+//using namespace o2::framework::expressions;
 
 namespace o2::analysis
 {
@@ -42,12 +42,12 @@ class FemtoDreamCollisionSelection
   virtual ~FemtoDreamCollisionSelection() = default;
 
   /// Initialized histograms for the task
-  void init(HistogramRegistry* registry);
+  void init(); //HistogramRegistry* registry);
 
-  const Filter AODFilter()
-  {
-    return (nabs(o2::aod::collision::posZ) < mZvtxMax);
-  }
+  //const Filter AODFilter()
+  //{
+  //  return (nabs(o2::aod::collision::posZ) < mZvtxMax);
+  //}
 
   template <typename T>
   bool isSelected(T const& col);
@@ -69,7 +69,7 @@ class FemtoDreamCollisionSelection
   triggerAliases mTrigger; ///< Trigger to check for
   bool mCheckOffline;      ///< Check for offline criteria (might change)
 
-  HistogramRegistry* mHistogramRegistry; ///< For QA output
+  //HistogramRegistry* mHistogramRegistry; ///< For QA output
   bool mDoQA;                            ///< Switch for protection
 
   ClassDefNV(FemtoDreamCollisionSelection, 1);
@@ -97,8 +97,8 @@ template <typename T>
 inline void FemtoDreamCollisionSelection::fillQA(T const& col)
 {
   if (mDoQA) {
-    mHistogramRegistry->fill(HIST("Event/zvtxhist"), col.posZ());
-    mHistogramRegistry->fill(HIST("Event/MultV0M"), col.multV0M());
+    //mHistogramRegistry->fill(HIST("Event/zvtxhist"), col.posZ());
+    //mHistogramRegistry->fill(HIST("Event/MultV0M"), col.multV0M());
   }
 }
 

@@ -38,7 +38,7 @@ struct femtoDreamTaskSameEvent {
 
   void init(InitContext&)
   {
-    sameEventCont = new FemtoDreamContainer(&resultRegistry);
+    sameEventCont = new FemtoDreamContainer();//&resultRegistry);
     sameEventCont->setMasses(TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartOne)->Mass(),
                              TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartTwo)->Mass());
   }

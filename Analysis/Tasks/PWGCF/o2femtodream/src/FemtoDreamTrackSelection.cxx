@@ -30,7 +30,7 @@ FemtoDreamTrackSelection::FemtoDreamTrackSelection()
     mPIDnSigmaMax(999.f),
     mPIDmomTPC(0.7f),
     mPIDParticle(o2::track::PID::Pion),
-    mHistogramRegistry(nullptr),
+    //mHistogramRegistry(nullptr),
     mDoQA(false)
 {
 }
@@ -52,17 +52,17 @@ FemtoDreamTrackSelection::FemtoDreamTrackSelection(int charge, float ptMin, floa
     mPIDnSigmaMax(pidNsigmaMax),
     mPIDmomTPC(pidTPCmom),
     mPIDParticle(part),
-    mHistogramRegistry(nullptr),
+    //mHistogramRegistry(nullptr),
     mDoQA(false)
 {
 }
 
-void FemtoDreamTrackSelection::init(HistogramRegistry* registry)
+void FemtoDreamTrackSelection::init() //HistogramRegistry* registry)
 {
   // get minimal cuts
   std::sort(mTPCclsCut.begin(), mTPCclsCut.end());
 
-  if (registry) {
+  /* if (registry) {
     mHistogramRegistry = registry;
     mDoQA = true;
     mHistogramRegistry->add("TrackCuts/pThist", "; #it{p}_{T} (GeV/#it{c}); Entries", kTH1F, {{1000, 0, 10}});
@@ -77,7 +77,7 @@ void FemtoDreamTrackSelection::init(HistogramRegistry* registry)
     mHistogramRegistry->add("TrackCuts/dcaZhist", "; #it{p}_{T} (GeV/#it{c}); DCA_{z} (cm)", kTH2F, {{100, 0, 10}, {301, -1.5, 1.5}});
     mHistogramRegistry->add("TrackCuts/tpcdEdx", "; #it{p} (GeV/#it{c}); TPC Signal", kTH2F, {{100, 0, 10}, {1000, 0, 1000}});
     mHistogramRegistry->add("TrackCuts/tofSignal", "; #it{p} (GeV/#it{c}); TOF Signal", kTH2F, {{100, 0, 10}, {1000, 0, 100e3}});
-  }
+  } */
 }
 
 std::string FemtoDreamTrackSelection::getCutHelp()

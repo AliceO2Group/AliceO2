@@ -22,7 +22,7 @@ FemtoDreamCollisionSelection::FemtoDreamCollisionSelection()
     mCheckTrigger(false),
     mTrigger(kINT7),
     mCheckOffline(false),
-    mHistogramRegistry(nullptr),
+    //mHistogramRegistry(nullptr),
     mDoQA(false)
 {
 }
@@ -32,18 +32,18 @@ FemtoDreamCollisionSelection::FemtoDreamCollisionSelection(float zvtxMax, bool c
     mCheckTrigger(checkTrigger),
     mTrigger(trig),
     mCheckOffline(checkOffline),
-    mHistogramRegistry(nullptr),
+    //mHistogramRegistry(nullptr),
     mDoQA(false)
 {
 }
 
-void FemtoDreamCollisionSelection::init(HistogramRegistry* registry)
+void FemtoDreamCollisionSelection::init()//HistogramRegistry* registry)
 {
-  mHistogramRegistry = registry;
+  //mHistogramRegistry = registry;
   mDoQA = true;
 
-  mHistogramRegistry->add("Event/zvtxhist", "; vtx_{z} (cm); Entries", kTH1F, {{1000, -15, 15}});
-  mHistogramRegistry->add("Event/MultV0M", "; vMultV0M; Entries", kTH1F, {{1000, 0, 1000}});
+  //mHistogramRegistry->add("Event/zvtxhist", "; vtx_{z} (cm); Entries", kTH1F, {{1000, -15, 15}});
+  //mHistogramRegistry->add("Event/MultV0M", "; vMultV0M; Entries", kTH1F, {{1000, 0, 1000}});
 }
 
 std::string FemtoDreamCollisionSelection::getCutHelp()

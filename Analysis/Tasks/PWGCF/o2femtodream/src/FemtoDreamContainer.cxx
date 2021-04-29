@@ -19,12 +19,12 @@ using namespace o2::analysis::femtoDream;
 
 FemtoDreamContainer::FemtoDreamContainer()
   : mFemtoObs(Observable::kstar),
-    mHistogramRegistry(nullptr),
+    //mHistogramRegistry(nullptr),
     mMassOne(0.f),
     mMassTwo(0.f)
 {
 }
-
+/*
 FemtoDreamContainer::FemtoDreamContainer(HistogramRegistry* registry, Observable obs)
   : mFemtoObs(obs),
     mHistogramRegistry(registry),
@@ -37,3 +37,4 @@ FemtoDreamContainer::FemtoDreamContainer(HistogramRegistry* registry, Observable
   }
   mHistogramRegistry->add("relPairDist", ("; " + femtoObs + "; Entries").c_str(), kTH1F, {{5000, 0, 5}});
 }
+*/
