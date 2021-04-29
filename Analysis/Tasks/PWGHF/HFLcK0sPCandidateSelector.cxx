@@ -56,25 +56,25 @@ struct HFLcK0sPCandidateSelector {
 
   Produces<aod::HFSelLcK0sPCandidate> hfSelLcK0sPCandidate;
 
-  Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
-  Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
+  Configurable<double> pTCandMin{"pTCandMin", 0., "Lower bound of candidate pT"};
+  Configurable<double> pTCandMax{"pTCandMax", 50., "Upper bound of candidate pT"};
 
   // PID
-  Configurable<double> d_applyPidTPCMinPt{"d_applyPidTPCMinPt", 4., "Lower bound of track pT to apply TPC PID"};
-  Configurable<double> d_pidTPCMinPt{"d_pidTPCMinPt", 0., "Lower bound of track pT for TPC PID"};
-  Configurable<double> d_pidTPCMaxPt{"d_pidTPCMaxPt", 100., "Upper bound of track pT for TPC PID"};
-  Configurable<double> d_pidCombMaxP{"d_pidCombMaxP", 4., "Upper bound of track p to use TOF + TPC Bayes PID"};
-  Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
+  Configurable<double> applyPidTPCMinPt{"applyPidTPCMinPt", 4., "Lower bound of track pT to apply TPC PID"};
+  Configurable<double> pidTPCMinPt{"pidTPCMinPt", 0., "Lower bound of track pT for TPC PID"};
+  Configurable<double> pidTPCMaxPt{"pidTPCMaxPt", 100., "Upper bound of track pT for TPC PID"};
+  Configurable<double> pidCombMaxP{"pidCombMaxP", 4., "Upper bound of track p to use TOF + TPC Bayes PID"};
+  Configurable<double> nSigmaTPC{"nSigmaTPC", 3., "Nsigma cut on TPC only"};
 
   // track quality
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
-  Configurable<bool> b_requireTPC{"b_requireTPC", true, "Flag to require a positive Number of found clusters in TPC"};
+  Configurable<double> TPCNClsFindablePIDCut{"TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
+  Configurable<bool> requireTPC{"requireTPC", true, "Flag to require a positive Number of found clusters in TPC"};
 
   // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
-  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
+  Configurable<std::vector<int>> labelK0Spos{"labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> labelK0Sneg{"labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> labelProton{"labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
 #endif
 
   /// Gets corresponding pT bin from cut file array
@@ -107,7 +107,7 @@ struct HFLcK0sPCandidateSelector {
     if (track.sign() == 0) {
       return false;
     }
-    if (b_requireTPC.value && track.tpcNClsFound() == 0) {
+    if (requireTPC.value && track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
     }
     return true;
@@ -125,8 +125,8 @@ struct HFLcK0sPCandidateSelector {
       return false;
     }
 
-    if (candPt < d_pTCandMin || candPt >= d_pTCandMax) {
-      LOG(DEBUG) << "cand pt (first check) cut failed: from cascade --> " << candPt << ", cut --> " << d_pTCandMax;
+    if (candPt < pTCandMin || candPt >= pTCandMax) {
+      LOG(DEBUG) << "cand pt (first check) cut failed: from cascade --> " << candPt << ", cut --> " << pTCandMax;
       return false; //check that the candidate pT is within the analysis range
     }
 
@@ -192,8 +192,8 @@ struct HFLcK0sPCandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (track.pt() < d_pidTPCMinPt || track.pt() >= d_pidTPCMaxPt) {
-      LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we trust TPC PID in [" << d_pidTPCMinPt << ", " << d_pidTPCMaxPt << "]";
+    if (track.pt() < pidTPCMinPt || track.pt() >= pidTPCMaxPt) {
+      LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we trust TPC PID in [" << pidTPCMinPt << ", " << pidTPCMaxPt << "]";
       return false;
     }
     return true;
@@ -206,11 +206,11 @@ struct HFLcK0sPCandidateSelector {
   template <typename T>
   bool applyTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_applyPidTPCMinPt) {
-      LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we apply TPC PID from " << d_applyPidTPCMinPt;
+    if (TMath::Abs(track.pt()) < applyPidTPCMinPt) {
+      LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we apply TPC PID from " << applyPidTPCMinPt;
       return false;
     }
-    LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we apply TPC PID from " << d_applyPidTPCMinPt;
+    LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we apply TPC PID from " << applyPidTPCMinPt;
     return true;
   }
 
@@ -221,7 +221,7 @@ struct HFLcK0sPCandidateSelector {
   template <typename T>
   bool validCombPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) > d_pidCombMaxP) { // is the pt sign used for the charge? If it is always positive, we should remove the abs
+    if (TMath::Abs(track.pt()) > pidCombMaxP) { // is the pt sign used for the charge? If it is always positive, we should remove the abs
       return false;
     }
     return true;
@@ -283,10 +283,10 @@ struct HFLcK0sPCandidateSelector {
 
     if (validTPCPID(track)) {
       LOG(DEBUG) << "We check the TPC PID now";
-      if (!selectionPIDTPC(track, d_nSigmaTPC)) {
+      if (!selectionPIDTPC(track, nSigmaTPC)) {
         statusTPC = 0;
         /*
-        if (!selectionPIDTPC(track, nPDG, d_nSigmaTPCCombined)) {
+        if (!selectionPIDTPC(track, nPDG, nSigmaTPCCombined)) {
           statusTPC = 0; //rejected by PID
         } else {
           statusTPC = 1; //potential to be acceepted if combined with TOF
@@ -303,8 +303,8 @@ struct HFLcK0sPCandidateSelector {
     return statusTPC;
     /*
     if (validTOFPID(track)) {
-      if (!selectionPIDTOF(track, nPDG, d_nSigmaTOF)) {
-        if (!selectionPIDTOF(track, nPDG, d_nSigmaTOFCombined)) {
+      if (!selectionPIDTOF(track, nPDG, nSigmaTOF)) {
+        if (!selectionPIDTOF(track, nPDG, nSigmaTOFCombined)) {
           statusTOF = 0; //rejected by PID
         } else {
           statusTOF = 1; //potential to be acceepted if combined with TOF
@@ -341,8 +341,8 @@ struct HFLcK0sPCandidateSelector {
       auto labelPos = candidate.posTrack_as<MyBigTracks>().mcParticleId();
       auto labelNeg = candidate.negTrack_as<MyBigTracks>().mcParticleId();
       auto protonLabel = candidate.index0_as<MyBigTracks>().mcParticleId();
-      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, v_labelProton, v_labelK0Spos, v_labelK0Sneg);
-      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
+      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, labelProton, labelK0Spos, labelK0Sneg);
+      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, labelK0Spos, labelK0Sneg);
 #endif
       MY_DEBUG_MSG(isLc, printf("\n"); LOG(INFO) << "In selector: correct Lc found: proton --> " << protonLabel << ", posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
       //MY_DEBUG_MSG(isLc != 1, printf("\n"); LOG(INFO) << "In selector: wrong Lc found: proton --> " << protonLabel << ", posTrack --> " << labelPos << ", negTrack --> " << labelNeg);

@@ -47,7 +47,7 @@ namespace hf_selcandidate_lc_k0sp
 DECLARE_SOA_COLUMN(IsSelLcK0sP, isSelLcK0sP, int);
 } // namespace hf_selcandidate_lc_k0sp
 DECLARE_SOA_TABLE(HFSelLcK0sPCandidate, "AOD", "HFSELLCK0SPCAND", //!
-		   hf_selcandidate_lc_k0sp::IsSelLcK0sP);
+                  hf_selcandidate_lc_k0sp::IsSelLcK0sP);
 
 } // namespace o2::aod
 

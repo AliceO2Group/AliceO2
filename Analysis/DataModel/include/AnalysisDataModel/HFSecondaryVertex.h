@@ -71,12 +71,12 @@ DECLARE_SOA_TABLE(HfTrackIndexProng2, "AOD", "HFTRACKIDXP2", //!
                   hf_track_index::Index1Id,
                   hf_track_index::HFflag);
 
-		    DECLARE_SOA_TABLE(HfTrackIndexCasc, "AOD", "HFTRACKIDXCASC", //!
+DECLARE_SOA_TABLE(HfTrackIndexCasc, "AOD", "HFTRACKIDXCASC", //!
                   hf_track_index::Index0Id,
                   hf_track_index::IndexV0Id,
                   hf_track_index::HFflag);
 
-  DECLARE_SOA_TABLE(HfCutStatusProng2, "AOD", "HFCUTSTATUSP2", //!
+DECLARE_SOA_TABLE(HfCutStatusProng2, "AOD", "HFCUTSTATUSP2", //!
                   hf_track_index::D0ToKPiFlag,
                   hf_track_index::JpsiToEEFlag);
 
@@ -369,14 +369,19 @@ DECLARE_SOA_TABLE(HfCandProng2MCGen, "AOD", "HFCANDP2MCGEN", //!
 
 namespace hf_cand_casc
 {
-DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, 1.f * aod::hf_cand::pxProng0 + 1.f * aod::hf_cand::pxProng1);
-DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, 1.f * aod::hf_cand::pyProng0 + 1.f * aod::hf_cand::pyProng1);
-DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, 1.f * aod::hf_cand::pzProng0 + 1.f * aod::hf_cand::pzProng1);
+DECLARE_SOA_EXPRESSION_COLUMN(Px, px, //!
+                              float, 1.f * aod::hf_cand::pxProng0 + 1.f * aod::hf_cand::pxProng1);
+DECLARE_SOA_EXPRESSION_COLUMN(Py, py, //!
+                              float, 1.f * aod::hf_cand::pyProng0 + 1.f * aod::hf_cand::pyProng1);
+DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, //!
+                              float, 1.f * aod::hf_cand::pzProng0 + 1.f * aod::hf_cand::pzProng1);
 //DECLARE_SOA_DYNAMIC_COLUMN(M, m, [](float px0, float py0, float pz0, float px1, float py1, float pz1, const array<double, 2>& m) { return RecoDecay::M(array{array{px0, py0, pz0}, array{px1, py1, pz1}}, m); });
-DECLARE_SOA_DYNAMIC_COLUMN(PtV0Pos, ptV0Pos, [](float px, float py) { return RecoDecay::Pt(px, py); });
-DECLARE_SOA_DYNAMIC_COLUMN(PtV0Neg, ptV0Neg, [](float px, float py) { return RecoDecay::Pt(px, py); });
-DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
-DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
+DECLARE_SOA_DYNAMIC_COLUMN(PtV0Pos, ptV0Pos, //!
+                           [](float px, float py) { return RecoDecay::Pt(px, py); });
+DECLARE_SOA_DYNAMIC_COLUMN(PtV0Neg, ptV0Neg, //!
+                           [](float px, float py) { return RecoDecay::Pt(px, py); });
+DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); //! reconstruction level
+DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); //! generator level
 
 template <typename T>
 auto InvMassLcToK0sP(const T& candidate)
@@ -392,7 +397,7 @@ auto InvMassGamma(const T& candidate)
 
 } // namespace hf_cand_casc
 
-DECLARE_SOA_TABLE(HfCandCascBase, "AOD", "HFCANDCASCBASE",
+DECLARE_SOA_TABLE(HfCandCascBase, "AOD", "HFCANDCASCBASE", //!
                   // general columns
                   HFCAND_COLUMNS,
                   // cascade specific columns
@@ -446,17 +451,17 @@ DECLARE_SOA_TABLE(HfCandCascBase, "AOD", "HFCANDCASCBASE",
 		  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
 */
 // extended table with expression columns that can be used as arguments of dynamic columns
-DECLARE_SOA_EXTENDED_TABLE_USER(HfCandCascExt, HfCandCascBase, "HFCANDCASCEXT",
+DECLARE_SOA_EXTENDED_TABLE_USER(HfCandCascExt, HfCandCascBase, "HFCANDCASCEXT", //!
                                 hf_cand_casc::Px, hf_cand_casc::Py, hf_cand_casc::Pz);
 
 using HfCandCascade = HfCandCascExt;
 
 // table with results of reconstruction level MC matching for Cascade
-DECLARE_SOA_TABLE(HfCandCascadeMCRec, "AOD", "HFCANDCASCMCREC",
+DECLARE_SOA_TABLE(HfCandCascadeMCRec, "AOD", "HFCANDCASCMCREC", //!
                   hf_cand_casc::FlagMCMatchRec);
 
 // table with results of generator level MC matching
-DECLARE_SOA_TABLE(HfCandCascadeMCGen, "AOD", "HFCANDCASCMCGEN",
+DECLARE_SOA_TABLE(HfCandCascadeMCGen, "AOD", "HFCANDCASCMCGEN", //!
                   hf_cand_casc::FlagMCMatchGen);
 
 // specific 3-prong decay properties

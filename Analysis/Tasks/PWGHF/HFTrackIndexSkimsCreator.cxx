@@ -36,7 +36,6 @@ using namespace o2::framework::expressions;
 using namespace o2::aod;
 using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_single_track;
->>>>>>> Implementation of comments by Anton and Vit
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -72,11 +71,11 @@ struct SelectTracks {
 
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
-  Configurable<double> d_bz{"d_bz", 5., "bz field"};
+  Configurable<bool> dovalplots{"dovalplots", true, "fill histograms"};
+  Configurable<double> bz{"bz", 5., "bz field"};
   // quality cut
   Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
-  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, ">= min. number of TPC clusters needed"};
+  Configurable<int> tpcnclsfound{"tpcnclsfound", 70, ">= min. number of TPC clusters needed"};
   // pT bins for single-track cuts
   Configurable<std::vector<double>> pTBinsTrack{"ptbins_singletrack", std::vector<double>{hf_cuts_single_track::pTBinsTrack_v}, "track pT bin limits for 2-prong DCAXY pT-depentend cut"};
   // 2-prong cuts
@@ -88,17 +87,17 @@ struct SelectTracks {
   Configurable<LabeledArray<double>> cutsTrack3Prong{"cuts_singletrack_3prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 3-prong candidates"};
   Configurable<double> etamax_3prong{"etamax_3prong", 4., "max. pseudorapidity for 3 prong candidate"};
   // bachelor cuts (when using cascades)
-  Configurable<double> d_ptMinTrackBach{"d_ptMinTrackBach", 0.3, "min. track pT for bachelor in cascade candidate"}; // 0.5 for PbPb 2015?
-  Configurable<double> d_dcaToPrimXYMaxPtBach{"d_dcaToPrimXYMaxPtBach", 2., "max pt cut for min. DCAXY to prim. vtx. for bachelor in cascade candidate"};
-  Configurable<double> d_dcaToPrimXYMinBach{"d_dcaToPrimXYMinBach", 0., "min. DCAXY to prim. vtx. for bachelor in cascade candidate"}; // for PbPb 2018, the cut should be 0.0025
-  Configurable<double> d_dcaToPrimXYMaxBach{"d_dcaToPrimXYMaxBach", 1.0, "max. DCAXY to prim. vtx. for bachelor in cascade candidate"};
-  Configurable<double> d_etaMaxBach{"d_etaMaxBach", 0.8, "max. pseudorapidity for bachelor in cascade candidate"};
+  Configurable<double> ptMinTrackBach{"ptMinTrackBach", 0.3, "min. track pT for bachelor in cascade candidate"}; // 0.5 for PbPb 2015?
+  Configurable<double> dcaToPrimXYMaxPtBach{"dcaToPrimXYMaxPtBach", 2., "max pt cut for min. DCAXY to prim. vtx. for bachelor in cascade candidate"};
+  Configurable<double> dcaToPrimXYMinBach{"dcaToPrimXYMinBach", 0., "min. DCAXY to prim. vtx. for bachelor in cascade candidate"}; // for PbPb 2018, the cut should be 0.0025
+  Configurable<double> dcaToPrimXYMaxBach{"dcaToPrimXYMaxBach", 1.0, "max. DCAXY to prim. vtx. for bachelor in cascade candidate"};
+  Configurable<double> etaMaxBach{"etaMaxBach", 0.8, "max. pseudorapidity for bachelor in cascade candidate"};
 
   // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
-  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
+  Configurable<std::vector<int>> labelK0Spos{"labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> labelK0Sneg{"labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> labelProton{"labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
 #endif
 
   HistogramRegistry registry{
@@ -111,7 +110,7 @@ struct SelectTracks {
      // 3-prong histograms
      {"hpt_cuts_3prong", "tracks selected for 3-prong vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hdcatoprimxy_cuts_3prong", "tracks selected for 3-prong vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{400, -2., 2.}}}},
-     {"heta_cuts_3prong", "tracks selected for 3-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_3prong * 100), -1.2 * etamax_3prong, 1.2 * etamax_3prong}}}}}};
+     {"heta_cuts_3prong", "tracks selected for 3-prong vertexing;#it{#eta};entries", {HistType::kTH1F, {{static_cast<int>(1.2 * etamax_3prong * 100), -1.2 * etamax_3prong, 1.2 * etamax_3prong}}}},
      // bachelor (for cascades) histograms
      {"hpt_cuts_bach", "bachelor tracks selected for cascade vertexing;#it{p}_{T}^{track} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hdcatoprimxy_cuts_bach", "bachelor tracks selected for cascade vertexing;DCAxy to prim. vtx. (cm);entries", {HistType::kTH1F, {{100, -1., 1.}}}},
@@ -162,7 +161,7 @@ struct SelectTracks {
 #ifdef MY_DEBUG
       auto protonLabel = track.mcParticleId();
       //      LOG(INFO) << "Checking label " << protonLabel;
-      bool isProtonFromLc = isProtonFromLcFunc(protonLabel, v_labelProton);
+      bool isProtonFromLc = isProtonFromLcFunc(protonLabel, labelProton);
 
 #endif
 
@@ -171,7 +170,7 @@ struct SelectTracks {
       int status_prong = 7; // selection flag , 3 bits on
 
       auto trackPt = track.pt();
-      if (b_dovalplots.value) {
+      if (dovalplots.value) {
         registry.get<TH1>(HIST("hpt_nocuts"))->Fill(trackPt);
       }
 
@@ -182,9 +181,9 @@ struct SelectTracks {
       if (trackPt < ptmintrack_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " pt = " << track.pt() << " (cut " << d_ptMinTrackBach << ")");
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " pt = " << track.pt() << " (cut " << ptMinTrackBach << ")");
 
-      if (track.pt() < d_ptMinTrackBach) {
+      if (track.pt() < ptMinTrackBach) {
         status_prong = status_prong & ~(1 << 2);
       }
 
@@ -196,18 +195,18 @@ struct SelectTracks {
       if ((status_prong & (1 << 1)) && abs(trackEta) > etamax_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " eta = " << track.eta() << " (cut " << d_etaMaxBach << ")");
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " eta = " << track.eta() << " (cut " << etaMaxBach << ")");
 
-      if ((status_prong & (1 << 2)) && abs(track.eta()) > d_etaMaxBach) {
+      if ((status_prong & (1 << 2)) && abs(track.eta()) > etaMaxBach) {
         status_prong = status_prong & ~(1 << 2);
       }
 
       // quality cut
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " tpcNClsFound = " << track.tpcNClsFound() << " (cut " << d_tpcnclsfound.value << ")");
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " tpcNClsFound = " << track.tpcNClsFound() << " (cut " << tpcnclsfound.value << ")");
 
       if (doCutQuality.value && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
         UChar_t clustermap = track.itsClusterMap();
-        if (!(track.tpcNClsFound() >= d_tpcnclsfound.value && // is this the number of TPC clusters? It should not be used
+        if (!(track.tpcNClsFound() >= tpcnclsfound.value && // is this the number of TPC clusters? It should not be used
               track.flags() & o2::aod::track::ITSrefit &&
               (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)))) {
           status_prong = 0;
@@ -218,9 +217,9 @@ struct SelectTracks {
       // DCA cut
       array<float, 2> dca;
       if (status_prong > 0) {
-        double d_dcaToPrimXYMinBach_ptDep = d_dcaToPrimXYMinBach * TMath::Max(0., (1 - TMath::Floor(trackPt / d_dcaToPrimXYMaxPtBach)));
+        double dcaToPrimXYMinBach_ptDep = dcaToPrimXYMinBach * TMath::Max(0., (1 - TMath::Floor(trackPt / dcaToPrimXYMaxPtBach)));
         auto trackparvar0 = getTrackParCov(track);
-        if (!trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.)) { // get impact parameters
+        if (!trackparvar0.propagateParamToDCA(vtxXYZ, bz, &dca, 100.)) { // get impact parameters
           status_prong = 0;
         }
         if ((status_prong & (1 << 0)) && !isSelectedTrack(track, dca, Cand2Prong)) {
@@ -229,17 +228,17 @@ struct SelectTracks {
         if ((status_prong & (1 << 1)) && !isSelectedTrack(track, dca, Cand3Prong)) {
           status_prong = status_prong & ~(1 << 1);
         }
-        if ((status_prong & (1 << 2)) && (abs(dca[0]) < d_dcaToPrimXYMinBach_ptDep || abs(dca[0]) > d_dcaToPrimXYMaxBach)) {
+        if ((status_prong & (1 << 2)) && (abs(dca[0]) < dcaToPrimXYMinBach_ptDep || abs(dca[0]) > dcaToPrimXYMaxBach)) {
           MY_DEBUG_MSG(isProtonFromLc,
                        LOG(INFO) << "proton " << protonLabel << " did not pass DCA cut";
-                       LOG(INFO) << "dca[0] = " << dca[0] << " (lower cut " << d_dcaToPrimXYMinBach_ptDep << ", upper cut " << d_dcaToPrimXYMaxBach << ")";);
+                       LOG(INFO) << "dca[0] = " << dca[0] << " (lower cut " << dcaToPrimXYMinBach_ptDep << ", upper cut " << dcaToPrimXYMaxBach << ")";);
           status_prong = status_prong & ~(1 << 2);
         }
       }
       MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "status_prong = " << status_prong; printf("\n"));
 
       // fill histograms
-      if (b_dovalplots) {
+      if (dovalplots) {
         if (status_prong & (1 << 0)) {
           registry.get<TH1>(HIST("hpt_cuts_2prong"))->Fill(trackPt);
           registry.get<TH1>(HIST("hdcatoprimxy_cuts_2prong"))->Fill(dca[0]);
@@ -274,20 +273,20 @@ struct HFTrackIndexSkimsCreator {
   Produces<aod::HfCutStatusProng3> rowProng3CutStatus;
 
   //Configurable<int> nCollsMax{"nCollsMax", -1, "Max collisions per file"}; //can be added to run over limited collisions per file - for tesing purposes
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
+  Configurable<bool> dovalplots{"dovalplots", true, "fill histograms"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
   // event selection
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
   // vertexing parameters
-  Configurable<double> d_bz{"d_bz", 5., "magnetic field kG"};
-  Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
+  Configurable<double> bz{"bz", 5., "magnetic field kG"};
+  Configurable<bool> propdca{"propdca", true, "create tracks version propagated to PCA"};
   Configurable<bool> useAbsDCA{"useAbsDCA", true, "Minimise abs. distance rather than chi2"};
-  Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
-  Configurable<double> d_maxdzini{"d_maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
-  Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
-  Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
+  Configurable<double> maxr{"maxr", 200., "reject PCA's above this radius"};
+  Configurable<double> maxdzini{"maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> minparamchange{"minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
+  Configurable<double> minrelchi2change{"minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
   Configurable<HFTrackIndexSkimsCreatorConfigs> configs{"configs", {}, "configurables"};
-  Configurable<bool> b_debug{"b_debug", false, "debug mode"};
+  Configurable<bool> debug{"debug", false, "debug mode"};
 
   HistogramRegistry registry{
     "registry",
@@ -443,22 +442,22 @@ struct HFTrackIndexSkimsCreator {
 
     // 2-prong vertex fitter
     o2::vertexing::DCAFitterN<2> df2;
-    df2.setBz(d_bz);
-    df2.setPropagateToPCA(b_propdca);
-    df2.setMaxR(d_maxr);
-    df2.setMaxDZIni(d_maxdzini);
-    df2.setMinParamChange(d_minparamchange);
-    df2.setMinRelChi2Change(d_minrelchi2change);
+    df2.setBz(bz);
+    df2.setPropagateToPCA(propdca);
+    df2.setMaxR(maxr);
+    df2.setMaxDZIni(maxdzini);
+    df2.setMinParamChange(minparamchange);
+    df2.setMinRelChi2Change(minrelchi2change);
     df2.setUseAbsDCA(useAbsDCA);
 
     // 3-prong vertex fitter
     o2::vertexing::DCAFitterN<3> df3;
-    df3.setBz(d_bz);
-    df3.setPropagateToPCA(b_propdca);
-    df3.setMaxR(d_maxr);
-    df3.setMaxDZIni(d_maxdzini);
-    df3.setMinParamChange(d_minparamchange);
-    df3.setMinRelChi2Change(d_minrelchi2change);
+    df3.setBz(bz);
+    df3.setPropagateToPCA(propdca);
+    df3.setMaxR(maxr);
+    df3.setMaxDZIni(maxdzini);
+    df3.setMinParamChange(minparamchange);
+    df3.setMinRelChi2Change(minrelchi2change);
     df3.setUseAbsDCA(useAbsDCA);
 
     // used to calculate number of candidiates per event
@@ -500,7 +499,7 @@ struct HFTrackIndexSkimsCreator {
 
         int isSelected2ProngCand = n2ProngBit; //bitmap for checking status of two-prong candidates (1 is true, 0 is rejected)
 
-        if (b_debug) {
+        if (debug) {
           for (int n2 = 0; n2 < n2ProngDecays; n2++) {
             for (int n2cut = 0; n2cut < nCuts2Prong; n2cut++) {
               cutStatus2Prong[n2][n2cut] = true;
@@ -517,11 +516,11 @@ struct HFTrackIndexSkimsCreator {
           for (int n2 = 0; n2 < n2ProngDecays; n2++) {
             mass2ProngHypo1[n2] = RecoDecay::M(arrMom, arr2Mass1[n2]);
             mass2ProngHypo2[n2] = RecoDecay::M(arrMom, arr2Mass2[n2]);
-            if ((b_debug || (isSelected2ProngCand & 1 << n2)) && cut2ProngInvMassCandMin[n2] >= 0. && cut2ProngInvMassCandMax[n2] > 0.) { //no need to check isSelected2Prong but to avoid mistakes
+            if ((debug || (isSelected2ProngCand & 1 << n2)) && cut2ProngInvMassCandMin[n2] >= 0. && cut2ProngInvMassCandMax[n2] > 0.) { //no need to check isSelected2Prong but to avoid mistakes
               if ((mass2ProngHypo1[n2] < cut2ProngInvMassCandMin[n2] || mass2ProngHypo1[n2] >= cut2ProngInvMassCandMax[n2]) &&
                   (mass2ProngHypo2[n2] < cut2ProngInvMassCandMin[n2] || mass2ProngHypo2[n2] >= cut2ProngInvMassCandMax[n2])) {
                 isSelected2ProngCand = isSelected2ProngCand & ~(1 << n2);
-                if (b_debug) {
+                if (debug) {
                   cutStatus2Prong[n2][iDebugCut] = false;
                 }
               }
@@ -542,12 +541,12 @@ struct HFTrackIndexSkimsCreator {
             auto pVecCandProng2 = RecoDecay::PVec(pvec0, pvec1);
 
             // candidate pT cut
-            if ((b_debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngPtCandMin), std::end(cut2ProngPtCandMin), [](double d) { return d >= 0.; }) > 0)) {
+            if ((debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngPtCandMin), std::end(cut2ProngPtCandMin), [](double d) { return d >= 0.; }) > 0)) {
               double cand2ProngPt = RecoDecay::Pt(pVecCandProng2);
               for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-                if ((b_debug || (isSelected2ProngCand & 1 << n2)) && cand2ProngPt < cut2ProngPtCandMin[n2]) {
+                if ((debug || (isSelected2ProngCand & 1 << n2)) && cand2ProngPt < cut2ProngPtCandMin[n2]) {
                   isSelected2ProngCand = isSelected2ProngCand & ~(1 << n2);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus2Prong[n2][iDebugCut] = false;
                   }
                 }
@@ -556,12 +555,12 @@ struct HFTrackIndexSkimsCreator {
             iDebugCut++;
 
             // imp. par. product cut
-            if ((b_debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngImpParProductCandMax), std::end(cut2ProngImpParProductCandMax), [](double d) { return d < 100.; }) > 0)) {
+            if ((debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngImpParProductCandMax), std::end(cut2ProngImpParProductCandMax), [](double d) { return d < 100.; }) > 0)) {
               auto impParProduct = trackPos1.dcaPrim0() * trackNeg1.dcaPrim0();
               for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-                if ((b_debug || (isSelected2ProngCand & 1 << n2)) && impParProduct > cut2ProngImpParProductCandMax[n2]) {
+                if ((debug || (isSelected2ProngCand & 1 << n2)) && impParProduct > cut2ProngImpParProductCandMax[n2]) {
                   isSelected2ProngCand = isSelected2ProngCand & ~(1 << n2);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus2Prong[n2][iDebugCut] = false;
                   }
                 }
@@ -570,12 +569,12 @@ struct HFTrackIndexSkimsCreator {
             iDebugCut++;
 
             // CPA cut
-            if ((b_debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngCPACandMin), std::end(cut2ProngCPACandMin), [](double d) { return d > -2.; }) > 0)) {
+            if ((debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngCPACandMin), std::end(cut2ProngCPACandMin), [](double d) { return d > -2.; }) > 0)) {
               auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex2, pVecCandProng2);
               for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-                if ((b_debug || (isSelected2ProngCand & 1 << n2)) && cpa < cut2ProngCPACandMin[n2]) {
+                if ((debug || (isSelected2ProngCand & 1 << n2)) && cpa < cut2ProngCPACandMin[n2]) {
                   isSelected2ProngCand = isSelected2ProngCand & ~(1 << n2);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus2Prong[n2][iDebugCut] = false;
                   }
                 }
@@ -587,7 +586,7 @@ struct HFTrackIndexSkimsCreator {
               // fill table row
               rowTrackIndexProng2(trackPos1.globalIndex(),
                                   trackNeg1.globalIndex(), isSelected2ProngCand);
-              if (b_debug) {
+              if (debug) {
                 int Prong2CutStatus[n2ProngDecays];
                 for (int n2 = 0; n2 < n2ProngDecays; n2++) {
                   Prong2CutStatus[n2] = nCutStatus2ProngBit;
@@ -601,7 +600,7 @@ struct HFTrackIndexSkimsCreator {
               }
 
               // fill histograms
-              if (b_dovalplots) {
+              if (dovalplots) {
 
                 registry.get<TH1>(HIST("hvtx2_x"))->Fill(secondaryVertex2[0]);
                 registry.get<TH1>(HIST("hvtx2_y"))->Fill(secondaryVertex2[1]);
@@ -649,7 +648,7 @@ struct HFTrackIndexSkimsCreator {
 
             int isSelected3ProngCand = n3ProngBit;
 
-            if (b_debug) {
+            if (debug) {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 for (int n3cut = 0; n3cut < nCuts3Prong; n3cut++) {
                   cutStatus3Prong[n3][n3cut] = true;
@@ -671,13 +670,13 @@ struct HFTrackIndexSkimsCreator {
                 if ((mass3ProngHypo1[n3] < cut3ProngInvMassCandMin[n3] || mass3ProngHypo1[n3] >= cut3ProngInvMassCandMax[n3]) &&
                     (mass3ProngHypo2[n3] < cut3ProngInvMassCandMin[n3] || mass3ProngHypo2[n3] >= cut3ProngInvMassCandMax[n3])) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
             }
-            if (!b_debug && isSelected3ProngCand == 0) {
+            if (!debug && isSelected3ProngCand == 0) {
               continue;
             }
             iDebugCut++;
@@ -706,11 +705,11 @@ struct HFTrackIndexSkimsCreator {
                 if (cand3ProngPt < cut3ProngPtCandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
                 }
-                if (b_debug) {
+                if (debug) {
                   cutStatus3Prong[n3][iDebugCut] = false;
                 }
               }
-              if (!b_debug && isSelected3ProngCand == 0) {
+              if (!debug && isSelected3ProngCand == 0) {
                 continue; //this and all further instances should be changed if 4 track loop is added
               }
             }
@@ -723,11 +722,11 @@ struct HFTrackIndexSkimsCreator {
                 if ((isSelected3ProngCand & 1 << n3) && cpa < cut3ProngCPACandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
                 }
-                if (b_debug) {
+                if (debug) {
                   cutStatus3Prong[n3][iDebugCut] = false;
                 }
               }
-              if (!b_debug && isSelected3ProngCand == 0) {
+              if (!debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -739,12 +738,12 @@ struct HFTrackIndexSkimsCreator {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if ((isSelected3ProngCand & 1 << n3) && decayLength < cut3ProngDecLenCandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
-              if (!b_debug && isSelected3ProngCand == 0) {
+              if (!debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -755,7 +754,7 @@ struct HFTrackIndexSkimsCreator {
                                 trackNeg1.globalIndex(),
                                 trackPos2.globalIndex(), isSelected3ProngCand);
 
-            if (b_debug) {
+            if (debug) {
               int Prong3CutStatus[n3ProngDecays];
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 Prong3CutStatus[n3] = nCutStatus3ProngBit;
@@ -769,7 +768,7 @@ struct HFTrackIndexSkimsCreator {
             }
 
             // fill histograms
-            if (b_dovalplots) {
+            if (dovalplots) {
 
               registry.get<TH1>(HIST("hvtx3_x"))->Fill(secondaryVertex3[0]);
               registry.get<TH1>(HIST("hvtx3_y"))->Fill(secondaryVertex3[1]);
@@ -821,7 +820,7 @@ struct HFTrackIndexSkimsCreator {
 
             int isSelected3ProngCand = n3ProngBit;
 
-            if (b_debug) {
+            if (debug) {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 for (int n3cut = 0; n3cut < nCuts3Prong; n3cut++) {
                   cutStatus3Prong[n3][n3cut] = true;
@@ -843,13 +842,13 @@ struct HFTrackIndexSkimsCreator {
                 if ((mass3ProngHypo1[n3] < cut3ProngInvMassCandMin[n3] || mass3ProngHypo1[n3] >= cut3ProngInvMassCandMax[n3]) &&
                     (mass3ProngHypo2[n3] < cut3ProngInvMassCandMin[n3] || mass3ProngHypo2[n3] >= cut3ProngInvMassCandMax[n3])) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
             }
-            if (!b_debug && isSelected3ProngCand == 0) {
+            if (!debug && isSelected3ProngCand == 0) {
               continue;
             }
             iDebugCut++;
@@ -878,12 +877,12 @@ struct HFTrackIndexSkimsCreator {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if (cand3ProngPt < cut3ProngPtCandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
-              if (!b_debug && isSelected3ProngCand == 0) {
+              if (!debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -895,12 +894,12 @@ struct HFTrackIndexSkimsCreator {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if ((isSelected3ProngCand & 1 << n3) && cpa < cut3ProngCPACandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
-              if (!b_debug && isSelected3ProngCand == 0) {
+              if (!debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -912,12 +911,12 @@ struct HFTrackIndexSkimsCreator {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if ((isSelected3ProngCand & 1 << n3) && decayLength < cut3ProngDecLenCandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (b_debug) {
+                  if (debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
-              if (!b_debug && isSelected3ProngCand == 0) {
+              if (!debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -928,7 +927,7 @@ struct HFTrackIndexSkimsCreator {
                                 trackPos1.globalIndex(),
                                 trackNeg2.globalIndex(), isSelected3ProngCand);
 
-            if (b_debug) {
+            if (debug) {
               int Prong3CutStatus[n3ProngDecays];
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 Prong3CutStatus[n3] = nCutStatus3ProngBit;
@@ -942,7 +941,7 @@ struct HFTrackIndexSkimsCreator {
             }
 
             // fill histograms
-            if (b_dovalplots) {
+            if (dovalplots) {
 
               registry.get<TH1>(HIST("hvtx3_x"))->Fill(secondaryVertex3[0]);
               registry.get<TH1>(HIST("hvtx3_y"))->Fill(secondaryVertex3[1]);
@@ -1011,49 +1010,49 @@ struct HFTrackIndexSkimsCreatorCascades {
   //  Produces<aod::HfTrackIndexProng2> rowTrackIndexCasc;
 
   // whether to do or not validation plots
-  Configurable<bool> b_doValPlots{"b_doValPlots", true, "fill histograms"};
+  Configurable<bool> doValPlots{"doValPlots", true, "fill histograms"};
 
   // event selection
   //Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
 
   // vertexing parameters
-  Configurable<double> d_bZ{"d_bZ", 5., "magnetic field"};
-  Configurable<bool> b_propDCA{"b_propDCA", true, "create tracks version propagated to PCA"};
-  Configurable<double> d_maxR{"d_maxR", 200., "reject PCA's above this radius"};
-  Configurable<double> d_maxDZIni{"d_maxDZIni", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
-  Configurable<double> d_minParamChange{"d_minParamChange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
-  Configurable<double> d_minRelChi2Change{"d_minRelChi2Change", 0.9, "stop iterations if chi2/chi2old > this"};
-  Configurable<bool> d_UseAbsDCA{"d_UseAbsDCA", true, "Use Abs DCAs"};
+  Configurable<double> bZ{"bZ", 5., "magnetic field"};
+  Configurable<bool> propDCA{"propDCA", true, "create tracks version propagated to PCA"};
+  Configurable<double> maxR{"maxR", 200., "reject PCA's above this radius"};
+  Configurable<double> maxDZIni{"maxDZIni", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> minParamChange{"minParamChange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
+  Configurable<double> minRelChi2Change{"minRelChi2Change", 0.9, "stop iterations if chi2/chi2old > this"};
+  Configurable<bool> UseAbsDCA{"UseAbsDCA", true, "Use Abs DCAs"};
 
   // quality cut
   Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
 
   // track cuts for V0 daughters
-  Configurable<bool> b_TPCRefit{"b_TPCRefit", true, "request TPC refit V0 daughters"};
+  Configurable<bool> TPCRefit{"TPCRefit", true, "request TPC refit V0 daughters"};
   Configurable<int> i_minCrossedRows{"i_minCrossedRows", 50, "min crossed rows V0 daughters"};
-  Configurable<double> d_etaMax{"d_etaMax", 1.1, "max. pseudorapidity V0 daughters"};
-  Configurable<double> d_ptMin{"d_ptMin", 0.05, "min. pT V0 daughters"};
+  Configurable<double> etaMax{"etaMax", 1.1, "max. pseudorapidity V0 daughters"};
+  Configurable<double> ptMin{"ptMin", 0.05, "min. pT V0 daughters"};
 
   // bachelor cuts
   //  Configurable<float> dcabachtopv{"dcabachtopv", .1, "DCA Bach To PV"};
   //  Configurable<double> ptminbach{"ptminbach", -1., "min. track pT bachelor"};
 
   // v0 cuts
-  Configurable<double> d_cosPAV0{"d_cosPAV0", .995, "CosPA V0"};                  // as in the task that create the V0s
-  Configurable<double> d_dcaXYNegToPV{"d_dcaXYNegToPV", .1, "DCA_XY Neg To PV"};  // check: in HF Run 2, it was 0 at filtering
-  Configurable<double> d_dcaXYPosToPV{"d_dcaXYPosToPVS", .1, "DCA_XY Pos To PV"}; // check: in HF Run 2, it was 0 at filtering
-  Configurable<double> d_cutInvMassV0{"d_cutInvMassV0", 0.05, "V0 candidate invariant mass difference wrt PDG"};
+  Configurable<double> cosPAV0{"cosPAV0", .995, "CosPA V0"};                  // as in the task that create the V0s
+  Configurable<double> dcaXYNegToPV{"dcaXYNegToPV", .1, "DCA_XY Neg To PV"};  // check: in HF Run 2, it was 0 at filtering
+  Configurable<double> dcaXYPosToPV{"dcaXYPosToPVS", .1, "DCA_XY Pos To PV"}; // check: in HF Run 2, it was 0 at filtering
+  Configurable<double> cutInvMassV0{"cutInvMassV0", 0.05, "V0 candidate invariant mass difference wrt PDG"};
 
   // cascade cuts
-  Configurable<double> d_cutCascPtCandMin{"d_cutCascPtCandMin", -1., "min. pT of the 2-prong candidate"};              // PbPb 2018: use 1
-  Configurable<double> d_cutCascInvMassLc{"d_cutCascInvMassLc", 1., "Lc candidate invariant mass difference wrt PDG"}; // for PbPb 2018: use 0.2
+  Configurable<double> cutCascPtCandMin{"cutCascPtCandMin", -1., "min. pT of the 2-prong candidate"};              // PbPb 2018: use 1
+  Configurable<double> cutCascInvMassLc{"cutCascInvMassLc", 1., "Lc candidate invariant mass difference wrt PDG"}; // for PbPb 2018: use 0.2
   //Configurable<double> cutCascDCADaughters{"cutCascDCADaughters", .1, "DCA between V0 and bachelor in cascade"};
 
   // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
-  Configurable<std::vector<int>> v_labelProton{"v_labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
+  Configurable<std::vector<int>> labelK0Spos{"labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> labelK0Sneg{"labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> labelProton{"labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
 #endif
 
   // histograms
@@ -1072,7 +1071,7 @@ struct HFTrackIndexSkimsCreatorCascades {
   double massP = RecoDecay::getMassPDG(kProton);
   double massK0s = RecoDecay::getMassPDG(kK0Short);
   double massPi = RecoDecay::getMassPDG(kPiPlus);
-  double massLc = RecoDecay::getMassPDG(pdg::code::kLambdaCPlus);
+  double massLc = RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus);
   double mass2K0sP{0.}; // WHY HERE?
 
   using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
@@ -1091,14 +1090,14 @@ struct HFTrackIndexSkimsCreatorCascades {
 
     //Define o2 fitter, 2-prong
     o2::vertexing::DCAFitterN<2> fitter;
-    fitter.setBz(d_bZ);
-    fitter.setPropagateToPCA(b_propDCA);
-    fitter.setMaxR(d_maxR);
-    fitter.setMinParamChange(d_minParamChange);
-    fitter.setMinRelChi2Change(d_minRelChi2Change);
+    fitter.setBz(bZ);
+    fitter.setPropagateToPCA(propDCA);
+    fitter.setMaxR(maxR);
+    fitter.setMinParamChange(minParamChange);
+    fitter.setMinRelChi2Change(minRelChi2Change);
     //fitter.setMaxDZIni(1e9); // used in cascadeproducer.cxx, but not for the 2 prongs
     //fitter.setMaxChi2(1e9);  // used in cascadeproducer.cxx, but not for the 2 prongs
-    fitter.setUseAbsDCA(d_UseAbsDCA);
+    fitter.setUseAbsDCA(UseAbsDCA);
 
     // fist we loop over the bachelor candidate
 
@@ -1108,7 +1107,7 @@ struct HFTrackIndexSkimsCreatorCascades {
       MY_DEBUG_MSG(1, printf("\n"); LOG(INFO) << "Bachelor loop");
 #ifdef MY_DEBUG
       auto protonLabel = bach.mcParticleId();
-      bool isProtonFromLc = isProtonFromLcFunc(protonLabel, v_labelProton);
+      bool isProtonFromLc = isProtonFromLcFunc(protonLabel, labelProton);
 #endif
       // selections on the bachelor
       // pT cut
@@ -1117,7 +1116,7 @@ struct HFTrackIndexSkimsCreatorCascades {
         continue;
       }
 
-      if (b_TPCRefit) {
+      if (TPCRefit) {
         if (!(bach.trackType() & o2::aod::track::TPCrefit)) {
           MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << ": rejected due to TPCrefit");
           continue;
@@ -1139,9 +1138,9 @@ struct HFTrackIndexSkimsCreatorCascades {
 #ifdef MY_DEBUG
         auto labelPos = posTrack.mcParticleId();
         auto labelNeg = negTrack.mcParticleId();
-        bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
+        bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, labelK0Spos, labelK0Sneg);
 
-        bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, v_labelProton, v_labelK0Spos, v_labelK0Sneg);
+        bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, labelProton, labelK0Spos, labelK0Sneg);
 #endif
         MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S from Lc found, posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
 
@@ -1152,7 +1151,7 @@ struct HFTrackIndexSkimsCreatorCascades {
 
         MY_DEBUG_MSG(isLc, LOG(INFO) << "Combination of K0S and p which correspond to a Lc found!");
 
-        if (b_TPCRefit) {
+        if (TPCRefit) {
           if (!(posTrack.trackType() & o2::aod::track::TPCrefit) ||
               !(negTrack.trackType() & o2::aod::track::TPCrefit)) {
             MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to TPCrefit");
@@ -1165,39 +1164,39 @@ struct HFTrackIndexSkimsCreatorCascades {
           continue;
         }
         //
-        // if (posTrack.dcaXY() < d_dcaXYPosToPV ||   // to the filters?
-        //     negTrack.dcaXY() < d_dcaXYNegToPV) {
+        // if (posTrack.dcaXY() < dcaXYPosToPV ||   // to the filters?
+        //     negTrack.dcaXY() < dcaXYNegToPV) {
         //   continue;
         // }
         //
-        if (posTrack.pt() < d_ptMin || // to the filters? I can't for now, it is not in the tables
-            negTrack.pt() < d_ptMin) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to minPt --> pos " << posTrack.pt() << ", neg " << negTrack.pt() << " (cut " << d_ptMin << ")");
+        if (posTrack.pt() < ptMin || // to the filters? I can't for now, it is not in the tables
+            negTrack.pt() < ptMin) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to minPt --> pos " << posTrack.pt() << ", neg " << negTrack.pt() << " (cut " << ptMin << ")");
           continue;
         }
-        if (abs(posTrack.eta()) > d_etaMax || // to the filters? I can't for now, it is not in the tables
-            abs(negTrack.eta()) > d_etaMax) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to eta --> pos " << posTrack.eta() << ", neg " << negTrack.eta() << " (cut " << d_etaMax << ")");
+        if (abs(posTrack.eta()) > etaMax || // to the filters? I can't for now, it is not in the tables
+            abs(negTrack.eta()) > etaMax) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to eta --> pos " << posTrack.eta() << ", neg " << negTrack.eta() << " (cut " << etaMax << ")");
           continue;
         }
 
         // V0 invariant mass selection
-        if (std::abs(v0.mK0Short() - massK0s) > d_cutInvMassV0) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to invMass --> " << v0.mK0Short() - massK0s << " (cut " << d_cutInvMassV0 << ")");
+        if (std::abs(v0.mK0Short() - massK0s) > cutInvMassV0) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to invMass --> " << v0.mK0Short() - massK0s << " (cut " << cutInvMassV0 << ")");
           continue; // should go to the filter, but since it is a dynamic column, I cannot use it there
         }
 
         // V0 cosPointingAngle selection
-        if (v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < d_cosPAV0) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to cosPA --> " << v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) << " (cut " << d_cosPAV0 << ")");
+        if (v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < cosPAV0) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to cosPA --> " << v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) << " (cut " << cosPAV0 << ")");
           continue;
         }
         MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "KEPT! K0S from Lc with daughters " << labelPos << " and " << labelNeg);
 
         auto posTrackParCov = getTrackParCov(posTrack);
-        posTrackParCov.propagateTo(v0.posX(), d_bZ); // propagate the track to the X closest to the V0 vertex
+        posTrackParCov.propagateTo(v0.posX(), bZ); // propagate the track to the X closest to the V0 vertex
         auto negTrackParCov = getTrackParCov(negTrack);
-        negTrackParCov.propagateTo(v0.negX(), d_bZ); // propagate the track to the X closest to the V0 vertex
+        negTrackParCov.propagateTo(v0.negX(), bZ); // propagate the track to the X closest to the V0 vertex
         std::array<float, 3> pVecV0 = {0., 0., 0.};
         std::array<float, 3> pVecBach = {0., 0., 0.};
 
@@ -1224,8 +1223,8 @@ struct HFTrackIndexSkimsCreatorCascades {
                              pVecBach[2] + pVecV0[2]};
 
         // cascade candidate pT cut
-        if (RecoDecay::Pt(pVecCandCasc) < d_cutCascPtCandMin) {
-          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg << " rejected due to pt cut: " << RecoDecay::Pt(pVecCandCasc) << " (cut " << d_cutCascPtCandMin << ")");
+        if (RecoDecay::Pt(pVecCandCasc) < cutCascPtCandMin) {
+          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg << " rejected due to pt cut: " << RecoDecay::Pt(pVecCandCasc) << " (cut " << cutCascPtCandMin << ")");
           continue;
         }
 
@@ -1234,8 +1233,8 @@ struct HFTrackIndexSkimsCreatorCascades {
         auto arrMom = array{pVecBach, pVecV0};
         mass2K0sP = RecoDecay::M(arrMom, array{massP, massK0s});
         // invariant-mass cut
-        if ((d_cutCascInvMassLc >= 0.) && (std::abs(mass2K0sP - massLc) > d_cutCascInvMassLc)) {
-          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg << " rejected due to invMass cut: " << mass2K0sP << ", mass Lc " << massLc << " (cut " << d_cutCascInvMassLc << ")");
+        if ((cutCascInvMassLc >= 0.) && (std::abs(mass2K0sP - massLc) > cutCascInvMassLc)) {
+          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg << " rejected due to invMass cut: " << mass2K0sP << ", mass Lc " << massLc << " (cut " << cutCascInvMassLc << ")");
           continue;
         }
 
@@ -1250,7 +1249,7 @@ struct HFTrackIndexSkimsCreatorCascades {
                           v0.globalIndex(),
                           1); // 1 should be the value for the Lc
         // fill histograms
-        if (b_doValPlots) {
+        if (doValPlots) {
           MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc && isLc, LOG(INFO) << "KEPT! True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg);
           registry.get<TH1>(HIST("hvtx2_x"))->Fill(posCasc[0]);
           registry.get<TH1>(HIST("hvtx2_y"))->Fill(posCasc[1]);

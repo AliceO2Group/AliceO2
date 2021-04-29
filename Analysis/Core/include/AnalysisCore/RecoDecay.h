@@ -874,7 +874,7 @@ class RecoDecay
         *listIndexDaughters = arrAllDaughtersIndex;
       }
     }
-    //Printf("MC Gen: Accepted: m: %ld", candidate.globalIndex());
+    //Printf("MC Gen: Accepted: m: %d", candidate.globalIndex());
     if (sign) {
       *sign = sgn;
     }

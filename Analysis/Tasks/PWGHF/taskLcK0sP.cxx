@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file taskLcK0sp.cxx
-/// \brief LcK0sp analysis task
+/// \brief Lc -> K0S+p analysis task
 ///
 /// \author Chiara Zampolli, <Chiara.Zampolli@cern.ch>, CERN
 ///
@@ -19,13 +19,11 @@
 #include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_casc;
 using namespace o2::framework::expressions;
-using namespace o2::analysis;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -39,21 +37,21 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct TaskLcK0sP {
   HistogramRegistry registry{
     "registry",
-    {{"hmass", "cascade candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0.0f, 5.0f}}}},
-     {"hptcand", "cascade candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
-     {"hptbach", "cascade candidates;bachelor #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
-     {"hptv0", "cascade candidates;v0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
-     {"hd0bach", "cascade candidates;bachelor DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1.0f, 1.0f}}}},
-     {"hd0v0pos", "cascade candidates;pos daugh v0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -5.0f, 5.0f}}}},
-     {"hd0v0neg", "cascade candidates;neg daugh v0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -5.0f, 5.0f}}}},
-     {"hv0CPA", "cascade candidates;v0 cosine of pointing angle;entries", {HistType::kTH1F, {{110, -0.98f, 1.1f}}}},
+    {{"hMass", "cascade candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0.0f, 5.0f}}}},
+     {"hPtCand", "cascade candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
+     {"hPtBach", "cascade candidates;bachelor #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
+     {"hPtV0", "cascade candidates;v0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0.0f, 10.0f}}}},
+     {"hd0Bach", "cascade candidates;bachelor DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -1.0f, 1.0f}}}},
+     {"hd0V0pos", "cascade candidates;pos daugh v0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -5.0f, 5.0f}}}},
+     {"hd0V0neg", "cascade candidates;neg daugh v0 DCAxy to prim. vertex (cm);entries", {HistType::kTH1F, {{100, -5.0f, 5.0f}}}},
+     {"hV0CPA", "cascade candidates;v0 cosine of pointing angle;entries", {HistType::kTH1F, {{110, -0.98f, 1.1f}}}},
      {"hEta", "cascade candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -2.0f, 2.0f}}}},
-     {"hselectionstatus", "cascade candidates;selection status;entries", {HistType::kTH1F, {{5, -0.5f, 4.5f}}}}}};
+     {"hSelectionStatus", "cascade candidates;selection status;entries", {HistType::kTH1F, {{5, -0.5f, 4.5f}}}}}};
 
-  Configurable<int> d_selectionFlagLcK0sp{"d_selectionFlagLcK0sp", 1, "Selection Flag for LcK0sp"};
+  Configurable<int> selectionFlagLcK0sp{"selectionFlagLcK0sp", 1, "Selection Flag for LcK0sp"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_lc_k0sp::isSelLcK0sP >= d_selectionFlagLcK0sp);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_lc_k0sp::isSelLcK0sP >= selectionFlagLcK0sp);
 
   void process(soa::Filtered<soa::Join<aod::HfCandCascExt, aod::HFSelLcK0sPCandidate>> const& candidates)
   {
@@ -70,16 +68,16 @@ struct TaskLcK0sP {
         continue;
       }
 
-      registry.fill(HIST("hmass"), InvMassLcToK0sP(candidate));
-      registry.fill(HIST("hptcand"), candidate.pt());
-      registry.fill(HIST("hptbach"), candidate.ptProng0());
-      registry.fill(HIST("hptv0"), candidate.ptProng1());
-      registry.fill(HIST("hd0bach"), candidate.impactParameter0());
-      registry.fill(HIST("hd0v0pos"), candidate.dcapostopv());
-      registry.fill(HIST("hd0v0neg"), candidate.dcanegtopv());
-      registry.fill(HIST("hv0CPA"), candidate.v0cosPA());
+      registry.fill(HIST("hMass"), InvMassLcToK0sP(candidate));
+      registry.fill(HIST("hPtCand"), candidate.pt());
+      registry.fill(HIST("hPtBach"), candidate.ptProng0());
+      registry.fill(HIST("hPtV0"), candidate.ptProng1());
+      registry.fill(HIST("hd0Bach"), candidate.impactParameter0());
+      registry.fill(HIST("hd0V0pos"), candidate.dcapostopv());
+      registry.fill(HIST("hd0V0neg"), candidate.dcanegtopv());
+      registry.fill(HIST("hV0CPA"), candidate.v0cosPA());
       registry.fill(HIST("hEta"), candidate.eta());
-      registry.fill(HIST("hselectionstatus"), candidate.isSelLcK0sP());
+      registry.fill(HIST("hSelectionStatus"), candidate.isSelLcK0sP());
     }
   }
 };
@@ -88,21 +86,21 @@ struct TaskLcK0sP {
 struct TaskLcK0SpMC {
   HistogramRegistry registry{
     "registry",
-    {{"hPtRecSig", "cascade candidates (matched);#it{p}_{T}^{rec.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+    {{"hPtRecSig", "cascade candidates (MC);#it{p}_{T}^{rec.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hPtRecBg", "cascade candidates (unmatched);#it{p}_{T}^{rec.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hPtGen", "cascade (matched);#it{p}_{T}^{gen.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hPtGenSig", "cascade candidates (matched);#it{p}_{T}^{gen.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtGen", "cascade (MC);#it{p}_{T}^{gen.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hPtGenSig", "cascade candidates (MC);#it{p}_{T}^{gen.} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
      {"hCPARecSig", "cascade candidates (matched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
      {"hCPARecBg", "cascade candidates (unmatched);cosine of pointing angle;entries", {HistType::kTH1F, {{110, -1.1, 1.1}}}},
      {"hEtaRecSig", "cascade candidates (matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
      {"hEtaRecBg", "cascade candidates (unmatched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}},
-     {"hEtaGen", "MC particles (matched);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
+     {"hEtaGen", "MC particles (MC);#it{#eta};entries", {HistType::kTH1F, {{100, -2., 2.}}}}}};
 
-  Configurable<int> d_selectionFlagLc{"d_selectionFlagLc", 1, "Selection Flag for Lc"};
-  Configurable<int> d_selectionFlagLcbar{"d_selectionFlagLcbar", 1, "Selection Flag for Lcbar"};
+  Configurable<int> selectionFlagLc{"selectionFlagLc", 1, "Selection Flag for Lc"};
+  Configurable<int> selectionFlagLcbar{"selectionFlagLcbar", 1, "Selection Flag for Lcbar"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_lc_k0sp::isSelLcK0sP >= d_selectionFlagLc || aod::hf_selcandidate_lc_k0sp::isSelLcK0sP >= d_selectionFlagLcbar);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_lc_k0sp::isSelLcK0sP >= selectionFlagLc || aod::hf_selcandidate_lc_k0sp::isSelLcK0sP >= selectionFlagLcbar);
 
   void process(soa::Filtered<soa::Join<aod::HfCandCascExt, aod::HFSelLcK0sPCandidate, aod::HfCandCascadeMCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandCascadeMCGen> const& particlesMC, aod::BigTracksMC const& tracks)
@@ -116,7 +114,7 @@ struct TaskLcK0SpMC {
       }
       if (std::abs(candidate.flagMCMatchRec()) == 1) {
         // Get the corresponding MC particle.
-        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandCascadeMCGen>>(), pdg::code::kLambdaCPlus, true);
+        auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandCascadeMCGen>>(), pdg::Code::kLambdaCPlus, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
         registry.fill(HIST("hPtGenSig"), particleMother.pt()); // gen. level pT
         registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
