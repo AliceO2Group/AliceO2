@@ -154,6 +154,9 @@ struct HFD0CandidateSelector {
 
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
+    TrackSelectorPID selectorKaon(kPiPlus);
+    selectorKaon.setPDG(kKPlus);
+
     for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
 
       // final selection flag : 0-rejected  1-accepted
@@ -195,8 +198,8 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      TrackSelectorPID selectorKaon(kPiPlus);
-      selectorKaon.setPDG(kKPlus);
+      auto isTrackValid = selectorKaon.isValidTrackPIDTPC(trackPos);
+      auto isTrackPosKaon = selectorKaon.isSelectedTrackPIDTPC(trackPos);
 
       int pionPlus = pid::getStatusTrackPIDAll(trackPos, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
       int kaonMinus = pid::getStatusTrackPIDAll(trackNeg, kKPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);

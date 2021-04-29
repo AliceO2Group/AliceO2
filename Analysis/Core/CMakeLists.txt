@@ -11,7 +11,6 @@
 o2_add_library(AnalysisCore
                SOURCES  src/CorrelationContainer.cxx
                         src/TrackSelection.cxx
-                        src/TrackSelectorPID.cxx
                         src/TriggerAliases.cxx
                         src/HFConfigurables.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
@@ -20,7 +19,6 @@ o2_target_root_dictionary(AnalysisCore
               HEADERS include/AnalysisCore/CorrelationContainer.h
                       include/AnalysisCore/TrackSelection.h
                       include/AnalysisCore/TrackSelectionDefaults.h
-                      include/AnalysisCore/TrackSelectorPID.h
                       include/AnalysisCore/TriggerAliases.h
                       include/AnalysisCore/MC.h
                       include/AnalysisCore/HFConfigurables.h
