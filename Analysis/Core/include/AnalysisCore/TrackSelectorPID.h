@@ -38,10 +38,17 @@ class TrackSelectorPID
   /// Default constructor
   TrackSelectorPID() = default;
 
+  /// Constructor with PDG code initialisation
+  explicit TrackSelectorPID(int pdg);
+
   /// Default destructor
   ~TrackSelectorPID() = default;
 
+  /// PDG code setter
+  void setPDG(int pdg) { mPdg = std::abs(pdg); }
+
  private:
+  uint mPdg = kPiPlus; // PDG code of the expected particle
 
   ClassDef(TrackSelectorPID, 1);
 };

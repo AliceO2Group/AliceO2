@@ -195,7 +195,8 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      TrackSelectorPID selector;
+      TrackSelectorPID selectorKaon(kPiPlus);
+      selectorKaon.setPDG(kKPlus);
 
       int pionPlus = pid::getStatusTrackPIDAll(trackPos, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
       int kaonMinus = pid::getStatusTrackPIDAll(trackNeg, kKPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);

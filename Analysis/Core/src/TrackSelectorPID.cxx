@@ -14,3 +14,8 @@
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
 #include "AnalysisCore/TrackSelectorPID.h"
+
+/// Constructor with PDG code initialisation
+TrackSelectorPID::TrackSelectorPID(int pdg)
+  : mPdg(std::abs(pdg))
+{}
