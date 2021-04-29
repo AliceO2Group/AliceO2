@@ -21,10 +21,26 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 template <>
-GPUdii() void GPUTRDTrackerKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+GPUdi() auto& GPUTRDTrackerKernels::getTracker<0>(processorType& processors)
 {
-  GPUCA_OPENMP(parallel for if(!processors.trdTracker.GetRec().GetProcessingSettings().ompKernels) num_threads(processors.trdTracker.GetRec().GetProcessingSettings().ompThreads))
-  for (int i = get_global_id(0); i < processors.trdTracker.NTracks(); i += get_global_size(0)) {
-    processors.trdTracker.DoTrackingThread(i, get_global_id(0));
+  return processors.trdTrackerGPU;
+}
+
+template <>
+GPUdi() auto& GPUTRDTrackerKernels::getTracker<1>(processorType& processors)
+{
+  return processors.trdTrackerO2;
+}
+
+template <int I>
+GPUdii() void GPUTRDTrackerKernels::Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
+{
+  auto& trdTracker = getTracker<I>(processors);
+  GPUCA_OPENMP(parallel for if(!trdTracker.GetRec().GetProcessingSettings().ompKernels) num_threads(trdTracker.GetRec().GetProcessingSettings().ompThreads))
+  for (int i = get_global_id(0); i < trdTracker.NTracks(); i += get_global_size(0)) {
+    trdTracker.DoTrackingThread(i, get_global_id(0));
   }
 }
+
+template GPUd() void GPUTRDTrackerKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
+template GPUd() void GPUTRDTrackerKernels::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
