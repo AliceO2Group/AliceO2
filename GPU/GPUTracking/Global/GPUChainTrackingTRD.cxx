@@ -25,11 +25,11 @@ using namespace o2::trd;
 
 int GPUChainTracking::RunTRDTracking()
 {
-  if (!processors()->trdTracker.IsInitialized()) {
+  if (!processors()->trdTrackerGPU.IsInitialized()) {
     return 1;
   }
 
-  GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
+  GPUTRDTrackerGPU& Tracker = processors()->trdTrackerGPU;
   Tracker.Reset();
   if (mIOPtrs.nTRDTracklets == 0) {
     return 0;
@@ -72,14 +72,14 @@ int GPUChainTracking::DoTRDGPUTracking()
 {
 #ifdef HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::TRDTracking;
-  GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
-  GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
+  GPUTRDTrackerGPU& Tracker = processors()->trdTrackerGPU;
+  GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTrackerGPU : Tracker;
 
   const auto& threadContext = GetThreadContext();
   SetupGPUProcessor(&Tracker, false);
   TrackerShadow.OverrideGPUGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
 
-  WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTracker - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
+  WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTrackerGPU - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
   TransferMemoryResourcesToGPU(RecoStep::TRDTracking, &Tracker, 0);
 
   runKernel<GPUTRDTrackerKernels>(GetGridAuto(0), krnlRunRangeNone);

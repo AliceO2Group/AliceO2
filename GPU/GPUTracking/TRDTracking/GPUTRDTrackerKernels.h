@@ -27,6 +27,10 @@ class GPUTRDTrackerKernels : public GPUKernelTemplate
   GPUhdi() CONSTEXPR static GPUDataTypes::RecoStep GetRecoStep() { return GPUCA_RECO_STEP::TRDTracking; }
   template <int iKernel = defaultKernel>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
+
+ private:
+  template <int I>
+  GPUd() static auto& getTracker(processorType& processors);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
