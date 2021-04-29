@@ -34,7 +34,7 @@ class GPUTPCGMPolynomialField;
 #include "GPUReconstruction.h"
 #ifdef WITH_OPENMP
 #include <omp.h>
-#endif
+#endif // WITH_OPENMP
 #include <chrono>
 #include <vector>
 #ifdef GPUCA_ALIROOT_LIB
@@ -42,9 +42,9 @@ class GPUTPCGMPolynomialField;
 #include "AliMCParticle.h"
 #include "AliMCEvent.h"
 //static const float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
-#else
+#else  // GPUCA_ALIROOT_LIB
 //static const float piMass = 0.139f;
-#endif
+#endif // !GPUCA_ALIROOT_LIB
 
 #include "GPUChainTracking.h"
 
@@ -279,7 +279,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
     for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
       if (mTracks[iTrk].GetNtracklets() > 3) {
         auto trkCopy = mTracks[iTrk];
-        PROP prop(&Param().polynomialField);
+        PROP prop(getPropagatorParam());
         prop.setFitInProjections(true);
         prop.setTrack(&trkCopy);
         FillImpactAngleHistograms(&prop, &trkCopy);
@@ -447,6 +447,24 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackRefs(const int trackID, boo
 }
 #endif //! GPUCA_GPUCODE
 
+template <>
+GPUdi() const GPUTRDPropagatorGPU::propagatorParam* GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>::getPropagatorParam()
+{
+  return &Param().polynomialField;
+}
+
+template <class TRDTRK, class PROP>
+GPUdi() const typename PROP::propagatorParam* GPUTRDTracker_t<TRDTRK, PROP>::getPropagatorParam()
+{
+#ifdef GPUCA_GPUCODE
+  return GetConstantMem()->calibObjects.o2Propagator;
+#elif defined GPUCA_ALIROOT_LIB
+  return nullptr;
+#else
+  return o2::base::Propagator::Instance();
+#endif
+}
+
 template <class TRDTRK, class PROP>
 GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackTRDCandidate(const TRDTRK& trk) const
 {
@@ -566,7 +584,7 @@ GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DoTrackingThread(int iTrk, int thread
       return;
     }
   }
-  PROP prop(&Param().polynomialField);
+  PROP prop(getPropagatorParam());
   mTracks[iTrk].SetChi2(Param().rec.trdPenaltyChi2);
   auto trkStart = mTracks[iTrk];
   for (int iColl = 0; iColl < nCollisionIds; ++iColl) {
@@ -1524,11 +1542,9 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
-// instantiate version for non-GPU data types
+// instantiate version for AliExternalTrackParam / o2::TrackParCov data types
 template class GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator>;
-#endif
-// always instantiate version for GPU data types
+// always instantiate version for GPU Track Model
 template class GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

@@ -222,13 +222,11 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#ifndef GPUCA_GPUCODE
 #ifdef GPUCA_ALIROOT_LIB // Instantiate AliRoot track version
 template class GPUTRDTrack_t<trackInterface<AliExternalTrackParam>>;
 #endif
-#ifdef GPUCA_O2_LIB // Instantiate O2 track version
+#ifdef HAVE_O2HEADERS // Instantiate O2 track version
 template class GPUTRDTrack_t<trackInterface<o2::gpu::GPUTRDO2BaseTrack>>;
-#endif
 #endif
 template class GPUTRDTrack_t<trackInterface<GPUTPCGMTrackParam>>; // Always instatiate GM track version
 } // namespace gpu

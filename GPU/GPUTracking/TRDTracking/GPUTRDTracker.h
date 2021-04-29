@@ -175,6 +175,9 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() GPUTRDTrackletWord* Tracklets() const { return mTracklets; }
   GPUd() void DumpTracks();
 
+  // utility
+  GPUd() const typename PROP::propagatorParam* getPropagatorParam();
+
  protected:
   float* mR;                               // radial position of each TRD chamber, alignment taken into account, radial spread within chambers < 7mm
   bool mIsInitialized;                     // flag is set upon initialization
