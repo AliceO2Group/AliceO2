@@ -36,6 +36,9 @@ class bitset
  public:
   GPUdDefault() constexpr bitset() = default;
   GPUdDefault() constexpr bitset(const bitset&) = default;
+#ifdef __OPENCL__
+  GPUdDefault() constexpr bitset(const __constant bitset&) = default;
+#endif // __OPENCL__
   GPUd() constexpr bitset(unsigned int vv) : v(vv){};
   static constexpr unsigned int full_set = ((1ul << N) - 1ul);
 
