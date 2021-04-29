@@ -21,7 +21,7 @@ FemtoDreamTrackSelection::FemtoDreamTrackSelection()
     mPtMin(0.f),
     mPtMax(999.f),
     mEtaMax(999.f),
-    mTPCnClsMin(0),
+    mTPCclsCut(0),
     mTPCfClsMin(0.f),
     mTPCcRowMin(0),
     mTPCsClsRej(false),
@@ -36,14 +36,14 @@ FemtoDreamTrackSelection::FemtoDreamTrackSelection()
 }
 
 FemtoDreamTrackSelection::FemtoDreamTrackSelection(int charge, float ptMin, float pTmax,
-                                                   float etaMax, int tpcNcls, float tpcFcls,
+                                                   float etaMax, std::vector<int> tpcNcls, float tpcFcls,
                                                    int tpcNrows, bool tpcShareRej, float dcaXYMax,
                                                    float dcaZMax, float pidNsigmaMax, float pidTPCmom, o2::track::PID::ID part)
   : mTrackCharge(charge),
     mPtMin(ptMin),
     mPtMax(pTmax),
     mEtaMax(etaMax),
-    mTPCnClsMin(tpcNcls),
+    mTPCclsCut(tpcNcls),
     mTPCfClsMin(tpcFcls),
     mTPCcRowMin(tpcNrows),
     mTPCsClsRej(tpcShareRej),
@@ -95,9 +95,4 @@ std::string FemtoDreamTrackSelection::getCutHelp()
          "Max. nSigma value; "
          "Max. p for TPC-only PID (GeV/c); "
          "Particle species to select";
-}
-
-void FemtoDreamTrackSelection::printCuts()
-{
-  std::cout << "Debug information for FemtoDreamTrackSelection \n Charge: " << mTrackCharge << "\n Min. pT (GeV/c): " << mPtMin << "\n Max. pT (GeV/c): " << mPtMax << "\n Max. eta: " << mEtaMax << "\n Min. TPC cluster: " << mTPCnClsMin << "\n Min. TPC findable cluster fraction: " << mTPCfClsMin << "\n Min. TPC crossed rows: " << mTPCcRowMin << "\n Shared cluster rejection: " << mTPCsClsRej << "\n Max. DCA to PV in xy (cm): " << mDCAxyMax << "\n Max. DCA to PV in z (cm): " << mDCAzMax << "\n Max. nSigma value; " << mPIDnSigmaMax << "\n Max. p for TPC-only PID (GeV/c): " << mPIDmomTPC << "\n Particle species to select: " << mPIDParticle << "\n";
 }

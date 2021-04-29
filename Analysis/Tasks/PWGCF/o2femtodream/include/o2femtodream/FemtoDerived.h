@@ -39,6 +39,7 @@ DECLARE_SOA_COLUMN(pT, pt, float);
 DECLARE_SOA_COLUMN(Eta, eta, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
 DECLARE_SOA_COLUMN(Charge, charge, uint8_t);
+DECLARE_SOA_COLUMN(Cut, cut, int);
 //DECLARE_SOA_COLUMN(PartSel, partSel, uint8_t);
 } // namespace femtodreamparticle
 DECLARE_SOA_TABLE(FemtoDreamParticles, "AOD", "FemtoDreamParts",
@@ -47,7 +48,8 @@ DECLARE_SOA_TABLE(FemtoDreamParticles, "AOD", "FemtoDreamParts",
                   femtodreamparticle::pT,
                   femtodreamparticle::Eta,
                   femtodreamparticle::Phi,
-                  femtodreamparticle::Charge);
+                  femtodreamparticle::Charge,
+		  femtodreamparticle::Cut);
 using FemtoDreamParticle = FemtoDreamParticles::iterator;
 
 namespace hash

@@ -62,7 +62,7 @@ struct femtoDreamTaskTrackProducer {
   Filter colFilter = nabs(aod::collision::posZ) < 10.f; //CfgColSel->mZvtxMax;
 
   FemtoDreamTrackSelection trackCuts;
-  Configurable<FemtoDreamTrackSelection> CfgTrackSel{"FemtoDreamTrackSelection", {1, 0.5f, 4.05f, 0.8f, 80, 0.83f, 70, 1, 0.1f, 0.2f, 3.f, 0.75f, o2::track::PID::Proton}, FemtoDreamTrackSelection::getCutHelp()};
+  Configurable<FemtoDreamTrackSelection> CfgTrackSel{"FemtoDreamTrackSelection", {1, 0.5f, 4.05f, 0.8f, {{150, 100, 110, 140, 130, 120, 160}}, 0.83f, 70, 1, 0.1f, 0.2f, 3.f, 0.75f, o2::track::PID::Proton}, FemtoDreamTrackSelection::getCutHelp()};
 
   // doesn't work for some reason with the cut class values -_-
   // Filter trackFilter = trackCuts.AODFilter();
@@ -78,7 +78,9 @@ struct femtoDreamTaskTrackProducer {
 
     trackCuts = CfgTrackSel;
     trackCuts.init(); //&qaRegistry);
-    trackCuts.printCuts();
+
+    qaRegistry.add("TrackCuts/tpcnclshist", "; TPC Cluster; Entries", kTH1F, {{163, 0, 163}});
+
   }
 
   void process(o2::aod::FilteredFullCollision const& col,
@@ -99,9 +101,12 @@ struct femtoDreamTaskTrackProducer {
         continue;
       }
       auto cutcontainer = trackCuts.getCutContainer(track);
+      std::bitset<7> a(cutcontainer);
+      std::cout << a << " " << track.tpcNClsFound() << "\n";
+      qaRegistry.fill(HIST("TrackCuts/tpcnclshist"), track.tpcNClsFound());
       trackCuts.fillQA(track);
 
-      outputTracks(outputCollision.lastIndex(), track.pt(), track.eta(), track.phi(), track.sign());
+      outputTracks(outputCollision.lastIndex(), track.pt(), track.eta(), track.phi(), track.sign(), cutcontainer);
     }
   }
 };

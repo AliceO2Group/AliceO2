@@ -17,12 +17,13 @@
 
 #include "ReconstructionDataFormats/PID.h"
 //#include "Framework/HistogramRegistry.h"
-//#include "Framework/Expressions.h"
+//#include "Framework/Expressions.h""
 #include <Rtypes.h>
 #include <algorithm>
 #include <string>
 #include <cmath>
 #include <iostream>
+#include <bitset>
 
 //using namespace o2::framework;
 //using namespace o2::framework::expressions;
@@ -39,7 +40,7 @@ class FemtoDreamTrackSelection
  public:
   FemtoDreamTrackSelection();
   FemtoDreamTrackSelection(int charge, float ptMin, float pTmax,
-                           float etaMax, int tpcNcls, float tpcFcls,
+                           float etaMax, std::vector<int> tpcNcls, float tpcFcls,
                            int tpcNrows, bool tpcShareRej, float dcaXYMax,
                            float dcaZMax, float pidNsigmaMax, float pidTPCmom, o2::track::PID::ID part);
   virtual ~FemtoDreamTrackSelection() = default;
@@ -66,13 +67,15 @@ class FemtoDreamTrackSelection
   bool isSelected(T const& track);
 
   template <typename T>
+  bool isSelectedUser(T const& track);
+
+  template <typename T>
   int getCutContainer(T const& track);
 
   template <typename T>
   void fillQA(T const& track);
 
   static std::string getCutHelp();
-  void printCuts();
 
   void SetTPCCut(int i) { mTPCclsCut.push_back(i); }
   void SetTPCCut(std::vector<int> i) { mTPCclsCut = i; }
@@ -84,7 +87,6 @@ class FemtoDreamTrackSelection
   float mPtMin;        ///< Min. pT (GeV/c)
   float mPtMax;        ///< Max. pT (GeV/c)
   float mEtaMax;       ///< Max. eta
-  int mTPCnClsMin;     ///< Min. TPC cluster
   float mTPCfClsMin;   ///< Min. TPC findable cluster fraction
   int mTPCcRowMin;     ///< Min. TPC crossed rows
   bool mTPCsClsRej;    ///< Shared cluster rejection
@@ -95,7 +97,7 @@ class FemtoDreamTrackSelection
   int mPIDParticle;    ///< Particle species to select
 
   //HistogramRegistry* mHistogramRegistry; ///< For QA output
-  bool mDoQA;                            ///< Switch for protection
+  bool mDoQA; ///< Switch for protection
 
   ClassDefNV(FemtoDreamTrackSelection, 1);
 };
@@ -187,7 +189,7 @@ inline bool FemtoDreamTrackSelection::isSelected(T const& track)
     return false;
   }
 
-  const auto nSigmaTPC = getNsigmaTPC(track);
+  auto nSigmaTPC = getNsigmaTPC(track);
   if (track.tpcInnerParam() < mPIDmomTPC) {
     if (std::abs(nSigmaTPC) > mPIDnSigmaMax) {
       return false;
@@ -216,15 +218,39 @@ inline bool FemtoDreamTrackSelection::isSelected(T const& track)
 }
 
 template <typename T>
+inline bool FemtoDreamTrackSelection::isSelectedUser(T const& track)
+{
+  std::vector<int> tpcCls = {{100, 110, 120, 130, 140, 150, 160}}; // we need the knowledge about the cuts used in the filtering, for now let's copy pasta
+  int cutContainer = track.cut();
+
+  // the following is to find the position of the proper bit - should be done in the init()
+  int cutPos = 0;
+  for (size_t i = 0; i < tpcCls.size(); ++i) {
+    if (tpcCls.at(i) == mTPCclsCut.at(0)) {
+      cutPos = i;
+      break;
+    }
+  }
+
+  //here we check the corresponding bit
+  int isSelected = (cutContainer >> cutPos) & 1U;
+  std::bitset<7> a(cutContainer);
+  std::cout << a << " " << isSelected << "\n";
+
+  return true;
+}
+
+template <typename T>
 int FemtoDreamTrackSelection::getCutContainer(T const& track)
 {
   int output = 0;
+  int counter = 0;
   const auto nCls = track.tpcNClsFound();
-  for (const auto it : mTPCclsCut) {
-    if (nCls > it) {
-      output = 1;
-      // do something with the cut data type
+  for (const auto& it : mTPCclsCut) {
+    if (nCls >= it) {
+      output |= 1UL << counter;
     }
+    ++counter;
   }
   return output;
 }
