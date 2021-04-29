@@ -14,6 +14,7 @@
 #ifndef GPUTRDO2BASETRACK_H
 #define GPUTRDO2BASETRACK_H
 
+#include "GPUCommonDef.h"
 #include "ReconstructionDataFormats/Track.h"
 
 namespace GPUCA_NAMESPACE
@@ -24,8 +25,8 @@ namespace gpu
 class GPUTRDO2BaseTrack : public o2::track::TrackParCov
 {
  public:
-  GPUTRDO2BaseTrack() = default;
-  GPUTRDO2BaseTrack(const o2::track::TrackParCov& t) : o2::track::TrackParCov(t) {}
+  GPUdDefault() GPUTRDO2BaseTrack() = default;
+  GPUd() GPUTRDO2BaseTrack(const o2::track::TrackParCov& t) : o2::track::TrackParCov(t) {}
 
  private:
   // dummy class to avoid problems, see https://github.com/AliceO2Group/AliceO2/pull/5969#issuecomment-827475822
