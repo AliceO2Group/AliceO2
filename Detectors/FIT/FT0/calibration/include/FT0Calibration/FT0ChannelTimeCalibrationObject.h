@@ -8,39 +8,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_FT0CALIBRATIONOBJECT_H
-#define O2_FT0CALIBRATIONOBJECT_H
+#ifndef O2_FT0CHANNELTIMECALIBRATIONOBJECT_H
+#define O2_FT0CHANNELTIMECALIBRATIONOBJECT_H
 
 #include <array>
 #include "Rtypes.h"
 #include "DataFormatsFT0/RawEventData.h"
-#include "CommonUtils/MemFileHelper.h"
-#include "TGraph.h"
 
 namespace o2::ft0
 {
 
-struct FT0CalibrationObject {
+struct FT0ChannelTimeCalibrationObject {
 
-  std::array<int16_t, o2::ft0::Nchannels_FT0> mChannelOffsets{};
+  std::array<int16_t, o2::ft0::Nchannels_FT0> mTimeOffsets{};
 
-  ClassDefNV(FT0CalibrationObject, 1);
+  ClassDefNV(FT0ChannelTimeCalibrationObject, 1);
 };
 
-class FT0ChannelDataTimeSlotContainer;
+class FT0ChannelTimeTimeSlotContainer;
 
-class FT0CalibrationObjectAlgorithm
+class FT0TimeChannelOffsetCalibrationObjectAlgorithm
 {
  public:
-  static void calibrate(FT0CalibrationObject& calibrationObject, const FT0ChannelDataTimeSlotContainer& container);
-};
-
-class FT0CalibrationObjectConverter
-{
- public:
-  static std::unique_ptr<TGraph> toTGraph(const FT0CalibrationObject& object);
+  [[nodiscard]] static FT0ChannelTimeCalibrationObject generateCalibrationObject(const FT0ChannelTimeTimeSlotContainer& container);
 };
 
 } // namespace o2::ft0
 
-#endif //O2_FT0CALIBRATIONOBJECT_H
+#endif //O2_FT0CHANNELTIMECALIBRATIONOBJECT_H

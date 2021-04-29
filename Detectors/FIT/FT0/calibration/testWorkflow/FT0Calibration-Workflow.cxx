@@ -8,12 +8,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "FT0ChannelTimeCalibrationSpec.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  //probably some option will be added
+}
 
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0ChannelTimeTimeSlotContainer> + ;
+#include "Framework/runDataProcessing.h"
 
-#endif
+using namespace o2::framework;
+WorkflowSpec defineDataProcessing(ConfigContext const& config)
+{
+  WorkflowSpec workflow;
+  workflow.emplace_back(o2::ft0::getFT0ChannelTimeCalibrationSpec());
+  //add calib spec here...
+  return workflow;
+}
