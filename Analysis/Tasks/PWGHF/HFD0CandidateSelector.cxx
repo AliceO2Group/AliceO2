@@ -198,10 +198,14 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      auto statusTrackPosKaon = selectorKaon.getStatusTrackPIDTPC(trackPos);
-      auto statusTrackPosPion = selectorPion.getStatusTrackPIDTPC(trackPos);
-      auto statusTrackNegKaon = selectorKaon.getStatusTrackPIDTPC(trackNeg);
-      auto statusTrackNegPion = selectorPion.getStatusTrackPIDTPC(trackNeg);
+      auto statusTrackTPCPosKaon = selectorKaon.getStatusTrackPIDTPC(trackPos);
+      auto statusTrackTPCPosPion = selectorPion.getStatusTrackPIDTPC(trackPos);
+      auto statusTrackTPCNegKaon = selectorKaon.getStatusTrackPIDTPC(trackNeg);
+      auto statusTrackTPCNegPion = selectorPion.getStatusTrackPIDTPC(trackNeg);
+      auto statusTrackTOFPosKaon = selectorKaon.getStatusTrackPIDTOF(trackPos);
+      auto statusTrackTOFPosPion = selectorPion.getStatusTrackPIDTOF(trackPos);
+      auto statusTrackTOFNegKaon = selectorKaon.getStatusTrackPIDTOF(trackNeg);
+      auto statusTrackTOFNegPion = selectorPion.getStatusTrackPIDTOF(trackNeg);
 
       int pionPlus = pid::getStatusTrackPIDAll(trackPos, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
       int kaonMinus = pid::getStatusTrackPIDAll(trackNeg, kKPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);

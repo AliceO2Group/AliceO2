@@ -125,6 +125,85 @@ class TrackSelectorPID
     }
   }
 
+  // TOF
+
+  /// Set pT range where TOF PID is applicable.
+  void setRangePtTOF(float ptMin, float ptMax) { mPtTOFMin = ptMin; mPtTOFMax = ptMax; }
+
+  /// Set TOF nσ range in which a track should be accepted.
+  void setRangeNSigmaTOF(float nsMin, float nsMax) { mNSigmaTOFMin = nsMin; mNSigmaTOFMax = nsMax; }
+
+  /// Checks if track is OK for TOF PID.
+  /// \param track  track
+  /// \return true if track is OK for TOF PID
+  template <typename T>
+  bool isValidTrackPIDTOF(const T& track)
+  {
+    auto pt = track.pt();
+    return mPtTOFMin <= pt && pt <= mPtTOFMax;
+  }
+
+  /// Checks if track is compatible with given particle species hypothesis within given TOF nσ range.
+  /// \param track  track
+  /// \param conditionalTPC  variable to store the result of selection with looser cuts for conditional accepting of track if combined with TPC
+  /// \return true if track satisfies TOF PID hypothesis for given TOF nσ range
+  template <typename T>
+  bool isSelectedTrackPIDTOF(const T& track, bool& conditionalTPC)
+  {
+    // Accept if selection is disabled via large values.
+    if (mNSigmaTOFMin < -999. && mNSigmaTOFMax > 999.) {
+      return true;
+    }
+
+    // Get nσ for a given particle hypothesis.
+    double nSigma = 100.;
+    switch(mPdg) {
+      case kPiPlus: {
+        nSigma = track.tofNSigmaPi();
+        break;
+      }
+      case kKPlus: {
+        nSigma = track.tofNSigmaKa();
+        break;
+      }
+      case kProton: {
+        nSigma = track.tofNSigmaPr();
+        break;
+      }
+      default: {
+        LOGF(error, "ERROR: TOF PID not implemented for PDG %d", mPdg);
+        assert(false);
+      }
+    }
+
+    if (mNSigmaTOFMinCondTPC < -999. && mNSigmaTOFMaxCondTPC > 999.) {
+      conditionalTPC = true;
+    } else {
+      conditionalTPC = mNSigmaTOFMinCondTPC <= nSigma && nSigma <= mNSigmaTOFMaxCondTPC;
+    }
+    return mNSigmaTOFMin <= nSigma && nSigma <= mNSigmaTOFMax;
+  }
+
+  /// Returns status of TOF PID selection for a given track.
+  /// \param track  track
+  /// \return status of TOF PID selection for a given track
+  template <typename T>
+  int getStatusTrackPIDTOF(const T& track)
+  {
+    if (isValidTrackPIDTOF(track)) {
+      bool condTPC = false;
+      if (isSelectedTrackPIDTOF(track, condTPC)) {
+        return Status::PIDAccepted; // accepted
+      } else if (condTPC) {
+        return Status::PIDConditional; // potential to be accepted if combined with TPC
+      } else {
+        return Status::PIDRejected; // rejected
+      }
+    } else {
+      return Status::PIDUnavailable; // no PID info
+    }
+  }
+
  private:
   uint mPdg = kPiPlus; ///< PDG code of the expected particle
 
@@ -135,6 +214,14 @@ class TrackSelectorPID
   float mNSigmaTPCMax = 3.; ///< maximum number of TPC σ
   float mNSigmaTPCMinCondTOF = -5.; ///< minimum number of TPC σ if combined with TOF
   float mNSigmaTPCMaxCondTOF = 5.; ///< maximum number of TPC σ if combined with TOF
+
+  // TOF
+  float mPtTOFMin = 0.; ///< minimum pT for TOF PID [GeV/c]
+  float mPtTOFMax = 100.; ///< maximum pT for TOF PID [GeV/c]
+  float mNSigmaTOFMin = -3.; ///< minimum number of TOF σ
+  float mNSigmaTOFMax = 3.; ///< maximum number of TOF σ
+  float mNSigmaTOFMinCondTPC = -5.; ///< minimum number of TOF σ if combined with TPC
+  float mNSigmaTOFMaxCondTPC = 5.; ///< maximum number of TOF σ if combined with TPC
 };
 
 #endif // O2_ANALYSIS_TRACKSELECTORPID_H_
