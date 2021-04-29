@@ -70,7 +70,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
     int feeIDShift = writer.isCRUDetector() ? 8 : 9;
     // register links
     for (int icru = 0; icru < NCRU; icru++) {
-      std::string outFileName = o2::utils::concat_string("testdata_", writer.isCRUDetector() ? "cru" : "rorc", std::to_string(icru), ".raw");
+      std::string outFileName = o2::utils::Str::concat_string("testdata_", writer.isCRUDetector() ? "cru" : "rorc", std::to_string(icru), ".raw");
       for (int il = 0; il < NLinkPerCRU; il++) {
         auto& link = writer.registerLink((icru << feeIDShift) + il, icru, il, 0, outFileName);
         RDHUtils::setDetectorField(link.rdhCopy, 0xff << icru); // if needed, set extra link info, will be copied to all RDHs

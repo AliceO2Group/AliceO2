@@ -59,7 +59,7 @@ class TOFDPLRecoWorkflowTask
     o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
     std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
     std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-    if (o2::base::NameConf::pathExists(matLUTFile)) {
+    if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
       LOG(INFO) << "Loaded material LUT from " << matLUTFile;

@@ -120,7 +120,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   }
 
   m2r.readDigits(outDirName, inpName);
-  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
+  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //
   swTot.Stop();
   swTot.Print();

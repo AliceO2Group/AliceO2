@@ -29,10 +29,10 @@ void TRDTrackletReader::init(InitContext& ic)
 {
   // get the option from the init context
   LOG(INFO) << "Init TRD tracklet reader!";
-  mInFileNameTrklt = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                              ic.options().get<std::string>("trd-tracklet-infile"));
-  mInTreeNameTrklt = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                              ic.options().get<std::string>("treename"));
+  mInFileNameTrklt = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                   ic.options().get<std::string>("trd-tracklet-infile"));
+  mInTreeNameTrklt = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                   ic.options().get<std::string>("treename"));
   connectTree();
   if (mUseTrackletTransform) {
     connectTreeCTracklet();

@@ -91,7 +91,7 @@ CTFReaderSpec::CTFReaderSpec(DetID::mask_t dm, const std::string& inp) : mDets(d
 ///_______________________________________
 void CTFReaderSpec::init(InitContext& ic)
 {
-  mCTFDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir"));
+  mCTFDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir"));
 }
 
 ///_______________________________________
@@ -103,7 +103,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
 
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  std::string inputFile = o2::utils::concat_string(mCTFDir, mInput[mNextToProcess]);
+  std::string inputFile = o2::utils::Str::concat_string(mCTFDir, mInput[mNextToProcess]);
   LOG(INFO) << "Reading CTF input " << mNextToProcess << ' ' << inputFile;
 
   TFile flIn(inputFile.c_str());
@@ -124,7 +124,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   auto setFirstTFOrbit = [&](const std::string& label) {
     auto* hd = pc.outputs().findMessageHeader({label});
     if (!hd) {
-      throw std::runtime_error(o2::utils::concat_string("failed to find output message header for ", label));
+      throw std::runtime_error(o2::utils::Str::concat_string("failed to find output message header for ", label));
     }
     hd->firstTForbit = ctfHeader.firstTForbit;
     hd->tfCounter = mTFCounter;

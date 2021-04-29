@@ -54,9 +54,9 @@ int main(int argc, char** argv)
     exit(2);
   }
 
-  auto cmd = o2::utils::concat_string("o2-tof-reco-workflow -b --output-type raw --tof-raw-outdir ", vm["output-dir"].as<std::string>(),
-                                      " --tof-raw-file-for ", vm["file-for"].as<std::string>(),
-                                      " --hbfutils-config ", vm["hbfutils-config"].as<std::string>(),
-                                      R"( --configKeyValues ")", vm["configKeyValues"].as<std::string>(), '"');
+  auto cmd = o2::utils::Str::concat_string("o2-tof-reco-workflow -b --output-type raw --tof-raw-outdir ", vm["output-dir"].as<std::string>(),
+                                           " --tof-raw-file-for ", vm["file-for"].as<std::string>(),
+                                           " --hbfutils-config ", vm["hbfutils-config"].as<std::string>(),
+                                           R"( --configKeyValues ")", vm["configKeyValues"].as<std::string>(), '"');
   return system(cmd.c_str());
 }

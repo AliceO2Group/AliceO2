@@ -38,8 +38,8 @@ RecPointReader::RecPointReader(bool useMC)
 
 void RecPointReader::init(InitContext& ic)
 {
-  mInputFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                            ic.options().get<std::string>("ft0-recpoints-infile"));
+  mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                 ic.options().get<std::string>("ft0-recpoints-infile"));
   connectTree(mInputFileName);
 }
 

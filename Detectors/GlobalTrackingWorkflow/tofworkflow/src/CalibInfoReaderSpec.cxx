@@ -35,7 +35,7 @@ constexpr o2::header::DataDescription ddCalib{"CALIBDATA"}, ddCalib_tpc{"CALIBDA
 void CalibInfoReader::init(InitContext& ic)
 {
   LOG(INFO) << "Init CalibInfo reader!";
-  auto fname = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")), mFileName);
+  auto fname = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")), mFileName);
   mFile = fopen(fname.c_str(), "r");
   if (!mFile) {
     LOG(ERROR) << "Cannot open the " << fname << " file !";

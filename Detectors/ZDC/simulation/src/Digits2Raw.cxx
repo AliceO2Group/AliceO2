@@ -61,7 +61,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   mEndPointID = uint32_t(0);
   for (int ilink = 0; ilink < NLinks; ilink++) {
     mFeeID = uint64_t(ilink);
-    std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outd, "zdc_link", std::to_string(ilink), ".raw") : o2::utils::concat_string(outd, "zdc.raw");
+    std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "zdc_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "zdc.raw");
     mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
   }
 

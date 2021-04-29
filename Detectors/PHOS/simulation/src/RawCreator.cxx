@@ -110,7 +110,7 @@ int main(int argc, const char** argv)
   for (auto en : *treereader) {
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
-  rawwriter.getWriter().writeConfFile("PHS", "RAWDATA", o2::utils::concat_string(outputdir, "/PHSraw.cfg"));
+  rawwriter.getWriter().writeConfFile("PHS", "RAWDATA", o2::utils::Str::concat_string(outputdir, "/PHSraw.cfg"));
 
   o2::raw::HBFUtils::Instance().print();
 

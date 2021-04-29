@@ -38,8 +38,8 @@ void TOFMatchedReader::init(InitContext& ic)
 {
   // get the option from the init context
   LOG(INFO) << "Init TOF matching info reader!";
-  mInFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                         ic.options().get<std::string>("tof-matched-infile"));
+  mInFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                              ic.options().get<std::string>("tof-matched-infile"));
   mInTreeName = ic.options().get<std::string>("treename");
   connectTree(mInFileName);
 }
@@ -98,7 +98,7 @@ DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool tpcmatch, bool readTr
   }
 
   return DataProcessorSpec{
-    o2::utils::concat_string("TOFMatchedReader_", tpcmatch ? "tpc" : "glo"),
+    o2::utils::Str::concat_string("TOFMatchedReader_", tpcmatch ? "tpc" : "glo"),
     Inputs{},
     outputs,
     AlgorithmSpec{adaptFromTask<TOFMatchedReader>(useMC, tpcmatch, readTracks)},

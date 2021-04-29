@@ -36,7 +36,7 @@ HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext
     if (!done) {
       bool helpasked = configcontext.helpOnCommandLine(); // if help is asked, don't take for granted that the ini file is there, don't produce an error if it is not!
       std::string conf = configcontext.options().isSet(HBFConfOpt) ? configcontext.options().get<std::string>(HBFConfOpt) : "";
-      if (!conf.empty() && conf != "none" && !(helpasked && !o2::base::NameConf::pathExists(conf))) {
+      if (!conf.empty() && conf != "none" && !(helpasked && !o2::utils::Str::pathExists(conf))) {
         o2::conf::ConfigurableParam::updateFromFile(conf, "HBFUtils", true); // update only those values which were not touched yet (provenance == kCODE)
       }
       done = true;

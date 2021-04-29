@@ -43,8 +43,8 @@ DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
 
   auto initFunction = [propagateMC](InitContext& ic) {
     // get the option from the init context
-    auto filename = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                             ic.options().get<std::string>("infile"));
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                  ic.options().get<std::string>("infile"));
     auto treename = ic.options().get<std::string>("treename");
     auto nofEvents = ic.options().get<int>("nevents");
     auto publishingMode = nofEvents == -1 ? RootTreeReader::PublishingMode::Single : RootTreeReader::PublishingMode::Loop;
@@ -142,8 +142,8 @@ DataProcessorSpec getCellReaderSpec(bool propagateMC)
 
   auto initFunction = [propagateMC](InitContext& ic) {
     // get the option from the init context
-    auto filename = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                             ic.options().get<std::string>("infile"));
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                  ic.options().get<std::string>("infile"));
     auto treename = ic.options().get<std::string>("treename");
     auto nofEvents = ic.options().get<int>("nevents");
     auto publishingMode = nofEvents == -1 ? RootTreeReader::PublishingMode::Single : RootTreeReader::PublishingMode::Loop;
