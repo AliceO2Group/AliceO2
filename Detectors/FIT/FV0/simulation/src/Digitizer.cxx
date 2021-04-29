@@ -278,14 +278,15 @@ Int_t Digitizer::SimulateLightYield(Int_t pmt, Int_t nPhot) const
 //---------------------------------------------------------------------------
 Float_t Digitizer::IntegrateCharge(const ChannelBCDataF& pulse) const
 {
-  int const chargeIntMin = FV0DigParam::Instance().isIntegrateFull ? 0 : FV0DigParam::Instance().chargeIntBinMin;
-  int const chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? mNTimeBinsPerBC : FV0DigParam::Instance().chargeIntBinMax;
+  int const chargeIntMin = FV0DigParam::Instance().isIntegrateFull ? 0 : (FV0DigParam::Instance().avgCfdTimeForMip - 6.0) / mBinSize;                //Charge integration offset (cfd mean time - 6 ns)
+  int const chargeIntMax = FV0DigParam::Instance().isIntegrateFull ? mNTimeBinsPerBC : (FV0DigParam::Instance().avgCfdTimeForMip + 14.0) / mBinSize; //Charge integration offset (cfd mean time + 14 ns)
+  if (chargeIntMin < 0 || chargeIntMin > mNTimeBinsPerBC || chargeIntMax > mNTimeBinsPerBC) {
+    LOG(FATAL) << "invalid indicess: chargeInMin=" << chargeIntMin << " chargeIntMax=" << chargeIntMax;
+  }
 
   Float_t totalCharge = 0.0f;
   for (int iTimeBin = chargeIntMin; iTimeBin < chargeIntMax; iTimeBin++) {
-    Float_t const timeBinCharge = pulse[iTimeBin];
-    //LOG(INFO)<<iTimeBin*0.013<<"    "<<timeBinCharge;
-    totalCharge += timeBinCharge;
+    totalCharge += pulse[iTimeBin];
   }
   return totalCharge;
 }
@@ -313,6 +314,9 @@ Float_t Digitizer::SimulateTimeCfd(int& startIndex, const ChannelBCDataF& pulseL
           startIndex = 0; // dead-time ends in same BC: no impact on the following BC
         } else {
           startIndex -= mNTimeBinsPerBC;
+        }
+        if (startIndex > mNTimeBinsPerBC) {
+          LOG(FATAL) << "CFD dead-time was set to > 25 ns";
         }
         break; // only detects the 1st zero-crossing in the BC
       }
