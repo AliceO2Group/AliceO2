@@ -47,9 +47,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 void O2GPUDPLDisplaySpec::init(InitContext& ic)
 {
-  const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+  const auto grp = o2::parameters::GRPObject::loadFrom();
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
+  o2::base::Propagator::initFieldFromGRP();
   mConfig.reset(new GPUO2InterfaceConfiguration);
   mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
   mConfig->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise

@@ -24,6 +24,7 @@
 #pragma link C++ class o2::detectors::SimTraits + ;
 
 #pragma link C++ class o2::base::NameConf + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::base::NameConf> + ;
 
 #pragma link C++ class o2::ctf::CTFHeader + ;
 #pragma link C++ class o2::ctf::Registry + ;

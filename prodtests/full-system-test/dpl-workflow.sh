@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# In order to use o2sim_grp.root, o2sim_geometry.root or matbud.root from arbitrary directory one can provide to the workflow
+# --configKeyValues "NameConf.mDirGRP=<dirname1>;NameConf.mDirGeom=<dirname2>;NameConf.mDirMatLUT=<dirname3>;"
+# All workflows currently running in the FST parce the configKeyValues option, so the NameConf.mDirXXX keys can be added via global env.var.
+
 MYDIR="$(dirname $(readlink -f $0))"
 source $MYDIR/setenv.sh
 

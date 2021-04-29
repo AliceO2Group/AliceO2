@@ -371,16 +371,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // which sim productions to overlay and digitize
   auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
-
   // First, read the GRP to detect which components need instantiations
-  auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
   std::shared_ptr<o2::parameters::GRPObject const> grp(nullptr);
   if (!helpasked) {
-    grp = readGRP(grpfile.c_str());
+    grp = readGRP(simPrefixes[0]);
     if (!grp) {
       return WorkflowSpec{};
     }
   }
+  auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
 
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are

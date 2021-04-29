@@ -17,6 +17,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Algorithm/RangeTokenizer.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 #include <string>
 #include <stdexcept>
@@ -26,7 +27,10 @@
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  // we don't have any configuration options for this task
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -34,6 +38,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   specs.emplace_back(getEMCALChannelCalibDeviceSpec());
   return specs;
 }

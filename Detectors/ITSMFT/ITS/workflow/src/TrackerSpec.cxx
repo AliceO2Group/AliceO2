@@ -54,7 +54,7 @@ void TrackerDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = parameters::GRPObject::loadFrom(filename.c_str());
+  const auto grp = parameters::GRPObject::loadFrom(filename);
   if (grp) {
     mGRP.reset(grp);
     base::Propagator::initFieldFromGRP(grp);

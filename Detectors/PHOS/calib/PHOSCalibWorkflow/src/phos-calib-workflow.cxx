@@ -14,6 +14,7 @@
 #include "PHOSCalibWorkflow/PHOSTurnonCalibDevice.h"
 #include "PHOSCalibWorkflow/PHOSRunbyrunCalibDevice.h"
 #include "Framework/DataProcessorSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -33,6 +34,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"forceupdate", o2::framework::VariantType::Bool, false, {"update ccdb even difference to previous object large"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdbpath", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB address to get current objects"}});
   workflowOptions.push_back(ConfigParamSpec{"digitspath", o2::framework::VariantType::String, "./CalibDigits.root", {"path and name of file to store calib. digits"}});
+
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 // ------------------------------------------------------------------
@@ -42,6 +45,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto doPedestals = configcontext.options().get<bool>("pedestals");
   auto doHgLgRatio = configcontext.options().get<bool>("hglgratio");
   auto doTurnOn = configcontext.options().get<bool>("turnon");

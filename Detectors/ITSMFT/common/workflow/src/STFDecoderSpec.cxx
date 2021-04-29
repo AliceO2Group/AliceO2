@@ -74,7 +74,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   if (mDoClusters) {
     mClusterer = std::make_unique<Clusterer>();
     mClusterer->setNChips(Mapping::getNChips());
-    const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+    const auto grp = o2::parameters::GRPObject::loadFrom();
     if (grp) {
       mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
     } else {

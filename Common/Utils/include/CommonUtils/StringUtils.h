@@ -117,7 +117,7 @@ struct Str {
   static std::string getFullPath(const std::string_view p);
 
   // rectify directory, applying convention "none"==""
-  static std::string rectifyDirectory(const std::string& _dir);
+  static std::string rectifyDirectory(const std::string_view p);
 
   ClassDefNV(Str, 1);
 };

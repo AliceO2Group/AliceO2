@@ -39,6 +39,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"disable root-files output writers"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{
+      "configKeyValues",
+      o2::framework::VariantType::String,
+      "",
+      {"Semicolon separated key=value strings"}});
 }
 
 // ------------------------------------------------------------------
@@ -48,6 +54,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   LOG(INFO) << "WorkflowSpec defineDataProcessing";
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useProcessor = configcontext.options().get<bool>("use-process");
   auto dumpProcessor = configcontext.options().get<bool>("dump-blocks-process");
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");

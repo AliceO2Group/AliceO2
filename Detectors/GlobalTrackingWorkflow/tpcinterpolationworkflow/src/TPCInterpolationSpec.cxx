@@ -32,7 +32,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+  o2::base::Propagator::initFieldFromGRP();
   mTimer.Stop();
   mTimer.Reset();
   mInterpolation.init();

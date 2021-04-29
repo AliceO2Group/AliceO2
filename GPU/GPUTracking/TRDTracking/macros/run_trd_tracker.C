@@ -48,7 +48,7 @@ void run_trd_tracker(std::string path = "./",
 
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
+  o2::base::Propagator::initFieldFromGRP();
 
   auto geo = o2::trd::Geometry::instance();
   geo->createPadPlaneArray();

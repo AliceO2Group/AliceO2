@@ -24,7 +24,7 @@ namespace base
 {
 
 // Class for standardization of the names for output files and trees
-class NameConf
+class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
 {
   using DId = o2::detectors::DetID;
 
@@ -42,11 +42,8 @@ class NameConf
     return o2::utils::Str::concat_string(prefix, "_", DIGITS_STRING, d.getName(), ".root");
   }
 
-  // Filename to store general run parameters (GRP)
-  static std::string getGRPFileName(const std::string_view prefix = STANDARDSIMPREFIX)
-  {
-    return o2::utils::Str::concat_string(prefix, "_", GRP_STRING, ".root");
-  }
+  // Filename of general run parameters (GRP)
+  static std::string getGRPFileName(const std::string_view prefix = STANDARDSIMPREFIX);
 
   // Filename to store kinematics + TrackRefs
   static std::string getMCKinematicsFileName(const std::string_view prefix = STANDARDSIMPREFIX)
@@ -100,6 +97,10 @@ class NameConf
   static std::string getCTFDictFileName();
 
  private:
+  // helper method to build filenames
+  static std::string buildFileName(const std::string_view prefix, const std::string_view delimiter, const std::string_view defPrefix, const std::string_view defName,
+                                   const std::string_view extension, const std::string_view optDir = "");
+
   // unmodifiable constants used to construct filenames etc
   static constexpr std::string_view STANDARDSIMPREFIX = "o2sim";
   static constexpr std::string_view HITS_STRING = "Hits";     // hardcoded
@@ -110,9 +111,17 @@ class NameConf
   static constexpr std::string_view GEOM_FILE_STRING = "geometry";
   static constexpr std::string_view CUT_FILE_STRING = "proc-cut";
   static constexpr std::string_view CONFIG_STRING = "configuration";
-
+  static constexpr std::string_view ROOT_EXT_STRING = "root";
+  static constexpr std::string_view DAT_EXT_STRING = "dat";
   static constexpr std::string_view ALPIDECLUSDICTFILENAME = "dictionary";
   static constexpr std::string_view MATBUDLUT = "matbud";
+
+  // these are configurable paths for some commonly used files
+  std::string mDirGRP = "none";    // directory for GRP file ("none" == "")
+  std::string mDirGeom = "none";   // directory for geometry file
+  std::string mDirMatLUT = "none"; // directory for material LUT
+
+  O2ParamDef(NameConf, "NameConf");
 };
 
 } // namespace base

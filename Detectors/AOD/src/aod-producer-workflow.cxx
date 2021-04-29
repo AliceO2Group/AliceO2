@@ -18,7 +18,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    ConfigParamSpec{"ignore-aod-writer", VariantType::Int, 0, {"Ignore DPL AOD writer and write tables directly into a file. 0 -- off, != 0 -- on"}}};
+    {"ignore-aod-writer", VariantType::Int, 0, {"Ignore DPL AOD writer and write tables directly into a file. 0 -- off, != 0 -- on"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -27,6 +28,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   //  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("ignore-aod-writer"));
   int ignoreWriter = configcontext.options().get<int>("ignore-aod-writer");
   return std::move(o2::aodproducer::getAODProducerWorkflow(ignoreWriter));
