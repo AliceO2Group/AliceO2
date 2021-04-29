@@ -64,8 +64,8 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
 
   auto initFunction = [config, propagateMC, creator](InitContext& ic) {
     // get the option from the init context
-    auto filename = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                             ic.options().get<std::string>("infile"));
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                  ic.options().get<std::string>("infile"));
     auto treename = ic.options().get<std::string>("treename");
     auto clbrName = ic.options().get<std::string>(config.databranch.option.c_str());
     auto mcbrName = ic.options().get<std::string>(config.mcbranch.option.c_str());

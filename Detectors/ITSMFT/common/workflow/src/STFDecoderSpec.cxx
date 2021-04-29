@@ -43,7 +43,7 @@ template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, std::string_view dict, std::string_view noise)
   : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDoCalibData(doCalib), mDictName(dict), mNoiseName(noise)
 {
-  mSelfName = o2::utils::concat_string(Mapping::getName(), "STFDecoder");
+  mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -62,7 +62,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
   mDecoder->setFillCalibData(mDoCalibData);
   std::string noiseFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mNoiseName, ".root");
-  if (o2::base::NameConf::pathExists(noiseFile)) {
+  if (o2::utils::Str::pathExists(noiseFile)) {
     TFile* f = TFile::Open(noiseFile.data(), "old");
     auto pnoise = (NoiseMap*)f->Get("Noise");
     AlpideCoder::setNoisyPixels(pnoise);
@@ -90,7 +90,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
     std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName, ".bin");
-    if (o2::base::NameConf::pathExists(dictFile)) {
+    if (o2::utils::Str::pathExists(dictFile)) {
       mClusterer->loadDictionary(dictFile);
       LOG(INFO) << mSelfName << " clusterer running with a provided dictionary: " << dictFile;
     } else {

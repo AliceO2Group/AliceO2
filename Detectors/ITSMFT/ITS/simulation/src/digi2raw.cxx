@@ -128,7 +128,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   digTree.SetBranchStatus("*MCTruth*", 0); // ignore MC info
 
   std::vector<o2::itsmft::Digit> digiVec, *digiVecP = &digiVec;
-  std::string digBranchName = o2::utils::concat_string(MAP::getName(), "Digit");
+  std::string digBranchName = o2::utils::Str::concat_string(MAP::getName(), "Digit");
   if (!digTree.GetBranch(digBranchName.c_str())) {
     LOG(FATAL) << "Failed to find the branch " << digBranchName << " in the tree " << digTreeName;
   }
@@ -136,7 +136,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
 
   // ROF record entries in the digit tree
   ROFRVEC rofRecVec, *rofRecVecP = &rofRecVec;
-  std::string rofRecName = o2::utils::concat_string(MAP::getName(), "DigitROF");
+  std::string rofRecName = o2::utils::Str::concat_string(MAP::getName(), "DigitROF");
   if (!digTree.GetBranch(rofRecName.c_str())) {
     LOG(FATAL) << "Failed to find the branch " << rofRecName << " in the tree " << digTreeName;
   }
@@ -148,7 +148,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   o2::itsmft::MC2RawEncoder<MAP> m2r;
   m2r.setVerbosity(verbosity);
   m2r.setContinuousReadout(grp->isDetContinuousReadOut(MAP::getDetID())); // must be set explicitly
-  m2r.setDefaultSinkName(o2::utils::concat_string(MAP::getName(), ".raw"));
+  m2r.setDefaultSinkName(o2::utils::Str::concat_string(MAP::getName(), ".raw"));
   m2r.setMinMaxRUSW(ruSWMin, ruSWMax);
   m2r.getWriter().setSuperPageSize(superPageSizeInB);
   m2r.getWriter().useRDHVersion(rdhV);
@@ -179,7 +179,7 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
     }
   } // loop over multiple ROFvectors (in case of chaining)
 
-  m2r.getWriter().writeConfFile(MAP::getName(), "RAWDATA", o2::utils::concat_string(outDir, '/', MAP::getName(), "raw.cfg"));
+  m2r.getWriter().writeConfFile(MAP::getName(), "RAWDATA", o2::utils::Str::concat_string(outDir, '/', MAP::getName(), "raw.cfg"));
   m2r.finalize(); // finish TF and flush data
   //
   swTot.Stop();
@@ -275,15 +275,15 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
             // register the link in the writer, if not done here, its data will be dumped to common default file
 
             if (fileFor == "all") { // single file for all links
-              outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, ".raw");
+              outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix, ".raw");
             } else if (fileFor == "layer") {
-              outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, "_lr", std::to_string(ilr), ".raw");
+              outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix, "_lr", std::to_string(ilr), ".raw");
             } else if (fileFor == "cru") {
-              outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(cruID), ".raw");
+              outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(cruID), ".raw");
             } else if (fileFor == "link") {
-              outFileLink = o2::utils::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(cruID),
-                                                     "_link", std::to_string(linkID), "_ep", std::to_string(link->endPointID),
-                                                     "_feeid", std::to_string(link->feeID), ".raw");
+              outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(cruID),
+                                                          "_link", std::to_string(linkID), "_ep", std::to_string(link->endPointID),
+                                                          "_feeid", std::to_string(link->feeID), ".raw");
             } else {
               throw std::runtime_error("invalid option provided for file grouping");
             }

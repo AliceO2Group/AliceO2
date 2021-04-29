@@ -27,8 +27,8 @@ namespace vertexing
 
 void SecondaryVertexReader::init(InitContext& ic)
 {
-  mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                       ic.options().get<std::string>("secondary-vertex-infile"));
+  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>("secondary-vertex-infile"));
   connectTree();
 }
 

@@ -234,7 +234,7 @@ void RawFileWriter::writeConfFile(std::string_view origin, std::string_view desc
     cfgfile << "dataOrigin = " << origin << std::endl;
     cfgfile << "dataDescription = " << description << std::endl;
     cfgfile << "readoutCard = " << (isCRUDetector() ? "CRU" : "RORC") << std::endl;
-    cfgfile << "filePath = " << (fullPath ? o2::base::NameConf::getFullPath(getOutputFileName(i)) : getOutputFileName(i)) << std::endl;
+    cfgfile << "filePath = " << (fullPath ? o2::utils::Str::getFullPath(getOutputFileName(i)) : getOutputFileName(i)) << std::endl;
   }
   cfgfile.close();
 }
@@ -250,7 +250,7 @@ void RawFileWriter::useCaching()
   if (mCacheFile) {
     return; // already done
   }
-  auto cachename = o2::utils::concat_string("_rawWriter_cache_", mOrigin.str, ::getpid(), ".root");
+  auto cachename = o2::utils::Str::concat_string("_rawWriter_cache_", mOrigin.str, ::getpid(), ".root");
   mCacheFile.reset(TFile::Open(cachename.c_str(), "recreate"));
   LOG(INFO) << "Switched caching ON";
 }
@@ -264,7 +264,7 @@ void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data
   std::lock_guard<std::mutex> lock(writer->mCacheFileMtx);
   if (!cacheTree) {
     writer->mCacheFile->cd();
-    cacheTree = std::make_unique<TTree>(o2::utils::concat_string("lnk", std::to_string(subspec)).c_str(), "cache");
+    cacheTree = std::make_unique<TTree>(o2::utils::Str::concat_string("lnk", std::to_string(subspec)).c_str(), "cache");
     cacheTree->Branch("cache", &cacheBuffer);
   }
   cacheBuffer.preformatted = preformatted;

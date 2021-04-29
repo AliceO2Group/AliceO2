@@ -136,7 +136,7 @@ void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsN
   }
   mc2raw.setTrackletHCHeader(trackletHCHeader);
   mc2raw.readTrapData();
-  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
+  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //
   swTot.Stop();
   swTot.Print();
