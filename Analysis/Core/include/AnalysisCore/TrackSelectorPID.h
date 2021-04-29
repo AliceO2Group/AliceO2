@@ -44,11 +44,23 @@ class TrackSelectorPID
   /// Default destructor
   ~TrackSelectorPID() = default;
 
-  /// PDG code setter
+  enum Status {
+    PIDUndecided = 0,
+    PIDRejected,
+    PIDConditional,
+    PIDAccepted
+  };
+
   void setPDG(int pdg) { mPdg = std::abs(pdg); }
+  void setRangePtTPC(float ptMin, float ptMax) { mPtTPCMin = ptMin; mPtTPCMax = ptMax; }
+
+  template <typename T>
+  bool isValidTrackPIDTPC(const T& track);
 
  private:
   uint mPdg = kPiPlus; // PDG code of the expected particle
+  float mPtTPCMin = 0.; // minimum pT for TPC PID [GeV/c]
+  float mPtTPCMax = 100.; // maximum pT for TPC PID [GeV/c]
 
   ClassDef(TrackSelectorPID, 1);
 };

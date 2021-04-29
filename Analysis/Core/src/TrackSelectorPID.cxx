@@ -19,3 +19,16 @@
 TrackSelectorPID::TrackSelectorPID(int pdg)
   : mPdg(std::abs(pdg))
 {}
+
+// TPC
+
+/// Checks if track is OK for TPC PID.
+/// \param track  track
+/// \note function to be expanded
+/// \return true if track is OK for TPC PID
+template <typename T>
+bool TrackSelectorPID::isValidTrackPIDTPC(const T& track)
+{
+  return track.pt() >= mPtTPCMin && track.pt() <= mPtTPCMax;
+}
+
