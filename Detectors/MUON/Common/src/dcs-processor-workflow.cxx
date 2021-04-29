@@ -24,6 +24,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include "CommonUtils/ConfigurableParam.h"
 #if defined(MUON_SUBSYSTEM_MCH)
 #include "MCHConditions/DCSNamer.h"
 #endif

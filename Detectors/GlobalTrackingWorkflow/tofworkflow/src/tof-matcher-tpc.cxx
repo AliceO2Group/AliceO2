@@ -83,6 +83,8 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
   auto nLanes = cfgc.options().get<int>("tof-lanes");
   auto outputType = cfgc.options().get<std::string>("output-type");

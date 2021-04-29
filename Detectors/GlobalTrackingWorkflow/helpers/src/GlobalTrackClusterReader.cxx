@@ -11,6 +11,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -33,6 +34,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   bool useMC = !cfgc.options().get<bool>("disable-mc");
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("track-types"));

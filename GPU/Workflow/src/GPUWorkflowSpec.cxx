@@ -128,9 +128,9 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       tracker = std::make_unique<GPUO2Interface>();
 
       // Create configuration object and fill settings
-      const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+      const auto grp = o2::parameters::GRPObject::loadFrom();
       o2::base::GeometryManager::loadGeometry();
-      o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
+      o2::base::Propagator::initFieldFromGRP();
       if (!grp) {
         throw std::runtime_error("Failed to initialize run parameters from GRP");
       }

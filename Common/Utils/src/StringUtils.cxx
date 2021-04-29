@@ -47,9 +47,9 @@ std::string Str::getFullPath(const std::string_view p)
   return boost::filesystem::canonical(std::string{p}).generic_string();
 }
 
-std::string Str::rectifyDirectory(const std::string& _dir)
+std::string Str::rectifyDirectory(const std::string_view p)
 {
-  std::string dir = _dir;
+  std::string dir(p);
   if (dir.empty() || dir == "none") {
     dir = "";
   } else {
