@@ -124,7 +124,7 @@ if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
   add_custom_command(
       OUTPUT ${CL_BIN}.src
       COMMAND clang
-              ${OCL_DEFINECL}
+              ${OCL_DEFINECL} -cl-no-stdinc
               -E ${CL_SRC} > ${CL_BIN}.src
       MAIN_DEPENDENCY ${CL_SRC}
       IMPLICIT_DEPENDS CXX ${CL_SRC}

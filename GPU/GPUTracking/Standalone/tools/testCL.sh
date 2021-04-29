@@ -17,8 +17,8 @@ DEFINES="-DGPUCA_STANDALONE -DGPUCA_GPULIBRARY=OCL -DNDEBUG -D__OPENCLCPP__ -DHA
 FLAGS="-Xclang -fdenormal-fp-math-f32=ieee -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Dcl_clang_storage_class_specifiers"
 
 echo Test1 - Preprocess
-echo $COMPILER -cl-std=clc++ -x cl $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -E ../Base/opencl-common/GPUReconstructionOCL.cl > test.cl
-     $COMPILER -cl-std=clc++ -x cl $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -E ../Base/opencl-common/GPUReconstructionOCL.cl > test.cl
+echo $COMPILER -cl-std=clc++ -x cl $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -cl-no-stdinc -E ../Base/opencl-common/GPUReconstructionOCL.cl > test.cl
+     $COMPILER -cl-std=clc++ -x cl $INCLUDES $DEFINES -Dcl_clang_storage_class_specifiers -cl-no-stdinc -E ../Base/opencl-common/GPUReconstructionOCL.cl > test.cl
 if [ $? != 0 ]; then exit 1; fi
 #Test 1A - Compile Preprocessed
 #echo $COMPILER -cl-std=clc++ -x cl -emit-llvm --target=spir64-unknown-unknown $FLAGS -c test.cl -o test.bc
