@@ -80,7 +80,7 @@ class NameConf
   static std::string getGeomFileName(const std::string_view prefix = "");
 
   // Filename to for decoding dictionaries
-  static std::string getDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
+  static std::string getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix = "", const std::string_view ext = "");
 
   // Filename to store material LUT file
   static std::string getMatLUTFileName(const std::string_view prefix = "");

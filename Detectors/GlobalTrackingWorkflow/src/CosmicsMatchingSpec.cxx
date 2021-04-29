@@ -87,7 +87,7 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   }
   //
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(DetID::ITS, dictPath, ".bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(DetID::ITS, dictPath, ".bin");
   auto itsDict = std::make_unique<o2::itsmft::TopologyDictionary>();
   if (o2::base::NameConf::pathExists(dictFile)) {
     itsDict->readBinaryFile(dictFile);

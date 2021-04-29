@@ -124,7 +124,7 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
 
   o2::itsmft::TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {

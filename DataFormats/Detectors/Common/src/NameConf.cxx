@@ -62,7 +62,7 @@ std::string NameConf::getCutProcFileName(std::string_view prefix)
 }
 
 // Filename to store ITSMFT dictionary
-std::string NameConf::getDictionaryFileName(DId det, const std::string_view prefix, const std::string_view ext)
+std::string NameConf::getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix, const std::string_view ext)
 {
   // check if the prefix is an existing path
   if (pathIsDirectory(prefix)) {
