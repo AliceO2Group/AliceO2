@@ -12,33 +12,16 @@
 #include "TFile.h"
 #include "CCDB/CcdbApi.h"
 #include <iostream>
-#include "FT0Calibration/FT0CalibrationObject.h"
+#include "FT0Calibration/FT0DummyCalibrationObject.h"
 
 int makeDummyFT0CalibObjectInCCDB(const std::string url = "http://localhost:8080")
 {
 
-  const char* OBJECT_PATH = "FT0/Calibration/CalibrationObject";
-
   o2::ccdb::CcdbApi api;
-  api.init(url); // or http://localhost:8080 for a local installation
+  api.init(url);
   std::map<std::string, std::string> md;
+  o2::ft0::FT0DummyNeededCalibrationObject obj;
+  api.storeAsTFileAny(&obj, "FT0/Calibration/DummyNeeded", md, 0);
 
-  o2::ft0::FT0CalibrationObject calibObject;
-  api.storeAsTFileAny(&calibObject, OBJECT_PATH, md, 0);
-
-  const auto testCalibObject = api.retrieveFromTFileAny<o2::ft0::FT0CalibrationObject>(OBJECT_PATH, md, 0);
-  if (testCalibObject) {
-    for (unsigned int i = 0; i < 208; ++i) {
-      if (calibObject.mChannelOffsets[i] != testCalibObject->mChannelOffsets[i]) {
-        std::cout << "=====FAILURE=====" << std::endl;
-        std::cout << "Saved and retrieved objects are different!\n";
-        return 1;
-      }
-    }
-    std::cout << "=====SUCCESS=====" << std::endl;
-    return 0;
-  }
-
-  std::cout << "=====FAILURE=====" << std::endl;
-  return 1;
+  return 0;
 }

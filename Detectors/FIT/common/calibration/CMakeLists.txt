@@ -9,8 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(FITCalibration
-        SOURCES
-        src/FITCalibrationAlgorithmGetter.cxx
+        
         PUBLIC_LINK_LIBRARIES
         O2::FT0Calibration
         O2::Framework
@@ -25,6 +24,7 @@ o2_target_root_dictionary(FITCalibration
         HEADERS
         include/FITCalibration/FITCalibrator.h
         include/FITCalibration/FITCalibrationDevice.h
-        include/FITCalibration/FITCalibrationAlgorithmGetter.h
+        include/FITCalibration/FITCalibrationObjectProducer.h
+        include/FITCalibration/FITCalibrationApi.h
         )
 

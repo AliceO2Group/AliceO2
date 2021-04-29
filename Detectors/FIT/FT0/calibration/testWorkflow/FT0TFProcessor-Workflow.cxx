@@ -11,7 +11,6 @@
 #include <Framework/ConfigContext.h>
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/Task.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/Digit.h"
