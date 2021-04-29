@@ -108,8 +108,10 @@ static inline bool pathIsDirectory(const std::string_view p)
 
 static inline std::string getFullPath(const std::string_view p)
 {
-  std::unique_ptr<char[]> real_path(realpath(p.data(), nullptr));
-  return std::string(real_path.get());
+  char* real_path = realpath(p.data(), nullptr);
+  std::string retVal(real_path);
+  free(real_path);
+  return std::move(retVal);
 }
 
 static inline std::string rectifyDirectory(const std::string& _dir)
