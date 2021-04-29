@@ -39,9 +39,9 @@ void PrimaryVertexingSpec::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+  o2::base::Propagator::initFieldFromGRP();
 
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
   const auto& alpParams = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
   if (!grp->isDetContinuousReadOut(DetID::ITS)) {
     mITSROFrameLengthMUS = alpParams.roFrameLengthTrig / 1.e3; // ITS ROFrame duration in \mus

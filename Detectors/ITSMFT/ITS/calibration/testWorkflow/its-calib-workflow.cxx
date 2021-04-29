@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ConfigParamSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -22,6 +23,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
       VariantType::Bool,
       true,
       {"Generate noisy-pixel maps"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{
+      "configKeyValues",
+      VariantType::String,
+      "",
+      {"Semicolon separated key=value strings"}});
 }
 
 // ------------------------------------------------------------------
@@ -33,6 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto doNoise = configcontext.options().get<bool>("doNoise");
 
   LOG(INFO) << "ITS calibration workflow options";

@@ -55,7 +55,7 @@ void CookedTrackerDPL::init(InitContext& ic)
   auto nthreads = ic.options().get<int>("nthreads");
   mTracker.setNumberOfThreads(nthreads);
   auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
+  const auto grp = o2::parameters::GRPObject::loadFrom(filename);
   if (grp) {
     mGRP.reset(grp);
     o2::base::Propagator::initFieldFromGRP(grp);

@@ -55,7 +55,7 @@ void TRDGlobalTracking::init(InitContext& ic)
 
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
+  o2::base::Propagator::initFieldFromGRP();
   auto geo = Geometry::instance();
   geo->createPadPlaneArray();
   geo->createClusterMatrixArray();

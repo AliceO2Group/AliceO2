@@ -46,6 +46,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"disable root-files output writers"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"configKeyValues",
+                    o2::framework::VariantType::String,
+                    "",
+                    {"Semicolon separated key=value strings"}});
   workflowOptions.push_back(ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
 }
 

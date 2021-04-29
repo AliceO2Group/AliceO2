@@ -20,6 +20,7 @@
 #include "DataFormatsZDC/RawEventData.h"
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCRaw/DumpRaw.h"
+#include "CommonUtils/ConfigurableParam.h"
 #include <vector>
 #include <sstream>
 
@@ -29,8 +30,13 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(
+    ConfigParamSpec{"input-spec", VariantType::String, "A:ZDC/RAWDATA", {"selection string input specs"}});
+  workflowOptions.push_back(
     ConfigParamSpec{
-      "input-spec", VariantType::String, "A:ZDC/RAWDATA", {"selection string input specs"}});
+      "configKeyValues",
+      VariantType::String,
+      "",
+      {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -38,6 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   WorkflowSpec workflow;
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   workflow.emplace_back(DataProcessorSpec{
     "zdc-raw-parser",
     select(config.options().get<std::string>("input-spec").c_str()),
