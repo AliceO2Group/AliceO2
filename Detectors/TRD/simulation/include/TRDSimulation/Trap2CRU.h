@@ -23,7 +23,7 @@
 #include "DataFormatsTRD/LinkRecord.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 //#include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
 

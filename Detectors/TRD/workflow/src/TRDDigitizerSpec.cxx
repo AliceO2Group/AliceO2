@@ -26,7 +26,7 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Hit.h"
-#include "TRDBase/Digit.h" // for the Digit type
+#include "DataFormatsTRD/Digit.h" // for the Digit type
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type

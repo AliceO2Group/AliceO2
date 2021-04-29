@@ -28,7 +28,7 @@
 #include "fairlogger/Logger.h"
 
 //to pull in the digitzer incomnig data.
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "TRDSimulation/Digitizer.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>

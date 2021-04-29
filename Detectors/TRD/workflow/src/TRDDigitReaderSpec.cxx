@@ -28,7 +28,7 @@
 #include <SimulationDataFormat/IOMCTruthContainerView.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "TRDBase/Digit.h" // for the Digit type
+#include "DataFormatsTRD/Digit.h" // for the Digit type
 #include "TRDSimulation/TrapSimulator.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type

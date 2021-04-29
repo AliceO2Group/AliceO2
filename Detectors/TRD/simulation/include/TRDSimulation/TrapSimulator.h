@@ -24,9 +24,10 @@
 #include <gsl/span>
 
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/Digit.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/TrapConfig.h"
+
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Constants.h"
