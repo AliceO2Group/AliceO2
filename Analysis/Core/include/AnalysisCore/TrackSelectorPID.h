@@ -38,7 +38,7 @@ class TrackSelectorPID
 
   /// Selection status
   enum Status {
-    PIDUndecided = 0,
+    PIDUnavailable = 0,
     PIDRejected,
     PIDConditional,
     PIDAccepted
@@ -66,14 +66,17 @@ class TrackSelectorPID
 
   /// Checks if track is compatible with given particle species hypothesis within given TPC nσ range.
   /// \param track  track
+  /// \param conditionalTOF  variable to store the result of selection with looser cuts for conditional accepting of track if combined with TOF
   /// \return true if track satisfies TPC PID hypothesis for given TPC nσ range
   template <typename T>
-  bool isSelectedTrackPIDTPC(const T& track)
+  bool isSelectedTrackPIDTPC(const T& track, bool& conditionalTOF)
   {
     // Accept if selection is disabled via large values.
     if (mNSigmaTPCMin < -999. && mNSigmaTPCMax > 999.) {
       return true;
     }
+
+    // Get nσ for a given particle hypothesis.
     double nSigma = 100.;
     switch(mPdg) {
       case kPiPlus: {
@@ -93,18 +96,45 @@ class TrackSelectorPID
         assert(false);
       }
     }
+
+    if (mNSigmaTPCMinCondTOF < -999. && mNSigmaTPCMaxCondTOF > 999.) {
+      conditionalTOF = true;
+    } else {
+      conditionalTOF = mNSigmaTPCMinCondTOF <= nSigma && nSigma <= mNSigmaTPCMaxCondTOF;
+    }
     return mNSigmaTPCMin <= nSigma && nSigma <= mNSigmaTPCMax;
+  }
+
+  /// Returns status of TPC PID selection for a given track.
+  /// \param track  track
+  /// \return status of TPC PID selection for a given track
+  template <typename T>
+  int getStatusTrackPIDTPC(const T& track)
+  {
+    if (isValidTrackPIDTPC(track)) {
+      bool condTOF = false;
+      if (isSelectedTrackPIDTPC(track, condTOF)) {
+        return Status::PIDAccepted; // accepted
+      } else if (condTOF) {
+        return Status::PIDConditional; // potential to be accepted if combined with TOF
+      } else {
+        return Status::PIDRejected; // rejected
+      }
+    } else {
+      return Status::PIDUnavailable; // no PID info
+    }
   }
 
  private:
   uint mPdg = kPiPlus; ///< PDG code of the expected particle
 
   // TPC
-
   float mPtTPCMin = 0.; ///< minimum pT for TPC PID [GeV/c]
   float mPtTPCMax = 100.; ///< maximum pT for TPC PID [GeV/c]
   float mNSigmaTPCMin = -3.; ///< minimum number of TPC σ
   float mNSigmaTPCMax = 3.; ///< maximum number of TPC σ
+  float mNSigmaTPCMinCondTOF = -5.; ///< minimum number of TPC σ if combined with TOF
+  float mNSigmaTPCMaxCondTOF = 5.; ///< maximum number of TPC σ if combined with TOF
 };
 
 #endif // O2_ANALYSIS_TRACKSELECTORPID_H_
