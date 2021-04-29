@@ -206,33 +206,24 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      auto statusTrackTPCPosKaon = selectorKaon.getStatusTrackPIDTPC(trackPos);
-      auto statusTrackTPCPosPion = selectorPion.getStatusTrackPIDTPC(trackPos);
-      auto statusTrackTPCNegKaon = selectorKaon.getStatusTrackPIDTPC(trackNeg);
-      auto statusTrackTPCNegPion = selectorPion.getStatusTrackPIDTPC(trackNeg);
-      auto statusTrackTOFPosKaon = selectorKaon.getStatusTrackPIDTOF(trackPos);
-      auto statusTrackTOFPosPion = selectorPion.getStatusTrackPIDTOF(trackPos);
-      auto statusTrackTOFNegKaon = selectorKaon.getStatusTrackPIDTOF(trackNeg);
-      auto statusTrackTOFNegPion = selectorPion.getStatusTrackPIDTOF(trackNeg);
-
-      int pionPlus = pid::getStatusTrackPIDAll(trackPos, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
-      int kaonMinus = pid::getStatusTrackPIDAll(trackNeg, kKPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
-      int pionMinus = pid::getStatusTrackPIDAll(trackNeg, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
-      int kaonPlus = pid::getStatusTrackPIDAll(trackPos, kKPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPCCombined, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOFCombined);
+      int statusTrackPIDPosKaon = selectorKaon.getStatusTrackPIDAll(trackPos);
+      int statusTrackPIDPosPion = selectorPion.getStatusTrackPIDAll(trackPos);
+      int statusTrackPIDNegKaon = selectorKaon.getStatusTrackPIDAll(trackNeg);
+      int statusTrackPIDNegPion = selectorPion.getStatusTrackPIDAll(trackNeg);
 
       int pidD0 = -1;
       int pidD0bar = -1;
 
-      if (pionPlus == 0 || kaonMinus == 0 || pionMinus == 1 || kaonPlus == 1) {
+      if (statusTrackPIDPosPion == 0 || statusTrackPIDNegKaon == 0 || statusTrackPIDNegPion == 1 || statusTrackPIDPosKaon == 1) {
         pidD0 = 0; //exclude D0
       }
-      if (pionPlus == 1 || kaonMinus == 1 || pionMinus == 0 || kaonPlus == 0) {
+      if (statusTrackPIDPosPion == 1 || statusTrackPIDNegKaon == 1 || statusTrackPIDNegPion == 0 || statusTrackPIDPosKaon == 0) {
         pidD0bar = 0; //exclude D0bar
       }
-      if (pionPlus == 1 && kaonMinus == 1) {
+      if (statusTrackPIDPosPion == 1 && statusTrackPIDNegKaon == 1) {
         pidD0 = 1; //accept D0
       }
-      if (pionMinus == 1 && kaonPlus == 1) {
+      if (statusTrackPIDNegPion == 1 && statusTrackPIDPosKaon == 1) {
         pidD0bar = 1; //accept D0bar
       }
 

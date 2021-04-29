@@ -210,6 +210,27 @@ class TrackSelectorPID
     }
   }
 
+  /// Returns status of combined PID selection for a given track.
+  /// \param track  track
+  /// \return 1 if accepted, 0 if rejected, -1 if insufficient info
+  template <typename T>
+  int getStatusTrackPIDAll(const T& track)
+  {
+    int statusTPC = getStatusTrackPIDTPC(track);
+    int statusTOF = getStatusTrackPIDTOF(track);
+
+    if (statusTPC == Status::PIDAccepted || statusTOF == Status::PIDAccepted) {
+      return 1; // what if we have Accepted && Rejected?
+    }
+    if (statusTPC == Status::PIDConditional && statusTOF == Status::PIDConditional) {
+      return 1;
+    }
+    if (statusTPC == Status::PIDRejected || statusTOF == Status::PIDRejected) {
+      return 0;
+    }
+    return -1;
+  }
+
  private:
   uint mPdg = kPiPlus; ///< PDG code of the expected particle
 
