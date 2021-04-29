@@ -31,8 +31,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsMCH/Digit.h"
 #include "DataFormatsMCH/ROFRecord.h"
-//#include "MIDSimulation/ColumnDataMC.h"
-//#include "MCHSimulation/MCLabel.h"
 
 namespace of = o2::framework;
 
