@@ -37,7 +37,7 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", std::string dictfile 
   sw.Start();
 
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
