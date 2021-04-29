@@ -47,8 +47,8 @@ class Digitizer : public TObject
   using ExtraDig = std::vector<itsmft::PreDigitLabelRef>; ///< container for extra contributions to PreDigits
 
  public:
-  Digitizer() {}
-  ~Digitizer() override {}
+  Digitizer() = default;
+  ~Digitizer() override = default;
   Digitizer(const Digitizer&) = delete;
   Digitizer& operator=(const Digitizer&) = delete;
 

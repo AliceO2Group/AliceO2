@@ -277,7 +277,6 @@ const AlpideRespSimMat* AlpideSimResponse::getResponse(float vRow, float vCol, f
     flipRow = true;
   }
   if (vRow > rowMax) {
-    std::cout << "FAIL 3 " << vRow << "\t" << mRowMax << std::endl;
     return nullptr;
   }
 
