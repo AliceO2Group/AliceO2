@@ -64,7 +64,8 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
   };
 
   using AbstractRef<25, 5, 2>::AbstractRef;
-  typedef o2::gpu::gpustd::bitset<NSources> mask_t;
+  static_assert(NSources <= 32, "bitset<32> insufficient");
+  typedef o2::gpu::gpustd::bitset<32> mask_t;
 
 #ifndef GPUCA_GPUCODE
   static constexpr std::string_view NONE{"none"};                        ///< keywork for no sources

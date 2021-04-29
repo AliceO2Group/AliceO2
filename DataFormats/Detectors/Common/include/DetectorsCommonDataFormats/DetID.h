@@ -87,6 +87,7 @@ class DetID
 
   static constexpr int nDetectors = Last + 1; ///< number of defined detectors
   typedef o2::gpu::gpustd::bitset<32> mask_t;
+  static_assert(nDetectors <= 32, "bitset<32> insufficient");
 
 #ifndef GPUCA_GPUCODE_DEVICE
   static constexpr std::string_view NONE{"none"}; ///< keywork for no-detector
