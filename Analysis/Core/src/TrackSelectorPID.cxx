@@ -8,13 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+/// \file TrackSelectorPID.cxx
+/// \brief PID track selector class
+///
+/// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
-#pragma link C++ class CorrelationContainer + ;
-#pragma link C++ class TrackSelection + ;
-#pragma link C++ class TrackSelectorPID + ;
-#pragma link C++ class TriggerAliases + ;
-
-#pragma link C++ class HFTrackIndexSkimsCreatorConfigs + ;
+#include "AnalysisCore/TrackSelectorPID.h"
