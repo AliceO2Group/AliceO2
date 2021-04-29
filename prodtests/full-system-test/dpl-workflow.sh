@@ -19,6 +19,9 @@ fi
 if [ $NORATELOG == 1 ]; then
   ARGS_ALL+=" --fairmq-rate-logging 0"
 fi
+if [ $NUMAGPUIDS != 0 ]; then
+  ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
+fi
 
 # Set some individual workflow arguments depending on configuration
 CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD
