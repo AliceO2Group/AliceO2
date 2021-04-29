@@ -38,8 +38,8 @@ DigitReader::DigitReader(bool useMC)
 
 void DigitReader::init(InitContext& ic)
 {
-  mInputFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                            ic.options().get<std::string>("fdd-digits-infile"));
+  mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                 ic.options().get<std::string>("fdd-digits-infile"));
 }
 
 void DigitReader::run(ProcessingContext& pc)

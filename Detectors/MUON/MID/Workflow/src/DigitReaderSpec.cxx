@@ -47,8 +47,8 @@ class DigitsReaderDeviceDPL
   DigitsReaderDeviceDPL(bool useMC, const std::vector<header::DataDescription>& descriptions) : mUseMC(useMC), mDescriptions(descriptions) {}
   void init(o2::framework::InitContext& ic)
   {
-    auto filename = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                             ic.options().get<std::string>("mid-digit-infile"));
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                  ic.options().get<std::string>("mid-digit-infile"));
     mFile = std::make_unique<TFile>(filename.c_str());
     if (!mFile->IsOpen()) {
       LOG(ERROR) << "Cannot open the " << filename << " file !";

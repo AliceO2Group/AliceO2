@@ -429,7 +429,7 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
     // it could be that object was stored with previous convention
     // where the classname was taken as key
     std::string objectName(cl->GetName());
-    utils::trim(objectName);
+    o2::utils::Str::trim(objectName);
     object = file.GetObjectChecked(objectName.c_str(), cl);
     LOG(WARN) << "Did not find object under expected name " << CCDBOBJECT_ENTRY;
     if (!object) {
@@ -518,7 +518,7 @@ void* CcdbApi::interpretAsTMemFileAndExtract(char* contentptr, size_t contentsiz
     auto tcl = tinfo2TClass(tinfo);
     result = extractFromTFile(memFile, tcl);
     if (!result) {
-      LOG(ERROR) << o2::utils::concat_string("Couldn't retrieve object corresponding to ", tcl->GetName(), " from TFile");
+      LOG(ERROR) << o2::utils::Str::concat_string("Couldn't retrieve object corresponding to ", tcl->GetName(), " from TFile");
     }
     memFile.Close();
   }

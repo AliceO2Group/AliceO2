@@ -273,7 +273,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, bool useTrkltTransf, GTra
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe);
   }
 
-  std::string processorName = o2::utils::concat_string("trd-globaltracking", GTrackID::getSourcesNames(src));
+  std::string processorName = o2::utils::Str::concat_string("trd-globaltracking", GTrackID::getSourcesNames(src));
   std::replace(processorName.begin(), processorName.end(), ',', '_');
 
   return DataProcessorSpec{

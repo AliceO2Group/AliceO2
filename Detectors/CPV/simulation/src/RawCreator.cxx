@@ -110,7 +110,7 @@ int main(int argc, const char** argv)
   for (auto en : *treereader) {
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
-  rawwriter.getWriter().writeConfFile("CPV", "RAWDATA", o2::utils::concat_string(outputdir, "/CPVraw.cfg"));
+  rawwriter.getWriter().writeConfFile("CPV", "RAWDATA", o2::utils::Str::concat_string(outputdir, "/CPVraw.cfg"));
 
   o2::raw::HBFUtils::Instance().print();
 

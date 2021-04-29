@@ -34,7 +34,7 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
   mTimerTFStart.Stop();
   mTimerDecode.Stop();
   mTimerFetchData.Stop();
-  mSelfName = o2::utils::concat_string(Mapping::getName(), "Decoder");
+  mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "Decoder");
 }
 
 ///______________________________________________________________
