@@ -67,8 +67,6 @@ class Digitizer
 
  private:
   int mEventTime;
-  //uint16_t mBC = 0;
-  // uint32_t mOrbit = 0;
   int mEventID = 0;
   int mSrcID = 0;
 

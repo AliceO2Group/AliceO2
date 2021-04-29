@@ -124,11 +124,7 @@ int Digitizer::processHit(const Hit& hit, int detID, int eventTime)
 
   //convert float ns time to BC counts
   auto time = int(eventTime / 25.) & int(hit.GetTime() / 25.);
-  //FIXME: need to put the orbit and the bc into a TimeFrame information and not here
-  //Digit::Time time;
-  //time.sampaTime = hit.GetTime();
-  //time.bunchCrossing = bc;
-  //time.orbit = orbit;
+  //FIXME: final time information in digit to be decided
 
   //transformation from global to local
   auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
@@ -183,8 +179,6 @@ int Digitizer::processHit(const Hit& hit, int detID, int eventTime)
 
         /// FIXME: which time definition is used when calling this function?
         digits.emplace_back(detID, padid, signal, time);
-        // Digit::Time dtime;
-        //dtime.sampaTime = static_cast<uint16_t>(time) & 0x3FF;
         ++ndigits;
       }
     }
@@ -204,11 +198,8 @@ void Digitizer::generateNoiseDigits()
     int nNoisyPads = TMath::Nint(gRandom->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
     for (int i = 0; i < nNoisyPads; i++) {
       int padid = gRandom->Integer(nNoisyPads + 1);
-      // FIXME: can we use eventTime as the digit time?
+      // FIXME
       time = int(time / 25.); //not clear if ok
-      //   time.sampa = 0; //not clear what to do...
-      //      time.bunchCrossing = bc;
-      //   time.orbit = orbit;
       digits.emplace_back(detID, padid, 0.6, time);
       //just to roun adbove threshold when added
       MCCompLabel label(-1, eventID, srcID, true);
