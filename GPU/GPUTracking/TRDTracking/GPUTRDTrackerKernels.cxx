@@ -20,17 +20,26 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+#ifdef HAVE_O2HEADERS
+template <int I>
+GPUd() auto& getTracker(GPUTRDTrackerKernels::processorType& processors);
 template <>
-GPUdi() auto& GPUTRDTrackerKernels::getTracker<0>(processorType& processors)
+GPUdi() auto& getTracker<0>(GPUTRDTrackerKernels::processorType& processors)
 {
   return processors.trdTrackerGPU;
 }
-
 template <>
-GPUdi() auto& GPUTRDTrackerKernels::getTracker<1>(processorType& processors)
+GPUdi() auto& getTracker<1>(GPUTRDTrackerKernels::processorType& processors)
 {
   return processors.trdTrackerO2;
 }
+#else
+template <int I>
+GPUdi() GPUTRDTrackerGPU& getTracker(GPUTRDTrackerKernels::processorType& processors)
+{
+  return processors.trdTrackerGPU;
+}
+#endif
 
 template <int I>
 GPUdii() void GPUTRDTrackerKernels::Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors)
@@ -43,4 +52,6 @@ GPUdii() void GPUTRDTrackerKernels::Thread(int nBlocks, int nThreads, int iBlock
 }
 
 template GPUd() void GPUTRDTrackerKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
+#ifdef HAVE_O2HEADERS
 template GPUd() void GPUTRDTrackerKernels::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
+#endif
