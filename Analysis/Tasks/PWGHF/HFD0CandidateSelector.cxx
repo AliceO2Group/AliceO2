@@ -214,17 +214,25 @@ struct HFD0CandidateSelector {
       int pidD0 = -1;
       int pidD0bar = -1;
 
-      if (statusTrackPIDPosPion == 0 || statusTrackPIDNegKaon == 0 || statusTrackPIDNegPion == 1 || statusTrackPIDPosKaon == 1) {
-        pidD0 = 0; //exclude D0
+      if (statusTrackPIDPosPion == TrackSelectorPID::Status::PIDRejected ||
+          statusTrackPIDNegKaon == TrackSelectorPID::Status::PIDRejected ||
+          statusTrackPIDNegPion == TrackSelectorPID::Status::PIDAccepted ||
+          statusTrackPIDPosKaon == TrackSelectorPID::Status::PIDAccepted) {
+        pidD0 = 0; // exclude D0
       }
-      if (statusTrackPIDPosPion == 1 || statusTrackPIDNegKaon == 1 || statusTrackPIDNegPion == 0 || statusTrackPIDPosKaon == 0) {
-        pidD0bar = 0; //exclude D0bar
+      if (statusTrackPIDPosPion == TrackSelectorPID::Status::PIDAccepted ||
+          statusTrackPIDNegKaon == TrackSelectorPID::Status::PIDAccepted ||
+          statusTrackPIDNegPion == TrackSelectorPID::Status::PIDRejected ||
+          statusTrackPIDPosKaon == TrackSelectorPID::Status::PIDRejected) {
+        pidD0bar = 0; // exclude D0bar
       }
-      if (statusTrackPIDPosPion == 1 && statusTrackPIDNegKaon == 1) {
-        pidD0 = 1; //accept D0
+      if (statusTrackPIDPosPion == TrackSelectorPID::Status::PIDAccepted &&
+          statusTrackPIDNegKaon == TrackSelectorPID::Status::PIDAccepted) {
+        pidD0 = 1; // accept D0
       }
-      if (statusTrackPIDNegPion == 1 && statusTrackPIDPosKaon == 1) {
-        pidD0bar = 1; //accept D0bar
+      if (statusTrackPIDNegPion == TrackSelectorPID::Status::PIDAccepted &&
+          statusTrackPIDPosKaon == TrackSelectorPID::Status::PIDAccepted) {
+        pidD0bar = 1; // accept D0bar
       }
 
       if (pidD0 == 0 && pidD0bar == 0) {
@@ -233,10 +241,10 @@ struct HFD0CandidateSelector {
       }
 
       if ((pidD0 == -1 || pidD0 == 1) && topolD0) {
-        statusD0 = 1; //identified as D0
+        statusD0 = 1; // identified as D0
       }
       if ((pidD0bar == -1 || pidD0bar == 1) && topolD0bar) {
-        statusD0bar = 1; //identified as D0bar
+        statusD0bar = 1; // identified as D0bar
       }
 
       hfSelD0Candidate(statusD0, statusD0bar);

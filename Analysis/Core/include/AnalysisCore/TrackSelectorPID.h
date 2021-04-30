@@ -38,7 +38,7 @@ class TrackSelectorPID
 
   /// Selection status
   enum Status {
-    PIDUnavailable = 0,
+    PIDNotApplicable = 0,
     PIDRejected,
     PIDConditional,
     PIDAccepted
@@ -124,7 +124,7 @@ class TrackSelectorPID
         return Status::PIDRejected; // rejected
       }
     } else {
-      return Status::PIDUnavailable; // no PID info
+      return Status::PIDNotApplicable; // PID not applicable
     }
   }
 
@@ -206,7 +206,7 @@ class TrackSelectorPID
         return Status::PIDRejected; // rejected
       }
     } else {
-      return Status::PIDUnavailable; // no PID info
+      return Status::PIDNotApplicable; // PID not applicable
     }
   }
 
@@ -220,15 +220,15 @@ class TrackSelectorPID
     int statusTOF = getStatusTrackPIDTOF(track);
 
     if (statusTPC == Status::PIDAccepted || statusTOF == Status::PIDAccepted) {
-      return 1; // what if we have Accepted && Rejected?
+      return Status::PIDAccepted; // what if we have Accepted for one and Rejected for the other?
     }
     if (statusTPC == Status::PIDConditional && statusTOF == Status::PIDConditional) {
-      return 1;
+      return Status::PIDAccepted;
     }
     if (statusTPC == Status::PIDRejected || statusTOF == Status::PIDRejected) {
-      return 0;
+      return Status::PIDRejected;
     }
-    return -1;
+    return Status::PIDNotApplicable; // (NotApplicable for one detector) and (NotApplicable or Conditional for the other)
   }
 
  private:
