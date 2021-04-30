@@ -65,11 +65,13 @@ class NoiseCalibratorDigits
   const std::string getPath(int index) const { return mPath[index]; }
 
  private:
-  o2::itsmft::NoiseMap mNoiseMapH0F0{936};
-  o2::itsmft::NoiseMap mNoiseMapH0F1{936};
-  o2::itsmft::NoiseMap mNoiseMapH1F0{936};
-  o2::itsmft::NoiseMap mNoiseMapH1F1{936};
-  std::string mPath[4] = {"/MFT/Calib/NoiseMap/H0F0", "/MFT/Calib/NoiseMap/H0F1", "/MFT/Calib/NoiseMap/H1F0", "/MFT/Calib/NoiseMap/H1F1"};
+  static const int mMaxChipID = 936;
+  o2::itsmft::NoiseMap mNoiseMapH0F0{mMaxChipID};
+  o2::itsmft::NoiseMap mNoiseMapH0F1{mMaxChipID};
+  o2::itsmft::NoiseMap mNoiseMapH1F0{mMaxChipID};
+  o2::itsmft::NoiseMap mNoiseMapH1F1{mMaxChipID};
+  std::string mPath[4] = {"/MFT/Calib/NoiseMap/h0-f0", "/MFT/Calib/NoiseMap/h0-f1", "/MFT/Calib/NoiseMap/h1-f0", "/MFT/Calib/NoiseMap/h1-f1"};
+  bool mIsEmpty[4] = {true, true, true, true};
   float mProbabilityThreshold = 3e-6f;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;

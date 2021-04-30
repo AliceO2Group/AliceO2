@@ -43,19 +43,31 @@ bool NoiseCalibratorDigits::processTimeFrame(gsl::span<const o2::itsmft::Digit> 
       int disk = chipMap[id].disk;
       int face = layer % 2;
 
-      if (half == 0 && face == 0) {
-        mNoiseMapH0F0.increaseNoiseCount(id, row, col);
-        mPath[0] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
-      } else if (half == 0 && face == 1) {
-        mNoiseMapH0F1.increaseNoiseCount(id, row, col);
-        mPath[1] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
-      } else if (half == 1 && face == 0) {
-        mNoiseMapH1F0.increaseNoiseCount(id, row, col);
-        mPath[2] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
-      } else if (half == 1 && face == 1) {
-        mNoiseMapH1F1.increaseNoiseCount(id, row, col);
-        mPath[3] = "/MFT/Calib/NoiseMap/h" + std::to_string(half) + "-d" + std::to_string(disk) + "-f" + std::to_string(face);
-      }
+        if (half == 0 && face == 0) {
+	  if (mIsEmpty[0]){
+        	  mPath[0] = mPath[0] + "-d" + std::to_string(disk);
+		  mIsEmpty[0]=false;
+	  }
+	  mNoiseMapH0F0.increaseNoiseCount(id, row, col);
+        } else if (half == 0 && face == 1) {
+	  if (mIsEmpty[1]){
+        	  mPath[1] = mPath[1] + "-d" + std::to_string(disk);
+		  mIsEmpty[1]=false;
+	  }
+          mNoiseMapH0F1.increaseNoiseCount(id, row, col);
+        } else if (half == 1 && face == 0) {
+	  if (mIsEmpty[2]){
+        	  mPath[2] = mPath[2] + "-d" + std::to_string(disk);
+		  mIsEmpty[2]=false;
+	  }
+          mNoiseMapH1F0.increaseNoiseCount(id, row, col);
+        } else if (half == 1 && face == 1) {
+	  if (mIsEmpty[3]){
+        	  mPath[3] = mPath[3] + "-d" + std::to_string(disk);
+		  mIsEmpty[3]=false;
+	  }
+          mNoiseMapH1F1.increaseNoiseCount(id, row, col);
+        }
     }
   }
   mNumberOfStrobes += rofs.size();
