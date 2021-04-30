@@ -49,7 +49,7 @@ namespace o2
 class MCCompLabel;
 namespace base
 {
-template <typename>
+template <typename T>
 class PropagatorImpl;
 class MatLayerCylSet;
 } // namespace base
