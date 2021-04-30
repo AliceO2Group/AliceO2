@@ -206,31 +206,32 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      int statusTrackPIDPosKaon = selectorKaon.getStatusTrackPIDAll(trackPos);
-      int statusTrackPIDPosPion = selectorPion.getStatusTrackPIDAll(trackPos);
-      int statusTrackPIDNegKaon = selectorKaon.getStatusTrackPIDAll(trackNeg);
-      int statusTrackPIDNegPion = selectorPion.getStatusTrackPIDAll(trackNeg);
+      // track-level PID selection
+      int pidTrackPosKaon = selectorKaon.getStatusTrackPIDAll(trackPos);
+      int pidTrackPosPion = selectorPion.getStatusTrackPIDAll(trackPos);
+      int pidTrackNegKaon = selectorKaon.getStatusTrackPIDAll(trackNeg);
+      int pidTrackNegPion = selectorPion.getStatusTrackPIDAll(trackNeg);
 
       int pidD0 = -1;
       int pidD0bar = -1;
 
-      if (statusTrackPIDPosPion == TrackSelectorPID::Status::PIDAccepted &&
-          statusTrackPIDNegKaon == TrackSelectorPID::Status::PIDAccepted) {
+      if (pidTrackPosPion == TrackSelectorPID::Status::PIDAccepted &&
+          pidTrackNegKaon == TrackSelectorPID::Status::PIDAccepted) {
         pidD0 = 1; // accept D0
-      } else if (statusTrackPIDPosPion == TrackSelectorPID::Status::PIDRejected ||
-                 statusTrackPIDNegKaon == TrackSelectorPID::Status::PIDRejected ||
-                 statusTrackPIDNegPion == TrackSelectorPID::Status::PIDAccepted ||
-                 statusTrackPIDPosKaon == TrackSelectorPID::Status::PIDAccepted) {
+      } else if (pidTrackPosPion == TrackSelectorPID::Status::PIDRejected ||
+                 pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
+                 pidTrackNegPion == TrackSelectorPID::Status::PIDAccepted ||
+                 pidTrackPosKaon == TrackSelectorPID::Status::PIDAccepted) {
         pidD0 = 0; // exclude D0
       }
 
-      if (statusTrackPIDNegPion == TrackSelectorPID::Status::PIDAccepted &&
-          statusTrackPIDPosKaon == TrackSelectorPID::Status::PIDAccepted) {
+      if (pidTrackNegPion == TrackSelectorPID::Status::PIDAccepted &&
+          pidTrackPosKaon == TrackSelectorPID::Status::PIDAccepted) {
         pidD0bar = 1; // accept D0bar
-      } else if (statusTrackPIDPosPion == TrackSelectorPID::Status::PIDAccepted ||
-                 statusTrackPIDNegKaon == TrackSelectorPID::Status::PIDAccepted ||
-                 statusTrackPIDNegPion == TrackSelectorPID::Status::PIDRejected ||
-                 statusTrackPIDPosKaon == TrackSelectorPID::Status::PIDRejected) {
+      } else if (pidTrackPosPion == TrackSelectorPID::Status::PIDAccepted ||
+                 pidTrackNegKaon == TrackSelectorPID::Status::PIDAccepted ||
+                 pidTrackNegPion == TrackSelectorPID::Status::PIDRejected ||
+                 pidTrackPosKaon == TrackSelectorPID::Status::PIDRejected) {
         pidD0bar = 0; // exclude D0bar
       }
 
