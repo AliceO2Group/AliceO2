@@ -110,7 +110,7 @@ class TrackSelectorPID
 
   /// Returns status of TPC PID selection for a given track.
   /// \param track  track
-  /// \return status of TPC PID selection for a given track
+  /// \return TPC selection status (see TrackSelectorPID::Status)
   template <typename T>
   int getStatusTrackPIDTPC(const T& track)
   {
@@ -192,7 +192,7 @@ class TrackSelectorPID
 
   /// Returns status of TOF PID selection for a given track.
   /// \param track  track
-  /// \return status of TOF PID selection for a given track
+  /// \return TOF selection status (see TrackSelectorPID::Status)
   template <typename T>
   int getStatusTrackPIDTOF(const T& track)
   {
@@ -212,7 +212,7 @@ class TrackSelectorPID
 
   /// Returns status of combined PID selection for a given track.
   /// \param track  track
-  /// \return 1 if accepted, 0 if rejected, -1 if insufficient info
+  /// \return combined-selection status (see TrackSelectorPID::Status)
   template <typename T>
   int getStatusTrackPIDAll(const T& track)
   {
