@@ -48,9 +48,9 @@ struct MultipleProcessExample {
       {"etaDiff", ";#eta_{MC} - #eta_{Rec}", {HistType::kTH1F, {{100, -2, 2}}}},
       {"phiDiff", ";#phi_{MC} - #phi_{Rec}", {HistType::kTH1F, {{100, -M_PI, M_PI}}}},
       {"etaRec", ";#eta_{Rec}", {HistType::kTH1F, {{100, -2, 2}}}},
-      {"phiRec", ";#phi_{Rec}", {HistType::kTH1F, {{100, -M_PI, M_PI}}}},
+      {"phiRec", ";#phi_{Rec}", {HistType::kTH1F, {{100, 0, 2 * M_PI}}}},
       {"etaMC", ";#eta_{MC}", {HistType::kTH1F, {{100, -2, 2}}}},
-      {"phiMC", ";#phi_{MC}", {HistType::kTH1F, {{100, -M_PI, M_PI}}}} ///
+      {"phiMC", ";#phi_{MC}", {HistType::kTH1F, {{100, 0, 2 * M_PI}}}} ///
     }                                                                  ///
   };
 
