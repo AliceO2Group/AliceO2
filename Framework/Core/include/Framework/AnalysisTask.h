@@ -607,6 +607,15 @@ struct TaskName {
   std::string value;
 };
 
+///
+template <typename... Ts>
+struct Processes {
+  Processes(Ts&&... args) : processes{std::make_tuple(args...)}
+  {
+  }
+  std::tuple<Ts...> processes;
+};
+
 template <typename T>
 std::tuple<std::string, std::shared_ptr<T>> getNameAndTask()
 {
@@ -631,6 +640,44 @@ std::tuple<std::string, std::shared_ptr<T>> getNameAndTask(T2&& firstArg, Args&&
   }
 }
 
+template <typename T, typename... S, typename... A>
+auto getNameTaskProcesses(TaskName first, Processes<S...> second, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  return std::make_tuple(first.value, task, second.processes);
+}
+
+template <typename T, typename... S, typename... A>
+auto getNameTaskProcesses(Processes<S...> first, TaskName second, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  return std::make_tuple(second.value, task, first.processes);
+}
+
+template <typename T, typename... A>
+auto getNameTaskProcesses(TaskName first, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  return std::make_tuple(first.value, task, std::make_tuple(&T::process));
+}
+
+template <typename T, typename... S, typename... A>
+auto getNameTaskProcesses(Processes<S...> first, A... args)
+{
+  auto type_name_str = type_name<T>();
+  std::string name = type_to_task_name(type_name_str);
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  return std::make_tuple(name, task, first.processes);
+}
+
+template <typename T>
+auto getNameTaskProcesses()
+{
+  std::string name = type_to_task_name(type_name<T>());
+  auto task = std::make_shared<T>();
+  return std::make_tuple(name, task, std::make_tuple(&T::process));
+}
+
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
 ///
 template <typename T, typename... Args>
@@ -638,7 +685,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
 
-  auto [name_str, task] = getNameAndTask<T>(args...);
+  auto [name_str, task, processTuple] = getNameTaskProcesses<T>(args...);
 
   auto suffix = ctx.options().get<std::string>("workflow-suffix");
   if (!suffix.empty()) {
@@ -660,8 +707,6 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   /// make sure options and configurables are set before expression infos are created
   std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
-
-  auto processTuple = std::make_tuple(&T::process);
 
   if constexpr (has_process_v<T>) {
     // this pushes (I,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
