@@ -51,6 +51,11 @@ constexpr float ChannelTimeBinNS = 2.; //< bin length in NS
 constexpr float SampleLenghtNS = NTimeBinsPerBC * ChannelTimeBinNS;
 
 constexpr int NChannels = 2 * (NChannelsZN + NChannelsZP) + NChannelsZEM;
+#define O2_ZDC_REF_INIT_VAL 0xffffffff
+#define O2_ZDC_REF_INIT_ZEM O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL
+#define O2_ZDC_REF_INIT_ZDC O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL
+#define O2_ZDC_REF_INIT O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZEM, O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZDC
+
 constexpr uint8_t ALICETriggerMask = 0x1;
 
 constexpr int NModules = 8;
@@ -172,6 +177,11 @@ const int TDCSignal[NTDCChannels] = {
   IdZPCC,   // TDCZPCC
   IdZPCSum  // TDCZPCS
 };
+
+constexpr int DbgZero = 0;
+constexpr int DbgMinimal = 1;
+constexpr int DbgMedium = 2;
+constexpr int DbgFull = 3;
 
 // paths to CCDB objects
 // TODO: eventually these paths should be retrieved from NameConfigurator class

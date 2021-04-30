@@ -49,9 +49,11 @@ struct RecEvent {
   //std::array<TDCAmplitude, NTDCChannels> tdcAmplitudes;     /// At most MaxTDCValues Values in ns per TDC channel
   int16_t tdcChannels[NTDCChannels][MaxTDCValues]; /// TdcChannels
   float tdcAmplitudes[NTDCChannels][MaxTDCValues]; /// TdcAmplitudes
+  int ntdc[NTDCChannels]={0};
   std::array<bool,NTDCChannels> pattern; /// Pattern of TDC 
-  Short_t fired[NTDCChannels][NTimeBinsPerBC] = {0};        /// Position at which the trigger algorithm is fired
+  uint16_t fired[NTDCChannels] = {0};        /// Position at which the trigger algorithm is fired
   float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
+  uint32_t ref[NChannels]={O2_ZDC_REF_INIT}; /// Cache of references
 
   void print() const;
 
