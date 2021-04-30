@@ -616,30 +616,6 @@ struct Processes {
   std::tuple<Ts...> processes;
 };
 
-template <typename T>
-std::tuple<std::string, std::shared_ptr<T>> getNameAndTask()
-{
-  auto type_name_str = type_name<T>();
-  std::string name = type_to_task_name(type_name_str);
-  auto task = std::make_shared<T>();
-  return std::make_tuple(name, task);
-}
-
-template <typename T, typename T2, typename... Args>
-std::tuple<std::string, std::shared_ptr<T>> getNameAndTask(T2&& firstArg, Args&&... args)
-{
-  if constexpr (std::is_same_v<typename std::decay<T2>::type, TaskName>) {
-    std::string name = firstArg.value;
-    auto task = std::make_shared<T>(std::forward<Args>(args)...);
-    return std::make_tuple(name, task);
-  } else {
-    auto type_name_str = type_name<T>();
-    std::string name = type_to_task_name(type_name_str);
-    auto task = std::make_shared<T>(std::forward<T2, Args>(firstArg, args)...);
-    return std::make_tuple(name, task);
-  }
-}
-
 template <typename T, typename... S, typename... A>
 auto getNameTaskProcesses(TaskName first, Processes<S...> second, A... args)
 {
@@ -658,7 +634,11 @@ template <typename T, typename... A>
 auto getNameTaskProcesses(TaskName first, A... args)
 {
   auto task = std::make_shared<T>(std::forward<A>(args)...);
-  return std::make_tuple(first.value, task, std::make_tuple(&T::process));
+  if constexpr (has_process_v<T>) {
+    return std::make_tuple(first.value, task, std::make_tuple(&T::process));
+  } else {
+    return std::make_tuple(first.value, task, std::make_tuple());
+  }
 }
 
 template <typename T, typename... S, typename... A>
@@ -673,9 +653,14 @@ auto getNameTaskProcesses(Processes<S...> first, A... args)
 template <typename T>
 auto getNameTaskProcesses()
 {
-  std::string name = type_to_task_name(type_name<T>());
+  auto type_name_str = type_name<T>();
+  std::string name = type_to_task_name(type_name_str);
   auto task = std::make_shared<T>();
-  return std::make_tuple(name, task, std::make_tuple(&T::process));
+  if constexpr (has_process_v<T>) {
+    return std::make_tuple(name, task, std::make_tuple(&T::process));
+  } else {
+    return std::make_tuple(name, task, std::make_tuple());
+  }
 }
 
 /// Adaptor to make an AlgorithmSpec from a o2::framework::Task
@@ -699,7 +684,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<ConfigParamSpec> options;
 
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-  static_assert(has_process_v<T> || has_run_v<T> || has_init_v<T>,
+  static_assert(std::tuple_size_v<std::decay_t<decltype(processTuple)>> > 0 || has_run_v<T> || has_init_v<T>,
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
   std::vector<InputSpec> inputs;
@@ -708,7 +693,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   /// make sure options and configurables are set before expression infos are created
   std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
 
-  if constexpr (has_process_v<T>) {
+  if constexpr ((std::tuple_size_v<std::decay_t<decltype(processTuple)>>) > 0) {
     // this pushes (I,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
     AnalysisDataProcessorBuilder::inputsFromArgsTuple(processTuple, inputs, expressionInfos);
   }
@@ -739,7 +724,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     };
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
-    if constexpr (has_process_v<T>) {
+    if constexpr ((std::tuple_size_v<std::decay_t<decltype(processTuple)>>) > 0) {
       /// update configurables in filters
       std::apply(
         [&ic](auto&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
@@ -765,7 +750,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       if constexpr (has_run_v<T>) {
         task->run(pc);
       }
-      if constexpr (has_process_v<T>) {
+      if constexpr ((std::tuple_size_v<std::decay_t<decltype(processTuple)>>) > 0) {
         AnalysisDataProcessorBuilder::invokeProcessTuple(*(task.get()), pc.inputs(), processTuple, expressionInfos);
       }
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x), ...); }, tupledTask);

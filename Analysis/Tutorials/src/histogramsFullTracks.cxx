@@ -32,6 +32,6 @@ struct etaAndClsHistograms {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<etaAndClsHistograms>(cfgc, Processes{&etaAndClsHistograms::process}),
+    adaptAnalysisTask<etaAndClsHistograms>(cfgc),
   };
 }
