@@ -45,10 +45,10 @@ template <>
 GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::fillFromDigits>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer)
 {
   Array2D<PackedCharge> chargeMap(reinterpret_cast<PackedCharge*>(clusterer.mPchargeMap));
-  fillFromDigitsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, clusterer.mPmemory->counters.nPositions, clusterer.mPdigits, clusterer.mPpositions, chargeMap);
+  fillFromDigitsImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer, clusterer.mPmemory->fragment, clusterer.mPmemory->counters.nPositions, clusterer.mPdigits, clusterer.mPpositions, chargeMap);
 }
 
-GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThreads, int iBlock, int iThread, const CfFragment& fragment, size_t digitNum,
+GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThreads, int iBlock, int iThread, processorType& clusterer, const CfFragment& fragment, size_t digitNum,
                                                         const tpc::Digit* digits,
                                                         ChargePos* positions,
                                                         Array2D<PackedCharge>& chargeMap)
@@ -61,7 +61,9 @@ GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThread
 
   ChargePos pos(digit.getRow(), digit.getPad(), fragment.toLocal(digit.getTimeStamp()));
   positions[idx] = pos;
-  chargeMap[pos] = PackedCharge(digit.getChargeFloat());
+  float q = digit.getChargeFloat();
+  q *= clusterer.GetConstantMem()->calibObjects.tpcPadGain->getGainCorrection(clusterer.mISlice, digit.getRow(), digit.getPad());
+  chargeMap[pos] = PackedCharge(q);
 }
 
 template <>
