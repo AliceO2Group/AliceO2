@@ -209,3 +209,8 @@ o2_add_dpl_workflow(multiplicity-event-track-selection
                   JOB_POOL analysis
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(multiprocess-example
+                  SOURCES src/multiProcess.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
