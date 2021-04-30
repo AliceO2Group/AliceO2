@@ -14,7 +14,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "ITS3Reconstruction/ClustererSpec.h"
+#include "ITS3Workflow/ClustererSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"

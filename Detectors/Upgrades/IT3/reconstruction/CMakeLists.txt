@@ -11,7 +11,7 @@
 o2_add_library(ITS3Reconstruction
                TARGETVARNAME targetName
                SOURCES src/Clusterer.cxx
-                       src/ClustererSpec.cxx
+
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                      O2::ITSMFTReconstruction
                                      O2::ITS3Base
@@ -26,8 +26,6 @@ o2_add_library(ITS3Reconstruction
 o2_target_root_dictionary(
   ITS3Reconstruction
   HEADERS include/ITS3Reconstruction/Clusterer.h
-          include/ITS3Reconstruction/ClustererSpec.h
-
 )
 
 if (OpenMP_CXX_FOUND)
