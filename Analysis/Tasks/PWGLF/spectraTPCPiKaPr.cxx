@@ -8,12 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   spectraTPCPiKaPr.h
+/// \author Nicolo' Jacazio
+///
+/// \brief Task for the analysis of the spectra of Pi Ka Pr with the TPC detector
+///
+
 // O2 includes
 #include "ReconstructionDataFormats/Track.h"
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/ASoAHelpers.h"
+#include "Framework/runDataProcessing.h"
+#include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
@@ -21,7 +27,8 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct TPCSpectraTaskSplit {
+// Spectra task
+struct tpcSpectraPiKaPr {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hp[Np] = {"p/El", "p/Mu", "p/Pi", "p/Ka", "p/Pr", "p/De", "p/Tr", "p/He", "p/Al"};
@@ -32,7 +39,7 @@ struct TPCSpectraTaskSplit {
   {
     histos.add("p/Unselected", "Unselected;#it{p} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
     histos.add("pt/Unselected", "Unselected;#it{p}_{T} (GeV/#it{c})", kTH1F, {{100, 0, 20}});
-    for (int i = 0; i < Np; i++) {
+    for (int i = 2; i < 5; i++) {
       histos.add(hp[i].data(), Form("%s;#it{p} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
       histos.add(hpt[i].data(), Form("%s;#it{p}_{T} (GeV/#it{c})", pT[i]), kTH1F, {{100, 0, 20}});
     }
@@ -41,23 +48,21 @@ struct TPCSpectraTaskSplit {
   template <std::size_t i, typename T>
   void fillParticleHistos(const T& track, const float& nsigma)
   {
-    if (abs(nsigma) > nsigmacut.value) {
+    if (abs(nsigma) > cfgNSigmaCut) {
       return;
     }
     histos.fill(HIST(hp[i]), track.p());
     histos.fill(HIST(hpt[i]), track.pt());
   }
 
+  //Defining filters and input
+  Configurable<float> cfgNSigmaCut{"cfgNSigmaCut", 3, "Value of the Nsigma cut"};
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
-  Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
-
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
-                                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                                  aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
-                                                  aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                  aod::pidRespTPCPi, aod::pidRespTPCKa, aod::pidRespTPCPr,
                                                   aod::TrackSelection>>;
 
   void process(TrackCandidates::iterator const& track)
@@ -65,20 +70,14 @@ struct TPCSpectraTaskSplit {
     histos.fill(HIST("p/Unselected"), track.p());
     histos.fill(HIST("pt/Unselected"), track.pt());
 
-    fillParticleHistos<0>(track, track.tpcNSigmaEl());
-    fillParticleHistos<1>(track, track.tpcNSigmaMu());
     fillParticleHistos<2>(track, track.tpcNSigmaPi());
     fillParticleHistos<3>(track, track.tpcNSigmaKa());
     fillParticleHistos<4>(track, track.tpcNSigmaPr());
-    fillParticleHistos<5>(track, track.tpcNSigmaDe());
-    fillParticleHistos<6>(track, track.tpcNSigmaTr());
-    fillParticleHistos<7>(track, track.tpcNSigmaHe());
-    fillParticleHistos<8>(track, track.tpcNSigmaAl());
-  }
+
+  } // end of the process function
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTaskSplit>(cfgc, TaskName{"tpcspectra-split-task"})};
-  return workflow;
+  return WorkflowSpec{adaptAnalysisTask<tpcSpectraPiKaPr>(cfgc)};
 }
