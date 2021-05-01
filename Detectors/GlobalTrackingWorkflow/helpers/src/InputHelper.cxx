@@ -20,6 +20,7 @@
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
+#include "FT0Workflow/RecPointReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -65,6 +66,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
   if (maskMatches[GID::TPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], true, maskTracks[GID::TPCTOF]));
+  }
+
+  if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
+    specs.emplace_back(o2::ft0::getRecPointReaderSpec(maskTracksMC[GID::FT0] || maskClustersMC[GID::FT0]));
   }
 
   return 0;
