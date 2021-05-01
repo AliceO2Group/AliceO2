@@ -17,7 +17,6 @@
 #include "FT0Workflow/DigitReaderSpec.h"
 #include "FT0Workflow/ReconstructionSpec.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
-#include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"

@@ -55,6 +55,8 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
 
   float tpcTimeICMatchingNSigma = 4.; ///< nsigma for matching TPC corrected time and InteractionCandidate from FT0
 
+  float tpcExtConstrainedNSigma = 4.; ///< nsigma to apply to externally (TRD,TOF) time-constrained TPC tracks time error
+
   float maxVDriftUncertainty = 0.; ///< max assumed VDrift uncertainty, used only in VDrift calibration mode
 
   float maxTglForVDriftCalib = 1.; ///< maximum ITS tgl to collect data for VDrift calibration

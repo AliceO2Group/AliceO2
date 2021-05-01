@@ -113,11 +113,11 @@ struct TrackLocTPC : public o2::track::TrackParCov {
   enum Constraint_t : uint8_t { Constrained,
                                 ASide,
                                 CSide };
-  o2::math_utils::Bracketf_t tBracket; ///< bracketing time in \mus
-  float time0 = 0;                     ///< nominal time in \mus
-  int sourceID = 0;                    ///< track origin id
-                                       //  float zMin = 0;                      // min possible Z of this track
-                                       //  float zMax = 0;                      // max possible Z of this track
+  o2::math_utils::Bracketf_t tBracket;  ///< bracketing time in \mus
+  float time0 = 0.f;                    ///< nominal time in \mus since start of TF (time0 for bare TPC tracks, constrained time for TRD/TOF constrained ones)
+  float timeErr = 0.f;                  ///< time sigma (makes sense for constrained tracks only)
+  int sourceID = 0;                     ///< TPC track origin in
+  o2::dataformats::GlobalTrackID gid{}; // global track source ID (TPC track may be part of it)
   int matchID = MinusOne;              ///< entry (non if MinusOne) of its matchTPC struct in the mMatchesTPC
   Constraint_t constraint{Constrained};
 
@@ -310,7 +310,7 @@ class MatchTPCITS
   static constexpr int NITSLayers = o2::its::RecoGeomHelper::getNLayers();
   ///< perform matching for provided input
   void run(const o2::globaltracking::RecoContainer& inp);
-  void loadInput(const o2::globaltracking::RecoContainer& inp);
+
   // RSTODO
   void runAfterBurner();
   bool runAfterBurner(int tpcWID, int iCStart, int iCEnd);
@@ -330,10 +330,9 @@ class MatchTPCITS
   void buildBestLinksList(int ilink);
   bool isBetter(float chi2A, float chi2B) { return chi2A < chi2B; } // RS TODO
   void dumpABTracksDebugTree(const ABTrackLinksList& llist);
-  int prepareInteractionTimes();
   void destroyLastABTrackLinksList();
   void refitABTrack(int ibest) const;
-
+  void setSkipTPCOnly(bool v) { mSkipTPCOnly = v; }
   void setCosmics(bool v) { mCosmics = v; }
   bool isCosmics() const { return mCosmics; }
 
@@ -430,10 +429,12 @@ class MatchTPCITS
   int findLaddersToCheckBOff(int ilr, int lad0, const o2::math_utils::IntervalXYf_t& trcLinPar, float errYFrac,
                              std::array<int, MatchTPCITS::MaxLadderCand>& lad2Check) const;
 
+  bool prepareTPCData();
+  bool prepareITSData();
+  bool prepareFITData();
+  int prepareInteractionTimes();
   int prepareTPCTracksAfterBurner();
-  bool prepareTPCTracks();
-  bool prepareITSTracks();
-  bool prepareFITInfo();
+  void addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
 
   int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& clRefs,
                             float trackY, float trackZ, float tolerY, float tolerZ, const o2::MCCompLabel& lblTrc) const;
@@ -524,6 +525,7 @@ class MatchTPCITS
 
   MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
 
+  bool mSkipTPCOnly = false;  ///< for test only: don't use TPC only tracks, use only external ones
   bool mITSTriggered = false; ///< ITS readout is triggered
   bool mUseFT0 = false;       ///< FT0 information is available
 
@@ -535,7 +537,7 @@ class MatchTPCITS
   ///< safety margin in TPC time bins when estimating TPC track tMin and tMax from
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
   float mTPCTimeEdgeTSafeMargin = 0.f;
-
+  float mTPCExtConstrainedNSigmaInv = 0.f; // inverse for NSigmas for TPC time-interval from external constraint time sigma
   int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
   float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
@@ -565,6 +567,7 @@ class MatchTPCITS
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
 
+  const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;       ///< input TPC tracks span

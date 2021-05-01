@@ -33,7 +33,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
+    {"track-sources", VariantType::String, "ITS,TPC", {"comma-separated list of sources to use: ITS,TPC,TPC-TOF,TPC-TRD,TPC-TRD-TOF"}},
     {"produce-calibration-data", o2::framework::VariantType::Bool, false, {"produce output for TPC vdrift calibration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
@@ -64,22 +64,28 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2matchtpcits-workflow_configuration.ini");
 
-  GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,FT0");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,TPC-TOF");
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
-
   auto useFT0 = configcontext.options().get<bool>("use-ft0");
+  if (useFT0) {
+    src |= GID::getSourceMask(GID::FT0);
+  }
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto calib = configcontext.options().get<bool>("produce-calibration-data");
 
-  o2::framework::WorkflowSpec specs;
+  LOG(INFO) << "Data sources: " << GID::getSourcesNames(src);
+  auto srcL = src | GID::getSourcesMask("ITS,TPC"); // ITS is neadded always, TPC must be loaded even if bare TPC tracks are not used in matching
 
-  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(src, useFT0, calib, useMC));
+  o2::framework::WorkflowSpec specs;
+  specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(srcL, useFT0, calib, !GID::includesSource(GID::TPC, src), useMC));
 
   if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));
   }
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);
+  // the only clusters MC which is need with useMC is ITS (for afterburner), for the rest we use tracks MC labels
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcL, srcL, srcL,
+                                                 useMC, GID::getSourceMask(GID::ITS));
 
   return std::move(specs);
 }
