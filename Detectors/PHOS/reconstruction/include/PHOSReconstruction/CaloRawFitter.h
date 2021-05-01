@@ -21,13 +21,13 @@
 
 #ifndef PHOSRAWFITTER_H_
 #define PHOSRAWFITTER_H_
+#include "Rtypes.h"
 
 namespace o2
 {
 
 namespace phos
 {
-class Bunch;
 
 class CaloRawFitter
 {
@@ -45,10 +45,10 @@ class CaloRawFitter
 
  public:
   /// \brief Constructor
-  CaloRawFitter() = default;
+  CaloRawFitter();
 
   /// \brief Destructor
-  ~CaloRawFitter() = default;
+  virtual ~CaloRawFitter() = default;
 
   /// \brief Evaluation Amplitude and TOF
   /// return status -1: not evaluated/empty bunch;
@@ -56,7 +56,7 @@ class CaloRawFitter
   ///                1: overflow;
   ///                4: single spikes
   ///                3: too large RMS;
-  FitStatus evaluate(const std::vector<Bunch>& bunchvector);
+  virtual FitStatus evaluate(gsl::span<short unsigned int> signal);
 
   /// \brief Set HighGain/LowGain channel to performe or not fit of saturated samples
   void setLowGain(bool isLow = false) { mLowGain = isLow; }
@@ -65,46 +65,44 @@ class CaloRawFitter
   void setPedSubtract(bool toSubtruct = false) { mPedSubtract = toSubtruct; }
 
   /// \brief amplitude in last fitted sample
-  float getAmp(int is) { return mAmp[is]; }
+  float getAmp() const { return mAmp; }
 
   /// \brief Chi2/NDF of last performed fit
-  float getChi2(int is) const { return mChi2[is]; }
+  float getChi2() const { return mChi2; }
 
   /// \brief time in last fitted sample
-  float getTime(int is) { return mTime[is]; }
+  float getTime() const { return mTime; }
 
   /// \brief is last fitted sample has overflow
-  bool isOverflow(int is) { return mOverflow[is]; }
+  bool isOverflow() const { return mOverflow; }
 
   /// \brief Forse perform fitting
   /// Make fit for any sample, not only saturated LowGain samples as by default
   void forseFitting(bool toRunFit = true) { makeFit = toRunFit; }
-
-  /// \brief Number of fit samples (normaly 1, more in case of pileup, noise etc)
-  short getNsamples() { return mAmp.size(); }
 
   /// \brief Set analysis of pedestal run
   /// Analyze pedestal run, i.e. calculate mean and RMS of pedestals instead of Amp and Time
   void setPedestal() { mPedestalRun = true; }
 
  protected:
-  FitStatus evalKLevel(const Bunch& b);
+  FitStatus evalKLevel(gsl::span<short unsigned int> signal);
 
-  FitStatus fitGamma2(const Bunch& b);
-
- private:
+ protected:
   bool makeFit = false;              ///< run (slow) fit with Gamma2 or use fast evaluation with k-level
   bool mLowGain = false;             ///< is current bunch from LowGain channel
   bool mPedSubtract = false;         ///< should one evaluate and subtract pedestals
   bool mPedestalRun = false;         ///< analyze as pedestal run
-  std::vector<bool> mOverflow;       ///< is last sample saturated
+  bool mOverflow;                    ///< is last sample saturated
   FitStatus mStatus = kNotEvaluated; ///< status of last evaluated sample: -1: not yet evaluated; 0: OK; 1: overflow; 2: too large RMS; 3: single spikes
   short mMaxSample = 0;              ///< maximal sample
-  std::vector<float> mAmp;           ///< amplitude of last processed sample
-  std::vector<float> mTime;          ///< time of last processed sample
-  std::vector<float> mChi2;          ///< chi2 calculated in last fit
+  float mAmp;                        ///< amplitude of last processed sample
+  float mTime;                       ///< time of last processed sample
+  float mChi2;                       ///< chi2 calculated in last fit
+  short mSpikeThreshold;
+  short mBaseLine;
+  short mPreSamples;
 
-  ClassDefNV(CaloRawFitter, 1);
+  ClassDef(CaloRawFitter, 1);
 }; // End of CaloRawFitter
 
 } // namespace phos
