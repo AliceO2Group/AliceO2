@@ -53,22 +53,23 @@ namespace o2
 namespace globaltracking
 {
 
-DataRequest dataRequestTPCITSMatch;
-
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(bool useFT0, bool calib, bool useMC) : mUseFT0(useFT0), mCalibMode(calib), mUseMC(useMC) {}
+  TPCITSMatchingDPL(std::shared_ptr<DataRequest> dr, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
+    : mDataRequest(dr), mUseFT0(useFT0), mCalibMode(calib), mSkipTPCOnly(skipTPCOnly), mUseMC(useMC) {}
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
+  std::shared_ptr<DataRequest> mDataRequest;
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
   o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
   bool mUseFT0 = false;
   bool mCalibMode = false;
+  bool mSkipTPCOnly = false; // to use only externally constrained tracks (for test only)
   bool mUseMC = true;
   TStopwatch mTimer;
 };
@@ -81,6 +82,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   o2::base::GeometryManager::loadGeometry();
   o2::base::Propagator::initFieldFromGRP();
   std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+  mMatching.setSkipTPCOnly(mSkipTPCOnly);
   mMatching.setITSTriggered(!grp->isDetContinuousReadOut(o2::detectors::DetID::ITS));
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   if (mMatching.isITSTriggered()) {
@@ -131,7 +133,7 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   LOG(INFO) << " startOrbit: " << dh->firstTForbit;
   mTimer.Start(false);
   RecoContainer recoData;
-  recoData.collectData(pc, dataRequestTPCITSMatch);
+  recoData.collectData(pc, *mDataRequest.get());
 
   mMatching.run(recoData);
 
@@ -155,17 +157,17 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool useMC)
+DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
 {
-
   std::vector<OutputSpec> outputs;
-  dataRequestTPCITSMatch.requestTracks(src, useMC);
-  dataRequestTPCITSMatch.requestClusters(src, false); // no MC labels for clusters needed for refit only
+  auto dataRequest = std::make_shared<DataRequest>();
+
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
 
   if (useFT0) {
-    dataRequestTPCITSMatch.requestFT0RecPoints(false);
+    dataRequest->requestFT0RecPoints(false);
   }
-
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
 
   if (calib) {
@@ -173,15 +175,15 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   }
 
   if (useMC) {
-    dataRequestTPCITSMatch.inputs.emplace_back("clusITSMCTR", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe); // for afterburner
+    dataRequest->inputs.emplace_back("clusITSMCTR", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe); // for afterburner
     outputs.emplace_back("GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
     "itstpc-track-matcher",
-    dataRequestTPCITSMatch.inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useFT0, calib, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, useFT0, calib, skipTPCOnly, useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},

@@ -52,6 +52,7 @@ using namespace o2::globaltracking;
 using MatrixDSym4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepSym<double, 4>>;
 using MatrixD4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepStd<double, 4>>;
 using NAMES = o2::base::NameConf;
+using GTrackID = o2::dataformats::GlobalTrackID;
 
 constexpr float MatchTPCITS::XMatchingRef;
 constexpr float MatchTPCITS::YMaxAtXMatchingRef;
@@ -248,6 +249,7 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
   if (!mInitDone) {
     LOG(FATAL) << "init() was not done yet";
   }
+  mRecoCont = &inp;
   mStartIR = inp.startIR;
   updateTimeDependentParams();
 
@@ -260,13 +262,8 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
 
   clear();
 
-  loadInput(inp);
-
-  if (!prepareITSTracks() || !prepareTPCTracks() || !prepareFITInfo()) {
+  if (!prepareITSData() || !prepareTPCData() || !prepareFITData()) {
     return;
-  }
-  if (mUseFT0) {
-    prepareInteractionTimes();
   }
 
   mTimer[SWDoMatching].Start(false);
@@ -308,38 +305,6 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
 }
 
 //______________________________________________
-void MatchTPCITS::loadInput(const o2::globaltracking::RecoContainer& inp)
-{
-  mITSTracksArray = inp.getITSTracks<o2::its::TrackITS>();
-  mITSTrackClusIdx = inp.getITSTracksClusterRefs();
-  mITSTrackROFRec = inp.getITSTracksROFRecords<o2::itsmft::ROFRecord>();
-
-  mITSClusterROFRec = inp.getITSClustersROFRecords<o2::itsmft::ROFRecord>();
-  const auto patterns = inp.getITSClustersPatterns();
-  const auto clusITS = inp.getITSClusters<o2::itsmft::CompClusterExt>();
-  auto pattIt = patterns.begin();
-  mITSClustersArray.clear();
-  mITSClustersArray.reserve(clusITS.size());
-  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, *mITSDict);
-
-  mTPCTracksArray = inp.getTPCTracks<o2::tpc::TrackTPC>();
-  mTPCTrackClusIdx = inp.getTPCTracksClusterRefs();
-  mTPCClusterIdxStruct = &inp.inputsTPCclusters->clusterIndex;
-  mTPCRefitterShMap = inp.clusterShMapTPC;
-  if (mMCTruthON) {
-    mITSTrkLabels = inp.getITSTracksMCLabels();
-    mTPCTrkLabels = inp.getTPCTracksMCLabels();
-    mITSClsLabels = inp.mcITSClusters.get();
-  }
-
-  if (mUseFT0) {
-    mFITInfo = inp.getFT0RecPoints<o2::ft0::RecPoints>();
-  }
-
-  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCTransform.get(), mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
-}
-
-//______________________________________________
 void MatchTPCITS::end()
 {
 #ifdef _ALLOW_DEBUG_TREES_
@@ -355,8 +320,23 @@ void MatchTPCITS::clear()
   mMatchRecordsITS.clear();
   mWinnerChi2Refit.clear();
   mMatchedTracks.clear();
+  mITSWork.clear();
+  mITSROFTimes.clear();
+  mITSTrackROFContMapping.clear();
+  mITSClustersArray.clear();
+  mABClusterLinkIndex.clear();
+
+  for (int sec = o2::constants::math::NSectors; sec--;) {
+    mITSSectIndexCache[sec].clear();
+    mITSTimeStart[sec].clear();
+    mTPCSectIndexCache[sec].clear();
+    mTPCTimeStart[sec].clear();
+  }
+
   if (mMCTruthON) {
     mOutLabels.clear();
+    mITSROFTimes.clear();
+    mTPCLblWork.clear();
   }
 }
 
@@ -438,7 +418,7 @@ void MatchTPCITS::updateTimeDependentParams()
   mTPCVDrift0Inv = 1. / mTPCVDrift0;
   mNTPCBinsFullDrift = mTPCZMax * mZ2TPCBin;
   mTPCTimeEdgeTSafeMargin = z2TPCBin(mParams->safeMarginTPCTimeEdge);
-
+  mTPCExtConstrainedNSigmaInv = 1.f / mParams->tpcExtConstrainedNSigma;
   mBz = o2::base::Propagator::Instance()->getNominalBz();
   mFieldON = std::abs(mBz) > 0.01;
 
@@ -545,73 +525,110 @@ int MatchTPCITS::getNMatchRecordsITS(const TrackLocITS& tTPC) const
 }
 
 //______________________________________________
-bool MatchTPCITS::prepareTPCTracks()
+void MatchTPCITS::addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID srcGID, int tpcID)
 {
-  ///< load next chunk of TPC data and prepare for matching
+  // account single TPC seed, can be from standalone TPC track or constrained track from match to TRD and/or TOF
+  const float SQRT12DInv = 2. / sqrt(12.);
+  const auto& tpcOrig = mTPCTracksArray[tpcID];
+  // discard tracks w/o certain number of total or innermost pads (last cluster is innermost one)
+  if (tpcOrig.getNClusterReferences() < mParams->minTPCClusters) {
+    return;
+  }
+  uint8_t clSect = 0, clRow = 0;
+  uint32_t clIdx = 0;
+  tpcOrig.getClusterReference(mTPCTrackClusIdx, tpcOrig.getNClusterReferences() - 1, clSect, clRow, clIdx);
+  if (clRow > mParams->askMinTPCRow) {
+    return;
+  }
+  // create working copy of track param
+  bool extConstrained = srcGID.getSource() != GTrackID::TPC;
+  if (extConstrained) {
+    terr *= mParams->tpcExtConstrainedNSigma;
+  } else {
+    terr += tpcTimeBin2MUS(tpcOrig.hasBothSidesClusters() ? mParams->safeMarginTPCITSTimeBin : mTPCTimeEdgeTSafeMargin);
+  }
+  auto& trc = mTPCWork.emplace_back(
+    TrackLocTPC{_tr, {t0 - terr, t0 + terr}, extConstrained ? t0 : tpcTimeBin2MUS(tpcOrig.getTime0()),
+                // for A/C constrained tracks the terr is half-interval, for externally constrained tracks it is sigma*Nsigma
+                terr * (extConstrained ? mTPCExtConstrainedNSigmaInv : SQRT12DInv),
+                tpcID,
+                srcGID,
+                MinusOne,
+                (extConstrained || tpcOrig.hasBothSidesClusters()) ? TrackLocTPC::Constrained : (tpcOrig.hasASideClustersOnly() ? TrackLocTPC::ASide : TrackLocTPC::CSide)});
+  // propagate to matching Xref
+  if (!propagateToRefX(trc)) {
+    mTPCWork.pop_back(); // discard track whose propagation to XMatchingRef failed
+    return;
+  }
+  if (mMCTruthON) {
+    mTPCLblWork.emplace_back(mTPCTrkLabels[tpcID]);
+  }
+  // cache work track index
+  mTPCSectIndexCache[o2::math_utils::angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
+}
+
+//______________________________________________
+bool MatchTPCITS::prepareTPCData()
+{
+  ///< load TPC data and prepare for matching
   mTimer[SWPrepTPC].Start(false);
-  mMatchRecordsTPC.clear();
+  const auto& inp = *mRecoCont;
+
+  mTPCTracksArray = inp.getTPCTracks<o2::tpc::TrackTPC>();
+  mTPCTrackClusIdx = inp.getTPCTracksClusterRefs();
+  mTPCClusterIdxStruct = &inp.inputsTPCclusters->clusterIndex;
+  mTPCRefitterShMap = inp.clusterShMapTPC;
+  if (mMCTruthON) {
+    mTPCTrkLabels = inp.getTPCTracksMCLabels();
+  }
 
   int ntr = mTPCTracksArray.size();
-  // number of records might be actually more than N tracks!
-  mMatchRecordsTPC.reserve(mMatchRecordsTPC.size() + mParams->maxMatchCandidates * ntr);
-
-  // copy the track params, propagate to reference X and build sector tables
-  mTPCWork.clear();
+  mMatchRecordsTPC.reserve(mParams->maxMatchCandidates * ntr); // number of records might be actually more than N tracks!
   mTPCWork.reserve(ntr);
   if (mMCTruthON) {
-    mTPCLblWork.clear();
     mTPCLblWork.reserve(ntr);
   }
   for (int sec = o2::constants::math::NSectors; sec--;) {
-    mTPCSectIndexCache[sec].clear();
     mTPCSectIndexCache[sec].reserve(100 + 1.2 * ntr / o2::constants::math::NSectors);
-    mTPCTimeStart[sec].clear();
   }
 
-  for (int it = 0; it < ntr; it++) {
+  mTPCTracksArray = inp.getTPCTracks<o2::tpc::TrackTPC>();
+  mTPCTrackClusIdx = inp.getTPCTracksClusterRefs();
+  mTPCClusterIdxStruct = &inp.inputsTPCclusters->clusterIndex;
+  mTPCRefitterShMap = inp.clusterShMapTPC;
+  if (mMCTruthON) {
+    mTPCTrkLabels = inp.getTPCTracksMCLabels();
+  }
 
-    const auto& trcOrig = mTPCTracksArray[it];
-
+  std::function<bool(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator = [this](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
+    auto srcID = _origID.getSource();
+    if (srcID == GTrackID::ITS) { // we don't need ITS here
+      return true;                // we don't need TPC tracks
+    }
     // make sure the track was propagated to inner TPC radius at the ref. radius
-    if (trcOrig.getX() > o2::constants::geom::XTPCInnerRef + 0.1 || std::abs(trcOrig.getQ2Pt()) > mMinTPCTrackPtInv) {
-      continue;
+    if (_tr.getX() > o2::constants::geom::XTPCInnerRef + 0.1 || std::abs(_tr.getQ2Pt()) > mMinTPCTrackPtInv) {
+      return true;
     }
-    // discard tracks with too few clusters
-    if (trcOrig.getNClusterReferences() < mParams->minTPCClusters) {
-      continue;
-    }
-    // discard tracks w/o certain number of innermost pads (last cluster is innermost one)
-    {
-      uint8_t clSect = 0, clRow = 0;
-      uint32_t clIdx = 0;
-      trcOrig.getClusterReference(mTPCTrackClusIdx, trcOrig.getNClusterReferences() - 1, clSect, clRow, clIdx);
-      if (clRow > mParams->askMinTPCRow) {
-        continue;
+    GTrackID tpcGID{};
+    if (srcID == GTrackID::TPC) {
+      // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd)
+      if (this->mSkipTPCOnly) {
+        return true;
       }
+      tpcGID = _origID;
+      t0 = this->tpcTimeBin2MUS(t0); // time and error are in TPC bins, convert to \mus
+      terr = this->tpcTimeBin2MUS(terr);
+    } else if (srcID == GTrackID::TPCTOF) {
+      // TPC track is contrained by TOF fit
+      tpcGID = this->mRecoCont->getTPCContributorGID(_origID);
+    } else if (srcID == GTrackID::TPCTRD) {
+      return true; // TODO RS
     }
+    addTPCSeed(_tr, t0, terr, _origID, tpcGID.getIndex());
+    return true;
+  };
 
-    // create working copy of track param
-    float tBwd = trcOrig.getDeltaTBwd() + mTPCTimeEdgeTSafeMargin, tFwd = trcOrig.getDeltaTFwd() + mTPCTimeEdgeTSafeMargin;
-    auto& trc = mTPCWork.emplace_back(TrackLocTPC{trcOrig,
-                                                  {tpcTimeBin2MUS(trcOrig.getTime0() - tBwd), tpcTimeBin2MUS(trcOrig.getTime0() + tFwd)},
-                                                  tpcTimeBin2MUS(trcOrig.getTime0()),
-                                                  it,
-                                                  MinusOne,
-                                                  TrackLocTPC::Constrained});
-    // propagate to matching Xref
-    if (!propagateToRefX(trc)) {
-      mTPCWork.pop_back(); // discard track whose propagation to XMatchingRef failed
-      continue;
-    }
-    trc.constraint = trcOrig.hasASideClustersOnly() ? TrackLocTPC::ASide : (trcOrig.hasCSideClustersOnly() ? TrackLocTPC::CSide : TrackLocTPC::Constrained);
-
-    if (mMCTruthON) {
-      mTPCLblWork.emplace_back(mTPCTrkLabels[it]);
-    }
-
-    // cache work track index
-    mTPCSectIndexCache[o2::math_utils::angle2Sector(trc.getAlpha())].push_back(mTPCWork.size() - 1);
-  }
+  inp.createTracks(creator);
 
   float maxTime = 0;
   int nITSROFs = mITSROFTimes.size();
@@ -676,44 +693,51 @@ bool MatchTPCITS::prepareTPCTracks()
     mITSROFofTPCBin[ib] = itsROF;
   }
 */
+  mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCTransform.get(), mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+
   mTimer[SWPrepTPC].Stop();
-  return true;
+  return mTPCWork.size() > 0;
 }
 
 //_____________________________________________________
-bool MatchTPCITS::prepareITSTracks()
+bool MatchTPCITS::prepareITSData()
 {
-  // In the standalone (tree-based) mode load next chunk of ITS data,
   // Do preparatory work for matching
-  int nROFs = mITSTrackROFRec.size();
+  mTimer[SWPrepITS].Start(false);
+  const auto& inp = *mRecoCont;
 
-  if (!nROFs) {
-    LOG(INFO) << "Empty TF";
+  // ITS clusters
+  mITSClusterROFRec = inp.getITSClustersROFRecords<o2::itsmft::ROFRecord>();
+  const auto clusITS = inp.getITSClusters<o2::itsmft::CompClusterExt>();
+  if (mITSClusterROFRec.empty() || clusITS.empty()) {
+    LOG(INFO) << "No ITS clusters";
     return false;
   }
-  mTimer[SWPrepITS].Start(false);
-  mITSWork.clear();
-  mITSWork.reserve(mITSTracksArray.size());
-  mITSROFTimes.clear();
-  // number of records might be actually more than N tracks!
-  mMatchRecordsITS.clear(); // RS TODO reserve(mMatchRecordsITS.size() + mParams->maxMatchCandidates*ntr);
+  const auto patterns = inp.getITSClustersPatterns();
+  auto pattIt = patterns.begin();
+  mITSClustersArray.reserve(clusITS.size());
+  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, *mITSDict);
   if (mMCTruthON) {
-    mITSLblWork.clear();
+    mITSClsLabels = inp.mcITSClusters.get();
   }
+
+  // ITS tracks
+  mITSTracksArray = inp.getITSTracks<o2::its::TrackITS>();
+  mITSTrackClusIdx = inp.getITSTracksClusterRefs();
+  mITSTrackROFRec = inp.getITSTracksROFRecords<o2::itsmft::ROFRecord>();
+  if (mMCTruthON) {
+    mITSTrkLabels = inp.getITSTracksMCLabels();
+  }
+  int nROFs = mITSTrackROFRec.size();
+  mITSWork.reserve(mITSTracksArray.size());
 
   // total N ITS clusters in TF
   const auto& lastClROF = mITSClusterROFRec[nROFs - 1]; //.back();
   int nITSClus = lastClROF.getFirstEntry() + lastClROF.getNEntries();
-  mABClusterLinkIndex.clear();
   mABClusterLinkIndex.resize(nITSClus, MinusOne);
-
   for (int sec = o2::constants::math::NSectors; sec--;) {
-    mITSSectIndexCache[sec].clear();
-    mITSTimeStart[sec].clear();
     mITSTimeStart[sec].resize(nROFs, -1); // start of ITS work tracks in every sector
   }
-
-  mITSTrackROFContMapping.clear(); // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
@@ -722,7 +746,7 @@ bool MatchTPCITS::prepareITSTracks()
     float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
     if (!mITSTriggered) {
       auto irofCont = nBC / mITSROFrameLengthInBC;
-      if (mITSTrackROFContMapping.size() <= irofCont) {
+      if (mITSTrackROFContMapping.size() <= irofCont) { // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
         mITSTrackROFContMapping.resize((1 + irofCont / 128) * 128, 0);
       }
       mITSTrackROFContMapping[irofCont] = irof;
@@ -818,14 +842,18 @@ bool MatchTPCITS::prepareITSTracks()
   } // loop over tracks of single sector
   mMatchRecordsITS.reserve(mITSWork.size() * mParams->maxMatchCandidates);
   mTimer[SWPrepITS].Stop();
-  return true;
+
+  return nITSClus > 0;
 }
 
 //_____________________________________________________
-bool MatchTPCITS::prepareFITInfo()
+bool MatchTPCITS::prepareFITData()
 {
   // If available, read FIT Info
-
+  if (mUseFT0) {
+    mFITInfo = mRecoCont->getFT0RecPoints<o2::ft0::RecPoints>();
+    prepareInteractionTimes();
+  }
   return true;
 }
 
@@ -1433,8 +1461,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
-  float time = tTPC.getCorrectedTime(deltaT);                                        /// precise time estimate
-  float timeErr = std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDrift0Inv; // estimate the error on time
+  float timeC = tTPC.getCorrectedTime(deltaT);                                                                                                    /// precise time estimate
+  float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDrift0Inv; // estimate the error on time
 
   // outward refit
   auto& tracOut = trfit.getParamOut(); // this is a clone of ITS outward track already at the matching reference X
@@ -1452,7 +1480,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     }
     float chi2Out = 0;
     auto posStart = tracOut.getXYZGlo();
-    int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), time * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+    int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), timeC * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
     if (retVal < 0) {
       LOG(DEBUG) << "Refit failed";
       mMatchedTracks.pop_back(); // destroy failed track
@@ -1481,7 +1509,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
 
   trfit.setChi2Match(tpcMatchRec.chi2);
   trfit.setChi2Refit(chi2);
-  trfit.setTimeMUS(time, timeErr);
+  trfit.setTimeMUS(timeC, timeErr);
   trfit.setRefTPC({unsigned(tTPC.sourceID), o2::dataformats::GlobalTrackID::TPC});
   trfit.setRefITS({unsigned(tITS.sourceID), o2::dataformats::GlobalTrackID::ITS});
 
