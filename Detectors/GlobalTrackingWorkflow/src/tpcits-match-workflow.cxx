@@ -8,15 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSMFTWorkflow/ClusterReaderSpec.h"
-#include "ITSWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/PublisherSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
-#include "FT0Workflow/RecPointReaderSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
-#include "Algorithm/RangeTokenizer.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -74,46 +69,17 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
 
   auto useFT0 = configcontext.options().get<bool>("use-ft0");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
-  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto calib = configcontext.options().get<bool>("produce-calibration-data");
 
   o2::framework::WorkflowSpec specs;
 
-  std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
-  std::vector<int> tpcClusLanes = tpcClusSectors;
-
-  if (!disableRootInp) {
-
-    specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC)); // ITS always needed
-    specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(useMC, true));
-
-    if (src[GID::TPC]) {
-      specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
-      specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
-                                                     "tpc-native-cluster-reader",
-                                                     "tpc-native-clusters.root",
-                                                     "tpcrec",
-                                                     {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
-                                                     {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
-                                                     OutputSpec{"TPC", "CLUSTERNATIVE"},
-                                                     OutputSpec{"TPC", "CLNATIVEMCLBL"},
-                                                     tpcClusSectors,
-                                                     tpcClusLanes},
-                                                   useMC));
-      specs.emplace_back(o2::tpc::getClusterSharingMapSpec());
-    }
-
-    if (useFT0) {
-      specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
-    }
-  }
-
   specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(src, useFT0, calib, useMC));
 
-  if (!disableRootOut) {
+  if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::globaltracking::getTrackWriterTPCITSSpec(useMC));
   }
+
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);
 
   return std::move(specs);
 }
