@@ -25,7 +25,7 @@ void CTPClass::printStream(std::ostream& stream) const
 {
   stream << "CTP Class:" << mName << " Hardware mask:" << std::endl;
 }
-void CTPConfiguration::addCTPClass(CTPClass & ctpclass)
+void CTPConfiguration::addCTPClass(CTPClass& ctpclass)
 {
-    CTPClasses.push_back(ctpclass);
+  CTPClasses.push_back(ctpclass);
 }

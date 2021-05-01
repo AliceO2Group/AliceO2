@@ -20,7 +20,7 @@ namespace o2
 namespace ctp
 {
 struct BCMask {
-  BCMask() = default;  
+  BCMask() = default;
   std::string mName;
   std::bitset<o2::constants::lhc::LHCMaxBunches> mBCmask;
   ClassDefNV(BCMask, 1);
@@ -46,7 +46,7 @@ struct LTG {
 struct CTPCluster {
   CTPCluster() = default;
   std::string mName;
-  ClassDefNV( CTPCluster, 1)
+  ClassDefNV(CTPCluster, 1)
 };
 struct CTPClass {
   CTPClass() = default;
@@ -56,15 +56,17 @@ struct CTPClass {
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPClass, 1);
 };
-class CTPConfiguration {
-  public:
-    CTPConfiguration() = default;
-    void addCTPClass(CTPClass & ctpclass);
-  private:
-    std::vector<CTPInput> Inputs;
-    std::vector<CTPDescriptor> Descriptors;
-    std::vector<CTPClass> CTPClasses;
-    ClassDefNV(CTPConfiguration, 1);
+class CTPConfiguration
+{
+ public:
+  CTPConfiguration() = default;
+  void addCTPClass(CTPClass& ctpclass);
+
+ private:
+  std::vector<CTPInput> Inputs;
+  std::vector<CTPDescriptor> Descriptors;
+  std::vector<CTPClass> CTPClasses;
+  ClassDefNV(CTPConfiguration, 1);
 };
 } // namespace ctp
 } // namespace o2
