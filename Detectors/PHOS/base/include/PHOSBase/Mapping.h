@@ -50,17 +50,19 @@ class Mapping
                   kLowGain,
                   kTRU };
 
-  Mapping() = default;
-  Mapping(std::basic_string_view<char> path);
   ~Mapping() = default;
 
+  //Getters for unique instance of Mapping
+  static Mapping* Instance();
+  static Mapping* Instance(std::basic_string_view<char> path);
+
   /// \brief convert hardware address to absId and caloFlag
-  ErrorStatus hwToAbsId(short ddl, short hw, short& absId, CaloFlag& caloFlag);
+  ErrorStatus hwToAbsId(short ddl, short hw, short& absId, CaloFlag& caloFlag) const;
   /// \brief convert absId and caloflag to hardware address and ddl
-  ErrorStatus absIdTohw(short absId, short caloFlag, short& ddl, short& hwAddr);
+  ErrorStatus absIdTohw(short absId, short caloFlag, short& ddl, short& hwAddr) const;
 
   /// \brief convert ddl number to crorc and link number (TODO!!!)
-  void ddlToCrorcLink(short iddl, short& crorc, short& link)
+  static void ddlToCrorcLink(short iddl, short& crorc, short& link)
   {
     crorc = iddl / 8;
     link = iddl % 8;
@@ -72,10 +74,14 @@ class Mapping
   static bool isTRUReadoutchannel(short hwAddress) { return (hwAddress < 112) || (hwAddress > 2048 && hwAddress < 2048 + 112); }
 
  protected:
+  Mapping() = default;
+  Mapping(std::basic_string_view<char> path);
+
   /// \brief Construct vector for conversion only if necessary
   ErrorStatus constructAbsToHWMatrix();
 
  private:
+  static Mapping* sMapping;                         ///< Pointer to the unique instance of the singleton
   std::string mPath = "";                           ///< path to mapping files
   bool mInitialized = false;                        ///< If conversion tables created
   bool mInvInitialized = false;                     ///< If inverse conversion tables created
