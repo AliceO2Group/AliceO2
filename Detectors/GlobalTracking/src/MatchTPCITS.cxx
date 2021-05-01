@@ -797,7 +797,8 @@ bool MatchTPCITS::prepareITSTracks()
     }
   }
 
-  // sort tracks in each sector according to their time, then tgl
+  // sort tracks in each sector according to their min time, then tgl
+  // RSTODO: sorting in tgl will be dangerous once the tracks with different time uncertaincies will be added
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& indexCache = mITSSectIndexCache[sec];
     LOG(INFO) << "Sorting sector" << sec << " | " << indexCache.size() << " ITS tracks";
@@ -807,9 +808,9 @@ bool MatchTPCITS::prepareITSTracks()
     std::sort(indexCache.begin(), indexCache.end(), [this](int a, int b) {
       auto& trackA = mITSWork[a];
       auto& trackB = mITSWork[b];
-      if (trackA.tBracket < trackB.tBracket) {
+      if (trackA.tBracket.getMin() < trackB.tBracket.getMin()) {
         return true;
-      } else if (trackA.tBracket > trackB.tBracket) {
+      } else if (trackA.tBracket.getMin() > trackB.tBracket.getMin()) {
         return false;
       }
       return trackA.getTgl() < trackB.getTgl();
@@ -887,7 +888,7 @@ void MatchTPCITS::doMatching(int sec)
       if (mVDriftCalibOn) {
         timeCorrErr += vdErrT * (250. - abs(trefITS.getZ())); // account for the extra error from TPC VDrift uncertainty
       }
-      o2::math_utils::Bracket<float> trange(timeCorr - timeCorrErr, timeCorr + timeCorrErr);
+      o2::math_utils::Bracketf_t trange(timeCorr - timeCorrErr, timeCorr + timeCorrErr);
       if (trefITS.tBracket.isOutside(trange)) {
         continue;
       }
@@ -901,7 +902,8 @@ void MatchTPCITS::doMatching(int sec)
         fillTPCITSmatchTree(cacheITS[iits], cacheTPC[itpc], rejFlag, chi2);
       }
 #endif
-
+      /*
+      // RS: this might be dangerous for ITS tracks with different time coverages.
       if (rejFlag == RejectOnTgl) {
         // ITS tracks in each ROFrame are ordered in Tgl, hence if this check failed on Tgl check
         // (i.e. tgl_its>tgl_tpc+tolerance), then all other ITS tracks in this ROFrame will also have tgl too large.
@@ -920,6 +922,7 @@ void MatchTPCITS::doMatching(int sec)
         }
         continue;
       }
+      */
       if (rejFlag != Accept) {
         continue;
       }
