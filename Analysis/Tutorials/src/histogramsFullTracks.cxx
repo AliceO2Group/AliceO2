@@ -18,7 +18,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct etaAndClsHistograms {
+struct EtaAndClsHistograms {
   OutputObj<TH2F> etaClsH{TH2F("eta_vs_cls", "#eta vs N_{cls}", 102, -2.01, 2.01, 160, -0.5, 159.5)};
 
   void process(aod::FullTracks const& tracks)
@@ -32,6 +32,6 @@ struct etaAndClsHistograms {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<etaAndClsHistograms>(cfgc),
+    adaptAnalysisTask<EtaAndClsHistograms>(cfgc),
   };
 }
