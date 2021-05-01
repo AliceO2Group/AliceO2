@@ -686,7 +686,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
 
   if constexpr ((std::tuple_size_v<std::decay_t<decltype(processTuple)>>) > 0) {
-    // this pushes (processIndex,argumentIndex,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
+    // this pushes (argumentIndex,processIndex,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
     AnalysisDataProcessorBuilder::inputsFromArgsTuple(processTuple, inputs, expressionInfos);
   }
   // avoid self-forwarding if process methods subscribe to same tables
