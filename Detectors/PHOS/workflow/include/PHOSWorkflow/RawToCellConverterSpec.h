@@ -16,6 +16,7 @@
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "PHOSBase/Mapping.h"
 #include "PHOSCalib/CalibParams.h"
+#include "PHOSReconstruction/AltroDecoder.h"
 #include "PHOSReconstruction/CaloRawFitter.h"
 #include "PHOSReconstruction/RawReaderError.h"
 
@@ -58,18 +59,16 @@ class RawToCellConverterSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  protected:
-  /// \brief simple check of HW address
-  char CheckHWAddress(short ddl, short hwAddress, short& fee);
-  void readTRUDigit(const std::vector<Bunch>& bunchlist, short absId, short timebin, std::shared_ptr<std::vector<o2::phos::Cell>>& currentTRUContainer);
-  void readTRUFlags(short hwAddress, const std::vector<Bunch>& bunchlist, std::shared_ptr<std::bitset<Mapping::NTRUReadoutChannels + 2>>& currentTRUFlags);
-
  private:
   bool mFillChi2 = false;                                     ///< Fill output with quality of samples
   bool mCombineGHLG = true;                                   ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
   bool mPedestalRun = false;                                  ///< Analyze pedestal run (calculate pedestal mean and RMS)
-  std::unique_ptr<Mapping> mMapping;                          ///< Mapping
+  int mLastSize = 0;                                          ///< size of last send list of cells to reserve same in next bunch
   std::unique_ptr<CalibParams> mCalibParams;                  ///!<! PHOS calibration
+  std::unique_ptr<AltroDecoder> mDecoder;                     ///!<! Raw decoder
   std::unique_ptr<CaloRawFitter> mRawFitter;                  ///!<! Raw fitter
+  std::array<std::vector<Cell>, 14> mTmpCells;                ///< Temporary cells storage to all 14 DLL
+  std::array<std::vector<Cell>, 14> mTmpTRU;                  ///< Temporary tru cells storage to all 14 DLL
   std::vector<o2::phos::Cell> mOutputCells;                   ///< Container with output cells
   std::vector<o2::phos::TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
   std::vector<o2::phos::RawReaderError> mOutputHWErrors;      ///< Errors occured in reading data

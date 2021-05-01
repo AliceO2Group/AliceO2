@@ -9,11 +9,13 @@
 // or submit itself to any jurisdiction.
 
 #include "FairLogger.h"
+#include <iostream>
 
 #include <fmt/core.h>
 #include <gsl/span>
 #include <TSystem.h>
 #include "PHOSSimulation/RawWriter.h"
+#include "PHOSBase/Mapping.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "CCDB/CcdbApi.h"
 
@@ -26,15 +28,7 @@ void RawWriter::init()
   mRawWriter->setApplyCarryOverToLastPage(true);
 
   // initialize mapping
-  if (!mMapping) {
-    mMapping = std::make_unique<o2::phos::Mapping>();
-    if (!mMapping) {
-      LOG(ERROR) << "Failed to initialize mapping";
-    }
-    if (mMapping->setMapping() != o2::phos::Mapping::kOK) {
-      LOG(ERROR) << "Failed to construct mapping";
-    }
-  }
+  Mapping::Instance();
 
   for (auto iddl = 0; iddl < o2::phos::Mapping::NDDL; iddl++) {
     // For PHOS set
@@ -47,7 +41,7 @@ void RawWriter::init()
         rawfilename += fmt::format("/phos_{:d}.raw", iddl);
     }
     short crorc, link;
-    mMapping->ddlToCrorcLink(iddl, crorc, link);
+    Mapping::ddlToCrorcLink(iddl, crorc, link);
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }
 
@@ -108,7 +102,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       short absId = dig.getTRUId();
       short ddl, hwAddr;
       //get ddl and High Gain hw addresses
-      if (mMapping->absIdTohw(absId, Mapping::kTRU, ddl, hwAddr) != o2::phos::Mapping::kOK) {
+      if (Mapping::Instance()->absIdTohw(absId, Mapping::kTRU, ddl, hwAddr) != o2::phos::Mapping::kOK) {
         LOG(ERROR) << "Wrong truId=" << absId;
       }
       //Collect possible several digits (signal+pileup) into one map record
@@ -123,7 +117,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       short absId = dig.getAbsId();
       short ddl, hwAddr;
       //get ddl and High Gain hw addresses
-      if (mMapping->absIdTohw(absId, Mapping::kHighGain, ddl, hwAddr) != o2::phos::Mapping::kOK) {
+      if (Mapping::Instance()->absIdTohw(absId, Mapping::kHighGain, ddl, hwAddr) != o2::phos::Mapping::kOK) {
         LOG(ERROR) << "Wrong AbsId" << absId;
       }
 
@@ -137,7 +131,6 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       }
     }
   }
-
   // Create and fill DMA pages for each channel
   std::vector<uint32_t> rawbunches;
   std::vector<char> payload;
@@ -151,7 +144,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
     for (auto ch = mTRUdata[ddl].mChannels.cbegin(); ch != mTRUdata[ddl].mChannels.cend(); ch++) {
       short truId = ch->first;
       short hwAddr, iddl;
-      if ((mMapping->absIdTohw(truId, Mapping::kTRU, iddl, hwAddr) != o2::phos::Mapping::kOK) || iddl != ddl) {
+      if ((Mapping::Instance()->absIdTohw(truId, Mapping::kTRU, iddl, hwAddr) != o2::phos::Mapping::kOK) || iddl != ddl) {
         LOG(ERROR) << "Wrong truId=" << truId << ", iDDL=" << iddl << "!=" << ddl;
       }
       rawbunchesTRU.clear();
@@ -177,7 +170,6 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       for (int iword = 0; iword < sizeof(ChannelHeader) / sizeof(char); iword++) {
         payload.emplace_back(chanheadwords[iword]);
       }
-
       char* channelwords = reinterpret_cast<char*>(encodedbunches.data());
       for (auto iword = 0; iword < encodedbunches.size() * sizeof(int) / sizeof(char); iword++) {
         payload.emplace_back(channelwords[iword]);
@@ -243,7 +235,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
       createRawBunches(ch->first, ch->second, rawbunchesHG, rawbunchesLG, isLGfilled);
 
       short hwAddrHG; //High gain always filled
-      if (mMapping->absIdTohw(ch->first, Mapping::kHighGain, ddl, hwAddrHG) != o2::phos::Mapping::kOK) {
+      if (Mapping::Instance()->absIdTohw(ch->first, Mapping::kHighGain, ddl, hwAddrHG) != o2::phos::Mapping::kOK) {
         LOG(ERROR) << "Wrong AbsId" << ch->first;
       }
       rawbunches.clear();
@@ -274,7 +266,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
 
       if (isLGfilled) { //fill both HighGain, and LowGain channels in case of saturation
         short hwAddrLG; //High gain always filled
-        if (mMapping->absIdTohw(ch->first, 1, ddl, hwAddrLG) != o2::phos::Mapping::kOK) {
+        if (Mapping::Instance()->absIdTohw(ch->first, 1, ddl, hwAddrLG) != o2::phos::Mapping::kOK) {
           LOG(ERROR) << "Wrong AbsId" << ch->first;
         }
 
@@ -314,7 +306,7 @@ bool RawWriter::processTrigger(const gsl::span<o2::phos::Digit> digitsbranch, co
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
 
     short crorc, link;
-    mMapping->ddlToCrorcLink(ddl, crorc, link);
+    Mapping::ddlToCrorcLink(ddl, crorc, link);
     mRawWriter->addData(ddl, crorc, link, 0, trg.getBCData(), payload);
   }
   return true;
@@ -420,10 +412,10 @@ void RawWriter::fillGamma2(float amp, float time, short* samples)
   float alpha = o2::phos::PHOSSimParams::Instance().mSampleDecayTime;
   amp += 0.5; //rounding err
   for (int i = 0; i < kNPHOSSAMPLES; i++) {
-    if (i - o2::phos::PHOSSimParams::Instance().mPreSamples < time) {
+    if (i < time) {
       continue;
     }
-    float x = alpha * (i - o2::phos::PHOSSimParams::Instance().mPreSamples - time);
+    float x = alpha * (i - time);
     float y = 0.25 * amp * x * x * std::exp(2. - x); //0.25*exp(-2) normalization to unity
     samples[i] += short(y);
   }
