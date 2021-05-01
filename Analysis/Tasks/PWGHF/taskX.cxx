@@ -203,18 +203,6 @@ struct TaskXMC {
           ptProngs[counter] = particlesMC.iteratorAt(iD).pt();
           counter++;
         }
-        registry.fill(HIST("hPtGenProng0"), ptProngs[0]);
-        registry.fill(HIST("hPtGenProng1"), ptProngs[1]);
-        registry.fill(HIST("hPtGenProng2"), ptProngs[2]);
-        registry.fill(HIST("hEtaGen"), particle.eta());
-
-        // properties of gen matched X(3872), to get a first look at some cuts
-        float ptProngs[3];
-        int counter = 0;
-        for (int iD = particle.daughter0(); iD <= particle.daughter1(); ++iD) {
-          ptProngs[counter] = particlesMC.iteratorAt(iD).pt();
-          counter++;
-        }
         registry.fill(HIST("hPtGenProng0"), ptProngs[0], particle.pt());
         registry.fill(HIST("hPtGenProng1"), ptProngs[1], particle.pt());
         registry.fill(HIST("hPtGenProng2"), ptProngs[2], particle.pt());
