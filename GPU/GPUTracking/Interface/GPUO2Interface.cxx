@@ -91,9 +91,7 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
   if (mConfig->configInterface.dumpEvents) {
     static int nEvent = 0;
     mChain->ClearIOPointers();
-    mChain->mIOPtrs.clustersNative = data->clustersNative;
-    mChain->mIOPtrs.tpcPackedDigits = data->tpcPackedDigits;
-    mChain->mIOPtrs.tpcZS = data->tpcZS;
+    mChain->mIOPtrs = *data;
 
     char fname[1024];
     sprintf(fname, "event.%d.dump", nEvent);
