@@ -474,12 +474,12 @@ struct AnalysisDataProcessorBuilder {
                  tupledTask);
       if constexpr (soa::is_soa_iterator_t<G>::value) {
         for (auto& element : groupingTable) {
-          (task.*(processingFunction))(*element);
+          std::invoke(processingFunction, task, *element);
         }
       } else {
         static_assert(soa::is_soa_table_like_t<G>::value,
                       "Single argument of process() should be a table-like or an iterator");
-        (task.*(processingFunction))(groupingTable);
+        std::invoke(processingFunction, task, groupingTable);
       }
     } else {
       // multiple arguments to process
@@ -543,7 +543,7 @@ struct AnalysisDataProcessorBuilder {
   template <typename C, typename T, typename G, typename... A>
   static void invokeProcessWithArgsGeneric(C& task, T processingFunction, G g, std::tuple<A...>& at)
   {
-    (task.*(processingFunction))(g, std::get<A>(at)...);
+    std::invoke(processingFunction, task, g, std::get<A>(at)...);
   }
 
   template <typename T, typename G, typename... A>
