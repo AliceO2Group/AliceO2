@@ -34,6 +34,7 @@ int GPUChainTracking::RunTRDTracking()
   if (mIOPtrs.nTRDTracklets == 0) {
     return 0;
   }
+  Tracker.SetGenerateSpacePoints(mIOPtrs.trdSpacePoints == nullptr);
 
   mRec->PushNonPersistentMemory(qStr2Tag("TRDTRACK"));
   SetupGPUProcessor(&Tracker, true);
