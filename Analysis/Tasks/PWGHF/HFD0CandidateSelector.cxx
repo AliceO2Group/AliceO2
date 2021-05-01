@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFD0CandidateSelector.cxx
-/// \brief D0 selection task
+/// \brief D0(bar) → π± K∓ selection task
 ///
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 

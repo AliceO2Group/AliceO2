@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFDplusToPiKPiCandidateSelector.cxx
-/// \brief Dplus->piKpi selection task
+/// \brief D± → π± K∓ π± selection task
 ///
 /// \author Fabio Catalano <fabio.catalano@cern.ch>, Politecnico and INFN Torino
 
