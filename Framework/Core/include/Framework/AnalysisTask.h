@@ -102,15 +102,15 @@ struct AnalysisDataProcessorBuilder {
     (doAppendInputWithMetadata<Args>(inputs), ...);
   }
 
-  template <typename T>
-  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, int processIndex, int argumentIndex)
+  template <typename T, int PI, int AI>
+  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
     using dT = std::decay_t<T>;
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
-      eInfos.push_back({argumentIndex, processIndex, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      eInfos.push_back({AI, PI, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
     } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
       if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({argumentIndex, processIndex, dT::parent_t::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+        eInfos.push_back({AI, PI, dT::parent_t::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
@@ -119,13 +119,13 @@ struct AnalysisDataProcessorBuilder {
   template <typename... T>
   static void inputsFromArgsTuple(std::tuple<T...>& processTuple, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    (inputsFromArgs(std::get<T>(processTuple), inputs, eInfos, o2::framework::has_type_at_v<T>(pack<T...>{})), ...);
+    (inputsFromArgs<o2::framework::has_type_at_v<T>(pack<T...>{})>(std::get<T>(processTuple), inputs, eInfos), ...);
   }
 
-  template <typename R, typename C, typename... Args>
-  static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, int processIndex)
+  template <int PI, typename R, typename C, typename... Args>
+  static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    (appendSomethingWithMetadata<Args>(inputs, eInfos, processIndex, o2::framework::has_type_at_v<Args>(pack<Args...>{})), ...);
+    (appendSomethingWithMetadata<Args, PI, o2::framework::has_type_at_v<Args>(pack<Args...>{})>(inputs, eInfos), ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -134,14 +134,14 @@ struct AnalysisDataProcessorBuilder {
     return std::declval<std::tuple<Grouping, Args...>>();
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const& infos, int processIndex)
+  template <int PI, typename R, typename C, typename Grouping, typename... Args>
+  static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const& infos)
   {
-    return extractSomethingFromRecord<Grouping>(record, infos, processIndex, 0);
+    return extractSomethingFromRecord<Grouping, PI, 0>(record, infos);
   }
 
-  template <typename R, typename C>
-  static auto bindGroupingTable(InputRecord&, R (C::*)(), std::vector<ExpressionInfo> const&, int)
+  template <int PI, typename R, typename C>
+  static auto bindGroupingTable(InputRecord&, R (C::*)(), std::vector<ExpressionInfo> const&)
   {
     static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
     return o2::soa::Table<>{nullptr};
@@ -182,21 +182,21 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename T>
-  static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos, int processIndex, int argumentIndex)
+  template <typename T, int PI, int AI>
+  static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
   {
     using decayed = std::decay_t<T>;
 
     if constexpr (soa::is_soa_filtered_t<decayed>::value) {
       for (auto& info : infos) {
-        if (info.processIndex == processIndex && info.argumentIndex == argumentIndex) {
+        if (info.processIndex == PI && info.argumentIndex == AI) {
           return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
         }
       }
     } else if constexpr (soa::is_soa_iterator_t<decayed>::value) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
         for (auto& info : infos) {
-          if (info.processIndex == processIndex && info.argumentIndex == argumentIndex) {
+          if (info.processIndex == PI && info.argumentIndex == AI) {
             return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
           }
         }
@@ -209,14 +209,14 @@ struct AnalysisDataProcessorBuilder {
     O2_BUILTIN_UNREACHABLE();
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
-  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const infos, int processIndex)
+  template <int PI, typename R, typename C, typename Grouping, typename... Args>
+  static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const infos)
   {
-    return std::make_tuple(extractSomethingFromRecord<Args>(record, infos, processIndex, has_type_at_v<Args>(pack<Args...>{}) + 1u)...);
+    return std::make_tuple(extractSomethingFromRecord<Args, PI, has_type_at_v<Args>(pack<Args...>{}) + 1>(record, infos)...);
   }
 
-  template <typename R, typename C>
-  static auto bindAssociatedTables(InputRecord&, R (C::*)(), std::vector<ExpressionInfo> const, int)
+  template <int PI, typename R, typename C>
+  static auto bindAssociatedTables(InputRecord&, R (C::*)(), std::vector<ExpressionInfo> const)
   {
     static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
     return std::tuple<>{};
@@ -449,15 +449,15 @@ struct AnalysisDataProcessorBuilder {
   template <typename Task, typename... T>
   static void invokeProcessTuple(Task& task, InputRecord& inputs, std::tuple<T...> const& processTuple, std::vector<ExpressionInfo> const& infos)
   {
-    (invokeProcess(task, inputs, std::get<T>(processTuple), infos, o2::framework::has_type_at_v<T>(pack<T...>{})), ...);
+    (invokeProcess<o2::framework::has_type_at_v<T>(pack<T...>{})>(task, inputs, std::get<T>(processTuple), infos), ...);
   }
 
-  template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos, int processIndex)
+  template <int PI, typename Task, typename R, typename C, typename Grouping, typename... Associated>
+  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
   {
     auto tupledTask = o2::framework::to_tuple_refs(task);
     using G = std::decay_t<Grouping>;
-    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, processingFunction, infos, processIndex);
+    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable<PI>(inputs, processingFunction, infos);
 
     // set filtered tables for partitions with grouping
     std::apply([&groupingTable](auto&... x) {
@@ -485,7 +485,7 @@ struct AnalysisDataProcessorBuilder {
       // multiple arguments to process
       static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                     "Associated arguments of process() should not be iterators");
-      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, processingFunction, infos, processIndex);
+      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables<PI>(inputs, processingFunction, infos);
       auto binder = [&](auto&& x) {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
         std::apply([&x](auto&... t) {
