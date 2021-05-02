@@ -44,14 +44,8 @@ struct CTPDigit {
 struct CTPInputDigit {
   o2::InteractionRecord intRecord;
   std::bitset<CTP_MAXL0PERDET> inputsMask;
-  std::int32_t detector;
+  o2::detectors::DetID::ID detector;
   CTPInputDigit() = default;
-  CTPInputDigit(o2::InteractionRecord intRecord, std::bitset<CTP_MAXL0PERDET> inputsMask, std::uint32_t detID)
-  {
-    this->intRecord = intRecord;
-    this->inputsMask = inputsMask;
-    detector = detID;
-  }
   ClassDefNV(CTPInputDigit, 1)
 };
 } // namespace ctp

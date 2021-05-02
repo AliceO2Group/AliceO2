@@ -33,7 +33,7 @@ struct BCMask {
 struct CTPInput {
   CTPInput() = default;
   std::string name;
-  int detID;
+  o2::detectors::DetID::ID detID;
   std::uint64_t inputMask;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPInput, 1);
@@ -49,8 +49,7 @@ struct CTPDescriptor {
 /// The main part is Local Trigger Generator (LTG)
 struct CTPDetector {
   CTPDetector() = default;
-  std::string name;
-  int detID;
+  o2::detectors::DetID::ID detID;
   uint HBaccepted; /// Number of HB frames in TF to be accepted
   void printStream(std::ostream& strem) const;
 };
@@ -75,12 +74,12 @@ class CTPConfiguration
 {
  public:
   CTPConfiguration() = default;
-  void addBCMask(BCMask& bcmask);
-  void addCTPInput(CTPInput& input);
-  void addCTPDescriptor(CTPDescriptor& descriptor);
-  void addCTPDetector(CTPDetector& detector);
-  void addCTPCluster(CTPCluster& cluster);
-  void addCTPClass(CTPClass& ctpclass);
+  void addBCMask(const BCMask& bcmask);
+  void addCTPInput(const CTPInput& input);
+  void addCTPDescriptor(const CTPDescriptor& descriptor);
+  void addCTPDetector(const CTPDetector& detector);
+  void addCTPCluster(const CTPCluster& cluster);
+  void addCTPClass(const CTPClass& ctpclass);
   void printStream(std::ostream& stream) const;
 
  private:

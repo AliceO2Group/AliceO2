@@ -31,7 +31,8 @@ void CTPDescriptor::printStream(std::ostream& stream) const
 }
 void CTPDetector::printStream(std::ostream& stream) const
 {
-  stream << "CTP Detector:" << name << " HBaccepted:" << HBaccepted << std::endl;
+  o2::detectors::DetID det(detID);  
+  stream << "CTP Detector:" << det.getName() << " HBaccepted:" << HBaccepted << std::endl;
 }
 void CTPCluster::printStream(std::ostream& stream) const
 {
@@ -42,27 +43,27 @@ void CTPClass::printStream(std::ostream& stream) const
   stream << "CTP Class:" << name << " Hardware mask:" << classMask << std::endl;
 }
 /// CTP configuration
-void CTPConfiguration::addBCMask(BCMask& bcmask)
+void CTPConfiguration::addBCMask(const BCMask& bcmask)
 {
   mBCMasks.push_back(bcmask);
 }
-void CTPConfiguration::addCTPInput(CTPInput& input)
+void CTPConfiguration::addCTPInput(const CTPInput& input)
 {
   mInputs.push_back(input);
 }
-void CTPConfiguration::addCTPDescriptor(CTPDescriptor& descriptor)
+void CTPConfiguration::addCTPDescriptor(const CTPDescriptor& descriptor)
 {
   mDescriptors.push_back(descriptor);
 }
-void CTPConfiguration::addCTPDetector(CTPDetector& detector)
+void CTPConfiguration::addCTPDetector(const CTPDetector& detector)
 {
   mDetectors.push_back(detector);
 }
-void CTPConfiguration::addCTPCluster(CTPCluster& cluster)
+void CTPConfiguration::addCTPCluster(const CTPCluster& cluster)
 {
   mClusters.push_back(cluster);
 }
-void CTPConfiguration::addCTPClass(CTPClass& ctpclass)
+void CTPConfiguration::addCTPClass(const CTPClass& ctpclass)
 {
   mCTPClasses.push_back(ctpclass);
 }
