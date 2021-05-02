@@ -55,14 +55,14 @@ struct HFJpsiToEECandidateSelector {
   }
 
   /// Conjugate-independent topological cuts
-  /// \param hfCandProng2 is candidate
+  /// \param candidate is candidate
   /// \param trackPositron is the track with the positron hypothesis
   /// \param trackElectron is the track with the electron hypothesis
   /// \return true if candidate passes all cuts
   template <typename T1, typename T2>
-  bool selectionTopol(const T1& hfCandProng2, const T2& trackPositron, const T2& trackElectron)
+  bool selectionTopol(const T1& candidate, const T2& trackPositron, const T2& trackElectron)
   {
-    auto candpT = hfCandProng2.pt();
+    auto candpT = candidate.pt();
     auto pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
@@ -74,7 +74,7 @@ struct HFJpsiToEECandidateSelector {
     }
 
     // cut on invariant mass
-    if (std::abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
+    if (std::abs(InvMassJpsiToEE(candidate) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
       return false;
     }
 
@@ -96,19 +96,19 @@ struct HFJpsiToEECandidateSelector {
     return true;
   }
 
-  void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
+  void process(aod::HfCandProng2 const& candidates, aod::BigTracksPID const&)
   {
     TrackSelectorPID selectorElectron(kElectron);
     selectorElectron.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
     selectorElectron.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
 
     // looping over 2-prong candidates
-    for (auto& hfCandProng2 : hfCandProng2s) {
+    for (auto& candidate : candidates) {
 
-      auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); // positive daughter
-      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); // negative daughter
+      auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
+      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
 
-      if (!(hfCandProng2.hfflag() & 1 << DecayType::JpsiToEE)) {
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
         hfSelJpsiToEECandidate(0);
         continue;
       }
@@ -122,7 +122,7 @@ struct HFJpsiToEECandidateSelector {
       // implement filter bit 4 cut - should be done before this task at the track selection level
       // need to add special cuts (additional cuts on decay length and d0 norm)
 
-      if (!selectionTopol(hfCandProng2, trackPos, trackNeg)) {
+      if (!selectionTopol(candidate, trackPos, trackNeg)) {
         hfSelJpsiToEECandidate(0);
         continue;
       }

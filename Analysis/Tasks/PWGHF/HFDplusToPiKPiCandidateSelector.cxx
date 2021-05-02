@@ -59,15 +59,15 @@ struct HFDplusToPiKPiCandidateSelector {
   }
 
   /// Candidate selections
-  /// \param hfCandProng3 is candidate
+  /// \param candidate is candidate
   /// \param trackPion1 is the first track with the pion hypothesis
   /// \param trackKaon is the track with the kaon hypothesis
   /// \param trackPion2 is the second track with the pion hypothesis
   /// \return true if candidate passes all cuts
   template <typename T1, typename T2>
-  bool selection(const T1& hfCandProng3, const T2& trackPion1, const T2& trackKaon, const T2& trackPion2)
+  bool selection(const T1& candidate, const T2& trackPion1, const T2& trackKaon, const T2& trackPion2)
   {
-    auto candpT = hfCandProng3.pt();
+    auto candpT = candidate.pt();
     int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
@@ -81,28 +81,28 @@ struct HFDplusToPiKPiCandidateSelector {
       return false;
     }
     // invariant-mass cut
-    if (std::abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
+    if (std::abs(InvMassDPlus(candidate) - RecoDecay::getMassPDG(pdg::Code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
       return false;
     }
-    if (hfCandProng3.decayLength() < cuts->get(pTBin, "decay length")) {
+    if (candidate.decayLength() < cuts->get(pTBin, "decay length")) {
       return false;
     }
-    if (hfCandProng3.decayLengthXYNormalised() < cuts->get(pTBin, "normalized decay length XY")) {
+    if (candidate.decayLengthXYNormalised() < cuts->get(pTBin, "normalized decay length XY")) {
       return false;
     }
-    if (hfCandProng3.cpa() < cuts->get(pTBin, "cos pointing angle")) {
+    if (candidate.cpa() < cuts->get(pTBin, "cos pointing angle")) {
       return false;
     }
-    if (hfCandProng3.cpaXY() < cuts->get(pTBin, "cos pointing angle XY")) {
+    if (candidate.cpaXY() < cuts->get(pTBin, "cos pointing angle XY")) {
       return false;
     }
-    if (std::abs(hfCandProng3.maxNormalisedDeltaIP()) > cuts->get(pTBin, "max normalized deltaIP")) {
+    if (std::abs(candidate.maxNormalisedDeltaIP()) > cuts->get(pTBin, "max normalized deltaIP")) {
       return false;
     }
     return true;
   }
 
-  void process(aod::HfCandProng3 const& hfCandProng3s, aod::BigTracksPID const&)
+  void process(aod::HfCandProng3 const& candidates, aod::BigTracksPID const&)
   {
     TrackSelectorPID selectorPion(kPiPlus);
     selectorPion.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
@@ -114,19 +114,19 @@ struct HFDplusToPiKPiCandidateSelector {
     selectorKaon.setPDG(kKPlus);
 
     // looping over 3-prong candidates
-    for (auto& hfCandProng3 : hfCandProng3s) {
+    for (auto& candidate : candidates) {
 
        // final selection flag: 0 - rejected, 1 - accepted
       auto statusDplusToPiKPi = 0;
 
-      if (!(hfCandProng3.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
+      if (!(candidate.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }
 
-      auto trackPos1 = hfCandProng3.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
-      auto trackNeg = hfCandProng3.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
-      auto trackPos2 = hfCandProng3.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
+      auto trackPos1 = candidate.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
+      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
+      auto trackPos2 = candidate.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
       // daughter track validity selection
       if (!daughterSelection(trackPos1) ||
@@ -137,7 +137,7 @@ struct HFDplusToPiKPiCandidateSelector {
       }
 
       // topological selection
-      if (!selection(hfCandProng3, trackPos1, trackNeg, trackPos2)) {
+      if (!selection(candidate, trackPos1, trackNeg, trackPos2)) {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }

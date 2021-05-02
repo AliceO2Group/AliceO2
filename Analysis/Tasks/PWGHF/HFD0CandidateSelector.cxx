@@ -63,12 +63,12 @@ struct HFD0CandidateSelector {
   }
 
   /// Conjugate-independent topological cuts
-  /// \param hfCandProng2 is candidate
+  /// \param candidate is candidate
   /// \return true if candidate passes all cuts
   template <typename T>
-  bool selectionTopol(const T& hfCandProng2)
+  bool selectionTopol(const T& candidate)
   {
-    auto candpT = hfCandProng2.pt();
+    auto candpT = candidate.pt();
     auto pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
@@ -79,49 +79,49 @@ struct HFD0CandidateSelector {
       return false;
     }
     // product of daughter impact parameters
-    if (hfCandProng2.impactParameterProduct() > cuts->get(pTBin, "d0d0")) {
+    if (candidate.impactParameterProduct() > cuts->get(pTBin, "d0d0")) {
       return false;
     }
     // cosine of pointing angle
-    if (hfCandProng2.cpa() < cuts->get(pTBin, "cos pointing angle")) {
+    if (candidate.cpa() < cuts->get(pTBin, "cos pointing angle")) {
       return false;
     }
     // cosine of pointing angle XY
-    if (hfCandProng2.cpaXY() < cuts->get(pTBin, "cos pointing angle xy")) {
+    if (candidate.cpaXY() < cuts->get(pTBin, "cos pointing angle xy")) {
       return false;
     }
     // normalised decay length in XY plane
-    if (hfCandProng2.decayLengthXYNormalised() < cuts->get(pTBin, "normalized decay length XY")) {
+    if (candidate.decayLengthXYNormalised() < cuts->get(pTBin, "normalized decay length XY")) {
       return false;
     }
     // candidate DCA
-    //if (hfCandProng2.chi2PCA() > cuts[pTBin][1]) return false;
+    //if (candidate.chi2PCA() > cuts[pTBin][1]) return false;
 
     // decay exponentail law, with tau = beta*gamma*ctau
     // decay length > ctau retains (1-1/e)
-    if (std::abs(hfCandProng2.impactParameterNormalised0()) < 0.5 || std::abs(hfCandProng2.impactParameterNormalised1()) < 0.5) {
+    if (std::abs(candidate.impactParameterNormalised0()) < 0.5 || std::abs(candidate.impactParameterNormalised1()) < 0.5) {
       return false;
     }
-    double decayLengthCut = std::min((hfCandProng2.p() * 0.0066) + 0.01, 0.06);
-    if (hfCandProng2.decayLength() * hfCandProng2.decayLength() < decayLengthCut * decayLengthCut) {
+    double decayLengthCut = std::min((candidate.p() * 0.0066) + 0.01, 0.06);
+    if (candidate.decayLength() * candidate.decayLength() < decayLengthCut * decayLengthCut) {
       return false;
     }
-    if (hfCandProng2.decayLengthNormalised() * hfCandProng2.decayLengthNormalised() < 1.0) {
+    if (candidate.decayLengthNormalised() * candidate.decayLengthNormalised() < 1.0) {
       //return false; // add back when getter fixed
     }
     return true;
   }
 
   /// Conjugate-dependent topological cuts
-  /// \param hfCandProng2 is candidate
+  /// \param candidate is candidate
   /// \param trackPion is the track with the pion hypothesis
   /// \param trackKaon is the track with the kaon hypothesis
   /// \note trackPion = positive and trackKaon = negative for D0 selection and inverse for D0bar
   /// \return true if candidate passes all cuts for the given Conjugate
   template <typename T1, typename T2>
-  bool selectionTopolConjugate(const T1& hfCandProng2, const T2& trackPion, const T2& trackKaon)
+  bool selectionTopolConjugate(const T1& candidate, const T2& trackPion, const T2& trackKaon)
   {
-    auto candpT = hfCandProng2.pt();
+    auto candpT = candidate.pt();
     auto pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
@@ -129,11 +129,11 @@ struct HFD0CandidateSelector {
 
      // invariant-mass cut
     if (trackPion.sign() > 0) {
-      if (std::abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassD0(candidate) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (std::abs(InvMassD0bar(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassD0bar(candidate) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -150,11 +150,11 @@ struct HFD0CandidateSelector {
 
     // cut on cos(theta*)
     if (trackPion.sign() > 0) {
-      if (std::abs(CosThetaStarD0(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
+      if (std::abs(CosThetaStarD0(candidate)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
     } else {
-      if (std::abs(CosThetaStarD0bar(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
+      if (std::abs(CosThetaStarD0bar(candidate)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
     }
@@ -162,7 +162,7 @@ struct HFD0CandidateSelector {
     return true;
   }
 
-  void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
+  void process(aod::HfCandProng2 const& candidates, aod::BigTracksPID const&)
   {
     TrackSelectorPID selectorPion(kPiPlus);
     selectorPion.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
@@ -176,30 +176,30 @@ struct HFD0CandidateSelector {
     selectorKaon.setPDG(kKPlus);
 
     // looping over 2-prong candidates
-    for (auto& hfCandProng2 : hfCandProng2s) {
+    for (auto& candidate : candidates) {
 
       // final selection flag: 0 - rejected, 1 - accepted
       int statusD0 = 0;
       int statusD0bar = 0;
 
-      if (!(hfCandProng2.hfflag() & 1 << DecayType::D0ToPiK)) {
+      if (!(candidate.hfflag() & 1 << DecayType::D0ToPiK)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
 
-      auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); // positive daughter
+      auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
       if (!daughterSelection(trackPos)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
-      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); // negative daughter
+      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
       if (!daughterSelection(trackNeg)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
 
       // conjugate-independent topological selection
-      if (!selectionTopol(hfCandProng2)) {
+      if (!selectionTopol(candidate)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
@@ -208,9 +208,9 @@ struct HFD0CandidateSelector {
       // need to add special cuts (additional cuts on decay length and d0 norm)
 
       // conjugate-dependent topological selection for D0
-      bool topolD0 = selectionTopolConjugate(hfCandProng2, trackPos, trackNeg);
+      bool topolD0 = selectionTopolConjugate(candidate, trackPos, trackNeg);
       // conjugate-dependent topological selection for D0bar
-      bool topolD0bar = selectionTopolConjugate(hfCandProng2, trackNeg, trackPos);
+      bool topolD0bar = selectionTopolConjugate(candidate, trackNeg, trackPos);
 
       if (!topolD0 && !topolD0bar) {
         hfSelD0Candidate(statusD0, statusD0bar);

@@ -65,12 +65,12 @@ struct HFLcCandidateSelector {
   }
 
   /// Conjugate-independent topological cuts
-  /// \param hfCandProng3 is candidate
+  /// \param candidate is candidate
   /// \return true if candidate passes all cuts
   template <typename T>
-  bool selectionTopol(const T& hfCandProng3)
+  bool selectionTopol(const T& candidate)
   {
-    auto candpT = hfCandProng3.pt();
+    auto candpT = candidate.pt();
 
     int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
@@ -83,32 +83,32 @@ struct HFLcCandidateSelector {
     }
 
     // cosine of pointing angle
-    if (hfCandProng3.cpa() <= cuts->get(pTBin, "cos pointing angle")) {
+    if (candidate.cpa() <= cuts->get(pTBin, "cos pointing angle")) {
       return false;
     }
 
     //candidate DCA
-    /*  if (hfCandProng3.chi2PCA() > cuts[pTBin][5]) {
+    /*  if (candidate.chi2PCA() > cuts[pTBin][5]) {
       return false;
       }*/
 
-    if (hfCandProng3.decayLength() <= cuts->get(pTBin, "decay length")) {
+    if (candidate.decayLength() <= cuts->get(pTBin, "decay length")) {
       return false;
     }
     return true;
   }
 
   /// Conjugate-dependent topological cuts
-  /// \param hfCandProng3 is candidate
+  /// \param candidate is candidate
   /// \param trackProton is the track with the proton hypothesis
   /// \param trackPion is the track with the pion hypothesis
   /// \param trackKaon is the track with the kaon hypothesis
   /// \return true if candidate passes all cuts for the given Conjugate
   template <typename T1, typename T2>
-  bool selectionTopolConjugate(const T1& hfCandProng3, const T2& trackProton, const T2& trackKaon, const T2& trackPion)
+  bool selectionTopolConjugate(const T1& candidate, const T2& trackProton, const T2& trackKaon, const T2& trackPion)
   {
 
-    auto candpT = hfCandProng3.pt();
+    auto candpT = candidate.pt();
     int pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
       return false;
@@ -119,12 +119,12 @@ struct HFLcCandidateSelector {
       return false;
     }
 
-    if (trackProton.globalIndex() == hfCandProng3.index0Id()) {
-      if (std::abs(InvMassLcpKpi(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
+    if (trackProton.globalIndex() == candidate.index0Id()) {
+      if (std::abs(InvMassLcpKpi(candidate) - RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     } else {
-      if (std::abs(InvMassLcpiKp(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
+      if (std::abs(InvMassLcpiKp(candidate) - RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus)) > cuts->get(pTBin, "m")) {
         return false;
       }
     }
@@ -132,7 +132,7 @@ struct HFLcCandidateSelector {
     return true;
   }
 
-  void process(aod::HfCandProng3 const& hfCandProng3s, aod::BigTracksPID const&)
+  void process(aod::HfCandProng3 const& candidates, aod::BigTracksPID const&)
   {
     TrackSelectorPID selectorPion(kPiPlus);
     selectorPion.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
@@ -149,18 +149,18 @@ struct HFLcCandidateSelector {
     selectorProton.setPDG(kProton);
 
     // looping over 3-prong candidates
-    for (auto& hfCandProng3 : hfCandProng3s) {
+    for (auto& candidate : candidates) {
       // final selection flag: 0 - rejected, 1 - accepted
       auto statusLcpKpi = 0;
       auto statusLcpiKp = 0;
 
-      if (!(hfCandProng3.hfflag() & 1 << DecayType::LcToPKPi)) {
+      if (!(candidate.hfflag() & 1 << DecayType::LcToPKPi)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
-      auto trackPos1 = hfCandProng3.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
-      auto trackNeg = hfCandProng3.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
-      auto trackPos2 = hfCandProng3.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
+      auto trackPos1 = candidate.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
+      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
+      auto trackPos2 = candidate.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
       // daughter track validity selection
       if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg) || !daughterSelection(trackPos2)) {
@@ -171,15 +171,15 @@ struct HFLcCandidateSelector {
       // implement filter bit 4 cut - should be done before this task at the track selection level
 
       // conjugate-independent topological selection
-      if (!selectionTopol(hfCandProng3)) {
+      if (!selectionTopol(candidate)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
 
       // conjugate-dependent topological selection for Lc
 
-      bool topolLcpKpi = selectionTopolConjugate(hfCandProng3, trackPos1, trackNeg, trackPos2);
-      bool topolLcpiKp = selectionTopolConjugate(hfCandProng3, trackPos2, trackNeg, trackPos1);
+      bool topolLcpKpi = selectionTopolConjugate(candidate, trackPos1, trackNeg, trackPos2);
+      bool topolLcpiKp = selectionTopolConjugate(candidate, trackPos2, trackNeg, trackPos1);
 
       if (!topolLcpKpi && !topolLcpiKp) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
