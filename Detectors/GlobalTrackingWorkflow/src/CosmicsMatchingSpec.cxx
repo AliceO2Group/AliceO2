@@ -54,18 +54,17 @@ namespace o2
 namespace globaltracking
 {
 
-DataRequest dataRequestCosm;
-
 class CosmicsMatchingSpec : public Task
 {
  public:
-  CosmicsMatchingSpec(bool useMC) : mUseMC(useMC) {}
+  CosmicsMatchingSpec(std::shared_ptr<DataRequest> dr, bool useMC) : mDataRequest(dr), mUseMC(useMC) {}
   ~CosmicsMatchingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
+  std::shared_ptr<DataRequest> mDataRequest;
   o2::globaltracking::MatchCosmics mMatching; // matching engine
   bool mUseMC = true;
   TStopwatch mTimer;
@@ -121,7 +120,8 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   RecoContainer recoData;
-  recoData.collectData(pc, dataRequestCosm);
+  recoData.collectData(pc, *mDataRequest.get());
+
   mMatching.process(recoData);
   pc.outputs().snapshot(Output{"GLO", "COSMICTRC", 0, Lifetime::Timeframe}, mMatching.getCosmicTracks());
   if (mUseMC) {
@@ -139,11 +139,11 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
 
 DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 {
-
   std::vector<OutputSpec> outputs;
+  auto dataRequest = std::make_shared<DataRequest>();
 
-  dataRequestCosm.requestTracks(src, useMC);
-  dataRequestCosm.requestClusters(src, false); // no MC labels for clusters needed for refit only
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
 
   outputs.emplace_back("GLO", "COSMICTRC", 0, Lifetime::Timeframe);
   if (useMC) {
@@ -152,9 +152,9 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 
   return DataProcessorSpec{
     "cosmics-matcher",
-    dataRequestCosm.inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(useMC)},
+    AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
