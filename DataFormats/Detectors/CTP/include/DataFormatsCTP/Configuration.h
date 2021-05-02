@@ -82,11 +82,12 @@ class CTPConfiguration
   void addCTPCluster(CTPCluster& cluster);
   void addCTPClass(CTPClass& ctpclass);
   void printStream(std::ostream& stream) const;
+
  private:
   std::string mName;
   std::vector<BCMask> mBCMasks;
   std::vector<CTPInput> mInputs;
-  std::vector<CTPDescriptor> mDescriptors; 
+  std::vector<CTPDescriptor> mDescriptors;
   std::vector<CTPDetector> mDetectors;
   std::vector<CTPCluster> mClusters;
   std::vector<CTPClass> mCTPClasses;

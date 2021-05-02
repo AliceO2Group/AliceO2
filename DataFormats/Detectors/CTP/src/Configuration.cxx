@@ -23,19 +23,19 @@ void BCMask::printStream(std::ostream& stream) const
 }
 void CTPInput::printStream(std::ostream& stream) const
 {
-  stream << "CTP Input:" << name << "Detector:"<< detID << " Hardware mask:" << inputMask << std::endl;
+  stream << "CTP Input:" << name << "Detector:" << detID << " Hardware mask:" << inputMask << std::endl;
 }
 void CTPDescriptor::printStream(std::ostream& stream) const
 {
-  stream << "CTP Descriptor:" << name << " Inputs:"<< inputsMask << std::endl;
+  stream << "CTP Descriptor:" << name << " Inputs:" << inputsMask << std::endl;
 }
 void CTPDetector::printStream(std::ostream& stream) const
 {
-  stream << "CTP Detector:" << name << " HBaccepted:"<< HBaccepted << std::endl;
+  stream << "CTP Detector:" << name << " HBaccepted:" << HBaccepted << std::endl;
 }
 void CTPCluster::printStream(std::ostream& stream) const
 {
-  stream << "CTP Cluster:" << name << " Inputs:"<< detectorsMask << std::endl;
+  stream << "CTP Cluster:" << name << " Inputs:" << detectorsMask << std::endl;
 }
 void CTPClass::printStream(std::ostream& stream) const
 {
@@ -70,15 +70,21 @@ void CTPConfiguration::printStream(std::ostream& stream) const
 {
   stream << "Configuration:" << mName << std::endl;
   stream << "CTP BC  masks:" << std::endl;
-  for(const auto i : mBCMasks) i.printStream(stream);
+  for (const auto i : mBCMasks)
+    i.printStream(stream);
   stream << "CTP inputs:" << std::endl;
-  for(const auto i : mInputs) i.printStream(stream);
+  for (const auto i : mInputs)
+    i.printStream(stream);
   stream << "CTP descriptors:" << std::endl;
-  for(const auto i : mDescriptors) i.printStream(stream);
+  for (const auto i : mDescriptors)
+    i.printStream(stream);
   stream << "CTP detectors:" << std::endl;
-  for(const auto i : mDetectors) i.printStream(stream);
+  for (const auto i : mDetectors)
+    i.printStream(stream);
   stream << "CTP clusters:" << std::endl;
-  for(const auto i : mClusters) i.printStream(stream);
+  for (const auto i : mClusters)
+    i.printStream(stream);
   stream << "CTP classes:" << std::endl;
-  for(const auto i : mCTPClasses) i.printStream(stream);
+  for (const auto i : mCTPClasses)
+    i.printStream(stream);
 }
