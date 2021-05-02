@@ -7,6 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
+/// \file Digitizer.h
+/// \author Roman Lietava
+
 #ifndef ALICEO2_CTP_DIGITIZER_H
 #define ALICEO2_CTP_DIGITIZER_H
 

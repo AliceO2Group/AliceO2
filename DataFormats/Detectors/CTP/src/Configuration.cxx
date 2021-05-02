@@ -8,24 +8,77 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file Configuration.cxx
+/// \author Roman Lietava
+
 #include "DataFormatsCTP/Configuration.h"
 #include <iostream>
 
 using namespace o2::ctp;
 
+void BCMask::printStream(std::ostream& stream) const
+{
+  stream << "CTP BC mask:" << name << std::endl;
+  /// <<  ":" << BCmask << std::endl;
+}
 void CTPInput::printStream(std::ostream& stream) const
 {
-  stream << "CTP Input:" << mName << " Hardware mask:" << mInputMask << std::endl;
+  stream << "CTP Input:" << name << "Detector:"<< detID << " Hardware mask:" << inputMask << std::endl;
 }
 void CTPDescriptor::printStream(std::ostream& stream) const
 {
-  stream << "CTP Descriptor:" << mName << std::endl;
+  stream << "CTP Descriptor:" << name << " Inputs:"<< inputsMask << std::endl;
+}
+void CTPDetector::printStream(std::ostream& stream) const
+{
+  stream << "CTP Detector:" << name << " HBaccepted:"<< HBaccepted << std::endl;
+}
+void CTPCluster::printStream(std::ostream& stream) const
+{
+  stream << "CTP Cluster:" << name << " Inputs:"<< detectorsMask << std::endl;
 }
 void CTPClass::printStream(std::ostream& stream) const
 {
-  stream << "CTP Class:" << mName << " Hardware mask:" << std::endl;
+  stream << "CTP Class:" << name << " Hardware mask:" << classMask << std::endl;
+}
+/// CTP configuration
+void CTPConfiguration::addBCMask(BCMask& bcmask)
+{
+  mBCMasks.push_back(bcmask);
+}
+void CTPConfiguration::addCTPInput(CTPInput& input)
+{
+  mInputs.push_back(input);
+}
+void CTPConfiguration::addCTPDescriptor(CTPDescriptor& descriptor)
+{
+  mDescriptors.push_back(descriptor);
+}
+void CTPConfiguration::addCTPDetector(CTPDetector& detector)
+{
+  mDetectors.push_back(detector);
+}
+void CTPConfiguration::addCTPCluster(CTPCluster& cluster)
+{
+  mClusters.push_back(cluster);
 }
 void CTPConfiguration::addCTPClass(CTPClass& ctpclass)
 {
-  CTPClasses.push_back(ctpclass);
+  mCTPClasses.push_back(ctpclass);
+}
+void CTPConfiguration::printStream(std::ostream& stream) const
+{
+  stream << "Configuration:" << mName << std::endl;
+  stream << "CTP BC  masks:" << std::endl;
+  for(const auto i : mBCMasks) i.printStream(stream);
+  stream << "CTP inputs:" << std::endl;
+  for(const auto i : mInputs) i.printStream(stream);
+  stream << "CTP descriptors:" << std::endl;
+  for(const auto i : mDescriptors) i.printStream(stream);
+  stream << "CTP detectors:" << std::endl;
+  for(const auto i : mDetectors) i.printStream(stream);
+  stream << "CTP clusters:" << std::endl;
+  for(const auto i : mClusters) i.printStream(stream);
+  stream << "CTP classes:" << std::endl;
+  for(const auto i : mCTPClasses) i.printStream(stream);
 }

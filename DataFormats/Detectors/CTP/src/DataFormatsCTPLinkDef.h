@@ -23,6 +23,8 @@
 #pragma link C++ class vector < o2::ctp::CTPInput> + ;
 #pragma link C++ class o2::ctp::CTPDescriptor + ;
 #pragma link C++ class vector < o2::ctp::CTPDescriptor> + ;
+#pragma link C++ class o2::ctp::CTPDetector + ;
+#pragma link C++ class vector < o2::ctp::CTPDetector> + ;
 #pragma link C++ class o2::ctp::CTPCluster + ;
 #pragma link C++ class vector < o2::ctp::CTPCluster> + ;
 #pragma link C++ class o2::ctp::CTPClass + ;

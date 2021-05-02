@@ -8,6 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file Configuration.h
+/// \brief definition of CTPConfiguration and related CTP structures
+/// \author Roman Lietava
+
 #ifndef _CTP_CONFIGURATION_H_
 #define _CTP_CONFIGURATION_H_
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -21,38 +25,49 @@ namespace ctp
 {
 struct BCMask {
   BCMask() = default;
-  std::string mName;
-  std::bitset<o2::constants::lhc::LHCMaxBunches> mBCmask;
+  std::string name;
+  std::bitset<o2::constants::lhc::LHCMaxBunches> BCmask;
+  void printStream(std::ostream& strem) const;
   ClassDefNV(BCMask, 1);
 };
 struct CTPInput {
   CTPInput() = default;
-  std::string mName;
-  uint_fast64_t mInputMask;
+  std::string name;
+  int detID;
+  std::uint64_t inputMask;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPInput, 1);
 };
 struct CTPDescriptor {
   CTPDescriptor() = default;
-  std::string mName;
-  uint64_t mInputsMask;
+  std::string name;
+  std::uint64_t inputsMask;
+  std::vector<std::string> inputsNames;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPDescriptor, 1)
 };
-struct LTG {
-  LTG() = default;
-  std::string mName;
+/// The main part is Local Trigger Generator (LTG)
+struct CTPDetector {
+  CTPDetector() = default;
+  std::string name;
+  int detID;
+  uint HBaccepted; /// Number of HB frames in TF to be accepted
+  void printStream(std::ostream& strem) const;
 };
 struct CTPCluster {
   CTPCluster() = default;
-  std::string mName;
+  std::string name;
+  uint detectorsMask;
+  std::vector<std::string> detectorsNames;
+  void printStream(std::ostream& strem) const;
   ClassDefNV(CTPCluster, 1)
 };
 struct CTPClass {
   CTPClass() = default;
-  std::string mName;
-  uint64_t mClassMask;
-  CTPDescriptor* mDescriptor;
+  std::string name;
+  std::uint64_t classMask;
+  CTPDescriptor* descriptor;
+  CTPCluster* cluster;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPClass, 1);
 };
@@ -60,12 +75,21 @@ class CTPConfiguration
 {
  public:
   CTPConfiguration() = default;
+  void addBCMask(BCMask& bcmask);
+  void addCTPInput(CTPInput& input);
+  void addCTPDescriptor(CTPDescriptor& descriptor);
+  void addCTPDetector(CTPDetector& detector);
+  void addCTPCluster(CTPCluster& cluster);
   void addCTPClass(CTPClass& ctpclass);
-
+  void printStream(std::ostream& stream) const;
  private:
-  std::vector<CTPInput> Inputs;
-  std::vector<CTPDescriptor> Descriptors;
-  std::vector<CTPClass> CTPClasses;
+  std::string mName;
+  std::vector<BCMask> mBCMasks;
+  std::vector<CTPInput> mInputs;
+  std::vector<CTPDescriptor> mDescriptors; 
+  std::vector<CTPDetector> mDetectors;
+  std::vector<CTPCluster> mClusters;
+  std::vector<CTPClass> mCTPClasses;
   ClassDefNV(CTPConfiguration, 1);
 };
 } // namespace ctp
