@@ -356,21 +356,26 @@ void RecoContainer::fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vecto
 }
 
 //________________________________________________________
-void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov&, float, float, GTrackID)> const& creator) const
+void RecoContainer::createTracks(std::function<bool(const o2::track::TrackParCov&, float, float, GTrackID)> const& creator) const
 {
   // We go from most complete tracks to least complete ones, taking into account that some track times
   // do not bear their own kinematics but just constrain the time
   // As we get more track types functional, this method should be completed
+  // If user provided function creator returns true, then the track is considered as consumed and its contributing
+  // simpler tracks will not be provided to the creator. If it returns false, the creator will be called also
+  // with this simpler contrubutors
 
   auto start_time = std::chrono::high_resolution_clock::now();
   constexpr float PS2MUS = 1e-6;
   std::array<std::vector<uint8_t>, GTrackID::NSources> usedData;
-  auto flagUsed = [&usedData](const GTrackID gidx) { auto src = gidx.getSource();
-                                                             if (!usedData[src].empty()) {
-							       usedData[gidx.getSource()][gidx.getIndex()] = 1;
-							     } };
-  auto isUsed = [&usedData](const GTrackID gidx) { return (!usedData[gidx.getSource()].empty()) && (usedData[gidx.getSource()][gidx.getIndex()] != 0); };
+  auto flagUsed2 = [&usedData](int idx, int src) {
+    if (!usedData[src].empty()) {
+      usedData[src][idx] = 1;
+    }
+  };
+  auto flagUsed = [&usedData, &flagUsed2](const GTrackID gidx) { flagUsed2(gidx.getIndex(), gidx.getSource()); };
   auto isUsed2 = [&usedData](int idx, int src) { return (!usedData[src].empty()) && (usedData[src][idx] != 0); };
+  auto isUsed = [&usedData, isUsed2](const GTrackID gidx) { return isUsed2(gidx.getIndex(), gidx.getSource()); };
 
   // create only for those data types which are used
   const auto& tracksITS = getITSTracks<o2::its::TrackITS>();
@@ -382,6 +387,7 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
   usedData[GTrackID::ITS].resize(tracksITS.size());       // to flag used ITS tracks
   usedData[GTrackID::TPC].resize(tracksTPC.size());       // to flag used TPC tracks
   usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size()); // to flag used ITSTPC tracks
+  usedData[GTrackID::TOF].resize(getTOFMatches<o2d::MatchInfoTOF>().size()); // to flag used ITSTPC-TOF matches
 
   // ITS-TPC-TOF matches, may refer to ITS-TPC (TODO: something else?) tracks
   {
@@ -398,8 +404,10 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
       const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
 
       auto gidx = match.getEvIdxTrack().getIndex(); // this should be corresponding ITS-TPC track
-      creator(tracksPool.get(gidx), timeTOFMUS, timeErr, {i, GTrackID::ITSTPCTOF});
-      flagUsed(gidx); // flag used ITS-TPC tracks
+      if (creator(tracksPool.get(gidx), timeTOFMUS, timeErr, {i, GTrackID::ITSTPCTOF})) {
+        flagUsed2(i, GTrackID::TOF);
+        flagUsed(gidx); // flag used ITS-TPC tracks
+      }
     }
   }
 
@@ -407,12 +415,16 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
   {
     for (unsigned i = 0; i < tracksTPCITS.size(); i++) {
       const auto& matchTr = tracksTPCITS[i];
-      flagUsed(matchTr.getRefITS()); // flag used ITS tracks
-      flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
       if (isUsed2(i, GTrackID::ITSTPC)) {
+        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
+        flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
         continue;
       }
-      creator(matchTr, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError(), {i, GTrackID::ITSTPC});
+      if (creator(matchTr, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError(), {i, GTrackID::ITSTPC})) {
+        flagUsed2(i, GTrackID::ITSTPC);
+        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
+        flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
+      }
     }
   }
 
@@ -424,13 +436,14 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
     }
     for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
       const auto& match = matchesTPCTOF[i];
-      const auto& gidx = match.getEvIdxTrack().getIndex(); // TPC (or other?) track global idx (FIXME: TOF has to git rid of EvIndex stuff)
+      const auto& gidx = match.getEvIdxTrack().getIndex(); // TPC (or other? but w/o ITS) track global idx (FIXME: TOF has to git rid of EvIndex stuff)
       if (isUsed(gidx)) {                                  // is TPC track already used
         continue;
       }
-      flagUsed(gidx); // flag used TPC tracks
       const auto& trc = tracksTPCTOF[i];
-      creator(trc, trc.getTimeMUS().getTimeStamp(), trc.getTimeMUS().getTimeStampError(), {i, GTrackID::TPCTOF});
+      if (creator(trc, trc.getTimeMUS().getTimeStamp(), trc.getTimeMUS().getTimeStampError(), {i, GTrackID::TPCTOF})) {
+        flagUsed(gidx); // flag used TPC tracks
+      }
     }
   }
 
@@ -441,7 +454,9 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
         continue;
       }
       const auto& trc = tracksTPC[i];
-      creator(trc, trc.getTime0(), 0.5 * (trc.getDeltaTBwd() + trc.getDeltaTFwd()), {i, GTrackID::TPC});
+      if (creator(trc, trc.getTime0(), 0.5 * (trc.getDeltaTBwd() + trc.getDeltaTFwd()), {i, GTrackID::TPC})) {
+        flagUsed2(i, GTrackID::TPC); // flag used TPC tracks
+      }
     }
   }
 
@@ -458,7 +473,9 @@ void RecoContainer::createTracks(std::function<void(const o2::track::TrackParCov
         }
         GTrackID gidITS(it, GTrackID::ITS);
         const auto& trc = getITSTrack<o2::its::TrackITS>(gidITS);
-        creator(trc, t0, 0.5, gidITS);
+        if (creator(trc, t0, 0.5, gidITS)) {
+          flagUsed2(it, GTrackID::ITS);
+        }
       }
     }
   }

@@ -86,20 +86,21 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   auto halfROFITS = 0.5 * mITSROFrameLengthMUS;
   auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
 
-  std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
+  std::function<bool(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
     [maxTrackTimeError, hw2ErrITS, halfROFITS, &tracks, &gids](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
       if (!_origID.includesDet(DetID::ITS)) {
-        return; // just in case this selection was not done on RecoContainer filling level
+        return true; // just in case this selection was not done on RecoContainer filling level
       }
       if (_origID.getSource() == GTrackID::ITS) { // error is supplied a half-ROF duration, convert to \mus
         t0 += halfROFITS;                         // ITS time is supplied as beginning of ROF
         terr *= hw2ErrITS;
       }
       if (terr > maxTrackTimeError) {
-        return;
+        return true;
       }
       tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
       gids.emplace_back(_origID);
+      return true;
     };
 
   recoData.createTracks(creator); // create track sample considered for vertexing

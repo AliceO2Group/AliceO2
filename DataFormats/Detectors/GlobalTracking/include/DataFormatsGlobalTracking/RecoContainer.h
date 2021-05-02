@@ -77,7 +77,7 @@ struct RecoContainer {
   std::invoke_result<decltype(&o2::tpc::getWorkflowTPCInput), o2::framework::ProcessingContext&, int, bool, bool, unsigned long, bool>::type inputsTPCclusters; // special struct for TPC clusters access
 
   void collectData(o2::framework::ProcessingContext& pc, const DataRequest& request);
-  void createTracks(std::function<void(const o2::track::TrackParCov&, float, float, GTrackID)> const& creator) const;
+  void createTracks(std::function<bool(const o2::track::TrackParCov&, float, float, GTrackID)> const& creator) const;
   void fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vector<o2::MCCompLabel>& mcinfo) const;
 
   void addITSTracks(o2::framework::ProcessingContext& pc, bool mc);
