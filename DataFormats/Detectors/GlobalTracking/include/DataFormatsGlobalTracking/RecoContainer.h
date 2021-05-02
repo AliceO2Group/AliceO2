@@ -95,8 +95,16 @@ struct RecoContainer {
 
   // custom getters
 
-  // get contributors from single detectors
+  // get contributors from single detectors: return array with sources set to all contributing GTrackIDs
   GlobalIDSet getSingleDetectorRefs(GTrackID gidx) const;
+
+  // get contributing TPC GTrackID to the source. If source gidx is not contributed by TPC,
+  // returned GTrackID.isSourceSet()==false
+  GTrackID getTPCContributorGID(GTrackID source) const;
+
+  // get contributing ITS GTrackID to the source. If source gidx is not contributed by ITS,
+  // returned GTrackID.isSourceSet()==false
+  GTrackID getITSContributorGID(GTrackID source) const;
 
   // check if track source attached
   bool isTrackSourceLoaded(int src) const;
