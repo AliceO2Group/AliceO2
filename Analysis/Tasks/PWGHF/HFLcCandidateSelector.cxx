@@ -38,7 +38,7 @@ struct HFLcCandidateSelector {
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 1., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
   Configurable<double> d_nSigmaTPCCombined{"d_nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
+  //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   // TOF
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.5, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 2.5, "Upper bound of track pT for TOF PID"};
@@ -48,6 +48,7 @@ struct HFLcCandidateSelector {
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_lc_topkpi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Lc_to_p_K_pi_cuts", {hf_cuts_lc_topkpi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Lc candidate selection per pT bin"};
 
+  /*
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
   /// \param track is daughter track
@@ -55,14 +56,12 @@ struct HFLcCandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.sign() == 0) {
-      return false;
-    }
-    /*if (track.tpcNClsFound() == 0) {
+    if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
-      }*/
+    }
     return true;
   }
+  */
 
   /// Conjugate-independent topological cuts
   /// \param candidate is candidate
@@ -150,6 +149,7 @@ struct HFLcCandidateSelector {
 
     // looping over 3-prong candidates
     for (auto& candidate : candidates) {
+
       // final selection flag: 0 - rejected, 1 - accepted
       auto statusLcpKpi = 0;
       auto statusLcpiKp = 0;
@@ -158,15 +158,18 @@ struct HFLcCandidateSelector {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
+
       auto trackPos1 = candidate.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
       auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
       auto trackPos2 = candidate.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
+      /*
       // daughter track validity selection
       if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg) || !daughterSelection(trackPos2)) {
         hfSelLcCandidate(statusLcpKpi, statusLcpiKp);
         continue;
       }
+      */
 
       // implement filter bit 4 cut - should be done before this task at the track selection level
 

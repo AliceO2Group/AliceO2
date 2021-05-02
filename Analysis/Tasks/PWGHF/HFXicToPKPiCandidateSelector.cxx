@@ -38,7 +38,7 @@ struct HFXicToPKPiCandidateSelector {
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 1., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
   Configurable<double> d_nSigmaTPCCombined{"d_nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
+  //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   // TOF
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.5, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 4., "Upper bound of track pT for TOF PID"};
@@ -48,6 +48,7 @@ struct HFXicToPKPiCandidateSelector {
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_xic_topkpi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Xic_to_p_K_pi_cuts", {hf_cuts_xic_topkpi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Xic candidate selection per pT bin"};
 
+  /*
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
   /// \param track is daughter track
@@ -55,11 +56,12 @@ struct HFXicToPKPiCandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    /*if (track.tpcNClsFound() == 0) {
+    if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
-    }*/
+    }
     return true;
   }
+  */
 
   /// Conjugate-independent topological cuts
   /// \param candidate is candidate
@@ -160,11 +162,13 @@ struct HFXicToPKPiCandidateSelector {
       auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
       auto trackPos2 = candidate.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
+      /*
       // daughter track validity selection
       if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg) || !daughterSelection(trackPos2)) {
         hfSelXicToPKPiCandidate(statusXicToPKPi, statusXicToPiKP);
         continue;
       }
+      */
 
       // implement filter bit 4 cut - should be done before this task at the track selection level
 

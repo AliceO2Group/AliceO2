@@ -36,7 +36,7 @@ struct HFDplusToPiKPiCandidateSelector {
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 20., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC"};
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
+  //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
   // TOF
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 20., "Upper bound of track pT for TOF PID"};
@@ -45,6 +45,7 @@ struct HFDplusToPiKPiCandidateSelector {
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"DPlus_to_Pi_K_Pi_cuts", {hf_cuts_dplus_topikpi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Dplus candidate selection per pT bin"};
 
+  /*
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
   /// \param track is daughter track
@@ -52,11 +53,12 @@ struct HFDplusToPiKPiCandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (b_requireTPC.value && track.tpcNClsFound() == 0) {
-      return false; // is it clusters findable or found - need to check
+    if (track.tpcNClsFound() == 0) {
+      return false; //is it clusters findable or found - need to check
     }
     return true;
   }
+  */
 
   /// Candidate selections
   /// \param candidate is candidate
@@ -128,6 +130,7 @@ struct HFDplusToPiKPiCandidateSelector {
       auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
       auto trackPos2 = candidate.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
+      /*
       // daughter track validity selection
       if (!daughterSelection(trackPos1) ||
           !daughterSelection(trackNeg) ||
@@ -135,6 +138,7 @@ struct HFDplusToPiKPiCandidateSelector {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }
+      */
 
       // topological selection
       if (!selection(candidate, trackPos1, trackNeg, trackPos2)) {

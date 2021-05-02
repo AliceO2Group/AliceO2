@@ -36,11 +36,12 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
+  //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Jpsi_to_ee_cuts", {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Jpsi candidate selection per pT bin"};
 
+  /*
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
   /// \param track is daughter track
@@ -48,11 +49,12 @@ struct HFJpsiToEECandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    /*if (track.tpcNClsFound() == 0) {
+    if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
-      }*/
+    }
     return true;
   }
+  */
 
   /// Conjugate-independent topological cuts
   /// \param candidate is candidate
@@ -113,11 +115,13 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
+      /*
       // daughter track validity selection
       if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
         hfSelJpsiToEECandidate(0);
         continue;
       }
+      */
 
       // implement filter bit 4 cut - should be done before this task at the track selection level
       // need to add special cuts (additional cuts on decay length and d0 norm)

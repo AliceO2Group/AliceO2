@@ -36,7 +36,7 @@ struct HFD0CandidateSelector {
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 5., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
   Configurable<double> d_nSigmaTPCCombined{"d_nSigmaTPCCombined", 5., "Nsigma cut on TPC combined with TOF"};
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
+  //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
   // TOF
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 5., "Upper bound of track pT for TOF PID"};
@@ -46,6 +46,7 @@ struct HFD0CandidateSelector {
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_d0_topik::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"D0_to_pi_K_cuts", {hf_cuts_d0_topik::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "D0 candidate selection per pT bin"};
 
+  /*
   /// Selection on goodness of daughter tracks
   /// \note should be applied at candidate selection
   /// \param track is daughter track
@@ -53,14 +54,12 @@ struct HFD0CandidateSelector {
   template <typename T>
   bool daughterSelection(const T& track)
   {
-    if (track.sign() == 0) {
-      return false;
-    }
-    /* if (track.tpcNClsFound() == 0) {
+    if (track.tpcNClsFound() == 0) {
       return false; //is it clusters findable or found - need to check
-      }*/
+    }
     return true;
   }
+  */
 
   /// Conjugate-independent topological cuts
   /// \param candidate is candidate
@@ -188,15 +187,14 @@ struct HFD0CandidateSelector {
       }
 
       auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
-      if (!daughterSelection(trackPos)) {
-        hfSelD0Candidate(statusD0, statusD0bar);
-        continue;
-      }
       auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
-      if (!daughterSelection(trackNeg)) {
+
+      /*
+      if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
+      */
 
       // conjugate-independent topological selection
       if (!selectionTopol(candidate)) {
