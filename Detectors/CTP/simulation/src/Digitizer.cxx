@@ -25,14 +25,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
 {
   std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> prerawdata;
   for (auto const& inp : digits) {
-    auto res = prerawdata.find(inp.intRecord);
-    if (res == prerawdata.end()) {
-      std::vector<const CTPInputDigit*> inputs;
-      inputs.push_back(&inp);
-      prerawdata[inp.intRecord] = inputs;
-    } else {
-      res->second.push_back(&inp);
-    }
+    prerawdata[inp.intRecord].push_back(&inp);      
   }
   std::vector<CTPDigit> vrawdata;
   for (auto const& coll : prerawdata) {
