@@ -151,10 +151,10 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
 
   mTBrackets.clear();
 
-  std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID)> creator =
+  std::function<bool(const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID)> creator =
     [this, &vcont](const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID) {
       if (vcont.find(_origID) != vcont.end()) { // track is contributor to vertex, already accounted
-        return;
+        return true;
       }
       if (_origID.getSource() == GIndex::TPC) { // convert TPC bins to \mus
         t0 *= this->mTPCBin2MUS;
@@ -166,6 +166,7 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
         //terr *= this->mMatchParams->nSigmaTError;
       }
       mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
+      return true;
     };
 
   data.createTracks(creator);
