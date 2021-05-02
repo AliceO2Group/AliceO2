@@ -363,7 +363,12 @@ void RecoContainer::createTracks(std::function<bool(const o2::track::TrackParCov
   // As we get more track types functional, this method should be completed
   // If user provided function creator returns true, then the track is considered as consumed and its contributing
   // simpler tracks will not be provided to the creator. If it returns false, the creator will be called also
-  // with this simpler contrubutors
+  // with this simpler contrubutors.
+  // The creator function is called with track kinematics, track GlobalTrackID and track timing information as 2 floats
+  // which depends on the track time:
+  // 1) For track types containing TimeStampWithError ts it is ts.getTimeStamp(), getTimeStampError()
+  // 2) For tracks with asymmetric time uncertainty, e.g. TPC: as mean time of t0-errBwd,t+errFwd and 0.5(errBwd+errFwd), all in TPC time bins
+  // 3) For tracks whose timing is provided as RO frame: as time in \mus for RO frame start since the start of TF, half-duration of RO window and 0.
 
   auto start_time = std::chrono::high_resolution_clock::now();
   constexpr float PS2MUS = 1e-6;
@@ -454,7 +459,7 @@ void RecoContainer::createTracks(std::function<bool(const o2::track::TrackParCov
         continue;
       }
       const auto& trc = tracksTPC[i];
-      if (creator(trc, trc.getTime0(), 0.5 * (trc.getDeltaTBwd() + trc.getDeltaTFwd()), {i, GTrackID::TPC})) {
+      if (creator(trc, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()), {i, GTrackID::TPC})) {
         flagUsed2(i, GTrackID::TPC); // flag used TPC tracks
       }
     }
@@ -506,4 +511,39 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     table[GTrackID::TPC] = parent0.getRefTPC();
   }
   return std::move(table);
+}
+
+// get contributing TPC GTrackID to the source. If source gidx is not contributed by TPC,
+// returned GTrackID.isSourceSet()==false
+GTrackID RecoContainer::getTPCContributorGID(GTrackID gidx) const
+{
+  auto src = gidx.getSource();
+  if (src == GTrackID::ITSTPCTOF) {
+    const auto& parent0 = getTOFMatch<o2d::MatchInfoTOF>(gidx); //ITS/TPC : TOF
+    const auto& parent1 = getTPCITSTrack<o2d::TrackTPCITS>(parent0.getEvIdxTrack().getIndex());
+    return parent1.getRefTPC();
+  } else if (src == GTrackID::TPCTOF) {
+    const auto& parent0 = getTPCTOFMatch<o2d::MatchInfoTOF>(gidx); //TPC : TOF
+    return parent0.getEvIdxTrack().getIndex();
+  } else if (src == GTrackID::ITSTPC) {
+    const auto& parent0 = getTPCITSTrack<o2d::TrackTPCITS>(gidx);
+    return parent0.getRefTPC();
+  }
+  return src == GTrackID::TPC ? gidx : GTrackID{};
+}
+
+// get contributing ITS GTrackID to the source. If source gidx is not contributed by TPC,
+// returned GTrackID.isSourceSet()==false
+GTrackID RecoContainer::getITSContributorGID(GTrackID gidx) const
+{
+  auto src = gidx.getSource();
+  if (src == GTrackID::ITSTPCTOF) {
+    const auto& parent0 = getTOFMatch<o2d::MatchInfoTOF>(gidx); //ITS/TPC : TOF
+    const auto& parent1 = getTPCITSTrack<o2d::TrackTPCITS>(parent0.getEvIdxTrack().getIndex());
+    return parent1.getRefITS();
+  } else if (src == GTrackID::ITSTPC) {
+    const auto& parent0 = getTPCITSTrack<o2d::TrackTPCITS>(gidx);
+    return parent0.getRefITS();
+  }
+  return src == GTrackID::ITS ? gidx : GTrackID{};
 }
