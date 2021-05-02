@@ -160,7 +160,7 @@ struct HFLcCandidateSelector {
       }
 
       auto trackPos1 = candidate.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
-      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
+      auto trackNeg = candidate.index1_as<aod::BigTracksPID>();  // negative daughter (positive for the antiparticles)
       auto trackPos2 = candidate.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
       /*
@@ -209,8 +209,8 @@ struct HFLcCandidateSelector {
             pidTrackPos2Pion == TrackSelectorPID::Status::PIDAccepted) {
           pidLcpKpi = 1; // accept LcpKpi
         } else if (pidTrackPos1Proton == TrackSelectorPID::Status::PIDRejected ||
-            pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
-            pidTrackPos2Pion == TrackSelectorPID::Status::PIDRejected) {
+                   pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
+                   pidTrackPos2Pion == TrackSelectorPID::Status::PIDRejected) {
           pidLcpKpi = 0; // exclude LcpKpi
         }
         if (pidTrackPos2Proton == TrackSelectorPID::Status::PIDAccepted &&
@@ -218,8 +218,8 @@ struct HFLcCandidateSelector {
             pidTrackPos1Pion == TrackSelectorPID::Status::PIDAccepted) {
           pidLcpiKp = 1; // accept LcpiKp
         } else if (pidTrackPos1Pion == TrackSelectorPID::Status::PIDRejected ||
-            pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
-            pidTrackPos2Proton == TrackSelectorPID::Status::PIDRejected) {
+                   pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
+                   pidTrackPos2Proton == TrackSelectorPID::Status::PIDRejected) {
           pidLcpiKp = 0; // exclude LcpiKp
         }
       }

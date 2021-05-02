@@ -159,7 +159,7 @@ struct HFXicToPKPiCandidateSelector {
       }
 
       auto trackPos1 = candidate.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
-      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
+      auto trackNeg = candidate.index1_as<aod::BigTracksPID>();  // negative daughter (positive for the antiparticles)
       auto trackPos2 = candidate.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
       /*
@@ -208,8 +208,8 @@ struct HFXicToPKPiCandidateSelector {
             pidTrackPos2Pion == TrackSelectorPID::Status::PIDAccepted) {
           pidXicToPKPi = 1; // accept LcpKpi
         } else if (pidTrackPos1Proton == TrackSelectorPID::Status::PIDRejected ||
-            pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
-            pidTrackPos2Pion == TrackSelectorPID::Status::PIDRejected) {
+                   pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
+                   pidTrackPos2Pion == TrackSelectorPID::Status::PIDRejected) {
           pidXicToPKPi = 0; // exclude LcpKpi
         }
         if (pidTrackPos2Proton == TrackSelectorPID::Status::PIDAccepted &&
@@ -217,8 +217,8 @@ struct HFXicToPKPiCandidateSelector {
             pidTrackPos1Pion == TrackSelectorPID::Status::PIDAccepted) {
           pidXicToPiKP = 1; // accept LcpiKp
         } else if (pidTrackPos1Pion == TrackSelectorPID::Status::PIDRejected ||
-            pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
-            pidTrackPos2Proton == TrackSelectorPID::Status::PIDRejected) {
+                   pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
+                   pidTrackPos2Proton == TrackSelectorPID::Status::PIDRejected) {
           pidXicToPiKP = 0; // exclude LcpiKp
         }
       }

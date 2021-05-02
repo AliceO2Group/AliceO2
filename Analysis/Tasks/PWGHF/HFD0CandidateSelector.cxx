@@ -126,7 +126,7 @@ struct HFD0CandidateSelector {
       return false;
     }
 
-     // invariant-mass cut
+    // invariant-mass cut
     if (trackPion.sign() > 0) {
       if (std::abs(InvMassD0(candidate) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;

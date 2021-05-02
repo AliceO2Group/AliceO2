@@ -31,7 +31,8 @@ class TrackSelectorPID
   /// Standard constructor with PDG code initialisation
   explicit TrackSelectorPID(int pdg)
     : mPdg(std::abs(pdg))
-  {}
+  {
+  }
 
   /// Default destructor
   ~TrackSelectorPID() = default;
@@ -49,13 +50,25 @@ class TrackSelectorPID
   // TPC
 
   /// Set pT range where TPC PID is applicable.
-  void setRangePtTPC(float ptMin, float ptMax) { mPtTPCMin = ptMin; mPtTPCMax = ptMax; }
+  void setRangePtTPC(float ptMin, float ptMax)
+  {
+    mPtTPCMin = ptMin;
+    mPtTPCMax = ptMax;
+  }
 
   /// Set TPC nσ range in which a track should be accepted.
-  void setRangeNSigmaTPC(float nsMin, float nsMax) { mNSigmaTPCMin = nsMin; mNSigmaTPCMax = nsMax; }
+  void setRangeNSigmaTPC(float nsMin, float nsMax)
+  {
+    mNSigmaTPCMin = nsMin;
+    mNSigmaTPCMax = nsMax;
+  }
 
   /// Set TPC nσ range in which a track should be conditionally accepted if combined with TOF.
-  void setRangeNSigmaTPCCondTOF(float nsMin, float nsMax) { mNSigmaTPCMinCondTOF = nsMin; mNSigmaTPCMaxCondTOF = nsMax; }
+  void setRangeNSigmaTPCCondTOF(float nsMin, float nsMax)
+  {
+    mNSigmaTPCMinCondTOF = nsMin;
+    mNSigmaTPCMaxCondTOF = nsMax;
+  }
 
   /// Checks if track is OK for TPC PID.
   /// \param track  track
@@ -81,7 +94,7 @@ class TrackSelectorPID
 
     // Get nσ for a given particle hypothesis.
     double nSigma = 100.;
-    switch(mPdg) {
+    switch (mPdg) {
       case kPiPlus: {
         nSigma = track.tpcNSigmaPi();
         break;
@@ -131,13 +144,25 @@ class TrackSelectorPID
   // TOF
 
   /// Set pT range where TOF PID is applicable.
-  void setRangePtTOF(float ptMin, float ptMax) { mPtTOFMin = ptMin; mPtTOFMax = ptMax; }
+  void setRangePtTOF(float ptMin, float ptMax)
+  {
+    mPtTOFMin = ptMin;
+    mPtTOFMax = ptMax;
+  }
 
   /// Set TOF nσ range in which a track should be accepted.
-  void setRangeNSigmaTOF(float nsMin, float nsMax) { mNSigmaTOFMin = nsMin; mNSigmaTOFMax = nsMax; }
+  void setRangeNSigmaTOF(float nsMin, float nsMax)
+  {
+    mNSigmaTOFMin = nsMin;
+    mNSigmaTOFMax = nsMax;
+  }
 
   /// Set TOF nσ range in which a track should be conditionally accepted if combined with TPC.
-  void setRangeNSigmaTOFCondTPC(float nsMin, float nsMax) { mNSigmaTOFMinCondTPC = nsMin; mNSigmaTOFMaxCondTPC = nsMax; }
+  void setRangeNSigmaTOFCondTPC(float nsMin, float nsMax)
+  {
+    mNSigmaTOFMinCondTPC = nsMin;
+    mNSigmaTOFMaxCondTPC = nsMax;
+  }
 
   /// Checks if track is OK for TOF PID.
   /// \param track  track
@@ -163,7 +188,7 @@ class TrackSelectorPID
 
     // Get nσ for a given particle hypothesis.
     double nSigma = 100.;
-    switch(mPdg) {
+    switch (mPdg) {
       case kPiPlus: {
         nSigma = track.tofNSigmaPi();
         break;
@@ -235,20 +260,20 @@ class TrackSelectorPID
   uint mPdg = kPiPlus; ///< PDG code of the expected particle
 
   // TPC
-  float mPtTPCMin = 0.; ///< minimum pT for TPC PID [GeV/c]
-  float mPtTPCMax = 100.; ///< maximum pT for TPC PID [GeV/c]
-  float mNSigmaTPCMin = -3.; ///< minimum number of TPC σ
-  float mNSigmaTPCMax = 3.; ///< maximum number of TPC σ
+  float mPtTPCMin = 0.;                ///< minimum pT for TPC PID [GeV/c]
+  float mPtTPCMax = 100.;              ///< maximum pT for TPC PID [GeV/c]
+  float mNSigmaTPCMin = -3.;           ///< minimum number of TPC σ
+  float mNSigmaTPCMax = 3.;            ///< maximum number of TPC σ
   float mNSigmaTPCMinCondTOF = -1000.; ///< minimum number of TPC σ if combined with TOF
-  float mNSigmaTPCMaxCondTOF = 1000.; ///< maximum number of TPC σ if combined with TOF
+  float mNSigmaTPCMaxCondTOF = 1000.;  ///< maximum number of TPC σ if combined with TOF
 
   // TOF
-  float mPtTOFMin = 0.; ///< minimum pT for TOF PID [GeV/c]
-  float mPtTOFMax = 100.; ///< maximum pT for TOF PID [GeV/c]
-  float mNSigmaTOFMin = -3.; ///< minimum number of TOF σ
-  float mNSigmaTOFMax = 3.; ///< maximum number of TOF σ
+  float mPtTOFMin = 0.;                ///< minimum pT for TOF PID [GeV/c]
+  float mPtTOFMax = 100.;              ///< maximum pT for TOF PID [GeV/c]
+  float mNSigmaTOFMin = -3.;           ///< minimum number of TOF σ
+  float mNSigmaTOFMax = 3.;            ///< maximum number of TOF σ
   float mNSigmaTOFMinCondTPC = -1000.; ///< minimum number of TOF σ if combined with TPC
-  float mNSigmaTOFMaxCondTPC = 1000.; ///< maximum number of TOF σ if combined with TPC
+  float mNSigmaTOFMaxCondTPC = 1000.;  ///< maximum number of TOF σ if combined with TPC
 };
 
 #endif // O2_ANALYSIS_TRACKSELECTORPID_H_

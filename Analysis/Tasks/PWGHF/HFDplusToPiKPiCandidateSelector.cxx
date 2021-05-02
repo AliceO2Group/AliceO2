@@ -118,7 +118,7 @@ struct HFDplusToPiKPiCandidateSelector {
     // looping over 3-prong candidates
     for (auto& candidate : candidates) {
 
-       // final selection flag: 0 - rejected, 1 - accepted
+      // final selection flag: 0 - rejected, 1 - accepted
       auto statusDplusToPiKPi = 0;
 
       if (!(candidate.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
@@ -127,7 +127,7 @@ struct HFDplusToPiKPiCandidateSelector {
       }
 
       auto trackPos1 = candidate.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
-      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
+      auto trackNeg = candidate.index1_as<aod::BigTracksPID>();  // negative daughter (positive for the antiparticles)
       auto trackPos2 = candidate.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
       /*
