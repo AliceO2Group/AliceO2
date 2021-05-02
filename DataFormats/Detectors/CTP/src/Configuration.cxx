@@ -31,7 +31,7 @@ void CTPDescriptor::printStream(std::ostream& stream) const
 }
 void CTPDetector::printStream(std::ostream& stream) const
 {
-  o2::detectors::DetID det(detID);  
+  o2::detectors::DetID det(detID);
   stream << "CTP Detector:" << det.getName() << " HBaccepted:" << HBaccepted << std::endl;
 }
 void CTPCluster::printStream(std::ostream& stream) const
