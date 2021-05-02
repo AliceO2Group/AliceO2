@@ -13,11 +13,13 @@
 ///
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
+/// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
+#include "AnalysisCore/TrackSelectorPID.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -30,12 +32,12 @@ struct HFJpsiToEECandidateSelector {
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
-
+  // TPC
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
-
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
+  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
+  // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Jpsi_to_ee_cuts", {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Jpsi candidate selection per pT bin"};
 
@@ -66,50 +68,45 @@ struct HFJpsiToEECandidateSelector {
       return false;
     }
 
+    // check that the candidate pT is within the analysis range
     if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
-      return false; //check that the candidate pT is within the analysis range
+      return false;
     }
 
+    // cut on invariant mass
     if (std::abs(InvMassJpsiToEE(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
       return false;
     }
 
+    // cut on daughter pT
     if (trackElectron.pt() < cuts->get(pTBin, "pT El") || trackPositron.pt() < cuts->get(pTBin, "pT El")) {
-      return false; //cut on daughter pT
+      return false;
     }
+
+    // cut on daughter DCA - need to add secondary vertex constraint here
     if (std::abs(trackElectron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy") || std::abs(trackPositron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy")) {
-      return false; //cut on daughter dca - need to add secondary vertex constraint here
+      return false;
     }
+
+    // cut on daughter DCA - need to add secondary vertex constraint here
     if (std::abs(trackElectron.dcaPrim1()) > cuts->get(pTBin, "DCA_z") || std::abs(trackPositron.dcaPrim1()) > cuts->get(pTBin, "DCA_z")) {
-      return false; //cut on daughter dca - need to add secondary vertex constraint here
+      return false;
     }
 
     return true;
   }
 
-  /// PID selection on daughter track
-  /// \param track is the daughter track
-  /// \return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
-  template <typename T>
-  int getStatusTrackPIDTPC(const T& track)
-  {
-    if (pid::isValidTrackPIDTPC(track, d_pidTPCMinpT, d_pidTPCMaxpT)) {
-      if (pid::isSelectedTrackPIDTPC(track, kElectron, -d_nSigmaTPC, d_nSigmaTPC)) {
-        return pid::Status::PIDAccepted; // accepted
-      } else {
-        return pid::Status::PIDRejected; // rejected
-      }
-    } else {
-      return pid::Status::PIDUndecided; // no PID info
-    }
-  }
-
   void process(aod::HfCandProng2 const& hfCandProng2s, aod::BigTracksPID const&)
   {
-    for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
+    TrackSelectorPID selectorElectron(kElectron);
+    selectorElectron.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
+    selectorElectron.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
 
-      auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
-      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
+    // looping over 2-prong candidates
+    for (auto& hfCandProng2 : hfCandProng2s) {
+
+      auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); // positive daughter
+      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); // negative daughter
 
       if (!(hfCandProng2.hfflag() & 1 << DecayType::JpsiToEE)) {
         hfSelJpsiToEECandidate(0);
@@ -122,15 +119,17 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      //implement filter bit 4 cut - should be done before this task at the track selection level
-      //need to add special cuts (additional cuts on decay length and d0 norm)
+      // implement filter bit 4 cut - should be done before this task at the track selection level
+      // need to add special cuts (additional cuts on decay length and d0 norm)
 
       if (!selectionTopol(hfCandProng2, trackPos, trackNeg)) {
         hfSelJpsiToEECandidate(0);
         continue;
       }
 
-      if (getStatusTrackPIDTPC(trackPos) == pid::Status::PIDRejected || getStatusTrackPIDTPC(trackNeg) == pid::Status::PIDRejected) {
+      // track-level PID selection
+      if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
         hfSelJpsiToEECandidate(0);
         continue;
       }

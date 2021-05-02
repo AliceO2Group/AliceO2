@@ -12,11 +12,13 @@
 /// \brief D± → π± K∓ π± selection task
 ///
 /// \author Fabio Catalano <fabio.catalano@cern.ch>, Politecnico and INFN Torino
+/// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
+#include "AnalysisCore/TrackSelectorPID.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -29,17 +31,17 @@ struct HFDplusToPiKPiCandidateSelector {
 
   Configurable<double> d_pTCandMin{"d_pTCandMin", 1., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 36., "Upper bound of candidate pT"};
-
+  // TPC
+  Configurable<bool> b_requireTPC{"b_requireTPC", true, "Flag to require a positive Number of found clusters in TPC"};
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 20., "Upper bound of track pT for TPC PID"};
+  Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC"};
+  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
+  // TOF
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 20., "Upper bound of track pT for TOF PID"};
-
-  Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 50., "Lower bound of TPC findable clusters for good PID"};
-  Configurable<bool> b_requireTPC{"b_requireTPC", true, "Flag to require a positive Number of found clusters in TPC"};
-  Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC"};
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF"};
-
+  // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"DPlus_to_Pi_K_Pi_cuts", {hf_cuts_dplus_topikpi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Dplus candidate selection per pT bin"};
 
@@ -51,7 +53,7 @@ struct HFDplusToPiKPiCandidateSelector {
   bool daughterSelection(const T& track)
   {
     if (b_requireTPC.value && track.tpcNClsFound() == 0) {
-      return false; //is it clusters findable or found - need to check
+      return false; // is it clusters findable or found - need to check
     }
     return true;
   }
@@ -70,14 +72,17 @@ struct HFDplusToPiKPiCandidateSelector {
     if (pTBin == -1) {
       return false;
     }
+    // check that the candidate pT is within the analysis range
     if (candpT < d_pTCandMin || candpT > d_pTCandMax) {
-      return false; //check that the candidate pT is within the analysis range
+      return false;
     }
+    // cut on daughter pT
     if (trackPion1.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K") || trackPion2.pt() < cuts->get(pTBin, "pT Pi")) {
-      return false; // cut on daughter pT
+      return false;
     }
+    // invariant-mass cut
     if (std::abs(InvMassDPlus(hfCandProng3) - RecoDecay::getMassPDG(pdg::Code::kDPlus)) > cuts->get(pTBin, "deltaM")) {
-      return false; // invariant mass cut
+      return false;
     }
     if (hfCandProng3.decayLength() < cuts->get(pTBin, "decay length")) {
       return false;
@@ -99,37 +104,52 @@ struct HFDplusToPiKPiCandidateSelector {
 
   void process(aod::HfCandProng3 const& hfCandProng3s, aod::BigTracksPID const&)
   {
-    for (auto& hfCandProng3 : hfCandProng3s) { //looping over 3 prong candidates
+    TrackSelectorPID selectorPion(kPiPlus);
+    selectorPion.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
+    selectorPion.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
+    selectorPion.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
+    selectorPion.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
 
-      auto statusDplusToPiKPi = 0; // final selection flag : 0-rejected  1-accepted
+    TrackSelectorPID selectorKaon(selectorPion);
+    selectorKaon.setPDG(kKPlus);
+
+    // looping over 3-prong candidates
+    for (auto& hfCandProng3 : hfCandProng3s) {
+
+       // final selection flag: 0 - rejected, 1 - accepted
+      auto statusDplusToPiKPi = 0;
 
       if (!(hfCandProng3.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }
 
-      auto trackPos1 = hfCandProng3.index0_as<aod::BigTracksPID>(); //positive daughter (negative for the antiparticles)
-      auto trackNeg1 = hfCandProng3.index1_as<aod::BigTracksPID>(); //negative daughter (positive for the antiparticles)
-      auto trackPos2 = hfCandProng3.index2_as<aod::BigTracksPID>(); //positive daughter (negative for the antiparticles)
+      auto trackPos1 = hfCandProng3.index0_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
+      auto trackNeg = hfCandProng3.index1_as<aod::BigTracksPID>(); // negative daughter (positive for the antiparticles)
+      auto trackPos2 = hfCandProng3.index2_as<aod::BigTracksPID>(); // positive daughter (negative for the antiparticles)
 
       // daughter track validity selection
-      if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg1) || !daughterSelection(trackPos2)) {
+      if (!daughterSelection(trackPos1) ||
+          !daughterSelection(trackNeg) ||
+          !daughterSelection(trackPos2)) {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }
 
       // topological selection
-      if (!selection(hfCandProng3, trackPos1, trackNeg1, trackPos2)) {
+      if (!selection(hfCandProng3, trackPos1, trackNeg, trackPos2)) {
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }
 
-      // pid selection
-      auto pionPlus1 = pid::getStatusTrackPIDAll(trackPos1, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPC, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOF);
-      auto pionPlus2 = pid::getStatusTrackPIDAll(trackPos2, kPiPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPC, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOF);
-      auto kaonMinus = pid::getStatusTrackPIDAll(trackNeg1, kKPlus, d_pidTPCMinpT, d_pidTPCMaxpT, d_nSigmaTPC, d_nSigmaTPC, d_pidTOFMinpT, d_pidTOFMaxpT, d_nSigmaTOF, d_nSigmaTOF);
+      // track-level PID selection
+      int pidTrackPos1Pion = selectorPion.getStatusTrackPIDAll(trackPos1);
+      int pidTrackNegKaon = selectorKaon.getStatusTrackPIDAll(trackNeg);
+      int pidTrackPos2Pion = selectorPion.getStatusTrackPIDAll(trackPos2);
 
-      if (pionPlus1 == 0 || kaonMinus == 0 || pionPlus2 == 0) { //exclude Dplus for PID
+      if (pidTrackPos1Pion == TrackSelectorPID::Status::PIDRejected ||
+          pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
+          pidTrackPos2Pion == TrackSelectorPID::Status::PIDRejected) { // exclude D±
         hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
         continue;
       }

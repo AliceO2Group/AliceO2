@@ -12,6 +12,7 @@
 /// \brief D0(bar) → π± K∓ selection task
 ///
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
+/// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -25,7 +26,6 @@ using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_d0_topik;
 
 /// Struct for applying D0 selection cuts
-
 struct HFD0CandidateSelector {
   Produces<aod::HFSelD0Candidate> hfSelD0Candidate;
 
@@ -74,26 +74,31 @@ struct HFD0CandidateSelector {
       return false;
     }
 
+    // check that the candidate pT is within the analysis range
     if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
-      return false; //check that the candidate pT is within the analysis range
+      return false;
     }
+    // product of daughter impact parameters
     if (hfCandProng2.impactParameterProduct() > cuts->get(pTBin, "d0d0")) {
-      return false; //product of daughter impact parameters
+      return false;
     }
+    // cosine of pointing angle
     if (hfCandProng2.cpa() < cuts->get(pTBin, "cos pointing angle")) {
-      return false; //cosine of pointing angle
+      return false;
     }
+    // cosine of pointing angle XY
     if (hfCandProng2.cpaXY() < cuts->get(pTBin, "cos pointing angle xy")) {
-      return false; //cosine of pointing angle XY
+      return false;
     }
+    // normalised decay length in XY plane
     if (hfCandProng2.decayLengthXYNormalised() < cuts->get(pTBin, "normalized decay length XY")) {
-      return false; //normalised decay length in XY plane
+      return false;
     }
-    // if (hfCandProng2.dca() > cuts[pTBin][1]) return false; //candidate DCA
-    //if (hfCandProng2.chi2PCA() > cuts[pTBin][1]) return false; //candidate DCA
+    // candidate DCA
+    //if (hfCandProng2.chi2PCA() > cuts[pTBin][1]) return false;
 
-    //decay exponentail law, with tau = beta*gamma*ctau
-    //decay length > ctau retains (1-1/e)
+    // decay exponentail law, with tau = beta*gamma*ctau
+    // decay length > ctau retains (1-1/e)
     if (std::abs(hfCandProng2.impactParameterNormalised0()) < 0.5 || std::abs(hfCandProng2.impactParameterNormalised1()) < 0.5) {
       return false;
     }
@@ -102,7 +107,7 @@ struct HFD0CandidateSelector {
       return false;
     }
     if (hfCandProng2.decayLengthNormalised() * hfCandProng2.decayLengthNormalised() < 1.0) {
-      //return false; //add back when getter fixed
+      //return false; // add back when getter fixed
     }
     return true;
   }
@@ -122,7 +127,8 @@ struct HFD0CandidateSelector {
       return false;
     }
 
-    if (trackPion.sign() > 0) { //invariant mass cut
+     // invariant-mass cut
+    if (trackPion.sign() > 0) {
       if (std::abs(InvMassD0(hfCandProng2) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "m")) {
         return false;
       }
@@ -132,14 +138,18 @@ struct HFD0CandidateSelector {
       }
     }
 
+    // cut on daughter pT
     if (trackPion.pt() < cuts->get(pTBin, "pT Pi") || trackKaon.pt() < cuts->get(pTBin, "pT K")) {
-      return false; //cut on daughter pT
-    }
-    if (std::abs(trackPion.dcaPrim0()) > cuts->get(pTBin, "d0pi") || std::abs(trackKaon.dcaPrim0()) > cuts->get(pTBin, "d0K")) {
-      return false; //cut on daughter dca - need to add secondary vertex constraint here
+      return false;
     }
 
-    if (trackPion.sign() > 0) { //cut on cos(theta *)
+    // cut on daughter DCA - need to add secondary vertex constraint here
+    if (std::abs(trackPion.dcaPrim0()) > cuts->get(pTBin, "d0pi") || std::abs(trackKaon.dcaPrim0()) > cuts->get(pTBin, "d0K")) {
+      return false;
+    }
+
+    // cut on cos(theta*)
+    if (trackPion.sign() > 0) {
       if (std::abs(CosThetaStarD0(hfCandProng2)) > cuts->get(pTBin, "cos theta*")) {
         return false;
       }
@@ -165,9 +175,10 @@ struct HFD0CandidateSelector {
     TrackSelectorPID selectorKaon(selectorPion);
     selectorKaon.setPDG(kKPlus);
 
-    for (auto& hfCandProng2 : hfCandProng2s) { //looping over 2 prong candidates
+    // looping over 2-prong candidates
+    for (auto& hfCandProng2 : hfCandProng2s) {
 
-      // final selection flag : 0-rejected  1-accepted
+      // final selection flag: 0 - rejected, 1 - accepted
       int statusD0 = 0;
       int statusD0bar = 0;
 
@@ -176,29 +187,29 @@ struct HFD0CandidateSelector {
         continue;
       }
 
-      auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); //positive daughter
+      auto trackPos = hfCandProng2.index0_as<aod::BigTracksPID>(); // positive daughter
       if (!daughterSelection(trackPos)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
-      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); //negative daughter
+      auto trackNeg = hfCandProng2.index1_as<aod::BigTracksPID>(); // negative daughter
       if (!daughterSelection(trackNeg)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
 
-      //conjugate-independent topological selection
+      // conjugate-independent topological selection
       if (!selectionTopol(hfCandProng2)) {
         hfSelD0Candidate(statusD0, statusD0bar);
         continue;
       }
 
-      //implement filter bit 4 cut - should be done before this task at the track selection level
-      //need to add special cuts (additional cuts on decay length and d0 norm)
+      // implement filter bit 4 cut - should be done before this task at the track selection level
+      // need to add special cuts (additional cuts on decay length and d0 norm)
 
-      //conjugate-dependent topological selection for D0
+      // conjugate-dependent topological selection for D0
       bool topolD0 = selectionTopolConjugate(hfCandProng2, trackPos, trackNeg);
-      //conjugate-dependent topological selection for D0bar
+      // conjugate-dependent topological selection for D0bar
       bool topolD0bar = selectionTopolConjugate(hfCandProng2, trackNeg, trackPos);
 
       if (!topolD0 && !topolD0bar) {
