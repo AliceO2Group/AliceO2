@@ -145,7 +145,7 @@ GPUdi() constexpr GlobalTrackID::mask_t GlobalTrackID::getSourceMask(int s) { re
 GPUdi() bool GlobalTrackID::includesDet(DetID id, GlobalTrackID::mask_t srcm)
 {
   for (int i = 0; i < NSources; i++) {
-    if (includesSource(i, srcm) && getSourceDetectorsMask(i) == id.getMask()) {
+    if (includesSource(i, srcm) && (getSourceDetectorsMask(i) & id.getMask()).any()) {
       return true;
     }
   }
