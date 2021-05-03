@@ -16,7 +16,7 @@
 #include <chrono>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
-#include "TRDReconstruction/RecoInputContainer.h"
+#include "DataFormatsTRD/RecoInputContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
