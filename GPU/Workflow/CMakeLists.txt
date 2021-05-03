@@ -20,7 +20,15 @@ o2_add_library(GPUWorkflow
                                      O2::TPCQC
                                      O2::DetectorsCalibration
                                      O2::TPCReaderWorkflow
+                                     O2::DataFormatsGlobalTracking
+                                     O2::DataFormatsTRD
                PRIVATE_LINK_LIBRARIES O2::GPUTracking)
+
+if(GPUCA_EVENT_DISPLAY OR
+                      (OPENGL_FOUND AND GLFW_FOUND AND TARGET AliceO2::DebugGUI AND OPENGL_GLU_FOUND
+                      AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
+   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
+endif()
 
 o2_add_executable(reco-workflow
        COMPONENT_NAME gpu
@@ -28,7 +36,6 @@ o2_add_executable(reco-workflow
        SOURCES src/gpu-reco-workflow.cxx
        PUBLIC_LINK_LIBRARIES O2::GPUWorkflow
                              O2::GlobalTrackingWorkflowHelpers)
-
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2"
   AND OPENGL_FOUND

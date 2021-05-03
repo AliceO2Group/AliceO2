@@ -101,7 +101,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::globaltracking::RecoContainer inputTracks;
   inputTracks.collectData(pc, *mDataRequest);
-  auto tmpInputContainer = getRecoInputContainer(pc, mChainTracking->mIOPtrs, &inputTracks);
+  auto tmpInputContainer = getRecoInputContainer(pc, &mChainTracking->mIOPtrs, &inputTracks);
   LOGF(INFO, "There are %i tracklets in total from %i trigger records", tmpInputContainer->mNTracklets, tmpInputContainer->mNTriggerRecords);
   LOGF(INFO, "As input seeds are available: %i ITS-TPC matched tracks and %i TPC tracks", tmpInputContainer->mNTracksTPCITS, tmpInputContainer->mNTracksTPC);
   if (tmpInputContainer->mNTracklets != tmpInputContainer->mNSpacePoints) {

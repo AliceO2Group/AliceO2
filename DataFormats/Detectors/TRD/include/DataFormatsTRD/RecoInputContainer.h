@@ -49,7 +49,7 @@ struct RecoInputContainer {
   std::vector<int> trdTriggerIndices;
 };
 
-inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu::GPUTrackingInOutPointers& ptrs, const o2::globaltracking::RecoContainer* inputTracks)
+inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu::GPUTrackingInOutPointers* ptrs, const o2::globaltracking::RecoContainer* inputTracks)
 {
   auto retVal = std::make_unique<RecoInputContainer>();
   retVal->mTracksTPCITS = inputTracks->getTPCITSTracks<o2::dataformats::TrackTPCITS>();
@@ -71,17 +71,22 @@ inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu:
     retVal->trdTriggerTimes.push_back(evTime / 1000.);                                 // event time in us
   }
 
-  // the number of tracks loaded into the TRD tracker depends on the defined input sources
-  // TPC-only tracks which are already matched to the ITS will not be loaded as seeds for the tracking
-  // => the maximum number of seeds it the number of TPC-only tracks. If only ITS-TPC matches are considered than that
-  //    of course defines the number of input tracks
-  ptrs.nMergedTracks = (retVal->mNTracksTPC == 0) ? retVal->mNTracksTPCITS : retVal->mNTracksTPC;
-  ptrs.nTRDTriggerRecords = retVal->mNTriggerRecords;
-  ptrs.trdTriggerTimes = &(retVal->trdTriggerTimes[0]);
-  ptrs.trdTrackletIdxFirst = &(retVal->trdTriggerIndices[0]);
-  ptrs.nTRDTracklets = retVal->mNTracklets;
-  ptrs.trdTracklets = reinterpret_cast<const o2::gpu::GPUTRDTrackletWord*>(retVal->mTracklets.data());
-  ptrs.trdSpacePoints = reinterpret_cast<const o2::gpu::GPUTRDSpacePoint*>(retVal->mSpacePoints.data());
+  if (ptrs) {
+    if (ptrs->nOutputTracksTPCO2 == 0 && retVal->mNTracksTPC) {
+      ptrs->nOutputTracksTPCO2 = retVal->mNTracksTPC;
+      ptrs->outputTracksTPCO2 = retVal->mTracksTPC.data();
+    }
+    if (ptrs->nTracksTPCITSO2 == 0 && retVal->mNTracksTPCITS) {
+      ptrs->nTracksTPCITSO2 = retVal->mNTracksTPCITS;
+      ptrs->tracksTPCITSO2 = retVal->mTracksTPCITS.data();
+    }
+    ptrs->nTRDTriggerRecords = retVal->mNTriggerRecords;
+    ptrs->trdTriggerTimes = &(retVal->trdTriggerTimes[0]);
+    ptrs->trdTrackletIdxFirst = &(retVal->trdTriggerIndices[0]);
+    ptrs->nTRDTracklets = retVal->mNTracklets;
+    ptrs->trdTracklets = reinterpret_cast<const o2::gpu::GPUTRDTrackletWord*>(retVal->mTracklets.data());
+    ptrs->trdSpacePoints = reinterpret_cast<const o2::gpu::GPUTRDSpacePoint*>(retVal->mSpacePoints.data());
+  }
 
   return std::move(retVal);
 }
