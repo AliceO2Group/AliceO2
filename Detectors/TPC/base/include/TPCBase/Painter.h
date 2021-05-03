@@ -149,6 +149,9 @@ std::vector<TCanvas*> makeSummaryCanvases(const CalDet<T>& calDet, int nbins1D =
 /// \return TCanvas containing CalDet content
 std::vector<TCanvas*> makeSummaryCanvases(const std::string_view fileName, const std::string_view calPadNames, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0, bool onlyFilled = true);
 
+/// draw sector boundaris, side name and sector numbers
+void drawSectorsXY(Side side, int sectorLineColor = 920, int sectorTextColor = 1);
+
 } // namespace painter
 
 } // namespace tpc
