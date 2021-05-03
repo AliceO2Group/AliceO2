@@ -22,7 +22,7 @@
 #include "DataFormatsTRD/Constants.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
-#include "TRDReconstruction/RecoInputContainer.h"
+#include "DataFormatsTRD/RecoInputContainer.h"
 
 // GPU header
 #include "GPUReconstruction.h"

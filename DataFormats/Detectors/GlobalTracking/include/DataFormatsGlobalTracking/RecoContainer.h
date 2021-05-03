@@ -28,7 +28,7 @@
 #include <memory>
 
 // We forward declare the internal structures, to reduce header dependencies.
-// Please include headers for TPC Hits or TRD tracklets directly (DataFormatsTPC/WorkflowHelper.h / TRDReconstruction/RecoInputContainer.h)
+// Please include headers for TPC Hits or TRD tracklets directly (DataFormatsTPC/WorkflowHelper.h / DataFormatsTRD/RecoInputContainer.h)
 namespace o2::tpc
 {
 using TPCClRefElem = uint32_t;
