@@ -10,9 +10,8 @@
 
 /// @file   TRDTrackletReaderSpec.cxx
 
-#include "TRDWorkflow/TRDTrackletReaderSpec.h"
+#include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 
-#include "Headers/DataHeader.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "fairlogger/Logger.h"

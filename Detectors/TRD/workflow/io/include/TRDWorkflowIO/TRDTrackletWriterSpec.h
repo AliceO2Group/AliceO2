@@ -11,13 +11,6 @@
 #ifndef O2_TRDTRAPSIMULATORTRACKLETWRITER_H
 #define O2_TRDTRAPSIMULATORTRACKLETWRITER_H
 
-#include "DataFormatsTRD/Digit.h"
-#include <SimulationDataFormat/MCTruthContainer.h>
-#include "TRDBase/MCLabel.h"
-#include "TRDBase/Tracklet.h"
-#include <fstream>
-#include <iostream>
-
 namespace o2
 {
 namespace framework

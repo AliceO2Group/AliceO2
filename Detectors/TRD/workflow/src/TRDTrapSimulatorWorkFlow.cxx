@@ -19,9 +19,8 @@
 
 // for TRD
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
-#include "TRDWorkflow/TRDTrackletWriterSpec.h"
-#include "TRDWorkflow/TRDTrapRawWriterSpec.h"
-#include "TRDWorkflow/TRDDigitReaderSpec.h"
+#include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
+#include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 
 #include "DataFormatsParameters/GRPObject.h"
 

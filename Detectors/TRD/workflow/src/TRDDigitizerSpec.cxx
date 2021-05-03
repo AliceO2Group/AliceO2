@@ -75,11 +75,11 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     auto& eventParts = context->getEventParts();
     std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
-    o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelsAccum;
     std::vector<TriggerRecord> triggers;
 
     std::vector<o2::trd::Digit> digits;                         // digits which get filled
-    o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;  // labels which get filled
 
     o2::InteractionTimeRecord currentTime; // the current time
     o2::InteractionTimeRecord triggerTime; // the time at which the TRD start reading out a signal
@@ -153,7 +153,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (mctruth) {
       LOG(INFO) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
       // we are flattening the labels and write to managed shared memory container for further communication
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
       labelsAccum.flatten_to(sharedlabels);
     }
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";

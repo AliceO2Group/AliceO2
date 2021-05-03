@@ -394,7 +394,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
   return true;
 }
 
-void Digitizer::addLabel(const int& trackId, std::vector<o2::trd::MCLabel>& labels, std::unordered_set<int>& trackIds)
+void Digitizer::addLabel(const int& trackId, std::vector<o2::MCCompLabel>& labels, std::unordered_set<int>& trackIds)
 {
   if (trackIds.count(trackId) == 0) {
     trackIds.insert(trackId);

@@ -11,15 +11,14 @@
 #ifndef O2_TRDTRAPSIMULATORRAWREADERSPEC_H
 #define O2_TRDTRAPSIMULATORRAWREADERSPEC_H
 
-#include "Framework/ConfigParamRegistry.h"
-#include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
-#include "Framework/DataRefUtils.h"
-#include "Framework/Lifetime.h"
 #include "Framework/Task.h"
-#include "TRDBase/MCLabel.h"
+
 #include "TFile.h"
 #include "TTree.h"
+
+#include <memory>
+#include <string>
 
 namespace o2
 {
@@ -29,19 +28,15 @@ namespace trd
 class TRDDigitReaderSpec : public o2::framework::Task
 {
  public:
-  TRDDigitReaderSpec(int channels, bool useMC) : mChannels(channels), mUseMC(useMC) {}
+  TRDDigitReaderSpec(int channels, bool useMC) : mUseMC(useMC) {}
   ~TRDDigitReaderSpec() override = default;
   void init(o2::framework::InitContext& ic) override;
   void run(o2::framework::ProcessingContext& pc) override;
 
  private:
-  bool mFinished = false;
   int mState = 0;
-  bool mUseRun2 = false;
-  int mChannels;
   bool mUseMC = false;
   std::unique_ptr<TFile> mFile = nullptr;
-  //std::unique_ptr<TTree> DPLTree;
   std::string mInputFileName = "";
   std::string mDigitTreeName = "o2sim";
   std::string mDigitBranchName = "TRDDigit";

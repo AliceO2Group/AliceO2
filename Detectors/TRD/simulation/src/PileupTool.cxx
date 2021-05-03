@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDSimulation/PileupTool.h"
-#include "TRDBase/MCLabel.h"
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
