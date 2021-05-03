@@ -102,24 +102,30 @@ struct AnalysisDataProcessorBuilder {
     (doAppendInputWithMetadata<Args>(inputs), ...);
   }
 
-  template <typename T>
-  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, size_t at)
+  template <typename T, int PI, int AI>
+  static void appendSomethingWithMetadata(std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
     using dT = std::decay_t<T>;
     if constexpr (framework::is_specialization<dT, soa::Filtered>::value) {
-      eInfos.push_back({at, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+      eInfos.push_back({AI, PI, dT::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
     } else if constexpr (soa::is_soa_iterator_t<dT>::value) {
       if constexpr (std::is_same_v<typename dT::policy_t, soa::FilteredIndexPolicy>) {
-        eInfos.push_back({at, dT::parent_t::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
+        eInfos.push_back({AI, PI, dT::parent_t::hashes(), o2::soa::createSchemaFromColumns(typename dT::table_t::persistent_columns_t{}), nullptr});
       }
     }
     doAppendInputWithMetadata(soa::make_originals_from_type<dT>(), inputs);
   }
 
-  template <typename R, typename C, typename... Args>
+  template <typename... T>
+  static void inputsFromArgsTuple(std::tuple<T...>& processTuple, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
+  {
+    (inputsFromArgs<o2::framework::has_type_at_v<T>(pack<T...>{})>(std::get<T>(processTuple), inputs, eInfos), ...);
+  }
+
+  template <int PI, typename R, typename C, typename... Args>
   static void inputsFromArgs(R (C::*)(Args...), std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos)
   {
-    (appendSomethingWithMetadata<Args>(inputs, eInfos, o2::framework::has_type_at_v<Args>(pack<Args...>{})), ...);
+    (appendSomethingWithMetadata<Args, PI, o2::framework::has_type_at_v<Args>(pack<Args...>{})>(inputs, eInfos), ...);
   }
 
   template <typename R, typename C, typename Grouping, typename... Args>
@@ -128,13 +134,13 @@ struct AnalysisDataProcessorBuilder {
     return std::declval<std::tuple<Grouping, Args...>>();
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
+  template <int PI, typename R, typename C, typename Grouping, typename... Args>
   static auto bindGroupingTable(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const& infos)
   {
-    return extractSomethingFromRecord<Grouping>(record, infos, 0);
+    return extractSomethingFromRecord<Grouping, PI, 0>(record, infos);
   }
 
-  template <typename R, typename C>
+  template <int PI, typename R, typename C>
   static auto bindGroupingTable(InputRecord&, R (C::*)(), std::vector<ExpressionInfo> const&)
   {
     static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
@@ -176,24 +182,16 @@ struct AnalysisDataProcessorBuilder {
     }
   }
 
-  template <typename T>
-  static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos, size_t at)
+  template <typename T, int PI, int AI>
+  static auto extractSomethingFromRecord(InputRecord& record, std::vector<ExpressionInfo> const infos)
   {
     using decayed = std::decay_t<T>;
 
     if constexpr (soa::is_soa_filtered_t<decayed>::value) {
-      for (auto& info : infos) {
-        if (info.index == at) {
-          return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
-        }
-      }
+      return extractFilteredFromRecord<decayed>(record, *std::find_if(infos.begin(), infos.end(), [](ExpressionInfo const& i) { return (i.processIndex == PI && i.argumentIndex == AI); }), soa::make_originals_from_type<decayed>());
     } else if constexpr (soa::is_soa_iterator_t<decayed>::value) {
       if constexpr (std::is_same_v<typename decayed::policy_t, soa::FilteredIndexPolicy>) {
-        for (auto& info : infos) {
-          if (info.index == at) {
-            return extractFilteredFromRecord<decayed>(record, info, soa::make_originals_from_type<decayed>());
-          }
-        }
+        return extractFilteredFromRecord<decayed>(record, *std::find_if(infos.begin(), infos.end(), [](ExpressionInfo const& i) { return (i.processIndex == PI && i.argumentIndex == AI); }), soa::make_originals_from_type<decayed>());
       } else {
         return extractFromRecord<decayed>(record, soa::make_originals_from_type<decayed>());
       }
@@ -203,13 +201,13 @@ struct AnalysisDataProcessorBuilder {
     O2_BUILTIN_UNREACHABLE();
   }
 
-  template <typename R, typename C, typename Grouping, typename... Args>
+  template <int PI, typename R, typename C, typename Grouping, typename... Args>
   static auto bindAssociatedTables(InputRecord& record, R (C::*)(Grouping, Args...), std::vector<ExpressionInfo> const infos)
   {
-    return std::make_tuple(extractSomethingFromRecord<Args>(record, infos, has_type_at_v<Args>(pack<Args...>{}) + 1u)...);
+    return std::make_tuple(extractSomethingFromRecord<Args, PI, has_type_at_v<Args>(pack<Args...>{}) + 1>(record, infos)...);
   }
 
-  template <typename R, typename C>
+  template <int PI, typename R, typename C>
   static auto bindAssociatedTables(InputRecord&, R (C::*)(), std::vector<ExpressionInfo> const)
   {
     static_assert(always_static_assert_v<C>, "Your task process method needs at least one argument");
@@ -440,12 +438,18 @@ struct AnalysisDataProcessorBuilder {
     GroupSlicerIterator mBegin;
   };
 
-  template <typename Task, typename R, typename C, typename Grouping, typename... Associated>
-  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
+  template <typename Task, typename... T>
+  static void invokeProcessTuple(Task& task, InputRecord& inputs, std::tuple<T...> const& processTuple, std::vector<ExpressionInfo> const& infos)
+  {
+    (invokeProcess<o2::framework::has_type_at_v<T>(pack<T...>{})>(task, inputs, std::get<T>(processTuple), infos), ...);
+  }
+
+  template <int PI, typename Task, typename R, typename C, typename Grouping, typename... Associated>
+  static void invokeProcess(Task& task, InputRecord& inputs, R (C::*processingFunction)(Grouping, Associated...), std::vector<ExpressionInfo> const& infos)
   {
     auto tupledTask = o2::framework::to_tuple_refs(task);
     using G = std::decay_t<Grouping>;
-    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable(inputs, &C::process, infos);
+    auto groupingTable = AnalysisDataProcessorBuilder::bindGroupingTable<PI>(inputs, processingFunction, infos);
 
     // set filtered tables for partitions with grouping
     std::apply([&groupingTable](auto&... x) {
@@ -462,18 +466,18 @@ struct AnalysisDataProcessorBuilder {
                  tupledTask);
       if constexpr (soa::is_soa_iterator_t<G>::value) {
         for (auto& element : groupingTable) {
-          task.process(*element);
+          std::invoke(processingFunction, task, *element);
         }
       } else {
         static_assert(soa::is_soa_table_like_t<G>::value,
                       "Single argument of process() should be a table-like or an iterator");
-        task.process(groupingTable);
+        std::invoke(processingFunction, task, groupingTable);
       }
     } else {
       // multiple arguments to process
       static_assert(((soa::is_soa_iterator_t<std::decay_t<Associated>>::value == false) && ...),
                     "Associated arguments of process() should not be iterators");
-      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables(inputs, &C::process, infos);
+      auto associatedTables = AnalysisDataProcessorBuilder::bindAssociatedTables<PI>(inputs, processingFunction, infos);
       auto binder = [&](auto&& x) {
         x.bindExternalIndices(&groupingTable, &std::get<std::decay_t<Associated>>(associatedTables)...);
         std::apply([&x](auto&... t) {
@@ -511,7 +515,7 @@ struct AnalysisDataProcessorBuilder {
           },
                      tupledTask);
 
-          invokeProcessWithArgs(task, slice.groupingElement(), associatedSlices);
+          invokeProcessWithArgsGeneric(task, processingFunction, slice.groupingElement(), associatedSlices);
         }
       } else {
         // non-grouping case
@@ -523,9 +527,15 @@ struct AnalysisDataProcessorBuilder {
         },
                    tupledTask);
 
-        invokeProcessWithArgs(task, groupingTable, associatedTables);
+        invokeProcessWithArgsGeneric(task, processingFunction, groupingTable, associatedTables);
       }
     }
+  }
+
+  template <typename C, typename T, typename G, typename... A>
+  static void invokeProcessWithArgsGeneric(C& task, T processingFunction, G g, std::tuple<A...>& at)
+  {
+    std::invoke(processingFunction, task, g, std::get<A>(at)...);
   }
 
   template <typename T, typename G, typename... A>
@@ -589,27 +599,59 @@ struct TaskName {
   std::string value;
 };
 
+///
+template <typename... Ts>
+struct Processes {
+  Processes(Ts&&... args) : processes{std::make_tuple(args...)}
+  {
+  }
+  std::tuple<Ts...> processes;
+};
+
+template <typename T, typename... S, typename... A>
+auto getNameTaskProcesses(TaskName first, Processes<S...> second, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  return std::make_tuple(first.value, task, second.processes);
+}
+
+template <typename T, typename... S, typename... A>
+auto getNameTaskProcesses(Processes<S...> first, TaskName second, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  return std::make_tuple(second.value, task, first.processes);
+}
+
+template <typename T, typename... A>
+auto getNameTaskProcesses(TaskName first, A... args)
+{
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  if constexpr (has_process_v<T>) {
+    return std::make_tuple(first.value, task, std::make_tuple(&T::process));
+  } else {
+    return std::make_tuple(first.value, task, std::make_tuple());
+  }
+}
+
+template <typename T, typename... S, typename... A>
+auto getNameTaskProcesses(Processes<S...> first, A... args)
+{
+  auto type_name_str = type_name<T>();
+  std::string name = type_to_task_name(type_name_str);
+  auto task = std::make_shared<T>(std::forward<A>(args)...);
+  return std::make_tuple(name, task, first.processes);
+}
+
 template <typename T>
-std::tuple<std::string, std::shared_ptr<T>> getNameAndTask()
+auto getNameTaskProcesses()
 {
   auto type_name_str = type_name<T>();
   std::string name = type_to_task_name(type_name_str);
   auto task = std::make_shared<T>();
-  return std::make_tuple(name, task);
-}
-
-template <typename T, typename T2, typename... Args>
-std::tuple<std::string, std::shared_ptr<T>> getNameAndTask(T2&& firstArg, Args&&... args)
-{
-  if constexpr (std::is_same_v<typename std::decay<T2>::type, TaskName>) {
-    std::string name = firstArg.value;
-    auto task = std::make_shared<T>(std::forward<Args>(args)...);
-    return std::make_tuple(name, task);
+  if constexpr (has_process_v<T>) {
+    return std::make_tuple(name, task, std::make_tuple(&T::process));
   } else {
-    auto type_name_str = type_name<T>();
-    std::string name = type_to_task_name(type_name_str);
-    auto task = std::make_shared<T>(std::forward<T2, Args>(firstArg, args)...);
-    return std::make_tuple(name, task);
+    return std::make_tuple(name, task, std::make_tuple());
   }
 }
 
@@ -620,7 +662,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 {
   TH1::AddDirectory(false);
 
-  auto [name_str, task] = getNameAndTask<T>(args...);
+  auto [name_str, task, processTuple] = getNameTaskProcesses<T>(args...);
 
   auto suffix = ctx.options().get<std::string>("workflow-suffix");
   if (!suffix.empty()) {
@@ -634,7 +676,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<ConfigParamSpec> options;
 
   auto tupledTask = o2::framework::to_tuple_refs(*task.get());
-  static_assert(has_process_v<T> || has_run_v<T> || has_init_v<T>,
+  static_assert(std::tuple_size_v<std::decay_t<decltype(processTuple)>> > 0 || has_run_v<T> || has_init_v<T>,
                 "At least one of process(...), T::run(...), init(...) must be defined");
 
   std::vector<InputSpec> inputs;
@@ -643,10 +685,15 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   /// make sure options and configurables are set before expression infos are created
   std::apply([&options, &hash](auto&... x) { return (OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x), ...); }, tupledTask);
 
-  if constexpr (has_process_v<T>) {
-    // this pushes (I,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, inputs, expressionInfos);
+  if constexpr ((std::tuple_size_v<std::decay_t<decltype(processTuple)>>) > 0) {
+    // this pushes (argumentIndex,processIndex,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
+    AnalysisDataProcessorBuilder::inputsFromArgsTuple(processTuple, inputs, expressionInfos);
   }
+  // avoid self-forwarding if process methods subscribe to same tables
+  std::sort(inputs.begin(), inputs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding < b.binding; });
+  auto last = std::unique(inputs.begin(), inputs.end(), [](InputSpec const& a, InputSpec const& b) { return a.binding == b.binding; });
+  inputs.erase(last, inputs.end());
+
   //request base tables for spawnable extended tables
   std::apply([&inputs](auto&... x) {
     return (SpawnManager<std::decay_t<decltype(x)>>::requestInputs(inputs, x), ...);
@@ -661,7 +708,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   std::apply([&outputs, &hash](auto&... x) { return (OutputManager<std::decay_t<decltype(x)>>::appendOutput(outputs, x, hash), ...); }, tupledTask);
 
-  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos](InitContext& ic) mutable {
+  auto algo = AlgorithmSpec::InitCallback{[task = task, processTuple = processTuple, expressionInfos](InitContext& ic) mutable {
     auto tupledTask = o2::framework::to_tuple_refs(*task.get());
     std::apply([&ic](auto&&... x) { return (OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
     std::apply([&ic](auto&&... x) { return (ServiceManager<std::decay_t<decltype(x)>>::prepare(ic, x), ...); }, tupledTask);
@@ -674,7 +721,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     };
     callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
 
-    if constexpr (has_process_v<T>) {
+    if constexpr ((std::tuple_size_v<std::decay_t<decltype(processTuple)>>) > 0) {
       /// update configurables in filters
       std::apply(
         [&ic](auto&... x) { return (FilterManager<std::decay_t<decltype(x)>>::updatePlaceholders(x, ic), ...); },
@@ -694,14 +741,14 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       task->init(ic);
     }
 
-    return [task, expressionInfos](ProcessingContext& pc) {
+    return [task, processTuple, expressionInfos](ProcessingContext& pc) {
       auto tupledTask = o2::framework::to_tuple_refs(*task.get());
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::prepare(pc, x), ...); }, tupledTask);
       if constexpr (has_run_v<T>) {
         task->run(pc);
       }
-      if constexpr (has_process_v<T>) {
-        AnalysisDataProcessorBuilder::invokeProcess(*(task.get()), pc.inputs(), &T::process, expressionInfos);
+      if constexpr ((std::tuple_size_v<std::decay_t<decltype(processTuple)>>) > 0) {
+        AnalysisDataProcessorBuilder::invokeProcessTuple(*(task.get()), pc.inputs(), processTuple, expressionInfos);
       }
       std::apply([&pc](auto&&... x) { return (OutputManager<std::decay_t<decltype(x)>>::finalize(pc, x), ...); }, tupledTask);
     };
