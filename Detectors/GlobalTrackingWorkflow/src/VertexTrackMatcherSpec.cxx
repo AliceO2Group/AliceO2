@@ -17,15 +17,33 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DetectorsVertexing/VertexTrackMatcher.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
+using GTrackID = o2::dataformats::GlobalTrackID;
+using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2
 {
 namespace vertexing
 {
-o2::globaltracking::DataRequest dataRequestV2T;
+
+class VertexTrackMatcherSpec : public Task
+{
+ public:
+  VertexTrackMatcherSpec(std::shared_ptr<DataRequest> dr) : mDataRequest(dr){};
+  ~VertexTrackMatcherSpec() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
+
+ private:
+  std::shared_ptr<DataRequest> mDataRequest;
+  o2::vertexing::VertexTrackMatcher mMatcher;
+  TStopwatch mTimer;
+};
 
 void VertexTrackMatcherSpec::init(InitContext& ic)
 {
@@ -46,7 +64,7 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
   // RS FIXME this will not have effect until the 1st orbit is propagated, until that will work only for TF starting at orbit 0
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
   mMatcher.setStartIR({0, dh->firstTForbit});
-  recoData.collectData(pc, dataRequestV2T);
+  recoData.collectData(pc, *mDataRequest.get());
 
   const auto vertices = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("vertices");
   const auto vtxTracks = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("vtxTracks");
@@ -74,25 +92,26 @@ void VertexTrackMatcherSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
 {
   std::vector<OutputSpec> outputs;
+  auto dataRequest = std::make_shared<DataRequest>();
 
   if (src[GTrackID::ITS]) {
-    dataRequestV2T.requestITSTracks(false);
+    dataRequest->requestITSTracks(false);
   }
   if (src[GTrackID::TPC]) {
-    dataRequestV2T.requestTPCTracks(false);
+    dataRequest->requestTPCTracks(false);
   }
   if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
-    dataRequestV2T.requestITSTPCTracks(false);
+    dataRequest->requestITSTPCTracks(false);
   }
   if (src[GTrackID::ITSTPCTOF]) {
-    dataRequestV2T.requestTOFMatches(false);
-    dataRequestV2T.requestTOFClusters(false);
+    dataRequest->requestTOFMatches(false);
+    dataRequest->requestTOFClusters(false);
   }
   if (src[GTrackID::TPCTOF]) {
-    dataRequestV2T.requestTPCTOFTracks(false);
+    dataRequest->requestTPCTOFTracks(false);
   }
 
-  auto& inputs = dataRequestV2T.inputs;
+  auto& inputs = dataRequest->inputs;
   inputs.emplace_back("vertices", "GLO", "PVTX", 0, Lifetime::Timeframe);
   inputs.emplace_back("vtxTracks", "GLO", "PVTX_CONTID", 0, Lifetime::Timeframe);
   inputs.emplace_back("vtxTrackRefs", "GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe);
@@ -104,7 +123,7 @@ DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
     "pvertex-track-matching",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<VertexTrackMatcherSpec>()},
+    AlgorithmSpec{adaptFromTask<VertexTrackMatcherSpec>(dataRequest)},
     Options{}};
 }
 
