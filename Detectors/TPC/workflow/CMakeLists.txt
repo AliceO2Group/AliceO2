@@ -90,3 +90,8 @@ if(GPUCA_EVENT_DISPLAY OR
                        AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
     target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
 endif()
+
+o2_add_executable(digits-to-rawzs
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::GPUTracking O2::DetectorsRaw
+                  SOURCES src/convertDigitsToRawZS.cxx)
