@@ -11,6 +11,7 @@
 /// @file  PrimaryVertexingSpec.cxx
 
 #include <vector>
+#include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -25,15 +26,38 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "FT0Reconstruction/InteractionTag.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsVertexing/PVertexer.h"
 
 using namespace o2::framework;
+using DetID = o2::detectors::DetID;
+using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2
 {
 namespace vertexing
 {
-o2::globaltracking::DataRequest dataRequestPV;
+
 namespace o2d = o2::dataformats;
+
+class PrimaryVertexingSpec : public Task
+{
+ public:
+  PrimaryVertexingSpec(std::shared_ptr<DataRequest> dr, bool validateWithIR, bool useMC)
+    : mDataRequest(dr), mUseMC(useMC), mValidateWithIR(validateWithIR) {}
+  ~PrimaryVertexingSpec() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
+
+ private:
+  std::shared_ptr<DataRequest> mDataRequest;
+  o2::vertexing::PVertexer mVertexer;
+  bool mUseMC{false};          ///< MC flag
+  bool mValidateWithIR{false}; ///< require vertex validation with IR (e.g. from FT0)
+  float mITSROFrameLengthMUS = 0.;
+  TStopwatch mTimer;
+};
 
 void PrimaryVertexingSpec::init(InitContext& ic)
 {
@@ -76,7 +100,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   o2::globaltracking::RecoContainer recoData;
-  recoData.collectData(pc, dataRequestPV);
+  recoData.collectData(pc, *mDataRequest.get());
   // select tracks of needed type, with minimal cuts, the real selected will be done in the vertexer
 
   std::vector<TrackWithTimeStamp> tracks;
@@ -149,10 +173,11 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWithFT0, bool useMC)
 {
   std::vector<OutputSpec> outputs;
+  auto dataRequest = std::make_shared<DataRequest>();
 
-  dataRequestPV.requestTracks(src, useMC);
+  dataRequest->requestTracks(src, useMC);
   if (validateWithFT0 && src[GTrackID::FT0]) {
-    dataRequestPV.requestFT0RecPoints(false);
+    dataRequest->requestFT0RecPoints(false);
   }
 
   outputs.emplace_back("GLO", "PVTX", 0, Lifetime::Timeframe);
@@ -165,9 +190,9 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWit
 
   return DataProcessorSpec{
     "primary-vertexing",
-    dataRequestPV.inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(validateWithFT0, useMC)},
+    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, validateWithFT0, useMC)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
