@@ -169,7 +169,7 @@ endif()
 
 # Create main targets
 add_subdirectory(../../ GPU)
-add_library(standalone_support SHARED dummy.cxx)
+add_library(standalone_support SHARED ${GPUTRACKING_DIR}/utils/EmptyFile.cxx)
 
 target_link_libraries(GPUTracking PUBLIC TPCFastTransformation standalone_support dl)
 target_link_libraries(ca PUBLIC GPUTracking)
