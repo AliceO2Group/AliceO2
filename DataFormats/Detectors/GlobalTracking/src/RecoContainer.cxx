@@ -15,6 +15,8 @@
 #include <fmt/format.h>
 #include <chrono>
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
+#include "TRDReconstruction/RecoInputContainer.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
@@ -32,6 +34,9 @@ namespace o2d = o2::dataformats;
 
 using GTrackID = o2d::GlobalTrackID;
 using DetID = o2::detectors::DetID;
+
+RecoContainer::RecoContainer() = default;
+RecoContainer::~RecoContainer() = default;
 
 void DataRequest::addInput(const InputSpec&& isp)
 {
@@ -119,6 +124,13 @@ void DataRequest::requestTOFClusters(bool mc)
   requestMap["clusTOF"] = mc;
 }
 
+void DataRequest::requestTRDTracklets()
+{
+  addInput({"trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe});
+  addInput({"trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe});
+  addInput({"trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe});
+}
+
 void DataRequest::requestFT0RecPoints(bool mc)
 {
   addInput({"ft0recpoints", "FT0", "RECPOINTS", 0, Lifetime::Timeframe});
@@ -162,6 +174,9 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
   }
   if (GTrackID::includesDet(DetID::TOF, src)) {
     requestTOFClusters(useMC);
+  }
+  if (GTrackID::includesDet(DetID::TRD, src)) {
+    requestTRDTracklets();
   }
 }
 
@@ -284,6 +299,11 @@ void RecoContainer::addTPCClusters(ProcessingContext& pc, bool mc)
 {
   inputsTPCclusters = o2::tpc::getWorkflowTPCInput(pc, 0, mc);
   clusterShMapTPC = pc.inputs().get<gsl::span<unsigned char>>("clusTPCshmap");
+}
+
+void RecoContainer::addTRDTracklets(ProcessingContext& pc)
+{
+  inputsTRD = o2::trd::getRecoInputContainer(pc, nullptr, this);
 }
 
 //__________________________________________________________

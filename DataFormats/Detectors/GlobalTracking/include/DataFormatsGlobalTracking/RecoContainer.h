@@ -21,13 +21,29 @@
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonDataFormat/AbstractRefAccessor.h"
-#include "DataFormatsTPC/WorkflowHelper.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include <gsl/span>
+#include <memory>
+
+// We forward declare the internal structures, to reduce header dependencies.
+// Please include headers for TPC Hits or TRD tracklets directly (DataFormatsTPC/WorkflowHelper.h / TRDReconstruction/RecoInputContainer.h)
+namespace o2::tpc
+{
+using TPCClRefElem = uint32_t;
+namespace internal
+{
+struct getWorkflowTPCInput_ret;
+} // namespace internal
+} // namespace o2::tpc
+namespace o2::trd
+{
+struct RecoInputContainer;
+} // namespace o2::trd
 
 namespace o2
 {
-
 namespace globaltracking
 {
 
@@ -49,9 +65,12 @@ struct DataRequest {
   void requestITSClusters(bool mc);
   void requestTPCClusters(bool mc);
   void requestTOFClusters(bool mc);
+  void requestTRDTracklets();
 };
 
 struct RecoContainer {
+  RecoContainer();
+  ~RecoContainer();
   using TracksAccessor = o2::dataformats::GlobalTrackAccessor;
   using VariaAccessor = o2::dataformats::AbstractRefAccessor<int, o2::dataformats::GlobalTrackID::NSources>; // there is no unique <Varia> structure, so the default return type is dummy (int)
   using MCAccessor = o2::dataformats::AbstractRefAccessor<o2::MCCompLabel, o2::dataformats::GlobalTrackID::NSources>;
@@ -74,7 +93,8 @@ struct RecoContainer {
 
   gsl::span<const unsigned char> clusterShMapTPC; ///< externally set TPC clusters sharing map
 
-  std::invoke_result<decltype(&o2::tpc::getWorkflowTPCInput), o2::framework::ProcessingContext&, int, bool, bool, unsigned long, bool>::type inputsTPCclusters; // special struct for TPC clusters access
+  std::unique_ptr<o2::tpc::internal::getWorkflowTPCInput_ret> inputsTPCclusters; // special struct for TPC clusters access
+  std::unique_ptr<o2::trd::RecoInputContainer> inputsTRD;                        // special struct for TRD tracklets, trigger records
 
   void collectData(o2::framework::ProcessingContext& pc, const DataRequest& request);
   void createTracks(std::function<bool(const o2::track::TrackParCov&, float, float, GTrackID)> const& creator) const;
@@ -90,6 +110,7 @@ struct RecoContainer {
   void addITSClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFClusters(o2::framework::ProcessingContext& pc, bool mc);
+  void addTRDTracklets(o2::framework::ProcessingContext& pc);
 
   void addFT0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
 

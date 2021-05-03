@@ -40,7 +40,7 @@
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "GlobalTracking/MatchTPCITS.h"
-
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 
 #include "ITStracking/IOUtils.h"
