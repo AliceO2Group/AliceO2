@@ -43,10 +43,5 @@
 #pragma link C++ class o2::trd::Tracklet + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet > +;
 
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/ConstMCTruthContainer.h"
-
-// this is just needed to please the DPL ROOTTreeWriter facility
-#pragma link C++ class o2::dataformats::ConstMCTruthContainer < o2::trd::MCLabel> + ;
 
 #endif

@@ -47,7 +47,6 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/SimParam.h
                                   include/TRDBase/CommonParam.h
                                   include/TRDBase/PadResponse.h
-                                  include/TRDBase/MCLabel.h
                                   include/TRDBase/CalDet.h
                                   include/TRDBase/CalROC.h
                                   include/TRDBase/FeeParam.h
