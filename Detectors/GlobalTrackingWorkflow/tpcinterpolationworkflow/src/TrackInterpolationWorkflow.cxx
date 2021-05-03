@@ -13,8 +13,8 @@
 #include <vector>
 
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/ClusterReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"

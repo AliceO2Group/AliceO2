@@ -24,8 +24,8 @@
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/ClusterReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 

@@ -21,7 +21,7 @@
 #include "Framework/PartRef.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "GPUWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"

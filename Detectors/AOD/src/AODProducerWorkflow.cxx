@@ -24,8 +24,8 @@
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/PublisherSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/PublisherSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 
 namespace o2::aodproducer
 {

@@ -13,7 +13,7 @@
 #include <vector>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
