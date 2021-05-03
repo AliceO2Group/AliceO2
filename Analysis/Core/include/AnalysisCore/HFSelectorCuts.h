@@ -333,12 +333,13 @@ static const std::vector<std::string> cutVarLabels = {"m", "pT p", "pT K", "pT P
 
 namespace hf_cuts_jpsi_toee
 {
-static constexpr int npTBins = 8;
+static constexpr int npTBins = 9;
 static constexpr int nCutVars = 4;
 // default values for the pT bin edges (can be used to configure histogram axis)
 // offset by 1 from the bin numbers in cuts array
 constexpr double pTBins[npTBins + 1] = {
   0,
+  0.5,
   1.0,
   2.0,
   3.0,
@@ -351,7 +352,8 @@ constexpr double pTBins[npTBins + 1] = {
 auto pTBins_v = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
-constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.2, 0.4, 1},  /* 0   < pT < 1 */
+constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.2, 0.4, 1},  /* 0   < pT < 0.5 */
+                                            {0.5, 0.2, 0.4, 1},  /* 0.5 < pT < 1   */
                                             {0.5, 0.2, 0.4, 1},  /* 1   < pT < 2   */
                                             {0.5, 0.2, 0.4, 1},  /* 2   < pT < 3   */
                                             {0.5, 0.2, 0.4, 1},  /* 3   < pT < 4   */
@@ -369,7 +371,8 @@ static const std::vector<std::string> pTBinLabels = {
   "pT bin 4",
   "pT bin 5",
   "pT bin 6",
-  "pT bin 7"};
+  "pT bin 7",
+  "pT bin 8"};
 
 // column labels
 static const std::vector<std::string> cutVarLabels = {"m", "DCA_xy", "DCA_z", "pT El"};
