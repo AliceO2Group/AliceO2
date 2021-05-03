@@ -266,6 +266,13 @@ if (TARGET AliceO2::DebugGUI)
 endif()
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+  o2_add_library(GPUDataTypeHeaders
+                 PUBLIC_INCLUDE_DIRECTORIES .
+                                            Definitions
+                                            DataTypes
+                 PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                 SOURCES utils/EmptyFile.cxx)
+    
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
@@ -361,7 +368,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/hip
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl-common
