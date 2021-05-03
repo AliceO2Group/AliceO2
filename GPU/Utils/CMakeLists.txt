@@ -19,7 +19,7 @@ set(HDRS_INSTALL
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(${MODULE}
-                 SOURCES GPUUtils.cxx
+                 SOURCES ../GPUTracking/utils/EmptyFile.cxx
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon ROOT::RIO)
   target_include_directories(${targetName}
@@ -39,7 +39,7 @@ endif()
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   add_definitions(-DGPUCA_ALIROOT_LIB)
 
-  set(SRCS ${SRCS} GPUCommon.cxx)
+  set(SRCS ${SRCS} ../GPUTracking/utils/EmptyFile.cxx)
 
   # Add a library to the project using the specified source files
   add_library_tested(Ali${MODULE} SHARED ${SRCS})
@@ -57,8 +57,4 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
   install(FILES ${HDRS_CINT} ${HDRS_INSTALL} DESTINATION include)
-endif()
-
-if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-
 endif()

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUCommon.cxx
+/// \file EmptyFile.cxx
 /// \author David Rohr
 
-// Empty file, needed for AliRoot
+// Empty file, needed for header only libraries
