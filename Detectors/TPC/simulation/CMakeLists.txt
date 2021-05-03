@@ -39,11 +39,6 @@ o2_target_root_dictionary(TPCSimulation
                                   include/TPCSimulation/Point.h
                                   include/TPCSimulation/SAMPAProcessing.h)
 
-o2_add_executable(digits-to-rawzs
-                  COMPONENT_NAME tpc
-                  PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::GPUTracking O2::DetectorsRaw
-                  SOURCES run/convertDigitsToRawZS.cxx)
-
 o2_data_file(COPY files DESTINATION Detectors/TPC)
 o2_data_file(COPY data  DESTINATION Detectors/TPC/simulation)
 
