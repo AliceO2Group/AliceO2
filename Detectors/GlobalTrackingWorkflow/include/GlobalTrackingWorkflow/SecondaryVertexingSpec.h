@@ -13,35 +13,17 @@
 
 /// @file SecondaryVertexingSpec.h
 
-#include "DetectorsVertexing/SVertexer.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "TStopwatch.h"
 
 namespace o2
 {
 namespace vertexing
 {
 
-using namespace o2::framework;
-
-class SecondaryVertexingSpec : public Task
-{
- public:
-  SecondaryVertexingSpec(bool enabCasc) : mEnableCascades(enabCasc) {}
-  ~SecondaryVertexingSpec() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-  void endOfStream(EndOfStreamContext& ec) final;
-
- private:
-  bool mEnableCascades = false;
-  o2::vertexing::SVertexer mVertexer;
-  TStopwatch mTimer;
-};
-
 /// create a processor spec
-DataProcessorSpec getSecondaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool enableCasc);
+o2::framework::DataProcessorSpec getSecondaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool enableCasc);
 
 } // namespace vertexing
 } // namespace o2
