@@ -9,8 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDWorkflow/TRDTrackletTransformerSpec.h"
-#include "TRDWorkflow/TRDCalibratedTrackletWriterSpec.h"
-#include "TRDWorkflow/TRDTrackletReaderSpec.h"
+#include "TRDWorkflowIO/TRDCalibratedTrackletWriterSpec.h"
+#include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"

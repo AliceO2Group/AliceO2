@@ -8,54 +8,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "TRDWorkflow/TRDDigitReaderSpec.h"
+#include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 
-#include <cstdlib>
 // this is somewhat assuming that a DPL workflow will run on one node
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/DataRefUtils.h"
-#include "Framework/Lifetime.h"
-#include "DPLUtils/RootTreeReader.h"
-#include "Headers/DataHeader.h"
-#include "TStopwatch.h"
-#include "Steer/HitProcessingManager.h" // for DigitizationContext
-#include "TChain.h"
+#include "fairlogger/Logger.h"
+
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include <SimulationDataFormat/IOMCTruthContainerView.h>
-#include "Framework/Task.h"
-#include "DataFormatsParameters/GRPObject.h"
-#include "DataFormatsTRD/Digit.h" // for the Digit type
-#include "TRDSimulation/TrapSimulator.h"
-#include "TRDSimulation/Digitizer.h"
-#include "TRDSimulation/Detector.h" // for the Hit type
 
-#include "DetectorsBase/GeometryManager.h"
-
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
-#include <TTree.h>
-#include <TFile.h>
-#include <TSystem.h>
-#include <TRandom1.h>
-
-#include <sstream>
-#include <cmath>
-#include <unistd.h>   // for getppid
-#include <TMessage.h> // object serialization
-#include <memory>     // std::unique_ptr
-#include <cstring>    // memcpy
-#include <string>     // std::string
-#include <cassert>
-#include <chrono>
-#include <thread>
-#include <algorithm>
-
 using namespace o2::framework;
-using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
 
 namespace o2
 {
@@ -100,7 +68,7 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
     if (mUseMC) {
       getFromBranch(mMCLabelsBranchName.c_str(), (void**)&ioLabels);
       // publish labels in shared memory
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
       ioLabels->copyandflatten(sharedlabels);
       LOG(info) << "TRDDigitReader labels size (in bytes) = " << sharedlabels.size();
     }

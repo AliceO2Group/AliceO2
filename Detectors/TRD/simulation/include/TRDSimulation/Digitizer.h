@@ -14,7 +14,6 @@
 #include "TRDSimulation/Detector.h"
 
 #include "TRDBase/Calibrations.h"
-#include "TRDBase/MCLabel.h"
 #include "TRDBase/CommonParam.h"
 #include "TRDBase/DiffAndTimeStructEstimator.h"
 #include "TRDSimulation/PileupTool.h"
@@ -44,6 +43,7 @@ class PadResponse;
 
 using DigitContainer = std::vector<Digit>;
 using SignalContainer = std::unordered_map<int, SignalArray>;
+using MCLabel = o2::MCCompLabel;
 
 class Digitizer
 {

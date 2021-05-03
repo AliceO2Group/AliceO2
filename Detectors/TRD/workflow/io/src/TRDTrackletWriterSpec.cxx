@@ -14,10 +14,9 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
-#include "TRDWorkflow/TRDTrackletWriterSpec.h"
-#include "DataFormatsTRD/Digit.h"
+#include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
-#include "TRDBase/MCLabel.h"
+#include <SimulationDataFormat/MCCompLabel.h>
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
 
@@ -52,7 +51,7 @@ o2::framework::DataProcessorSpec getTRDTrackletWriterSpec(bool useMC)
                                 "trdtracklets.root",
                                 "o2sim",
                                 BranchDefinition<std::vector<o2::trd::Tracklet64>>{InputSpec{"tracklets", "TRD", "TRACKLETS"}, "Tracklet"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::trd::MCLabel>>{InputSpec{"trklabels", "TRD", "TRKLABELS"}, "TRKLabels", (useMC ? 1 : 0), "TRKLABELS"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"trklabels", "TRD", "TRKLABELS"}, "TRKLabels", (useMC ? 1 : 0), "TRKLABELS"},
                                 BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"tracklettrigs", "TRD", "TRKTRGRD"}, "TrackTrg"})();
 };
 
