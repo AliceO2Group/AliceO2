@@ -11,10 +11,15 @@
 o2_add_library(GPUWorkflow
                SOURCES src/GPUWorkflowSpec.cxx
                TARGETVARNAME targetName
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
-                                     O2::DPLUtils O2::TPCReconstruction
-                                     O2::TPCCalibration O2::TPCSimulation
-                                     O2::TPCQC O2::DetectorsCalibration
+               PUBLIC_LINK_LIBRARIES O2::Framework
+                                     O2::DataFormatsTPC
+                                     O2::DPLUtils
+                                     O2::TPCReconstruction
+                                     O2::TPCCalibration
+                                     O2::TPCSimulation
+                                     O2::TPCQC
+                                     O2::DetectorsCalibration
+                                     O2::TPCReaderWorkflow
                PRIVATE_LINK_LIBRARIES O2::GPUTracking)
 
 o2_add_executable(reco-workflow
