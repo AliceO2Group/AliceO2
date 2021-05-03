@@ -19,6 +19,7 @@ o2_add_library(GlobalTrackingWorkflowHelpers
                                       O2::TOFWorkflow
                                       O2::FT0Workflow
                                       O2::ITSMFTWorkflow
+                                      O2::TRDWorkflowIO
                                       O2::SimulationDataFormat)
 
 o2_add_executable(track-cluster-reader

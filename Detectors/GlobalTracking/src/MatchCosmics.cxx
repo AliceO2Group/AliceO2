@@ -28,6 +28,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GlobalTracking/MatchTPCITS.h"
 #include "CommonConstants/GeomConstants.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include <algorithm>
 #include <numeric>
 
