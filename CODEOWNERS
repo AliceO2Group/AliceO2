@@ -36,7 +36,7 @@
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
-/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
 /DataFormats/Detectors/MUON                    @aphecetche
 /DataFormats/Detectors/PHOS                    @peressounko @kharlov
 /DataFormats/Detectors/Passive                 @sawenzel
@@ -65,7 +65,7 @@
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
-/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
 /Detectors/MUON                    @aphecetche
 /Detectors/PHOS                    @peressounko @kharlov
 /Detectors/Passive                 @sawenzel
