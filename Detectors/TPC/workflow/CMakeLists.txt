@@ -10,13 +10,10 @@
                      
 o2_add_library(TPCWorkflow
                SOURCES src/RecoWorkflow.cxx
-                       src/ClusterReaderSpec.cxx
-                       src/PublisherSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterDecoderRawSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
-                       src/TrackReaderSpec.cxx
                        src/RawToDigitsSpec.cxx
                        src/LinkZSToDigitsSpec.cxx
                        src/ZSSpec.cxx
@@ -30,8 +27,9 @@ o2_add_library(TPCWorkflow
                                      O2::DPLUtils O2::TPCReconstruction
                                      O2::TPCCalibration O2::TPCSimulation
                                      O2::TPCQC O2::DetectorsCalibration
-                                     O2::GPUWorkflow
+                                     O2::TPCReaderWorkflow
                PRIVATE_LINK_LIBRARIES O2::GPUTracking # For the Zero Suppression includes
+                                      O2::GPUWorkflow
            )
 
 
@@ -95,3 +93,5 @@ o2_add_executable(digits-to-rawzs
                   COMPONENT_NAME tpc
                   PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::GPUTracking O2::DetectorsRaw
                   SOURCES src/convertDigitsToRawZS.cxx)
+
+add_subdirectory(readers)

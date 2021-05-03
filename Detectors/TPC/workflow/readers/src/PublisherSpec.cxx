@@ -15,7 +15,7 @@
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
-#include "TPCWorkflow/PublisherSpec.h"
+#include "TPCReaderWorkflow/PublisherSpec.h"
 #include "Headers/DataHeader.h"
 #include "TPCBase/Sector.h"
 #include "DetectorsCommonDataFormats/NameConf.h"

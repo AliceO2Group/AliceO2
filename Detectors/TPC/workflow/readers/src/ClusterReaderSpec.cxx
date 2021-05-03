@@ -13,7 +13,7 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "DPLUtils/RootTreeReader.h"
-#include "TPCWorkflow/PublisherSpec.h"
+#include "TPCReaderWorkflow/PublisherSpec.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"

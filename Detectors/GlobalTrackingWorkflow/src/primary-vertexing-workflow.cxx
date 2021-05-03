@@ -14,7 +14,7 @@
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/VertexTrackMatcherSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"

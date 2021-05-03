@@ -10,8 +10,8 @@
 
 /// @file   FileReaderWorkflow.cxx
 
-#include "TPCWorkflow/ClusterReaderSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/ClusterReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 
 #include "Algorithm/RangeTokenizer.h"
 

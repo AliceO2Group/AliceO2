@@ -11,7 +11,7 @@
 #include "TPCInterpolationWorkflow/TrackInterpolationWorkflow.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
-#include "GPUWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;

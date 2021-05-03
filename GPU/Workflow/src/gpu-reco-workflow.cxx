@@ -16,7 +16,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/ConcreteDataMatcher.h"
-#include "GPUWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"

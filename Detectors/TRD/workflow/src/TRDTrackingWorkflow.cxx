@@ -14,8 +14,8 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TRDWorkflow/TRDTrackletTransformerSpec.h"
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDWorkflow/TRDTrackWriterSpec.h"

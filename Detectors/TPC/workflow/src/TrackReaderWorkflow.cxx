@@ -23,7 +23,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Headers/DataHeaderHelpers.h"
 
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 
 #include <string>
 #include <stdexcept>

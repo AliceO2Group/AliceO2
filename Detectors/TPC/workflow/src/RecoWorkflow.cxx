@@ -18,7 +18,7 @@
 #include "Framework/Logger.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "TPCWorkflow/PublisherSpec.h"
+#include "TPCReaderWorkflow/PublisherSpec.h"
 #include "TPCWorkflow/ClustererSpec.h"
 #include "TPCWorkflow/ClusterDecoderRawSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
@@ -37,7 +37,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "TPCWorkflow/ClusterReaderSpec.h"
+#include "TPCReaderWorkflow/ClusterReaderSpec.h"
 
 #include <string>
 #include <stdexcept>
