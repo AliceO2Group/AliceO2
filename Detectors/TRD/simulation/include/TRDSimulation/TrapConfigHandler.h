@@ -19,8 +19,6 @@
 
 #include <string>
 #include "TRDBase/CalOnlineGainTables.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "TRDBase/MCLabel.h"
 
 namespace o2
 {

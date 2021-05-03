@@ -14,7 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
-#include "TRDWorkflow/TRDTrapRawWriterSpec.h"
+#include "TRDWorkflowIO/TRDTrapRawWriterSpec.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/LinkRecord.h"
