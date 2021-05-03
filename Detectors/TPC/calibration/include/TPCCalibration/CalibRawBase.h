@@ -506,16 +506,14 @@ inline CalibRawBase::ProcessStatus CalibRawBase::processEventDigitTree(int event
       mPresentEventNumber = numberOfEvents - 1;
     }
   }
-  LOG(INFO) << "Processing event number " << eventNumber << " (" << mNevents << ")";
+  LOG(INFO) << "Processing event number " << mPresentEventNumber << " (" << mNevents << ")";
 
   // set up branches
-  static bool initialized = false;
   static std::array<std::vector<Digit>*, Sector::MAXSECTOR> digits{};
-  if (!initialized) {
+  if (!mDigitTree->GetBranch("TPCDigit_0")->GetAddress()) {
     for (int iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
       mDigitTree->SetBranchAddress(Form("TPCDigit_%d", iSec), &digits[iSec]);
     }
-    initialized = true;
   }
 
   // loop over digits for selected event
