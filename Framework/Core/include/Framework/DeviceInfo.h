@@ -71,6 +71,8 @@ struct DeviceInfo {
   boost::property_tree::ptree currentProvenance;
   /// Port to use to connect to tracy profiler
   short tracyPort;
+  /// Timestamp of the last signal received
+  size_t lastSignal;
 };
 
 } // namespace o2::framework

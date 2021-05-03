@@ -142,6 +142,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
                        static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "arrow-bytes-delta");
                        static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-reader-signals");
+                       static auto signalLatencyMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-signal-latency");
                        static auto skippedSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-skipped-signals");
                        static auto remainingBytes = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-remaining-bytes");
 
@@ -149,12 +150,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        bool hasMetrics = false;
                        // Find  the last timestamp when we signaled.
                        static size_t signalIndex = DeviceMetricsHelper::metricIdxByName("aod-reader-signals", driverMetrics);
-                       size_t lastSignalTimestamp = 0;
                        if (signalIndex < driverMetrics.metrics.size()) {
                          MetricInfo& info = driverMetrics.metrics.at(signalIndex);
-                         if (info.filledMetrics) {
-                           lastSignalTimestamp = driverMetrics.timestamps.at(signalIndex).at((info.pos - 1) % driverMetrics.timestamps.at(signalIndex).size());
-                         }
                        }
 
                        size_t lastTimestamp = 0;
@@ -216,7 +213,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static int signalsCount = 0;
                        static int skippedCount = 0;
                        static uint64_t now = 0;
-                       static uint64_t lastSignal = 0;
                        now = uv_hrtime();
                        static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
                        static uint64_t lastReportTime = 0;
@@ -241,10 +237,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            case RateLimitingState::STARTED: {
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
-                                 if (di < infos.size() && (now - lastSignal > 10000000)) {
-                                   kill(infos[di].pid, SIGUSR1);
+                                 auto& info = infos[di];
+                                 if (di < infos.size() && ((now - info.lastSignal) > 10000000)) {
+                                   kill(info.pid, SIGUSR1);
                                    totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
-                                   lastSignal = now;
+                                   signalLatencyMetric(driverMetrics, (now - info.lastSignal) / 1000000, timestamp);
+                                   info.lastSignal = now;
                                  } else {
                                    skippedSignalsMetric(driverMetrics, skippedCount++, timestamp);
                                  }
@@ -267,10 +265,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            case RateLimitingState::EMPTY: {
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
-                                 if (di < infos.size()) {
-                                   kill(infos[di].pid, SIGUSR1);
+                                 auto& info = infos[di];
+                                 if ((now - info.lastSignal) > 1000000) {
+                                   kill(info.pid, SIGUSR1);
                                    totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
-                                   lastSignal = now;
+                                   signalLatencyMetric(driverMetrics, (now - info.lastSignal) / 1000000, timestamp);
+                                   info.lastSignal = now;
                                  }
                                }
                              }
@@ -280,10 +280,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            case RateLimitingState::BELOW_LIMIT: {
                              for (size_t di = 0; di < specs.size(); ++di) {
                                if (specs[di].name == "internal-dpl-aod-reader") {
-                                 if (di < infos.size() && (now - lastSignal > 10000000)) {
+                                 auto& info = infos[di];
+                                 if ((now - info.lastSignal) > 10000000) {
                                    kill(infos[di].pid, SIGUSR1);
                                    totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
-                                   lastSignal = now;
+                                   signalLatencyMetric(driverMetrics, (now - info.lastSignal) / 1000000, timestamp);
+                                   info.lastSignal = now;
                                  } else {
                                    skippedSignalsMetric(driverMetrics, skippedCount++, timestamp);
                                  }
