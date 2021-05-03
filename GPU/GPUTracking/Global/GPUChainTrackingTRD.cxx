@@ -39,7 +39,6 @@ int GPUChainTracking::RunTRDTracking()
   mRec->PushNonPersistentMemory(qStr2Tag("TRDTRACK"));
   SetupGPUProcessor(&Tracker, true);
 
-
   for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
     const GPUTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
     if (!Tracker.PreCheckTrackTRDCandidate(trk)) {

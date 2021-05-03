@@ -56,6 +56,10 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsTRD/RecoInputContainer.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/GeometryFlat.h"
 #include <boost/filesystem.hpp>
 #include <memory> // for make_shared
 #include <vector>
@@ -101,6 +105,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
+    std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
     std::unique_ptr<GPUO2InterfaceConfiguration> config;
     int qaTaskMask = 0;
     std::unique_ptr<GPUO2InterfaceQA> qa;
@@ -258,12 +263,13 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
       config.configCalib.o2Propagator = Propagator::Instance();
 
-      // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
-      /* o2::trd::Geometry gm;
-      gm.createPadPlaneArray();
-      gm.createClusterMatrixArray();
-      std::unique_ptr<o2::trd::GeometryFlat> gf(gm);
-      config.trdGeometry = gf.get();*/
+      if (specconfig.readTRDtracklets) {
+        auto gm = o2::trd::Geometry::instance();
+        gm->createPadPlaneArray();
+        gm->createClusterMatrixArray();
+        processAttributes->trdGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+        config.configCalib.trdGeometry = processAttributes->trdGeometry.get();
+      }
 
       // Configuration is prepared, initialize the tracker.
       if (tracker->Initialize(config) != 0) {
@@ -480,8 +486,16 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       const auto& inputsClustersDigits = getWorkflowTPCInput(pc, verbosity, getWorkflowTPCInput_mc, getWorkflowTPCInput_clusters, processAttributes->tpcSectorMask, getWorkflowTPCInput_digits);
-
       GPUTrackingInOutPointers ptrs;
+
+      o2::globaltracking::RecoContainer inputTracksTRD;
+      decltype(o2::trd::getRecoInputContainer(pc, &ptrs, &inputTracksTRD)) trdInputContainer;
+      if (specconfig.readTRDtracklets) {
+        o2::globaltracking::DataRequest dataRequestTRD;
+        dataRequestTRD.requestTracks(o2::dataformats::GlobalTrackID::getSourcesMask(o2::dataformats::GlobalTrackID::NONE), false);
+        inputTracksTRD.collectData(pc, dataRequestTRD);
+        trdInputContainer = std::move(o2::trd::getRecoInputContainer(pc, &ptrs, &inputTracksTRD));
+      }
 
       void* ptrEp[NSectors * NEndpoints] = {};
       bool doInputDigits = false, doInputDigitsMC = false;
@@ -768,6 +782,11 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     if (specconfig.zsOnTheFly) {
       inputs.emplace_back(InputSpec{"zsinput", ConcreteDataTypeMatcher{"TPC", "TPCZS"}, Lifetime::Timeframe});
       inputs.emplace_back(InputSpec{"zsinputsizes", ConcreteDataTypeMatcher{"TPC", "ZSSIZES"}, Lifetime::Timeframe});
+    }
+    if (specconfig.readTRDtracklets) {
+      inputs.emplace_back("trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe);
+      inputs.emplace_back("trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe);
+      inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
     }
     return inputs;
   };

@@ -51,7 +51,7 @@ class GPUTPCGMPolynomialField;
 template <class TRDTRK, class PROP>
 void GPUTRDTracker_t<TRDTRK, PROP>::SetMaxData(const GPUTrackingInOutPointers& io)
 {
-  mNMaxTracks = io.nMergedTracks;
+  mNMaxTracks = std::max(std::max(io.nOutputTracksTPCO2, io.nTracksTPCITSO2), io.nMergedTracks);
   mNMaxSpacePoints = io.nTRDTracklets;
   mNMaxCollisions = io.nTRDTriggerRecords;
 }
