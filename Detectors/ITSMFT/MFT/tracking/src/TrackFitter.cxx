@@ -135,8 +135,7 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
 
   if (mVerbose) {
     std::cout << " Init " << (track.isCA() ? "CA Track " : "LTF Track") << std::endl;
-    auto model = (mTrackModel == Helix) ? "Helix" : (mTrackModel == Quadratic) ? "Quadratic"
-                                                                               : "Linear";
+    auto model = (mTrackModel == Helix) ? "Helix" : (mTrackModel == Quadratic) ? "Quadratic" : "Linear";
     std::cout << "Track Model: " << model << std::endl;
     std::cout << "  initTrack: X = " << x0 << " Y = " << y0 << " Z = " << z0 << " Tgl = " << tanl0 << "  Phi = " << phi0 << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
     std::cout << " Variances: sigma2_x0 = " << TMath::Sqrt(sigmax0sq) << " sigma2_y0 = " << TMath::Sqrt(sigmay0sq) << " sigma2_q/pt = " << TMath::Sqrt(sigmainvQPtsq) << std::endl;
