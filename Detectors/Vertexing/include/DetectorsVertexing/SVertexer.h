@@ -25,6 +25,8 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
+#include <numeric>
+#include <algorithm>
 
 namespace o2
 {
