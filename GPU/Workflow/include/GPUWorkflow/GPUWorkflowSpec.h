@@ -46,6 +46,7 @@ struct Config {
   bool processMC = false;
   bool sendClustersPerSector = false;
   bool askDISTSTF = true;
+  bool readTRDtracklets = false;
 };
 using CompletionPolicyData = std::vector<framework::InputSpec>;
 } // namespace gpuworkflow

@@ -22,6 +22,8 @@
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
+#include "DataFormatsTRD/RecoInputContainer.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -34,7 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"enable-mc", o2::framework::VariantType::Bool, false, {"enable visualization of MC data"}},
-    {"display-clusters", VariantType::String, "TPC", {"comma-separated list of clusters to display"}},
+    {"display-clusters", VariantType::String, "TPC,TRD", {"comma-separated list of clusters to display"}},
     {"display-tracks", VariantType::String, "TPC", {"comma-separated list of tracks to display"}},
     {"read-from-files", o2::framework::VariantType::Bool, false, {"comma-separated list of tracks to display"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root input overriding read-from-files"}},
@@ -79,15 +81,29 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
   }
 
   GPUTrackingInOutPointers ptrs;
-  recoData.addTPCClusters(pc, false);
-  recoData.addTPCTracks(pc, mUseMC);
-  ptrs.clustersNative = &recoData.inputsTPCclusters->clusterIndex;
-  const auto& tpcTracks = recoData.getTPCTracks<o2::tpc::TrackTPC>();
-  const auto& tpcClusRefs = recoData.getTPCTracksClusterRefs();
-  ptrs.outputTracksTPCO2 = tpcTracks.data();
-  ptrs.nOutputTracksTPCO2 = tpcTracks.size();
-  ptrs.outputClusRefsTPCO2 = tpcClusRefs.data();
-  ptrs.nOutputClusRefsTPCO2 = tpcClusRefs.size();
+  if (mClMask[GlobalTrackID::TPC]) {
+    recoData.addTPCClusters(pc, false);
+  }
+  if (mTrkMask[GlobalTrackID::TPC]) {
+    recoData.addTPCTracks(pc, mUseMC);
+  }
+  if (mClMask[GlobalTrackID::TRD]) {
+    recoData.addTRDTracklets(pc);
+  }
+  if (mClMask[GlobalTrackID::TPC]) {
+    ptrs.clustersNative = &recoData.inputsTPCclusters->clusterIndex;
+  }
+  if (mTrkMask[GlobalTrackID::TPC]) {
+    const auto& tpcTracks = recoData.getTPCTracks<o2::tpc::TrackTPC>();
+    const auto& tpcClusRefs = recoData.getTPCTracksClusterRefs();
+    ptrs.outputTracksTPCO2 = tpcTracks.data();
+    ptrs.nOutputTracksTPCO2 = tpcTracks.size();
+    ptrs.outputClusRefsTPCO2 = tpcClusRefs.data();
+    ptrs.nOutputClusRefsTPCO2 = tpcClusRefs.size();
+  }
+  if (mClMask[GlobalTrackID::TRD]) {
+    o2::trd::getRecoInputContainer(pc, &ptrs, &recoData);
+  }
   if (mUseMC) {
     const auto& tpcTracksMC = recoData.getTPCTracksMCLabels();
     ptrs.outputTracksTPCO2MC = tpcTracksMC.data();
