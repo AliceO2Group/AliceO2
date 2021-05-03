@@ -13,39 +13,17 @@
 
 /// @file PrimaryVertexingSpec.h
 
-#include "DetectorsVertexing/PVertexer.h"
-#include "DetectorsCommonDataFormats/DetID.h"
-#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/Task.h"
-#include "TStopwatch.h"
+#include "Framework/DataProcessorSpec.h"
 
 namespace o2
 {
 namespace vertexing
 {
 
-using namespace o2::framework;
-using DetID = o2::detectors::DetID;
-
-class PrimaryVertexingSpec : public Task
-{
- public:
-  PrimaryVertexingSpec(bool validateWithIR, bool useMC) : mUseMC(useMC), mValidateWithIR(validateWithIR) {}
-  ~PrimaryVertexingSpec() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-  void endOfStream(EndOfStreamContext& ec) final;
-
- private:
-  o2::vertexing::PVertexer mVertexer;
-  bool mUseMC{false};           ///< MC flag
-  bool mValidateWithIR{false};  ///< require vertex validation with IR (e.g. from FT0)
-  float mITSROFrameLengthMUS = 0.;
-  TStopwatch mTimer;
-};
-
 /// create a processor spec
-DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWithFT0, bool useMC);
+o2::framework::DataProcessorSpec getPrimaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool validateWithFT0, bool useMC);
 
 } // namespace vertexing
 } // namespace o2
