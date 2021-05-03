@@ -18,4 +18,6 @@ struct ROOTFileReader : o2::framework::AlgorithmPlugin {
   }
 };
 
-DEFINE_DPL_PLUGIN(ROOTFileReader, CustomAlgorithm);
+DEFINE_DPL_PLUGINS_BEGIN
+DEFINE_DPL_PLUGIN_INSTANCE(ROOTFileReader, CustomAlgorithm);
+DEFINE_DPL_PLUGINS_END
