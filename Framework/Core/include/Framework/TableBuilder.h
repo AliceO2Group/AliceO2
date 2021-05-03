@@ -772,12 +772,11 @@ auto makeEmptyTable()
 template <typename... C>
 auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* name)
 {
-  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
-
   if (atable->num_rows() == 0) {
     return makeEmptyTable<soa::Table<C...>>();
   }
+  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
 
   arrow::TableBatchReader reader(*atable);
   std::shared_ptr<arrow::RecordBatch> batch;
