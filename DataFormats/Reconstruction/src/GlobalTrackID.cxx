@@ -35,7 +35,7 @@ GlobalTrackID::mask_t GlobalTrackID::getSourcesMask(const std::string_view srcLi
     return mask;
   }
   if (ss.find(ALL) != std::string::npos) {
-    mask = (0x1u << NSources) - 1;
+    mask = MASK_ALL;
     return mask;
   }
   std::replace(ss.begin(), ss.end(), ' ', ',');
