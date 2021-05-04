@@ -95,6 +95,14 @@ class TrackSelectorPID
     // Get nσ for a given particle hypothesis.
     double nSigma = 100.;
     switch (mPdg) {
+      case kElectron: {
+        nSigma = track.tpcNSigmaEl();
+        break;
+      }
+      case kMuonMinus: {
+        nSigma = track.tpcNSigmaMu();
+        break;
+      }
       case kPiPlus: {
         nSigma = track.tpcNSigmaPi();
         break;
@@ -189,6 +197,14 @@ class TrackSelectorPID
     // Get nσ for a given particle hypothesis.
     double nSigma = 100.;
     switch (mPdg) {
+      case kElectron: {
+        nSigma = track.tofNSigmaEl();
+        break;
+      }
+      case kMuonMinus: {
+        nSigma = track.tofNSigmaMu();
+        break;
+      }
       case kPiPlus: {
         nSigma = track.tofNSigmaPi();
         break;
