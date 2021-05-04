@@ -34,7 +34,7 @@ class CorrelationContainer : public TNamed
 {
  public:
   CorrelationContainer();
-  CorrelationContainer(const char* name, const char* objTitle, std::vector<o2::framework::AxisSpec> axisList);
+  CorrelationContainer(const char* name, const char* objTitle, const std::vector<o2::framework::AxisSpec>& axisList);
   virtual ~CorrelationContainer(); // NOLINT: Making this override breaks compilation for unknown reason
 
   static const Int_t fgkCFSteps;
