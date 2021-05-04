@@ -12,7 +12,6 @@ o2_add_library(
   DataFormatsGlobalTracking
   SOURCES src/RecoContainer.cxx
   PUBLIC_LINK_LIBRARIES
-    O2::Framework
     O2::DataFormatsTPC
     O2::DataFormatsITSMFT
     O2::DataFormatsITS
@@ -20,5 +19,7 @@ o2_add_library(
     O2::DataFormatsTOF
     O2::DataFormatsFT0
     O2::ReconstructionDataFormats
-    O2::TRDReconstruction
-    O2::GPUDataTypeHeaders)
+    O2::DataFormatsTRD
+    O2::GPUDataTypeHeaders
+  PRIVATE_LINK_LIBRARIES
+    O2::Framework)
