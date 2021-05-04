@@ -50,13 +50,13 @@ struct CTPDescriptor {
 struct CTPDetector {
   CTPDetector() = default;
   o2::detectors::DetID::ID detID;
-  uint HBaccepted; /// Number of HB frames in TF to be accepted
+  uint32_t HBaccepted; /// Number of HB frames in TF to be accepted
   void printStream(std::ostream& strem) const;
 };
 struct CTPCluster {
   CTPCluster() = default;
   std::string name;
-  uint detectorsMask;
+  uint32_t detectorsMask;
   std::vector<std::string> detectorsNames;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPCluster, 1)
