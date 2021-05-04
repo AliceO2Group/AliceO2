@@ -149,7 +149,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     // Checking if all channels have enough data to do calibration.
     // Delegating this to TOFChannelData
     const o2::tof::TOFChannelData* c = slot.getContainer();
-    LOG(INFO) << "Checking statistics";
+    LOG(DEBUG) << "Checking statistics";
     return (mTest ? true : c->hasEnoughData(mMinEntries));
   }
 
@@ -195,7 +195,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
       //for (int sector = 0; sector < 1; sector++) {
       int offsetsector = sector * Geo::NSTRIPXSECTOR * Geo::NPADS;
       for (int istrip = 0; istrip < Geo::NSTRIPXSECTOR; istrip++) {
-	//for (int istrip = 0; istrip < 38; istrip++) {
+        //for (int istrip = 0; istrip < 38; istrip++) {
         int offsetstrip = istrip * Geo::NPADS + offsetsector;
         int goodpoints = 0;
 
@@ -207,8 +207,8 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
           int chinsector = ipair + istrip * NCOMBINSTRIP;
           int ich = chinsector + sector * Geo::NSTRIPXSECTOR * NCOMBINSTRIP;
           auto entriesInPair = c->integral(ich);
-          if (entriesInPair < mMinEntries) {
-            LOG(INFO) << "pair " << ich << " will not be calibrated since it has only " << entriesInPair << " entries (min = " << mMinEntries << ")";
+          if (entriesInPair < mMinEntries && entriesInPair != 0) {
+            LOG(DEBUG) << "pair " << ich << " will not be calibrated since it has only " << entriesInPair << " entries (min = " << mMinEntries << ")";
             continue;
           }
           // make the slice of the 2D histogram so that we have the 1D of the current channel
@@ -251,7 +251,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
           double fitres = fitGaus(c->getNbins(), histoValues.data(), -(c->getRange()), c->getRange(), fitValues);
 
           if (fitres >= 0) {
-            LOG(INFO) << "Pair " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
+            LOG(DEBUG) << "Pair " << ich << " :: Fit result " << fitres << " Mean = " << fitValues[1] << " Sigma = " << fitValues[2];
           } else {
             //LOG(INFO) << "Pair " << ich << " :: Fit failed with result = " << fitres;
             continue;
@@ -312,7 +312,7 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
           //LOG(INFO) << "We did not find any good point for strip " << istrip << " in sector " << sector;
           continue;
         }
-        LOG(INFO) << "We found " << goodpoints << " good points for strip " << istrip << " in sector " << sector << " --> we can fit the TGraph";
+        LOG(DEBUG) << "We found " << goodpoints << " good points for strip " << istrip << " in sector " << sector << " --> we can fit the TGraph";
         TGraphErrors g(goodpoints, xp, deltat, exp, edeltat);
         g.Fit(mFuncDeltaOffset, "Q0");
 

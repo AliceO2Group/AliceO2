@@ -10,8 +10,13 @@ The calibration flow of O2 foresees that every calibration device (expected to a
 Each calibration device (to be run in a workflow) has to derive from `o2::calibration::TimeSlotCalibration`, which is a templated class that takes as types the Input type (i.e. the object to be processed, coming from the upstream device) and the Container type (i.e. the object that will contain the calibration data per TimeSlot). Each calibration device has to be configured with the following parameters:
 
 ```cpp
-tf-per-slot : default length of a TiemSlot in TFs (will be widened in case of too little statistics)
-max-delay   : maximum arrival delay of a TF with respect to the most recent one processed; units in number of TimeSlots; if beyond this, the TF will be considered too old, and discarded.
+tf-per-slot               : default length of a TiemSlot in TFs (will be widened in case of too little statistics). If this is set to `std::numeric_limits<long>::max()`, then there will be
+                            only 1 slot at a time, valid till infinity.
+updateInterval            : to be used together with `tf-per-slot = std::numeric_limits<long>::max()`: it allows to try to finalize the slot (and produce calibration) when the `updateInterval`
+                            has passed. Note that this is an approximation (as explained in the code) due to the fact that TFs will come asynchronously (not ordered in time).
+max-delay                 : maximum arrival delay of a TF with respect to the most recent one processed; units in number of TimeSlots; if beyond this, the TF will be considered too old, and discarded.
+                            If `tf-per-slot == std::numeric_limits<long>::max()`, or `updateAtTheEndOfRunOnly == true`, its value is irrelevant.
+updateAtTheEndOfRunOnly   : to tell the TimeCalibration to finalize the slots and prepare the CCDB entries only at the end of the run.
 ```
 Example for the options above: 
 `tf-per-slot = 20`
