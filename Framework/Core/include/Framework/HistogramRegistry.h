@@ -11,7 +11,7 @@
 #ifndef FRAMEWORK_HISTOGRAMREGISTRY_H_
 #define FRAMEWORK_HISTOGRAMREGISTRY_H_
 
-#include "Framework/HistogramRegistrySpecs.h"
+#include "Framework/HistogramSpec.h"
 #include "Framework/ASoA.h"
 #include "Framework/FunctionalHelpers.h"
 #include "Framework/Logger.h"

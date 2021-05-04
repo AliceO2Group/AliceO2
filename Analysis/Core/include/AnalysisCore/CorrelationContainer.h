@@ -15,7 +15,7 @@
 
 #include "TNamed.h"
 #include "TString.h"
-#include "Framework/HistogramRegistrySpecs.h"
+#include "Framework/HistogramSpec.h"
 
 class TH1;
 class TH1F;

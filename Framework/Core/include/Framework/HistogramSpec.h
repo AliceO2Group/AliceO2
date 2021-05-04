@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_HISTOGRAMREGISTRY_SPECS_H_
-#define FRAMEWORK_HISTOGRAMREGISTRY_SPECS_H_
+#ifndef FRAMEWORK_HISTOGRAMSPEC_H_
+#define FRAMEWORK_HISTOGRAMSPEC_H_
 
 #include <TH1.h>
 #include <TH2.h>
@@ -200,4 +200,4 @@ struct HistogramSpec {
 };
 
 } // namespace o2::framework
-#endif // FRAMEWORK_HISTOGRAMREGISTRY_SPECS_H_
+#endif // FRAMEWORK_HISTOGRAMSPEC_H_
