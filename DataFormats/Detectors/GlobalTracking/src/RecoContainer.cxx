@@ -131,6 +131,7 @@ void DataRequest::requestTRDTracklets()
   addInput({"trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe});
   addInput({"trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe});
   addInput({"trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe});
+  requestMap["trackletTRD"] = false;
 }
 
 void DataRequest::requestFT0RecPoints(bool mc)
@@ -233,6 +234,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("FT0");
   if (req != reqMap.end()) {
     addFT0RecPoints(pc, req->second);
+  }
+
+  req = reqMap.find("trackletTRD");
+  if (req != reqMap.end()) {
+    addTRDTracklets(pc);
   }
 }
 

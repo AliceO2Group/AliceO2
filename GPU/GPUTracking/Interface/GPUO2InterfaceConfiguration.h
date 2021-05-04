@@ -88,7 +88,7 @@ struct GPUO2InterfaceConfiguration {
   GPUSettingsQA configQA;
   GPUInterfaceSettings configInterface;
   GPURecoStepConfiguration configWorkflow;
-  GPUCalibObjects configCalib;
+  GPUCalibObjectsConst configCalib;
 
   GPUSettingsO2 ReadConfigurableParam();
 

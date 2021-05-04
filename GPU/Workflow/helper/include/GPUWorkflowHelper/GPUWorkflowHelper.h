@@ -25,7 +25,7 @@ class GPUWorkflowHelper
 
  public:
   struct tmpDataContainer;
-  static std::unique_ptr<const tmpDataContainer> fillIOPtr(GPUTrackingInOutPointers& ioPtr, const o2::globaltracking::RecoContainer& recoCont, const GPUCalibObjectsConst* calib = nullptr, GID::mask_t maskCl = GID::MASK_ALL, GID::mask_t maskTrk = GID::MASK_ALL, GID::mask_t maskMatch = GID::MASK_ALL);
+  static std::shared_ptr<const tmpDataContainer> fillIOPtr(GPUTrackingInOutPointers& ioPtr, const o2::globaltracking::RecoContainer& recoCont, bool useMC, const GPUCalibObjectsConst* calib = nullptr, GID::mask_t maskCl = GID::MASK_ALL, GID::mask_t maskTrk = GID::MASK_ALL, GID::mask_t maskMatch = GID::MASK_ALL);
 };
 
 } // namespace o2::gpu

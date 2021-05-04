@@ -22,6 +22,8 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "CommonConstants/LHCConstants.h"
+#include "Framework/ProcessingContext.h"
+#include "Framework/InputRecord.h"
 
 #include "GPUDataTypes.h"
 
