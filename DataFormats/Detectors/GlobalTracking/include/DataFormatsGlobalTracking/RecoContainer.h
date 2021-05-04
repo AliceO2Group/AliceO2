@@ -15,8 +15,6 @@
 #ifndef ALICEO2_RECO_CONTAINER
 #define ALICEO2_RECO_CONTAINER
 
-#include "Framework/ProcessingContext.h"
-#include "Framework/InputSpec.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -45,6 +43,11 @@ class CalibratedTracklet;
 class TriggerRecord;
 struct RecoInputContainer;
 } // namespace o2::trd
+namespace o2::framework
+{
+class ProcessingContext;
+struct InputSpec;
+} // namespace o2::framework
 
 namespace o2
 {

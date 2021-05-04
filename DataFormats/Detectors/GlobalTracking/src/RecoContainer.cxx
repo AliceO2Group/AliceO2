@@ -14,6 +14,8 @@
 
 #include <fmt/format.h>
 #include <chrono>
+#include "Framework/ProcessingContext.h"
+#include "Framework/InputSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
