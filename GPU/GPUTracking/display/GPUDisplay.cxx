@@ -58,6 +58,9 @@
 
 #ifdef HAVE_O2HEADERS
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTOF/Cluster.h"
+#include "TOFBase/Geo.h"
+#include "ITSBase/GeometryTGeo.h"
 #endif
 
 #include "GPUDisplayShaders.h"
@@ -359,6 +362,30 @@ inline void GPUDisplay::SetColorTRD()
     mDrawColor = {0.7, 0.3, 0};
   } else {
     mDrawColor = {1.0, 0.7, 0};
+  }
+  ActivateColor();
+}
+inline void GPUDisplay::SetColorITS()
+{
+  if (mCfg.colorCollisions) {
+    return;
+  }
+  if (mInvertColors) {
+    mDrawColor = {1.00, 0.1, 0.1};
+  } else {
+    mDrawColor = {1.00, 0.3, 0.3};
+  }
+  ActivateColor();
+}
+inline void GPUDisplay::SetColorTOF()
+{
+  if (mCfg.colorCollisions) {
+    return;
+  }
+  if (mInvertColors) {
+    mDrawColor = {0.1, 1.0, 0.1};
+  } else {
+    mDrawColor = {0.5, 1.0, 0.5};
   }
   ActivateColor();
 }
@@ -730,6 +757,36 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsTRD(int iSlice, int select, int i
         mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[i].x, mGlobalPosTRD[i].y, mProjectXY ? 0 : mGlobalPosTRD[i].z);
         mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[i].x, mGlobalPosTRD2[i].y, mProjectXY ? 0 : mGlobalPosTRD2[i].z);
       }
+    }
+  }
+
+  insertVertexList(iSlice, startCountInner, mVertexBuffer[iSlice].size());
+  return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
+}
+
+GPUDisplay::vboList GPUDisplay::DrawSpacePointsTOF(int iSlice, int select, int iCol)
+{
+  size_t startCount = mVertexBufferStart[iSlice].size();
+  size_t startCountInner = mVertexBuffer[iSlice].size();
+
+  if (iCol == 0 && iSlice == 0) {
+    for (unsigned int i = 0; i < mIOPtrs->nTOFClusters; i++) {
+      mVertexBuffer[iSlice].emplace_back(mGlobalPosTOF[i].x, mGlobalPosTOF[i].y, mProjectXY ? 0 : mGlobalPosTOF[i].z);
+    }
+  }
+
+  insertVertexList(iSlice, startCountInner, mVertexBuffer[iSlice].size());
+  return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
+}
+
+GPUDisplay::vboList GPUDisplay::DrawSpacePointsITS(int iSlice, int select, int iCol)
+{
+  size_t startCount = mVertexBufferStart[iSlice].size();
+  size_t startCountInner = mVertexBuffer[iSlice].size();
+
+  if (iCol == 0 && iSlice == 0 && mIOPtrs->itsClusters) {
+    for (unsigned int i = 0; i < mIOPtrs->nItsClusters; i++) {
+      mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[i].x, mGlobalPosITS[i].y, mProjectXY ? 0 : mGlobalPosITS[i].z);
     }
   }
 
@@ -1330,6 +1387,21 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       mGlobalPosTRD = mGlobalPosPtrTRD.get();
       mGlobalPosTRD2 = mGlobalPosPtrTRD2.get();
     }
+
+    mCurrentClustersITS = mIOPtrs->itsClusters ? mIOPtrs->nItsClusters : 0;
+    if (mNMaxClustersITS < mCurrentClustersITS) {
+      mNMaxClustersITS = mCurrentClustersITS;
+      mGlobalPosPtrITS.reset(new float4[mNMaxClustersITS]);
+      mGlobalPosITS = mGlobalPosPtrITS.get();
+    }
+
+    mCurrentClustersTOF = mIOPtrs->nTOFClusters;
+    if (mNMaxClustersTOF < mCurrentClustersTOF) {
+      mNMaxClustersTOF = mCurrentClustersTOF;
+      mGlobalPosPtrTOF.reset(new float4[mNMaxClustersTOF]);
+      mGlobalPosTOF = mGlobalPosPtrTOF.get();
+    }
+
     unsigned int nTpcMergedTracks = mConfig.showTPCTracksFromO2Format ? mIOPtrs->nOutputTracksTPCO2 : mIOPtrs->nMergedTracks;
     if ((size_t)nTpcMergedTracks > mTRDTrackIds.size()) {
       mTRDTrackIds.resize(nTpcMergedTracks);
@@ -1344,12 +1416,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
 
     mMaxClusterZ = 0;
-    bool error = false;
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      if (error) {
-        continue;
-      }
       int row = 0;
       unsigned int nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative->nClustersSector[iSlice];
       for (unsigned int i = 0; i < nCls; i++) {
@@ -1365,9 +1433,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           }
         }
         if (cid >= mNMaxClusters) {
-          GPUError("Cluster Buffer Size exceeded (id %d max %d)", cid, mNMaxClusters);
-          error = true;
-          break;
+          throw std::runtime_error("Cluster Buffer Size exceeded");
         }
         float4* ptr = &mGlobalPos[cid];
         if (mParam->par.earlyTpcTransform) {
@@ -1397,9 +1463,6 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         ptr->w = tCLUSTER;
       }
     }
-    if (error) {
-      return (1);
-    }
 
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
@@ -1423,6 +1486,41 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         mMaxClusterZ = fabsf(ptr->z);
       }
       ptr->w = tTRDCLUSTER;
+    }
+
+    GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
+    for (int i = 0; i < mCurrentClustersTOF; i++) {
+      float4* ptr = &mGlobalPosTOF[i];
+#ifdef HAVE_O2HEADERS
+      mParam->Slice2Global(mIOPtrs->tofClusters[i].getSector(), mIOPtrs->tofClusters[i].getX() + mXadd, mIOPtrs->tofClusters[i].getY(), mIOPtrs->tofClusters[i].getZ(), &ptr->x, &ptr->y, &ptr->z);
+      ptr->x /= GL_SCALE_FACTOR;
+      ptr->y /= GL_SCALE_FACTOR;
+      ptr->z /= GL_SCALE_FACTOR;
+#endif
+      if (fabsf(ptr->z) > mMaxClusterZ) {
+        mMaxClusterZ = fabsf(ptr->z);
+      }
+      ptr->w = tTOFCLUSTER;
+    }
+
+    //GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
+    for (int i = 0; i < mCurrentClustersITS; i++) {
+      float4* ptr = &mGlobalPosITS[i];
+#ifdef HAVE_O2HEADERS
+      const auto& cl = mIOPtrs->itsClusters[i];
+      auto* itsGeo = o2::its::GeometryTGeo::Instance();
+      auto p = cl.getXYZGlo(*itsGeo);
+      ptr->x = p.X();
+      ptr->y = p.Y();
+      ptr->z = p.Z();
+      ptr->x /= GL_SCALE_FACTOR;
+      ptr->y /= GL_SCALE_FACTOR;
+      ptr->z /= GL_SCALE_FACTOR;
+#endif
+      if (fabsf(ptr->z) > mMaxClusterZ) {
+        mMaxClusterZ = fabsf(ptr->z);
+      }
+      ptr->w = tITSCLUSTER;
     }
 
     mTimerFPS.ResetStart();
@@ -1913,6 +2011,24 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       }
     }
 
+    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (int i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i++) {
+        for (int iCol = 0; iCol < mNCollissions; iCol++) {
+          mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsTOF(iSlice, i, iCol);
+        }
+      }
+      break; // TODO: Only slice 0 filled for now
+    }
+
+    for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
+      for (int i = N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD + N_POINTS_TYPE_TOF + N_POINTS_TYPE_ITS; i++) {
+        for (int iCol = 0; iCol < mNCollissions; iCol++) {
+          mGlDLPoints[iSlice][i][iCol] = DrawSpacePointsITS(iSlice, i, iCol);
+        }
+      }
+      break; // TODO: Only slice 0 filled for now
+    }
+
     mGlDLrecent = 1;
     size_t totalVertizes = 0;
     for (int i = 0; i < NSLICES; i++) {
@@ -2025,6 +2141,14 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       } else {
         LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[iSlice][tTRDATTACHED][iCol], GL_LINES));
       }
+    }
+    if (mCfg.drawTOF) {
+      SetColorTOF();
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[0][tTOFCLUSTER][0], GL_POINTS));
+    }
+    if (mCfg.drawITS) {
+      SetColorITS();
+      LOOP_SLICE LOOP_COLLISION_COL(drawVertices(mGlDLPoints[0][tITSCLUSTER][0], GL_POINTS));
     }
     if (mCfg.drawTPC) {
       SetColorClusters();
