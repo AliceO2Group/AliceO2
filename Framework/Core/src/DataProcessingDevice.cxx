@@ -33,6 +33,7 @@
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
 #include "Framework/DriverClient.h"
+#include "Framework/Monitoring.h"
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DataProcessingHelpers.h"
@@ -466,37 +467,10 @@ bool DataProcessingDevice::ConditionalRun()
     if (NewStatePending()) {
       shouldNotWait = true;
     }
+    TracyPlot("shouldNotWait", (int)shouldNotWait);
     uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
-    if (mDataProcessorContexes.at(0).state->loopReason & DeviceState::METRICS_MUST_FLUSH) {
-      LOG(debug) << "New metric to be sent";
-    }
-    if (mDataProcessorContexes.at(0).state->loopReason & DeviceState::SIGNAL_ARRIVED) {
-      LOG(debug) << "Signal arrived";
-    }
-    if (mDataProcessorContexes.at(0).state->loopReason & DeviceState::DATA_SOCKET_POLLED) {
-      LOG(debug) << "Socket polled";
-    }
-    if (mDataProcessorContexes.at(0).state->loopReason & DeviceState::DATA_INCOMING) {
-      LOG(debug) << "Data read";
-    }
-    if (mDataProcessorContexes.at(0).state->loopReason & DeviceState::DATA_OUTGOING) {
-      LOG(debug) << "Data written";
-    }
-    if (mDataProcessorContexes.at(0).state->loopReason & DeviceState::WS_COMMUNICATION) {
-      LOG(debug) << "Communication with WS";
-    }
-    if (mDataProcessorContexes.at(0).state->loopReason & DeviceState::TIMER_EXPIRED) {
-      LOG(debug) << "Timer expired";
-    }
-    if (mDataProcessorContexes.at(0).state->loopReason & DeviceState::WS_CONNECTED) {
-      LOG(debug) << "WS Connected";
-    }
-    if (shouldNotWait) {
-      LOG(debug) << "Should not wait";
-    }
-    if ((mDataProcessorContexes.at(0).state->loopReason == DeviceState::NO_REASON) && (shouldNotWait == false)) {
-      LOG(debug) << "Unknown reason to trigger the loop";
-    }
+    TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
+
     mDataProcessorContexes.at(0).state->loopReason = DeviceState::NO_REASON;
 
     // A new state was requested, we exit.
