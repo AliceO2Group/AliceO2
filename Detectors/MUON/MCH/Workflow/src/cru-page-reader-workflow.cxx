@@ -407,7 +407,7 @@ class FileReaderTask
             }
 
             auto freefct = [](void* data, void* /*hint*/) { free(data); };
-            pc.outputs().adoptChunk(Output{"ROUT", "RAWDATA"}, tfQueue.front().buf, tfQueue.front().totalSize, freefct, nullptr);
+            pc.outputs().adoptChunk(Output{"RDT", "RAWDATA"}, tfQueue.front().buf, tfQueue.front().totalSize, freefct, nullptr);
             TFid += 1;
           }
           tfQueue.pop();
@@ -513,7 +513,7 @@ class FileReaderTask
       if ((stopBit != 0) || (mFullHBF == false)) {
         // create the output message
         auto freefct = [](void* data, void* /*hint*/) { free(data); };
-        pc.outputs().adoptChunk(Output{"ROUT", "RAWDATA"}, buf, bufSize, freefct, nullptr);
+        pc.outputs().adoptChunk(Output{"RDT", "RAWDATA"}, buf, bufSize, freefct, nullptr);
 
         // stop the readout loop
         break;
@@ -538,7 +538,7 @@ o2::framework::DataProcessorSpec getFileReaderSpec()
   return DataProcessorSpec{
     "FileReader",
     Inputs{},
-    Outputs{OutputSpec{"ROUT", "RAWDATA", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{"RDT", "RAWDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<FileReaderTask>()},
     Options{{"infile", VariantType::String, "", {"input file name"}},
             {"nframes", VariantType::Int, -1, {"number of frames to process"}},
