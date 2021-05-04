@@ -136,91 +136,8 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
 #if defined(HAVE_O2HEADERS) // Interface for O2, build only with O2
 
-#include "ReconstructionDataFormats/Track.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "DetectorsBase/Propagator.h"
-#include "GPUTRDO2BaseTrack.h"
-#ifndef GPUCA_GPUCODE_DEVICE
-#include <cmath>
-#endif
-
-namespace GPUCA_NAMESPACE
-{
-
-namespace gpu
-{
-
-template <>
-class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
-{
- public:
-  GPUdDefault() trackInterface<GPUTRDO2BaseTrack>() = default;
-  trackInterface<GPUTRDO2BaseTrack>(const GPUTRDO2BaseTrack& param) = delete;
-  GPUd() trackInterface<GPUTRDO2BaseTrack>(const o2::dataformats::TrackTPCITS& trkItsTpc, float vDrift) : GPUTRDO2BaseTrack(trkItsTpc.getParamOut())
-  {
-    mTime = trkItsTpc.getTimeMUS().getTimeStamp();
-    mTimeAddMax = trkItsTpc.getTimeMUS().getTimeStampError();
-    mTimeSubMax = trkItsTpc.getTimeMUS().getTimeStampError();
-    mRefITS = trkItsTpc.getRefITS();
-    mRefTPC = trkItsTpc.getRefTPC();
-    float tmp = trkItsTpc.getTimeMUS().getTimeStampError() * vDrift;
-    updateCov(tmp * tmp, o2::track::CovLabels::kSigZ2); // account for time uncertainty by increasing sigmaZ2
-  }
-  GPUd() trackInterface<GPUTRDO2BaseTrack>(const o2::tpc::TrackTPC& trkTpc, float tbWidth, float vDrift, unsigned int iTrk) : GPUTRDO2BaseTrack(trkTpc.getParamOut())
-  {
-    mRefTPC = {iTrk, o2::dataformats::GlobalTrackID::TPC};
-    mTime = trkTpc.getTime0() * tbWidth;
-    mTimeAddMax = trkTpc.getDeltaTFwd() * tbWidth;
-    mTimeSubMax = trkTpc.getDeltaTBwd() * tbWidth;
-    if (trkTpc.hasASideClustersOnly()) {
-      mSide = -1;
-    } else if (trkTpc.hasCSideClustersOnly()) {
-      mSide = 1;
-    } else {
-      // CE-crossing tracks are not shifted along z, but the time uncertainty is taken into account by increasing sigmaZ2
-      float timeWindow = (mTimeAddMax + mTimeSubMax) * .5f;
-      float tmp = timeWindow * vDrift;
-      updateCov(tmp * tmp, o2::track::CovLabels::kSigZ2);
-    }
-  }
-  GPUd() void set(float x, float alpha, const float* param, const float* cov)
-  {
-    setX(x);
-    setAlpha(alpha);
-    for (int i = 0; i < 5; i++) {
-      setParam(param[i], i);
-    }
-    for (int i = 0; i < 15; i++) {
-      setCov(cov[i], i);
-    }
-  }
-  GPUdi() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMMergedTrack& trk) { set(trk.OuterParam().X, trk.OuterParam().alpha, trk.OuterParam().P, trk.OuterParam().C); }
-  GPUdi() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMTrackParam::GPUTPCOuterParam& param) { set(param.X, param.alpha, param.P, param.C); }
-
-  GPUdi() const float* getPar() const { return getParams(); }
-  GPUdi() float getTime() const { return mTime; }
-  GPUdi() void setTime(float t) { mTime = t; }
-  GPUdi() float getTimeMax() const { return mTime + mTimeAddMax; }
-  GPUdi() float getTimeMin() const { return mTime - mTimeSubMax; }
-  GPUdi() short getSide() const { return mSide; }
-  GPUdi() float getZShift() const { return mZShift; }
-  GPUdi() void setZShift(float z) { mZShift = z; }
-
-  GPUdi() bool CheckNumericalQuality() const { return true; }
-
-  typedef GPUTRDO2BaseTrack baseClass;
-
- private:
-  o2::dataformats::GlobalTrackID mRefTPC; // reference on TPC track entry in its original container
-  o2::dataformats::GlobalTrackID mRefITS; // reference on ITS track entry in its original container
-  float mTime{-1.f};                      // time estimate for this track in us
-  float mTimeAddMax{0.f};                 // max. time that can be added to this track in us
-  float mTimeSubMax{0.f};                 // max. time that can be subtracted to this track in us
-  short mSide{0};                         // -1 : A-side, +1 : C-side (relevant only for TPC-only tracks)
-  float mZShift{0.f};                     // calculated new for each TRD trigger candidate for this track
-};
+#include "DetectorsBase/Propagator.h" // when included after GPUTRDInterfaceO2Track.h the build fails
+#include "GPUTRDInterfaceO2Track.h"
 
 template <>
 class propagatorInterface<o2::base::Propagator>
@@ -274,6 +191,7 @@ class propagatorInterface<o2::base::Propagator>
 #include "GPUDef.h"
 #ifdef GPUCA_O2_LIB
 #include "DataFormatsTPC/TrackTPC.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -328,6 +246,11 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
     for (int i = 0; i < 15; i++) {
       SetCov(i, param.getParamOut().getCov()[i]);
     }
+    mTime = param.getTimeMUS().getTimeStamp();
+    mTimeAddMax = param.getTimeMUS().getTimeStampError();
+    mTimeSubMax = param.getTimeMUS().getTimeStampError();
+    float tmp = param.getTimeMUS().getTimeStampError() * 2.58f; // TPCvDrift = 2.58 cm/us fixed for now, should come from CCDB
+    Cov()[2] += tmp * tmp;                                      // account for time uncertainty by increasing sigmaZ2
   }
   trackInterface<GPUTPCGMTrackParam>(const o2::tpc::TrackTPC& param, float, float, unsigned int) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
   {
@@ -339,6 +262,20 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
     SetPar(4, param.getParamOut().getQ2Pt());
     for (int i = 0; i < 15; i++) {
       SetCov(i, param.getParamOut().getCov()[i]);
+    }
+    const float tpcZBinWidth = 0.199606f;
+    mTime = param.getTime0() * tpcZBinWidth;
+    mTimeAddMax = param.getDeltaTFwd() * tpcZBinWidth;
+    mTimeSubMax = param.getDeltaTBwd() * tpcZBinWidth;
+    if (param.hasASideClustersOnly()) {
+      mSide = -1;
+    } else if (param.hasCSideClustersOnly()) {
+      mSide = 1;
+    } else {
+      // CE-crossing tracks are not shifted along z, but the time uncertainty is taken into account by increasing sigmaZ2
+      float timeWindow = (mTimeAddMax + mTimeSubMax) * .5f;
+      float tmp = timeWindow * 2.58f; // TPCvDrift = 2.58 cm/us fixed for now, should come from CCDB
+      Cov()[2] += tmp * tmp;
     }
   }
 #endif
@@ -360,12 +297,12 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
 
   GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }
-  GPUd() float getTime() const { return -1.f; }
-  GPUd() float getTimeMax() const { return 0.f; }
-  GPUd() float getTimeMin() const { return 0.f; }
-  GPUd() short getSide() const { return 0; }
-  GPUd() void setZShift(float) {}
-  GPUd() float getZShift() const { return 0.f; }
+  GPUd() float getTime() const { return mTime; }
+  GPUd() float getTimeMax() const { return mTime + mTimeAddMax; }
+  GPUd() float getTimeMin() const { return mTime - mTimeSubMax; }
+  GPUd() short getSide() const { return mSide; }
+  GPUd() void setZShift(float zShift) { mZShift = zShift; }
+  GPUd() float getZShift() const { return mZShift; }
   GPUd() void resetCovariance(float s) { ResetCovariance(); }
   GPUd() void setAlpha(float alpha) { mAlpha = alpha; }
   GPUd() void set(float x, float alpha, const float param[5], const float cov[15])
@@ -383,7 +320,12 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   typedef GPUTPCGMTrackParam baseClass;
 
  private:
-  float mAlpha = 0.f;
+  float mAlpha = 0.f;      // rotation along phi wrt global coordinate system
+  float mTime = -1.f;      // time estimate for this track in us
+  float mTimeAddMax = 0.f; // max. time that can be added to this track in us
+  float mTimeSubMax = 0.f; // max. time that can be subtracted to this track in us
+  short mSide = 0;         // -1 : A-side, +1 : C-side (relevant only for TPC-only tracks)
+  float mZShift = 0.f;     // calculated new for each TRD trigger candidate for this track
 };
 
 template <>
