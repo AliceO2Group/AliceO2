@@ -105,9 +105,11 @@ class GPUDisplay
  private:
   static constexpr int NSLICES = GPUChainTracking::NSLICES;
 
-  static constexpr const int N_POINTS_TYPE = 11;
+  static constexpr const int N_POINTS_TYPE = 13;
   static constexpr const int N_POINTS_TYPE_TPC = 9;
   static constexpr const int N_POINTS_TYPE_TRD = 2;
+  static constexpr const int N_POINTS_TYPE_TOF = 1;
+  static constexpr const int N_POINTS_TYPE_ITS = 1;
   static constexpr const int N_LINES_TYPE = 7;
   static constexpr const int N_FINAL_TYPE = 4;
   static constexpr int TRACK_TYPE_ID_LIMIT = 100;
@@ -121,7 +123,9 @@ class GPUDisplay
                     tFINALTRACK = 7,
                     tMARKED = 8,
                     tTRDCLUSTER = 9,
-                    tTRDATTACHED = 10 };
+                    tTRDATTACHED = 10,
+                    tTOFCLUSTER = 11,
+                    tITSCLUSTER = 12 };
   enum LineTypes { RESERVED = 0 /*1 -- 6 = INITLINK to GLOBALTRACK*/ };
 
   typedef std::tuple<GLsizei, GLsizei, int> vboList;
@@ -210,6 +214,8 @@ class GPUDisplay
   void showInfo(const char* info);
   void ActivateColor();
   void SetColorTRD();
+  void SetColorTOF();
+  void SetColorITS();
   void SetColorClusters();
   void SetColorInitLinks();
   void SetColorLinks();
@@ -234,7 +240,8 @@ class GPUDisplay
   void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT);
   vboList DrawClusters(int iSlice, int select, int iCol);
   vboList DrawSpacePointsTRD(int iSlice, int select, int iCol);
-  vboList DrawSpacePointsTRD(const GPUTPCTracker& tracker, int select, int iCol);
+  vboList DrawSpacePointsTOF(int iSlice, int select, int iCol);
+  vboList DrawSpacePointsITS(int iSlice, int select, int iCol);
   vboList DrawLinks(const GPUTPCTracker& tracker, int id, bool dodown = false);
   vboList DrawSeeds(const GPUTPCTracker& tracker);
   vboList DrawTracklets(const GPUTPCTracker& tracker);
@@ -330,13 +337,21 @@ class GPUDisplay
   std::unique_ptr<float4[]> mGlobalPosPtr;
   std::unique_ptr<float4[]> mGlobalPosPtrTRD;
   std::unique_ptr<float4[]> mGlobalPosPtrTRD2;
+  std::unique_ptr<float4[]> mGlobalPosPtrITS;
+  std::unique_ptr<float4[]> mGlobalPosPtrTOF;
   float4* mGlobalPos;
   float4* mGlobalPosTRD;
   float4* mGlobalPosTRD2;
+  float4* mGlobalPosITS;
+  float4* mGlobalPosTOF;
   int mNMaxClusters = 0;
   int mNMaxSpacePointsTRD = 0;
+  int mNMaxClustersITS = 0;
+  int mNMaxClustersTOF = 0;
   int mCurrentClusters = 0;
   int mCurrentSpacePointsTRD = 0;
+  int mCurrentClustersITS = 0;
+  int mCurrentClustersTOF = 0;
   std::vector<int> mTRDTrackIds;
 
   int mGlDLrecent = 0;

@@ -16,6 +16,8 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/GeometryFlat.h"
 #include "TRDBase/Geometry.h"
+#include "TOFBase/Geo.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUO2InterfaceDisplay.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -25,6 +27,7 @@
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -67,6 +70,13 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
   mTrdGeo.reset(new o2::trd::GeometryFlat(*gm));
   mConfig->configCalib.trdGeometry = mTrdGeo.get();
 
+  mITSDict = std::make_unique<o2::itsmft::TopologyDictionary>();
+  mConfig->configCalib.itsPatternDict = mITSDict.get();
+
+  o2::tof::Geo::Init();
+
+  o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2L));
+
   mDisplay.reset(new GPUO2InterfaceDisplay(mConfig.get()));
 }
 
@@ -82,9 +92,11 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest);
   GPUTrackingInOutPointers ptrs;
-  GPUWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+  auto tmpContainer = GPUWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
+
+  decltype(o2::trd::getRecoInputContainer(pc, &ptrs, &recoData)) trdInputContainer;
   if (mClMask[GlobalTrackID::TRD]) {
-    o2::trd::getRecoInputContainer(pc, &ptrs, &recoData); // TODO: Get rid of this, to be done inside the fillIOPtr, but first needs some changes in RecoInputContainer
+    trdInputContainer = std::move(o2::trd::getRecoInputContainer(pc, &ptrs, &recoData)); // TODO: Get rid of this, to be done inside the fillIOPtr, but first needs some changes in RecoInputContainer
   }
 
   mDisplay->show(&ptrs);

@@ -278,8 +278,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
                                        O2::DataFormatsTPC
+                                       O2::DataFormatsTOF
                                        O2::TPCBase
                                        O2::TRDBase
+                                       O2::TOFBase
+                                       O2::ITSBase
                                        O2::ITStracking
                                        O2::TPCFastTransformation
                                        O2::DetectorsRaw
