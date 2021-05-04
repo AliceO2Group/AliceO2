@@ -145,15 +145,12 @@ struct tofPid {
         table.reserve(tracks.size());
         for (auto const& trk : tracks) { // Loop on Tracks
           const float separation = responsePID.GetSeparation(response, trk.collision(), trk);
-          if (separation <= o2::aod::pidtof_tiny::binned_min) {
-            table(o2::aod::pidtof_tiny::lower_bin);
-          } else if (separation >= o2::aod::pidtof_tiny::binned_max) {
-            table(o2::aod::pidtof_tiny::upper_bin);
-          } else if (separation >= 0) {
-            table(separation / o2::aod::pidtof_tiny::bin_width + 0.5f);
-          } else {
-            table(separation / o2::aod::pidtof_tiny::bin_width - 0.5f);
-          }
+          aod::pidutils::packInTable<aod::pidtof_tiny::binned_nsigma_t,
+                                     aod::pidtof_tiny::upper_bin,
+                                     aod::pidtof_tiny::lower_bin>(separation, table,
+                                                                  aod::pidtof_tiny::binned_min,
+                                                                  aod::pidtof_tiny::binned_max,
+                                                                  aod::pidtof_tiny::bin_width);
         }
       }
     };
