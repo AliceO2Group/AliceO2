@@ -14,7 +14,7 @@
 #define QA_DEBUG 0
 #define QA_TIMING 0
 
-#include "Rtypes.h"
+#include "Rtypes.h" // Include ROOT header first, to use ROOT and disable replacements
 
 #include "TH1F.h"
 #include "TH2F.h"
