@@ -32,6 +32,7 @@
 namespace o2::tpc
 {
 using TPCClRefElem = uint32_t;
+struct ClusterNativeAccess;
 namespace internal
 {
 struct getWorkflowTPCInput_ret;
@@ -39,6 +40,9 @@ struct getWorkflowTPCInput_ret;
 } // namespace o2::tpc
 namespace o2::trd
 {
+class Tracklet64;
+class CalibratedTracklet;
+class TriggerRecord;
 struct RecoInputContainer;
 } // namespace o2::trd
 
@@ -239,6 +243,14 @@ struct RecoContainer {
   {
     return miscPool.get_as<U>(id);
   }
+
+  // TPC clusters
+  const o2::tpc::ClusterNativeAccess& getTPCClusters() const;
+
+  // TRD tracklets
+  gsl::span<const o2::trd::Tracklet64> getTRDTracklets() const;
+  gsl::span<const o2::trd::CalibratedTracklet> getTRDCalibratedTracklets() const;
+  gsl::span<const o2::trd::TriggerRecord> getTRDTriggerRecords() const;
 
   // ITS clusters
   template <typename U> // o2::itsmft::ROFRecord

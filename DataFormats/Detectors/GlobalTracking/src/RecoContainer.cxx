@@ -324,6 +324,26 @@ void RecoContainer::addFT0RecPoints(ProcessingContext& pc, bool mc)
   }
 }
 
+const o2::tpc::ClusterNativeAccess& RecoContainer::getTPCClusters() const
+{
+  return inputsTPCclusters->clusterIndex;
+}
+
+gsl::span<const o2::trd::Tracklet64> RecoContainer::getTRDTracklets() const
+{
+  return inputsTRD->mTracklets;
+}
+
+gsl::span<const o2::trd::CalibratedTracklet> RecoContainer::getTRDCalibratedTracklets() const
+{
+  return inputsTRD->mSpacePoints;
+}
+
+gsl::span<const o2::trd::TriggerRecord> RecoContainer::getTRDTriggerRecords() const
+{
+  return inputsTRD->mTriggerRecords;
+}
+
 //__________________________________________________________
 const o2::track::TrackParCov& RecoContainer::getTrackParamOut(GTrackID gidx) const
 {
