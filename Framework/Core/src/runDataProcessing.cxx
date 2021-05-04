@@ -1358,6 +1358,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             driverInfo.channelPolicies,
                                                             driverInfo.completionPolicies,
                                                             driverInfo.dispatchPolicies,
+                                                            driverInfo.resourcePolicies,
                                                             runningWorkflow.devices,
                                                             *resourceManager,
                                                             driverInfo.uniqueWorkflowId,
@@ -2028,6 +2029,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ChannelConfigurationPolicy> const& channelPolicies,
            std::vector<CompletionPolicy> const& completionPolicies,
            std::vector<DispatchPolicy> const& dispatchPolicies,
+           std::vector<ResourcePolicy> const& resourcePolicies,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
@@ -2269,6 +2271,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.channelPolicies = channelPolicies;
   driverInfo.completionPolicies = completionPolicies;
   driverInfo.dispatchPolicies = dispatchPolicies;
+  driverInfo.resourcePolicies = resourcePolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
   driverInfo.batch = varmap["no-batch"].defaulted() ? varmap["batch"].as<bool>() : false;

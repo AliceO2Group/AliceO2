@@ -737,6 +737,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::vector<ChannelConfigurationPolicy> const& channelPolicies,
                                                        std::vector<CompletionPolicy> const& completionPolicies,
                                                        std::vector<DispatchPolicy> const& dispatchPolicies,
+                                                       std::vector<ResourcePolicy> const& resourcePolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
                                                        std::string const& uniqueWorkflowId,
@@ -815,6 +816,17 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
         device.dispatchPolicy = policy;
         break;
       }
+    }
+    bool hasPolicy = false;
+    for (auto& policy : resourcePolicies) {
+      if (policy.matcher(device) == true) {
+        device.resourcePolicy = policy;
+        hasPolicy = true;
+        break;
+      }
+    }
+    if (hasPolicy == false) {
+      throw runtime_error_f("Unable to find a resource policy for %s", device.id.c_str());
     }
   }
 

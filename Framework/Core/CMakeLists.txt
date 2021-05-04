@@ -31,6 +31,7 @@ o2_add_library(Framework
                        src/CommonMessageBackends.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
+                       src/ComputingQuotaEvaluator.cxx
                        src/ComputingResourceHelpers.cxx
                        src/ConfigContext.cxx
                        src/ControlService.cxx
@@ -85,6 +86,8 @@ o2_add_library(Framework
                        src/RCombinedDS.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
+                       src/ResourcePolicy.cxx
+                       src/ResourcePolicyHelpers.cxx
                        src/ServiceRegistry.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
