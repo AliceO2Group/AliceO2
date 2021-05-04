@@ -47,6 +47,8 @@ namespace constants
 namespace o2
 {
 class MCCompLabel;
+template <typename T>
+class BaseCluster;
 namespace base
 {
 template <typename T>
@@ -60,11 +62,26 @@ class GeometryFlat;
 namespace dataformats
 {
 class TrackTPCITS;
+class MatchInfoTOF;
 template <class T>
 class MCTruthContainer;
 template <class T>
 class ConstMCTruthContainerView;
 } // namespace dataformats
+namespace itsmft
+{
+class CompClusterExt;
+class ROFRecord;
+class TopologyDictionary;
+} // namespace itsmft
+namespace its
+{
+class TrackITS;
+} // namespace its
+namespace tof
+{
+class Cluster;
+} // namespace tof
 } // namespace o2
 
 namespace GPUCA_NAMESPACE
@@ -183,6 +200,7 @@ struct GPUCalibObjectsTemplate {
   typename S<TPCdEdxCalibrationSplines>::type* dEdxSplines = nullptr;
   typename S<TPCPadGainCalib>::type* tpcPadGain = nullptr;
   typename S<o2::base::PropagatorImpl<float>>::type* o2Propagator = nullptr;
+  typename S<o2::itsmft::TopologyDictionary>::type* itsPatternDict = nullptr;
 };
 typedef GPUCalibObjectsTemplate<DefaultPtr> GPUCalibObjects; // NOTE: These 2 must have identical layout since they are memcopied
 typedef GPUCalibObjectsTemplate<ConstPtr> GPUCalibObjectsConst;
@@ -215,8 +233,9 @@ struct GPUTrackingInOutDigits {
 struct GPUTrackingInOutPointers {
   GPUTrackingInOutPointers() = default;
   GPUTrackingInOutPointers(const GPUTrackingInOutPointers&) = default;
-  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
 
+  // TPC
+  static constexpr unsigned int NSLICES = GPUDataTypes::NSLICES;
   const GPUTrackingInOutZS* tpcZS = nullptr;
   const GPUTrackingInOutDigits* tpcPackedDigits = nullptr;
   const GPUTPCClusterData* clusterData[NSLICES] = {nullptr};
@@ -245,8 +264,8 @@ struct GPUTrackingInOutPointers {
   unsigned int nOutputClusRefsTPCO2 = 0;
   const o2::MCCompLabel* outputTracksTPCO2MC = nullptr;
   const o2::tpc::CompressedClustersFlat* tpcCompressedClusters = nullptr;
-  const o2::dataformats::TrackTPCITS* tracksTPCITSO2 = nullptr;
-  unsigned int nTracksTPCITSO2 = 0;
+
+  // TRD
   const GPUTRDTrackletWord* trdTracklets = nullptr;
   const GPUTRDSpacePoint* trdSpacePoints = nullptr;
   unsigned int nTRDTracklets = 0;
@@ -255,6 +274,34 @@ struct GPUTrackingInOutPointers {
   const float* trdTriggerTimes = nullptr;
   const int* trdTrackletIdxFirst = nullptr;
   unsigned int nTRDTriggerRecords = 0;
+
+  // TOF
+  const o2::tof::Cluster* tofClusters = nullptr;
+  unsigned int nTOFClusters = 0;
+  const o2::dataformats::MatchInfoTOF* tofMatches = nullptr;
+  unsigned int nTOFMatches = 0;
+  const o2::dataformats::MatchInfoTOF* tpctofMatches = nullptr;
+  unsigned int nTPCTOFMatches = 0;
+
+  // ITS
+  const o2::itsmft::CompClusterExt* itsCompClusters = nullptr;
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* itsClusterMC = nullptr;
+  const o2::BaseCluster<float>* itsClusters = nullptr;
+  unsigned int nItsClusters = 0;
+  const o2::itsmft::ROFRecord* itsClusterROF = nullptr;
+  unsigned int nItsClusterROF = 0;
+  const o2::its::TrackITS* itsTracks = nullptr;
+  const o2::MCCompLabel* itsTrackMC = nullptr;
+  unsigned int nItsTracks = 0;
+  const int* itsTrackClusIdx = nullptr;
+  const o2::itsmft::ROFRecord* itsTrackROF = nullptr;
+  unsigned int nItsTrackROF = 0;
+
+  // TPC-ITS
+  const o2::dataformats::TrackTPCITS* tracksTPCITSO2 = nullptr;
+  unsigned int nTracksTPCITSO2 = 0;
+
+  // Common
   const GPUSettingsTF* settingsTF = nullptr;
 };
 #else
