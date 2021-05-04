@@ -37,11 +37,11 @@ void CalibClusReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mPclusInfos->size() << " TOF clusters calib info at entry " << ent;
+  LOG(DEBUG) << "Pushing " << mPclusInfos->size() << " TOF clusters calib info at entry " << ent;
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCALCLUS", 0, Lifetime::Timeframe}, mClusInfos);
 
   if (mIsCosmics) {
-    LOG(INFO) << "Pushing " << mPcosmicInfo->size() << " TOF cosmics info at entry " << ent;
+    LOG(DEBUG) << "Pushing " << mPcosmicInfo->size() << " TOF cosmics info at entry " << ent;
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "INFOCOSMICS", 0, Lifetime::Timeframe}, mCosmicInfo);
   }
 

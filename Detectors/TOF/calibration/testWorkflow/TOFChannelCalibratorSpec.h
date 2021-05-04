@@ -25,6 +25,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include <limits>
 
 using namespace o2::framework;
 
@@ -50,8 +51,9 @@ class TOFChannelCalibDevice : public o2::framework::Task
     float range = ic.options().get<float>("range");
     int isTest = ic.options().get<bool>("do-TOF-channel-calib-in-test-mode");
     bool updateAtEORonly = ic.options().get<bool>("update-at-end-of-run-only");
-    int slotL = ic.options().get<int>("tf-per-slot");
-    int delay = ic.options().get<int>("max-delay");
+    int64_t slotL = ic.options().get<int64_t>("tf-per-slot");
+    int64_t delay = ic.options().get<int64_t>("max-delay");
+    int updateInterval = ic.options().get<int64_t>("update-interval");
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator<T>>(minEnt, nb, range);
 
     // default behaviour is to have only 1 slot at a time, accepting everything for it till the
@@ -61,6 +63,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     // if one defines that the calibration should happen only at the end of the run,
     // then the slot length and delay won't matter
     mCalibrator->setSlotLength(slotL);
+    mCalibrator->setUpdateInterval(updateInterval);
     mCalibrator->setMaxSlotsDelay(delay);
     if (updateAtEORonly) {
       mCalibrator->setUpdateAtTheEndOfRunOnly();
@@ -149,10 +152,12 @@ class TOFChannelCalibDevice : public o2::framework::Task
       auto data = pc.inputs().get<gsl::span<T>>("input");
       LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
       mCalibrator->process(tfcounter, data);
+      sendOutput(pc.outputs());
     } else {
       auto data = pc.inputs().get<gsl::span<T>>("input");
       LOG(INFO) << "Processing TF " << tfcounter << " with " << data.size() << " tracks";
       mCalibrator->process(tfcounter, data);
+      sendOutput(pc.outputs());
     }
   }
 
@@ -204,6 +209,7 @@ namespace framework
 template <class T>
 DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelOffsetToLHCphase = false, bool isCosmics = false)
 {
+  constexpr int64_t INFINITE_TF_int64 = std::numeric_limits<long>::max();
   using device = o2::calibration::TOFChannelCalibDevice<T>;
   using clbUtils = o2::calibration::Utils;
 
@@ -237,8 +243,9 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelO
       {"do-TOF-channel-calib-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
       {"ccdb-path", VariantType::String, "http://ccdb-test.cern.ch:8080", {"Path to CCDB"}},
       {"update-at-end-of-run-only", VariantType::Bool, false, {"to update the CCDB only at the end of the run; has priority over calibrating in time slots"}},
-      {"tf-per-slot", VariantType::Int, 1, {"number of TFs per calibration time slot"}},
-      {"max-delay", VariantType::Int, 0, {"number of slots in past to consider"}}}};
+      {"tf-per-slot", VariantType::Int64, INFINITE_TF_int64, {"number of TFs per calibration time slot"}},
+      {"max-delay", VariantType::Int64, 0ll, {"number of slots in past to consider"}},
+      {"update-interval", VariantType::Int64, 10ll, {"number of TF after which to try to finalize calibration"}}}};
 }
 
 } // namespace framework

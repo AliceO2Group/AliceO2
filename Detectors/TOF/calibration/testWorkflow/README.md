@@ -92,6 +92,12 @@ o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-nor
 o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-norm 3 --gen-slot 2
 ```
 
+* To run the calibration with cosmics:
+
+```shell
+o2-tof-cluscal-reader-workflow -b   | o2-calibration-tof-calib-workflow -b --cosmics --do-channel-offset --min-entries 50 --update-interval 10000
+```
+
 ## TimeSlewing:
 
 For Time Slewing. Will save the Time Slewing information in files when a certain condition is reached. A post-processing
