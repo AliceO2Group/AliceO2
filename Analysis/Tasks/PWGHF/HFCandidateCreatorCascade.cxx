@@ -60,9 +60,9 @@ struct HFCandidateCreatorCascade {
 
   // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> labelK0Spos{"labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> labelK0Sneg{"labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
-  Configurable<std::vector<int>> labelProton{"labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
+  Configurable<std::vector<int>> indexK0Spos{"indexK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "indices of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> indexK0Sneg{"indexK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "indices of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> indexProton{"indexProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "indices of protons, for debug"};
 #endif
 
   OutputObj<TH1F> hmass2{TH1F("hmass2", "2-prong candidates;inv. mass (#pi K) (GeV/#it{c}^{2});entries", 500, 0., 5.)};
@@ -99,28 +99,28 @@ struct HFCandidateCreatorCascade {
     for (const auto& casc : rowsTrackIndexCasc) {
 
       const auto& bach = casc.index0_as<MyBigTracks>();
-      auto trackParCovBach = getTrackParCov(bach);
       const auto& v0 = casc.indexV0_as<o2::aod::V0Datas>();
-      const auto& posTrack = v0.posTrack_as<MyBigTracks>();
-      const auto& negTrack = v0.negTrack_as<MyBigTracks>();
+      const auto& trackV0DaughPos = v0.posTrack_as<MyBigTracks>();
+      const auto& trackV0DaughNeg = v0.negTrack_as<MyBigTracks>();
 
 #ifdef MY_DEBUG
-      auto protonLabel = bach.mcParticleId();
-      auto labelPos = posTrack.mcParticleId();
-      auto labelNeg = negTrack.mcParticleId();
-      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, labelProton, labelK0Spos, labelK0Sneg);
+      auto indexBach = bach.mcParticleId();
+      auto indexV0DaughPos = trackV0DaughPos.mcParticleId();
+      auto indexV0DaughNeg = trackV0DaughNeg.mcParticleId();
+      bool isLc = isLcK0SpFunc(indexBach, indexV0DaughPos, indexV0DaughNeg, indexProton, indexK0Spos, indexK0Sneg);
 #endif
 
-      MY_DEBUG_MSG(isLc, LOG(INFO) << "Processing the Lc with proton " << protonLabel << " posTrack " << labelPos << " negTrack " << labelNeg);
+      MY_DEBUG_MSG(isLc, LOG(INFO) << "Processing the Lc with proton " << indexBach << " trackV0DaughPos " << indexV0DaughPos << " trackV0DaughNeg " << indexV0DaughNeg);
 
-      auto posTrackParCov = getTrackParCov(posTrack); // check that MyBigTracks does not need TracksExtended!
-      auto negTrackParCov = getTrackParCov(negTrack); // check that MyBigTracks does not need TracksExtended!
-      posTrackParCov.propagateTo(v0.posX(), bZ);      // propagate the track to the X closest to the V0 vertex
-      negTrackParCov.propagateTo(v0.negX(), bZ);      // propagate the track to the X closest to the V0 vertex
+      auto trackParCovBach = getTrackParCov(bach);
+      auto trackParCovV0DaughPos = getTrackParCov(trackV0DaughPos); // check that MyBigTracks does not need TracksExtended!
+      auto trackParCovV0DaughNeg = getTrackParCov(trackV0DaughNeg); // check that MyBigTracks does not need TracksExtended!
+      trackParCovV0DaughPos.propagateTo(v0.posX(), bZ);             // propagate the track to the X closest to the V0 vertex
+      trackParCovV0DaughNeg.propagateTo(v0.negX(), bZ);             // propagate the track to the X closest to the V0 vertex
       const std::array<float, 3> vertexV0 = {v0.x(), v0.y(), v0.z()};
       const std::array<float, 3> momentumV0 = {v0.px(), v0.py(), v0.pz()};
       // we build the neutral track to then build the cascade
-      auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, {0, 0, 0, 0, 0, 0}, posTrackParCov, negTrackParCov, {0, 0}, {0, 0}); // build the V0 track (indices for v0 daughters set to 0 for now)
+      auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, {0, 0, 0, 0, 0, 0}, trackParCovV0DaughPos, trackParCovV0DaughNeg, {0, 0}, {0, 0}); // build the V0 track (indices for v0 daughters set to 0 for now)
 
       auto collision = bach.collision();
 
@@ -128,7 +128,7 @@ struct HFCandidateCreatorCascade {
       if (df.process(trackV0, trackParCovBach) == 0) {
         MY_DEBUG_MSG(isLc, LOG(INFO) << "Vertexing failed for Lc candidate");
         //	if (isLc) {
-        // LOG(INFO) << "Vertexing failed for Lc with proton " << protonLabel << " posTrack " << labelPos << " negTrack " << labelNeg;
+        // LOG(INFO) << "Vertexing failed for Lc with proton " << indexBach << " trackV0DaughPos " << indexV0DaughPos << " trackV0DaughNeg " << indexV0DaughNeg;
         //}
         continue;
       } else {
@@ -166,7 +166,7 @@ struct HFCandidateCreatorCascade {
       auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
       // fill candidate table rows
-      MY_DEBUG_MSG(isLc, LOG(INFO) << "IT IS A Lc! Filling for Lc with proton " << protonLabel << " posTrack " << labelPos << " negTrack " << labelNeg);
+      MY_DEBUG_MSG(isLc, LOG(INFO) << "IT IS A Lc! Filling for Lc with proton " << indexBach << " trackV0DaughPos " << indexV0DaughPos << " trackV0DaughNeg " << indexV0DaughNeg);
       rowCandidateBase(collision.globalIndex(),
                        collision.posX(), collision.posY(), collision.posZ(),
                        secondaryVertex[0], secondaryVertex[1], secondaryVertex[2],
@@ -180,7 +180,7 @@ struct HFCandidateCreatorCascade {
                        casc.hfflag(),
                        v0.x(), v0.y(), v0.z(),
                        //v0.posTrack(), v0.negTrack(), // why this was not fine?
-                       v0.posTrack_as<MyBigTracks>().globalIndex(), v0.negTrack_as<MyBigTracks>().globalIndex(),
+                       trackV0DaughPos.globalIndex(), trackV0DaughNeg.globalIndex(),
                        v0.pxpos(), v0.pypos(), v0.pzpos(),
                        v0.pxneg(), v0.pyneg(), v0.pzneg(),
                        v0.dcaV0daughters(),
@@ -190,8 +190,7 @@ struct HFCandidateCreatorCascade {
       // fill histograms
       if (doValPlots) {
         // calculate invariant masses
-        auto arrayMomenta = array{pVecBach, pVecV0};
-        mass2K0sP = RecoDecay::M(arrayMomenta, array{massP, massK0s});
+        mass2K0sP = RecoDecay::M(array{pVecBach, pVecV0}, array{massP, massK0s});
         hmass2->Fill(mass2K0sP);
       }
     }
@@ -212,9 +211,9 @@ struct HFCandidateCreatorCascadeMC {
   Produces<aod::HfCandCascadeMCGen> rowMCMatchGen;
 
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> labelK0Spos{"labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> labelK0Sneg{"labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
-  Configurable<std::vector<int>> labelProton{"labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
+  Configurable<std::vector<int>> indexK0Spos{"indexK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "indices of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> indexK0Sneg{"indexK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "indices of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> indexProton{"indexProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "indices of protons, for debug"};
 #endif
 
   void process(aod::HfCandCascade const& candidates,
@@ -228,22 +227,27 @@ struct HFCandidateCreatorCascadeMC {
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
-      auto arrayDaughtersV0 = array{candidate.posTrack_as<aod::BigTracksMC>(), candidate.negTrack_as<aod::BigTracksMC>()};
-      auto arrayDaughtersLc = array{candidate.index0_as<aod::BigTracksMC>(), candidate.posTrack_as<aod::BigTracksMC>(), candidate.negTrack_as<aod::BigTracksMC>()};
+
+      const auto& bach = candidate.index0_as<aod::BigTracksMC>();
+      const auto& trackV0DaughPos = candidate.posTrack_as<aod::BigTracksMC>();
+      const auto& trackV0DaughNeg = candidate.negTrack_as<aod::BigTracksMC>();
+
+      auto arrayDaughtersV0 = array{trackV0DaughPos, trackV0DaughNeg};
+      auto arrayDaughtersLc = array{bach, trackV0DaughPos, trackV0DaughNeg};
 
       // First we check the K0s
       LOG(DEBUG) << "\n";
       LOG(DEBUG) << "Checking MC for candidate!";
       LOG(DEBUG) << "Looking for K0s";
-      auto labelPos = candidate.posTrack_as<aod::BigTracksMC>().mcParticleId();
-      auto labelNeg = candidate.negTrack_as<aod::BigTracksMC>().mcParticleId();
-      auto protonLabel = candidate.index0_as<aod::BigTracksMC>().mcParticleId();
+      auto indexV0DaughPos = trackV0DaughPos.mcParticleId();
+      auto indexV0DaughNeg = trackV0DaughNeg.mcParticleId();
+      auto indexBach = bach.mcParticleId();
 
 #ifdef MY_DEBUG
-      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, labelProton, labelK0Spos, labelK0Sneg);
-      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, labelK0Spos, labelK0Sneg);
+      bool isLc = isLcK0SpFunc(indexBach, indexV0DaughPos, indexV0DaughNeg, indexProton, indexK0Spos, indexK0Sneg);
+      bool isK0SfromLc = isK0SfromLcFunc(indexV0DaughPos, indexV0DaughNeg, indexK0Spos, indexK0Sneg);
 #endif
-      MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "correct K0S in the Lc daughters: posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
+      MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "correct K0S in the Lc daughters: posTrack --> " << indexV0DaughPos << ", negTrack --> " << indexV0DaughNeg);
 
       //if (isLc) {
       RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersV0, kK0Short, array{+kPiPlus, -kPiPlus}, true, &sign, 1); // does it matter the "acceptAntiParticle" in the K0s case? In principle, there is no anti-K0s
@@ -251,8 +255,7 @@ struct HFCandidateCreatorCascadeMC {
       if (sign != 0) { // we have already positively checked the K0s
         // then we check the Lc
         MY_DEBUG_MSG(sign, LOG(INFO) << "K0S was correct! now we check the Lc");
-        auto labelProton = candidate.index0_as<aod::BigTracksMC>().mcParticleId();
-        MY_DEBUG_MSG(sign, LOG(INFO) << "label proton = " << labelProton);
+        MY_DEBUG_MSG(sign, LOG(INFO) << "index proton = " << indexBach);
         RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersLc, pdg::Code::kLambdaCPlus, array{+kProton, +kPiPlus, -kPiPlus}, true, &sign, 3); // 3-levels Lc --> p + K0 --> p + K0s --> p + pi+ pi-
         MY_DEBUG_MSG(sign, LOG(INFO) << "Lc found with sign " << sign; printf("\n"));
       }

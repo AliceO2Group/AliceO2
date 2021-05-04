@@ -72,9 +72,9 @@ struct HFLcK0sPCandidateSelector {
 
   // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> labelK0Spos{"labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> labelK0Sneg{"labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
-  Configurable<std::vector<int>> labelProton{"labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
+  Configurable<std::vector<int>> indexK0Spos{"indexK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "indices of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> indexK0Sneg{"indexK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "indices of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> indexProton{"indexProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "indices of protons, for debug"};
 #endif
 
   /// Gets corresponding pT bin from cut file array
@@ -102,14 +102,9 @@ struct HFLcK0sPCandidateSelector {
   /// \param track is daughter track
   /// \return true if track is good
   template <typename T>
-  bool daughterSelection(const T& track) // aren't these checks already in the indexskimscreator?
+  bool daughterSelection(const T& track) // there could be more checks done on the bachelor here
   {
-    if (track.sign() == 0) {
-      return false;
-    }
-    if (requireTPC.value && track.tpcNClsFound() == 0) {
-      return false; //is it clusters findable or found - need to check
-    }
+    // this is for now just a placeholder, in case we want to add extra checks
     return true;
   }
 
@@ -206,7 +201,7 @@ struct HFLcK0sPCandidateSelector {
   template <typename T>
   bool applyTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < applyPidTPCMinPt) {
+    if (track.pt() < applyPidTPCMinPt) {
       LOG(DEBUG) << "Bachelor pt is " << track.pt() << ", we apply TPC PID from " << applyPidTPCMinPt;
       return false;
     }
@@ -221,7 +216,7 @@ struct HFLcK0sPCandidateSelector {
   template <typename T>
   bool validCombPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) > pidCombMaxP) { // is the pt sign used for the charge? If it is always positive, we should remove the abs
+    if (track.pt() > pidCombMaxP) { // is the pt sign used for the charge? If it is always positive, we should remove the abs
       return false;
     }
     return true;
@@ -337,15 +332,16 @@ struct HFLcK0sPCandidateSelector {
 
     for (auto& candidate : candidates) { //looping over cascade candidates
 
+      const auto& bach = candidate.index0_as<MyBigTracks>(); //bachelor track
 #ifdef MY_DEBUG
-      auto labelPos = candidate.posTrack_as<MyBigTracks>().mcParticleId();
-      auto labelNeg = candidate.negTrack_as<MyBigTracks>().mcParticleId();
-      auto protonLabel = candidate.index0_as<MyBigTracks>().mcParticleId();
-      bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, labelProton, labelK0Spos, labelK0Sneg);
-      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, labelK0Spos, labelK0Sneg);
+      auto indexV0DaughPos = candidate.posTrack_as<MyBigTracks>().mcParticleId();
+      auto indexV0DaughNeg = candidate.negTrack_as<MyBigTracks>().mcParticleId();
+      auto indexBach = bach.mcParticleId();
+      bool isLc = isLcK0SpFunc(indexBach, indexV0DaughPos, indexV0DaughNeg, indexProton, indexK0Spos, indexK0Sneg);
+      bool isK0SfromLc = isK0SfromLcFunc(indexV0DaughPos, indexV0DaughNeg, indexK0Spos, indexK0Sneg);
 #endif
-      MY_DEBUG_MSG(isLc, printf("\n"); LOG(INFO) << "In selector: correct Lc found: proton --> " << protonLabel << ", posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
-      //MY_DEBUG_MSG(isLc != 1, printf("\n"); LOG(INFO) << "In selector: wrong Lc found: proton --> " << protonLabel << ", posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
+      MY_DEBUG_MSG(isLc, printf("\n"); LOG(INFO) << "In selector: correct Lc found: proton --> " << indexBach << ", posTrack --> " << indexV0DaughPos << ", negTrack --> " << indexV0DaughNeg);
+      //MY_DEBUG_MSG(isLc != 1, printf("\n"); LOG(INFO) << "In selector: wrong Lc found: proton --> " << indexBach << ", posTrack --> " << indexV0DaughPos << ", negTrack --> " << indexV0DaughNeg);
 
       statusLc = 0;
       /* // not needed for the Lc
@@ -354,8 +350,6 @@ struct HFLcK0sPCandidateSelector {
         continue;
       }
       */
-
-      const auto& bach = candidate.index0_as<MyBigTracks>(); //bachelor track
 
       topolLc = true;
       pidProton = -1;

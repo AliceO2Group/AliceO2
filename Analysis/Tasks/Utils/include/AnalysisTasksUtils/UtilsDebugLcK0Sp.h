@@ -78,13 +78,5 @@ inline bool isLcK0SpFunc(int labelProton, int labelK0SPos, int labelK0SNeg, std:
     return true;
   }
 
-  /*
-  auto nElements = nPositiveDau;
-  for (auto i = 0; i < nPositiveDau; ++i) {
-    if (labelProton == listLabelsProton[i] && labelK0SPos == listLabelsK0SPos[i] && labelK0SNeg == listLabelsK0SNeg[i]) {
-      return true;
-    }
-  }
-  */
   return false;
 }

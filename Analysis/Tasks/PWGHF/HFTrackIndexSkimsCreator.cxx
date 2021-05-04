@@ -26,7 +26,6 @@
 #include "AnalysisDataModel/TrackSelectionTables.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "AnalysisTasksUtils/UtilsDebugLcK0Sp.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 
 #include <algorithm>
 
@@ -34,7 +33,6 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::aod;
-using namespace o2::analysis;
 using namespace o2::analysis::hf_cuts_single_track;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -95,9 +93,9 @@ struct SelectTracks {
 
   // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> labelK0Spos{"labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> labelK0Sneg{"labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
-  Configurable<std::vector<int>> labelProton{"labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
+  Configurable<std::vector<int>> indexK0Spos{"indexK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "indices of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> indexK0Sneg{"indexK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "indices of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> indexProton{"indexProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "indices of protons, for debug"};
 #endif
 
   HistogramRegistry registry{
@@ -138,10 +136,10 @@ struct SelectTracks {
       return false;
     }
 
-    if (abs(dca[0]) < cutsSingleTrack[candType].get(pTBinTrack, "min_dcaxytoprimary")) {
+    if (std::abs(dca[0]) < cutsSingleTrack[candType].get(pTBinTrack, "min_dcaxytoprimary")) {
       return false; //minimum DCAxy
     }
-    if (abs(dca[0]) > cutsSingleTrack[candType].get(pTBinTrack, "max_dcaxytoprimary")) {
+    if (std::abs(dca[0]) > cutsSingleTrack[candType].get(pTBinTrack, "max_dcaxytoprimary")) {
       return false; //maximum DCAxy
     }
     return true;
@@ -159,13 +157,13 @@ struct SelectTracks {
     for (auto& track : tracks) {
 
 #ifdef MY_DEBUG
-      auto protonLabel = track.mcParticleId();
-      //      LOG(INFO) << "Checking label " << protonLabel;
-      bool isProtonFromLc = isProtonFromLcFunc(protonLabel, labelProton);
+      auto indexBach = track.mcParticleId();
+      //      LOG(INFO) << "Checking label " << indexBach;
+      bool isProtonFromLc = isProtonFromLcFunc(indexBach, indexProton);
 
 #endif
 
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "\nWe found the proton " << protonLabel);
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "\nWe found the proton " << indexBach);
 
       int status_prong = 7; // selection flag , 3 bits on
 
@@ -181,7 +179,7 @@ struct SelectTracks {
       if (trackPt < ptmintrack_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " pt = " << track.pt() << " (cut " << ptMinTrackBach << ")");
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " pt = " << track.pt() << " (cut " << ptMinTrackBach << ")");
 
       if (track.pt() < ptMinTrackBach) {
         status_prong = status_prong & ~(1 << 2);
@@ -189,20 +187,20 @@ struct SelectTracks {
 
       auto trackEta = track.eta();
       // eta cut
-      if ((status_prong & (1 << 0)) && abs(trackEta) > etamax_2prong) {
+      if ((status_prong & (1 << 0)) && std::abs(trackEta) > etamax_2prong) {
         status_prong = status_prong & ~(1 << 0);
       }
-      if ((status_prong & (1 << 1)) && abs(trackEta) > etamax_3prong) {
+      if ((status_prong & (1 << 1)) && std::abs(trackEta) > etamax_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " eta = " << track.eta() << " (cut " << etaMaxBach << ")");
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " eta = " << trackEta << " (cut " << etaMaxBach << ")");
 
-      if ((status_prong & (1 << 2)) && abs(track.eta()) > etaMaxBach) {
+      if ((status_prong & (1 << 2)) && std::abs(trackEta) > etaMaxBach) {
         status_prong = status_prong & ~(1 << 2);
       }
 
       // quality cut
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " tpcNClsFound = " << track.tpcNClsFound() << " (cut " << tpcnclsfound.value << ")");
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " tpcNClsFound = " << track.tpcNClsFound() << " (cut " << tpcnclsfound.value << ")");
 
       if (doCutQuality.value && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
         UChar_t clustermap = track.itsClusterMap();
@@ -210,7 +208,7 @@ struct SelectTracks {
               track.flags() & o2::aod::track::ITSrefit &&
               (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)))) {
           status_prong = 0;
-          MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << " did not pass clusters cut");
+          MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " did not pass clusters cut");
         }
       }
 
@@ -228,9 +226,9 @@ struct SelectTracks {
         if ((status_prong & (1 << 1)) && !isSelectedTrack(track, dca, Cand3Prong)) {
           status_prong = status_prong & ~(1 << 1);
         }
-        if ((status_prong & (1 << 2)) && (abs(dca[0]) < dcaToPrimXYMinBach_ptDep || abs(dca[0]) > dcaToPrimXYMaxBach)) {
+        if ((status_prong & (1 << 2)) && (std::abs(dca[0]) < dcaToPrimXYMinBach_ptDep || std::abs(dca[0]) > dcaToPrimXYMaxBach)) {
           MY_DEBUG_MSG(isProtonFromLc,
-                       LOG(INFO) << "proton " << protonLabel << " did not pass DCA cut";
+                       LOG(INFO) << "proton " << indexBach << " did not pass DCA cut";
                        LOG(INFO) << "dca[0] = " << dca[0] << " (lower cut " << dcaToPrimXYMinBach_ptDep << ", upper cut " << dcaToPrimXYMaxBach << ")";);
           status_prong = status_prong & ~(1 << 2);
         }
@@ -250,7 +248,7 @@ struct SelectTracks {
           registry.get<TH1>(HIST("heta_cuts_3prong"))->Fill(trackEta);
         }
         if (status_prong & (1 << 2)) {
-          MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "Will be kept: Proton from Lc " << protonLabel);
+          MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "Will be kept: Proton from Lc " << indexBach);
           registry.get<TH1>(HIST("hpt_cuts_bach"))->Fill(trackPt);
           registry.get<TH1>(HIST("hdcatoprimxy_cuts_bach"))->Fill(dca[0]);
           registry.get<TH1>(HIST("heta_cuts_bach"))->Fill(trackEta);
@@ -1050,9 +1048,9 @@ struct HFTrackIndexSkimsCreatorCascades {
 
   // for debugging
 #ifdef MY_DEBUG
-  Configurable<std::vector<int>> labelK0Spos{"labelK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "labels of K0S positive daughters, for debug"};
-  Configurable<std::vector<int>> labelK0Sneg{"labelK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "labels of K0S negative daughters, for debug"};
-  Configurable<std::vector<int>> labelProton{"labelProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "labels of protons, for debug"};
+  Configurable<std::vector<int>> indexK0Spos{"indexK0Spos", {729, 2866, 4754, 5457, 6891, 7824, 9243, 9810}, "indices of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> indexK0Sneg{"indexK0Sneg", {730, 2867, 4755, 5458, 6892, 7825, 9244, 9811}, "indices of K0S negative daughters, for debug"};
+  Configurable<std::vector<int>> indexProton{"indexProton", {717, 2810, 4393, 5442, 6769, 7793, 9002, 9789}, "indices of protons, for debug"};
 #endif
 
   // histograms
@@ -1106,137 +1104,136 @@ struct HFTrackIndexSkimsCreatorCascades {
 
       MY_DEBUG_MSG(1, printf("\n"); LOG(INFO) << "Bachelor loop");
 #ifdef MY_DEBUG
-      auto protonLabel = bach.mcParticleId();
-      bool isProtonFromLc = isProtonFromLcFunc(protonLabel, labelProton);
+      auto indexBach = bach.mcParticleId();
+      bool isProtonFromLc = isProtonFromLcFunc(indexBach, indexProton);
 #endif
       // selections on the bachelor
       // pT cut
       if (bach.isSelProng() < 4) {
-        MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << ": rejected due to HFsel");
+        MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << ": rejected due to HFsel");
         continue;
       }
 
       if (TPCRefit) {
         if (!(bach.trackType() & o2::aod::track::TPCrefit)) {
-          MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << ": rejected due to TPCrefit");
+          MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << ": rejected due to TPCrefit");
           continue;
         }
       }
       if (bach.tpcNClsCrossedRows() < i_minCrossedRows) {
-        MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << protonLabel << ": rejected due to minNUmberOfCrossedRows " << bach.tpcNClsCrossedRows() << " (cut " << i_minCrossedRows << ")");
+        MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << ": rejected due to minNUmberOfCrossedRows " << bach.tpcNClsCrossedRows() << " (cut " << i_minCrossedRows << ")");
         continue;
       }
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "KEPT! proton from Lc with daughters " << protonLabel);
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "KEPT! proton from Lc with daughters " << indexBach);
 
-      auto bachTrack = getTrackParCov(bach);
+      auto trackBach = getTrackParCov(bach);
       // now we loop over the V0s
       for (const auto& v0 : V0s) {
         MY_DEBUG_MSG(1, LOG(INFO) << "*** Checking next K0S");
         // selections on the V0 daughters
-        const auto& posTrack = v0.posTrack_as<MyTracks>();
-        const auto& negTrack = v0.negTrack_as<MyTracks>();
+        const auto& trackV0DaughPos = v0.posTrack_as<MyTracks>();
+        const auto& trackV0DaughNeg = v0.negTrack_as<MyTracks>();
 #ifdef MY_DEBUG
-        auto labelPos = posTrack.mcParticleId();
-        auto labelNeg = negTrack.mcParticleId();
-        bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, labelK0Spos, labelK0Sneg);
+        auto indexV0DaughPos = trackV0DaughPos.mcParticleId();
+        auto indexV0DaughNeg = trackV0DaughNeg.mcParticleId();
+        bool isK0SfromLc = isK0SfromLcFunc(indexV0DaughPos, indexV0DaughNeg, indexK0Spos, indexK0Sneg);
 
-        bool isLc = isLcK0SpFunc(protonLabel, labelPos, labelNeg, labelProton, labelK0Spos, labelK0Sneg);
+        bool isLc = isLcK0SpFunc(indexBach, indexV0DaughPos, indexV0DaughNeg, indexProton, indexK0Spos, indexK0Sneg);
 #endif
-        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S from Lc found, posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S from Lc found, trackV0DaughPos --> " << indexV0DaughPos << ", trackV0DaughNeg --> " << indexV0DaughNeg);
 
         MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc,
                      LOG(INFO) << "ACCEPTED!!!";
-                     LOG(INFO) << "proton belonging to a Lc found: label --> " << protonLabel;
-                     LOG(INFO) << "K0S belonging to a Lc found: posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
+                     LOG(INFO) << "proton belonging to a Lc found: label --> " << indexBach;
+                     LOG(INFO) << "K0S belonging to a Lc found: trackV0DaughPos --> " << indexV0DaughPos << ", trackV0DaughNeg --> " << indexV0DaughNeg);
 
         MY_DEBUG_MSG(isLc, LOG(INFO) << "Combination of K0S and p which correspond to a Lc found!");
 
         if (TPCRefit) {
-          if (!(posTrack.trackType() & o2::aod::track::TPCrefit) ||
-              !(negTrack.trackType() & o2::aod::track::TPCrefit)) {
-            MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to TPCrefit");
+          if (!(trackV0DaughPos.trackType() & o2::aod::track::TPCrefit) ||
+              !(trackV0DaughNeg.trackType() & o2::aod::track::TPCrefit)) {
+            MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg << ": rejected due to TPCrefit");
             continue;
           }
         }
-        if (posTrack.tpcNClsCrossedRows() < i_minCrossedRows ||
-            negTrack.tpcNClsCrossedRows() < i_minCrossedRows) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to minCrossedRows");
+        if (trackV0DaughPos.tpcNClsCrossedRows() < i_minCrossedRows ||
+            trackV0DaughNeg.tpcNClsCrossedRows() < i_minCrossedRows) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg << ": rejected due to minCrossedRows");
           continue;
         }
         //
-        // if (posTrack.dcaXY() < dcaXYPosToPV ||   // to the filters?
-        //     negTrack.dcaXY() < dcaXYNegToPV) {
+        // if (trackV0DaughPos.dcaXY() < dcaXYPosToPV ||   // to the filters?
+        //     trackV0DaughNeg.dcaXY() < dcaXYNegToPV) {
         //   continue;
         // }
         //
-        if (posTrack.pt() < ptMin || // to the filters? I can't for now, it is not in the tables
-            negTrack.pt() < ptMin) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to minPt --> pos " << posTrack.pt() << ", neg " << negTrack.pt() << " (cut " << ptMin << ")");
+        if (trackV0DaughPos.pt() < ptMin || // to the filters? I can't for now, it is not in the tables
+            trackV0DaughNeg.pt() < ptMin) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg << ": rejected due to minPt --> pos " << trackV0DaughPos.pt() << ", neg " << trackV0DaughNeg.pt() << " (cut " << ptMin << ")");
           continue;
         }
-        if (abs(posTrack.eta()) > etaMax || // to the filters? I can't for now, it is not in the tables
-            abs(negTrack.eta()) > etaMax) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to eta --> pos " << posTrack.eta() << ", neg " << negTrack.eta() << " (cut " << etaMax << ")");
+        if (std::abs(trackV0DaughPos.eta()) > etaMax || // to the filters? I can't for now, it is not in the tables
+            std::abs(trackV0DaughNeg.eta()) > etaMax) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg << ": rejected due to eta --> pos " << trackV0DaughPos.eta() << ", neg " << trackV0DaughNeg.eta() << " (cut " << etaMax << ")");
           continue;
         }
 
         // V0 invariant mass selection
         if (std::abs(v0.mK0Short() - massK0s) > cutInvMassV0) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to invMass --> " << v0.mK0Short() - massK0s << " (cut " << cutInvMassV0 << ")");
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg << ": rejected due to invMass --> " << v0.mK0Short() - massK0s << " (cut " << cutInvMassV0 << ")");
           continue; // should go to the filter, but since it is a dynamic column, I cannot use it there
         }
 
         // V0 cosPointingAngle selection
         if (v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) < cosPAV0) {
-          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << labelPos << " and " << labelNeg << ": rejected due to cosPA --> " << v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) << " (cut " << cosPAV0 << ")");
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg << ": rejected due to cosPA --> " << v0.v0cosPA(collision.posX(), collision.posY(), collision.posZ()) << " (cut " << cosPAV0 << ")");
           continue;
         }
-        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "KEPT! K0S from Lc with daughters " << labelPos << " and " << labelNeg);
 
-        auto posTrackParCov = getTrackParCov(posTrack);
-        posTrackParCov.propagateTo(v0.posX(), bZ); // propagate the track to the X closest to the V0 vertex
-        auto negTrackParCov = getTrackParCov(negTrack);
-        negTrackParCov.propagateTo(v0.negX(), bZ); // propagate the track to the X closest to the V0 vertex
+        const std::array<float, 3> momentumV0 = {v0.px(), v0.py(), v0.pz()};
+
+        // invariant-mass cut: we do it here, before updating the momenta of bach and V0 during the fitting to save CPU
+        // TODO: but one should better check that the value here and after the fitter do not change significantly!!!
+        mass2K0sP = RecoDecay::M(array{array{bach.px(), bach.py(), bach.pz()}, momentumV0}, array{massP, massK0s});
+        if ((cutCascInvMassLc >= 0.) && (std::abs(mass2K0sP - massLc) > cutCascInvMassLc)) {
+          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "True Lc from proton " << indexBach << " and K0S pos " << indexV0DaughPos << " and neg " << indexV0DaughNeg << " rejected due to invMass cut: " << mass2K0sP << ", mass Lc " << massLc << " (cut " << cutCascInvMassLc << ")");
+          continue;
+        }
+
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "KEPT! K0S from Lc with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg);
+
+        auto trackParCovV0DaughPos = getTrackParCov(trackV0DaughPos);
+        trackParCovV0DaughPos.propagateTo(v0.posX(), bZ); // propagate the track to the X closest to the V0 vertex
+        auto trackParCovV0DaughNeg = getTrackParCov(trackV0DaughNeg);
+        trackParCovV0DaughNeg.propagateTo(v0.negX(), bZ); // propagate the track to the X closest to the V0 vertex
         std::array<float, 3> pVecV0 = {0., 0., 0.};
         std::array<float, 3> pVecBach = {0., 0., 0.};
 
         const std::array<float, 3> vertexV0 = {v0.x(), v0.y(), v0.z()};
-        const std::array<float, 3> momentumV0 = {v0.px(), v0.py(), v0.pz()};
-
         // we build the neutral track to then build the cascade
-        auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, {0, 0, 0, 0, 0, 0}, posTrackParCov, negTrackParCov, {0, 0}, {0, 0}); // build the V0 track
+        auto trackV0 = o2::dataformats::V0(vertexV0, momentumV0, {0, 0, 0, 0, 0, 0}, trackParCovV0DaughPos, trackParCovV0DaughNeg, {0, 0}, {0, 0}); // build the V0 track
 
         // now we find the DCA between the V0 and the bachelor, for the cascade
-        int nCand2 = fitter.process(trackV0, bachTrack);
-        MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "Fitter result = " << nCand2 << " proton = " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg);
+        int nCand2 = fitter.process(trackV0, trackBach);
+        MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "Fitter result = " << nCand2 << " proton = " << indexBach << " and K0S pos " << indexV0DaughPos << " and neg " << indexV0DaughNeg);
         MY_DEBUG_MSG(isLc, LOG(INFO) << "Fitter result for true Lc = " << nCand2);
         if (nCand2 == 0) {
           continue;
         }
-        std::array<float, 3> pVecCandCasc = {0., 0., 0.};
         fitter.propagateTracksToVertex();        // propagate the bach and V0 to the Lc vertex
         fitter.getTrack(0).getPxPyPzGlo(pVecV0); // take the momentum at the Lc vertex
         fitter.getTrack(1).getPxPyPzGlo(pVecBach);
 
-        pVecCandCasc = array{pVecBach[0] + pVecV0[0],
-                             pVecBach[1] + pVecV0[1],
-                             pVecBach[2] + pVecV0[2]};
-
         // cascade candidate pT cut
-        if (RecoDecay::Pt(pVecCandCasc) < cutCascPtCandMin) {
-          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg << " rejected due to pt cut: " << RecoDecay::Pt(pVecCandCasc) << " (cut " << cutCascPtCandMin << ")");
+        auto ptCascCand = RecoDecay::Pt(pVecBach, pVecV0);
+        if (ptCascCand < cutCascPtCandMin) {
+          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "True Lc from proton " << indexBach << " and K0S pos " << indexV0DaughPos << " and neg " << indexV0DaughNeg << " rejected due to pt cut: " << ptCascCand << " (cut " << cutCascPtCandMin << ")");
           continue;
         }
 
         // invariant mass
-        // calculate invariant masses
-        auto arrMom = array{pVecBach, pVecV0};
-        mass2K0sP = RecoDecay::M(arrMom, array{massP, massK0s});
-        // invariant-mass cut
-        if ((cutCascInvMassLc >= 0.) && (std::abs(mass2K0sP - massLc) > cutCascInvMassLc)) {
-          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc, LOG(INFO) << "True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg << " rejected due to invMass cut: " << mass2K0sP << ", mass Lc " << massLc << " (cut " << cutCascInvMassLc << ")");
-          continue;
-        }
+        // re-calculate invariant masses with updated momenta, to fill the histogram
+        mass2K0sP = RecoDecay::M(array{pVecBach, pVecV0}, array{massP, massK0s});
 
         std::array<float, 3> posCasc = {0., 0., 0.};
         const auto& cascVtx = fitter.getPCACandidate();
@@ -1250,7 +1247,7 @@ struct HFTrackIndexSkimsCreatorCascades {
                           1); // 1 should be the value for the Lc
         // fill histograms
         if (doValPlots) {
-          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc && isLc, LOG(INFO) << "KEPT! True Lc from proton " << protonLabel << " and K0S pos " << labelPos << " and neg " << labelNeg);
+          MY_DEBUG_MSG(isK0SfromLc && isProtonFromLc && isLc, LOG(INFO) << "KEPT! True Lc from proton " << indexBach << " and K0S pos " << indexV0DaughPos << " and neg " << indexV0DaughNeg);
           registry.get<TH1>(HIST("hvtx2_x"))->Fill(posCasc[0]);
           registry.get<TH1>(HIST("hvtx2_y"))->Fill(posCasc[1]);
           registry.get<TH1>(HIST("hvtx2_z"))->Fill(posCasc[2]);
