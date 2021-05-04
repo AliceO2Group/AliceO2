@@ -18,8 +18,12 @@
 #include <Rtypes.h>
 #include <vector>
 #include <gsl/span>
-#include <TH2F.h>
 #include <type_traits>
+#include <cassert>
+#include <memory>
+
+class TH1F;
+class TH2F;
 
 namespace o2
 {
@@ -54,172 +58,140 @@ class FlatHisto2D
          YMax,
          BinSizeX,
          BinSizeY,
-         BinSizeXInv,
-         BinSizeYInv,
          NServiceSlots };
 
   FlatHisto2D() = default;
-
-  FlatHisto2D(int nbx, T xmin, T xmax, int nby, T ymin, T ymax)
+  FlatHisto2D(int nbx, T xmin, T xmax, int nby, T ymin, T ymax);
+  FlatHisto2D(const gsl::span<const T> ext) { adoptExternal(ext); }
+  void adoptExternal(const gsl::span<const T> ext);
+  void init()
   {
-    assert(nbx > 0 && xmin < xmax);
-    assert(nby > 0 && ymin < ymax);
-    mData.resize(nbx * nby + NServiceSlots, 0.);
-    mData[NBinsX] = nbx;
-    mData[NBinsY] = nby;
-    mData[XMin] = xmin;
-    mData[XMax] = xmax;
-    mData[YMin] = ymin;
-    mData[YMax] = ymax;
-    mData[BinSizeX] = (xmax - xmin) / nbx;
-    mData[BinSizeXInv] = nbx / (xmax - xmin);
-    mData[BinSizeY] = (ymax - ymin) / nby;
-    mData[BinSizeYInv] = nby / (ymax - ymin);
-    init();
-  }
-
-  FlatHisto2D(const gsl::span<const T> ext)
-  {
-    adoptExternal(ext);
+    // when reading from file, need to call this method to make it operational
+    assert(mContainer.size() > NServiceSlots);
+    init(gsl::span<const T>(mContainer.data(), mContainer.size()));
   }
 
   int getNBinsX() const { return mNBinsX; }
   int getNBinsY() const { return mNBinsY; }
-  int getNBins() const { return mNBins; }
-  T getXMin() const { return mDataView[XMin]; }
-  T getXMax() const { return mDataView[XMax]; }
-  T getYMin() const { return mDataView[YMin]; }
-  T getYMax() const { return mDataView[YMax]; }
-  T getBinSizeX() const { return mDataView[BinSizeX]; }
-  T getBinSizeY() const { return mDataView[BinSizeY]; }
-  T getBinContent(uint32_t ib) const { return ib < mNBins ? mDataView[ib + NServiceSlots] : 0.; }
+  int getNBins() const { return getNBinsX() * getNBinsY(); }
+
+  T getXMin() const { return mXMin; }
+  T getXMax() const { return mXMax; }
+  T getYMin() const { return mYMin; }
+  T getYMax() const { return mYMax; }
+  T getBinSizeX() const { return mBinSizeX; }
+  T getBinSizeY() const { return mBinSizeY; }
+  T getBinSizeXInv() const { return mBinSizeXInv; }
+  T getBinSizeYInv() const { return mBinSizeYInv; }
+
+  T getBinContent(uint32_t ib) const
+  {
+    assert(ib < getNBins());
+    return mDataPtr[ib];
+  }
+
   T getBinContent(uint32_t ibx, uint32_t iby) const { return getBinContent(getGlobalBin(ibx, iby)); }
+
   T getBinContentForXY(T x, T y) const { return getBinContent(getBinX(x), getBinY(y)); }
 
-  T getBinStartX(int i) const
+  bool isValidBin(uint32_t bin) const { return bin < getNBins(); }
+  bool isBinEmpty(uint32_t bin) const { return getBinContent(bin) == 0; }
+
+  T getBinXStart(int i) const
   {
     assert(i < getNBinsX());
     return getXMin() + i * getBinSizeX();
   }
 
-  T getBinCenterX(int i) const
+  T getBinXCenter(int i) const
   {
     assert(i < getNBinsX());
     return getXMin() + (i + 0.5) * getBinSizeX();
   }
 
-  T getBinEndX(int i) const
+  T getBinXEnd(int i) const
   {
     assert(i < getNBinsX());
     return getXMin() + (i + 1) * getBinSizeX();
   }
 
-  T getBinStartY(int i) const
+  T getBinYStart(int i) const
   {
     assert(i < getNBinsY());
     return getYMin() + i * getBinSizeY();
   }
 
-  T getBinCenterY(int i) const
+  T getBinYCenter(int i) const
   {
     assert(i < getNBinsY());
     return getYMin() + (i + 0.5) * getBinSizeY();
   }
 
-  T getBinEndY(int i) const
+  T getBinYEnd(int i) const
   {
     assert(i < getNBinsY());
     return getYMin() + (i + 1) * getBinSizeY();
   }
 
-  void add(const FlatHisto2D& other)
-  {
-    assert(getNBinsX() == other.getNBinsX() && getXMin() == other.getXMin() && getXMax() == other.getXMax() &&
-           getNBinsY() == other.getNBinsY() && getYMin() == other.getYMin() && getYMax() == other.getYMax() &&
-           canFill());
-    int last = NServiceSlots + getNBins();
-    const auto& otherView = other.getView();
-    for (int i = NServiceSlots; i < last; i++) {
-      mData[i] += otherView[i];
-    }
-  }
+  int getXBin(uint32_t i) const { return i / getNBinsY(); }
+  int getYBin(uint32_t i) const { return i % getNBinsY(); }
 
-  void subtract(const FlatHisto2D& other)
-  {
-    assert(getNBinsX() == other.getNBinsX() && getXMin() == other.getXMin() && getXMax() == other.getXMax() &&
-           getNBinsY() == other.getNBinsY() && getYMin() == other.getYMin() && getYMax() == other.getYMax() &&
-           canFill());
-    int last = NServiceSlots + getNBins();
-    const auto& otherView = other.getView();
-    for (int i = NServiceSlots; i < last; i++) {
-      mData[i] -= otherView[i];
-    }
-  }
+  void add(const FlatHisto2D& other);
+
+  void subtract(const FlatHisto2D& other);
 
   void setBinContent(uint32_t bin, T w)
   {
-    assert(canFill());
-    if (bin < getNBins()) {
-      mData[bin + NServiceSlots] = w;
-    }
+    assert(canFill() && isValidBin(bin));
+    mDataPtr[bin] = w;
   }
 
   void setBinContent(uint32_t binX, uint32_t binY, T w)
   {
-    assert(canFill());
     auto bin = getGlobalBin(binX, binY);
-    if (bin < getNBins()) {
-      mData[+NServiceSlots] = w;
-    }
+    setBinContent(bin, w);
   }
 
   void clear()
   {
     assert(canFill());
-    memset(mData.data() + NServiceSlots, 0, sizeof(T) * getNBins());
+    memset(mDataPtr, 0, sizeof(T) * getNBins());
   }
 
-  T getSum() const
-  {
-    T sum = 0;
-    for (int i = getNBins(); i--;) {
-      sum += getBinContent(i);
-    }
-    return sum;
-  }
+  T getSum() const;
 
-  void adoptExternal(const gsl::span<const T> ext)
-  {
-    assert(ext.size() > NServiceSlots);
-    mData.clear();
-    mDataView = ext;
-    mNBinsX = (int)mDataView[NBinsX];
-    mNBinsY = (int)mDataView[NBinsY];
-    mNBins = mNBinsX * mNBinsY;
-  }
-
-  void init()
-  { // when reading from file, need to call this method to make it operational
-    assert(mData.size() > NServiceSlots);
-    mDataView = gsl::span<const T>(mData.data(), mData.size());
-    mNBinsX = (int)mData[NBinsX];
-    mNBinsY = (int)mData[NBinsY];
-    mNBins = mNBinsX * mNBinsY;
-  }
-
-  void fill(T x, T y)
+  int fill(T x, T y)
   {
     uint32_t bin = getBin(x, y);
-    if (bin < mNBins) {
-      mData[NServiceSlots + bin]++;
+    if (isValidBin(bin)) {
+      mDataPtr[bin]++;
+      return bin;
+    }
+    return -1;
+  }
+
+  int fill(T x, T y, T w)
+  {
+    uint32_t bin = getBin(x, y);
+    if (isValidBin(bin)) {
+      mDataPtr[bin] += w;
+      return bin;
+    }
+    return -1;
+  }
+
+  void fillBin(uint32_t bin, T w)
+  {
+    if (isValidBin(bin)) {
+      mDataPtr[bin] += w;
     }
   }
 
-  void fill(T x, T y, T w)
+  void fillBin(uint32_t bx, uint32_t by, T w)
   {
-    uint32_t bin = getBin(x, y);
-    if (bin < mNBins) {
-      mData[NServiceSlots + bin] += w;
+    auto bin = getGlobalBin(bx, by);
+    if (isValidBin(bin)) {
+      mDataPtr[bin] += w;
     }
   }
 
@@ -244,54 +216,42 @@ class FlatHisto2D
   bool canFill() const
   {
     // histo can be filled only if hase its own data, otherwise only query can be done on the view
-    return mData.size() > NServiceSlots;
+    return mContainer.size() > NServiceSlots;
   }
 
   gsl::span<const T> getSliceY(uint32_t binX) const
   {
-    int offs = NServiceSlots + binX * getNBinsY();
-    return binX < getNBinsX() ? gsl::span<const T>(&mDataView[offs], getNBinsY()) : gsl::span<const T>();
+    int offs = binX * getNBinsY();
+    return binX < getNBinsX() ? gsl::span<const T>(&mDataPtr[offs], getNBinsY()) : gsl::span<const T>();
   }
 
-  TH1F createSliceYTH1F(uint32_t binX, const std::string& name = "histo2dslice") const
-  {
-    TH1F h(name.c_str(), name.c_str(), getNBinsY(), getYMin(), getYMax());
-    if (binX < getNBinsX()) {
-      for (int i = getNBinsY(); i--;) {
-        h.SetBinContent(i + 1, getBinContent(binX, i));
-      }
-    }
-    return h;
-  }
+  std::unique_ptr<TH2F> createTH2F(const std::string& name = "histo2d");
 
-  TH2F createTH2F(const std::string& name = "histo2d")
-  {
-    TH2F h(name.c_str(), name.c_str(), getNBinsX(), getXMin(), getXMax(), getNBinsY(), getYMin(), getYMax());
-    for (int i = getNBinsX(); i--;) {
-      for (int j = getNBinsY(); j--;) {
-        auto w = getBinContent(i, j);
-        if (w) {
-          h.SetBinContent(i + 1, j + 1, w);
-        }
-      }
-    }
-    return h;
-  }
+  std::unique_ptr<TH1F> createSliceXTH1F(uint32_t binX, const std::string& name = "histo2dsliceX") const;
+  std::unique_ptr<TH1F> createSliceYTH1F(uint32_t binX, const std::string& name = "histo2dsliceY") const;
 
-  const std::vector<T>& getBase() const { return mData; }
-  gsl::span<const T> getView() const { return mDataView; }
+  const std::vector<T>& getBase() const { return mContainer; }
+  gsl::span<const T> getView() const { return mContainerView; }
 
   int getGlobalBin(uint32_t binX, uint32_t binY) const { return binX * getNBinsY() + binY; }
 
  protected:
-  T getBinSizeXInv() const { return mDataView[BinSizeXInv]; }
-  T getBinSizeYInv() const { return mDataView[BinSizeYInv]; }
+  void init(const gsl::span<const T> ext);
 
-  std::vector<T> mData;         // data to fill
-  gsl::span<const T> mDataView; //!
-  int mNBinsX = 0;              //!
-  int mNBinsY = 0;              //!
-  int mNBins = 0;               //!
+  std::vector<T> mContainer;         // data to fill
+  gsl::span<const T> mContainerView; //!
+  T* mDataPtr{};                     //!   histo data
+  T mXMin{};                         //!
+  T mXMax{};                         //!
+  T mYMin{};                         //!
+  T mYMax{};                         //!
+  T mBinSizeX{};                     //!
+  T mBinSizeY{};                     //!
+  T mBinSizeXInv{};                  //!
+  T mBinSizeYInv{};                  //!
+  int mNBinsX{};                     //!
+  int mNBinsY{};                     //!
+  int mNBins{};                      //!
 
   ClassDefNV(FlatHisto2D, 1);
 };
