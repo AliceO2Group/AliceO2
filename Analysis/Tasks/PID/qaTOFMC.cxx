@@ -28,10 +28,10 @@ using namespace o2::track;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"pid-el", VariantType::Int, 0, {"Produce PID information for the electron mass hypothesis"}},
-    {"pid-mu", VariantType::Int, 0, {"Produce PID information for the muon mass hypothesis"}},
-    {"pid-pikapr", VariantType::Int, 1, {"Produce PID information for the Pion, Kaon, Proton mass hypothesis"}},
-    {"pid-nuclei", VariantType::Int, 0, {"Produce PID information for the Deuteron, Triton, Alpha mass hypothesis"}}};
+    {"qa-el", VariantType::Int, 0, {"Produce PID information for the electron mass hypothesis"}},
+    {"qa-mu", VariantType::Int, 0, {"Produce PID information for the muon mass hypothesis"}},
+    {"qa-pikapr", VariantType::Int, 1, {"Produce PID information for the Pion, Kaon, Proton mass hypothesis"}},
+    {"qa-nuclei", VariantType::Int, 0, {"Produce PID information for the Deuteron, Triton, Alpha mass hypothesis"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -212,18 +212,18 @@ struct pidTOFTaskQA {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   auto workflow = WorkflowSpec{};
-  if (cfgc.options().get<int>("pid-el")) {
+  if (cfgc.options().get<int>("qa-el")) {
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Electron>>(cfgc, TaskName{"pidTOF-qa-El"}));
   }
-  if (cfgc.options().get<int>("pid-mu")) {
+  if (cfgc.options().get<int>("qa-mu")) {
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Muon>>(cfgc, TaskName{"pidTOF-qa-Mu"}));
   }
-  if (cfgc.options().get<int>("pid-pikapr")) {
+  if (cfgc.options().get<int>("qa-pikapr")) {
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Pion>>(cfgc, TaskName{"pidTOF-qa-Pi"}));
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Kaon>>(cfgc, TaskName{"pidTOF-qa-Ka"}));
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Proton>>(cfgc, TaskName{"pidTOF-qa-Pr"}));
   }
-  if (cfgc.options().get<int>("pid-nuclei")) {
+  if (cfgc.options().get<int>("qa-nuclei")) {
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Deuteron>>(cfgc, TaskName{"pidTOF-qa-De"}));
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Triton>>(cfgc, TaskName{"pidTOF-qa-Tr"}));
     workflow.push_back(adaptAnalysisTask<pidTOFTaskQA<PID::Helium3>>(cfgc, TaskName{"pidTOF-qa-He"}));
