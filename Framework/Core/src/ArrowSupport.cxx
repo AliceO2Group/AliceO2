@@ -218,8 +218,16 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static uint64_t now = 0;
                        static uint64_t lastSignal = 0;
                        now = uv_hrtime();
+                       static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
+                       static uint64_t lastReportTime = 0;
                        while (!done) {
-                         stateMetric(driverMetrics, (uint64_t)(currentState), stateTransitions++);
+#ifndef NDEBUG
+                         if (currentState != lastReportedState || now - lastReportTime > 1000000000LL) {
+                           stateMetric(driverMetrics, (uint64_t)(currentState), timestamp);
+                           lastReportedState = currentState;
+                           lastReportTime = timestamp;
+                         }
+#endif
                          switch (currentState) {
                            case RateLimitingState::UNKNOWN: {
                              for (auto& deviceMetrics : allDeviceMetrics) {
