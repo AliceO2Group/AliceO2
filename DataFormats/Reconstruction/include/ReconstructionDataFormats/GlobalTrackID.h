@@ -71,6 +71,7 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
   static constexpr std::string_view NONE{"none"};                        ///< keywork for no sources
   static constexpr std::string_view ALL{"all"};                          ///< keywork for all sources
 #endif
+  static constexpr mask_t MASK_ALL = (1u << NSources) - 1;
 
   // methods for detector level manipulations
   GPUd() static constexpr DetID::mask_t getSourceDetectorsMask(int i);

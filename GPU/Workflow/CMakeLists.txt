@@ -56,3 +56,5 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2"
                                 O2::GlobalTrackingWorkflowHelpers)
   target_include_directories(${targetName} PUBLIC "include")
 endif()
+
+add_subdirectory(helper)
