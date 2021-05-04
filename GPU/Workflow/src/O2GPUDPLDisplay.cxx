@@ -24,6 +24,7 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
+#include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -71,8 +72,6 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 
 void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 {
-  o2::globaltracking::RecoContainer recoData;
-  recoData.collectData(pc, *mDataRequest);
   static bool first = false;
   if (first == false) {
     if (mDisplay->startDisplay()) {
@@ -80,33 +79,12 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
     }
   }
 
+  o2::globaltracking::RecoContainer recoData;
+  recoData.collectData(pc, *mDataRequest);
   GPUTrackingInOutPointers ptrs;
-  if (mClMask[GlobalTrackID::TPC]) {
-    recoData.addTPCClusters(pc, false);
-  }
-  if (mTrkMask[GlobalTrackID::TPC]) {
-    recoData.addTPCTracks(pc, mUseMC);
-  }
+  GPUWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
   if (mClMask[GlobalTrackID::TRD]) {
-    recoData.addTRDTracklets(pc);
-  }
-  if (mClMask[GlobalTrackID::TPC]) {
-    ptrs.clustersNative = &recoData.inputsTPCclusters->clusterIndex;
-  }
-  if (mTrkMask[GlobalTrackID::TPC]) {
-    const auto& tpcTracks = recoData.getTPCTracks<o2::tpc::TrackTPC>();
-    const auto& tpcClusRefs = recoData.getTPCTracksClusterRefs();
-    ptrs.outputTracksTPCO2 = tpcTracks.data();
-    ptrs.nOutputTracksTPCO2 = tpcTracks.size();
-    ptrs.outputClusRefsTPCO2 = tpcClusRefs.data();
-    ptrs.nOutputClusRefsTPCO2 = tpcClusRefs.size();
-  }
-  if (mClMask[GlobalTrackID::TRD]) {
-    o2::trd::getRecoInputContainer(pc, &ptrs, &recoData);
-  }
-  if (mUseMC) {
-    const auto& tpcTracksMC = recoData.getTPCTracksMCLabels();
-    ptrs.outputTracksTPCO2MC = tpcTracksMC.data();
+    o2::trd::getRecoInputContainer(pc, &ptrs, &recoData); // TODO: Get rid of this, to be done inside the fillIOPtr, but first needs some changes in RecoInputContainer
   }
 
   mDisplay->show(&ptrs);
