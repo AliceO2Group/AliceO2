@@ -29,6 +29,7 @@ o2_target_root_dictionary(
           include/SimulationDataFormat/MCTrack.h
           include/SimulationDataFormat/BaseHits.h
           include/SimulationDataFormat/MCTruthContainer.h
+          include/SimulationDataFormat/ConstMCTruthContainer.h
           include/SimulationDataFormat/MCCompLabel.h
           include/SimulationDataFormat/MCEventLabel.h
           include/SimulationDataFormat/TrackReference.h
