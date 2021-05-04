@@ -24,7 +24,8 @@ fi
 . ${O2_ROOT}/share/scripts/jobutils.sh
 
 # make sure that correct format will be used irrespecive of the locale
-LC_NUMERIC=C
+export LC_NUMERIC=C
+export LC_ALL=C
 
 NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 NEventsQED=${NEventsQED:-1000} #35000 for full TF
