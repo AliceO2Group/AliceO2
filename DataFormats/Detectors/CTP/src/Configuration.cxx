@@ -71,27 +71,27 @@ void CTPConfiguration::printStream(std::ostream& stream) const
 {
   stream << "Configuration:" << mName << std::endl;
   stream << "CTP BC  masks:" << std::endl;
-  for (const auto i : mBCMasks){
+  for (const auto i : mBCMasks) {
     i.printStream(stream);
   }
   stream << "CTP inputs:" << std::endl;
-  for (const auto i : mInputs){
+  for (const auto i : mInputs) {
     i.printStream(stream);
   }
   stream << "CTP descriptors:" << std::endl;
-  for (const auto i : mDescriptors){
+  for (const auto i : mDescriptors) {
     i.printStream(stream);
   }
   stream << "CTP detectors:" << std::endl;
-  for (const auto i : mDetectors){
+  for (const auto i : mDetectors) {
     i.printStream(stream);
   }
   stream << "CTP clusters:" << std::endl;
-  for (const auto i : mClusters){
+  for (const auto i : mClusters) {
     i.printStream(stream);
   }
   stream << "CTP classes:" << std::endl;
-  for (const auto i : mCTPClasses){
+  for (const auto i : mCTPClasses) {
     i.printStream(stream);
   }
 }
