@@ -20,6 +20,18 @@
 struct GPUTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
 
+namespace o2
+{
+namespace tpc
+{
+class TrackTPC;
+}
+namespace dataformats
+{
+class TrackTPCITS;
+}
+} // namespace o2
+
 //_____________________________________________________________________________
 #if (defined(__CINT__) || defined(__ROOTCINT__)) && !defined(__CLING__)
 namespace GPUCA_NAMESPACE
@@ -48,6 +60,10 @@ class GPUTRDTrack_t : public T
   GPUTRDTrack_t(const typename T::baseClass& t) = delete;
   GPUd() GPUTRDTrack_t(const GPUTRDTrack_t& t);
   GPUd() GPUTRDTrack_t(const AliHLTExternalTrackParam& t);
+#ifndef GPUCA_GPUCODE
+  GPUd() GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t, float vDrift);
+  GPUd() GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth, float vDrift, unsigned int iTrk);
+#endif
   GPUd() GPUTRDTrack_t(const T& t);
   GPUd() GPUTRDTrack_t& operator=(const GPUTRDTrack_t& t);
 
@@ -99,6 +115,9 @@ class GPUTRDTrack_t : public T
   int mAttachedTracklets[kNLayers]; // IDs for attached tracklets sorted by layer
   bool mIsFindable[kNLayers];       // number of layers where tracklet should exist
   bool mIsStopped;                  // track ends in TRD
+
+ private:
+  GPUd() void Initialize();
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

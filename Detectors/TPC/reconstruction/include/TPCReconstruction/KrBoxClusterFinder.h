@@ -70,6 +70,8 @@
 
 #include "DataFormatsTPC/Digit.h"
 #include "TPCReconstruction/KrCluster.h"
+#include "TPCReconstruction/KrBoxClusterFinderParam.h"
+
 #include "TPCBase/Mapper.h"
 
 #include "TPCBase/CalDet.h"
@@ -133,6 +135,33 @@ class KrBoxClusterFinder
   /// ger sector of this instance
   int getSector() const { return mSector; }
 
+  /// initialize the parameters from KrBoxClusterFinderParam
+  void init();
+
+  /// Set Function for minimum number of direct neighbours required
+  void setMinNumberOfNeighbours(int minNumberOfNeighbours) { mMinNumberOfNeighbours = minNumberOfNeighbours; }
+
+  /// Set Function for minimal charge required for maxCharge of a cluster
+  void setMinQTreshold(int minQThreshold) { mQThresholdMax = minQThreshold; }
+
+  /// Set Function for maximal cluster sizes in different ROCs
+  void setMaxClusterSize(int maxClusterSizeRowIROC, int maxClusterSizeRowOROC1, int maxClusterSizeRowOROC2, int maxClusterSizeRowOROC3,
+                         int maxClusterSizePadIROC, int maxClusterSizePadOROC1, int maxClusterSizePadOROC2, int maxClusterSizePadOROC3,
+                         int maxClusterSizeTime)
+  {
+    mMaxClusterSizeRowIROC = maxClusterSizeRowIROC;
+    mMaxClusterSizeRowOROC1 = maxClusterSizeRowOROC1;
+    mMaxClusterSizeRowOROC2 = maxClusterSizeRowOROC2;
+    mMaxClusterSizeRowOROC3 = maxClusterSizeRowOROC3;
+
+    mMaxClusterSizePadIROC = maxClusterSizePadIROC;
+    mMaxClusterSizePadOROC1 = maxClusterSizePadOROC1;
+    mMaxClusterSizePadOROC2 = maxClusterSizePadOROC2;
+    mMaxClusterSizePadOROC3 = maxClusterSizePadOROC3;
+
+    mMaxClusterSizeTime = maxClusterSizeTime;
+  }
+
  private:
   // These variables can be varied
   // They were choses such that the box in each readout chamber is approx. the same size
@@ -150,9 +179,9 @@ class KrBoxClusterFinder
   int mMaxClusterSizePadOROC2 = 3; ///< The "radius" of a cluster in pad direction in OROC2
   int mMaxClusterSizePadOROC3 = 3; ///< The "radius" of a cluster in pad direction in OROC3
 
-  float mQThresholdMax = 10.0;    ///< the Maximum charge in a cluster must exceed this value or it is discarded
+  float mQThresholdMax = 30.0;    ///< the Maximum charge in a cluster must exceed this value or it is discarded
   float mQThreshold = 1.0;        ///< every charge which is added to a cluster must exceed this value or it is discarded
-  int mMinNumberOfNeighbours = 1; ///< amount of direct neighbours required for a cluster maximum
+  int mMinNumberOfNeighbours = 2; ///< amount of direct neighbours required for a cluster maximum
 
   int mSector = -1;                 ///< sector being processed in this instance
   std::unique_ptr<CalPad> mGainMap; ///< Gain map object

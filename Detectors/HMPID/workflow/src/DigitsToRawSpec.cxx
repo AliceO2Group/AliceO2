@@ -83,7 +83,7 @@ void DigitsToRawSpec::init(framework::InitContext& ic)
       LOG(INFO) << "created output directory " << mDirectoryName;
     }
   }
-  std::string fullFName = o2::utils::concat_string(mDirectoryName, "/", mBaseFileName);
+  std::string fullFName = o2::utils::Str::concat_string(mDirectoryName, "/", mBaseFileName);
 
   // Setup the Coder
   mCod = new HmpidCoder2(Geo::MAXEQUIPMENTS);
@@ -100,7 +100,7 @@ void DigitsToRawSpec::init(framework::InitContext& ic)
   mDigTree = (TTree*)fdig->Get("o2sim");
 
   // Ready to operate
-  mCod->getWriter().writeConfFile("HMP", "RAWDATA", o2::utils::concat_string(mDirectoryName, '/', "HMPraw.cfg"));
+  mCod->getWriter().writeConfFile("HMP", "RAWDATA", o2::utils::Str::concat_string(mDirectoryName, '/', "HMPraw.cfg"));
   mExTimer.start();
 }
 

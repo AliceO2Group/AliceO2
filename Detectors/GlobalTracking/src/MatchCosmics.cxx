@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "GlobalTracking/MatchCosmics.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "GPUO2InterfaceRefit.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -28,6 +28,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GlobalTracking/MatchTPCITS.h"
 #include "CommonConstants/GeomConstants.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include <algorithm>
 #include <numeric>
 
@@ -482,10 +483,10 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
 
   mSeeds.clear();
 
-  std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
+  std::function<bool(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
     [this](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
       if (std::abs(_tr.getQ2Pt()) > this->mQ2PtCutoff) {
-        return;
+        return true;
       }
       if (_origID.getSource() == GTrackID::TPC) { // convert TPC bins to \mus
         t0 *= this->mTPCTBinMUS;
@@ -498,6 +499,7 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
       }
       terr += this->mMatchParams->timeToleranceMUS;
       mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
+      return true;
     };
 
   data.createTracks(creator);

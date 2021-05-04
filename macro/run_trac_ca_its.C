@@ -164,7 +164,7 @@ void run_trac_ca_its(bool cosmics = false,
 
   o2::itsmft::TopologyDictionary dict;
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
   }
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
@@ -225,30 +225,16 @@ void run_trac_ca_its(bool cosmics = false,
       memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
     }
   } else {
-    // Comment for pp
+    // PbPb tracking params
     // ----
     trackParams.resize(3);
     memParams.resize(3);
-    for (int iParam{0}; iParam < 3; ++iParam) {
-      for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
-        memParams[iParam].TrackletsMemoryCoefficients[iLayer] = 5.f;
-        memParams[iParam].CellsMemoryCoefficients[iLayer] = 0.1f;
-      }
-    }
-    for (auto i{0}; i < 3; ++i) {
-      trackParams[i].TrackletMaxDeltaPhi = 3.f;
-      trackParams[i].CellMaxDeltaPhi = 3.f;
-      trackParams[i].CellMaxDeltaTanLambda = 1.f;
-      for (auto j{0}; j < 6; ++j) {
-        trackParams[i].TrackletMaxDeltaZ[j] = 10.f;
-      }
-      for (auto j{0}; j < 5; ++j) {
-        trackParams[i].CellMaxDeltaZ[j] = 10.f;
-      }
-    }
+    trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+    trackParams[1].TrackletMaxDeltaPhi = 0.1f;
     trackParams[2].MinTrackLength = 4;
+    trackParams[2].TrackletMaxDeltaPhi = 0.3;
     // ---
-    // Uncomment for pp
+    // pp tracking params
     // trackParams.resize(2);
     // std::array<const float, 5> kmaxDCAxy1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};
     // std::array<const float, 5> kmaxDCAz1 = {1.f * 2.0, 0.4f * 2.0, 0.4f * 2.0, 2.0f * 2.0, 3.f * 2.0};

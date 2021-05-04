@@ -10,16 +10,4 @@
 #ifndef O2_FRAMEWORK_ARROWDEBUGHELPERS_H_
 #define O2_FRAMEWORK_ARROWDEBUGHELPERS_H_
 
-// Explicit template declarations to help LLDB debug arrow related parts.
-
-#ifndef NDEBUG
-template class std::shared_ptr<arrow::Array>;
-template class std::shared_ptr<arrow::ChunkedArray>;
-template class std::shared_ptr<arrow::Field>;
-template class std::shared_ptr<arrow::Schema>;
-template class std::shared_ptr<arrow::Table>;
-template class std::vector<std::shared_ptr<arrow::Table>>;
-template class std::vector<std::shared_ptr<arrow::Field>>;
-#endif
-
 #endif // O2_FRAMEWORK_ARROWDEBUGHELPERS_H_

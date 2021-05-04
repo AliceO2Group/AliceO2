@@ -24,8 +24,8 @@
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/PublisherSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 
@@ -83,6 +83,8 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
   auto nLanes = cfgc.options().get<int>("tof-lanes");
   auto outputType = cfgc.options().get<std::string>("output-type");
@@ -121,9 +123,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // writecalib = false;
   // LOG(INFO) << "TOF CalibInfo disabled (forced)";
 
-  std::vector<int> tpcClusSectors = o2::RangeTokenizer::tokenize<int>("0-35");
-  std::vector<int> tpcClusLanes = tpcClusSectors;
-
   if (!disableRootInput) { // input data loaded from root files
     LOG(INFO) << "Insert TOF Cluster Reader";
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
@@ -133,17 +132,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
     if (doTPCRefit) {
       LOG(INFO) << "Insert TPC Cluster Reader";
-      specs.emplace_back(o2::tpc::getPublisherSpec(o2::tpc::PublisherConf{
-                                                     "tpc-native-cluster-reader",
-                                                     "tpc-native-clusters.root",
-                                                     "tpcrec",
-                                                     {"clusterbranch", "TPCClusterNative", "Branch with TPC native clusters"},
-                                                     {"clustermcbranch", "TPCClusterNativeMCTruth", "MC label branch"},
-                                                     OutputSpec{"TPC", "CLUSTERNATIVE"},
-                                                     OutputSpec{"TPC", "CLNATIVEMCLBL"},
-                                                     tpcClusSectors,
-                                                     tpcClusLanes},
-                                                   false));
+      specs.emplace_back(o2::tpc::getClusterReaderSpec(false));
       specs.emplace_back(o2::tpc::getClusterSharingMapSpec());
     }
 

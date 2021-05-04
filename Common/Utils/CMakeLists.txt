@@ -12,9 +12,10 @@ o2_add_library(CommonUtils
                SOURCES src/TreeStream.cxx src/TreeStreamRedirector.cxx
                        src/RootChain.cxx src/CompStream.cxx src/ShmManager.cxx
                        src/ValueMonitor.cxx
+                       src/StringUtils.cxx
                        src/ConfigurableParamHelper.cxx src/ConfigurableParam.cxx src/RootSerializableKeyValueStore.cxx
                        src/KeyValParam.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
+               PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams Boost::filesystem O2::CommonDataFormat O2::Headers
                                      FairLogger::FairLogger)
 
 o2_target_root_dictionary(CommonUtils

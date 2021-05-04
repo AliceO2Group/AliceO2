@@ -48,6 +48,8 @@
 #include "MCHBase/DecoderError.h"
 #include "MCHCalibration/PedestalDigit.h"
 
+#include "CommonUtils/ConfigurableParam.h"
+
 static const size_t SOLAR_ID_MAX = 100 * 8;
 
 namespace o2
@@ -374,6 +376,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"input-spec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -401,6 +404,7 @@ o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(std::string inputSpe
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
   auto inputSpec = config.options().get<std::string>("input-spec");
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
 

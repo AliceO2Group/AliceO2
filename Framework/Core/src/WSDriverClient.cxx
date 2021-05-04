@@ -9,9 +9,11 @@
 // or submit itself to any jurisdiction.
 #include "WSDriverClient.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DeviceSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceSpec.h"
+#include "DriverClientContext.h"
 #include "DPLWebSocket.h"
 #include <uv.h>
 
@@ -58,34 +60,51 @@ struct ClientWebSocketHandler : public WebSocketHandler {
   WSDriverClient& mClient;
 };
 
+struct ConnectionContext {
+  WSDriverClient* client;
+  DeviceState* state;
+};
+
 void on_connect(uv_connect_t* connection, int status)
 {
   if (status < 0) {
     LOG(ERROR) << "Unable to connect to driver.";
     return;
   }
-  WSDriverClient* client = (WSDriverClient*)connection->data;
+  ConnectionContext* context = (ConnectionContext*)connection->data;
+  WSDriverClient* client = context->client;
+  context->state->loopReason |= DeviceState::WS_CONNECTED;
   auto onHandshake = [client]() {
     client->flushPending();
   };
   std::lock_guard<std::mutex> lock(client->mutex());
   auto handler = std::make_unique<ClientWebSocketHandler>(*client);
-  client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, client->spec(), onHandshake, std::move(handler)));
+  auto clientContext = std::make_unique<o2::framework::DriverClientContext>(DriverClientContext{client->spec(), context->state});
+  client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, std::move(clientContext), onHandshake, std::move(handler)));
   client->sendHandshake();
 }
 
 /// Helper to connect to a
-void connectToDriver(WSDriverClient* driver, uv_loop_t* loop, char const* address, short port)
+void connectToDriver(WSDriverClient* driver, DeviceState* state, char const* address, short port)
 {
   uv_tcp_t* socket = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
-  uv_tcp_init(loop, socket);
+  uv_tcp_init(state->loop, socket);
   uv_connect_t* connection = (uv_connect_t*)malloc(sizeof(uv_connect_t));
-  connection->data = driver;
+  ConnectionContext* context = new ConnectionContext;
+  context->client = driver;
+  context->state = state;
+  connection->data = context;
 
   struct sockaddr_in dest;
   uv_ip4_addr(strdup(address), port, &dest);
 
   uv_tcp_connect(connection, socket, (const struct sockaddr*)&dest, on_connect);
+}
+
+void on_awake_main_thread(uv_async_t* handle)
+{
+  DeviceState* state = (DeviceState*)handle->data;
+  state->loopReason |= DeviceState::ASYNC_NOTIFICATION;
 }
 
 WSDriverClient::WSDriverClient(ServiceRegistry& registry, DeviceState& state, char const* ip, unsigned short port)
@@ -94,7 +113,15 @@ WSDriverClient::WSDriverClient(ServiceRegistry& registry, DeviceState& state, ch
   // Must connect the device to the server and send a websocket request.
   // On successful connection we can then start to send commands to the driver.
   // We keep a backlog to make sure we do not lose messages.
-  connectToDriver(this, state.loop, ip, port);
+  connectToDriver(this, &state, ip, port);
+  this->mAwakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
+  this->mAwakeMainThread->data = &state;
+  uv_async_init(state.loop, this->mAwakeMainThread, on_awake_main_thread);
+}
+
+WSDriverClient::~WSDriverClient()
+{
+  free(this->mAwakeMainThread);
 }
 
 void sendMessageToDriver(std::unique_ptr<o2::framework::WSDPLClient>& client, char const* message, size_t s)
@@ -119,18 +146,18 @@ void WSDriverClient::observe(const char*, std::function<void(char const*)>)
 
 void WSDriverClient::tell(const char* msg, size_t s, bool flush)
 {
-  static bool printed1 = false;
-  static bool printed2 = false;
-  if (mConnected && mClient->isHandshaken() && flush) {
-    flushPending();
-    std::lock_guard<std::mutex> lock(mClientMutex);
-    std::vector<uv_buf_t> outputs;
-    encode_websocket_frames(outputs, msg, s, WebSocketOpCode::Binary, 0);
-    mClient->write(outputs);
-  } else {
-    std::lock_guard<std::mutex> lock(mClientMutex);
-    encode_websocket_frames(mBacklog, msg, s, WebSocketOpCode::Binary, 0);
+  // Tell will always accumulate and we signal the main thread we
+  // have metrics to push
+  std::lock_guard<std::mutex> lock(mClientMutex);
+  encode_websocket_frames(mBacklog, msg, s, WebSocketOpCode::Binary, 0);
+  if (flush) {
+    this->awake();
   }
+}
+
+void WSDriverClient::awake()
+{
+  uv_async_send(mAwakeMainThread);
 }
 
 void WSDriverClient::flushPending()

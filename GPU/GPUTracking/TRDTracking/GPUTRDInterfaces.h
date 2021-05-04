@@ -80,7 +80,13 @@ class trackInterface<AliExternalTrackParam> : public AliExternalTrackParam
 
   const My_Float* getPar() const { return GetParameter(); }
   const My_Float* getCov() const { return GetCovariance(); }
+  void resetCovariance(float s) { ResetCovariance(10.); }
   float getTime() const { return -1.f; }
+  float getTimeMax() const { return 0.f; }
+  float getTimeMin() const { return 0.f; }
+  short getSide() const { return 0; }
+  void setZShift(float) {}
+  float getZShift() const { return 0.f; }
   bool CheckNumericalQuality() const { return true; }
 
   // parameter manipulation
@@ -98,7 +104,8 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 {
 
  public:
-  propagatorInterface<AliTrackerBase>(const void* = nullptr) : AliTrackerBase(), mParam(nullptr){};
+  typedef void propagatorParam;
+  propagatorInterface<AliTrackerBase>(const propagatorParam* = nullptr) : AliTrackerBase(), mParam(nullptr){};
   propagatorInterface<AliTrackerBase>(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
   propagatorInterface<AliTrackerBase>& operator=(const propagatorInterface<AliTrackerBase>&) CON_DELETE;
 
@@ -127,10 +134,17 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
 #endif // GPUCA_ALIROOT_LIB
 
-#if (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE)) && !defined(GPUCA_GPUCODE) // Interface for O2, build only with O2
+#if defined(HAVE_O2HEADERS) // Interface for O2, build only with O2
 
+#include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
+#include "GPUTRDO2BaseTrack.h"
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cmath>
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -139,36 +153,39 @@ namespace gpu
 {
 
 template <>
-class trackInterface<o2::dataformats::TrackTPCITS> : public o2::dataformats::TrackTPCITS
+class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
 {
  public:
-  trackInterface<o2::dataformats::TrackTPCITS>() = default;
-  trackInterface<o2::dataformats::TrackTPCITS>(const trackInterface<o2::dataformats::TrackTPCITS>& param) = default;
-  trackInterface<o2::dataformats::TrackTPCITS>(const o2::dataformats::TrackTPCITS& param) = delete;
-  trackInterface<o2::dataformats::TrackTPCITS>(const GPUTPCGMMergedTrack& trk)
+  GPUdDefault() trackInterface<GPUTRDO2BaseTrack>() = default;
+  trackInterface<GPUTRDO2BaseTrack>(const GPUTRDO2BaseTrack& param) = delete;
+  GPUd() trackInterface<GPUTRDO2BaseTrack>(const o2::dataformats::TrackTPCITS& trkItsTpc, float vDrift) : GPUTRDO2BaseTrack(trkItsTpc.getParamOut())
   {
-    setX(trk.OuterParam().X);
-    setAlpha(trk.OuterParam().alpha);
-    for (int i = 0; i < 5; i++) {
-      setParam(trk.OuterParam().P[i], i);
-    }
-    for (int i = 0; i < 15; i++) {
-      setCov(trk.OuterParam().C[i], i);
+    mTime = trkItsTpc.getTimeMUS().getTimeStamp();
+    mTimeAddMax = trkItsTpc.getTimeMUS().getTimeStampError();
+    mTimeSubMax = trkItsTpc.getTimeMUS().getTimeStampError();
+    mRefITS = trkItsTpc.getRefITS();
+    mRefTPC = trkItsTpc.getRefTPC();
+    float tmp = trkItsTpc.getTimeMUS().getTimeStampError() * vDrift;
+    updateCov(tmp * tmp, o2::track::CovLabels::kSigZ2); // account for time uncertainty by increasing sigmaZ2
+  }
+  GPUd() trackInterface<GPUTRDO2BaseTrack>(const o2::tpc::TrackTPC& trkTpc, float tbWidth, float vDrift, unsigned int iTrk) : GPUTRDO2BaseTrack(trkTpc.getParamOut())
+  {
+    mRefTPC = {iTrk, o2::dataformats::GlobalTrackID::TPC};
+    mTime = trkTpc.getTime0() * tbWidth;
+    mTimeAddMax = trkTpc.getDeltaTFwd() * tbWidth;
+    mTimeSubMax = trkTpc.getDeltaTBwd() * tbWidth;
+    if (trkTpc.hasASideClustersOnly()) {
+      mSide = -1;
+    } else if (trkTpc.hasCSideClustersOnly()) {
+      mSide = 1;
+    } else {
+      // CE-crossing tracks are not shifted along z, but the time uncertainty is taken into account by increasing sigmaZ2
+      float timeWindow = (mTimeAddMax + mTimeSubMax) * .5f;
+      float tmp = timeWindow * vDrift;
+      updateCov(tmp * tmp, o2::track::CovLabels::kSigZ2);
     }
   }
-  trackInterface<o2::dataformats::TrackTPCITS>(const GPUTPCGMTrackParam::GPUTPCOuterParam& param)
-  {
-    setX(param.X);
-    setAlpha(param.alpha);
-    for (int i = 0; i < 5; i++) {
-      setParam(param.P[i], i);
-    }
-    for (int i = 0; i < 15; i++) {
-      setCov(param.C[i], i);
-    }
-  };
-
-  void set(float x, float alpha, const float param[5], const float cov[15])
+  GPUd() void set(float x, float alpha, const float* param, const float* cov)
   {
     setX(x);
     setAlpha(alpha);
@@ -179,68 +196,85 @@ class trackInterface<o2::dataformats::TrackTPCITS> : public o2::dataformats::Tra
       setCov(cov[i], i);
     }
   }
+  GPUdi() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMMergedTrack& trk) { set(trk.OuterParam().X, trk.OuterParam().alpha, trk.OuterParam().P, trk.OuterParam().C); }
+  GPUdi() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMTrackParam::GPUTPCOuterParam& param) { set(param.X, param.alpha, param.P, param.C); }
 
-  const float* getPar() const { return getParams(); }
-  float getTime() const { return mTime; }
-  void setTime(float t) { mTime = t; }
+  GPUdi() const float* getPar() const { return getParams(); }
+  GPUdi() float getTime() const { return mTime; }
+  GPUdi() void setTime(float t) { mTime = t; }
+  GPUdi() float getTimeMax() const { return mTime + mTimeAddMax; }
+  GPUdi() float getTimeMin() const { return mTime - mTimeSubMax; }
+  GPUdi() short getSide() const { return mSide; }
+  GPUdi() float getZShift() const { return mZShift; }
+  GPUdi() void setZShift(float z) { mZShift = z; }
 
-  bool CheckNumericalQuality() const { return true; }
+  GPUdi() bool CheckNumericalQuality() const { return true; }
 
-  typedef o2::dataformats::TrackTPCITS baseClass;
+  typedef GPUTRDO2BaseTrack baseClass;
 
  private:
-  float mTime;
+  o2::dataformats::GlobalTrackID mRefTPC; // reference on TPC track entry in its original container
+  o2::dataformats::GlobalTrackID mRefITS; // reference on ITS track entry in its original container
+  float mTime{-1.f};                      // time estimate for this track in us
+  float mTimeAddMax{0.f};                 // max. time that can be added to this track in us
+  float mTimeSubMax{0.f};                 // max. time that can be subtracted to this track in us
+  short mSide{0};                         // -1 : A-side, +1 : C-side (relevant only for TPC-only tracks)
+  float mZShift{0.f};                     // calculated new for each TRD trigger candidate for this track
 };
 
 template <>
 class propagatorInterface<o2::base::Propagator>
 {
  public:
-  propagatorInterface<o2::base::Propagator>(const void* = nullptr){};
-  propagatorInterface<o2::base::Propagator>(const propagatorInterface<o2::base::Propagator>&) = delete;
-  propagatorInterface<o2::base::Propagator>& operator=(const propagatorInterface<o2::base::Propagator>&) = delete;
+  typedef o2::base::Propagator propagatorParam;
+  GPUd() propagatorInterface<o2::base::Propagator>(const propagatorParam* prop) : mProp(prop){};
+  GPUd() propagatorInterface<o2::base::Propagator>(const propagatorInterface<o2::base::Propagator>&) = delete;
+  GPUd() propagatorInterface<o2::base::Propagator>& operator=(const propagatorInterface<o2::base::Propagator>&) = delete;
 
-  bool propagateToX(float x, float maxSnp, float maxStep) { return mProp->PropagateToXBxByBz(*mParam, x, maxSnp, maxStep); }
-  int getPropagatedYZ(float x, float& projY, float& projZ) { return static_cast<int>(mParam->getYZAt(x, mProp->getNominalBz(), projY, projZ)); }
+  GPUdi() bool propagateToX(float x, float maxSnp, float maxStep) { return mProp->PropagateToXBxByBz(*mParam, x, maxSnp, maxStep); }
+  GPUdi() int getPropagatedYZ(float x, float& projY, float& projZ) { return static_cast<int>(mParam->getYZAt(x, mProp->getNominalBz(), projY, projZ)); }
 
-  void setTrack(trackInterface<o2::dataformats::TrackTPCITS>* trk) { mParam = trk; }
-  void setFitInProjections(bool flag) {}
+  GPUdi() void setTrack(trackInterface<GPUTRDO2BaseTrack>* trk) { mParam = trk; }
+  GPUdi() void setFitInProjections(bool flag) {}
 
-  float getAlpha() { return (mParam) ? mParam->getAlpha() : 99999.f; }
-  bool update(const My_Float p[2], const My_Float cov[3])
+  GPUdi() float getAlpha() { return (mParam) ? mParam->getAlpha() : 99999.f; }
+  GPUdi() bool update(const My_Float p[2], const My_Float cov[3])
   {
     if (mParam) {
-      std::array<float, 2> pTmp = {p[0], p[1]};
-      std::array<float, 3> covTmp = {cov[0], cov[1], cov[3]};
+      gpustd::array<float, 2> pTmp = {p[0], p[1]};
+      gpustd::array<float, 3> covTmp = {cov[0], cov[1], cov[2]};
       return mParam->update(pTmp, covTmp);
     } else {
       return false;
     }
   }
-  float getPredictedChi2(const My_Float p[2], const My_Float cov[3])
+  GPUdi() float getPredictedChi2(const My_Float p[2], const My_Float cov[3])
   {
     if (mParam) {
-      std::array<float, 2> pTmp = {p[0], p[1]};
-      std::array<float, 3> covTmp = {cov[0], cov[1], cov[3]};
+      gpustd::array<float, 2> pTmp = {p[0], p[1]};
+      gpustd::array<float, 3> covTmp = {cov[0], cov[1], cov[2]};
       return mParam->getPredictedChi2(pTmp, covTmp);
     } else {
       return 99999.f;
     }
   }
-  bool rotate(float alpha) { return (mParam) ? mParam->rotate(alpha) : false; }
+  GPUdi() bool rotate(float alpha) { return (mParam) ? mParam->rotate(alpha) : false; }
 
-  trackInterface<o2::dataformats::TrackTPCITS>* mParam{nullptr};
-  o2::base::Propagator* mProp{o2::base::Propagator::Instance()};
+  trackInterface<GPUTRDO2BaseTrack>* mParam{nullptr};
+  const o2::base::Propagator* mProp;
 };
 
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif // GPUCA_O2_LIB || GPUCA_O2_INTERFACE
+#endif // HAVE_O2HEADERS
 
 #include "GPUTPCGMPropagator.h"
 #include "GPUParam.h"
 #include "GPUDef.h"
+#ifdef GPUCA_O2_LIB
+#include "DataFormatsTPC/TrackTPC.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -282,6 +316,32 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
     }
   };
 #endif
+#if defined(GPUCA_O2_LIB) && !defined(GPUCA_GPUCODE)
+  trackInterface<GPUTPCGMTrackParam>(const o2::dataformats::TrackTPCITS& param, float) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
+  {
+    SetX(param.getParamOut().getX());
+    SetPar(0, param.getParamOut().getY());
+    SetPar(1, param.getParamOut().getZ());
+    SetPar(2, param.getParamOut().getSnp());
+    SetPar(3, param.getParamOut().getTgl());
+    SetPar(4, param.getParamOut().getQ2Pt());
+    for (int i = 0; i < 15; i++) {
+      SetCov(i, param.getParamOut().getCov()[i]);
+    }
+  }
+  trackInterface<GPUTPCGMTrackParam>(const o2::tpc::TrackTPC& param, float, float, unsigned int) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
+  {
+    SetX(param.getParamOut().getX());
+    SetPar(0, param.getParamOut().getY());
+    SetPar(1, param.getParamOut().getZ());
+    SetPar(2, param.getParamOut().getSnp());
+    SetPar(3, param.getParamOut().getTgl());
+    SetPar(4, param.getParamOut().getQ2Pt());
+    for (int i = 0; i < 15; i++) {
+      SetCov(i, param.getParamOut().getCov()[i]);
+    }
+  }
+#endif
 
   GPUd() float getX() const
   {
@@ -301,6 +361,11 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
   GPUd() const float* getPar() const { return GetPar(); }
   GPUd() const float* getCov() const { return GetCov(); }
   GPUd() float getTime() const { return -1.f; }
+  GPUd() float getTimeMax() const { return 0.f; }
+  GPUd() float getTimeMin() const { return 0.f; }
+  GPUd() short getSide() const { return 0; }
+  GPUd() void setZShift(float) {}
+  GPUd() float getZShift() const { return 0.f; }
   GPUd() void resetCovariance(float s) { ResetCovariance(); }
   GPUd() void setAlpha(float alpha) { mAlpha = alpha; }
   GPUd() void set(float x, float alpha, const float param[5], const float cov[15])
@@ -325,7 +390,8 @@ template <>
 class propagatorInterface<GPUTPCGMPropagator> : public GPUTPCGMPropagator
 {
  public:
-  GPUd() propagatorInterface<GPUTPCGMPropagator>(const GPUTPCGMPolynomialField* pField) : GPUTPCGMPropagator(), mTrack(nullptr)
+  typedef GPUTPCGMPolynomialField propagatorParam;
+  GPUd() propagatorInterface<GPUTPCGMPropagator>(const propagatorParam* pField) : GPUTPCGMPropagator(), mTrack(nullptr)
   {
     this->SetMaterialTPC();
     this->SetPolynomialField(pField);

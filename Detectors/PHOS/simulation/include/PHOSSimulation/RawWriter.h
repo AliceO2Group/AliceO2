@@ -23,7 +23,6 @@
 #include "Rtypes.h"
 
 #include "DetectorsRaw/RawFileWriter.h"
-#include "PHOSBase/Mapping.h"
 #include "DataFormatsPHOS/Digit.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "PHOSCalib/CalibParams.h"
@@ -89,7 +88,6 @@ class RawWriter
  private:
   FileFor_t mFileFor = FileFor_t::kFullDet;           ///< Granularity of the output files
   std::string mOutputLocation = "./";                 ///< Rawfile name
-  std::unique_ptr<Mapping> mMapping;                  ///< Mapping handler
   std::unique_ptr<const CalibParams> mCalibParams;    ///< PHOS calibration
   gsl::span<o2::phos::Digit> mDigits;                 ///< Digits input vector - must be in digitized format including the time response
   std::vector<SRUDigitContainer> mSRUdata;            ///< Internal helper of digits assigned to SRUs

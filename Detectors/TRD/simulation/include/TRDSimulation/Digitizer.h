@@ -14,12 +14,11 @@
 #include "TRDSimulation/Detector.h"
 
 #include "TRDBase/Calibrations.h"
-#include "TRDBase/Digit.h"
-#include "TRDBase/MCLabel.h"
 #include "TRDBase/CommonParam.h"
 #include "TRDBase/DiffAndTimeStructEstimator.h"
 #include "TRDSimulation/PileupTool.h"
 
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/SignalArray.h"
 #include "DataFormatsTRD/Constants.h"
 
@@ -44,6 +43,7 @@ class PadResponse;
 
 using DigitContainer = std::vector<Digit>;
 using SignalContainer = std::unordered_map<int, SignalArray>;
+using MCLabel = o2::MCCompLabel;
 
 class Digitizer
 {
@@ -54,6 +54,7 @@ class Digitizer
 
   void process(std::vector<Hit> const&);
   void flush(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void dumpLabels(const SignalContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void pileup();
   void setEventTime(double timeNS) { mTime = timeNS; }
   void setTriggerTime(double t) { mCurrentTriggerTime = t; }
@@ -85,16 +86,8 @@ class Digitizer
 
   double mTime = 0.;               // time in nanoseconds of the hits currently being processed
   double mCurrentTriggerTime = 0.; // time in nanoseconds of the current trigger
-  //
-  int mEventID = 0;
-  int mSrcID = 0;
-
-  enum EventType {
-    kFirstEvent,
-    kPileupEvent,
-    kTriggerFired,
-    kEmbeddingEvent
-  };
+  int mEventID = 0;                // event id
+  int mSrcID = 0;                  // source id
 
   // Digitization parameters
   static constexpr float AmWidth = Geometry::amThick();    // Width of the amplification region
@@ -122,9 +115,9 @@ class Digitizer
   int triggerEventProcessing(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   SignalContainer addSignalsFromPileup();
   void clearContainers();
-  bool convertHits(const int, const std::vector<Hit>&, SignalContainer&, int thread = 0);     // True if hit-to-signal conversion is successful
-  bool convertSignalsToADC(SignalContainer&, DigitContainer&, int thread = 0);                // True if signal-to-ADC conversion is successful
-  void addLabel(const o2::trd::Hit& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);
+  bool convertHits(const int, const std::vector<Hit>&, SignalContainer&, int thread = 0);              // True if hit-to-signal conversion is successful
+  bool convertSignalsToADC(SignalContainer&, DigitContainer&, int thread = 0);                         // True if signal-to-ADC conversion is successful
+  void addLabel(const int&, std::vector<MCLabel>&, std::unordered_set<int>&);                          // add a MC label, check if trackId is already registered
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 
   // Helpers for signal handling

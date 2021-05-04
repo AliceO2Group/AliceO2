@@ -40,10 +40,10 @@ template <typename T, typename E>
 class TimeStampWithError : public TimeStamp<T>
 {
  public:
-  TimeStampWithError() = default;
-  TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
-  E getTimeStampError() const { return mTimeStampError; }
-  void setTimeStampError(E te) { mTimeStampError = te; }
+  GPUdDefault() TimeStampWithError() = default;
+  GPUd() TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
+  GPUdi() E getTimeStampError() const { return mTimeStampError; }
+  GPUdi() void setTimeStampError(E te) { mTimeStampError = te; }
 
  private:
   E mTimeStampError = 0;

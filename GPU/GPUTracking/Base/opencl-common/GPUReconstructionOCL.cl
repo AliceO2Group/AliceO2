@@ -19,10 +19,12 @@
   #ifdef GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY
     #define GPUCA_NO_CONSTANT_MEMORY
   #endif
-  #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+  #pragma OPENCL EXTENSION cl_khr_fp64 : enable // Allow double precision variables
+  #pragma OPENCL EXTENSION cl_khr_fp16 : enable // Allow half precision
   #ifdef __clang__
-    #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
-    #pragma OPENCL EXTENSION __cl_clang_function_pointers : enable
+    #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable         //
+    #pragma OPENCL EXTENSION __cl_clang_function_pointers : enable              // Allow function pointers
+    #pragma OPENCL EXTENSION __cl_clang_allow_unsafe_kernel_parameters : enable // Allow pointers to non-standard types as kernel arguments
     #define global __global
     #define local __local
     #define constant __constant
@@ -60,6 +62,10 @@
 #define uint32_t unsigned int
 #define uint16_t unsigned short
 #define uint8_t unsigned char
+#define int64_t long
+#define int32_t int
+#define int16_t short
+#define int8_t char
 
 // Disable assertions since they produce errors in GPU Code
 #ifdef assert

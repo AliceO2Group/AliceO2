@@ -42,7 +42,7 @@ void VertexTrackMatcher::updateTPCTimeDependentParams()
     mMaxTPCDriftTimeMUS = detParam.TPClength / gasParam.DriftV;
   }
   if (mITSROFrameLengthMUS == 0) {
-    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
   }
@@ -151,10 +151,10 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
 
   mTBrackets.clear();
 
-  std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID)> creator =
+  std::function<bool(const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID)> creator =
     [this, &vcont](const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID) {
       if (vcont.find(_origID) != vcont.end()) { // track is contributor to vertex, already accounted
-        return;
+        return true;
       }
       if (_origID.getSource() == GIndex::TPC) { // convert TPC bins to \mus
         t0 *= this->mTPCBin2MUS;
@@ -166,6 +166,7 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
         //terr *= this->mMatchParams->nSigmaTError;
       }
       mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
+      return true;
     };
 
   data.createTracks(creator);

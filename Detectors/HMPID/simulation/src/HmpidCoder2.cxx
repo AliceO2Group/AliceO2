@@ -40,11 +40,12 @@ HmpidCoder2::HmpidCoder2(int numOfEquipments)
   mNumberOfEquipments = numOfEquipments;
   mVerbose = 0;
   mSkipEmptyEvents = true;
-  mPailoadBufferDimPerEquipment = ((Geo::N_SEGMENTS * (Geo::N_COLXSEGMENT * (Geo::N_DILOGICS * (Geo::N_CHANNELS + 1) + 1) + 1)) + 10);
-  auto UPayloadBufferPtr = std::make_unique<uint32_t[]>(sizeof(uint32_t) * mNumberOfEquipments * mPailoadBufferDimPerEquipment);
-  auto UPadMap = std::make_unique<uint32_t[]>(sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS);
-  mPayloadBufferPtr = UPayloadBufferPtr.get();
-  mPadMap = UPadMap.get();
+  mPayloadBufferDimPerEquipment = ((Geo::N_SEGMENTS * (Geo::N_COLXSEGMENT * (Geo::N_DILOGICS * (Geo::N_CHANNELS + 1) + 1) + 1)) + 10);
+  mUPayloadBufferPtr = std::make_unique<uint32_t[]>(mNumberOfEquipments * mPayloadBufferDimPerEquipment);
+  mUPadMap = std::make_unique<uint32_t[]>(Geo::N_HMPIDTOTALPADS);
+  mPayloadBufferPtr = mUPayloadBufferPtr.get();
+  mPadMap = mUPadMap.get();
+  std::memset(mPadMap, 0, sizeof(uint32_t) * Geo::N_HMPIDTOTALPADS); // Zero the map for the first event
   mBusyTime = 20000; // 1 milli sec
   mHmpidErrorFlag = 0;
   mHmpidFrwVersion = 9;

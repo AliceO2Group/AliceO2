@@ -20,6 +20,8 @@
 #include "GPUParam.inc"
 #include "GPUQA.h"
 #include "GPUOutputControl.h"
+#include "TPCPadGainCalib.h"
+#include "TPCdEdxCalibrationSplines.h"
 #include <iostream>
 #include <fstream>
 
@@ -89,9 +91,7 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
   if (mConfig->configInterface.dumpEvents) {
     static int nEvent = 0;
     mChain->ClearIOPointers();
-    mChain->mIOPtrs.clustersNative = data->clustersNative;
-    mChain->mIOPtrs.tpcPackedDigits = data->tpcPackedDigits;
-    mChain->mIOPtrs.tpcZS = data->tpcZS;
+    mChain->mIOPtrs = *data;
 
     char fname[1024];
     sprintf(fname, "event.%d.dump", nEvent);
@@ -159,4 +159,19 @@ int GPUO2Interface::registerMemoryForGPU(const void* ptr, size_t size)
 int GPUO2Interface::unregisterMemoryForGPU(const void* ptr)
 {
   return mRec->unregisterMemoryForGPU(ptr);
+}
+
+std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalibDefault()
+{
+  return std::make_unique<TPCPadGainCalib>();
+}
+
+std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalib(const o2::tpc::CalDet<float>& in)
+{
+  return std::make_unique<TPCPadGainCalib>(in);
+}
+
+std::unique_ptr<TPCdEdxCalibrationSplines> GPUO2Interface::getdEdxCalibrationSplinesDefault()
+{
+  return std::make_unique<TPCdEdxCalibrationSplines>();
 }

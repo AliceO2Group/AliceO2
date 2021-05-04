@@ -18,6 +18,7 @@
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 #include <string>
 #include <stdexcept>
@@ -59,6 +60,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
 {
   //bla
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   auto wf = o2::emcal::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),        //
                                                   cfgc.options().get<bool>("enable-digits-printer"), //
                                                   cfgc.options().get<std::string>("input-type"),     //

@@ -17,6 +17,7 @@
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
 
 #include <EventVisualisationBase/VisualisationConstants.h>
+#include <EventVisualisationDataConverter/VisualisationEvent.h>
 
 class TObject;
 
@@ -28,7 +29,7 @@ namespace event_visualisation
 class DataSource
 {
  public:
-  virtual TObject* getEventData(int /*no*/, EVisualisationGroup /*purpose*/) { return nullptr; };
+  virtual VisualisationEvent getEventData(int /*no*/, EVisualisationGroup /*purpose*/, EVisualisationDataType dataType) = 0;
   virtual int GetEventCount() { return 0; };
 
   DataSource() = default;

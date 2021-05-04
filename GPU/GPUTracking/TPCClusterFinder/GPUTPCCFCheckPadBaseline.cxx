@@ -134,7 +134,7 @@ GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int& pad, const GPUTPC
   const GPUTPCGeometry& geo = clusterer.Param().tpcGeometry;
 
   int padOffset = 0;
-  for (Row r = 0; r < TPC_NUM_OF_ROWS; r++) {
+  for (Row r = 0; r < GPUCA_ROW_COUNT; r++) {
     int npads = geo.NPads(r);
     int padInRow = pad - padOffset;
     if (0 <= padInRow && padInRow < CAMath::nextMultipleOf<PadsPerCacheline, int>(npads)) {

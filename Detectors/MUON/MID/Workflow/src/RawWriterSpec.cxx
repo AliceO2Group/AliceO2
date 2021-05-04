@@ -53,7 +53,7 @@ class RawWriterDeviceDPL
       }
     }
 
-    std::string fullFName = o2::utils::concat_string(dirname, "/", filename);
+    std::string fullFName = o2::utils::Str::concat_string(dirname, "/", filename);
     mEncoder.init(fullFName.c_str(), perLink);
 
     std::string inputGRP = o2::base::NameConf::getGRPFileName();
@@ -66,7 +66,7 @@ class RawWriterDeviceDPL
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
 
     // Write basic config files to be used with raw data reader workflow
-    mEncoder.getWriter().writeConfFile("MID", "RAWDATA", o2::utils::concat_string(dirname, '/', "MIDraw.cfg"));
+    mEncoder.getWriter().writeConfFile("MID", "RAWDATA", o2::utils::Str::concat_string(dirname, '/', "MIDraw.cfg"));
   }
 
   void run(o2::framework::ProcessingContext& pc)

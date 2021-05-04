@@ -15,7 +15,7 @@
 #define O2_S_VERTEXER_H
 
 #include "gsl/span"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
@@ -25,6 +25,8 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
+#include <numeric>
+#include <algorithm>
 
 namespace o2
 {

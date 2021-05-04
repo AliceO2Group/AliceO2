@@ -151,32 +151,32 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
   auto task1 = adaptAnalysisTask<ATask>(*cfgc, TaskName{"test1"});
   BOOST_CHECK_EQUAL(task1.inputs.size(), 2);
   BOOST_CHECK_EQUAL(task1.outputs.size(), 1);
-  BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("TracksExtension"));
-  BOOST_CHECK_EQUAL(task1.inputs[1].binding, std::string("Tracks"));
+  BOOST_CHECK_EQUAL(task1.inputs[1].binding, std::string("TracksExtension"));
+  BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("Tracks"));
   BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 
   auto task2 = adaptAnalysisTask<BTask>(*cfgc, TaskName{"test2"});
   BOOST_CHECK_EQUAL(task2.inputs.size(), 9);
-  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions");
-  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Tracks");
-  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "TracksExtra");
-  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "TracksCovExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "TracksCov");
-  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "UnassignedTracks");
-  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "Calos");
-  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "CaloTriggers");
+  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "CaloTriggers");
+  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "Calos");
+  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Collisions");
+  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "TracksCov");
+  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "TracksCovExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "TracksExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "TracksExtra");
+  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "UnassignedTracks");
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
   BOOST_CHECK_EQUAL(task3.inputs.size(), 3);
   BOOST_CHECK_EQUAL(task3.inputs[0].binding, "Collisions");
-  BOOST_CHECK_EQUAL(task3.inputs[1].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task3.inputs[2].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task3.inputs[2].binding, "TracksExtension");
+  BOOST_CHECK_EQUAL(task3.inputs[1].binding, "Tracks");
 
   auto task4 = adaptAnalysisTask<DTask>(*cfgc, TaskName{"test4"});
   BOOST_CHECK_EQUAL(task4.inputs.size(), 2);
-  BOOST_CHECK_EQUAL(task4.inputs[0].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task4.inputs[1].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task4.inputs[1].binding, "TracksExtension");
+  BOOST_CHECK_EQUAL(task4.inputs[0].binding, "Tracks");
 
   auto task5 = adaptAnalysisTask<ETask>(*cfgc, TaskName{"test5"});
   BOOST_CHECK_EQUAL(task5.inputs.size(), 1);

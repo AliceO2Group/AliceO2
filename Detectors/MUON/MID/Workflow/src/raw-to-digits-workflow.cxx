@@ -19,6 +19,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "MIDWorkflow/RawDecoderSpec.h"
 #include "MIDWorkflow/RawAggregatorSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -30,7 +31,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       {"feeId-config-file", VariantType::String, "", {"Filename with crate FEE ID correspondence"}},
       {"crate-masks-file", VariantType::String, "", {"Filename with crate masks"}},
       {"electronics-delay-file", VariantType::String, "", {"Filename with electronics delay"}},
-      {"decode-only", o2::framework::VariantType::Bool, false, {"Output decoded boards instead of digits"}}};
+      {"decode-only", o2::framework::VariantType::Bool, false, {"Output decoded boards instead of digits"}},
+      {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
 
@@ -38,6 +40,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   auto feeIdConfigFilename = cfgc.options().get<std::string>("feeId-config-file");
   o2::mid::FEEIdConfig feeIdConfig;
   if (!feeIdConfigFilename.empty()) {

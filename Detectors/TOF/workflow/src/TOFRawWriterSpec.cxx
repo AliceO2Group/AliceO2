@@ -99,7 +99,7 @@ void RawWriter::run(ProcessingContext& pc)
   }
 
   // create configuration file for rawreader
-  encoder.getWriter().writeConfFile("TOF", "RAWDATA", o2::utils::concat_string(mOutDirName, '/', "TOFraw.cfg"));
+  encoder.getWriter().writeConfFile("TOF", "RAWDATA", o2::utils::Str::concat_string(mOutDirName, '/', "TOFraw.cfg"));
   encoder.close();
 }
 
