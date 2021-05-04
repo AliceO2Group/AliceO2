@@ -12,7 +12,6 @@
 /// \author Ole Schmidt, Sergey Gorbunov
 
 #include "GPUTRDTrack.h"
-#include "GPUTRDTrackData.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -48,26 +47,81 @@ GPUd() void GPUTRDTrack_t<T>::Initialize()
 
 #ifdef GPUCA_ALIROOT_LIB
 #include "AliHLTExternalTrackParam.h"
+#include "GPUTRDTrackData.h"
+
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const AliHLTExternalTrackParam& t) : T(t)
 {
   Initialize();
 }
+
+template <typename T>
+GPUd() void GPUTRDTrack_t<T>::ConvertTo(GPUTRDTrackDataRecord& t) const
+{
+  //------------------------------------------------------------------
+  // convert to GPU structure
+  //------------------------------------------------------------------
+  t.mAlpha = T::getAlpha();
+  t.fX = T::getX();
+  t.fY = T::getY();
+  t.fZ = T::getZ();
+  t.fq1Pt = T::getQ2Pt();
+  t.mSinPhi = T::getSnp();
+  t.fTgl = T::getTgl();
+  for (int i = 0; i < 15; i++) {
+    t.fC[i] = T::getCov()[i];
+  }
+  t.fTPCTrackID = GetTPCtrackId();
+  for (int i = 0; i < kNLayers; i++) {
+    t.fAttachedTracklets[i] = GetTracklet(i);
+  }
+}
+
+template <typename T>
+GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
+{
+  //------------------------------------------------------------------
+  // convert from GPU structure
+  //------------------------------------------------------------------
+  T::set(t.fX, t.mAlpha, &(t.fY), t.fC);
+  SetTPCtrackId(t.fTPCTrackID);
+  mChi2 = 0.f;
+  mMass = 0.13957f;
+  mLabel = -1;
+  mNTracklets = 0;
+  mNMissingConsecLayers = 0;
+  mLabelOffline = -1;
+  mIsStopped = false;
+  for (int iLayer = 0; iLayer < kNLayers; iLayer++) {
+    mAttachedTracklets[iLayer] = t.fAttachedTracklets[iLayer];
+    mIsFindable[iLayer] = 0;
+    if (mAttachedTracklets[iLayer] >= 0) {
+      mNTracklets++;
+    }
+  }
+  for (int j = 0; j < 4; ++j) {
+    mNTrackletsOffline[j] = 0;
+  }
+}
+
 #endif
 
 #if defined(GPUCA_O2_LIB) && !defined(GPUCA_GPUCODE)
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
+
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t, float vDrift) : T(t, vDrift)
 {
   Initialize();
 }
+
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth, float vDrift, unsigned int iTrk) : T(t, tbWidth, vDrift, iTrk)
 {
   Initialize();
 }
+
 #endif
 
 template <typename T>
@@ -166,55 +220,6 @@ GPUd() int GPUTRDTrack_t<T>::GetNmissingConsecLayers(int iLayer) const
     }
   }
   return res;
-}
-
-template <typename T>
-GPUd() void GPUTRDTrack_t<T>::ConvertTo(GPUTRDTrackDataRecord& t) const
-{
-  //------------------------------------------------------------------
-  // convert to GPU structure
-  //------------------------------------------------------------------
-  t.mAlpha = T::getAlpha();
-  t.fX = T::getX();
-  t.fY = T::getY();
-  t.fZ = T::getZ();
-  t.fq1Pt = T::getQ2Pt();
-  t.mSinPhi = T::getSnp();
-  t.fTgl = T::getTgl();
-  for (int i = 0; i < 15; i++) {
-    t.fC[i] = T::getCov()[i];
-  }
-  t.fTPCTrackID = GetTPCtrackId();
-  for (int i = 0; i < kNLayers; i++) {
-    t.fAttachedTracklets[i] = GetTracklet(i);
-  }
-}
-
-template <typename T>
-GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
-{
-  //------------------------------------------------------------------
-  // convert from GPU structure
-  //------------------------------------------------------------------
-  T::set(t.fX, t.mAlpha, &(t.fY), t.fC);
-  SetTPCtrackId(t.fTPCTrackID);
-  mChi2 = 0.f;
-  mMass = 0.13957f;
-  mLabel = -1;
-  mNTracklets = 0;
-  mNMissingConsecLayers = 0;
-  mLabelOffline = -1;
-  mIsStopped = false;
-  for (int iLayer = 0; iLayer < kNLayers; iLayer++) {
-    mAttachedTracklets[iLayer] = t.fAttachedTracklets[iLayer];
-    mIsFindable[iLayer] = 0;
-    if (mAttachedTracklets[iLayer] >= 0) {
-      mNTracklets++;
-    }
-  }
-  for (int j = 0; j < 4; ++j) {
-    mNTrackletsOffline[j] = 0;
-  }
 }
 
 #ifndef GPUCA_GPUCODE

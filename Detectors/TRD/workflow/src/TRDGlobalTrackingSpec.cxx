@@ -102,8 +102,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   o2::globaltracking::RecoContainer inputTracks;
   inputTracks.collectData(pc, *mDataRequest);
   auto tmpInputContainer = getRecoInputContainer(pc, &mChainTracking->mIOPtrs, &inputTracks);
-  LOGF(INFO, "There are %i tracklets in total from %i trigger records", tmpInputContainer->mNTracklets, tmpInputContainer->mNTriggerRecords);
-  LOGF(INFO, "As input seeds are available: %i ITS-TPC matched tracks and %i TPC tracks", tmpInputContainer->mNTracksTPCITS, tmpInputContainer->mNTracksTPC);
+  LOGF(INFO, "There are %i tracklets in total from %i trigger records", mChainTracking->mIOPtrs.nTRDTracklets, mChainTracking->mIOPtrs.nTRDTriggerRecords);
+  LOGF(INFO, "As input seeds are available: %i ITS-TPC matched tracks and %i TPC tracks", mChainTracking->mIOPtrs.nTracksTPCITSO2, mChainTracking->mIOPtrs.nOutputTracksTPCO2);
   if (tmpInputContainer->mNTracklets != tmpInputContainer->mNSpacePoints) {
     LOGF(FATAL, "Number of calibrated tracklets (%i) differs from the number of uncalibrated tracklets (%i)", tmpInputContainer->mNSpacePoints, tmpInputContainer->mNTracklets);
   }
@@ -120,22 +120,23 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   int nTracksLoadedTPC = 0;
   std::vector<int> loadedTPCtracks;
   // load ITS-TPC matched tracks
-  for (const auto& match : tmpInputContainer->mTracksTPCITS) {
-    GPUTRDTrack trkLoad(match, mTPCVdrift);
+  for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
+    const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
+    GPUTRDTrack trkLoad(trkITSTPC, mTPCVdrift);
     if (mTracker->LoadTrack(trkLoad)) {
       continue;
     }
-    loadedTPCtracks.push_back(match.getRefTPC());
+    loadedTPCtracks.push_back(trkITSTPC.getRefTPC());
     ++nTracksLoadedITSTPC;
     LOGF(DEBUG, "Loaded ITS-TPC track %i with time %f", nTracksLoadedITSTPC, trkLoad.getTime());
   }
   // load TPC-only tracks
-  for (int iTrk = 0; iTrk < tmpInputContainer->mNTracksTPC; ++iTrk) {
+  for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nOutputTracksTPCO2; ++iTrk) {
     if (std::find(loadedTPCtracks.begin(), loadedTPCtracks.end(), iTrk) != loadedTPCtracks.end()) {
       // this TPC tracks has already been matched to ITS and the ITS-TPC track has already been loaded in the tracker
       continue;
     }
-    const auto& trkTpc = tmpInputContainer->mTracksTPC[iTrk];
+    const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
     GPUTRDTrack trkLoad(trkTpc, mTPCTBinMUS, mTPCVdrift, iTrk);
     if (mTracker->LoadTrack(trkLoad)) {
       continue;

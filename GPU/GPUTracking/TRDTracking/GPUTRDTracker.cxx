@@ -201,13 +201,13 @@ void GPUTRDTracker_t<TRDTRK, PROP>::Reset()
 }
 
 template <class TRDTRK, class PROP>
-void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
+void GPUTRDTracker_t<TRDTRK, PROP>::PrepareTracking(GPUChainTracking* chainTracking)
 {
   //--------------------------------------------------------------------
-  // Steering function for the tracking
+  // Prepare tracklet index array and if requested calculate space points
+  // in part duplicated from DoTracking() method to allow for calling
+  // this function on the host prior to GPU processing
   //--------------------------------------------------------------------
-
-  // fill tracklet index array (tracklets are already sorted)
   for (unsigned int iColl = 0; iColl < GetConstantMem()->ioPtrs.nTRDTriggerRecords; ++iColl) {
     int nTrklts = 0;
     int idxOffset = 0;
@@ -246,6 +246,16 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
   if (mGenerateSpacePoints) {
     chainTracking->mIOPtrs.trdSpacePoints = mSpacePoints;
   }
+}
+
+template <class TRDTRK, class PROP>
+void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
+{
+  //--------------------------------------------------------------------
+  // Steering function for the tracking
+  //--------------------------------------------------------------------
+
+  PrepareTracking(chainTracking);
 
   auto timeStart = std::chrono::high_resolution_clock::now();
 

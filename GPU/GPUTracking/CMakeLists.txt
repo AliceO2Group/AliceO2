@@ -133,6 +133,7 @@ set(HDRS_INSTALL
     DataTypes/GPUHostDataTypes.h
     DataTypes/GPURawData.h
     DataTypes/GPUdEdxInfo.h
+    DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
@@ -272,7 +273,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             DataTypes
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                  SOURCES utils/EmptyFile.cxx)
-    
+
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon

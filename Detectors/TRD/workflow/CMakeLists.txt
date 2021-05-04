@@ -19,6 +19,7 @@ o2_add_library(TRDWorkflow
                        src/TRDTrackletTransformerSpec.cxx
                        src/TRDGlobalTrackingSpec.cxx
                        src/TRDTrackWriterSpec.cxx
+                       src/TRDTrackReaderSpec.cxx
                        src/TRDTrackingWorkflow.cxx
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
@@ -46,6 +47,12 @@ o2_add_executable(tracklet-transformer
                   COMPONENT_NAME trd
                   SOURCES src/TRDTrackletTransformerWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
+o2_add_executable(track-reader
+                  COMPONENT_NAME trd
+                  SOURCES src/trd-track-reader-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
 
 
 if (OpenMP_CXX_FOUND)

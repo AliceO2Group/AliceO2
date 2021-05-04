@@ -67,6 +67,7 @@ class GPUTRDTracker_t : public GPUProcessor
   void* SetPointersTracks(void* base);
 
   void CountMatches(const int trackID, std::vector<int>* matches) const;
+  void PrepareTracking(GPUChainTracking* chainTracking);
   void DoTracking(GPUChainTracking* chainTracking);
   void SetNCandidates(int n);
   void PrintSettings() const;
