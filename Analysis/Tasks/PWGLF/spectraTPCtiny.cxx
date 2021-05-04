@@ -8,12 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   spectraTPCtiny.h
+/// \author Nicolo' Jacazio
+///
+/// \brief Task for the analysis of the spectra with the TPC detector using the tiny tables
+///
+
 // O2 includes
 #include "ReconstructionDataFormats/Track.h"
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/ASoAHelpers.h"
+#include "Framework/runDataProcessing.h"
+#include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
@@ -21,7 +27,8 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct TOFSpectraTaskSplit {
+// Spectra task
+struct tpcSpectraTiny {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hp[Np] = {"p/El", "p/Mu", "p/Pi", "p/Ka", "p/Pr", "p/De", "p/Tr", "p/He", "p/Al"};
@@ -41,43 +48,44 @@ struct TOFSpectraTaskSplit {
   template <std::size_t i, typename T>
   void fillParticleHistos(const T& track, const float& nsigma)
   {
-    if (abs(nsigma) > nsigmacut.value) {
+    if (abs(nsigma) > cfgNSigmaCut) {
       return;
     }
     histos.fill(HIST(hp[i]), track.p());
     histos.fill(HIST(hpt[i]), track.pt());
   }
 
+  //Defining filters and input
+  Configurable<float> cfgNSigmaCut{"cfgNSigmaCut", 3, "Value of the Nsigma cut"};
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
-  Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
-
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::tofSignal > 0.f);
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
-                                                  aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                                                  aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
-                                                  aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                                                  aod::pidRespTPCTEl, aod::pidRespTPCTMu, aod::pidRespTPCTPi,
+                                                  aod::pidRespTPCTKa, aod::pidRespTPCTPr, aod::pidRespTPCTDe,
+                                                  aod::pidRespTPCTTr, aod::pidRespTPCTHe, aod::pidRespTPCTAl,
                                                   aod::TrackSelection>>;
+
   void process(TrackCandidates::iterator const& track)
   {
     histos.fill(HIST("p/Unselected"), track.p());
     histos.fill(HIST("pt/Unselected"), track.pt());
 
-    fillParticleHistos<0>(track, track.tofNSigmaEl());
-    fillParticleHistos<1>(track, track.tofNSigmaMu());
-    fillParticleHistos<2>(track, track.tofNSigmaPi());
-    fillParticleHistos<3>(track, track.tofNSigmaKa());
-    fillParticleHistos<4>(track, track.tofNSigmaPr());
-    fillParticleHistos<5>(track, track.tofNSigmaDe());
-    fillParticleHistos<6>(track, track.tofNSigmaTr());
-    fillParticleHistos<7>(track, track.tofNSigmaHe());
-    fillParticleHistos<8>(track, track.tofNSigmaAl());
-  }
+    fillParticleHistos<0>(track, track.tpcNSigmaEl());
+    fillParticleHistos<1>(track, track.tpcNSigmaMu());
+    fillParticleHistos<2>(track, track.tpcNSigmaPi());
+    fillParticleHistos<3>(track, track.tpcNSigmaKa());
+    fillParticleHistos<4>(track, track.tpcNSigmaPr());
+    fillParticleHistos<5>(track, track.tpcNSigmaDe());
+    fillParticleHistos<6>(track, track.tpcNSigmaTr());
+    fillParticleHistos<7>(track, track.tpcNSigmaHe());
+    fillParticleHistos<8>(track, track.tpcNSigmaAl());
+
+  } // end of the process function
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec workflow{adaptAnalysisTask<TOFSpectraTaskSplit>(cfgc, TaskName{"tofspectra-split-task"})};
-  return workflow;
+  return WorkflowSpec{adaptAnalysisTask<tpcSpectraTiny>(cfgc)};
 }

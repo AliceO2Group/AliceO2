@@ -59,6 +59,7 @@ struct tpcPid {
   Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
   Configurable<std::string> sigmaname{"param-sigma", "TPCReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+  Configurable<std::string> ccdbPath{"ccdbPath", "Analysis/PID/TPC", "Path of the TPC parametrization on the CCDB"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
   // Configuration flags to include and exclude particle hypotheses
   Configurable<int> pidEl{"pid-el", -1, {"Produce PID information for the Electron mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
@@ -78,9 +79,15 @@ struct tpcPid {
     for (DeviceSpec device : workflows.devices) {
       for (auto input : device.inputs) {
         auto enableFlag = [&input](const std::string particle, Configurable<int>& flag) {
-          if (input.matcher.binding == "pidRespTPC" + particle) {
+          const std::string table = "pidRespTPC" + particle;
+          if (input.matcher.binding == table) {
             if (flag < 0) {
               flag.value = 1;
+              LOG(INFO) << "Auto-enabling table: " + table;
+            } else if (flag > 0) {
+              LOG(INFO) << "Table enabled: " + table;
+            } else {
+              LOG(INFO) << "Table disabled: " + table;
             }
           }
         };
@@ -105,12 +112,19 @@ struct tpcPid {
     //
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
+      LOG(INFO) << "Loading exp. signal parametrization from file" << fname << ", using param: " << signalname.value;
       response.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
+
+      LOG(INFO) << "Loading exp. sigma parametrization from file" << fname << ", using param: " << sigmaname.value;
       response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
-      const std::string path = "Analysis/PID/TPC";
-      response.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
-      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      std::string path = ccdbPath.value + "/" + signalname.value;
+      LOG(INFO) << "Loading exp. signal parametrization from CCDB, using path: " << path << " for timestamp " << timestamp.value;
+      response.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path, timestamp.value));
+
+      path = ccdbPath.value + "/" + sigmaname.value;
+      LOG(INFO) << "Loading exp. sigma parametrization from CCDB, using path: " << path << " for timestamp " << timestamp.value;
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path, timestamp.value));
     }
   }
 

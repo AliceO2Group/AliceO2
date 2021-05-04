@@ -68,6 +68,7 @@ struct pidTOFTaskQA {
   Configurable<float> MaxP{"MaxP", 5, "Maximum momentum in range"};
   Configurable<float> MinEta{"MinEta", -0.8, "Minimum eta in range"};
   Configurable<float> MaxEta{"MaxEta", 0.8, "Maximum eta in range"};
+  Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the vertex"};
 
   template <typename T>
   void makelogaxis(T h)
@@ -148,6 +149,9 @@ struct pidTOFTaskQA {
                          aod::McTrackLabels, aod::pidRespTOFbeta> const& tracks,
                aod::McParticles& mcParticles)
   {
+    if (collision.numContrib() < nMinNumberOfContributors) {
+      return;
+    }
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
     unsigned int nTracksWithTOF = 0;
     for (auto t : tracks) {
