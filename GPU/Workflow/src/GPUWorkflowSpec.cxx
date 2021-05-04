@@ -735,7 +735,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         processAttributes->qa->cleanup();
       }
       timer.Stop();
-      LOG(INFO) << "TPC CATracker time for this TF " << timer.CpuTime() - cput << " s (cpu), " << timer.RealTime() - realt << " s (wall)";
+      LOG(INFO) << "GPU Reoncstruction time for this TF " << timer.CpuTime() - cput << " s (cpu), " << timer.RealTime() - realt << " s (wall)";
     };
 
     return processingFct;
