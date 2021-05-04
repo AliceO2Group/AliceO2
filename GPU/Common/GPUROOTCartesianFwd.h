@@ -58,7 +58,7 @@ template <typename T, int I>
 struct GPUPoint3D;
 } // namespace detail
 
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+#if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 template <typename T>
 using Point2D = ROOT::Math::PositionVector2D<ROOT::Math::Cartesian2D<T>, ROOT::Math::DefaultCoordinateSystemTag>;
 template <typename T>

@@ -108,7 +108,7 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
       // check if the fired pad are close in space
       LOG(DEBUG) << "phi difference = " << iphi - iphi2;
       LOG(DEBUG) << "eta difference = " << ieta - ieta2;
-      if ((TMath::Abs(iphi - iphi2) > 1) || (TMath::Abs(ieta - ieta2) > 1)) {
+      if ((std::abs(iphi - iphi2) > 1) || (std::abs(ieta - ieta2) > 1)) {
         continue;
       }
 
@@ -271,8 +271,8 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   Geo::rotateToSector(pos, c.getSector());
   c.setXYZ(pos[2], pos[0], pos[1]); // storing coordinates in sector frame: note that the rotation above puts z in pos[1], the radial coordinate in pos[2], and the tangent coordinate in pos[0] (this is to match the TOF residual system, where we don't use the radial component), so we swap their positions.
 
-  c.setR(TMath::Sqrt(pos[0] * pos[0] + pos[1] * pos[1])); // it is the R in the sector frame
-  c.setPhi(TMath::ATan2(pos[1], pos[0]));
+  c.setR(std::sqrt(pos[0] * pos[0] + pos[1] * pos[1])); // it is the R in the sector frame
+  c.setPhi(std::atan2(pos[1], pos[0]));
 
   float errY2 = Geo::XPAD * Geo::XPAD * inv12;
   float errZ2 = Geo::ZPAD * Geo::ZPAD * inv12;
