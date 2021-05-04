@@ -24,6 +24,7 @@ using namespace o2;
 using namespace o2::aod;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
+using namespace o2::aod::hf_cand_bplus;
 using namespace o2::framework::expressions;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -34,7 +35,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-/// B+ analysis task
+/// BPlus analysis task
 struct TaskBPlus {
   HistogramRegistry registry{
     "registry",
@@ -60,7 +61,7 @@ struct TaskBPlus {
   void process(aod::HfCandBPlus const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1)) { // << BPlusToD0Pi
+      if (!(candidate.hfflag() & 1 << BPlusToD0Pi)) {
         continue;
       }
 
@@ -109,13 +110,13 @@ struct TaskBPlusMC {
   {
     // MC rec.
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1)) { // << BPlusToD0Pi
+      if (!(candidate.hfflag() & 1 << BPlusToD0Pi) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YBplus(candidate)) > cutYCandMax) {
         continue;
       }
-      if (std::abs(candidate.flagMCMatchRec()) == 1) { // << BPlusToD0Pi
+      if (std::abs(candidate.flagMCMatchRec()) == 1 << BPlusToD0Pi) {
         // Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index1_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandBPMCGen>>(), 521, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
@@ -124,27 +125,19 @@ struct TaskBPlusMC {
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
         registry.fill(HIST("hDecLengthRecSig"), candidate.decayLength());
-        if (candidate.flagMCMatchRec() == 1) {
-          registry.fill(HIST("hMassRecSig"), InvMassBplus(candidate));
-        } else {
-          registry.fill(HIST("hMassRecSig"), InvMassBminus(candidate));
-        }
-      } else {
+        registry.fill(HIST("hMassRecSig"), InvMassBplus(candidate));
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
         registry.fill(HIST("hDecLengthRecBg"), candidate.decayLength());
-        if (candidate.flagMCMatchRec() == 1) {
-          registry.fill(HIST("hMassRecBg"), InvMassBplus(candidate));
-        } else {
-          registry.fill(HIST("hMassRecBg"), InvMassBminus(candidate));
-        }
+        registry.fill(HIST("hMassRecBg"), InvMassBplus(candidate));
+  
       }
     } // rec
     // MC gen. level
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (std::abs(particle.flagMCMatchGen()) == 1) { // << BPlusToD0Pi)
+      if (std::abs(particle.flagMCMatchGen()) == 1 << BPlusToD0Pi) {
         registry.fill(HIST("hPtGen"), particle.pt());
         float ptProngs[2];
         int counter = 0;

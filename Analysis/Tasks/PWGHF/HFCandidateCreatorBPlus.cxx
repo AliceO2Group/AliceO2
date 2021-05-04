@@ -31,6 +31,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::aod::hf_cand;
 using namespace o2::aod::hf_cand_prong2;
+using namespace o2::aod::hf_cand_bplus;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -185,7 +186,7 @@ struct HFCandidateCreatorBPlus {
         auto errorDecayLength = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
         auto errorDecayLengthXY = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
-        int hfFlagTemp = 1; //only 1 decay implemented
+        int hfFlag = 1 << BPlusToD0Pi;
 
         // fill candidate table rows
         rowCandidateBase(collision.globalIndex(),
@@ -198,7 +199,7 @@ struct HFCandidateCreatorBPlus {
                          impactParameter0.getY(), impactParameter1.getY(),
                          std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
                          candidate.globalIndex(), track.globalIndex(), //index D0 and bachelor
-                         hfFlagTemp);
+                         hfFlag);
 
       } //track loop
     }   //D0 cand loop
@@ -236,7 +237,7 @@ struct HFCandidateCreatorBPlusMC {
       //Printf("Checking B± → D0(bar) π±");
       indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, 521, array{321, -kPiPlus, +kPiPlus}, true, &sign, 2);
       if (indexRec > -1) {
-        flag = sign; // * (1 << BPlusToD0Pi); to be implemented --->Selector
+        flag = sign * (1 << BPlusToD0Pi);
       }
 
       rowMCMatchRec(flag);
@@ -255,7 +256,7 @@ struct HFCandidateCreatorBPlusMC {
         RecoDecay::getDaughters(particlesMC, particle, &arrayDaughterB, array{421}, 1); //it takes abs. of PDG codes
         auto D0candidateMC = particlesMC.iteratorAt(arrayDaughterB[0]);
         if (RecoDecay::isMatchedMCGen(particlesMC, D0candidateMC, 421, array{-321, +kPiPlus}, true, &sign)) {
-          flag = (-1) * sign; //* (1 << BPlusToD0Pi);
+          flag = (-1) * sign * (1 << BPlusToD0Pi);
         }
       }
 
