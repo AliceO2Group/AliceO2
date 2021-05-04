@@ -60,7 +60,7 @@ const char* HelpText[] = {
   "[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
   "[RCTRL] / [RALT]              Rotate model instead of camera / rotate TPC around beamline",
   "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
-  "[F1] / [F2]                   Enable / disable drawing of TPC / TRD"
+  "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS"
   // FREE: none
   // Test setting: ^ --> mHideUnmatchedClusters
 };
@@ -324,6 +324,10 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     mCfg.drawTPC ^= 1;
   } else if (key == mBackend->KEY_F2) {
     mCfg.drawTRD ^= 1;
+  } else if (key == mBackend->KEY_F3) {
+    mCfg.drawTOF ^= 1;
+  } else if (key == mBackend->KEY_F4) {
+    mCfg.drawITS ^= 1;
   } else if (key == 't') {
     GPUInfo("Taking screenshot");
     static int nScreenshot = 1;

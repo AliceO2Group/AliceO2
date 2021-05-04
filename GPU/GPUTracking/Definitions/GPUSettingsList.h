@@ -183,6 +183,8 @@ AddOption(pointSize, float, 2.0f, "", 0, "Set point size")
 AddOption(lineWidth, float, 1.4f, "", 0, "Set line width")
 AddOption(drawTPC, bool, true, "", 0, "Enable drawing TPC data")
 AddOption(drawTRD, bool, true, "", 0, "Enabale drawing TRD data")
+AddOption(drawTOF, bool, true, "", 0, "Enabale drawing TOF data")
+AddOption(drawITS, bool, true, "", 0, "Enabale drawing ITS data")
 AddHelp("help", 'h')
 EndConfig()
 
