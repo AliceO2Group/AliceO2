@@ -21,6 +21,8 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "CommonDataFormat/TimeStamp.h"
+#include "CommonDataFormat/FlatHisto2D.h"
+#include "SimulationDataFormat/MCEventLabel.h"
 
 namespace o2
 {
@@ -103,8 +105,9 @@ struct TrackVF {
 
   TimeEst timeEst;
   float wgh = 0.; ///< track weight wrt current vertex seed
+  float wghHisto = 0.; // weight based on track errors, used for histogramming
   int entry;      ///< track entry in the input vector
-  int16_t bin = -1; // seeds histo bin
+  int32_t bin = -1; // seeds histo bin
   uint8_t flags = 0;
   int vtxID = kNoVtx; ///< assigned vertex
   //
@@ -150,7 +153,7 @@ struct TrackVF {
   }
 
   TrackVF() = default;
-  TrackVF(const o2::track::TrackParCov& src, const TimeEst& t_est, int _entry)
+  TrackVF(const o2::track::TrackParCov& src, const TimeEst& t_est, int _entry, float addHTErr2 = 0., float addHZErr2 = 0.)
     : x(src.getX()), y(src.getY()), z(src.getZ()), tgL(src.getTgl()), tgP(src.getSnp() / std::sqrt(1. - src.getSnp()) * (1. + src.getSnp())), timeEst(t_est), entry(_entry)
   {
     o2::math_utils::sincos(src.getAlpha(), sinAlp, cosAlp);
@@ -159,6 +162,7 @@ struct TrackVF {
     sig2YI = src.getSigmaZ2() * detI;
     sig2ZI = src.getSigmaY2() * detI;
     sigYZI = -src.getSigmaZY() * detI;
+    wghHisto = 1. / ((src.getSigmaZ2() + addHZErr2) * (t_est.getTimeStampError() * t_est.getTimeStampError() + addHTErr2));
   }
 };
 
@@ -170,84 +174,33 @@ struct VertexingInput {
   bool fillErrors = true;
 };
 
-struct SeedHisto {
-  float range = 20;
-  float binSize = 0.5;
-  float binSizeInv = 0.;
-  int nFilled = 0;
-  std::vector<int> data;
+struct SeedHistoTZ : public o2::dataformats::FlatHisto2D_f {
+  using o2::dataformats::FlatHisto2D<float>::FlatHisto2D;
 
-  SeedHisto() = delete;
-  SeedHisto(float _range = 20., float _binsize = 0.5) : range(_range), binSize(_binsize)
+  int fillAndFlagBin(float x, float y, float w)
   {
-    auto zr = 2 * range;
-    int nzb = zr / binSize;
-    if (nzb * binSize < zr - 1e-9) {
-      nzb++;
-    }
-    binSizeInv = 1. / binSize;
-    range = nzb * binSize / 2.;
-    data.resize(nzb);
-  }
-
-  int size() const { return data.size(); }
-
-  void fill(float z)
-  {
-    incrementBin(findBin(z));
-  }
-
-  void incrementBin(int bin)
-  {
-    data[bin]++;
-    nFilled++;
-  }
-
-  void decrementBin(int bin)
-  {
-    data[bin]--;
-    nFilled--;
-  }
-
-  int findBin(float z)
-  {
-    auto d = z + range;
-    if (d < 0.) {
-      return 0;
-    }
-    uint32_t n = d * binSizeInv;
-    return n < data.size() ? n : data.size() - 1;
-  }
-
-  int findHighestPeakBin() const
-  {
-    if (nFilled < 2) {
-      return -1;
-    }
-    int n = data.size(), maxBin = -1, maxv = 0;
-    for (int i = 0; i < n; i++) {
-      if (data[i] > maxv) {
-        maxv = data[(maxBin = i)];
+    uint32_t bin = getBin(x, y);
+    if (isValidBin(bin)) {
+      if (isBinEmpty(bin)) {
+        filledBins.push_back(bin);
       }
+      fillBin(bin, w);
+      nEntries++;
+      return bin;
     }
-    return maxBin;
+    return -1;
   }
 
-  bool isValidBin(int ib) const
+  void clear()
   {
-    return static_cast<uint32_t>(ib) < data.size();
+    o2::dataformats::FlatHisto2D<float>::clear();
+    filledBins.clear();
   }
 
-  float getBinCenter(int ib) const
-  {
-    return (ib + 0.5) * binSize - range; // no check for being in the range!!!
-  }
+  int findPeakBin();
 
-  void discardBin(int ib)
-  { // no check for being in the range!!!
-    nFilled -= data[ib];
-    data[ib] = 0;
-  }
+  std::vector<int> filledBins;
+  int nEntries{};
 };
 
 struct TimeZCluster {
@@ -321,6 +274,25 @@ struct TimeZCluster {
       c.count = 0;
     }
   }
+};
+
+// structure to produce debug dump for neighbouring vertices comparison
+struct PVtxCompDump {
+  PVertex vtx0{};
+  PVertex vtx1{};
+  float chi2z{0};
+  float chi2t{0};
+  ClassDefNV(PVtxCompDump, 1);
+};
+
+// structure to produce debug dump for DBSCAN clusters
+struct TrackVFDump {
+  float z = 0;
+  float ze2i = 0.;
+  float t = 0;
+  float te = 0;
+  float wh = 0.;
+  ClassDefNV(TrackVFDump, 1);
 };
 
 } // namespace vertexing

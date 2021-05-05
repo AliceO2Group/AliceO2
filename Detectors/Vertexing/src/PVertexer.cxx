@@ -18,6 +18,8 @@
 #include "Math/SVector.h"
 #include <unordered_map>
 #include <TStopwatch.h>
+#include "CommonUtils/StringUtils.h" // RS REM
+#include <TH2F.h>
 
 using namespace o2::vertexing;
 
@@ -39,10 +41,12 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
 
   for (auto tc : mTimeZClusters) {
     VertexingInput inp;
-    //    inp.idRange = gsl::span<int>((int*)&mSortedTrackID[tc.first], tc.count);
     inp.idRange = gsl::span<int>((int*)&mClusterTrackIDs[tc.first], tc.count);
-    inp.scaleSigma2 = 3. * estimateScale2();
+    inp.scaleSigma2 = mPVParams->iniScale2;
     inp.timeEst = tc.timeEst;
+#ifdef _PV_DEBUG_TREE_
+    doDBScanDump(inp, gids, lblTracks);
+#endif
     findVertices(inp, verticesLoc, trackIDs, v2tRefsLoc);
   }
 
@@ -52,6 +56,10 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
   std::sort(vtTimeSortID.begin(), vtTimeSortID.end(), [&verticesLoc](int i, int j) {
     return verticesLoc[i].getTimeStamp().getTimeStamp() < verticesLoc[j].getTimeStamp().getTimeStamp();
   });
+  if (lblTracks.size()) {
+    createMCLabels(lblTracks, trackIDs, v2tRefsLoc, lblVtxLoc);
+  }
+  reduceDebris(verticesLoc, vtTimeSortID, lblVtxLoc);
 
   vertices.clear();
   v2tRefs.clear();
@@ -60,12 +68,11 @@ int PVertexer::runVertexing(const gsl::span<o2d::GlobalTrackID> gids, const gsl:
   v2tRefs.reserve(v2tRefsLoc.size());
   vertexTrackIDs.reserve(trackIDs.size());
 
-  if (lblTracks.size()) {
-    createMCLabels(lblTracks, vertices, trackIDs, v2tRefsLoc, lblVtxLoc);
-  }
-
   int trCopied = 0, count = 0, vtimeID = 0;
   for (auto i : vtTimeSortID) {
+    if (i < 0) {
+      continue; // vertex was suppressed
+    }
     auto& vtx = verticesLoc[i];
 
     bool irSet = setCompatibleIR(vtx);
@@ -108,49 +115,49 @@ int PVertexer::findVertices(const VertexingInput& input, std::vector<PVertex>& v
   // find vertices using tracks with indices (sorted in time) from idRange from "tracks" pool. The pool may containt arbitrary number of tracks,
   // only those which are in the idRange and have canUse()==true, will be used.
   // Results are placed in vertices and v2tRefs vectors
-  int nfound = 0, ntr = input.idRange.size();
-  if (ntr < mPVParams->minTracksPerVtx) {
-    return nfound;
-  }
-  //
-  SeedHisto seedHisto(mPVParams->zHistoRange, mPVParams->zHistoBinSize);
 
-  for (int i : input.idRange) {
-    if (mTracksPool[i].canUse()) {
-      mTracksPool[i].bin = seedHisto.findBin(mTracksPool[i].getZForXY(mMeanVertex.getX(), mMeanVertex.getY()));
-      seedHisto.incrementBin(mTracksPool[i].bin);
-    }
-  }
-  if (seedHisto.nFilled < mPVParams->minTracksPerVtx) {
-    return nfound;
-  }
-  LOG(DEBUG) << "New cluster: times: " << mTracksPool[input.idRange[0]].timeEst.getTimeStamp() << " : " << mTracksPool[input.idRange[ntr - 1]].timeEst.getTimeStamp() << " nfound " << nfound << " of " << ntr; // RSTMP
+  int nfound = 0, ntr = 0;
+  auto seedHistoTZ = buildHistoTZ(input); // histo for seeding peak finding
+
+#ifdef _PV_DEBUG_TREE_
+  static int dbsCount = -1;
+  dbsCount++;
+  int trialCount = 0; // TODO REM
+  auto hh = seedHistoTZ.createTH2F(o2::utils::Str::concat_string("htz", std::to_string(dbsCount)));
+  hh->SetDirectory(nullptr);
+  mDebugDumpFile->cd();
+  hh->Write();
+#endif
+
   int nTrials = 0;
   while (nfound < mPVParams->maxVerticesPerCluster && nTrials < mPVParams->maxTrialsPerCluster) {
-    int peakBin = seedHisto.findHighestPeakBin(); // find next seed
-    if (!seedHisto.isValidBin(peakBin)) {
+    int peakBin = seedHistoTZ.findPeakBin();
+    if (!seedHistoTZ.isValidBin(peakBin)) {
       break;
     }
-    float zv = seedHisto.getBinCenter(peakBin);
-    LOG(DEBUG) << "Seeding with Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound;
+    int peakBinT = seedHistoTZ.getXBin(peakBin), peakBinZ = seedHistoTZ.getYBin(peakBin);
+    float tv = seedHistoTZ.getBinXCenter(peakBinT);
+    float zv = seedHistoTZ.getBinYCenter(peakBinZ);
+    LOG(DEBUG) << "Seeding with T=" << tv << " Z=" << zv << " bin " << peakBin << " on trial " << nTrials << " for vertex " << nfound;
+
     PVertex vtx;
     vtx.setXYZ(mMeanVertex.getX(), mMeanVertex.getY(), zv);
-    vtx.setTimeStamp(input.timeEst);
+    vtx.setTimeStamp({tv, 0.f});
     if (findVertex(input, vtx)) {
-      finalizeVertex(input, vtx, vertices, v2tRefs, trackIDs, seedHisto);
+      finalizeVertex(input, vtx, vertices, v2tRefs, trackIDs, seedHistoTZ);
       nfound++;
       nTrials = 0;
     } else {                                                                    // suppress failed seeding bin and its proximities
-      auto delta = std::sqrt(vtx.getChi2()) * mStatZErr.getMean() * getTukey(); // largest scale used will be transferred as chi2
-      int proximity = delta * seedHisto.binSizeInv;
-      int bmin = std::max(0, peakBin - proximity), bmax = std::min(peakBin + proximity + 1, seedHisto.size());
-      LOG(DEBUG) << "suppress bins for delta=" << delta << " (" << std::sqrt(vtx.getChi2()) << "*" << mStatZErr.getMean() << "*" << getTukey() << ")"
-                 << " bins " << bmin << " : " << bmax - 1;
-      for (int i = bmin; i < bmax; i++) {
-        seedHisto.discardBin(i);
-      }
-      nTrials++;
+      seedHistoTZ.setBinContent(peakBin, -1);
     }
+    nTrials++;
+
+#ifdef _PV_DEBUG_TREE_
+    auto hh1 = seedHistoTZ.createTH2F(o2::utils::Str::concat_string("htz", std::to_string(dbsCount), "_", std::to_string(trialCount++)));
+    hh1->SetDirectory(nullptr);
+    mDebugDumpFile->cd();
+    hh1->Write();
+#endif
   }
   return nfound;
 }
@@ -161,6 +168,8 @@ bool PVertexer::findVertex(const VertexingInput& input, PVertex& vtx)
   // fit vertex taking provided vertex as a seed
   // tracks pool may contain arbitrary number of tracks, only those which are in
   // the idRange (indices of tracks sorted in time) will be used.
+
+  int ntr = input.idRange.size(); // RSREM
 
   VertexSeed vtxSeed(vtx, input.useConstraint, input.fillErrors);
   vtxSeed.setScale(input.scaleSigma2, mTukey2I);
@@ -174,7 +183,8 @@ bool PVertexer::findVertex(const VertexingInput& input, PVertex& vtx)
   while (result == FitStatus::IterateFurther) {
     vtxSeed.resetForNewIteration();
     vtxSeed.nIterations++;
-    LOG(DEBUG) << "iter " << vtxSeed.nIterations << " with scale=" << vtxSeed.scaleSigma2 << " prevScale=" << vtxSeed.scaleSigma2Prev;
+    LOG(DEBUG) << "iter " << vtxSeed.nIterations << " with scale=" << vtxSeed.scaleSigma2 << " prevScale=" << vtxSeed.scaleSigma2Prev
+               << " ntr=" << ntr << " Zv=" << vtxSeed.getZ() << " Tv=" << vtxSeed.getTimeStamp().getTimeStamp();
     result = fitIteration(input, vtxSeed);
 
     if (result == FitStatus::OK) {
@@ -193,7 +203,7 @@ bool PVertexer::findVertex(const VertexingInput& input, PVertex& vtx)
       LOG(FATAL) << "Unknown fit status " << int(result);
     }
   }
-  LOG(DEBUG) << "Stopped with scale=" << vtxSeed.scaleSigma2 << " prevScale=" << vtxSeed.scaleSigma2Prev << " result = " << int(result);
+  LOG(DEBUG) << "Stopped with scale=" << vtxSeed.scaleSigma2 << " prevScale=" << vtxSeed.scaleSigma2Prev << " result = " << int(result) << " ntr=" << ntr;
 
   if (result != FitStatus::OK) {
     vtx.setChi2(vtxSeed.maxScaleSigma2Tested);
@@ -209,10 +219,13 @@ PVertexer::FitStatus PVertexer::fitIteration(const VertexingInput& input, Vertex
   int nTested = 0;
   for (int i : input.idRange) {
     if (mTracksPool[i].canUse()) {
-      nTested++;
       accountTrack(mTracksPool[i], vtxSeed);
+      //      printf("#%d z:%f t:%f te:%f w:%f wh:%f\n", nTested, mTracksPool[i].z, mTracksPool[i].timeEst.getTimeStamp(),
+      //             mTracksPool[i].timeEst.getTimeStampError(), mTracksPool[i].wgh, mTracksPool[i].wghHisto);
+      nTested++;
     }
   }
+
   vtxSeed.maxScaleSigma2Tested = vtxSeed.scaleSigma2;
   if (vtxSeed.getNContributors() < mPVParams->minTracksPerVtx) {
     return nTested < mPVParams->minTracksPerVtx ? FitStatus::PoolEmpty : FitStatus::NotEnoughTracks;
@@ -382,6 +395,82 @@ PVertexer::FitStatus PVertexer::evalIterations(VertexSeed& vtxSeed, PVertex& vtx
 }
 
 //___________________________________________________________________
+void PVertexer::reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& timeSort, const std::vector<o2::MCEventLabel>& lblVtx)
+{
+  // eliminate low multiplicity vertices in the close proximity of high mult ones, assuming that these are their debries
+  // The timeSort vector indicates the time ordering of the vertices
+  int nv = vertices.size();
+  std::vector<int> multSort(nv); // sort time indices in multiplicity
+  std::iota(multSort.begin(), multSort.end(), 0);
+  std::sort(multSort.begin(), multSort.end(), [&timeSort, vertices](int i, int j) {
+    return vertices[timeSort[i]].getNContributors() > vertices[timeSort[j]].getNContributors();
+  });
+
+  // suppress vertex pointed by j if needed
+  auto checkPair = [&vertices, &timeSort, &lblVtx, this](int i, int j) {
+    auto &vtI = vertices[timeSort[i]], &vtJ = vertices[timeSort[j]];
+    auto tDiff = std::abs(vtI.getTimeStamp().getTimeStamp() - vtJ.getTimeStamp().getTimeStamp());
+    if (tDiff > this->mPVParams->maxTDiffDebris) {
+      return false; // don't continue checking other neighbours in time
+    }
+    float zDiff = std::abs(vtI.getZ() - vtJ.getZ());
+    if (zDiff > this->mPVParams->maxZDiffDebris) {
+      return true; // cannot be reduced as too far in Z
+    }
+    float multRat = float(vtJ.getNContributors()) / float(vtI.getNContributors());
+    if (multRat > this->mPVParams->maxMultRatDebris) {
+      return true;
+    }
+    float tiE = vtI.getTimeStamp().getTimeStampError(), tjE = vtJ.getTimeStamp().getTimeStampError();
+    float chi2z = zDiff * zDiff / (vtI.getSigmaZ2() + vtJ.getSigmaZ2()), chi2t = tDiff * tDiff / (tiE * tiE + tjE * tjE);
+    if (chi2z + chi2t > this->mPVParams->maxChi2TZDebris) {
+      return true;
+    }
+    // all veto cuts passed, declare as fake!
+#ifdef _PV_DEBUG_TREE_
+    o2::MCEventLabel dummyLbl;
+    this->mDebugDumpPVComp.emplace_back(PVtxCompDump{vtI, vtJ, chi2z, chi2t});
+    if (!lblVtx.empty()) {
+      this->mDebugDumpPVCompLbl0.push_back(lblVtx[timeSort[i]]);
+      this->mDebugDumpPVCompLbl1.push_back(lblVtx[timeSort[j]]);
+    }
+#endif
+    timeSort[j] = -1;
+    return true;
+  };
+
+  for (int im = 0; im < nv; im++) { // loop from highest multiplicity to lowest one
+    int it = multSort[im];
+    if (it < 0) { // if <0, the vertex was already discarded
+      continue;
+    }
+
+    int itL = it; // look for vertices with smaller time
+    while (itL) {
+      if (timeSort[--itL] >= 0) { // if <0, the vertex was already discarded
+        if (checkPair(it, itL)) { // if too far in time, don't compare further
+          break;
+        }
+      }
+    }             // itL loop
+    int itH = it; // look for vertices with higher time
+    while (++itH < nv) {
+      if (timeSort[itH] >= 0) {   // if <0, the vertex was already discarded
+        if (checkPair(it, itH)) { // if too far in time, don't compare further
+          break;
+        }
+      }
+    } // itH loop
+  }
+#ifdef _PV_DEBUG_TREE_
+  mDebugVtxCompTree->Fill();
+  mDebugDumpPVComp.clear();
+  mDebugDumpPVCompLbl0.clear();
+  mDebugDumpPVCompLbl1.clear();
+#endif
+}
+
+//___________________________________________________________________
 void PVertexer::initMeanVertexConstraint()
 {
   // set mean vertex constraint and its errors
@@ -427,35 +516,60 @@ void PVertexer::init()
 
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
+
+#ifdef _PV_DEBUG_TREE_
+  mDebugDumpFile = std::make_unique<TFile>("pvtxDebug.root", "recreate");
+  mDebugDBScanTree = std::make_unique<TTree>("pvtxDBScan", "PVertexer DBScan debug output");
+  mDebugDBScanTree->Branch("trc", &mDebugDumpTrc);
+  mDebugDBScanTree->Branch("gid", &mDebugDumpGID);
+  mDebugDBScanTree->Branch("mc", &mDebugDumpTrcMC);
+  mDebugVtxCompTree = std::make_unique<TTree>("pvtxComp", "PVertexer neighbouring vertices debud output");
+  mDebugVtxCompTree->Branch("vtxComp", &mDebugDumpPVComp);
+  mDebugVtxCompTree->Branch("vtxCompLbl0", &mDebugDumpPVCompLbl0);
+  mDebugVtxCompTree->Branch("vtxCompLbl1", &mDebugDumpPVCompLbl1);
+#endif
+}
+
+//___________________________________________________________________
+void PVertexer::end()
+{
+#ifdef _PV_DEBUG_TREE_
+  mDebugDBScanTree->Write();
+  mDebugVtxCompTree->Write();
+  mDebugDBScanTree.reset();
+  mDebugVtxCompTree.reset();
+  mDebugDumpFile->Close();
+  mDebugDumpFile.reset();
+#endif
 }
 
 //___________________________________________________________________
 void PVertexer::finalizeVertex(const VertexingInput& input, const PVertex& vtx,
                                std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<uint32_t>& trackIDs,
-                               SeedHisto& histo)
+                               SeedHistoTZ& histo)
 {
   int lastID = vertices.size();
   vertices.emplace_back(vtx);
   auto& ref = v2tRefs.emplace_back(trackIDs.size(), 0);
   for (int i : input.idRange) {
-    if (mTracksPool[i].canAssign()) {
-      trackIDs.push_back(mTracksPool[i].entry);
-      mTracksPool[i].vtxID = lastID;
-
-      // remove track from ZSeeds histo
-      histo.decrementBin(mTracksPool[i].bin);
+    auto& trc = mTracksPool[i];
+    if (trc.canAssign()) {
+      trackIDs.push_back(trc.entry);
+      trc.vtxID = lastID;
+      if (trc.bin >= 0) {
+        histo.setBinContent(trc.bin, -1.f); // discard used bin
+      }
     }
   }
   ref.setEntries(trackIDs.size() - ref.getFirstEntry());
 }
 
 //___________________________________________________________________
-void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks, const std::vector<PVertex> vertices,
-                               const std::vector<uint32_t> trackIDs, const std::vector<V2TRef> v2tRefs,
+void PVertexer::createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks,
+                               const std::vector<uint32_t>& trackIDs, const std::vector<V2TRef>& v2tRefs,
                                std::vector<o2::MCEventLabel>& lblVtx)
 {
   lblVtx.clear();
-  int nv = vertices.size();
   if (!lblTracks.size()) {
     LOG(ERROR) << "Track labels are not provided";
     return;
@@ -699,4 +813,66 @@ std::pair<int, int> PVertexer::getBestIR(const PVertex& vtx, const gsl::span<o2:
     i++;
   }
   return {best, nCompatible};
+}
+
+//___________________________________________________________________
+SeedHistoTZ PVertexer::buildHistoTZ(const VertexingInput& input)
+{
+  // build histo for tracks time / z entries weigthed by their inverse error, to be used for seeding peak finding
+  // estimat the range of TZ histo
+
+  float hZMin = 1e9, hZMax = -1e8, hTMin = 1e9, hTMax = -1e9;
+  for (int i : input.idRange) {
+    const auto& trc = mTracksPool[i];
+    if (trc.canUse()) {
+      if (trc.z > hZMax) {
+        hZMax = trc.z;
+      }
+      if (trc.z < hZMin) {
+        hZMin = trc.z;
+      }
+      if (trc.timeEst.getTimeStamp() > hTMax) {
+        hTMax = trc.timeEst.getTimeStamp();
+      }
+      if (trc.timeEst.getTimeStamp() < hTMin) {
+        hTMin = trc.timeEst.getTimeStamp();
+      }
+    }
+  }
+
+  float dz = hZMax - hZMin, dt = hTMax - hTMin;
+  int nbz = 1 + int((dz) / mPVParams->histoBinZSize), nbt = 1 + int((dt) / mPVParams->histoBinTSize);
+  float dzh = 0.5f * (nbz * mPVParams->histoBinZSize - dz), dth = 0.5f * (nbt * mPVParams->histoBinTSize - dt);
+  SeedHistoTZ seedHistoTZ(nbt, hTMin - dth, hTMax + dth, nbz, hZMin - dzh, hZMax + dzh);
+
+  for (int i : input.idRange) {
+    auto& trc = mTracksPool[i];
+    if (trc.canUse()) {
+      trc.bin = seedHistoTZ.fillAndFlagBin(trc.timeEst.getTimeStamp(), trc.z, trc.wghHisto);
+    }
+  }
+
+  return std::move(seedHistoTZ);
+}
+
+//______________________________________________
+void PVertexer::doDBScanDump(const VertexingInput& input, const gsl::span<o2d::GlobalTrackID> gids, gsl::span<const o2::MCCompLabel> lblTracks)
+{
+  // dump tracks for T-Z clusters identified by the DBScan
+#ifdef _PV_DEBUG_TREE_
+  for (int i : input.idRange) {
+    const auto& trc = mTracksPool[i];
+    if (trc.canUse()) {
+      mDebugDumpTrc.emplace_back(TrackVFDump{trc.z, trc.sig2ZI, trc.timeEst.getTimeStamp(), trc.timeEst.getTimeStampError(), trc.wghHisto});
+      mDebugDumpGID.push_back(gids[trc.entry]);
+      if (lblTracks.size()) {
+        mDebugDumpTrcMC.push_back(lblTracks[trc.entry]);
+      }
+    }
+  }
+  mDebugDBScanTree->Fill();
+  mDebugDumpTrc.clear();
+  mDebugDumpGID.clear();
+  mDebugDumpTrcMC.clear();
+#endif
 }
