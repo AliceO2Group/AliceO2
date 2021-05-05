@@ -31,6 +31,9 @@ Float_t Geo::mPadPosition[NSECTORS][NPLATES][NMAXNSTRIP][NPADZ][NPADX][3];
 
 void Geo::Init()
 {
+  if (!mToBeIntit) {
+    return;
+  }
   LOG(INFO) << "tof::Geo: Initialization of TOF rotation parameters";
 
   if (!gGeoManager) {
