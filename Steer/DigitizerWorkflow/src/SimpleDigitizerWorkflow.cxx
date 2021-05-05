@@ -35,9 +35,11 @@
 #include "ITSMFTDigitizerSpec.h"
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 
+#ifdef ENABLE_UPGRADES
 // for ITS3
 #include "ITS3DigitizerSpec.h"
 #include "ITS3Workflow/DigitWriterSpec.h"
+#endif
 
 // for TOF
 #include "TOFDigitizerSpec.h"
@@ -477,6 +479,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
   }
 
+#ifdef ENABLE_UPGRADES
   // the ITS3 part
   if (isEnabled(o2::detectors::DetID::IT3)) {
     detList.emplace_back(o2::detectors::DetID::IT3);
@@ -485,6 +488,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // // connect ITS digit writer
     specs.emplace_back(o2::its3::getITS3DigitWriterSpec(mctruth));
   }
+#endif
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
