@@ -89,7 +89,7 @@ class StepTHnT : public StepTHn
 {
  public:
   StepTHnT() : StepTHn() {}
-  StepTHnT(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxes, Int_t* nBins, std::vector<Double_t> binLimits[], const char** axisTitles);
+  StepTHnT(const Char_t* name, const Char_t* title, const Int_t nSteps, const Int_t nAxes, Int_t* nBins, std::vector<Double_t> binEdges[], const char** axisTitles);
   StepTHnT(const char* name, const char* title, const int nSteps, const int nAxes, const int* nBins, const double* xmin, const double* xmax);
   ~StepTHnT() override = default;
 
