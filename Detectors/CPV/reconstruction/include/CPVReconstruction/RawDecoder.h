@@ -47,6 +47,15 @@ union AddressCharge {
   };
 };
 
+/// BC reference to digits
+struct BCRecord {
+  BCRecord() = default;
+  BCRecord(uint16_t bunchCrossing, unsigned int first, unsigned int last) : bc(bunchCrossing), firstDigit(first), lastDigit(last) {}
+  uint16_t bc;
+  unsigned int firstDigit;
+  unsigned int lastDigit;
+};
+
 /// \class RawDecoder
 /// \brief Decoder of the ALTRO data in the raw page
 /// \ingroup CPVreconstruction
@@ -55,9 +64,7 @@ union AddressCharge {
 ///
 /// This is a base class for reading raw data digits.
 /// It takes raw cpv payload from RawReaderMemory and produces
-/// std::vector<std::pair<uint32_t, uint16_t>> mDigits
-/// mDigits[i].first is AddressCharge word and
-/// mDigits[i].second is bc number in current HBF
+/// std::vector<uint32_t> mDigits and std::vector<BCRecord> mBCRecords
 
 class RawDecoder
 {
@@ -76,15 +83,16 @@ class RawDecoder
   /// cpvwords and cpvtrailer.
   /// After successfull decoding the Decoder can provide
   /// a reference to a vector
-  /// with the decoded chanenels, each containing
-  /// its BC numbers.
+  /// with the decoded chanenels and their bc reference
   RawErrorType_t decode();
 
   /// \brief Get the reference to the digits container
   /// \return Reference to the digits container
-  const std::vector<std::pair<uint32_t, uint16_t>>& getDigits() const;
+  const std::vector<uint32_t>& getDigits() const { return mDigits; };
 
-  /// \brief Get the reference to the BC
+  /// \brief Get the reference to the BC records
+  /// \return reference to the BC records
+  const std::vector<o2::cpv::BCRecord>& getBCRecords() const { return mBCRecords; };
 
   /// \brief Get the reference to the list of decoding errors
   /// \return Reference to the list of decoding errors
@@ -95,20 +103,14 @@ class RawDecoder
   RawErrorType_t readChannels();
 
  private:
-  /// \brief run checks on the RCU trailer
-  /// \throw Error if the RCU trailer has inconsistencies
-  ///
-  /// Performing various consistency checks on the RCU trailer
-  /// In case of failure an exception is thrown.
-  //void checkRCUTrailer();
-
   void addDigit(uint32_t padWord, short ddl, uint16_t bc);
   void removeLastNDigits(int n);
 
-  RawReaderMemory& mRawReader;                        ///< underlying raw reader
-  std::vector<std::pair<uint32_t, uint16_t>> mDigits; ///< vector of channels and BCs in the raw stream
-  std::vector<RawDecoderError> mErrors;               ///< vector of decoding errors
-  bool mChannelsInitialized = false;                  ///< check whether the channels are initialized
+  RawReaderMemory& mRawReader;               ///< underlying raw reader
+  std::vector<uint32_t> mDigits;             ///< vector of channels and BCs in the raw stream
+  std::vector<o2::cpv::BCRecord> mBCRecords; ///< vector of bc references to digits
+  std::vector<RawDecoderError> mErrors;      ///< vector of decoding errors
+  bool mChannelsInitialized = false;         ///< check whether the channels are initialized
 
   ClassDefNV(RawDecoder, 2);
 };
