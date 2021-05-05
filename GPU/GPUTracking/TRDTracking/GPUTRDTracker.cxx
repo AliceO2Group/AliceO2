@@ -1310,7 +1310,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t) c
 
   if (CAMath::Abs(y) > 2.f * yMax) {
     if (ENABLE_INFO) {
-      Info("AdjustSector", "Track %i with pT = %f crossing two sector boundaries at x = %f", t->GetTPCtrackId(), t->getPt(), t->getX());
+      GPUInfo("AdjustSector: Track %i with pT = %f crossing two sector boundaries at x = %f", t->GetTPCtrackId(), t->getPt(), t->getX());
     }
     return false;
   }
