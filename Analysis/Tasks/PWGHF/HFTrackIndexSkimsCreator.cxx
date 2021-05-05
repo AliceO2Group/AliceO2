@@ -64,47 +64,47 @@ struct HfProduceSelCollisions {
 
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
-  Configurable<std::string> s_trigger_class{"trigger_class", "kINT7", "trigger class"};
-  int trigger_class = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, s_trigger_class.value.data()));
+  Configurable<bool> bDoValPlots{"b_dovalplots", true, "fill histograms"};
+  Configurable<std::string> sTriggerClass{"trigger_class", "kINT7", "trigger class"};
+  int triggerClass = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, sTriggerClass.value.data()));
 
   HistogramRegistry registry{
     "registry",
-    {{"h_events", "Events;;entries", {HistType::kTH1F, {{3, 0.5, 3.5}}}}}};
+    {{"hEvents", "Events;;entries", {HistType::kTH1F, {{3, 0.5, 3.5}}}}}};
 
   void init(InitContext const&)
   {
     std::string labels[3] = {"processed collisions", "selected collisions", "rej. trigger class"};
     for (int iBin = 0; iBin < 3; iBin++) {
-      registry.get<TH1>(HIST("h_events"))->GetXaxis()->SetBinLabel(iBin + 1, labels[iBin].data());
+      registry.get<TH1>(HIST("hEvents"))->GetXaxis()->SetBinLabel(iBin + 1, labels[iBin].data());
     }
   }
 
   // event selection
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision)
   {
-    int status_collision = 0;
+    int statusCollision = 0;
 
-    if (b_dovalplots) {
-      registry.get<TH1>(HIST("h_events"))->Fill(1);
+    if (bDoValPlots) {
+      registry.get<TH1>(HIST("hEvents"))->Fill(1);
     }
 
-    if (!collision.alias()[trigger_class]) {
-      status_collision |= BIT(0);
-      if (b_dovalplots) {
-        registry.get<TH1>(HIST("h_events"))->Fill(3);
+    if (!collision.alias()[triggerClass]) {
+      statusCollision |= BIT(0);
+      if (bDoValPlots) {
+        registry.get<TH1>(HIST("hEvents"))->Fill(3);
       }
     }
 
     //TODO: add more event selection criteria
 
     // selected events
-    if (b_dovalplots && status_collision == 0) {
-      registry.get<TH1>(HIST("h_events"))->Fill(2);
+    if (bDoValPlots && statusCollision == 0) {
+      registry.get<TH1>(HIST("hEvents"))->Fill(2);
     }
 
     // fill table row
-    rowSelectedCollision(status_collision);
+    rowSelectedCollision(statusCollision);
   };
 };
 
