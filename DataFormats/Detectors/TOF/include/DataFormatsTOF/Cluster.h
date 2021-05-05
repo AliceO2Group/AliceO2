@@ -89,6 +89,21 @@ class Cluster : public o2::BaseCluster<float>
     }
     return mPhi;
   }
+  float getR() const // Cluster Radius (it is the same in sector and global frame)
+  {
+    if (mR == RadiusOutOfRange) {
+      return o2::gpu::CAMath::Sqrt(getX() * getX() + getY() * getY() + getZ() * getZ());
+    }
+    return mR;
+  }
+
+  float getPhi() const // Cluster Phi in sector frame
+  {
+    if (mPhi == PhiOutOfRange) {
+      return o2::gpu::CAMath::ATan2(getY(), getX());
+    }
+    return mPhi;
+  }
 
   void setR(float value) { mR = value; }
   void setPhi(float value) { mPhi = value; }
