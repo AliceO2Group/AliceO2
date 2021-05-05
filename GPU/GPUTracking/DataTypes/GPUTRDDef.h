@@ -89,11 +89,6 @@ class GPUTRDTracker_t;
 typedef GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator> GPUTRDTracker;
 typedef GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU> GPUTRDTrackerGPU;
 
-#if defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_ALIROOT_LIB) && !defined(__CLING__) && !defined(__ROOTCLING__) && !defined(G__ROOT)
-#define Error(...)
-#define Warning(...)
-#define Info(...)
-#endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
