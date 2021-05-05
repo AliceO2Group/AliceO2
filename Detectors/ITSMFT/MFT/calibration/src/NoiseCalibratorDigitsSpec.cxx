@@ -134,7 +134,7 @@ void NoiseCalibratorDigitsSpec::sendOutput(DataAllocator& output)
 
   for (unsigned int i = 0; i < 4; i++) {
     if (mCalibrator->isMapEmpty(i)) {
-	    continue;
+      continue;
     }
     o2::ccdb::CcdbObjectInfo info(mCalibrator->getPath(i), "NoiseMap", "noise.root", meta, tstart, tend);
     const auto& payload = mCalibrator->getNoiseMap(i);
