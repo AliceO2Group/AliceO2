@@ -10,6 +10,7 @@
 
 o2_add_library(HMPIDWorkflow
                SOURCES src/DataDecoderSpec.cxx
+                       src/DataDecoderSpec2.cxx
                        src/DigitsToRawSpec.cxx
                        src/DumpDigitsSpec.cxx
                        src/PedestalsCalculationSpec.cxx
