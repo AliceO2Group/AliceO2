@@ -25,7 +25,6 @@
 #include "Framework/ChannelInfo.h"
 #include "Framework/Logger.h"
 
-#include <ROOT/RDataFrame.hxx>
 #if __has_include(<TJAlienFile.h>)
 #include <TJAlienFile.h>
 #endif
