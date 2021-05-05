@@ -28,6 +28,7 @@ RawErrorType_t RawDecoder::decode()
   auto& rdh = mRawReader.getRawHeader();
   short linkID = o2::raw::RDHUtils::getLinkID(rdh);
   mDigits.clear();
+  mBCRecords.clear();
 
   auto payloadWords = mRawReader.getPayload();
   if (payloadWords.size() == 0) {
@@ -51,7 +52,7 @@ RawErrorType_t RawDecoder::readChannels()
   auto b = payloadWords.cbegin();
   auto e = payloadWords.cend();
   while (b != e) { //payload must start with cpvheader folowed by cpvwords and finished with cpvtrailer
-    cpvheader header(b, e);
+    CpvHeader header(b, e);
     if (header.isOK()) {
       if (!isHeaderExpected) { //actually, header was not expected
         LOG(ERROR) << "RawDecoder::readChannels() : "
@@ -74,7 +75,7 @@ RawErrorType_t RawDecoder::readChannels()
         b += 16;
         continue; //continue while'ing until it's not header
       }
-      cpvword word(b, e);
+      CpvWord word(b, e);
       if (word.isOK()) {
         wordCountFromLastHeader++;
         for (int i = 0; i < 3; i++) {
@@ -85,7 +86,7 @@ RawErrorType_t RawDecoder::readChannels()
           }
         }
       } else { //this may be trailer
-        cpvtrailer trailer(b, e);
+        CpvTrailer trailer(b, e);
         if (trailer.isOK()) {
           int diffInCount = wordCountFromLastHeader - trailer.wordCounter();
           if (diffInCount > 1 ||
@@ -123,16 +124,16 @@ RawErrorType_t RawDecoder::readChannels()
   return kOK;
 }
 
-const std::vector<std::pair<uint32_t, uint16_t>>& RawDecoder::getDigits() const
-{
-  /*if (!mChannelsInitialized) {
-    LOG(ERROR) << "RawDecoder::getDigits() : Channels not initialized";
-  }*/
-  return mDigits;
-}
-
 void RawDecoder::addDigit(uint32_t w, short ccId, uint16_t bc)
 {
+  //new bc -> add bc reference
+  if (mBCRecords.empty() || (mBCRecords.back().bc != bc)) {
+    mBCRecords.push_back(BCRecord(bc, mDigits.size(), mDigits.size()));
+  } else {
+    mBCRecords.back().lastDigit++;
+  }
+
+  //add digit
   PadWord pad = {w};
   unsigned short absId;
   o2::cpv::Geometry::hwaddressToAbsId(ccId, pad.dil, pad.gas, pad.address, absId);
@@ -140,18 +141,23 @@ void RawDecoder::addDigit(uint32_t w, short ccId, uint16_t bc)
   AddressCharge ac = {0};
   ac.Address = absId;
   ac.Charge = pad.charge;
-  //std::pair<uint32_t, uint16_t> digitAndBC
-  mDigits.push_back(std::pair(ac.mDataWord, bc));
+  mDigits.push_back(ac.mDataWord);
 }
 
 void RawDecoder::removeLastNDigits(int n)
 {
-  if (n < 0)
+  if (n < 0) {
     return;
+  }
   int nRemoved = 0;
   while (nRemoved < n) {
     if (mDigits.size() > 0) { // still has digits to remove
       mDigits.pop_back();
+      if (mBCRecords.back().lastDigit == mBCRecords.back().firstDigit) {
+        mBCRecords.pop_back();
+      } else {
+        mBCRecords.back().lastDigit--;
+      }
       nRemoved++;
     } else { // has nothing to remove already
       break;

@@ -167,35 +167,39 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       }
 
       std::shared_ptr<std::vector<o2::cpv::Digit>> currentDigitContainer;
-      o2::InteractionRecord currentIR(0, triggerOrbit);
-      // Loop over all the channels
-      for (std::pair<uint32_t, uint16_t> adchbc : decoder.getDigits()) {
-        uint16_t triggerBC = adchbc.second;
-        if (triggerBC != currentIR.bc) {
-          currentIR.bc = triggerBC;
-        }
-        auto found = digitBuffer.find(currentIR);
-        if (found == digitBuffer.end()) {
-          currentDigitContainer = std::make_shared<std::vector<o2::cpv::Digit>>();
-          digitBuffer[currentIR] = currentDigitContainer;
-        } else {
-          currentDigitContainer = found->second;
-        }
-
-        AddressCharge ac = {adchbc.first};
-        unsigned short absId = ac.Address;
-        //if we deal with non-pedestal data?
-        if (!mIsPedestalData) { //not a pedestal data
-          //test bad map
-          if (mBadMap->isChannelGood(absId)) {
-            //we need to subtract pedestal from amplidute and calibrate it
-            float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
-            if (amp > 0) {
-              currentDigitContainer->emplace_back(absId, amp, -1);
-            }
+      auto digilets = decoder.getDigits();
+      if (digilets.empty()) { //no digits -> continue to next pages
+        continue;
+      }
+      o2::InteractionRecord currentIR(0, triggerOrbit); //(bc, orbit)
+      // Loop over all the BCs
+      for (auto itBCRecords : decoder.getBCRecords()) {
+        currentIR.bc = itBCRecords.bc;
+        for (int iDig = itBCRecords.firstDigit; iDig <= itBCRecords.lastDigit; iDig++) {
+          auto adch = digilets[iDig];
+          auto found = digitBuffer.find(currentIR);
+          if (found == digitBuffer.end()) {
+            currentDigitContainer = std::make_shared<std::vector<o2::cpv::Digit>>();
+            digitBuffer[currentIR] = currentDigitContainer;
+          } else {
+            currentDigitContainer = found->second;
           }
-        } else { //pedestal data, no calibration needed.
-          currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
+
+          AddressCharge ac = {adch};
+          unsigned short absId = ac.Address;
+          //if we deal with non-pedestal data?
+          if (!mIsPedestalData) { //not a pedestal data
+            //test bad map
+            if (mBadMap->isChannelGood(absId)) {
+              //we need to subtract pedestal from amplidute and calibrate it
+              float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
+              if (amp > 0) {
+                currentDigitContainer->emplace_back(absId, amp, -1);
+              }
+            }
+          } else { //pedestal data, no calibration needed.
+            currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
+          }
         }
       }
       //Check and send list of hwErrors

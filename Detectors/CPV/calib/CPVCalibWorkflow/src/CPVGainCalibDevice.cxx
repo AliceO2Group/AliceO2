@@ -76,8 +76,8 @@ void CPVGainCalibDevice::run(o2::framework::ProcessingContext& ctx)
         continue;
       }
       // Loop over all the channels
-      for (std::pair<uint32_t, uint16_t> adchbc : decoder.getDigits()) {
-        AddressCharge ac = {adchbc.first};
+      for (auto adch : decoder.getDigits()) {
+        AddressCharge ac = {adch};
         unsigned short absId = ac.Address;
         mMean->Fill(absId, ac.Charge);
       }
