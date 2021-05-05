@@ -225,10 +225,10 @@ struct HFDplusToPiKPiCandidateSelector {
       auto trackPos2 = hfCandProng3.index2_as<aod::BigTracksPID>(); //positive daughter (negative for the antiparticles)
 
       // daughter track validity selection
-      if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg1) || !daughterSelection(trackPos2)) {
-        hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
-        continue;
-      }
+//      if (!daughterSelection(trackPos1) || !daughterSelection(trackNeg1) || !daughterSelection(trackPos2)) {
+//        hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
+//        continue;
+//      }
 
       // topological selection
       if (!selection(hfCandProng3, trackPos1, trackNeg1, trackPos2)) {
@@ -237,14 +237,14 @@ struct HFDplusToPiKPiCandidateSelector {
       }
 
       // pid selection
-      auto pionPlus1 = selectionPID(trackPos1, kPiPlus);
-      auto kaonMinus = selectionPID(trackNeg1, kKPlus);
-      auto pionPlus2 = selectionPID(trackPos2, kPiPlus);
+//      auto pionPlus1 = selectionPID(trackPos1, kPiPlus);
+//      auto kaonMinus = selectionPID(trackNeg1, kKPlus);
+//      auto pionPlus2 = selectionPID(trackPos2, kPiPlus);
 
-      if (pionPlus1 == 0 || kaonMinus == 0 || pionPlus2 == 0) { //exclude Dplus for PID
-        hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
-        continue;
-      }
+//      if (pionPlus1 == 0 || kaonMinus == 0 || pionPlus2 == 0) { //exclude Dplus for PID
+//        hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
+//        continue;
+//      }
 
       statusDplusToPiKPi = 1;
       hfSelDplusToPiKPiCandidate(statusDplusToPiKPi);
