@@ -168,7 +168,7 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << indScheme << "- \"--monitoring-backend\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ monitoring_dpl_url }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--session\"\n";
-  dumpOut << indLevel << indScheme << "- \"'default'\"\n";
+  dumpOut << indLevel << indScheme << "- \"'{{ session_id }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--infologger-severity\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ infologger_severity }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--infologger-mode\"\n";
@@ -322,6 +322,7 @@ void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, c
   dumpOut << indLevel << indScheme << "fmq_rate_logging: 0\n";
   dumpOut << indLevel << indScheme << "shm_segment_size: 10000000000\n";
   dumpOut << indLevel << indScheme << "shm_throw_bad_alloc: false\n";
+  dumpOut << indLevel << indScheme << "session_id: default\n";
 
   dumpOut << indLevel << "roles:\n";
   for (size_t di = 0; di < specs.size(); di++) {
