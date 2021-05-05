@@ -51,9 +51,7 @@ void CPVPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
       } catch (RawErrorType_t e) {
         LOG(ERROR) << "Raw decoding error " << (int)e;
         //if problem in header, abandon this page
-        if (e == RawErrorType_t::kPAGE_NOTFOUND ||
-            e == RawErrorType_t::kHEADER_DECODING ||
-            e == RawErrorType_t::kHEADER_INVALID) {
+        if (e == RawErrorType_t::kRDH_DECODING) {
           break;
         }
         //if problem in payload, try to continue
@@ -70,8 +68,8 @@ void CPVPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
         continue;
       }
       // Loop over all the channels
-      for (uint32_t adch : decoder.getDigits()) {
-        AddressCharge ac = {adch};
+      for (std::pair<uint32_t, uint16_t> adchbc : decoder.getDigits()) {
+        AddressCharge ac = {adchbc.first};
         unsigned short absId = ac.Address;
         mMean->Fill(absId, ac.Charge);
       }
