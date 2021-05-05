@@ -13,7 +13,7 @@
 #include <iosfwd>
 #include <gsl/span>
 #include <string>
-#include "CPVBase/RCUTrailer.h"
+#include <utility>
 #include "DataFormatsCPV/Digit.h"
 #include "CPVReconstruction/RawReaderMemory.h"
 class Digits;
@@ -54,6 +54,10 @@ union AddressCharge {
 /// \since Dec, 2020
 ///
 /// This is a base class for reading raw data digits.
+/// It takes raw cpv payload from RawReaderMemory and produces
+/// std::vector<std::pair<uint32_t, uint16_t>> mDigits
+/// mDigits[i].first is AddressCharge word and
+/// mDigits[i].second is bc number in current HBF
 
 class RawDecoder
 {
@@ -65,33 +69,28 @@ class RawDecoder
   /// \brief Destructor
   ~RawDecoder() = default;
 
-  /// \brief Decode the ALTRO stream
-  /// \throw RawDecoderError if the RCUTrailer or ALTRO payload cannot be decoded
+  /// \brief Decode the raw cpv payload stream
+  /// \throw RawDecoderError if the RCUTrailer or raw cpv payload cannot be decoded
   ///
-  /// Decoding and checking the RCUTtrailer and
-  /// all channels and bunches in the ALTRO stream.
+  /// Decoding and checking the cpvheader,
+  /// cpvwords and cpvtrailer.
   /// After successfull decoding the Decoder can provide
-  /// a reference to the RCU trailer and a vector
+  /// a reference to a vector
   /// with the decoded chanenels, each containing
-  /// its bunches.
+  /// its BC numbers.
   RawErrorType_t decode();
-
-  /// \brief Get reference to the RCU trailer object
-  /// \return const reference to the RCU trailer
-  const RCUTrailer& getRCUTrailer() const;
 
   /// \brief Get the reference to the digits container
   /// \return Reference to the digits container
-  const std::vector<uint32_t>& getDigits() const;
+  const std::vector<std::pair<uint32_t, uint16_t>>& getDigits() const;
+
+  /// \brief Get the reference to the BC
 
   /// \brief Get the reference to the list of decoding errors
   /// \return Reference to the list of decoding errors
   const std::vector<o2::cpv::RawDecoderError>& getErrors() const { return mErrors; }
 
  protected:
-  /// \brief Read RCU trailer for the current event in the raw buffer
-  RawErrorType_t readRCUTrailer();
-
   /// \brief Read channels for the current event in the raw buffer
   RawErrorType_t readChannels();
 
@@ -101,17 +100,17 @@ class RawDecoder
   ///
   /// Performing various consistency checks on the RCU trailer
   /// In case of failure an exception is thrown.
-  void checkRCUTrailer();
+  //void checkRCUTrailer();
 
-  void addDigit(uint32_t padWord, short ddl);
+  void addDigit(uint32_t padWord, short ddl, uint16_t bc);
+  void removeLastNDigits(int n);
 
-  RawReaderMemory& mRawReader;          ///< underlying raw reader
-  RCUTrailer mRCUTrailer;               ///< RCU trailer
-  std::vector<uint32_t> mDigits;        ///< vector of channels in the raw stream
-  std::vector<RawDecoderError> mErrors; ///< vector of decoding errors
-  bool mChannelsInitialized = false;    ///< check whether the channels are initialized
+  RawReaderMemory& mRawReader;                        ///< underlying raw reader
+  std::vector<std::pair<uint32_t, uint16_t>> mDigits; ///< vector of channels and BCs in the raw stream
+  std::vector<RawDecoderError> mErrors;               ///< vector of decoding errors
+  bool mChannelsInitialized = false;                  ///< check whether the channels are initialized
 
-  ClassDefNV(RawDecoder, 1);
+  ClassDefNV(RawDecoder, 2);
 };
 
 } // namespace cpv
