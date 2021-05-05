@@ -166,6 +166,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
 
 void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 {
+  mVertexer.end();
   LOGF(INFO, "Primary vertexing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
