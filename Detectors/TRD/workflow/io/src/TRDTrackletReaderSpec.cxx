@@ -59,7 +59,7 @@ void TRDTrackletReader::connectTree()
   mTreeTrklt->SetBranchAddress("Tracklet", &mTrackletsPtr);
   mTreeTrklt->SetBranchAddress("TrackTrg", &mTriggerRecordsPtr);
   if (mUseMC) {
-    LOG(FATAL) << "MC information not yet included for TRD tracklets";
+    mTreeTrklt->SetBranchAddress("TRKLabels", &mLabelsPtr);
   }
   LOG(INFO) << "Loaded tree from " << mInFileNameTrklt << " with " << mTreeTrklt->GetEntries() << " entries";
 }
@@ -81,7 +81,7 @@ void TRDTrackletReader::run(ProcessingContext& pc)
 
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggerRecords);
   if (mUseMC) {
-    LOG(FATAL) << "MC information not yet included for TRD tracklets";
+    pc.outputs().snapshot(Output{"TRD", "TRKLABELS", 0, Lifetime::Timeframe}, mLabels);
   }
 
   if (mTreeTrklt->GetReadEntry() + 1 >= mTreeTrklt->GetEntries()) {
@@ -99,7 +99,7 @@ DataProcessorSpec getTRDTrackletReaderSpec(bool useMC, bool useCalibratedTrackle
   outputs.emplace_back(o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
   if (useMC) {
-    LOG(FATAL) << "MC information not yet included for TRD tracklets";
+    outputs.emplace_back("TRD", "TRKLABELS", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
