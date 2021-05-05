@@ -30,6 +30,7 @@
 #pragma link C++ class o2::trd::PadCalibrations < float > +;
 #pragma link C++ class o2::trd::PadCalibrations < char > +;
 #pragma link C++ class o2::trd::ChamberCalibrations + ;
+#pragma link C++ class o2::trd::CalVdriftExB + ;
 #pragma link C++ class o2::trd::PadStatus + ;
 #pragma link C++ class o2::trd::LocalT0 + ;
 #pragma link C++ class o2::trd::LocalVDrift + ;

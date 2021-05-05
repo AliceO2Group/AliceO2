@@ -22,6 +22,7 @@ o2_add_library(TRDBase
                        src/PadStatus.cxx
                        src/LocalVDrift.cxx
                        src/LocalT0.cxx
+                       src/CalVdriftExB.cxx
                        src/LocalGainFactor.cxx
                        src/ChamberStatus.cxx
                        src/Calibrations.cxx
@@ -56,6 +57,7 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/PadStatus.h
                                   include/TRDBase/LocalVDrift.h
                                   include/TRDBase/LocalT0.h
+                                  include/TRDBase/CalVdriftExB.h
                                   include/TRDBase/LocalGainFactor.h
                                   include/TRDBase/ChamberStatus.h
                                   include/TRDBase/Calibrations.h
