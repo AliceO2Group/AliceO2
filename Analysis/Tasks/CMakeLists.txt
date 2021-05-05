@@ -18,6 +18,7 @@ add_subdirectory(PWGJE)
 add_subdirectory(PWGLF)
 add_subdirectory(PWGUD)
 add_subdirectory(Utils)
+add_subdirectory(PWGMM)
 add_subdirectory(SkimmingTutorials)
 add_subdirectory(PID)
 
