@@ -27,6 +27,7 @@
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "CPVCalib/CalibParams.h"
 #include "CPVCalib/Pedestals.h"
+#include "CPVCalib/BadChannelMap.h"
 
 namespace o2
 {
@@ -68,7 +69,7 @@ class RawWriter
 
   void init();
   void digitsToRaw(gsl::span<o2::cpv::Digit> digits, gsl::span<o2::cpv::TriggerRecord> triggers);
-  bool processTrigger(const gsl::span<o2::cpv::Digit> digitsbranch, const o2::cpv::TriggerRecord& trg);
+  bool processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const gsl::span<o2::cpv::TriggerRecord> trgs);
 
   int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
                       const char* ptr, int maxSize, int splitID,
@@ -80,6 +81,7 @@ class RawWriter
   std::string mOutputLocation = "./";                             ///< Rawfile name
   std::unique_ptr<CalibParams> mCalibParams;                      ///< CPV calibration
   std::unique_ptr<Pedestals> mPedestals;                          ///< CPV pedestals
+  std::unique_ptr<BadChannelMap> mBadMap;                         ///< CPV bad channel map
   std::vector<char> mPayload;                                     ///< Payload to be written
   gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format including the time response
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer
