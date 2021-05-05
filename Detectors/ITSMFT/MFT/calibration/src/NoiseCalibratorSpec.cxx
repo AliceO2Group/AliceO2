@@ -134,6 +134,9 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
   using clbUtils = o2::calibration::Utils;
 
   for (unsigned int i = 0; i < 4; i++) {
+    if (mCalibrator->isMapEmpty(i)) {
+	    continue;
+    }
     o2::ccdb::CcdbObjectInfo info(mCalibrator->getPath(i), "NoiseMap", "noise.root", meta, tstart, tend);
     const auto& payload = mCalibrator->getNoiseMap(i);
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);

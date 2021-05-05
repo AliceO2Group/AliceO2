@@ -63,6 +63,7 @@ class NoiseCalibratorDigits
   }
 
   const std::string getPath(int index) const { return mPath[index]; }
+  const bool isMapEmpty(int index) const { return mIsEmpty[index]; }
 
  private:
   static const int mMaxChipID = 936;
