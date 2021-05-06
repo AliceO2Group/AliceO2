@@ -55,11 +55,14 @@ set(SRCS
     Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialField.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
-    TRDTracking/GPUTRDTrack.cxx
+    DataTypes/GPUTRDTrack.cxx
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
     TRDTracking/GPUTRDTrackerKernels.cxx
     Base/GPUParam.cxx)
+
+set(SRCS_O2_DATATYPES
+    DataTypes/GPUTRDTrackO2.cxx)
 
 set(SRCS_NO_CINT
     DataTypes/GPUDataTypes.cxx
@@ -108,7 +111,6 @@ set(HDRS_INSTALL
     DataTypes/GPUTRDDef.h
     DataTypes/GPUSettings.h
     TRDTracking/GPUTRDTrackPoint.h
-    TRDTracking/GPUTRDTrack.h
     TRDTracking/GPUTRDSpacePoint.h
     TRDTracking/GPUTRDTrackData.h
     TRDTracking/GPUTRDTrackPoint.h
@@ -155,7 +157,7 @@ set(HDRS_INSTALL
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS} Interface/GPUO2InterfaceConfigurableParam.cxx)
   set(HDRS_CINT_O2 ${HDRS_CINT_O2} DataTypes/TPCdEdxCalibrationSplines.h Interface/GPUO2InterfaceConfigurableParam.h)
-  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h TRDTracking/GPUTRDTrack.h TRDTracking/GPUTRDO2BaseTrack.h) # Manual dependencies for ROOT dictionary generation
+  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDO2BaseTrack.h) # Manual dependencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -209,7 +211,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h
                      TPCClusterFinder/GPUTPCCFChainContext.h
-                     TRDTracking/GPUTRDO2BaseTrack.h)
+                     DataTypes/GPUTRDO2BaseTrack.h)
 endif()
 
 # Sources only for AliRoot
@@ -268,16 +270,23 @@ endif()
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(GPUDataTypeHeaders
+                 TARGETVARNAME targetName
                  PUBLIC_INCLUDE_DIRECTORIES .
                                             Definitions
                                             DataTypes
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                 SOURCES utils/EmptyFile.cxx)
+                                       O2::ReconstructionDataFormats
+                 PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
+                 SOURCES ${SRCS_O2_DATATYPES})
+target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
+                           GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
+                 
 
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
+                                       O2::GPUDataTypeHeaders
                                        O2::DataFormatsTPC
                                        O2::DataFormatsTOF
                                        O2::TPCBase
