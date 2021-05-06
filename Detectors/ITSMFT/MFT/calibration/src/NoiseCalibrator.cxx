@@ -35,7 +35,6 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::Digit> const&
       auto col = d.getColumn();
 
       mNoiseMap.increaseNoiseCount(id, row, col);
-
     }
   }
   mNumberOfStrobes += rofs.size();

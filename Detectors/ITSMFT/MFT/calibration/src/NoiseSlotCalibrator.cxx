@@ -41,7 +41,6 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::Digit> co
       auto col = d.getColumn();
 
       noiseMap.increaseNoiseCount(id, row, col);
-
     }
   }
 
