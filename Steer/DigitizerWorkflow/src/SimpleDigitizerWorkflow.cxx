@@ -170,6 +170,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option to disable MC truth
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
 
+  // option to disable INI file writing
+  workflowOptions.push_back(ConfigParamSpec{"disable-write-ini", o2::framework::VariantType::Bool, false, {"disable  INI config write"}});
+
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
 
@@ -392,8 +395,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ConfigurableParam::setValue("DigiParams", "mctruth", mctruth);
 
   // write the configuration used for the digitizer workflow
+  // (In the case, in which we call multiple processes to do digitization,
+  //  only one of them should write this file ... but take the complete configKeyValue line)
   if (ismaster) {
-    o2::conf::ConfigurableParam::writeINI(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE));
+    if (!configcontext.options().get<bool>("disable-write-ini")) {
+      o2::conf::ConfigurableParam::writeINI(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE));
+    }
   }
 
   // onlyDet takes precedence on skipDet
