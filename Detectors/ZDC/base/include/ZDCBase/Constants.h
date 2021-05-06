@@ -13,6 +13,7 @@
 
 #include "CommonConstants/PhysicsConstants.h"
 #include <cstdint>
+#include <cstdlib>
 #include <string_view>
 #include <string>
 #include <type_traits>
@@ -55,6 +56,11 @@ constexpr int NChannels = 2 * (NChannelsZN + NChannelsZP) + NChannelsZEM;
 #define O2_ZDC_REF_INIT_ZEM O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL
 #define O2_ZDC_REF_INIT_ZDC O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL
 #define O2_ZDC_REF_INIT O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZEM, O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZDC
+
+#define O2_ZDC_FLT_INIT_VAL -INFINITY
+#define O2_ZDC_FLT_INIT_ZEM O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL
+#define O2_ZDC_FLT_INIT_ZDC O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL
+#define O2_ZDC_FLT_INIT O2_ZDC_FLT_INIT_ZDC, O2_ZDC_FLT_INIT_ZDC, O2_ZDC_FLT_INIT_ZEM, O2_ZDC_FLT_INIT_ZDC, O2_ZDC_FLT_INIT_ZDC
 
 constexpr uint8_t ALICETriggerMask = 0x1;
 
@@ -190,6 +196,12 @@ constexpr int DbgFull = 3;
 
 const std::string CCDBPathConfigSim = "ZDC/Config/Sim";
 const std::string CCDBPathConfigModule = "ZDC/Config/Module";
+const std::string CCDBPathConfigReco= "ZDC/Calib/RecoParam";
+const std::string CCDBPathConfigIntegration= "ZDC/Calib/IntegrationParam";
+const std::string CCDBPathTDCCalib= "ZDC/Calib/TDCCalib";
+
+// Placeholders
+constexpr int DummyIntRange = -NTimeBinsPerBC -1;
 
 constexpr std::string_view DummyName = "Dumm";
 constexpr std::string_view VoidName = " NA ";
