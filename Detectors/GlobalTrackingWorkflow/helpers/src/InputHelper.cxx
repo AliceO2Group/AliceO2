@@ -22,6 +22,7 @@
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
+#include "TRDWorkflow/TRDTrackReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -68,12 +69,17 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskMatches[GID::TPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], true, maskTracks[GID::TPCTOF]));
   }
-
   if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
     specs.emplace_back(o2::ft0::getRecPointReaderSpec(maskTracksMC[GID::FT0] || maskClustersMC[GID::FT0]));
   }
   if (maskClusters[GID::TRD]) {
     specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(maskClustersMC[GID::TRD], true));
+  }
+  if (maskTracks[GID::ITSTPCTRD]) {
+    specs.emplace_back(o2::trd::getTRDGlobalTrackReaderSpec(false));
+  }
+  if (maskTracks[GID::TPCTRD]) {
+    specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(false));
   }
 
   return 0;

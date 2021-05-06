@@ -66,13 +66,15 @@ struct DataRequest {
   void requestTPCTracks(bool mc);
   void requestITSTPCTracks(bool mc);
   void requestTPCTOFTracks(bool mc);
+  void requestITSTPCTRDTracks(bool mc);
+  void requestTPCTRDTracks(bool mc);
   void requestTOFMatches(bool mc);
   void requestFT0RecPoints(bool mc);
 
   void requestITSClusters(bool mc);
   void requestTPCClusters(bool mc);
   void requestTOFClusters(bool mc);
-  void requestTRDTracklets();
+  void requestTRDTracklets(bool mc);
 };
 
 struct RecoContainer {
@@ -110,6 +112,8 @@ struct RecoContainer {
   void addITSTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
 
+  void addITSTPCTRDTracks(o2::framework::ProcessingContext& pc, bool mc);
+  void addTPCTRDTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addITSTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTOFTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFMatches(o2::framework::ProcessingContext& pc, bool mc);
@@ -203,6 +207,31 @@ struct RecoContainer {
     return tracksPool.get_as<U>(id);
   }
 
+  // TRD
+  template <typename U> // o2::dataformats::TrackTRD
+  auto getITSTPCTRDTracks() const
+  {
+    return tracksPool.getSpan<U>(GTrackID::ITSTPCTRD);
+  }
+
+  template <typename U> // o2::dataformats::TrackTRD
+  auto getTPCTRDTracks() const
+  {
+    return tracksPool.getSpan<U>(GTrackID::TPCTRD);
+  }
+
+  template <typename U> // o2::dataformats::TrackTRD or TrackParCov
+  auto getITSTPCTRDTrack(GTrackID id) const
+  {
+    return tracksPool.get_as<U>(id);
+  }
+
+  template <typename U> // o2::dataformats::TrackTRD or TrackParCov
+  auto getTPCTRDTrack(GTrackID id) const
+  {
+    return tracksPool.get_as<U>(id);
+  }
+
   auto getTPCITSTracksMCLabels() const { return tracksMCPool.getSpan<o2::MCCompLabel>(GTrackID::ITSTPC); }
   auto getTPCITSTrackMCLabel(GTrackID id) const { return tracksMCPool.get_as<o2::MCCompLabel>(id); }
 
@@ -254,6 +283,7 @@ struct RecoContainer {
   gsl::span<const o2::trd::Tracklet64> getTRDTracklets() const;
   gsl::span<const o2::trd::CalibratedTracklet> getTRDCalibratedTracklets() const;
   gsl::span<const o2::trd::TriggerRecord> getTRDTriggerRecords() const;
+  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& getTRDTrackletLabels() const;
 
   // ITS clusters
   template <typename U> // o2::itsmft::ROFRecord

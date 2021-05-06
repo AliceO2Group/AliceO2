@@ -20,6 +20,7 @@ o2_add_library(GlobalTrackingWorkflowHelpers
                                       O2::FT0Workflow
                                       O2::ITSMFTWorkflow
                                       O2::TRDWorkflowIO
+                                      O2::TRDWorkflow
                                       O2::TPCReaderWorkflow
                                       O2::SimulationDataFormat)
 

@@ -24,6 +24,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputRecord.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "GPUDataTypes.h"
 
@@ -49,9 +50,10 @@ struct RecoInputContainer {
   unsigned int mNTriggerRecords;
   std::vector<float> trdTriggerTimes;
   std::vector<int> trdTriggerIndices;
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mTrackletLabels;
 };
 
-inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu::GPUTrackingInOutPointers* ptrs, const o2::globaltracking::RecoContainer* inputTracks)
+inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu::GPUTrackingInOutPointers* ptrs, const o2::globaltracking::RecoContainer* inputTracks, bool mc = false)
 {
   auto retVal = std::make_unique<RecoInputContainer>();
   retVal->mTracksTPCITS = inputTracks->getTPCITSTracks<o2::dataformats::TrackTPCITS>();
@@ -65,6 +67,10 @@ inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu:
   retVal->mNTracklets = retVal->mTracklets.size();
   retVal->mNSpacePoints = retVal->mSpacePoints.size();
   retVal->mNTriggerRecords = retVal->mTriggerRecords.size();
+
+  if (mc) {
+    retVal->mTrackletLabels = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("trdtrackletlabels");
+  }
 
   for (unsigned int iEv = 0; iEv < retVal->mNTriggerRecords; ++iEv) {
     const auto& trg = retVal->mTriggerRecords[iEv];

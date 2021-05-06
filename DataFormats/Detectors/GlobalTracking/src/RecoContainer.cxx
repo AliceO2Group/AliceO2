@@ -87,6 +87,24 @@ void DataRequest::requestTPCTOFTracks(bool mc)
   requestMap["trackTPCTOF"] = mc;
 }
 
+void DataRequest::requestITSTPCTRDTracks(bool mc)
+{
+  addInput({"trackTRDTPCITS", "TRD", "MATCHTRD_GLO", 0, Lifetime::Timeframe});
+  if (mc) {
+    LOG(ERROR) << "TRD Tracks does not support MC truth";
+  }
+  requestMap["trackTRDTPCITS"] = false;
+}
+
+void DataRequest::requestTPCTRDTracks(bool mc)
+{
+  addInput({"trackTRDTPC", "TRD", "MATCHTRD_TPC", 0, Lifetime::Timeframe});
+  if (mc) {
+    LOG(ERROR) << "TRD Tracks does not support MC truth";
+  }
+  requestMap["trackTRDTPC"] = false;
+}
+
 void DataRequest::requestTOFMatches(bool mc)
 {
   addInput({"matchITSTPCTOF", "TOF", "MATCHINFOS", 0, Lifetime::Timeframe});
@@ -126,12 +144,15 @@ void DataRequest::requestTOFClusters(bool mc)
   requestMap["clusTOF"] = mc;
 }
 
-void DataRequest::requestTRDTracklets()
+void DataRequest::requestTRDTracklets(bool mc)
 {
   addInput({"trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe});
   addInput({"trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe});
   addInput({"trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe});
-  requestMap["trackletTRD"] = false;
+  if (mc) {
+    addInput({"trdtrackletlabels", o2::header::gDataOriginTRD, "TRKLABELS", 0, Lifetime::Timeframe});
+  }
+  requestMap["trackletTRD"] = mc;
 }
 
 void DataRequest::requestFT0RecPoints(bool mc)
@@ -162,6 +183,12 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
     requestTOFMatches(useMC);
     requestTOFClusters(false); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
   }
+  if (src[GTrackID::ITSTPCTRD]) {
+    requestITSTPCTRDTracks(useMC);
+  }
+  if (src[GTrackID::TPCTRD]) {
+    requestTPCTRDTracks(useMC);
+  }
 }
 
 void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
@@ -179,7 +206,7 @@ void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC)
     requestTOFClusters(useMC);
   }
   if (GTrackID::includesDet(DetID::TRD, src)) {
-    requestTRDTracklets();
+    requestTRDTracklets(useMC);
   }
 }
 
@@ -204,6 +231,16 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("trackITSTPC");
   if (req != reqMap.end()) {
     addITSTPCTracks(pc, req->second);
+  }
+
+  req = reqMap.find("trackITSTPCTRD");
+  if (req != reqMap.end()) {
+    addITSTPCTRDTracks(pc, req->second);
+  }
+
+  req = reqMap.find("trackTPCTRD");
+  if (req != reqMap.end()) {
+    addTPCTRDTracks(pc, req->second);
   }
 
   req = reqMap.find("trackTPCTOF");
@@ -270,6 +307,17 @@ void RecoContainer::addITSTPCTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     tracksMCPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSTPCMCTR"), GTrackID::ITSTPC);
   }
+}
+
+void RecoContainer::addITSTPCTRDTracks(ProcessingContext& pc, bool mc)
+{
+#warning fix TrackParCov
+  tracksPool.registerContainer(pc.inputs().get<gsl::span<o2::track::TrackParCov>>("trackITSTPCTRD"), GTrackID::ITSTPCTRD);
+}
+
+void RecoContainer::addTPCTRDTracks(ProcessingContext& pc, bool mc)
+{
+  tracksPool.registerContainer(pc.inputs().get<gsl::span<o2::track::TrackParCov>>("trackTPCTRD"), GTrackID::TPCTRD);
 }
 
 //__________________________________________________________
@@ -350,6 +398,11 @@ gsl::span<const o2::trd::CalibratedTracklet> RecoContainer::getTRDCalibratedTrac
 gsl::span<const o2::trd::TriggerRecord> RecoContainer::getTRDTriggerRecords() const
 {
   return inputsTRD->mTriggerRecords;
+}
+
+const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& RecoContainer::getTRDTrackletLabels() const
+{
+  return *inputsTRD->mTrackletLabels;
 }
 
 //__________________________________________________________
