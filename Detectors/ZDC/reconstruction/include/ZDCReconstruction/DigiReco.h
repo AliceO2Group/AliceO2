@@ -1,4 +1,14 @@
-#include <deque>
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#include <map>
 #include <TFile.h>
 #include <TTree.h>
 #include "ZDCBase/Constants.h"
@@ -22,18 +32,25 @@ class DigiReco
 {
  public:
   DigiReco() = default;
-  ~DigiReco() {
-    mTDbg->Write();
-    mDbg->Close();
+  ~DigiReco()
+  {
+    if (mTreeDbg) {
+      mTDbg->Write();
+      mDbg->Close();
+    }
   }
   void init();
-  int process(const std::vector<o2::zdc::OrbitData> *orbitdata, const std::vector<o2::zdc::BCData> *bcdata, const std::vector<o2::zdc::ChannelData> *chdata);
+  int process(const std::vector<o2::zdc::OrbitData>* orbitdata, const std::vector<o2::zdc::BCData>* bcdata, const std::vector<o2::zdc::ChannelData>* chdata);
   int write();
   void setVerbosity(int v)
   {
     mVerbosity = v;
   }
   int getVerbosity() const { return mVerbosity; }
+  void setDebugOutput(bool state = true)
+  {
+    mTreeDbg = state;
+  }
 
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
@@ -41,32 +58,33 @@ class DigiReco
   const ZDCTDCParam* getTDCParam() { return mTDCParam; };
   void setIntegrationParam(const ZDCIntegrationParam* param) { mIntParam = param; };
   const ZDCIntegrationParam* getIntegrationParam() { return mIntParam; };
-  const ModuleConfig* mModuleConfig = nullptr;    /// Trigger/readout configuration object
 
  private:
-  int reconstruct(int seq_beg, int seq_end); /// Main method for data reconstruction
-  void processTrigger(int itdc, int ibeg, int iend); /// Replay of trigger algorithm on acquired data
-  void interpolate(int itdc, int ibeg, int iend); /// Interpolation of samples to evaluate signal amplitude and arrival time
+  const ModuleConfig* mModuleConfig = nullptr; /// Trigger/readout configuration object
+  int reconstruct(int seq_beg, int seq_end);                                  /// Main method for data reconstruction
+  void processTrigger(int itdc, int ibeg, int iend);                          /// Replay of trigger algorithm on acquired data
+  void interpolate(int itdc, int ibeg, int iend);                             /// Interpolation of samples to evaluate signal amplitude and arrival time
   void assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp); // Set reconstructed TDC values
-  bool mIsContinuous = true;                      /// continuous (self-triggered) or externally-triggered readout
-  int mNBCAHead = 0;                              /// when storing triggered BC, store also mNBCAHead BCs
-  const ZDCTDCParam* mTDCParam = nullptr;         /// TDC calibration object
-  uint32_t mTDCMask[NTDCChannels]={0}; /// Identify TDC channels in trigger mask
-  const ZDCIntegrationParam* mIntParam = nullptr; /// Configuration of integration
-  bool mVerbosity=DbgFull;
-  Double_t mTS[NTS];                          /// Tapered sinc function
-  TFile* mDbg = nullptr;                      /// Debug output
-  TTree* mTDbg = nullptr;                     /// Debug tree
-  const std::vector<o2::zdc::OrbitData> *mOrbitData;   /// Reconstructed data
-  const std::vector<o2::zdc::BCData> *mBCData;      /// BC info
-  const std::vector<o2::zdc::ChannelData> *mChData; /// Payload
-  std::vector<o2::zdc::RecEvent> mReco;      /// Reconstructed data
-  std::map<uint32_t,int> mOrbit;   /// Information about orbit
-  static constexpr int mNSB = TSN * NTimeBinsPerBC;    /// Total number of interpolated points per bunch crossing
-  RecEvent mRec;                              /// Debug reconstruction event
+  bool mIsContinuous = true;                                                  /// continuous (self-triggered) or externally-triggered readout
+  int mNBCAHead = 0;                                                          /// when storing triggered BC, store also mNBCAHead BCs
+  const ZDCTDCParam* mTDCParam = nullptr;                                     /// TDC calibration object
+  uint32_t mTDCMask[NTDCChannels] = {0};                                      /// Identify TDC channels in trigger mask
+  const ZDCIntegrationParam* mIntParam = nullptr;                             /// Configuration of integration
+  bool mVerbosity = DbgFull;
+  Double_t mTS[NTS];                                 /// Tapered sinc function
+  bool mTreeDbg = false;                             /// Write reconstructed data in debug output file
+  TFile* mDbg = nullptr;                             /// Debug output file
+  TTree* mTDbg = nullptr;                            /// Debug tree
+  const std::vector<o2::zdc::OrbitData>* mOrbitData; /// Reconstructed data
+  const std::vector<o2::zdc::BCData>* mBCData;       /// BC info
+  const std::vector<o2::zdc::ChannelData>* mChData;  /// Payload
+  std::vector<o2::zdc::RecEvent> mReco;              /// Reconstructed data
+  std::map<uint32_t, int> mOrbit;                    /// Information about orbit
+  static constexpr int mNSB = TSN * NTimeBinsPerBC;  /// Total number of interpolated points per bunch crossing
+  RecEvent mRec;                                     /// Debug reconstruction event
   int mNBC = 0;
-  int16_t tdc_shift[NTDCChannels] = {0};       /// TDC correction (units of 1/96 ns)
-  constexpr static uint16_t mMask[NTimeBinsPerBC]={0x0001,0x002,0x004,0x008, 0x0010,0x0020,0x0040,0x0080, 0x0100,0x0200,0x0400,0x0800};
+  int16_t tdc_shift[NTDCChannels] = {0}; /// TDC correction (units of 1/96 ns)
+  constexpr static uint16_t mMask[NTimeBinsPerBC] = {0x0001, 0x002, 0x004, 0x008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800};
 };
 } // namespace zdc
 } // namespace o2

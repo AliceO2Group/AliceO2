@@ -20,3 +20,8 @@ o2_add_test_root_macro(CreateModuleConfig.C
 o2_add_test_root_macro(readZDCDigits.C
                        PUBLIC_LINK_LIBRARIES O2::ZDCSimulation O2::CCDB
                        LABELS zdc)
+
+o2_add_test_root_macro(CreateIntegrationParam.C
+                       PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::ZDCReconstruction
+                                             O2::SimulationDataFormat O2::CCDB
+                       LABELS zdc)
