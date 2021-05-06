@@ -274,6 +274,10 @@ struct GPUTrackingInOutPointers {
   const float* trdTriggerTimes = nullptr;
   const int* trdTrackletIdxFirst = nullptr;
   unsigned int nTRDTriggerRecords = 0;
+  const GPUTRDTrack* trdTracksITSTPCTRD = nullptr;
+  unsigned int nTRDTracksITSTPCTRD = 0;
+  const GPUTRDTrack* trdTracksTPCTRD = nullptr;
+  unsigned int nTRDTracksTPCTRD = 0;
 
   // TOF
   const o2::tof::Cluster* tofClusters = nullptr;

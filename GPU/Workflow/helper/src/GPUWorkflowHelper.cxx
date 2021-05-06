@@ -94,7 +94,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   }
 
   if (maskCl[GID::TPC] && ioPtr.clustersNative == nullptr) {
-    ioPtr.clustersNative = &recoCont.inputsTPCclusters->clusterIndex;
+    ioPtr.clustersNative = &recoCont.getTPCClusters();
   }
 
   if (maskTrk[GID::TPC] && ioPtr.nOutputTracksTPCO2 == 0) {
@@ -111,7 +111,20 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   }
 
   if (maskCl[GID::TRD]) {
-    // o2::trd::getRecoInputContainer(pc, &ioPtr, &recoCont); // TODO: use this helper here
+    // o2::trd::getRecoInputContainer(pc, &ioPtr, &recoCont, useMC); // TODO: use this helper here
+  }
+
+  if (maskTrk[GID::ITSTPCTRD] && ioPtr.nTRDTracksITSTPCTRD == 0) {
+    const auto& trdTracks = recoCont.getITSTPCTRDTracks<o2::track::TrackParCov>();
+    ioPtr.nTRDTracksITSTPCTRD = trdTracks.size();
+#warning fixme
+    //ioPtr.trdTracksITSTPCTRD = trdTracks.data();
+  }
+
+  if (maskTrk[GID::TPCTRD] && ioPtr.nTRDTracksTPCTRD == 0) {
+    const auto& trdTracks = recoCont.getTPCTRDTracks<o2::track::TrackParCov>();
+    ioPtr.nTRDTracksTPCTRD = trdTracks.size();
+    //ioPtr.trdTracksTPCTRD = trdTracks.data();
   }
 
   return std::move(retVal);
