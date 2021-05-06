@@ -85,7 +85,7 @@ class RawPixelDecoder final : public PixelReader
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
 
-  void printReport(bool decstat = false, bool skipEmpty = true) const;
+  void printReport(bool decstat = true, bool skipNoErr = true) const;
 
   void clearStat();
 

@@ -85,7 +85,7 @@ struct RawDecodingStat {
     errorCounts.fill(0);
   }
 
-  void print(bool skipEmpty = true) const
+  void print(bool skipNoErr = true) const
   {
     printf("\nDecoding statistics\n");
     printf("%llu bytes for %llu RUs processed in %llu pages for %llu triggers\n", (ULL)nBytesProcessed, (ULL)nRUsProcessed,
@@ -97,7 +97,7 @@ struct RawDecodingStat {
     }
     printf("Decoding errors: %d\n", nErr);
     for (int i = 0; i < NErrorsDefined; i++) {
-      if (!skipEmpty || errorCounts[i]) {
+      if (!skipNoErr || errorCounts[i]) {
         printf("%-70s: %d\n", ErrNames[i].data(), errorCounts[i]);
       }
     }

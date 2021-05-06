@@ -40,7 +40,7 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
 ///______________________________________________________________
 ///
 template <class Mapping>
-void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipEmpty) const
+void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipNoErr) const
 {
   LOGF(INFO, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   double cpu = 0, real = 0;
@@ -60,11 +60,10 @@ void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipEmpty) const
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
 
   if (decstat) {
-    LOG(INFO) << "GBT Links decoding statistics";
+    LOG(INFO) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
     for (auto& lnk : mGBTLinks) {
-      LOG(INFO) << lnk.describe();
-      lnk.statistics.print(skipEmpty);
-      lnk.chipStat.print(skipEmpty);
+      lnk.statistics.print(skipNoErr);
+      lnk.chipStat.print(skipNoErr);
     }
   }
 }

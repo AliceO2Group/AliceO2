@@ -135,15 +135,15 @@ class ChipPixelData
   void swap(ChipPixelData& other)
   {
     // swap content of two objects
-    mPixels.swap(other.mPixels);
-    std::swap(mROFrame, other.mROFrame);
     std::swap(mROFlags, other.mROFlags);
-    std::swap(mTrigger, other.mTrigger);
-    std::swap(mInteractionRecord, other.mInteractionRecord);
     std::swap(mChipID, other.mChipID);
-    // strictly speaking, swapping the data below is not needed
-    std::swap(mStartID, other.mStartID);
-    std::swap(mFirstUnmasked, other.mFirstUnmasked);
+    std::swap(mROFrame, other.mROFrame);
+    std::swap(mFirstUnmasked, other.mFirstUnmasked); // strictly speaking, not needed
+    std::swap(mStartID, other.mStartID);             // strictly speaking, not needed
+    std::swap(mTrigger, other.mTrigger);
+    std::swap(mErrors, other.mErrors);
+    std::swap(mInteractionRecord, other.mInteractionRecord);
+    mPixels.swap(other.mPixels);
   }
 
   void maskFiredInSample(const ChipPixelData& sample)
