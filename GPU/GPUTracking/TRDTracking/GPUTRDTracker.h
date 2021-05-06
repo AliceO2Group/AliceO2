@@ -23,6 +23,7 @@
 #include "GPUTRDTrack.h"
 #include "GPUTRDSpacePoint.h"
 #include "GPULogging.h"
+#include "GPUTRDInterfaces.h"
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <vector>

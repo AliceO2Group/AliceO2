@@ -8,24 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUITSTrack.h
-/// \author David Rohr, Maximiliano Puccio
+/// \file GPUTRDTrackO2.cxx
+/// \author David Rohr
 
-#ifndef GPUITSTRACK_H
-#define GPUITSTRACK_H
+#define GPU_TRD_TRACK_O2
+#include "GPUTRDTrack.cxx"
 
-#include "GPUTPCGMMergerTypes.h"
-#include "GPUTPCGMTrackParam.h"
-
-namespace GPUCA_NAMESPACE::gpu
+namespace o2::gpu
 {
-class GPUITSTrack : public GPUTPCGMTrackParam
-{
- public:
-  gputpcgmmergertypes::GPUTPCOuterParam mOuterParam;
-  float mAlpha;
-  int mClusters[7];
-};
-} // namespace GPUCA_NAMESPACE::gpu
-
-#endif
+template class GPUTRDTrack_t<trackInterface<o2::gpu::GPUTRDO2BaseTrack>>;
+} // namespace o2::gpu

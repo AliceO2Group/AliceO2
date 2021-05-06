@@ -15,13 +15,18 @@
 #define GPUTRDINTERFACEO2TRACK_H
 
 // This is the interface for the GPUTRDTrack based on the O2 track type
-
+#include "GPUCommonDef.h"
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
 template <typename T>
 class trackInterface;
+class GPUTPCGMMergedTrack;
+namespace gputpcgmmergertypes
+{
+struct GPUTPCOuterParam;
+} // namespace gputpcgmmergertypes
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
@@ -33,7 +38,6 @@ class trackInterface;
 
 namespace GPUCA_NAMESPACE
 {
-
 namespace gpu
 {
 
@@ -81,8 +85,8 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
       setCov(cov[i], i);
     }
   }
-  GPUdi() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMMergedTrack& trk) { set(trk.OuterParam().X, trk.OuterParam().alpha, trk.OuterParam().P, trk.OuterParam().C); }
-  GPUdi() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMTrackParam::GPUTPCOuterParam& param) { set(param.X, param.alpha, param.P, param.C); }
+  GPUd() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMMergedTrack& trk);
+  GPUd() trackInterface<GPUTRDO2BaseTrack>(const gputpcgmmergertypes::GPUTPCOuterParam& param);
 
   GPUdi() const float* getPar() const { return getParams(); }
   GPUdi() float getTime() const { return mTime; }
@@ -106,5 +110,8 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
   short mSide{0};                         // -1 : A-side, +1 : C-side (relevant only for TPC-only tracks)
   float mZShift{0.f};                     // calculated new for each TRD trigger candidate for this track
 };
+
+} // namespace gpu
+} // namespace GPUCA_NAMESPACE
 
 #endif

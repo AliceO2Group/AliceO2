@@ -12,6 +12,9 @@
 /// \author Ole Schmidt, Sergey Gorbunov
 
 #include "GPUTRDTrack.h"
+#if !defined(GPU_TRD_TRACK_O2)
+#include "GPUTRDInterfaces.h"
+#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -222,7 +225,7 @@ GPUd() int GPUTRDTrack_t<T>::GetNmissingConsecLayers(int iLayer) const
   return res;
 }
 
-#ifndef GPUCA_GPUCODE
+#if !defined(GPUCA_GPUCODE) && !defined(GPU_TRD_TRACK_O2)
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -230,7 +233,7 @@ namespace gpu
 #ifdef GPUCA_ALIROOT_LIB // Instantiate AliRoot track version
 template class GPUTRDTrack_t<trackInterface<AliExternalTrackParam>>;
 #endif
-#ifdef HAVE_O2HEADERS // Instantiate O2 track version
+#if defined(HAVE_O2HEADERS) && !defined(GPUCA_O2_LIB) // Instantiate O2 track version, for O2 this happens in GPUTRDTrackO2.cxx
 template class GPUTRDTrack_t<trackInterface<o2::gpu::GPUTRDO2BaseTrack>>;
 #endif
 template class GPUTRDTrack_t<trackInterface<GPUTPCGMTrackParam>>; // Always instatiate GM track version

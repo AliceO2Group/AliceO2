@@ -13,6 +13,7 @@
 
 #include "GPUTPCGMTracksToTPCSeeds.h"
 #include "GPUTPCGlobalMergerComponent.h"
+#include "GPUTPCGMMergerTypes.h"
 #include "GPUTPCGMMerger.h"
 #include "GPULogging.h"
 #include "AliTPCtracker.h"
@@ -120,7 +121,7 @@ void GPUTPCGMTracksToTPCSeeds::UpdateParamsOuter(TObjArray* seeds)
       return;
     }
     AliTPCseed* seed = (AliTPCseed*)seeds->UncheckedAt(index++);
-    const GPUTPCGMTrackParam::GPUTPCGMTrackParam::GPUTPCOuterParam& param = track.OuterParam();
+    const gputpcgmmergertypes::GPUTPCOuterParam& param = track.OuterParam();
     seed->Set(param.X, param.alpha, param.P, param.C);
   }
 }

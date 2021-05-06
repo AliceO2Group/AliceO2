@@ -52,6 +52,12 @@ struct GPUTPCGMBorderRange {
   float fMin, fMax;
 };
 
+struct GPUTPCOuterParam {
+  float X, alpha;
+  float P[5];
+  float C[15];
+};
+
 } // namespace gputpcgmmergertypes
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

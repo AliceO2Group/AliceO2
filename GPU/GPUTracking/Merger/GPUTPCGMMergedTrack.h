@@ -103,12 +103,12 @@ class GPUTPCGMMergedTrack
   GPUd() void SetLegs(unsigned char v) { mLegs = v; }
   GPUd() unsigned char Legs() const { return mLegs; }
 
-  GPUd() const GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() const { return mOuterParam; }
-  GPUd() GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() { return mOuterParam; }
+  GPUd() const gputpcgmmergertypes::GPUTPCOuterParam& OuterParam() const { return mOuterParam; }
+  GPUd() gputpcgmmergertypes::GPUTPCOuterParam& OuterParam() { return mOuterParam; }
 
  private:
   GPUTPCGMTrackParam mParam;                        //* fitted track parameters
-  GPUTPCGMTrackParam::GPUTPCOuterParam mOuterParam; //* outer param
+  gputpcgmmergertypes::GPUTPCOuterParam mOuterParam; //* outer param
 
   float mAlpha;                  //* alpha angle
   float mLastX;                  //* outer X

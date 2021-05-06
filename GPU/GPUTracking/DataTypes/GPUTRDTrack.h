@@ -15,7 +15,7 @@
 #define GPUTRDTRACK_H
 
 #include "GPUTRDDef.h"
-#include "GPUDef.h"
+#include "GPUCommonDef.h"
 
 struct GPUTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
@@ -25,11 +25,11 @@ namespace o2
 namespace tpc
 {
 class TrackTPC;
-}
+} // namespace tpc
 namespace dataformats
 {
 class TrackTPCITS;
-}
+} // namespace dataformats
 } // namespace o2
 
 //_____________________________________________________________________________
@@ -40,10 +40,10 @@ namespace gpu
 {
 template <typename T>
 class GPUTRDTrack_t;
-}
+} // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #else
-#include "GPUTRDInterfaces.h"
+#include "GPUTRDInterfaceO2Track.h"
 
 namespace GPUCA_NAMESPACE
 {
