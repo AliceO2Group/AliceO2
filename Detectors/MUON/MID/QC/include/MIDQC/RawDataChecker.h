@@ -42,7 +42,7 @@ class RawDataChecker
   unsigned int getNBusyRaised() const;
   /// Gets the debug message
   std::string getDebugMessage() const { return mDebugMsg; }
-  void clear();
+  void clear(bool all = false);
 
   /// Sets the delay in the electronics
   void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
