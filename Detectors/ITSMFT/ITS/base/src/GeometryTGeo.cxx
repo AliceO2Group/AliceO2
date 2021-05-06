@@ -49,6 +49,7 @@ using Segmentation = o2::itsmft::SegmentationAlpide;
 ClassImp(o2::its::GeometryTGeo);
 
 std::unique_ptr<o2::its::GeometryTGeo> GeometryTGeo::sInstance;
+o2::its::GeometryTGeo::~GeometryTGeo() = default;
 
 std::string GeometryTGeo::sVolumeName = "ITSV";               ///< Mother volume name
 std::string GeometryTGeo::sLayerName = "ITSULayer";           ///< Layer name
