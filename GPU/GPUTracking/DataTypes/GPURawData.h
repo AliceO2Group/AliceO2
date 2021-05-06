@@ -18,22 +18,8 @@
 // Since OpenCL currently doesn't support bit fields, we have to access the members directly
 
 #include "GPUCommonDef.h"
-#ifndef __OPENCL__
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
-#else
-namespace o2
-{
-namespace header
-{
-struct RAWDataHeader {
-  union {
-    unsigned int words[8];
-  };
-};
-} // namespace header
-} // namespace o2
-#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -51,29 +37,17 @@ class GPURawDataUtils
 
 GPUdi() unsigned int GPURawDataUtils::getOrbit(const RAWDataHeaderGPU* rdh)
 {
-#ifndef __OPENCL__
   return o2::raw::RDHUtils::getHeartBeatOrbit(*rdh);
-#else
-  return (rdh->words[2] >> 32); // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
-#endif
 }
 
 GPUdi() unsigned int GPURawDataUtils::getBC(const RAWDataHeaderGPU* rdh)
 {
-#ifndef __OPENCL__
   return o2::raw::RDHUtils::getHeartBeatBC(*rdh);
-#else
-  return (rdh->words[2] & 0xFFF); // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
-#endif
 }
 
 GPUdi() unsigned int GPURawDataUtils::getSize(const RAWDataHeaderGPU* rdh)
 {
-#ifndef __OPENCL__
   return o2::raw::RDHUtils::getMemorySize(*rdh);
-#else
-  return ((rdh->words[1] >> 16) & 0xFFFF); // TODO: Ad-hoc implementation for OpenCL, RDHV4, to be moved to RDHUtils
-#endif
 }
 
 } // namespace gpu
