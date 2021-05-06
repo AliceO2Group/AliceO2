@@ -69,12 +69,13 @@ class CruRawReader
   void setBlob(bool returnblob) { mReturnBlob = returnblob; }; //set class to produce blobs and not vectors. (compress vs pass through)`
   void setDataBuffer(const char* val)
   {
-    std::cout << "setting buffer position to " << std::hex << (void*)val << std::endl;
     mDataBuffer = val;
   };
   void setDataBufferSize(long val)
   {
-    LOG(info) << " Setting buffer size to : " << val;
+    if (mVerbose) {
+      LOG(info) << " Setting buffer size to : " << val;
+    }
     mDataBufferSize = val;
   };
   void setVerbose(bool verbose) { mVerbose = verbose; }
@@ -95,13 +96,15 @@ class CruRawReader
   bool processHBFs(int datasizealreadyread = 0, bool verbose = false);
   bool processHBFsa(int datasizealreadyread = 0, bool verbose = false);
   bool buildCRUPayLoad();
-  int processHalfCRU();
+  int processHalfCRU(int cruhbfstartoffset);
   bool processCRULink();
   bool skipRDH();
 
   inline void rewind()
   {
-    LOG(info) << "rewinding crurawreader incoming data buffer";
+    if (mVerbose) {
+      LOG(info) << "rewinding crurawreader incoming data buffer";
+    }
     mDataPointer = reinterpret_cast<const uint32_t*>(mDataBuffer);
   };
 
@@ -111,9 +114,10 @@ class CruRawReader
   bool mDataVerbose{false};
   bool mByteSwap{true};
   const char* mDataBuffer = nullptr;
-  static const uint32_t mMaxCRUBufferSize = o2::trd::constants::CRUBUFFERMAX;
-  std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX> mCRUPayLoad; //this holds a single cruhalfchamber buffer to pass to parsing.
+  static const uint32_t mMaxHBFBufferSize = o2::trd::constants::HBFBUFFERMAX;
+  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; //this holds the O2 payload held with in the HBFs to pass to parsing.
   uint32_t mHalfCRUPayLoadRead{0};                                    // the words current read in for the currnt cru payload.
+  uint32_t mO2PayLoadRead{0};                                         // the words current read in for the currnt cru payload.
   int mCurrentHalfCRULinkHeaderPoisition = 0;
   // no need to waste time doing the copy  std::array<uint32_t,8> mCurrentCRUWord; // data for a cru comes in words of 256 bits.
   uint32_t mCurrentLinkDataPosition256;    // count of data read for current link in units of 256 bits
@@ -146,8 +150,9 @@ class CruRawReader
   uint32_t mSaveBufferDataSize = 0;
   uint32_t mSaveBufferDataLeft = 0;
   uint32_t mcruFeeID = 0;
-  uint32_t datareadfromhbf;
-  uint32_t mTotalCRUPayLoad = 0;
+  uint32_t mDatareadfromhbf;
+  uint32_t mTotalHBFPayLoad = 0; // total data payload of the heart beat frame in question.
+  uint32_t mHBFoffset32 = 0;     // total data payload of the heart beat frame in question.
   //pointers to the data as we read them in, again no point in copying.
   HalfCRUHeader* mhalfcruheader;
   o2::InteractionRecord mIR;
@@ -155,7 +160,7 @@ class CruRawReader
   bool checkerCheck();
   void checkerCheckRDH();
   int mState; // basic state machine for where we are in the parsing.
-              // we parse rdh to rdh but data is cru to cru.
+  // we parse rdh to rdh but data is cru to cru.
   //the relevant parsers. Not elegant but we need both so pointers to base classes and sending them in with templates or some other such mechanism seems impossible, or its just late and I cant think.
   //TODO think of a more elegant way of incorporating the parsers.
   TrackletsParser mTrackletsParser;
@@ -178,8 +183,8 @@ class CruRawReader
     std::array<uint32_t, 1080> LinkWordCounts;    //units of 256bits "cru word"
     std::array<uint32_t, 1080> LinkPadWordCounts; // units of 32 bits the data pad word size.
     std::array<uint32_t, 1080> LinkFreq;          //units of 256bits "cru word"
-                                                  //from the above you can get the stats for supermodule and detector.
-    std::array<bool, 1080> LinkEmpty;             // Link only has padding words, probably not serious in pp.
+    //from the above you can get the stats for supermodule and detector.
+    std::array<bool, 1080> LinkEmpty; // Link only has padding words, probably not serious in pp.
     uint32_t EmptyLinks;
     //maybe change this to actual traps ?? but it will get large.
     std::array<uint32_t, 1080> LinkTrackletPerTrap1; // incremented if a trap on this link has 1 tracklet

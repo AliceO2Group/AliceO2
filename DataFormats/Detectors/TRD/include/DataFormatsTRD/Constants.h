@@ -65,7 +65,7 @@ constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 mi
 constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
 
 // array size to store incoming half cru payload.
-constexpr int CRUBUFFERMAX = 1048576;    // max buffer size for data read from a half cru, (all events)
+constexpr int HBFBUFFERMAX = 1048576;    // max buffer size for data read from a half cru, (all events)
 constexpr int CRUPADDING32 = 0xeeeeeeee; // padding word used in the cru.
 
 } //namespace constants

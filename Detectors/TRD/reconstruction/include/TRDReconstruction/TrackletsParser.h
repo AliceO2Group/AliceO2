@@ -25,17 +25,17 @@
 
 namespace o2::trd
 {
-//TODO put o2::trd::constants::CRUBUFFERMAX in constants
+//TODO put o2::trd::constants::HBFBUFFERMAX in constants
 //
 class TrackletsParser
 {
  public:
   TrackletsParser() = default;
   ~TrackletsParser() = default;
-  void setData(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data) { mData = data; }
+  void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(); // presupposes you have set everything up already.
-  int Parse(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator end, int detector, bool cleardigits = false, bool disablebyteswap = false, bool verbose = true, bool headerverbose = false, bool dataverbose = false) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
+  int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, bool cleardigits = false, bool disablebyteswap = false, bool verbose = true, bool headerverbose = false, bool dataverbose = false) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
   {
     mStartParse = start;
     mEndParse = end;
@@ -43,6 +43,11 @@ class TrackletsParser
     setData(data);
     setVerbose(verbose, headerverbose, dataverbose);
     setDisableByteSwap(disablebyteswap);
+    mWordsRead = 0;
+    mDataWordsParsed = 0;
+    mTrackletsFound = 0;
+    mPaddingWordsCounter = 0;
+    mTracklets.clear();
     return Parse();
   };
   void setVerbose(bool verbose, bool header = false, bool data = false)
@@ -60,12 +65,13 @@ class TrackletsParser
   enum TrackletParserState { StateTrackletHCHeader, // always the start of a half chamber.
                              StateTrackletMCMHeader,
                              StateTrackletMCMData,
-                             StatePadding };
+                             StatePadding,
+                             StateFinished };
   std::vector<Tracklet64>& getTracklets() { return mTracklets; }
   inline void swapByteOrder(unsigned int& ui);
 
  private:
-  std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* mData;
+  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* mData;
   std::vector<Tracklet64> mTracklets;
   // pointers to keep track of the currently parsing headers and data.
   TrackletHCHeader* mTrackletHCHeader;
@@ -90,7 +96,7 @@ class TrackletsParser
   uint16_t mMCM;
   uint16_t mROB;
   uint16_t mEventCounter;
-  std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
+  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
 
   uint16_t mCurrentLink; // current link within the halfcru we are parsing 0-14
