@@ -17,7 +17,6 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{"useDigits", VariantType::Bool, false, {"Use decoded digits"}});
 }
 
 // ------------------------------------------------------------------
@@ -25,22 +24,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 #include "MFTCalibration/NoiseCalibratorSpec.h"
 #include "MFTCalibration/NoiseCalibrator.h"
-#include "MFTCalibration/NoiseCalibratorDigitsSpec.h"
-#include "MFTCalibration/NoiseCalibratorDigits.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
-  auto useDigits = cfgc.options().get<bool>("useDigits");
 
-  LOG(INFO) << "MFT calibration workflow options";
-  LOG(INFO) << "Use Digits: " << useDigits;
-
-  if (useDigits) {
-    specs.emplace_back(o2::mft::getNoiseCalibratorDigitsSpec());
-  } else {
-    specs.emplace_back(o2::mft::getNoiseCalibratorSpec());
-  }
+  specs.emplace_back(o2::mft::getNoiseCalibratorSpec());
 
   return specs;
 }

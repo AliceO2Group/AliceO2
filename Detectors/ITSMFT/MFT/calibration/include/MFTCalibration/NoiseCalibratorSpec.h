@@ -18,7 +18,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-//#define TIME_SLOT_CALIBRATION
+#define TIME_SLOT_CALIBRATION
 #ifdef TIME_SLOT_CALIBRATION
 #include "MFTCalibration/NoiseSlotCalibrator.h"
 using CALIBRATOR = o2::mft::NoiseSlotCalibrator;
@@ -49,7 +49,7 @@ class NoiseCalibratorSpec : public Task
 
  private:
   void sendOutput(DataAllocator& output);
-  o2::itsmft::NoiseMap mNoiseMap{926};
+  o2::itsmft::NoiseMap mNoiseMap{936};
   std::unique_ptr<CALIBRATOR> mCalibrator = nullptr;
   std::string mPath;
   std::string mMeta;

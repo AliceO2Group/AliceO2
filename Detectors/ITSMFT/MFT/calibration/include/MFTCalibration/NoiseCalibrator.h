@@ -23,7 +23,7 @@ namespace o2
 
 namespace itsmft
 {
-class CompClusterExt;
+class Digit;
 class ROFRecord;
 } // namespace itsmft
 
@@ -43,8 +43,7 @@ class NoiseCalibrator
 
   void setThreshold(unsigned int t) { mThreshold = t; }
 
-  bool processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
-                        gsl::span<const unsigned char> const& patterns,
+  bool processTimeFrame(gsl::span<const o2::itsmft::Digit> const& digits,
                         gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
   void finalize();
