@@ -22,6 +22,7 @@
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -50,7 +51,7 @@ class TRDTrackletReader : public o2::framework::Task
   std::vector<o2::trd::CalibratedTracklet> mTrackletsCal, *mTrackletsCalPtr = &mTrackletsCal;
   std::vector<o2::trd::Tracklet64> mTracklets, *mTrackletsPtr = &mTracklets;
   std::vector<o2::trd::TriggerRecord> mTriggerRecords, *mTriggerRecordsPtr = &mTriggerRecords;
-  std::vector<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels, *mLabelsPtr = &mLabels;
 };
 
 /// create a processor spec
