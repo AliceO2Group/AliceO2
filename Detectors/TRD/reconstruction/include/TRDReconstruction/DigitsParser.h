@@ -38,11 +38,11 @@ class DigitsParser
  public:
   DigitsParser() = default;
   ~DigitsParser() = default;
-  void setData(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data) { mData = data; }
+  void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   //  void setLinkLengths(std::array<uint32_t, 15>& lengths) { mCurrentHalfCRULinkLengths = lengths; };
   int Parse(bool verbose = false); // presupposes you have set everything up already.
-  int Parse(std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator end, int detector, bool cleardigits = false, bool disablebyteswap = false, bool verbose = true, bool headerverbose = false, bool dataverbose = false) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
+  int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, bool cleardigits = false, bool disablebyteswap = false, bool verbose = false, bool headerverbose = false, bool dataverbose = false)
   {
     setData(data);
     //   setLinkLengths(lengths);
@@ -88,7 +88,7 @@ class DigitsParser
   // yes this is terrible design but it works,
   int mReturnVectorPos;
 
-  std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>* mData = nullptr; // compressed data return space.
+  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* mData = nullptr; // compressed data return space.
   std::vector<CompressedDigit> mDigits;                                    // outgoing parsed digits
   // subtle point, mDigits is not cleared between parsings,only between events.
   // this means that successive calls to Parse simply appends the new digits onto the vector.
@@ -107,7 +107,7 @@ class DigitsParser
   uint16_t mROB;
   uint16_t mChannel;
   uint16_t mEventCounter;
-  std::array<uint32_t, o2::trd::constants::CRUBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
+  std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
   //uint32_t mCurrentLinkDataPosition;                   // count of data read for current link in units of 256 bits
   //uhint32_t mCurrentHalfCRUDataPosition256;             //count of data read for this half cru.

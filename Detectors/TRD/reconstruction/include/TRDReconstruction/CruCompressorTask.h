@@ -38,7 +38,7 @@ class CruCompressorTask : public Task
 
  private:
   CruRawReader mReader; // this will do the parsing.
-  std::array<uint64_t, o2::trd::constants::CRUBUFFERMAX> mOutBuffer;
+  std::array<uint64_t, o2::trd::constants::HBFBUFFERMAX> mOutBuffer;
   bool mVerbose{false};
   bool mDataVerbose{false};
   bool mHeaderVerbose{false};
