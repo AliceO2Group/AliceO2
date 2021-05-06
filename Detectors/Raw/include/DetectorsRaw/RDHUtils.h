@@ -18,7 +18,7 @@
 #include "GPUCommonRtypes.h"
 #include "Headers/RAWDataHeader.h"
 #include "Headers/RDHAny.h"
-
+#include "GPUCommonTypeTraits.h"
 #if !defined(GPUCA_GPUCODE)
 #include "CommonDataFormat/InteractionRecord.h"
 #endif
@@ -35,7 +35,7 @@ using LinkSubSpec_t = uint32_t;
 struct RDHUtils {
 
 // disable is the type is a pointer
-#define NOTPTR(T) typename std::enable_if<!std::is_pointer<T>::value>::type* = 0
+#define NOTPTR(T) typename std::enable_if<!std::is_pointer<GPUgeneric() T>::value>::type* = 0
 // dereference SRC pointer as DST type reference
 #define TOREF(DST, SRC) *reinterpret_cast<DST*>(SRC)
 // dereference SRC pointer as DST type const reference
@@ -692,7 +692,8 @@ struct RDHUtils {
  private:
   static uint32_t fletcher32(const uint16_t* data, int len);
 #if defined(GPUCA_GPUCODE_DEVICE) || defined(GPUCA_STANDALONE)
-  GPUhdi() static void processError(int v, const char* field)
+  template <typename T>
+  GPUhdi() static void processError(int v, const T* field)
   {
   }
 #else

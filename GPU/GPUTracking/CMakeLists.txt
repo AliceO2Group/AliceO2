@@ -131,7 +131,6 @@ set(HDRS_INSTALL
     DataTypes/GPUOutputControl.h
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
-    DataTypes/GPURawData.h
     DataTypes/GPUdEdxInfo.h
     DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
