@@ -94,11 +94,11 @@ unsigned int RawDataChecker::getNBusyRaised() const
   return sum;
 }
 
-void RawDataChecker::clear()
+void RawDataChecker::clear(bool all)
 {
   /// Clears the statistics
   for (auto& checker : mCheckers) {
-    checker.clear();
+    checker.clear(all);
   }
 }
 
