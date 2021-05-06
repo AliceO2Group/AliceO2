@@ -25,6 +25,7 @@
     #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable          //
     #pragma OPENCL EXTENSION __cl_clang_function_pointers : enable               // Allow function pointers
     #pragma OPENCL EXTENSION __cl_clang_non_portable_kernel_param_types : enable // Allow pointers to non-standard types as kernel arguments
+    #pragma OPENCL EXTENSION __cl_clang_bitfields : enable                       // Allow usage of bitfields
     #define global __global
     #define local __local
     #define constant __constant
