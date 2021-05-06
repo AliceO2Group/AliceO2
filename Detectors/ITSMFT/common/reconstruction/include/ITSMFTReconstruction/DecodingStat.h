@@ -61,7 +61,7 @@ struct ChipStat {
   size_t nHits = 0;
   std::array<uint32_t, NErrorsDefined> errorCounts = {};
   ChipStat() = default;
-  ChipStat(uint16_t _id) : id(id) {}
+  ChipStat(uint16_t _id) : id(_id) {}
 
   void clear()
   {
