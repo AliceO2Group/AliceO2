@@ -16,9 +16,20 @@
 
 #include "GPUTRDTrack.h"
 
-namespace o2::trd
+namespace o2
 {
-  using TrackTRD = o2::gpu::GPUTRDTrack;
-} // namespace o2::trd
+namespace trd
+{
+using TrackTRD = o2::gpu::GPUTRDTrack;
+} // namespace trd
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::trd::TrackTRD> : std::true_type {
+};
+} // namespace framework
+} // namespace o2
 
 #endif // O2_DATAFORMATS_TRACK_TRD_H

@@ -26,6 +26,7 @@
 #include "DataFormatsTOF/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
@@ -311,13 +312,12 @@ void RecoContainer::addITSTPCTracks(ProcessingContext& pc, bool mc)
 
 void RecoContainer::addITSTPCTRDTracks(ProcessingContext& pc, bool mc)
 {
-#warning fix TrackParCov
-  tracksPool.registerContainer(pc.inputs().get<gsl::span<o2::track::TrackParCov>>("trackITSTPCTRD"), GTrackID::ITSTPCTRD);
+  tracksPool.registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTRD>>("trackITSTPCTRD"), GTrackID::ITSTPCTRD);
 }
 
 void RecoContainer::addTPCTRDTracks(ProcessingContext& pc, bool mc)
 {
-  tracksPool.registerContainer(pc.inputs().get<gsl::span<o2::track::TrackParCov>>("trackTPCTRD"), GTrackID::TPCTRD);
+  tracksPool.registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTRD>>("trackTPCTRD"), GTrackID::TPCTRD);
 }
 
 //__________________________________________________________
