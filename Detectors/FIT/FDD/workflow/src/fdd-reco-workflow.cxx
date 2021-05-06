@@ -41,7 +41,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
-  o2::conf::ConfigurableParam::writeINI("o2tpcits-match-recoflow_configuration.ini");
+  o2::conf::ConfigurableParam::writeINI("o2-fdd-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
