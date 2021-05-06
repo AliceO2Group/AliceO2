@@ -32,6 +32,7 @@ using RDH = o2::header::RAWDataHeader;
 /// create link with given ids
 GBTLink::GBTLink(uint16_t _cru, uint16_t _fee, uint8_t _ep, uint8_t _idInCru, uint16_t _chan) : idInCRU(_idInCru), cruID(_cru), feeID(_fee), endPointID(_ep), channelID(_chan)
 {
+  chipStat.id = _fee;
 }
 
 ///_________________________________________________________________
@@ -40,8 +41,10 @@ std::string GBTLink::describe() const
 {
   std::stringstream ss;
   ss << "Link cruID=0x" << std::hex << std::setw(4) << std::setfill('0') << cruID << std::dec
-     << "/lID=" << int(idInCRU) << "/feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << feeID << std::dec
-     << " lanes: " << std::bitset<28>(lanes).to_string();
+     << "/lID=" << int(idInCRU) << "/feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << feeID << std::dec;
+  if (lanes) {
+    ss << " lanes: " << std::bitset<28>(lanes).to_string();
+  }
   return ss.str();
 }
 
