@@ -10,6 +10,7 @@
 
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "ITStracking/IOUtils.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 using namespace o2::globaltracking;
@@ -115,16 +116,15 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   }
 
   if (maskTrk[GID::ITSTPCTRD] && ioPtr.nTRDTracksITSTPCTRD == 0) {
-    const auto& trdTracks = recoCont.getITSTPCTRDTracks<o2::track::TrackParCov>();
+    const auto& trdTracks = recoCont.getITSTPCTRDTracks<o2::trd::TrackTRD>();
     ioPtr.nTRDTracksITSTPCTRD = trdTracks.size();
-#warning fixme
-    //ioPtr.trdTracksITSTPCTRD = trdTracks.data();
+    ioPtr.trdTracksITSTPCTRD = trdTracks.data();
   }
 
   if (maskTrk[GID::TPCTRD] && ioPtr.nTRDTracksTPCTRD == 0) {
-    const auto& trdTracks = recoCont.getTPCTRDTracks<o2::track::TrackParCov>();
+    const auto& trdTracks = recoCont.getTPCTRDTracks<o2::trd::TrackTRD>();
     ioPtr.nTRDTracksTPCTRD = trdTracks.size();
-    //ioPtr.trdTracksTPCTRD = trdTracks.data();
+    ioPtr.trdTracksTPCTRD = trdTracks.data();
   }
 
   return std::move(retVal);
