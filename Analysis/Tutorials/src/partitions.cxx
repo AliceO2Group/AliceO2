@@ -45,7 +45,7 @@ struct ATask {
   // partitions are created and provided within the process function
   void process(aod::Collision const& collision, myTracks const& tracks)
   {
-    
+
     // all defined partitions are available
     LOGF(INFO, "Collision: %d [N = %d] [left phis = %d] [mid phis = %d] [right phis = %d]",
          collision.globalIndex(), tracks.size(), leftPhi.size(), midPhi.size(), rightPhi.size());

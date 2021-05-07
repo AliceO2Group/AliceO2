@@ -16,8 +16,10 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
 
-namespace o2::aod {
-namespace minmax {
+namespace o2::aod
+{
+namespace minmax
+{
 DECLARE_SOA_COLUMN(Minpt, minpt, float);
 DECLARE_SOA_COLUMN(Maxpt, maxpt, float);
 DECLARE_SOA_COLUMN(Mineta, mineta, float);
@@ -33,13 +35,14 @@ using namespace o2;
 using namespace o2::framework;
 
 struct ATask {
-  void process(aod::PtRange const &ptranges, aod::EtaRange const &etaranges) {
+  void process(aod::PtRange const& ptranges, aod::EtaRange const& etaranges)
+  {
     // check ptranges and etaranges to have same number of rows
     if (ptranges.size() != etaranges.size()) {
       LOGF(
-          error,
-          "The numbers of rows in PtRange (%d) and EtaRange (%d) do NOT agree!",
-          ptranges.size(), etaranges.size());
+        error,
+        "The numbers of rows in PtRange (%d) and EtaRange (%d) do NOT agree!",
+        ptranges.size(), etaranges.size());
     } else {
       LOGF(error,
            "The numbers of rows in EtaRange (%d) and EtaRange (%d) agree!",
@@ -48,7 +51,8 @@ struct ATask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const &cfgc) {
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
+{
   return WorkflowSpec{
-      adaptAnalysisTask<ATask>(cfgc, TaskName{"aod-reader-tutorial_A"})};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"aod-reader-tutorial_A"})};
 }

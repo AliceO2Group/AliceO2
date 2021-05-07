@@ -143,7 +143,7 @@ struct BuildHmpidIndex {
 
 struct ConsumeHmpidIndex {
   using exTracks = soa::Join<aod::Tracks, aod::HMPIDTracksIndex>;
-  
+
   // bind to Tracks and HMPIDs
   void process(aod::Collision const& collision, exTracks const& tracks, aod::HMPIDs const&)
   {

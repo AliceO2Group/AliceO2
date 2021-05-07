@@ -29,12 +29,11 @@ struct ATask {
     for (auto& track : tracks) {
       LOGF(info, "  track pT = %f GeV/c", track.pt());
     }
-
   }
 };
 
 struct BTask {
-  
+
   void process(aod::Collisions const& collisions, aod::Tracks const& tracks)
   {
     // `tracks` contains all tracks of a data frame
@@ -44,7 +43,7 @@ struct BTask {
 };
 
 struct CTask {
-  
+
   void process(aod::Collision const& collision, aod::Tracks const& tracks, aod::V0s const& v0s)
   {
     // `tracks` contains tracks belonging to `collision`

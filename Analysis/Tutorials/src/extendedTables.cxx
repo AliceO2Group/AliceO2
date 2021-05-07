@@ -16,7 +16,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 
-# declare expression column P2
+#declare expression column P2
 namespace o2::aod
 {
 namespace extension
@@ -52,7 +52,7 @@ DECLARE_SOA_EXTENDED_TABLE_USER(MTracks, aod::Tracks, "MTRACK", aod::track::exte
 
 struct BTask {
   Spawns<aod::MTracks> mtracks;
-  
+
   void process(aod::Collision const&, aod::MTracks const& mtracks)
   {
     auto table_extension = soa::Extend<aod::Tracks, aod::extension::P2>(tracks);

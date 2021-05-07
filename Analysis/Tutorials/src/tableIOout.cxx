@@ -41,15 +41,15 @@ struct ATask {
   Produces<aod::MinMaxPt> minmaxpt;
   float minpt;
   float maxpt;
-  
+
   void process(aod::Collision const& collision, aod::Tracks const& tracks)
   {
     // reset minpt / maxpt
     minpt = 1.E3;
     maxpt = 0.;
-    
+
     // loop over tracks of the collision
-    LOGF (info, "Collision %d number of tracks %d",collision.index(),tracks.size());
+    LOGF(info, "Collision %d number of tracks %d", collision.index(), tracks.size());
     for (auto& track : tracks) {
       if (track.pt() < minpt) {
         minpt = track.pt();
@@ -58,11 +58,10 @@ struct ATask {
         maxpt = track.pt();
       }
     }
-    LOGF (info, "  ptmin %f ptmax %f",minpt,maxpt);
-      
-    // update table minmax
-    minmaxpt(minpt,maxpt);
+    LOGF(info, "  ptmin %f ptmax %f", minpt, maxpt);
 
+    // update table minmax
+    minmaxpt(minpt, maxpt);
   }
 };
 
@@ -70,15 +69,15 @@ struct BTask {
   Produces<aod::MinMaxEta> minmaxeta;
   float mineta;
   float maxeta;
-  
+
   void process(aod::Collision const& collision, aod::Tracks const& tracks)
   {
     // reset mineta / maxeta
-    mineta =  1.E3;
+    mineta = 1.E3;
     maxeta = -1.E3;
-    
+
     // loop over tracks of the collision
-    LOGF (info, "Collision %d number of tracks %d",collision.index(),tracks.size());
+    LOGF(info, "Collision %d number of tracks %d", collision.index(), tracks.size());
     for (auto& track : tracks) {
       if (track.eta() < mineta) {
         mineta = track.eta();
@@ -87,10 +86,9 @@ struct BTask {
         maxeta = track.eta();
       }
     }
-      
-    // update table minmax
-    minmaxeta(mineta,maxeta);
 
+    // update table minmax
+    minmaxeta(mineta, maxeta);
   }
 };
 
@@ -98,7 +96,7 @@ struct CTask {
   void process(aod::MinMaxEta const& minmaxetas)
   {
     for (auto& minmaxeta : minmaxetas) {
-      LOGF (info, "  etamin %f etamax %f",minmaxeta.mineta(),minmaxeta.maxeta());
+      LOGF(info, "  etamin %f etamax %f", minmaxeta.mineta(), minmaxeta.maxeta());
     }
   }
 };

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-/// \brief 
+/// \brief
 /// \author
 /// \since
 
@@ -19,42 +19,40 @@ using namespace o2;
 using namespace o2::framework;
 
 struct ATask {
-  
+
   // define global variables
   size_t count = 0;
-  
+
   // loop over each single track
   void process(aod::Track const& track)
   {
     // count the tracks contained in the input file
-    LOGF (INFO, "Track %d: Momentum: %f", count, track.p());
+    LOGF(INFO, "Track %d: Momentum: %f", count, track.p());
     count++;
   }
-
 };
 
 struct BTask {
-  
+
   // define global variables
   size_t numberDataFrames = 0;
   size_t count = 0;
   size_t totalCount = 0;
-  
+
   // loop over data frames
   void process(aod::Tracks const& tracks)
   {
     numberDataFrames++;
-        
+
     // count the tracks contained in each data frame
     count = 0;
     for (auto& track : tracks) {
       count++;
     }
     totalCount += count;
-    
-    LOGF (INFO, "DataFrame %d: Number of tracks: %d Accumulated number of tracks: %d", numberDataFrames, count, totalCount);
-  }
 
+    LOGF(INFO, "DataFrame %d: Number of tracks: %d Accumulated number of tracks: %d", numberDataFrames, count, totalCount);
+  }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)

@@ -61,7 +61,7 @@ struct BTask {
 
 struct CTask {
   using EtaPhiRow = aod::EtaPhi::iterator;
-  
+
   // consume the table produced in ATask
   // process the table row by row
   void process(EtaPhiRow const& etaPhi)

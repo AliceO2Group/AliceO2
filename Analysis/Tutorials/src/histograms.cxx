@@ -26,7 +26,7 @@ using namespace o2;
 using namespace o2::framework;
 
 struct ATask {
-  
+
   // normal creation of a histogram
   TH1F* phiHA = new TH1F("phiA", "phiA", 100, 0., 2. * M_PI);
   TH1F* etaHA = new TH1F("etaA", "etaA", 102, -2.01, 2.01);
@@ -41,7 +41,7 @@ struct ATask {
 };
 
 struct BTask {
-  
+
   // histogram created with OutputObj<TH1F>
   OutputObj<TH1F> phiB{TH1F("phiB", "phiB", 100, 0., 2. * M_PI), OutputObjHandlingPolicy::QAObject};
   OutputObj<TH2F> etaptB{TH2F("etaptB", "etaptB", 102, -2.01, 2.01, 100, 0.0, 5.0), OutputObjHandlingPolicy::AnalysisObject};
@@ -50,7 +50,7 @@ struct BTask {
   {
     for (auto& track : tracks) {
       phiB->Fill(track.phi());
-      etaptB->Fill(track.eta(),track.pt());
+      etaptB->Fill(track.eta(), track.pt());
     }
   }
 };
@@ -80,21 +80,18 @@ struct CTask {
 };
 
 struct DTask {
-  
+
   // histogram defined with HistogramRegistry
-  HistogramRegistry registry {
+  HistogramRegistry registry{
     "registry",
-    {
-      {"phiC", "phiC", {HistType::kTH1F, {{100, 0., 2. * M_PI}}}},
-      {"etaptC", "etaptC", {HistType::kTH2F, {{102, -2.01, 2.01}, {100, 0.0, 5.0}}}}
-    }
-  };
+    {{"phiC", "phiC", {HistType::kTH1F, {{100, 0., 2. * M_PI}}}},
+     {"etaptC", "etaptC", {HistType::kTH2F, {{102, -2.01, 2.01}, {100, 0.0, 5.0}}}}}};
 
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
       registry.get<TH1>(HIST("phiC"))->Fill(track.phi());
-      registry.get<TH2>(HIST("etaptC"))->Fill(track.eta(),track.pt());
+      registry.get<TH2>(HIST("etaptC"))->Fill(track.eta(), track.pt());
     }
   }
 };
