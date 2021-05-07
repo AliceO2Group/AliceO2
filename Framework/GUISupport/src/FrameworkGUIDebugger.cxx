@@ -725,8 +725,10 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
     setenv("O2DEBUGGEDPID", pidStr.c_str(), 1);
 #ifdef __APPLE__
     std::string defaultAppleDebugCommand =
-      "osascript -e 'tell application \"Terminal\" to activate'"
-      " -e 'tell application \"Terminal\" to do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\")'";
+      "osascript -e 'tell application \"Terminal\"'"
+      " -e 'activate'"
+      " -e 'do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\") & \"; exit\"'"
+      " -e 'end tell'";
     setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
 #else
     setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
@@ -741,12 +743,13 @@ void displayDriverInfo(DriverInfo const& driverInfo, DriverControl& driverContro
     setenv("O2PROFILEDPID", pidStr.c_str(), 1);
 #ifdef __APPLE__
     auto defaultAppleProfileCommand = fmt::format(
-      "osascript -e 'tell application \"Terminal\" to activate'"
-      " -e 'tell application \"Terminal\" to do script \"xcrun xctrace record --output dpl-profile-{}.trace"
-      " --time-limit 30s --template Time\\\\ Profiler --attach {} "
-      " && open dpl-profile-{}.trace && exit\"'"
-      " && open dpl-driver-profile-{}.trace",
-      pid, pid, pid, pid);
+      "osascript -e 'tell application \"Terminal\"'"
+      " -e 'activate'"
+      " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
+      " --time-limit 30s --template Time\\\\ Profiler --attach {0} "
+      " && open dpl-profile-{0}.trace && exit\"'"
+      " -e 'end tell'",
+      pid);
     std::cout << defaultAppleProfileCommand << std::endl;
     setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
 #else
