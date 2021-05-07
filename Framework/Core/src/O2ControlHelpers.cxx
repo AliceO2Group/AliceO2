@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "O2ControlHelpers.h"
+#include "Framework/O2ControlLabels.h"
 #include "ChannelSpecHelpers.h"
 #include "Framework/Logger.h"
 
@@ -15,7 +16,6 @@
 #include <cstring>
 #include <string>
 #include <filesystem>
-#include <boost/algorithm/string/replace.hpp>
 
 namespace bfs = std::filesystem;
 
@@ -63,39 +63,43 @@ struct RawChannel {
   std::string_view transport;
 };
 
-void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, std::string indLevel)
+std::string rawChannelReference(std::string_view channelName, bool isUniqueChannel)
 {
-  auto templateFriendlyChannelName = std::string(channel.name);
-  boost::replace_all(templateFriendlyChannelName, "-", "_");
-  boost::replace_all(templateFriendlyChannelName, "/", "_");
-  boost::replace_all(templateFriendlyChannelName, "*", "_");
-  boost::replace_all(templateFriendlyChannelName, "+", "_");
-  boost::replace_all(templateFriendlyChannelName, ".", "_");
-  boost::replace_all(templateFriendlyChannelName, "%", "_");
-  std::string pathToChannel = "path_to_" + templateFriendlyChannelName;
+  if (isUniqueChannel) {
+    return std::string(channelName);
+  } else {
+    return std::string(channelName) + "-{{ it }}";
+  }
+}
 
+void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, std::string indLevel)
+{
+  auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
   LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
-            << " Please provide the path to this channel under the name '" << pathToChannel
-            << "' in the mother workflow.";
+            << " Please make sure it is declared in the global channel space under the name '" << channelRef
+            << "' in the mother workflow or another subworkflow.";
 
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
-
-  dumpOut << indLevel << indScheme << "target: \"{{ " << pathToChannel << " }}\"\n";
+  dumpOut << indLevel << indScheme << "target: \"::" << channelRef << "\"\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
 }
 
-void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, std::string indLevel)
+void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, std::string indLevel)
 {
-  LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'."
-            << " Please make sure that another device connects to this channel elsewhere.";
+  auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
+  LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'"
+            << " and declare it in the global channel space under the name '" << channelRef << "'."
+            << " Please make sure that another device connects to this channel elsewhere."
+            << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
 
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
   dumpOut << indLevel << indScheme << "addressing: " << (channel.address.find("ipc") != std::string_view::npos ? "ipc" : "tcp") << "\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
+  dumpOut << indLevel << indScheme << "global: \"" << channelRef << "\"\n";
 }
 
 std::string_view extractValueFromChannelConfig(std::string_view string, std::string_view token)
@@ -228,6 +232,11 @@ std::string findBinder(const std::vector<DeviceSpec>& specs, const std::string& 
   throw std::runtime_error("Could not find a device which binds the '" + channel + "' channel.");
 }
 
+bool isUniqueProxy(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::uniqueProxyLabel) != spec.labels.end();
+}
+
 void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSpec& spec, const std::vector<DeviceSpec>& allSpecs, const DeviceExecution& execution, const std::string indLevel)
 {
   dumpOut << indLevel << "- name: \"" << spec.id << "\"\n";
@@ -244,10 +253,24 @@ void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSp
       dumpChannelConnect(dumpOut, inputChannel, findBinder(allSpecs, inputChannel.name), indLevel + indScheme);
     }
   }
+  bool uniqueProxy = isUniqueProxy(spec);
+  bool bindsRawChannels = false;
   auto rawChannels = extractRawChannels(spec, execution);
   for (const auto& rawChannel : rawChannels) {
     if (rawChannel.method == "connect") {
-      dumpRawChannelConnect(dumpOut, rawChannel, indLevel + indScheme);
+      dumpRawChannelConnect(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
+    } else if (rawChannel.method == "bind") {
+      bindsRawChannels = true;
+    }
+  }
+
+  // for the time being we have to publish global bound channels also in WFT
+  if (bindsRawChannels) {
+    dumpOut << indLevel << indScheme << "bind:\n";
+    for (const auto& rawChannel : rawChannels) {
+      if (rawChannel.method == "bind") {
+        dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
+      }
     }
   }
 
@@ -297,10 +320,11 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
       implementation::dumpChannelBind(dumpOut, inputChannel, indLevel + indScheme);
     }
   }
+  bool uniqueProxy = implementation::isUniqueProxy(spec);
   auto rawChannels = implementation::extractRawChannels(spec, execution);
   for (const auto& rawChannel : rawChannels) {
     if (rawChannel.method == "bind") {
-      dumpRawChannelBind(dumpOut, rawChannel, indLevel + indScheme);
+      dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
     }
   }
 
