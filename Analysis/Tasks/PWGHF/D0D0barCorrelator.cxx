@@ -531,11 +531,12 @@ struct D0D0barCorrelatorMCRecLS {
           registry.fill(HIST("hMassD0barMCRec"), InvMassD0bar(candidate1));
         }
         registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
-        registry.fill(HIST("hPtprong0MCRec"), candidate1.ptProng0());
-        registry.fill(HIST("hPtprong1MCRec"), candidate1.ptProng1());
+        registry.fill(HIST("hPtProng0MCRec"), candidate1.ptProng0());
+        registry.fill(HIST("hPtProng1MCRec"), candidate1.ptProng1());
         registry.fill(HIST("hEtaMCRec"), candidate1.eta());
         registry.fill(HIST("hPhiMCRec"), candidate1.phi());
         registry.fill(HIST("hYMCRec"), YD0(candidate1));
+        registry.fill(HIST("hSelectionStatusMCRec"), candidate1.isSelD0() + (candidate1.isSelD0bar() * 2));
 
         double ptParticle1 = candidate1.pt(); //trigger particle is the largest pT one
 

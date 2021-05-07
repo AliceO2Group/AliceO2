@@ -151,10 +151,10 @@ struct TaskDDbarCorrelation {
         registry.fill(HIST("hDeltaPtMaxMinSignalRegion"), std::abs(ptDbar - ptD));
       }
 
-      if ((pairEntry.mD() > sidebandLeftInner->at(pTBinD) && pairEntry.mD() < sidebandLeftOuter->at(pTBinD) && pairEntry.mDbar() > sidebandLeftInner->at(pTBinDbar) && pairEntry.mDbar() < sidebandRightOuter->at(pTBinDbar)) ||
-          (pairEntry.mD() > sidebandRightInner->at(pTBinD) && pairEntry.mD() < sidebandRightOuter->at(pTBinD) && pairEntry.mDbar() > sidebandLeftInner->at(pTBinDbar) && pairEntry.mDbar() < sidebandRightOuter->at(pTBinDbar)) ||
-          (pairEntry.mD() > sidebandLeftInner->at(pTBinD) && pairEntry.mD() < sidebandRightOuter->at(pTBinD) && pairEntry.mDbar() > sidebandLeftInner->at(pTBinDbar) && pairEntry.mDbar() < sidebandLeftOuter->at(pTBinDbar)) ||
-          (pairEntry.mD() > sidebandLeftInner->at(pTBinD) && pairEntry.mD() < sidebandRightOuter->at(pTBinD) && pairEntry.mDbar() > sidebandRightInner->at(pTBinDbar) && pairEntry.mDbar() < sidebandRightOuter->at(pTBinDbar))) {
+      if ((massD > sidebandLeftInner->at(pTBinD) && massD < sidebandLeftOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar)) ||
+          (massD > sidebandRightInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar)) ||
+          (massD > sidebandLeftInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandLeftOuter->at(pTBinDbar)) ||
+          (massD > sidebandLeftInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandRightInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar))) {
         //in sideband region
         registry.fill(HIST("hCorrel2DVsPtSidebands"), deltaPhi, deltaEta, ptD, ptDbar);
         registry.fill(HIST("hCorrel2DPtIntSidebands"), deltaPhi, deltaEta);
@@ -237,6 +237,8 @@ struct TaskDDbarCorrelationMCRec {
       double deltaEta = pairEntry.deltaEta();
       double ptD = pairEntry.ptD();
       double ptDbar = pairEntry.ptDbar();
+      double massD = pairEntry.mD();
+      double massDbar = pairEntry.mDbar();
 
       //reject entries outside pT ranges of interest
       double minPtAllowed = binsCorrelations->at(0);
@@ -248,16 +250,16 @@ struct TaskDDbarCorrelationMCRec {
       //fill 2D invariant mass plots
       switch (pairEntry.signalStatus()) {
         case 0: //D Bkg, Dbar Bkg
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgBkg"), pairEntry.mD(), pairEntry.mDbar(), ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgBkg"), massD, massDbar, ptD, ptDbar);
           break;
         case 1: //D Bkg, Dbar Sig
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgSig"), pairEntry.mD(), pairEntry.mDbar(), ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgSig"), massD, massDbar, ptD, ptDbar);
           break;
         case 2: //D Sig, Dbar Bkg
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigBkg"), pairEntry.mD(), pairEntry.mDbar(), ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigBkg"), massD, massDbar, ptD, ptDbar);
           break;
         case 3: //D Sig, Dbar Sig
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigSig"), pairEntry.mD(), pairEntry.mDbar(), ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigSig"), massD, massDbar, ptD, ptDbar);
           break;
         default: //should not happen for MC reco
           break;
@@ -267,7 +269,7 @@ struct TaskDDbarCorrelationMCRec {
       int pTBinD = o2::analysis::findBin(binsCorrelations, ptD);
       int pTBinDbar = o2::analysis::findBin(binsCorrelations, ptDbar);
 
-      if (pairEntry.mD() > signalRegionInner->at(pTBinD) && pairEntry.mD() < signalRegionOuter->at(pTBinD) && pairEntry.mDbar() > signalRegionInner->at(pTBinDbar) && pairEntry.mDbar() < signalRegionOuter->at(pTBinDbar)) {
+      if (massD > signalRegionInner->at(pTBinD) && massD < signalRegionOuter->at(pTBinD) && massDbar > signalRegionInner->at(pTBinDbar) && massDbar < signalRegionOuter->at(pTBinDbar)) {
         //in signal region
         registry.fill(HIST("hCorrel2DPtIntSignalRegionMCRec"), deltaPhi, deltaEta);
         registry.fill(HIST("hDeltaEtaPtIntSignalRegionMCRec"), deltaEta);
@@ -292,10 +294,10 @@ struct TaskDDbarCorrelationMCRec {
         }
       }
 
-      if ((pairEntry.mD() > sidebandLeftInner->at(pTBinD) && pairEntry.mD() < sidebandLeftOuter->at(pTBinD) && pairEntry.mDbar() > sidebandLeftInner->at(pTBinDbar) && pairEntry.mDbar() < sidebandRightOuter->at(pTBinDbar)) ||
-          (pairEntry.mD() > sidebandRightInner->at(pTBinD) && pairEntry.mD() < sidebandRightOuter->at(pTBinD) && pairEntry.mDbar() > sidebandLeftInner->at(pTBinDbar) && pairEntry.mDbar() < sidebandRightOuter->at(pTBinDbar)) ||
-          (pairEntry.mD() > sidebandLeftInner->at(pTBinD) && pairEntry.mD() < sidebandRightOuter->at(pTBinD) && pairEntry.mDbar() > sidebandLeftInner->at(pTBinDbar) && pairEntry.mDbar() < sidebandLeftOuter->at(pTBinDbar)) ||
-          (pairEntry.mD() > sidebandLeftInner->at(pTBinD) && pairEntry.mD() < sidebandRightOuter->at(pTBinD) && pairEntry.mDbar() > sidebandRightInner->at(pTBinDbar) && pairEntry.mDbar() < sidebandRightOuter->at(pTBinDbar))) {
+      if ((massD > sidebandLeftInner->at(pTBinD) && massD < sidebandLeftOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar)) ||
+          (massD > sidebandRightInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar)) ||
+          (massD > sidebandLeftInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandLeftOuter->at(pTBinDbar)) ||
+          (massD > sidebandLeftInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandRightInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar))) {
         //in sideband region
         registry.fill(HIST("hCorrel2DPtIntSidebandsMCRec"), deltaPhi, deltaEta);
         registry.fill(HIST("hDeltaEtaPtIntSidebandsMCRec"), deltaEta);
@@ -376,93 +378,6 @@ struct TaskDDbarCorrelationMCGen {
   }
 };
 
-/// checks phi resolution for standard definition and sec-vtx based definition
-struct TaskDDbarCorrelationCheckPhiResolution {
-
-  HistogramRegistry registry{
-    "registry",
-    {{"hMass", "D,Dbar candidates;inv. mass (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{120, 1.5848, 2.1848}}}},
-     {"hEta", "D,Dbar candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
-     {"hPhiStdPhi", "D,Dbar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, 0., 2. * o2::constants::math::PI}, {50, 0., 50.}}}},
-     {"hPhiByVtxPhi", "D,Dbar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, 0., 2. * o2::constants::math::PI}, {50, 0., 50.}}}},
-     {"hPhiDifferenceTwoMethods", "D,Dbar candidates;candidate #it{#Delta#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI, o2::constants::math::PI}, {50, 0., 50.}}}},
-     {"hDifferenceGenPhiStdPhi", "D,Dbar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI, o2::constants::math::PI}, {50, 0., 50.}}}},
-     {"hDifferenceGenPhiByVtxPhi", "D,Dbar candidates;candidate #it{#varphi};#it{p}_{T}", {HistType::kTH2F, {{128, -o2::constants::math::PI, o2::constants::math::PI}, {50, 0., 50.}}}},
-     {"hDeltaPhiPtIntStdPhi", "D,Dbar candidates;#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH1F, {{128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
-     {"hDeltaPhiPtIntByVtxPhi", "D,Dbar candidates;#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH1F, {{128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
-     {"hDeltaPhiVsPtStdPhi", "D,Dbar candidates;#it{p}_{T}^{D};#it{p}_{T}^{Dbar};#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH3F, {{36, 0., 36.}, {36, 0., 36.}, {128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
-     {"hDeltaPhiVsPtByVtxPhi", "D,Dbar candidates;#it{p}_{T}^{D};#it{p}_{T}^{Dbar};#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH3F, {{36, 0., 36.}, {36, 0., 36.}, {128, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}}}};
-
-  Configurable<int> dSelectionFlagD0{"dSelectionFlagD0", 1, "Selection Flag for D0"};
-  Configurable<int> dSelectionFlagD0bar{"dSelectionFlagD0bar", 1, "Selection Flag for D0bar"};
-  Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
-  Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
-
-  Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= dSelectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= dSelectionFlagD0bar);
-
-  void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::HfCandProng2MCRec>> const& candidates, aod::McParticles const& particlesMC, aod::BigTracksMC const& tracksMC)
-  {
-    for (auto& candidate1 : candidates) {
-      //check decay channel flag for candidate1
-      if (!(candidate1.hfflag() & 1 << D0ToPiK)) {
-        continue;
-      }
-      if (cutYCandMax >= 0. && std::abs(YD0(candidate1)) > cutYCandMax) {
-        continue;
-      }
-      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
-        continue;
-      }
-      registry.fill(HIST("hMass"), InvMassD0(candidate1));
-      registry.fill(HIST("hEta"), candidate1.eta());
-
-      //D-Dbar correlation dedicated section
-      //if it's a candidate D0, search for D0bar and evaluate correlations
-      if (candidate1.isSelD0() >= dSelectionFlagD0) {
-        double xPrimaryVertex = candidate1.index0_as<aod::BigTracksMC>().collision().posX(), yPrimaryVertex = candidate1.index0_as<aod::BigTracksMC>().collision().posY();
-        double pt1 = candidate1.pt(), phi1Std = candidate1.phi();
-        double phi1ByVtx = evaluatePhiByVertex(xPrimaryVertex, candidate1.xSecondaryVertex(), yPrimaryVertex, candidate1.ySecondaryVertex());
-        registry.fill(HIST("hPhiStdPhi"), phi1Std, pt1);
-        registry.fill(HIST("hPhiByVtxPhi"), phi1ByVtx, pt1);
-        registry.fill(HIST("hPhiDifferenceTwoMethods"), getDeltaPhiForResolution(phi1ByVtx, phi1Std), pt1);
-
-        //get corresponding gen-level D0, if exists, and evaluate gen-rec phi-difference with two approaches
-        if (std::abs(candidate1.flagMCMatchRec()) == 1 << D0ToPiK) {                                                          //ok to keep both D0 and D0bar
-          int indexGen = RecoDecay::getMother(particlesMC, candidate1.index0_as<aod::BigTracksMC>().mcParticle(), 421, true); //MC-gen corresponding index for MC-reco candidate
-          double phi1Gen = particlesMC.iteratorAt(indexGen).phi();
-          registry.fill(HIST("hDifferenceGenPhiStdPhi"), getDeltaPhiForResolution(phi1Std, phi1Gen), pt1);
-          registry.fill(HIST("hDifferenceGenPhiByVtxPhi"), getDeltaPhiForResolution(phi1ByVtx, phi1Gen), pt1);
-        }
-
-        for (auto& candidate2 : candidates) {
-          //check decay channel flag for candidate2
-          if (!(candidate2.hfflag() & 1 << D0ToPiK)) {
-            continue;
-          }
-          if (candidate2.isSelD0bar() >= dSelectionFlagD0bar) { //accept only D0bar candidates
-            if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
-              continue;
-            }
-            if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
-              continue;
-            }
-            //Excluding self-correlations (could happen in case of reflections)
-            if (candidate1.mRowIndex == candidate2.mRowIndex) {
-              continue;
-            }
-            double pt2 = candidate2.pt(), phi2Std = candidate2.phi();
-            double phi2ByVtx = evaluatePhiByVertex(xPrimaryVertex, candidate2.xSecondaryVertex(), yPrimaryVertex, candidate2.ySecondaryVertex());
-            registry.fill(HIST("hDeltaPhiPtIntStdPhi"), getDeltaPhi(phi2Std, phi1Std));
-            registry.fill(HIST("hDeltaPhiPtIntByVtxPhi"), getDeltaPhi(phi2ByVtx, phi1ByVtx));
-            registry.fill(HIST("hDeltaPhiVsPtStdPhi"), pt1, pt2, getDeltaPhi(phi2Std, phi1Std));
-            registry.fill(HIST("hDeltaPhiVsPtByVtxPhi"), pt1, pt2, getDeltaPhi(phi2ByVtx, phi1ByVtx));
-          }
-        } // end inner loop (Dbars)
-      }
-    } //end outer loop
-  }
-};
-
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{};
@@ -473,7 +388,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     workflow.push_back(adaptAnalysisTask<TaskDDbarCorrelationMCGen>(cfgc, TaskName{"task-ddbar-correlation-mc-gen"}));
   } else if (doMCRec) { //MC-Rec analysis
     workflow.push_back(adaptAnalysisTask<TaskDDbarCorrelationMCRec>(cfgc, TaskName{"task-ddbar-correlation-mc-rec"}));
-//    workflow.push_back(adaptAnalysisTask<TaskDDbarCorrelationCheckPhiResolution>(cfgc, TaskName{"task-DDbar-correlation-check-phi-resolution"}));
   } else { //data analysis
     workflow.push_back(adaptAnalysisTask<TaskDDbarCorrelation>(cfgc, TaskName{"task-ddbar-correlation"}));
   }
