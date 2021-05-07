@@ -13,12 +13,12 @@
 #include "ZDCReconstruction/DigiReco.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 
-#define O2_ZDC_DIGIRECO_FLT float
 
 namespace o2
 {
 namespace zdc
 {
+using O2_ZDC_DIGIRECO_FLT=float;
 
 void DigiReco::init()
 {
@@ -326,7 +326,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
       }
     }
 
-    RecEvent& rec = mReco[ibun];
+    auto &rec = mReco[ibun];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
       if (rec.fired[itdc] != 0x0) {
         printf("%d %u.%u TDC %d %x", ibun, rec.ir.orbit, rec.ir.bc, itdc, rec.fired[itdc]);
@@ -399,7 +399,6 @@ int DigiReco::reconstruct(int ibeg, int iend)
             sum += (pbun[ich] - float(ChData[ref].data[is]));
           }
           printf("CH %d %s: %f\n", ich, ChannelNames[ich].data(), sum);
-          rec.energy[ich] = sum;
           rec.ezdc[ich] = sum;
         }
       }
