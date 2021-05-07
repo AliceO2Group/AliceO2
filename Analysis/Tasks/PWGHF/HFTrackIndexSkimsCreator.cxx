@@ -64,9 +64,9 @@ struct HfProduceSelCollisions {
 
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
-  Configurable<bool> bDoValPlots{"b_dovalplots", true, "fill histograms"};
-  Configurable<std::string> sTriggerClass{"trigger_class", "kINT7", "trigger class"};
-  int triggerClass = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, sTriggerClass.value.data()));
+  Configurable<bool> doValPlots{"doValPlots", true, "fill histograms"};
+  Configurable<std::string> triggerClassName{"triggerClassName", "kINT7", "trigger class"};
+  int triggerClass = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, triggerClassName.value.data()));
 
   HistogramRegistry registry{
     "registry",
@@ -85,13 +85,13 @@ struct HfProduceSelCollisions {
   {
     int statusCollision = 0;
 
-    if (bDoValPlots) {
+    if (doValPlots) {
       registry.get<TH1>(HIST("hEvents"))->Fill(1);
     }
 
     if (!collision.alias()[triggerClass]) {
       statusCollision |= BIT(0);
-      if (bDoValPlots) {
+      if (doValPlots) {
         registry.get<TH1>(HIST("hEvents"))->Fill(3);
       }
     }
@@ -99,7 +99,7 @@ struct HfProduceSelCollisions {
     //TODO: add more event selection criteria
 
     // selected events
-    if (bDoValPlots && statusCollision == 0) {
+    if (doValPlots && statusCollision == 0) {
       registry.get<TH1>(HIST("hEvents"))->Fill(2);
     }
 
