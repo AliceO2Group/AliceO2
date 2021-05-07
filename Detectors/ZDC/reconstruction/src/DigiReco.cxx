@@ -90,7 +90,7 @@ void DigiReco::init()
       if (!mTDCParam) {
         LOG(FATAL) << "TDC " << itdc << " missing configuration object and no manual override";
       } else {
-        fval = mTDCParam->getShift(itdc) * 96.;
+        fval = mTDCParam->getShift(itdc) / RecEvent::fVal;
       }
     }
     auto val = std::nearbyint(fval);
@@ -101,12 +101,12 @@ void DigiReco::init()
       LOG(FATAL) << "Shift for TDC " << itdc << " " << val << " is out of range";
     }
     tdc_shift[itdc] = val;
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val / 96. << " ns";
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val*RecEvent::fVal << " ns";
   }
   // TDC search zone
   // TODO: override with configuration object
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] / 96. << " ns";
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc]*RecEvent::fVal << " ns";
   }
 
   // Fill maps channel maps for integration
@@ -176,6 +176,12 @@ int DigiReco::process(const std::vector<o2::zdc::OrbitData>* orbitdata, const st
   // Initialization of reco structure
   for (int ibc = 0; ibc < mNBC; ibc++) {
     auto& bcr = mReco[ibc];
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      for (int i = 0; i < MaxTDCValues; i++) {
+	bcr.tdcVal[itdc][i] = kMinShort;
+	bcr.tdcAmp[itdc][i] = kMinShort;
+      }
+    }
     auto& bcd = BCData[ibc];
     bcr.ir = bcd.ir;
     int chEnt = bcd.ref.getFirstEntry();
@@ -329,10 +335,6 @@ int DigiReco::reconstruct(int ibeg, int iend)
         }
         printf("\n");
       }
-      //      for (int i = 0; i < MaxTDCValues; i++) {
-      //        rec.tdcVal[itdc][i] = kMinShort;
-      //        rec.tdcAmp[itdc][i] = -999;
-      //      }
       rec.pattern[itdc] = 0;
       for (int32_t i = 0; i < rec.ntdc[itdc]; i++) {
         LOG(INFO) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.tdcAmp[itdc][i] << " @ " << rec.tdcVal[itdc][i];
@@ -767,13 +769,13 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   int& ihit = mReco[ibun].ntdc[itdc];
   if (ihit < MaxTDCValues) {
     mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
-    mReco[ibun].tdcAmp[itdc][ihit] = amp;
+    mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp/RecEvent::fAmp);
     ihit++;
     LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor << " amp=" << amp;
+              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor*RecEvent::fVal << " amp=" << amp*RecEvent::fAmp;
   } else {
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor << " amp=" << amp << " OVERFLOW";
+               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor*RecEvent::fVal << " amp=" << amp*RecEvent::fAmp << " OVERFLOW";
   }
 }
 

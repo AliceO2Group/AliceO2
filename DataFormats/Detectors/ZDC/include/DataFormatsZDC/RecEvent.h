@@ -27,24 +27,23 @@ namespace o2
 namespace zdc
 {
 struct RecEvent {
-  //using TDCChannel = std::array<float, MaxTDCValues>;
-  //using TDCAmplitude = std::array<float, MaxTDCValues>;
-  //using TDCChannel = std::vector<float>;
-  //using TDCAmplitude = std::vector<float>;
   o2::InteractionRecord ir;
   uint32_t flags;                              /// reconstruction flags
   std::map<uint8_t, float> ezdc;               /// signal in ZDCs
   float energy[NChannels] = {O2_ZDC_FLT_INIT}; /// ZDC signal
-  math_utils::Point2D<float> centroidZNA;      /// centroid coordinates for ZNA
-  math_utils::Point2D<float> centroidZNC;      /// centroid coordinates for ZNC
-
-  int16_t tdcVal[NTDCChannels][MaxTDCValues]; /// TdcChannels
-  float tdcAmp[NTDCChannels][MaxTDCValues];   /// TdcAmplitudes
+  constexpr static float fAmp = 1. / 8.;       /// Multiplication factor in conversion from integer
+  constexpr static float fVal = 1. / TSNS;     /// Multiplication factor in conversion from integer
+  int16_t tdcVal[NTDCChannels][MaxTDCValues];  /// TdcChannels
+  int16_t tdcAmp[NTDCChannels][MaxTDCValues];  /// TdcAmplitudes
   int ntdc[NTDCChannels] = {0};
+
+  // Internal variables
   std::array<bool, NTDCChannels> pattern;                /// Pattern of TDC
   uint16_t fired[NTDCChannels] = {0};                    /// Position at which the trigger algorithm is fired
   float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
   uint32_t ref[NChannels] = {O2_ZDC_REF_INIT};           /// Cache of references
+
+  // Functions
   void print() const;
   float EZDC(uint8_t ich)
   {
