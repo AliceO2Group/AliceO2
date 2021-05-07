@@ -7,7 +7,9 @@
 #include <fstream>
 #include <regex>
 #include <unistd.h>
+#include <thread>
 #include <TRandom.h>
+#include <TVectorF.h>
 #include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
 
@@ -48,7 +50,14 @@ void populateCCDB(const std::string& fname = "cdbSizeV0.txt", const std::string&
       if (elapsedSeconds.count() > o.validity || !o.count) {
         std::cout << "Storing entry: " << o.path << " copy " << o.count
                   << " after " << (o.count ? elapsedSeconds.count() : 0.) << "s\n";
-        pushObject(api, o);
+
+        auto uploadStart = std::chrono::high_resolution_clock::now();
+        std::thread th(pushObject, std::ref(api), std::cref(o));
+        th.detach();
+        //pushObject(api, o);
+        auto uploadEnd = std::chrono::high_resolution_clock::now();
+        DurSec uploadTime = uploadEnd - uploadStart;
+        LOG(INFO) << "Took " << uploadTime.count() << " to load " << o.sz << " bytes object";
         o.count++;
         o.lastUpdate = timeLoopStart;
         if (minTLeft < 0.9 * o.validity) {
