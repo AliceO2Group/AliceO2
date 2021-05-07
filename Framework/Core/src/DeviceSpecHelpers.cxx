@@ -340,6 +340,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     device.inputTimesliceId = edge.producerTimeIndex;
     device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
+    device.labels = processor.labels;
     devices.push_back(device);
     return devices.size() - 1;
   };
@@ -551,6 +552,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     device.inputTimesliceId = edge.timeIndex;
     device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
+    device.labels = processor.labels;
 
     // FIXME: maybe I should use an std::map in the end
     //        but this is really not performance critical
