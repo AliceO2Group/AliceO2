@@ -402,9 +402,8 @@ struct CorrelationTask {
 };
 
 struct CorrelationHashTask {
-  // TODO sync configurables with main task
-  std::vector<float> vtxBins{0.0f};
-  std::vector<float> multBins{0.0f};
+  std::vector<float> vtxBins;
+  std::vector<float> multBins;
 
   Produces<aod::Hashes> hashes;
 
@@ -426,24 +425,38 @@ struct CorrelationHashTask {
 
   void init(o2::framework::InitContext& initContext)
   {
+    // get own suffix. Is there a better way?
+    auto& deviceSpec = initContext.services().get<DeviceSpec const>();
+    std::string suffix(deviceSpec.name);
+    suffix.replace(0, strlen("correlation-hash-task"), "");
+
     // get axis config from CorrelationTask
     auto& workflows = initContext.services().get<RunningWorkflowInfo const>();
     for (DeviceSpec device : workflows.devices) {
-      for (auto option : device.options) {
-        if (option.name == "axisVertex") {
-          fillArray(option.defaultValue.size(), option.defaultValue.get<double*>(), vtxBins);
-          LOGF(info, "Initialized vertex binning for mixing from configurable %s", option.name);
-        }
-        if (option.name == "axisMultiplicity") {
-          fillArray(option.defaultValue.size(), option.defaultValue.get<double*>(), multBins);
-          LOGF(info, "Initialized multiplicity binning for mixing from configurable %s", option.name);
+      if (device.name == "correlation-task" + suffix) {
+        for (auto option : device.options) {
+          if (option.name == "axisVertex") {
+            fillArray(option.defaultValue.size(), option.defaultValue.get<double*>(), vtxBins);
+            LOGF(info, "Initialized vertex binning for mixing from configurable %s", option.name);
+          }
+          if (option.name == "axisMultiplicity") {
+            fillArray(option.defaultValue.size(), option.defaultValue.get<double*>(), multBins);
+            LOGF(info, "Initialized multiplicity binning for mixing from configurable %s", option.name);
+          }
         }
       }
+    }
+
+    if (vtxBins.size() == 0) {
+      LOGF(fatal, "vtxBins not configured. Check configuration.");
+    }
+    if (multBins.size() == 0) {
+      LOGF(fatal, "multBins not configured. Check configuration.");
     }
   }
 
   // Calculate hash for an element based on 2 properties and their bins.
-  int getHash(std::vector<float> const& vtxBins, std::vector<float> const& multBins, float vtx, float mult)
+  int getHash(float vtx, float mult)
   {
     // underflow
     if (vtx < vtxBins[0]) {
@@ -469,7 +482,7 @@ struct CorrelationHashTask {
   void process(soa::Join<aod::Collisions, aod::Cents> const& collisions)
   {
     for (auto& collision : collisions) {
-      int hash = getHash(vtxBins, multBins, collision.posZ(), collision.centV0M());
+      int hash = getHash(collision.posZ(), collision.centV0M());
       LOGF(info, "Collision: %d (%f, %f) hash: %d", collision.index(), collision.posZ(), collision.centV0M(), hash);
       hashes(hash);
     }
