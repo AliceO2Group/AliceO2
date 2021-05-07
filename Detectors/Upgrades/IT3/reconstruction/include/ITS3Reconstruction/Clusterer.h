@@ -86,8 +86,8 @@ class Clusterer
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
     // extra elements in the beginning and the end
-    int* column1;
-    int* column2;
+    int* column1 = nullptr;
+    int* column2 = nullptr;
     int* curr = nullptr; // pointer on the 1st row of currently processed columnsX
     int* prev = nullptr; // pointer on the 1st row of previously processed columnsX
     int size = itsmft::SegmentationAlpide::NRows + 2;

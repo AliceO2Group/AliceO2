@@ -388,6 +388,8 @@ void Clusterer::ClustererThread::initChip(const ChipPixelData* curChipData, uint
   }
   column1 = new int[size];
   column2 = new int[size];
+  column1[0] = column1[size - 1] = -1;
+  column2[0] = column2[size - 1] = -1;
   // init chip with the 1st unmasked pixel (entry "from" in the mChipData)
   prev = column1 + 1;
   curr = column2 + 1;

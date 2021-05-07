@@ -100,7 +100,7 @@ void ClustererDPL::run(ProcessingContext& pc)
     reader.setDigitsMCTruth(labels.getIndexedSize() > 0 ? &labels : nullptr);
   }
   reader.init();
-  auto orig = o2::header::gDataOriginITS;
+  auto orig = o2::header::gDataOriginIT3;
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
   std::vector<unsigned char> clusPattVec;

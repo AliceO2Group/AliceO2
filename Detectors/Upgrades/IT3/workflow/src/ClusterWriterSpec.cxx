@@ -47,7 +47,7 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
     LOG(INFO) << "ITS3ClusterWriter pulled " << *compClustersSize << " clusters, in " << rofs.size() << " RO frames";
   };
   return MakeRootTreeWriterSpec("its3-cluster-writer",
-                                "o2clus_its.root",
+                                "o2clus_it3.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with ITS clusters"},
                                 BranchDefinition<CompClusType>{InputSpec{"compclus", "IT3", "COMPCLUSTERS", 0},
                                                                "IT3ClusterComp",
