@@ -90,20 +90,20 @@ void DataRequest::requestTPCTOFTracks(bool mc)
 
 void DataRequest::requestITSTPCTRDTracks(bool mc)
 {
-  addInput({"trackTRDTPCITS", "TRD", "MATCHTRD_GLO", 0, Lifetime::Timeframe});
+  addInput({"trackITSTPCTRD", "TRD", "MATCHTRD_GLO", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(ERROR) << "TRD Tracks does not support MC truth";
   }
-  requestMap["trackTRDTPCITS"] = false;
+  requestMap["trackITSTPCTRD"] = false;
 }
 
 void DataRequest::requestTPCTRDTracks(bool mc)
 {
-  addInput({"trackTRDTPC", "TRD", "MATCHTRD_TPC", 0, Lifetime::Timeframe});
+  addInput({"trackTPCTRD", "TRD", "MATCHTRD_TPC", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(ERROR) << "TRD Tracks does not support MC truth";
   }
-  requestMap["trackTRDTPC"] = false;
+  requestMap["trackTPCTRD"] = false;
 }
 
 void DataRequest::requestTOFMatches(bool mc)
