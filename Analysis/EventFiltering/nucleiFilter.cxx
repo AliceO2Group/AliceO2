@@ -89,7 +89,7 @@ struct nucleiFilter {
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, aod::BCsWithTimestamps const&, TrackCandidates const& tracks)
   {
     // collision process loop
-    bool keepEvent[nNuclei]{false, false, false, false};
+    bool keepEvent[nNuclei]{false};
     //
     spectra.fill(HIST("fCollZpos"), collision.posZ());
     //
