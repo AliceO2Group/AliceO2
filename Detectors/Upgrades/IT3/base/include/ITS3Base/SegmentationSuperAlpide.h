@@ -50,7 +50,7 @@ class SegmentationSuperAlpide
   int NPixels;
   static constexpr float PitchCol = Length / NCols;
   float PitchRow;
-  static constexpr float PassiveEdgeReadOut = 20.e-4;             // width of the readout edge (Passive bottom)
+  static constexpr float PassiveEdgeReadOut = 0.;                 // width of the readout edge (Passive bottom)
   static constexpr float PassiveEdgeTop = 0.;                     // Passive area on top
   static constexpr float PassiveEdgeSide = 0.;                    // width of Passive area on left/right of the sensor
   static constexpr float ActiveMatrixSizeCols = PitchCol * NCols; // Active size along columns
