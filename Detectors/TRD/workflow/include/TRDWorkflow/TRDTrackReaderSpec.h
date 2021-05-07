@@ -13,9 +13,7 @@
 
 /// @file   TRDTrackReaderSpec.h
 
-#include "GPUO2Interface.h"
-#include "GPUTRDDef.h"
-#include "GPUTRDTrack.h"
+#include "DataFormatsTRD/TrackTRD.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -54,7 +52,7 @@ class TRDTrackReader : public Task
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";
-  std::vector<o2::gpu::GPUTRDTrack> mTracks, *mTracksPtr = &mTracks;
+  std::vector<o2::trd::TrackTRD> mTracks, *mTracksPtr = &mTracks;
 };
 
 /// read TPC-TRD matched tracks from a root file

@@ -23,6 +23,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
+#include "DataFormatsTRD/TrackTRD.h"
 
 // GPU header
 #include "GPUReconstruction.h"
@@ -152,8 +153,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   //mTracker->DumpTracks();
 
   // finished tracking, now collect the output
-  std::vector<GPUTRDTrack> tracksOutITSTPC(nTracksLoadedITSTPC);
-  std::vector<GPUTRDTrack> tracksOutTPC(nTracksLoadedTPC);
+  std::vector<TrackTRD> tracksOutITSTPC(nTracksLoadedITSTPC);
+  std::vector<TrackTRD> tracksOutTPC(nTracksLoadedTPC);
   if (mTracker->NTracks() != nTracksLoadedITSTPC + nTracksLoadedTPC) {
     LOGF(FATAL, "Got %i matched tracks in total whereas %i ITS-TPC + %i TPC = %i tracks were loaded as input", mTracker->NTracks(), nTracksLoadedITSTPC, nTracksLoadedTPC, nTracksLoadedITSTPC + nTracksLoadedTPC);
   }
