@@ -13,11 +13,17 @@
 #include "DataFormatsTRD/TrackTRD.h"
 #include "ITStracking/IOUtils.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include <type_traits>
+
 using namespace o2::globaltracking;
 using namespace o2::gpu;
 
 struct GPUWorkflowHelper::tmpDataContainer {
   std::vector<o2::BaseCluster<float>> ITSClustersArray;
+  std::vector<int> tpcLinkITS, tpcLinkTRD, tpcLinkTOF;
+  std::vector<const o2::track::TrackParCov*> globalTracks;
+  std::vector<float> globalTrackTimes;
 };
 
 std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fillIOPtr(GPUTrackingInOutPointers& ioPtr, const o2::globaltracking::RecoContainer& recoCont, bool useMC, const GPUCalibObjectsConst* calib, o2::dataformats::GlobalTrackID::mask_t maskCl, o2::dataformats::GlobalTrackID::mask_t maskTrk, o2::dataformats::GlobalTrackID::mask_t maskMatch)
@@ -94,23 +100,6 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
     }
   }
 
-  if (maskCl[GID::TPC] && ioPtr.clustersNative == nullptr) {
-    ioPtr.clustersNative = &recoCont.getTPCClusters();
-  }
-
-  if (maskTrk[GID::TPC] && ioPtr.nOutputTracksTPCO2 == 0) {
-    const auto& tpcTracks = recoCont.getTPCTracks<o2::tpc::TrackTPC>();
-    const auto& tpcClusRefs = recoCont.getTPCTracksClusterRefs();
-    ioPtr.outputTracksTPCO2 = tpcTracks.data();
-    ioPtr.nOutputTracksTPCO2 = tpcTracks.size();
-    ioPtr.outputClusRefsTPCO2 = tpcClusRefs.data();
-    ioPtr.nOutputClusRefsTPCO2 = tpcClusRefs.size();
-    if (useMC) {
-      const auto& tpcTracksMC = recoCont.getTPCTracksMCLabels();
-      ioPtr.outputTracksTPCO2MC = tpcTracksMC.data();
-    }
-  }
-
   if (maskCl[GID::TRD]) {
     // o2::trd::getRecoInputContainer(pc, &ioPtr, &recoCont, useMC); // TODO: use this helper here
   }
@@ -126,6 +115,47 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
     ioPtr.nTRDTracksTPCTRD = trdTracks.size();
     ioPtr.trdTracksTPCTRD = trdTracks.data();
   }
+
+  if (maskCl[GID::TPC] && ioPtr.clustersNative == nullptr) {
+    ioPtr.clustersNative = &recoCont.getTPCClusters();
+  }
+
+  if (maskTrk[GID::TPC] && ioPtr.nOutputTracksTPCO2 == 0) {
+    const auto& tpcTracks = recoCont.getTPCTracks<o2::tpc::TrackTPC>();
+    const auto& tpcClusRefs = recoCont.getTPCTracksClusterRefs();
+    ioPtr.outputTracksTPCO2 = tpcTracks.data();
+    ioPtr.nOutputTracksTPCO2 = tpcTracks.size();
+    ioPtr.outputClusRefsTPCO2 = tpcClusRefs.data();
+    ioPtr.nOutputClusRefsTPCO2 = tpcClusRefs.size();
+    if (useMC) {
+      const auto& tpcTracksMC = recoCont.getTPCTracksMCLabels();
+      ioPtr.outputTracksTPCO2MC = tpcTracksMC.data();
+    }
+    if (ioPtr.nItsTracks && ioPtr.nTracksTPCITSO2) {
+      retVal->tpcLinkITS.resize(ioPtr.nOutputTracksTPCO2, -1);
+      ioPtr.tpcLinkITS = retVal->tpcLinkITS.data();
+    }
+    if (ioPtr.nTOFClusters && (ioPtr.nTOFMatches || ioPtr.nTPCTOFMatches)) {
+      retVal->tpcLinkTRD.resize(ioPtr.nOutputTracksTPCO2, -1);
+      ioPtr.tpcLinkTRD = retVal->tpcLinkTRD.data();
+    }
+    if (ioPtr.nTRDTracksITSTPCTRD || ioPtr.nTRDTracksTPCTRD) {
+      retVal->tpcLinkTOF.resize(ioPtr.nOutputTracksTPCO2, -1);
+      ioPtr.tpcLinkTOF = retVal->tpcLinkTOF.data();
+    }
+  }
+
+  auto creator = [&recoCont, &retVal](auto& trk, GID gid, float time, float) {
+    if constexpr (std::is_same_v<std::decay_t<decltype(trk)>, o2::tpc::TrackTPC>) {
+      time = trk.getTime0();
+    }
+    retVal->globalTracks.emplace_back(&trk);
+    retVal->globalTrackTimes.emplace_back(time);
+    return true;
+  };
+  recoCont.createTracksVariadic(creator);
+  ioPtr.globalTracks = retVal->globalTracks.data();
+  ioPtr.globalTrackTimes = retVal->globalTrackTimes.data();
 
   return std::move(retVal);
 }
