@@ -7,21 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef O2_FRAMEWORK_DATAPROCESSORLABEL_H_
-#define O2_FRAMEWORK_DATAPROCESSORLABEL_H_
 
-#include <string>
+#include "Framework/O2ControlLabels.h"
 
-namespace o2::framework
+namespace o2::framework::ecs
 {
-/// A label that can be associated to a DataProcessorSpec
-struct DataProcessorLabel {
-  std::string value;
 
-  bool operator==(const DataProcessorLabel& rhs) const
-  {
-    return value == rhs.value;
-  }
-};
-} // namespace o2::framework
-#endif // O2_FRAMEWORK_DATAPROCESSORLABEL_H_
+const DataProcessorLabel uniqueProxyLabel = {"o2-control-unique-proxy"};
+
+}

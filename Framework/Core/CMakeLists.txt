@@ -77,6 +77,7 @@ o2_add_library(Framework
                        src/Metric2DViewIndex.cxx
                        src/SimpleOptionsRetriever.cxx
                        src/O2ControlHelpers.cxx
+                       src/O2ControlLabels.cxx
                        src/OutputSpec.cxx
                        src/PropertyTreeHelpers.cxx
                        src/RCombinedDS.cxx
