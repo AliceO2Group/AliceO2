@@ -34,6 +34,7 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
   if (detID >= SegmentationSuperAlpide::NLayers) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
+    std::cout << refRow << "\t" << xCOG << std::endl;
     segmentations[detID].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   }
   return locCl;

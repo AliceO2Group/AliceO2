@@ -26,6 +26,7 @@ namespace its3
 class TopologyDictionary : public itsmft::TopologyDictionary
 {
  public:
+  TopologyDictionary(itsmft::TopologyDictionary top) : itsmft::TopologyDictionary{top} {}
 
   ///Returns the local position of a compact cluster
   math_utils::Point3D<float> getClusterCoordinates(int detID, const itsmft::CompCluster& cl) const;

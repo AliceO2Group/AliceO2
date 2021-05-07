@@ -2,6 +2,7 @@
 /// \brief Simple macro to check ITSU clusters
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#define ENABLE_UPGRADES
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH2F.h>
@@ -9,6 +10,7 @@
 #include <TString.h>
 #include <TTree.h>
 
+#include "DetectorsCommonDataFormats/DetID.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
@@ -33,6 +35,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
   using namespace o2::base;
   using namespace o2::its;
 
+  using o2::its3::SegmentationSuperAlpide;
   using Segmentation = o2::itsmft::SegmentationAlpide;
   using o2::itsmft::CompClusterExt;
   using o2::itsmft::Hit;
@@ -82,7 +85,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
   } else {
     LOG(INFO) << "Running without dictionary !";
   }
-  o2::its3::TopologyDictionary& dict = static_cast<o2::its3::TopologyDictionary>(dict2);
+  o2::its3::TopologyDictionary dict = dict2;
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
@@ -169,8 +172,8 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
       auto gloC = gman->getMatrixL2G(chipID) * locC;
       if (chipID < o2::its3::SegmentationSuperAlpide::NLayers) {
         double radius = SegmentationSuperAlpide::Radii[chipID];
-        double phi = locD.X() / radius;
-        gloC.SetXYZ(radius * std::cos(phi), radius * std::sin(phi), locD.Z());
+        double phi = locC.X() / radius;
+        gloC.SetXYZ(radius * std::cos(phi), radius * std::sin(phi), locC.Z());
       }
 
       const auto& lab = (clusLabArr->getLabels(clEntry))[0];
