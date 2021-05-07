@@ -85,7 +85,7 @@ class PreClusterFinderTask
     } else if (checkNoLeftoverDigits == "fatal") {
       mCheckNoLeftoverDigits = CHECK_NO_LEFTOVER_DIGITS_FATAL;
     }
-    mDiscardHighOccDEs = ic.options().get<bool>("discard-high-occupancy-DEs");
+    mDiscardHighOccDEs = ic.options().get<bool>("discard-high-occupancy-des");
     mDiscardHighOccEvents = ic.options().get<bool>("discard-high-occupancy-events");
   }
 
@@ -197,7 +197,7 @@ o2::framework::DataProcessorSpec getPreClusterFinderSpec()
             OutputSpec{{"preclusterdigits"}, "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<PreClusterFinderTask>()},
     Options{{"check-no-leftover-digits", VariantType::String, "error", {helpstr}},
-            {"discard-high-occupancy-DEs", VariantType::Bool, false, {"discard DEs with occupancy > 20%"}},
+            {"discard-high-occupancy-des", VariantType::Bool, false, {"discard DEs with occupancy > 20%"}},
             {"discard-high-occupancy-events", VariantType::Bool, false, {"discard events with >= 5 DEs above 20% occupancy"}}}};
 }
 
