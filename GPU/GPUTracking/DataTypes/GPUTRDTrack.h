@@ -16,6 +16,7 @@
 
 #include "GPUTRDDef.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
 
 struct GPUTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
@@ -43,7 +44,10 @@ class GPUTRDTrack_t;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #else
+#if (!defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)) || defined(HAVE_O2HEADERS)
+#include "GPUTRDO2BaseTrack.h"
 #include "GPUTRDInterfaceO2Track.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -118,6 +122,9 @@ class GPUTRDTrack_t : public T
 
  private:
   GPUd() void Initialize();
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
+  ClassDefNV(GPUTRDTrack_t, 1);
+#endif
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
