@@ -617,7 +617,7 @@ TGeoVolume* V3Layer::createModuleInnerB(const Double_t xchip, const Double_t zch
   TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
   TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE_IBFPC$");
 
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "ServicesContainer%d", mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volumeName, module, medAir);
 
   TGeoVolume* glueVol = new TGeoVolume("FPCGlue", glue, medGlue);
