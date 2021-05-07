@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -109,8 +108,9 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         digitsperEvent += digits.size();
       }
 
-      if (rofrecords.size() != 0)
+      if (rofrecords.size() != 0) {
         startdigitEvent = rofrecords.back().getLastIdx() + 1;
+      }
       rofrecords.emplace_back(irecords[collID], startdigitEvent, digitsperEvent);
       digitsperEvent = 0;
     }
