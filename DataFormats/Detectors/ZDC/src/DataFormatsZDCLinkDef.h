@@ -30,6 +30,7 @@
 #pragma link C++ class std::vector < o2::zdc::OrbitData> + ;
 
 #pragma link C++ class std::vector < o2::zdc::RecEvent> + ;
+#pragma link C++ class std::vector < o2::zdc::RecEventAux> + ;
 #pragma link C++ class std::vector < o2::zdc::OrbitRawData> + ;
 #pragma link C++ class std::vector < o2::zdc::OrbitRecData> + ;
 

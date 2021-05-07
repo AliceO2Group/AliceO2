@@ -21,6 +21,7 @@
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
+#include "DataFormatsZDC/RecEventAux.h"
 
 #ifndef ALICEO2_ZDC_DIGI_RECO_H
 #define ALICEO2_ZDC_DIGI_RECO_H
@@ -60,7 +61,7 @@ class DigiReco
   const ZDCIntegrationParam* getIntegrationParam() { return mIntParam; };
 
  private:
-  const ModuleConfig* mModuleConfig = nullptr; /// Trigger/readout configuration object
+  const ModuleConfig* mModuleConfig = nullptr;                                /// Trigger/readout configuration object
   int reconstruct(int seq_beg, int seq_end);                                  /// Main method for data reconstruction
   void processTrigger(int itdc, int ibeg, int iend);                          /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);                             /// Interpolation of samples to evaluate signal amplitude and arrival time
@@ -78,10 +79,10 @@ class DigiReco
   const std::vector<o2::zdc::OrbitData>* mOrbitData; /// Reconstructed data
   const std::vector<o2::zdc::BCData>* mBCData;       /// BC info
   const std::vector<o2::zdc::ChannelData>* mChData;  /// Payload
-  std::vector<o2::zdc::RecEvent> mReco;              /// Reconstructed data
+  std::vector<o2::zdc::RecEventAux> mReco;           /// Reconstructed data
   std::map<uint32_t, int> mOrbit;                    /// Information about orbit
   static constexpr int mNSB = TSN * NTimeBinsPerBC;  /// Total number of interpolated points per bunch crossing
-  RecEvent mRec;                                     /// Debug reconstruction event
+  RecEventAux mRec;                                  /// Debug reconstruction event
   int mNBC = 0;
   int16_t tdc_shift[NTDCChannels] = {0}; /// TDC correction (units of 1/96 ns)
   constexpr static uint16_t mMask[NTimeBinsPerBC] = {0x0001, 0x002, 0x004, 0x008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800};

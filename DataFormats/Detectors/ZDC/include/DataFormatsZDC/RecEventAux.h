@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_RECEVENT_H
-#define _ZDC_RECEVENT_H
+#ifndef _ZDC_RECEVENT_AUX_H
+#define _ZDC_RECEVENT_AUX_H
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "MathUtils/Cartesian.h"
@@ -19,25 +19,23 @@
 #include <map>
 
 /// \file RecEvent.h
-/// \brief Class to describe reconstructed ZDC event (single BC with signal in one of detectors)
+/// \brief Class to describe reconstructed ZDC event (single BC with signal in one of detectors) during the reconstruction stage
 /// \author cortese@to.infn.it, ruben.shahoyan@cern.ch
 
 namespace o2
 {
 namespace zdc
 {
-struct RecEvent {
-  o2::InteractionRecord ir;
-  uint32_t flags;                              /// reconstruction flags
-  float energy[NChannels] = {O2_ZDC_FLT_INIT}; /// ZDC signal
-  constexpr static float fAmp = 1. / 8.;       /// Multiplication factor in conversion from integer
-  constexpr static float fVal = 1. / TSNS;     /// Multiplication factor in conversion from integer
-  int16_t tdcVal[NTDCChannels][MaxTDCValues];  /// TdcChannels
-  int16_t tdcAmp[NTDCChannels][MaxTDCValues];  /// TdcAmplitudes
-  int ntdc[NTDCChannels] = {0};
 
-  // Internal variables
-  std::map<uint8_t, float> ezdc;               /// signal in ZDCs
+struct RecEventAux {
+  o2::InteractionRecord ir;
+  uint32_t flags;                                        /// reconstruction flags
+  constexpr static float fAmp = 1. / 8.;                 /// Multiplication factor in conversion from integer
+  constexpr static float fVal = 1. / TSNS;               /// Multiplication factor in conversion from integer
+  std::map<uint8_t, float> ezdc;                         /// signal in ZDCs
+  int16_t tdcVal[NTDCChannels][MaxTDCValues];            /// TdcChannels
+  int16_t tdcAmp[NTDCChannels][MaxTDCValues];            /// TdcAmplitudes
+  int ntdc[NTDCChannels] = {0};                          /// Number of hits in TDC
   std::array<bool, NTDCChannels> pattern;                /// Pattern of TDC
   uint16_t fired[NTDCChannels] = {0};                    /// Position at which the trigger algorithm is fired
   float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
@@ -85,12 +83,12 @@ struct RecEvent {
   float EZPC3() { return EZDC(IdZPC3); }
   float EZPC4() { return EZDC(IdZPC4); }
   float EZPCSum() { return EZDC(IdZPCSum); }
-  ClassDefNV(RecEvent, 1);
+  ClassDefNV(RecEventAux, 1);
 };
 
 } // namespace zdc
 
-/// Defining RecEvent explicitly as messageable
+/// Defining RecEventAux explicitly as messageable
 ///
 /// It does not fulfill is_messageable because the underlying ROOT
 /// classes of Point2D are note trivially copyable.
@@ -99,7 +97,7 @@ namespace framework
 template <typename T>
 struct is_messageable;
 template <>
-struct is_messageable<o2::zdc::RecEvent> : std::true_type {
+struct is_messageable<o2::zdc::RecEventAux> : std::true_type {
 };
 } // namespace framework
 
