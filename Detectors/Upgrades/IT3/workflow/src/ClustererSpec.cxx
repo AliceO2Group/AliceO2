@@ -19,7 +19,7 @@
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
-#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITS3/CompCluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -101,7 +101,7 @@ void ClustererDPL::run(ProcessingContext& pc)
   }
   reader.init();
   auto orig = o2::header::gDataOriginIT3;
-  std::vector<o2::itsmft::CompClusterExt> clusCompVec;
+  std::vector<o2::its3::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
   std::vector<unsigned char> clusPattVec;
 

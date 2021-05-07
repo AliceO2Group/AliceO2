@@ -4,7 +4,7 @@
 namespace o2::its3 {
 
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const itsmft::CompCluster& cl) const {
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const CompCluster& cl) const {
 
   static SegmentationSuperAlpide segmentations[SegmentationSuperAlpide::NLayers]{SegmentationSuperAlpide(0), SegmentationSuperAlpide(1), SegmentationSuperAlpide(2), SegmentationSuperAlpide(3)};
     math_utils::Point3D<float> locCl;
@@ -19,7 +19,7 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
   return locCl;
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const itsmft::CompCluster& cl, const itsmft::ClusterPattern& patt, bool isGroup) {
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, const CompCluster& cl, const itsmft::ClusterPattern& patt, bool isGroup) {
   static SegmentationSuperAlpide segmentations[SegmentationSuperAlpide::NLayers]{SegmentationSuperAlpide(0), SegmentationSuperAlpide(1), SegmentationSuperAlpide(2), SegmentationSuperAlpide(3)};
 
   auto refRow = cl.getRow();
@@ -34,7 +34,6 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(int detID, 
   if (detID >= SegmentationSuperAlpide::NLayers) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
-    std::cout << refRow << "\t" << xCOG << std::endl;
     segmentations[detID].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   }
   return locCl;

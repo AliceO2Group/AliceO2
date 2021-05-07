@@ -20,6 +20,7 @@ o2_add_library(ITS3Reconstruction
                                      O2::DetectorsRaw
                                      O2::SimulationDataFormat 
                                      O2::DataFormatsITSMFT
+                                     O2::DataFormatsITS3
                                      O2::DPLUtils
                                      O2::rANS
                                      O2::Headers)

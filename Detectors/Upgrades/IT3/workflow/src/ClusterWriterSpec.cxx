@@ -14,7 +14,7 @@
 
 #include "ITS3Workflow/ClusterWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITS3/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -28,7 +28,7 @@ namespace its3
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using CompClusType = std::vector<o2::itsmft::CompClusterExt>;
+using CompClusType = std::vector<o2::its3::CompClusterExt>;
 using PatternsType = std::vector<unsigned char>;
 using ROFrameRType = std::vector<o2::itsmft::ROFRecord>;
 using LabelsType = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;

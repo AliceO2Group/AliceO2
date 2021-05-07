@@ -14,7 +14,7 @@
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITS3/CompCluster.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
 #include "ITSMFTSimulation/Hit.h"
@@ -37,7 +37,7 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
 
   using o2::its3::SegmentationSuperAlpide;
   using Segmentation = o2::itsmft::SegmentationAlpide;
-  using o2::itsmft::CompClusterExt;
+  using o2::its3::CompClusterExt;
   using o2::itsmft::Hit;
   using ROFRec = o2::itsmft::ROFRecord;
   using MC2ROF = o2::itsmft::MC2ROFRecord;

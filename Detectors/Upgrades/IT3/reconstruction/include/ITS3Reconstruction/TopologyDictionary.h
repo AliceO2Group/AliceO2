@@ -16,7 +16,7 @@
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ClusterPattern.h"
-#include "DataFormatsITSMFT/CompCluster.h"
+#include "DataFormatsITS3/CompCluster.h"
 
 namespace o2
 {
@@ -29,9 +29,9 @@ class TopologyDictionary : public itsmft::TopologyDictionary
   TopologyDictionary(itsmft::TopologyDictionary top) : itsmft::TopologyDictionary{top} {}
 
   ///Returns the local position of a compact cluster
-  math_utils::Point3D<float> getClusterCoordinates(int detID, const itsmft::CompCluster& cl) const;
+  math_utils::Point3D<float> getClusterCoordinates(int detID, const its3::CompCluster& cl) const;
   ///Returns the local position of a compact cluster
-  static math_utils::Point3D<float> getClusterCoordinates(int detID, const itsmft::CompCluster& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);  
+  static math_utils::Point3D<float> getClusterCoordinates(int detID, const its3::CompCluster& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);  
 
 }; 
 } // namespace its3
