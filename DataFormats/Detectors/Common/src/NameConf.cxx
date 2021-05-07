@@ -21,7 +21,7 @@ std::string NameConf::buildFileName(const std::string_view prefix, const std::st
                                     const std::string_view extension, const std::string_view optDir)
 {
   if (o2::utils::Str::pathIsDirectory(prefix)) { // if path is directory, just add to default name, ignoring optional directory optDir argument
-    return o2::utils::Str::concat_string(prefix, "/", defPrefix, delimiter, defName, extension);
+    return o2::utils::Str::concat_string(prefix, "/", defPrefix, delimiter, defName, '.', extension);
   } else if (!prefix.empty() && o2::utils::Str::pathExists(prefix)) { // explicit file path is provided, use it directly
     return std::string(prefix);
   }
