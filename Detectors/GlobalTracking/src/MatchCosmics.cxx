@@ -483,8 +483,8 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
 
   mSeeds.clear();
 
-  std::function<bool(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
-    [this](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
+  auto creator =
+    [this](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) {
       if (std::abs(_tr.getQ2Pt()) > this->mQ2PtCutoff) {
         return true;
       }
@@ -502,7 +502,7 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
       return true;
     };
 
-  data.createTracks(creator);
+  data.createTracksWithMatchingTimeInfo(creator);
 
   LOG(INFO) << "collected " << mSeeds.size() << " seeds";
 }
