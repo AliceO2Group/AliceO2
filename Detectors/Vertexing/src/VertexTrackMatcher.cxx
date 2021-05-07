@@ -151,8 +151,8 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
 
   mTBrackets.clear();
 
-  std::function<bool(const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID)> creator =
-    [this, &vcont](const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID) {
+  auto creator =
+    [this, &vcont](const o2::track::TrackParCov& _tr, GIndex _origID, float t0, float terr) {
       if (vcont.find(_origID) != vcont.end()) { // track is contributor to vertex, already accounted
         return true;
       }
@@ -169,7 +169,7 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
       return true;
     };
 
-  data.createTracks(creator);
+  data.createTracksWithMatchingTimeInfo(creator);
 
   // sort in increasing min.time
   std::sort(mTBrackets.begin(), mTBrackets.end(), [](const TrackTBracket& a, const TrackTBracket& b) { return a.tBracket.getMin() < b.tBracket.getMin(); });
