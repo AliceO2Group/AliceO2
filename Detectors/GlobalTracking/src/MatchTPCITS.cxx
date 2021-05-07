@@ -600,7 +600,7 @@ bool MatchTPCITS::prepareTPCData()
     mTPCTrkLabels = inp.getTPCTracksMCLabels();
   }
 
-  std::function<bool(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator = [this](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
+  auto creator = [this](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) {
     auto srcID = _origID.getSource();
     if (srcID == GTrackID::ITS) { // we don't need ITS here
       return true;                // we don't need TPC tracks
@@ -628,7 +628,7 @@ bool MatchTPCITS::prepareTPCData()
     return true;
   };
 
-  inp.createTracks(creator);
+  inp.createTracksWithMatchingTimeInfo(creator);
 
   float maxTime = 0;
   int nITSROFs = mITSROFTimes.size();
