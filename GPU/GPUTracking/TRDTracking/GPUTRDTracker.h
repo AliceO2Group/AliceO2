@@ -105,6 +105,7 @@ class GPUTRDTracker_t : public GPUProcessor
 
   GPUd() int GetCollisionIDs(TRDTRK& trk, int* collisionIds) const;
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
+  GPUd() void FilterOutTracks();
   static GPUd() bool ConvertTrkltToSpacePoint(const GPUTRDGeometry& geo, GPUTRDTrackletWord& trklt, GPUTRDSpacePoint& sp);
   GPUd() bool CalculateSpacePoints(int iCollision = 0);
   GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId, int collisionId);
