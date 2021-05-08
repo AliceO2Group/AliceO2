@@ -657,7 +657,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
     str << "No matching output found for "
-        << DataSpecUtils::describe(input) << ". Candidates:\n";
+        << DataSpecUtils::describe(input) << " as requested by data processor \"" << workflow[ci].name << "\". Candidates:\n";
 
     for (auto& output : constOutputs) {
       str << "-" << DataSpecUtils::describe(output) << "\n";
