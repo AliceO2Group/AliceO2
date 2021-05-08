@@ -124,7 +124,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
     GPUTRDTrack trkLoad(trkITSTPC, mTPCVdrift);
-    if (mTracker->LoadTrack(trkLoad, trkITSTPC.getRefTPC())) {
+    auto trackGID = GTrackID(iTrk, GTrackID::ITSTPC);
+    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
       continue;
     }
     loadedTPCtracks.push_back(trkITSTPC.getRefTPC());
@@ -139,7 +140,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     }
     const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
     GPUTRDTrack trkLoad(trkTpc, mTPCTBinMUS, mTPCVdrift, iTrk);
-    if (mTracker->LoadTrack(trkLoad, iTrk)) {
+    auto trackGID = GTrackID(iTrk, GTrackID::TPC);
+    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
       continue;
     }
     ++nTracksLoadedTPC;
@@ -159,12 +161,13 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   for (int iTrk = 0; iTrk < mTracker->NTracks(); ++iTrk) {
     const auto& trdTrack = mTracker->Tracks()[iTrk];
     nTrackletsAttached += trdTrack.getNtracklets();
-    if (std::find(loadedTPCtracks.begin(), loadedTPCtracks.end(), trdTrack.getTPCtrackId()) == loadedTPCtracks.end()) {
-      // this track is from a TPC-only seed
-      tracksOutTPC.push_back(trdTrack);
-    } else {
+    auto trackGID = trdTrack.getRefGlobalTrackId();
+    if (trackGID.includesDet(GTrackID::Source::ITS)) {
       // this track is from an ITS-TPC seed
       tracksOutITSTPC.push_back(trdTrack);
+    } else {
+      // this track is from a TPC-only seed
+      tracksOutTPC.push_back(trdTrack);
     }
   }
   LOGF(INFO, "The TRD tracker found %lu tracks from TPC seeds and %lu tracks from ITS-TPC seeds and attached in total %i tracklets out of %i",

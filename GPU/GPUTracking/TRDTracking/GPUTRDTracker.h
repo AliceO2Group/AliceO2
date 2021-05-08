@@ -101,7 +101,7 @@ class GPUTRDTracker_t : public GPUProcessor
   }
   GPUd() bool PreCheckTrackTRDCandidate(const GPUTPCGMMergedTrack& trk) const { return trk.OK() && !trk.Looper(); }
   GPUd() bool CheckTrackTRDCandidate(const TRDTRK& trk) const;
-  GPUd() int LoadTrack(const TRDTRK& trk, int tpcTrackId = -1, bool checkTrack = true);
+  GPUd() int LoadTrack(const TRDTRK& trk, unsigned int tpcTrackId, bool checkTrack = true);
 
   GPUd() int GetCollisionIDs(TRDTRK& trk, int* collisionIds) const;
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);

@@ -377,7 +377,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::CheckTrackTRDCandidate(const TRDTRK& 
 }
 
 template <class TRDTRK, class PROP>
-GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, int tpcTrackId, bool checkTrack)
+GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, unsigned int tpcTrackId, bool checkTrack)
 {
   if (mNTracks >= mNMaxTracks) {
 #ifndef GPUCA_GPUCODE
@@ -393,7 +393,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, int tpcTr
 #else
   mTracks[mNTracks] = trk;
 #endif
-  mTracks[mNTracks].setTPCtrackId(tpcTrackId >= 0 ? tpcTrackId : mNTracks);
+  mTracks[mNTracks].setRefGlobalTrackIdRaw(tpcTrackId);
   mNTracks++;
   return (0);
 }
@@ -593,7 +593,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::FillImpactAngleHistograms(PROP* prop, 
 
   // first inward propagation (TRD track fit)
   for (int iLayer = kNLayers - 1; iLayer >= 0; --iLayer) {
-    if (t->getTracklet(iLayer) == -1) {
+    if (t->getTrackletIndex(iLayer) == -1) {
       continue;
     }
     if (PropagateToLayerAndUpdate(prop, t, iLayer)) {
@@ -603,7 +603,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::FillImpactAngleHistograms(PROP* prop, 
 
   // outward propagation (smoothing)
   for (int iLayer = 1; iLayer < kNLayers; ++iLayer) {
-    if (t->getTracklet(iLayer) == -1) {
+    if (t->getTrackletIndex(iLayer) == -1) {
       continue;
     }
     if (PropagateToLayerAndUpdate(prop, t, iLayer)) {
@@ -613,7 +613,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::FillImpactAngleHistograms(PROP* prop, 
 
   // second inward propagation (collect angular differences between tracklets + TRD track)
   for (int iLayer = kNLayers - 1; iLayer >= 0; --iLayer) {
-    if (t->getTracklet(iLayer) == -1) {
+    if (t->getTrackletIndex(iLayer) == -1) {
       continue;
     }
     if (PropagateToLayerAndUpdate(prop, t, iLayer, false)) {
@@ -621,9 +621,9 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::FillImpactAngleHistograms(PROP* prop, 
     }
     float radToDeg = 180.f / CAMath::Pi();
     float trkAngle = CAMath::ASin(t->getSnp()) * radToDeg;
-    float trkltAngle = CAMath::ATan(GetConstantMem()->ioPtrs.trdSpacePoints[t->getTracklet(iLayer)].getDy() / 3.) * radToDeg;
+    float trkltAngle = CAMath::ATan(GetConstantMem()->ioPtrs.trdSpacePoints[t->getTrackletIndex(iLayer)].getDy() / 3.) * radToDeg;
 
-    int idxOffsetDet = GetConstantMem()->ioPtrs.trdTracklets[t->getTracklet(iLayer)].GetDetector() * (mNAngleHistogramBins + 1);
+    int idxOffsetDet = GetConstantMem()->ioPtrs.trdTracklets[t->getTrackletIndex(iLayer)].GetDetector() * (mNAngleHistogramBins + 1);
     int idxOffsetAngle = (trkAngle + .5 * mAngleHistogramRange) * invBinWidth;
 
     if (CAMath::Abs(idxOffsetAngle) >= .5 * mAngleHistogramRange) {
@@ -646,7 +646,7 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::PropagateToLayerAndUpdate(PROP* prop, 
   // parameters (if requested)
   // returns 0 in case of success
   //--------------------------------------------------------------------
-  int trackletID = trkWork->getTracklet(iLayer);
+  int trackletID = trkWork->getTrackletIndex(iLayer);
   int trackletDet = GetConstantMem()->ioPtrs.trdTracklets[trackletID].GetDetector();
   int trackletSector = trackletDet / (kNLayers * kNStacks);
   int trackletStack = (trackletDet % (kNLayers * kNStacks)) / kNLayers;
@@ -699,9 +699,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   // -> returns false if prolongation could not be executed fully
   //    or track does not fullfill threshold conditions
   //--------------------------------------------------------------------
-  //GPUInfo("Start track following for track %i at x=%f with pt=%f", t->getTPCtrackId(), t->getX(), t->getPt());
+  //GPUInfo("Start track following for track %i at x=%f with pt=%f", t->getRefGlobalTrackIdRaw(), t->getX(), t->getPt());
   mDebug->Reset();
-  int iTrack = t->getTPCtrackId();
+  int iTrack = t->getRefGlobalTrackIdRaw();
   t->setChi2(0.f);
   if (mProcessPerTimeFrame) {
     t->setZShift((t->getTime() - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId]) * mTPCVdrift * t->getSide());
@@ -1013,7 +1013,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
     mDebug->Output();
   }
   if (ENABLE_INFO) {
-    GPUInfo("Ended track following for track %i at x=%f with pt=%f. Attached %i tracklets", t->getTPCtrackId(), t->getX(), t->getPt(), t->getNtracklets());
+    GPUInfo("Ended track following for track %i at x=%f with pt=%f. Attached %i tracklets", t->getRefGlobalTrackIdRaw(), t->getX(), t->getPt(), t->getNtracklets());
   }
   return true;
 }
@@ -1094,7 +1094,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::AdjustSector(PROP* prop, TRDTRK* t) c
 
   if (CAMath::Abs(y) > 2.f * yMax) {
     if (ENABLE_INFO) {
-      GPUInfo("AdjustSector: Track %i with pT = %f crossing two sector boundaries at x = %f", t->getTPCtrackId(), t->getPt(), t->getX());
+      GPUInfo("AdjustSector: Track %i with pT = %f crossing two sector boundaries at x = %f", t->getRefGlobalTrackIdRaw(), t->getPt(), t->getX());
     }
     return false;
   }

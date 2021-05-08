@@ -30,7 +30,7 @@ GPUd() void GPUTRDTrack_t<T>::initialize()
 {
   // set all members to their default values (needed since in-class initialization not possible with AliRoot)
   mChi2 = 0.f;
-  mTPCTrackId = 0;
+  mRefGlobalTrackId = 0;
   mIsFindable = 0;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = -1;
@@ -63,9 +63,9 @@ GPUd() void GPUTRDTrack_t<T>::ConvertTo(GPUTRDTrackDataRecord& t) const
   for (int i = 0; i < 15; i++) {
     t.fC[i] = T::getCov()[i];
   }
-  t.fTPCTrackID = getTPCtrackId();
+  t.fTPCTrackID = getRefGlobalTrackIdRaw();
   for (int i = 0; i < kNLayers; i++) {
-    t.fAttachedTracklets[i] = getTracklet(i);
+    t.fAttachedTracklets[i] = getTrackletIndex(i);
   }
 }
 
@@ -76,7 +76,7 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   // convert from GPU structure
   //------------------------------------------------------------------
   T::set(t.fX, t.mAlpha, &(t.fY), t.fC);
-  setTPCtrackId(t.fTPCTrackID);
+  setRefGlobalTrackIdRaw(t.fTPCTrackID);
   mChi2 = 0.f;
   mIsFindable = 0;
   for (int iLayer = 0; iLayer < kNLayers; iLayer++) {
@@ -106,7 +106,7 @@ GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
-  : T(t), mChi2(t.mChi2), mTPCTrackId(t.mTPCTrackId), mIsFindable(t.mIsFindable)
+  : T(t), mChi2(t.mChi2), mRefGlobalTrackId(t.mRefGlobalTrackId), mIsFindable(t.mIsFindable)
 {
   // copy constructor
   for (int i = 0; i < kNLayers; ++i) {
@@ -130,7 +130,7 @@ GPUd() GPUTRDTrack_t<T>& GPUTRDTrack_t<T>::operator=(const GPUTRDTrack_t<T>& t)
   }
   *(T*)this = t;
   mChi2 = t.mChi2;
-  mTPCTrackId = t.mTPCTrackId;
+  mRefGlobalTrackId = t.mRefGlobalTrackId;
   mIsFindable = t.mIsFindable;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = t.mAttachedTracklets[i];

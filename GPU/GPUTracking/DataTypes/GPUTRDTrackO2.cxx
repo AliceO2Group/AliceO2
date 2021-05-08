@@ -13,6 +13,7 @@
 
 #define GPU_TRD_TRACK_O2
 #include "GPUTRDTrack.cxx"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 namespace o2::gpu
 {
