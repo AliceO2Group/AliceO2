@@ -1173,12 +1173,12 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
               auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
               const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
               GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransform->convTimeToZinTimeFrame(slice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
+              ZOffset = mCalib->fastTransform->convVertexTimeToZOffset(slice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
             } else {
               uint8_t sector, row;
               auto cln = track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative, sector, row);
               GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, sector, row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransform->convTimeToZinTimeFrame(slice, track->getTime0(), mParam->par.continuousMaxTimeBin);
+              ZOffset = mCalib->fastTransform->convVertexTimeToZOffset(slice, track->getTime0(), mParam->par.continuousMaxTimeBin);
             }
           }
         } else {
