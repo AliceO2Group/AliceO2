@@ -23,7 +23,7 @@
 #include <functional>
 #include <vector>
 #include <algorithm>
-
+#include <filesystem>
 #include "Framework/DataRefUtils.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -76,13 +76,15 @@ void DigitsToRawSpec::init(framework::InitContext& ic)
   mDumpDigits = ic.options().get<bool>("dump-digits"); // Debug flags
   mSkipEmpty = ic.options().get<bool>("skip-empty");
 
-  if (gSystem->AccessPathName(mDirectoryName.c_str())) {
-    if (gSystem->mkdir(mDirectoryName.c_str(), kTRUE)) {
+  // if needed, create output directory
+  if (!std::filesystem::exists(mDirectoryName)) {
+    if (!std::filesystem::create_directories(mDirectoryName)) {
       LOG(FATAL) << "could not create output directory " << mDirectoryName;
     } else {
       LOG(INFO) << "created output directory " << mDirectoryName;
     }
   }
+
   std::string fullFName = o2::utils::Str::concat_string(mDirectoryName, "/", mBaseFileName);
 
   // Setup the Coder

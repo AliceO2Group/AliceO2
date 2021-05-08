@@ -17,11 +17,10 @@
 #include <memory>
 #include <vector>
 #include <fmt/format.h>
-
+#include <filesystem>
 #include "TFile.h"
 #include "TTree.h"
 #include "TROOT.h"
-#include "TSystem.h"
 
 #include "GPUO2Interface.h"
 #include "GPUReconstructionConvert.h"
@@ -95,14 +94,16 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
     outDir += '/';
   }
 
-  if (gSystem->AccessPathName(outDir.data())) {
+  // if needed, create output directory
+  if (!std::filesystem::exists(outDir)) {
     if (createParentDir) {
-      if (gSystem->mkdir(outDir.data(), kTRUE)) {
-        LOGP(error, "could not create output directory {}", outDir.data());
-        exit(1);
+      if (!std::filesystem::create_directories(outDir)) {
+        LOG(FATAL) << "could not create output directory " << outDir;
+      } else {
+        LOG(INFO) << "created output directory " << outDir;
       }
     } else {
-      LOGP(error, "Requested output directory '{}' does not exists, consider removing '-n'", outDir.data());
+      LOGP(error, "Requested output directory '{}' does not exists, consider removing '-n'", outDir);
       exit(1);
     }
   }
