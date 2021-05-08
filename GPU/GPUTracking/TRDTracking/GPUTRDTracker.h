@@ -29,9 +29,6 @@
 #include <vector>
 #endif
 
-class AliExternalTrackParam;
-class AliMCEvent;
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -132,14 +129,12 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() void SetGenerateSpacePoints(bool flag) { mGenerateSpacePoints = flag; }
   GPUd() void SetProcessPerTimeFrame(bool flag) { mProcessPerTimeFrame = flag; }
   GPUd() void SetDoImpactAngleHistograms(bool flag) { mDoImpactAngleHistograms = flag; }
-  GPUd() void SetMCEvent(AliMCEvent* mc) { mMCEvent = mc; }
   GPUd() void EnableDebugOutput() { mDebugOutput = true; }
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
   GPUd() void SetExtraRoadY(float extraRoadY) { mExtraRoadY = extraRoadY; }
   GPUd() void SetRoadZ(float roadZ) { mRoadZ = roadZ; }
   GPUd() void SetTPCVdrift(float vDrift) { mTPCVdrift = vDrift; }
 
-  GPUd() AliMCEvent* GetMCEvent() const { return mMCEvent; }
   GPUd() bool GetIsDebugOutputOn() const { return mDebugOutput; }
   GPUd() float GetMaxEta() const { return mMaxEta; }
   GPUd() int GetNCandidates() const { return mNCandidates; }
@@ -205,7 +200,6 @@ class GPUTRDTracker_t : public GPUProcessor
   float mRoadZ;                       // in z, a constant search road is used
   float mZCorrCoefNRC;                // tracklet z-position depends linearly on track dip angle
   float mTPCVdrift;                   // TPC drift velocity used for shifting TPC tracks along Z
-  AliMCEvent* mMCEvent;               //! externaly supplied optional MC event
   GPUTRDTrackerDebug<TRDTRK>* mDebug; // debug output
 };
 } // namespace gpu
