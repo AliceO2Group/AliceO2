@@ -8,6 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file Digitizer.cxx
+/// \author Roman Lietava
+
 #include "CTPSimulation/Digitizer.h"
 #include "TRandom.h"
 #include <cassert>
@@ -22,42 +25,35 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
 {
   std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> prerawdata;
   for (auto const& inp : digits) {
-    auto res = prerawdata.find(inp.mIntRecord);
-    if (res == prerawdata.end()) {
-      std::vector<const CTPInputDigit*> inputs;
-      inputs.push_back(&inp);
-      prerawdata[inp.mIntRecord] = inputs;
-    } else {
-      res->second.push_back(&inp);
-    }
+    prerawdata[inp.intRecord].push_back(&inp);
   }
   std::vector<CTPDigit> vrawdata;
   for (auto const& coll : prerawdata) {
     CTPDigit data;
-    data.mIntRecord = coll.first;
+    data.intRecord = coll.first;
     std::bitset<CTP_NINPUTS> inpmaskcoll = 0;
     for (auto const inp : coll.second) {
-      switch (inp->mDetector) {
+      switch (inp->detector) {
         case o2::detectors::DetID::FT0: {
           std::bitset<CTP_NINPUTS> inpmask = std::bitset<CTP_NINPUTS>(
-            (inp->mInputsMask & CTP_INPUTMASK_FT0.second).to_ullong());
+            (inp->inputsMask & CTP_INPUTMASK_FT0.second).to_ullong());
           inpmaskcoll |= inpmask << CTP_INPUTMASK_FT0.first;
           break;
         }
         case o2::detectors::DetID::FV0: {
           std::bitset<CTP_NINPUTS> inpmask = std::bitset<CTP_NINPUTS>(
-            (inp->mInputsMask & CTP_INPUTMASK_FT0.second).to_ullong());
-          inpmaskcoll |= inpmask << CTP_INPUTMASK_FT0.first;
+            (inp->inputsMask & CTP_INPUTMASK_FV0.second).to_ullong());
+          inpmaskcoll |= inpmask << CTP_INPUTMASK_FV0.first;
           break;
         }
         default:
           // Error
-          LOG(ERROR) << "CTP Digitizer: unknown detector:" << inp->mDetector;
+          LOG(ERROR) << "CTP Digitizer: unknown detector:" << inp->detector;
           break;
       }
     }
-    data.mCTPInputMask = inpmaskcoll;
-    calculateClassMask(coll.second, data.mCTPClassMask);
+    data.CTPInputMask = inpmaskcoll;
+    calculateClassMask(coll.second, data.CTPClassMask);
     vrawdata.emplace_back(data);
   }
   return std::move(vrawdata);

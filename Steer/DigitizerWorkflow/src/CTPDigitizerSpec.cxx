@@ -55,12 +55,10 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     timer.Start();
     LOG(INFO) << "CALLING CTP DIGITIZATION";
     for (const auto& inp : ft0inputs) {
-      CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0);
-      finputs.emplace_back(finpdigit);
+      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
     }
     for (const auto& inp : fv0inputs) {
-      CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0);
-      finputs.emplace_back(finpdigit);
+      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
     }
     gsl::span<CTPInputDigit> ginputs(finputs);
     auto digits = mDigitizer.process(ginputs);
