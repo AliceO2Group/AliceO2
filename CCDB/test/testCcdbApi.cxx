@@ -22,7 +22,7 @@
 #include "CommonUtils/RootChain.h" // just as test object
 #include "CCDB/CCDBTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <cassert>
 #include <iostream>
 #include <cstdio>
@@ -179,8 +179,8 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   // test the snapshot mechanism
   // ---------------------------
   // a) create a local snapshot of the Test folder
-  auto ph = boost::filesystem::unique_path();
-  boost::filesystem::create_directories(ph);
+  auto ph = std::filesystem::temp_directory_path();
+  std::filesystem::create_directories(ph);
   f.api.snapshot(basePath, ph.string(), o2::ccdb::getCurrentTimestamp());
   std::cout << "Creating snapshot at " << ph.string() << "\n";
 
@@ -199,8 +199,8 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   }
 
   // d) cleanup local snapshot
-  if (boost::filesystem::exists(ph)) {
-    boost::filesystem::remove_all(ph);
+  if (std::filesystem::exists(ph)) {
+    std::filesystem::remove_all(ph);
   }
 }
 

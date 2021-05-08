@@ -14,10 +14,10 @@
 #include <iostream>
 #include <cstring>
 #include <string>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <boost/algorithm/string/replace.hpp>
 
-namespace bfs = boost::filesystem;
+namespace bfs = std::filesystem;
 
 namespace o2::framework
 {
@@ -343,8 +343,8 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
   LOG(INFO) << "Dumping the workflow configuration for AliECS.";
 
   LOG(INFO) << "Creating directories '" << workflowsDirectory << "' and '" << tasksDirectory << "'.";
-  boost::filesystem::create_directory(workflowsDirectory);
-  boost::filesystem::create_directory(tasksDirectory);
+  std::filesystem::create_directory(workflowsDirectory);
+  std::filesystem::create_directory(tasksDirectory);
   LOG(INFO) << "... created.";
 
   assert(specs.size() == executions.size());
