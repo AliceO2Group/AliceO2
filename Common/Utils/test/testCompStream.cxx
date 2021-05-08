@@ -14,7 +14,7 @@
 /// @brief  unit tests for iostreams with compression filter
 
 #include "CommonUtils/CompStream.h"
-
+#include "CommonUtils/StringUtils.h"
 #define BOOST_TEST_MODULE CompStream unit test
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -28,8 +28,7 @@ BOOST_AUTO_TEST_CASE(test_compstream_filesink)
 {
   const int range = 100;
   std::stringstream filename;
-  filename << std::filesystem::temp_directory_path().string() << "/" << std::filesystem::temp_directory_path().string()
-           << "_testCompStream.gz";
+  filename << o2::utils::Str::create_unique_path(std::filesystem::temp_directory_path().native()) << "_testCompStream.gz";
   {
     o2::io::ocomp_stream stream(filename.str().c_str(), o2::io::CompressionMethod::Gzip);
     for (int i = 0; i < range; i++) {
