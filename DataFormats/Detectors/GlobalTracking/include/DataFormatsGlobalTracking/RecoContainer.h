@@ -59,6 +59,7 @@ struct DataRequest {
   std::unordered_map<std::string, bool> requestMap;
   void addInput(const o2::framework::InputSpec&& isp);
 
+  bool isRequested(const std::string& t) const { return !t.empty() && requestMap.find(t) != requestMap.end(); }
   void requestTracks(o2::dataformats::GlobalTrackID::mask_t src, bool mc);
   void requestClusters(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
 
@@ -75,16 +76,28 @@ struct DataRequest {
   void requestTPCClusters(bool mc);
   void requestTOFClusters(bool mc);
   void requestTRDTracklets(bool mc);
+
+  void requestPrimaryVertertices(bool mc);
+  void requestPrimaryVerterticesTMP(bool mc);
 };
 
 struct RecoContainer {
   RecoContainer();
   ~RecoContainer();
+
+  enum PVTXSlots { PVTX,
+                   PVTX_TRMTC,
+                   PVTX_TRMTCREFS,
+                   PVTX_CONTID,
+                   PVTX_CONTIDREFS,
+                   PVTX_MCTR,
+                   NPVTXSLOTS }; // slots to register primary vertex data
+
   using TracksAccessor = o2::dataformats::GlobalTrackAccessor;
   using VariaAccessor = o2::dataformats::AbstractRefAccessor<int, o2::dataformats::GlobalTrackID::NSources>; // there is no unique <Varia> structure, so the default return type is dummy (int)
   using MCAccessor = o2::dataformats::AbstractRefAccessor<o2::MCCompLabel, o2::dataformats::GlobalTrackID::NSources>;
+  using PVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NPVTXSLOTS>;
   using GTrackID = o2::dataformats::GlobalTrackID;
-
   using GlobalIDSet = std::array<GTrackID, GTrackID::NSources>;
 
   o2::InteractionRecord startIR; // TF start IR
@@ -96,6 +109,8 @@ struct RecoContainer {
   VariaAccessor clusROFPool;    // container for cluster ROF records
   VariaAccessor clustersPool;   // container for clusters
   VariaAccessor miscPool;       // container for misc info, e.g. patterns, match info w/o tracks etc.
+
+  PVertexAccessor pvtxPool; // containers for primary vertex related objects
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcTOFClusters;
@@ -128,6 +143,9 @@ struct RecoContainer {
 
   void addFT0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
 
+  void addPVertices(o2::framework::ProcessingContext& pc, bool mc);
+  void addPVerticesTMP(o2::framework::ProcessingContext& pc, bool mc);
+
   // custom getters
 
   // get contributors from single detectors: return array with sources set to all contributing GTrackIDs
@@ -157,6 +175,7 @@ struct RecoContainer {
   const o2::track::TrackParCov& getTrackParamOut(GTrackID gidx) const;
 
   //--- getters: to avoid exposing all headers here, we use templates
+
   // ITS
   template <typename U> // o2::its::TrackITS
   auto getITSTracks() const
@@ -323,6 +342,56 @@ struct RecoContainer {
   auto getFT0RecPoints() const
   {
     return miscPool.getSpan<U>(GTrackID::FT0);
+  }
+
+  // ====================================================
+  // Primary vertices
+  template <typename U> // o2::dataformats::PrimaryVertex
+  auto getPrimaryVertices() const
+  {
+    return pvtxPool.getSpan<U>(PVTX);
+  }
+
+  template <typename U> // o2::dataformats::PrimaryVertex
+  auto getPrimaryVertex(int i) const
+  {
+    return pvtxPool.get_as<U>(PVTX, i);
+  }
+
+  template <typename U> // o2::dataformats::VtxTrackIndex
+  auto getPrimaryVertexMatchedTracks() const
+  {
+    return pvtxPool.getSpan<U>(PVTX_TRMTC);
+  }
+
+  template <typename U> // o2::dataformats::VtxTrackIndex
+  auto getPrimaryVertexContributors() const
+  {
+    return pvtxPool.getSpan<U>(PVTX_CONTID);
+  }
+
+  template <typename U> // o2::dataformats::VtxTrackRef
+  auto getPrimaryVertexMatchedTrackRefs() const
+  {
+    return pvtxPool.getSpan<U>(PVTX_TRMTCREFS);
+  }
+
+  template <typename U> // o2::dataformats::VtxTrackRef
+  auto getPrimaryVertexContributorsRefs() const
+  {
+    return pvtxPool.getSpan<U>(PVTX_CONTIDREFS);
+  }
+
+  template <typename U> // o2::MCEventLabel
+  auto getPrimaryVertexMCLabels() const
+  {
+    return pvtxPool.getSpan<U>(PVTX_MCTR);
+  }
+
+  template <typename U> // o2::MCEventLabel
+  auto getPrimaryVertexMCLabel(int i) const
+  {
+    return pvtxPool.get_as<U>(PVTX_MCTR, i);
   }
 };
 
