@@ -801,7 +801,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, int iCol)
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
   const int firstCluster = (mNCollissions > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
-  const int lastCluster = (mNCollissions > 1 && iCol + 1 < mNCollissions) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative->nClustersSector[iSlice]);
+  const int lastCluster = (mNCollissions > 1 && iCol + 1 < mNCollissions) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
   for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
     const int cid = GET_CID(iSlice, cidInSlice);
     if (mHideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
@@ -988,6 +988,9 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       } else if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         track = &mIOPtrs->outputTracksTPCO2[i];
         nClusters = track->getNClusters();
+        if (!mIOPtrs->clustersNative) {
+          break;
+        }
       } else {
         throw std::runtime_error("invalid type");
       }
@@ -1004,7 +1007,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             break;
           }
         }
-        if (mTRDTrackIds[i] != -1) {
+        if (mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
           auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
           for (int k = 5; k >= 0; k--) {
             int cid = trk.GetTrackletIndex(k);
@@ -1018,7 +1021,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           }
         }
       } else if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
-        if (mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1) {
+        if (mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1 && mIOPtrs->nTRDTracklets) {
           const auto& trk = (mIOPtrs->tpcLinkTRD[i] & 0x40000000) ? mIOPtrs->trdTracksITSTPCTRD[mIOPtrs->tpcLinkTRD[i] & 0x3FFFFFFF] : mIOPtrs->trdTracksTPCTRD[mIOPtrs->tpcLinkTRD[i]];
           for (int k = 5; k >= 0; k--) {
             int cid = trk.GetTrackletIndex(k);
@@ -1073,7 +1076,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         lastCluster = k;
       }
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
-        if (mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1) {
+        if (mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1 && mIOPtrs->nItsClusters) {
           const auto& trk = mIOPtrs->itsTracks[mIOPtrs->tpcLinkITS[i]];
           unsigned int rof;
           for (rof = 1; rof < mIOPtrs->nItsTrackROF; rof++) {
@@ -1095,6 +1098,9 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
     }
 
     if (!mChain) {
+      continue;
+    }
+    if (!mIOPtrs->clustersNative) {
       continue;
     }
 
@@ -1454,7 +1460,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
       int row = 0;
-      unsigned int nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative->nClustersSector[iSlice];
+      unsigned int nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0;
       for (unsigned int i = 0; i < nCls; i++) {
         int cid;
         if (mParam->par.earlyTpcTransform) {
@@ -1942,7 +1948,11 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         GPUCA_OPENMP(for)
         for (unsigned int i = 0; i < mIOPtrs->nOutputTracksTPCO2; i++) {
           uint8_t sector, row;
-          mIOPtrs->outputTracksTPCO2[i].getCluster(mIOPtrs->outputClusRefsTPCO2, 0, *mIOPtrs->clustersNative, sector, row);
+          if (mIOPtrs->clustersNative) {
+            mIOPtrs->outputTracksTPCO2[i].getCluster(mIOPtrs->outputClusRefsTPCO2, 0, *mIOPtrs->clustersNative, sector, row);
+          } else {
+            sector = 0;
+          }
           mThreadTracks[numThread][col][sector][0].emplace_back(i);
         }
       } else {

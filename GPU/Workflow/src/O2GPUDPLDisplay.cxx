@@ -117,6 +117,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool useMC = cfgc.options().get<bool>("enable-mc");
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
+  if (!srcTrk.any() && !srcCl.any()) {
+    throw std::runtime_error("No input configured");
+  }
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(srcTrk, useMC);
   dataRequest->requestClusters(srcCl, useMC);
