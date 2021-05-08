@@ -26,7 +26,7 @@
 // this is for some process synchronization, since
 // we need to prevent writing concurrently to the same global GRP file
 #include <boost/interprocess/sync/named_semaphore.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <unordered_map> // for the hashing utility
 
 using namespace o2::framework;
@@ -62,7 +62,7 @@ class GRPDPLUpdatedTask
     boost::interprocess::named_semaphore* sem = nullptr;
     if (auto semaname = getenv("O2_USEGRP_SEMA")) {
       try {
-        const auto semname = boost::filesystem::current_path().string() + mGRPFileName;
+        const auto semname = std::filesystem::current_path().string() + mGRPFileName;
         std::hash<std::string> hasher;
         const auto semhashedstring = "alice_grp_" + std::to_string(hasher(semname));
         sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);

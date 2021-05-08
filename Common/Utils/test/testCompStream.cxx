@@ -19,7 +19,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(test_compstream_filesink)
 {
   const int range = 100;
   std::stringstream filename;
-  filename << boost::filesystem::temp_directory_path().string() << "/" << boost::filesystem::unique_path().string()
+  filename << std::filesystem::temp_directory_path().string() << "/" << std::filesystem::temp_directory_path().string()
            << "_testCompStream.gz";
   {
     o2::io::ocomp_stream stream(filename.str().c_str(), o2::io::CompressionMethod::Gzip);
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_compstream_filesink)
     BOOST_CHECK(expected == range);
   }
 
-  boost::filesystem::remove(filename.str());
+  std::filesystem::remove(filename.str());
 }
 
 BOOST_AUTO_TEST_CASE(test_compstream_methods)

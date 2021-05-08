@@ -14,7 +14,6 @@
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/KeyValParam.h"
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -36,6 +35,7 @@
 #include "TFile.h"
 #include "TEnum.h"
 #include "TEnumConstant.h"
+#include <filesystem>
 
 namespace o2
 {
@@ -189,7 +189,7 @@ void ConfigurableParam::writeINI(std::string const& filename, std::string const&
 boost::property_tree::ptree ConfigurableParam::readConfigFile(std::string const& filepath)
 {
   auto inpfilename = o2::utils::Str::concat_string(sInputDir, filepath);
-  if (!boost::filesystem::exists(inpfilename)) {
+  if (!std::filesystem::exists(inpfilename)) {
     LOG(FATAL) << inpfilename << " : config file does not exist!";
   }
 

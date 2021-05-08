@@ -17,7 +17,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -213,14 +213,14 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec_configuration)
 
   // check writing and reading of the huffman configuration
   std::stringstream filename;
-  filename << boost::filesystem::temp_directory_path().string() << "/" << boost::filesystem::unique_path().string()
+  filename << std::filesystem::temp_directory_path().string() << "/" << std::filesystem::temp_directory_path().string()
            << "_testHuffmanCodec.zlib";
 
   auto nNodes = codec.writeConfiguration(filename.str().c_str(), "zlib");
   BOOST_CHECK(nNodes > 0);
   auto result = codec.loadConfiguration(filename.str().c_str(), "zlib");
   BOOST_CHECK(result == 0);
-  boost::filesystem::remove(filename.str());
+  std::filesystem::remove(filename.str());
 
   checkRandom(codec, dg);
 }

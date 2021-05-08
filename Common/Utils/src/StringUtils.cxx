@@ -46,17 +46,17 @@ std::string Str::getRandomString(int lenght)
 
 bool Str::pathExists(const std::string_view p)
 {
-  return boost::filesystem::exists(std::string{p});
+  return std::filesystem::exists(std::string{p});
 }
 
 bool Str::pathIsDirectory(const std::string_view p)
 {
-  return boost::filesystem::is_directory(std::string{p});
+  return std::filesystem::is_directory(std::string{p});
 }
 
 std::string Str::getFullPath(const std::string_view p)
 {
-  return boost::filesystem::canonical(std::string{p}).generic_string();
+  return std::filesystem::canonical(std::string{p}).string();
 }
 
 std::string Str::rectifyDirectory(const std::string_view p)

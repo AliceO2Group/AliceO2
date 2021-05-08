@@ -31,7 +31,7 @@
 #include <TClass.h>
 #include <CCDB/CCDBTimeStampUtils.h>
 #include <algorithm>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <mutex>
@@ -334,8 +334,8 @@ void CcdbApi::retrieveBlob(std::string const& path, std::string const& targetdir
   // we setup the target path for this blob
   std::string fulltargetdir = targetdir + '/' + path;
 
-  if (!boost::filesystem::exists(fulltargetdir)) {
-    if (!boost::filesystem::create_directories(fulltargetdir)) {
+  if (!std::filesystem::exists(fulltargetdir)) {
+    if (!std::filesystem::create_directories(fulltargetdir)) {
       std::cerr << "Could not create target directory " << fulltargetdir << "\n";
     }
   }
@@ -456,7 +456,7 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
 
 void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info const& tinfo) const
 {
-  if (!boost::filesystem::exists(filename)) {
+  if (!std::filesystem::exists(filename)) {
     LOG(INFO) << "Local snapshot " << filename << " not found \n";
     return nullptr;
   }

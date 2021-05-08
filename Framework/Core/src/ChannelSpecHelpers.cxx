@@ -15,9 +15,9 @@
 #if 0
 #include <filesystem>
 namespace fs = std::filesystem;
-#elif __has_include(<boost/filesystem.hpp>)
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
+#elif __has_include(<filesystem>)
+#include <filesystem>
+namespace fs = std::filesystem;
 #endif
 
 namespace
