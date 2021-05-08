@@ -146,7 +146,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   }
 
   auto creator = [&recoCont, &retVal](auto& trk, GID gid, float time, float) {
-    if constexpr (std::is_same_v<std::decay_t<decltype(trk)>, o2::tpc::TrackTPC>) {
+    if constexpr (isTPCTrack<decltype(trk)>()) {
       time = trk.getTime0();
     }
     retVal->globalTracks.emplace_back(&trk);

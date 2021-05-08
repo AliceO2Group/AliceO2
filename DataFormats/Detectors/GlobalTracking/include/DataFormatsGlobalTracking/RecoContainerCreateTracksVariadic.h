@@ -43,7 +43,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   // which depends on the track time:
   // 1) For track types containing TimeStampWithError ts it is ts.getTimeStamp(), getTimeStampError()
   // 2) For tracks with asymmetric time uncertainty, e.g. TPC: as mean time of t0-errBwd,t+errFwd and 0.5(errBwd+errFwd), all in TPC time bins
-  // 3) For tracks whose timing is provided as RO frame: as time in \mus for RO frame start since the start of TF, half-duration of RO window and 0.
+  // 3) For tracks whose timing is provided as RO frame: as time in \mus for RO frame start since the start of TF, half-duration of RO window.
 
   auto start_time = std::chrono::high_resolution_clock::now();
   constexpr float PS2MUS = 1e-6;
@@ -84,7 +84,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
 
       auto gidx = match.getEvIdxTrack().getIndex(); // this should be corresponding ITS-TPC track
-      if (creator(tracksPool.get(gidx), {i, GTrackID::ITSTPCTOF}, timeTOFMUS, timeErr)) {
+      if (creator(tracksTPCITS[gidx.getIndex()], {i, GTrackID::ITSTPCTOF}, timeTOFMUS, timeErr)) {
         flagUsed2(i, GTrackID::TOF);
         flagUsed(gidx); // flag used ITS-TPC tracks
       }
@@ -162,3 +162,45 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   auto current_time = std::chrono::high_resolution_clock::now();
   LOG(INFO) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
 }
+
+template <class T>
+inline constexpr auto isITSTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::its::TrackITS>;
+}
+
+template <class T>
+inline constexpr auto isTPCTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::tpc::TrackTPC>;
+}
+
+template <class T>
+inline constexpr auto isTRDTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::trd::TrackTRD>;
+}
+
+template <class T>
+inline constexpr auto isTPCTOFTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::dataformats::TrackTPCTOF>;
+}
+
+template <class T>
+inline constexpr auto isTPCITSTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::dataformats::TrackTPCITS>;
+}
+
+template <class T>
+inline constexpr auto isTPCTRDTOFTrack()
+{
+  return false;
+} // to be implemented
+
+template <class T>
+inline constexpr auto isITSTPCTRDTOFTrack()
+{
+  return false;
+} // to be implemented
