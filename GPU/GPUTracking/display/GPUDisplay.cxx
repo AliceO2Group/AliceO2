@@ -1055,7 +1055,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         if (mTRDTrackIds[i] != -1 && mIOPtrs->nTRDTracklets) {
           auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
           for (int k = 5; k >= 0; k--) {
-            int cid = trk.GetTrackletIndex(k);
+            int cid = trk.getTrackletIndex(k);
             if (cid < 0) {
               continue;
             }
@@ -1069,7 +1069,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         if (mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1 && mIOPtrs->nTRDTracklets) {
           const auto& trk = (mIOPtrs->tpcLinkTRD[i] & 0x40000000) ? mIOPtrs->trdTracksITSTPCTRD[mIOPtrs->tpcLinkTRD[i] & 0x3FFFFFFF] : mIOPtrs->trdTracksTPCTRD[mIOPtrs->tpcLinkTRD[i]];
           for (int k = 5; k >= 0; k--) {
-            int cid = trk.GetTrackletIndex(k);
+            int cid = trk.getTrackletIndex(k);
             if (cid < 0) {
               continue;
             }
@@ -1494,7 +1494,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
     for (unsigned int i = 0; i < mIOPtrs->nTRDTracks; i++) {
       if (mIOPtrs->trdTracks[i].getNtracklets()) {
-        mTRDTrackIds[mIOPtrs->trdTracks[i].getTPCtrackId()] = i;
+        mTRDTrackIds[mIOPtrs->trdTracks[i].getRefGlobalTrackIdRaw()] = i;
       }
     }
     if (mIOPtrs->nItsTracks) {
