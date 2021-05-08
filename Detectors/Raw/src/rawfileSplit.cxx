@@ -22,7 +22,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <TSystem.h>
+#include <filesystem>
 
 namespace bpo = boost::program_options;
 
@@ -167,8 +167,9 @@ int main(int argc, char* argv[])
             writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
           }
           outDir = o2::utils::Str::concat_string(outDirPrefix, "_", std::to_string(chunkID));
-          if (gSystem->AccessPathName(outDir.data())) {
-            if (gSystem->mkdir(outDir.data(), kTRUE)) {
+          // if needed, create output directory
+          if (!std::filesystem::exists(outDir)) {
+            if (!std::filesystem::create_directories(outDir)) {
               LOG(FATAL) << "could not create output directory " << outDir;
             } else {
               LOG(INFO) << "created output directory " << outDir;

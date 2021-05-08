@@ -33,7 +33,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 
 #include <boost/program_options.hpp>
-#include <TSystem.h>
+#include <filesystem>
 #include <TFile.h>
 #include <TStopwatch.h>
 #include <string>
@@ -127,13 +127,14 @@ void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsN
     outDirName += '/';
   }
   // if needed, create output directory
-  if (gSystem->AccessPathName(outDirName.c_str())) {
-    if (gSystem->mkdir(outDirName.c_str(), kTRUE)) {
+  if (!std::filesystem::exists(outDirName)) {
+    if (!std::filesystem::create_directories(outDirName)) {
       LOG(FATAL) << "could not create output directory " << outDirName;
     } else {
       LOG(INFO) << "created output directory " << outDirName;
     }
   }
+
   mc2raw.setTrackletHCHeader(trackletHCHeader);
   mc2raw.readTrapData();
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));

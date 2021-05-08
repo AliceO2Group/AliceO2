@@ -14,8 +14,8 @@
 /// \date   02 October 2019
 
 #include "MIDWorkflow/RawWriterSpec.h"
-#include <TSystem.h>
 #include <fstream>
+#include <filesystem>
 #include <gsl/gsl>
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -45,8 +45,8 @@ class RawWriterDeviceDPL
     auto filename = ic.options().get<std::string>("mid-raw-outfile");
     auto dirname = ic.options().get<std::string>("mid-raw-outdir");
     auto perLink = ic.options().get<bool>("mid-raw-perlink");
-    if (gSystem->AccessPathName(dirname.c_str())) {
-      if (gSystem->mkdir(dirname.c_str(), kTRUE)) {
+    if (!std::filesystem::exists(dirname)) {
+      if (!std::filesystem::create_directories(dirname)) {
         LOG(FATAL) << "could not create output directory " << dirname;
       } else {
         LOG(INFO) << "created output directory " << dirname;

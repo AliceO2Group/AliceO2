@@ -14,7 +14,7 @@
 
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "TSystem.h"
+#include <filesystem>
 
 using namespace o2::ctf;
 
@@ -35,7 +35,7 @@ bool readFromTree(TTree& tree, const std::string brname, T& dest, int ev = 0)
 std::unique_ptr<TFile> CTFCoderBase::loadDictionaryTreeFile(const std::string& dictPath, bool mayFail)
 {
   TDirectory* curd = gDirectory;
-  std::unique_ptr<TFile> fileDict(gSystem->AccessPathName(dictPath.c_str()) ? nullptr : TFile::Open(dictPath.c_str()));
+  std::unique_ptr<TFile> fileDict(!std::filesystem::exists(dictPath) ? nullptr : TFile::Open(dictPath.c_str()));
   if (!fileDict || fileDict->IsZombie()) {
     if (mayFail) {
       LOG(INFO) << "CTF dictionary file " << dictPath << " for detector " << mDet.getName() << " is absent, will use dictionaries stored in CTF";

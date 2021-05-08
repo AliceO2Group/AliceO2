@@ -24,7 +24,6 @@
 
 #include <TBranch.h>
 #include <TFile.h>
-#include <TSystem.h>
 #include <TTree.h>
 #include <boost/program_options.hpp>
 #include <fmt/format.h>
@@ -32,6 +31,7 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <filesystem>
 
 namespace po = boost::program_options;
 using namespace o2::mch::raw;
@@ -149,8 +149,9 @@ int main(int argc, char* argv[])
 
   auto outDirName = vm["output-dir"].as<std::string>();
 
-  if (gSystem->AccessPathName(outDirName.c_str())) {
-    if (gSystem->mkdir(outDirName.c_str(), kTRUE)) {
+  // if needed, create output directory
+  if (!std::filesystem::exists(outDirName)) {
+    if (!std::filesystem::create_directories(outDirName)) {
       LOG(FATAL) << "could not create output directory " << outDirName;
     } else {
       LOG(INFO) << "created output directory " << outDirName;

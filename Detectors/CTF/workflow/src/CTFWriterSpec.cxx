@@ -41,7 +41,7 @@
 #include <vector>
 #include <TFile.h>
 #include <TTree.h>
-#include <TSystem.h>
+#include <filesystem>
 
 using namespace o2::framework;
 
@@ -183,7 +183,7 @@ CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDi
       DetID det(id);
       if (isPresent(det)) {
         auto dictName = dictionaryFileName(det.getName());
-        if (gSystem->AccessPathName(dictName.c_str()) == 0) {
+        if (std::filesystem::exists(dictName)) {
           throw std::runtime_error(o2::utils::Str::concat_string("CTF dictionary creation is requested but ", dictName, " already exists, remove it!"));
         }
         if (!mDictPerDetector) {
