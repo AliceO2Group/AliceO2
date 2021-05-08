@@ -47,6 +47,7 @@ struct MultiplotData {
   const void* X = nullptr;
   MetricType type;
   const char* legend = nullptr;
+  int axis = 0;
 };
 
 } // namespace o2::framework::gui
@@ -176,9 +177,11 @@ struct TopologyNodeInfo {
 };
 
 struct MetricDisplayState {
+  int axis = 0; // The Axis to use for Y
   bool visible = false;
   bool selected = false;
   std::string legend;
+  size_t legendHash = -1;
 };
 
 struct MetricIndex {
@@ -235,9 +238,9 @@ void displaySparks(
     static ImPlotAxisFlags rty_axis = ImPlotAxisFlags_NoTickLabels | ImPlotAxisFlags_NoLabel | ImPlotAxisFlags_NoTickMarks;
     ImGui::PushID(index.stateIndex);
     HistoData data;
-    data.mod = metricsInfo.timestamps[index.metricIndex].size();
-    data.size = std::min((size_t)data.mod, metric.filledMetrics);
-    data.first = metric.pos - data.size;
+    data.mod = std::min(metric.filledMetrics, metricsInfo.timestamps[index.metricIndex].size());
+    data.first = metric.pos - data.mod;
+    data.size = metric.filledMetrics;
     data.time = metricsInfo.timestamps[index.metricIndex].data();
     data.legend = state.legend.c_str();
 
@@ -247,6 +250,7 @@ void displaySparks(
       rty_axis |= ImPlotAxisFlags_LockMin;
     }
     if (ImPlot::BeginPlot("##sparks", "time", "value", ImVec2(700, 100), 0, rtx_axis, rty_axis)) {
+      ImPlot::SetPlotYAxis(state.axis);
       switch (metric.type) {
         case MetricType::Int: {
           data.points = (void*)metricsInfo.intMetrics[metric.storeIdx].data();
@@ -266,7 +270,7 @@ void displaySparks(
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < 1024);
-            return ImPlotPoint(idx, ((uint64_t*)histoData->points)[pos]);
+            return ImPlotPoint(histoData->time[pos], ((uint64_t*)histoData->points)[pos]);
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.size, 0);
         } break;
@@ -277,7 +281,7 @@ void displaySparks(
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < 1024);
-            return ImPlotPoint(idx, ((float*)histoData->points)[pos]);
+            return ImPlotPoint(histoData->time[pos], ((float*)histoData->points)[pos]);
           };
           ImPlot::PlotLineG("##plot", getter, &data, data.size, 0);
         } break;
@@ -301,17 +305,18 @@ void displayDeviceMetrics(const char* label,
   std::vector<const char*> deviceNames;
   std::vector<MultiplotData> userData;
   MetricType metricType;
-  size_t metricSize = 0;
 #ifdef NDEBUG
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
     assert(metricsStore.metrics[si].size() == metricStore.specs[si].size());
   }
 #endif
-  float maxValue = std::numeric_limits<float>::lowest();
-  float minValue = 0;
+  float maxValue[3] = {std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest()};
+  float minValue[3] = {0, 0, 0};
   size_t maxDomain = std::numeric_limits<size_t>::lowest();
   size_t minDomain = std::numeric_limits<size_t>::max();
   size_t gmi = 0;
+
+  ImPlotFlags axisFlags = 0;
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
     std::vector<DeviceMetricsInfo> const& metricsInfos = *metricStore.metrics[si];
@@ -327,38 +332,36 @@ void displayDeviceMetrics(const char* label,
         deviceNames.push_back(specs[di].label.c_str());
         metricType = metric.type;
         MultiplotData data;
-        data.mod = metricsInfos[di].timestamps[mi].size();
+        data.size = metric.filledMetrics;
+        data.mod = std::min(metric.filledMetrics, metricsInfos[di].timestamps[mi].size());
         data.first = metric.pos - data.mod;
         data.X = metricsInfos[di].timestamps[mi].data();
         data.legend = state[gmi].legend.c_str();
-        minValue = std::min(minValue, metricsInfos[di].min[mi]);
-        maxValue = std::max(maxValue, metricsInfos[di].max[mi]);
+        data.type = metric.type;
+        data.axis = state[gmi].axis;
+        minValue[data.axis] = std::min(minValue[data.axis], metricsInfos[di].min[mi]);
+        maxValue[data.axis] = std::max(maxValue[data.axis], metricsInfos[di].max[mi]);
         minDomain = std::min(minDomain, metricsInfos[di].minDomain[mi]);
         maxDomain = std::max(maxDomain, metricsInfos[di].maxDomain[mi]);
-        metricType = metric.type;
-        data.type = metric.type;
+        axisFlags |= data.axis == 1 ? ImPlotFlags_YAxis2 : ImPlotFlags_None;
+        axisFlags |= data.axis == 2 ? ImPlotFlags_YAxis3 : ImPlotFlags_None;
         switch (metric.type) {
           case MetricType::Int: {
-            data.size = metricsInfos[di].intMetrics[metric.storeIdx].size();
             data.Y = metricsInfos[di].intMetrics[metric.storeIdx].data();
           } break;
           case MetricType::Uint64: {
-            data.size = metricsInfos[di].uint64Metrics[metric.storeIdx].size();
             data.Y = metricsInfos[di].uint64Metrics[metric.storeIdx].data();
           } break;
           case MetricType::Float: {
-            data.size = metricsInfos[di].floatMetrics[metric.storeIdx].size();
             data.Y = metricsInfos[di].floatMetrics[metric.storeIdx].data();
           } break;
           case MetricType::Unknown:
           case MetricType::String: {
-            data.size = metricsInfos[di].stringMetrics[metric.storeIdx].size();
             data.Y = nullptr;
             data.type = MetricType::String;
             metricType = MetricType::String;
           } break;
         }
-        metricSize = data.size;
 
         userData.emplace_back(data);
         gmi++;
@@ -367,7 +370,9 @@ void displayDeviceMetrics(const char* label,
   }
 
   maxDomain = std::max(minDomain + 1024, maxDomain);
-  maxValue = std::max(minValue + 1.f, maxValue);
+  for (size_t ai = 0; ai < 3; ++ai) {
+    maxValue[ai] = std::max(minValue[ai] + 1.f, maxValue[ai]);
+  }
 
   static size_t lastMinRange = minDomain;
   static size_t lastMaxRange = maxDomain;
@@ -379,6 +384,7 @@ void displayDeviceMetrics(const char* label,
   for (size_t ui = 0; ui < userData.size(); ++ui) {
     metricsToDisplay.push_back(&(userData[ui]));
   }
+
   auto getterXY = [](void* hData, int idx) -> ImPlotPoint {
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
     size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
@@ -391,21 +397,32 @@ void displayDeviceMetrics(const char* label,
     } else if (histoData->type == MetricType::Float) {
       y = static_cast<const float*>(histoData->Y)[pos];
     }
-    return ImPlotPoint{x, y};
+    auto point = ImPlotPoint{x, y};
+    return point;
   };
   static bool logScale = false;
   ImGui::Checkbox("Log scale", &logScale);
 
+  ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
+  ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
+  auto axisPadding = 0.;
+  if (displayType == MetricsDisplayStyle::Lines) {
+    axisPadding = 0.2;
+  }
+
+  for (size_t ai = 0; ai < 3; ++ai) {
+    ImPlot::SetNextPlotLimitsY(minValue[ai] - (maxValue[ai] - minValue[ai]) * axisPadding,
+                               maxValue[ai] * (1. + axisPadding), ImGuiCond_Always, ai);
+  }
+
   switch (displayType) {
     case MetricsDisplayStyle::Histos:
-      ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
-      ImPlot::SetNextPlotLimitsY(minValue, maxValue, ImGuiCond_Always);
-      ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
       if (ImPlot::BeginPlot("##Some plot", "time", "value")) {
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
+          auto data = (const MultiplotData*)metricsToDisplay[pi];
           const char* label = ((MultiplotData*)metricsToDisplay[pi])->legend;
-          ImPlot::PlotBarsG(label, getterXY, metricsToDisplay[pi], metricSize, 1, 0);
+          ImPlot::PlotBarsG(label, getterXY, metricsToDisplay[pi], data->size, 1, 0);
           ImGui::PopID();
         }
         ImPlot::EndPlot();
@@ -413,32 +430,29 @@ void displayDeviceMetrics(const char* label,
 
       break;
     case MetricsDisplayStyle::Lines: {
-      ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
-      ImPlot::SetNextPlotLimitsY(minValue - (maxValue - minValue) * 0.2, maxValue * (logScale ? 10. : 1.2), ImGuiCond_Always);
-      ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
       auto xAxisFlags = ImPlotAxisFlags_None;
-      auto yAxisFlags = logScale ? ImPlotAxisFlags_LogScale : ImPlotAxisFlags_None;
-      if (ImPlot::BeginPlot("##Some plot", "time", "value", {-1, -1}, ImPlotFlags_None, xAxisFlags, yAxisFlags)) {
+      auto yAxisFlags = ImPlotAxisFlags_LockMin;
+      //ImPlot::FitNextPlotAxes(true, true, true, true);
+      if (ImPlot::BeginPlot("##Some plot", "time", "value", {-1, -1}, axisFlags, xAxisFlags, yAxisFlags)) {
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
-          const char* label = ((MultiplotData*)metricsToDisplay[pi])->legend;
-          ImPlot::PlotLineG(((MultiplotData*)metricsToDisplay[pi])->legend, getterXY, metricsToDisplay[pi], metricSize, 0);
+          auto data = (const MultiplotData*)metricsToDisplay[pi];
+          const char* label = data->legend;
+          ImPlot::SetPlotYAxis(data->axis);
+          ImPlot::PlotLineG(data->legend, getterXY, metricsToDisplay[pi], data->size, 0);
           ImGui::PopID();
         }
         ImPlot::EndPlot();
       }
     } break;
     case MetricsDisplayStyle::Stems:
-      ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
-      ImPlot::SetNextPlotLimitsY(minValue, maxValue * 1.2, ImGuiCond_Always);
-      ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
       if (ImPlot::BeginPlot("##Some plot", "time", "value")) {
         for (size_t pi = 0; pi < userData.size(); ++pi) {
-          auto stemsData = reinterpret_cast<const MultiplotData*>(metricsToDisplay[pi]);
+          auto data = reinterpret_cast<const MultiplotData*>(metricsToDisplay[pi]);
           // FIXME: display a message for other metrics
-          if (stemsData->type == MetricType::Uint64) {
+          if (data->type == MetricType::Uint64) {
             ImGui::PushID(pi);
-            ImPlot::PlotScatterG(((MultiplotData*)metricsToDisplay[pi])->legend, getterXY, metricsToDisplay[pi], metricSize, 0);
+            ImPlot::PlotScatterG(((MultiplotData*)metricsToDisplay[pi])->legend, getterXY, metricsToDisplay[pi], data->size, 0);
             ImGui::PopID();
           }
         }
@@ -468,18 +482,19 @@ void metricsTableRow(std::vector<MetricIndex> metricIndex,
     auto& info = metricsInfos[index.deviceIndex].metrics[index.metricIndex];
 
     ImGui::TableNextColumn();
+    auto time = metricsInfo.timestamps[index.metricIndex][row];
     switch (info.type) {
       case MetricType::Int: {
-        ImGui::Text("%i", metricsInfo.intMetrics[info.storeIdx][row]);
+        ImGui::Text("%i, %" PRIu64, metricsInfo.intMetrics[info.storeIdx][row], (uint64_t)time);
       } break;
       case MetricType::Uint64: {
-        ImGui::Text("%" PRIu64, metricsInfo.uint64Metrics[info.storeIdx][row]);
+        ImGui::Text("%" PRIu64 ", %" PRIu64, metricsInfo.uint64Metrics[info.storeIdx][row], (uint64_t)time);
       } break;
       case MetricType::Float: {
-        ImGui::Text("%f", metricsInfo.floatMetrics[info.storeIdx][row]);
+        ImGui::Text("%f, %" PRIu64, metricsInfo.floatMetrics[info.storeIdx][row], (uint64_t)time);
       } break;
       case MetricType::String: {
-        ImGui::Text("%s", metricsInfo.stringMetrics[info.storeIdx][row].data);
+        ImGui::Text("%s, %" PRIu64, metricsInfo.stringMetrics[info.storeIdx][row].data, (uint64_t)time);
       } break;
       default:
         break;
@@ -557,15 +572,19 @@ void displayMetrics(gui::WorkspaceGUIState& state,
         for (size_t li = 0; li != metricInfo.metricLabels.size(); ++li) {
           char const* metricLabel = metricInfo.metricLabels[li].label;
           std::string legend = fmt::format("{}/{}", spec.label, metricLabel);
-          auto old = std::find_if(metricDisplayState.begin(), metricDisplayState.end(), [&legend](MetricDisplayState const& state) { return state.legend == legend; });
+          auto hasher = std::hash<std::string>();
+          size_t legendHash = hasher(legend);
+          auto old = std::find_if(metricDisplayState.begin(), metricDisplayState.end(), [&legend, &legendHash](MetricDisplayState const& state) { return state.legendHash == legendHash && state.legend == legend; });
           if (old != metricDisplayState.end()) {
             newMetricDisplayStates[gmi].visible = old->visible;
+            newMetricDisplayStates[gmi].axis = old->axis;
           } else {
             newMetricDisplayStates[gmi].visible = false;
           }
 
           newMetricDisplayStates[gmi].selected = hasAll(metricLabel, query);
           newMetricDisplayStates[gmi].legend = legend;
+          newMetricDisplayStates[gmi].legendHash = legendHash;
           gmi++;
         }
       }
@@ -605,8 +624,14 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     ImGui::Text("Find metrics: ");
     ImGui::SameLine();
     ImGui::InputText("##query-metrics", query, MAX_QUERY_SIZE);
-    if (ImGui::BeginTable("##metrics-table", 2, ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY, ImVec2{-1, -1})) {
+    static const char* possibleAxis[] = {
+      "Y",
+      "Y1",
+      "Y2",
+    };
+    if (ImGui::BeginTable("##metrics-table", 3, ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY, ImVec2{-1, -1})) {
       ImGui::TableSetupColumn("##close button", ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_WidthFixed, 20);
+      ImGui::TableSetupColumn("##axis kind", ImGuiTableColumnFlags_NoResize | ImGuiTableColumnFlags_WidthFixed, 30);
       ImGui::TableSetupScrollFreeze(1, 0);
       ImGuiListClipper clipper;
       clipper.Begin(selectedMetricIndex.size());
@@ -624,6 +649,21 @@ void displayMetrics(gui::WorkspaceGUIState& state,
           ImGui::TableNextRow();
           ImGui::TableNextColumn();
           ImGui::Checkbox("##checkbox", &metricDisplayState[index.stateIndex].visible);
+          ImGui::TableNextColumn();
+          if (metricDisplayState[index.stateIndex].visible) {
+            if (ImGui::BeginCombo("##Select style", possibleAxis[metricDisplayState[index.stateIndex].axis], ImGuiComboFlags_NoArrowButton)) {
+              for (int n = 0; n < IM_ARRAYSIZE(possibleAxis); n++) {
+                bool is_selected = (metricDisplayState[index.stateIndex].axis == n);
+                if (ImGui::Selectable(possibleAxis[n], is_selected)) {
+                  metricDisplayState[index.stateIndex].axis = n;
+                }
+                if (is_selected) {
+                  ImGui::SetItemDefaultFocus(); // You may set the initial focus when opening the combo (scrolling + for keyboard navigation support)
+                }
+              }
+              ImGui::EndCombo();
+            }
+          }
           ImGui::TableNextColumn();
           ImGui::Text("%s/%s", node.label.c_str(), label.label);
           ImGui::PopID();
@@ -789,7 +829,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
           auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
           auto& metric = metricsInfos[index.deviceIndex];
           auto label = metricsInfos[index.deviceIndex].metricLabels[index.metricIndex].label;
-          ImGui::TextUnformatted(label);
+          ImGui::Text("%s (%" PRIu64 ")", label, (uint64_t)metric.metrics[index.metricIndex].filledMetrics);
         }
 
         // Calculate which columns we want to see.
