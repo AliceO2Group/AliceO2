@@ -153,16 +153,22 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   //mTracker->DumpTracks();
 
   // finished tracking, now collect the output
-  std::vector<TrackTRD> tracksOutITSTPC(nTracksLoadedITSTPC);
-  std::vector<TrackTRD> tracksOutTPC(nTracksLoadedTPC);
-  if (mTracker->NTracks() != nTracksLoadedITSTPC + nTracksLoadedTPC) {
-    LOGF(FATAL, "Got %i matched tracks in total whereas %i ITS-TPC + %i TPC = %i tracks were loaded as input", mTracker->NTracks(), nTracksLoadedITSTPC, nTracksLoadedTPC, nTracksLoadedITSTPC + nTracksLoadedTPC);
+  std::vector<TrackTRD> tracksOutITSTPC;
+  std::vector<TrackTRD> tracksOutTPC;
+  int nTrackletsAttached = 0; // only used for debug information
+  for (int iTrk = 0; iTrk < mTracker->NTracks(); ++iTrk) {
+    const auto& trdTrack = mTracker->Tracks()[iTrk];
+    nTrackletsAttached += trdTrack.getNtracklets();
+    if (std::find(loadedTPCtracks.begin(), loadedTPCtracks.end(), trdTrack.getTPCtrackId()) == loadedTPCtracks.end()) {
+      // this track is from a TPC-only seed
+      tracksOutTPC.push_back(trdTrack);
+    } else {
+      // this track is from an ITS-TPC seed
+      tracksOutITSTPC.push_back(trdTrack);
+    }
   }
-
-  // copy ITS-TPC matched tracks first
-  std::copy(mTracker->Tracks(), mTracker->Tracks() + nTracksLoadedITSTPC, tracksOutITSTPC.begin());
-  // and now the remaining TPC-only matches
-  std::copy(mTracker->Tracks() + nTracksLoadedITSTPC, mTracker->Tracks() + mTracker->NTracks(), tracksOutTPC.begin());
+  LOGF(INFO, "The TRD tracker found %lu tracks from TPC seeds and %lu tracks from ITS-TPC seeds and attached in total %i tracklets out of %i",
+       tracksOutTPC.size(), tracksOutITSTPC.size(), nTrackletsAttached, mChainTracking->mIOPtrs.nTRDTracklets);
 
   // Temporary until it is transferred to its own DPL device for calibrations
   mCalibVDrift.setAngleDiffSums(mTracker->AngleDiffSums());
