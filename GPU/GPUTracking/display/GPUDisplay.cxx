@@ -64,6 +64,9 @@
 #include "TOFBase/Geo.h"
 #include "ITSBase/GeometryTGeo.h"
 #endif
+#ifdef GPUCA_O2_LIB
+#include "ITSMFTBase/DPLAlpideParam.h"
+#endif
 
 #include "GPUDisplayShaders.h"
 
@@ -1539,14 +1542,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         if (fabsf(ptr->z) > mMaxClusterZ) {
           mMaxClusterZ = fabsf(ptr->z);
         }
-        if (iSlice < 18) {
-          ptr->z += mZadd;
-          ptr->z += mZadd;
-        } else {
-          ptr->z -= mZadd;
-          ptr->z -= mZadd;
-        }
-
+        ptr->z += iSlice < 18 ? mZadd : -mZadd;
         ptr->x /= GL_SCALE_FACTOR;
         ptr->y /= GL_SCALE_FACTOR;
         ptr->z /= GL_SCALE_FACTOR;
@@ -1554,63 +1550,100 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       }
     }
 
-    GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
+    int trdTriggerRecord = -1;
+    float trdZoffset = 0;
+    GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ) firstprivate(trdTriggerRecord, trdZoffset))
     for (int i = 0; i < mCurrentSpacePointsTRD; i++) {
+      while (mParam->par.ContinuousTracking && trdTriggerRecord < (int)mIOPtrs->nTRDTriggerRecords - 1 && mIOPtrs->trdTrackletIdxFirst[trdTriggerRecord + 1] <= i) {
+        trdTriggerRecord++;
+        float trdTime = mIOPtrs->trdTriggerTimes[trdTriggerRecord] * 1e3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
+        trdZoffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, trdTime, mParam->par.continuousMaxTimeBin));
+      }
       const auto& sp = mIOPtrs->trdSpacePoints[i];
       int iSec = trdGeometry().GetSector(mIOPtrs->trdTracklets[i].GetDetector());
       float4* ptr = &mGlobalPosTRD[i];
       mParam->Slice2Global(iSec, sp.getX() + mXadd, sp.getY(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
+      ptr->z += ptr->z > 0 ? trdZoffset : -trdZoffset;
       if (fabsf(ptr->z) > mMaxClusterZ) {
         mMaxClusterZ = fabsf(ptr->z);
       }
+      ptr->x /= GL_SCALE_FACTOR;
+      ptr->y /= GL_SCALE_FACTOR;
+      ptr->z /= GL_SCALE_FACTOR;
       ptr->w = tTRDCLUSTER;
       ptr = &mGlobalPosTRD2[i];
       mParam->Slice2Global(iSec, sp.getX() + mXadd + 4.5f, sp.getY() + 1.5f * sp.getDy(), sp.getZ(), &ptr->x, &ptr->y, &ptr->z);
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
+      ptr->z += ptr->z > 0 ? trdZoffset : -trdZoffset;
       if (fabsf(ptr->z) > mMaxClusterZ) {
         mMaxClusterZ = fabsf(ptr->z);
       }
+      ptr->x /= GL_SCALE_FACTOR;
+      ptr->y /= GL_SCALE_FACTOR;
+      ptr->z /= GL_SCALE_FACTOR;
       ptr->w = tTRDCLUSTER;
     }
 
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int i = 0; i < mCurrentClustersTOF; i++) {
-      float4* ptr = &mGlobalPosTOF[i];
 #ifdef HAVE_O2HEADERS
+      float4* ptr = &mGlobalPosTOF[i];
       mParam->Slice2Global(mIOPtrs->tofClusters[i].getSector(), mIOPtrs->tofClusters[i].getX() + mXadd, mIOPtrs->tofClusters[i].getY(), mIOPtrs->tofClusters[i].getZ(), &ptr->x, &ptr->y, &ptr->z);
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
-#endif
+      float ZOffset = 0;
+      if (mParam->par.ContinuousTracking) {
+        float tofTime = mIOPtrs->tofClusters[i].getTime() * 1e-3 / o2::constants::lhc::LHCBunchSpacingNS / o2::tpc::constants::LHCBCPERTIMEBIN;
+        ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, tofTime, mParam->par.continuousMaxTimeBin));
+        ptr->z += ptr->z > 0 ? ZOffset : -ZOffset;
+      }
       if (fabsf(ptr->z) > mMaxClusterZ) {
         mMaxClusterZ = fabsf(ptr->z);
       }
+      ptr->x /= GL_SCALE_FACTOR;
+      ptr->y /= GL_SCALE_FACTOR;
+      ptr->z /= GL_SCALE_FACTOR;
       ptr->w = tTOFCLUSTER;
+#endif
     }
 
-    //GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
-    for (int i = 0; i < mCurrentClustersITS; i++) {
-      float4* ptr = &mGlobalPosITS[i];
+    if (mCurrentClustersITS) {
 #ifdef HAVE_O2HEADERS
-      const auto& cl = mIOPtrs->itsClusters[i];
-      auto* itsGeo = o2::its::GeometryTGeo::Instance();
-      auto p = cl.getXYZGlo(*itsGeo);
-      ptr->x = p.X();
-      ptr->y = p.Y();
-      ptr->z = p.Z();
-      ptr->x /= GL_SCALE_FACTOR;
-      ptr->y /= GL_SCALE_FACTOR;
-      ptr->z /= GL_SCALE_FACTOR;
-#endif
-      if (fabsf(ptr->z) > mMaxClusterZ) {
-        mMaxClusterZ = fabsf(ptr->z);
+      float itsROFhalfLen = 0;
+#ifdef GPUCA_O2_LIB // Not available in standalone benchmark
+      if (mParam->par.ContinuousTracking) {
+        const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
+        itsROFhalfLen = alpParams.roFrameLengthInBC / (float)o2::tpc::constants::LHCBCPERTIMEBIN / 2;
       }
-      ptr->w = tITSCLUSTER;
+#endif
+      int i = 0;
+      for (unsigned int j = 0; j < mIOPtrs->nItsClusterROF; j++) {
+        float ZOffset = 0;
+        if (mParam->par.ContinuousTracking) {
+          o2::InteractionRecord startIR = o2::InteractionRecord(0, mIOPtrs->settingsTF && mIOPtrs->settingsTF->hasTfStartOrbit ? mIOPtrs->settingsTF->tfStartOrbit : 0);
+          float itsROFtime = mIOPtrs->itsClusterROF[j].getBCData().differenceInBC(startIR) / (float)o2::tpc::constants::LHCBCPERTIMEBIN;
+          ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, itsROFtime + itsROFhalfLen, mParam->par.continuousMaxTimeBin));
+        }
+        if (i != mIOPtrs->itsClusterROF[j].getFirstEntry()) {
+          throw std::runtime_error("Inconsistent ITS data, number of clusters does not match ROF content");
+        }
+        for (int k = 0; k < mIOPtrs->itsClusterROF[j].getNEntries(); k++) {
+          float4* ptr = &mGlobalPosITS[i];
+          const auto& cl = mIOPtrs->itsClusters[i];
+          auto* itsGeo = o2::its::GeometryTGeo::Instance();
+          auto p = cl.getXYZGlo(*itsGeo);
+          ptr->x = p.X();
+          ptr->y = p.Y();
+          ptr->z = p.Z();
+          ptr->z += ptr->z > 0 ? ZOffset : -ZOffset;
+          if (fabsf(ptr->z) > mMaxClusterZ) {
+            mMaxClusterZ = fabsf(ptr->z);
+          }
+          ptr->x /= GL_SCALE_FACTOR;
+          ptr->y /= GL_SCALE_FACTOR;
+          ptr->z /= GL_SCALE_FACTOR;
+          ptr->w = tITSCLUSTER;
+          i++;
+        }
+      }
+#endif
     }
 
     mTimerFPS.ResetStart();
