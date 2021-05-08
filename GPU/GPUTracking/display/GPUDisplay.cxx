@@ -1030,6 +1030,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       size_t startCountInner = mVertexBuffer[iSlice].size();
       bool drawing = false;
 
+      // Print TOF part of track
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1 && mIOPtrs->nTOFClusters) {
           int cid = mIOPtrs->tpcLinkTOF[i];
@@ -1038,6 +1039,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         }
       }
 
+      // Print TRD part of track
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
         if (mTrackFilter && mChain) {
           if (mTrackFilter == 2 && (!trdTracker().PreCheckTrackTRDCandidate(*track) || !trdTracker().CheckTrackTRDCandidate((GPUTRDTrackGPU)*track))) {
@@ -1075,6 +1077,8 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           }
         }
       }
+
+      // Print TPC part of track
       for (int k = 0; k < nClusters; k++) {
         if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
           if (mHideRejectedClusters && (mIOPtrs->mergedTrackHits[track->FirstClusterRef() + k].state & GPUTPCGMMergedTrackHit::flagReject)) {
@@ -1115,6 +1119,8 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         }
         lastCluster = k;
       }
+
+      // Print ITS part of track
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1 && mIOPtrs->nItsClusters) {
           DrawTrackITS(mIOPtrs->tpcLinkITS[i], iSlice);
@@ -1124,13 +1130,11 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       break;
     }
 
-    if (!mChain) {
-      continue;
-    }
     if (!mIOPtrs->clustersNative) {
       continue;
     }
 
+    // Propagate track paramters / plot MC tracks
     for (int iMC = 0; iMC < 2; iMC++) {
       if (iMC) {
         if (ii >= trackList[1].size()) {
@@ -1151,14 +1155,18 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         GPUTPCGMPhysicalTrackModel trkParam;
         float ZOffset = 0;
         float x = 0;
-        int slice = iSlice;
-        float alpha = mParam->Alpha(slice);
+        float alphaOrg = 0;
         if (iMC == 0) {
+          if (!inFlyDirection && mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1) {
+            continue;
+          }
           if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
             trkParam.Set(track->GetParam());
+            alphaOrg = mParam->Alpha(iSlice);
           } else {
             GPUTPCGMTrackParam t;
             convertTrackParam(t, *track);
+            alphaOrg = track->getAlpha();
             trkParam.Set(t);
           }
 
@@ -1173,12 +1181,12 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
               auto cl = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + lastCluster];
               const auto& cln = mIOPtrs->clustersNative->clustersLinear[cl.num];
               GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, cl.slice, cl.row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransform->convVertexTimeToZOffset(slice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
+              ZOffset = mCalib->fastTransform->convVertexTimeToZOffset(iSlice, track->GetParam().GetTZOffset(), mParam->par.continuousMaxTimeBin);
             } else {
               uint8_t sector, row;
               auto cln = track->getCluster(mIOPtrs->outputClusRefsTPCO2, lastCluster, *mIOPtrs->clustersNative, sector, row);
               GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, sector, row, cln.getPad(), cln.getTime(), x, y, z);
-              ZOffset = mCalib->fastTransform->convVertexTimeToZOffset(slice, track->getTime0(), mParam->par.continuousMaxTimeBin);
+              ZOffset = mCalib->fastTransform->convVertexTimeToZOffset(sector, track->getTime0(), mParam->par.continuousMaxTimeBin);
             }
           }
         } else {
@@ -1190,8 +1198,9 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             break;
           }
 
-          float c = cosf(alpha);
-          float s = sinf(alpha);
+          alphaOrg = mParam->Alpha(iSlice);
+          float c = cosf(alphaOrg);
+          float s = sinf(alphaOrg);
           float mclocal[4];
           x = mc.x;
           float y = mc.y;
@@ -1221,7 +1230,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         if (fabsf(trkParam.SinPhi()) > 1) {
           break;
         }
-        alpha = mParam->Alpha(slice);
+        float alpha = alphaOrg;
         vecpod<GLvertex>& useBuffer = iMC && inFlyDirection == 0 ? buffer : mVertexBuffer[iSlice];
         int nPoints = 0;
 
@@ -1243,7 +1252,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             }
             x = trkParam.X() + 1.f;
             if (!mPropagateLoopers) {
-              float diff = fabsf(alpha - mParam->Alpha(slice)) / (2. * CAMath::Pi());
+              float diff = fabsf(alpha - alphaOrg) / (2. * CAMath::Pi());
               diff -= floor(diff);
               if (diff > 0.25 && diff < 0.75) {
                 break;
