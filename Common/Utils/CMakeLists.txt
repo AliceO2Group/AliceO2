@@ -51,7 +51,7 @@ o2_add_test(CompStream
             COMPONENT_NAME CommonUtils
             LABELS utils
             SOURCES test/testCompStream.cxx
-            PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::filesystem)
+            PUBLIC_LINK_LIBRARIES O2::CommonUtils)
 
 o2_add_test(ValueMonitor
             COMPONENT_NAME CommonUtils
