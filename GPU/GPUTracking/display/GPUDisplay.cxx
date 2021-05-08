@@ -998,6 +998,14 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       size_t startCountInner = mVertexBuffer[iSlice].size();
       bool drawing = false;
 
+      if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
+        if (mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1 && mIOPtrs->nTOFClusters) {
+          int cid = mIOPtrs->tpcLinkTOF[i];
+          mVertexBuffer[iSlice].emplace_back(mGlobalPosTOF[cid].x, mGlobalPosTOF[cid].y, mProjectXY ? 0 : mGlobalPosTOF[cid].z);
+          mGlobalPosTOF[cid].w = tTOFATTACHED;
+        }
+      }
+
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
         if (mTrackFilter && mChain) {
           if (mTrackFilter == 2 && (!trdTracker().PreCheckTrackTRDCandidate(*track) || !trdTracker().CheckTrackTRDCandidate((GPUTRDTrackGPU)*track))) {
