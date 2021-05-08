@@ -1504,8 +1504,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
       mTRDTrackIds[i] = -1;
     }
     for (unsigned int i = 0; i < mIOPtrs->nTRDTracks; i++) {
-      if (mIOPtrs->trdTracks[i].GetNtracklets()) {
-        mTRDTrackIds[mIOPtrs->trdTracks[i].GetTPCtrackId()] = i;
+      if (mIOPtrs->trdTracks[i].getNtracklets()) {
+        mTRDTrackIds[mIOPtrs->trdTracks[i].getTPCtrackId()] = i;
       }
     }
     if (mIOPtrs->nItsTracks) {

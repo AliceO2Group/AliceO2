@@ -67,7 +67,6 @@ class GPUTRDTracker_t : public GPUProcessor
   void* SetPointersTracklets(void* base);
   void* SetPointersTracks(void* base);
 
-  void CountMatches(const int trackID, std::vector<int>* matches) const;
   void PrepareTracking(GPUChainTracking* chainTracking);
   void DoTracking(GPUChainTracking* chainTracking);
   void SetNCandidates(int n);
@@ -105,7 +104,7 @@ class GPUTRDTracker_t : public GPUProcessor
   }
   GPUd() bool PreCheckTrackTRDCandidate(const GPUTPCGMMergedTrack& trk) const { return trk.OK() && !trk.Looper(); }
   GPUd() bool CheckTrackTRDCandidate(const TRDTRK& trk) const;
-  GPUd() int LoadTrack(const TRDTRK& trk, const int label = -1, const int* nTrkltsOffline = nullptr, const int labelOffline = -1, int tpcTrackId = -1, bool checkTrack = true);
+  GPUd() int LoadTrack(const TRDTRK& trk, int tpcTrackId = -1, bool checkTrack = true);
 
   GPUd() int GetCollisionIDs(TRDTRK& trk, int* collisionIds) const;
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
@@ -124,7 +123,6 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() float ConvertAngleToDy(float snp) const { return mAngleToDyA + mAngleToDyB * snp + mAngleToDyC * snp * snp; } // a + b*snp + c*snp^2 is more accurate than sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2)
   GPUd() float GetAngularPull(float dYtracklet, float snp) const;
   GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3]);
-  GPUd() void CheckTrackRefs(const int trackID, bool* findableMC) const;
   GPUd() void FindChambersInRoad(const TRDTRK* t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const;
   GPUd() bool IsGeoFindable(const TRDTRK* t, const int layer, const float alpha) const;
   GPUd() void InsertHypothesis(Hypothesis hypo, int& nCurrHypothesis, int idxOffset);
