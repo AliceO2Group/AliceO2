@@ -44,6 +44,10 @@ void Tracker::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 {
   /// initialize from MFTTrackingParam (command line configuration parameters)
 
+  mTrackFitter->setMFTRadLength(trkParam.MFTRadLength);
+  mTrackFitter->setVerbosity(trkParam.verbose);
+  mTrackFitter->setTrackModel(trkParam.trackmodel);
+
   mMinTrackPointsLTF = trkParam.MinTrackPointsLTF;
   mMinTrackPointsCA = trkParam.MinTrackPointsCA;
   mMinTrackStationsLTF = trkParam.MinTrackStationsLTF;
