@@ -22,7 +22,6 @@ typedef struct uv_loop_s uv_loop_t;
 namespace o2::framework
 {
 
-
 class ComputingQuotaEvaluator
 {
   // Maximum number of offers this evaluator can hold
