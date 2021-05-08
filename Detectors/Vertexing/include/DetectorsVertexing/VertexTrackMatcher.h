@@ -51,23 +51,15 @@ class VertexTrackMatcher
   };
 
   void init();
-  void process(const gsl::span<const PVertex>& vertices,  // vertices
-               const gsl::span<const VTIndex>& v2tfitIDs, // IDs of contributor tracks used in fit
-               const gsl::span<const VRef>& v2tfitRefs,   // references on these tracks (we used special reference with multiple sources, but currently only TPCITS used)
-               const o2::globaltracking::RecoContainer& recoData,
+  void process(const o2::globaltracking::RecoContainer& recoData,
                std::vector<VTIndex>& trackIndex, // Global ID's for associated tracks
                std::vector<VRef>& vtxRefs);      // references on these tracks
-
-  ///< set InteractionRecods for the beginning of the TF
-  void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; }
 
  private:
   void updateTPCTimeDependentParams();
   void extractTracks(const o2::globaltracking::RecoContainer& data, const std::unordered_map<GIndex, bool>& vcont);
 
   std::vector<TrackTBracket> mTBrackets;
-
-  o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
   float mITSROFrameLengthMUS = 0;       ///< ITS RO frame in mus
   float mMaxTPCDriftTimeMUS = 0;
   float mTPCBin2MUS = 0;

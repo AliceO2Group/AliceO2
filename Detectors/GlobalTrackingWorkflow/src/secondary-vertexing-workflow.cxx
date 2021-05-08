@@ -58,7 +58,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2secondary-vertexing-workflow_configuration.ini");
   bool useMC = false;
-  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
 
@@ -71,9 +70,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, src, src, useMC, srcClus);
-  if (!disableRootInp) {
-    specs.emplace_back(o2::vertexing::getPrimaryVertexReaderSpec(useMC)); // consider moving to RecoContainer
-  }
+  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
+
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getSecondaryVertexWriterSpec());
   }

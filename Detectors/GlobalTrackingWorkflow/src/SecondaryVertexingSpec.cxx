@@ -92,16 +92,12 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
 
-  const auto pvertices = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx");
-  const auto pvtxTracks = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_cont");
-  const auto pvtxTrackRefs = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref");
-
   auto& v0s = pc.outputs().make<std::vector<V0>>(Output{"GLO", "V0S", 0, Lifetime::Timeframe});
   auto& v0Refs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
   auto& cascs = pc.outputs().make<std::vector<Cascade>>(Output{"GLO", "CASCS", 0, Lifetime::Timeframe});
   auto& cascRefs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
 
-  mVertexer.process(pvertices, pvtxTracks, pvtxTrackRefs, recoData);
+  mVertexer.process(recoData);
   mVertexer.extractSecondaryVertices(v0s, v0Refs, cascs, cascRefs);
 
   mTimer.Stop();
@@ -121,13 +117,8 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   auto dataRequest = std::make_shared<DataRequest>();
 
   bool useMC = false;
-  dataRequest->requestTracks(src, false);
-
-  auto& inputs = dataRequest->inputs;
-
-  inputs.emplace_back("pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe);                // prim.vertices
-  inputs.emplace_back("pvtx_cont", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);     // global ids of associated tracks
-  inputs.emplace_back("pvtx_tref", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe); // vertex - trackID refs
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestPrimaryVertertices(useMC);
 
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);           // found V0s
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
@@ -136,7 +127,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
 
   return DataProcessorSpec{
     "secondary-vertexing",
-    inputs,
+    dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, enableCasc)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},

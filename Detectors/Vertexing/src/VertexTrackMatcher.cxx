@@ -49,14 +49,15 @@ void VertexTrackMatcher::updateTPCTimeDependentParams()
   }
 }
 
-void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
-                                 const gsl::span<const VTIndex>& v2tfitIDs,
-                                 const gsl::span<const VRef>& v2tfitRefs,
-                                 const o2::globaltracking::RecoContainer& recoData,
+void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoData,
                                  std::vector<VTIndex>& trackIndex,
                                  std::vector<VRef>& vtxRefs)
 {
   updateTPCTimeDependentParams();
+
+  auto vertices = recoData.getPrimaryVertices<PVertex>();
+  auto v2tfitIDs = recoData.getPrimaryVertexContributors<VTIndex>();
+  auto v2tfitRefs = recoData.getPrimaryVertexContributorsRefs<VRef>();
 
   int nv = vertices.size();
   TmpMap tmpMap(nv);
@@ -75,8 +76,8 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
     }
     const auto& vtx = vertices[iv];
     const auto& vto = vtxOrdBrack.emplace_back(VtxTBracket{
-      {float((vtx.getIRMin().differenceInBC(mStartIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS),
-       float((vtx.getIRMax().differenceInBC(mStartIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS)},
+      {float((vtx.getIRMin().differenceInBC(recoData.startIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS),
+       float((vtx.getIRMax().differenceInBC(recoData.startIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS)},
       iv});
     if (vto.tBracket.delta() > maxVtxSpan) {
       maxVtxSpan = vto.tBracket.delta();
