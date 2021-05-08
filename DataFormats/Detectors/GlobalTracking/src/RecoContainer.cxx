@@ -15,6 +15,11 @@
 #include <fmt/format.h>
 #include <chrono>
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "CommonDataFormat/TimeStamp.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "SimulationDataFormat/MCEventLabel.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;
@@ -155,6 +160,28 @@ void DataRequest::requestFT0RecPoints(bool mc)
   requestMap["FT0"] = false;
 }
 
+void DataRequest::requestPrimaryVertertices(bool mc)
+{
+  addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
+  addInput({"pvtx_trmtc", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe});    // global ids of associated tracks
+  addInput({"pvtx_tref", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}); // vertex - trackID refs
+  if (mc) {
+    addInput({"pvtx_mc", "GLO", "PVTX_MCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["PVertex"] = mc;
+}
+
+void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices before global vertex-track matching
+{
+  addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
+  addInput({"pvtx_cont", "GLO", "PVTX_CONTID", 0, Lifetime::Timeframe});        // global ids of contributors
+  addInput({"pvtx_contref", "GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe}); // vertex - trackID refs of contributors
+  if (mc) {
+    addInput({"pvtx_mc", "GLO", "PVTX_MCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["PVertexTMP"] = mc;
+}
+
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
 {
   // request tracks for sources probided by the mask
@@ -267,6 +294,44 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("trackletTRD");
   if (req != reqMap.end()) {
     addTRDTracklets(pc);
+  }
+
+  req = reqMap.find("PVertex");
+  if (req != reqMap.end()) {
+    addPVertices(pc, req->second);
+  }
+
+  req = reqMap.find("PVertexTMP");
+  if (req != reqMap.end()) {
+    addPVerticesTMP(pc, req->second);
+  }
+}
+
+//____________________________________________________________
+void RecoContainer::addPVertices(ProcessingContext& pc, bool mc)
+{
+  if (!pvtxPool.isLoaded(PVTX)) { // in case was loaded via addPVerticesTMP
+    pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx"), PVTX);
+  }
+  pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_trmtc"), PVTX_TRMTC);
+  pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref"), PVTX_TRMTCREFS);
+
+  if (mc && !pvtxPool.isLoaded(PVTX_MCTR)) { // in case was loaded via addPVerticesTMP
+    pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
+  }
+}
+
+//____________________________________________________________
+void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)
+{
+  if (!pvtxPool.isLoaded(PVTX)) { // in case was loaded via addPVertices
+    pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx"), PVTX);
+  }
+  pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_cont"), PVTX_CONTID);
+  pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_contref"), PVTX_CONTIDREFS);
+
+  if (mc && !pvtxPool.isLoaded(PVTX_MCTR)) { // in case was loaded via addPVertices
+    pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
   }
 }
 
