@@ -57,6 +57,8 @@
 #include "utils/qconfig.h"
 
 #ifdef HAVE_O2HEADERS
+#include "DataFormatsITSMFT/ROFRecord.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "TOFBase/Geo.h"
@@ -983,9 +985,11 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
         track = &mIOPtrs->mergedTracks[i];
         nClusters = track->NClusters();
-      } else {
+      } else if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         track = &mIOPtrs->outputTracksTPCO2[i];
         nClusters = track->getNClusters();
+      } else {
+        throw std::runtime_error("invalid type");
       }
 
       size_t startCountInner = mVertexBuffer[iSlice].size();
@@ -1000,19 +1004,32 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
             break;
           }
         }
-      }
-
-      if (mTRDTrackIds[i] != -1) {
-        auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
-        for (int k = 5; k >= 0; k--) {
-          int cid = trk.GetTrackletIndex(k);
-          if (cid < 0) {
-            continue;
+        if (mTRDTrackIds[i] != -1) {
+          auto& trk = mIOPtrs->trdTracks[mTRDTrackIds[i]];
+          for (int k = 5; k >= 0; k--) {
+            int cid = trk.GetTrackletIndex(k);
+            if (cid < 0) {
+              continue;
+            }
+            drawing = true;
+            mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mProjectXY ? 0 : mGlobalPosTRD2[cid].z);
+            mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mProjectXY ? 0 : mGlobalPosTRD[cid].z);
+            mGlobalPosTRD[cid].w = tTRDATTACHED;
           }
-          drawing = true;
-          mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mProjectXY ? 0 : mGlobalPosTRD2[cid].z);
-          mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mProjectXY ? 0 : mGlobalPosTRD[cid].z);
-          mGlobalPosTRD[cid].w = tTRDATTACHED;
+        }
+      } else if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
+        if (mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1) {
+          const auto& trk = (mIOPtrs->tpcLinkTRD[i] & 0x40000000) ? mIOPtrs->trdTracksITSTPCTRD[mIOPtrs->tpcLinkTRD[i] & 0x3FFFFFFF] : mIOPtrs->trdTracksTPCTRD[mIOPtrs->tpcLinkTRD[i]];
+          for (int k = 5; k >= 0; k--) {
+            int cid = trk.GetTrackletIndex(k);
+            if (cid < 0) {
+              continue;
+            }
+            drawing = true;
+            mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mProjectXY ? 0 : mGlobalPosTRD2[cid].z);
+            mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mProjectXY ? 0 : mGlobalPosTRD[cid].z);
+            mGlobalPosTRD[cid].w = tTRDATTACHED;
+          }
         }
       }
       for (int k = 0; k < nClusters; k++) {
@@ -1054,6 +1071,24 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           drawing = true;
         }
         lastCluster = k;
+      }
+      if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
+        if (mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1) {
+          const auto& trk = mIOPtrs->itsTracks[mIOPtrs->tpcLinkITS[i]];
+          unsigned int rof;
+          for (rof = 1; rof < mIOPtrs->nItsTrackROF; rof++) {
+            if (mIOPtrs->itsTrackROF[rof].getFirstEntry() > i) {
+              break;
+            }
+          }
+          rof--;
+          int clusIndOffs = mIOPtrs->itsClusterROF[rof].getFirstEntry();
+          for (int k = 0; k < trk.getNClusters(); k++) {
+            int cid = clusIndOffs + mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
+            mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[cid].x, mGlobalPosITS[cid].y, mProjectXY ? 0 : mGlobalPosITS[cid].z);
+            mGlobalPosITS[cid].w = tITSATTACHED;
+          }
+        }
       }
       insertVertexList(vBuf[0], startCountInner, mVertexBuffer[iSlice].size());
       break;

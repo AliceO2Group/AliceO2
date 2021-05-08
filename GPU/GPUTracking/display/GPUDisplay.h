@@ -105,11 +105,11 @@ class GPUDisplay
  private:
   static constexpr int NSLICES = GPUChainTracking::NSLICES;
 
-  static constexpr const int N_POINTS_TYPE = 13;
+  static constexpr const int N_POINTS_TYPE = 15;
   static constexpr const int N_POINTS_TYPE_TPC = 9;
   static constexpr const int N_POINTS_TYPE_TRD = 2;
-  static constexpr const int N_POINTS_TYPE_TOF = 1;
-  static constexpr const int N_POINTS_TYPE_ITS = 1;
+  static constexpr const int N_POINTS_TYPE_TOF = 2;
+  static constexpr const int N_POINTS_TYPE_ITS = 2;
   static constexpr const int N_LINES_TYPE = 7;
   static constexpr const int N_FINAL_TYPE = 4;
   static constexpr int TRACK_TYPE_ID_LIMIT = 100;
@@ -125,7 +125,9 @@ class GPUDisplay
                     tTRDCLUSTER = 9,
                     tTRDATTACHED = 10,
                     tTOFCLUSTER = 11,
-                    tITSCLUSTER = 12 };
+                    tTOFATTACHED = 12,
+                    tITSCLUSTER = 13,
+                    tITSATTACHED = 14 };
   enum LineTypes { RESERVED = 0 /*1 -- 6 = INITLINK to GLOBALTRACK*/ };
 
   typedef std::tuple<GLsizei, GLsizei, int> vboList;
