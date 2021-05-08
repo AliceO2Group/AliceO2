@@ -248,6 +248,8 @@ class GPUDisplay
   vboList DrawSeeds(const GPUTPCTracker& tracker);
   vboList DrawTracklets(const GPUTPCTracker& tracker);
   vboList DrawTracks(const GPUTPCTracker& tracker, int global);
+  void DrawTrackITS(int trackId, int iSlice);
+  GPUDisplay::vboList DrawFinalITS();
   template <class T>
   void DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer);
   vboList DrawGrid(const GPUTPCTracker& tracker);
@@ -355,6 +357,7 @@ class GPUDisplay
   int mCurrentClustersITS = 0;
   int mCurrentClustersTOF = 0;
   std::vector<int> mTRDTrackIds;
+  std::vector<bool> mITSStandaloneTracks;
 
   int mGlDLrecent = 0;
   int mUpdateDLList = 0;
@@ -387,6 +390,7 @@ class GPUDisplay
   HighResTimer mTimerFPS, mTimerDisplay, mTimerDraw;
   vboList mGlDLLines[NSLICES][N_LINES_TYPE];
   vecpod<std::array<vboList, N_FINAL_TYPE>> mGlDLFinal[NSLICES];
+  vboList mGlDLFinalITS;
   vecpod<vboList> mGlDLPoints[NSLICES][N_POINTS_TYPE];
   vboList mGlDLGrid[NSLICES];
   vboList mGlDLGridTRD[NSLICES / 2];
