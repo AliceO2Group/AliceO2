@@ -122,7 +122,7 @@ struct RecoContainer {
   void addTOFMatches(o2::framework::ProcessingContext& pc, bool mc);
 
   void addITSClusters(o2::framework::ProcessingContext& pc, bool mc);
-  void addTPCClusters(o2::framework::ProcessingContext& pc, bool mc);
+  void addTPCClusters(o2::framework::ProcessingContext& pc, bool mc, bool shmap);
   void addTOFClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTRDTracklets(o2::framework::ProcessingContext& pc);
 
