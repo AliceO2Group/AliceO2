@@ -88,7 +88,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
     //LOG(info) << "Got " << ioPtr.nTOFClusters << " TOF Clusters";
   }
 
-  if (maskMatch[GID::TOF] && ioPtr.nTOFMatches == 0) {
+  if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTPCTOF] || maskMatch[GID::ITSTPCTRDTOF]) && ioPtr.nTOFMatches == 0) {
     const auto& tofMatches = recoCont.getTOFMatches<o2::dataformats::MatchInfoTOF>();
     if (tofMatches.size()) {
       ioPtr.nTOFMatches = tofMatches.size();
@@ -149,7 +149,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
       retVal->tpcLinkITS.resize(ioPtr.nOutputTracksTPCO2, -1);
       ioPtr.tpcLinkITS = retVal->tpcLinkITS.data();
     }
-    if (ioPtr.nTOFClusters && (ioPtr.nTOFMatches || ioPtr.nTPCTOFMatches)) {
+    if (ioPtr.nTOFMatches || ioPtr.nTPCTOFMatches) {
       retVal->tpcLinkTOF.resize(ioPtr.nOutputTracksTPCO2, -1);
       ioPtr.tpcLinkTOF = retVal->tpcLinkTOF.data();
     }
@@ -160,30 +160,38 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
     //LOG(info) << "Got " << ioPtr.nOutputTracksTPCO2 << " TPC Tracks";
   }
 
-  auto creator = [&ioPtr, &recoCont, &retVal](auto& trk, GID gid, float time, float) {
+  auto creator = [maskTrk, &ioPtr, &recoCont, &retVal](auto& trk, GID gid, float time, float) {
     if (gid.getSource() == GID::ITSTPCTOF) {
-      const auto& match = recoCont.getTOFMatches<o2::dataformats::MatchInfoTOF>()[gid.getIndex()];
-      const auto& trkItsTPC = ioPtr.tracksTPCITSO2[match.getTrackIndex()];
-      retVal->tpcLinkTOF[trkItsTPC.getRefTPC().getIndex()] = match.getTOFClIndex();
-      retVal->tpcLinkITS[trkItsTPC.getRefTPC().getIndex()] = trkItsTPC.getRefITS().getIndex();
+      if (maskTrk[GID::TPC]) {
+        const auto& match = recoCont.getTOFMatches<o2::dataformats::MatchInfoTOF>()[gid.getIndex()];
+        const auto& trkItsTPC = ioPtr.tracksTPCITSO2[match.getTrackIndex()];
+        retVal->tpcLinkTOF[trkItsTPC.getRefTPC().getIndex()] = match.getTOFClIndex();
+        retVal->tpcLinkITS[trkItsTPC.getRefTPC().getIndex()] = trkItsTPC.getRefITS().getIndex();
+      }
     } else if constexpr (isTPCTrack<decltype(trk)>()) {
       time = trk.getTime0();
     } else if constexpr (isTPCITSTrack<decltype(trk)>()) {
-      retVal->tpcLinkITS[trk.getRefTPC().getIndex()] = trk.getRefITS().getIndex();
+      if (maskTrk[GID::TPC]) {
+        retVal->tpcLinkITS[trk.getRefTPC().getIndex()] = trk.getRefITS().getIndex();
+      }
     } else if constexpr (isTPCTOFTrack<decltype(trk)>()) {
-      const auto& match = ioPtr.tofMatches[trk.getRefMatch()];
-      retVal->tpcLinkTOF[match.getTrackIndex()] = match.getTOFClIndex();
+      if (maskTrk[GID::TPC]) {
+        const auto& match = ioPtr.tpctofMatches[trk.getRefMatch()];
+        retVal->tpcLinkTOF[match.getTrackIndex()] = match.getTOFClIndex();
+      }
     }
     retVal->globalTracks.emplace_back(&trk);
     retVal->globalTrackTimes.emplace_back(time);
     return true;
   };
   recoCont.createTracksVariadic(creator);
-  for (unsigned int i = 0; i < ioPtr.nTRDTracksTPCTRD; i++) { // TODO: This should be handled by the createTracks logic, but so far it lacks the TRD tracks
-    retVal->tpcLinkTRD[ioPtr.trdTracksTPCTRD[i].GetTPCtrackId()] = i;
-  }
-  for (unsigned int i = 0; i < ioPtr.nTRDTracksITSTPCTRD; i++) {
-    retVal->tpcLinkTRD[ioPtr.tracksTPCITSO2[ioPtr.trdTracksITSTPCTRD[i].GetTPCtrackId()].getRefTPC().getIndex()] = i | 0x40000000;
+  if (maskTrk[GID::TPC]) {
+    for (unsigned int i = 0; i < ioPtr.nTRDTracksTPCTRD; i++) { // TODO: This should be handled by the createTracks logic, but so far it lacks the TRD tracks
+      retVal->tpcLinkTRD[ioPtr.trdTracksTPCTRD[i].GetTPCtrackId()] = i;
+    }
+    for (unsigned int i = 0; i < ioPtr.nTRDTracksITSTPCTRD; i++) {
+      retVal->tpcLinkTRD[ioPtr.tracksTPCITSO2[ioPtr.trdTracksITSTPCTRD[i].GetTPCtrackId()].getRefTPC().getIndex()] = i | 0x40000000;
+    }
   }
   ioPtr.globalTracks = retVal->globalTracks.data();
   ioPtr.globalTrackTimes = retVal->globalTrackTimes.data();
