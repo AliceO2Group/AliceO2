@@ -963,6 +963,38 @@ GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int glo
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
+void GPUDisplay::DrawTrackITS(int trackId, int iSlice)
+{
+  const auto& trk = mIOPtrs->itsTracks[trackId];
+  unsigned int rof;
+  for (rof = 1; rof < mIOPtrs->nItsTrackROF; rof++) {
+    if (mIOPtrs->itsTrackROF[rof].getFirstEntry() > trackId) {
+      break;
+    }
+  }
+  rof--;
+  int clusIndOffs = mIOPtrs->itsClusterROF[rof].getFirstEntry();
+  for (int k = 0; k < trk.getNClusters(); k++) {
+    int cid = clusIndOffs + mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
+    mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[cid].x, mGlobalPosITS[cid].y, mProjectXY ? 0 : mGlobalPosITS[cid].z);
+    mGlobalPosITS[cid].w = tITSATTACHED;
+  }
+}
+
+GPUDisplay::vboList GPUDisplay::DrawFinalITS()
+{
+  const int iSlice = 0;
+  size_t startCount = mVertexBufferStart[iSlice].size();
+  for (unsigned int i = 0; i < mIOPtrs->nItsTracks; i++) {
+    if (mITSStandaloneTracks[i]) {
+      size_t startCountInner = mVertexBuffer[iSlice].size();
+      DrawTrackITS(i, iSlice);
+      insertVertexList(iSlice, startCountInner, mVertexBuffer[iSlice].size());
+    }
+  }
+  return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
+}
+
 template <class T>
 void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer)
 {
@@ -1085,20 +1117,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
       }
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1 && mIOPtrs->nItsClusters) {
-          const auto& trk = mIOPtrs->itsTracks[mIOPtrs->tpcLinkITS[i]];
-          unsigned int rof;
-          for (rof = 1; rof < mIOPtrs->nItsTrackROF; rof++) {
-            if (mIOPtrs->itsTrackROF[rof].getFirstEntry() > i) {
-              break;
-            }
-          }
-          rof--;
-          int clusIndOffs = mIOPtrs->itsClusterROF[rof].getFirstEntry();
-          for (int k = 0; k < trk.getNClusters(); k++) {
-            int cid = clusIndOffs + mIOPtrs->itsTrackClusIdx[trk.getFirstClusterEntry() + k];
-            mVertexBuffer[iSlice].emplace_back(mGlobalPosITS[cid].x, mGlobalPosITS[cid].y, mProjectXY ? 0 : mGlobalPosITS[cid].z);
-            mGlobalPosITS[cid].w = tITSATTACHED;
-          }
+          DrawTrackITS(mIOPtrs->tpcLinkITS[i], iSlice);
         }
       }
       insertVertexList(vBuf[0], startCountInner, mVertexBuffer[iSlice].size());
@@ -1455,12 +1474,25 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     if ((size_t)nTpcMergedTracks > mTRDTrackIds.size()) {
       mTRDTrackIds.resize(nTpcMergedTracks);
     }
+    if (mIOPtrs->nItsTracks > mITSStandaloneTracks.size()) {
+      mITSStandaloneTracks.resize(mIOPtrs->nItsTracks);
+    }
     for (unsigned int i = 0; i < nTpcMergedTracks; i++) {
       mTRDTrackIds[i] = -1;
     }
     for (unsigned int i = 0; i < mIOPtrs->nTRDTracks; i++) {
       if (mIOPtrs->trdTracks[i].GetNtracklets()) {
         mTRDTrackIds[mIOPtrs->trdTracks[i].GetTPCtrackId()] = i;
+      }
+    }
+    if (mIOPtrs->nItsTracks) {
+      std::fill(mITSStandaloneTracks.begin(), mITSStandaloneTracks.end(), true);
+      if (mIOPtrs->tpcLinkITS) {
+        for (unsigned int i = 0; i < nTpcMergedTracks; i++) {
+          if (mIOPtrs->tpcLinkITS[i] != -1) {
+            mITSStandaloneTracks[mIOPtrs->tpcLinkITS[i]] = false;
+          }
+        }
       }
     }
 
@@ -2056,6 +2088,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
     // End omp parallel
 
+    mGlDLFinalITS = DrawFinalITS();
+
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
       for (int i = N_POINTS_TYPE_TPC; i < N_POINTS_TYPE_TPC + N_POINTS_TYPE_TRD; i++) {
         for (int iCol = 0; iCol < mNCollissions; iCol++) {
@@ -2334,6 +2368,9 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         if (mCfg.propagateTracks == 3) {
           drawVertices(mGlDLFinal[iSlice][iCol][3], GL_LINE_STRIP);
         }
+      }
+      if (mCfg.drawITS) {
+        drawVertices(mGlDLFinalITS, GL_LINE_STRIP);
       }
     }
     if (mMarkClusters || mMarkAdjacentClusters || mMarkFakeClusters) {
