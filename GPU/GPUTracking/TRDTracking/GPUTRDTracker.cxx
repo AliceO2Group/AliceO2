@@ -687,7 +687,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
   mDebug->Reset();
   int iTrack = t->getTPCtrackId();
   t->setChi2(0.f);
-  t->setZShift((t->getTime() - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId]) * mTPCVdrift * t->getSide());
+  if (mProcessPerTimeFrame) {
+    t->setZShift((t->getTime() - GetConstantMem()->ioPtrs.trdTriggerTimes[collisionId]) * mTPCVdrift * t->getSide());
+  }
   const GPUTRDpadPlane* pad = nullptr;
   const GPUTRDTrackletWord* tracklets = GetConstantMem()->ioPtrs.trdTracklets;
   const GPUTRDSpacePoint* spacePoints = GetConstantMem()->ioPtrs.trdSpacePoints;
