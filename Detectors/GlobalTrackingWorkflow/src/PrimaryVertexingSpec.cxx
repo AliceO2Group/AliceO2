@@ -13,6 +13,7 @@
 #include <vector>
 #include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
@@ -110,24 +111,24 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   auto halfROFITS = 0.5 * mITSROFrameLengthMUS;
   auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
 
-  auto creator =
-    [maxTrackTimeError, hw2ErrITS, halfROFITS, &tracks, &gids](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) {
-      if (!_origID.includesDet(DetID::ITS)) {
-        return true; // just in case this selection was not done on RecoContainer filling level
-      }
-      if (_origID.getSource() == GTrackID::ITS) { // error is supplied a half-ROF duration, convert to \mus
-        t0 += halfROFITS;                         // ITS time is supplied as beginning of ROF
-        terr *= hw2ErrITS;
-      }
-      if (terr > maxTrackTimeError) {
-        return true;
-      }
+  auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, &tracks, &gids](auto& _tr, GTrackID _origID, float t0, float terr) {
+    if (!_origID.includesDet(DetID::ITS)) {
+      return true; // just in case this selection was not done on RecoContainer filling level
+    }
+    if constexpr (isITSTrack<decltype(_tr)>()) {
+      t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
+      terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
+    }
+    // for all other tracks the time is in \mus with gaussian error
+    if (terr < maxTrackTimeError) {
       tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
       gids.emplace_back(_origID);
-      return true;
-    };
+    }
+    return true;
+  };
 
-  recoData.createTracksWithMatchingTimeInfo(creator); // create track sample considered for vertexing
+  recoData.createTracksVariadic(creator); // create track sample considered for vertexing
+
   if (mUseMC) {
     recoData.fillTrackMCLabels(gids, tracksMCInfo);
   }
