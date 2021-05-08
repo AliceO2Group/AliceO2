@@ -197,7 +197,6 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
   mTracksPool.reserve(ntGlo);
   // check all containers
   float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2());
-  float pullIniCut = 9.; // RS FIXME  pullIniCut should be a parameter
   o2d::DCA dca;
 
   for (uint32_t i = 0; i < ntGlo; i++) {

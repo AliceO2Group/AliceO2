@@ -41,6 +41,7 @@
 #include "ReconstructionDataFormats/Vertex.h"
 #include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 
 #include "ITStracking/IOUtils.h"
@@ -529,6 +530,9 @@ void MatchTPCITS::addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float 
 {
   // account single TPC seed, can be from standalone TPC track or constrained track from match to TRD and/or TOF
   const float SQRT12DInv = 2. / sqrt(12.);
+  if (_tr.getX() > o2::constants::geom::XTPCInnerRef + 0.1 || std::abs(_tr.getQ2Pt()) > mMinTPCTrackPtInv) {
+    return;
+  }
   const auto& tpcOrig = mTPCTracksArray[tpcID];
   // discard tracks w/o certain number of total or innermost pads (last cluster is innermost one)
   if (tpcOrig.getNClusterReferences() < mParams->minTPCClusters) {
@@ -600,35 +604,31 @@ bool MatchTPCITS::prepareTPCData()
     mTPCTrkLabels = inp.getTPCTracksMCLabels();
   }
 
-  auto creator = [this](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) {
-    auto srcID = _origID.getSource();
-    if (srcID == GTrackID::ITS) { // we don't need ITS here
-      return true;                // we don't need TPC tracks
+  auto creator = [this](auto& trk, GTrackID gid, float time0, float terr) {
+    if constexpr (isITSTrack<decltype(trk)>()) {
+      // do nothing, ITS tracks will be processed in a direct loop over ROFs
     }
-    // make sure the track was propagated to inner TPC radius at the ref. radius
-    if (_tr.getX() > o2::constants::geom::XTPCInnerRef + 0.1 || std::abs(_tr.getQ2Pt()) > mMinTPCTrackPtInv) {
-      return true;
-    }
-    GTrackID tpcGID{};
-    if (srcID == GTrackID::TPC) {
-      // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd)
-      if (this->mSkipTPCOnly) {
-        return true;
+    if constexpr (isTPCTrack<decltype(trk)>()) {
+      // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
+      if (!this->mSkipTPCOnly) {
+        this->addTPCSeed(trk, this->tpcTimeBin2MUS(time0), this->tpcTimeBin2MUS(terr), gid, gid.getIndex());
       }
-      tpcGID = _origID;
-      t0 = this->tpcTimeBin2MUS(t0); // time and error are in TPC bins, convert to \mus
-      terr = this->tpcTimeBin2MUS(terr);
-    } else if (srcID == GTrackID::TPCTOF) {
-      // TPC track is contrained by TOF fit
-      tpcGID = this->mRecoCont->getTPCContributorGID(_origID);
-    } else if (srcID == GTrackID::TPCTRD) {
-      return true; // TODO RS
     }
-    addTPCSeed(_tr, t0, terr, _origID, tpcGID.getIndex());
+    if constexpr (isTPCTOFTrack<decltype(trk)>()) {
+      // TPC track constrained by TOF time, time and its error in \mus
+      this->addTPCSeed(trk, time0, terr, gid, this->mRecoCont->getTPCContributorGID(gid));
+    }
+    if constexpr (isTRDTrack<decltype(trk)>()) {
+      // TPC track constrained by TRD trigger time, time and its error in \mus
+      LOG(ERROR) << "Not ready yet for TPC-TRD tracks";
+    }
+    if constexpr (isTPCTRDTOFTrack<decltype(trk)>()) {
+      // TPC track constrained by TRD and TOF time, time and its error in \mus
+      LOG(ERROR) << "Not ready yet for TPC-TRD-TOF tracks";
+    }
     return true;
   };
-
-  inp.createTracksWithMatchingTimeInfo(creator);
+  mRecoCont->createTracksVariadic(creator);
 
   float maxTime = 0;
   int nITSROFs = mITSROFTimes.size();

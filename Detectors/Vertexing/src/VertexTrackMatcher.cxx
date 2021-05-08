@@ -12,6 +12,7 @@
 /// \brief Class for vertex track association
 /// \author ruben.shahoyan@cern.ch
 
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DetectorsVertexing/VertexTrackMatcher.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
@@ -151,25 +152,24 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
 
   mTBrackets.clear();
 
-  auto creator =
-    [this, &vcont](const o2::track::TrackParCov& _tr, GIndex _origID, float t0, float terr) {
-      if (vcont.find(_origID) != vcont.end()) { // track is contributor to vertex, already accounted
-        return true;
-      }
-      if (_origID.getSource() == GIndex::TPC) { // convert TPC bins to \mus
-        t0 *= this->mTPCBin2MUS;
-        terr *= this->mTPCBin2MUS;
-      } else if (_origID.getSource() == GIndex::ITS) { // error is supplied a half-ROF duration, convert to \mus
-        t0 += this->mITSROFrameLengthMUS;
-        terr *= 0.5 * this->mITSROFrameLengthMUS;
-      } else {
-        //terr *= this->mMatchParams->nSigmaTError;
-      }
-      mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
+  auto creator = [this, &vcont](auto& _tr, GIndex _origID, float t0, float terr) {
+    if (vcont.find(_origID) != vcont.end()) { // track is contributor to vertex, already accounted
       return true;
-    };
+    }
+    if constexpr (isTPCTrack<decltype(_tr)>()) {
+      // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
+      t0 *= this->mTPCBin2MUS;
+      terr *= this->mTPCBin2MUS;
+    } else if (isITSTrack<decltype(_tr)>()) {   // error is supplied a half-ROF duration, convert to \mus
+      t0 += this->mITSROFrameLengthMUS;         // ITS time is supplied in \mus as beginning of ROF
+      terr *= 0.5 * this->mITSROFrameLengthMUS; // error is supplied as a half-ROF duration, convert to \mus
+    }
+    // for all other tracks the time is in \mus with gaussian error
+    mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
+    return true;
+  };
 
-  data.createTracksWithMatchingTimeInfo(creator);
+  data.createTracksVariadic(creator);
 
   // sort in increasing min.time
   std::sort(mTBrackets.begin(), mTBrackets.end(), [](const TrackTBracket& a, const TrackTBracket& b) { return a.tBracket.getMin() < b.tBracket.getMin(); });
