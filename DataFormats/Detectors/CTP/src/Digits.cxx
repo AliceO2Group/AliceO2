@@ -8,6 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file Digits.cxx
+/// \author Roman Lietava
+
 #include "DataFormatsCTP/Digits.h"
 #include <iostream>
 
@@ -15,6 +18,6 @@ using namespace o2::ctp;
 
 void CTPDigit::printStream(std::ostream& stream) const
 {
-  stream << "CTP Digit:  BC " << mIntRecord.bc << " orbit " << mIntRecord.orbit << std::endl;
-  stream << "Input Mask: " << mCTPInputMask << " Class Mask:  " << mCTPClassMask << std::endl;
+  stream << "CTP Digit:  BC " << intRecord.bc << " orbit " << intRecord.orbit << std::endl;
+  stream << "Input Mask: " << CTPInputMask << " Class Mask:  " << CTPClassMask << std::endl;
 }
