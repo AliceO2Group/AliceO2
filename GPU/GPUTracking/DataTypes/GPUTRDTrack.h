@@ -30,6 +30,7 @@ class TrackTPC;
 namespace dataformats
 {
 class TrackTPCITS;
+class GlobalTrackID;
 } // namespace dataformats
 } // namespace o2
 
@@ -79,8 +80,10 @@ class GPUTRDTrack_t : public T
 
   // getters
   GPUd() int getNlayersFindable() const;
-  GPUd() int getTracklet(int iLayer) const { return mAttachedTracklets[iLayer]; }
-  GPUd() int getTPCtrackId() const { return mTPCTrackId; }
+  GPUd() int getTrackletIndex(int iLayer) const { return mAttachedTracklets[iLayer]; }
+  GPUd() unsigned int getRefGlobalTrackIdRaw() const { return mRefGlobalTrackId; }
+  // This method is only defined in TrackTRD.h and is intended to be used only with that TRD track type
+  GPUd() o2::dataformats::GlobalTrackID getRefGlobalTrackId() const;
   GPUd() int getNtracklets() const;
   GPUd() float getChi2() const { return mChi2; }
   GPUd() float getReducedChi2() const { return getNlayersFindable() == 0 ? mChi2 : mChi2 / getNlayersFindable(); }
@@ -88,12 +91,14 @@ class GPUTRDTrack_t : public T
   GPUd() bool getIsFindable(int iLayer) const { return (mIsFindable >> iLayer) & 0x1; }
   GPUd() int getNmissingConsecLayers(int iLayer) const;
   // for AliRoot compatibility. To be removed once HLT/global/AliHLTGlobalEsdConverterComponent.cxx does not require them anymore
-  GPUd() int GetTPCtrackId() const { return getTPCtrackId(); }
+  GPUd() int GetTPCtrackId() const { return mRefGlobalTrackId; }
   GPUd() bool GetIsStopped() const { return getIsStopped(); }
   GPUd() int GetNtracklets() const { return getNtracklets(); }
 
   // setters
-  GPUd() void setTPCtrackId(int v) { mTPCTrackId = v; }
+  GPUd() void setRefGlobalTrackIdRaw(unsigned int id) { mRefGlobalTrackId = id; }
+  // This method is only defined in TrackTRD.h and is intended to be used only with that TRD track type
+  GPUd() void setRefGlobalTrackId(o2::dataformats::GlobalTrackID id);
   GPUd() void setIsFindable(int iLayer) { mIsFindable |= (1U << iLayer); }
   GPUd() void setIsStopped() { mIsFindable |= (1U << kStopFlag); }
   GPUd() void setChi2(float chi2) { mChi2 = chi2; }
@@ -104,7 +109,7 @@ class GPUTRDTrack_t : public T
 
  protected:
   float mChi2;                      // total chi2
-  int mTPCTrackId;                  // corresponding TPC track; for O2 this could be GlobalTrackID type, but for AliRoot that doesn't exist
+  unsigned int mRefGlobalTrackId;   // raw GlobalTrackID of the seeding track (either ITS-TPC or TPC)
   int mAttachedTracklets[kNLayers]; // indices of the tracklets attached to this track; -1 means no tracklet in that layer
   unsigned char mIsFindable;        // bitfield; LSB indicates whether track is findable in layer 0; MSB flags whether the track is stopped in the TRD; one bit is currently not used
 
@@ -114,6 +119,7 @@ class GPUTRDTrack_t : public T
   ClassDefNV(GPUTRDTrack_t, 1);
 #endif
 };
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

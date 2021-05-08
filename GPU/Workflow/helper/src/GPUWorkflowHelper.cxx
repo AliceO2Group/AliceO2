@@ -187,10 +187,10 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   recoCont.createTracksVariadic(creator);
   if (maskTrk[GID::TPC]) {
     for (unsigned int i = 0; i < ioPtr.nTRDTracksTPCTRD; i++) { // TODO: This should be handled by the createTracks logic, but so far it lacks the TRD tracks
-      retVal->tpcLinkTRD[ioPtr.trdTracksTPCTRD[i].GetTPCtrackId()] = i;
+      retVal->tpcLinkTRD[ioPtr.trdTracksTPCTRD[i].getRefGlobalTrackId().getIndex()] = i;
     }
     for (unsigned int i = 0; i < ioPtr.nTRDTracksITSTPCTRD; i++) {
-      retVal->tpcLinkTRD[ioPtr.tracksTPCITSO2[ioPtr.trdTracksITSTPCTRD[i].GetTPCtrackId()].getRefTPC().getIndex()] = i | 0x40000000;
+      retVal->tpcLinkTRD[ioPtr.tracksTPCITSO2[ioPtr.trdTracksITSTPCTRD[i].getRefGlobalTrackId().getIndex()].getRefTPC().getIndex()] = i | 0x40000000;
     }
   }
   ioPtr.globalTracks = retVal->globalTracks.data();
