@@ -111,7 +111,8 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "${command}; echo \"TASK-EXIT-CODE: $?\"" > ${SCRIPTNAME}
+  echo "${command};" > ${SCRIPTNAME}
+  echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
   chmod +x ${SCRIPTNAME}
 
   # this gives some possibility to customize the wrapper
