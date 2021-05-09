@@ -28,7 +28,7 @@ if [ $NUMAGPUIDS != 0 ]; then
 fi
 
 # Set some individual workflow arguments depending on configuration
-CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD
+CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP
 CTF_DIR=
 CTF_DICT_DIR=
 GPU_INPUT=zsraw
@@ -146,6 +146,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-fdd-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-hmpid-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-tpc-reco-workflow --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline tpc-entropy-encoder:$N_TPCENT $ARGS_ALL | "
 
   WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | "
