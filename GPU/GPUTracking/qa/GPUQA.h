@@ -156,11 +156,12 @@ class GPUQA
   template <class T>
   T* GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int k, int nNewInput);
 
+  using mcInfo_t = GPUTPCMCInfo;
 #ifdef GPUCA_TPC_GEOMETRY_O2
   using mcLabels_t = gsl::span<const o2::MCCompLabel>;
   using mcLabel_t = o2::MCCompLabel;
   using mcLabelI_t = mcLabel_t;
-  using mcInfo_t = GPUTPCMCInfo;
+
   mcLabels_t GetMCLabel(unsigned int i);
   mcLabel_t GetMCLabel(unsigned int i, unsigned int j);
 #else
@@ -181,7 +182,6 @@ class GPUQA
     mcLabelI_t(const mcLabel_t& l);
     int track = MC_LABEL_INVALID;
   };
-  using mcInfo_t = GPUTPCMCInfo;
   const mcLabels_t& GetMCLabel(unsigned int i);
   const mcLabel_t& GetMCLabel(unsigned int i, unsigned int j);
   const mcInfo_t& GetMCTrack(const mcLabelI_t& label);
@@ -231,7 +231,8 @@ class GPUQA
   std::vector<int> mFakeTracks[1];
   std::vector<additionalMCParameters> mMCParam[1];
 #endif
-  std::vector<std::vector<mcInfo_t>> mMCInfos;
+  std::vector<mcInfo_t> mMCInfos;
+  std::vector<GPUTPCMCInfoCol> mMCInfosCol;
   std::vector<additionalClusterParameters> mClusterParam;
   int mNTotalFakes = 0;
 

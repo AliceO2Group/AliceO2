@@ -2058,31 +2058,27 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           mThreadTracks[numThread][col][slice][0].emplace_back(i);
         }
       }
-      GPUCA_OPENMP(for)
-      for (unsigned int i = 0; i < mIOPtrs->nMCInfosTPC; i++) {
-        const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
-        if (mc.charge == 0.f) {
-          continue;
-        }
-        if (mc.pid < 0) {
-          continue;
-        }
-
-        float alpha = atan2f(mc.y, mc.x);
-        if (alpha < 0) {
-          alpha += 2 * CAMath::Pi();
-        }
-        int slice = alpha / (2 * CAMath::Pi()) * 18;
-        if (mc.z < 0) {
-          slice += 18;
-        }
-        unsigned int col = 0;
-        if (mNCollissions > 1) {
-          while (col < mCollisionClusters.size() && mCollisionClusters[col][NSLICES] < (int)i) {
-            col++;
+      for (unsigned int col = 0; col < mIOPtrs->nMCInfosTPCCol; col++) {
+        GPUCA_OPENMP(for)
+        for (unsigned int i = mIOPtrs->mcInfosTPCCol[col].first; i < mIOPtrs->mcInfosTPCCol[col].first + mIOPtrs->mcInfosTPCCol[col].num; i++) {
+          const GPUTPCMCInfo& mc = mIOPtrs->mcInfosTPC[i];
+          if (mc.charge == 0.f) {
+            continue;
           }
+          if (mc.pid < 0) {
+            continue;
+          }
+
+          float alpha = atan2f(mc.y, mc.x);
+          if (alpha < 0) {
+            alpha += 2 * CAMath::Pi();
+          }
+          int slice = alpha / (2 * CAMath::Pi()) * 18;
+          if (mc.z < 0) {
+            slice += 18;
+          }
+          mThreadTracks[numThread][col][slice][1].emplace_back(i);
         }
-        mThreadTracks[numThread][col][slice][1].emplace_back(i);
       }
       GPUCA_OPENMP(barrier)
 

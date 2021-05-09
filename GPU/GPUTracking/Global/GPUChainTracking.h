@@ -104,6 +104,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     std::unique_ptr<GPUTPCHitId[]> sliceClusters[NSLICES];
     std::unique_ptr<AliHLTTPCClusterMCLabel[]> mcLabelsTPC;
     std::unique_ptr<GPUTPCMCInfo[]> mcInfosTPC;
+    std::unique_ptr<GPUTPCMCInfoCol[]> mcInfosTPCCol;
     std::unique_ptr<GPUTPCGMMergedTrack[]> mergedTracks;
     std::unique_ptr<GPUTPCGMMergedTrackHit[]> mergedTrackHits;
     std::unique_ptr<GPUTPCGMMergedTrackHitXYZ[]> mergedTrackHitsXYZ;
