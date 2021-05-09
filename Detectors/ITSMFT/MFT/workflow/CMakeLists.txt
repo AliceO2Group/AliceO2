@@ -15,6 +15,7 @@ o2_add_library(MFTWorkflow
 	                     src/ClusterWriterSpec.cxx
 		                   src/ClusterReaderSpec.cxx
 		                   src/TrackerSpec.cxx
+                       src/TrackReaderSpec.cxx
 		                   src/TrackWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::SimConfig
@@ -23,7 +24,6 @@ o2_add_library(MFTWorkflow
                                      O2::MFTTracking
                                      O2::DataFormatsMFT
                                      O2::ITSMFTWorkflow)
-
 o2_add_executable(reco-workflow
                   SOURCES src/mft-reco-workflow.cxx
                   COMPONENT_NAME mft

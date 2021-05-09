@@ -109,6 +109,7 @@ struct DataRequest {
   void requestClusters(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
 
   void requestITSTracks(bool mc);
+  void requestMFTTracks(bool mc);
   void requestTPCTracks(bool mc);
   void requestITSTPCTracks(bool mc);
   void requestTPCTOFTracks(bool mc);
@@ -199,15 +200,12 @@ struct RecoContainer {
   std::unique_ptr<o2::trd::RecoInputContainer> inputsTRD;                        // special struct for TRD tracklets, trigger records
 
   void collectData(o2::framework::ProcessingContext& pc, const DataRequest& request);
-  void createTracks(std::function<bool(const o2::track::TrackParCov&, GTrackID)> const& creator) const;
-  void createTracks(std::function<bool(const o2::track::TrackParCovFwd&, GTrackID)> const& creator) const;
-  void createTracksWithMatchingTimeInfo(std::function<bool(const o2::track::TrackParCov&, GTrackID, float, float)> const& creator) const;
-  void createTracksWithMatchingTimeInfo(std::function<bool(const o2::track::TrackParCovFwd&, GTrackID, float, float)> const& creator) const;
   template <class T>
   void createTracksVariadic(T creator) const;
   void fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vector<o2::MCCompLabel>& mcinfo) const;
 
   void addITSTracks(o2::framework::ProcessingContext& pc, bool mc);
+  void addMFTTracks(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCTracks(o2::framework::ProcessingContext& pc, bool mc);
 
   void addITSTPCTRDTracks(o2::framework::ProcessingContext& pc, bool mc);

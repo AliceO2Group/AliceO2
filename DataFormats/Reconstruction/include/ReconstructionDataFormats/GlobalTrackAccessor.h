@@ -25,6 +25,7 @@ namespace o2
 namespace dataformats
 {
 using GlobalTrackAccessor = AbstractRefAccessor<o2::track::TrackParCov, GlobalTrackID::NSources>;
+using GlobalFwdTrackAccessor = AbstractRefAccessor<o2::track::TrackParCovFwd, GlobalTrackID::NSources>;
 }
 } // namespace o2
 
