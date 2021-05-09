@@ -578,7 +578,7 @@ bool MatchTPCITS::prepareTPCData()
   mTimer[SWPrepTPC].Start(false);
   const auto& inp = *mRecoCont;
 
-  mTPCTracksArray = inp.getTPCTracks<o2::tpc::TrackTPC>();
+  mTPCTracksArray = inp.getTPCTracks();
   mTPCTrackClusIdx = inp.getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &inp.inputsTPCclusters->clusterIndex;
   mTPCRefitterShMap = inp.clusterShMapTPC;
@@ -596,7 +596,7 @@ bool MatchTPCITS::prepareTPCData()
     mTPCSectIndexCache[sec].reserve(100 + 1.2 * ntr / o2::constants::math::NSectors);
   }
 
-  mTPCTracksArray = inp.getTPCTracks<o2::tpc::TrackTPC>();
+  mTPCTracksArray = inp.getTPCTracks();
   mTPCTrackClusIdx = inp.getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &inp.inputsTPCclusters->clusterIndex;
   mTPCRefitterShMap = inp.clusterShMapTPC;
@@ -707,8 +707,8 @@ bool MatchTPCITS::prepareITSData()
   const auto& inp = *mRecoCont;
 
   // ITS clusters
-  mITSClusterROFRec = inp.getITSClustersROFRecords<o2::itsmft::ROFRecord>();
-  const auto clusITS = inp.getITSClusters<o2::itsmft::CompClusterExt>();
+  mITSClusterROFRec = inp.getITSClustersROFRecords();
+  const auto clusITS = inp.getITSClusters();
   if (mITSClusterROFRec.empty() || clusITS.empty()) {
     LOG(INFO) << "No ITS clusters";
     return false;
@@ -722,9 +722,9 @@ bool MatchTPCITS::prepareITSData()
   }
 
   // ITS tracks
-  mITSTracksArray = inp.getITSTracks<o2::its::TrackITS>();
+  mITSTracksArray = inp.getITSTracks();
   mITSTrackClusIdx = inp.getITSTracksClusterRefs();
-  mITSTrackROFRec = inp.getITSTracksROFRecords<o2::itsmft::ROFRecord>();
+  mITSTrackROFRec = inp.getITSTracksROFRecords();
   if (mMCTruthON) {
     mITSTrkLabels = inp.getITSTracksMCLabels();
   }
@@ -851,7 +851,7 @@ bool MatchTPCITS::prepareFITData()
 {
   // If available, read FIT Info
   if (mUseFT0) {
-    mFITInfo = mRecoCont->getFT0RecPoints<o2::ft0::RecPoints>();
+    mFITInfo = mRecoCont->getFT0RecPoints();
     prepareInteractionTimes();
   }
   return true;

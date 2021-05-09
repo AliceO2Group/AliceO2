@@ -57,8 +57,8 @@ struct RecoInputContainer {
 inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu::GPUTrackingInOutPointers* ptrs, const o2::globaltracking::RecoContainer* inputTracks, bool mc = false)
 {
   auto retVal = std::make_unique<RecoInputContainer>();
-  retVal->mTracksTPCITS = inputTracks->getTPCITSTracks<o2::dataformats::TrackTPCITS>();
-  retVal->mTracksTPC = inputTracks->getTPCTracks<o2::tpc::TrackTPC>();
+  retVal->mTracksTPCITS = inputTracks->getTPCITSTracks();
+  retVal->mTracksTPC = inputTracks->getTPCTracks();
   retVal->mTracklets = pc.inputs().get<gsl::span<o2::trd::Tracklet64>>("trdtracklets");
   retVal->mSpacePoints = pc.inputs().get<gsl::span<CalibratedTracklet>>("trdctracklets");
   retVal->mTriggerRecords = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("trdtriggerrec");
