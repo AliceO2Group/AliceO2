@@ -19,6 +19,7 @@
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
@@ -93,5 +94,15 @@ int InputHelper::addInputSpecsPVertex(const o2::framework::ConfigContext& config
     return 0;
   }
   specs.emplace_back(o2::vertexing::getPrimaryVertexReaderSpec(mc));
+  return 0;
+}
+
+// attach secondary vertex reader
+int InputHelper::addInputSpecsSVertex(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs)
+{
+  if (configcontext.options().get<bool>("disable-root-input")) {
+    return 0;
+  }
+  specs.emplace_back(o2::vertexing::getSecondaryVertexReaderSpec());
   return 0;
 }
