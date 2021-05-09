@@ -40,6 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"enable-mc", o2::framework::VariantType::Bool, false, {"enable visualization of MC data"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable visualization of MC data"}}, // for compatibility, overrides enable-mc
     {"display-clusters", VariantType::String, "ITS,TPC,TRD,TOF", {"comma-separated list of clusters to display"}},
     {"display-tracks", VariantType::String, "TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF", {"comma-separated list of tracks to display"}},
     {"read-from-files", o2::framework::VariantType::Bool, false, {"comma-separated list of tracks to display"}},
@@ -72,6 +73,8 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
 
   mITSDict = std::make_unique<o2::itsmft::TopologyDictionary>();
   mConfig->configCalib.itsPatternDict = mITSDict.get();
+
+  mConfig->configProcessing.runMC = mUseMC;
 
   o2::tof::Geo::Init();
 
@@ -108,7 +111,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
-  bool useMC = cfgc.options().get<bool>("enable-mc");
+  bool useMC = cfgc.options().get<bool>("enable-mc") && !cfgc.options().get<bool>("disable-mc");
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
   if (!srcTrk.any() && !srcCl.any()) {

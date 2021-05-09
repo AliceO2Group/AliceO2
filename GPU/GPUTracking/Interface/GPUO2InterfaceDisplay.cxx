@@ -13,6 +13,7 @@
 
 #include "GPUParam.h"
 #include "GPUDisplay.h"
+#include "GPUQA.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceDisplay.h"
 #include "GPUDisplayBackend.h"
@@ -31,6 +32,10 @@ GPUO2InterfaceDisplay::GPUO2InterfaceDisplay(const GPUO2InterfaceConfiguration* 
   mParam.reset(new GPUParam);
   mParam->SetDefaults(&config->configGRP, &config->configReconstruction, &config->configProcessing, nullptr);
   mParam->par.earlyTpcTransform = 0;
+  if (mConfig->configProcessing.runMC) {
+    mQA.reset(new GPUQA(nullptr, &config->configQA, mParam.get()));
+    mQA->InitO2MCData();
+  }
   mDisplay.reset(new GPUDisplay(mBackend.get(), nullptr, nullptr, mParam.get(), &mConfig->configCalib, &mConfig->configDisplay));
 }
 
@@ -48,6 +53,12 @@ int GPUO2InterfaceDisplay::startDisplay()
 
 int GPUO2InterfaceDisplay::show(const GPUTrackingInOutPointers* ptrs)
 {
+  std::unique_ptr<GPUTrackingInOutPointers> tmpPtr;
+  if (mConfig->configProcessing.runMC) {
+    tmpPtr = std::make_unique<GPUTrackingInOutPointers>(*ptrs);
+    mQA->InitO2MCData(tmpPtr.get());
+    ptrs = tmpPtr.get();
+  }
   mDisplay->ShowNextEvent(ptrs);
   do {
     usleep(10000);

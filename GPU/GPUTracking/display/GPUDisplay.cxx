@@ -232,7 +232,7 @@ void GPUDisplay::calcXYZ(const float* matrix)
 
 void GPUDisplay::SetCollisionFirstCluster(unsigned int collision, int slice, int cluster)
 {
-  mNCollissions = collision + 1;
+  mNCollissions = std::max<unsigned int>(mNCollissions, collision + 1);
   mCollisionClusters.resize(mNCollissions);
   mCollisionClusters[collision][slice] = cluster;
 }
@@ -799,12 +799,12 @@ GPUDisplay::vboList GPUDisplay::DrawSpacePointsITS(int iSlice, int select, int i
   return (vboList(startCount, mVertexBufferStart[iSlice].size() - startCount, iSlice));
 }
 
-GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, int iCol)
+GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned int iCol)
 {
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
-  const int firstCluster = (mNCollissions > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
-  const int lastCluster = (mNCollissions > 1 && iCol + 1 < mNCollissions) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
+  const int firstCluster = (mCollisionClusters.size() > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
+  const int lastCluster = (mCollisionClusters.size() > 1 && iCol + 1 < mCollisionClusters.size()) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
   for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
     const int cid = GET_CID(iSlice, cidInSlice);
     if (mHideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
@@ -1216,10 +1216,17 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
           float charge = mc.charge > 0 ? 1.f : -1.f;
 
           x = mclocal[0];
+#ifdef GPUCA_TPC_GEOMETRY_O2
+          trkParam.Set(mclocal[0], mclocal[1], mc.z, mclocal[2], mclocal[3], mc.pZ, charge);
+          if (mParam->par.ContinuousTracking) {
+            ZOffset = fabsf(mCalib->fastTransform->convVertexTimeToZOffset(0, mc.t0, mParam->par.continuousMaxTimeBin)) * (mc.z < 0 ? -1 : 1);
+          }
+#else
           if (fabsf(mc.z) > 250) {
             ZOffset = mc.z > 0 ? (mc.z - 250) : (mc.z + 250);
           }
           trkParam.Set(mclocal[0], mclocal[1], mc.z - ZOffset, mclocal[2], mclocal[3], mc.pZ, charge);
+#endif
         }
         trkParam.X() += mXadd;
         x += mXadd;
@@ -1436,7 +1443,10 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
   if (!mIOPtrs) {
     mNCollissions = 0;
+  } else if (!mCollisionClusters.size()) {
+    mNCollissions = std::max(1u, mIOPtrs->nMCInfosTPCCol);
   }
+
   if (!mixAnimation && (mUpdateDLList || mResetScene || !mGlDLrecent) && mIOPtrs) {
     disableUnsupportedOptions();
   }
@@ -2049,7 +2059,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           }
           int slice = mIOPtrs->mergedTrackHits[track->FirstClusterRef() + track->NClusters() - 1].slice;
           unsigned int col = 0;
-          if (mNCollissions > 1) {
+          if (mCollisionClusters.size() > 1) {
             int label = mQA ? mQA->GetMCTrackLabel(i) : -1;
             while (col < mCollisionClusters.size() && mCollisionClusters[col][NSLICES] < label) {
               col++;
@@ -2633,7 +2643,6 @@ void GPUDisplay::ShowNextEvent(const GPUTrackingInOutPointers* ptrs)
 {
   if (ptrs) {
     mIOPtrs = ptrs;
-    mNCollissions = 1;
   }
   if (mMaxClusterZ <= 0) {
     mResetScene = true;
