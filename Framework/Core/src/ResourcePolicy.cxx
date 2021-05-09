@@ -8,23 +8,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   PrimaryVertexReaderSpec.h
+#include "Framework/ResourcePolicy.h"
+#include "Framework/ResourcePolicyHelpers.h"
+#include <vector>
 
-#ifndef O2_PRIMARY_VERTEXREADER
-#define O2_PRIMARY_VERTEXREADER
-
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-
-namespace o2
+namespace o2::framework
 {
-namespace vertexing
+
+std::vector<ResourcePolicy> ResourcePolicy::createDefaultPolicies()
 {
-/// create a processor spec
-/// read primary vertex data from a root file
-o2::framework::DataProcessorSpec getPrimaryVertexReaderSpec(bool useMC);
+  return {
+    ResourcePolicyHelpers::trivialTask(".*")};
+}
 
-} // namespace vertexing
-} // namespace o2
-
-#endif
+} // namespace o2::framework

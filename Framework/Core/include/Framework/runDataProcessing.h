@@ -22,6 +22,7 @@
 #include "Framework/CommonServices.h"
 #include "Framework/WorkflowCustomizationHelpers.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/ResourcePolicyHelpers.h"
 #include "Framework/Logger.h"
 
 #include <vector>
@@ -71,6 +72,7 @@ void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>
 void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec>& globalWorkflowOptions) {}
 void defaultConfiguration(std::vector<o2::framework::CompletionPolicy>& completionPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::DispatchPolicy>& dispatchPolicies) {}
+void defaultConfiguration(std::vector<o2::framework::ResourcePolicy>& resourcePolicies) {}
 void defaultConfiguration(std::vector<o2::framework::ServiceSpec>& services)
 {
   services = o2::framework::CommonServices::defaultServices();
@@ -114,6 +116,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ChannelConfigurationPolicy> const& channelPolicies,
            std::vector<o2::framework::CompletionPolicy> const& completionPolicies,
            std::vector<o2::framework::DispatchPolicy> const& dispatchPolicies,
+           std::vector<o2::framework::ResourcePolicy> const& resourcePolicies,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
 
@@ -121,6 +124,15 @@ void doBoostException(boost::exception& e);
 void doDPLException(o2::framework::RuntimeErrorRef& ref);
 void doUnknownException(std::string const& s);
 void doDefaultWorkflowTerminationHook();
+
+template <typename T>
+std::vector<T> injectCustomizations()
+{
+  std::vector<T> policies;
+  UserCustomizationsHelper::userDefinedCustomization(policies, 0);
+  auto defaultPolicies = T::createDefaultPolicies();
+  policies.insert(std::end(policies), std::begin(policies), std::end(policies));
+}
 
 int main(int argc, char** argv)
 {
@@ -148,6 +160,11 @@ int main(int argc, char** argv)
     auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
     dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
 
+    std::vector<ResourcePolicy> resourcePolicies;
+    UserCustomizationsHelper::userDefinedCustomization(resourcePolicies, 0);
+    auto defaultResourcePolicies = ResourcePolicy::createDefaultPolicies();
+    resourcePolicies.insert(std::end(resourcePolicies), std::begin(defaultResourcePolicies), std::end(defaultResourcePolicies));
+
     std::vector<std::unique_ptr<ParamRetriever>> retrievers;
     std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
     retrievers.emplace_back(std::move(retriever));
@@ -166,7 +183,7 @@ int main(int argc, char** argv)
     UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
     auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(configContext);
     channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
-    result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, workflowOptions, configContext);
+    result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, resourcePolicies, workflowOptions, configContext);
   } catch (boost::exception& e) {
     doBoostException(e);
   } catch (std::exception const& error) {

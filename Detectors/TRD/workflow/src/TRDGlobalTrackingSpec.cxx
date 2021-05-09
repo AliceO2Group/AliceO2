@@ -124,7 +124,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
     GPUTRDTrack trkLoad(trkITSTPC, mTPCVdrift);
-    if (mTracker->LoadTrack(trkLoad)) {
+    if (mTracker->LoadTrack(trkLoad, -1, nullptr, -1, iTrk)) {
       continue;
     }
     loadedTPCtracks.push_back(trkITSTPC.getRefTPC());
@@ -139,7 +139,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     }
     const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
     GPUTRDTrack trkLoad(trkTpc, mTPCTBinMUS, mTPCVdrift, iTrk);
-    if (mTracker->LoadTrack(trkLoad)) {
+    if (mTracker->LoadTrack(trkLoad, -1, nullptr, -1, iTrk)) {
       continue;
     }
     ++nTracksLoadedTPC;

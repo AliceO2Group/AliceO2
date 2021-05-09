@@ -40,8 +40,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"enable-mc", o2::framework::VariantType::Bool, false, {"enable visualization of MC data"}},
-    {"display-clusters", VariantType::String, "TPC,TRD", {"comma-separated list of clusters to display"}},
-    {"display-tracks", VariantType::String, "TPC", {"comma-separated list of tracks to display"}},
+    {"display-clusters", VariantType::String, "ITS,TPC,TRD,TOF", {"comma-separated list of clusters to display"}},
+    {"display-tracks", VariantType::String, "TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF", {"comma-separated list of tracks to display"}},
     {"read-from-files", o2::framework::VariantType::Bool, false, {"comma-separated list of tracks to display"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root input overriding read-from-files"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
@@ -94,11 +94,6 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
   GPUTrackingInOutPointers ptrs;
   auto tmpContainer = GPUWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
 
-  decltype(o2::trd::getRecoInputContainer(pc, &ptrs, &recoData)) trdInputContainer;
-  if (mClMask[GlobalTrackID::TRD]) {
-    trdInputContainer = std::move(o2::trd::getRecoInputContainer(pc, &ptrs, &recoData)); // TODO: Get rid of this, to be done inside the fillIOPtr, but first needs some changes in RecoInputContainer
-  }
-
   mDisplay->show(&ptrs);
 }
 
@@ -116,6 +111,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool useMC = cfgc.options().get<bool>("enable-mc");
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
+  if (!srcTrk.any() && !srcCl.any()) {
+    throw std::runtime_error("No input configured");
+  }
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(srcTrk, useMC);
   dataRequest->requestClusters(srcCl, useMC);

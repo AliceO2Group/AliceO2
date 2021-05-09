@@ -49,6 +49,8 @@ class PreClusterFinder
   void loadDigits(gsl::span<const Digit> digits);
   void loadDigit(const Digit& digit);
 
+  int discardHighOccupancy(bool perDE, bool perEvent);
+
   int run();
 
   void getPreClusters(std::vector<o2::mch::PreCluster>& preClusters, std::vector<Digit>& digits);
@@ -63,6 +65,8 @@ class PreClusterFinder
     bool useMe;        // false if precluster already merged to another one
     bool storeMe;      // true if precluster to be saved (merging result)
   };
+
+  void reset(int deIndex);
 
   void preClusterizeRecursive();
   void addPad(DetectionElement& de, uint16_t iPad, PreCluster& cluster);

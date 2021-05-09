@@ -25,6 +25,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/LogParsingHelpers.h"
 #include "DataProcessorInfo.h"
+#include "ResourcePolicy.h"
 
 namespace o2::framework
 {
@@ -96,6 +97,10 @@ struct DriverInfo {
   /// These are the policies which can be applied to decide when complete
   /// objects/messages are sent out
   std::vector<DispatchPolicy> dispatchPolicies;
+
+  /// These are the policies which can be applied to decide when there
+  /// is enough resources to process data.
+  std::vector<ResourcePolicy> resourcePolicies;
   /// The argc with which the driver was started.
   int argc;
   /// The argv with which the driver was started.
