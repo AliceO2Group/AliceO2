@@ -78,7 +78,9 @@ class LookUpTable
   int getLink(int channel) const { return mTopoVector[channel].pmLink; }
   int getPmChannel(int channel) const { return mTopoVector[channel].pmCh; }
   int getTcmLink() const { return mLinkTCM; }
-  bool isTCM(int link, int ep) const { return link == mLinkTCM && ep == 0; }
+  bool isTCM(int link, int ep) const { return link == getTcmLink() && ep == 0; }
+  Topo getTopoPM(int globalChannelID) const { return mTopoVector[globalChannelID]; }
+  Topo getTopoTCM(int globalChannelID) const { return mTopoVector[getTcmLink()]; }
   void printFullMap() const
   {
     std::cout << "o2::fv0::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  pmCh]" << std::endl;
@@ -112,6 +114,21 @@ class LookUpTable
   ClassDefNV(LookUpTable, 1);
 };
 
+//Singleton for LookUpTable
+class SingleLUT : public LookUpTable
+{
+ private:
+  SingleLUT() : LookUpTable(true) {}
+  SingleLUT(const SingleLUT&) = delete;
+  SingleLUT& operator=(SingleLUT&) = delete;
+
+ public:
+  static SingleLUT& Instance()
+  {
+    static SingleLUT instanceLUT;
+    return instanceLUT;
+  }
+};
 } // namespace fv0
 } // namespace o2
 #endif

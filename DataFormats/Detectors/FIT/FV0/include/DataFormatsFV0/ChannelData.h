@@ -13,7 +13,7 @@
 
 #include <array>
 #include <Rtypes.h>
-
+#include <tuple>
 /// \file ChannelData.h
 /// \brief Container class to store time and charge values of single FV0 channel
 
@@ -36,7 +36,10 @@ struct ChannelData {
   }
 
   void print() const;
-
+  bool operator==(ChannelData const& other) const
+  {
+    return std::tie(pmtNumber, time, chargeAdc) == std::tie(other.pmtNumber, other.time, other.chargeAdc);
+  }
   ClassDefNV(ChannelData, 1);
 };
 } // namespace fv0

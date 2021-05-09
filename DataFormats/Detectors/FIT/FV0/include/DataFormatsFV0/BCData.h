@@ -16,7 +16,7 @@
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
-
+#include <tuple>
 /// \file BCData.h
 /// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
 /// \author ruben.shahoyan@cern.ch -> maciej.slupecki@cern.ch
@@ -58,7 +58,14 @@ struct Triggers {
     nChanA = chanA;
     amplA = amplASum;
   }
-
+  bool operator==(Triggers const& other) const
+  {
+    //Will be implemented later
+    //return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
+    //       std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
+    return std::tie(triggerSignals, nChanA, amplA) ==
+           std::tie(other.triggerSignals, other.nChanA, other.amplA);
+  }
   ClassDefNV(Triggers, 1);
 };
 
@@ -98,7 +105,10 @@ struct BCData {
   Triggers getTriggers() const { return mTriggers; }
   void setTriggers(Triggers triggers) { mTriggers = triggers; };
   void print() const;
-
+  bool operator==(const BCData& other) const
+  {
+    return std::tie(ref, mTriggers, ir) == std::tie(other.ref, other.mTriggers, other.ir);
+  }
   ClassDefNV(BCData, 1);
 };
 } // namespace fv0
