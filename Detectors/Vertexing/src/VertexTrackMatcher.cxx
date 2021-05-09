@@ -55,9 +55,9 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
 {
   updateTPCTimeDependentParams();
 
-  auto vertices = recoData.getPrimaryVertices<PVertex>();
-  auto v2tfitIDs = recoData.getPrimaryVertexContributors<VTIndex>();
-  auto v2tfitRefs = recoData.getPrimaryVertexContributorsRefs<VRef>();
+  auto vertices = recoData.getPrimaryVertices();
+  auto v2tfitIDs = recoData.getPrimaryVertexContributors();
+  auto v2tfitRefs = recoData.getPrimaryVertexContributorsRefs();
 
   int nv = vertices.size();
   TmpMap tmpMap(nv);

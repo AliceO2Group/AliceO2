@@ -33,7 +33,7 @@ using TrackTPC = o2::tpc::TrackTPC;
 void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // accessor to various reconstrucred data types
 {
   updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
-  mPVertices = recoData.getPrimaryVertices<PVertex>();
+  mPVertices = recoData.getPrimaryVertices();
   buildT2V(recoData); // build track->vertex refs from vertex->track (if other workflow will need this, consider producing a message in the VertexTrackMatcher)
   int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
   mV0sTmp[0].clear();
@@ -147,8 +147,8 @@ void SVertexer::setupThreads()
 void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // accessor to various tracks
 {
   // build track->vertices from vertices->tracks, rejecting vertex contributors
-  auto trackIndex = recoData.getPrimaryVertexMatchedTracks<GIndex>(); // Global ID's for associated tracks
-  auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs<VRef>();   // references from vertex to these track IDs
+  auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+  auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
   // track selector: at the moment reject prompt tracks contributing to vertex fit and unconstrained TPC tracks
   auto selTrack = [&](GIndex gid) {
@@ -179,7 +179,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
           continue;
         }
       }
-      const auto& trc = recoData.getTrack(tvid);
+      const auto& trc = recoData.getTrackParam(tvid);
       int posneg = trc.getSign() < 0 ? 1 : 0;
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}});
       if (tvid.isAmbiguous()) { // track attached to >1 vertex, remember that it was already processed
