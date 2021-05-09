@@ -16,6 +16,7 @@
 #define O2_GLOBAL_TRACK_ACCESSOR
 
 #include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/TrackFwd.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonDataFormat/AbstractRefAccessor.h"
 

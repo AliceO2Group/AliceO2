@@ -15,6 +15,7 @@ o2_add_library(
     O2::DataFormatsTPC
     O2::DataFormatsITSMFT
     O2::DataFormatsITS
+    O2::DataFormatsMFT
     O2::DataFormatsFT0
     O2::DataFormatsTOF
     O2::DataFormatsFT0

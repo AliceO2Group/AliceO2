@@ -594,6 +594,16 @@ void o2::globaltracking::RecoContainer::createTracksWithMatchingTimeInfo(std::fu
   createTracksVariadic([&creator](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) { return creator(_tr, _origID, t0, terr); });
 }
 
+void o2::globaltracking::RecoContainer::createTracks(std::function<bool(const o2::track::TrackParCovFwd&, o2::dataformats::GlobalTrackID)> const& creator) const
+{
+  createTracksVariadic([&creator](const o2::track::TrackParCovFwd& _tr, GTrackID _origID, float t0, float terr) { return creator(_tr, _origID); });
+}
+
+void o2::globaltracking::RecoContainer::createTracksWithMatchingTimeInfo(std::function<bool(const o2::track::TrackParCovFwd&, GTrackID, float, float)> const& creator) const
+{
+  createTracksVariadic([&creator](const o2::track::TrackParCovFwd& _tr, GTrackID _origID, float t0, float terr) { return creator(_tr, _origID, t0, terr); });
+}
+
 // get contributors from single detectors
 RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) const
 {

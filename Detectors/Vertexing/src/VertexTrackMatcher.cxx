@@ -29,10 +29,10 @@ using namespace o2::vertexing;
 void VertexTrackMatcher::init()
 {
   mPVParams = &o2::vertexing::PVertexerParams::Instance();
-  updateTPCTimeDependentParams(); // RS FIXME eventually should be set from CCDB for every TF
+  updateTimeDependentParams(); // RS FIXME eventually should be set from CCDB for every TF
 }
 
-void VertexTrackMatcher::updateTPCTimeDependentParams()
+void VertexTrackMatcher::updateTimeDependentParams()
 {
   // tpc time bin in microseconds
   if (mMaxTPCDriftTimeMUS == 0) {
@@ -47,13 +47,18 @@ void VertexTrackMatcher::updateTPCTimeDependentParams()
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
   }
+  if (mMFTROFrameLengthMUS == 0) {
+    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+    const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
+    mMFTROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::MFT) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
+  }
 }
 
 void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoData,
                                  std::vector<VTIndex>& trackIndex,
                                  std::vector<VRef>& vtxRefs)
 {
-  updateTPCTimeDependentParams();
+  updateTimeDependentParams();
 
   auto vertices = recoData.getPrimaryVertices();
   auto v2tfitIDs = recoData.getPrimaryVertexContributors();
@@ -164,6 +169,9 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
     } else if (isITSTrack<decltype(_tr)>()) {
       t0 += 0.5 * this->mITSROFrameLengthMUS; // ITS time is supplied in \mus as beginning of ROF
       terr *= this->mITSROFrameLengthMUS;     // error is supplied as a half-ROF duration, convert to \mus
+    } else if (isMFTTrack<decltype(_tr)>()) {
+      t0 += this->mMFTROFrameLengthMUS;
+      terr *= 0.5 * this->mMFTROFrameLengthMUS;
     }
     // for all other tracks the time is in \mus with gaussian error
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});

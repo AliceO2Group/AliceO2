@@ -200,7 +200,9 @@ struct RecoContainer {
 
   void collectData(o2::framework::ProcessingContext& pc, const DataRequest& request);
   void createTracks(std::function<bool(const o2::track::TrackParCov&, GTrackID)> const& creator) const;
+  void createTracks(std::function<bool(const o2::track::TrackParCovFwd&, GTrackID)> const& creator) const;
   void createTracksWithMatchingTimeInfo(std::function<bool(const o2::track::TrackParCov&, GTrackID, float, float)> const& creator) const;
+  void createTracksWithMatchingTimeInfo(std::function<bool(const o2::track::TrackParCovFwd&, GTrackID, float, float)> const& creator) const;
   template <class T>
   void createTracksVariadic(T creator) const;
   void fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vector<o2::MCCompLabel>& mcinfo) const;
