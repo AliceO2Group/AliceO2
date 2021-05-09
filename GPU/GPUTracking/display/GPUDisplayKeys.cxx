@@ -131,7 +131,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
       SetInfo("Showing all collisions", 1);
     } else {
       mCfg.showCollision++;
-      SetInfo("Showing collision %d", mCfg.showCollision);
+      SetInfo("Showing collision %d / %d", mCfg.showCollision, mNCollissions);
     }
   } else if (key == 'K') {
     if (mCfg.showCollision <= -1) {

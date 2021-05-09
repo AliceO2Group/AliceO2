@@ -104,6 +104,7 @@ class GPUQA
   int HitAttachStatus(int iHit) const;
   int GetMCTrackLabel(unsigned int trackId) const;
   bool clusterRemovable(int attach, bool prot) const;
+  void InitO2MCData(GPUTrackingInOutPointers* updateIOPtr = nullptr);
   void DumpO2MCData(const char* filename) const;
   int ReadO2MCData(const char* filename);
   static bool QAAvailable() { return true; }
@@ -142,10 +143,9 @@ class GPUQA
   };
 
   int InitQACreateHistograms();
-  void InitO2MCData();
   int DoClusterCounts(unsigned long long int* attachClusterCounts, int mode = 0);
   void PrintClusterCount(int mode, int& num, const char* name, unsigned long long int n, unsigned long long int normalization);
-
+  void CopyO2MCtoIOPtr(GPUTrackingInOutPointers* ptr);
   void SetAxisSize(TH1F* e);
   void SetLegend(TLegend* l);
   double* CreateLogAxis(int nbins, float xmin, float xmax);
@@ -302,6 +302,7 @@ class GPUQA
 
   int mNEvents = 0;
   bool mQAInitialized = false;
+  bool mO2MCDataLoaded = false;
   int mQATasks = 0;
   std::vector<std::vector<int>> mcEffBuffer;
   std::vector<std::vector<int>> mcLabelBuffer;
