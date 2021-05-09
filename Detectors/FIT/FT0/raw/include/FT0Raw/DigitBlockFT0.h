@@ -46,6 +46,7 @@ class DigitBlockFT0 : public DigitBlockBase<DigitBlockFT0>
 {
  public:
   typedef DigitBlockBase<DigitBlockFT0> DigitBlockBaseType;
+  typedef o2::ft0::SingleLUT LookupTable_t;
   DigitBlockFT0(o2::InteractionRecord intRec) { setIntRec(intRec); }
   DigitBlockFT0() = default;
   DigitBlockFT0(const DigitBlockFT0& other) = default;
@@ -60,7 +61,7 @@ class DigitBlockFT0 : public DigitBlockBase<DigitBlockFT0>
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID, ep)),
+        mVecChannelData.emplace_back(uint8_t(LookupTable_t::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID, ep)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
@@ -136,7 +137,7 @@ class DigitBlockFT0ext : public DigitBlockBase<DigitBlockFT0ext>
 {
  public:
   typedef DigitBlockBase<DigitBlockFT0ext> DigitBlockBaseType;
-
+  typedef o2::ft0::SingleLUT LookupTable_t;
   DigitBlockFT0ext(o2::InteractionRecord intRec) { setIntRec(intRec); }
   DigitBlockFT0ext() = default;
   DigitBlockFT0ext(const DigitBlockFT0ext& other) = default;
@@ -152,7 +153,7 @@ class DigitBlockFT0ext : public DigitBlockBase<DigitBlockFT0ext>
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(uint8_t(o2::ft0::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID, ep)),
+        mVecChannelData.emplace_back(uint8_t(LookupTable_t::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID, ep)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());

@@ -46,6 +46,7 @@ class DigitBlockFDD : public DigitBlockBase<DigitBlockFDD>
 {
  public:
   typedef DigitBlockBase<DigitBlockFDD> DigitBlockBaseType;
+  typedef o2::fdd::SingleLUT LookupTable_t;
   DigitBlockFDD(o2::InteractionRecord intRec) { setIntRec(intRec); }
   DigitBlockFDD() = default;
   DigitBlockFDD(const DigitBlockFDD& other) = default;
@@ -60,7 +61,7 @@ class DigitBlockFDD : public DigitBlockBase<DigitBlockFDD>
   {
     if constexpr (std::is_same<DataBlockType, DataBlockPM>::value) { //Filling data from PM
       for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<RawDataPM>::mNelements; iEventData++) {
-        mVecChannelData.emplace_back(int(o2::fdd::SingleLUT::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
+        mVecChannelData.emplace_back(int(LookupTable_t::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].channelID)),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].time),
                                      int(dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].charge),
                                      dataBlock.DataBlockWrapper<RawDataPM>::mData[iEventData].getFlagWord());
