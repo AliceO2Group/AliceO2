@@ -94,12 +94,6 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
   GPUTrackingInOutPointers ptrs;
   auto tmpContainer = GPUWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
 
-  decltype(o2::trd::getRecoInputContainer(pc, &ptrs, &recoData)) trdInputContainer;
-  if (mClMask[GlobalTrackID::TRD]) {
-    trdInputContainer = std::move(o2::trd::getRecoInputContainer(pc, &ptrs, &recoData)); // TODO: Get rid of this, to be done inside the fillIOPtr, but first needs some changes in RecoInputContainer
-    //LOG(info) << "Got " << ptrs.nTRDTracklets << " TRD Tracklets";
-  }
-
   mDisplay->show(&ptrs);
 }
 
