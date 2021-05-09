@@ -53,7 +53,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 }
 
 #include "Framework/runDataProcessing.h"
-#include "HMPIDWorkflow/DataDecoderSpec.h"
+#include "HMPIDWorkflow/DataDecoderSpec2.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -63,7 +63,7 @@ WorkflowSpec defineDataProcessing(const ConfigContext& cx)
   WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(cx.options().get<std::string>("configKeyValues"));
   auto askSTFDist = !cx.options().get<bool>("ignore-dist-stf");
-  DataProcessorSpec producer = o2::hmpid::getDecodingSpec(askSTFDist);
+  DataProcessorSpec producer = o2::hmpid::getDecodingSpec2(askSTFDist);
   specs.push_back(producer);
   return specs;
 }
