@@ -24,7 +24,7 @@ namespace ctf
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getCTFReaderSpec(o2::detectors::DetID::mask_t dets, const std::string& inp);
+framework::DataProcessorSpec getCTFReaderSpec(o2::detectors::DetID::mask_t dets, const std::string& inp, int loop, int delayMUS);
 
 } // namespace ctf
 } // namespace o2
