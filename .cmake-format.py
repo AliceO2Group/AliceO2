@@ -13,7 +13,17 @@ with section("parse"):
               "SOURCES": '+',
               "PUBLIC_LINK_LIBRARIES": '*',
               "COMPONENT_NAME": '*',
-              "EXEVARNAME": '*'
+              "TARGETVARNAME": '*',
+              "JOB_POOL": '*',
+          }
+      },
+      "o2_add_dpl_workflow": {
+          "kwargs": {
+              "SOURCES": '+',
+              "PUBLIC_LINK_LIBRARIES": '*',
+              "COMPONENT_NAME": '*',
+              "TARGETVARNAME": '*',
+              "JOB_POOL": '*',
           }
       },
       "o2_add_header_only_library": {
@@ -28,6 +38,7 @@ with section("parse"):
               "PUBLIC_INCLUDE_DIRECTORIES": '*',
               "PUBLIC_LINK_LIBRARIES": '*',
               "PRIVATE_INCLUDE_DIRECTORIES": '*',
+              "PRIVATE_LINK_LIBRARIES": '*',
               "TARGETVARNAME": '*',
           }
       },
@@ -59,8 +70,8 @@ with section("parse"):
       "o2_add_test_wrapper": {
           "flags": ["DONT_FAIL_ON_TIMEOUT"],
           "kwargs": {
+              "TARGET": '*',
               "COMMAND": '*',
-              "NO_BOOST_TEST": '*',
               "MAX_ATTEMPTS": '*',
               "TIMEOUT": '*',
               "NAME": '*',
@@ -79,26 +90,33 @@ with section("parse"):
               "MAX_ATTEMPTS": '*',
               "TIMEOUT": '*',
               "WORKING_DIRECTORY": '*',
+              "NAME": '*',
               "SOURCES": '*',
               "PUBLIC_LINK_LIBRARIES": '*',
               "COMMAND_LINE_ARGS": '*',
               "LABELS": '*',
+              "CONFIGURATIONS": '*',
               "ENVIRONMENT": '*',
           }
       },
       "o2_add_test_root_macro": {
-          "flags": ["LOAD_ONLY"],
+          "flags": ["COMPILE", "COMPILE_ONLY"],
           "kwargs": {
               "ENVIRONMENT": '*',
               "PUBLIC_LINK_LIBRARIES": '*',
+              "PUBLIC_INCLUDE_DIRECTORIES": '*',
               "LABELS": '*',
           }
       },
       "o2_name_target": {
+          "flags": ["IS_TEST", "IS_BENCH", "IS_EXE"],
           "kwargs": {
-              "INCLUDE_DIRECTORIES": '*',
-              "INTERFACE_LINK_LIBRARIES": '*',
+              "NAME": '*',
+              "COMPONENT_NAME": '*',
           }
+      },
+      "o2_report_non_tested_macros": {
+          "flags": ["DO_NOT_FAIL", "QUIET"],
       },
       "find_package_handle_standard_args": {
           "flags": ["CONFIG_MODE"],
@@ -107,7 +125,7 @@ with section("parse"):
               "REQUIRED_VARS": '*',
               "VERSION_VAR": '*',
               "HANDLE_COMPONENTS": '*',
-              "FAIL_MESSAGE": '*'
+              "FAIL_MESSAGE": '*',
           }
       },
       "set_package_properties": {
@@ -115,7 +133,13 @@ with section("parse"):
               "PROPERTIES": '*',
               "URL": '*',
               "TYPE": '*',
-              "PURPOSE": '*'
+              "PURPOSE": '*',
+          }
+      },
+      "o2_find_dependencies_from_alibuild": {
+          "flags": ["QUIET"],
+          "kwargs": {
+              "LABEL": '*',
           }
       }
   }
