@@ -1,0 +1,58 @@
+# Check format and syntax of modified CMake files
+name: CMake checker
+on: [push, pull_request]
+env:
+  MAIN_BRANCH: dev
+jobs:
+  build:
+    name: cmake-format+lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # needed to get the full history
+      - name: Install cmakelang
+        run: |
+          # Install cmakelang
+          pip install --user cmakelang || exit 1
+          which cmake-format || exit 1
+          which cmake-lint || exit 1
+      - name: Fetch upstream
+        run: |
+          # Fetch the main upstream branch to find the common ancestor
+          git config --global user.name "Nemo" # required on some servers
+          git remote add upstream https://github.com/AliceO2Group/AliceO2.git || exit 1
+          git fetch upstream ${{ env.MAIN_BRANCH }} || exit 1
+      - name: Check format and syntax
+        run: |
+          # Check format and syntax of modified CMake files
+          status_format=0
+          status_lint=0
+          # Get the common ancestor of the current branch and the main upstream branch
+          BASE_COMMIT=$(git merge-base HEAD upstream/${{ env.MAIN_BRANCH }})
+          echo "Diffing against: $BASE_COMMIT"
+          # loop over changed files
+          for f in $(git diff --diff-filter d --name-only $BASE_COMMIT); do
+            # check only CMake files
+            filename=$(basename "$f")
+            [[ "$filename" == "CMakeLists.txt" || "${filename##*.}" == "cmake" ]] || continue
+            echo -e "Testing file: \e[1m$f\e[0m"
+            # run cmake-format
+            echo "- Format check: "
+            if cmake-format --check "$f"; then
+              echo "OK"
+            else
+              echo -e "\e[1;31mfailed\e[0m"
+              status_format=1
+            fi
+            # run cmake-lint
+            echo "- Syntax check: "
+            if cmake-lint --suppress-decorations "$f"; then
+              echo "OK"
+            else
+              echo -e "\e[1;31mfailed\e[0m"
+              status_lint=2
+            fi
+          done
+          exit $((status_format + status_lint))
