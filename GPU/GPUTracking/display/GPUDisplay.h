@@ -240,7 +240,7 @@ class GPUDisplay
   void UpdateOffscreenBuffers(bool clean = false);
   void updateConfig();
   void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT);
-  vboList DrawClusters(int iSlice, int select, int iCol);
+  vboList DrawClusters(int iSlice, int select, unsigned int iCol);
   vboList DrawSpacePointsTRD(int iSlice, int select, int iCol);
   vboList DrawSpacePointsTOF(int iSlice, int select, int iCol);
   vboList DrawSpacePointsITS(int iSlice, int select, int iCol);
