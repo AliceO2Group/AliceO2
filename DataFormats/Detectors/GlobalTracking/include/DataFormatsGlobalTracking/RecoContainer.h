@@ -200,6 +200,7 @@ struct RecoContainer {
   std::unique_ptr<o2::trd::RecoInputContainer> inputsTRD;                        // special struct for TRD tracklets, trigger records
 
   void collectData(o2::framework::ProcessingContext& pc, const DataRequest& request);
+  void createTracks(std::function<bool(const o2::track::TrackParCov&, GTrackID)> const& creator) const;
   template <class T>
   void createTracksVariadic(T creator) const;
   void fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vector<o2::MCCompLabel>& mcinfo) const;

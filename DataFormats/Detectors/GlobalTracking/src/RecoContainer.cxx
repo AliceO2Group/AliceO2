@@ -614,6 +614,17 @@ void RecoContainer::fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vecto
   }
 }
 
+void o2::globaltracking::RecoContainer::createTracks(std::function<bool(const o2::track::TrackParCov&, o2::dataformats::GlobalTrackID)> const& creator) const
+{
+  createTracksVariadic([&creator](const auto& _tr, GTrackID _origID, float t0, float terr) {
+    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
+      return creator(_tr, _origID);
+    } else {
+      return false;
+    }
+  });
+}
+
 //________________________________________________________
 // get contributors from single detectors
 RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) const
