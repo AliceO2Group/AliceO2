@@ -78,6 +78,7 @@ class LookUpTable
   int getLink(int channel) const { return mTopoVector[channel].pmLink; }
   int getPmChannel(int channel) const { return mTopoVector[channel].pmCh; }
   int getTcmLink() const { return mLinkTCM; }
+  bool isTCM(int link, int ep) const { return link == mLinkTCM && ep == 0; }
   void printFullMap() const
   {
     std::cout << "o2::fv0::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  pmCh]" << std::endl;
