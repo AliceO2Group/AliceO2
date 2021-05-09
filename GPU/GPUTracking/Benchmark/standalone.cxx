@@ -657,6 +657,8 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       chainTrackingAsync->mIOPtrs.tpcPackedDigits = nullptr;
       chainTrackingAsync->mIOPtrs.mcInfosTPC = nullptr;
       chainTrackingAsync->mIOPtrs.nMCInfosTPC = 0;
+      chainTrackingAsync->mIOPtrs.mcInfosTPCCol = nullptr;
+      chainTrackingAsync->mIOPtrs.nMCInfosTPCCol = 0;
       chainTrackingAsync->mIOPtrs.mcLabelsTPC = nullptr;
       chainTrackingAsync->mIOPtrs.nMCLabelsTPC = 0;
       for (int i = 0; i < chainTracking->NSLICES; i++) {

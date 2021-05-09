@@ -345,6 +345,9 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
 
   mRec->mIOPtrs.nMCInfosTPC = mcInfo.size();
   mRec->mIOPtrs.mcInfosTPC = mcInfo.data();
+  static const GPUTPCMCInfoCol mcColInfo = {0, (unsigned int)mcInfo.size()};
+  mRec->mIOPtrs.mcInfosTPCCol = &mcColInfo;
+  mRec->mIOPtrs.nMCInfosTPCCol = 1;
 
   mRec->DumpData(filename);
   labels.clear();

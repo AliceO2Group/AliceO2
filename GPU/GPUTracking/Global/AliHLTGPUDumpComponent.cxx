@@ -435,6 +435,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     fChain->mIOPtrs.nMCInfosTPC = mcInfo.size();
     fChain->mIOPtrs.mcInfosTPC = mcInfo.data();
+    static const GPUTPCMCInfoCol mcColInfo = {0, (unsigned int)mcInfo.size()};
+    fChain->mIOPtrs.mcInfosTPCCol = &mcColInfo;
+    fChain->mIOPtrs.nMCInfosTPCCol = 1;
     HLTDebug("Number of MC infos: %d", (int)mcInfo.size());
   }
   unsigned int clusterNum = 0;
