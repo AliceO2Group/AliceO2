@@ -19,7 +19,7 @@
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
-
+#include <tuple>
 namespace o2
 {
 namespace fdd
@@ -66,7 +66,11 @@ struct Triggers {
     timeA = timeC = 0;
   }
   Triggers getTriggers();
-
+  bool operator==(Triggers const& other) const
+  {
+    return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
+           std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
+  }
   ClassDefNV(Triggers, 1);
 };
 
@@ -102,7 +106,10 @@ struct Digit {
   {
     return ref.getEntries() ? gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const ChannelData>();
   }
-
+  bool operator==(const Digit& other) const
+  {
+    return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
+  }
   ClassDefNV(Digit, 3);
 };
 } // namespace fdd

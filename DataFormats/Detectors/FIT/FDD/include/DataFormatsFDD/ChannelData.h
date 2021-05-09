@@ -13,7 +13,7 @@
 
 #include <array>
 #include <Rtypes.h>
-
+#include <tuple>
 /// \file ChannelData.h
 /// \brief Container class to store values of single FDD channel
 /// \author micha.broz@cern.ch
@@ -43,7 +43,10 @@ struct ChannelData {
   ChannelData(uint8_t channel, int time, int adc, uint8_t bits) : mPMNumber(channel), mTime(time), mChargeADC(adc), mFEEBits(bits) {}
 
   void print() const;
-
+  bool operator==(ChannelData const& other) const
+  {
+    return std::tie(mPMNumber, mTime, mChargeADC) == std::tie(other.mPMNumber, other.mTime, other.mChargeADC);
+  }
   ClassDefNV(ChannelData, 3);
 };
 } // namespace fdd
