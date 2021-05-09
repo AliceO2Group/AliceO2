@@ -25,11 +25,6 @@ namespace its3
 {
 
 /// Segmentation and response for pixels in ITSMFT upgrade
-/// Questions to solve: are guardrings needed and do they belong to the sensor or to the chip in
-/// TGeo. At the moment assume that the local coord syst. is located at bottom left corner
-/// of the ACTIVE matrix. If the guardring to be accounted in the local coords, in
-/// the Z and X conversions one needs to first subtract the  mGuardLeft and mGuardBottom
-/// from the local Z,X coordinates
 class SegmentationSuperAlpide
 {
  public:
