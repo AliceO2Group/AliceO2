@@ -37,8 +37,11 @@ class TimeSlotCalibration
   uint64_t getSlotLength() const { return mSlotLength; }
   void setSlotLength(uint64_t v) { mSlotLength = v < 1 ? 1 : v; }
 
-  uint64_t getUpdateInterval() const { return mUpdateInterval; }
-  void setUpdateInterval(uint64_t v) { mUpdateInterval = v; }
+  uint64_t getCheckIntervalInfiniteSlot() const { return mCheckIntervalInfiniteSlot; }
+  void setCheckIntervalInfiniteSlot(uint64_t v) { mCheckIntervalInfiniteSlot = v; }
+
+  uint64_t getCheckDeltaIntervalInfiniteSlot() const { return mCheckDeltaIntervalInfiniteSlot; }
+  void setCheckDeltaIntervalInfiniteSlot(uint64_t v) { mCheckDeltaIntervalInfiniteSlot = v < 1 ? mCheckIntervalInfiniteSlot : v; } // if the delta is 0, we ignore it
 
   TFType getFirstTF() const { return mFirstTF; }
   void setFirstTF(TFType v) { mFirstTF = v; }
@@ -83,12 +86,16 @@ class TimeSlotCalibration
   uint64_t mSlotLength = 1;
   uint64_t mMaxSlotsDelay = 3;
   bool mUpdateAtTheEndOfRunOnly = false;
-  uint64_t mUpdateInterval = 1; // will be used if the TF length is INFINITE_TF_int64 to decide
-                                // when to check if to call the finalize; otherwise it is called
-                                // at every new TF; note that this is an approximation,
-                                // since TFs come in async order
-  TFType mLastCheckedTF = 0;    // will be used if the TF length is INFINITE_TF_int64 to book-keep
-                                // the last TF at which we tried to calibrate
+  uint64_t mCheckIntervalInfiniteSlot = 1;      // will be used if the TF length is INFINITE_TF_int64 to decide
+                                                // when to check if to call the finalize; otherwise it is called
+                                                // at every new TF; note that this is an approximation,
+                                                // since TFs come in async order
+  TFType mLastCheckedTFInfiniteSlot = 0;        // will be used if the TF length is INFINITE_TF_int64 to book-keep
+                                                // the last TF at which we tried to calibrate
+  uint64_t mCheckDeltaIntervalInfiniteSlot = 1; // will be used if the TF length is INFINITE_TF_int64 when
+                                                // the check on the statistics returned false, to determine
+                                                // after how many TF to check again.
+  bool mWasCheckedInfiniteSlot = false;         // flag to know whether the statistics of the infinite slot was already checked
 
   ClassDef(TimeSlotCalibration, 1);
 };
@@ -113,8 +120,9 @@ bool TimeSlotCalibration<Input, Container>::process(TFType tf, const gsl::span<c
 
   auto& slotTF = getSlotForTF(tf);
   slotTF.getContainer()->fill(data);
-  if (tf > mMaxSeenTF)
-    mMaxSeenTF = tf;               // keep track of the most recent TF processed
+  if (tf > mMaxSeenTF) {
+    mMaxSeenTF = tf; // keep track of the most recent TF processed
+  }
   if (!mUpdateAtTheEndOfRunOnly) { // if you update at the end of run only, you don't check at every TF which slots can be closed
     // check if some slots are done
     checkSlotsToFinalize(tf, maxDelay);
@@ -137,16 +145,21 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
   // if we have one slot only which is INFINITE_TF_int64 long, and we are not at the end of run (tf != INFINITE_TF),
   // we need to check if we got enough statistics, and if so, redefine the slot
   if (mSlots.size() == 1 && mSlots[0].getTFEnd() == INFINITE_TF_int64) {
-    if (tf >= mUpdateInterval + mLastCheckedTF || tf == INFINITE_TF) {
-      LOG(DEBUG) << "mMaxSeenTF = " << mMaxSeenTF << ", mLastCheckedTF = " << mLastCheckedTF << ", mSlots[0].getTFStart() = " << mSlots[0].getTFStart();
+    uint64_t checkInterval = mCheckIntervalInfiniteSlot + mLastCheckedTFInfiniteSlot;
+    if (mWasCheckedInfiniteSlot) {
+      checkInterval = mCheckDeltaIntervalInfiniteSlot + mLastCheckedTFInfiniteSlot;
+    }
+    if (tf >= checkInterval || tf == INFINITE_TF) {
+      LOG(DEBUG) << "mMaxSeenTF = " << mMaxSeenTF << ", mLastCheckedTFInfiniteSlot = " << mLastCheckedTFInfiniteSlot << ", checkInterval = " << checkInterval << ", mSlots[0].getTFStart() = " << mSlots[0].getTFStart();
       if (tf == INFINITE_TF) {
         LOG(INFO) << "End of run reached, trying to calibrate what we have, if we have enough statistics";
       } else {
         LOG(INFO) << "Calibrating as soon as we have enough statistics:";
-        LOG(INFO) << "Update interval passed, checking slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
+        LOG(INFO) << "Update interval passed (" << checkInterval << "), checking slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
       }
-      mLastCheckedTF = tf;
+      mLastCheckedTFInfiniteSlot = tf;
       if (hasEnoughData(mSlots[0])) {
+        mWasCheckedInfiniteSlot = false;
         mSlots[0].setTFStart(mLastClosedTF);
         mSlots[0].setTFEnd(mMaxSeenTF);
         LOG(INFO) << "Finalizing slot for " << mSlots[0].getTFStart() << " <= TF <= " << mSlots[0].getTFEnd();
@@ -160,6 +173,7 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
         }
       } else {
         LOG(INFO) << "Not enough data to calibrate";
+        mWasCheckedInfiniteSlot = true;
       }
     } else {
       LOG(DEBUG) << "Not trying to calibrate: either not at EoS, or update interval not passed";
