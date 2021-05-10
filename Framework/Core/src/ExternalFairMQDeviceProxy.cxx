@@ -216,6 +216,8 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
     std::vector<std::string> unmatchedDescriptions;
     int lastSplitPartIndex = -1;
     std::string channelNameForSplitParts;
+    static int64_t dplCounter = -1;
+    dplCounter++;
     for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
       if (indicesDone[msgidx]) {
         continue;
@@ -226,11 +228,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
         LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
         continue;
       }
-      const auto dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx * 2)->GetData());
+      auto dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx * 2)->GetData());
       if (!dph) {
         LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataProcessingHeader missing";
         continue;
       }
+      const_cast<DataProcessingHeader*>(dph)->startTime = dplCounter;
       LOG(DEBUG) << msgidx << ": " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts << "  payload " << parts.At(msgidx * 2 + 1)->GetSize();
 
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
@@ -393,15 +396,12 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   return spec;
 }
 
-namespace
-{
 static char const* gDefaultChannel = "downstream";
 // Decide where to sent the output. Everything to "downstream" if there is such a channel.
-std::string decideChannel(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)
+std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)
 {
   return channels.count("downstream") ? "downstream" : input.binding;
 }
-} // namespace
 
 DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
                                                  Inputs const& inputSpecs,
@@ -471,28 +471,29 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
 
 DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
                                                       Inputs const& inputSpecs,
-                                                      const char* defaultChannelConfig)
+                                                      const char* defaultChannelConfig,
+                                                      ChannelSelector channelSelector)
 {
   DataProcessorSpec spec;
   spec.name = name;
   spec.inputs = inputSpecs;
   spec.outputs = {};
-  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds) {
+  spec.algorithm = adaptStateful([inputSpecs, channelSelector](CallbackService& callbacks, RawDeviceService& rds) {
     auto device = rds.device();
     // check that the input spec bindings have corresponding output channels
     // FairMQDevice calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
-    auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device]() {
+    auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device, channelSelector]() {
       LOG(INFO) << "checking channel configuration";
       for (auto const& spec : inputSpecs) {
-        auto channel = decideChannel(spec, device->fChannels);
+        auto channel = channelSelector(spec, device->fChannels);
         if (device->fChannels.count(channel) == 0) {
           throw std::runtime_error("no corresponding output channel found for input '" + channel + "'");
         }
       }
     };
     callbacks.set(CallbackService::Id::Start, channelConfigurationChecker);
-    return adaptStateless([](RawDeviceService& rds, InputRecord& inputs) {
+    return adaptStateless([channelSelector](RawDeviceService& rds, InputRecord& inputs) {
       std::unordered_map<std::string, FairMQParts> outputs;
       auto& device = *rds.device();
       for (size_t ii = 0; ii != inputs.size(); ++ii) {
@@ -518,7 +519,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
           }
           size_t payloadMsgSize = dh->payloadSize;
 
-          auto channel = decideChannel(*first.spec, device.fChannels);
+          auto channel = channelSelector(*first.spec, device.fChannels);
           auto headerMessage = device.NewMessageFor(channel, index, headerMsgSize);
           memcpy(headerMessage->GetData(), part.header, headerMsgSize);
           auto payloadMessage = device.NewMessageFor(channel, index, payloadMsgSize);

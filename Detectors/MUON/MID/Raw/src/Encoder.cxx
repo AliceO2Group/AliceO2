@@ -18,6 +18,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "MIDRaw/CrateMasks.h"
+#include "MIDRaw/Utils.h"
 #include <fmt/format.h>
 
 namespace o2
@@ -30,24 +31,33 @@ void Encoder::init(const char* filename, bool perLink, int verbosity, bool debug
   /// Initializes links
 
   CrateMasks masks;
-  auto gbtIds = mFEEIdConfig.getConfiguredGBTIds();
+  auto linkUniqueIds = mFEEIdConfig.getConfiguredLinkUniqueIDs();
 
+  // Initialises the GBT link encoders
+  for (auto& linkUniqueId : linkUniqueIds) {
+    auto gbtUniqueId = mFEEIdConfig.getGBTUniqueId(linkUniqueId);
+    mGBTEncoders[gbtUniqueId].setGBTUniqueId(gbtUniqueId);
+    mGBTEncoders[gbtUniqueId].setMask(masks.getMask(gbtUniqueId));
+    mGBTIds[gbtUniqueId] = linkUniqueId;
+  }
+
+  // Initializes the output link
+  auto ir = getOrbitIR(0);
   mRawWriter.setVerbosity(verbosity);
-  int lcnt = 0;
-  for (auto& gbtId : gbtIds) {
-    auto feeId = mFEEIdConfig.getFeeId(gbtId);
-    mRawWriter.registerLink(feeId, mFEEIdConfig.getCRUId(gbtId), raw::sUserLogicLinkID, mFEEIdConfig.getEndPointId(gbtId), perLink ? fmt::format("{:s}_L{:d}.raw", filename, lcnt) : fmt::format("{:s}.raw", filename));
-    mGBTEncoders[feeId].setFeeId(feeId);
-    mGBTEncoders[feeId].setMask(masks.getMask(feeId));
-    mGBTIds[feeId] = gbtId;
-    lcnt++;
+  for (uint16_t cruId = 0; cruId < 2; ++cruId) {
+    for (uint8_t epId = 0; epId < 2; ++epId) {
+      uint16_t feeId = 2 * cruId + epId;
+      mRawWriter.registerLink(feeId, cruId, raw::sUserLogicLinkID, epId, perLink ? fmt::format("{:s}_L{:d}.raw", filename, feeId) : fmt::format("{:s}.raw", filename));
 
-    // Initializes the trigger response to be added to the empty HBs
-    auto ir = getOrbitIR(0);
-    mGBTEncoders[feeId].processTrigger(ir, raw::sORB);
-    mGBTEncoders[feeId].flush(mOrbitResponse[feeId], ir);
-    mOrbitResponseWord[feeId] = mOrbitResponse[feeId];
-    completeWord(mOrbitResponseWord[feeId]);
+      for (auto gbtUniqueId : mFEEIdConfig.getGBTUniqueIdsInLink(feeId)) {
+        // Initializes the trigger response to be added to the empty HBs
+        mGBTEncoders[gbtUniqueId].processTrigger(ir, raw::sORB);
+        mGBTEncoders[gbtUniqueId].flush(mOrbitResponse[feeId], ir);
+      }
+
+      mOrbitResponseWord[feeId] = mOrbitResponse[feeId];
+      completeWord(mOrbitResponseWord[feeId]);
+    }
   }
 
   mRawWriter.setEmptyPageCallBack(this);
@@ -58,19 +68,16 @@ void Encoder::init(const char* filename, bool perLink, int verbosity, bool debug
 void Encoder::emptyHBFMethod(const o2::header::RDHAny* rdh, std::vector<char>& toAdd) const
 {
   /// Response to orbit triggers in empty HBFs
-  auto feeId = o2::raw::RDHUtils::getFEEID(rdh);
-  toAdd = mOrbitResponseWord[feeId];
+  toAdd = mOrbitResponseWord[o2::raw::RDHUtils::getFEEID(rdh)];
 }
 
 void Encoder::onOrbitChange(uint32_t orbit)
 {
   /// Performs action when orbit changes
   auto ir = getOrbitIR(orbit);
-  for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
+  for (uint16_t feeId = 0; feeId < 4; ++feeId) {
     // Write the data corresponding to the previous orbit
-    if (!mGBTEncoders[feeId].isEmpty()) {
-      writePayload(feeId, ir);
-    }
+    writePayload(feeId, ir);
   }
 }
 
@@ -90,12 +97,20 @@ void Encoder::writePayload(uint16_t feeId, const InteractionRecord& ir)
 {
   /// Writes data
 
-  // The first part of data is the answer to the orbit trigger
-  std::vector<char> buf = mOrbitResponse[feeId];
-  // Then we flush the received data
-  mGBTEncoders[feeId].flush(buf, ir);
+  std::vector<char> buf;
+  for (auto& gbtUniqueId : mFEEIdConfig.getGBTUniqueIdsInLink(feeId)) {
+    if (!mGBTEncoders[gbtUniqueId].isEmpty()) {
+      mGBTEncoders[gbtUniqueId].flush(buf, ir);
+    }
+  }
+  if (buf.empty()) {
+    return;
+  }
+
+  // Add the orbit response
+  buf.insert(buf.begin(), mOrbitResponse[feeId].begin(), mOrbitResponse[feeId].end());
   completeWord(buf);
-  mRawWriter.addData(feeId, mFEEIdConfig.getCRUId(mGBTIds[feeId]), raw::sUserLogicLinkID, mFEEIdConfig.getEndPointId(mGBTIds[feeId]), ir, buf);
+  mRawWriter.addData(feeId, feeId / 2, raw::sUserLogicLinkID, feeId % 2, ir, buf);
 }
 
 void Encoder::finalize(bool closeFile)
@@ -106,16 +121,15 @@ void Encoder::finalize(bool closeFile)
     mLastIR.orbit = mRawWriter.getHBFUtils().orbitFirst;
   }
   auto ir = getOrbitIR(mLastIR.orbit);
-  for (uint16_t feeId = 0; feeId < crateparams::sNGBTs; ++feeId) {
+  auto nextIr = getOrbitIR(mLastIR.orbit + 1);
+  for (uint16_t feeId = 0; feeId < 4; ++feeId) {
+    auto ir = getOrbitIR(mLastIR.orbit);
     // Write the last payload
     writePayload(feeId, ir);
-    if (!mGBTEncoders[feeId].isEmpty()) {
-      // Since the regional response comes after few clocks,
-      // we might have the corresponding regional cards in the next orbit.
-      // If this is the case, we flush all data of the next orbit
-      ++ir.orbit;
-      writePayload(feeId, ir);
-    }
+    // Since the regional response comes after few clocks,
+    // we might have the corresponding regional cards in the next orbit.
+    // If this is the case, we flush all data of the next orbit
+    writePayload(feeId, nextIr);
   }
   if (closeFile) {
     mRawWriter.close();

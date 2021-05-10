@@ -16,6 +16,7 @@
 #include "FairLogger.h"
 #include "FairModule.h"
 #include "Generators/DecayerPythia8.h"
+#include "SimSetup/FlukaParam.h"
 #include "../commonConfig.C"
 
 // these are used in commonConfig.C
@@ -38,21 +39,32 @@ void linkFlukaFiles()
   gSystem->Exec("ln -s $FLUKADATA/cohff.bin .");
   gSystem->Exec("ln -s $FLUKADATA/fluodt.dat  .");
   gSystem->Exec("ln -s $FLUKADATA/random.dat  .");
-  // Copy the random seed
-  gSystem->Exec("cp $FLUKADATA/random.dat old.seed");
+  gSystem->Exec("ln -s $FLUKADATA/dnr.dat  .");
+  gSystem->Exec("ln -s $FLUKADATA/nunstab.data .");
   // Give some meaningfull name to the output
   gSystem->Exec("ln -s fluka.out fort.11");
   gSystem->Exec("ln -s fluka.err fort.15");
-  gSystem->Exec("ln -fs $ALICE_ROOT/TFluka/macro/FlukaConfig.C Config.C");
   gSystem->Exec("ln -fs $O2_ROOT/share/Detectors/gconfig/data/coreFlukaVmc.inp .");
 }
 
 void Config()
 {
+  //
   linkFlukaFiles();
   FairRunSim* run = FairRunSim::Instance();
   TString* gModel = run->GetGeoModel();
   TFluka* fluka = new TFluka("C++ Interface to Fluka", 0);
+
+  // additional configuration paramters if requested from command line
+  auto& params = FlukaParam::Instance();
+  auto isAct = params.activationSimulation;
+  if (isAct) {
+    LOG(INFO) << "Set special FLUKA parameters for activation simulation";
+    auto hadronCut = params.activationHadronCut;
+    auto inpFile = params.scoringFile;
+    fluka->SetActivationSimulation(true, hadronCut);
+    fluka->SetUserScoringFileName(inpFile.c_str());
+  }
   stackSetup(fluka, run);
 
   // setup decayer

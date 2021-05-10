@@ -58,7 +58,7 @@ using namespace o2::tpc;
 static constexpr float kDeg2Rad = M_PI / 180.f;
 static constexpr float kSectAngle = 2 * M_PI / 18.f;
 
-GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iTrk, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, GPUTPCGMMergedTrackHitXYZ* GPUrestrict() clustersXYZ, int& GPUrestrict() N, int& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, int attempt, float maxSinPhi, GPUTPCOuterParam* GPUrestrict() outerParam)
+GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iTrk, GPUTPCGMMergedTrackHit* GPUrestrict() clusters, GPUTPCGMMergedTrackHitXYZ* GPUrestrict() clustersXYZ, int& GPUrestrict() N, int& GPUrestrict() NTolerated, float& GPUrestrict() Alpha, int attempt, float maxSinPhi, gputpcgmmergertypes::GPUTPCOuterParam* GPUrestrict() outerParam)
 {
   const GPUParam& GPUrestrict() param = merger->Param();
 
@@ -848,7 +848,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
   // printf("Tan %f %f (%f %f)\n", atana, atanb, mX - xp, mP[0] - yp);
   const float dS = (xp > 0 ? (atana + atanb) : (atanb - atana)) * r;
   float z0 = dS * mP[3];
-  // printf("Track Z %f (Offset %f), z0 %f, V %f (dS %f, dZds %f, qPt %f)             - Z span %f to %f: diff %f\n", mP[1], mTZOffset, z0, mP[1] - z0, dS, mP[3], mP[4], tz2, tz1, tz2 - tz1);
+  // printf("Track Z %f (Offset %f), z0 %f, V %f (dS %f, dZds %f, qPt %f)             - TZ span %f to %f: diff %f\n", mP[1], mTZOffset, z0, mP[1] - z0, dS, mP[3], mP[4], tz2, tz1, tz2 - tz1);
   if (CAMath::Abs(z0) > 250.f) {
     z0 = z0 > 0 ? 250.f : -250.f;
   }
@@ -859,6 +859,7 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     deltaZ = 0;
     float zMax = CAMath::Max(tz1, tz2);
     float zMin = CAMath::Min(tz1, tz2);
+    // printf("Z Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, zMin, zMax, mTZOffset);
     if (zMin < 0 && zMin - mTZOffset < -250) {
       deltaZ = zMin - mTZOffset + 250;
     } else if (zMax > 0 && zMax - mTZOffset > 250) {
@@ -869,25 +870,26 @@ GPUd() void GPUTPCGMTrackParam::ShiftZ(const GPUTPCGMMerger* GPUrestrict() merge
     } else if (zMax > 0 && zMin - mTZOffset < 0) {
       deltaZ = zMin - mTZOffset;
     }
-    // if (deltaZ != 0) printf("Moving clusters to TPC Range: Side %f, Shift %f: %f to %f --> %f to %f\n", tz2, deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaZ, tz1 - mTZOffset - deltaZ);
+    // if (deltaZ != 0) printf("Moving clusters to TPC Range: Shift %f in Z: %f to %f --> %f to %f in Z\n", deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaZ, tz1 - mTZOffset - deltaZ);
     mTZOffset += deltaZ;
     mP[1] -= deltaZ;
   } else {
     float deltaT = merger->GetConstantMem()->calibObjects.fastTransform->convDeltaZtoDeltaTimeInTimeFrame(slice, deltaZ);
     mTZOffset += deltaT;
     mP[1] -= deltaZ;
-    const float minT = CAMath::Min(tz1, tz2);
-    const float maxT = CAMath::Max(CAMath::Max(tz1, tz2) - merger->GetConstantMem()->calibObjects.fastTransform->getMaxDriftTime(slice), 0.f);
-    // printf("T Check: max %f min %f (min2 %f) vtx %f\n", maxT, minT, CAMath::Min(tzinner, tz2), mTZOffset);
+    const float maxT = CAMath::Min(tz1, tz2);
+    const float minT = CAMath::Max(tz1, tz2) - merger->GetConstantMem()->calibObjects.fastTransform->getMaxDriftTime(slice);
+    // printf("T Check: Clusters %f %f, min %f max %f vtx %f\n", tz1, tz2, minT, maxT, mTZOffset);
     deltaT = 0.f;
-    if (mTZOffset < maxT) {
-      deltaT = maxT - mTZOffset;
-    }
-    if (mTZOffset > minT) {
+    if (mTZOffset < minT) {
       deltaT = minT - mTZOffset;
+    }
+    if (mTZOffset > maxT) {
+      deltaT = maxT - mTZOffset;
     }
     if (deltaT != 0.f) {
       deltaZ = merger->GetConstantMem()->calibObjects.fastTransform->convDeltaTimeToDeltaZinTimeFrame(slice, deltaT);
+      // printf("Moving clusters to TPC Range: Shift %f in Z: %f to %f --> %f to %f in T\n", deltaZ, tz2 - mTZOffset, tz1 - mTZOffset, tz2 - mTZOffset - deltaT, tz1 - mTZOffset - deltaT);
       mTZOffset += deltaT;
       mP[1] -= deltaZ;
     }

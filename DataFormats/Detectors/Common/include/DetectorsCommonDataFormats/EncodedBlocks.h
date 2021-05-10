@@ -460,9 +460,9 @@ class EncodedBlocks
 template <typename H, int N, typename W>
 void EncodedBlocks<H, N, W>::readFromTree(TTree& tree, const std::string& name, int ev)
 {
-  readTreeBranch(tree, o2::utils::concat_string(name, "_wrapper."), *this, ev);
+  readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *this, ev);
   for (int i = 0; i < N; i++) {
-    readTreeBranch(tree, o2::utils::concat_string(name, "_block.", std::to_string(i), "."), mBlocks[i]);
+    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), mBlocks[i]);
   }
 }
 
@@ -473,11 +473,11 @@ template <typename VD>
 void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::string& name, int ev)
 {
   auto tmp = create(vec);
-  readTreeBranch(tree, o2::utils::concat_string(name, "_wrapper."), *tmp, ev);
+  readTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), *tmp, ev);
   tmp = tmp->expand(vec, tmp->estimateSizeFromMetadata());
   for (int i = 0; i < N; i++) {
     Block<W> bl;
-    readTreeBranch(tree, o2::utils::concat_string(name, "_block.", std::to_string(i), "."), bl);
+    readTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), bl);
     tmp->mBlocks[i].store(bl.getNDict(), bl.getNData(), bl.getNLiterals(), bl.getDict(), bl.getData(), bl.getLiterals());
   }
 }
@@ -487,10 +487,10 @@ void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::strin
 template <typename H, int N, typename W>
 void EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name) const
 {
-  fillTreeBranch(tree, o2::utils::concat_string(name, "_wrapper."), const_cast<base&>(*this), WrappersCompressionLevel, WrappersSplitLevel);
+  fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), const_cast<base&>(*this), WrappersCompressionLevel, WrappersSplitLevel);
   for (int i = 0; i < N; i++) {
     int compression = mMetadata[i].opt == Metadata::OptStore::ROOTCompression ? 1 : 0;
-    fillTreeBranch(tree, o2::utils::concat_string(name, "_block.", std::to_string(i), "."), const_cast<Block<W>&>(mBlocks[i]), compression);
+    fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), const_cast<Block<W>&>(mBlocks[i]), compression);
   }
   tree.SetEntries(tree.GetEntries() + 1);
 }

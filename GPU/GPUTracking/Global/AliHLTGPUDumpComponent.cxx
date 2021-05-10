@@ -175,10 +175,8 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   const AliHLTTPCClusterXYZData* clustersXYZ[NSLICES][NPATCHES] = {nullptr};
   const AliHLTTPCRawClusterData* clustersRaw[NSLICES][NPATCHES] = {nullptr};
   bool labelsPresent = false;
-  GPUTRDTrackletWord* TRDtracklets = nullptr;
-  GPUTRDTrackletLabels* TRDtrackletsMC = nullptr;
+  const GPUTRDTrackletWord* TRDtracklets = nullptr;
   int nTRDTrackletsTotal = 0;
-  int nTRDTrackletsMCTotal = 0;
 
   for (unsigned long ndx = 0; ndx < evtData.fBlockCnt; ndx++) {
     const AliHLTComponentBlockData& pBlock = blocks[ndx];
@@ -192,11 +190,8 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
       clusterLabels[slice][patch] = (const AliHLTTPCClusterMCData*)pBlock.fPtr;
       labelsPresent = true;
     } else if (pBlock.fDataType == AliHLTTRDDefinitions::fgkTRDTrackletDataType) {
-      TRDtracklets = reinterpret_cast<GPUTRDTrackletWord*>(pBlock.fPtr);
+      TRDtracklets = reinterpret_cast<const GPUTRDTrackletWord*>(pBlock.fPtr);
       nTRDTrackletsTotal = pBlock.fSize / sizeof(GPUTRDTrackletWord);
-    } else if (pBlock.fDataType == (AliHLTTRDDefinitions::fgkTRDMCTrackletDataType)) {
-      TRDtrackletsMC = reinterpret_cast<GPUTRDTrackletLabels*>(pBlock.fPtr);
-      nTRDTrackletsMCTotal = pBlock.fSize / sizeof(GPUTRDTrackletLabels);
     }
   }
 
@@ -440,6 +435,9 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     fChain->mIOPtrs.nMCInfosTPC = mcInfo.size();
     fChain->mIOPtrs.mcInfosTPC = mcInfo.data();
+    static const GPUTPCMCInfoCol mcColInfo = {0, (unsigned int)mcInfo.size()};
+    fChain->mIOPtrs.mcInfosTPCCol = &mcColInfo;
+    fChain->mIOPtrs.nMCInfosTPCCol = 1;
     HLTDebug("Number of MC infos: %d", (int)mcInfo.size());
   }
   unsigned int clusterNum = 0;
@@ -450,9 +448,19 @@ int AliHLTGPUDumpComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   }
 
   fChain->mIOPtrs.nTRDTracklets = nTRDTrackletsTotal;
-  fChain->mIOPtrs.trdTracklets = TRDtracklets;
-  fChain->mIOPtrs.nTRDTrackletsMC = nTRDTrackletsMCTotal;
-  fChain->mIOPtrs.trdTrackletsMC = TRDtrackletsMC;
+  std::vector<GPUTRDTrackletWord> tracklets(nTRDTrackletsTotal);
+  for (int i = 0; i < nTRDTrackletsTotal; i++) {
+    tracklets[i] = TRDtracklets[i];
+  }
+  std::sort(tracklets.data(), tracklets.data() + nTRDTrackletsTotal);
+  fChain->mIOPtrs.trdTracklets = tracklets.data();
+
+  fChain->mIOPtrs.nTRDTriggerRecords = 1;
+  static float t = 0.f;
+  static int o = 0;
+  fChain->mIOPtrs.trdTriggerTimes = &t;
+  fChain->mIOPtrs.trdTrackletIdxFirst = &o;
+
   HLTDebug("Number of TRD tracklets: %d", (int)nTRDTrackletsTotal);
 
   static int nEvent = 0;

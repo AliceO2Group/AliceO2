@@ -40,6 +40,8 @@ endif()
 add_subdirectory(Calibration)
 add_subdirectory(DCS)
 
+add_subdirectory(Align)
+
 if(BUILD_SIMULATION)
   add_subdirectory(gconfig)
   o2_data_file(COPY gconfig DESTINATION Detectors)

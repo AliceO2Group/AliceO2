@@ -21,15 +21,22 @@
 namespace o2::fit
 {
 
-template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
+#define FIT_CALIBRATION_DEVICE_TEMPLATES \
+  template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
+
+#define FIT_CALIBRATION_DEVICE_TYPE \
+  FITCalibrationDevice<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>
+
+FIT_CALIBRATION_DEVICE_TEMPLATES
 class FITCalibrationDevice : public o2::framework::Task
 {
 
+  static constexpr const char* DEFAULT_INPUT_DATA_LABEL = "calib";
   using CalibratorType = FITCalibrator<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>;
 
  public:
-  explicit FITCalibrationDevice(std::string inputDataLabel, std::string calibrationObjectPath)
-    : mInputDataLabel(std::move(inputDataLabel)), mCalibrationObjectPath(std::move(calibrationObjectPath)) {}
+  explicit FITCalibrationDevice(std::string inputDataLabel = DEFAULT_INPUT_DATA_LABEL)
+    : mInputDataLabel(std::move(inputDataLabel)) {}
 
   void init(o2::framework::InitContext& context) final;
   void run(o2::framework::ProcessingContext& context) final;
@@ -40,25 +47,15 @@ class FITCalibrationDevice : public o2::framework::Task
   void _sendCalibrationObjectIfSlotFinalized(o2::framework::DataAllocator& outputs);
 
  private:
-  std::string mInputDataLabel;
-  std::string mCalibrationObjectPath;
+  const std::string mInputDataLabel;
   std::unique_ptr<CalibratorType> mCalibrator;
 };
-
-#define FIT_CALIBRATION_DEVICE_TEMPLATES \
-  template <typename InputCalibrationInfoType, typename TimeSlotStorageType, typename CalibrationObjectType>
-
-#define FIT_CALIBRATION_DEVICE_TYPE \
-  FITCalibrationDevice<InputCalibrationInfoType, TimeSlotStorageType, CalibrationObjectType>
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::init(o2::framework::InitContext& context)
 {
-  mCalibrator = std::make_unique<CalibratorType>(mCalibrationObjectPath);
-
-  //local db instance for testing
-  //caching is enabled by default
-  o2::ccdb::BasicCCDBManager::instance().setURL("http://localhost:8080");
+  mCalibrator = std::make_unique<CalibratorType>();
+  FITCalibrationApi::init();
 }
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
@@ -68,8 +65,8 @@ void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
   auto TFCounter = o2::header::get<o2::framework::DataProcessingHeader*>(context.inputs().get(mInputDataLabel).header)->startTime;
   auto data = context.inputs().get<gsl::span<InputCalibrationInfoType>>(mInputDataLabel);
 
-  //for testing purposes
-  mCalibrator->setCalibrationObject(o2::ccdb::BasicCCDBManager::instance().get<CalibrationObjectType>(mCalibrationObjectPath));
+  //something like that probably in the future
+  //  FITCalibrationApi::setProcessingTimestamp( getTimestampForTF(TFCounter)) );
 
   mCalibrator->process(TFCounter, data);
   _sendCalibrationObjectIfSlotFinalized(context.outputs());
@@ -78,9 +75,10 @@ void FIT_CALIBRATION_DEVICE_TYPE::run(o2::framework::ProcessingContext& context)
 FIT_CALIBRATION_DEVICE_TEMPLATES
 void FIT_CALIBRATION_DEVICE_TYPE::endOfStream(o2::framework::EndOfStreamContext& context)
 {
-  //should be finalized even if not enough data?
-  mCalibrator->finalizeOldestSlot();
-  _sendOutputs(context.outputs());
+  //nope, we have to check if we can finalize slot anyway - scenario with one batch
+  static constexpr uint64_t INFINITE_TF = 0xffffffffffffffff;
+  mCalibrator->checkSlotsToFinalize(INFINITE_TF);
+  _sendCalibrationObjectIfSlotFinalized(context.outputs());
 }
 
 FIT_CALIBRATION_DEVICE_TEMPLATES
@@ -96,21 +94,15 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& out
 {
 
   using clbUtils = o2::calibration::Utils;
+  const auto& objectsToSend = mCalibrator->getStoredCalibrationObjects();
 
-  const auto& payloadVec = mCalibrator->getCalibrationObjectVector();
-  auto& infoVec = mCalibrator->getCalibrationInfoVector();
-  assert(payloadVec.size() == infoVec.size());
-
-  for (uint32_t i = 0; i < payloadVec.size(); ++i) {
-    auto& w = infoVec[i];
-    auto image = o2::ccdb::CcdbApi::createObjectImage(&payloadVec[i], &w);
-    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, i}, *image);
-    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, i}, w);
+  uint32_t iSendChannel = 0;
+  for (const auto& [ccdbInfo, calibObject] : objectsToSend) {
+    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, iSendChannel}, *calibObject);
+    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, iSendChannel}, ccdbInfo);
+    ++iSendChannel;
   }
-
-  if (!payloadVec.empty()) {
-    mCalibrator->initOutput();
-  }
+  mCalibrator->initOutput();
 }
 
 #undef FIT_CALIBRATION_DEVICE_TEMPLATES

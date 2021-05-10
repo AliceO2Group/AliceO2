@@ -20,6 +20,7 @@
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
 #include "genEvents.h"
+#include "GPUMemorySizeScalers.h"
 
 #include <iostream>
 #include <fstream>
@@ -178,6 +179,7 @@ int ReadConfiguration(int argc, char** argv)
 #ifndef GPUCA_TPC_GEOMETRY_O2
   configStandalone.rec.mergerReadFromTrackerDirectly = 0;
   configStandalone.proc.ompKernels = false;
+  configStandalone.proc.createO2Output = 0;
   if (configStandalone.rundEdx == -1) {
     configStandalone.rundEdx = 0;
   }
@@ -482,6 +484,7 @@ int SetupReconstruction()
   if (configStandalone.proc.debugLevel >= 4) {
     rec->PrintKernelOccupancies();
   }
+  rec->MemoryScalers()->factor *= configStandalone.memoryBufferScaleFactor;
   return (0);
 }
 
@@ -497,12 +500,12 @@ int ReadEvent(int n)
     return r;
   }
 #if defined(GPUCA_TPC_GEOMETRY_O2) && defined(GPUCA_BUILD_QA) && !defined(GPUCA_O2_LIB)
-  if (configStandalone.proc.runQA && !configStandalone.QA.noMC) {
+  if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.EventsDir, n);
     if (chainTracking->GetQA()->ReadO2MCData(filename)) {
       snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.EventsDir, 0);
-      if (chainTracking->GetQA()->ReadO2MCData(filename)) {
+      if (chainTracking->GetQA()->ReadO2MCData(filename) && configStandalone.proc.runQA) {
         throw std::runtime_error("Error reading O2 MC dump");
       }
     }
@@ -654,6 +657,8 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       chainTrackingAsync->mIOPtrs.tpcPackedDigits = nullptr;
       chainTrackingAsync->mIOPtrs.mcInfosTPC = nullptr;
       chainTrackingAsync->mIOPtrs.nMCInfosTPC = 0;
+      chainTrackingAsync->mIOPtrs.mcInfosTPCCol = nullptr;
+      chainTrackingAsync->mIOPtrs.nMCInfosTPCCol = 0;
       chainTrackingAsync->mIOPtrs.mcLabelsTPC = nullptr;
       chainTrackingAsync->mIOPtrs.nMCLabelsTPC = 0;
       for (int i = 0; i < chainTracking->NSLICES; i++) {

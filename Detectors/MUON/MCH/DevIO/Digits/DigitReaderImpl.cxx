@@ -14,6 +14,8 @@
 #include <map>
 #include "DigitIOV0.h"
 #include "DigitIOV1.h"
+#include "DigitIOV2.h"
+#include "DigitIOV3.h"
 #include <memory>
 
 namespace o2::mch::io::impl
@@ -26,9 +28,15 @@ std::unique_ptr<DigitReaderImpl> createDigitReaderImpl(int version)
       return std::make_unique<DigitReaderV0>();
     case 1:
       return std::make_unique<DigitReaderV1>();
+    case 2:
+      return std::make_unique<DigitReaderV2>();
+    case 3:
+      return std::make_unique<DigitReaderV3>();
     default:
       break;
   };
+  throw std::invalid_argument(fmt::format("DigitFileFormat version {} not implemented yet",
+                                          version));
   return nullptr;
 }
 
@@ -36,29 +44,6 @@ void DigitReaderImpl::rewind(std::istream& in)
 {
   in.clear();
   in.seekg(sizeof(DigitFileFormat));
-}
-
-int readNofItems(std::istream& in, const char* itemName)
-{
-  int nitems(-1);
-  in.read(reinterpret_cast<char*>(&nitems), sizeof(int));
-  if (in.fail() || nitems < 0) {
-    throw std::length_error(fmt::format("invalid input : cannot get number of {}", itemName));
-  }
-  return nitems;
-}
-
-int advance(std::istream& in, size_t itemByteSize, const char* itemName)
-{
-  if (in.peek() == EOF) {
-    return -1;
-  }
-  // get the number of items
-  int nitems = readNofItems(in, itemName);
-  // move forward of n items
-  auto current = in.tellg();
-  in.seekg(current + static_cast<decltype(current)>(nitems * itemByteSize));
-  return nitems;
 }
 
 } // namespace o2::mch::io::impl

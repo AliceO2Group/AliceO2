@@ -69,8 +69,8 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
   std::string dictPath = ic.options().get<std::string>("mft-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::MFT, dictPath, ".bin");
-  if (o2::base::NameConf::pathExists(dictFile)) {
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, ".bin");
+  if (o2::utils::Str::pathExists(dictFile)) {
     mClusterer->loadDictionary(dictFile);
     LOG(INFO) << "MFTClusterer running with a provided dictionary: " << dictFile;
   } else {

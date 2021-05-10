@@ -16,6 +16,7 @@
 
 #include "GPUTPCDef.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "GPUTPCGMMergerTypes.h"
 #include "GPUCommonMath.h"
 #include "GPUdEdxInfo.h"
 
@@ -47,12 +48,6 @@ class GPUTPCGMPropagator;
 class GPUTPCGMTrackParam
 {
  public:
-  struct GPUTPCOuterParam {
-    float X, alpha;
-    float P[5];
-    float C[15];
-  };
-
   GPUd() float& X()
   {
     return mX;
@@ -147,7 +142,7 @@ class GPUTPCGMTrackParam
   GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.f) const;
   GPUd() bool CheckCov() const;
 
-  GPUd() bool Fit(GPUTPCGMMerger* merger, int iTrk, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, int& N, int& NTolerated, float& Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, GPUTPCOuterParam* outerParam = nullptr);
+  GPUd() bool Fit(GPUTPCGMMerger* merger, int iTrk, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, int& N, int& NTolerated, float& Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, gputpcgmmergertypes::GPUTPCOuterParam* outerParam = nullptr);
   GPUd() void MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
   GPUd() int MergeDoubleRowClusters(int& ihit, int wayDirection, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, const GPUTPCGMMerger* merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2);

@@ -96,7 +96,7 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
   */
   o2::ft0::LookUpTable lut{o2::ft0::LookUpTable::readTable()};
   mLinkTCM = lut.getLink(lut.getTCMchannel());
-  LOG(INFO) << " ##### LookUp set ";
+  LOG(INFO) << " ##### LookUp set, TCM " << mLinkTCM;
   std::string outd = outDir;
   if (outd.back() != '/') {
     outd += '/';
@@ -114,12 +114,12 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
       mEndPointID = uint32_t(1);
       mFeeID = uint64_t(ilink);
     }
-    std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outDir, "ft0_link", std::to_string(ilink), ".raw") : o2::utils::concat_string(outDir, "ft0.raw");
+    std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outDir, "ft0_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outDir, "ft0.raw");
     mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
     LOG(INFO) << " registered links " << mLinkID << " endpoint " << mEndPointID;
   }
   //TCM
-  std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outDir, "ft0_link", std::to_string(mLinkTCM), ".raw") : o2::utils::concat_string(outDir, "ft0.raw");
+  std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outDir, "ft0_link", std::to_string(NPMs - 1), ".raw") : o2::utils::Str::concat_string(outDir, "ft0.raw");
   mWriter.registerLink(mLinkTCM + 8, mCruID, mLinkTCM, 0, outFileLink);
   LOG(INFO) << " registered link  TCM " << mLinkTCM;
 
@@ -143,7 +143,7 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
     digTree->GetEntry(ient);
 
     int nbc = digitsBC.size();
-    LOG(DEBUG) << "Entry " << ient << " : " << nbc << " BCs stored";
+    LOG(INFO) << "Entry " << ient << " : " << nbc << " BCs stored";
     for (int ibc = 0; ibc < nbc; ibc++) {
       auto& bcd = digitsBC[ibc];
       intRecord = bcd.getIntRecord();
@@ -172,7 +172,7 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
     if (nlink != oldlink) {
       if (oldlink >= 0) {
         uint nGBTWords = uint((nchannels + 1) / 2);
-        LOG(INFO) << " oldlink " << oldlink << " old EP " << oldendpoint << " nGBTWords " << nGBTWords << " new link " << nlink << " ep  " << ep;
+        LOG(DEBUG) << " oldlink " << oldlink << " old EP " << oldendpoint << " nGBTWords " << nGBTWords << " new link " << nlink << " ep  " << ep;
         if ((nchannels % 2) == 1) {
           mRawEventData.mEventData[nchannels] = {};
         }
@@ -184,14 +184,14 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
         if (mEndPointID == 1) {
           mFeeID += 8;
         }
-        LOG(INFO) << " new link start " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
+        LOG(DEBUG) << " new link start " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
         mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
       }
       oldlink = nlink;
       oldendpoint = ep;
       mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
       nchannels = 0;
-      LOG(INFO) << " switch to new link " << nlink << " EP " << ep;
+      LOG(DEBUG) << " switch to new link " << nlink << " EP " << ep;
     }
     auto& newData = mRawEventData.mEventData[nchannels];
     bool isAside = (pmchannels[ich].ChId < 96);
@@ -243,20 +243,20 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   tcmdata.amplC = ampC;
   tcmdata.timeA = mTriggers.timeA;
   tcmdata.timeC = mTriggers.timeC;
-  LOG(INFO) << " TCM  triggers read "
-            << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
-            << " amp A " << ampA << " amp C " << ampC
-            << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
-            << " trig "
-            << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
+  LOG(DEBUG) << " TCM  triggers read "
+             << " time A " << mTriggers.timeA << " time C " << mTriggers.timeC
+             << " amp A " << ampA << " amp C " << ampC
+             << " N A " << int(mTriggers.nChanA) << " N C " << int(mTriggers.nChanC)
+             << " trig "
+             << " ver " << mTriggers.getVertex() << " A " << mTriggers.getOrA() << " C " << mTriggers.getOrC();
 
-  LOG(INFO) << "TCMdata"
-            << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
-            << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
-            << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
-            << " trig "
-            << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
-            << " size " << sizeof(tcmdata);
+  LOG(DEBUG) << "TCMdata"
+             << " time A " << tcmdata.timeA << " time C " << tcmdata.timeC
+             << " amp A " << tcmdata.amplA << " amp C " << tcmdata.amplC
+             << " N A " << int(tcmdata.nChanA) << " N C " << int(tcmdata.nChanC)
+             << " trig "
+             << " ver " << tcmdata.vertex << " A " << tcmdata.orA << " C " << tcmdata.orC
+             << " size " << sizeof(tcmdata);
 
   auto data = mRawEventData.to_vector(1);
   mLinkID = uint32_t(mLinkTCM);

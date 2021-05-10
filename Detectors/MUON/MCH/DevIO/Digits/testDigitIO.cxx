@@ -27,6 +27,7 @@
 #include <array>
 #include <stdexcept>
 #include "DigitReaderImpl.h"
+#include "IO.h"
 
 using namespace o2::mch;
 using namespace o2::mch::io;
@@ -63,6 +64,18 @@ BOOST_AUTO_TEST_CASE(DigitFileFormatV1Value)
   BOOST_CHECK_EQUAL(sizeof(o2::mch::ROFRecord), v1.rofSize);
 }
 
+BOOST_AUTO_TEST_CASE(DigitFileFormatV2Value)
+{
+  DigitFileFormat v2 = createFormat(2, 0, 19, 1, 14, false, false);
+  BOOST_CHECK_EQUAL(isValid(v2), true);
+}
+
+BOOST_AUTO_TEST_CASE(DigitFileFormatV3Value)
+{
+  DigitFileFormat v3 = createFormat(3, 0, 19, 1, 14, false, true);
+  BOOST_CHECK_EQUAL(isValid(v3), true);
+}
+
 BOOST_DATA_TEST_CASE(WriteMustReturnFalseIfDigitVectorIsEmpty, digitFileFormats, digitFileFormat)
 {
   std::ostringstream str;
@@ -84,8 +97,8 @@ BOOST_DATA_TEST_CASE(WriteMustReturnFalseIfDigitVectorIsEmpty, digitFileFormats,
 
 BOOST_DATA_TEST_CASE(BinaryWriteMustReturnFalseIfRofVectorIsEmpty, digitFileFormats, digitFileFormat)
 {
-  if (digitFileFormat.fileVersion == 0) {
-    return; //V0 is the exception as it predates ROFs
+  if (not digitFileFormat.hasRof) {
+    return;
   }
   std::ostringstream str;
   std::vector<ROFRecord> rofs;
@@ -131,7 +144,10 @@ std::vector<o2::mch::Digit> createDummyFixedDigits(int n)
   int32_t dummyTime{1000};
   uint16_t dummySamples{10};
   for (int i = 0; i < n; i++) {
-    digits.emplace_back(100, i, dummyADC + i, dummyTime + i * 100, dummySamples + i * 10);
+    auto& d = digits.emplace_back(100, i, dummyADC + i, dummyTime + i * 100, dummySamples + i * 10);
+    if (i == 7 || i == 23) {
+      d.setSaturated(true);
+    }
   }
   return digits;
 }
@@ -219,7 +235,7 @@ BOOST_DATA_TEST_CASE(TestDataHasExpectedNofTFs, digitFileFormats, digitFileForma
   writeTestData(buffer, digitFileFormat);
   DigitReader dr(buffer);
 
-  if (digitFileFormat.fileVersion == 0) {
+  if (not digitFileFormat.hasRof) {
     BOOST_CHECK_EQUAL(dr.nofTimeFrames(), NROFS);
   } else {
     BOOST_CHECK_EQUAL(dr.nofTimeFrames(), testData.size());
@@ -268,12 +284,14 @@ BOOST_DATA_TEST_CASE(CheckReader, digitFileFormats, digitFileFormat)
     BOOST_CHECK_EQUAL(rofs[0].getLastIdx(), digits_per_tf[itf] - 1);
   }
   dr.read(digits, rofs);
-  int ndigits_4th_tf = digitFileFormat.fileVersion == 0 ? 8 : 26;
+  int ndigits_4th_tf = not digitFileFormat.hasRof ? 8 : 26;
   BOOST_CHECK_EQUAL(digits.size(), ndigits_4th_tf);
-  if (digitFileFormat.fileVersion == 0) {
+  if (not digitFileFormat.hasRof) {
     BOOST_CHECK_EQUAL(rofs.size(), 1);
     BOOST_CHECK_EQUAL(rofs[0].getFirstIdx(), 0);
     BOOST_CHECK_EQUAL(rofs[0].getLastIdx(), 7);
+    BOOST_CHECK_EQUAL(digits[7].getADC(), 47);
+    BOOST_CHECK_EQUAL(digits[7].isSaturated(), true);
   } else {
     BOOST_CHECK_EQUAL(rofs.size(), 3);
     BOOST_CHECK_EQUAL(rofs[0].getFirstIdx(), 0);
@@ -282,5 +300,7 @@ BOOST_DATA_TEST_CASE(CheckReader, digitFileFormats, digitFileFormat)
     BOOST_CHECK_EQUAL(rofs[1].getLastIdx(), 15);
     BOOST_CHECK_EQUAL(rofs[2].getFirstIdx(), 16);
     BOOST_CHECK_EQUAL(rofs[2].getLastIdx(), 25);
+    BOOST_CHECK_EQUAL(digits[23].getADC(), 63);
+    BOOST_CHECK_EQUAL(digits[23].isSaturated(), true);
   }
 }

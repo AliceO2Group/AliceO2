@@ -15,35 +15,17 @@
 /// @brief Specs for vertex track association device
 /// @author ruben.shahoyan@cern.ch
 
-#include "DetectorsVertexing/VertexTrackMatcher.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "TStopwatch.h"
 
 namespace o2
 {
 namespace vertexing
 {
 
-using namespace o2::framework;
-using GTrackID = o2::dataformats::GlobalTrackID;
-
-class VertexTrackMatcherSpec : public Task
-{
- public:
-  VertexTrackMatcherSpec() = default;
-  ~VertexTrackMatcherSpec() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-  void endOfStream(EndOfStreamContext& ec) final;
-
- private:
-  o2::vertexing::VertexTrackMatcher mMatcher;
-  TStopwatch mTimer;
-};
-
 /// create a processor spec
-DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src);
+o2::framework::DataProcessorSpec getVertexTrackMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src);
 
 } // namespace vertexing
 } // namespace o2

@@ -13,6 +13,7 @@
 #ifndef O2_MATCHING_TPCITS_SPEC
 #define O2_MATCHING_TPCITS_SPEC
 
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 using namespace o2::framework;
 
@@ -21,7 +22,7 @@ namespace o2
 namespace globaltracking
 {
 /// create a processor spec
-framework::DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC);
+framework::DataProcessorSpec getTPCITSMatchingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC);
 
 } // namespace globaltracking
 } // namespace o2

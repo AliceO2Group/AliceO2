@@ -11,6 +11,7 @@
 o2_add_library(EventVisualisationBase
                SOURCES src/ConfigurationManager.cxx
                        src/DataInterpreter.cxx
+                       src/DataReader.cxx
                        src/DataSourceOffline.cxx
                        src/GeometryManager.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Eve

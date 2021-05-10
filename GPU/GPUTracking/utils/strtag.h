@@ -18,7 +18,10 @@
 #include <string>
 
 template <class T = unsigned long>
-constexpr T qStr2Tag(const char* str)
+#if defined(__cplusplus) && __cplusplus >= 201402L
+constexpr
+#endif
+T qStr2Tag(const char* str)
 {
   if (strlen(str) != sizeof(T)) {
     throw std::runtime_error("Invalid tag length");

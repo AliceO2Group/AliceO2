@@ -300,4 +300,25 @@ BOOST_AUTO_TEST_CASE(DataSamplingOverlappingInputs)
     BOOST_CHECK_EQUAL(inputs[2], (InputSpec{"asdf", {"TST", "CCCC"}}));
     BOOST_CHECK_EQUAL(inputs[3], (InputSpec{"timer-stats", "DS", "TIMER-dispatcher", 0, Lifetime::Timer}));
   }
+
+  {
+    // two policies with one common concrete data spec
+    Dispatcher dispatcher("dispatcher", "");
+    auto policy1 = std::make_unique<DataSamplingPolicy>("policy1");
+    policy1->registerPath({"random", "TST", "AAAA", 0}, {{"erwv"}, "DS", "XYZ", 0});
+
+    auto policy2 = std::make_unique<DataSamplingPolicy>("policy2");
+    policy2->registerPath({"random0", "TST", "AAAA", 0}, {{"fdsf"}, "DS", "BBBB", 0});
+    policy2->registerPath({"random1", "TST", "AAAA", 1}, {{"fdsf"}, "DS", "BBBB", 1});
+
+    dispatcher.registerPolicy(std::move(policy1));
+    dispatcher.registerPolicy(std::move(policy2));
+
+    auto inputs = dispatcher.getInputSpecs();
+
+    BOOST_REQUIRE_EQUAL(inputs.size(), 3);
+    BOOST_CHECK_EQUAL(inputs[0], (InputSpec{"random0", "TST", "AAAA", 0}));
+    BOOST_CHECK_EQUAL(inputs[1], (InputSpec{"random1", "TST", "AAAA", 1}));
+    BOOST_CHECK_EQUAL(inputs[2], (InputSpec{"timer-stats", "DS", "TIMER-dispatcher", 0, Lifetime::Timer}));
+  }
 }

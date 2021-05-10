@@ -32,4 +32,10 @@
 #pragma link C++ function o2::vertexing::DCAFitter2::process(const o2::track::TrackParCov&, const o2::track::TrackParCov&);
 #pragma link C++ function o2::vertexing::DCAFitter3::process(const o2::track::TrackParCov&, const o2::track::TrackParCov&, const o2::track::TrackParCov&);
 
+#pragma link C++ class o2::vertexing::TrackVFDump + ;
+#pragma link C++ class std::vector < o2::vertexing::TrackVFDump> + ;
+
+#pragma link C++ class o2::vertexing::PVtxCompDump + ;
+#pragma link C++ class std::vector < o2::vertexing::PVtxCompDump> + ;
+
 #endif

@@ -59,9 +59,7 @@ void CPVGainCalibDevice::run(o2::framework::ProcessingContext& ctx)
       } catch (RawErrorType_t e) {
         LOG(ERROR) << "Raw decoding error " << (int)e;
         //if problem in header, abandon this page
-        if (e == RawErrorType_t::kPAGE_NOTFOUND ||
-            e == RawErrorType_t::kHEADER_DECODING ||
-            e == RawErrorType_t::kHEADER_INVALID) {
+        if (e == RawErrorType_t::kRDH_DECODING) {
           break;
         }
         //if problem in payload, try to continue
@@ -78,7 +76,7 @@ void CPVGainCalibDevice::run(o2::framework::ProcessingContext& ctx)
         continue;
       }
       // Loop over all the channels
-      for (uint32_t adch : decoder.getDigits()) {
+      for (auto adch : decoder.getDigits()) {
         AddressCharge ac = {adch};
         unsigned short absId = ac.Address;
         mMean->Fill(absId, ac.Charge);

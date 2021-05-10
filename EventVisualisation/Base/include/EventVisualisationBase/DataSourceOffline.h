@@ -47,7 +47,7 @@ class DataSourceOffline : public DataSource
     instance[purpose] = reader;
   }
 
-  TObject* getEventData(int no, EVisualisationGroup purpose) override;
+  VisualisationEvent getEventData(int no, EVisualisationGroup purpose, EVisualisationDataType dataType) override;
 };
 
 } // namespace event_visualisation

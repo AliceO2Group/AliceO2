@@ -22,22 +22,22 @@ if (FlukaVMC_FOUND)
   message(STATUS "BUILDING WITH FLUKA")
   o2_add_library(FLUKASetup
                  SOURCES src/FlukaConfig.cxx
-       	         PUBLIC_LINK_LIBRARIES MC::FlukaVMC FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6
+       	         PUBLIC_LINK_LIBRARIES MC::FlukaVMC FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6 O2::SimSetup
 	        )
 else()
   message(STATUS "BUILDING WITHOUT FLUKA")
 endif (FlukaVMC_FOUND)
 	      
 o2_add_library(SimSetup
-               SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx
+               SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx src/FlukaParam.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase
               )
 
 o2_target_root_dictionary(SimSetup
                           HEADERS include/SimSetup/SimSetup.h
                                   include/SimSetup/GlobalProcessCutSimParam.h
+				  include/SimSetup/FlukaParam.h
                           LINKDEF src/GConfLinkDef.h)
-
 o2_add_test_root_macro(DecayConfig.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
                        LABELS simsetup)

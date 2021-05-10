@@ -15,6 +15,9 @@
 #ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATAREADER_H
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATAREADER_H
 
+#include "EventVisualisationDataConverter/VisualisationEvent.h"
+#include "EventVisualisationBase/DataInterpreter.h"
+
 class TObject;
 
 namespace o2
@@ -24,11 +27,15 @@ namespace event_visualisation
 
 class DataReader
 {
+  DataInterpreter* mInterpreter;
+  virtual TObject* getEventData(int /*no*/) { return nullptr; };
+
  public:
+  DataReader(DataInterpreter* interpreter);
   virtual int GetEventCount() const = 0;
   virtual ~DataReader() = default;
   virtual void open() = 0;
-  virtual TObject* getEventData(int no) = 0;
+  virtual VisualisationEvent getEvent(int no, EVisualisationDataType dataType);
 };
 
 } // namespace event_visualisation

@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::ft0;
@@ -37,7 +38,8 @@ RecPointReader::RecPointReader(bool useMC)
 
 void RecPointReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("ft0-recpoints-infile");
+  mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                 ic.options().get<std::string>("ft0-recpoints-infile"));
   connectTree(mInputFileName);
 }
 
@@ -87,7 +89,8 @@ DataProcessorSpec getRecPointReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<RecPointReader>()},
     Options{
-      {"ft0-recpoints-infile", VariantType::String, "o2reco_ft0.root", {"Name of the input file"}}}};
+      {"ft0-recpoints-infile", VariantType::String, "o2reco_ft0.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace ft0

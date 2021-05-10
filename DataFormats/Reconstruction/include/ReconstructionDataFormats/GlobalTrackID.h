@@ -15,13 +15,16 @@
 #ifndef O2_GLOBAL_TRACK_ID
 #define O2_GLOBAL_TRACK_ID
 
+#include "GPUCommonBitSet.h"
 #include "CommonDataFormat/AbstractRef.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#ifndef GPUCA_GPUCODE
 #include <iosfwd>
 #include <string>
 #include <array>
 #include <string_view>
 #include <bitset>
+#endif // GPUCA_GPUCODE_DEVICE
 
 namespace o2
 {
@@ -61,46 +64,99 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
   };
 
   using AbstractRef<25, 5, 2>::AbstractRef;
+  static_assert(NSources <= 32, "bitset<32> insufficient");
+  typedef o2::gpu::gpustd::bitset<32> mask_t;
 
-  static const std::array<DetID::mask_t, NSources> SourceDetectorsMasks; // RS cannot be made constexpr since operator| is not constexpr
+#ifndef GPUCA_GPUCODE
   static constexpr std::string_view NONE{"none"};                        ///< keywork for no sources
   static constexpr std::string_view ALL{"all"};                          ///< keywork for all sources
-  typedef std::bitset<NSources> mask_t;
-
-  static constexpr std::array<mask_t, NSources> sMasks = ///< detectot masks
-    {math_utils::bit2Mask(ITS), math_utils::bit2Mask(TPC), math_utils::bit2Mask(TRD), math_utils::bit2Mask(TOF), math_utils::bit2Mask(PHS),
-     math_utils::bit2Mask(CPV), math_utils::bit2Mask(EMC), math_utils::bit2Mask(HMP), math_utils::bit2Mask(MFT), math_utils::bit2Mask(MCH),
-     math_utils::bit2Mask(MID), math_utils::bit2Mask(ZDC), math_utils::bit2Mask(FT0), math_utils::bit2Mask(FV0), math_utils::bit2Mask(FDD),
-     math_utils::bit2Mask(ITSTPC), math_utils::bit2Mask(TPCTOF), math_utils::bit2Mask(TPCTRD), math_utils::bit2Mask(ITSTPCTRD),
-     math_utils::bit2Mask(ITSTPCTOF), math_utils::bit2Mask(TPCTRDTOF), math_utils::bit2Mask(ITSTPCTRDTOF)};
+#endif
+  static constexpr mask_t MASK_ALL = (1u << NSources) - 1;
 
   // methods for detector level manipulations
-  static const auto getSourceDetectorsMask(int i) { return SourceDetectorsMasks[i]; }
-  static bool includesDet(DetID id, GlobalTrackID::mask_t srcm);
-  auto getSourceDetectorsMask() const { return getSourceDetectorsMask(getSource()); }
-  bool includesDet(DetID id) const { return (getSourceDetectorsMask() & DetID::getMask(id)).any(); }
+  GPUd() static constexpr DetID::mask_t getSourceDetectorsMask(int i);
+  GPUd() static bool includesDet(DetID id, GlobalTrackID::mask_t srcm);
+  GPUdi() auto getSourceDetectorsMask() const { return getSourceDetectorsMask(getSource()); }
+  GPUdi() bool includesDet(DetID id) const { return (getSourceDetectorsMask() & DetID::getMask(id)).any(); }
 
   // methods for source level manipulations
+#ifndef GPUCA_GPUCODE
   static auto getSourceName(int s) { return DetID::getNames(getSourceDetectorsMask(s), '-'); }
-  constexpr mask_t getSourceMask(int s) const { return sMasks[s]; }
-  mask_t getSourceMask() const { return getSourceMask(getSource()); }
-  auto getSourceName() const { return getSourceName(getSource()); }
   static mask_t getSourcesMask(const std::string_view srcList);
-  static bool includesSource(int s, mask_t srcm) { return srcm[s]; }
   static std::string getSourcesNames(mask_t srcm);
-  operator int() const { return int(getIndex()); }
+  auto getSourceName() const { return getSourceName(getSource()); }
+#endif // GPUCA_GPUCODE
+  GPUd() static constexpr mask_t getSourceMask(int s);
+  GPUdi() mask_t getSourceMask() const { return getSourceMask(getSource()); }
+  GPUdi() static bool includesSource(int s, mask_t srcm) { return srcm[s]; }
+  GPUdi() operator int() const { return int(getIndex()); }
 
+#ifndef GPUCA_GPUCODE
   std::string asString() const;
   void print() const;
+#endif // GPUCA_GPUCODE
 
-  ClassDefNV(GlobalTrackID, 2);
+  ClassDefNV(GlobalTrackID, 3);
 };
 
+#ifndef GPUCA_GPUCODE
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::GlobalTrackID& v);
+#endif // GPUCA_GPUCODE
+
+namespace globaltrackid_internal
+{
+// static constexpr array class members not possible on the GPU, thus we use this trick.
+using DetID = o2::detectors::DetID;
+GPUconstexpr() DetID::mask_t SourceDetectorsMasks[GlobalTrackID::NSources] = {
+  DetID::mask_t(DetID::getMask(DetID::ITS)),
+  DetID::mask_t(DetID::getMask(DetID::TPC)),
+  DetID::mask_t(DetID::getMask(DetID::TRD)),
+  DetID::mask_t(DetID::getMask(DetID::TOF)),
+  DetID::mask_t(DetID::getMask(DetID::PHS)),
+  DetID::mask_t(DetID::getMask(DetID::CPV)),
+  DetID::mask_t(DetID::getMask(DetID::EMC)),
+  DetID::mask_t(DetID::getMask(DetID::HMP)),
+  DetID::mask_t(DetID::getMask(DetID::MFT)),
+  DetID::mask_t(DetID::getMask(DetID::MCH)),
+  DetID::mask_t(DetID::getMask(DetID::MID)),
+  DetID::mask_t(DetID::getMask(DetID::ZDC)),
+  DetID::mask_t(DetID::getMask(DetID::FT0)),
+  DetID::mask_t(DetID::getMask(DetID::FV0)),
+  DetID::mask_t(DetID::getMask(DetID::FDD)),
+  //
+  DetID::mask_t(DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC)),
+  DetID::mask_t(DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TOF)),
+  DetID::mask_t(DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD)),
+  DetID::mask_t(DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD)),
+  DetID::mask_t(DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TOF)),
+  DetID::mask_t(DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD) | DetID::getMask(DetID::TOF)),
+  DetID::mask_t(DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD) | DetID::getMask(DetID::TOF))};
+
+GPUconstexpr() GlobalTrackID::mask_t sMasks[GlobalTrackID::NSources] = ///< detectot masks
+  {GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITS)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TRD)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::PHS)),
+   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CPV)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::EMC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::HMP)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFT)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCH)),
+   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MID)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ZDC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FT0)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FV0)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::FDD)),
+   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPC)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRD)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRD)),
+   GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRDTOF))};
+} // namespace globaltrackid_internal
+
+GPUdi() constexpr GlobalTrackID::DetID::mask_t GlobalTrackID::getSourceDetectorsMask(int i) { return globaltrackid_internal::SourceDetectorsMasks[i]; }
+GPUdi() constexpr GlobalTrackID::mask_t GlobalTrackID::getSourceMask(int s) { return globaltrackid_internal::sMasks[s]; }
+
+GPUdi() bool GlobalTrackID::includesDet(DetID id, GlobalTrackID::mask_t srcm)
+{
+  for (int i = 0; i < NSources; i++) {
+    if (includesSource(i, srcm) && (getSourceDetectorsMask(i) & id.getMask()).any()) {
+      return true;
+    }
+  }
+  return false;
+}
 
 } // namespace dataformats
 } // namespace o2
 
+#ifndef GPUCA_GPUCODE
 namespace std
 {
 // defining std::hash for GlobalTrackIndex to be used with std containers
@@ -113,5 +169,6 @@ struct hash<o2::dataformats::GlobalTrackID> {
   }
 };
 } // namespace std
+#endif // GPUCA_GPUCODE
 
 #endif

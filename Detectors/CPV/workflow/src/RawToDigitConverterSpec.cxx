@@ -113,24 +113,21 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   }
 
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
-
-    // enum RawErrorType_t {
-    //   kOK,                       ///< NoError
-    //   kNO_PAYLOAD,               ///< No payload per ddl
-    //   kHEADER_DECODING,
-    //   kPAGE_NOTFOUND,
-    //   kPAYLOAD_DECODING,
-    //   kHEADER_INVALID,
-    //   kRCU_TRAILER_ERROR,        ///< RCU trailer cannot be decoded or invalid
-    //   kRCU_VERSION_ERROR,        ///< RCU trailer version not matching with the version in the raw header
-    //   kRCU_TRAILER_SIZE_ERROR,   ///< RCU trailer size length
-    //   kSEGMENT_HEADER_ERROR,
-    //   kROW_HEADER_ERROR,
-    //   kEOE_HEADER_ERROR,
-    //   kPADERROR,
-    //   kPadAddress
-    // };
-
+    /*   enum RawErrorType_t {
+        kOK,         ///< NoError
+        kNO_PAYLOAD, ///< No payload per ddl
+        kRDH_DECODING,
+        kNOT_CPV_RDH,
+        kPAGE_NOTFOUND,
+        kPAYLOAD_INCOMPLETE,
+        kCPVHEADER_INVALID,
+        kCPVTRAILER_INVALID,
+        kSEGMENT_HEADER_ERROR,
+        kROW_HEADER_ERROR,
+        kEOE_HEADER_ERROR,
+        kPADERROR,
+        kPadAddress
+  */
     o2::cpv::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
@@ -141,37 +138,23 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         //add error list
         mOutputHWErrors.emplace_back(5, 0, 0, 0, e); //Put general errors to non-existing DDL5
         //if problem in header, abandon this page
-        if (e == RawErrorType_t::kPAGE_NOTFOUND ||
-            e == RawErrorType_t::kHEADER_DECODING ||
-            e == RawErrorType_t::kHEADER_INVALID) {
+        if (e == RawErrorType_t::kRDH_DECODING) {
           break;
         }
         //if problem in payload, try to continue
         continue;
       }
-      auto& header = rawreader.getRawHeader();
-      auto triggerBC = o2::raw::RDHUtils::getTriggerBC(header);
-      auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
+      auto& rdh = rawreader.getRawHeader();
+      auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
       // auto ddl = o2::raw::RDHUtils::getFEEID(header);
-      auto mod = o2::raw::RDHUtils::getLinkID(header) + 2; //ddl=0,1,2 -> mod=2,3,4
+      auto mod = o2::raw::RDHUtils::getLinkID(rdh) + 2; //link=0,1,2 -> mod=2,3,4
       // if(ddl != mDDL){
       //   LOG(ERROR) << "DDL from header "<< ddl << " != configured DDL=" << mDDL;
       // }
-
-      o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
-      std::shared_ptr<std::vector<o2::cpv::Digit>> currentDigitContainer;
-      auto found = digitBuffer.find(currentIR);
-      if (found == digitBuffer.end()) {
-        currentDigitContainer = std::make_shared<std::vector<o2::cpv::Digit>>();
-        digitBuffer[currentIR] = currentDigitContainer;
-      } else {
-        currentDigitContainer = found->second;
-      }
-      //
       if (mod > o2::cpv::Geometry::kNMod) { //only 3 correct modules:2,3,4
         LOG(ERROR) << "module=" << mod << "do not exist";
-        mOutputHWErrors.emplace_back(6, mod, 0, 0, kHEADER_INVALID); //Add non-existing DDL as DDL 5
-        continue;                                                    //skip STU mod
+        mOutputHWErrors.emplace_back(6, mod, 0, 0, kRDH_INVALID); //Add non-existing DDL as DDL 5
+        continue;                                                 //skip STU mod
       }
       // use the altro decoder to decode the raw data, and extract the RCU trailer
       o2::cpv::RawDecoder decoder(rawreader);
@@ -182,22 +165,41 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         //TODO: probably careful conversion of decoder errors to Fitter errors?
         mOutputHWErrors.emplace_back(mod, 1, 0, 0, err); //assign general header errors to non-existing FEE 16
       }
-      // Loop over all the channels
-      for (uint32_t adch : decoder.getDigits()) {
-        AddressCharge ac = {adch};
-        unsigned short absId = ac.Address;
-        //if we deal with non-pedestal data?
-        if (!mIsPedestalData) { //not a pedestal data
-          //test bad map
-          if (mBadMap->isChannelGood(absId)) {
-            //we need to subtract pedestal from amplidute and calibrate it
-            float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
-            if (amp > 0) {
-              currentDigitContainer->emplace_back(absId, amp, -1);
-            }
+
+      std::shared_ptr<std::vector<o2::cpv::Digit>> currentDigitContainer;
+      auto digilets = decoder.getDigits();
+      if (digilets.empty()) { //no digits -> continue to next pages
+        continue;
+      }
+      o2::InteractionRecord currentIR(0, triggerOrbit); //(bc, orbit)
+      // Loop over all the BCs
+      for (auto itBCRecords : decoder.getBCRecords()) {
+        currentIR.bc = itBCRecords.bc;
+        for (int iDig = itBCRecords.firstDigit; iDig <= itBCRecords.lastDigit; iDig++) {
+          auto adch = digilets[iDig];
+          auto found = digitBuffer.find(currentIR);
+          if (found == digitBuffer.end()) {
+            currentDigitContainer = std::make_shared<std::vector<o2::cpv::Digit>>();
+            digitBuffer[currentIR] = currentDigitContainer;
+          } else {
+            currentDigitContainer = found->second;
           }
-        } else { //pedestal data, no calibration needed.
-          currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
+
+          AddressCharge ac = {adch};
+          unsigned short absId = ac.Address;
+          //if we deal with non-pedestal data?
+          if (!mIsPedestalData) { //not a pedestal data
+            //test bad map
+            if (mBadMap->isChannelGood(absId)) {
+              //we need to subtract pedestal from amplidute and calibrate it
+              float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
+              if (amp > 0) {
+                currentDigitContainer->emplace_back(absId, amp, -1);
+              }
+            }
+          } else { //pedestal data, no calibration needed.
+            currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
+          }
         }
       }
       //Check and send list of hwErrors

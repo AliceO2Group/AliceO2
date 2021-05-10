@@ -30,31 +30,40 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   float dbscanDeltaT = 10.;    ///< abs. time difference cut
   float dbscanAdaptCoef = 0.1; ///< adapt dbscan minPts for each cluster as minPts=max(minPts, currentSize*dbscanAdaptCoef).
 
-  int maxVerticesPerCluster = 1; ///< max vertices per time-z cluster to look for
-  int maxTrialsPerCluster = 3;   ///< max unsucessful trials for vertex search per vertex
+  int maxVerticesPerCluster = 10; ///< max vertices per time-z cluster to look for
+  int maxTrialsPerCluster = 100;  ///< max unsucessful trials for vertex search per vertex
 
   // track selection
   float dcaTolerance = 1.3; ///< consider tracks within this abs DCA to mean vertex
   float pullIniCut = 9;     ///< cut on pull (n^2 sigma) on dca to mean vertex
   float maxTimeErrorMUS = 10.0; ///< max time error in ms of the track to account
 
-  // parameters
-  float zHistoRange = 20.;           ///< +-range of the Zseed histo
-  float zHistoBinSize = 0.5;         ///< size of the Zseed histo bin
+  // histogramming and its weigths params
+  float histoBinZSize = 0.05;       ///< size of the seedTZ histo bin Z
+  float histoBinTSize = 0.05;       ///< size of the seedTZ histo bin T
+  float addTimeSigma2 = 0.1 * 0.1;  ///< increment time error^2 by this amount when calculating histo weight
+  float addZSigma2 = 0.005 * 0.005; ///< increment z error^2 by this amount when calculating histo weight
+
+  // fitting parameters
   float tukey = kDefTukey;           ///< 1./[Tukey parameter]^2
+  float iniScale2 = 5.;              ///< initial scale to assign
   float minScale2 = 1.;              ///< min slaling factor^2
   float acceptableScale2 = 4.;       ///< if below this factor, try to refit with minScale2
-  float maxScale2 = 1.e6;            ///< max slaling factor^2
+  float maxScale2 = 50;              ///< max slaling factor^2
   float upscaleFactor = 9.;          ///< factor for upscaling if not candidate is found
   float slowConvergenceFactor = 0.5; ///< consider convergence as slow if ratio new/old scale2 exceeds it
   //
+  float maxTDiffDebris = 2.0;    ///< when reducing debris, don't consider vertices separated by time > this value in \mus
+  float maxZDiffDebris = 0.7;    ///< don't consider vertices separated by Z > this value in cm
+  float maxMultRatDebris = 0.05; ///< don't consider vertices with multiplicity ratio above this
+  float maxChi2TZDebris = 1200.; ///< don't consider vertices with mutual chi2 exceeding this (for pp should be ~10)
+
   // validation with externally provided InteractionRecords (e.g. from FT0)
   int minNContributorsForIRcut = 4;     ///< do not apply IR cut to vertices below IR tagging efficiency threshold
   float maxTError = 0.2;                ///< use min of vertex time error or this for nsigma evaluation
   float minTError = 0.003;              ///< don't use error smaller than that (~BC/2/minNContributorsForFT0cut)
   float nSigmaTimeCut = 4.;             ///< eliminate vertex if there is no FT0 signal within this cut
   float timeBiasMS = 0;                 ///< relative bias in ms to add to TPCITS-based time stamp
-
   //
   // stopping condition params
   float maxChi2Mean = 10.;          ///< max mean chi2 of vertex to accept

@@ -85,7 +85,8 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
     mRec->RegisterGPUProcessor(&processors()->tpcMerger, GetRecoStepsGPU() & RecoStep::TPCMerging);
   }
   if (GetRecoSteps() & RecoStep::TRDTracking) {
-    mRec->RegisterGPUProcessor(&processors()->trdTracker, GetRecoStepsGPU() & RecoStep::TRDTracking);
+    mRec->RegisterGPUProcessor(&processors()->trdTrackerGPU, GetRecoStepsGPU() & RecoStep::TRDTracking);
+    mRec->RegisterGPUProcessor(&processors()->trdTrackerO2, GetRecoStepsGPU() & RecoStep::TRDTracking);
   }
 #ifdef HAVE_O2HEADERS
   if (GetRecoSteps() & RecoStep::TPCConversion) {
@@ -114,7 +115,8 @@ void GPUChainTracking::RegisterGPUProcessors()
   if (mRec->IsGPU()) {
     mRec->RegisterGPUDeviceProcessor(mInputsShadow.get(), mInputsHost.get());
   }
-  memcpy((void*)&processorsShadow()->trdTracker, (const void*)&processors()->trdTracker, sizeof(processors()->trdTracker));
+  memcpy((void*)&processorsShadow()->trdTrackerGPU, (const void*)&processors()->trdTrackerGPU, sizeof(processors()->trdTrackerGPU));
+  memcpy((void*)&processorsShadow()->trdTrackerO2, (const void*)&processors()->trdTrackerO2, sizeof(processors()->trdTrackerO2));
   if (GetRecoStepsGPU() & RecoStep::TPCSliceTracking) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcTrackers[i], &processors()->tpcTrackers[i]);
@@ -124,7 +126,8 @@ void GPUChainTracking::RegisterGPUProcessors()
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcMerger, &processors()->tpcMerger);
   }
   if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
-    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTracker, &processors()->trdTracker);
+    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTrackerGPU, &processors()->trdTrackerGPU);
+    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTrackerO2, &processors()->trdTrackerO2);
   }
 
 #ifdef HAVE_O2HEADERS
@@ -478,12 +481,15 @@ void GPUChainTracking::AllocateIOMemory()
   mIOPtrs.clustersNative = mIOMem.clusterNativeAccess->nClustersTotal ? mIOMem.clusterNativeAccess.get() : nullptr;
   AllocateIOMemoryHelper(mIOPtrs.nMCLabelsTPC, mIOPtrs.mcLabelsTPC, mIOMem.mcLabelsTPC);
   AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPC, mIOPtrs.mcInfosTPC, mIOMem.mcInfosTPC);
+  AllocateIOMemoryHelper(mIOPtrs.nMCInfosTPCCol, mIOPtrs.mcInfosTPCCol, mIOMem.mcInfosTPCCol);
   AllocateIOMemoryHelper(mIOPtrs.nMergedTracks, mIOPtrs.mergedTracks, mIOMem.mergedTracks);
   AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHits, mIOMem.mergedTrackHits);
   AllocateIOMemoryHelper(mIOPtrs.nMergedTrackHits, mIOPtrs.mergedTrackHitsXYZ, mIOMem.mergedTrackHitsXYZ);
   AllocateIOMemoryHelper(mIOPtrs.nTRDTracks, mIOPtrs.trdTracks, mIOMem.trdTracks);
   AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdTracklets, mIOMem.trdTracklets);
-  AllocateIOMemoryHelper(mIOPtrs.nTRDTrackletsMC, mIOPtrs.trdTrackletsMC, mIOMem.trdTrackletsMC);
+  AllocateIOMemoryHelper(mIOPtrs.nTRDTracklets, mIOPtrs.trdSpacePoints, mIOMem.trdSpacePoints);
+  AllocateIOMemoryHelper(mIOPtrs.nTRDTriggerRecords, mIOPtrs.trdTriggerTimes, mIOMem.trdTriggerTimes);
+  AllocateIOMemoryHelper(mIOPtrs.nTRDTriggerRecords, mIOPtrs.trdTrackletIdxFirst, mIOMem.trdTrackletIdxFirst);
 }
 
 void GPUChainTracking::LoadClusterErrors() { param().LoadClusterErrors(); }
@@ -521,7 +527,7 @@ int GPUChainTracking::RunChain()
   if (GetProcessingSettings().runCompressionStatistics && mCompressionStatistics == nullptr) {
     mCompressionStatistics.reset(new GPUTPCClusterStatistics);
   }
-  const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
+  const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && (mIOPtrs.nMCInfosTPC || GetProcessingSettings().runMC)));
   if (needQA && mQA->IsInitialized() == false) {
     if (mQA->InitQA(GetProcessingSettings().runQA ? -GetProcessingSettings().runQA : -1)) {
       return 1;

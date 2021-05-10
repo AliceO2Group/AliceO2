@@ -55,7 +55,7 @@ void CookedTrackerDPL::init(InitContext& ic)
   auto nthreads = ic.options().get<int>("nthreads");
   mTracker.setNumberOfThreads(nthreads);
   auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
+  const auto grp = o2::parameters::GRPObject::loadFrom(filename);
   if (grp) {
     mGRP.reset(grp);
     o2::base::Propagator::initFieldFromGRP(grp);
@@ -74,12 +74,12 @@ void CookedTrackerDPL::init(InitContext& ic)
     LOG(INFO) << "ITSCookedTracker RO: continuous=" << continuous;
     mTracker.setContinuousMode(continuous);
   } else {
-    throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
+    throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
-  if (o2::base::NameConf::pathExists(dictFile)) {
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
   } else {

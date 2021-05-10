@@ -59,6 +59,7 @@ class GPUChain
   const GPUSettingsGRP& GetGRPSettings() const { return mRec->mGRPSettings; }
   const GPUSettingsDeviceBackend& GetDeviceBackendSettings() const { return mRec->mDeviceBackendSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mRec->mProcessingSettings; }
+  const GPUCalibObjectsConst& calib() const { return processors()->calibObjects; }
   GPUReconstruction* rec() { return mRec; }
   const GPUReconstruction* rec() const { return mRec; }
 

@@ -17,7 +17,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "TOFBase/Geo.h"
 #include "CommonUtils/StringUtils.h"
-#include "TSystem.h"
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iomanip>
@@ -37,8 +37,9 @@ void RawWriter::init(InitContext& ic)
   mFileFor = ic.options().get<std::string>("tof-raw-file-for");
   LOG(INFO) << "Raw output file: " << mOutFileName.c_str();
 
-  if (gSystem->AccessPathName(mOutDirName.c_str())) {
-    if (gSystem->mkdir(mOutDirName.c_str(), kTRUE)) {
+  // if needed, create output directory
+  if (!std::filesystem::exists(mOutDirName)) {
+    if (!std::filesystem::create_directories(mOutDirName)) {
       LOG(FATAL) << "could not create output directory " << mOutDirName;
     } else {
       LOG(INFO) << "created output directory " << mOutDirName;
@@ -99,7 +100,7 @@ void RawWriter::run(ProcessingContext& pc)
   }
 
   // create configuration file for rawreader
-  encoder.getWriter().writeConfFile("TOF", "RAWDATA", o2::utils::concat_string(mOutDirName, '/', "TOFraw.cfg"));
+  encoder.getWriter().writeConfFile("TOF", "RAWDATA", o2::utils::Str::concat_string(mOutDirName, '/', "TOFraw.cfg"));
   encoder.close();
 }
 

@@ -53,7 +53,7 @@ void RUDecodeData::setROFInfo(ChipPixelData* chipData, const GBTLink* lnk)
 void RUDecodeData::fillChipStatistics(int icab, const ChipPixelData* chipData)
 {
   cableLinkPtr[icab]->chipStat.nHits += chipData->getData().size();
-  cableLinkPtr[icab]->chipStat.addErrors(chipData->getErrorFlags());
+  cableLinkPtr[icab]->chipStat.addErrors(chipData->getErrorFlags(), chipData->getChipID());
 }
 
 } // namespace itsmft

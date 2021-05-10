@@ -130,11 +130,16 @@ void GPUChainTracking::DumpData(const char* filename)
   DumpData(fp, mIOPtrs.sliceClusters, mIOPtrs.nSliceClusters, InOutPointerType::SLICE_OUT_CLUSTER);
   DumpData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, InOutPointerType::MC_LABEL_TPC);
   DumpData(fp, &mIOPtrs.mcInfosTPC, &mIOPtrs.nMCInfosTPC, InOutPointerType::MC_INFO_TPC);
+  DumpData(fp, &mIOPtrs.mcInfosTPCCol, &mIOPtrs.nMCInfosTPCCol, InOutPointerType::MC_INFO_TPC);
   DumpData(fp, &mIOPtrs.mergedTracks, &mIOPtrs.nMergedTracks, InOutPointerType::MERGED_TRACK);
   DumpData(fp, &mIOPtrs.mergedTrackHits, &mIOPtrs.nMergedTrackHits, InOutPointerType::MERGED_TRACK_HIT);
   DumpData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, InOutPointerType::TRD_TRACK);
   DumpData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, InOutPointerType::TRD_TRACKLET);
-  DumpData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
+  if (mIOPtrs.trdSpacePoints) {
+    DumpData(fp, &mIOPtrs.trdSpacePoints, &mIOPtrs.nTRDTracklets, InOutPointerType::TRD_SPACEPOINT);
+  }
+  DumpData(fp, &mIOPtrs.trdTriggerTimes, &mIOPtrs.nTRDTriggerRecords, InOutPointerType::TRD_TRIGGERRECORDS);
+  DumpData(fp, &mIOPtrs.trdTrackletIdxFirst, &mIOPtrs.nTRDTriggerRecords, InOutPointerType::TRD_TRIGGERRECORDS);
   fclose(fp);
 }
 
@@ -218,11 +223,15 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, mIOPtrs.sliceClusters, mIOPtrs.nSliceClusters, mIOMem.sliceClusters, InOutPointerType::SLICE_OUT_CLUSTER);
   ReadData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, &mIOMem.mcLabelsTPC, InOutPointerType::MC_LABEL_TPC);
   ReadData(fp, &mIOPtrs.mcInfosTPC, &mIOPtrs.nMCInfosTPC, &mIOMem.mcInfosTPC, InOutPointerType::MC_INFO_TPC);
+  ReadData(fp, &mIOPtrs.mcInfosTPCCol, &mIOPtrs.nMCInfosTPCCol, &mIOMem.mcInfosTPCCol, InOutPointerType::MC_INFO_TPC);
   ReadData(fp, &mIOPtrs.mergedTracks, &mIOPtrs.nMergedTracks, &mIOMem.mergedTracks, InOutPointerType::MERGED_TRACK);
   ReadData(fp, &mIOPtrs.mergedTrackHits, &mIOPtrs.nMergedTrackHits, &mIOMem.mergedTrackHits, InOutPointerType::MERGED_TRACK_HIT);
   ReadData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, &mIOMem.trdTracks, InOutPointerType::TRD_TRACK);
   ReadData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, &mIOMem.trdTracklets, InOutPointerType::TRD_TRACKLET);
-  ReadData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, &mIOMem.trdTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
+  unsigned int dummy = 0;
+  ReadData(fp, &mIOPtrs.trdSpacePoints, &dummy, &mIOMem.trdSpacePoints, InOutPointerType::TRD_SPACEPOINT);
+  ReadData(fp, &mIOPtrs.trdTriggerTimes, &mIOPtrs.nTRDTriggerRecords, &mIOMem.trdTriggerTimes, InOutPointerType::TRD_TRIGGERRECORDS);
+  ReadData(fp, &mIOPtrs.trdTrackletIdxFirst, &mIOPtrs.nTRDTriggerRecords, &mIOMem.trdTrackletIdxFirst, InOutPointerType::TRD_TRIGGERRECORDS);
 
   size_t fptr = ftell(fp);
   fseek(fp, 0, SEEK_END);

@@ -155,9 +155,11 @@ void GPUChainTracking::PrintMemoryStatistics()
     addToMap("TPC O2 ClusRefs", usageMap, processors()->tpcMerger.NOutputClusRefsTPCO2(), processors()->tpcMerger.NOutputClusRefsTPCO2());
   }
 
+#ifdef GPUCA_TPC_GEOMETRY_O2
   addToMap("TPC ComprCache HitsAttached", usageMap, processors()->tpcCompressor.mOutput->nAttachedClusters, processors()->tpcCompressor.mMaxTrackClusters);
   addToMap("TPC ComprCache HitsUnattached", usageMap, processors()->tpcCompressor.mOutput->nUnattachedClusters, processors()->tpcCompressor.mMaxClustersInCache);
   addToMap("TPC ComprCache Tracks", usageMap, processors()->tpcCompressor.mOutput->nTracks, processors()->tpcCompressor.mMaxTracks);
+#endif
 
   for (auto& elem : usageMap) {
     printf("Mem Usage %-30s : %'14lu / %'14lu (%3.0f%% / %3.0f%% / count %3u / max %'14lu)\n", elem.first.c_str(), elem.second.nSum, elem.second.nBoundSum, 100. * elem.second.nSum / std::max(1lu, elem.second.nBoundSum), 100. * elem.second.maxUse, elem.second.count, elem.second.nMax);
@@ -228,8 +230,8 @@ void GPUChainTracking::PrintOutputStat()
     int nTRDTracklets = 0;
     for (unsigned int k = 0; k < mIOPtrs.nTRDTracks; k++) {
       auto& trk = mIOPtrs.trdTracks[k];
-      nTRDTracklets += trk.GetNtracklets();
-      nTRDTracks += trk.GetNtracklets() != 0;
+      nTRDTracklets += trk.getNtracklets();
+      nTRDTracks += trk.getNtracklets() != 0;
     }
     snprintf(trdText, 1024, " - TRD Tracker reconstructed %d tracks (%d tracklets)", nTRDTracks, nTRDTracklets);
   }

@@ -50,20 +50,13 @@ class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type, DataBlockPMtype
   //deserialize payload to raw data blocks and proccesss them to digits
   void process(int linkID, gsl::span<const uint8_t> payload, int ep)
   {
-    int linkTCM = 11;
-    if (0 <= linkID && linkID != linkTCM) {
-      //PM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID, ep);
-    } else if (linkID == linkTCM && ep == 0) {
+    if (o2::ft0::SingleLUT::Instance().isTCM(linkID, ep)) {
       //TCM data proccessing
       RawReaderBaseType::template processBinaryData<DataBlockTCMtype>(payload, linkID, ep);
     } else {
-      //put here code in case of bad rdh.linkID value
-      LOG(INFO) << "WARNING! WRONG LINK ID! " << linkID;
-      return;
+      //PM data proccessing
+      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID, ep);
     }
-
-    //
   }
 };
 //Normal TCM mode

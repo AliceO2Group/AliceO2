@@ -14,12 +14,23 @@
 /// \author Philippe Pillot, Subatech
 
 #include "Framework/runDataProcessing.h"
-
+#include "CommonUtils/ConfigurableParam.h"
 #include "TrackAtVertexSpec.h"
 
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
+  // option allowing to set parameters
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
+  std::swap(workflowOptions, options);
+}
+
+WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
+{
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   return WorkflowSpec{o2::mch::getTrackAtVertexSpec()};
 }

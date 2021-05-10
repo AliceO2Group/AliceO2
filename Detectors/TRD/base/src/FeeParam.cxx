@@ -35,12 +35,15 @@
 #include <fairlogger/Logger.h>
 #include <array>
 
+#include "DataFormatsTRD/HelperMethods.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/PadPlane.h"
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/CommonParam.h"
-//#include "DataFormatsTRD/Constants.h"
+
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
 
 using namespace std;
 using namespace o2::trd;
@@ -49,38 +52,6 @@ using namespace o2::trd::constants;
 //_____________________________________________________________________________
 
 FeeParam* FeeParam::mgInstance = nullptr;
-bool FeeParam::mgTerminated = false;
-bool FeeParam::mgTracklet = true;
-bool FeeParam::mgRejectMultipleTracklets = false;
-bool FeeParam::mgUseMisalignCorr = false;
-bool FeeParam::mgUseTimeOffset = false;
-bool FeeParam::mgLUTPadNumberingFilled = false;
-std::vector<short> FeeParam::mgLUTPadNumbering;
-
-// definition of geometry constants
-std::array<float, NCHAMBERPERSEC> FeeParam::mgZrow = {
-  301, 177, 53, -57, -181,
-  301, 177, 53, -57, -181,
-  315, 184, 53, -57, -188,
-  329, 191, 53, -57, -195,
-  343, 198, 53, -57, -202,
-  347, 200, 53, -57, -204};
-std::array<float, NLAYER> FeeParam::mgX = {300.65, 313.25, 325.85, 338.45, 351.05, 363.65};
-std::array<float, NLAYER> FeeParam::mgTiltingAngle = {-2., 2., -2., 2., -2., 2.};
-int FeeParam::mgDyMax = 63;
-int FeeParam::mgDyMin = -64;
-float FeeParam::mgBinDy = 140e-4;
-std::array<float, NLAYER> FeeParam::mgWidthPad = {0.635, 0.665, 0.695, 0.725, 0.755, 0.785};
-std::array<float, NLAYER> FeeParam::mgLengthInnerPadC1 = {7.5, 7.5, 8.0, 8.5, 9.0, 9.0};
-std::array<float, NLAYER> FeeParam::mgLengthOuterPadC1 = {7.5, 7.5, 7.5, 7.5, 7.5, 8.5};
-std::array<float, NLAYER> FeeParam::mgInvX;
-std::array<float, NLAYER> FeeParam::mgTiltingAngleTan;
-std::array<float, NLAYER> FeeParam::mgInvWidthPad;
-
-float FeeParam::mgLengthInnerPadC0 = 9.0;
-float FeeParam::mgLengthOuterPadC0 = 8.0;
-float FeeParam::mgScalePad = 256. * 32.;
-float FeeParam::mgDriftLength = 3.;
 
 //_____________________________________________________________________________
 FeeParam* FeeParam::instance()
@@ -88,111 +59,36 @@ FeeParam* FeeParam::instance()
   //
   // Instance constructor
   //
-  if (mgTerminated != false) {
-    return nullptr;
-  }
+#ifdef WITH_OPENMP
+#pragma omp critical
+#endif
+  { // start omp critical block
+    if (mgInstance == nullptr) {
+      mgInstance = new FeeParam();
+    }
 
-  if (mgInstance == nullptr) {
-    mgInstance = new FeeParam();
-  }
-  // this is moved here to remove recursive calls induced by the line 2 above this one.
-  if (!mgLUTPadNumberingFilled) {
-    mgInstance->createPad2MCMLookUpTable();
-  }
-  return mgInstance;
+    return mgInstance;
+  } // end omp critical block
 }
 
-//_____________________________________________________________________________
-void FeeParam::terminate()
-{
-  //
-  // Terminate the class and release memory
-  //
-
-  mgTerminated = true;
-
-  if (mgInstance != nullptr) {
-    delete mgInstance;
-    mgInstance = nullptr;
-  }
-}
 
 //_____________________________________________________________________________
-FeeParam::FeeParam() : mMagField(0.),
-                       mOmegaTau(0.),
-                       mPtMin(0.1),
-                       mNtimebins(20 << 5),
-                       mScaleQ0(0),
-                       mScaleQ1(0),
-                       mPidTracklengthCorr(false),
-                       mTiltCorr(false),
-                       mPidGainCorr(false)
+FeeParam::FeeParam()
 {
   //
   // Default constructor
   //
-  mCP = CommonParam::Instance();
 
-  // These variables are used internally in the class to elliminate divisions.
-  // putting them at the top was messy.
-  int j = 0;
-  std::for_each(mgInvX.begin(), mgInvX.end(), [&j](float& x) { x = 1. / mgX[j]; });
-  j = 0;
-  std::for_each(mgInvWidthPad.begin(), mgInvWidthPad.end(), [&j](float& x) { x = 1. / mgWidthPad[j]; });
-  j = 0;
-  std::for_each(mgTiltingAngleTan.begin(), mgTiltingAngleTan.end(), [&j](float& x) { x = std::tan(mgTiltingAngle[j] * M_PI / 180.0); });
-
-  mInvPtMin = 1 / mPtMin;
-}
-
-//_____________________________________________________________________________
-//FeeParam::FeeParam(TRootIoCtor*)
-//{
-//
-// IO constructor
-//
-//}
-
-//_____________________________________________________________________________
-FeeParam::FeeParam(const FeeParam& p)
-{
-  //
-  // FeeParam copy constructor
-  //
-  mRAWversion = p.mRAWversion;
-  mCP = p.mCP;
-  if (!mgLUTPadNumberingFilled) {
-    mgInstance->createPad2MCMLookUpTable();
-  }
-}
-
-//_____________________________________________________________________________
-FeeParam::~FeeParam() = default;
-
-//_____________________________________________________________________________
-FeeParam& FeeParam::operator=(const FeeParam& p)
-{
-  //
-  // Assignment operator
-  //
-
-  if (this != &p) {
-    ((FeeParam&)p).Copy(*this);
+  for (int j = 0; j < constants::NLAYER; ++j) {
+    mInvX[j] = 1. / mX[j];
+    mInvWidthPad[j] = 1. / mWidthPad[j];
+    mTiltingAngleTan[j] = std::tan(mTiltingAngle[j] * M_PI / 180.0);
   }
 
-  return *this;
+  fillPad2MCMLookUpTable();
 }
 
-//_____________________________________________________________________________
-void FeeParam::Copy(FeeParam& p) const
-{
-  //
-  // Copy function
-  //
 
-  p.mCP = mCP;
-  p.mRAWversion = mRAWversion;
-}
 
 //_____________________________________________________________________________
 int FeeParam::getPadRowFromMCM(int irob, int imcm)
@@ -201,7 +97,7 @@ int FeeParam::getPadRowFromMCM(int irob, int imcm)
   // Return on which pad row this mcm sits
   //
 
-  return NMCMROBINROW * (irob / 2) + imcm / NMCMROBINCOL;
+  return HelperMethods::getPadRowFromMCM(irob, imcm);
 }
 
 //_____________________________________________________________________________
@@ -220,15 +116,7 @@ int FeeParam::getPadColFromADC(int irob, int imcm, int iadc)
   // http://wiki.kip.uni-heidelberg.de/ti/TRD/index.php/Image:ROB_MCM_numbering.pdf
   //
 
-  if (iadc < 0 || iadc > NADCMCM) {
-    return -100;
-  }
-  int mcmcol = imcm % NMCMROBINCOL + getROBSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
-  int padcol = mcmcol * NCOLMCM + NCOLMCM + 1 - iadc;
-  if (padcol < 0 || padcol >= NCOLUMN) {
-    return -1; // this is commented because of reason above OK
-  }
-  return padcol;
+  return HelperMethods::getPadColFromADC(irob, imcm, iadc);
 }
 
 //_____________________________________________________________________________
@@ -257,10 +145,7 @@ int FeeParam::getMCMfromPad(int irow, int icol)
   // Return -1 for error.
   //
 
-  if (irow < 0 || icol < 0 || irow > NROWC1 || icol > NCOLUMN) {
-    return -1;
-  }
-  return (icol % (NCOLUMN / 2)) / NCOLMCM + NMCMROBINCOL * (irow % NMCMROBINROW);
+  return HelperMethods::getMCMfromPad(irow, icol);
 }
 
 //_____________________________________________________________________________
@@ -300,7 +185,7 @@ int FeeParam::getROBfromPad(int irow, int icol)
   //
   // Return on which rob this pad is
   //
-  return (irow / NMCMROBINROW) * 2 + getColSide(icol);
+  return HelperMethods::getROBfromPad(irow, icol);
 }
 
 //_____________________________________________________________________________
@@ -323,12 +208,7 @@ int FeeParam::getROBSide(int irob)
   //
   // Return on which side this rob sits (A side = 0, B side = 1)
   //
-
-  if (irob < 0 || irob >= NROBC1) {
-    return -1;
-  }
-
-  return irob % 2;
+  return HelperMethods::getROBSide(irob);
 }
 
 //_____________________________________________________________________________
@@ -338,11 +218,7 @@ int FeeParam::getColSide(int icol)
   // Return on which side this column sits (A side = 0, B side = 1)
   //
 
-  if (icol < 0 || icol >= NCOLUMN) {
-    return -1;
-  }
-
-  return icol / (NCOLUMN / 2);
+  return HelperMethods::getColSide(icol);
 }
 
 unsigned int FeeParam::aliToExtAli(int rob, int aliid)
@@ -367,7 +243,7 @@ int FeeParam::extAliToAli(unsigned int dest, unsigned short linkpair, unsigned s
   unsigned int cmA = 0, cmB = 0; // Chipmask for each A and B side
 
   // Default chipmask for 4 linkpairs (each bit correponds each alice-mcm)
-  static const unsigned int gkChipmaskDefLp[4] = {0x1FFFF, 0x1FFFF, 0x3FFFF, 0x1FFFF};
+  const unsigned int gkChipmaskDefLp[4] = {0x1FFFF, 0x1FFFF, 0x3FFFF, 0x1FFFF};
 
   rob = dest >> 7;                 // Extract ROB pattern from dest.
   mcm = dest & 0x07F;              // Extract MCM pattern from dest.
@@ -471,7 +347,7 @@ short FeeParam::getRobAB(unsigned short robsel, unsigned short linkpair)
 
   return 0;
 }
-/* 
+/*
 void FeeParam::createORILookUpTable()
 {
     int ori;
@@ -482,10 +358,10 @@ void FeeParam::createORILookUpTable()
 
             for(int trdlayer=5;trdlayer>=0;trdlayer++)
             {
-                ori=trdstack*12  + (5-trdlayer + side*6) +trdlayer/6 + side; 
-                mgAsideLUT[ori]= (trdstack<<8) + (trdlayer<<4) + side;           // A side LUT to map ORI to stack/layer/side
+                ori=trdstack*12  + (5-trdlayer + side*6) +trdlayer/6 + side;
+                mAsideLUT[ori]= (trdstack<<8) + (trdlayer<<4) + side;           // A side LUT to map ORI to stack/layer/side
                 if(ori==29) break;
-                
+
             }
                 if(ori==29) break;
         }
@@ -501,7 +377,7 @@ void FeeParam::createORILookUpTable()
                 ori = (4-trdstack)*12  + (5-trdlayer + side*5) +trdlayer/6 + side;
                 int newside;
                 if(ori >=24) newside=1; else newside=side; // a hack as I am not typing this all out.
-                mgCsideLUT[ori]= (trdstack<<8) + (trdlayer<<4) + newside;           // A side LUT to map ORI to stack/layer/side
+                mCsideLUT[ori]= (trdstack<<8) + (trdlayer<<4) + newside;           // A side LUT to map ORI to stack/layer/side
                 if(ori==29) break;
             }
                 if(ori==29) break;
@@ -591,10 +467,10 @@ void FeeParam::setRAWversion(int rawver)
 {
   //
   // Set raw data version (major number only)
-  // Maximum available number is preset in mgkMaxRAWversion
+  // Maximum available number is preset in mkMaxRAWversion
   //
 
-  if (rawver >= 0 && rawver <= mgkMaxRAWversion) {
+  if (rawver >= 0 && rawver <= mkMaxRAWversion) {
     mRAWversion = rawver;
   } else {
     LOG(error) << "Raw version is out of range: " << rawver;
@@ -605,24 +481,18 @@ void FeeParam::setRAWversion(int rawver)
  * This was originally moved here from arrayADC, signalADC etc. We now longer use those classes
  * so removing this for now as its crashing.
  */
-void FeeParam::createPad2MCMLookUpTable()
+void FeeParam::fillPad2MCMLookUpTable()
 {
   //
   // Initializes the Look Up Table to relate
   // pad numbering and mcm channel numbering
   //
-  if (!mgLUTPadNumberingFilled) {
-
-    LOG(debug) << " resizing lookup array to : " << NCOLUMN << " elements previously : " << mgLUTPadNumbering.size();
-    mgLUTPadNumbering.resize(NCOLUMN);
-    memset(&mgLUTPadNumbering[0], 0, sizeof(mgLUTPadNumbering[0]) * NCOLUMN);
-    for (int mcm = 0; mcm < 8; mcm++) {
-      int lowerlimit = 0 + mcm * 18;
-      int upperlimit = 18 + mcm * 18;
-      int shiftposition = 1 + 3 * mcm;
-      for (int index = lowerlimit; index < upperlimit; index++) {
-        mgLUTPadNumbering[index] = index + shiftposition;
-      }
+  for (int mcm = 0; mcm < NMCMROBINCOL * 2; mcm++) {
+    int lowerlimit = mcm * NCOLMCM;
+    int upperlimit = NCOLMCM + mcm * NCOLMCM;
+    int shiftposition = 1 + 3 * mcm;
+    for (int index = lowerlimit; index < upperlimit; index++) {
+      mLUTPadNumbering[index] = index + shiftposition;
     }
   }
 }
@@ -634,17 +504,17 @@ int FeeParam::getDyCorrection(int det, int rob, int mcm) const
 
   int layer = det % NLAYER;
 
-  float dyTilt = (mgDriftLength * std::tan(mgTiltingAngle[layer] * M_PI / 180.) *
-                  getLocalZ(det, rob, mcm) * mgInvX[layer]);
+  float dyTilt = (mDriftLength * std::tan(mTiltingAngle[layer] * M_PI / 180.) *
+                  getLocalZ(det, rob, mcm) * mInvX[layer]);
 
   // calculate Lorentz correction
-  float dyCorr = -mOmegaTau * mgDriftLength;
+  float dyCorr = -mOmegaTau * mDriftLength;
 
   if (mTiltCorr) {
     dyCorr += dyTilt; // add tilt correction
   }
 
-  return (int)TMath::Nint(dyCorr * mgScalePad * mgInvWidthPad[layer]);
+  return (int)TMath::Nint(dyCorr * mScalePad * mInvWidthPad[layer]);
 }
 
 void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
@@ -652,8 +522,8 @@ void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
 {
   // calculate the deflection range in which tracklets are accepted
 
-  dyMinInt = mgDyMin;
-  dyMaxInt = mgDyMax;
+  dyMinInt = mDyMin;
+  dyMaxInt = mDyMax;
 
   // deflection cut is considered for |B| > 0.1 T only
   if (std::abs(mMagField) < 0.1) {
@@ -669,26 +539,26 @@ void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
   if (maxDeflTemp < std::cos(phi)) {
     float maxDeflAngle = std::asin(maxDeflTemp);
 
-    float dyMin = (mgDriftLength *
+    float dyMin = (mDriftLength *
                    std::tan(phi - maxDeflAngle));
 
-    dyMinInt = int(dyMin / mgBinDy);
+    dyMinInt = int(dyMin / mBinDy);
     // clipping to allowed range
-    if (dyMinInt < mgDyMin) {
-      dyMinInt = mgDyMin;
-    } else if (dyMinInt > mgDyMax) {
-      dyMinInt = mgDyMax;
+    if (dyMinInt < mDyMin) {
+      dyMinInt = mDyMin;
+    } else if (dyMinInt > mDyMax) {
+      dyMinInt = mDyMax;
     }
 
-    float dyMax = (mgDriftLength *
+    float dyMax = (mDriftLength *
                    std::tan(phi + maxDeflAngle));
 
-    dyMaxInt = int(dyMax / mgBinDy);
+    dyMaxInt = int(dyMax / mBinDy);
     // clipping to allowed range
-    if (dyMaxInt > mgDyMax) {
-      dyMaxInt = mgDyMax;
-    } else if (dyMaxInt < mgDyMin) {
-      dyMaxInt = mgDyMin;
+    if (dyMaxInt > mDyMax) {
+      dyMaxInt = mDyMax;
+    } else if (dyMaxInt < mDyMin) {
+      dyMaxInt = mDyMin;
     }
   } else if (maxDeflTemp < 0.) {
     // this must not happen
@@ -700,8 +570,8 @@ void FeeParam::getDyRange(int det, int rob, int mcm, int ch,
 
   if ((dyMaxInt - dyMinInt) <= 0) {
     LOG(debug) << "strange dy range: [" << dyMinInt << "," << dyMaxInt << "], using max range now";
-    dyMaxInt = mgDyMax;
-    dyMinInt = mgDyMin;
+    dyMaxInt = mDyMax;
+    dyMinInt = mDyMin;
   }
 }
 
@@ -712,7 +582,7 @@ float FeeParam::getElongation(int det, int rob, int mcm, int ch) const
 
   int layer = det % NLAYER;
 
-  float elongation = std::abs(getDist(det, rob, mcm, ch) * mgInvX[layer]);
+  float elongation = std::abs(getDist(det, rob, mcm, ch) * mInvX[layer]);
 
   // sanity check
   if (elongation < 0.001) {
@@ -752,7 +622,7 @@ float FeeParam::getX(int det, int /* rob */, int /* mcm */) const
   // return the distance to the beam axis in x-direction
 
   int layer = det % NLAYER;
-  return mgX[layer];
+  return mX[layer];
 }
 
 float FeeParam::getLocalY(int det, int rob, int mcm, int ch) const
@@ -762,7 +632,7 @@ float FeeParam::getLocalY(int det, int rob, int mcm, int ch) const
   int layer = det % NLAYER;
   // calculate the pad position as in the TRAP
   float ypos = (-4 + 1 + (rob & 0x1) * 4 + (mcm & 0x3)) * 18 - ch - 0.5; // y position in bins of pad widths
-  return ypos * mgWidthPad[layer];
+  return ypos * mWidthPad[layer];
 }
 
 float FeeParam::getLocalZ(int det, int rob, int mcm) const
@@ -775,19 +645,19 @@ float FeeParam::getLocalZ(int det, int rob, int mcm) const
 
   if (stack == 2) {
     if (row == 0) {
-      return (mgZrow[layer * NLAYER + stack] - 0.5 * mgLengthOuterPadC0);
+      return (mZrow[layer * NLAYER + stack] - 0.5 * mLengthOuterPadC0);
     } else if (row == 11) {
-      return (mgZrow[layer * NLAYER + stack] - 1.5 * mgLengthOuterPadC0 - (row - 1) * mgLengthInnerPadC0);
+      return (mZrow[layer * NLAYER + stack] - 1.5 * mLengthOuterPadC0 - (row - 1) * mLengthInnerPadC0);
     } else {
-      return (mgZrow[layer * NLAYER + stack] - mgLengthOuterPadC0 - (row - 0.5) * mgLengthInnerPadC0);
+      return (mZrow[layer * NLAYER + stack] - mLengthOuterPadC0 - (row - 0.5) * mLengthInnerPadC0);
     }
   } else {
     if (row == 0) {
-      return (mgZrow[layer * NLAYER + stack] - 0.5 * mgLengthOuterPadC1[layer]);
+      return (mZrow[layer * NLAYER + stack] - 0.5 * mLengthOuterPadC1[layer]);
     } else if (row == 15) {
-      return (mgZrow[layer * NLAYER + stack] - 1.5 * mgLengthOuterPadC1[layer] - (row - 1) * mgLengthInnerPadC1[layer]);
+      return (mZrow[layer * NLAYER + stack] - 1.5 * mLengthOuterPadC1[layer] - (row - 1) * mLengthInnerPadC1[layer]);
     } else {
-      return (mgZrow[layer * NLAYER + stack] - mgLengthOuterPadC1[layer] - (row - 0.5) * mgLengthInnerPadC1[layer]);
+      return (mZrow[layer * NLAYER + stack] - mLengthOuterPadC1[layer] - (row - 0.5) * mLengthInnerPadC1[layer]);
     }
   }
 }

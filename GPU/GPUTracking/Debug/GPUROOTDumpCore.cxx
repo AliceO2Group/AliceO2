@@ -22,17 +22,18 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 std::weak_ptr<GPUROOTDumpCore> GPUROOTDumpCore::sInstance;
 
-GPUROOTDumpCore::GPUROOTDumpCore()
+GPUROOTDumpCore::GPUROOTDumpCore(GPUROOTDumpCore::GPUROOTDumpCorePrivate)
 {
-  mFile.reset(new TFile("debug.root", "recreate"));
 }
 
 GPUROOTDumpCore::~GPUROOTDumpCore()
 {
-  for (unsigned int i = 0; i < mBranches.size(); i++) {
-    mBranches[i]->write();
+  if (mFile) {
+    for (unsigned int i = 0; i < mBranches.size(); i++) {
+      mBranches[i]->write();
+    }
+    mFile->Close();
   }
-  mFile->Close();
 }
 
 std::shared_ptr<GPUROOTDumpCore> GPUROOTDumpCore::getAndCreate()
@@ -42,7 +43,7 @@ std::shared_ptr<GPUROOTDumpCore> GPUROOTDumpCore::getAndCreate()
   }
   std::shared_ptr<GPUROOTDumpCore> retVal = sInstance.lock();
   if (!retVal) {
-    retVal = std::make_shared<GPUROOTDumpCore>();
+    retVal = std::make_shared<GPUROOTDumpCore>(GPUROOTDumpCorePrivate());
     sInstance = retVal;
   }
   lock.clear(std::memory_order_release);
@@ -56,6 +57,9 @@ GPUROOTDumpBase::GPUROOTDumpBase()
     throw std::runtime_error("No instance of GPUROOTDumpCore exists");
   }
   p->mBranches.emplace_back(this);
+  if (!p->mFile) {
+    p->mFile.reset(new TFile("gpudebug.root", "recreate"));
+  }
   p->mFile->cd();
 }
 

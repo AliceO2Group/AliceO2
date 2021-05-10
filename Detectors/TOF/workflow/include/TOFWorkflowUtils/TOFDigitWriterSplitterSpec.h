@@ -21,6 +21,7 @@
 #include "TOFBase/Digit.h"
 #include "Framework/Logger.h"
 #include <TTree.h>
+#include <TFile.h>
 #include <gsl/span>
 
 using namespace o2::framework;

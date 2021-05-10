@@ -21,6 +21,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <cassert>
 
 using namespace o2::framework;
@@ -51,7 +52,8 @@ DigitReader::DigitReader(o2::detectors::DetID id, bool useMC, bool useCalib)
 
 void DigitReader::init(InitContext& ic)
 {
-  mFileName = ic.options().get<std::string>((mDetNameLC + "-digit-infile").c_str());
+  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>((mDetNameLC + "-digit-infile").c_str()));
   connectTree(mFileName);
 }
 
@@ -133,7 +135,8 @@ DataProcessorSpec getITSDigitReaderSpec(bool useMC, bool useCalib, std::string d
     outputSpec,
     AlgorithmSpec{adaptFromTask<ITSDigitReader>(useMC, useCalib)},
     Options{
-      {"its-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
+      {"its-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool useCalib, std::string defname)
@@ -155,7 +158,8 @@ DataProcessorSpec getMFTDigitReaderSpec(bool useMC, bool useCalib, std::string d
     outputSpec,
     AlgorithmSpec{adaptFromTask<MFTDigitReader>(useMC, useCalib)},
     Options{
-      {"mft-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
+      {"mft-digit-infile", VariantType::String, defname, {"Name of the input digit file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace itsmft

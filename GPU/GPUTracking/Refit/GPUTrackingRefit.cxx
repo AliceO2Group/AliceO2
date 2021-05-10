@@ -26,6 +26,8 @@
 #include "GPUParam.inc"
 #include "GPUCommonArray.h"
 #include "GPUParam.h"
+#include "GPUTrackParamConvert.h"
+#include "GPUCommonTypeTraits.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::track;
@@ -98,26 +100,7 @@ GPUd() void GPUTrackingRefit::convertTrack(T& trk, const S& trkX, U& prop, float
 {
   trk = trkX;
 }
-GPUd() static void convertTrackParam(GPUTPCGMTrackParam& trk, const TrackParCov& trkX)
-{
-  for (int i = 0; i < 5; i++) {
-    trk.Par()[i] = trkX.getParams()[i];
-  }
-  for (int i = 0; i < 15; i++) {
-    trk.Cov()[i] = trkX.getCov()[i];
-  }
-  trk.X() = trkX.getX();
-}
-GPUd() static void convertTrackParam(TrackParCov& trk, const GPUTPCGMTrackParam& trkX)
-{
-  for (int i = 0; i < 5; i++) {
-    trk.setParam(trkX.GetPar()[i], i);
-  }
-  for (int i = 0; i < 15; i++) {
-    trk.setCov(trkX.GetCov()[i], i);
-  }
-  trk.setX(trkX.GetX());
-}
+
 // Generic
 template <>
 GPUd() void GPUTrackingRefit::convertTrack<GPUTPCGMTrackParam, TrackParCov, GPUTPCGMPropagator>(GPUTPCGMTrackParam& trk, const TrackParCov& trkX, GPUTPCGMPropagator& prop, float* chi2)
@@ -225,15 +208,14 @@ GPUd() static const float* getPar(const TrackParCov& trk) { return trk.getParams
 template <class T, class S>
 GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
 {
-#ifndef __OPENCL__
   CADEBUG(int ii; printf("\nRefitting track\n"));
   typename refitTrackTypes<S>::propagator prop;
   S trk;
   float TrackParCovChi2 = 0.f;
-  convertTrack(trk, trkX, prop, &TrackParCovChi2);
+  convertTrack<S, T, typename refitTrackTypes<S>::propagator>(trk, trkX, prop, &TrackParCovChi2);
   int begin = 0, count;
   float tOffset;
-  if constexpr (std::is_same<T, GPUTPCGMMergedTrack>::value) {
+  if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
     count = trkX.NClusters();
     if (trkX.Looper()) {
       int leg = mPtrackHits[trkX.FirstClusterRef() + trkX.NClusters() - 1].leg;
@@ -245,10 +227,10 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
       }
     }
     tOffset = trkX.GetParam().GetTZOffset();
-  } else if constexpr (std::is_same<T, TrackTPC>::value) {
+  } else if constexpr (std::is_same_v<T, TrackTPC>) {
     count = trkX.getNClusters();
     tOffset = trkX.getTime0();
-  } else if constexpr (std::is_same<T, TrackParCovWithArgs>::value) {
+  } else if constexpr (std::is_same_v<T, TrackParCovWithArgs>) {
     count = trkX.clusRef.getEntries();
     tOffset = trkX.time0;
   } else {
@@ -267,7 +249,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
     while (true) {
       if (!cl) {
         CADEBUG(ii = i);
-        if constexpr (std::is_same<T, GPUTPCGMMergedTrack>::value) {
+        if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
           const auto& hit = mPtrackHits[trkX.FirstClusterRef() + i];
           cl = &mPclusterNative->clustersLinear[hit.num];
           if (hit.state & (GPUTPCGMMergedTrackHit::flagReject | GPUTPCGMMergedTrackHit::flagNotFit)) {
@@ -281,10 +263,10 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
           row = hit.row;
           sector = hit.slice;
           nextState = mPclusterState[hit.num];
-        } else if constexpr (std::is_same<T, TrackTPC>::value) {
+        } else if constexpr (std::is_same_v<T, TrackTPC>) {
           cl = &trkX.getCluster(mPtrackHitReferences, i, *mPclusterNative, sector, row);
           nextState = mPclusterState[cl - mPclusterNative->clustersLinear];
-        } else if constexpr (std::is_same<T, TrackParCovWithArgs>::value) {
+        } else if constexpr (std::is_same_v<T, TrackParCovWithArgs>) {
           cl = &TrackTPC::getCluster(mPtrackHitReferences, i, *mPclusterNative, sector, row, trkX.clusRef);
           nextState = mPclusterState[cl - mPclusterNative->clustersLinear];
         } else {
@@ -332,7 +314,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
       CADEBUG(printf("\tMerged Hit  Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f\n", row, mPparam->Alpha(sector), (int)sector, x, y, z));
     }
 
-    if constexpr (std::is_same<S, GPUTPCGMTrackParam>::value) {
+    if constexpr (std::is_same_v<S, GPUTPCGMTrackParam>) {
       if (prop.PropagateToXAlpha(x, mPparam->Alpha(currentSector), !outward)) {
         IgnoreErrors(trk.GetSinPhi());
         return -2;
@@ -346,7 +328,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         return -3;
       }
       CADEBUG(printf("\t%21sFit     Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f), DzDs %5.2f %16s    ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", prop.GetAlpha(), x, trk.Par()[0], trk.Par()[1], trk.Par()[4], prop.GetQPt0(), trk.Par()[2], prop.GetSinPhi0(), trk.Par()[3], "", sqrtf(trk.Cov()[0]), sqrtf(trk.Cov()[2]), sqrtf(trk.Cov()[5]), sqrtf(trk.Cov()[14]), trk.Cov()[10]));
-    } else if constexpr (std::is_same<S, TrackParCov>::value) {
+    } else if constexpr (std::is_same_v<S, TrackParCov>) {
       if (!trk.rotate(mPparam->Alpha(currentSector))) {
         IgnoreErrors(trk.getSnp());
         return -1;
@@ -376,12 +358,12 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
     resetCov = false;
     nFitted++;
   }
-  if constexpr (std::is_same<S, GPUTPCGMTrackParam>::value) {
+  if constexpr (std::is_same_v<S, GPUTPCGMTrackParam>) {
     float alpha = prop.GetAlpha();
     trk.MoveToReference(prop, *mPparam, alpha);
     trk.NormalizeAlpha(alpha);
     prop.SetAlpha(alpha);
-  } else if constexpr (std::is_same<S, TrackParCov>::value) {
+  } else if constexpr (std::is_same_v<S, TrackParCov>) {
     static constexpr float kDeg2Rad = M_PI / 180.f;
     static constexpr float kSectAngle = 2 * M_PI / 18.f;
     if (mPparam->rec.TrackReferenceX <= 500) {
@@ -397,11 +379,8 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
     static_assert("Invalid template");
   }
 
-  convertTrack(trkX, trk, prop, &TrackParCovChi2);
+  convertTrack<T, S, typename refitTrackTypes<S>::propagator>(trkX, trk, prop, &TrackParCovChi2);
   return nFitted;
-#else
-  return 0; // TODO: Fixme, implement std::isSame for opencl
-#endif
 }
 
 template GPUd() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);

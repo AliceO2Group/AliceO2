@@ -19,7 +19,6 @@
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Helpers.h"
-#include "TPCReconstruction/GPUCATracking.h"
 #include "DataFormatsTPC/Digit.h"
 #include "GPUDataTypes.h"
 #include "GPUHostDataTypes.h"
@@ -35,7 +34,6 @@
 #include <unistd.h>
 #include "GPUParam.h"
 #include "GPUReconstructionConvert.h"
-#include "GPURawData.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -45,6 +43,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -56,7 +55,7 @@ namespace o2
 namespace tpc
 {
 
-DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10bit, float threshold = 2.f, bool outRaw = false, unsigned long tpcSectorMask = 0xFFFFFFFFF)
+DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outRaw = false, unsigned long tpcSectorMask = 0xFFFFFFFFF)
 {
   std::string processorName = "tpc-zsEncoder";
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
@@ -72,7 +71,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10
     bool finished = false;
   };
 
-  auto initFunction = [tpcSectors, zs10bit, threshold, outRaw, tpcSectorMask](InitContext& ic) {
+  auto initFunction = [tpcSectors, outRaw, tpcSectorMask](InitContext& ic) {
     auto processAttributes = std::make_shared<ProcessAttributes>();
     auto& zsoutput = processAttributes->zsoutput;
     processAttributes->tpcSectors = tpcSectors;
@@ -80,7 +79,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10
     auto& sizes = processAttributes->sizes;
     auto& verbosity = processAttributes->verbosity;
 
-    auto processingFct = [processAttributes, zs10bit, threshold, outRaw, tpcSectorMask](
+    auto processingFct = [processAttributes, outRaw, tpcSectorMask](
                            ProcessingContext& pc) {
       if (processAttributes->finished) {
         return;
@@ -101,9 +100,8 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10
 
       const auto& inputs = getWorkflowTPCInput(pc, 0, false, false, tpcSectorMask, true);
       sizes.resize(NSectors * NEndpoints);
-      bool zs12bit = !zs10bit;
       o2::InteractionRecord ir = o2::raw::HBFUtils::Instance().getFirstIR();
-      o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, zs12bit, verify, threshold);
+      o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit, DigitArray>(inputs->inputDigits, &zsoutput, sizes.data(), nullptr, &ir, _GPUParam, true, verify, config.configReconstruction.tpcZSthreshold);
       ZeroSuppressedContainer8kb* page = reinterpret_cast<ZeroSuppressedContainer8kb*>(zsoutput.get());
       unsigned int offset = 0;
       for (unsigned int i = 0; i < NSectors; i++) {
@@ -126,7 +124,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10
         const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
         o2::raw::RawFileWriter writer{"TPC"}; // to set the RDHv6.sourceID if V6 is used
         writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
-        uint32_t rdhV = o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>();
+        uint32_t rdhV = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
         writer.useRDHVersion(rdhV);
         std::string outDir = "./";
         const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
@@ -154,7 +152,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool zs10
         if (useGrouping != LinksGrouping::Link) {
           writer.useCaching();
         }
-        o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, zs12bit, false, threshold);
+        o2::gpu::GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(inputDigits, nullptr, nullptr, &writer, &ir, _GPUParam, true, false, config.configReconstruction.tpcZSthreshold);
         writer.writeConfFile("TPC", "RAWDATA", fmt::format("{}tpcraw.cfg", outDir));
       }
       zsoutput.reset(nullptr);

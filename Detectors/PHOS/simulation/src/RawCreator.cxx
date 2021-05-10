@@ -12,13 +12,12 @@
 #include <string>
 #include <vector>
 #include "Framework/Logger.h"
-
+#include <filesystem>
 #include <boost/program_options.hpp>
 
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeReader.h>
-#include <TSystem.h>
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
@@ -81,8 +80,8 @@ int main(int argc, const char** argv)
        filefor = vm["file-for"].as<std::string>();
 
   // if needed, create output directory
-  if (gSystem->AccessPathName(outputdir.c_str())) {
-    if (gSystem->mkdir(outputdir.c_str(), kTRUE)) {
+  if (!std::filesystem::exists(outputdir)) {
+    if (!std::filesystem::create_directories(outputdir)) {
       LOG(FATAL) << "could not create output directory " << outputdir;
     } else {
       LOG(INFO) << "created output directory " << outputdir;
@@ -110,7 +109,7 @@ int main(int argc, const char** argv)
   for (auto en : *treereader) {
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
-  rawwriter.getWriter().writeConfFile("PHS", "RAWDATA", o2::utils::concat_string(outputdir, "/PHSraw.cfg"));
+  rawwriter.getWriter().writeConfFile("PHS", "RAWDATA", o2::utils::Str::concat_string(outputdir, "/PHSraw.cfg"));
 
   o2::raw::HBFUtils::Instance().print();
 
