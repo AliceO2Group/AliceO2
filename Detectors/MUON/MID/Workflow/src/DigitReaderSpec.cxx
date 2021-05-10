@@ -33,6 +33,7 @@
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/MCLabel.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/StringUtils.h"
 
 namespace of = o2::framework;
 

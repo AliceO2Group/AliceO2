@@ -12,12 +12,13 @@
 /// @brief  Convert MID DATA to CTF (EncodedBlocks)
 /// @author ruben.shahoyan@cern.ch
 
-#include <vector>
+#include "MIDWorkflow/EntropyEncoderSpec.h"
 
+#include <vector>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "MIDWorkflow/EntropyEncoderSpec.h"
-#include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsBase/CTFCoderBase.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
