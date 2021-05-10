@@ -110,9 +110,15 @@ class Digitizer : public TObject
   o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
   o2::InteractionRecord mIRFirstSampledTF; ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
   double mCollisionTimeWrtROF;
+<<<<<<< HEAD
   uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits
   uint32_t mROFrameMax = 0; ///< highest RO frame of current digits
   uint32_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
+=======
+  UInt_t mROFrameMin = 0; ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0; ///< highest RO frame of current digits
+  UInt_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
+>>>>>>> ccc611077 (Fix chipID for alignable entry)
 
   uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
   uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)

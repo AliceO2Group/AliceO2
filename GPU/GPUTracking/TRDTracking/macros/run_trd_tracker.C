@@ -50,8 +50,8 @@ void run_trd_tracker(std::string path = "./",
 
   //-------- init GPU reconstruction --------//
   // different settings are defined in GPUSettingsList.h
-  GPUSettingsGRP cfgGRP;                     // defaults should be ok
-  GPUSettingsRec cfgRec;                     // settings concerning reconstruction
+  GPUSettingsGRP cfgGRP; // defaults should be ok
+  GPUSettingsRec cfgRec; // settings concerning reconstruction
   cfgRec.trdMinTrackPt = .5f;
   cfgRec.trdMaxChi2 = 15.f;
   cfgRec.trdPenaltyChi2 = 12.f;

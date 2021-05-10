@@ -68,10 +68,10 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto tofClusters = getTOFClusters();
   const auto tracksITSTPCTRD = getITSTPCTRDTracks<o2::trd::TrackTRD>();
 
-  usedData[GTrackID::ITS].resize(tracksITS.size());                                      // to flag used ITS tracks
-  usedData[GTrackID::TPC].resize(tracksTPC.size());                                      // to flag used TPC tracks
-  usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());                                // to flag used ITSTPC tracks
-  usedData[GTrackID::TOF].resize(getTOFMatches().size());                                // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::ITS].resize(tracksITS.size());       // to flag used ITS tracks
+  usedData[GTrackID::TPC].resize(tracksTPC.size());       // to flag used TPC tracks
+  usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size()); // to flag used ITSTPC tracks
+  usedData[GTrackID::TOF].resize(getTOFMatches().size()); // to flag used ITSTPC-TOF matches
 
   // ITS-TPC-TRD-TOF
   // TODO, will flag used ITS-TPC-TRD

@@ -804,7 +804,8 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
   size_t startCount = mVertexBufferStart[iSlice].size();
   size_t startCountInner = mVertexBuffer[iSlice].size();
   const int firstCluster = (mCollisionClusters.size() > 1 && iCol > 0) ? mCollisionClusters[iCol - 1][iSlice] : 0;
-  const int lastCluster = (mCollisionClusters.size() > 1 && iCol + 1 < mCollisionClusters.size()) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0);
+  const int lastCluster = (mCollisionClusters.size() > 1 && iCol + 1 < mCollisionClusters.size()) ? mCollisionClusters[iCol][iSlice] : (mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice]
+                                                                                                                                                                                                                                : 0);
   for (int cidInSlice = firstCluster; cidInSlice < lastCluster; cidInSlice++) {
     const int cid = GET_CID(iSlice, cidInSlice);
     if (mHideUnmatchedClusters && mQA && mQA->SuppressHit(cid)) {
@@ -1535,7 +1536,8 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
       int row = 0;
-      unsigned int nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice] : 0;
+      unsigned int nCls = mParam->par.earlyTpcTransform ? mIOPtrs->nClusterData[iSlice] : mIOPtrs->clustersNative ? mIOPtrs->clustersNative->nClustersSector[iSlice]
+                                                                                                                  : 0;
       for (unsigned int i = 0; i < nCls; i++) {
         int cid;
         if (mParam->par.earlyTpcTransform) {

@@ -42,7 +42,7 @@ class GPUTPCGMPolynomialField;
 #include "AliMCParticle.h"
 #include "AliMCEvent.h"
 //static const float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
-#else  // GPUCA_ALIROOT_LIB
+#else // GPUCA_ALIROOT_LIB
 //static const float piMass = 0.139f;
 #endif // !GPUCA_ALIROOT_LIB
 
@@ -339,8 +339,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::StartDebugging()
   mDebug->CreateStreamer();
 }
 
-
-
 #endif //! GPUCA_GPUCODE
 
 template <>
@@ -397,7 +395,6 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::LoadTrack(const TRDTRK& trk, unsigned 
   mNTracks++;
   return (0);
 }
-
 
 template <class TRDTRK, class PROP>
 GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::DumpTracks()

@@ -854,7 +854,8 @@ int main(int argc, char** argv)
           if (grp.continuousMaxTimeBin == 0) {
             printf("Cannot override max time bin for non-continuous data!\n");
           } else {
-            grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
+            grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits)
+                                                                                                                                                                                      : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
             printf("Max time bin set to %d\n", (int)grp.continuousMaxTimeBin);
             rec->UpdateGRPSettings(&grp);
             if (recAsync) {
