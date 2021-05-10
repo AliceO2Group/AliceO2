@@ -271,6 +271,7 @@ class GPUDisplay
   const GPUCalibObjectsConst* mCalib;
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfg;
+  GPUSettingsDisplayHeavy mCfg2;
   GPUQA* mQA;
   qSem mSemLockDisplay;
 
