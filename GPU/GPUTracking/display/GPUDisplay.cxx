@@ -1068,16 +1068,19 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
         }
       } else if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
         if (mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1 && mIOPtrs->nTRDTracklets) {
-          const auto& trk = (mIOPtrs->tpcLinkTRD[i] & 0x40000000) ? mIOPtrs->trdTracksITSTPCTRD[mIOPtrs->tpcLinkTRD[i] & 0x3FFFFFFF] : mIOPtrs->trdTracksTPCTRD[mIOPtrs->tpcLinkTRD[i]];
-          for (int k = 5; k >= 0; k--) {
-            int cid = trk.getTrackletIndex(k);
-            if (cid < 0) {
-              continue;
+          if ((mIOPtrs->tpcLinkTRD[i] & 0x40000000) ? mIOPtrs->nTRDTracksITSTPCTRD : mIOPtrs->nTRDTracksTPCTRD) {
+            const auto* container = (mIOPtrs->tpcLinkTRD[i] & 0x40000000) ? mIOPtrs->trdTracksITSTPCTRD : mIOPtrs->trdTracksTPCTRD;
+            const auto& trk = container[mIOPtrs->tpcLinkTRD[i] & 0x3FFFFFFF];
+            for (int k = 5; k >= 0; k--) {
+              int cid = trk.getTrackletIndex(k);
+              if (cid < 0) {
+                continue;
+              }
+              drawing = true;
+              mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mProjectXY ? 0 : mGlobalPosTRD2[cid].z);
+              mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mProjectXY ? 0 : mGlobalPosTRD[cid].z);
+              mGlobalPosTRD[cid].w = tTRDATTACHED;
             }
-            drawing = true;
-            mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD2[cid].x, mGlobalPosTRD2[cid].y, mProjectXY ? 0 : mGlobalPosTRD2[cid].z);
-            mVertexBuffer[iSlice].emplace_back(mGlobalPosTRD[cid].x, mGlobalPosTRD[cid].y, mProjectXY ? 0 : mGlobalPosTRD[cid].z);
-            mGlobalPosTRD[cid].w = tTRDATTACHED;
           }
         }
       }
@@ -1126,7 +1129,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 
       // Print ITS part of track
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
-        if (mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1 && mIOPtrs->nItsClusters) {
+        if (mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1 && mIOPtrs->nItsTracks && mIOPtrs->nItsClusters) {
           DrawTrackITS(mIOPtrs->tpcLinkITS[i], iSlice);
         }
       }
