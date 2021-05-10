@@ -280,8 +280,6 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
 #endif
   }
 
-  FilterOutTracks();
-
   if (mDoImpactAngleHistograms) {
     GPUInfo("Start calculating angular differences");
     for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
@@ -434,20 +432,6 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetCollisionIDs(TRDTRK& trk, int* coll
     }
   }
   return nColls;
-}
-
-template <class TRDTRK, class PROP>
-GPUd() void GPUTRDTracker_t<TRDTRK, PROP>::FilterOutTracks()
-{
-  // loop over all tracks and remove those without a TRD tracklet attached
-  // to be called after or at the end of DoTracking()
-  // Note that this method is not thread safe and does not preserve the order of the tracks
-  for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
-    if (mTracks[iTrk].getNtracklets() == 0) {
-      mTracks[iTrk--] = mTracks[mNTracks - 1]; // move track from the end to current position, afterwards the current position has to be checked again
-      --mNTracks;                              // drop last track
-    }
-  }
 }
 
 template <class TRDTRK, class PROP>
