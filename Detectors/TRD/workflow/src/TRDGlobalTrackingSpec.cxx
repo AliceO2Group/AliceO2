@@ -24,6 +24,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 
 // GPU header
 #include "GPUReconstruction.h"
@@ -100,14 +101,14 @@ void TRDGlobalTracking::updateTimeDependentParams()
 void TRDGlobalTracking::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
+  mChainTracking->ClearIOPointers();
   o2::globaltracking::RecoContainer inputTracks;
   inputTracks.collectData(pc, *mDataRequest);
   auto tmpInputContainer = getRecoInputContainer(pc, &mChainTracking->mIOPtrs, &inputTracks);
+  auto tmpContainer = GPUWorkflowHelper::fillIOPtr(mChainTracking->mIOPtrs, inputTracks, mUseMC, nullptr, GTrackID::getSourcesMask("TRD"), mTrkMask, GTrackID::mask_t{GTrackID::MASK_NONE});
+
   LOGF(INFO, "There are %i tracklets in total from %i trigger records", mChainTracking->mIOPtrs.nTRDTracklets, mChainTracking->mIOPtrs.nTRDTriggerRecords);
   LOGF(INFO, "As input seeds are available: %i ITS-TPC matched tracks and %i TPC tracks", mChainTracking->mIOPtrs.nTracksTPCITSO2, mChainTracking->mIOPtrs.nOutputTracksTPCO2);
-  if (tmpInputContainer->mNTracklets != tmpInputContainer->mNSpacePoints) {
-    LOGF(FATAL, "Number of calibrated tracklets (%i) differs from the number of uncalibrated tracklets (%i)", tmpInputContainer->mNSpacePoints, tmpInputContainer->mNTracklets);
-  }
 
   mTracker->Reset();
   mTracker->ResetImpactAngleHistograms();
@@ -199,12 +200,10 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src)
   std::vector<OutputSpec> outputs;
 
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
-  dataRequest->requestTracks(src, false);
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestClusters(GTrackID::getSourcesMask("TRD"), useMC);
   auto& inputs = dataRequest->inputs;
 
-  inputs.emplace_back("trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
 
   if (useMC) {
     LOG(FATAL) << "MC usage must be disabled for this workflow, since it is not yet implemented";
@@ -224,7 +223,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src)
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, src)},
     Options{}};
 }
 

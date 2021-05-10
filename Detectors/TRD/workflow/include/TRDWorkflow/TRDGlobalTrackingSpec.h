@@ -32,7 +32,7 @@ namespace trd
 class TRDGlobalTracking : public o2::framework::Task
 {
  public:
-  TRDGlobalTracking(bool useMC, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest) : mUseMC(useMC), mDataRequest(dataRequest) {}
+  TRDGlobalTracking(bool useMC, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest, o2::dataformats::GlobalTrackID::mask_t src) : mUseMC(useMC), mDataRequest(dataRequest), mTrkMask(src) {}
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams();
@@ -49,6 +49,7 @@ class TRDGlobalTracking : public o2::framework::Task
   float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
   CalibVDrift mCalibVDrift{};                         ///< steers the vDrift calibration
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
+  o2::dataformats::GlobalTrackID::mask_t mTrkMask;               ///< seeding track sources (TPC, ITS-TPC)
   TStopwatch mTimer;
 };
 
