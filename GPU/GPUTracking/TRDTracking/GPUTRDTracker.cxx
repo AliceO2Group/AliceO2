@@ -991,6 +991,7 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       trkWork->addTracklet(iLayer, mHypothesis[iUpdate + hypothesisIdxOffset].mTrackletId);
       trkWork->setChi2(mHypothesis[iUpdate + hypothesisIdxOffset].mChi2);
       trkWork->setIsFindable(iLayer);
+      trkWork->setCollisionId(collisionId);
       if (iUpdate == 0 && mNCandidates > 1) {
         *t = mCandidates[2 * iUpdate + nextIdx];
       }

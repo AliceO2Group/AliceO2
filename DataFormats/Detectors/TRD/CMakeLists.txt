@@ -19,6 +19,7 @@ o2_add_library(DataFormatsTRD
 
 o2_target_root_dictionary(DataFormatsTRD
                HEADERS include/DataFormatsTRD/TriggerRecord.h
+                       include/DataFormatsTRD/TrackTriggerRecord.h
                        include/DataFormatsTRD/LinkRecord.h
                        include/DataFormatsTRD/Tracklet64.h
                        include/DataFormatsTRD/RawData.h
