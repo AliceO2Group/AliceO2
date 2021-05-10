@@ -8,18 +8,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef STEER_DIGITIZERWORKFLOW_ITS3DIGITIZER_H_
+#define STEER_DIGITIZERWORKFLOW_ITS3DIGITIZER_H_
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ class o2::its3::SegmentationSuperAlpide + ;
+namespace o2
+{
+namespace its3
+{
 
+o2::framework::DataProcessorSpec getITS3DigitizerSpec(int channel, bool mctruth = true);
 
-#pragma link C++ class o2::its3::GeometryTGeo;
-#pragma link C++ class o2::its3::MisalignmentParameter + ;
+} // namespace its3
+} // end namespace o2
 
-
-
-#endif
+#endif /* STEER_DIGITIZERWORKFLOW_ITS3DIGITIZER_H_ */
