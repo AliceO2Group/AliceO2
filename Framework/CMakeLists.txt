@@ -16,7 +16,9 @@ add_subdirectory(Core)
 
 add_subdirectory(Utils)
 
+if (BUILD_ANALYSIS)
 add_subdirectory(AnalysisSupport) 
+endif()
 
 # Build the GUI support only if we have DebugGUI
 if (TARGET AliceO2::DebugGUI)
