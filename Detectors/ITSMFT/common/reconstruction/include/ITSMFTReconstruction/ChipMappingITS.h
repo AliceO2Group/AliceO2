@@ -50,7 +50,7 @@ class ChipMappingITS
 
   ///< total number of chips
   static constexpr int getNChips() { return NChipsSB[IB] + NChipsSB[MB] + NChipsSB[OB]; }
-  
+
   ///< number of chips per barrel
   static constexpr int getNChips(int b) { return NChipsSB[b]; }
 

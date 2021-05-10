@@ -48,7 +48,7 @@ class ClustererDPL : public Task
 /// run ITS cluster finder
 framework::DataProcessorSpec getClustererSpec(bool useMC);
 
-} // namespace its
+} // namespace its3
 } // namespace o2
 
 #endif /* O2_ITS_CLUSTERERDPL */

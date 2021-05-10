@@ -67,5 +67,5 @@ DataProcessorSpec getClusterWriterSpec(bool useMC)
                                                              ""})();
 }
 
-} // namespace its
+} // namespace its3
 } // namespace o2

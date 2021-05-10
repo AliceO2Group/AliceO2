@@ -29,4 +29,4 @@ o2_add_test_root_macro(CheckClustersITS3.C
                                              O2::MathUtils
                                              O2::SimulationDataFormat
                                              O2::DetectorsBase
-                       LABELS its3)
+                       LABELS its3 COMPILE_ONLY)

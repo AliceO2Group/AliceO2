@@ -94,10 +94,10 @@ class Clusterer
     std::vector<std::pair<int, uint32_t>> pixels;
     std::vector<int> preClusterHeads; // index of precluster head in the pixels
     std::vector<int> preClusterIndices;
-    uint16_t currCol = 0xffff;                                      ///< Column being processed
-    bool noLeftCol = true;                                          ///< flag that there is no column on the left to check
-    std::array<Label, MaxLabels> labelsBuff;                        //! temporary buffer for building cluster labels
-    std::vector<PixelData> pixArrBuff;                              //! temporary buffer for pattern calc.
+    uint16_t currCol = 0xffff;               ///< Column being processed
+    bool noLeftCol = true;                   ///< flag that there is no column on the left to check
+    std::array<Label, MaxLabels> labelsBuff; //! temporary buffer for building cluster labels
+    std::vector<PixelData> pixArrBuff;       //! temporary buffer for pattern calc.
     //
     /// temporary storage for the thread output
     CompClusCont compClusters;

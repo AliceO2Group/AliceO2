@@ -27,8 +27,8 @@
 #endif
 
 void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hitfile = "o2sim_HitsIT3.root",
-                   std::string inputGeom = "", std::string paramfile = "o2sim_par.root",
-                   std::string dictfile = "")
+                       std::string inputGeom = "", std::string paramfile = "o2sim_par.root",
+                       std::string dictfile = "")
 {
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 

@@ -55,7 +55,7 @@ class ClusterReader : public Task
   std::unique_ptr<TFile> mFile;
   std::unique_ptr<TTree> mTree;
 
-  bool mUseMC = true;     // use MC truth
+  bool mUseMC = true;       // use MC truth
   bool mUsePatterns = true; // send patterns
 
   std::string mDetName = "IT3";
@@ -73,7 +73,7 @@ class ClusterReader : public Task
 /// read ITS/MFT cluster data from a root file
 framework::DataProcessorSpec getITS3ClusterReaderSpec(bool useMC = true, bool usePatterns = true);
 
-} // namespace itsmft
+} // namespace its3
 } // namespace o2
 
 #endif /* O2_ITSMFT_CLUSTERREADER */

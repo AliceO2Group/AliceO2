@@ -31,6 +31,6 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::g
                                     bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, bool eencode = false);
 }
 
-} // namespace its
+} // namespace its3
 } // namespace o2
 #endif

@@ -25,7 +25,7 @@
 
 using namespace o2::itsmft;
 
-namespace o2::its3 
+namespace o2::its3
 {
 //__________________________________________________
 void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClus,
@@ -511,4 +511,4 @@ void Clusterer::print() const
 #endif
 }
 
-}
+} // namespace o2::its3

@@ -54,5 +54,5 @@ framework::WorkflowSpec getWorkflow(bool useMC, const std::string& trmode, o2::g
 }
 
 } // namespace reco_workflow
-} // namespace its
+} // namespace its3
 } // namespace o2

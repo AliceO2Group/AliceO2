@@ -117,5 +117,5 @@ DataProcessorSpec getITS3ClusterReaderSpec(bool useMC, bool usePatterns)
       {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
-} // namespace itsmft
+} // namespace its3
 } // namespace o2

@@ -24,7 +24,7 @@ namespace its3
 /// write ITS clusters to ROOT file
 framework::DataProcessorSpec getClusterWriterSpec(bool useMC);
 
-} // namespace its
+} // namespace its3
 } // namespace o2
 
 #endif /* O2_ITS_CLUSTERWRITER */

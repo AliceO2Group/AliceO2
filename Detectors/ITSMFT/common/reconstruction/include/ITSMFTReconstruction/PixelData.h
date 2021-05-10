@@ -84,8 +84,13 @@ class PixelData
 
  private:
   void sanityCheck() const;
+#ifdef ENABLE_UPGRADES
+  static constexpr int RowMask = 0x7FFF; ///< 32768 rows are supported
+  static constexpr int MaskBit = 0x8000; ///< 16-th bit is used to flag masked pixel
+#else
   static constexpr int RowMask = 0x1ff; ///< 512 rows are supported
   static constexpr int MaskBit = 0x200; ///< 10-th bit is used to flag masked pixel
+#endif
   uint16_t mRow = 0;                    ///< pixel row
   uint16_t mCol = 0;                    ///< pixel column
 
