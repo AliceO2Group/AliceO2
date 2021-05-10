@@ -33,7 +33,7 @@ namespace its
 {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
-/// to study different configurations during the development of the new ITS structure
+/// to study different configurations during the development of the new ITS structure.
 class V3Layer : public V11Geometry
 {
 
