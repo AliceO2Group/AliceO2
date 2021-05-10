@@ -23,7 +23,7 @@
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
-#include "TRDWorkflow/TRDTrackReaderSpec.h"
+#include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
