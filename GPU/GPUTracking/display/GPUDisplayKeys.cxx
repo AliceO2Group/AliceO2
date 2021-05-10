@@ -17,8 +17,8 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 const char* HelpText[] = {
-  "[n] / [SPACE]                 Next event",
-  "[q] / [Q] / [ESC]             Quit",
+  "[ESC]                         Quit",
+  "[n]                           Next event",
   "[r]                           Reset Display Settings",
   "[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)",
   "[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets",
@@ -57,11 +57,11 @@ const char* HelpText[] = {
   "[MOUSE 2]                     Strafe camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
   "[SHIFT]                       Slow Zoom / Move / Rotate",
-  "[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
+  "[ALT] / [CTRL] / [ENTER]      Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
   "[RCTRL] / [RALT]              Rotate model instead of camera / rotate TPC around beamline",
   "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
   "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS"
-  // FREE: none
+  // FREE: [m] [SPACE] [q] [Q]
   // Test setting: ^ --> mHideUnmatchedClusters
 };
 
@@ -75,10 +75,10 @@ void GPUDisplay::PrintHelp()
 
 void GPUDisplay::HandleKey(unsigned char key)
 {
-  if (key == mBackend->KEY_ENTER || key == 'n') {
+  if (key == 'n') {
     mBackend->mDisplayControl = 1;
     SetInfo("Showing next event", 1);
-  } else if (key == 27 || key == 'q' || key == 'Q' || key == mBackend->KEY_ESCAPE) {
+  } else if (key == 27 || key == mBackend->KEY_ESCAPE) {
     mBackend->mDisplayControl = 2;
     SetInfo("Exiting", 1);
   } else if (key == 'r') {
@@ -92,7 +92,7 @@ void GPUDisplay::HandleKey(unsigned char key)
     mCamYUp ^= 1;
     mCameraMode = mCamLookOrigin + 2 * mCamYUp;
     SetInfo("Camera locked on y-axis facing upwards: %s", mCamYUp ? "enabled" : "disabled");
-  } else if (key == 'm') {
+  } else if (key == mBackend->KEY_ENTER) {
     mCameraMode++;
     if (mCameraMode == 4) {
       mCameraMode = 0;
