@@ -59,10 +59,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.emplace_back(getLHCClockCalibDeviceSpec());
   }
   if (doChannelOffsetCalib) {
-    if (!isCosmics)
+    if (!isCosmics) {
       specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::dataformats::CalibInfoTOF>(useCCDB, attachChannelOffsetToLHCphase, isCosmics));
-    else
+    } else {
       specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::tof::CalibInfoCluster>(useCCDB, attachChannelOffsetToLHCphase, isCosmics));
+    }
   }
   return specs;
 }

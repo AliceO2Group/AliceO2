@@ -130,10 +130,12 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     int i1 = int(x[0]) % 96;
     int i2 = int(x[0]) / 96 ? (i1 + 48) : (i1 + 1);
 
-    if (i1 < 0)
+    if (i1 < 0) {
       return 0;
-    if (i2 >= Geo::NPADS)
+    }
+    if (i2 >= Geo::NPADS) {
       return 0;
+    }
 
     return (params[i1] - params[i2]);
   }
@@ -192,16 +194,12 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
     float xp[NCOMBINSTRIP], exp[NCOMBINSTRIP], deltat[NCOMBINSTRIP], edeltat[NCOMBINSTRIP], fracUnderPeak[Geo::NPADS];
 
     for (int sector = 0; sector < Geo::NSECTORS; sector++) {
-      //for (int sector = 0; sector < 1; sector++) {
       int offsetsector = sector * Geo::NSTRIPXSECTOR * Geo::NPADS;
       for (int istrip = 0; istrip < Geo::NSTRIPXSECTOR; istrip++) {
-        //for (int istrip = 0; istrip < 38; istrip++) {
         int offsetstrip = istrip * Geo::NPADS + offsetsector;
         int goodpoints = 0;
 
-        for (int ichLocal = 0; ichLocal < Geo::NPADS; ichLocal++) {
-          fracUnderPeak[ichLocal] = 0.0;
-        }
+        memset(&fracUnderPeak[0], 0, sizeof(fracUnderPeak));
 
         for (int ipair = 0; ipair < NCOMBINSTRIP; ipair++) {
           int chinsector = ipair + istrip * NCOMBINSTRIP;
@@ -214,19 +212,6 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
           // make the slice of the 2D histogram so that we have the 1D of the current channel
           std::vector<float> fitValues;
           std::vector<float> histoValues;
-          /* //less efficient way
-	     int startCount = chinsector * c->getNbins();
-	     int counts = -1;
-	     for (auto&& x : indexed(c->getHisto(sector))) {
-	     counts++;
-	     if (counts < startCount) continue;
-	     if (x.index(1) > chinsector) { // we passed the needed channel
-	     //LOG(INFO) << "x.index(1) > chinsectormax) > chinsectormax: BREAKING";
-	     break;
-	     }
-	     histoValues.push_back(x.get());
-	     }
-	  */
           std::vector<int> entriesPerChannel = c->getEntriesPerChannel();
           if (entriesPerChannel.at(ich) == 0) {
             continue; // skip always since a channel with 0 entries is normal, it will be flagged as problematic
@@ -276,19 +261,6 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
           if (intmax > mRange) {
             intmax = mRange;
           }
-
-          /* 
-	  // needed if we calculate the integral using the values
-	  int binmin = c->findBin(intmin);
-	  int binmax = c->findBin(intmax);
-	  
-	  // for now these checks are useless, as we pass the value of the bin
-	  if (binmin < 0)
-	  binmin = 1; // avoid to take the underflow bin (can happen in case the sigma is too large)
-	  if (binmax >= c->getNbins())
-	  binmax = c->getNbins()-1; // avoid to take the overflow bin (can happen in case the sigma is too large)
-	  float fractionUnderPeak = (c->integral(ch, binmin, binmax) + addduetoperiodicity) / c->integral(ch, 1, c->nbins());
-	  */
 
           xp[goodpoints] = ipair + 0.5;      // pair index
           exp[goodpoints] = 0.0;             // error on pair index (dummy since it is on the pair index)
@@ -354,19 +326,6 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
       }
       std::vector<float> fitValues;
       std::vector<float> histoValues;
-      /* //less efficient way
-	 int startCount = chinsector * c->getNbins();
-	 int counts = -1;
-	 for (auto&& x : indexed(c->getHisto(sector))) {
-	 counts++;
-	 if (counts < startCount) continue;
-	 if (x.index(1) > chinsector) { // we passed the needed channel
-	 //LOG(INFO) << "x.index(1) > chinsectormax) > chinsectormax: BREAKING";
-	 break;
-	 }
-	 histoValues.push_back(x.get());
-	 }
-      */
       std::vector<int> entriesPerChannel = c->getEntriesPerChannel();
       if (entriesPerChannel.at(ich) == 0) {
         continue; // skip always since a channel with 0 entries is normal, it will be flagged as problematic
@@ -418,18 +377,6 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
         intmax = mRange;
       }
 
-      /* 
-      // needed if we calculate the integral using the values
-      int binmin = c->findBin(intmin);
-      int binmax = c->findBin(intmax);
-      
-      // for now these checks are useless, as we pass the value of the bin
-      if (binmin < 0)
-      binmin = 1; // avoid to take the underflow bin (can happen in case the sigma is too large)
-      if (binmax >= c->getNbins())
-      binmax = c->getNbins()-1; // avoid to take the overflow bin (can happen in case the sigma is too large)
-      float fractionUnderPeak = (c->integral(ch, binmin, binmax) + addduetoperiodicity) / c->integral(ch, 1, c->nbins());
-      */
       fractionUnderPeak = entriesInChannel > 0 ? c->integral(ich, intmin, intmax) / entriesInChannel : 0;
       // now we need to store the results in the TimeSlewingObject
       ts.setFractionUnderPeak(ich / Geo::NPADSXSECTOR, ich % Geo::NPADSXSECTOR, fractionUnderPeak);
