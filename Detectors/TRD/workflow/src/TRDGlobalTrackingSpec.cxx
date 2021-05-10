@@ -24,6 +24,7 @@
 #include "TPCBase/ParameterGas.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/TrackTriggerRecord.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 
 // GPU header
@@ -36,6 +37,8 @@
 #include "GPUTRDTrackletWord.h"
 #include "GPUTRDInterfaces.h"
 #include "GPUTRDGeometry.h"
+
+#include <algorithm>
 
 using namespace o2::framework;
 using namespace o2::gpu;
@@ -156,9 +159,30 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   // finished tracking, now collect the output
   std::vector<TrackTRD> tracksOutITSTPC;
   std::vector<TrackTRD> tracksOutTPC;
+  std::vector<TrackTriggerRecord> trackTrigRec;
+  GPUTRDTrack* tracksOutRaw = mTracker->Tracks();
+  std::vector<unsigned int> trackIdxArray(mTracker->NTracks()); // track indices sorted by trigger record index
+  std::iota(trackIdxArray.begin(), trackIdxArray.end(), 0);
+  std::sort(trackIdxArray.begin(), trackIdxArray.end(), [tracksOutRaw](int lhs, int rhs) { return tracksOutRaw[lhs].getCollisionId() < tracksOutRaw[rhs].getCollisionId(); });
+
   int nTrackletsAttached = 0; // only used for debug information
+  int currTrigRec = 0;
+  int nTracksCurr = 0;
+  int iTrackFirst = 0;
   for (int iTrk = 0; iTrk < mTracker->NTracks(); ++iTrk) {
-    const auto& trdTrack = mTracker->Tracks()[iTrk];
+    const auto& trdTrack = mTracker->Tracks()[trackIdxArray[iTrk]];
+    if (trdTrack.getCollisionId() < 0) {
+      // skip tracks without TRD tracklets
+      continue;
+    }
+    if (trdTrack.getCollisionId() != currTrigRec) {
+      // new collision ID, create new track trigger record
+      trackTrigRec.emplace_back(tmpInputContainer->mTriggerRecords[currTrigRec].getBCData(), iTrackFirst, nTracksCurr);
+      currTrigRec = trdTrack.getCollisionId();
+      iTrackFirst += nTracksCurr;
+      nTracksCurr = 0;
+    }
+    ++nTracksCurr;
     nTrackletsAttached += trdTrack.getNtracklets();
     auto trackGID = trdTrack.getRefGlobalTrackId();
     if (trackGID.includesDet(GTrackID::Source::ITS)) {
@@ -168,6 +192,10 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       // this track is from a TPC-only seed
       tracksOutTPC.push_back(trdTrack);
     }
+  }
+  if (nTracksCurr > 0) {
+    // create track trigger record for last track range
+    trackTrigRec.emplace_back(tmpInputContainer->mTriggerRecords[currTrigRec].getBCData(), iTrackFirst, nTracksCurr);
   }
   LOGF(INFO, "The TRD tracker found %lu tracks from TPC seeds and %lu tracks from ITS-TPC seeds and attached in total %i tracklets out of %i",
        tracksOutTPC.size(), tracksOutITSTPC.size(), nTrackletsAttached, mChainTracking->mIOPtrs.nTRDTracklets);
@@ -183,6 +211,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   if (inputTracks.isTrackSourceLoaded(GTrackID::Source::TPC)) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe}, tracksOutTPC);
   }
+
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG", 0, Lifetime::Timeframe}, trackTrigRec);
 
   mTimer.Stop();
 }
@@ -213,6 +243,8 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src)
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe);
   }
+
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG", 0, Lifetime::Timeframe); // TRD track trigger records
 
   std::string processorName = o2::utils::Str::concat_string("trd-globaltracking", GTrackID::getSourcesNames(src));
   std::replace(processorName.begin(), processorName.end(), ',', '_');

@@ -37,13 +37,14 @@ void TRDTrackReader::run(ProcessingContext& pc)
   auto ent = mTree->GetReadEntry() + 1;
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
-  LOG(INFO) << "Pushing " << mTracks.size() << " tracks at entry " << ent;
+  LOG(INFO) << "Pushing " << mTracks.size() << " tracks and " << mTrigRec.size() << " trigger records at entry " << ent;
 
   if (mMode == Mode::TPCTRD) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe}, mTracks);
   } else if (mMode == Mode::ITSTPCTRD) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe}, mTracks);
   }
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG", 0, Lifetime::Timeframe}, mTrigRec);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -59,6 +60,7 @@ void TRDTrackReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get("tracksTRD"));
   assert(mTree);
   mTree->SetBranchAddress("tracks", &mTracksPtr);
+  mTree->SetBranchAddress("trackTrig", &mTrigRecPtr);
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 
@@ -66,6 +68,7 @@ DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG", 0, Lifetime::Timeframe);
 
   if (useMC) {
     LOG(FATAL) << "TRD track reader cannot read MC data (yet)";
@@ -85,6 +88,7 @@ DataProcessorSpec getTRDGlobalTrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG", 0, Lifetime::Timeframe);
 
   if (useMC) {
     LOG(FATAL) << "TRD track reader cannot read MC data (yet)";
