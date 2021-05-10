@@ -18,6 +18,7 @@
 #include "ITS3Base/GeometryTGeo.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "ITSMFTBase/SegmentationAlpide.h"
+#include "ITS3Base/SegmentationSuperAlpide.h"
 #include "MathUtils/Cartesian.h"
 
 #include "FairLogger.h" // for LOG
@@ -279,45 +280,46 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   //
   // Therefore we need to add a shift
 
-  int lay, stav, sstav, mod, chipInMod;
-  getChipId(index, lay, stav, sstav, mod, chipInMod);
-
-  int wrID = mLayerToWrapper[lay];
-
-  TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getITSVolPattern());
-
-  if (wrID >= 0) {
-    path += Form("%s%d_1/", getITSWrapVolPattern(), wrID);
-  }
-
-  path +=
-    Form("%s%d_1/%s%d_%d/", GeometryTGeo::getITSLayerPattern(), lay, GeometryTGeo::getITSStavePattern(), lay, stav);
-
-  if (mNumberOfHalfStaves[lay] > 0) {
-    path += Form("%s%d_%d/", GeometryTGeo::getITSHalfStavePattern(), lay, sstav);
-  }
-  if (mNumberOfModules[lay] > 0) {
-    path += Form("%s%d_%d/", GeometryTGeo::getITSModulePattern(), lay, mod);
-  }
-  path +=
-    Form("%s%d_%d/%s%d_1", GeometryTGeo::getITSChipPattern(), lay, chipInMod, GeometryTGeo::getITSSensorPattern(), lay);
-
   static TGeoHMatrix matTmp;
-  gGeoManager->PushPath();
+  if (index >= SegmentationSuperAlpide::NLayers) {
+    int lay, stav, sstav, mod, chipInMod;
+    getChipId(index, lay, stav, sstav, mod, chipInMod);
 
-  if (!gGeoManager->cd(path.Data())) {
+    int wrID = mLayerToWrapper[lay];
+
+    TString path = Form("/cave_1/barrel_1/%s_2/", GeometryTGeo::getITSVolPattern());
+
+    if (wrID >= 0) {
+      path += Form("%s%d_1/", getITSWrapVolPattern(), wrID);
+    }
+
+    path +=
+      Form("%s%d_1/%s%d_%d/", GeometryTGeo::getITSLayerPattern(), lay, GeometryTGeo::getITSStavePattern(), lay, stav);
+
+    if (mNumberOfHalfStaves[lay] > 0) {
+      path += Form("%s%d_%d/", GeometryTGeo::getITSHalfStavePattern(), lay, sstav);
+    }
+    if (mNumberOfModules[lay] > 0) {
+      path += Form("%s%d_%d/", GeometryTGeo::getITSModulePattern(), lay, mod);
+    }
+    path +=
+      Form("%s%d_%d/%s%d_1", GeometryTGeo::getITSChipPattern(), lay, chipInMod, GeometryTGeo::getITSSensorPattern(), lay);
+
+    gGeoManager->PushPath();
+
+    if (!gGeoManager->cd(path.Data())) {
+      gGeoManager->PopPath();
+      LOG(ERROR) << "Error in cd-ing to " << path.Data();
+      return nullptr;
+    } // end if !gGeoManager
+
+    matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
+    // RSS
+    //  printf("%d/%d/%d %s\n",lay,stav,detInSta,path.Data());
+    //  mat->Print();
+    // Restore the modeler state.
     gGeoManager->PopPath();
-    LOG(ERROR) << "Error in cd-ing to " << path.Data();
-    return nullptr;
-  } // end if !gGeoManager
-
-  matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
-  // RSS
-  //  printf("%d/%d/%d %s\n",lay,stav,detInSta,path.Data());
-  //  mat->Print();
-  // Restore the modeler state.
-  gGeoManager->PopPath();
-
+  }
   // account for the difference between physical sensitive layer (where charge collection is simulated) and effective sensor ticknesses
   static TGeoTranslation tra(0., 0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff), 0.);
 
@@ -699,6 +701,12 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
 {
   // calculate r and phi of the impact of the normal on the sensor
   // (i.e. phi of the tracking frame alpha and X of the sensor in this frame)
+  if (isn < SegmentationSuperAlpide::NLayers) {
+    x = SegmentationSuperAlpide::Radii[isn];
+    alp = 0.f;
+    return;
+  }
+
   double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
 
