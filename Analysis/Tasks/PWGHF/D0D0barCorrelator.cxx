@@ -262,7 +262,7 @@ struct D0D0barCorrelatorMCRec {
         //Excluding trigger self-correlations (possible in case of both mass hypotheses accepted)
         if (candidate1.mRowIndex == candidate2.mRowIndex) {
           continue;
-        }        
+        }
         //choice of options (D0/D0bar signal/bkg)
         int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/sig, 2 = sig/bkg, 3 = sig/sig
         if (flagD0Signal) {
@@ -378,6 +378,7 @@ struct D0D0barCorrelatorMCGen {
 };
 
 /// D0-D0bar correlation pair builder - LIKE SIGN - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
+/// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled, since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
 struct D0D0barCorrelatorLS {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
@@ -439,8 +440,6 @@ struct D0D0barCorrelatorLS {
       registry.fill(HIST("hY"), YD0(candidate1));
       registry.fill(HIST("hSelectionStatus"), candidate1.isSelD0() + (candidate1.isSelD0bar() * 2));
 
-      double ptParticle1 = candidate1.pt(); //trigger particle is the largest-pT one
-
       //D-Dbar correlation dedicated section
       //For like-sign, first loop on both D0 and D0bars. First candidate is for sure a D0 and D0bars (checked before, so don't re-check anything on it)
       for (auto& candidate2 : candidates) {
@@ -449,14 +448,14 @@ struct D0D0barCorrelatorLS {
           continue;
         }
         //for the associated, has to have smaller pT, and pass D0sel if trigger passes D0sel, or D0barsel if trigger passes D0barsel
-        if (candidate2.pt() < ptParticle1 && ((candidate1.isSelD0() >= dSelectionFlagD0 && candidate2.isSelD0() >= dSelectionFlagD0) || (candidate1.isSelD0bar() >= dSelectionFlagD0bar && candidate2.isSelD0bar() >= dSelectionFlagD0bar))) {
+        if ((candidate1.isSelD0() >= dSelectionFlagD0 && candidate2.isSelD0() >= dSelectionFlagD0) || (candidate1.isSelD0bar() >= dSelectionFlagD0bar && candidate2.isSelD0bar() >= dSelectionFlagD0bar)) {
           if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
             continue;
           }
           if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
             continue;
           }
-          //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
+          //Excluding self-correlations
           if (candidate1.mRowIndex == candidate2.mRowIndex) {
             continue;
           }
@@ -478,6 +477,7 @@ struct D0D0barCorrelatorLS {
 };
 
 /// D0-D0bar correlation pair builder - LIKE SIGN - for MC reco analysis (data-like but matching to true DO and D0bar)
+/// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled, since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
 struct D0D0barCorrelatorMCRecLS {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
@@ -538,8 +538,6 @@ struct D0D0barCorrelatorMCRecLS {
         registry.fill(HIST("hYMCRec"), YD0(candidate1));
         registry.fill(HIST("hSelectionStatusMCRec"), candidate1.isSelD0() + (candidate1.isSelD0bar() * 2));
 
-        double ptParticle1 = candidate1.pt(); //trigger particle is the largest pT one
-
         //D-Dbar correlation dedicated section
         //For like-sign, first loop on both D0 and D0bars. First candidate is for sure a D0 and D0bars (looping on filtered) and was already matched, so don't re-check anything on it)
         for (auto& candidate2 : candidates) {
@@ -549,14 +547,14 @@ struct D0D0barCorrelatorMCRecLS {
           }
           bool conditionLSForD0 = (candidate1.isSelD0() >= dSelectionFlagD0bar && candidate1.flagMCMatchRec() == 1 << D0ToPiK) && (candidate2.isSelD0() >= dSelectionFlagD0bar && candidate2.flagMCMatchRec() == 1 << D0ToPiK);
           bool conditionLSForD0bar = (candidate1.isSelD0bar() >= dSelectionFlagD0bar && candidate1.flagMCMatchRec() == -1 << D0ToPiK) && (candidate2.isSelD0bar() >= dSelectionFlagD0bar && candidate2.flagMCMatchRec() == -1 << D0ToPiK);
-          if (candidate2.pt() < ptParticle1 && (conditionLSForD0 || conditionLSForD0bar)) { //LS pair (of D0 or of D0bar) + pt2<pt1
+          if (conditionLSForD0 || conditionLSForD0bar) { //LS pair (of D0 or of D0bar) + pt2<pt1
             if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
               continue;
             }
             if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
               continue;
             }
-            //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
+            //Excluding self-correlations
             if (candidate1.mRowIndex == candidate2.mRowIndex) {
               continue;
             }
@@ -577,6 +575,7 @@ struct D0D0barCorrelatorMCRecLS {
 };
 
 /// D0-D0bar correlation pair builder - for MC gen-level analysis, like sign particles
+/// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled, since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
 struct D0D0barCorrelatorMCGenLS {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
@@ -608,15 +607,13 @@ struct D0D0barCorrelatorMCGenLS {
       //check if the particle is D0 or D0bar (both can be trigger) - NOTE: decay channel is not probed!
       if (std::abs(particle1.pdgCode()) != 421) {
         continue;
-      }      
+      }
       if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()))) > cutYCandMax) {
         continue;
       }
       if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
         continue;
       }
-
-      double ptParticle1 = particle1.pt(); //trigger particle is the largest pT one
 
       registry.fill(HIST("hPtCandMCGen"), particle1.pt());
       registry.fill(HIST("hEtaMCGen"), particle1.eta());
@@ -629,15 +626,15 @@ struct D0D0barCorrelatorMCGenLS {
       for (auto& particle2 : particlesMC) {
         if (std::abs(particle2.pdgCode()) != 421) { //check that associated is a D0/D0bar (both are fine)
           continue;
-        } 
+        }
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
           continue;
         }
         if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
           continue;
         }
-        if (particle2.pt() < ptParticle1 && particle2.pdgCode() == particle1.pdgCode()) { //like-sign condition (both 421 or both -421) and pT_Trig>pT_assoc
-          //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
+        if (particle2.pdgCode() == particle1.pdgCode()) { //like-sign condition (both 421 or both -421) and pT_Trig>pT_assoc
+          //Excluding self-correlations
           if (particle1.mRowIndex == particle2.mRowIndex) {
             continue;
           }
@@ -647,7 +644,7 @@ struct D0D0barCorrelatorMCGenLS {
                            particle2.pt());
         }
       } // end inner loop (Dbars)
-    }     //end outer loop
+    }   //end outer loop
     registry.fill(HIST("hcountD0D0barPerEvent"), counterD0D0bar);
   }
 };
@@ -735,6 +732,7 @@ struct CCbarCorrelatorMCGen {
 };
 
 /// c-cbar correlator table builder - for MC gen-level analysis - Like Sign
+/// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled, since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
 struct CCbarCorrelatorMCGenLS {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
@@ -786,22 +784,25 @@ struct CCbarCorrelatorMCGenLS {
       counterccbar++; //count if c or cbar don't come from themselves during fragmentation (after kinematic selection)
 
       //c-cbar correlation dedicated section
-      double ptParticle1 = particle1.pt();                             //trigger particle is the largest pT one
       registry.fill(HIST("hcountD0triggersMCGen"), 0, particle1.pt()); //to count trigger c quark (for normalisation)
 
       for (auto& particle2 : particlesMC) {
         if (std::abs(particle2.pdgCode()) != 4) { //search c or cbar for associated particles
           continue;
-        }        
+        }
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
           continue;
         }
         if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
           continue;
         }
-        if (particle2.pt() < ptParticle1 && particle2.pdgCode() == particle1.pdgCode()) {
+        if (particle2.pdgCode() == particle1.pdgCode()) {
           //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
           if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == particle2.pdgCode()) {
+            continue;
+          }
+          //Excluding self-correlations
+          if (particle1.mRowIndex == particle2.mRowIndex) {
             continue;
           }
           entryD0D0barPair(getDeltaPhi(particle2.phi(), particle1.phi()),
