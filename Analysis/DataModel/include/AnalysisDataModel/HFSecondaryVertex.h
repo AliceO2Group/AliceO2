@@ -548,7 +548,7 @@ DECLARE_SOA_COLUMN(PtDbar, ptDbar, float);
 DECLARE_SOA_COLUMN(MD, mD, float);
 DECLARE_SOA_COLUMN(MDbar, mDbar, float);
 DECLARE_SOA_COLUMN(SignalStatus, signalStatus, int);
-} // namespace hf_d0d0bar_correlation
+} // namespace hf_ddbar_correlation
 DECLARE_SOA_TABLE(DDbarPair, "AOD", "DDBARPAIR",
                   aod::hf_ddbar_correlation::DeltaPhi,
                   aod::hf_ddbar_correlation::DeltaEta,
