@@ -136,7 +136,7 @@ class AODProducerWorkflowDPL : public Task
   int mFillTracksITS{1};
   int mFillTracksTPC{0};
   int mFillTracksITSTPC{1};
-  int mTFNumber{-1};
+  uint64_t mTFNumber{-1};
   int mTruncate{1};
   int mIgnoreWriter{0};
   int mRecoOnly{0};
