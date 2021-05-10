@@ -120,7 +120,6 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   LOG(DEBUG) << "Start loading input seeds into TRD tracker";
   int nTracksLoadedITSTPC = 0;
   int nTracksLoadedTPC = 0;
-  std::vector<int> loadedTPCtracks;
   // load ITS-TPC matched tracks
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
@@ -129,13 +128,12 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
       continue;
     }
-    loadedTPCtracks.push_back(trkITSTPC.getRefTPC());
     ++nTracksLoadedITSTPC;
     LOGF(DEBUG, "Loaded ITS-TPC track %i with time %f", nTracksLoadedITSTPC, trkLoad.getTime());
   }
   // load TPC-only tracks
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nOutputTracksTPCO2; ++iTrk) {
-    if (std::find(loadedTPCtracks.begin(), loadedTPCtracks.end(), iTrk) != loadedTPCtracks.end()) {
+    if (mChainTracking->mIOPtrs.tpcLinkITS && mChainTracking->mIOPtrs.tpcLinkITS[iTrk] != -1) {
       // this TPC tracks has already been matched to ITS and the ITS-TPC track has already been loaded in the tracker
       continue;
     }
