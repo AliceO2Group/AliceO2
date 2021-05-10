@@ -103,8 +103,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   /// ladder is the matrix ID and is converted to geometry ID
   Int_t getNumberOfSensorsPerLadder(Int_t half, Int_t disk, Int_t ladder) const
   {
-    Int_t ladderID = mLadderIndex2Id[disk][ladder];
-    return extractNumberOfSensorsPerLadder(half, disk, ladderID);
+    return extractNumberOfSensorsPerLadder(half, disk, ladder);
   }
   /// Returns the number of ladders in each disk of each half
   Int_t getNumberOfLaddersPerDisk(Int_t half, Int_t disk, Int_t sensors) const
