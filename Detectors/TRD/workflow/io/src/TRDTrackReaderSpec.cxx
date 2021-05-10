@@ -10,7 +10,7 @@
 
 /// @file  TRDTrackReaderSpec.cxx
 
-#include "TRDWorkflow/TRDTrackReaderSpec.h"
+#include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/SerializationMethods.h"
