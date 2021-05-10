@@ -107,7 +107,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   }
 
   if (maskCl[GID::TRD]) {
-    recoCont.inputsTRD->fillGPUIOPtr(&ioPtr, true);
+    recoCont.inputsTRD->fillGPUIOPtr(&ioPtr);
     //LOG(info) << "Got " << ioPtr.nTRDTracklets << " TRD Tracklets";
   }
 
