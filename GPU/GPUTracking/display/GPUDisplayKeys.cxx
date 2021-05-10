@@ -59,8 +59,10 @@ const char* HelpText[] = {
   "[SHIFT]                       Slow Zoom / Move / Rotate",
   "[ALT] / [CTRL] / [ENTER]      Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
   "[RCTRL] / [RALT]              Rotate model instead of camera / rotate TPC around beamline",
-  "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
-  "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS"
+  "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors",
+  "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS",
+  "[SHIFT] + [F1] to [F4]        Enable / disable track detector filter",
+  "[SHIFT] + [F12]               Switch track detector filter between AND and OR mode"
   // FREE: [m] [SPACE] [q] [Q]
   // Test setting: ^ --> mHideUnmatchedClusters
 };
@@ -321,13 +323,44 @@ void GPUDisplay::HandleKey(unsigned char key)
   } else if (key == '8') {
     mCfg.drawFinal ^= 1;
   } else if (key == mBackend->KEY_F1) {
-    mCfg.drawTPC ^= 1;
+    if (mBackend->mKeysShift[mBackend->KEY_F1]) {
+      mCfg2.drawTPCTracks ^= 1;
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfg2.drawTPCTracks, (int)mCfg2.drawTRDTracks, (int)mCfg2.drawTOFTracks, (int)mCfg2.drawITSTracks);
+      mUpdateDLList = true;
+    } else {
+      mCfg.drawTPC ^= 1;
+      SetInfo("Showing TPC Clusters: %d", (int)mCfg.drawTPC);
+    }
   } else if (key == mBackend->KEY_F2) {
-    mCfg.drawTRD ^= 1;
+    if (mBackend->mKeysShift[mBackend->KEY_F2]) {
+      mCfg2.drawTRDTracks ^= 1;
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfg2.drawTPCTracks, (int)mCfg2.drawTRDTracks, (int)mCfg2.drawTOFTracks, (int)mCfg2.drawITSTracks);
+      mUpdateDLList = true;
+    } else {
+      mCfg.drawTRD ^= 1;
+      SetInfo("Showing TRD Tracklets: %d", (int)mCfg.drawTRD);
+    }
   } else if (key == mBackend->KEY_F3) {
-    mCfg.drawTOF ^= 1;
+    if (mBackend->mKeysShift[mBackend->KEY_F3]) {
+      mCfg2.drawTOFTracks ^= 1;
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfg2.drawTPCTracks, (int)mCfg2.drawTRDTracks, (int)mCfg2.drawTOFTracks, (int)mCfg2.drawITSTracks);
+      mUpdateDLList = true;
+    } else {
+      mCfg.drawTOF ^= 1;
+      SetInfo("Showing TOF Hits: %d", (int)mCfg.drawTOF);
+    }
   } else if (key == mBackend->KEY_F4) {
-    mCfg.drawITS ^= 1;
+    if (mBackend->mKeysShift[mBackend->KEY_F4]) {
+      mCfg2.drawITSTracks ^= 1;
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfg2.drawTPCTracks, (int)mCfg2.drawTRDTracks, (int)mCfg2.drawTOFTracks, (int)mCfg2.drawITSTracks);
+      mUpdateDLList = true;
+    } else {
+      mCfg.drawITS ^= 1;
+      SetInfo("Showing ITS Clusters: %d", (int)mCfg.drawITS);
+    }
+  } else if (key == mBackend->KEY_F12 && mBackend->mKeysShift[mBackend->KEY_F12]) {
+    mCfg2.drawTracksAndFilter ^= 1;
+    SetInfo("Track filter: %s", mCfg2.drawTracksAndFilter ? "AND" : "OR");
   } else if (key == 't') {
     GPUInfo("Taking screenshot");
     static int nScreenshot = 1;

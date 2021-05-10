@@ -857,7 +857,7 @@ GPUDisplay::vboList GPUDisplay::DrawClusters(int iSlice, int select, unsigned in
 GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int id, bool dodown)
 {
   int iSlice = tracker.ISlice();
-  if (mConfig.clustersOnly) {
+  if (mCfg2.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
@@ -896,7 +896,7 @@ GPUDisplay::vboList GPUDisplay::DrawLinks(const GPUTPCTracker& tracker, int id, 
 GPUDisplay::vboList GPUDisplay::DrawSeeds(const GPUTPCTracker& tracker)
 {
   int iSlice = tracker.ISlice();
-  if (mConfig.clustersOnly) {
+  if (mCfg2.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
@@ -920,7 +920,7 @@ GPUDisplay::vboList GPUDisplay::DrawSeeds(const GPUTPCTracker& tracker)
 GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
 {
   int iSlice = tracker.ISlice();
-  if (mConfig.clustersOnly) {
+  if (mCfg2.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
@@ -948,7 +948,7 @@ GPUDisplay::vboList GPUDisplay::DrawTracklets(const GPUTPCTracker& tracker)
 GPUDisplay::vboList GPUDisplay::DrawTracks(const GPUTPCTracker& tracker, int global)
 {
   int iSlice = tracker.ISlice();
-  if (mConfig.clustersOnly) {
+  if (mCfg2.clustersOnly) {
     return (vboList(0, 0, iSlice));
   }
   size_t startCount = mVertexBufferStart[iSlice].size();
@@ -1004,7 +1004,7 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
   auto& vBuf = threadBuffer.vBuf;
   auto& buffer = threadBuffer.buffer;
   unsigned int nTracks = std::max(trackList[0].size(), trackList[1].size());
-  if (mConfig.clustersOnly) {
+  if (mCfg2.clustersOnly) {
     nTracks = 0;
   }
   for (unsigned int ii = 0; ii < nTracks; ii++) {
@@ -1032,6 +1032,15 @@ void GPUDisplay::DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, s
 
       size_t startCountInner = mVertexBuffer[iSlice].size();
       bool drawing = false;
+
+      if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
+        if (!mCfg2.drawTracksAndFilter && !(mCfg2.drawTPCTracks || (mCfg2.drawITSTracks && mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1) || (mCfg2.drawTRDTracks && mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1) || (mCfg2.drawTOFTracks && mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1))) {
+          break;
+        }
+        if (mCfg2.drawTracksAndFilter && ((mCfg2.drawITSTracks && !(mIOPtrs->tpcLinkITS && mIOPtrs->tpcLinkITS[i] != -1)) || (mCfg2.drawTRDTracks && !(mIOPtrs->tpcLinkTRD && mIOPtrs->tpcLinkTRD[i] != -1)) || (mCfg2.drawTOFTracks && !(mIOPtrs->tpcLinkTOF && mIOPtrs->tpcLinkTOF[i] != -1)))) {
+          break;
+        }
+      }
 
       // Print TOF part of track
       if constexpr (std::is_same_v<T, o2::tpc::TrackTPC>) {
@@ -1545,11 +1554,14 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         float4* ptr = &mGlobalPos[cid];
         if (mParam->par.earlyTpcTransform) {
           const auto& cl = mIOPtrs->clusterData[iSlice][i];
-          mParam->Slice2Global(iSlice, (mConfig.clustersOnNominalRow ? mParam->tpcGeometry.Row2X(row) : cl.x) + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
+          mParam->Slice2Global(iSlice, (mCfg2.clustersOnNominalRow ? mParam->tpcGeometry.Row2X(row) : cl.x) + mXadd, cl.y, cl.z, &ptr->x, &ptr->y, &ptr->z);
         } else {
           float x, y, z;
           const auto& cln = mIOPtrs->clustersNative->clusters[iSlice][0][i];
           GPUTPCConvertImpl::convert(*mCalib->fastTransform, *mParam, iSlice, row, cln.getPad(), cln.getTime(), x, y, z);
+          if (mCfg2.clustersOnNominalRow) {
+            x = mParam->tpcGeometry.Row2X(row);
+          }
           mParam->Slice2Global(iSlice, x + mXadd, y, z, &ptr->x, &ptr->y, &ptr->z);
         }
 
@@ -2374,7 +2386,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
   }
 
-  if (!mConfig.clustersOnly && !mCfg.excludeClusters) {
+  if (!mCfg2.clustersOnly && !mCfg.excludeClusters) {
     if (mCfg.drawTPC) {
       if (mCfg.drawInitLinks) {
         SetColorInitLinks();
@@ -2421,7 +2433,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
           drawVertices(mGlDLFinal[iSlice][iCol][3], GL_LINE_STRIP);
         }
       }
-      if (mCfg.drawITS) {
+      if (mCfg2.drawTracksAndFilter ? (mCfg2.drawTPCTracks || mCfg2.drawTRDTracks || mCfg2.drawTOFTracks) : mCfg2.drawITSTracks) {
         drawVertices(mGlDLFinalITS, GL_LINE_STRIP);
       }
     }
