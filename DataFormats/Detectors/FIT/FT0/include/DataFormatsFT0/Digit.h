@@ -15,6 +15,7 @@
 #ifndef _FT0_DIGIT_H_
 #define _FT0_DIGIT_H_
 
+#include <Framework/Logger.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/TimeStamp.h"
@@ -88,6 +89,7 @@ struct Triggers {
     return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
            std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
   }
+  void printLog() const;
   ClassDefNV(Triggers, 2);
 };
 
@@ -132,41 +134,33 @@ struct Digit {
   o2::InteractionRecord getIntRecord() const { return mIntRecord; };
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   DetTrigInput makeTrgInput() const { return DetTrigInput{mIntRecord, mTriggers.getOrA(), mTriggers.getOrC(), mTriggers.getVertex(), mTriggers.getCen(), mTriggers.getSCen()}; }
+  void fillTrgInputVec(std::vector<DetTrigInput>& vecTrgInput) const
+  {
+    vecTrgInput.emplace_back(mIntRecord, mTriggers.getOrA(), mTriggers.getOrC(), mTriggers.getVertex(), mTriggers.getCen(), mTriggers.getSCen());
+  }
   void printStream(std::ostream& stream) const;
   void setTriggers(Triggers trig) { mTriggers = trig; };
   void setEventStatus(uint8_t stat) { mEventStatus = stat; };
   void setStatusFlag(EEventStatus bit, bool value) { mEventStatus |= (value << bit); };
   bool getStatusFlag(EEventStatus bit) const { return bool(mEventStatus << bit); }
   uint8_t getEventStatusWord() const { return mEventStatus; }
-
   bool operator==(const Digit& other) const
   {
     return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
   }
+  void printLog() const;
   ClassDefNV(Digit, 6);
 };
 
 //For TCM extended mode (calibration mode), TCMdataExtended digit
 struct TriggersExt {
-  TriggersExt(uint32_t triggerWord)
-  {
-    mTriggerWord = triggerWord;
-  }
+  TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
   TriggersExt() = default;
-  uint32_t mTriggerWord;
-  ClassDefNV(TriggersExt, 1);
-};
-
-//For TCM extended mode (calibration mode)
-struct DigitExt : Digit {
-  DigitExt(int first, int ne, int firstExt, int neExt, const o2::InteractionRecord& iRec, const Triggers& chTrig, int event) : Digit(first, ne, iRec, chTrig, event)
-  {
-    refExt.setFirstEntry(firstExt);
-    refExt.setEntries(neExt);
-  }
-  DigitExt() = default;
-  o2::dataformats::RangeReference<int, int> refExt; //range reference to container with TriggerExt objects
-  ClassDefNV(DigitExt, 1);
+  o2::InteractionRecord mIntRecord;
+  void setTrgWord(uint32_t trgWord, std::size_t pos) { mTriggerWords[pos] = trgWord; }
+  std::array<uint32_t, 20> mTriggerWords;
+  void printLog() const;
+  ClassDefNV(TriggersExt, 2);
 };
 } // namespace ft0
 } // namespace o2

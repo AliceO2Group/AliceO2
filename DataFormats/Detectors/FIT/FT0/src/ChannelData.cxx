@@ -15,6 +15,9 @@ using namespace o2::ft0;
 
 void ChannelData::print() const
 {
-
   printf("  ChID%d | CFDtime=%d | QTCampl=%d QTC chain %d\n", ChId, CFDTime, QTCAmpl, ChainQTC);
+}
+void ChannelData::printLog() const
+{
+  LOG(INFO) << "ChId: " << static_cast<uint16_t>(ChId) << " |  FEE bits:" << static_cast<uint16_t>(ChainQTC) << " | Time: " << CFDTime << " | Charge: " << QTCAmpl;
 }

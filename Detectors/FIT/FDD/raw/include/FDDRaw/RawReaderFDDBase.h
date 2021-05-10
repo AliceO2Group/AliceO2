@@ -18,17 +18,9 @@
 
 #ifndef ALICEO2_FIT_RAWREADERFDDBASE_H_
 #define ALICEO2_FIT_RAWREADERFDDBASE_H_
-#include <iostream>
-#include <vector>
-#include <Rtypes.h>
 #include "FDDRaw/DataBlockFDD.h"
 #include "FDDRaw/DigitBlockFDD.h"
 #include "FITRaw/RawReaderBaseFIT.h"
-
-#include <CommonDataFormat/InteractionRecord.h>
-#include "Headers/RAWDataHeader.h"
-
-#include <gsl/span>
 
 namespace o2
 {

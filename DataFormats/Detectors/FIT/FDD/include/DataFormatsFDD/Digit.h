@@ -15,6 +15,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "DataFormatsFDD/ChannelData.h"
+#include <Framework/Logger.h>
 #include <iosfwd>
 #include <Rtypes.h>
 #include <gsl/span>
@@ -71,6 +72,13 @@ struct Triggers {
     return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
            std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
   }
+  void printLog() const
+  {
+    LOG(INFO) << "mTrigger: " << static_cast<uint16_t>(triggersignals);
+    LOG(INFO) << "nChanA: " << static_cast<uint16_t>(nChanA) << " | nChanC: " << static_cast<uint16_t>(nChanC);
+    LOG(INFO) << "amplA: " << amplA << " | amplC: " << amplC;
+    LOG(INFO) << "timeA: " << timeA << " | timeC: " << timeC;
+  }
   ClassDefNV(Triggers, 1);
 };
 
@@ -87,6 +95,7 @@ struct DetTrigInput {
               (isSCnt << Triggers::bitSCen))
   {
   }
+
   ClassDefNV(DetTrigInput, 1);
 };
 
@@ -106,12 +115,42 @@ struct Digit {
   {
     return ref.getEntries() ? gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const ChannelData>();
   }
+  DetTrigInput makeTrgInput() const { return DetTrigInput{mIntRecord, mTriggers.getOrA(), mTriggers.getOrC(), mTriggers.getVertex(), mTriggers.getCen(), mTriggers.getSCen()}; }
+  void fillTrgInputVec(std::vector<DetTrigInput>& vecTrgInput) const
+  {
+    vecTrgInput.emplace_back(mIntRecord, mTriggers.getOrA(), mTriggers.getOrC(), mTriggers.getVertex(), mTriggers.getCen(), mTriggers.getSCen());
+  }
   bool operator==(const Digit& other) const
   {
     return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
   }
+  void printLog() const
+  {
+    LOG(INFO) << "______________DIGIT DATA____________";
+    LOG(INFO) << "BC: " << mIntRecord.bc << "| ORBIT: " << mIntRecord.orbit;
+    LOG(INFO) << "Ref first: " << ref.getFirstEntry() << "| Ref entries: " << ref.getEntries();
+    mTriggers.printLog();
+  }
   ClassDefNV(Digit, 3);
 };
+//For TCM extended mode (calibration mode), TCMdataExtended digit
+struct TriggersExt {
+  TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
+  TriggersExt() = default;
+  o2::InteractionRecord mIntRecord;
+  void setTrgWord(uint32_t trgWord, std::size_t pos) { mTriggerWords[pos] = trgWord; }
+  std::array<uint32_t, 20> mTriggerWords;
+  void printLog() const
+  {
+    LOG(INFO) << "______________EXTENDED TRIGGERS____________";
+    LOG(INFO) << "BC: " << mIntRecord.bc << "| ORBIT: " << mIntRecord.orbit;
+    for (int i = 0; i < 20; i++) {
+      LOG(INFO) << "N: " << i + 1 << " | TRG: " << mTriggerWords[i];
+    }
+  }
+  ClassDefNV(TriggersExt, 1);
+};
+
 } // namespace fdd
 } // namespace o2
 #endif

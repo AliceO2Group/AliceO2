@@ -9,4 +9,4 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Raw/DataBlockFT0.h"
-using namespace o2::ft0;
+//using namespace o2::ft0;

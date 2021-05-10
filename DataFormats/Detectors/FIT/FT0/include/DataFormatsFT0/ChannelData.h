@@ -15,6 +15,7 @@
 #ifndef _FT0_CHANNELDATA_H_
 #define _FT0_CHANNELDATA_H_
 
+#include <Framework/Logger.h>
 #include <Rtypes.h>
 #include <tuple>
 namespace o2
@@ -60,7 +61,7 @@ struct ChannelData {
   }
   bool getFlag(EEventDataBit bitFlag) const { return bool(ChainQTC & (1 << bitFlag)); }
   void print() const;
-
+  void printLog() const;
   [[nodiscard]] uint8_t getChannelID() const { return ChId; }
   [[nodiscard]] uint16_t getTime() const { return CFDTime; }
 
