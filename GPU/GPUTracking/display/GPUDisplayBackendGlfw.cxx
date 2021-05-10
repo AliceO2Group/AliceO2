@@ -170,10 +170,8 @@ void GPUDisplayBackendGlfw::key_callback(GLFWwindow* window, int key, int scanco
   if (action == GLFW_PRESS) {
     me->mKeys[keyPress] = true;
     me->mKeysShift[keyPress] = mods & GLFW_MOD_SHIFT;
+    me->HandleKey(handleKey);
   } else if (action == GLFW_RELEASE) {
-    if (me->mKeys[keyPress]) {
-      me->HandleKeyRelease(handleKey);
-    }
     me->mKeys[keyPress] = false;
     me->mKeysShift[keyPress] = false;
   }
