@@ -7,21 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+/// \brief Use the HistogramRegistry to manipulate histograms.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/HistogramRegistry.h"
-#include <TH1F.h>
 #include <TParameter.h>
-
-#include <cmath>
 
 using namespace o2;
 using namespace o2::framework;
 
-// This is a very simple example showing how to create an histogram
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
 struct EtaPhiHistograms {
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{

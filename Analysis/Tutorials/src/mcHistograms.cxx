@@ -7,13 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+///
+/// \brief Accessing MC data and the related MC truth.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "AnalysisCore/MC.h"
-
-#include <TH1F.h>
-#include <cmath>
 
 using namespace o2;
 using namespace o2::framework;
@@ -22,6 +24,7 @@ using namespace o2::framework;
 struct ATask {
   OutputObj<TH1F> vertex{TH1F("vertex", "vertex", 100, -10, 10)};
 
+  // loop over MC truth McCollisions
   void process(aod::McCollision const& mcCollision)
   {
     LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
@@ -34,8 +37,10 @@ struct BTask {
   OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
+  // group according to McCollisions
   void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
   {
+    // access MC truth information with mcCollision() and mcParticle() methods
     LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     LOGF(info, "First: %d | Length: %d", mcParticles.begin().index(), mcParticles.size());
     if (mcParticles.size() > 0) {
@@ -55,8 +60,10 @@ struct CTask {
   OutputObj<TH1F> etaDiff{TH1F("etaDiff", ";eta_{MC} - eta_{Rec}", 100, -2, 2)};
   OutputObj<TH1F> phiDiff{TH1F("phiDiff", ";phi_{MC} - phi_{Rec}", 100, -M_PI, M_PI)};
 
+  // group according to reconstructed Collisions
   void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
   {
+    // access MC truth information with mcCollision() and mcParticle() methods
     LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.mcCollision().posZ());
     for (auto& track : tracks) {
       //if (track.trackType() != 0)

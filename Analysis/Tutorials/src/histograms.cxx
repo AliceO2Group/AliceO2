@@ -7,62 +7,63 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+///
+/// \brief Both tasks, ATask and BTask create two histograms. But whereas in
+///        the first case (ATask) the histograms are not saved to file, this
+///        happens automatically if OutputObj<TH1F> is used to create a
+///        histogram. By default the histogram is saved to file
+///        AnalysisResults.root. HistogramRegistry is yet an other possibility
+///        to deal with histograms. See tutorial example histogramRegistery.cxx
+///        for details.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include <TH1F.h>
-
-#include <cmath>
-
+using namespace o2::framework::expressions;
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::framework::expressions;
 
-// This is a very simple example showing how to create an histogram
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
 struct ATask {
-  OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
-  OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
+
+  // normal creation of a histogram
+  TH1F* phiHA = new TH1F("phiA", "phiA", 100, 0., 2. * M_PI);
+  TH1F* etaHA = new TH1F("etaA", "etaA", 102, -2.01, 2.01);
 
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      phiH->Fill(track.phi());
-      etaH->Fill(track.eta());
+      phiHA->Fill(track.phi());
+      etaHA->Fill(track.eta());
     }
   }
 };
 
 struct BTask {
-  OutputObj<TH2F> etaphiH{TH2F("etaphi", "etaphi", 100, 0., 2. * M_PI, 102, -2.01, 2.01)};
-  // Create a configurable which can be used inside the process method.
-  Configurable<float> phiCut{"phiCut", 6.29f, "A cut on phi"};
+
+  // histogram created with OutputObj<TH1F>
+  OutputObj<TH1F> phiB{TH1F("phiB", "phiB", 100, 0., 2. * M_PI), OutputObjHandlingPolicy::QAObject};
+  OutputObj<TH2F> etaptB{TH2F("etaptB", "etaptB", 102, -2.01, 2.01, 100, 0.0, 5.0), OutputObjHandlingPolicy::AnalysisObject};
 
   void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      // FIXME: this is until we have configurables which
-      //        can be used in expressions.
-      if (track.phi() < phiCut) {
-        etaphiH->Fill(track.phi(), track.eta());
-      }
+      phiB->Fill(track.phi());
+      etaptB->Fill(track.eta(), track.pt());
     }
   }
 };
 
-struct PtHistogram {
-  // needs to be initialized with a label or an obj
-  // when adding an object to OutputObj later, the object name will be
-  // *reset* to OutputObj label - needed for correct placement in the output file
-  OutputObj<TH1F> ptH{TH1F("pt", "pt", 100, -0.01, 10.01)};
+struct CTask {
+  // incomplete definition of an OutputObj
   OutputObj<TH1F> trZ{"trZ", OutputObjHandlingPolicy::QAObject};
-  Configurable<float> pTCut{"pTCut", 0.5f, "Lower pT limit"};
 
-  Filter ptfilter = aod::track::pt > pTCut;
+  Filter ptfilter = aod::track::pt > 0.5;
 
   void init(InitContext const&)
   {
+    // complete the definition of the OutputObj
     trZ.setObject(new TH1F("Z", "Z", 100, -10., 10.));
     // other options:
     // TH1F* t = new TH1F(); trZ.setObject(t); <- resets content!
@@ -73,38 +74,34 @@ struct PtHistogram {
   void process(soa::Filtered<aod::Tracks> const& tracks)
   {
     for (auto& track : tracks) {
-      ptH->Fill(track.pt());
       trZ->Fill(track.z());
     }
   }
 };
 
 struct DTask {
-  OutputObj<TList> list{"list"};
 
-  void init(InitContext const&)
+  // histogram defined with HistogramRegistry
+  HistogramRegistry registry{
+    "registry",
+    {{"phiC", "phiC", {HistType::kTH1F, {{100, 0., 2. * M_PI}}}},
+     {"etaptC", "etaptC", {HistType::kTH2F, {{102, -2.01, 2.01}, {100, 0.0, 5.0}}}}}};
+
+  void process(aod::Tracks const& tracks)
   {
-    list.setObject(new TList);
-    list->Add(new TH1F("pHist", "", 100, 0, 10));
-    list->Add(new TH1F("etaHist", "", 102, -2.01, 2.01));
-  }
-
-  void process(aod::Track const& track)
-  {
-    auto pHist = dynamic_cast<TH1F*>(list->At(0));
-    auto etaHist = dynamic_cast<TH1F*>(list->At(1));
-
-    pHist->Fill(track.p());
-    etaHist->Fill(track.eta());
+    for (auto& track : tracks) {
+      registry.get<TH1>(HIST("phiC"))->Fill(track.phi());
+      registry.get<TH2>(HIST("etaptC"))->Fill(track.eta(), track.pt());
+    }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"eta-and-phi-histograms"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"etaphi-histogram"}),
-    adaptAnalysisTask<PtHistogram>(cfgc), //, TaskName{"pt-histogram"}),
-    adaptAnalysisTask<DTask>(cfgc, TaskName{"output-wrapper"}),
+    adaptAnalysisTask<ATask>(cfgc, TaskName{TaskName{"histograms-tutorial_A"}}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{TaskName{"histograms-tutorial_B"}}),
+    adaptAnalysisTask<CTask>(cfgc, TaskName{TaskName{"histograms-tutorial_C"}}),
+    adaptAnalysisTask<DTask>(cfgc, TaskName{TaskName{"histograms-tutorial_D"}}),
   };
 }
