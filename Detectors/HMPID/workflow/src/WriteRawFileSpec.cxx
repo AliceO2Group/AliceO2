@@ -81,12 +81,12 @@ void WriteRawFileTask::init(framework::InitContext& ic)
 
 void WriteRawFileTask::run(framework::ProcessingContext& pc)
 {
-  o2::InteractionRecord intReco;
+  std::vector<o2::hmpid::Trigger> triggers;
   std::vector<o2::hmpid::Digit> digits;
 
   for (auto const& ref : InputRecordWalker(pc.inputs())) {
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "INTRECORDS"}})) {
-      intReco = pc.inputs().get<o2::InteractionRecord>(ref);
+      triggers = pc.inputs().get<std::vector<o2::hmpid::Trigger>>(ref);
     }
     if (DataRefUtils::match(ref, {"check", ConcreteDataTypeMatcher{gDataOriginHMP, "DIGITS"}})) {
       digits = pc.inputs().get<std::vector<o2::hmpid::Digit>>(ref);
@@ -94,12 +94,15 @@ void WriteRawFileTask::run(framework::ProcessingContext& pc)
     }
   }
 
-  if (mOrderTheEvents) {
-    int first = mDigits.size();
-    mDigits.insert(mDigits.end(), digits.begin(), digits.end());
-    mEvents.push_back({intReco, first, int(mDigits.size() - first)});
-  } else {
-    mCod->codeEventChunkDigits(digits, intReco);
+  for (int i = 0; i < triggers.size(); i++) {
+    if (mOrderTheEvents) {
+      int first = mDigits.size();
+      mDigits.insert(mDigits.end(), digits.begin() + triggers[i].getFirstEntry(), digits.begin() + triggers[i].getLastEntry());
+      mEvents.push_back({triggers[i].getIr(), first, int(mDigits.size() - first)});
+    } else {
+      std::vector<o2::hmpid::Digit> dig = {digits.begin() + triggers[i].getFirstEntry(), digits.begin() + triggers[i].getLastEntry()};
+      mCod->codeEventChunkDigits(dig, triggers[i].getIr());
+    }
   }
   mDigitsReceived += digits.size();
   mFramesReceived++;

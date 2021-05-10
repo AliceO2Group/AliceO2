@@ -27,7 +27,7 @@ o2_add_test(DataGenerator
 o2_add_test(HuffmanCodec
             SOURCES test/test_HuffmanCodec.cxx
             COMPONENT_NAME DataCompression
-            PUBLIC_LINK_LIBRARIES O2::CommonUtils Boost::filesystem
+            PUBLIC_LINK_LIBRARIES O2::CommonUtils
             LABELS utils)
 
 o2_add_test(DataDeflater

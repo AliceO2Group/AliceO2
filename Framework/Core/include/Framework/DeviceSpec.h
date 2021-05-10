@@ -23,6 +23,7 @@
 #include "Framework/OutputRoute.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
+#include "Framework/ResourcePolicy.h"
 #include "Framework/ServiceSpec.h"
 
 #include <vector>
@@ -36,7 +37,9 @@ namespace o2::framework
 /// Concrete description of the device which will actually run
 /// a DataProcessor.
 struct DeviceSpec {
+  /// The name of the associated DataProcessorSpec
   std::string name;
+  /// The id of the device, including time-pipelining and suffix
   std::string id;
   std::string channelPrefix;
   std::vector<InputChannelSpec> inputChannels;
@@ -59,6 +62,9 @@ struct DeviceSpec {
   /// The completion policy to use for this device.
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;
+  /// Policy on when the available resources are enough to run
+  /// a computation.
+  ResourcePolicy resourcePolicy;
   ComputingResource resource;
   unsigned short resourceMonitoringInterval;
 };

@@ -16,6 +16,7 @@
 
 #include "GPUTRDDef.h"
 #include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
 
 struct GPUTRDTrackDataRecord;
 class AliHLTExternalTrackParam;
@@ -29,6 +30,7 @@ class TrackTPC;
 namespace dataformats
 {
 class TrackTPCITS;
+class GlobalTrackID;
 } // namespace dataformats
 } // namespace o2
 
@@ -43,7 +45,10 @@ class GPUTRDTrack_t;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #else
+#if (!defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)) || defined(HAVE_O2HEADERS)
+#include "GPUTRDO2BaseTrack.h"
 #include "GPUTRDInterfaceO2Track.h"
+#endif
 
 namespace GPUCA_NAMESPACE
 {
@@ -54,7 +59,10 @@ template <typename T>
 class GPUTRDTrack_t : public T
 {
  public:
-  enum EGPUTRDTrack { kNLayers = 6 };
+  enum EGPUTRDTrack {
+    kNLayers = 6,
+    kStopFlag = 7
+  };
 
   GPUd() GPUTRDTrack_t();
   GPUTRDTrack_t(const typename T::baseClass& t) = delete;
@@ -67,58 +75,51 @@ class GPUTRDTrack_t : public T
   GPUd() GPUTRDTrack_t(const T& t);
   GPUd() GPUTRDTrack_t& operator=(const GPUTRDTrack_t& t);
 
-  GPUd() int GetNlayers() const;
-  GPUd() int GetTracklet(int iLayer) const;
-  GPUd() int GetTPCtrackId() const { return mTPCTrackId; }
-  GPUd() int GetNtracklets() const { return mNTracklets; }
-  GPUd() int GetNtrackletsOffline(int type) const { return mNTrackletsOffline[type]; }
-  GPUd() int GetLabelOffline() const { return mLabelOffline; }
-  GPUd() int GetLabel() const { return mLabel; }
-  GPUd() float GetChi2() const { return mChi2; }
-  GPUd() float GetReducedChi2() const { return GetNlayers() == 0 ? mChi2 : mChi2 / GetNlayers(); }
-  GPUd() float GetMass() const { return mMass; }
-  GPUd() bool GetIsStopped() const { return mIsStopped; }
-  GPUd() bool GetIsFindable(int iLayer) const { return mIsFindable[iLayer]; }
-  GPUd() int GetTrackletIndex(int iLayer) const { return GetTracklet(iLayer); }
-  GPUd() int GetNmissingConsecLayers(int iLayer) const;
+  // attach a tracklet to this track; this overwrites the mIsFindable flag to true for this layer
+  GPUd() void addTracklet(int iLayer, int idx) { mAttachedTracklets[iLayer] = idx; }
 
-  GPUd() void AddTracklet(int iLayer, int idx)
-  {
-    mAttachedTracklets[iLayer] = idx;
-    mNTracklets++;
-  }
-  GPUd() void SetTPCtrackId(int v) { mTPCTrackId = v; }
-  GPUd() void SetNtracklets(int nTrklts) { mNTracklets = nTrklts; }
-  GPUd() void SetIsFindable(int iLayer) { mIsFindable[iLayer] = true; }
-  GPUd() void SetNtrackletsOffline(int type, int nTrklts) { mNTrackletsOffline[type] = nTrklts; }
-  GPUd() void SetLabelOffline(int lab) { mLabelOffline = lab; }
-  GPUd() void SetIsStopped() { mIsStopped = true; }
+  // getters
+  GPUd() int getNlayersFindable() const;
+  GPUd() int getTrackletIndex(int iLayer) const { return mAttachedTracklets[iLayer]; }
+  GPUd() unsigned int getRefGlobalTrackIdRaw() const { return mRefGlobalTrackId; }
+  // This method is only defined in TrackTRD.h and is intended to be used only with that TRD track type
+  GPUd() o2::dataformats::GlobalTrackID getRefGlobalTrackId() const;
+  GPUd() int getNtracklets() const;
+  GPUd() float getChi2() const { return mChi2; }
+  GPUd() float getReducedChi2() const { return getNlayersFindable() == 0 ? mChi2 : mChi2 / getNlayersFindable(); }
+  GPUd() bool getIsStopped() const { return (mIsFindable >> kStopFlag) & 0x1; }
+  GPUd() bool getIsFindable(int iLayer) const { return (mIsFindable >> iLayer) & 0x1; }
+  GPUd() int getNmissingConsecLayers(int iLayer) const;
+  // for AliRoot compatibility. To be removed once HLT/global/AliHLTGlobalEsdConverterComponent.cxx does not require them anymore
+  GPUd() int GetTPCtrackId() const { return mRefGlobalTrackId; }
+  GPUd() bool GetIsStopped() const { return getIsStopped(); }
+  GPUd() int GetNtracklets() const { return getNtracklets(); }
 
-  GPUd() void SetChi2(float chi2) { mChi2 = chi2; }
-  GPUd() void SetMass(float mass) { mMass = mass; }
-  GPUd() void SetLabel(int label) { mLabel = label; }
+  // setters
+  GPUd() void setRefGlobalTrackIdRaw(unsigned int id) { mRefGlobalTrackId = id; }
+  // This method is only defined in TrackTRD.h and is intended to be used only with that TRD track type
+  GPUd() void setRefGlobalTrackId(o2::dataformats::GlobalTrackID id);
+  GPUd() void setIsFindable(int iLayer) { mIsFindable |= (1U << iLayer); }
+  GPUd() void setIsStopped() { mIsFindable |= (1U << kStopFlag); }
+  GPUd() void setChi2(float chi2) { mChi2 = chi2; }
 
-  // conversion to / from HLT track structure
-
+  // conversion to / from HLT track structure (only for AliRoot)
   GPUd() void ConvertTo(GPUTRDTrackDataRecord& t) const;
   GPUd() void ConvertFrom(const GPUTRDTrackDataRecord& t);
 
  protected:
   float mChi2;                      // total chi2
-  float mMass;                      // mass hypothesis
-  int mLabel;                       // MC label
-  int mTPCTrackId;                  // corresponding TPC track
-  int mNTracklets;                  // number of attached TRD tracklets
-  int mNMissingConsecLayers;        // number of missing consecutive layers
-  int mNTrackletsOffline[4];        // for debugging: attached offline TRD tracklets (0: total, 1: match, 2: related, 3: fake)
-  int mLabelOffline;                // offline TRD MC label of this track
-  int mAttachedTracklets[kNLayers]; // IDs for attached tracklets sorted by layer
-  bool mIsFindable[kNLayers];       // number of layers where tracklet should exist
-  bool mIsStopped;                  // track ends in TRD
+  unsigned int mRefGlobalTrackId;   // raw GlobalTrackID of the seeding track (either ITS-TPC or TPC)
+  int mAttachedTracklets[kNLayers]; // indices of the tracklets attached to this track; -1 means no tracklet in that layer
+  unsigned char mIsFindable;        // bitfield; LSB indicates whether track is findable in layer 0; MSB flags whether the track is stopped in the TRD; one bit is currently not used
 
  private:
-  GPUd() void Initialize();
+  GPUd() void initialize();
+#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
+  ClassDefNV(GPUTRDTrack_t, 1);
+#endif
 };
+
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

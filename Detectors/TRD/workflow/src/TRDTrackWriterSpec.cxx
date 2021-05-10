@@ -11,9 +11,7 @@
 /// @file  TRDTrackWriterSpec.cxx
 
 #include <vector>
-#include "GPUO2Interface.h"
-#include "GPUTRDDef.h"
-#include "GPUTRDTrack.h"
+#include "DataFormatsTRD/TrackTRD.h"
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "TRDWorkflow/TRDTrackWriterSpec.h"
@@ -41,18 +39,18 @@ DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC)
 
   // A spectator to store the size of the data array for the logger below
   auto tracksSize = std::make_shared<int>();
-  auto tracksLogger = [tracksSize](std::vector<GPUTRDTrack> const& tracks) {
+  auto tracksLogger = [tracksSize](std::vector<o2::trd::TrackTRD> const& tracks) {
     *tracksSize = tracks.size();
   };
 
   return MakeRootTreeWriterSpec("trd-track-writer-tpcits",
                                 "trdmatches_itstpc.root",
                                 "tracksTRD",
-                                BranchDefinition<std::vector<GPUTRDTrack>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0},
-                                                                           "tracks",
-                                                                           "tracks-branch-name",
-                                                                           1,
-                                                                           tracksLogger},
+                                BranchDefinition<std::vector<o2::trd::TrackTRD>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0},
+                                                                                 "tracks",
+                                                                                 "tracks-branch-name",
+                                                                                 1,
+                                                                                 tracksLogger},
                                 // NOTE: this branch template is to show how the conditional MC labels can
                                 // be defined, the '0' disables the branch for the moment
                                 BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", 0},
@@ -72,18 +70,18 @@ DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC)
 
   // A spectator to store the size of the data array for the logger below
   auto tracksSize = std::make_shared<int>();
-  auto tracksLogger = [tracksSize](std::vector<GPUTRDTrack> const& tracks) {
+  auto tracksLogger = [tracksSize](std::vector<o2::trd::TrackTRD> const& tracks) {
     *tracksSize = tracks.size();
   };
 
   return MakeRootTreeWriterSpec("trd-track-writer-tpc",
                                 "trdmatches_tpc.root",
                                 "tracksTRD",
-                                BranchDefinition<std::vector<GPUTRDTrack>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0},
-                                                                           "tracks",
-                                                                           "tracks-branch-name",
-                                                                           1,
-                                                                           tracksLogger},
+                                BranchDefinition<std::vector<o2::trd::TrackTRD>>{InputSpec{"tracks", o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0},
+                                                                                 "tracks",
+                                                                                 "tracks-branch-name",
+                                                                                 1,
+                                                                                 tracksLogger},
                                 // NOTE: this branch template is to show how the conditional MC labels can
                                 // be defined, the '0' disables the branch for the moment
                                 BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", 0},

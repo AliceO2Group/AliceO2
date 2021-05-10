@@ -23,6 +23,7 @@
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/ParameterGas.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
+#include "DataFormatsTRD/TrackTRD.h"
 
 // GPU header
 #include "GPUReconstruction.h"
@@ -123,7 +124,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
     GPUTRDTrack trkLoad(trkITSTPC, mTPCVdrift);
-    if (mTracker->LoadTrack(trkLoad)) {
+    auto trackGID = GTrackID(iTrk, GTrackID::ITSTPC);
+    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
       continue;
     }
     loadedTPCtracks.push_back(trkITSTPC.getRefTPC());
@@ -138,7 +140,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     }
     const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
     GPUTRDTrack trkLoad(trkTpc, mTPCTBinMUS, mTPCVdrift, iTrk);
-    if (mTracker->LoadTrack(trkLoad)) {
+    auto trackGID = GTrackID(iTrk, GTrackID::TPC);
+    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
       continue;
     }
     ++nTracksLoadedTPC;
@@ -152,16 +155,23 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   //mTracker->DumpTracks();
 
   // finished tracking, now collect the output
-  std::vector<GPUTRDTrack> tracksOutITSTPC(nTracksLoadedITSTPC);
-  std::vector<GPUTRDTrack> tracksOutTPC(nTracksLoadedTPC);
-  if (mTracker->NTracks() != nTracksLoadedITSTPC + nTracksLoadedTPC) {
-    LOGF(FATAL, "Got %i matched tracks in total whereas %i ITS-TPC + %i TPC = %i tracks were loaded as input", mTracker->NTracks(), nTracksLoadedITSTPC, nTracksLoadedTPC, nTracksLoadedITSTPC + nTracksLoadedTPC);
+  std::vector<TrackTRD> tracksOutITSTPC;
+  std::vector<TrackTRD> tracksOutTPC;
+  int nTrackletsAttached = 0; // only used for debug information
+  for (int iTrk = 0; iTrk < mTracker->NTracks(); ++iTrk) {
+    const auto& trdTrack = mTracker->Tracks()[iTrk];
+    nTrackletsAttached += trdTrack.getNtracklets();
+    auto trackGID = trdTrack.getRefGlobalTrackId();
+    if (trackGID.includesDet(GTrackID::Source::ITS)) {
+      // this track is from an ITS-TPC seed
+      tracksOutITSTPC.push_back(trdTrack);
+    } else {
+      // this track is from a TPC-only seed
+      tracksOutTPC.push_back(trdTrack);
+    }
   }
-
-  // copy ITS-TPC matched tracks first
-  std::copy(mTracker->Tracks(), mTracker->Tracks() + nTracksLoadedITSTPC, tracksOutITSTPC.begin());
-  // and now the remaining TPC-only matches
-  std::copy(mTracker->Tracks() + nTracksLoadedITSTPC, mTracker->Tracks() + mTracker->NTracks(), tracksOutTPC.begin());
+  LOGF(INFO, "The TRD tracker found %lu tracks from TPC seeds and %lu tracks from ITS-TPC seeds and attached in total %i tracklets out of %i",
+       tracksOutTPC.size(), tracksOutITSTPC.size(), nTrackletsAttached, mChainTracking->mIOPtrs.nTRDTracklets);
 
   // Temporary until it is transferred to its own DPL device for calibrations
   mCalibVDrift.setAngleDiffSums(mTracker->AngleDiffSums());

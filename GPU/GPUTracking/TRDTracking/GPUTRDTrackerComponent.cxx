@@ -263,7 +263,6 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   const AliHLTTrackMCData* tpcDataMC = nullptr;
 
   std::vector<GPUTRDTrackGPU> tracksTPC;
-  std::vector<int> tracksTPCLab;
   std::vector<int> tracksTPCId;
 
   bool hasMCtracklets = false;
@@ -354,7 +353,6 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
     }
     tracksTPC.push_back(t);
     tracksTPCId.push_back(currOutTrackTPC->fTrackID);
-    tracksTPCLab.push_back(mcLabel);
     unsigned int dSize = sizeof(AliHLTExternalTrackParam) + currOutTrackTPC->fNPoints * sizeof(unsigned int);
     currOutTrackTPC = (AliHLTExternalTrackParam*)+(((Byte_t*)currOutTrackTPC) + dSize);
   }
@@ -376,7 +374,7 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
   // loop over all tracks
   for (unsigned int iTrack = 0; iTrack < tracksTPC.size(); ++iTrack) {
-    fTracker->LoadTrack(tracksTPC[iTrack], tracksTPCLab[iTrack]);
+    fTracker->LoadTrack(tracksTPC[iTrack], tracksTPCId[iTrack]);
   }
 
   fBenchmark.Start(1);
@@ -411,10 +409,10 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
 
     for (int iTrk = 0; iTrk < nTracks; ++iTrk) {
       GPUTRDTrackGPU& t = trackArray[iTrk];
-      if (t.GetNtracklets() == 0) {
+      if (t.getNtracklets() == 0) {
         continue;
       }
-      assignedTracklets += t.GetNtracklets();
+      assignedTracklets += t.getNtracklets();
       GPUTRDTrackDataRecord& currOutTrack = outTracks->fTracks[outTracks->fCount];
       t.ConvertTo(currOutTrack);
       outTracks->fCount++;

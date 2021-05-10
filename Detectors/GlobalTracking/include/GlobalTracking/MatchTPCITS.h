@@ -428,7 +428,6 @@ class MatchTPCITS
                             std::array<int, MaxLadderCand>& lad2Check) const;
   int findLaddersToCheckBOff(int ilr, int lad0, const o2::math_utils::IntervalXYf_t& trcLinPar, float errYFrac,
                              std::array<int, MatchTPCITS::MaxLadderCand>& lad2Check) const;
-
   bool prepareTPCData();
   bool prepareITSData();
   bool prepareFITData();

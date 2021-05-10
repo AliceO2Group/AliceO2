@@ -22,7 +22,8 @@
 #include "CommonUtils/RootChain.h" // just as test object
 #include "CCDB/CCDBTimeStampUtils.h"
 #include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
+#include <cstdio>
 #include <cassert>
 #include <iostream>
 #include <cstdio>
@@ -179,14 +180,15 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   // test the snapshot mechanism
   // ---------------------------
   // a) create a local snapshot of the Test folder
-  auto ph = boost::filesystem::unique_path();
-  boost::filesystem::create_directories(ph);
-  f.api.snapshot(basePath, ph.string(), o2::ccdb::getCurrentTimestamp());
-  std::cout << "Creating snapshot at " << ph.string() << "\n";
+  // std::filesystem does not yet provide boost::filesystem::unique_path() equivalent, and usin tmpnam generate a warning
+  auto ph = o2::utils::Str::create_unique_path(std::filesystem::temp_directory_path().native());
+  std::filesystem::create_directories(ph);
+  f.api.snapshot(basePath, ph, o2::ccdb::getCurrentTimestamp());
+  std::cout << "Creating snapshot at " << ph << "\n";
 
   // b) init a new instance from the snapshot and query something from it
   o2::ccdb::CcdbApi snapshot;
-  snapshot.init("file://" + ph.string());
+  snapshot.init(o2::utils::Str::concat_string("file://", ph));
 
   // c) query from the snapshot
   BOOST_CHECK(snapshot.retrieveFromTFileAny<o2::ccdb::IdPath>(basePath + "CCDBPath", f.metadata) != nullptr);
@@ -199,8 +201,8 @@ BOOST_AUTO_TEST_CASE(store_retrieve_TMemFile_templated_test, *utf::precondition(
   }
 
   // d) cleanup local snapshot
-  if (boost::filesystem::exists(ph)) {
-    boost::filesystem::remove_all(ph);
+  if (std::filesystem::exists(ph)) {
+    std::filesystem::remove_all(ph);
   }
 }
 

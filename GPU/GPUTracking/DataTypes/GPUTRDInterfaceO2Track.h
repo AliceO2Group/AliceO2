@@ -109,6 +109,8 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
   float mTimeSubMax{0.f};                 // max. time that can be subtracted to this track in us
   short mSide{0};                         // -1 : A-side, +1 : C-side (relevant only for TPC-only tracks)
   float mZShift{0.f};                     // calculated new for each TRD trigger candidate for this track
+
+  ClassDefNV(trackInterface, 1);
 };
 
 } // namespace gpu

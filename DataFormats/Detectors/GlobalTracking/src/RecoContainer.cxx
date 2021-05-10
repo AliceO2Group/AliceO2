@@ -14,22 +14,12 @@
 
 #include <fmt/format.h>
 #include <chrono>
-#include "Framework/ProcessingContext.h"
-#include "Framework/InputSpec.h"
-#include "DetectorsCommonDataFormats/DetID.h"
-#include "DataFormatsTPC/WorkflowHelper.h"
-#include "DataFormatsTRD/RecoInputContainer.h"
-#include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "DataFormatsITSMFT/CompCluster.h"
-#include "DataFormatsITS/TrackITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsTOF/Cluster.h"
-#include "DataFormatsITSMFT/ROFRecord.h"
-#include "DataFormatsFT0/RecPoints.h"
-#include "DataFormatsTRD/TrackTRD.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "ReconstructionDataFormats/TrackTPCTOF.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
+#include "CommonDataFormat/TimeStamp.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "SimulationDataFormat/MCEventLabel.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;
@@ -63,6 +53,9 @@ void DataRequest::requestTPCTracks(bool mc)
 {
   addInput({"trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe});
   addInput({"trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe});
+  if (requestMap.find("clusTPC") != requestMap.end()) {
+    addInput({"clusTPCshmap", "TPC", "CLSHAREDMAP", 0, Lifetime::Timeframe});
+  }
   if (mc) {
     addInput({"trackTPCMCTR", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe});
   }
@@ -90,20 +83,20 @@ void DataRequest::requestTPCTOFTracks(bool mc)
 
 void DataRequest::requestITSTPCTRDTracks(bool mc)
 {
-  addInput({"trackTRDTPCITS", "TRD", "MATCHTRD_GLO", 0, Lifetime::Timeframe});
+  addInput({"trackITSTPCTRD", "TRD", "MATCHTRD_GLO", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(ERROR) << "TRD Tracks does not support MC truth";
   }
-  requestMap["trackTRDTPCITS"] = false;
+  requestMap["trackITSTPCTRD"] = false;
 }
 
 void DataRequest::requestTPCTRDTracks(bool mc)
 {
-  addInput({"trackTRDTPC", "TRD", "MATCHTRD_TPC", 0, Lifetime::Timeframe});
+  addInput({"trackTPCTRD", "TRD", "MATCHTRD_TPC", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(ERROR) << "TRD Tracks does not support MC truth";
   }
-  requestMap["trackTRDTPC"] = false;
+  requestMap["trackTPCTRD"] = false;
 }
 
 void DataRequest::requestTOFMatches(bool mc)
@@ -129,9 +122,11 @@ void DataRequest::requestITSClusters(bool mc)
 void DataRequest::requestTPCClusters(bool mc)
 {
   addInput({"clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe});
-  addInput({"clusTPCshmap", "TPC", "CLSHAREDMAP", 0, Lifetime::Timeframe});
+  if (requestMap.find("trackTPC") != requestMap.end()) {
+    addInput({"clusTPCshmap", "TPC", "CLSHAREDMAP", 0, Lifetime::Timeframe});
+  }
   if (mc) {
-    addInput({"clusITSMC", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe});
+    addInput({"clusTPCMC", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}, Lifetime::Timeframe});
   }
   requestMap["clusTPC"] = mc;
 }
@@ -163,6 +158,28 @@ void DataRequest::requestFT0RecPoints(bool mc)
     LOG(ERROR) << "FT0 RecPoint does not support MC truth";
   }
   requestMap["FT0"] = false;
+}
+
+void DataRequest::requestPrimaryVertertices(bool mc)
+{
+  addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
+  addInput({"pvtx_trmtc", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe});    // global ids of associated tracks
+  addInput({"pvtx_tref", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}); // vertex - trackID refs
+  if (mc) {
+    addInput({"pvtx_mc", "GLO", "PVTX_MCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["PVertex"] = mc;
+}
+
+void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices before global vertex-track matching
+{
+  addInput({"pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe});
+  addInput({"pvtx_cont", "GLO", "PVTX_CONTID", 0, Lifetime::Timeframe});        // global ids of contributors
+  addInput({"pvtx_contref", "GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe}); // vertex - trackID refs of contributors
+  if (mc) {
+    addInput({"pvtx_mc", "GLO", "PVTX_MCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["PVertexTMP"] = mc;
 }
 
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
@@ -261,7 +278,7 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
 
   req = reqMap.find("clusTPC");
   if (req != reqMap.end()) {
-    addTPCClusters(pc, req->second);
+    addTPCClusters(pc, req->second, reqMap.find("trackTPC") != reqMap.end());
   }
 
   req = reqMap.find("clusTOF");
@@ -277,6 +294,44 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("trackletTRD");
   if (req != reqMap.end()) {
     addTRDTracklets(pc);
+  }
+
+  req = reqMap.find("PVertex");
+  if (req != reqMap.end()) {
+    addPVertices(pc, req->second);
+  }
+
+  req = reqMap.find("PVertexTMP");
+  if (req != reqMap.end()) {
+    addPVerticesTMP(pc, req->second);
+  }
+}
+
+//____________________________________________________________
+void RecoContainer::addPVertices(ProcessingContext& pc, bool mc)
+{
+  if (!pvtxPool.isLoaded(PVTX)) { // in case was loaded via addPVerticesTMP
+    pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx"), PVTX);
+  }
+  pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_trmtc"), PVTX_TRMTC);
+  pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref"), PVTX_TRMTCREFS);
+
+  if (mc && !pvtxPool.isLoaded(PVTX_MCTR)) { // in case was loaded via addPVerticesTMP
+    pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
+  }
+}
+
+//____________________________________________________________
+void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)
+{
+  if (!pvtxPool.isLoaded(PVTX)) { // in case was loaded via addPVertices
+    pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx"), PVTX);
+  }
+  pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_cont"), PVTX_CONTID);
+  pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_contref"), PVTX_CONTIDREFS);
+
+  if (mc && !pvtxPool.isLoaded(PVTX_MCTR)) { // in case was loaded via addPVertices
+    pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
   }
 }
 
@@ -346,15 +401,17 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
   clustersPool.registerContainer(pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS"), GTrackID::ITS);
   miscPool.registerContainer(pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt"), GTrackID::ITS);
   if (mc) {
-    mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels");
+    mcITSClusters = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("clusITSMC");
   }
 }
 
 //__________________________________________________________
-void RecoContainer::addTPCClusters(ProcessingContext& pc, bool mc)
+void RecoContainer::addTPCClusters(ProcessingContext& pc, bool mc, bool shmap)
 {
   inputsTPCclusters = o2::tpc::getWorkflowTPCInput(pc, 0, mc);
-  clusterShMapTPC = pc.inputs().get<gsl::span<unsigned char>>("clusTPCshmap");
+  if (shmap) {
+    clusterShMapTPC = pc.inputs().get<gsl::span<unsigned char>>("clusTPCshmap");
+  }
 }
 
 void RecoContainer::addTRDTracklets(ProcessingContext& pc)
@@ -456,137 +513,14 @@ void RecoContainer::fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vecto
   }
 }
 
-//________________________________________________________
-void RecoContainer::createTracks(std::function<bool(const o2::track::TrackParCov&, float, float, GTrackID)> const& creator) const
+void o2::globaltracking::RecoContainer::createTracks(std::function<bool(const o2::track::TrackParCov&, o2::dataformats::GlobalTrackID)> const& creator) const
 {
-  // We go from most complete tracks to least complete ones, taking into account that some track times
-  // do not bear their own kinematics but just constrain the time
-  // As we get more track types functional, this method should be completed
-  // If user provided function creator returns true, then the track is considered as consumed and its contributing
-  // simpler tracks will not be provided to the creator. If it returns false, the creator will be called also
-  // with this simpler contrubutors.
-  // The creator function is called with track kinematics, track GlobalTrackID and track timing information as 2 floats
-  // which depends on the track time:
-  // 1) For track types containing TimeStampWithError ts it is ts.getTimeStamp(), getTimeStampError()
-  // 2) For tracks with asymmetric time uncertainty, e.g. TPC: as mean time of t0-errBwd,t+errFwd and 0.5(errBwd+errFwd), all in TPC time bins
-  // 3) For tracks whose timing is provided as RO frame: as time in \mus for RO frame start since the start of TF, half-duration of RO window and 0.
+  createTracksVariadic([&creator](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) { return creator(_tr, _origID); });
+}
 
-  auto start_time = std::chrono::high_resolution_clock::now();
-  constexpr float PS2MUS = 1e-6;
-  std::array<std::vector<uint8_t>, GTrackID::NSources> usedData;
-  auto flagUsed2 = [&usedData](int idx, int src) {
-    if (!usedData[src].empty()) {
-      usedData[src][idx] = 1;
-    }
-  };
-  auto flagUsed = [&usedData, &flagUsed2](const GTrackID gidx) { flagUsed2(gidx.getIndex(), gidx.getSource()); };
-  auto isUsed2 = [&usedData](int idx, int src) { return (!usedData[src].empty()) && (usedData[src][idx] != 0); };
-  auto isUsed = [&usedData, isUsed2](const GTrackID gidx) { return isUsed2(gidx.getIndex(), gidx.getSource()); };
-
-  // create only for those data types which are used
-  const auto& tracksITS = getITSTracks<o2::its::TrackITS>();
-  const auto& tracksTPC = getTPCTracks<o2::tpc::TrackTPC>();
-  const auto& tracksTPCITS = getTPCITSTracks<o2d::TrackTPCITS>();
-  const auto& tracksTPCTOF = getTPCTOFTracks<o2d::TrackTPCTOF>();
-  const auto& matchesTPCTOF = getTPCTOFMatches<o2d::MatchInfoTOF>();
-
-  usedData[GTrackID::ITS].resize(tracksITS.size());       // to flag used ITS tracks
-  usedData[GTrackID::TPC].resize(tracksTPC.size());       // to flag used TPC tracks
-  usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size()); // to flag used ITSTPC tracks
-  usedData[GTrackID::TOF].resize(getTOFMatches<o2d::MatchInfoTOF>().size()); // to flag used ITSTPC-TOF matches
-
-  // ITS-TPC-TOF matches, may refer to ITS-TPC (TODO: something else?) tracks
-  {
-    auto matches = getTOFMatches<o2d::MatchInfoTOF>(); // thes are just MatchInfoTOF objects, pointing on ITS-TPC match and TOF cl.
-    auto tofClusters = getTOFClusters<o2::tof::Cluster>();
-    if (matches.size() && (!tofClusters.size() || !tracksTPCITS.size())) {
-      throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require ITS-TPC tracks ({}) and TOF clusters ({})",
-                                           matches.size(), tracksTPCITS.size(), tofClusters.size()));
-    }
-    for (unsigned i = 0; i < matches.size(); i++) {
-      const auto& match = matches[i];
-      const auto& tofCl = tofClusters[match.getTOFClIndex()];
-      float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
-      const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
-
-      auto gidx = match.getEvIdxTrack().getIndex(); // this should be corresponding ITS-TPC track
-      if (creator(tracksPool.get(gidx), timeTOFMUS, timeErr, {i, GTrackID::ITSTPCTOF})) {
-        flagUsed2(i, GTrackID::TOF);
-        flagUsed(gidx); // flag used ITS-TPC tracks
-      }
-    }
-  }
-
-  // ITS-TPC matches, may refer to ITS, TPC (TODO: something else?) tracks
-  {
-    for (unsigned i = 0; i < tracksTPCITS.size(); i++) {
-      const auto& matchTr = tracksTPCITS[i];
-      if (isUsed2(i, GTrackID::ITSTPC)) {
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
-        flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
-        continue;
-      }
-      if (creator(matchTr, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError(), {i, GTrackID::ITSTPC})) {
-        flagUsed2(i, GTrackID::ITSTPC);
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
-        flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
-      }
-    }
-  }
-
-  // TPC-TOF matches, may refer to TPC (TODO: something else?) tracks
-  {
-    if (matchesTPCTOF.size() && !tracksTPCTOF.size()) {
-      throw std::runtime_error(fmt::format("TPC-TOF matched tracks ({}) require TPCTOF matches ({}) and TPCTOF tracks ({})",
-                                           matchesTPCTOF.size(), tracksTPCTOF.size()));
-    }
-    for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
-      const auto& match = matchesTPCTOF[i];
-      const auto& gidx = match.getEvIdxTrack().getIndex(); // TPC (or other? but w/o ITS) track global idx (FIXME: TOF has to git rid of EvIndex stuff)
-      if (isUsed(gidx)) {                                  // is TPC track already used
-        continue;
-      }
-      const auto& trc = tracksTPCTOF[i];
-      if (creator(trc, trc.getTimeMUS().getTimeStamp(), trc.getTimeMUS().getTimeStampError(), {i, GTrackID::TPCTOF})) {
-        flagUsed(gidx); // flag used TPC tracks
-      }
-    }
-  }
-
-  // TPC only tracks
-  {
-    for (unsigned i = 0; i < tracksTPC.size(); i++) {
-      if (isUsed2(i, GTrackID::TPC)) { // skip used tracks
-        continue;
-      }
-      const auto& trc = tracksTPC[i];
-      if (creator(trc, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()), {i, GTrackID::TPC})) {
-        flagUsed2(i, GTrackID::TPC); // flag used TPC tracks
-      }
-    }
-  }
-
-  // ITS only tracks
-  {
-    const auto& rofrs = getITSTracksROFRecords<o2::itsmft::ROFRecord>();
-    for (unsigned irof = 0; irof < rofrs.size(); irof++) {
-      const auto& rofRec = rofrs[irof];
-      float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-      int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
-      for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
-        if (isUsed2(it, GTrackID::ITS)) { // skip used tracks
-          continue;
-        }
-        GTrackID gidITS(it, GTrackID::ITS);
-        const auto& trc = getITSTrack<o2::its::TrackITS>(gidITS);
-        if (creator(trc, t0, 0.5, gidITS)) {
-          flagUsed2(it, GTrackID::ITS);
-        }
-      }
-    }
-  }
-  auto current_time = std::chrono::high_resolution_clock::now();
-  LOG(INFO) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
+void o2::globaltracking::RecoContainer::createTracksWithMatchingTimeInfo(std::function<bool(const o2::track::TrackParCov&, GTrackID, float, float)> const& creator) const
+{
+  createTracksVariadic([&creator](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) { return creator(_tr, _origID, t0, terr); });
 }
 
 // get contributors from single detectors

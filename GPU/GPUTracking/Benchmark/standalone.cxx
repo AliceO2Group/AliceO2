@@ -500,12 +500,12 @@ int ReadEvent(int n)
     return r;
   }
 #if defined(GPUCA_TPC_GEOMETRY_O2) && defined(GPUCA_BUILD_QA) && !defined(GPUCA_O2_LIB)
-  if (configStandalone.proc.runQA && !configStandalone.QA.noMC) {
+  if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.EventsDir, n);
     if (chainTracking->GetQA()->ReadO2MCData(filename)) {
       snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.EventsDir, 0);
-      if (chainTracking->GetQA()->ReadO2MCData(filename)) {
+      if (chainTracking->GetQA()->ReadO2MCData(filename) && configStandalone.proc.runQA) {
         throw std::runtime_error("Error reading O2 MC dump");
       }
     }
@@ -657,6 +657,8 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       chainTrackingAsync->mIOPtrs.tpcPackedDigits = nullptr;
       chainTrackingAsync->mIOPtrs.mcInfosTPC = nullptr;
       chainTrackingAsync->mIOPtrs.nMCInfosTPC = 0;
+      chainTrackingAsync->mIOPtrs.mcInfosTPCCol = nullptr;
+      chainTrackingAsync->mIOPtrs.nMCInfosTPCCol = 0;
       chainTrackingAsync->mIOPtrs.mcLabelsTPC = nullptr;
       chainTrackingAsync->mIOPtrs.nMCLabelsTPC = 0;
       for (int i = 0; i < chainTracking->NSLICES; i++) {

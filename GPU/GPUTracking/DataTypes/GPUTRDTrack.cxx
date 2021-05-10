@@ -21,30 +21,19 @@ using namespace GPUCA_NAMESPACE::gpu;
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t()
 {
-  //------------------------------------------------------------------
   // default constructor
-  //------------------------------------------------------------------
-  Initialize();
+  initialize();
 }
 
 template <typename T>
-GPUd() void GPUTRDTrack_t<T>::Initialize()
+GPUd() void GPUTRDTrack_t<T>::initialize()
 {
   // set all members to their default values (needed since in-class initialization not possible with AliRoot)
   mChi2 = 0.f;
-  mMass = 0.f;
-  mLabel = -1;
-  mTPCTrackId = 0;
-  mNTracklets = 0;
-  mNMissingConsecLayers = 0;
-  mLabelOffline = -1;
-  mIsStopped = false;
+  mRefGlobalTrackId = 0;
+  mIsFindable = 0;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = -1;
-    mIsFindable[i] = 0;
-  }
-  for (int j = 0; j < 4; ++j) {
-    mNTrackletsOffline[j] = 0;
   }
 }
 
@@ -55,7 +44,7 @@ GPUd() void GPUTRDTrack_t<T>::Initialize()
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const AliHLTExternalTrackParam& t) : T(t)
 {
-  Initialize();
+  initialize();
 }
 
 template <typename T>
@@ -74,9 +63,9 @@ GPUd() void GPUTRDTrack_t<T>::ConvertTo(GPUTRDTrackDataRecord& t) const
   for (int i = 0; i < 15; i++) {
     t.fC[i] = T::getCov()[i];
   }
-  t.fTPCTrackID = GetTPCtrackId();
+  t.fTPCTrackID = getRefGlobalTrackIdRaw();
   for (int i = 0; i < kNLayers; i++) {
-    t.fAttachedTracklets[i] = GetTracklet(i);
+    t.fAttachedTracklets[i] = getTrackletIndex(i);
   }
 }
 
@@ -87,23 +76,11 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
   // convert from GPU structure
   //------------------------------------------------------------------
   T::set(t.fX, t.mAlpha, &(t.fY), t.fC);
-  SetTPCtrackId(t.fTPCTrackID);
+  setRefGlobalTrackIdRaw(t.fTPCTrackID);
   mChi2 = 0.f;
-  mMass = 0.13957f;
-  mLabel = -1;
-  mNTracklets = 0;
-  mNMissingConsecLayers = 0;
-  mLabelOffline = -1;
-  mIsStopped = false;
+  mIsFindable = 0;
   for (int iLayer = 0; iLayer < kNLayers; iLayer++) {
     mAttachedTracklets[iLayer] = t.fAttachedTracklets[iLayer];
-    mIsFindable[iLayer] = 0;
-    if (mAttachedTracklets[iLayer] >= 0) {
-      mNTracklets++;
-    }
-  }
-  for (int j = 0; j < 4; ++j) {
-    mNTrackletsOffline[j] = 0;
   }
 }
 
@@ -116,113 +93,91 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t, float vDrift) : T(t, vDrift)
 {
-  Initialize();
+  initialize();
 }
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth, float vDrift, unsigned int iTrk) : T(t, tbWidth, vDrift, iTrk)
 {
-  Initialize();
+  initialize();
 }
 
 #endif
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const GPUTRDTrack_t<T>& t)
-  : T(t), mChi2(t.mChi2), mMass(t.mMass), mLabel(t.mLabel), mTPCTrackId(t.mTPCTrackId), mNTracklets(t.mNTracklets), mNMissingConsecLayers(t.mNMissingConsecLayers), mLabelOffline(t.mLabelOffline), mIsStopped(t.mIsStopped)
+  : T(t), mChi2(t.mChi2), mRefGlobalTrackId(t.mRefGlobalTrackId), mIsFindable(t.mIsFindable)
 {
-  //------------------------------------------------------------------
   // copy constructor
-  //------------------------------------------------------------------
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = t.mAttachedTracklets[i];
-    mIsFindable[i] = t.mIsFindable[i];
-  }
-  for (int j = 0; j < 4; ++j) {
-    mNTrackletsOffline[j] = t.mNTrackletsOffline[j];
   }
 }
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const T& t) : T(t)
 {
-  //------------------------------------------------------------------
   // copy constructor from anything
-  //------------------------------------------------------------------
-  Initialize();
+  initialize();
 }
 
 template <typename T>
 GPUd() GPUTRDTrack_t<T>& GPUTRDTrack_t<T>::operator=(const GPUTRDTrack_t<T>& t)
 {
-  //------------------------------------------------------------------
   // assignment operator
-  //------------------------------------------------------------------
   if (&t == this) {
     return *this;
   }
   *(T*)this = t;
   mChi2 = t.mChi2;
-  mMass = t.mMass;
-  mLabel = t.mLabel;
-  mTPCTrackId = t.mTPCTrackId;
-  mNTracklets = t.mNTracklets;
-  mNMissingConsecLayers = t.mNMissingConsecLayers;
-  mLabelOffline = t.mLabelOffline;
-  mIsStopped = t.mIsStopped;
+  mRefGlobalTrackId = t.mRefGlobalTrackId;
+  mIsFindable = t.mIsFindable;
   for (int i = 0; i < kNLayers; ++i) {
     mAttachedTracklets[i] = t.mAttachedTracklets[i];
-    mIsFindable[i] = t.mIsFindable[i];
-  }
-  for (int j = 0; j < 4; ++j) {
-    mNTrackletsOffline[j] = t.mNTrackletsOffline[j];
   }
   return *this;
 }
 
 template <typename T>
-GPUd() int GPUTRDTrack_t<T>::GetNlayers() const
+GPUd() int GPUTRDTrack_t<T>::getNlayersFindable() const
 {
-  //------------------------------------------------------------------
   // returns number of layers in which the track is in active area of TRD
-  //------------------------------------------------------------------
-  int res = 0;
+  int retVal = 0;
   for (int iLy = 0; iLy < kNLayers; iLy++) {
-    if (mIsFindable[iLy]) {
-      ++res;
+    if ((mIsFindable >> iLy) & 0x1) {
+      ++retVal;
     }
   }
-  return res;
+  return retVal;
 }
 
 template <typename T>
-GPUd() int GPUTRDTrack_t<T>::GetTracklet(int iLayer) const
+GPUd() int GPUTRDTrack_t<T>::getNtracklets() const
 {
-  //------------------------------------------------------------------
-  // returns index of attached tracklet in given layer
-  //------------------------------------------------------------------
-  if (iLayer < 0 || iLayer >= kNLayers) {
-    return -1;
+  // returns number of tracklets attached to this track
+  int retVal = 0;
+  for (int iLy = 0; iLy < kNLayers; ++iLy) {
+    if (mAttachedTracklets[iLy] >= 0) {
+      ++retVal;
+    }
   }
-  return mAttachedTracklets[iLayer];
+  return retVal;
 }
 
 template <typename T>
-GPUd() int GPUTRDTrack_t<T>::GetNmissingConsecLayers(int iLayer) const
+GPUd() int GPUTRDTrack_t<T>::getNmissingConsecLayers(int iLayer) const
 {
-  //------------------------------------------------------------------
   // returns number of consecutive layers in which the track was
   // inside the deadzone up to (and including) the given layer
-  //------------------------------------------------------------------
-  int res = 0;
-  while (!mIsFindable[iLayer]) {
-    ++res;
+  int retVal = 0;
+  while (!getIsFindable(iLayer)) {
+    ++retVal;
     --iLayer;
     if (iLayer < 0) {
       break;
     }
   }
-  return res;
+  return retVal;
 }
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPU_TRD_TRACK_O2)

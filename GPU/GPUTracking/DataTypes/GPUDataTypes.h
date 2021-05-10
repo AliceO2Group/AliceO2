@@ -55,6 +55,16 @@ template <typename T>
 class PropagatorImpl;
 class MatLayerCylSet;
 } // namespace base
+namespace track
+{
+#ifdef GPUCA_NOCOMPAT
+template <typename value_T>
+class TrackParametrizationWithError;
+using TrackParCov = TrackParametrizationWithError<float>;
+#else
+class TrackParCov;
+#endif
+} // namespace track
 namespace trd
 {
 class GeometryFlat;
@@ -120,6 +130,7 @@ struct GPUTPCGMMergedTrackHitXYZ;
 class GPUTRDTrackletWord;
 class GPUTRDSpacePoint;
 struct GPUTPCMCInfo;
+struct GPUTPCMCInfoCol;
 struct GPUTPCClusterData;
 struct GPUTRDTrackletLabels;
 struct GPUTPCDigitsMCInput;
@@ -251,6 +262,8 @@ struct GPUTrackingInOutPointers {
   unsigned int nMCLabelsTPC = 0;
   const GPUTPCMCInfo* mcInfosTPC = nullptr;
   unsigned int nMCInfosTPC = 0;
+  const GPUTPCMCInfoCol* mcInfosTPCCol = nullptr;
+  unsigned int nMCInfosTPCCol = 0;
   const GPUTPCGMMergedTrack* mergedTracks = nullptr;
   unsigned int nMergedTracks = 0;
   const GPUTPCGMMergedTrackHit* mergedTrackHits = nullptr;
@@ -264,6 +277,14 @@ struct GPUTrackingInOutPointers {
   unsigned int nOutputClusRefsTPCO2 = 0;
   const o2::MCCompLabel* outputTracksTPCO2MC = nullptr;
   const o2::tpc::CompressedClustersFlat* tpcCompressedClusters = nullptr;
+
+  // TPC links
+  int* tpcLinkITS = nullptr;
+  int* tpcLinkTRD = nullptr;
+  int* tpcLinkTOF = nullptr;
+  const o2::track::TrackParCov** globalTracks = nullptr;
+  float* globalTrackTimes = nullptr;
+  unsigned int nGlobalTracks = 0;
 
   // TRD
   const GPUTRDTrackletWord* trdTracklets = nullptr;
