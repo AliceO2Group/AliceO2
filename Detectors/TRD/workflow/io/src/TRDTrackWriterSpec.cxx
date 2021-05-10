@@ -14,7 +14,7 @@
 #include "DataFormatsTRD/TrackTRD.h"
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "TRDWorkflow/TRDTrackWriterSpec.h"
+#include "TRDWorkflowIO/TRDTrackWriterSpec.h"
 
 using namespace o2::framework;
 using namespace o2::gpu;

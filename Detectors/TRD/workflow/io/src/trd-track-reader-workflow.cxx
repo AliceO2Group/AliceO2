@@ -11,7 +11,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigParamSpec.h"
-#include "TRDWorkflow/TRDTrackReaderSpec.h"
+#include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 
 using namespace o2::framework;

@@ -18,7 +18,7 @@
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TRDWorkflow/TRDTrackletTransformerSpec.h"
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
-#include "TRDWorkflow/TRDTrackWriterSpec.h"
+#include "TRDWorkflowIO/TRDTrackWriterSpec.h"
 #include "TRDWorkflow/TRDTrackingWorkflow.h"
 
 using GTrackID = o2::dataformats::GlobalTrackID;
