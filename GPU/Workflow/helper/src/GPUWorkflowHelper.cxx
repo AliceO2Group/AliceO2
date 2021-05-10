@@ -145,7 +145,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
       const auto& tpcTracksMC = recoCont.getTPCTracksMCLabels();
       ioPtr.outputTracksTPCO2MC = tpcTracksMC.data();
     }
-    if (ioPtr.nItsTracks && ioPtr.nTracksTPCITSO2) {
+    if (ioPtr.nTracksTPCITSO2) {
       retVal->tpcLinkITS.resize(ioPtr.nOutputTracksTPCO2, -1);
       ioPtr.tpcLinkITS = retVal->tpcLinkITS.data();
     }
@@ -162,20 +162,24 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
 
   auto creator = [maskTrk, &ioPtr, &recoCont, &retVal](auto& trk, GID gid, float time, float) {
     if (gid.getSource() == GID::ITSTPCTOF) {
-      if (maskTrk[GID::TPC]) {
+      if (maskTrk[GID::TPC] && ioPtr.nTracksTPCITSO2) {
         const auto& match = recoCont.getTOFMatch(gid);
         const auto& trkItsTPC = ioPtr.tracksTPCITSO2[match.getTrackIndex()];
-        retVal->tpcLinkTOF[trkItsTPC.getRefTPC().getIndex()] = match.getTOFClIndex();
-        retVal->tpcLinkITS[trkItsTPC.getRefTPC().getIndex()] = trkItsTPC.getRefITS().getIndex();
+        if (retVal->tpcLinkTOF.size()) {
+          retVal->tpcLinkTOF[trkItsTPC.getRefTPC().getIndex()] = match.getTOFClIndex();
+        }
+        if (retVal->tpcLinkITS.size()) {
+          retVal->tpcLinkITS[trkItsTPC.getRefTPC().getIndex()] = trkItsTPC.getRefITS().getIndex();
+        }
       }
     } else if constexpr (isTPCTrack<decltype(trk)>()) {
       time = trk.getTime0();
     } else if constexpr (isTPCITSTrack<decltype(trk)>()) {
-      if (maskTrk[GID::TPC]) {
+      if (maskTrk[GID::TPC] && retVal->tpcLinkITS.size()) {
         retVal->tpcLinkITS[trk.getRefTPC().getIndex()] = trk.getRefITS().getIndex();
       }
     } else if constexpr (isTPCTOFTrack<decltype(trk)>()) {
-      if (maskTrk[GID::TPC]) {
+      if (maskTrk[GID::TPC] && ioPtr.nTPCTOFMatches && retVal->tpcLinkTOF.size()) {
         const auto& match = ioPtr.tpctofMatches[trk.getRefMatch()];
         retVal->tpcLinkTOF[match.getTrackIndex()] = match.getTOFClIndex();
       }
@@ -185,12 +189,14 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
     return true;
   };
   recoCont.createTracksVariadic(creator);
-  if (maskTrk[GID::TPC]) {
+  if (maskTrk[GID::TPC] && retVal->tpcLinkTRD.size()) {
     for (unsigned int i = 0; i < ioPtr.nTRDTracksTPCTRD; i++) { // TODO: This should be handled by the createTracks logic, but so far it lacks the TRD tracks
       retVal->tpcLinkTRD[ioPtr.trdTracksTPCTRD[i].getRefGlobalTrackId().getIndex()] = i;
     }
-    for (unsigned int i = 0; i < ioPtr.nTRDTracksITSTPCTRD; i++) {
-      retVal->tpcLinkTRD[ioPtr.tracksTPCITSO2[ioPtr.trdTracksITSTPCTRD[i].getRefGlobalTrackId().getIndex()].getRefTPC().getIndex()] = i | 0x40000000;
+    if (ioPtr.nTracksTPCITSO2) {
+      for (unsigned int i = 0; i < ioPtr.nTRDTracksITSTPCTRD; i++) {
+        retVal->tpcLinkTRD[ioPtr.tracksTPCITSO2[ioPtr.trdTracksITSTPCTRD[i].getRefGlobalTrackId().getIndex()].getRefTPC().getIndex()] = i | 0x40000000;
+      }
     }
   }
   ioPtr.globalTracks = retVal->globalTracks.data();
