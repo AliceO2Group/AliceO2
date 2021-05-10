@@ -41,6 +41,7 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
 
   static void error_callback(int error, const char* description);
   static void key_callback(GLFWwindow* mWindow, int key, int scancode, int action, int mods);
+  static void char_callback(GLFWwindow* window, unsigned int codepoint);
   static void mouseButton_callback(GLFWwindow* mWindow, int button, int action, int mods);
   static void scroll_callback(GLFWwindow* mWindow, double x, double y);
   static void cursorPos_callback(GLFWwindow* mWindow, double x, double y);
@@ -56,6 +57,8 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
   int mWindowY = 0;
   int mWindowWidth = INIT_WIDTH;
   int mWindowHeight = INIT_HEIGHT;
+  char mKeyDownMap[256] = {0};
+  unsigned char mLastKeyDown = 0;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 
