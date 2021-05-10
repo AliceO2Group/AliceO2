@@ -47,7 +47,7 @@ class TOFCalibCollectorDevice : public o2::framework::Task
     mCollector->setIsTest(isTest);
     mCollector->setIsMaxNumberOfHitsAbsolute(absMaxEnt);
     mCollector->setSlotLength(std::numeric_limits<long>::max());
-    mCollector->setUpdateInterval(updateInterval);
+    mCollector->setCheckIntervalInfiniteSlot(updateInterval);
     mCollector->setMaxSlotsDelay(0);
   }
 

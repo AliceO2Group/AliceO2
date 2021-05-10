@@ -54,6 +54,7 @@ class TOFChannelCalibDevice : public o2::framework::Task
     int64_t slotL = ic.options().get<int64_t>("tf-per-slot");
     int64_t delay = ic.options().get<int64_t>("max-delay");
     int updateInterval = ic.options().get<int64_t>("update-interval");
+    int deltaUpdateInterval = ic.options().get<int64_t>("delta-update-interval");
     mCalibrator = std::make_unique<o2::tof::TOFChannelCalibrator<T>>(minEnt, nb, range);
 
     // default behaviour is to have only 1 slot at a time, accepting everything for it till the
@@ -63,9 +64,11 @@ class TOFChannelCalibDevice : public o2::framework::Task
     // if one defines that the calibration should happen only at the end of the run,
     // then the slot length and delay won't matter
     mCalibrator->setSlotLength(slotL);
-    mCalibrator->setUpdateInterval(updateInterval);
+    mCalibrator->setCheckIntervalInfiniteSlot(updateInterval);
+    mCalibrator->setCheckDeltaIntervalInfiniteSlot(deltaUpdateInterval);
     mCalibrator->setMaxSlotsDelay(delay);
-    if (updateAtEORonly) {
+
+    if (updateAtEORonly) { // has priority over other settings
       mCalibrator->setUpdateAtTheEndOfRunOnly();
     }
 
@@ -245,7 +248,8 @@ DataProcessorSpec getTOFChannelCalibDeviceSpec(bool useCCDB, bool attachChannelO
       {"update-at-end-of-run-only", VariantType::Bool, false, {"to update the CCDB only at the end of the run; has priority over calibrating in time slots"}},
       {"tf-per-slot", VariantType::Int64, INFINITE_TF_int64, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::Int64, 0ll, {"number of slots in past to consider"}},
-      {"update-interval", VariantType::Int64, 10ll, {"number of TF after which to try to finalize calibration"}}}};
+      {"update-interval", VariantType::Int64, 10ll, {"number of TF after which to try to finalize calibration"}},
+      {"delta-update-interval", VariantType::Int64, 10ll, {"number of TF after which to try to finalize calibration, if previous attempt failed"}}}};
 }
 
 } // namespace framework
