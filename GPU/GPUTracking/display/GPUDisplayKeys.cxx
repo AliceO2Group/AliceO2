@@ -73,7 +73,7 @@ void GPUDisplay::PrintHelp()
   }
 }
 
-void GPUDisplay::HandleKeyRelease(unsigned char key)
+void GPUDisplay::HandleKey(unsigned char key)
 {
   if (key == mBackend->KEY_ENTER || key == 'n') {
     mBackend->mDisplayControl = 1;
@@ -466,7 +466,7 @@ void GPUDisplay::HandleSendKey(int key)
   }
   bool oldShift = mBackend->mKeysShift[press];
   mBackend->mKeysShift[press] = shifted;
-  HandleKeyRelease(key);
+  HandleKey(key);
   mBackend->mKeysShift[press] = oldShift;
 }
 

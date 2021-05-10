@@ -127,15 +127,13 @@ void GPUDisplayBackendGlut::keyboardDownFunc(unsigned char key, int x, int y)
   GetKey(key, handleKey, keyPress, false);
   me->mKeysShift[keyPress] = glutGetModifiers() & GLUT_ACTIVE_SHIFT;
   me->mKeys[keyPress] = true;
+  me->HandleKey(handleKey);
 }
 
 void GPUDisplayBackendGlut::keyboardUpFunc(unsigned char key, int x, int y)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, false);
-  if (me->mKeys[keyPress]) {
-    me->HandleKeyRelease(handleKey);
-  }
   me->mKeys[keyPress] = false;
   me->mKeysShift[keyPress] = false;
 }
@@ -146,15 +144,13 @@ void GPUDisplayBackendGlut::specialDownFunc(int key, int x, int y)
   GetKey(key, handleKey, keyPress, true);
   me->mKeysShift[keyPress] = glutGetModifiers() & GLUT_ACTIVE_SHIFT;
   me->mKeys[keyPress] = true;
+  me->HandleKey(handleKey);
 }
 
 void GPUDisplayBackendGlut::specialUpFunc(int key, int x, int y)
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, handleKey, keyPress, true);
-  if (me->mKeys[keyPress]) {
-    me->HandleKeyRelease(handleKey);
-  }
   me->mKeys[keyPress] = false;
   me->mKeysShift[keyPress] = false;
 }

@@ -374,15 +374,13 @@ int GPUDisplayBackendX11::OpenGLMain()
           GetKey(event, handleKey, keyPress);
           mKeysShift[keyPress] = mKeys[KEY_SHIFT];
           mKeys[keyPress] = true;
+          HandleKey(handleKey);
           break;
         }
 
         case KeyRelease: {
           int handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
-          if (mKeys[keyPress]) {
-            HandleKeyRelease(handleKey);
-          }
           mKeys[keyPress] = false;
           mKeysShift[keyPress] = false;
           break;

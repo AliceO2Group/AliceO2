@@ -61,7 +61,6 @@ class GPUDisplayBackend
   static constexpr int KEY_RIGHT = 4;
   static constexpr int KEY_PAGEUP = 5;
   static constexpr int KEY_PAGEDOWN = 6;
-  static constexpr int KEY_SPACE = 7;
   static constexpr int KEY_SHIFT = 8;
   static constexpr int KEY_ALT = 9;
   static constexpr int KEY_RALT = 29;
@@ -84,6 +83,7 @@ class GPUDisplayBackend
   static constexpr int KEY_INSERT = 25;
   static constexpr int KEY_ESCAPE = 27;
   static constexpr int KEY_ENTER = 13;
+  static constexpr int KEY_SPACE = 32;
 
   // Keyboard / Mouse actions
   bool mMouseDn = false;          // Mouse button down
@@ -100,7 +100,7 @@ class GPUDisplayBackend
 
   GPUDisplay* mDisplay; // Ptr to display, not owning, set by display when it connects to backend
 
-  void HandleKeyRelease(unsigned char key);                             // Callback for handling key presses
+  void HandleKey(unsigned char key);                                    // Callback for handling key presses
   int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); // Callback to draw the GL scene
   void HandleSendKey();                                                 // Optional callback to handle key press from external source (e.g. stdin by default)
   void ReSizeGLScene(int width, int height);                            // Callback when GL window is resized
