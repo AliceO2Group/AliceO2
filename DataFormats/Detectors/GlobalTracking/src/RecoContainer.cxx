@@ -213,6 +213,7 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::ITSTPCTOF]) {
     requestTOFMatches(useMC);
     requestTOFClusters(false); // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
+                               // NOTE: Getting TOF Clusters is carried over to InputHelper::addInputSpecs. If changed here, please fix there.
   }
   if (src[GTrackID::ITSTPCTRD]) {
     requestITSTPCTRDTracks(useMC);
