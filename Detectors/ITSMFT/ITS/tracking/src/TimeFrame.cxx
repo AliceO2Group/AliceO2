@@ -286,29 +286,37 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
   }
 }
 
-void TimeFrame::printTrackletLUTonLayer(int i) {
-  std::cout << "--------" << std::endl << "Tracklet LUT " << i << std::endl;
+void TimeFrame::printTrackletLUTonLayer(int i)
+{
+  std::cout << "--------" << std::endl
+            << "Tracklet LUT " << i << std::endl;
   for (int j : mTrackletsLookupTable[i]) {
     std::cout << j << "\t";
   }
-  std::cout << "\n--------" << std::endl << std::endl;
+  std::cout << "\n--------" << std::endl
+            << std::endl;
 }
 
-void TimeFrame::printCellLUTonLayer(int i) {
-  std::cout << "--------" << std::endl << "Cell LUT " << i << std::endl;
+void TimeFrame::printCellLUTonLayer(int i)
+{
+  std::cout << "--------" << std::endl
+            << "Cell LUT " << i << std::endl;
   for (int j : mCellsLookupTable[i]) {
     std::cout << j << "\t";
   }
-  std::cout << "\n--------" << std::endl << std::endl;
+  std::cout << "\n--------" << std::endl
+            << std::endl;
 }
 
-void TimeFrame::printTrackletLUTs() {
+void TimeFrame::printTrackletLUTs()
+{
   for (unsigned int i{0}; i < mTrackletsLookupTable.size(); ++i) {
     printTrackletLUTonLayer(i);
   }
 }
 
-void TimeFrame::printCellLUTs() {
+void TimeFrame::printCellLUTs()
+{
   for (unsigned int i{0}; i < mCellsLookupTable.size(); ++i) {
     printCellLUTonLayer(i);
   }

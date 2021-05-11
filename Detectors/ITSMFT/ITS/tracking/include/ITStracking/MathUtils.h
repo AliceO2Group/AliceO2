@@ -58,8 +58,7 @@ GPUhdi() float math_utils::hypot(const float x, const float y)
 
 GPUhdi() constexpr float math_utils::getNormalizedPhi(const float phi)
 {
-  return (phi < 0) ? phi + constants::math::TwoPi : 
-    (phi > constants::math::TwoPi) ? phi - constants::math::TwoPi : phi;
+  return (phi < 0) ? phi + constants::math::TwoPi : (phi > constants::math::TwoPi) ? phi - constants::math::TwoPi : phi;
 }
 
 GPUhdi() constexpr float3 math_utils::crossProduct(const float3& firstVector, const float3& secondVector)

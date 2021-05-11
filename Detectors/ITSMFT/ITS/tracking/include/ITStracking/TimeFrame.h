@@ -42,7 +42,7 @@ class Cluster;
 class CompClusterExt;
 class TopologyDictionary;
 class ROFRecord;
-}
+} // namespace itsmft
 
 namespace its
 {
@@ -63,14 +63,14 @@ class TimeFrame final
   int getTotalClusters() const;
   bool empty() const;
 
-  int   getSortedIndex(int rof, int layer, int i) const;
-  int   getNrof() const;
+  int getSortedIndex(int rof, int layer, int i) const;
+  int getNrof() const;
   float getBeamX() const;
   float getBeamY() const;
 
   float getMinR(int layer) const { return mMinR[layer]; }
   float getMaxR(int layer) const { return mMaxR[layer]; }
-  
+
   gsl::span<Cluster> getClustersOnLayer(int rofId, int layerId);
   gsl::span<const Cluster> getClustersOnLayer(int rofId, int layerId) const;
   gsl::span<const Cluster> getUnsortedClustersOnLayer(int rofId, int layerId) const;
@@ -121,43 +121,42 @@ class TimeFrame final
   void addClusterLabelToLayer(int layer, const MCCompLabel label);
   void addClusterExternalIndexToLayer(int layer, const int idx);
 
-  int                                         mNrof = 0;
-  int                                         mBeamPosWeight = 0;
-  float                                       mBeamPos[2] = {0.f,0.f};
-  std::vector<float>                          mMinR;
-  std::vector<float>                          mMaxR;
-  std::vector<int>                            mROframesPV = {0};
-  std::vector<std::vector<int>>               mROframesClusters;
-  std::vector<float3>                         mPrimaryVertices;
-  std::vector<std::vector<Cluster>>           mClusters;
-  std::vector<std::vector<Cluster>>           mUnsortedClusters;
-  std::vector<std::vector<bool>>              mUsedClusters;
+  int mNrof = 0;
+  int mBeamPosWeight = 0;
+  float mBeamPos[2] = {0.f, 0.f};
+  std::vector<float> mMinR;
+  std::vector<float> mMaxR;
+  std::vector<int> mROframesPV = {0};
+  std::vector<std::vector<int>> mROframesClusters;
+  std::vector<float3> mPrimaryVertices;
+  std::vector<std::vector<Cluster>> mClusters;
+  std::vector<std::vector<Cluster>> mUnsortedClusters;
+  std::vector<std::vector<bool>> mUsedClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
-  std::vector<std::vector<MCCompLabel>>       mClusterLabels;
-  std::vector<std::vector<int>>               mClusterExternalIndices;
-  std::vector<std::vector<Cell>>              mCells;
-  std::vector<std::vector<int>>               mCellsLookupTable;
-  std::vector<std::vector<std::vector<int>>>  mCellsNeighbours;
-  std::vector<Road>                           mRoads;
+  std::vector<std::vector<MCCompLabel>> mClusterLabels;
+  std::vector<std::vector<int>> mClusterExternalIndices;
+  std::vector<std::vector<Cell>> mCells;
+  std::vector<std::vector<int>> mCellsLookupTable;
+  std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
+  std::vector<Road> mRoads;
 
-  std::vector<index_table_t>                  mIndexTables;
-  std::vector<std::vector<Tracklet>>          mTracklets;
-  std::vector<std::vector<int>>               mTrackletsLookupTable;
+  std::vector<index_table_t> mIndexTables;
+  std::vector<std::vector<Tracklet>> mTracklets;
+  std::vector<std::vector<int>> mTrackletsLookupTable;
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
 };
 
-
 inline const float3& TimeFrame::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
 
 inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int tf) const
-{ 
+{
   const int start = tf > 0 ? tf - 1 : 0;
   const int stop = tf >= mNrof - 1 ? mNrof : tf + 2;
   return {&mPrimaryVertices[start], static_cast<gsl::span<const float3>::size_type>(mROframesPV[stop] - mROframesPV[start])};
 }
 
-inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int romin, int romax) const 
+inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int romin, int romax) const
 {
   return {&mPrimaryVertices[romin], static_cast<gsl::span<const float3>::size_type>(mROframesPV[romax + 1] - mROframesPV[romin])};
 }
@@ -322,7 +321,6 @@ inline std::vector<std::vector<Cluster>>& TimeFrame::getUnsortedClusters()
 {
   return mUnsortedClusters;
 }
-
 
 inline std::vector<std::vector<Cell>>& TimeFrame::getCells() { return mCells; }
 

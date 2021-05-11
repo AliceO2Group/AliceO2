@@ -280,7 +280,7 @@ void run_trac_ca_its(bool cosmics = false,
     std::vector<Vertex> vertITS = vertexer.exportVertices();
     std::vector<std::pair<float3, int>> tfVert;
     for (const auto& vert : vertITS) {
-      tfVert.push_back(std::make_pair<float3,int>({vert.getX(), vert.getY(), vert.getZ()},vert.getNContributors()));
+      tfVert.push_back(std::make_pair<float3, int>({vert.getX(), vert.getY(), vert.getZ()}, vert.getNContributors()));
     }
     tf.addPrimaryVertices(tfVert);
     auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the

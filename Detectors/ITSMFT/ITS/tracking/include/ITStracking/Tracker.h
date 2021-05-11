@@ -102,7 +102,7 @@ class Tracker
   float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
   TrackerTraits* mTraits = nullptr;                      /// Observer pointer, not owned by this class
-  TimeFrame* mTimeFrame = nullptr; /// Observer pointer, not owned by this class
+  TimeFrame* mTimeFrame = nullptr;                       /// Observer pointer, not owned by this class
 
   std::vector<MemoryParameters> mMemParams;
   std::vector<TrackingParameters> mTrkParams;

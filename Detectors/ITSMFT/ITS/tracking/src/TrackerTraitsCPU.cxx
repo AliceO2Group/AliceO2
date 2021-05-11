@@ -88,7 +88,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
                   maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
                 std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << mTrkParams.TrackletMaxDeltaZ[iLayer] << "\t" << mTrkParams.TrackletMaxDeltaPhi << std::endl;
                 std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.z << "\t" << currentCluster.radius << std::endl;
-                std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" <<  currentCluster.zCoordinate << std::endl;
+                std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
                 std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << "\t" << selectedBinsRect.z << "\t" << selectedBinsRect.x << std::endl;
                 exit(1);
               }
@@ -173,7 +173,7 @@ void TrackerTraitsCPU::computeLayerCells()
                                     cellClus1R2 - cellClus0R2};
 
       for (int iNextTracklet{nextLayerFirstTrackletIndex}; iNextTracklet < nextLayerLastTrackletIndex; ++iNextTracklet) {
-        
+
         if (tf->getTracklets()[iLayer + 1][iNextTracklet].firstClusterIndex != nextLayerClusterIndex) {
           break;
         }
@@ -202,7 +202,7 @@ void TrackerTraitsCPU::computeLayerCells()
               tf->getClusters()[iLayer + 2][nextTracklet.secondClusterIndex]};
 
             const float thirdCellClusterR2{thirdCellCluster.radius *
-                                                             thirdCellCluster.radius};
+                                           thirdCellCluster.radius};
 
             const float3 secondDeltaVector{thirdCellCluster.xCoordinate - cellClus0.xCoordinate,
                                            thirdCellCluster.yCoordinate - cellClus0.yCoordinate,
