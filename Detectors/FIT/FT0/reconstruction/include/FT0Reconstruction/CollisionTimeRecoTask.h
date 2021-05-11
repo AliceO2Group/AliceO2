@@ -20,8 +20,6 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/TimeStamp.h"
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
-#include "FITCalibration/FITCalibrationApi.h"
-#include "CCDB/BasicCCDBManager.h"
 #include <gsl/span>
 #include <bitset>
 
@@ -32,7 +30,6 @@ namespace ft0
 class CollisionTimeRecoTask
 {
   using offsetCalib = o2::ft0::FT0ChannelTimeCalibrationObject;
-  using CalibApi = o2::fit::FITCalibrationApi;
 
  public:
   enum : int { TimeMean,
@@ -45,26 +42,12 @@ class CollisionTimeRecoTask
                              gsl::span<const o2::ft0::ChannelData> inChData,
                              gsl::span<o2::ft0::ChannelDataFloat> outChData);
   void FinishTask();
-  o2::ft0::FT0ChannelTimeCalibrationObject calibrateTimeOffset(uint32_t orbit, uint16_t bc)
-  {
-    auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL("http://ccdb-test.cern.ch:8080");
-    //  getProcessingTimestamp()
-    //    double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
-    auto timeStamp = o2::InteractionRecord::bc2ns(bc, orbit);
-    //   mgr.setTimestamp(timeStamp);
-    auto caliboffsets = mgr.get<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset");
-    return *caliboffsets;
-  }
-  void setCalibApi(CalibApi* calibApi)
-  {
-    mCalibApi = calibApi;
-  }
+  void SetChannelOffset( o2::ft0::FT0ChannelTimeCalibrationObject *caliboffsets) { mCalibOffset = caliboffsets;};
 
- private:
-  CalibApi* mCalibApi = nullptr; //! calib api to handle the FIT calibration
+  private:
+  o2::ft0::FT0ChannelTimeCalibrationObject *mCalibOffset;
 
-  ClassDefNV(CollisionTimeRecoTask, 1);
+  ClassDefNV(CollisionTimeRecoTask, 2);
 };
 } // namespace ft0
 } // namespace o2
