@@ -125,30 +125,18 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
       hm->AddHistogram(histClass, "DCAz", "DCAz", false, 100, -5.0, 5.0, VarManager::kTrackDCAz);
     }
     if (subGroupStr.Contains("muon")) {
-      hm->AddHistogram(histClass, "InvBendingMom", "", false, 100, 0.0, 1.0, VarManager::kMuonInvBendingMomentum);
-      hm->AddHistogram(histClass, "ThetaX", "", false, 100, -1.0, 1.0, VarManager::kMuonThetaX);
-      hm->AddHistogram(histClass, "ThetaY", "", false, 100, -2.0, 2.0, VarManager::kMuonThetaY);
-      hm->AddHistogram(histClass, "ZMu", "", false, 100, -30.0, 30.0, VarManager::kMuonZMu);
-      hm->AddHistogram(histClass, "BendingCoor", "", false, 100, 0.32, 0.35, VarManager::kMuonBendingCoor);
-      hm->AddHistogram(histClass, "NonBendingCoor", "", false, 100, 0.065, 0.07, VarManager::kMuonNonBendingCoor);
-      hm->AddHistogram(histClass, "Chi2", "", false, 100, 0.0, 200.0, VarManager::kMuonChi2);
-      hm->AddHistogram(histClass, "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);
-      hm->AddHistogram(histClass, "RAtAbsorberEnd", "", false, 100, 10, 2000, VarManager::kMuonRAtAbsorberEnd);
-      hm->AddHistogram(histClass, "pdca", "", false, 100, 0.0, 1000, VarManager::kMuonPDca);
-
-      /*hm->AddHistogram(histClass, "MuonNClusters", "", false, 100, 0.0, 10.0, VarManager::kMuonNClusters);
-      hm->AddHistogram(histClass, "pdca", "", false, 100, 0.0, 1000., VarManager::kMuonPDca);
-      hm->AddHistogram(histClass, "RAtAbsorberEnd", "", false, 100, 10, 2000, VarManager::kMuonRAtAbsorberEnd);
+      hm->AddHistogram(histClass, "MuonNClusters", "", false, 100, 0.0, 10.0, VarManager::kMuonNClusters);
+      hm->AddHistogram(histClass, "pdca", "", false, 100, 0.0, 500., VarManager::kMuonPDca);
+      hm->AddHistogram(histClass, "RAtAbsorberEnd", "", false, 100, 0.0, 200., VarManager::kMuonRAtAbsorberEnd);
       hm->AddHistogram(histClass, "Chi2", "", false, 100, 0.0, 200.0, VarManager::kMuonChi2);
       hm->AddHistogram(histClass, "Chi2MCHMID", "", false, 100, 0.0, 200.0, VarManager::kMuonChi2MatchMCHMID);
       hm->AddHistogram(histClass, "Chi2MCHMFT", "", false, 100, 0.0, 200.0, VarManager::kMuonChi2MatchMCHMFT);
       hm->AddHistogram(histClass, "Chi2MatchScoreMCHMFT", "", false, 100, 0.0, 200.0, VarManager::kMuonMatchScoreMCHMFT);
-      hm->AddHistogram(histClass, "MatchMFTTrackID", "", false, 100, 0.0, 200.0, VarManager::kMuonMatchMFTTrackID);
       hm->AddHistogram(histClass, "MuonCXX", "", false, 100, -1.0, 1.0, VarManager::kMuonCXX);
       hm->AddHistogram(histClass, "MuonCYY", "", false, 100, -1.0, 1.0, VarManager::kMuonCYY);
       hm->AddHistogram(histClass, "MuonCPhiPhi", "", false, 100, -1.0, 1.0, VarManager::kMuonCPhiPhi);
       hm->AddHistogram(histClass, "MuonCTglTgl", "", false, 100, -1.0, 1.0, VarManager::kMuonCTglTgl);
-      hm->AddHistogram(histClass, "MuonC1Pt21Pt2", "", false, 100, -1.0, 1.0, VarManager::kMuonC1Pt21Pt2);*/
+      hm->AddHistogram(histClass, "MuonC1Pt21Pt2", "", false, 100, -1.0, 1.0, VarManager::kMuonC1Pt21Pt2);
     }
   }
 
@@ -162,6 +150,14 @@ void o2::aod::dqhistograms::DefineHistograms(HistogramManager* hm, const char* h
     hm->AddHistogram(histClass, "Mass_Pt", "", false, 125, 0.0, 5.0, VarManager::kMass, 100, 0.0, 20.0, VarManager::kPt);
     hm->AddHistogram(histClass, "Eta_Pt", "", false, 125, -2.0, 2.0, VarManager::kEta, 100, 0.0, 20.0, VarManager::kPt);
     hm->AddHistogram(histClass, "Mass_VtxZ", "", true, 30, -15.0, 15.0, VarManager::kVtxZ, 100, 0.0, 20.0, VarManager::kMass);
+    if (subGroupStr.Contains("vertexing-barrel")) {
+      hm->AddHistogram(histClass, "Lxy", "", false, 100, 0.0, 10.0, VarManager::kVertexingLxy);
+      hm->AddHistogram(histClass, "Lxyz", "", false, 100, 0.0, 10.0, VarManager::kVertexingLxyz);  
+      hm->AddHistogram(histClass, "LxyErr", "", false, 100, 0.0, 10.0, VarManager::kVertexingLxyErr);
+      hm->AddHistogram(histClass, "LxyzErr", "", false, 100, 0.0, 10.0, VarManager::kVertexingLxyzErr);
+      hm->AddHistogram(histClass, "VtxingProcCode", "", false, 10, 0.0, 10.0, VarManager::kVertexingProcCode);
+      hm->AddHistogram(histClass, "VtxingChi2PCA", "", false, 100, 0.0, 10.0, VarManager::kVertexingChi2PCA);  
+    }
   }
 
   if (groupStr.Contains("dilepton-hadron-mass")) {
