@@ -70,7 +70,7 @@ EventType ELinkDataShaper::processSelfTriggered(uint16_t localClock, uint16_t& c
   if (mReceivedCalibration && (localClock == mExpectedFETClock)) {
     // Reset the calibration flag for this e-link
     mReceivedCalibration = false;
-    return EventType::Dead;
+    return EventType::FET;
   }
   return EventType::Standard;
 }
@@ -80,7 +80,7 @@ EventType ELinkDataShaper::processCalibrationTrigger(uint16_t localClock)
   /// Processes the calibration event
   mExpectedFETClock = localClock + mElectronicsDelay.calibToFET;
   mReceivedCalibration = true;
-  return EventType::Noise;
+  return EventType::Calib;
 }
 
 void ELinkDataShaper::processOrbitTrigger(uint16_t localClock, uint8_t triggerWord)
