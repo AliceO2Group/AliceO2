@@ -80,7 +80,7 @@ class LookUpTable
   int getTcmLink() const { return Nmodules; }
   bool isTCM(int link, int ep) const { return link == 2 && ep == 0; }
   Topo getTopoPM(int globalChannelID) const { return mTopoVector[globalChannelID]; }
-  Topo getTopoTCM(int globalChannelID) const { return mTopoVector[getTcmLink()]; }
+  Topo getTopoTCM() const { return mTopoVector[getTcmLink()]; }
   void printFullMap() const
   {
     LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";

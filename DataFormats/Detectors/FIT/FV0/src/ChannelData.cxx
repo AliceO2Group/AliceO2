@@ -16,3 +16,8 @@ void ChannelData::print() const
 {
   printf("  Pmt=%2d  |  time =%4d  |  charge =%6d\n", pmtNumber, time, chargeAdc);
 }
+
+void ChannelData::printLog() const
+{
+  LOG(INFO) << "ChId: " << static_cast<uint16_t>(pmtNumber) /*<< " |  FEE bits:" << static_cast<uint16_t>(ChainQTC)*/ << " | Time: " << time << " | Charge: " << chargeAdc;
+}

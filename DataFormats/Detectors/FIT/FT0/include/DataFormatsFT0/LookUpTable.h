@@ -230,7 +230,7 @@ class LookUpTable
   }
   bool isTCM(int link, int ep) const { return getChannel(link, 1, ep) == TCM_channel; }
   Topo getTopoPM(int globalChannelID) const { return mTopoVector[globalChannelID]; }
-  Topo getTopoTCM(int globalChannelID) const { return mTopoVector[TCM_channel]; }
+  Topo getTopoTCM() const { return mTopoVector[TCM_channel]; }
 
  private:
   std::vector<Topo> mTopoVector;

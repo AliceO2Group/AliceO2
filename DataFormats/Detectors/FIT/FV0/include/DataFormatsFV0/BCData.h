@@ -16,6 +16,7 @@
 #include <Rtypes.h>
 #include <gsl/span>
 #include <bitset>
+#include <vector>
 #include <tuple>
 /// \file BCData.h
 /// \brief Class to describe fired triggered and/or stored channels for the BC and to refer to channel data
@@ -51,7 +52,7 @@ struct Triggers {
   bool getIsMinBiasInner() const { return (triggerSignals & (1 << bitMinBiasInner)) != 0; }
   bool getIsMinBiasOuter() const { return (triggerSignals & (1 << bitMinBiasOuter)) != 0; }
   bool getIsHighMult() const { return (triggerSignals & (1 << bitHighMult)) != 0; }
-
+  bool getIsDummy() const { return (triggerSignals & (1 << bitDummy)) != 0; }
   void setTriggers(Bool_t isMinBias, Bool_t isMinBiasInner, Bool_t isMinBiasOuter, Bool_t isHighMult, Bool_t isDummy, int8_t chanA, int32_t amplASum)
   {
     triggerSignals = (isMinBias << bitMinBias) | (isMinBiasInner << bitMinBiasInner) | (isMinBiasOuter << bitMinBiasOuter) | (isHighMult << bitHighMult) | (isDummy << bitDummy);
@@ -66,6 +67,7 @@ struct Triggers {
     return std::tie(triggerSignals, nChanA, amplA) ==
            std::tie(other.triggerSignals, other.nChanA, other.amplA);
   }
+  void printLog() const;
   ClassDefNV(Triggers, 1);
 };
 
@@ -88,7 +90,7 @@ struct DetTrigInput {
 struct BCData {
   /// we are going to refer to at most 48 channels, so 6 bits for the number of channels and 26 for the reference
   o2::dataformats::RangeRefComp<6> ref;
-  o2::InteractionRecord ir;
+  o2::InteractionRecord ir; //FV0 is detected by using this field!!!
   Triggers mTriggers;
 
   BCData() = default;
@@ -109,7 +111,24 @@ struct BCData {
   {
     return std::tie(ref, mTriggers, ir) == std::tie(other.ref, other.mTriggers, other.ir);
   }
+  void printLog() const;
+  DetTrigInput makeTrgInput() const { return DetTrigInput{ir, mTriggers.getIsMinBias(), mTriggers.getIsMinBiasInner(), mTriggers.getIsMinBiasOuter(), mTriggers.getIsHighMult(), mTriggers.getIsDummy()}; }
+  void fillTrgInputVec(std::vector<DetTrigInput>& vecTrgInput) const
+  {
+    vecTrgInput.emplace_back(ir, mTriggers.getIsMinBias(), mTriggers.getIsMinBiasInner(), mTriggers.getIsMinBiasOuter(), mTriggers.getIsHighMult(), mTriggers.getIsDummy());
+  }
   ClassDefNV(BCData, 1);
+};
+
+//For TCM extended mode (calibration mode), TCMdataExtended digit
+struct TriggersExt {
+  TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
+  TriggersExt() = default;
+  o2::InteractionRecord mIntRecord;
+  void setTrgWord(uint32_t trgWord, std::size_t pos) { mTriggerWords[pos] = trgWord; }
+  std::array<uint32_t, 20> mTriggerWords;
+  void printLog() const;
+  ClassDefNV(TriggersExt, 1);
 };
 } // namespace fv0
 } // namespace o2

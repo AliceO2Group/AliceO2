@@ -56,6 +56,11 @@ struct HasRef : std::false_type {
 template <typename T>
 struct HasRef<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ref), typename o2::dataformats::RangeReference<int, int>>::value>> : std::true_type {
 };
+//For FV0
+template <typename T>
+struct HasRef<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ref), typename o2::dataformats::RangeRefComp<6>>::value>> : std::true_type {
+};
+
 //Check if RangeReference is an array field in main digit structure
 template <typename T, typename = void>
 struct HasArrayRef : std::false_type {
@@ -63,6 +68,11 @@ struct HasArrayRef : std::false_type {
 template <typename T>
 struct HasArrayRef<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ref), typename std::array<typename o2::dataformats::RangeReference<int, int>, std::tuple_size<decltype(std::declval<T>().ref)>::value>>::value>> : std::true_type {
 };
+//For FV0
+template <typename T>
+struct HasArrayRef<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ref), typename std::array<typename o2::dataformats::RangeRefComp<6>, std::tuple_size<decltype(std::declval<T>().ref)>::value>>::value>> : std::true_type {
+};
+
 //Get RangeReference number of dimentions.
 template <typename T, typename = void>
 struct GetDigitRefsN {

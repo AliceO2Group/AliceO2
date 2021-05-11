@@ -11,6 +11,7 @@
 #ifndef _FV0_CHANNEL_DATA_H_
 #define _FV0_CHANNEL_DATA_H_
 
+#include <Framework/Logger.h>
 #include <array>
 #include <Rtypes.h>
 #include <tuple>
@@ -36,6 +37,7 @@ struct ChannelData {
   }
 
   void print() const;
+  void printLog() const;
   bool operator==(ChannelData const& other) const
   {
     return std::tie(pmtNumber, time, chargeAdc) == std::tie(other.pmtNumber, other.time, other.chargeAdc);
