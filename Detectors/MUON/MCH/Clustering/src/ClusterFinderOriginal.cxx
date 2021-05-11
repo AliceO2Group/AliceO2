@@ -117,6 +117,8 @@ void ClusterFinderOriginal::deinit()
 void ClusterFinderOriginal::reset()
 {
   /// reset the list of reconstructed clusters and associated digits
+  std::cout << "GG  mCluster reset - size before" <<  mClusters.size()  << std::endl;
+
   mClusters.clear();
   mUsedDigits.clear();
 }
@@ -142,13 +144,15 @@ void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits)
   std::vector<int> removedDigits{};
   simplifyPreCluster(removedDigits);
 
+  std::cout << "GG mPreCluster->multiplicity()" << mPreCluster->multiplicity() << std::endl;
   if (mPreCluster->multiplicity() > 1) {
-
     // extract clusters from the precluster
     int iNewCluster = mClusters.size();
+    std::cout << "GG   processPreCluster" << mClusters.size() << std::endl;
     processPreCluster();
 
     if (mClusters.size() > iNewCluster) {
+      std::cout << "GG   (mClusters.size() > iNewCluster)" << mClusters.size() << " " <<std::endl;
 
       // copy the digits associated to the new clusters (if any) in the list of used digits
       int iFirstNewDigit = mUsedDigits.size();
@@ -161,6 +165,8 @@ void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits)
 
       // give the new clusters a unique ID, make them point to these digits then set their resolution
       for (; iNewCluster < mClusters.size(); ++iNewCluster) {
+        std::cout << "GG      New cluster " <<  iNewCluster << ", nDigits=" <<  nNewDigits << std::endl;
+
         mClusters[iNewCluster].uid = ClusterStruct::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), iNewCluster);
         mClusters[iNewCluster].firstDigit = iFirstNewDigit;
         mClusters[iNewCluster].nDigits = nNewDigits;
@@ -181,12 +187,14 @@ void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits)
     std::vector<PreCluster> preClusters{};
     std::vector<Digit> usedDigits{};
     int nPreClusters = mPreClusterFinder.run();
+    std::cout << "GG  mPreClusterFinder.run() nPreClusters=" <<  nPreClusters << std::endl;
     preClusters.reserve(nPreClusters);
     usedDigits.reserve(removedDigits.size());
     mPreClusterFinder.getPreClusters(preClusters, usedDigits);
 
     // clusterize every new preclusters
     for (const auto& preCluster : preClusters) {
+      std::cout << "GG  findClusters nDigits=" << preCluster.nDigits << std::endl;
       findClusters({&usedDigits[preCluster.firstDigit], preCluster.nDigits});
     }
   }
@@ -385,8 +393,8 @@ void ClusterFinderOriginal::simplifyPreCluster(std::vector<int>& removedDigits)
 //_________________________________________________________________________________________________
 void ClusterFinderOriginal::processPreCluster()
 {
+  std::cout << "GG  -> processPreCluster() Make the clustering"  << std::endl;
   /// builds an array of pixel and extract clusters from it
-
   buildPixArray();
   if (mPixels.empty()) {
     return;
@@ -394,6 +402,8 @@ void ClusterFinderOriginal::processPreCluster()
 
   // switch between different clustering methods depending on the complexity of the precluster
   std::pair<int, int> nPadsXY = mPreCluster->sizeInPads(PadOriginal::kZero);
+  std::cout << "GG    nbr of pads"  << nPadsXY.first << ", " << nPadsXY.second << std::endl;
+
   if (nPadsXY.first < 4 && nPadsXY.second < 4) {
 
     // simple precluster
