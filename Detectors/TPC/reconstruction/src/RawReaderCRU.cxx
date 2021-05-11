@@ -235,12 +235,23 @@ int RawReaderCRU::scanFile()
 
     const size_t packetSize = RDHUtils::getOffsetToNext(rdh);
     const size_t offset = packetSize - RDHUtils::getHeaderSize(rdh);
+    const auto memorySize = RDHUtils::getMemorySize(rdh);
+    const auto payloadSize = memorySize - RDHUtils::getHeaderSize(rdh);
 
     // ===| check for truncated file |==========================================
     const size_t curPos = file.tellg();
     if ((curPos + offset) > mFileSize) {
       LOGP(error, "File truncated at {}, offset {} would exceed file size of {}", curPos, offset, mFileSize);
       break;
+    }
+
+    // ===| skip IDC data |=====================================================
+    const auto detField = o2::raw::RDHUtils::getDetectorField(rdh);
+    if ((detField > 1) || (payloadSize == 0)) {
+      file.seekg(offset, file.cur);
+      ++currentPacket;
+      currentPos = file.tellg();
+      continue;
     }
 
     // ===| try to detect data type if not already set |========================
@@ -293,8 +304,6 @@ int RawReaderCRU::scanFile()
     const auto endPoint = rdh_utils::getEndPoint(feeId);
     const auto linkID = rdh_utils::getLink(feeId);
     const auto globalLinkID = linkID + endPoint * 12;
-    const auto memorySize = RDHUtils::getMemorySize(rdh);
-    const auto payloadSize = memorySize - RDHUtils::getHeaderSize(rdh);
 
     // ===| check if cru should be forced |=====================================
     if (!mForceCRU) {
@@ -343,7 +352,8 @@ int RawReaderCRU::scanFile()
         }
       }
     } else {
-      O2ERROR("Found header word %x and required header word %x don't match", rdh.word0, RDH_HEADERWORD0);
+      O2ERROR("Found header word %x and required header word %x don't match, at %zu, stopping file scan", rdh.word0, RDH_HEADERWORD0, currentPos);
+      break;
     }
 
     // debug output
@@ -764,7 +774,6 @@ void RawReaderCRU::processLinkZS()
     }
     file.seekg(payloadOffset, file.beg);
     file.read(buffer, payloadSize);
-
     const auto globalBCOffset = (packet.getHeartBeatOrbit() - firstOrbitInEvent) * 3564;
     o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), globalBCOffset, mManager->mLinkZSCallback, false); // last parameter should be true for MW2 data
   }
