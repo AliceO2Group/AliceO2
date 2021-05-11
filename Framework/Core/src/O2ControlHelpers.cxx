@@ -155,17 +155,7 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << "shell: true\n";
   dumpOut << indLevel << "log: \"{{ log_task_output }}\"\n";
   dumpOut << indLevel << "user: \"{{ user }}\"\n";
-
-  dumpOut << indLevel << "value: >-\n";
-  // fixme : how to find out when to include QC? Now we include it always, just in case
-  dumpOut << indLevel << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
-
-  if (bfs::path(execution.args[0]).filename().string() != execution.args[0]) {
-    LOG(WARNING) << "The workflow template generation was started with absolute or relative executables paths."
-                    " Please use the symlinks exported by the build infrastructure or remove the paths manually in the generated templates,"
-                    " unless you really need executables within concrete directories";
-  }
-  dumpOut << indLevel << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
+  dumpOut << indLevel << "value: \"{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}\"\n";
 
   dumpOut << indLevel << "arguments:\n";
   dumpOut << indLevel << indScheme << "- \"-b\"\n";
@@ -300,6 +290,16 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << "name: " << taskName << "\n";
   dumpOut << indLevel << "defaults:\n";
   dumpOut << indLevel << indScheme << "log_task_output: none\n";
+
+  if (bfs::path(execution.args[0]).filename().string() != execution.args[0]) {
+    LOG(WARNING) << "The workflow template generation was started with absolute or relative executables paths."
+                    " Please use the symlinks exported by the build infrastructure or remove the paths manually in the generated templates,"
+                    " unless you really need executables within concrete directories";
+  }
+  dumpOut << indLevel << indScheme << "_module_cmdline: >-\n";
+  dumpOut << indLevel << indScheme << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
+  dumpOut << indLevel << indScheme << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
+  dumpOut << indLevel << indScheme << "_plain_cmdline: \"source /etc/profile.d/o2.sh && {{ dpl_command }} | " << execution.args[0] << "\"\n";
 
   dumpOut << indLevel << "control:\n";
   dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
