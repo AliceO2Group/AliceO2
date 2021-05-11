@@ -122,7 +122,7 @@ int process(po::variables_map& vm)
         rofRecords.emplace_back(rof.interactionRecord, rof.eventType, rof.firstEntry + offset, rof.nEntries);
       }
       o2::InteractionRecord hb(0, iHB);
-      hbRecords.emplace_back(hb, o2::mid::EventType::Noise, offset, decoder->getData().size());
+      hbRecords.emplace_back(hb, o2::mid::EventType::Calib, offset, decoder->getData().size());
       ++iHB;
       if ((nHBs > 0 && iHB >= nHBs)) {
         break;

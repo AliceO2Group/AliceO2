@@ -55,7 +55,7 @@ EventType GBTOutputHandler::processSelfTriggered(size_t ilink, uint16_t localClo
   if ((mReceivedCalibration & linkMask) && (localClock == mExpectedFETClock[ilink])) {
     // Reset the calibration flag for this e-link
     mReceivedCalibration &= ~linkMask;
-    return EventType::Dead;
+    return EventType::FET;
   }
   return EventType::Standard;
 }
@@ -65,7 +65,7 @@ EventType GBTOutputHandler::processCalibrationTrigger(size_t ilink, uint16_t loc
   /// Processes the calibration event
   mExpectedFETClock[ilink] = localClock + mElectronicsDelay.calibToFET;
   mReceivedCalibration |= (1 << ilink);
-  return EventType::Noise;
+  return EventType::Calib;
 }
 
 void GBTOutputHandler::processOrbitTrigger(size_t ilink, uint16_t localClock, uint8_t triggerWord)

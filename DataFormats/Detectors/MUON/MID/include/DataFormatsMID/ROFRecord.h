@@ -26,8 +26,8 @@ namespace mid
 
 enum class EventType {
   Standard = 0,
-  Noise = 1,
-  Dead = 2
+  Calib = 1,
+  FET = 2
 };
 
 /// ROFRecord class encodes the trigger interaction record of given ROF and
