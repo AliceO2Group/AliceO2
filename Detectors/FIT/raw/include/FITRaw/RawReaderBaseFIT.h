@@ -46,14 +46,15 @@ class RawReaderBaseFIT : public RawReaderBase<DigitBlockFITtype, DataBlockPMtype
   RawReaderBaseFIT() = default;
   ~RawReaderBaseFIT() = default;
   //deserialize payload to raw data blocks and proccesss them to digits
-  void process(gsl::span<const uint8_t> payload, int linkID, int ep)
+  template <typename... T>
+  void process(gsl::span<const uint8_t> payload, T&&... feeParameters)
   {
-    if (LookupTable_t::Instance().isTCM(linkID, ep)) {
+    if (LookupTable_t::Instance().isTCM(std::forward<T>(feeParameters)...)) {
       //TCM data proccessing
-      RawReaderBase_t::template processBinaryData<DataBlockTCM_t>(payload, linkID, ep);
+      RawReaderBase_t::template processBinaryData<DataBlockTCM_t>(payload, std::forward<T>(feeParameters)...);
     } else {
       //PM data proccessing
-      RawReaderBase_t::template processBinaryData<DataBlockPM_t>(payload, linkID, ep);
+      RawReaderBase_t::template processBinaryData<DataBlockPM_t>(payload, std::forward<T>(feeParameters)...);
     }
   }
 };

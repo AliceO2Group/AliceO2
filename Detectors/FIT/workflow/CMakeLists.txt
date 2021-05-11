@@ -8,10 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(FT0)
-add_subdirectory(common)
-add_subdirectory(raw)
-add_subdirectory(FV0)
-add_subdirectory(FDD)
-add_subdirectory(macros)
-add_subdirectory(workflow)
+o2_add_library(FITWorkflow
+               SOURCES src/FITDataReaderDPLSpec.cxx
+                       src/FITDigitWriterSpec.cxx
+                       src/RawReaderFIT.cxx
+                       PUBLIC_LINK_LIBRARIES O2::Framework
+                                     O2::DetectorsCommonDataFormats
+                                     O2::DPLUtils
+                                     O2::FITRaw)

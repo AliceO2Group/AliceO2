@@ -64,7 +64,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitBlockFIT<LookupTableType, Digit
                                                                                        >
   {
     for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements; iEventData++) {
-      DigitBlockBase_t::mSubDigit.emplace_back(static_cast<Short_t>(LookupTable_t::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].channelID, ep)),
+      DigitBlockBase_t::mSubDigit.emplace_back(static_cast<Short_t>(LookupTable_t::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].channelID)),
                                                static_cast<Float_t>(dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].time),
                                                static_cast<Short_t>(dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].charge)
                                                /*,dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].getFlagWord()*/);
@@ -87,7 +87,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitBlockFIT<LookupTableType, Digit
   {
     DigitBlockBase_t::getSubDigits(vecDigits, vecChannelData);
   }
-  static void print(std::vector<Digit>& vecDigit, std::vector<ChannelData>& vecChannelData)
+  static void print(const std::vector<Digit>& vecDigit, const std::vector<ChannelData>& vecChannelData)
   {
     for (const auto& digit : vecDigit) {
       digit.printLog();
@@ -134,18 +134,30 @@ class DigitBlockFIText : public DigitBlockBase<DigitBlockFIText<LookupTableType,
                                                                                        >
   {
     for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements; iEventData++) {
-      DigitBlockBase_t::mSubDigit.emplace_back(static_cast<Short_t>(LookupTable_t::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].channelID, ep)),
+      DigitBlockBase_t::mSubDigit.emplace_back(static_cast<Short_t>(LookupTable_t::Instance().getChannel(linkID, dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].channelID)),
                                                static_cast<Float_t>(dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].time),
                                                static_cast<Short_t>(dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].charge)
                                                /*,dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[iEventData].getFlagWord()*/);
     }
   }
   //Filling data from TCM (extended mode)
+  //Temporary for FT0 and FDD
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value>
+  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value && !DigitBlockHelper::IsFV0<Digit>::value>
   {
     dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0].fillTrigger(DigitBlockBase_t::mDigit.mTriggers);
     DigitBlockBase_t::mSingleSubDigit.mIntRecord = DigitBlockBase_t::mDigit.mIntRecord;
+    for (int iTriggerWord = 0; iTriggerWord < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mNelements; iTriggerWord++) {
+      DigitBlockBase_t::mSingleSubDigit.setTrgWord(dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[iTriggerWord].triggerWord, iTriggerWord);
+    }
+  }
+
+  //Temporary for FV0
+  template <class DataBlockType>
+  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value && DigitBlockHelper::IsFV0<Digit>::value> //Will compile only for FV0
+  {
+    dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0].fillTrigger(DigitBlockBase_t::mDigit.mTriggers);
+    DigitBlockBase_t::mSingleSubDigit.mIntRecord = DigitBlockBase_t::mDigit.ir;
     for (int iTriggerWord = 0; iTriggerWord < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mNelements; iTriggerWord++) {
       DigitBlockBase_t::mSingleSubDigit.setTrgWord(dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[iTriggerWord].triggerWord, iTriggerWord);
     }
@@ -162,7 +174,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitBlockFIText<LookupTableType,
     DigitBlockBase_t::getSubDigits(vecDigits, vecChannelData);
     DigitBlockBase_t::getSingleSubDigits(vecTriggersExt);
   }
-  static void print(std::vector<Digit>& vecDigit, std::vector<ChannelData>& vecChannelData, std::vector<TriggersExt>& vecTriggersExt)
+  static void print(const std::vector<Digit>& vecDigit, const std::vector<ChannelData>& vecChannelData, const std::vector<TriggersExt>& vecTriggersExt)
   {
     for (const auto& digit : vecDigit) {
       digit.printLog();

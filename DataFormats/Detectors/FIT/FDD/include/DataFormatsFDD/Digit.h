@@ -83,6 +83,8 @@ struct Triggers {
 };
 
 struct DetTrigInput {
+  static constexpr char sChannelNameDPL[] = "TRIGGERINPUT";
+  static constexpr char sDigitName[] = "DetTrigInput";
   o2::InteractionRecord mIntRecord; // bc/orbit of the intpur
   std::bitset<5> mInputs;           // pattern of inputs.
   DetTrigInput() = default;
@@ -95,19 +97,18 @@ struct DetTrigInput {
               (isSCnt << Triggers::bitSCen))
   {
   }
-
   ClassDefNV(DetTrigInput, 1);
 };
 
 struct Digit {
+  static constexpr char sChannelNameDPL[] = "DIGITSBC";
+  static constexpr char sDigitName[] = "Digit";
   o2::dataformats::RangeRefComp<5> ref;
-
   Triggers mTriggers;               // pattern of triggers  in this BC
   o2::InteractionRecord mIntRecord; // Interaction record (orbit, bc)
-
   Digit() = default;
   Digit(int first, int ne, o2::InteractionRecord iRec, Triggers chTrig) : ref(first, ne), mIntRecord(iRec), mTriggers(chTrig) {}
-
+  typedef DetTrigInput DetTrigInput_t;
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
   o2::InteractionRecord getIntRecord() const { return mIntRecord; };
@@ -135,6 +136,8 @@ struct Digit {
 };
 //For TCM extended mode (calibration mode), TCMdataExtended digit
 struct TriggersExt {
+  static constexpr char sChannelNameDPL[] = "DIGITSTRGEXT";
+  static constexpr char sDigitName[] = "TriggersExt";
   TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
   TriggersExt() = default;
   o2::InteractionRecord mIntRecord;

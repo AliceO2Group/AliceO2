@@ -150,8 +150,9 @@ struct GetSubDigitField<T, std::enable_if_t<(boost::mpl::size<T>::value > 1)>> {
   struct MakeTuple<std::tuple<Args...>, LastArg> {
     typedef std::tuple<Args..., LastArg> type;
   };
-
+  //boost::mpl::vector<...> to std::tuple<std::vector<...>,...>
   typedef typename boost::mpl::fold<T, std::tuple<>, MakeTuple<boost::mpl::_1, std::vector<boost::mpl::_2>>>::type vector_type;
+  //boost::mpl::vector<...> to std::tuple<...>
   typedef typename boost::mpl::fold<T, std::tuple<>, MakeTuple<boost::mpl::_1, boost::mpl::_2>>::type type;
   constexpr static bool sIsEmpty = false;
   constexpr static bool sIsTuple = true;
@@ -188,12 +189,13 @@ class DigitBlockBase //:public DigitBlock
   Digit_t mDigit;
   SubDigit_t mSubDigit;
   SingleSubDigit_t mSingleSubDigit;
-
-  template <typename T>
-  void process(T& dataBlock, int linkID, int ep)
+  /*
+  template <typename T,typename ... U>
+  void process(T& dataBlock, U&&... feeParameters)
   {
-    static_cast<DigitBlock_t*>(this)->processDigits(dataBlock, linkID, ep);
+    static_cast<DigitBlock_t*>(this)->processDigits(dataBlock, std::forward<U>(feeParameters)...);
   }
+  */
   template <typename... T>
   void pop(std::vector<T>&... vecDigits)
   {
