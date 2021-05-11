@@ -64,44 +64,19 @@ struct HfTagSelCollisions {
 
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
-  Configurable<bool> doValPlots{"doValPlots", true, "fill histograms"};
   Configurable<std::string> triggerClassName{"triggerClassName", "kINT7", "trigger class"};
   int triggerClass = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, triggerClassName.value.data()));
-
-  HistogramRegistry registry{
-    "registry",
-    {{"hEvents", "Events;;entries", {HistType::kTH1F, {{3, 0.5, 3.5}}}}}};
-
-  void init(InitContext const&)
-  {
-    std::string labels[3] = {"processed collisions", "selected collisions", "rej. trigger class"};
-    for (int iBin = 0; iBin < 3; iBin++) {
-      registry.get<TH1>(HIST("hEvents"))->GetXaxis()->SetBinLabel(iBin + 1, labels[iBin].data());
-    }
-  }
 
   // event selection
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision)
   {
     int statusCollision = 0;
 
-    if (doValPlots) {
-      registry.get<TH1>(HIST("hEvents"))->Fill(1);
-    }
-
     if (!collision.alias()[triggerClass]) {
       statusCollision |= BIT(0);
-      if (doValPlots) {
-        registry.get<TH1>(HIST("hEvents"))->Fill(3);
-      }
     }
 
     //TODO: add more event selection criteria
-
-    // selected events
-    if (doValPlots && statusCollision == 0) {
-      registry.get<TH1>(HIST("hEvents"))->Fill(2);
-    }
 
     // fill table row
     rowSelectedCollision(statusCollision);
