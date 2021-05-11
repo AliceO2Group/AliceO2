@@ -22,6 +22,8 @@
 #include "GPUTRDTracker.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/TrackTriggerRecord.h"
 #include <memory>
 
 namespace o2
@@ -36,6 +38,7 @@ class TRDGlobalTracking : public o2::framework::Task
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
   void updateTimeDependentParams();
+  void fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 

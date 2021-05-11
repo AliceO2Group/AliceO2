@@ -41,10 +41,11 @@ void TRDTrackReader::run(ProcessingContext& pc)
 
   if (mMode == Mode::TPCTRD) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe}, mTracks);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_TPC", 0, Lifetime::Timeframe}, mTrigRec);
   } else if (mMode == Mode::ITSTPCTRD) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe}, mTracks);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe}, mTrigRec);
   }
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRG", 0, Lifetime::Timeframe}, mTrigRec);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -68,7 +69,7 @@ DataProcessorSpec getTRDTPCTrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", 0, Lifetime::Timeframe);
 
   if (useMC) {
     LOG(FATAL) << "TRD track reader cannot read MC data (yet)";
@@ -88,7 +89,7 @@ DataProcessorSpec getTRDGlobalTrackReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_GLO", 0, Lifetime::Timeframe);
 
   if (useMC) {
     LOG(FATAL) << "TRD track reader cannot read MC data (yet)";
