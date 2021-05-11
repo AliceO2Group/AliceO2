@@ -36,7 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
@@ -59,8 +59,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   auto producerCallback = [nRolls, counter = std::make_shared<int>()](DataAllocator& outputs, ControlService& control) {
     outputs.make<int>(OutputRef{"data", 0}) = *counter;
     if (++(*counter) >= nRolls) {
+      // send the end of stream signal, this is transferred by the proxies
+      // and allows to properly terminate downstream devices
       control.endOfStream();
-      control.readyToQuit(QuitRequest::Me);
     }
   };
 
@@ -106,7 +107,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     LOG(DEBUG) << "got inputs " << inputs.size();
     if (inputs.get<int>("datain") == nRolls - 1) {
       LOG(INFO) << "terminating after " << nRolls << " successful event(s)";
-      control.endOfStream();
+      // FIXME: this can be removed once the ExternalFairMQDeviceProxy can react on
+      // the EOS. At the moment all devices but the input proxy terminate
       control.readyToQuit(QuitRequest::All);
     }
   };
@@ -142,7 +144,11 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     // different data identifiers and change the data origin in the forwarding
     OutputSpec query{"PRX", dh->dataDescription, dh->subSpecification};
     auto channelName = channelRetriever(query, dph->startTime);
-    ASSERT_ERROR(!channelName.empty());
+    bool isData = DataSpecUtils::match(OutputSpec{"TST", "DATA", 0}, dh->dataOrigin, dh->dataDescription, dh->subSpecification);
+    // for the configured data channel we require the channel name, the EOS message containing
+    // the forwarded SourceInfoHeader created by the output proxy will be skipped here since the
+    // input proxy handles this internally
+    ASSERT_ERROR(!isData || !channelName.empty());
     LOG(DEBUG) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
     if (channelName.empty()) {
       return;
