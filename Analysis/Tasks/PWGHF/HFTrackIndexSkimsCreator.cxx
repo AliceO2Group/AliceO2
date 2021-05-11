@@ -1284,8 +1284,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
     adaptAnalysisTask<HfProduceSelTrack>(cfgc),
-    adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc);
-    adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
+    adaptAnalysisTask<HfTagSelTrack>(cfgc);
+    adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
 
   const bool doLcK0Sp = cfgc.options().get<bool>("do-LcK0Sp");
   if (doLcK0Sp) {
