@@ -60,7 +60,7 @@
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <memory> // for make_shared
 #include <vector>
 #include <iomanip>
@@ -249,7 +249,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
 
-      if (boost::filesystem::exists(confParam.gainCalibFile)) {
+      if (std::filesystem::exists(confParam.gainCalibFile)) {
         LOG(INFO) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
         const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
         processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
@@ -566,8 +566,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
               if (verbosity) {
                 end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double> elapsed_seconds = end - start;
-                LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)"
-                          << ": " << elapsed_seconds.count() << "s";
+                LOG(INFO) << "Allocation time for " << name << " (" << size << " bytes)" << ": " << elapsed_seconds.count() << "s";
               }
               return (buffer.second = buffer.first->get().data()) + offset;
             };
