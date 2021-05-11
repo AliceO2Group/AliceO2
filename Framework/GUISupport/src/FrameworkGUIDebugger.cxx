@@ -999,7 +999,7 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
   guiState.startTime = now.tv_sec - ImGui::GetTime();
   std::vector<TopologyNodeInfo> deviceNodesInfos;
   for (auto& device : devices) {
-    deviceNodesInfos.push_back(TopologyNodeInfo{device.name});
+    deviceNodesInfos.push_back(TopologyNodeInfo{device.id});
   }
   std::vector<TopologyNodeInfo> driverNodesInfos;
   driverNodesInfos.push_back(TopologyNodeInfo{"driver"});
