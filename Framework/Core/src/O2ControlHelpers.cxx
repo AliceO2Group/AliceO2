@@ -306,8 +306,8 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
 
   // todo: find out proper values perhaps...
   dumpOut << indLevel << "wants:\n";
-  dumpOut << indLevel << indScheme << "cpu: 0.15\n";
-  dumpOut << indLevel << indScheme << "memory: 128\n";
+  dumpOut << indLevel << indScheme << "cpu: 0.01\n";
+  dumpOut << indLevel << indScheme << "memory: 1\n";
 
   dumpOut << indLevel << "bind:\n";
   for (const auto& outputChannel : spec.outputChannels) {
