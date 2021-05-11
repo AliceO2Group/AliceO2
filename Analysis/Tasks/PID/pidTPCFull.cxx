@@ -9,9 +9,9 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   pidTOFtiny.cxx
+/// \file   pidTPCFull.cxx
 /// \author Nicolo' Jacazio
-/// \brief  Task to produce PID tables for TOF split for each particle with only the Nsigma information.
+/// \brief  Task to produce PID tables for TPC split for each particle.
 ///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
 ///
 
@@ -22,7 +22,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
-#include "AnalysisDataModel/PID/PIDTOF.h"
+#include "AnalysisDataModel/PID/PIDTPC.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
 using namespace o2;
@@ -33,32 +33,33 @@ using namespace o2::track;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  std::vector<ConfigParamSpec> options{{"add-qa", VariantType::Int, 0, {"Produce TOF PID QA histograms"}}};
+  std::vector<ConfigParamSpec> options{{"add-qa", VariantType::Int, 0, {"Produce TPC PID QA histograms"}}};
   std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
 
-struct tofPidTiny {
-  using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
+struct tpcPidFull {
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
   // Tables to produce
-  Produces<o2::aod::pidRespTOFTEl> tablePIDEl;
-  Produces<o2::aod::pidRespTOFTMu> tablePIDMu;
-  Produces<o2::aod::pidRespTOFTPi> tablePIDPi;
-  Produces<o2::aod::pidRespTOFTKa> tablePIDKa;
-  Produces<o2::aod::pidRespTOFTPr> tablePIDPr;
-  Produces<o2::aod::pidRespTOFTDe> tablePIDDe;
-  Produces<o2::aod::pidRespTOFTTr> tablePIDTr;
-  Produces<o2::aod::pidRespTOFTHe> tablePIDHe;
-  Produces<o2::aod::pidRespTOFTAl> tablePIDAl;
+  Produces<o2::aod::pidTPCFullEl> tablePIDEl;
+  Produces<o2::aod::pidTPCFullMu> tablePIDMu;
+  Produces<o2::aod::pidTPCFullPi> tablePIDPi;
+  Produces<o2::aod::pidTPCFullKa> tablePIDKa;
+  Produces<o2::aod::pidTPCFullPr> tablePIDPr;
+  Produces<o2::aod::pidTPCFullDe> tablePIDDe;
+  Produces<o2::aod::pidTPCFullTr> tablePIDTr;
+  Produces<o2::aod::pidTPCFullHe> tablePIDHe;
+  Produces<o2::aod::pidTPCFullAl> tablePIDAl;
   // Detector response and input parameters
   DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
-  Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
+  Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
+  Configurable<std::string> sigmaname{"param-sigma", "TPCReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
-  Configurable<std::string> ccdbPath{"ccdbPath", "Analysis/PID/TOF", "Path of the TOF parametrization on the CCDB"};
+  Configurable<std::string> ccdbPath{"ccdbPath", "Analysis/PID/TPC", "Path of the TPC parametrization on the CCDB"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
   // Configuration flags to include and exclude particle hypotheses
   Configurable<int> pidEl{"pid-el", -1, {"Produce PID information for the Electron mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
@@ -78,12 +79,13 @@ struct tofPidTiny {
     for (DeviceSpec device : workflows.devices) {
       for (auto input : device.inputs) {
         auto enableFlag = [&input](const std::string particle, Configurable<int>& flag) {
-          const std::string table = "pidRespTOFT" + particle;
+          const std::string table = "pidTPCFull" + particle;
           if (input.matcher.binding == table) {
             if (flag < 0) {
               flag.value = 1;
               LOG(INFO) << "Auto-enabling table: " + table;
             } else if (flag > 0) {
+              flag.value = 1;
               LOG(INFO) << "Table enabled: " + table;
             } else {
               LOG(INFO) << "Table disabled: " + table;
@@ -109,21 +111,26 @@ struct tofPidTiny {
     // Not later than now objects
     ccdb->setCreatedNotAfter(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     //
-    const std::vector<float> p = {0.008, 0.008, 0.002, 40.0};
-    response.SetParameters(DetectorResponse::kSigma, p);
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
+      LOG(INFO) << "Loading exp. signal parametrization from file" << fname << ", using param: " << signalname.value;
+      response.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
+
       LOG(INFO) << "Loading exp. sigma parametrization from file" << fname << ", using param: " << sigmaname.value;
       response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
-      std::string path = ccdbPath.value + "/" + sigmaname.value;
+      std::string path = ccdbPath.value + "/" + signalname.value;
+      LOG(INFO) << "Loading exp. signal parametrization from CCDB, using path: " << path << " for timestamp " << timestamp.value;
+      response.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path, timestamp.value));
+
+      path = ccdbPath.value + "/" + sigmaname.value;
       LOG(INFO) << "Loading exp. sigma parametrization from CCDB, using path: " << path << " for timestamp " << timestamp.value;
       response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path, timestamp.value));
     }
   }
 
   template <o2::track::PID::ID pid>
-  using ResponseImplementation = tof::ExpTimes<Coll::iterator, Trks::iterator, pid>;
+  using ResponseImplementation = o2::pid::tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
   void process(Coll const& collisions, Trks const& tracks)
   {
     constexpr auto responseEl = ResponseImplementation<PID::Electron>();
@@ -142,16 +149,8 @@ struct tofPidTiny {
         // Prepare memory for enabled tables
         table.reserve(tracks.size());
         for (auto const& trk : tracks) { // Loop on Tracks
-          const float separation = responsePID.GetSeparation(response, trk.collision(), trk);
-          if (separation <= o2::aod::pidtof_tiny::binned_min) {
-            table(o2::aod::pidtof_tiny::lower_bin);
-          } else if (separation >= o2::aod::pidtof_tiny::binned_max) {
-            table(o2::aod::pidtof_tiny::upper_bin);
-          } else if (separation >= 0) {
-            table(separation / o2::aod::pidtof_tiny::bin_width + 0.5f);
-          } else {
-            table(separation / o2::aod::pidtof_tiny::bin_width - 0.5f);
-          }
+          table(responsePID.GetExpectedSigma(response, trk.collision(), trk),
+                responsePID.GetSeparation(response, trk.collision(), trk));
         }
       }
     };
@@ -167,8 +166,7 @@ struct tofPidTiny {
   }
 };
 
-struct tofPidTinyQa {
-
+struct tpcPidFullQa {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
@@ -182,23 +180,13 @@ struct tofPidTinyQa {
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
-  Configurable<int> logAxis{"logAxis", 1, "Flag to use a log momentum axis"};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
-  Configurable<float> MinP{"MinP", 0.1f, "Minimum momentum in range"};
-  Configurable<float> MaxP{"MaxP", 5.f, "Maximum momentum in range"};
-  Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
-  Configurable<float> MinDelta{"MinDelta", -1000.f, "Minimum Delta in range"};
-  Configurable<float> MaxDelta{"MaxDelta", 1000.f, "Maximum Delta in range"};
-  Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
-  Configurable<float> MinNSigma{"MinNSigma", -10.f, "Minimum NSigma in range"};
-  Configurable<float> MaxNSigma{"MaxNSigma", 10.f, "Maximum NSigma in range"};
+  Configurable<float> MinP{"MinP", 0, "Minimum momentum in range"};
+  Configurable<float> MaxP{"MaxP", 20, "Maximum momentum in range"};
 
   template <typename T>
   void makelogaxis(T h)
   {
-    if (logAxis == 0) {
-      return;
-    }
     const int nbins = h->GetNbinsX();
     double binp[nbins + 1];
     double max = h->GetXaxis()->GetBinUpEdge(nbins);
@@ -218,23 +206,25 @@ struct tofPidTinyQa {
   template <uint8_t i>
   void addParticleHistos()
   {
+    // Exp signal
+    histos.add(hexpected[i].data(), Form(";#it{p} (GeV/#it{c});d#it{E}/d#it{x}_(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
+
+    // Signal - Expected signal
+    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});;d#it{E}/d#it{x} - d#it{E}/d#it{x}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {1000, -500, 500}});
+    makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
+
     // NSigma
-    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsNSigma, MinNSigma, MaxNSigma}});
+    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TPC}(%s)", pT[i]), kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
     makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
   }
 
   void init(o2::framework::InitContext&)
   {
     // Event properties
-    histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", HistType::kTH1F, {{100, -20, 20}});
-    histos.add("event/colltime", ";Collision time (ps);Entries", HistType::kTH1F, {{100, -2000, 2000}});
-    histos.add("event/tofsignal", ";#it{p} (GeV/#it{c});TOF Signal", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {10000, 0, 2e6}});
-    makelogaxis(histos.get<TH2>(HIST("event/tofsignal")));
-    histos.add("event/eta", ";#it{#eta};Entries", HistType::kTH1F, {{100, -2, 2}});
-    histos.add("event/length", ";Track length (cm);Entries", HistType::kTH1F, {{100, 0, 500}});
-    histos.add("event/pt", ";#it{p}_{T} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
-    histos.add("event/p", ";#it{p} (GeV/#it{c});Entries", HistType::kTH1F, {{nBinsP, MinP, MaxP}});
-    histos.add("event/ptreso", ";#it{p} (GeV/#it{c});Entries", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, 0, 0.1}});
+    histos.add("event/vertexz", ";Vtx_{z} (cm);Entries", kTH1F, {{100, -20, 20}});
+    histos.add("event/tpcsignal", ";#it{p} (GeV/#it{c});TPC Signal", kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1000}});
+    makelogaxis(histos.get<TH2>(HIST("event/tpcsignal")));
 
     addParticleHistos<0>();
     addParticleHistos<1>();
@@ -248,57 +238,44 @@ struct tofPidTinyQa {
   }
 
   template <uint8_t i, typename T>
-  void fillParticleHistos(const T& t, const float nsigma)
+  void fillParticleHistos(const T& t, const float mom, const float exp_diff, const float nsigma)
   {
+    histos.fill(HIST(hexpected[i]), mom, t.tpcSignal() - exp_diff);
+    histos.fill(HIST(hexpected_diff[i]), mom, exp_diff);
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov,
-                                                          aod::pidRespTOFTEl, aod::pidRespTOFTMu, aod::pidRespTOFTPi,
-                                                          aod::pidRespTOFTKa, aod::pidRespTOFTPr, aod::pidRespTOFTDe,
-                                                          aod::pidRespTOFTTr, aod::pidRespTOFTHe, aod::pidRespTOFTAl,
+  void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra,
+                                                          aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                                          aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
+                                                          aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
                                                           aod::TrackSelection> const& tracks)
   {
-    const float collisionTime_ps = collision.collisionTime() * 1000.f;
     histos.fill(HIST("event/vertexz"), collision.posZ());
-    histos.fill(HIST("event/colltime"), collisionTime_ps);
 
     for (auto t : tracks) {
+      // const float mom = t.p();
+      const float mom = t.tpcInnerParam();
+      histos.fill(HIST("event/tpcsignal"), mom, t.tpcSignal());
       //
-      if (t.tofSignal() < 0) { // Skipping tracks without TOF
-        continue;
-      }
-      if (!t.isGlobalTrack()) {
-        continue;
-      }
-
-      const float tof = t.tofSignal() - collisionTime_ps;
-
-      //
-      histos.fill(HIST("event/tofsignal"), t.p(), t.tofSignal());
-      histos.fill(HIST("event/eta"), t.eta());
-      histos.fill(HIST("event/length"), t.length());
-      histos.fill(HIST("event/pt"), t.pt());
-      histos.fill(HIST("event/ptreso"), t.p(), t.sigma1Pt() * t.pt() * t.pt());
-      //
-      fillParticleHistos<0>(t, t.tofNSigmaEl());
-      fillParticleHistos<1>(t, t.tofNSigmaMu());
-      fillParticleHistos<2>(t, t.tofNSigmaPi());
-      fillParticleHistos<3>(t, t.tofNSigmaKa());
-      fillParticleHistos<4>(t, t.tofNSigmaPr());
-      fillParticleHistos<5>(t, t.tofNSigmaDe());
-      fillParticleHistos<6>(t, t.tofNSigmaTr());
-      fillParticleHistos<7>(t, t.tofNSigmaHe());
-      fillParticleHistos<8>(t, t.tofNSigmaAl());
+      fillParticleHistos<0>(t, mom, t.tpcExpSignalDiffEl(), t.tpcNSigmaEl());
+      fillParticleHistos<1>(t, mom, t.tpcExpSignalDiffMu(), t.tpcNSigmaMu());
+      fillParticleHistos<2>(t, mom, t.tpcExpSignalDiffPi(), t.tpcNSigmaPi());
+      fillParticleHistos<3>(t, mom, t.tpcExpSignalDiffKa(), t.tpcNSigmaKa());
+      fillParticleHistos<4>(t, mom, t.tpcExpSignalDiffPr(), t.tpcNSigmaPr());
+      fillParticleHistos<5>(t, mom, t.tpcExpSignalDiffDe(), t.tpcNSigmaDe());
+      fillParticleHistos<6>(t, mom, t.tpcExpSignalDiffTr(), t.tpcNSigmaTr());
+      fillParticleHistos<7>(t, mom, t.tpcExpSignalDiffHe(), t.tpcNSigmaHe());
+      fillParticleHistos<8>(t, mom, t.tpcExpSignalDiffAl(), t.tpcNSigmaAl());
     }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<tofPidTiny>(cfgc)};
+  auto workflow = WorkflowSpec{adaptAnalysisTask<tpcPidFull>(cfgc)};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<tofPidTinyQa>(cfgc));
+    workflow.push_back(adaptAnalysisTask<tpcPidFullQa>(cfgc));
   }
   return workflow;
 }
