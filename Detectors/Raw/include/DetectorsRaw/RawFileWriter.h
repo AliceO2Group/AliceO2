@@ -132,20 +132,7 @@ class RawFileWriter
     }
 
     /// append to the end of the buffer and return the point where appended to
-    size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true)
-    {
-      if (!sz) {
-        return buffer.size();
-      }
-      nBytesWritten += sz;
-      // do we have a space one this superpage?
-      if ((writer->mSuperPageSize - int(buffer.size())) < 0) { // need to flush
-        flushSuperPage(keepLastOnFlash);
-      }
-      auto offs = expandBufferBy(sz);
-      memmove(&buffer[offs], ptr, sz);
-      return offs;
-    }
+    size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true);
 
     /// add RDH to buffer. In case this requires flushing of the superpage, do not keep the previous page
     size_t pushBack(const RDHAny& rdh)
@@ -156,6 +143,26 @@ class RawFileWriter
 
   };
   //=====================================================================================
+  // If addData was called with given IR for at least 1 link, then it should be called for all links, even it with empty payload
+  // This structure will check if detector has dared to do this
+  struct DetLazinessCheck {
+    IR ir{};
+    bool preformatted = false;
+    uint32_t trigger = 0;
+    uint32_t detField = 0;
+    size_t irSeen = 0;
+    size_t completeCount = 0;
+    std::unordered_map<LinkSubSpec_t, bool> linksDone; // links for which addData was called
+    void acknowledge(LinkSubSpec_t s, const IR& _ir, bool _preformatted, uint32_t _trigger, uint32_t _detField);
+    void completeLinks(RawFileWriter* wr, const IR& _ir);
+    void clear()
+    {
+      linksDone.clear();
+      ir.clear();
+    }
+  };
+
+  //=====================================================================================
 
   RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid, bool cru = true) : mOrigin(origin)
   {
@@ -165,6 +172,7 @@ class RawFileWriter
   }
   ~RawFileWriter();
   void useCaching();
+  void doLazinessCheck(bool v) { mDoLazinessCheck = v; }
   void writeConfFile(std::string_view origin = "FLP", std::string_view description = "RAWDATA", std::string_view cfgname = "raw.cfg", bool fullPath = true) const;
   void close();
 
@@ -412,6 +420,9 @@ class RawFileWriter
   TStopwatch mTimer;
   RoMode_t mROMode = NotSet;
   IR mFirstIRAdded; // 1st IR seen
+  DetLazinessCheck mDetLazyCheck{};
+  bool mDoLazinessCheck = true;
+
   ClassDefNV(RawFileWriter, 1);
 }; // namespace raw
 

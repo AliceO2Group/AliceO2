@@ -139,6 +139,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   if (fileFor != "link") { // in case >1 link goes to the file, we must cache to preserve the TFs ordering
     writer.useCaching();
   }
+  writer.doLazinessCheck(false); // LazinessCheck is not thread-safe
 
   // ===| set up branch addresses |=============================================
   std::vector<Digit>* vDigitsPerSectorCollection[Sector::MAXSECTOR] = {nullptr}; // container that keeps Digits per sector
