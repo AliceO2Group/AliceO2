@@ -173,6 +173,8 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << indScheme << "- \"'{{ shm_segment_size }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--shm-throw-bad-alloc\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ shm_throw_bad_alloc }}'\"\n";
+  dumpOut << indLevel << indScheme << "- \"--resources-monitoring\"\n";
+  dumpOut << indLevel << indScheme << "- \"'{{ resources_monitoring }}'\"\n";
 
   for (size_t ai = 1; ai < execution.args.size(); ++ai) {
     const char* option = execution.args[ai];
@@ -191,7 +193,7 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
     static const std::set<std::string> omitOptions = {
       "--channel-config", "--o2-control", "--control", "--session", "--monitoring-backend",
       "-b", "--color", "--infologger-severity", "--infologger-mode", "--driver-client-backend",
-      "--shm-segment-size", "--shm-throw-bad-alloc"};
+      "--shm-segment-size", "--shm-throw-bad-alloc", "--resources-monitoring"};
     if (omitOptions.find(option) != omitOptions.end()) {
       continue;
     }
@@ -347,6 +349,7 @@ void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, c
   dumpOut << indLevel << indScheme << "shm_segment_size: 10000000000\n";
   dumpOut << indLevel << indScheme << "shm_throw_bad_alloc: false\n";
   dumpOut << indLevel << indScheme << "session_id: default\n";
+  dumpOut << indLevel << indScheme << "resources_monitoring: 15\n";
 
   dumpOut << indLevel << "roles:\n";
   for (size_t di = 0; di < specs.size(); di++) {
