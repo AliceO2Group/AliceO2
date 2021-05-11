@@ -38,6 +38,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
 {
   auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
   mCCDBManager.setURL("http://ccdb-test.cern.ch:8080");
+  LOG(INFO) << " set-up CCDB";
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");

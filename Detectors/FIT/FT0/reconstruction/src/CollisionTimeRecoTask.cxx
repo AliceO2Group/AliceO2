@@ -48,7 +48,7 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   int nch = inChData.size();
   const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
-    int offsetChannel = mCalibOffset->mTimeOffsets.at(inChData[ich].ChId);
+    int offsetChannel = mCalibOffset->mTimeOffsets[inChData[ich].ChId];
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                (inChData[ich].CFDTime - offsetChannel) * Geometry::ChannelWidth,
                                                (double)inChData[ich].QTCAmpl * parInv,

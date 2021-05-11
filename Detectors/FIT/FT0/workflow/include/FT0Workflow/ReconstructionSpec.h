@@ -43,7 +43,7 @@ class ReconstructionDPL : public Task
   o2::ft0::CollisionTimeRecoTask mReco;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
   TStopwatch mTimer;
- };
+};
 
 /// create a processor spec
 framework::DataProcessorSpec getReconstructionSpec(bool useMC = true);

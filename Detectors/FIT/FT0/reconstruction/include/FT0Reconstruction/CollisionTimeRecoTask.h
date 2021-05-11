@@ -42,10 +42,10 @@ class CollisionTimeRecoTask
                              gsl::span<const o2::ft0::ChannelData> inChData,
                              gsl::span<o2::ft0::ChannelDataFloat> outChData);
   void FinishTask();
-  void SetChannelOffset( o2::ft0::FT0ChannelTimeCalibrationObject *caliboffsets) { mCalibOffset = caliboffsets;};
+  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject* caliboffsets) { mCalibOffset = caliboffsets; };
 
-  private:
-  o2::ft0::FT0ChannelTimeCalibrationObject *mCalibOffset;
+ private:
+  o2::ft0::FT0ChannelTimeCalibrationObject* mCalibOffset;
 
   ClassDefNV(CollisionTimeRecoTask, 2);
 };
