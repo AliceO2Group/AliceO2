@@ -9,6 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+find_package(GSL REQUIRED)
+
 o2_add_library(MCHClustering
                SOURCES src/ClusterOriginal.cxx
                        src/ClusterFinderOriginal.cxx
@@ -19,3 +21,20 @@ o2_add_library(MCHClustering
 
 o2_target_root_dictionary(MCHClustering
                           HEADERS include/MCHClustering/ClusterizerParam.h)
+
+o2_add_library(MCHClusteringGEM
+               SOURCES src/ClusterOriginal.cxx
+                       src/ClusterFinderGEM.cxx
+                       src/dataStructure.cxx
+                       src/mathUtil.cxx
+                       src/padProcessing.cxx
+                       src/mathiesonFit.cxx
+                       src/mathieson.cxx
+                       src/gaussianEM.cxx
+                       src/clusterProcessing.cxx
+               PUBLIC_LINK_LIBRARIES
+                 GSL::gsl
+                 O2::Framework
+                 O2::MCHBase
+                 O2::MCHMappingInterface
+                 O2::MCHPreClustering)
