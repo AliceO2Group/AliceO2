@@ -128,8 +128,8 @@ defaults:
 control:
   mode: "fairmq"
 wants:
-  cpu: 0.15
-  memory: 128
+  cpu: 0.01
+  memory: 1
 bind:
   - name: from_A_to_C
     type: push
@@ -186,8 +186,8 @@ defaults:
 control:
   mode: "fairmq"
 wants:
-  cpu: 0.15
-  memory: 128
+  cpu: 0.01
+  memory: 1
 bind:
   - name: from_B_to_C
     type: push
@@ -244,8 +244,8 @@ defaults:
 control:
   mode: "fairmq"
 wants:
-  cpu: 0.15
-  memory: 128
+  cpu: 0.01
+  memory: 1
 bind:
   - name: from_C_to_D
     type: push
@@ -302,8 +302,8 @@ defaults:
 control:
   mode: "fairmq"
 wants:
-  cpu: 0.15
-  memory: 128
+  cpu: 0.01
+  memory: 1
 bind:
   - name: outta_dpl
     type: push
