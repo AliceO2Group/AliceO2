@@ -27,7 +27,6 @@
 #include "TPCReconstruction/KrCluster.h"
 #include "TPCBase/Sector.h"
 #include "TPCWorkflow/KryptonClustererSpec.h"
-#include "TPCWorkflow/KryptonClustererSpec.h"
 
 using namespace o2::framework;
 using namespace o2::tpc;
