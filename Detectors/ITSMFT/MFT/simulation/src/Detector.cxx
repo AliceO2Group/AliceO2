@@ -703,7 +703,7 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
 
   Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, lastUID++);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path "  uid: " << uid;
+  LOG(DEBUG) << "Add " << sname << " <-> " << path << "  uid: " << uid;
 
   if (!gGeoManager->SetAlignableEntry(sname, path.Data(), uid)) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
