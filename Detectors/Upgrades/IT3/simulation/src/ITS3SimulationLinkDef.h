@@ -19,6 +19,5 @@
 #pragma link C++ class o2::its3::V3Services + ;
 #pragma link C++ class o2::its3::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::its3::Detector> + ;
-#pragma link C++ class o2::its3::Digitizer + ;
 
 #endif

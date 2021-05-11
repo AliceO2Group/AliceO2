@@ -92,7 +92,7 @@ class DetID
 #ifndef GPUCA_GPUCODE_DEVICE
   static constexpr std::string_view NONE{"none"}; ///< keywork for no-detector
   static constexpr std::string_view ALL{"all"};   ///< keywork for all detectors
-#endif // GPUCA_GPUCODE_DEVICE
+#endif                                            // GPUCA_GPUCODE_DEVICE
 
   GPUdi() DetID(ID id) : mID(id)
   {

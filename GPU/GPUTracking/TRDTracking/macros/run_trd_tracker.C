@@ -50,8 +50,8 @@ void run_trd_tracker(std::string path = "./",
 
   //-------- init GPU reconstruction --------//
   // different settings are defined in GPUSettingsList.h
-  GPUSettingsGRP cfgGRP; // defaults should be ok
-  GPUSettingsRec cfgRec; // settings concerning reconstruction
+  GPUSettingsGRP cfgGRP;                     // defaults should be ok
+  GPUSettingsRec cfgRec;                     // settings concerning reconstruction
   cfgRec.trdMinTrackPt = .5f;
   cfgRec.trdMaxChi2 = 15.f;
   cfgRec.trdPenaltyChi2 = 12.f;
@@ -69,7 +69,7 @@ void run_trd_tracker(std::string path = "./",
 
   auto tracker = new GPUTRDTracker();
   tracker->SetNCandidates(1); // must be set before initialization
-  tracker->SetProcessPerTimeFrame(true);
+  tracker->SetProcessPerTimeFrame();
   tracker->SetGenerateSpacePoints(true);
 
   rec->RegisterGPUProcessor(tracker, false);
@@ -98,8 +98,8 @@ void run_trd_tracker(std::string path = "./",
   printf("Attached ITS-TPC tracks branch with %lli entries\n", (tracksItsTpc.GetBranch("TPCITS"))->GetEntries());
 
   tracksItsTpc.GetEntry(0);
-  unsigned int nTracks = tracksInArrayPtr->size();
-  printf("There are %u tracks in total\n", nTracks);
+  int nTracks = tracksInArrayPtr->size();
+  printf("There are %i tracks in total\n", nTracks);
 
   // and load input tracklets
   TChain trdTracklets("o2sim");
@@ -138,10 +138,9 @@ void run_trd_tracker(std::string path = "./",
 
   printf("Start loading input tracks into TRD tracker\n");
   // load everything into the tracker
-  for (unsigned int iTrk = 0; iTrk < nTracks; ++iTrk) {
-    const auto& trkITSTPC = tracksInArrayPtr->at(iTrk);
+  for (const auto& trkITSTPC : *tracksInArrayPtr) {
     GPUTRDTrack trkLoad(trkITSTPC, tpcVdrift);
-    tracker->LoadTrack(trkLoad, iTrk);
+    tracker->LoadTrack(trkLoad);
   }
 
   tracker->DumpTracks();

@@ -219,16 +219,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   }
 
   // output
-<<<<<<< HEAD
   std::vector<Tracklet64> tracklets;                               // calculated tracklets
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblTracklets; // MC labels for the tracklets, taken from the digits which make up the tracklet (duplicates are removed)
 
   auto timeProcessingStart = std::chrono::high_resolution_clock::now(); // measure total processing time
-=======
-  std::vector<Tracklet64> trapTrackletsAccum; // calculated tracklets
-
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> lblTracklets; // MC labels for the tracklets, taken from the digits which make up the tracklet (duplicates are removed)
->>>>>>> ccc611077 (Fix chipID for alignable entry)
 
   // sort digits by half chamber ID for each collision and keep track in index vector
   auto sortStart = std::chrono::high_resolution_clock::now();

@@ -297,7 +297,6 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     }
   }
 
-<<<<<<< HEAD
   if (mTFCounter) { // delay sending
     usleep(mDelayUSec);
   }
@@ -306,22 +305,6 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
     device->Send(*msgIt.second.get(), msgIt.first);
   }
   mTimer[TimerTotal].Stop();
-=======
-
- private:
-  int mLoop = 0;                  // once last TF reached, loop while mLoop>=0
-  uint32_t mTFCounter = 0;        // TFId accumulator (accounts for looping)
-  uint32_t mDelayUSec = 0;        // Delay in microseconds between TFs
-  uint32_t mMinTFID = 0;          // 1st TF to extract
-  uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
-  size_t mLoopsDone = 0;
-  size_t mSentSize = 0;
-  size_t mSentMessages = 0;
-  bool mPartPerSP = true;                          // fill part per superpage
-  bool mDone = false;                              // processing is over or not
-  std::string mRawChannelName = "";                // name of optional non-DPL channel
-  std::unique_ptr<o2::raw::RawFileReader> mReader; // matching engine
->>>>>>> ccc611077 (Fix chipID for alignable entry)
 
   LOGF(INFO, "Sent payload of %zu bytes in %zu parts in %zu messages for TF %d | Timing (total/IO): %.3e / %.3e", tfSize, tfNParts,
        messagesPerRoute.size(), mTFCounter, mTimer[TimerTotal].CpuTime() - tTotStart, mTimer[TimerIO].CpuTime() - tIOStart);

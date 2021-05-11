@@ -885,11 +885,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // and to make sure the ownership is moved from the cache in the relayer to
   // the execution.
   auto fillInputs = [&relayer = context.relayer,
-<<<<<<< HEAD
                      &spec = context.deviceContext->spec,
-=======
-                     &spec = context.spec,
->>>>>>> ccc611077 (Fix chipID for alignable entry)
                      &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
     currentSetOfInputs = std::move(relayer->getInputsForTimeslice(slot));
     auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
@@ -1044,11 +1040,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   };
 
   auto switchState = [&control = context.registry->get<ControlService>(),
-<<<<<<< HEAD
                       &state = context.deviceContext->state](StreamingState newState) {
-=======
-                      &state = context.state](StreamingState newState) {
->>>>>>> ccc611077 (Fix chipID for alignable entry)
     state->streaming = newState;
     control.notifyStreamingState(state->streaming);
   };
