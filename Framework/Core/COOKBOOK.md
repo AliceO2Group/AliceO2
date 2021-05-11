@@ -442,8 +442,8 @@ By default DPL exposes the following metrics to the back-end specified with:
 * `inputs/relayed/incomplete` : 1 if the device is waiting for extra data.
 * `inputs/relayed/total`: how many inputs the processor has.
 * `elapsed_time_ms`:
-* `last_processed_input_size_byte`: how many bytes were processed on last iteration
-* `total_processed_input_size_byte`: how many bytes were processed in total since the beginning
+* `last_processed_input_size_byte`: how many bytes were processed on last iteration by a given device
+* `total_processed_input_size_byte`: how many bytes were processed in total since the beginning a given device
 * `last_processing_rate_mb_s`: at what rate the last message was processed
 * `min_input_latency_ms`: the shortest it took for any message to be processed by this dataprocessor (since created)
 * `max_input_latency_ms`: the maximum it took for any message to be processed by this dataprocessor (since created)
