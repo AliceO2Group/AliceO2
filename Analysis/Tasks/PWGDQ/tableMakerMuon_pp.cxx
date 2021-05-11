@@ -56,7 +56,7 @@ struct TableMakerMuon_pp {
   Produces<ReducedTracks> trackBasic;
   Produces<ReducedMuons> muonBasic;
   Produces<ReducedMuonsExtra> muonExtended;
-  Produces<ReducedMuonsCov> muonCov;   // TODO: use with fwdtracks
+  Produces<ReducedMuonsCov> muonCov; // TODO: use with fwdtracks
 
   float* fValues;
 
@@ -133,8 +133,8 @@ struct TableMakerMuon_pp {
       muonExtended(muon.nClusters(), muon.pDca(), muon.rAtAbsorberEnd(),
                    muon.chi2(), muon.chi2MatchMCHMID(), muon.chi2MatchMCHMFT(),
                    muon.matchScoreMCHMFT(), muon.matchMFTTrackID(), muon.matchMCHTrackID());
-      muonCov(muon.x(), muon.y(), muon.z(), muon.phi(), muon.tgl(), muon.signed1Pt(), 
-              muon.cXX(), muon.cXY(), muon.cYY(), muon.cPhiX(), muon.cPhiY(), muon.cPhiPhi(), 
+      muonCov(muon.x(), muon.y(), muon.z(), muon.phi(), muon.tgl(), muon.signed1Pt(),
+              muon.cXX(), muon.cXY(), muon.cYY(), muon.cPhiX(), muon.cPhiY(), muon.cPhiPhi(),
               muon.cTglX(), muon.cTglY(), muon.cTglPhi(), muon.cTglTgl(), muon.c1PtX(), muon.c1PtY(),
               muon.c1PtPhi(), muon.c1PtTgl(), muon.c1Pt21Pt2());
     }

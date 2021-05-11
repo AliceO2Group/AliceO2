@@ -179,9 +179,7 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
         } else if (description == header::DataDescription{"FWDTRACK"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksExtensionMetadata{}));
         } else if (description == header::DataDescription{"FWDTRACKCOV"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksCovExtensionMetadata{}));  
-        /*} else if (description == header::DataDescription{"MUON"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));*/
+          outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksCovExtensionMetadata{}));
         } else {
           throw runtime_error("Not an extended table");
         }

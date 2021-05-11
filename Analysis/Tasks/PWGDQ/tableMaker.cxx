@@ -81,8 +81,8 @@ struct TableMaker {
   Produces<ReducedTracksBarrelPID> trackBarrelPID;
   Produces<ReducedMuons> muonBasic;
   Produces<ReducedMuonsExtra> muonExtra;
-  Produces<ReducedMuonsCov> muonCov;   // TODO: use with fwdtracks
-  
+  Produces<ReducedMuonsCov> muonCov; // TODO: use with fwdtracks
+
   float* fValues;
 
   OutputObj<THashList> fOutputList{"output"};
@@ -134,7 +134,7 @@ struct TableMaker {
     // AnalysisCut myLocalCut;
     // myLocalCut.AddCut(VarManager::kITSncls, 4.0, 7.0);
     // fTrackCut.AddCut(&myLocalCut);
-    
+
     fMuonCut = new AnalysisCompositeCut(true);
     TString muonCutStr = fConfigMuonCuts.value;
     fMuonCut->AddCut(dqcuts::GetCompositeCut(muonCutStr.Data()));
@@ -149,8 +149,8 @@ struct TableMaker {
         triggerAliases |= (uint32_t(1) << i);
       }
     }
-    uint64_t tag = 0;   // TODO: add here available computed event cuts (e.g. run2bcinfo().eventCuts()) or other event wise decisions
-    
+    uint64_t tag = 0; // TODO: add here available computed event cuts (e.g. run2bcinfo().eventCuts()) or other event wise decisions
+
     VarManager::ResetValues(0, VarManager::kNEventWiseVariables, fValues);
     VarManager::FillEvent<eventFillMap>(collision, fValues); // extract event information and place it in the fValues array
     fHistMan->FillHistClass("Event_BeforeCuts", fValues);    // automatically fill all the histograms in the class Event
@@ -195,7 +195,7 @@ struct TableMaker {
       trackBarrelCov(track.x(), track.alpha(), track.y(), track.z(), track.snp(), track.tgl(), track.signed1Pt(),
                      track.cYY(), track.cZY(), track.cZZ(), track.cSnpY(), track.cSnpZ(),
                      track.cSnpSnp(), track.cTglY(), track.cTglZ(), track.cTglSnp(), track.cTglTgl(),
-                     track.c1PtY(), track.c1PtZ(), track.c1PtSnp(), track.c1PtTgl(), track.c1Pt21Pt2());      
+                     track.c1PtY(), track.c1PtZ(), track.c1PtSnp(), track.c1PtTgl(), track.c1Pt21Pt2());
       trackBarrelPID(track.tpcSignal(),
                      track.tpcNSigmaEl(), track.tpcNSigmaMu(),
                      track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr(),
@@ -221,8 +221,8 @@ struct TableMaker {
       muonExtra(muon.nClusters(), muon.pDca(), muon.rAtAbsorberEnd(),
                    muon.chi2(), muon.chi2MatchMCHMID(), muon.chi2MatchMCHMFT(),
                    muon.matchScoreMCHMFT(), muon.matchMFTTrackID(), muon.matchMCHTrackID());
-      muonCov(muon.x(), muon.y(), muon.z(), muon.phi(), muon.tgl(), muon.signed1Pt(), 
-              muon.cXX(), muon.cXY(), muon.cYY(), muon.cPhiX(), muon.cPhiY(), muon.cPhiPhi(), 
+      muonCov(muon.x(), muon.y(), muon.z(), muon.phi(), muon.tgl(), muon.signed1Pt(),
+              muon.cXX(), muon.cXY(), muon.cYY(), muon.cPhiX(), muon.cPhiY(), muon.cPhiPhi(),
               muon.cTglX(), muon.cTglY(), muon.cTglPhi(), muon.cTglTgl(), muon.c1PtX(), muon.c1PtY(),
               muon.c1PtPhi(), muon.c1PtTgl(), muon.c1Pt21Pt2());
     }
