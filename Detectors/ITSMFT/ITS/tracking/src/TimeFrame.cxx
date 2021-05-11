@@ -247,23 +247,24 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
   for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
     if (iLayer < mCells.size()) {
       mCells[iLayer].clear();
-      float cellsMemorySize =
-        memParam.MemoryOffset +
-        std::ceil(((memParam.CellsMemoryCoefficients[iLayer] * mUnsortedClusters[iLayer].size()) *
-                   mUnsortedClusters[iLayer + 1].size()) *
-                  mUnsortedClusters[iLayer + 2].size());
+      // int cellsMemorySize =
+      //   memParam.MemoryOffset +
+      //   std::ceil(((memParam.CellsMemoryCoefficients[iLayer] * mUnsortedClusters[iLayer].size()) *
+      //              mUnsortedClusters[iLayer + 1].size()) *
+      //             mUnsortedClusters[iLayer + 2].size());
 
-      if (cellsMemorySize > mCells[iLayer].capacity()) {
-        mCells[iLayer].reserve(cellsMemorySize);
-      }
+      // if (cellsMemorySize > mCells[iLayer].capacity()) {
+      //             << mUnsortedClusters[iLayer + 1].size() << "\t" << mUnsortedClusters[iLayer + 2].size() << "\t" << cellsMemorySize << std::endl;
+      //   mCells[iLayer].reserve(cellsMemorySize);
+      // }
     }
 
     if (iLayer < mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
-      mCellsLookupTable[iLayer].reserve(
-        std::max(mUnsortedClusters[iLayer + 1].size(), mUnsortedClusters[iLayer + 2].size()) +
-          std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
-                     mUnsortedClusters[iLayer + 1].size()) * mUnsortedClusters[iLayer + 2].size()));
+      // mCellsLookupTable[iLayer].reserve(
+      //   std::max(mUnsortedClusters[iLayer + 1].size(), mUnsortedClusters[iLayer + 2].size()) +
+      //     std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
+      //                mUnsortedClusters[iLayer + 1].size()) * mUnsortedClusters[iLayer + 2].size()));
       mCellsNeighbours[iLayer].clear();
     }
   }
@@ -274,13 +275,13 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
       std::ceil((memParam.TrackletsMemoryCoefficients[iLayer] * mUnsortedClusters[iLayer].size()) *
                 mUnsortedClusters[iLayer + 1].size());
 
-    if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
-      mTracklets[iLayer].reserve(trackletsMemorySize);
-    }
+    // if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
+    //   mTracklets[iLayer].reserve(trackletsMemorySize);
+    // }
 
     if (iLayer < mCells.size()) {
       mTrackletsLookupTable[iLayer].clear();
-      mTrackletsLookupTable[iLayer].reserve(mUnsortedClusters[iLayer + 1].size());
+      // mTrackletsLookupTable[iLayer].reserve(mUnsortedClusters[iLayer + 1].size());
     }
   }
 }

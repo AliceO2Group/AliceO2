@@ -117,7 +117,6 @@ void Tracker::findCellsNeighbours(int& iteration)
 
         Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextLayerCell]};
         if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) {
-          std::cout << "Problem with the Cell LUT" << std::endl;
           break;
         }
 

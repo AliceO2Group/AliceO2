@@ -153,14 +153,17 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
     if (!recTree->GetEvent(frame))
       continue;
     int loadedEventTracks = frame;
+    cout << "Number of tracks in frame " << frame << ": " << recArr->size() << std::endl; 
     for (unsigned int i = 0; i < recArr->size(); i++) { // Find the last MC event within this reconstructed entry
       auto lab = (*trkLabArr)[i];
       if (!lab.isValid()) {
         const TrackITS& recTrack = (*recArr)[i];
         fak->Fill(recTrack.getPt());
       }
-      if (!lab.isValid() || lab.getSourceID() != 0 || lab.getEventID() < 0 || lab.getEventID() >= nev)
+      if (!lab.isValid() || lab.getSourceID() != 0 || lab.getEventID() < 0 || lab.getEventID() >= nev) {
+        cout << "Ops" << std::endl;
         continue;
+      }
       trackFrames[lab.getEventID()].update(frame, i);
     }
   }

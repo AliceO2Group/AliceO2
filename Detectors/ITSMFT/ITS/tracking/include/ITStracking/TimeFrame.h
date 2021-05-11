@@ -154,12 +154,12 @@ inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int tf) const
 { 
   const int start = tf > 0 ? tf - 1 : 0;
   const int stop = tf >= mNrof - 1 ? mNrof : tf + 2;
-  return {&mPrimaryVertices[start], mROframesPV[stop] - mROframesPV[start]};
+  return {&mPrimaryVertices[start], static_cast<gsl::span<const float3>::size_type>(mROframesPV[stop] - mROframesPV[start])};
 }
 
 inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int romin, int romax) const 
 {
-  return {&mPrimaryVertices[romin], mROframesPV[romax + 1] - mROframesPV[romin]};
+  return {&mPrimaryVertices[romin], static_cast<gsl::span<const float3>::size_type>(mROframesPV[romax + 1] - mROframesPV[romin])};
 }
 
 inline int TimeFrame::getPrimaryVerticesNum(int rofID) const
@@ -183,12 +183,7 @@ inline gsl::span<Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId)
     return gsl::span<Cluster>();
   }
   int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
-#ifdef MS_GSL_V3
-  gsl::span<Cluster>::size_type extent{mROframesClusters[layerId][rofId] - startIdx};
-#else
-  gsl::span<Cluster>::index_type extent{mROframesClusters[layerId][rofId] - startIdx};
-#endif
-  return {&mClusters[layerId][startIdx], extent};
+  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId] - startIdx)};
 }
 
 inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId) const
@@ -197,12 +192,7 @@ inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int lay
     return gsl::span<const Cluster>();
   }
   int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
-#ifdef MS_GSL_V3
-  gsl::span<const Cluster>::size_type extent{mROframesClusters[layerId][rofId] - startIdx};
-#else
-  gsl::span<const Cluster>::index_type extent{mROframesClusters[layerId][rofId] - startIdx};
-#endif
-  return {&mClusters[layerId][startIdx], extent};
+  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId] - startIdx)};
 }
 
 inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId, int layerId) const
@@ -211,12 +201,7 @@ inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId,
     return gsl::span<const Cluster>();
   }
   int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
-#ifdef MS_GSL_V3
-  gsl::span<const Cluster>::size_type extent{mROframesClusters[layerId][rofId] - startIdx};
-#else
-  gsl::span<const Cluster>::index_type extent{mROframesClusters[layerId][rofId] - startIdx};
-#endif
-  return {&mUnsortedClusters[layerId][startIdx], extent};
+  return {&mUnsortedClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId] - startIdx)};
 }
 
 inline const std::vector<TrackingFrameInfo>& TimeFrame::getTrackingFrameInfoOnLayer(int layerId) const

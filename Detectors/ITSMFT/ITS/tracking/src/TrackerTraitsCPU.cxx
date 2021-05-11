@@ -47,7 +47,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
       const int currentLayerClustersNum{static_cast<int>(layer0.size())};
 
       for (int iCluster{0}; iCluster < currentLayerClustersNum; ++iCluster) {
-        const Cluster& currentCluster{layer0.at(iCluster)};
+        const Cluster& currentCluster{layer0[iCluster]};
 
         if (tf->isClusterUsed(iLayer, currentCluster.clusterId)) {
           continue;
@@ -86,7 +86,10 @@ void TrackerTraitsCPU::computeLayerTracklets()
               const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
               if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
                   maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
-                std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << std::endl;
+                std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << mTrkParams.TrackletMaxDeltaZ[iLayer] << "\t" << mTrkParams.TrackletMaxDeltaPhi << std::endl;
+                std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.z << "\t" << currentCluster.radius << std::endl;
+                std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" <<  currentCluster.zCoordinate << std::endl;
+                std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << "\t" << selectedBinsRect.z << "\t" << selectedBinsRect.x << std::endl;
                 exit(1);
               }
               const int firstRowClusterIndex = tf->getIndexTables(rof1)[iLayer][firstBinIndex];
@@ -96,7 +99,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
                 if (iNextCluster >= (int)tf->getClusters()[iLayer + 1].size()) {
                   break;
                 }
-                const Cluster& nextCluster{layer1.at(iNextCluster)};
+                const Cluster& nextCluster{layer1[iNextCluster]};
 
                 if (tf->isClusterUsed(iLayer + 1, nextCluster.clusterId)) {
                   continue;
@@ -142,7 +145,7 @@ void TrackerTraitsCPU::computeLayerCells()
 
     if (tf->getTracklets()[iLayer + 1].empty() ||
         tf->getTracklets()[iLayer].empty()) {
-      return;
+      continue;
     }
 
     const int currentLayerTrackletsNum{static_cast<int>(tf->getTracklets()[iLayer].size())};
@@ -172,7 +175,7 @@ void TrackerTraitsCPU::computeLayerCells()
       for (int iNextTracklet{nextLayerFirstTrackletIndex}; iNextTracklet < nextLayerLastTrackletIndex; ++iNextTracklet) {
         
         if (tf->getTracklets()[iLayer + 1][iNextTracklet].firstClusterIndex != nextLayerClusterIndex) {
-          std::cout << "The Tracklet LUT " << iLayer << " is broken" << std::endl;
+          break;
         }
         const Tracklet& nextTracklet{tf->getTracklets()[iLayer + 1][iNextTracklet]};
         const float deltaTanLambda{std::abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
