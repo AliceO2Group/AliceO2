@@ -75,6 +75,7 @@ defaults:
   shm_segment_size: 10000000000
   shm_throw_bad_alloc: false
   session_id: default
+  resources_monitoring: 15
 roles:
   - name: "A"
     connect:
@@ -161,6 +162,8 @@ command:
     - "'{{ shm_segment_size }}'"
     - "--shm-throw-bad-alloc"
     - "'{{ shm_throw_bad_alloc }}'"
+    - "--resources-monitoring"
+    - "'{{ resources_monitoring }}'"
     - "--id"
     - "'A'"
     - "--shm-monitor"
@@ -221,6 +224,8 @@ command:
     - "'{{ shm_segment_size }}'"
     - "--shm-throw-bad-alloc"
     - "'{{ shm_throw_bad_alloc }}'"
+    - "--resources-monitoring"
+    - "'{{ resources_monitoring }}'"
     - "--id"
     - "'B'"
     - "--shm-monitor"
@@ -281,6 +286,8 @@ command:
     - "'{{ shm_segment_size }}'"
     - "--shm-throw-bad-alloc"
     - "'{{ shm_throw_bad_alloc }}'"
+    - "--resources-monitoring"
+    - "'{{ resources_monitoring }}'"
     - "--id"
     - "'C'"
     - "--shm-monitor"
@@ -342,6 +349,8 @@ command:
     - "'{{ shm_segment_size }}'"
     - "--shm-throw-bad-alloc"
     - "'{{ shm_throw_bad_alloc }}'"
+    - "--resources-monitoring"
+    - "'{{ resources_monitoring }}'"
     - "--id"
     - "'D'"
     - "--shm-monitor"
