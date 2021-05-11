@@ -113,7 +113,7 @@ class ExpTimes
   float GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
 
   /// Gets the number of sigmas with respect the expected time
-  float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tofSignal() - col.collisionTime() * 1000.f - GetExpectedSignal(col, trk)) / GetExpectedSigma(response, col, trk); }
+  float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return trk.tofSignal() > 0.f ? (trk.tofSignal() - col.collisionTime() * 1000.f - GetExpectedSignal(col, trk)) / GetExpectedSigma(response, col, trk) : -999.f; }
 };
 
 //_________________________________________________________________________

@@ -143,10 +143,10 @@ struct pidTOFTaskQA {
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksExtra,
-                         aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                         aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
-                         aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
-                         aod::McTrackLabels, aod::pidRespTOFbeta> const& tracks,
+                         aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
+                         aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFFullDe,
+                         aod::pidTOFFullTr, aod::pidTOFFullHe, aod::pidTOFFullAl,
+                         aod::McTrackLabels, aod::pidTOFbeta> const& tracks,
                aod::McParticles& mcParticles)
   {
     if (collision.numContrib() < nMinNumberOfContributors) {

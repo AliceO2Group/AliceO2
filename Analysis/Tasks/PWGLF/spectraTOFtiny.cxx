@@ -63,9 +63,9 @@ struct tofSpectraTiny {
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
   Filter trackFilterTOF = (aod::track::tofSignal > 0.f); // Skip tracks without TOF
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
-                                                  aod::pidRespTOFTEl, aod::pidRespTOFTMu, aod::pidRespTOFTPi,
-                                                  aod::pidRespTOFTKa, aod::pidRespTOFTPr, aod::pidRespTOFTDe,
-                                                  aod::pidRespTOFTTr, aod::pidRespTOFTHe, aod::pidRespTOFTAl,
+                                                  aod::pidTOFEl, aod::pidTOFMu, aod::pidTOFPi,
+                                                  aod::pidTOFKa, aod::pidTOFPr, aod::pidTOFDe,
+                                                  aod::pidTOFTr, aod::pidTOFHe, aod::pidTOFAl,
                                                   aod::TrackSelection>>;
 
   void process(TrackCandidates::iterator const& track)

@@ -62,7 +62,7 @@ struct tpcSpectraTinyPiKaPr {
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
-                                                  aod::pidRespTPCTPi, aod::pidRespTPCTKa, aod::pidRespTPCTPr,
+                                                  aod::pidTPCPi, aod::pidTPCKa, aod::pidTPCPr,
                                                   aod::TrackSelection>>;
 
   void process(TrackCandidates::iterator const& track)

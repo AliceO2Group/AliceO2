@@ -46,10 +46,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection,
-                                 aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                 aod::pidRespTPCKa, aod::pidRespTPCPr,
-                                 aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                                 aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFbeta>;
+                                 aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                 aod::pidTPCFullKa, aod::pidTPCFullPr,
+                                 aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
+                                 aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta>;
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>;
 using MyEventsNoCent = soa::Join<aod::Collisions, aod::EvSels>;
 using MyMuons = aod::Muons;
