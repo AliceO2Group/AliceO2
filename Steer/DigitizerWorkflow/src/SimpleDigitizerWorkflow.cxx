@@ -35,6 +35,12 @@
 #include "ITSMFTDigitizerSpec.h"
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 
+#ifdef ENABLE_UPGRADES
+// for ITS3
+#include "ITS3DigitizerSpec.h"
+#include "ITS3Workflow/DigitWriterSpec.h"
+#endif
+
 // for TOF
 #include "TOFDigitizerSpec.h"
 #include "TOFWorkflowUtils/TOFDigitWriterSpec.h"
@@ -65,9 +71,9 @@
 
 // for TRD
 #include "TRDWorkflow/TRDDigitizerSpec.h"
-#include "TRDWorkflow/TRDDigitWriterSpec.h"
+#include "TRDWorkflowIO/TRDDigitWriterSpec.h"
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
-#include "TRDWorkflow/TRDTrackletWriterSpec.h"
+#include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 
 //for MUON MCH
 #include "MCHDigitizerSpec.h"
@@ -169,6 +175,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to disable MC truth
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable  mc-truth"}});
+
+  // option to disable INI file writing
+  workflowOptions.push_back(ConfigParamSpec{"disable-write-ini", o2::framework::VariantType::Bool, false, {"disable  INI config write"}});
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
@@ -371,16 +380,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // which sim productions to overlay and digitize
   auto simPrefixes = splitString(configcontext.options().get<std::string>("sims"), ',');
-
   // First, read the GRP to detect which components need instantiations
-  auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
   std::shared_ptr<o2::parameters::GRPObject const> grp(nullptr);
   if (!helpasked) {
-    grp = readGRP(grpfile.c_str());
+    grp = readGRP(simPrefixes[0]);
     if (!grp) {
       return WorkflowSpec{};
     }
   }
+  auto grpfile = o2::base::NameConf::getGRPFileName(simPrefixes[0]);
 
   // update the digitization configuration with the right geometry file
   // we take the geometry from the first simPrefix (could actually check if they are
@@ -393,8 +401,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ConfigurableParam::setValue("DigiParams", "mctruth", mctruth);
 
   // write the configuration used for the digitizer workflow
+  // (In the case, in which we call multiple processes to do digitization,
+  //  only one of them should write this file ... but take the complete configKeyValue line)
   if (ismaster) {
-    o2::conf::ConfigurableParam::writeINI(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE));
+    if (!configcontext.options().get<bool>("disable-write-ini")) {
+      o2::conf::ConfigurableParam::writeINI(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE));
+    }
   }
 
   // onlyDet takes precedence on skipDet
@@ -472,6 +484,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // connect ITS digit writer
     specs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
   }
+
+#ifdef ENABLE_UPGRADES
+  // the ITS3 part
+  if (isEnabled(o2::detectors::DetID::IT3)) {
+    detList.emplace_back(o2::detectors::DetID::IT3);
+    // connect the ITS digitization
+    specs.emplace_back(o2::its3::getITS3DigitizerSpec(fanoutsize++, mctruth));
+    // // connect ITS digit writer
+    specs.emplace_back(o2::its3::getITS3DigitWriterSpec(mctruth));
+  }
+#endif
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {

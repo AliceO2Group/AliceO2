@@ -18,11 +18,11 @@
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "TStopwatch.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "Steer/MCKinematicsReader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 
 #include <string>
 #include <vector>
@@ -136,7 +136,7 @@ class AODProducerWorkflowDPL : public Task
   int mFillTracksITS{1};
   int mFillTracksTPC{0};
   int mFillTracksITSTPC{1};
-  int mTFNumber{-1};
+  int64_t mTFNumber{-1};
   int mTruncate{1};
   int mIgnoreWriter{0};
   int mRecoOnly{0};
@@ -179,7 +179,7 @@ class AODProducerWorkflowDPL : public Task
   uint64_t maxGlBC = 0;
   uint64_t minGlBC = INT64_MAX;
 
-  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::vertexing::PVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
+  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::PrimaryVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
   uint64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
 
   template <typename TTracks, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>

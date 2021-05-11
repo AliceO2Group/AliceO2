@@ -17,7 +17,6 @@
 #include "FT0Workflow/DigitReaderSpec.h"
 #include "FT0Workflow/ReconstructionSpec.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
-#include "GlobalTrackingWorkflow/MatchTPCITSWorkflow.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflow/TPCITSMatchingSpec.h"
@@ -25,8 +24,8 @@
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/PublisherSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/PublisherSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 
 namespace o2::aodproducer
 {

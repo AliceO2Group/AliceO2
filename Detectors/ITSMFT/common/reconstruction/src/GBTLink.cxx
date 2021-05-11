@@ -32,6 +32,7 @@ using RDH = o2::header::RAWDataHeader;
 /// create link with given ids
 GBTLink::GBTLink(uint16_t _cru, uint16_t _fee, uint8_t _ep, uint8_t _idInCru, uint16_t _chan) : idInCRU(_idInCru), cruID(_cru), feeID(_fee), endPointID(_ep), channelID(_chan)
 {
+  chipStat.id = _fee;
 }
 
 ///_________________________________________________________________
@@ -40,8 +41,10 @@ std::string GBTLink::describe() const
 {
   std::stringstream ss;
   ss << "Link cruID=0x" << std::hex << std::setw(4) << std::setfill('0') << cruID << std::dec
-     << "/lID=" << int(idInCRU) << "/feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << feeID << std::dec
-     << " lanes: " << std::bitset<28>(lanes).to_string();
+     << "/lID=" << int(idInCRU) << "/feeID=0x" << std::hex << std::setw(4) << std::setfill('0') << feeID << std::dec;
+  if (lanes) {
+    ss << " lanes: " << std::bitset<28>(lanes).to_string();
+  }
   return ss.str();
 }
 
@@ -137,7 +140,7 @@ GBTLink::ErrorType GBTLink::checkErrorsRDH(const RDH& rdh)
   ErrorType err = NoError;
   if (!RDHUtils::checkRDH(rdh, true)) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrNoRDHAtStart]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrNoRDHAtStart] == 1) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrNoRDHAtStart];
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrNoRDHAtStart);
@@ -154,7 +157,7 @@ GBTLink::ErrorType GBTLink::checkErrorsRDH(const RDH& rdh)
   }
   if ((RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrPacketCounterJump] == 1) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrPacketCounterJump]
                  << " : jump from " << int(packetCounter) << " to " << int(RDHUtils::getPacketCounter(rdh));
     }
@@ -172,7 +175,7 @@ GBTLink::ErrorType GBTLink::checkErrorsRDHStop(const RDH& rdh)
   if (format == NewFormat && lastRDH && RDHUtils::getHeartBeatOrbit(*lastRDH) != RDHUtils::getHeartBeatOrbit(rdh) // new HB starts
       && !RDHUtils::getStop(*lastRDH)) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrPageNotStopped]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrPageNotStopped] == 1) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrPageNotStopped];
       RDHUtils::printRDH(*lastRDH);
       RDHUtils::printRDH(rdh);
@@ -189,7 +192,7 @@ GBTLink::ErrorType GBTLink::checkErrorsRDHStopPageEmpty(const RDH& rdh)
 {
   if (format == NewFormat && RDHUtils::getStop(rdh) && RDHUtils::getMemorySize(rdh) != sizeof(RDH) + sizeof(GBTDiagnostic)) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrStopPageNotEmpty]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrStopPageNotEmpty] == 1) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrStopPageNotEmpty];
       RDHUtils::printRDH(rdh);
     }
@@ -204,9 +207,9 @@ GBTLink::ErrorType GBTLink::checkErrorsRDHStopPageEmpty(const RDH& rdh)
 GBTLink::ErrorType GBTLink::checkErrorsTriggerWord(const GBTTrigger* gbtTrg)
 {
   if (!gbtTrg->isTriggerWord()) { // check trigger word
-    gbtTrg->printX();
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrigger]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrigger] == 1) {
+      gbtTrg->printX();
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTTrigger];
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingGBTTrigger);
@@ -229,8 +232,8 @@ GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeader* gbtH)
 {
   if (!gbtH->isDataHeader()) { // check header word
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
-    gbtH->printX();
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader] == 1) {
+      gbtH->printX();
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTHeader];
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingGBTHeader);
@@ -245,8 +248,8 @@ GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeaderL* gbtH)
 {
   if (!gbtH->isDataHeader()) { // check header word
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
-    gbtH->printX();
     if (verbosity >= VerboseErrors) {
+      gbtH->printX();
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTHeader];
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingGBTHeader);
@@ -256,7 +259,7 @@ GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeaderL* gbtH)
   // RSTODO: this makes sense only for old format, where every trigger has its RDH
   if (gbtH->packetIdx != cnt) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt] == 1) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrRDHvsGBTHPageCnt] << ": diff in GBT header "
                  << gbtH->packetIdx << " and RDH page " << cnt << " counters";
     }
@@ -268,7 +271,7 @@ GBTLink::ErrorType GBTLink::checkErrorsHeaderWord(const GBTDataHeaderL* gbtH)
     //if (cnt) { // makes sens for old format only
     if (gbtH->packetIdx) {
       statistics.errorCounts[GBTLinkDecodingStat::ErrNonZeroPageAfterStop]++;
-      if (verbosity >= VerboseErrors) {
+      if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrNonZeroPageAfterStop] == 1) {
         LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrNonZeroPageAfterStop]
                    << ": Non-0 page counter (" << cnt << ") while all lanes were stopped";
       }
@@ -285,8 +288,8 @@ GBTLink::ErrorType GBTLink::checkErrorsActiveLanes(int cbl)
 {
   if (~cbl & lanesActive) { // are there wrong lanes?
     statistics.errorCounts[GBTLinkDecodingStat::ErrInvalidActiveLanes]++;
-    std::bitset<32> expectL(cbl), gotL(lanesActive);
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrInvalidActiveLanes] == 1) {
+      std::bitset<32> expectL(cbl), gotL(lanesActive);
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrInvalidActiveLanes] << ' '
                  << gotL << " vs " << expectL << " skip page";
     }
@@ -303,7 +306,7 @@ GBTLink::ErrorType GBTLink::checkErrorsGBTData(int cablePos)
   lanesWithData |= 0x1 << cablePos;    // flag that the data was seen on this lane
   if (lanesStop & (0x1 << cablePos)) { // make sure stopped lanes do not transmit the data
     statistics.errorCounts[GBTLinkDecodingStat::ErrDataForStoppedLane]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrDataForStoppedLane] == 1) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrDataForStoppedLane]
                  << cablePos;
     }
@@ -321,14 +324,16 @@ GBTLink::ErrorType GBTLink::checkErrorsGBTDataID(const GBTData* gbtD)
   if (gbtD->isData()) {
     return NoError;
   }
-  if (gbtD->isCableDiagnostic()) {
-    printCableDiagnostic((GBTCableDiagnostic*)gbtD);
-  } else if (gbtD->isStatus()) {
-    printCableStatus((GBTCableStatus*)gbtD);
-  }
-  LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrGBTWordNotRecognized];
-  gbtD->printX(true);
   statistics.errorCounts[GBTLinkDecodingStat::ErrGBTWordNotRecognized]++;
+  if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrGBTWordNotRecognized] == 1) {
+    if (gbtD->isCableDiagnostic()) {
+      printCableDiagnostic((GBTCableDiagnostic*)gbtD);
+    } else if (gbtD->isStatus()) {
+      printCableStatus((GBTCableStatus*)gbtD);
+    }
+    gbtD->printX(true);
+    LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrGBTWordNotRecognized];
+  }
   return Skip;
 }
 
@@ -339,7 +344,7 @@ GBTLink::ErrorType GBTLink::checkErrorsTrailerWord(const GBTDataTrailer* gbtT)
   if (!gbtT->isDataTrailer()) {
     gbtT->printX();
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrailer]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrailer] == 1) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTTrailer];
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingGBTTrailer);
@@ -356,7 +361,7 @@ GBTLink::ErrorType GBTLink::checkErrorsPacketDoneMissing(const GBTDataTrailer* g
 {
   if (!gbtT->packetDone && notEnd) { // Done may be missing only in case of carry-over to new CRU page
     statistics.errorCounts[GBTLinkDecodingStat::ErrPacketDoneMissing]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrPacketDoneMissing] == 1) {
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrPacketDoneMissing];
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrPacketDoneMissing);
@@ -374,8 +379,8 @@ GBTLink::ErrorType GBTLink::checkErrorsLanesStops()
   if ((lanesActive & ~lanesStop)) {
     if (RDHUtils::getTriggerType(*lastRDH) != o2::trigger::SOT) { // only SOT trigger allows unstopped lanes?
       statistics.errorCounts[GBTLinkDecodingStat::ErrUnstoppedLanes]++;
-      std::bitset<32> active(lanesActive), stopped(lanesStop);
-      if (verbosity >= VerboseErrors) {
+      if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrUnstoppedLanes] == 1) {
+        std::bitset<32> active(lanesActive), stopped(lanesStop);
         LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrUnstoppedLanes]
                    << " | active: " << active << " stopped: " << stopped;
       }
@@ -385,9 +390,9 @@ GBTLink::ErrorType GBTLink::checkErrorsLanesStops()
   }
   // make sure all active lanes (except those in time-out) have sent some data
   if ((~lanesWithData & lanesActive) != lanesTimeOut) {
-    std::bitset<32> withData(lanesWithData), active(lanesActive), timeOut(lanesTimeOut);
     statistics.errorCounts[GBTLinkDecodingStat::ErrNoDataForActiveLane]++;
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrNoDataForActiveLane] == 1) {
+      std::bitset<32> withData(lanesWithData), active(lanesActive), timeOut(lanesTimeOut);
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrNoDataForActiveLane]
                  << " | with data: " << withData << " active: " << active << " timeOut: " << timeOut;
     }
@@ -403,8 +408,8 @@ GBTLink::ErrorType GBTLink::checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD)
 {
   if (RDHUtils::getMemorySize(lastRDH) != sizeof(RDH) + sizeof(GBTDiagnostic) || !gbtD->isDiagnosticWord()) { //
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingDiagnosticWord]++;
-    gbtD->printX();
-    if (verbosity >= VerboseErrors) {
+    if (verbosity >= VerboseErrors || statistics.errorCounts[GBTLinkDecodingStat::ErrMissingDiagnosticWord] == 1) {
+      gbtD->printX();
       LOG(ERROR) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingDiagnosticWord];
     }
     errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingDiagnosticWord);

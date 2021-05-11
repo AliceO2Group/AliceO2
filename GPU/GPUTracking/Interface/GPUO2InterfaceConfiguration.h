@@ -88,7 +88,7 @@ struct GPUO2InterfaceConfiguration {
   GPUSettingsQA configQA;
   GPUInterfaceSettings configInterface;
   GPURecoStepConfiguration configWorkflow;
-  GPUCalibObjects configCalib;
+  GPUCalibObjectsConst configCalib;
 
   GPUSettingsO2 ReadConfigurableParam();
 
@@ -97,38 +97,6 @@ struct GPUO2InterfaceConfiguration {
   GPUSettingsO2 ReadConfigurableParam_internal();
 };
 
-// Structure with pointers to actual data for input and output
-// Which ptr is used for input and which for output is defined in GPUO2InterfaceConfiguration::configWorkflow
-// Inputs and outputs are mutually exclusive.
-// Inputs which are nullptr are considered empty, and will not throw an error.
-// Outputs, which point to std::[container] / MCTruthContainer, will be filled and no output
-// is written if the ptr is a nullptr.
-// Outputs, which point to other structures are set by GPUCATracking to the location of the output. The previous
-// value of the pointer is overridden. GPUCATracking will try to place the output in the "void* outputBuffer"
-// location if it is not a nullptr.
-struct GPUO2InterfaceIOPtrs {
-  // Input: TPC clusters in cluster native format, or digits, or list of ZS pages -  const as it can only be input
-  const o2::tpc::ClusterNativeAccess* clusters = nullptr;
-  const std::array<gsl::span<const o2::tpc::Digit>, o2::tpc::constants::MAXSECTOR>* o2Digits = nullptr;
-  const std::array<const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>*, o2::tpc::constants::MAXSECTOR>* o2DigitsMC = nullptr;
-  const o2::gpu::GPUTrackingInOutZS* tpcZS = nullptr;
-
-  // Input / Output for Merged TPC tracks, two ptrs, for the tracks themselves, and for the MC labels.
-#ifdef MS_GSL_V3
-  gsl::span<const o2::tpc::TrackTPC> outputTracks = {nullptr, (gsl::span<const o2::tpc::TrackTPC>::size_type)0};
-  gsl::span<const uint32_t> outputClusRefs = {nullptr, (gsl::span<const uint32_t>::size_type)0};
-  gsl::span<const o2::MCCompLabel> outputTracksMCTruth = {nullptr, (gsl::span<const o2::MCCompLabel>::size_type)0};
-#else
-  gsl::span<const o2::tpc::TrackTPC> outputTracks = {nullptr, (gsl::span<const o2::tpc::TrackTPC>::index_type)0};
-  gsl::span<const uint32_t> outputClusRefs = {nullptr, (gsl::span<const uint32_t>::index_type)0};
-  gsl::span<const o2::MCCompLabel> outputTracksMCTruth = {nullptr, (gsl::span<const o2::MCCompLabel>::index_type)0};
-#endif
-  // Output for entropy-reduced clusters of TPC compression
-  const o2::tpc::CompressedClustersFlat* compressedClusters = nullptr;
-
-  // Ptr to parameters for current TF
-  const GPUSettingsTF* settingsTF = nullptr;
-};
 } // namespace gpu
 } // namespace o2
 

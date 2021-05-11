@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# In order to use o2sim_grp.root, o2sim_geometry.root or matbud.root from arbitrary directory one can provide to the workflow
+# --configKeyValues "NameConf.mDirGRP=<dirname1>;NameConf.mDirGeom=<dirname2>;NameConf.mDirMatLUT=<dirname3>;"
+# All workflows currently running in the FST parce the configKeyValues option, so the NameConf.mDirXXX keys can be added via global env.var.
+
 MYDIR="$(dirname $(readlink -f $0))"
 source $MYDIR/setenv.sh
 
@@ -19,9 +23,12 @@ fi
 if [ $NORATELOG == 1 ]; then
   ARGS_ALL+=" --fairmq-rate-logging 0"
 fi
+if [ $NUMAGPUIDS != 0 ]; then
+  ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
+fi
 
 # Set some individual workflow arguments depending on configuration
-CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD
+CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP
 CTF_DIR=
 CTF_DICT_DIR=
 GPU_INPUT=zsraw
@@ -107,17 +114,17 @@ if [ $CTFINPUT == 0 ]; then
 fi
 
 # Common workflows
-WORKFLOW+="o2-its-reco-workflow $ARGS_ALL --trackerCA $DISABLE_MC --clusters-from-upstream --disable-root-output $ITS_CONFIG --configKeyValues \"HBFUtils.nHBFPerTF=${NHBPERTF};$ITS_CONFIG_KEY\" | "
-WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVERITY_TPC} --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:$NGPUS $GPU_CONFIG --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$GPU_EXTRA_CONFIG\" | "
-WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS --configKeyValues \"HBFUtils.nHBFPerTF=${NHBPERTF};\" | "
-WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --configKeyValues \"HBFUtils.nHBFPerTF=${NHBPERTF};\" | "
+WORKFLOW+="o2-its-reco-workflow $ARGS_ALL --trackerCA $DISABLE_MC --clusters-from-upstream --disable-root-output $ITS_CONFIG --configKeyValues \"$ITS_CONFIG_KEY\" | "
+WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVERITY_TPC} --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:$NGPUS $GPU_CONFIG --configKeyValues \"GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$GPU_EXTRA_CONFIG\" | "
+WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS | "
+WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
 WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC | "
 
 # Workflows disabled in sync mode
 if [ $SYNCMODE == 0 ]; then
-  WORKFLOW+="o2-tof-matcher-tpc $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --disable-root-input --disable-root-output $DISABLE_MC | "
+  WORKFLOW+="o2-tof-matcher-tpc $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
-  WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output --configKeyValues \"HBFUtils.nHBFPerTF=${NHBPERTF};\" | "
+  WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output | "
   WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
   WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --disable-root-input --disable-root-output | "
   WORKFLOW+="o2-fdd-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output | "
@@ -139,6 +146,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-fdd-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-hmpid-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-tpc-reco-workflow --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline tpc-entropy-encoder:$N_TPCENT $ARGS_ALL | "
 
   WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | "

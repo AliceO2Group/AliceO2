@@ -16,12 +16,18 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/GeometryFlat.h"
 #include "TRDBase/Geometry.h"
+#include "TOFBase/Geo.h"
+#include "ITSBase/GeometryTGeo.h"
 #include "DetectorsBase/Propagator.h"
 #include "GPUO2InterfaceDisplay.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "TPCFastTransform.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
+#include "DataFormatsTRD/RecoInputContainer.h"
+#include "GPUWorkflowHelper/GPUWorkflowHelper.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 using namespace o2::framework;
 using namespace o2::dataformats;
@@ -34,8 +40,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"enable-mc", o2::framework::VariantType::Bool, false, {"enable visualization of MC data"}},
-    {"display-clusters", VariantType::String, "TPC", {"comma-separated list of clusters to display"}},
-    {"display-tracks", VariantType::String, "TPC", {"comma-separated list of tracks to display"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable visualization of MC data"}}, // for compatibility, overrides enable-mc
+    {"display-clusters", VariantType::String, "ITS,TPC,TRD,TOF", {"comma-separated list of clusters to display"}},
+    {"display-tracks", VariantType::String, "TPC,ITS,ITS-TPC,TPC-TRD,ITS-TPC-TRD,TPC-TOF,ITS-TPC-TOF", {"comma-separated list of tracks to display"}},
     {"read-from-files", o2::framework::VariantType::Bool, false, {"comma-separated list of tracks to display"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root input overriding read-from-files"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
@@ -47,9 +54,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 void O2GPUDPLDisplaySpec::init(InitContext& ic)
 {
-  const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+  const auto grp = o2::parameters::GRPObject::loadFrom();
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
+  o2::base::Propagator::initFieldFromGRP();
   mConfig.reset(new GPUO2InterfaceConfiguration);
   mConfig->configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
   mConfig->configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
@@ -64,13 +71,20 @@ void O2GPUDPLDisplaySpec::init(InitContext& ic)
   mTrdGeo.reset(new o2::trd::GeometryFlat(*gm));
   mConfig->configCalib.trdGeometry = mTrdGeo.get();
 
+  mITSDict = std::make_unique<o2::itsmft::TopologyDictionary>();
+  mConfig->configCalib.itsPatternDict = mITSDict.get();
+
+  mConfig->configProcessing.runMC = mUseMC;
+
+  o2::tof::Geo::Init();
+
+  o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G, o2::math_utils::TransformType::L2G, o2::math_utils::TransformType::T2L));
+
   mDisplay.reset(new GPUO2InterfaceDisplay(mConfig.get()));
 }
 
 void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
 {
-  o2::globaltracking::RecoContainer recoData;
-  recoData.collectData(pc, *mDataRequest);
   static bool first = false;
   if (first == false) {
     if (mDisplay->startDisplay()) {
@@ -78,20 +92,10 @@ void O2GPUDPLDisplaySpec::run(ProcessingContext& pc)
     }
   }
 
+  o2::globaltracking::RecoContainer recoData;
+  recoData.collectData(pc, *mDataRequest);
   GPUTrackingInOutPointers ptrs;
-  recoData.addTPCClusters(pc, false);
-  recoData.addTPCTracks(pc, mUseMC);
-  ptrs.clustersNative = &recoData.inputsTPCclusters->clusterIndex;
-  const auto& tpcTracks = recoData.getTPCTracks<o2::tpc::TrackTPC>();
-  const auto& tpcClusRefs = recoData.getTPCTracksClusterRefs();
-  ptrs.outputTracksTPCO2 = tpcTracks.data();
-  ptrs.nOutputTracksTPCO2 = tpcTracks.size();
-  ptrs.outputClusRefsTPCO2 = tpcClusRefs.data();
-  ptrs.nOutputClusRefsTPCO2 = tpcClusRefs.size();
-  if (mUseMC) {
-    const auto& tpcTracksMC = recoData.getTPCTracksMCLabels();
-    ptrs.outputTracksTPCO2MC = tpcTracksMC.data();
-  }
+  auto tmpContainer = GPUWorkflowHelper::fillIOPtr(ptrs, recoData, mUseMC, &(mConfig->configCalib), mClMask, mTrkMask, mTrkMask);
 
   mDisplay->show(&ptrs);
 }
@@ -105,9 +109,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
 
-  bool useMC = cfgc.options().get<bool>("enable-mc");
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+
+  bool useMC = cfgc.options().get<bool>("enable-mc") && !cfgc.options().get<bool>("disable-mc");
   GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-tracks"));
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("display-clusters"));
+  if (!srcTrk.any() && !srcCl.any()) {
+    throw std::runtime_error("No input configured");
+  }
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(srcTrk, useMC);
   dataRequest->requestClusters(srcCl, useMC);

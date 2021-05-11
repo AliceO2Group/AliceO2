@@ -20,6 +20,9 @@
 #include "TRDCalibration/CalibVDrift.h"
 #include "GPUO2Interface.h"
 #include "GPUTRDTracker.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include <memory>
 
 namespace o2
 {
@@ -29,9 +32,10 @@ namespace trd
 class TRDGlobalTracking : public o2::framework::Task
 {
  public:
-  TRDGlobalTracking(bool useMC, bool useTrkltTransf) : mUseMC(useMC), mUseTrackletTransform(useTrkltTransf) {}
+  TRDGlobalTracking(bool useMC, std::shared_ptr<o2::globaltracking::DataRequest> dataRequest) : mUseMC(useMC), mDataRequest(dataRequest) {}
   ~TRDGlobalTracking() override = default;
   void init(o2::framework::InitContext& ic) final;
+  void updateTimeDependentParams();
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
@@ -41,13 +45,15 @@ class TRDGlobalTracking : public o2::framework::Task
   o2::gpu::GPUChainTracking* mChainTracking{nullptr}; ///< TRD tracker is run in the tracking chain
   std::unique_ptr<GeometryFlat> mFlatGeo{nullptr};    ///< flat TRD geometry
   bool mUseMC{false};                                 ///< MC flag
-  bool mUseTrackletTransform{false};                  ///< if true, output from TrackletTransformer is used instead of uncalibrated Tracklet64 directly
+  float mTPCTBinMUS{.2f};                             ///< width of a TPC time bin in us
+  float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
   CalibVDrift mCalibVDrift{};                         ///< steers the vDrift calibration
+  std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, bool useTrkltTransf);
+framework::DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, o2::dataformats::GlobalTrackID::mask_t src);
 
 } // namespace trd
 } // namespace o2

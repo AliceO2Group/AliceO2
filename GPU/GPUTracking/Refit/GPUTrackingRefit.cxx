@@ -27,6 +27,7 @@
 #include "GPUCommonArray.h"
 #include "GPUParam.h"
 #include "GPUTrackParamConvert.h"
+#include "GPUCommonTypeTraits.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::track;
@@ -207,12 +208,11 @@ GPUd() static const float* getPar(const TrackParCov& trk) { return trk.getParams
 template <class T, class S>
 GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
 {
-#ifndef __OPENCL__
   CADEBUG(int ii; printf("\nRefitting track\n"));
   typename refitTrackTypes<S>::propagator prop;
   S trk;
   float TrackParCovChi2 = 0.f;
-  convertTrack(trk, trkX, prop, &TrackParCovChi2);
+  convertTrack<S, T, typename refitTrackTypes<S>::propagator>(trk, trkX, prop, &TrackParCovChi2);
   int begin = 0, count;
   float tOffset;
   if constexpr (std::is_same_v<T, GPUTPCGMMergedTrack>) {
@@ -379,11 +379,8 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
     static_assert("Invalid template");
   }
 
-  convertTrack(trkX, trk, prop, &TrackParCovChi2);
+  convertTrack<T, S, typename refitTrackTypes<S>::propagator>(trkX, trk, prop, &TrackParCovChi2);
   return nFitted;
-#else
-  return 0; // TODO: Fixme, implement std::isSame for opencl
-#endif
 }
 
 template GPUd() int GPUTrackingRefit::RefitTrack<GPUTPCGMMergedTrack, TrackParCov>(GPUTPCGMMergedTrack& trk, bool outward, bool resetCov);

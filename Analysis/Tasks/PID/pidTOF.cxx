@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   pidTOF_split.cxx
+/// \file   pidTOF.cxx
 /// \author Nicolo' Jacazio
 /// \brief  Task to produce PID tables for TOF split for each particle.
 ///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
@@ -18,6 +18,7 @@
 // O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
@@ -38,7 +39,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-struct pidTOFTaskSplit {
+struct tofPid {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
   using Coll = aod::Collisions;
   // Tables to produce
@@ -57,20 +58,50 @@ struct pidTOFTaskSplit {
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+  Configurable<std::string> ccdbPath{"ccdbPath", "Analysis/PID/TOF", "Path of the TOF parametrization on the CCDB"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
   // Configuration flags to include and exclude particle hypotheses
-  Configurable<int> pidEl{"pid-el", 0, {"Produce PID information for the Electron mass hypothesis"}};
-  Configurable<int> pidMu{"pid-mu", 0, {"Produce PID information for the Muon mass hypothesis"}};
-  Configurable<int> pidPi{"pid-pi", 0, {"Produce PID information for the Pion mass hypothesis"}};
-  Configurable<int> pidKa{"pid-ka", 0, {"Produce PID information for the Kaon mass hypothesis"}};
-  Configurable<int> pidPr{"pid-pr", 0, {"Produce PID information for the Proton mass hypothesis"}};
-  Configurable<int> pidDe{"pid-de", 0, {"Produce PID information for the Deuterons mass hypothesis"}};
-  Configurable<int> pidTr{"pid-tr", 0, {"Produce PID information for the Triton mass hypothesis"}};
-  Configurable<int> pidHe{"pid-he", 0, {"Produce PID information for the Helium3 mass hypothesis"}};
-  Configurable<int> pidAl{"pid-al", 0, {"Produce PID information for the Alpha mass hypothesis"}};
+  Configurable<int> pidEl{"pid-el", -1, {"Produce PID information for the Electron mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidMu{"pid-mu", -1, {"Produce PID information for the Muon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidPi{"pid-pi", -1, {"Produce PID information for the Pion mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidKa{"pid-ka", -1, {"Produce PID information for the Kaon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidPr{"pid-pr", -1, {"Produce PID information for the Proton mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidDe{"pid-de", -1, {"Produce PID information for the Deuterons mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidTr{"pid-tr", -1, {"Produce PID information for the Triton mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidHe{"pid-he", -1, {"Produce PID information for the Helium3 mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidAl{"pid-al", -1, {"Produce PID information for the Alpha mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
 
-  void init(o2::framework::InitContext&)
+  void init(o2::framework::InitContext& initContext)
   {
+    // Checking the tables are requested in the workflow and enabling them
+    auto& workflows = initContext.services().get<RunningWorkflowInfo const>();
+    for (DeviceSpec device : workflows.devices) {
+      for (auto input : device.inputs) {
+        auto enableFlag = [&input](const std::string particle, Configurable<int>& flag) {
+          const std::string table = "pidRespTOF" + particle;
+          if (input.matcher.binding == table) {
+            if (flag < 0) {
+              flag.value = 1;
+              LOG(INFO) << "Auto-enabling table: " + table;
+            } else if (flag > 0) {
+              LOG(INFO) << "Table enabled: " + table;
+            } else {
+              LOG(INFO) << "Table disabled: " + table;
+            }
+          }
+        };
+        enableFlag("El", pidEl);
+        enableFlag("Mu", pidMu);
+        enableFlag("Pi", pidPi);
+        enableFlag("Ka", pidKa);
+        enableFlag("Pr", pidPr);
+        enableFlag("De", pidDe);
+        enableFlag("Tr", pidTr);
+        enableFlag("He", pidHe);
+        enableFlag("Al", pidAl);
+      }
+    }
+    // Getting the parametrization parameters
     ccdb->setURL(url.value);
     ccdb->setTimestamp(timestamp.value);
     ccdb->setCaching(true);
@@ -82,10 +113,12 @@ struct pidTOFTaskSplit {
     response.SetParameters(DetectorResponse::kSigma, p);
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
+      LOG(INFO) << "Loading exp. sigma parametrization from file" << fname << ", using param: " << sigmaname.value;
       response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
-      const std::string path = "Analysis/PID/TOF";
-      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      std::string path = ccdbPath.value + "/" + sigmaname.value;
+      LOG(INFO) << "Loading exp. sigma parametrization from CCDB, using path: " << path << " for timestamp " << timestamp.value;
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path, timestamp.value));
     }
   }
 
@@ -126,7 +159,7 @@ struct pidTOFTaskSplit {
   }
 };
 
-struct pidTOFTaskQA {
+struct tofPidQa {
 
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
@@ -265,9 +298,9 @@ struct pidTOFTaskQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTaskSplit>(cfgc, TaskName{"pidTOF-split-task"})};
+  auto workflow = WorkflowSpec{adaptAnalysisTask<tofPid>(cfgc)};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA>(cfgc, TaskName{"pidTOFQA-task"}));
+    workflow.push_back(adaptAnalysisTask<tofPidQa>(cfgc));
   }
   return workflow;
 }

@@ -8,12 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "GlobalTrackingWorkflow/PrimaryVertexWriterSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflow/VertexTrackMatcherSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "FT0Workflow/RecPointReaderSpec.h"
@@ -65,47 +66,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto validateWithFT0 = configcontext.options().get<bool>("validate-with-ft0");
 
   GID::mask_t srcPV = alowedSourcesPV & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t srcVT = alowedSourcesVT & GID::getSourcesMask(configcontext.options().get<std::string>("vetex-track-matching-sources"));
   GID::mask_t srcComb = srcPV | srcVT;
-
-  // decide what to read, MC is needed (if requested) only for P.Vertexing
-  if (!disableRootInp) {
-
-    if (srcComb[GID::ITS]) {
-      specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC && srcPV[GID::ITS]));
-    }
-
-    if (srcComb[GID::TPC]) {
-      specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC && srcPV[GID::TPC]));
-    }
-
-    if (srcComb[GID::ITSTPC] || srcComb[GID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
-      specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC && (srcPV[GID::ITSTPC] || srcPV[GID::ITSTPCTOF])));
-    }
-
-    if (srcComb[GID::ITSTPCTOF]) {
-      specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(useMC && srcPV[GID::ITSTPCTOF], false, false)); // MC, MatchInfo_glo, no TOF_TPCtracks
-      specs.emplace_back(o2::tof::getClusterReaderSpec(false));                                           // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
-    }
-
-    if (srcComb[GID::TPCTOF]) {
-      specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(srcPV[GID::TPCTOF], true, true)); // mc, MatchInfo_TPC, TOF_TPCtracks
-    }
-
-    if (validateWithFT0) {
-      specs.emplace_back(o2::ft0::getRecPointReaderSpec(false));
-    }
-  }
+  GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, srcComb) ? GID::getSourceMask(GID::TOF) : dummy;
 
   specs.emplace_back(o2::vertexing::getPrimaryVertexingSpec(srcPV, validateWithFT0, useMC));
   if (!srcVT.none()) {
     specs.emplace_back(o2::vertexing::getVertexTrackMatcherSpec(srcVT));
   }
+
+  // only TOF clusters are needed if TOF is involved, no clusters MC needed
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, srcComb, srcComb, useMC, dummy);
 
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getPrimaryVertexWriterSpec(srcVT.none(), useMC));

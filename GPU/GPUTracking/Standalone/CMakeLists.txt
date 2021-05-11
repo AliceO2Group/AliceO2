@@ -16,7 +16,11 @@ set(CMAKE_INSTALL_BINDIR "${CMAKE_INSTALL_PREFIX}")
 set(CMAKE_INSTALL_LIBDIR "${CMAKE_INSTALL_PREFIX}")
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}")
 
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/dependencies ${CMAKE_MODULE_PATH})
+set(GPU_DIR "${CMAKE_SOURCE_DIR}/../../")
+set(GPUTRACKING_DIR "${GPU_DIR}/GPUTracking")
+set(O2_DIR "${CMAKE_SOURCE_DIR}/../../../")
+
+set(CMAKE_MODULE_PATH ${O2_DIR}/dependencies ${CMAKE_MODULE_PATH})
 
 # Copy and include Config File
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/config.cmake")
@@ -117,59 +121,64 @@ endif()
 find_package(O2GPU)
 
 # Global include directories
-include_directories(${CMAKE_SOURCE_DIR}
-                    ${CMAKE_SOURCE_DIR}/Debug
-                    ${CMAKE_SOURCE_DIR}/Definitions
-                    ${CMAKE_SOURCE_DIR}/DataTypes
-                    ${CMAKE_SOURCE_DIR}/Base
-                    ${CMAKE_SOURCE_DIR}/Base/opencl-common
-                    ${CMAKE_SOURCE_DIR}/Common
-                    ${CMAKE_SOURCE_DIR}/GPUUtils
-                    ${CMAKE_SOURCE_DIR}/dEdx
-                    ${CMAKE_SOURCE_DIR}/TPCConvert
-                    ${CMAKE_SOURCE_DIR}/TPCFastTransformation
-                    ${CMAKE_SOURCE_DIR}/display
-                    ${CMAKE_SOURCE_DIR}/Global
-                    ${CMAKE_SOURCE_DIR}/HLTHeaders
-                    ${CMAKE_SOURCE_DIR}/Merger
-                    ${CMAKE_SOURCE_DIR}/Refit
-                    ${CMAKE_SOURCE_DIR}/qa
-                    ${CMAKE_SOURCE_DIR}/SliceTracker
-                    ${CMAKE_SOURCE_DIR}/DataCompression
-                    ${CMAKE_SOURCE_DIR}/TRDTracking)
+include_directories(${GPU_DIR}/Common
+                    ${GPU_DIR}/Utils
+                    ${GPU_DIR}/TPCFastTransformation
+                    ${GPUTRACKING_DIR}
+                    ${GPUTRACKING_DIR}/Debug
+                    ${GPUTRACKING_DIR}/Definitions
+                    ${GPUTRACKING_DIR}/DataTypes
+                    ${GPUTRACKING_DIR}/Base
+                    ${GPUTRACKING_DIR}/Base/opencl-common
+                    ${GPUTRACKING_DIR}/dEdx
+                    ${GPUTRACKING_DIR}/TPCConvert
+                    ${GPUTRACKING_DIR}/display
+                    ${GPUTRACKING_DIR}/Global
+                    ${GPUTRACKING_DIR}/HLTHeaders
+                    ${GPUTRACKING_DIR}/Merger
+                    ${GPUTRACKING_DIR}/Refit
+                    ${GPUTRACKING_DIR}/qa
+                    ${GPUTRACKING_DIR}/SliceTracker
+                    ${GPUTRACKING_DIR}/DataCompression
+                    ${GPUTRACKING_DIR}/TRDTracking)
 
 if(CONFIG_O2_EXTENSIONS)
-include_directories(${CMAKE_SOURCE_DIR}/TPCClusterFinder
-                    ${CMAKE_SOURCE_DIR}/ITS
-                    ${CMAKE_SOURCE_DIR}/../../../Common/Field/include
-                    ${CMAKE_SOURCE_DIR}/../../../Common/Constants/include
-                    ${CMAKE_SOURCE_DIR}/../../../Common/MathUtils/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/common/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/Common/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/ITSMFT/ITS/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TPC/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Detectors/TRD/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Headers/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/MemoryResources/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/include
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/Reconstruction/src
-                    ${CMAKE_SOURCE_DIR}/../../../DataFormats/simulation/include
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/include
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Base/src
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/include
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/include
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/cuda/src
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/include
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/ITSMFT/ITS/tracking/hip/src
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/Raw/include
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/TPC/base/include
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/include
-                    ${CMAKE_SOURCE_DIR}/../../../Detectors/TRD/base/src)
+include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
+                    ${GPUTRACKING_DIR}/ITS
+                    ${O2_DIR}/Common/Field/include
+                    ${O2_DIR}/Common/Constants/include
+                    ${O2_DIR}/Common/MathUtils/include
+                    ${O2_DIR}/DataFormats/common/include
+                    ${O2_DIR}/DataFormats/Detectors/Common/include
+                    ${O2_DIR}/DataFormats/Detectors/ITSMFT/common/include
+                    ${O2_DIR}/DataFormats/Detectors/ITSMFT/ITS/include
+                    ${O2_DIR}/DataFormats/Detectors/TOF/include
+                    ${O2_DIR}/DataFormats/Detectors/TPC/include
+                    ${O2_DIR}/DataFormats/Detectors/TRD/include
+                    ${O2_DIR}/DataFormats/Headers/include
+                    ${O2_DIR}/DataFormats/MemoryResources/include
+                    ${O2_DIR}/DataFormats/Reconstruction/include
+                    ${O2_DIR}/DataFormats/Reconstruction/src
+                    ${O2_DIR}/DataFormats/simulation/include
+                    ${O2_DIR}/Detectors/Base/include
+                    ${O2_DIR}/Detectors/Base/src
+                    ${O2_DIR}/Detectors/ITSMFT/common/base/include
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/base/include
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/include
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/src
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/hip/include
+                    ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/hip/src
+                    ${O2_DIR}/Detectors/Raw/include
+                    ${O2_DIR}/Detectors/TOF/base/include
+                    ${O2_DIR}/Detectors/TPC/base/include
+                    ${O2_DIR}/Detectors/TRD/base/include
+                    ${O2_DIR}/Detectors/TRD/base/src)
 endif()
 
 # Create main targets
 add_subdirectory(../../ GPU)
-add_library(standalone_support SHARED dummy.cxx)
+add_library(standalone_support SHARED ${GPUTRACKING_DIR}/utils/EmptyFile.cxx)
 
 target_link_libraries(GPUTracking PUBLIC TPCFastTransformation standalone_support dl)
 target_link_libraries(ca PUBLIC GPUTracking)
@@ -180,29 +189,29 @@ target_compile_definitions(standalone_support PUBLIC $<TARGET_PROPERTY:O2::GPUTr
 # Add all sources and dependencies to to support based on Config File
 if(CONFIG_O2_EXTENSIONS)
   target_sources(standalone_support PRIVATE
-               ../../../Common/Field/src/MagFieldFast.cxx
-               ../../../DataFormats/Detectors/TPC/src/CompressedClusters.cxx
-               ../../../DataFormats/simulation/src/MCCompLabel.cxx
-               ../../../DataFormats/Reconstruction/src/TrackParametrization.cxx
-               ../../../DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
-               ../../../DataFormats/Reconstruction/src/Vertex.cxx
-               ../../../DataFormats/Reconstruction/src/TrackLTIntegral.cxx
-               ../../../DataFormats/Reconstruction/src/TrackParametrization.cxx
-               ../../../DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
-               ../../../Detectors/TRD/base/src/GeometryBase.cxx
-               ../../../Detectors/Base/src/MatLayerCylSet.cxx
-               ../../../Detectors/Base/src/MatLayerCyl.cxx
-               ../../../Detectors/Base/src/Ray.cxx
-               ../../../Detectors/Base/src/Propagator.cxx
-               ../../../Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
+               ${O2_DIR}/Common/Field/src/MagFieldFast.cxx
+               ${O2_DIR}/DataFormats/Detectors/TPC/src/CompressedClusters.cxx
+               ${O2_DIR}/DataFormats/simulation/src/MCCompLabel.cxx
+               ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrization.cxx
+               ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
+               ${O2_DIR}/DataFormats/Reconstruction/src/Vertex.cxx
+               ${O2_DIR}/DataFormats/Reconstruction/src/TrackLTIntegral.cxx
+               ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrization.cxx
+               ${O2_DIR}/DataFormats/Reconstruction/src/TrackParametrizationWithError.cxx
+               ${O2_DIR}/Detectors/TRD/base/src/GeometryBase.cxx
+               ${O2_DIR}/Detectors/Base/src/MatLayerCylSet.cxx
+               ${O2_DIR}/Detectors/Base/src/MatLayerCyl.cxx
+               ${O2_DIR}/Detectors/Base/src/Ray.cxx
+               ${O2_DIR}/Detectors/Base/src/Propagator.cxx
+               ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/src/Road.cxx)
   if(CONFIG_O2_ITS_TRAITS)
     target_sources(standalone_support PRIVATE
-        ../../../Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
-        ../../../Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
-        ../../../Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
-        ../../../Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
-        ../../../Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
-        ../../../Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
+        ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/src/PrimaryVertexContext.cxx
+        ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/src/Cluster.cxx
+        ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/src/ClusterLines.cxx
+        ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/src/TrackerTraitsCPU.cxx
+        ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/src/VertexerTraits.cxx
+        ${O2_DIR}/Detectors/ITSMFT/ITS/tracking/src/ROframe.cxx)
     target_link_libraries(standalone_support PUBLIC Boost::boost)
   endif()
 endif()
@@ -218,11 +227,11 @@ endif()
 if(BUILD_EVENT_DISPLAY)
   target_link_libraries(standalone_support PUBLIC glfw)
   if(CONFIG_GL3W)
-    target_sources(GPUTracking PRIVATE display/3rdparty/gl3w.c)
+    target_sources(GPUTracking PRIVATE ${GPUTRACKING_DIR}/display/3rdparty/gl3w.c)
     target_compile_definitions(GPUTracking PUBLIC GPUCA_DISPLAY_GL3W)
   endif()
-  target_sources(GPUTracking PRIVATE display/3rdparty/HandMadeMath/HandMadeMathImpl.cxx)
-  target_include_directories(GPUTracking SYSTEM PUBLIC display/3rdparty)
+  target_sources(GPUTracking PRIVATE ${GPUTRACKING_DIR}/display/3rdparty/HandMadeMath/HandMadeMathImpl.cxx)
+  target_include_directories(GPUTracking SYSTEM PUBLIC ${GPUTRACKING_DIR}/display/3rdparty)
 endif()
 
 if(CONFIG_ROOT)

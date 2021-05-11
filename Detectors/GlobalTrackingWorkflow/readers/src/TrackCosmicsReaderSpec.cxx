@@ -28,8 +28,8 @@ namespace globaltracking
 {
 void TrackCosmicsReader::init(InitContext& ic)
 {
-  mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                       ic.options().get<std::string>("cosmics-infile"));
+  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>("cosmics-infile"));
   connectTree(mFileName);
 }
 

@@ -21,31 +21,6 @@
 using namespace o2::dataformats;
 using DetID = o2::detectors::DetID;
 
-const std::array<DetID::mask_t, GlobalTrackID::NSources> GlobalTrackID::SourceDetectorsMasks = {
-  DetID::getMask(DetID::ITS),
-  DetID::getMask(DetID::TPC),
-  DetID::getMask(DetID::TRD),
-  DetID::getMask(DetID::TOF),
-  DetID::getMask(DetID::PHS),
-  DetID::getMask(DetID::CPV),
-  DetID::getMask(DetID::EMC),
-  DetID::getMask(DetID::HMP),
-  DetID::getMask(DetID::MFT),
-  DetID::getMask(DetID::MCH),
-  DetID::getMask(DetID::MID),
-  DetID::getMask(DetID::ZDC),
-  DetID::getMask(DetID::FT0),
-  DetID::getMask(DetID::FV0),
-  DetID::getMask(DetID::FDD),
-  //
-  DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC),
-  DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TOF),
-  DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD),
-  DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD),
-  DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TOF),
-  DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD) | DetID::getMask(DetID::TOF),
-  DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD) | DetID::getMask(DetID::TOF)};
-
 std::string GlobalTrackID::asString() const
 {
   std::bitset<NBitsFlags()> bits{getFlags()};
@@ -60,7 +35,7 @@ GlobalTrackID::mask_t GlobalTrackID::getSourcesMask(const std::string_view srcLi
     return mask;
   }
   if (ss.find(ALL) != std::string::npos) {
-    mask.set();
+    mask = MASK_ALL;
     return mask;
   }
   std::replace(ss.begin(), ss.end(), ' ', ',');
@@ -78,16 +53,6 @@ GlobalTrackID::mask_t GlobalTrackID::getSourcesMask(const std::string_view srcLi
     }
   }
   return mask;
-}
-
-bool GlobalTrackID::includesDet(DetID id, GlobalTrackID::mask_t srcm)
-{
-  for (int i = 0; i < NSources; i++) {
-    if (includesSource(i, srcm) && getSourceDetectorsMask(i) == id.getMask()) {
-      return true;
-    }
-  }
-  return false;
 }
 
 std::ostream& o2::dataformats::operator<<(std::ostream& os, const o2::dataformats::GlobalTrackID& v)

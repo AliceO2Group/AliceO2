@@ -12,6 +12,11 @@
 #
 # authors: D. Rohr / S. Wenzel
 
+if [ "0$O2_ROOT" == "0" ] || [ "0$AEGIS_ROOT" == "0" ]; then
+  echo Missing O2sim environment
+  exit 1
+fi
+
 # include jobutils, which notably brings
 # --> the taskwrapper as a simple control and monitoring tool
 #     (look inside the jobutils.sh file for documentation)
@@ -19,7 +24,8 @@
 . ${O2_ROOT}/share/scripts/jobutils.sh
 
 # make sure that correct format will be used irrespecive of the locale
-LC_NUMERIC=C
+export LC_NUMERIC=C
+export LC_ALL=C
 
 NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 NEventsQED=${NEventsQED:-1000} #35000 for full TF

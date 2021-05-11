@@ -15,8 +15,8 @@ o2_add_library(SimConfig
                        src/DigiParams.cxx src/G4Params.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
-                                     FairRoot::Base Boost::program_options
-                                     Boost::filesystem)
+                                     FairRoot::Base Boost::program_options)
+
 
 o2_target_root_dictionary(SimConfig
                           HEADERS include/SimConfig/SimConfig.h

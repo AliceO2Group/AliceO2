@@ -90,6 +90,7 @@ void Digitizer::setSimulationParameters()
 
 void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<MCLabel>& labels)
 {
+  size_t idx = labels.getIndexedSize();
   if (mPileupSignals.size() > 0) {
     // Add the signals, all chambers are keept in the same signal container
     SignalContainer smc = addSignalsFromPileup();
@@ -98,14 +99,7 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
       if (!status) {
         LOG(WARN) << "TRD conversion of signals to digits failed";
       }
-      for (const auto& iter : smc) {
-        if (iter.second.isDigit) {
-          labels.addElements(labels.getIndexedSize(), iter.second.labels);
-          if (iter.second.isShared) {
-            labels.addElements(labels.getIndexedSize(), iter.second.labels); // shared digit is a copy of the previous one, need to add the same labels again
-          }
-        }
-      }
+      dumpLabels(smc, labels);
     }
   } else {
     // since we don't have any pileup signals just flush the signals for each chamber
@@ -115,17 +109,22 @@ void Digitizer::flush(DigitContainer& digits, o2::dataformats::MCTruthContainer<
       if (!status) {
         LOG(WARN) << "TRD conversion of signals to digits failed";
       }
-      for (const auto& iter : smc) {
-        if (iter.second.isDigit) {
-          labels.addElements(labels.getIndexedSize(), iter.second.labels);
-          if (iter.second.isShared) {
-            labels.addElements(labels.getIndexedSize(), iter.second.labels); // shared digit is a copy of the previous one, need to add the same labels again
-          }
-        }
-      }
+      dumpLabels(smc, labels);
     }
   }
   clearContainers();
+}
+
+void Digitizer::dumpLabels(const SignalContainer& smc, o2::dataformats::MCTruthContainer<MCLabel>& labels)
+{
+  for (const auto& iter : smc) {
+    if (iter.second.isDigit) {
+      labels.addElements(labels.getIndexedSize(), iter.second.labels);
+      if (iter.second.isShared) {
+        labels.addElements(labels.getIndexedSize(), iter.second.labels); // shared digit is a copy of the previous one, need to add the same labels again
+      }
+    }
+  }
 }
 
 SignalContainer Digitizer::addSignalsFromPileup()
@@ -252,7 +251,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
     }
 
     double rowOffset = padPlane->getPadRowOffsetROC(rowE, locR);
-    double offsetTilt = padPlane->getTiltOffset(rowOffset);
+    double offsetTilt = padPlane->getTiltOffset(rowE, rowOffset);
     int colE = padPlane->getPadColNumber(locC + offsetTilt);
     if (colE < 0) {
       continue;
@@ -296,7 +295,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
       }
       rowOffset = padPlane->getPadRowOffsetROC(rowE, locRd);
       // The pad column (rphi-direction)
-      offsetTilt = padPlane->getTiltOffset(rowOffset);
+      offsetTilt = padPlane->getTiltOffset(rowE, rowOffset);
       colE = padPlane->getPadColNumber(locCd + offsetTilt);
       if (colE < 0) {
         continue;
@@ -372,7 +371,7 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
         auto& trackIds = currentSignalData.trackIds;
         auto& labels = currentSignalData.labels;
         currentSignalData.firstTBtime = mTime;
-        addLabel(hit, labels, trackIds); // add a label record only if needed
+        addLabel(hit.GetTrackID(), labels, trackIds); // add a label record only if needed
 
         // add signal with crosstalk for the non-central pads only
         if (colPos != colE) {
@@ -395,11 +394,11 @@ bool Digitizer::convertHits(const int det, const std::vector<Hit>& hits, SignalC
   return true;
 }
 
-void Digitizer::addLabel(const o2::trd::Hit& hit, std::vector<o2::trd::MCLabel>& labels, std::unordered_map<int, int>& trackIds)
+void Digitizer::addLabel(const int& trackId, std::vector<o2::MCCompLabel>& labels, std::unordered_set<int>& trackIds)
 {
-  if (trackIds[hit.GetTrackID()] == 0) {
-    trackIds[hit.GetTrackID()] = 1;
-    MCLabel label(hit.GetTrackID(), getEventID(), getSrcID());
+  if (trackIds.count(trackId) == 0) {
+    trackIds.insert(trackId);
+    MCLabel label(trackId, getEventID(), getSrcID());
     labels.push_back(label);
   }
 }

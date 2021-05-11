@@ -180,7 +180,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
     ClusterNativeHelper::Reader::fillIndex(retVal->clusterIndex, retVal->internal.clusterBuffer, retVal->internal.clustersMCBuffer, retVal->internal.inputs, retVal->internal.mcInputs, tpcSectorMask);
   }
 
-  return retVal;
+  return std::move(retVal);
 }
 
 } // namespace tpc

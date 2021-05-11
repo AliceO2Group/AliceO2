@@ -12,85 +12,66 @@
 #include <fmt/format.h>
 #include <memory>
 
+O2ParamImpl(o2::base::NameConf);
+
 using namespace o2::base;
 using DId = o2::detectors::DetID;
 
-// Check if the path exists
-bool NameConf::pathExists(const std::string_view p)
+std::string NameConf::buildFileName(const std::string_view prefix, const std::string_view delimiter, const std::string_view defPrefix, const std::string_view defName,
+                                    const std::string_view extension, const std::string_view optDir)
 {
-  return o2::utils::pathExists(p);
-}
-
-// Check if the path is a directory
-bool NameConf::pathIsDirectory(const std::string_view p)
-{
-  return o2::utils::pathIsDirectory(p);
-}
-
-std::string NameConf::getFullPath(const std::string_view p)
-{
-  return o2::utils::getFullPath(p);
-}
-
-std::string NameConf::rectifyDirectory(const std::string& _dir)
-{
-  return o2::utils::rectifyDirectory(_dir);
+  if (o2::utils::Str::pathIsDirectory(prefix)) { // if path is directory, just add to default name, ignoring optional directory optDir argument
+    return o2::utils::Str::concat_string(prefix, "/", defPrefix, delimiter, defName, '.', extension);
+  } else if (!prefix.empty() && o2::utils::Str::pathExists(prefix)) { // explicit file path is provided, use it directly
+    return std::string(prefix);
+  }
+  auto dir = o2::utils::Str::rectifyDirectory(optDir); // directory might have been provided
+  // is the prefix really prefix or a file-name
+  if (!prefix.empty()) {
+    auto path = o2::utils::Str::concat_string(dir, prefix);
+    if (o2::utils::Str::pathExists(path)) {
+      return path;
+    }
+  }
+  return o2::utils::Str::concat_string(dir, prefix.empty() ? defPrefix : prefix, delimiter, defName, '.', extension);
 }
 
 // Filename to store geometry file
 std::string NameConf::getGeomFileName(const std::string_view prefix)
 {
-  // check if the prefix is an existing path
-  if (pathIsDirectory(prefix)) {
-    return o2::utils::concat_string(prefix, "/", STANDARDSIMPREFIX, "_", GEOM_FILE_STRING, ".root");
-  } else if (pathExists(prefix)) {
-    return std::string(prefix); // it is a full file
-  }
-  return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", GEOM_FILE_STRING, ".root");
+  return buildFileName(prefix, "_", STANDARDSIMPREFIX, GEOM_FILE_STRING, ROOT_EXT_STRING, Instance().mDirGeom);
+}
+
+// Filename to store general run parameters (GRP)
+std::string NameConf::getGRPFileName(const std::string_view prefix)
+{
+  return buildFileName(prefix, "_", STANDARDSIMPREFIX, GRP_STRING, ROOT_EXT_STRING, Instance().mDirGRP);
 }
 
 // Filename to store simulation cuts/process summary
 std::string NameConf::getCutProcFileName(std::string_view prefix)
 {
-  // check if the prefix is an existing path
-  if (pathIsDirectory(prefix)) {
-    return o2::utils::concat_string(prefix, "/", STANDARDSIMPREFIX, "_", CUT_FILE_STRING, ".dat");
-  } else if (pathExists(prefix)) {
-    return std::string(prefix); // it is a full file
-  }
-  return o2::utils::concat_string(prefix.empty() ? STANDARDSIMPREFIX : prefix, "_", CUT_FILE_STRING, ".dat");
+  return buildFileName(prefix, "_", STANDARDSIMPREFIX, CUT_FILE_STRING, DAT_EXT_STRING);
 }
 
 // Filename to store ITSMFT dictionary
-std::string NameConf::getDictionaryFileName(DId det, const std::string_view prefix, const std::string_view ext)
+std::string NameConf::getAlpideClusterDictionaryFileName(DId det, const std::string_view prefix, const std::string_view ext)
 {
-  // check if the prefix is an existing path
-  if (pathIsDirectory(prefix)) {
-    return o2::utils::concat_string(prefix, "/", det.getName(), DICTFILENAME, ext);
-  } else if (pathExists(prefix)) {
-    return std::string(prefix); // it is a full file
-  }
-  return o2::utils::concat_string(prefix, det.getName(), DICTFILENAME, ext);
+  return buildFileName(prefix, "", det.getName(), ALPIDECLUSDICTFILENAME, ext);
 }
 
 // Filename to store material LUT file
 std::string NameConf::getMatLUTFileName(const std::string_view prefix)
 {
-  // check if the prefix is an existing path
-  if (pathIsDirectory(prefix)) {
-    return o2::utils::concat_string(prefix, "/", MATBUDLUT, ".root");
-  } else if (pathExists(prefix)) {
-    return std::string(prefix); // it is a full file
-  }
-  return o2::utils::concat_string(prefix, MATBUDLUT, ".root");
+  return buildFileName(prefix, "", "", MATBUDLUT, ROOT_EXT_STRING, Instance().mDirMatLUT);
 }
 
 std::string NameConf::getCTFFileName(uint32_t run, uint32_t orb, uint32_t id, const std::string_view prefix)
 {
-  return o2::utils::concat_string(prefix, '_', fmt::format("run{:08d}_orbit{:010d}_tf{:010d}", run, orb, id), ".root");
+  return o2::utils::Str::concat_string(prefix, '_', fmt::format("run{:08d}_orbit{:010d}_tf{:010d}", run, orb, id), ".root");
 }
 
 std::string NameConf::getCTFDictFileName()
 {
-  return o2::utils::concat_string(CTFDICT, ".root");
+  return o2::utils::Str::concat_string(CTFDICT, ".root");
 }

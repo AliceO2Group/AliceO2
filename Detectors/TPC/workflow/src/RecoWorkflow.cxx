@@ -18,7 +18,7 @@
 #include "Framework/Logger.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "TPCWorkflow/PublisherSpec.h"
+#include "TPCReaderWorkflow/PublisherSpec.h"
 #include "TPCWorkflow/ClustererSpec.h"
 #include "TPCWorkflow/ClusterDecoderRawSpec.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
@@ -37,7 +37,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
-#include "TPCWorkflow/ClusterReaderSpec.h"
+#include "TPCReaderWorkflow/ClusterReaderSpec.h"
 
 #include <string>
 #include <stdexcept>
@@ -90,7 +90,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
-                                    int caClusterer, int zsOnTheFly, int zs10bit, float zsThreshold, bool askDISTSTF)
+                                    int caClusterer, int zsOnTheFly, bool askDISTSTF)
 {
   InputType inputType;
   try {
@@ -401,7 +401,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   }
 
   if (zsOnTheFly) {
-    specs.emplace_back(o2::tpc::getZSEncoderSpec(tpcSectors, zs10bit, zsThreshold, outRaw, tpcSectorMask));
+    specs.emplace_back(o2::tpc::getZSEncoderSpec(tpcSectors, outRaw, tpcSectorMask));
   }
 
   if (zsToDigit) {

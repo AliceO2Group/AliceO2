@@ -10,13 +10,10 @@
                      
 o2_add_library(TPCWorkflow
                SOURCES src/RecoWorkflow.cxx
-                       src/ClusterReaderSpec.cxx
-                       src/PublisherSpec.cxx
                        src/ClustererSpec.cxx
                        src/ClusterDecoderRawSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
-                       src/TrackReaderSpec.cxx
                        src/RawToDigitsSpec.cxx
                        src/LinkZSToDigitsSpec.cxx
                        src/ZSSpec.cxx
@@ -30,7 +27,10 @@ o2_add_library(TPCWorkflow
                                      O2::DPLUtils O2::TPCReconstruction
                                      O2::TPCCalibration O2::TPCSimulation
                                      O2::TPCQC O2::DetectorsCalibration
-                                     O2::GPUWorkflow)
+                                     O2::TPCReaderWorkflow
+               PRIVATE_LINK_LIBRARIES O2::GPUTracking # For the Zero Suppression includes
+                                      O2::GPUWorkflow
+           )
 
 
 o2_add_executable(chunkeddigit-merger
@@ -83,8 +83,9 @@ o2_add_test(workflow
             PUBLIC_LINK_LIBRARIES O2::TPCWorkflow
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
 
-if(GPUCA_EVENT_DISPLAY OR
-                       (OPENGL_FOUND AND GLFW_FOUND AND TARGET AliceO2::DebugGUI AND OPENGL_GLU_FOUND
-                       AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin"))
-    target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
-endif()
+o2_add_executable(digits-to-rawzs
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::GPUTracking O2::DetectorsRaw
+                  SOURCES src/convertDigitsToRawZS.cxx)
+
+add_subdirectory(readers)

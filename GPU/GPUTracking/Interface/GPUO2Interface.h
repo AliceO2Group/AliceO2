@@ -33,6 +33,8 @@ namespace o2::tpc
 {
 struct ClusterNativeAccess;
 struct ClusterNative;
+template <class T>
+class CalDet;
 } // namespace o2::tpc
 
 namespace o2::gpu
@@ -57,6 +59,10 @@ class GPUO2Interface
 
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
+
+  static std::unique_ptr<TPCPadGainCalib> getPadGainCalibDefault();
+  static std::unique_ptr<TPCPadGainCalib> getPadGainCalib(const o2::tpc::CalDet<float>& in);
+  static std::unique_ptr<TPCdEdxCalibrationSplines> getdEdxCalibrationSplinesDefault();
 
   int registerMemoryForGPU(const void* ptr, size_t size);
   int unregisterMemoryForGPU(const void* ptr);

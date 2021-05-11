@@ -18,13 +18,39 @@
 #include "PHOSBase/Geometry.h"
 
 using namespace o2::phos;
-
+Mapping* Mapping::sMapping = nullptr;
+//_______________________________________________________
 Mapping::Mapping(std::basic_string_view<char> path) : mPath(path),
                                                       mInitialized(false)
 {
 }
 //_______________________________________________________
-Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, CaloFlag& caloFlag)
+Mapping* Mapping::Instance()
+{
+  if (sMapping) {
+    return sMapping;
+  } else {
+    sMapping = new Mapping();
+    sMapping->setMapping();
+    return sMapping;
+  }
+}
+//_______________________________________________________
+Mapping* Mapping::Instance(std::basic_string_view<char> path)
+{
+  if (sMapping) {
+    if (sMapping->mPath == path) {
+      return sMapping;
+    } else {
+      delete sMapping;
+    }
+  }
+  sMapping = new Mapping(path);
+  sMapping->setMapping();
+  return sMapping;
+}
+//_______________________________________________________
+Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, CaloFlag& caloFlag) const
 {
 
   if (!mInitialized) {
@@ -55,7 +81,7 @@ Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, C
   return kOK;
 }
 //_______________________________________________________
-Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl, short& hwAddr)
+Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl, short& hwAddr) const
 {
 
   if (caloFlag < 0 || caloFlag > 2) {
@@ -107,14 +133,13 @@ Mapping::ErrorStatus Mapping::setMapping()
 
       short numberOfChannels = 0;
       short maxHWAddress = 0;
-      char fname[255];
-      snprintf(fname, 255, "%s/Mod%dRCU%d.data", p.data(), m, i);
-      std::ifstream* fIn = new std::ifstream(fname);
-      if (!*fIn) {
+      std::string fname = fmt::format("{:s}/Mod{:d}RCU{:d}.data", p, m, i);
+      std::ifstream fIn(fname);
+      if (!fIn.is_open()) {
         LOG(FATAL) << "Missing mapping file " << p << "/Mod" << m << "RCU" << i << ".data";
         return kNotInitialized;
       }
-      if (!(*fIn >> numberOfChannels)) {
+      if (!(fIn >> numberOfChannels)) {
         LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no numberOfChannels";
         return kNotInitialized;
       }
@@ -122,7 +147,7 @@ Mapping::ErrorStatus Mapping::setMapping()
         LOG(FATAL) << "Unexpected number of channels: " << numberOfChannels << " expecting " << NHWPERDDL << " file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no numberOfChannels";
         return kNotInitialized;
       }
-      if (!(*fIn >> maxHWAddress)) {
+      if (!(fIn >> maxHWAddress)) {
         LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no maxHWAddress";
         return kNotInitialized;
       }
@@ -132,7 +157,7 @@ Mapping::ErrorStatus Mapping::setMapping()
       }
       for (short ich = 0; ich < numberOfChannels; ich++) { // 1792 = 2*896 channels connected to each RCU
         int hwAddress;
-        if (!(*fIn >> hwAddress)) {
+        if (!(fIn >> hwAddress)) {
           LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no HWadd for ch " << ich;
           return kNotInitialized;
         }
@@ -141,7 +166,7 @@ Mapping::ErrorStatus Mapping::setMapping()
           return kNotInitialized;
         }
         int row, col, caloFlag;
-        if (!(*fIn >> row >> col >> caloFlag)) {
+        if (!(fIn >> row >> col >> caloFlag)) {
           LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong:  no (raw col caloFlag)";
           return kNotInitialized;
         }
@@ -183,7 +208,7 @@ Mapping::ErrorStatus Mapping::setMapping()
         mAbsToHW[absId][caloFlag][0] = ddl;
         mAbsToHW[absId][caloFlag][1] = hwAddress;
       }
-      fIn->close();
+      fIn.close();
     } //RCU
   }   // module
   mInitialized = true;

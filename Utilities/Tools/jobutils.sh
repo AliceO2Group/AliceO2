@@ -111,7 +111,8 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "${command}" > ${SCRIPTNAME}
+  echo "${command};" > ${SCRIPTNAME}
+  echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
   chmod +x ${SCRIPTNAME}
 
   # this gives some possibility to customize the wrapper
@@ -372,9 +373,9 @@ taskwrapper() {
 
   # wait for PID and fetch return code
   # ?? should directly exit here?
-  wait $PID
-  # return code
-  RC=$?
+  wait $PID || QUERY_RC_FROM_LOG="ON"
+  # query return code from log (seems to be safer as sometimes the wait issues "PID" not a child of this shell)
+  RC=$(grep "TASK-EXIT-CODE:" ${logfile} | awk '//{print $2}')
   RC_ACUM=$((RC_ACUM+RC))
   if [ "${RC}" -eq "0" ]; then
     if [ ! "${JOBUTILS_JOB_SKIPCREATEDONE}" ]; then

@@ -31,7 +31,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
-#include "TPCReconstruction/GPUCATracking.h"
+#include "TPCReconstruction/TPCTrackingDigitsPreCheck.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
@@ -41,10 +41,10 @@
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
 #include "GPUO2InterfaceQA.h"
+#include "GPUO2Interface.h"
 #include "TPCPadGainCalib.h"
 #include "GPUDisplayBackend.h"
 #ifdef GPUCA_BUILD_EVENT_DISPLAY
@@ -56,7 +56,11 @@
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "Algorithm/Parser.h"
-#include <boost/filesystem.hpp>
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsTRD/RecoInputContainer.h"
+#include "TRDBase/Geometry.h"
+#include "TRDBase/GeometryFlat.h"
+#include <filesystem>
 #include <memory> // for make_shared
 #include <vector>
 #include <iomanip>
@@ -96,17 +100,19 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
   using ClusterGroupParser = o2::algorithm::ForwardParser<ClusterGroupHeader>;
   struct ProcessAttributes {
     std::unique_ptr<ClusterGroupParser> parser;
-    std::unique_ptr<GPUCATracking> tracker;
+    std::unique_ptr<GPUO2Interface> tracker;
     std::unique_ptr<GPUDisplayBackend> displayBackend;
     std::unique_ptr<TPCFastTransform> fastTransform;
     std::unique_ptr<TPCdEdxCalibrationSplines> dEdxSplines;
     std::unique_ptr<TPCPadGainCalib> tpcPadGainCalib;
+    std::unique_ptr<o2::trd::GeometryFlat> trdGeometry;
     std::unique_ptr<GPUO2InterfaceConfiguration> config;
     int qaTaskMask = 0;
     std::unique_ptr<GPUO2InterfaceQA> qa;
     std::vector<int> clusterOutputIds;
     unsigned long outputBufferSize = 0;
     unsigned long tpcSectorMask = 0;
+    unsigned int nHBFPerTF;
     int verbosity = 0;
     bool readyToQuit = false;
     bool allocateOutputOnTheFly = false;
@@ -124,19 +130,20 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       auto& parser = processAttributes->parser;
       auto& tracker = processAttributes->tracker;
       parser = std::make_unique<ClusterGroupParser>();
-      tracker = std::make_unique<GPUCATracking>();
+      tracker = std::make_unique<GPUO2Interface>();
 
       // Create configuration object and fill settings
-      const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+      const auto grp = o2::parameters::GRPObject::loadFrom();
       o2::base::GeometryManager::loadGeometry();
-      o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
-      if (grp) {
-        config.configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
-        config.configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
-        LOG(INFO) << "Initializing run paramerers from GRP bz=" << config.configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
-      } else {
+      o2::base::Propagator::initFieldFromGRP();
+      if (!grp) {
         throw std::runtime_error("Failed to initialize run parameters from GRP");
       }
+      config.configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
+      config.configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
+      processAttributes->nHBFPerTF = grp->getNHBFPerTF();
+      LOG(INFO) << "Initializing run paramerers from GRP bz=" << config.configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
+
       confParam = config.ReadConfigurableParam();
       processAttributes->allocateOutputOnTheFly = confParam.allocateOutputOnTheFly;
       processAttributes->outputBufferSize = confParam.outputBufferSize;
@@ -154,7 +161,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       if (config.configGRP.continuousMaxTimeBin == -1) {
-        config.configGRP.continuousMaxTimeBin = (o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+        config.configGRP.continuousMaxTimeBin = (processAttributes->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
       }
       if (config.configProcessing.deviceNum == -2) {
         int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
@@ -183,7 +190,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       config.configReconstruction.NWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
 
-      // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU) with this instance of GPUCATracking
+      // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
       config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
                                       GPUDataTypes::RecoStep::TPCSliceTracking,
                                       GPUDataTypes::RecoStep::TPCMerging,
@@ -228,7 +235,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         config.configCalib.fastTransform = processAttributes->fastTransform.get();
       }
       if (config.configCalib.fastTransform == nullptr) {
-        throw std::invalid_argument("GPUCATracking: initialization of the TPC transformation failed");
+        throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
       }
 
       if (confParam.matLUTFile.size()) {
@@ -242,30 +249,31 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
       config.configCalib.dEdxSplines = processAttributes->dEdxSplines.get();
 
-      if (boost::filesystem::exists(confParam.gainCalibFile)) {
+      if (std::filesystem::exists(confParam.gainCalibFile)) {
         LOG(INFO) << "Loading tpc gain correction from file " << confParam.gainCalibFile;
         const auto* gainMap = o2::tpc::utils::readCalPads(confParam.gainCalibFile, "GainMap")[0];
-        processAttributes->tpcPadGainCalib.reset(new TPCPadGainCalib{*gainMap});
+        processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
       } else {
         if (not confParam.gainCalibFile.empty()) {
           LOG(WARN) << "Couldn't find tpc gain correction file " << confParam.gainCalibFile << ". Not applying any gain correction.";
         }
-        processAttributes->tpcPadGainCalib.reset(new TPCPadGainCalib{});
+        processAttributes->tpcPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
       }
       config.configCalib.tpcPadGain = processAttributes->tpcPadGainCalib.get();
 
       config.configCalib.o2Propagator = Propagator::Instance();
 
-      // Sample code what needs to be done for the TRD Geometry, when we extend this to TRD tracking.
-      /* o2::trd::Geometry gm;
-      gm.createPadPlaneArray();
-      gm.createClusterMatrixArray();
-      std::unique_ptr<o2::trd::GeometryFlat> gf(gm);
-      config.trdGeometry = gf.get();*/
+      if (specconfig.readTRDtracklets) {
+        auto gm = o2::trd::Geometry::instance();
+        gm->createPadPlaneArray();
+        gm->createClusterMatrixArray();
+        processAttributes->trdGeometry = std::make_unique<o2::trd::GeometryFlat>(*gm);
+        config.configCalib.trdGeometry = processAttributes->trdGeometry.get();
+      }
 
       // Configuration is prepared, initialize the tracker.
-      if (tracker->initialize(config) != 0) {
-        throw std::invalid_argument("GPUCATracking initialization failed");
+      if (tracker->Initialize(config) != 0) {
+        throw std::invalid_argument("GPU Reconstruction initialization failed");
       }
       if (specconfig.outputQA) {
         processAttributes->qa = std::make_unique<GPUO2InterfaceQA>(processAttributes->config.get());
@@ -477,35 +485,55 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       }
 
-      ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clustersMCBuffer;
-      GPUO2InterfaceIOPtrs ptrs;
-      void* ptrEp[NSectors * NEndpoints] = {};
-
       const auto& inputsClustersDigits = getWorkflowTPCInput(pc, verbosity, getWorkflowTPCInput_mc, getWorkflowTPCInput_clusters, processAttributes->tpcSectorMask, getWorkflowTPCInput_digits);
+      GPUTrackingInOutPointers ptrs;
 
+      o2::globaltracking::RecoContainer inputTracksTRD;
+      decltype(o2::trd::getRecoInputContainer(pc, &ptrs, &inputTracksTRD)) trdInputContainer;
+      if (specconfig.readTRDtracklets) {
+        o2::globaltracking::DataRequest dataRequestTRD;
+        dataRequestTRD.requestTracks(o2::dataformats::GlobalTrackID::getSourcesMask(o2::dataformats::GlobalTrackID::NONE), false);
+        inputTracksTRD.collectData(pc, dataRequestTRD);
+        trdInputContainer = std::move(o2::trd::getRecoInputContainer(pc, &ptrs, &inputTracksTRD));
+      }
+
+      void* ptrEp[NSectors * NEndpoints] = {};
+      bool doInputDigits = false, doInputDigitsMC = false;
       if (specconfig.decompressTPC) {
-        ptrs.compressedClusters = pCompClustersFlat;
+        ptrs.tpcCompressedClusters = pCompClustersFlat;
       } else if (specconfig.zsOnTheFly) {
         const unsigned long long int* buffer = reinterpret_cast<const unsigned long long int*>(&inputZS[0]);
         o2::gpu::GPUReconstructionConvert::RunZSEncoderCreateMeta(buffer, tpcZSonTheFlySizes.data(), *&ptrEp, &tpcZS);
         ptrs.tpcZS = &tpcZS;
-        if (specconfig.processMC) {
-          ptrs.o2Digits = &inputsClustersDigits->inputDigits;
-          ptrs.o2DigitsMC = &inputsClustersDigits->inputDigitsMCPtrs;
-        }
+        doInputDigits = doInputDigitsMC = specconfig.processMC;
       } else if (specconfig.zsDecoder) {
         ptrs.tpcZS = &tpcZS;
         if (specconfig.processMC) {
           throw std::runtime_error("Cannot process MC information, none available");
         }
       } else if (specconfig.caClusterer) {
-        ptrs.o2Digits = &inputsClustersDigits->inputDigits;
-        if (specconfig.processMC) {
-          ptrs.o2DigitsMC = &inputsClustersDigits->inputDigitsMCPtrs;
-        }
+        doInputDigits = true;
+        doInputDigitsMC = specconfig.processMC;
       } else {
-        ptrs.clusters = &inputsClustersDigits->clusterIndex;
+        ptrs.clustersNative = &inputsClustersDigits->clusterIndex;
       }
+
+      GPUTrackingInOutDigits tpcDigitsMap;
+      GPUTPCDigitsMCInput tpcDigitsMapMC;
+      if (doInputDigits) {
+        ptrs.tpcPackedDigits = &tpcDigitsMap;
+        if (doInputDigitsMC) {
+          tpcDigitsMap.tpcDigitsMC = &tpcDigitsMapMC;
+        }
+        for (unsigned int i = 0; i < NSectors; i++) {
+          tpcDigitsMap.tpcDigits[i] = inputsClustersDigits->inputDigits[i].data();
+          tpcDigitsMap.nTPCDigits[i] = inputsClustersDigits->inputDigits[i].size();
+          if (doInputDigitsMC) {
+            tpcDigitsMapMC.v[i] = inputsClustersDigits->inputDigitsMCPtrs[i];
+          }
+        }
+      }
+
       // a byte size resizable vector object, the DataAllocator returns reference to internal object
       // initialize optional pointer to the vector object
       TPCSectorHeader clusterOutputSectorHeader{0};
@@ -585,6 +613,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       setOutputAllocator("TRACKS", specconfig.outputTracks, outputRegions.tpcTracksO2, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKS", 0));
       setOutputAllocator("CLUSREFS", specconfig.outputTracks, outputRegions.tpcTracksO2ClusRefs, std::make_tuple(gDataOriginTPC, (DataDescription) "CLUSREFS", 0));
       setOutputAllocator("TRACKSMCLBL", specconfig.outputTracks && specconfig.processMC, outputRegions.tpcTracksO2Labels, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKSMCLBL", 0));
+      ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clustersMCBuffer;
       if (specconfig.processMC && specconfig.caClusterer) {
         outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
       }
@@ -592,6 +621,8 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
       tfSettings.tfStartOrbit = dh->firstTForbit;
       tfSettings.hasTfStartOrbit = 1;
+      tfSettings.nHBFPerTF = processAttributes->nHBFPerTF;
+      tfSettings.hasNHBFPerTF = 1;
       ptrs.settingsTF = &tfSettings;
 
       if (processAttributes->tpcSectorMask != 0xFFFFFFFFF) {
@@ -609,7 +640,18 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         }
       }
 
-      int retVal = tracker->runTracking(&ptrs, &outputRegions);
+      if ((int)(ptrs.tpcZS != nullptr) + (int)(ptrs.tpcPackedDigits != nullptr && (ptrs.tpcZS == nullptr || ptrs.tpcPackedDigits->tpcDigitsMC == nullptr)) + (int)(ptrs.clustersNative != nullptr) + (int)(ptrs.tpcCompressedClusters != nullptr) != 1) {
+        throw std::runtime_error("Invalid input for gpu tracking");
+      }
+
+      const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, processAttributes->config.get());
+      int retVal = tracker->RunTracking(&ptrs, &outputRegions);
+      gsl::span<const o2::tpc::TrackTPC> spanOutputTracks = {ptrs.outputTracksTPCO2, ptrs.nOutputTracksTPCO2};
+      gsl::span<const uint32_t> spanOutputClusRefs = {ptrs.outputClusRefsTPCO2, ptrs.nOutputClusRefsTPCO2};
+      gsl::span<const o2::MCCompLabel> spanOutputTracksMCTruth = {ptrs.outputTracksTPCO2MC, ptrs.outputTracksTPCO2MC ? ptrs.nOutputTracksTPCO2 : 0};
+
+      tracker->Clear(false);
+
       if (processAttributes->suppressOutput) {
         return;
       }
@@ -628,23 +670,23 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           }
         }
       }
-      downSizeBufferToSpan(outputRegions.tpcTracksO2, ptrs.outputTracks);
-      downSizeBufferToSpan(outputRegions.tpcTracksO2ClusRefs, ptrs.outputClusRefs);
-      downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, ptrs.outputTracksMCTruth);
+      downSizeBufferToSpan(outputRegions.tpcTracksO2, spanOutputTracks);
+      downSizeBufferToSpan(outputRegions.tpcTracksO2ClusRefs, spanOutputClusRefs);
+      downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, spanOutputTracksMCTruth);
 
-      LOG(INFO) << "found " << ptrs.outputTracks.size() << " track(s)";
+      LOG(INFO) << "found " << spanOutputTracks.size() << " track(s)";
 
       if (specconfig.outputCompClusters) {
-        CompressedClustersROOT compressedClusters = *ptrs.compressedClusters;
+        CompressedClustersROOT compressedClusters = *ptrs.tpcCompressedClusters;
         pc.outputs().snapshot(Output{gDataOriginTPC, "COMPCLUSTERS", 0}, ROOTSerialized<CompressedClustersROOT const>(compressedClusters));
       }
 
       if (processAttributes->clusterOutputIds.size() > 0) {
-        if ((void*)ptrs.clusters->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
+        if ((void*)ptrs.clustersNative->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
           throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
         }
 
-        ClusterNativeAccess const& accessIndex = *ptrs.clusters;
+        ClusterNativeAccess const& accessIndex = *ptrs.clustersNative;
         if (specconfig.sendClustersPerSector) {
           // Clusters are shipped by sector, we are copying into per-sector buffers (anyway only for ROOT output)
           for (int i = 0; i < NSectors; i++) {
@@ -693,7 +735,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         processAttributes->qa->cleanup();
       }
       timer.Stop();
-      LOG(INFO) << "TPC CATracker time for this TF " << timer.CpuTime() - cput << " s (cpu), " << timer.RealTime() - realt << " s (wall)";
+      LOG(INFO) << "GPU Reoncstruction time for this TF " << timer.CpuTime() - cput << " s (cpu), " << timer.RealTime() - realt << " s (wall)";
     };
 
     return processingFct;
@@ -740,6 +782,11 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     if (specconfig.zsOnTheFly) {
       inputs.emplace_back(InputSpec{"zsinput", ConcreteDataTypeMatcher{"TPC", "TPCZS"}, Lifetime::Timeframe});
       inputs.emplace_back(InputSpec{"zsinputsizes", ConcreteDataTypeMatcher{"TPC", "ZSSIZES"}, Lifetime::Timeframe});
+    }
+    if (specconfig.readTRDtracklets) {
+      inputs.emplace_back("trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe);
+      inputs.emplace_back("trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe);
+      inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
     }
     return inputs;
   };

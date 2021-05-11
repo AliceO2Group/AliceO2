@@ -40,7 +40,7 @@ void linkFlukaFiles()
   gSystem->Exec("ln -s $FLUKADATA/fluodt.dat  .");
   gSystem->Exec("ln -s $FLUKADATA/random.dat  .");
   gSystem->Exec("ln -s $FLUKADATA/dnr.dat  .");
-  gSystem->Exec("ln -s $FLUKADATA/nunstab.dat  .");
+  gSystem->Exec("ln -s $FLUKADATA/nunstab.data .");
   // Give some meaningfull name to the output
   gSystem->Exec("ln -s fluka.out fort.11");
   gSystem->Exec("ln -s fluka.err fort.15");

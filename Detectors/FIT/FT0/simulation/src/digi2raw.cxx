@@ -12,7 +12,7 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include <boost/program_options.hpp>
-#include <TSystem.h>
+#include <filesystem>
 #include <TFile.h>
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
@@ -111,8 +111,8 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
     outDirName += '/';
   }
   // if needed, create output directory
-  if (gSystem->AccessPathName(outDirName.c_str())) {
-    if (gSystem->mkdir(outDirName.c_str(), kTRUE)) {
+  if (!std::filesystem::exists(outDirName)) {
+    if (!std::filesystem::create_directories(outDirName)) {
       LOG(FATAL) << "could not create output directory " << outDirName;
     } else {
       LOG(INFO) << "created output directory " << outDirName;
@@ -120,7 +120,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   }
 
   m2r.readDigits(outDirName, inpName);
-  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
+  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //
   swTot.Stop();
   swTot.Print();

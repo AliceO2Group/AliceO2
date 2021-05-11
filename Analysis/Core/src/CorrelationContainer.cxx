@@ -26,6 +26,9 @@
 #include "TCanvas.h"
 #include "TF1.h"
 #include "THn.h"
+#include "Framework/HistogramRegistry.h"
+
+using namespace o2::framework;
 
 ClassImp(CorrelationContainer)
 
@@ -52,332 +55,50 @@ CorrelationContainer::CorrelationContainer() : TNamed(),
                                                mSkipScaleMixedEvent(kFALSE),
                                                mCache(nullptr),
                                                mGetMultCacheOn(kFALSE),
-                                               mGetMultCache(nullptr),
-                                               mHistogramType()
+                                               mGetMultCache(nullptr)
 {
   // Default constructor
 }
 
-CorrelationContainer::CorrelationContainer(const char* name, const char* objTitle, const char* reqHist, const char* binning) : TNamed(name, objTitle),
-                                                                                                                               mPairHist(nullptr),
-                                                                                                                               mTriggerHist(nullptr),
-                                                                                                                               mTrackHistEfficiency(nullptr),
-                                                                                                                               mEventCount(nullptr),
-                                                                                                                               mEtaMin(0),
-                                                                                                                               mEtaMax(0),
-                                                                                                                               mPtMin(0),
-                                                                                                                               mPtMax(0),
-                                                                                                                               mPartSpecies(-1),
-                                                                                                                               mCentralityMin(0),
-                                                                                                                               mCentralityMax(0),
-                                                                                                                               mZVtxMin(0),
-                                                                                                                               mZVtxMax(0),
-                                                                                                                               mPt2Min(0),
-                                                                                                                               mPt2Max(0),
-                                                                                                                               mTrackEtaCut(0),
-                                                                                                                               mWeightPerEvent(0),
-                                                                                                                               mSkipScaleMixedEvent(kFALSE),
-                                                                                                                               mCache(nullptr),
-                                                                                                                               mGetMultCacheOn(kFALSE),
-                                                                                                                               mGetMultCache(nullptr),
-                                                                                                                               mHistogramType(reqHist)
+CorrelationContainer::CorrelationContainer(const char* name, const char* objTitle, const std::vector<o2::framework::AxisSpec>& axisList) : TNamed(name, objTitle),
+                                                                                                                                           mPairHist(nullptr),
+                                                                                                                                           mTriggerHist(nullptr),
+                                                                                                                                           mTrackHistEfficiency(nullptr),
+                                                                                                                                           mEventCount(nullptr),
+                                                                                                                                           mEtaMin(0),
+                                                                                                                                           mEtaMax(0),
+                                                                                                                                           mPtMin(0),
+                                                                                                                                           mPtMax(0),
+                                                                                                                                           mPartSpecies(-1),
+                                                                                                                                           mCentralityMin(0),
+                                                                                                                                           mCentralityMax(0),
+                                                                                                                                           mZVtxMin(0),
+                                                                                                                                           mZVtxMax(0),
+                                                                                                                                           mPt2Min(0),
+                                                                                                                                           mPt2Max(0),
+                                                                                                                                           mTrackEtaCut(0),
+                                                                                                                                           mWeightPerEvent(0),
+                                                                                                                                           mSkipScaleMixedEvent(kFALSE),
+                                                                                                                                           mCache(nullptr),
+                                                                                                                                           mGetMultCacheOn(kFALSE),
+                                                                                                                                           mGetMultCache(nullptr)
 {
   // Constructor
+  //
+  // axisList has to provide a 8 length list of AxisSpec which contain:
+  //    delta_eta, pt_assoc, pt_trig, multiplicity/centrality, delta_phi, vertex, eta (for efficiency), pt (for efficiency), vertex (for efficiency)
 
-  using BinList = std::vector<Double_t>;
-
-  if (strlen(reqHist) == 0) {
+  if (strlen(name) == 0) {
     return;
   }
 
-  LOGF(info, "Creating CorrelationContainer with %s (binning: %s)", reqHist, binning);
+  LOGF(info, "Creating CorrelationContainer");
 
-  const char* title = "";
-
-  // track level
-  Int_t nTrackVars = 4; // eta vs pT vs pT,lead (vs delta phi) vs multiplicity
-  Int_t iTrackBin[7];
-  BinList trackBins[7];
-  const char* trackAxisTitle[7];
-
-  // eta
-  Int_t nEtaBins = -1;
-  BinList etaBins = getBinning(binning, "eta", nEtaBins);
-  const char* etaTitle = "#eta";
-
-  iTrackBin[0] = nEtaBins;
-  trackBins[0] = etaBins;
-  trackAxisTitle[0] = etaTitle;
-
-  // delta eta
-  Int_t nDeltaEtaBins = -1;
-  BinList deltaEtaBins = getBinning(binning, "delta_eta", nDeltaEtaBins);
-
-  // pT
-  trackBins[1] = getBinning(binning, "p_t_assoc", iTrackBin[1]);
-  trackAxisTitle[1] = "p_{T} (GeV/c)";
-
-  // pT, fine
-  Int_t npTBinsFine = -1;
-  BinList pTBinsFine = getBinning(binning, "p_t_eff", npTBinsFine);
-
-  // pT,lead binning 1
-  Int_t nLeadingpTBins = -1;
-  BinList leadingpTBins = getBinning(binning, "p_t_leading", nLeadingpTBins);
-
-  // pT,lead binning 2
-  Int_t nLeadingpTBins2 = -1;
-  BinList leadingpTBins2 = getBinning(binning, "p_t_leading_course", nLeadingpTBins2);
-
-  // phi,lead
-  Int_t nLeadingPhiBins = -1;
-  BinList leadingPhiBins = getBinning(binning, "delta_phi", nLeadingPhiBins);
-
-  trackBins[3] = getBinning(binning, "multiplicity", iTrackBin[3]);
-  trackAxisTitle[3] = "multiplicity";
-
-  // particle species
-  const Int_t kNSpeciesBins = 4; // pi, K, p, rest
-  BinList speciesBins = {-0.5, 0.5, 1.5, 2.5, 3.5};
-
-  // vtx-z axis
-  const char* vertexTitle = "z-vtx (cm)";
-  Int_t nVertexBins = -1;
-  BinList vertexBins = getBinning(binning, "vertex", nVertexBins);
-  Int_t nVertexBinsEff = -1;
-  BinList vertexBinsEff = getBinning(binning, "vertex_eff", nVertexBinsEff);
-
-  Int_t useVtxAxis = 0;
-  Int_t useAliTHn = 1; // 0 = don't use | 1 = with float | 2 = with double
-
-  if (TString(reqHist).Contains("Sparse")) {
-    useAliTHn = 0;
-  }
-  if (TString(reqHist).Contains("Double")) {
-    useAliTHn = 2;
-  }
-
-  // selection depending on requested histogram
-  Int_t axis = -1; // 0 = pT,lead, 1 = phi,lead
-  if (strcmp(reqHist, "NumberDensitypT") == 0) {
-    axis = 0;
-    title = "d^{2}N_{ch}/d#varphid#eta";
-  } else if (strcmp(reqHist, "NumberDensityPhi") == 0) {
-    axis = 1;
-    title = "d^{2}N_{ch}/d#varphid#eta";
-  } else if (TString(reqHist).BeginsWith("NumberDensityPhiCentrality")) {
-    if (TString(reqHist).Contains("Vtx")) {
-      useVtxAxis = 1;
-    }
-
-    reqHist = "NumberDensityPhiCentrality";
-    mHistogramType = reqHist;
-    axis = 2;
-    title = "d^{2}N_{ch}/d#varphid#eta";
-  } else if (strcmp(reqHist, "SumpT") == 0) {
-    axis = 0;
-    title = "d^{2}#Sigma p_{T}/d#varphid#eta";
-  } else if (TString(reqHist).BeginsWith("TwoPlusOne")) {
-    useVtxAxis = 1;
-
-    reqHist = "TwoPlusOne";
-    mHistogramType = reqHist;
-    axis = 3;
-    title = "d^{2}N_{ch}/d#varphid#eta";
-  } else {
-    LOGF(fatal, "Invalid histogram requested: %s", reqHist);
-  }
-
-  UInt_t nSteps = fgkCFSteps;
-
-  if (axis == 0) {
-    trackBins[2] = leadingpTBins;
-    iTrackBin[2] = nLeadingpTBins;
-    trackAxisTitle[2] = "leading p_{T} (GeV/c)";
-
-  } else if (axis == 1) {
-    nTrackVars = 5;
-
-    iTrackBin[2] = nLeadingpTBins2;
-    trackBins[2] = leadingpTBins2;
-    trackAxisTitle[2] = "leading p_{T} (GeV/c)";
-
-    iTrackBin[4] = nLeadingPhiBins;
-    trackBins[4] = leadingPhiBins;
-    trackAxisTitle[4] = "#Delta #varphi w.r.t. leading track";
-  } else if (axis == 2) {
-    nTrackVars = 5;
-
-    iTrackBin[0] = nDeltaEtaBins;
-    trackBins[0] = deltaEtaBins;
-    trackAxisTitle[0] = "#Delta#eta";
-
-    iTrackBin[2] = nLeadingpTBins2;
-    trackBins[2] = leadingpTBins2;
-    trackAxisTitle[2] = "leading p_{T} (GeV/c)";
-
-    trackAxisTitle[3] = "centrality";
-
-    iTrackBin[4] = nLeadingPhiBins;
-    trackBins[4] = leadingPhiBins;
-    trackAxisTitle[4] = "#Delta#varphi (rad)";
-
-    if (useVtxAxis > 0) {
-      nTrackVars = 6;
-      iTrackBin[5] = nVertexBins;
-      trackBins[5] = vertexBins;
-      trackAxisTitle[5] = vertexTitle;
-    }
-  } else if (axis == 3) {
-    nTrackVars = 7;
-    nSteps = 15;
-
-    iTrackBin[0] = nDeltaEtaBins;
-    trackBins[0] = deltaEtaBins;
-    trackAxisTitle[0] = "#Delta#eta";
-
-    iTrackBin[2] = nLeadingpTBins;
-    trackBins[2] = leadingpTBins;
-    trackAxisTitle[2] = "Trigger 1 p_{T} (GeV/c)";
-
-    trackAxisTitle[3] = "centrality";
-
-    iTrackBin[4] = nLeadingPhiBins;
-    trackBins[4] = leadingPhiBins;
-    trackAxisTitle[4] = "#Delta#varphi (rad)";
-
-    iTrackBin[5] = nVertexBins;
-    trackBins[5] = vertexBins;
-    trackAxisTitle[5] = vertexTitle;
-
-    iTrackBin[6] = nLeadingpTBins2;
-    trackBins[6] = leadingpTBins2;
-    trackAxisTitle[6] = "Trigger 2 p_{T} (GeV/c)";
-  }
-
-  if (axis >= 2 && useAliTHn == 1) {
-    mPairHist = new StepTHnF("mPairHist", title, nSteps, nTrackVars, iTrackBin, trackBins, trackAxisTitle);
-  } else if (axis >= 2 && useAliTHn == 2) {
-    mPairHist = new StepTHnD("mPairHist", title, nSteps, nTrackVars, iTrackBin, trackBins, trackAxisTitle);
-  }
-
-  // event level
-  Int_t nEventVars = 2;
-  Int_t iEventBin[4] = {0};
-  BinList eventBins[4];
-  const char* eventAxisTitle[4] = {nullptr};
-
-  // track 3rd and 4th axis --> event 1st and 2nd axis
-  iEventBin[0] = iTrackBin[2];
-  eventBins[0] = trackBins[2];
-  eventAxisTitle[0] = trackAxisTitle[2];
-
-  iEventBin[1] = iTrackBin[3];
-  eventBins[1] = trackBins[3];
-  eventAxisTitle[1] = trackAxisTitle[3];
-
-  // plus track 5th axis (in certain cases)
-  if (axis >= 2 && useVtxAxis) {
-    nEventVars = 3;
-    iEventBin[2] = iTrackBin[5];
-    eventBins[2] = trackBins[5];
-    eventAxisTitle[2] = trackAxisTitle[5];
-  }
-  if (axis >= 3) {
-    nEventVars = 4;
-    iEventBin[3] = iTrackBin[6];
-    eventBins[3] = trackBins[6];
-    eventAxisTitle[3] = trackAxisTitle[6];
-  }
-  mTriggerHist = new StepTHnF("mTriggerHist", title, nSteps, nEventVars, iEventBin, eventBins, eventAxisTitle);
-
-  // Efficiency histogram
-
-  iTrackBin[0] = nEtaBins;
-  trackBins[0] = etaBins;
-  trackAxisTitle[0] = etaTitle;
-
-  iTrackBin[1] = npTBinsFine;
-  trackBins[1] = pTBinsFine;
-  //trackAxisTitle[1]  = trackAxisTitle[1];
-
-  iTrackBin[2] = kNSpeciesBins;
-  trackBins[2] = speciesBins;
-  trackAxisTitle[2] = "particle species";
-
-  iTrackBin[4] = nVertexBinsEff;
-  trackBins[4] = vertexBinsEff;
-  trackAxisTitle[4] = vertexTitle;
-
-  mTrackHistEfficiency = new StepTHnD("mTrackHistEfficiency", "Tracking efficiency", 6, 5, iTrackBin, trackBins, trackAxisTitle);
-
-  mEventCount = new TH2F("mEventCount", ";step;centrality;count", fgkCFSteps + 2, -2.5, -0.5 + fgkCFSteps, iEventBin[1], &(eventBins[1])[0]);
-}
-
-TString CorrelationContainer::combineBinning(TString defaultBinning, TString customBinning)
-{
-  // combine default binning with custom binning
-  // replaces binnings in default binning if it is defined in custom binning
-
-  TString binningStr;
-
-  TObjArray* lines = defaultBinning.Tokenize("\n");
-  for (Int_t i = 0; i < lines->GetEntriesFast(); i++) {
-    TString line(lines->At(i)->GetName());
-    TString tag = line(0, line.Index(":") + 1);
-    if (!customBinning.BeginsWith(tag) && !customBinning.Contains(TString("\n") + tag)) {
-      binningStr += line + "\n";
-    } else {
-      LOGF(info, "Using custom binning for %s", tag.Data());
-    }
-  }
-  delete lines;
-  binningStr += customBinning;
-
-  return binningStr;
-}
-
-std::vector<Double_t> CorrelationContainer::getBinning(const char* configuration, const char* tag, Int_t& nBins)
-{
-  // takes the binning from <configuration> identified by <tag>
-  // configuration syntax example:
-  // equidistant binning:
-  // eta: 48 | -2.4, 2.4
-  // variable-width binning:
-  // eta: -2.4, -2.3, -2.2, -2.1, -2.0, -1.9, -1.8, -1.7, -1.6, -1.5, -1.4, -1.3, -1.2, -1.1, -1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4
-  //
-  // returns bin edges which have to be deleted by the caller
-
-  std::vector<Double_t> bins;
-  TString config(configuration);
-  TObjArray* lines = config.Tokenize("\n");
-  for (Int_t i = 0; i < lines->GetEntriesFast(); i++) {
-    TString line(lines->At(i)->GetName());
-    if (line.BeginsWith(TString(tag) + ":")) {
-      line.Remove(0, strlen(tag) + 1);
-      line.ReplaceAll(" ", "");
-      if (line.Contains("|")) {
-        // equidistant binning
-        nBins = TString(line(0, line.Index("|"))).Atoi();
-        line.Remove(0, line.Index("|") + 1);
-      } else {
-        // variable-width binning
-        nBins = line.CountChar(',');
-      }
-      TObjArray* binning = line.Tokenize(",");
-      //Double_t* bins = new Double_t[binning->GetEntriesFast()];
-      for (Int_t j = 0; j < binning->GetEntriesFast(); j++) {
-        bins.push_back(TString(binning->At(j)->GetName()).Atof());
-      }
-      delete binning;
-      delete lines;
-      return bins;
-    }
-  }
-
-  delete lines;
-  LOGF(fatal, "Tag %s not found in %s", tag, configuration);
-  return bins;
+  // TODO Remove Clone() pending change in HistogramRegistry
+  mPairHist = (StepTHnF*)HistFactory::createHist<StepTHnF>({"mPairHist", "d^{2}N_{ch}/d#varphid#eta", {HistType::kStepTHnF, {axisList[0], axisList[1], axisList[2], axisList[3], axisList[4], axisList[5]}, fgkCFSteps}})->Clone();
+  mTriggerHist = (StepTHnF*)HistFactory::createHist<StepTHnF>({"mTriggerHist", "d^{2}N_{ch}/d#varphid#eta", {HistType::kStepTHnF, {axisList[2], axisList[3], axisList[5]}, fgkCFSteps}})->Clone();
+  mTrackHistEfficiency = (StepTHnD*)HistFactory::createHist<StepTHnD>({"mTrackHistEfficiency", "Tracking efficiency", {HistType::kStepTHnD, {axisList[6], axisList[7], {4, -0.5, 3.5, "species"}, axisList[3], axisList[8]}, fgkCFSteps}})->Clone();
+  mEventCount = (TH2F*)(HistFactory::createHist<TH2F>({"mEventCount", ";step;centrality;count", {HistType::kTH2F, {{fgkCFSteps + 2, -2.5, -0.5 + fgkCFSteps, "step"}, axisList[3]}}})->Clone());
 }
 
 //_____________________________________________________________________________
@@ -401,8 +122,7 @@ CorrelationContainer::CorrelationContainer(const CorrelationContainer& c) : TNam
                                                                             mSkipScaleMixedEvent(kFALSE),
                                                                             mCache(nullptr),
                                                                             mGetMultCacheOn(kFALSE),
-                                                                            mGetMultCache(nullptr),
-                                                                            mHistogramType()
+                                                                            mGetMultCache(nullptr)
 {
   //
   // CorrelationContainer copy constructor
@@ -429,6 +149,11 @@ CorrelationContainer::~CorrelationContainer()
   if (mTrackHistEfficiency) {
     delete mTrackHistEfficiency;
     mTrackHistEfficiency = nullptr;
+  }
+
+  if (mEventCount) {
+    delete mEventCount;
+    mEventCount = nullptr;
   }
 
   if (mCache) {
@@ -482,7 +207,6 @@ void CorrelationContainer::Copy(TObject& c) const
   target.mTrackEtaCut = mTrackEtaCut;
   target.mWeightPerEvent = mWeightPerEvent;
   target.mSkipScaleMixedEvent = mSkipScaleMixedEvent;
-  target.mHistogramType = mHistogramType;
 }
 
 //____________________________________________________________________

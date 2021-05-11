@@ -25,6 +25,8 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
+#include <numeric>
+#include <algorithm>
 
 namespace o2
 {
@@ -68,10 +70,7 @@ class SVertexer
 
   void setEnableCascades(bool v) { mEnableCascades = v; }
   void init();
-  void process(const gsl::span<const PVertex>& vertices,             // primary vertices
-               const gsl::span<const GIndex>& trackIndex,            // Global ID's for associated tracks
-               const gsl::span<const VRef>& vtxRefs,                 // references from vertex to these track IDs
-               const o2::globaltracking::RecoContainer& recoTracks); // accessor to various tracks
+  void process(const o2::globaltracking::RecoContainer& recoTracks); // accessor to various tracks
 
   auto& getMeanVertex() const { return mMeanVertex; }
   void setMeanVertex(const o2d::VertexBase& v) { mMeanVertex = v; }
@@ -85,7 +84,7 @@ class SVertexer
   bool checkV0(TrackCand& seed0, TrackCand& seed1, int iP, int iN, int ithread);
   int checkCascades(float r2v0, float p2v0, int avoidTrackID, int posneg, int ithread);
   void setupThreads();
-  void buildT2V(const gsl::span<const GIndex>& trackIndex, const gsl::span<const VRef>& vtxRefs, const o2::globaltracking::RecoContainer& recoTracks);
+  void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
 
   uint64_t getPairIdx(GIndex id1, GIndex id2) const

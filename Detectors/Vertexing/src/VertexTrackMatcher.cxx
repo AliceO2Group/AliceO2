@@ -12,6 +12,7 @@
 /// \brief Class for vertex track association
 /// \author ruben.shahoyan@cern.ch
 
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DetectorsVertexing/VertexTrackMatcher.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
@@ -42,20 +43,21 @@ void VertexTrackMatcher::updateTPCTimeDependentParams()
     mMaxTPCDriftTimeMUS = detParam.TPClength / gasParam.DriftV;
   }
   if (mITSROFrameLengthMUS == 0) {
-    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+    std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     mITSROFrameLengthMUS = grp->isDetContinuousReadOut(o2::detectors::DetID::ITS) ? alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingMUS : alpParams.roFrameLengthTrig * 1.e-3;
   }
 }
 
-void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
-                                 const gsl::span<const VTIndex>& v2tfitIDs,
-                                 const gsl::span<const VRef>& v2tfitRefs,
-                                 const o2::globaltracking::RecoContainer& recoData,
+void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoData,
                                  std::vector<VTIndex>& trackIndex,
                                  std::vector<VRef>& vtxRefs)
 {
   updateTPCTimeDependentParams();
+
+  auto vertices = recoData.getPrimaryVertices();
+  auto v2tfitIDs = recoData.getPrimaryVertexContributors();
+  auto v2tfitRefs = recoData.getPrimaryVertexContributorsRefs();
 
   int nv = vertices.size();
   TmpMap tmpMap(nv);
@@ -74,8 +76,8 @@ void VertexTrackMatcher::process(const gsl::span<const PVertex>& vertices,
     }
     const auto& vtx = vertices[iv];
     const auto& vto = vtxOrdBrack.emplace_back(VtxTBracket{
-      {float((vtx.getIRMin().differenceInBC(mStartIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS),
-       float((vtx.getIRMax().differenceInBC(mStartIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS)},
+      {float((vtx.getIRMin().differenceInBC(recoData.startIR) - 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS),
+       float((vtx.getIRMax().differenceInBC(recoData.startIR) + 0.5f) * o2::constants::lhc::LHCBunchSpacingMUS)},
       iv});
     if (vto.tBracket.delta() > maxVtxSpan) {
       maxVtxSpan = vto.tBracket.delta();
@@ -151,24 +153,24 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
 
   mTBrackets.clear();
 
-  std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID)> creator =
-    [this, &vcont](const o2::track::TrackParCov& _tr, float t0, float terr, GIndex _origID) {
-      if (vcont.find(_origID) != vcont.end()) { // track is contributor to vertex, already accounted
-        return;
-      }
-      if (_origID.getSource() == GIndex::TPC) { // convert TPC bins to \mus
-        t0 *= this->mTPCBin2MUS;
-        terr *= this->mTPCBin2MUS;
-      } else if (_origID.getSource() == GIndex::ITS) { // error is supplied a half-ROF duration, convert to \mus
-        t0 += this->mITSROFrameLengthMUS;
-        terr *= 0.5 * this->mITSROFrameLengthMUS;
-      } else {
-        //terr *= this->mMatchParams->nSigmaTError;
-      }
-      mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
-    };
+  auto creator = [this, &vcont](auto& _tr, GIndex _origID, float t0, float terr) {
+    if (vcont.find(_origID) != vcont.end()) { // track is contributor to vertex, already accounted
+      return true;
+    }
+    if constexpr (isTPCTrack<decltype(_tr)>()) {
+      // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
+      t0 *= this->mTPCBin2MUS;
+      terr *= this->mTPCBin2MUS;
+    } else if (isITSTrack<decltype(_tr)>()) {   // error is supplied a half-ROF duration, convert to \mus
+      t0 += this->mITSROFrameLengthMUS;         // ITS time is supplied in \mus as beginning of ROF
+      terr *= 0.5 * this->mITSROFrameLengthMUS; // error is supplied as a half-ROF duration, convert to \mus
+    }
+    // for all other tracks the time is in \mus with gaussian error
+    mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
+    return true;
+  };
 
-  data.createTracks(creator);
+  data.createTracksVariadic(creator);
 
   // sort in increasing min.time
   std::sort(mTBrackets.begin(), mTBrackets.end(), [](const TrackTBracket& a, const TrackTBracket& b) { return a.tBracket.getMin() < b.tBracket.getMin(); });

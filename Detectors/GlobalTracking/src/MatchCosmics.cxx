@@ -10,6 +10,7 @@
 
 #include "GlobalTracking/MatchCosmics.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "GPUO2InterfaceRefit.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "DataFormatsITSMFT/CompCluster.h"
@@ -28,6 +29,7 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "GlobalTracking/MatchTPCITS.h"
 #include "CommonConstants/GeomConstants.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include <algorithm>
 #include <numeric>
 
@@ -99,8 +101,8 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
   // RS FIXME: this is probably a temporary solution, since ITS tracking over boundaries will likely change the TrackITS format
   std::vector<int> itsTracksROF;
 
-  const auto& itsTracksROFRec = data.getITSTracksROFRecords<o2::itsmft::ROFRecord>();
-  itsTracksROF.resize(data.getITSTracks<o2::its::TrackITS>().size());
+  const auto& itsTracksROFRec = data.getITSTracksROFRecords();
+  itsTracksROF.resize(data.getITSTracks().size());
   for (unsigned irf = 0, cnt = 0; irf < itsTracksROFRec.size(); irf++) {
     int ntr = itsTracksROFRec[irf].getNEntries();
     for (int itr = 0; itr < ntr; itr++) {
@@ -109,9 +111,9 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
   }
 
   auto refitITSTrack = [this, &data, &itsTracksROF, &itsClusters](o2::track::TrackParCov& trFit, GTrackID gidx, float& chi2, bool inward = false) {
-    const auto& itsTrOrig = data.getITSTrack<o2::its::TrackITS>(gidx);
+    const auto& itsTrOrig = data.getITSTrack(gidx);
     int nclRefit = 0, ncl = itsTrOrig.getNumberOfClusters(), rof = itsTracksROF[gidx.getIndex()];
-    const auto& itsClustersROFRec = data.getITSClustersROFRecords<o2::itsmft::ROFRecord>();
+    const auto& itsClustersROFRec = data.getITSClustersROFRecords();
     const auto& itsTrackClusRefs = data.getITSTracksClusterRefs();
     int clusIndOffs = itsClustersROFRec[rof].getFirstEntry(), clEntry = itsTrOrig.getFirstClusterEntry();
     const auto propagator = o2::base::Propagator::Instance();
@@ -162,7 +164,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     o2::track::TrackParCov trCosm(mSeeds[poolEntryID[btm]]); // copy of the btm track
     // The bottom leg needs refit only if it is an unconstrained TPC track, otherwise it is already refitted as inner param
     if (mSeeds[poolEntryID[btm]].origID.getSource() == GTrackID::TPC) {
-      const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(mSeeds[poolEntryID[btm]].origID);
+      const auto& tpcTrOrig = data.getTPCTrack(mSeeds[poolEntryID[btm]].origID);
       trCosm = outerLegs[btm];
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, false, true); // inward refit, reset
       if (retVal < 0) {                                                                                                             // refit failed
@@ -174,12 +176,12 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     } else { // just collect NClusters and chi2
       auto gidxListBtm = data.getSingleDetectorRefs(mSeeds[poolEntryID[btm]].origID);
       if (gidxListBtm[GTrackID::TPC].isIndexSet()) {
-        const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListBtm[GTrackID::TPC]);
+        const auto& tpcTrOrig = data.getTPCTrack(gidxListBtm[GTrackID::TPC]);
         nclTot += tpcTrOrig.getNClusters();
         chi2 += tpcTrOrig.getChi2();
       }
       if (gidxListBtm[GTrackID::ITS].isIndexSet()) {
-        const auto& itsTrOrig = data.getITSTrack<o2::its::TrackITS>(gidxListBtm[GTrackID::ITS]);
+        const auto& itsTrOrig = data.getITSTrack(gidxListBtm[GTrackID::ITS]);
         nclTot += itsTrOrig.getNClusters();
         chi2 += itsTrOrig.getChi2();
       }
@@ -203,7 +205,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       if (nclfit < 0) {
         continue;
       }
-      LOG(DEBUG) << "chi2 after top ITS refit with " << nclfit << " clusters : " << chi2 << " orig.chi2 was " << data.getITSTrack<o2::its::TrackITS>(gidxListTop[GTrackID::ITS]).getChi2();
+      LOG(DEBUG) << "chi2 after top ITS refit with " << nclfit << " clusters : " << chi2 << " orig.chi2 was " << data.getITSTrack(gidxListTop[GTrackID::ITS]).getChi2();
       nclTot += nclfit;
     } // ITS refit
     //
@@ -217,7 +219,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
           continue;
         }
       }
-      const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListTop[GTrackID::TPC]);
+      const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(DEBUG) << "Outward refit of top TPC track failed.";
@@ -231,7 +233,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     float chi2Dummy = 0;
     auto trCosmTop = outerLegs[top];
     if (gidxListTop[GTrackID::TPC].isIndexSet()) { // inward refit in TPC
-      const auto& tpcTrOrig = data.getTPCTrack<o2::tpc::TrackTPC>(gidxListTop[GTrackID::TPC]);
+      const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
       int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosmTop, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2Dummy, false, true); // inward refit, reset
       if (retVal < 0) {                                                                                                                     // refit failed
         LOG(DEBUG) << "Outward refit of top TPC track failed.";
@@ -482,25 +484,26 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
 
   mSeeds.clear();
 
-  std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
-    [this](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
-      if (std::abs(_tr.getQ2Pt()) > this->mQ2PtCutoff) {
-        return;
-      }
-      if (_origID.getSource() == GTrackID::TPC) { // convert TPC bins to \mus
-        t0 *= this->mTPCTBinMUS;
-        terr *= this->mTPCTBinMUS;
-      } else if (_origID.getSource() == GTrackID::ITS) { // error is supplied a half-ROF duration, convert to \mus
-        t0 += 0.5 * mITSROFrameLengthMUS;                // time 0 is supplied as beginning of ROF
-        terr *= mITSROFrameLengthMUS;
-      } else {
-        terr *= this->mMatchParams->nSigmaTError;
-      }
-      terr += this->mMatchParams->timeToleranceMUS;
-      mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
-    };
+  auto creator = [this](auto& _tr, GTrackID _origID, float t0, float terr) {
+    if (std::abs(_tr.getQ2Pt()) > this->mQ2PtCutoff) {
+      return true;
+    }
+    if constexpr (isTPCTrack<decltype(_tr)>()) {
+      // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
+      t0 *= this->mTPCTBinMUS;
+      terr *= this->mTPCTBinMUS;
+    } else if (isITSTrack<decltype(_tr)>()) {
+      t0 += 0.5 * this->mITSROFrameLengthMUS; // time 0 is supplied as beginning of ROF in \mus
+      terr *= this->mITSROFrameLengthMUS;     // error is supplied a half-ROF duration, convert to \mus
+    } else {                                  // all other tracks are provided with time and its gaussian error in \mus
+      terr *= this->mMatchParams->nSigmaTError;
+    }
+    terr += this->mMatchParams->timeToleranceMUS;
+    mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
+    return true;
+  };
 
-  data.createTracks(creator);
+  data.createTracksVariadic(creator);
 
   LOG(INFO) << "collected " << mSeeds.size() << " seeds";
 }
@@ -538,7 +541,7 @@ void MatchCosmics::init()
 std::vector<o2::BaseCluster<float>> MatchCosmics::prepareITSClusters(const o2::globaltracking::RecoContainer& data) const
 {
   std::vector<o2::BaseCluster<float>> itscl;
-  const auto& clusITS = data.getITSClusters<o2::itsmft::CompClusterExt>();
+  const auto& clusITS = data.getITSClusters();
   if (clusITS.size()) {
     const auto& patterns = data.getITSClustersPatterns();
     itscl.reserve(clusITS.size());

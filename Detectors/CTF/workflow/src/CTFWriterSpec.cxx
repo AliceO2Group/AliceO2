@@ -41,7 +41,7 @@
 #include <vector>
 #include <TFile.h>
 #include <TTree.h>
-#include <TSystem.h>
+#include <filesystem>
 
 using namespace o2::framework;
 
@@ -121,7 +121,7 @@ void CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det, 
   }
   auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
   const auto ctfImage = C::getImage(ctfBuffer.data());
-  ctfImage.print(o2::utils::concat_string(det.getName(), ": "));
+  ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "));
   if (mWriteCTF) {
     ctfImage.appendToTree(*tree, det.getName());
     header.detectors.set(det);
@@ -159,7 +159,7 @@ void CTFWriterSpec::storeDictionary(DetID det, CTFHeader& header)
   auto dictBlocks = C::createDictionaryBlocks(mFreqsAccumulation[det], mFreqsMetaData[det]);
   auto& h = C::get(dictBlocks.data())->getHeader();
   h = *reinterpret_cast<typename std::remove_reference<decltype(h)>::type*>(mHeaders[det].get());
-  C::get(dictBlocks.data())->print(o2::utils::concat_string("Storing dictionary for ", det.getName(), ": "));
+  C::get(dictBlocks.data())->print(o2::utils::Str::concat_string("Storing dictionary for ", det.getName(), ": "));
   C::get(dictBlocks.data())->appendToTree(*mDictTreeOut.get(), det.getName()); // cast to EncodedBlock
   //  mFreqsAccumulation[det].clear();
   //  mFreqsMetaData[det].clear();
@@ -183,8 +183,8 @@ CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDi
       DetID det(id);
       if (isPresent(det)) {
         auto dictName = dictionaryFileName(det.getName());
-        if (gSystem->AccessPathName(dictName.c_str()) == 0) {
-          throw std::runtime_error(o2::utils::concat_string("CTF dictionary creation is requested but ", dictName, " already exists, remove it!"));
+        if (std::filesystem::exists(dictName)) {
+          throw std::runtime_error(o2::utils::Str::concat_string("CTF dictionary creation is requested but ", dictName, " already exists, remove it!"));
         }
         if (!mDictPerDetector) {
           break; // no point in checking further
@@ -197,8 +197,8 @@ CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDi
 void CTFWriterSpec::init(InitContext& ic)
 {
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
-  mDictDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
-  mCTFDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("output-dir"));
+  mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
+  mCTFDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("output-dir"));
 }
 
 void CTFWriterSpec::run(ProcessingContext& pc)
@@ -210,7 +210,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   std::unique_ptr<TFile> fileOut;
   std::unique_ptr<TTree> treeOut;
   if (mWriteCTF) {
-    fileOut.reset(TFile::Open(o2::utils::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter)).c_str(), "recreate"));
+    fileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter)).c_str(), "recreate"));
     treeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
   }
 
@@ -284,9 +284,9 @@ std::string CTFWriterSpec::dictionaryFileName(const std::string& detName)
     if (detName.empty()) {
       throw std::runtime_error("Per-detector dictionary files are requested but detector name is not provided");
     }
-    return o2::utils::concat_string(mDictDir, detName, '_', o2::base::NameConf::CTFDICT, ".root");
+    return o2::utils::Str::concat_string(mDictDir, detName, '_', o2::base::NameConf::CTFDICT, ".root");
   } else {
-    return o2::utils::concat_string(mDictDir, o2::base::NameConf::CTFDICT, ".root");
+    return o2::utils::Str::concat_string(mDictDir, o2::base::NameConf::CTFDICT, ".root");
   }
 }
 

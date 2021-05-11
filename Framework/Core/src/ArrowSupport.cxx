@@ -140,7 +140,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static auto totalBytesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-destroyed");
                        static auto totalMessagesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-created");
                        static auto totalMessagesDestroyedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-messages-destroyed");
-                       static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "arrow-bytes-delta");
+                       static auto totalBytesDeltaMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "arrow-bytes-delta");
                        static auto totalSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-reader-signals");
                        static auto skippedSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-skipped-signals");
                        static auto remainingBytes = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-remaining-bytes");
@@ -218,8 +218,16 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static uint64_t now = 0;
                        static uint64_t lastSignal = 0;
                        now = uv_hrtime();
+                       static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
+                       static uint64_t lastReportTime = 0;
                        while (!done) {
-                         stateMetric(driverMetrics, (uint64_t)(currentState), stateTransitions++);
+#ifndef NDEBUG
+                         if (currentState != lastReportedState || now - lastReportTime > 1000000000LL) {
+                           stateMetric(driverMetrics, (uint64_t)(currentState), timestamp);
+                           lastReportedState = currentState;
+                           lastReportTime = timestamp;
+                         }
+#endif
                          switch (currentState) {
                            case RateLimitingState::UNKNOWN: {
                              for (auto& deviceMetrics : allDeviceMetrics) {

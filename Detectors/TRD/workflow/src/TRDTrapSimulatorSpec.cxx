@@ -27,9 +27,9 @@
 #include "fairlogger/Logger.h"
 #include "CCDB/BasicCCDBManager.h"
 
-#include "TRDBase/Digit.h"
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/TRDSimParams.h"
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 
 using namespace o2::framework;

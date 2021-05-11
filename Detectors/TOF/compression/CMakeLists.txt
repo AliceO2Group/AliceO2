@@ -19,6 +19,7 @@ o2_add_executable(compressor
                   COMPONENT_NAME tof
                   SOURCES src/tof-compressor.cxx
                   PUBLIC_LINK_LIBRARIES O2::TOFCompression
+		  TARGETVARNAME tofcompressor
 		  )
 
 o2_add_executable(compressed-inspector
@@ -33,4 +34,8 @@ o2_add_executable(compressed-analysis
                   PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils
 		  )
 
+if(NOT APPLE)
 
+ set_property(TARGET ${tofcompressor} PROPERTY LINK_WHAT_YOU_USE ON)
+
+endif()

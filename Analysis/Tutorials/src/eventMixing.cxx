@@ -7,6 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+///
+/// \brief Example task for event mixing.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/ASoAHelpers.h"
@@ -27,13 +33,9 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::soa;
 
-// This is a tentative workflow to get mixed-event tracks
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
-
 struct HashTask {
-  std::vector<float> xBins{-1.5f, -1.0f, -0.5f, 0.0f, 0.5f, 1.0f, 1.5f};
-  std::vector<float> yBins{-1.5f, -1.0f, -0.5f, 0.0f, 0.5f, 1.0f, 1.5f};
+  std::vector<float> xBins{-0.060f, -0.620f, -0.064f, 0.066f, 0.068f, 0.070f, 0.072f};
+  std::vector<float> yBins{-0.300f, -0.301f, -0.320f, 0.330f, 0.340f, 0.350f, 0.360f};
   Produces<aod::Hashes> hashes;
 
   // Calculate hash for an element based on 2 properties and their bins.
@@ -52,7 +54,6 @@ struct HashTask {
         return -1;
       }
     }
-
     return -1;
   }
 
@@ -72,6 +73,9 @@ struct MixedEventsTracks {
 
   void process(aod::Hashes const& hashes, aod::Collisions& collisions, soa::Filtered<aod::Tracks>& tracks)
   {
+    LOGF(info, "Input data Hashes %d, Collisions %d, filtered Tracks %d ", hashes.size(), collisions.size(), tracks.size());
+
+    // grouping of tracks according to collision
     collisions.bindExternalIndices(&tracks);
     auto tracksTuple = std::make_tuple(tracks);
     AnalysisDataProcessorBuilder::GroupSlicer slicer(collisions, tracksTuple);
@@ -194,7 +198,8 @@ struct MixedEventsTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HashTask>(cfgc),
-    adaptAnalysisTask<MixedEventsPartitionedTracks>(cfgc),
-    adaptAnalysisTask<MixedEventsTracks>(cfgc)};
+    adaptAnalysisTask<HashTask>(cfgc, TaskName{"eventMixing_A"}),
+    adaptAnalysisTask<MixedEventsTracks>(cfgc, TaskName{"eventMixing_B"}),
+    adaptAnalysisTask<MixedEventsPartitionedTracks>(cfgc, TaskName{"eventMixing_C"}),
+  };
 }

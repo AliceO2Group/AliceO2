@@ -40,8 +40,8 @@ ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool usePatter
 
 void ClusterReader::init(InitContext& ic)
 {
-  mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                       ic.options().get<std::string>((mDetNameLC + "-cluster-infile").c_str()));
+  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>((mDetNameLC + "-cluster-infile").c_str()));
   connectTree(mFileName);
 }
 

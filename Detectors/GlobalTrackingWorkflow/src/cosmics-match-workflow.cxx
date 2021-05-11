@@ -10,11 +10,11 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
-#include "GPUWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/ClusterReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
@@ -26,6 +26,7 @@
 #include "GlobalTrackingWorkflow/TrackCosmicsWriterSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -75,45 +76,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2match-cosmics-workflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
-
-  if (!disableRootInp) {
-
-    if (src[GID::ITS]) {
-      specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
-    }
-
-    if (src[GID::TPC]) {
-      specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
-    }
-
-    if (src[GID::ITSTPC] || src[GID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
-      specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
-    }
-
-    if (src[GID::ITSTPCTOF]) {
-      specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(useMC, false, false)); // MC, MatchInfo_glo, no TOF_TPCtracks
-      specs.emplace_back(o2::tof::getClusterReaderSpec(false));                  // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
-    }
-
-    if (src[GID::TPCTOF]) {
-      specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(useMC, true, true)); // mc, MatchInfo_TPC, TOF_TPCtracks
-    }
-
-    // clusters for refit
-    if (GID::includesDet(DetID::ITS, src)) {
-      specs.emplace_back(o2::itsmft::getITSClusterReaderSpec(false, true)); // mc not neaded
-    }
-    if (GID::includesDet(DetID::TPC, src)) {
-      specs.emplace_back(o2::tpc::getClusterReaderSpec(false));
-      specs.emplace_back(o2::tpc::getClusterSharingMapSpec());
-    }
-  }
-
+  GID::mask_t dummy;
   specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, useMC));
+
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, dummy); // clusters MC is not needed
 
   if (!disableRootOut) {
     specs.emplace_back(o2::globaltracking::getTrackCosmicsWriterSpec(useMC));

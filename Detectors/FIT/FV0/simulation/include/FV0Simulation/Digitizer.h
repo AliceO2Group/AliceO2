@@ -35,7 +35,7 @@ class Digitizer
 
  public:
   Digitizer()
-    : mTimeStamp(0), mIntRecord(), mEventId(-1), mSrcId(-1), mMCLabels(), mCache(), mPmtChargeVsTime(), mNBins(), mNTimeBinsPerBC(), mPmtResponseGlobal(), mPmtResponseTemp()
+    : mTimeStamp(0), mIntRecord(), mEventId(-1), mSrcId(-1), mMCLabels(), mCache(), mPmtChargeVsTime(), mNBins(), mNTimeBinsPerBC(), mPmtResponseGlobal(), mPmtResponseTemp(), mLastBCCache(), mCfdStartIndex()
   {
   }
 
@@ -76,7 +76,7 @@ class Digitizer
     void clear()
     {
       for (auto& channel : mPmtChargeVsTime) {
-        std::fill(channel.begin(), channel.end(), 0.);
+        std::fill(std::begin(channel), std::end(channel), 0.);
       }
       labels.clear();
     }
@@ -94,10 +94,10 @@ class Digitizer
   void createPulse(float mipFraction, int parID, const double hitTime, std::array<o2::InteractionRecord, NBC2Cache> const& cachedIR,
                    int nCachedIR, const int detID);
 
-  long mTimeStamp;              // TF (run) timestamp
+  long mTimeStamp;                  // TF (run) timestamp
   InteractionTimeRecord mIntRecord; // Interaction record (orbit, bc) -> InteractionTimeRecord
-  Int_t mEventId;               // ID of the current event
-  Int_t mSrcId;                 // signal, background or QED
+  Int_t mEventId;                   // ID of the current event
+  Int_t mSrcId;                     // signal, background or QED
   std::deque<fv0::MCLabel> mMCLabels;
   std::deque<BCCache> mCache;
 
@@ -113,17 +113,20 @@ class Digitizer
   std::array<std::vector<Float_t>, Constants::nFv0Channels> mPmtChargeVsTime; // Charge time series aka analogue signal pulse from PM
   UInt_t mNBins;                                                              //
   UInt_t mNTimeBinsPerBC;
-  Float_t mBinSize;                                                           // Time width of the pulse bin - HPTDC resolution
+  Float_t mBinSize; // Time width of the pulse bin - HPTDC resolution
 
   /// vectors to store the PMT signal from cosmic muons
   std::vector<Double_t> mPmtResponseGlobal;
   std::vector<Double_t> mPmtResponseTemp;
 
+  /// for CFD
+  BCCache mLastBCCache;                                    // buffer for the last BC
+  std::array<int, Constants::nFv0Channels> mCfdStartIndex; // start indices for the CFD detector
+
   /// Internal helper methods related to conversion of energy-deposition into el. signal
   Int_t SimulateLightYield(Int_t pmt, Int_t nPhot) const;
-  Float_t SimulateTimeCfd(const ChannelBCDataF& pulse) const;
+  Float_t SimulateTimeCfd(int& startIndex, const ChannelBCDataF& pulseLast, const ChannelBCDataF& pulse) const;
   Float_t IntegrateCharge(const ChannelBCDataF& pulse) const;
-  // Float_t SimulateTimeCfd(Int_t channel, Int_t iCache) const;
 
   /// Functions related to splitting ring-5 cell signal to two readout channels
   static float getDistFromCellCenter(UInt_t cellId, double hitx, double hity);

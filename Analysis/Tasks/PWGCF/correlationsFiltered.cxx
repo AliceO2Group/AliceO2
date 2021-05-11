@@ -57,6 +57,17 @@ struct CorrelationTask {
   O2_DEFINE_CONFIGURABLE(cfgEfficiencyTrigger, std::string, "", "CCDB path to efficiency object for trigger particles")
   O2_DEFINE_CONFIGURABLE(cfgEfficiencyAssociated, std::string, "", "CCDB path to efficiency object for associated particles")
 
+  ConfigurableAxis axisVertex{"axisVertex", {7, -7, 7}, "vertex axis for histograms"};
+  ConfigurableAxis axisDeltaPhi{"axisDeltaPhi", {72, -M_PI / 2, M_PI / 2 * 3}, "delta phi axis for histograms"};
+  ConfigurableAxis axisDeltaEta{"axisDeltaEta", {40, -2, 2}, "delta eta axis for histograms"};
+  ConfigurableAxis axisPtTrigger{"axisPtTrigger", {VARIABLE_WIDTH, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 10.0}, "pt trigger axis for histograms"};
+  ConfigurableAxis axisPtAssoc{"axisPtAssoc", {VARIABLE_WIDTH, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0}, "pt associated axis for histograms"};
+  ConfigurableAxis axisMultiplicity{"axisMultiplicity", {VARIABLE_WIDTH, 0, 5, 10, 20, 30, 40, 50, 100.1}, "multiplicity / centrality axis for histograms"};
+
+  ConfigurableAxis axisVertexEfficiency{"axisVertexEfficiency", {10, -10, 10}, "vertex axis for efficiency histograms"};
+  ConfigurableAxis axisEtaEfficiency{"axisEtaEfficiency", {20, -1.0, 1.0}, "eta axis for efficiency histograms"};
+  ConfigurableAxis axisPtEfficiency{"axisPtEfficiency", {VARIABLE_WIDTH, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0}, "pt axis for efficiency histograms"};
+
   // Filters and input definitions
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::cftrack::eta) < cfgCutEta) && (aod::cftrack::pt > cfgCutPt);
@@ -83,19 +94,6 @@ struct CorrelationTask {
   void init(o2::framework::InitContext&)
   {
     // --- CONFIGURATION ---
-    const char* binning =
-      "vertex: 7 | -7, 7\n"
-      "delta_phi: 72 | -1.570796, 4.712389\n"
-      "delta_eta: 40 | -2.0, 2.0\n"
-      "p_t_assoc: 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0\n"
-      "p_t_trigger: 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 10.0\n"
-      "multiplicity: 0, 5, 10, 20, 30, 40, 50, 100.1\n"
-      "eta: 20 | -1.0, 1.0\n"
-      "p_t_leading: 100 | 0.0, 50.0\n"
-      "p_t_leading_course: 0.5, 1.0, 2.0, 3.0, 4.0, 6.0, 8.0\n"
-      "p_t_eff: 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.25, 1.5, 1.75, 2.0, 2.25, 2.5, 2.75, 3.0, 3.25, 3.5, 3.75, 4.0, 4.5, 5.0, 6.0, 7.0, 8.0\n"
-      "vertex_eff: 10 | -10, 10\n";
-
     mPairCuts.SetHistogramRegistry(&registry);
 
     if (cfgPairCutPhoton > 0 || cfgPairCutK0 > 0 || cfgPairCutLambda > 0 || cfgPairCutPhi > 0 || cfgPairCutRho > 0) {
@@ -112,8 +110,17 @@ struct CorrelationTask {
     }
 
     // --- OBJECT INIT ---
-    same.setObject(new CorrelationContainer("sameEvent", "sameEvent", "NumberDensityPhiCentralityVtx", binning));
-    mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", "NumberDensityPhiCentralityVtx", binning));
+    std::vector<AxisSpec> axisList = {{axisDeltaEta, "#Delta#eta"},
+                                      {axisPtAssoc, "p_{T} (GeV/c)"},
+                                      {axisPtTrigger, "p_{T} (GeV/c)"},
+                                      {axisMultiplicity, "multiplicity / centrality"},
+                                      {axisDeltaPhi, "#Delta#varphi (rad)"},
+                                      {axisVertex, "z-vtx (cm)"},
+                                      {axisEtaEfficiency, "#eta"},
+                                      {axisPtEfficiency, "p_{T} (GeV/c)"},
+                                      {axisVertexEfficiency, "z-vtx (cm)"}};
+    same.setObject(new CorrelationContainer("sameEvent", "sameEvent", axisList));
+    mixed.setObject(new CorrelationContainer("mixedEvent", "mixedEvent", axisList));
 
     // o2-ccdb-upload -p Users/jgrosseo/correlations/LHC15o -f /tmp/correction_2011_global.root -k correction
 

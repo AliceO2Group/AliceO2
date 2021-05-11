@@ -96,6 +96,18 @@ o2_add_dpl_workflow(aodreader
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(tableio-write
+                  SOURCES src/tableIOout.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(tableio-read
+                  SOURCES src/tableIOin.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(outputs
                   SOURCES src/outputs.cxx
                   JOB_POOL analysis
@@ -206,6 +218,12 @@ o2_add_dpl_workflow(compatible-bcs
 
 o2_add_dpl_workflow(multiplicity-event-track-selection
                   SOURCES src/multiplicityEventTrackSelection.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(multiprocess-example
+                  SOURCES src/multiProcess.cxx
                   JOB_POOL analysis
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)

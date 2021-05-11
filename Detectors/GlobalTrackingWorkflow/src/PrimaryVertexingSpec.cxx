@@ -11,7 +11,9 @@
 /// @file  PrimaryVertexingSpec.cxx
 
 #include <vector>
+#include <TStopwatch.h>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsBase/Propagator.h"
@@ -25,23 +27,46 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "FT0Reconstruction/InteractionTag.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "DetectorsVertexing/PVertexer.h"
 
 using namespace o2::framework;
+using DetID = o2::detectors::DetID;
+using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2
 {
 namespace vertexing
 {
-o2::globaltracking::DataRequest dataRequestPV;
+
 namespace o2d = o2::dataformats;
+
+class PrimaryVertexingSpec : public Task
+{
+ public:
+  PrimaryVertexingSpec(std::shared_ptr<DataRequest> dr, bool validateWithIR, bool useMC)
+    : mDataRequest(dr), mUseMC(useMC), mValidateWithIR(validateWithIR) {}
+  ~PrimaryVertexingSpec() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
+
+ private:
+  std::shared_ptr<DataRequest> mDataRequest;
+  o2::vertexing::PVertexer mVertexer;
+  bool mUseMC{false};          ///< MC flag
+  bool mValidateWithIR{false}; ///< require vertex validation with IR (e.g. from FT0)
+  float mITSROFrameLengthMUS = 0.;
+  TStopwatch mTimer;
+};
 
 void PrimaryVertexingSpec::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+  o2::base::Propagator::initFieldFromGRP();
 
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
   const auto& alpParams = o2::itsmft::DPLAlpideParam<DetID::ITS>::Instance();
   if (!grp->isDetContinuousReadOut(DetID::ITS)) {
     mITSROFrameLengthMUS = alpParams.roFrameLengthTrig / 1.e3; // ITS ROFrame duration in \mus
@@ -52,7 +77,7 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
   std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::base::NameConf::pathExists(matLUTFile)) {
+  if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
     LOG(INFO) << "Loaded material LUT from " << matLUTFile;
@@ -76,7 +101,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   o2::globaltracking::RecoContainer recoData;
-  recoData.collectData(pc, dataRequestPV);
+  recoData.collectData(pc, *mDataRequest.get());
   // select tracks of needed type, with minimal cuts, the real selected will be done in the vertexer
 
   std::vector<TrackWithTimeStamp> tracks;
@@ -86,23 +111,24 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   auto halfROFITS = 0.5 * mITSROFrameLengthMUS;
   auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
 
-  std::function<void(const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID)> creator =
-    [maxTrackTimeError, hw2ErrITS, halfROFITS, &tracks, &gids](const o2::track::TrackParCov& _tr, float t0, float terr, GTrackID _origID) {
-      if (!_origID.includesDet(DetID::ITS)) {
-        return; // just in case this selection was not done on RecoContainer filling level
-      }
-      if (_origID.getSource() == GTrackID::ITS) { // error is supplied a half-ROF duration, convert to \mus
-        t0 += halfROFITS;                         // ITS time is supplied as beginning of ROF
-        terr *= hw2ErrITS;
-      }
-      if (terr > maxTrackTimeError) {
-        return;
-      }
+  auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, &tracks, &gids](auto& _tr, GTrackID _origID, float t0, float terr) {
+    if (!_origID.includesDet(DetID::ITS)) {
+      return true; // just in case this selection was not done on RecoContainer filling level
+    }
+    if constexpr (isITSTrack<decltype(_tr)>()) {
+      t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
+      terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
+    }
+    // for all other tracks the time is in \mus with gaussian error
+    if (terr < maxTrackTimeError) {
       tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
       gids.emplace_back(_origID);
-    };
+    }
+    return true;
+  };
 
-  recoData.createTracks(creator); // create track sample considered for vertexing
+  recoData.createTracksVariadic(creator); // create track sample considered for vertexing
+
   if (mUseMC) {
     recoData.fillTrackMCLabels(gids, tracksMCInfo);
   }
@@ -117,7 +143,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   std::vector<o2::InteractionRecord> ft0Data;
   if (mValidateWithIR) { // select BCs for validation
     const o2::ft0::InteractionTag& ft0Params = o2::ft0::InteractionTag::Instance();
-    auto ft0all = recoData.getFT0RecPoints<o2::ft0::RecPoints>();
+    auto ft0all = recoData.getFT0RecPoints();
     for (const auto& ftRP : ft0all) {
       if (ft0Params.isSelected(ftRP)) {
         ft0Data.push_back(ftRP.getInteractionRecord());
@@ -141,6 +167,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
 
 void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 {
+  mVertexer.end();
   LOGF(INFO, "Primary vertexing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
@@ -148,10 +175,11 @@ void PrimaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWithFT0, bool useMC)
 {
   std::vector<OutputSpec> outputs;
+  auto dataRequest = std::make_shared<DataRequest>();
 
-  dataRequestPV.requestTracks(src, useMC);
+  dataRequest->requestTracks(src, useMC);
   if (validateWithFT0 && src[GTrackID::FT0]) {
-    dataRequestPV.requestFT0RecPoints(false);
+    dataRequest->requestFT0RecPoints(false);
   }
 
   outputs.emplace_back("GLO", "PVTX", 0, Lifetime::Timeframe);
@@ -164,9 +192,9 @@ DataProcessorSpec getPrimaryVertexingSpec(GTrackID::mask_t src, bool validateWit
 
   return DataProcessorSpec{
     "primary-vertexing",
-    dataRequestPV.inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(validateWithFT0, useMC)},
+    AlgorithmSpec{adaptFromTask<PrimaryVertexingSpec>(dataRequest, validateWithFT0, useMC)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 

@@ -83,24 +83,8 @@ class GPUTRDTrackerDebug
     fTrackletDet.ResizeTo(6);
     fRoadY.ResizeTo(6);
     fRoadZ.ResizeTo(6);
-    fTrackletXReal.ResizeTo(6);
-    fTrackletYReal.ResizeTo(6);
-    fTrackletZReal.ResizeTo(6);
-    ;
-    fTrackletYcorrReal.ResizeTo(6);
-    fTrackletZcorrReal.ResizeTo(6);
-    fTrackletSecReal.ResizeTo(6);
-    fTrackletDetReal.ResizeTo(6);
-    fTrackXReal.ResizeTo(6);
-    fTrackYReal.ResizeTo(6);
-    fTrackZReal.ResizeTo(6);
-    fTrackSecReal.ResizeTo(6);
     fChi2Update.ResizeTo(6);
-    fChi2Real.ResizeTo(6);
-    fNmatchesAvail.ResizeTo(6);
     fFindable.ResizeTo(6);
-    fFindableMC.ResizeTo(6);
-    fUpdates.ResizeTo(6);
   }
 
   void Reset()
@@ -137,60 +121,24 @@ class GPUTRDTrackerDebug
     fTrackletDet.Zero();
     fRoadY.Zero();
     fRoadZ.Zero();
-    fTrackletXReal.Zero();
-    fTrackletYReal.Zero();
-    fTrackletZReal.Zero();
-    ;
-    fTrackletYcorrReal.Zero();
-    fTrackletZcorrReal.Zero();
-    fTrackletSecReal.Zero();
-    fTrackletDetReal.Zero();
-    fTrackXReal.Zero();
-    fTrackYReal.Zero();
-    fTrackZReal.Zero();
-    fTrackSecReal.Zero();
     fChi2Update.Zero();
-    fChi2Real.Zero();
-    fNmatchesAvail.Zero();
     fFindable.Zero();
-    fFindableMC.Zero();
-    fUpdates.Zero();
     fEv = 0;
     fNTPCtracks = 0;
     fTrk = 0;
-    mTrackId = 0;
     fPtTPC = 0.f;
     fNtrklts = 0;
-    fNtrkltsRef = 0;
-    fNtrkltsRefMatch = 0;
-    fNtrkltsRefRelated = 0;
-    fNtrkltsRefFake = 0;
-    fTrackIDref = -1;
     fNlayers = 0;
     fChi2 = 0.f;
-    fNmatch = 0;
-    fNfake = 0;
-    fNrelated = 0;
-    fXvMC = 0;
-    fYvMC = 0;
-    fZvMC = 0;
-    fPdgCode = 0;
   }
 
   // general information
-  void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId, float pt)
+  void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, float pt)
   {
     fEv = iEv;
     fNTPCtracks = nTPCtracks;
     fTrk = iTrk;
-    mTrackId = trackId;
     fPtTPC = pt;
-  }
-  void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0)
-  {
-    fNmatch = nMatch;
-    fNfake = nFake;
-    fNrelated = nRelated;
   }
 
   // track parameters
@@ -219,36 +167,24 @@ class GPUTRDTrackerDebug
     fTrackNoUpYerr(ly) = trk.getSigmaY2();
     fTrackNoUpZerr(ly) = trk.getSigmaZ2();
   }
-  void SetTrackParameterReal(const T& trk, int ly)
-  {
-    fTrackXReal(ly) = trk.getX();
-    fTrackYReal(ly) = trk.getY();
-    fTrackZReal(ly) = trk.getZ();
-    fTrackSecReal(ly) = GetSector(trk.getAlpha());
-  }
   void SetTrack(const T& trk)
   {
-    fChi2 = trk.GetChi2();
-    fNlayers = trk.GetNlayers();
-    fNtrklts = trk.GetNtracklets();
-    fNtrkltsRef = trk.GetNtrackletsOffline(0);
-    fNtrkltsRefMatch = trk.GetNtrackletsOffline(1);
-    fNtrkltsRefRelated = trk.GetNtrackletsOffline(2);
-    fNtrkltsRefFake = trk.GetNtrackletsOffline(3);
-    fTrackIDref = trk.GetLabelOffline();
+    fChi2 = trk.getChi2();
+    fNlayers = trk.getNlayers();
+    fNtrklts = trk.getNtracklets();
     for (int iLy = 0; iLy < 6; iLy++) {
-      if (trk.GetIsFindable(iLy)) {
+      if (trk.getIsFindable(iLy)) {
         fFindable(iLy) = 1;
       }
     }
   }
 
   // tracklet parameters
-  void SetRawTrackletPosition(const float fX, const float* fYZ, int ly)
+  void SetRawTrackletPosition(const float fX, const float fY, const float fZ, int ly)
   {
     fTrackletX(ly) = fX;
-    fTrackletY(ly) = fYZ[0];
-    fTrackletZ(ly) = fYZ[1];
+    fTrackletY(ly) = fY;
+    fTrackletZ(ly) = fZ;
   }
   void SetCorrectedTrackletPosition(const My_Float* fYZ, int ly)
   {
@@ -266,52 +202,15 @@ class GPUTRDTrackerDebug
     fTrackletDy(ly) = dy;
     fTrackletDet(ly) = det;
   }
-  void SetRawTrackletPositionReal(float fX, float* fYZ, int ly)
-  {
-    fTrackletXReal(ly) = fX;
-    fTrackletYReal(ly) = fYZ[0];
-    fTrackletZReal(ly) = fYZ[1];
-  }
-  void SetCorrectedTrackletPositionReal(My_Float* fYZ, int ly)
-  {
-    fTrackletYcorrReal(ly) = fYZ[0];
-    fTrackletZcorrReal(ly) = fYZ[1];
-  }
-  void SetTrackletPropertiesReal(const int det, int ly)
-  {
-    fTrackletSecReal(ly) = det / 30;
-    fTrackletDetReal(ly) = det;
-  }
 
   // update information
   void SetChi2Update(float chi2, int ly) { fChi2Update(ly) = chi2; }
-  void SetChi2Real(float chi2, int ly) { fChi2Real(ly) = chi2; }
 
   // other infos
   void SetRoad(float roadY, float roadZ, int ly)
   {
     fRoadY(ly) = roadY;
     fRoadZ(ly) = roadZ;
-  }
-  void SetUpdates(int* up)
-  {
-    for (int iLy = 0; iLy < 6; iLy++) {
-      fUpdates(iLy) = up[iLy];
-    }
-  }
-  void SetNmatchAvail(size_t i, int ly) { fNmatchesAvail(ly) = (int)i; };
-  void SetFindableMC(bool* findableMC)
-  {
-    for (int iLy = 0; iLy < 6; iLy++) {
-      fFindableMC(iLy) = findableMC[iLy];
-    }
-  }
-  void SetMCinfo(float xv, float yv, float zv, int pdg)
-  {
-    fXvMC = xv;
-    fYvMC = yv;
-    fZvMC = zv;
-    fPdgCode = pdg;
   }
 
   void Output()
@@ -320,7 +219,6 @@ class GPUTRDTrackerDebug
                  << "event=" << fEv <<                     // event number
       "nTPCtracks=" << fNTPCtracks <<                      // total number of TPC tracks for this event
       "iTrack=" << fTrk <<                                 // track index in event
-      "trackID=" << mTrackId <<                            // TPC MC track label
       "trackPtTPC=" << fPtTPC <<                           // track pT before any propagation
       "trackX.=" << &fTrackX <<                            // x-pos of track (layerwise)
       "trackY.=" << &fTrackY <<                            // y-pos of track (layerwise)
@@ -351,40 +249,13 @@ class GPUTRDTrackerDebug
       "trackletZerr.=" << &fTrackletZ2err <<               // sigma_z^2 for tracklet
       "trackletDy.=" << &fTrackletDy <<                    // deflection for tracklet
       "trackletDet.=" << &fTrackletDet <<                  // TRD chamber of tracklet
-      "trackXReal.=" << &fTrackXReal <<                    // x-pos for track at first found tracklet radius w/ matching MC label
-      "trackYReal.=" << &fTrackYReal <<                    // y-pos for track at first found tracklet radius w/ matching MC label
-      "trackZReal.=" << &fTrackZReal <<                    // z-pos for track at first found tracklet radius w/ matching MC label
-      "trackSecReal.=" << &fTrackSecReal <<                // TRD sector for track at first found tracklet w/ matching MC label
-      "trackletXReal.=" << &fTrackletXReal <<              // x position (sector coords) for matching or related tracklet if available, otherwise 0
-      "trackletYReal.=" << &fTrackletYcorrReal <<          // y position (sector coords, tilt correctet position) for matching or related tracklet if available, otherwise 0
-      "trackletZReal.=" << &fTrackletZcorrReal <<          // z position (sector coords, tilt correctet position) for matching or related tracklet if available, otherwise 0
-      "trackletYRawReal.=" << &fTrackletYReal <<           // y position (sector coords) for matching or related tracklet if available, otherwise 0
-      "trackletZRawReal.=" << &fTrackletZReal <<           // z position (sector coords) for matching or related tracklet if available, otherwise 0
-      "trackletSecReal.=" << &fTrackletSecReal <<          // sector number for matching or related tracklet if available, otherwise -1
-      "trackletDetReal.=" << &fTrackletDetReal <<          // detector number for matching or related tracklet if available, otherwise -1
       "chi2Update.=" << &fChi2Update <<                    // chi2 for update
-      "chi2Real.=" << &fChi2Real <<                        // chi2 for first tracklet w/ matching MC label
       "chi2Total=" << fChi2 <<                             // total chi2 for track
       "nLayers=" << fNlayers <<                            // number of layers in which track was findable
       "nTracklets=" << fNtrklts <<                         // number of attached tracklets
-      "nTrackletsOffline=" << fNtrkltsRef <<               // number of attached offline tracklets
-      "nTrackletsOfflineMatch=" << fNtrkltsRefMatch <<     // number of attached offline tracklets
-      "nTrackletsOfflineRelated=" << fNtrkltsRefRelated << // number of attached offline tracklets
-      "nTrackletsOfflineFake=" << fNtrkltsRefFake <<       // number of attached offline tracklets
-      "labelRef=" << fTrackIDref <<                        // TRD MC track label from offline, if provided
       "roadY.=" << &fRoadY <<                              // search road width in Y
       "roadZ.=" << &fRoadZ <<                              // search road width in Z
       "findable.=" << &fFindable <<                        // whether or not track was in active TRD volume (layerwise)
-      "findableMC.=" << &fFindableMC <<                    // whether or not a MC hit existed inside the TRD for the track (layerwise)
-      "update.=" << &fUpdates <<                           // layerwise tracklet attachment (0 - no tracklet, [1-3] matching tracklet, [4-6] related tracklet, 9 fake tracklet)
-      "nRelated=" << fNrelated <<                          // number of attached related tracklets
-      "nMatching=" << fNmatch <<                           // number of attached matching tracklets
-      "nFake=" << fNfake <<                                // number of attached fake tracklets
-      "nMatchingTracklets.=" << &fNmatchesAvail <<         // number of matching + related tracklets for this track in each layer
-      "XvMC=" << fXvMC <<                                  // MC production vertex x
-      "YvMC=" << fYvMC <<                                  // MC production vertex y
-      "ZvMC=" << fZvMC <<                                  // MC production vertex z
-      "pdgCode=" << fPdgCode <<                            // MC PID
       "\n";
   }
 
@@ -392,20 +263,9 @@ class GPUTRDTrackerDebug
   int fEv;
   int fNTPCtracks;
   int fTrk;
-  int mTrackId;
   float fPtTPC;
-  int fNtrklts;
-  int fNtrkltsRef;
-  int fNtrkltsRefMatch;
-  int fNtrkltsRefRelated;
-  int fNtrkltsRefFake;
-  int fTrackIDref;
   int fNlayers;
   float fChi2;
-  int fNmatch;
-  int fNfake;
-  int fNrelated;
-  TVectorF fNmatchesAvail;
   TVectorF fTrackX;
   TVectorF fTrackY;
   TVectorF fTrackZ;
@@ -435,28 +295,10 @@ class GPUTRDTrackerDebug
   TVectorF fTrackletZ2err;
   TVectorF fTrackletDy;
   TVectorF fTrackletDet;
-  TVectorF fTrackXReal;
-  TVectorF fTrackYReal;
-  TVectorF fTrackZReal;
-  TVectorF fTrackSecReal;
-  TVectorF fTrackletXReal;
-  TVectorF fTrackletYReal;
-  TVectorF fTrackletZReal;
-  TVectorF fTrackletYcorrReal;
-  TVectorF fTrackletZcorrReal;
-  TVectorF fTrackletSecReal;
-  TVectorF fTrackletDetReal;
   TVectorF fChi2Update;
-  TVectorF fChi2Real;
   TVectorF fRoadY;
   TVectorF fRoadZ;
   TVectorF fFindable;
-  TVectorF fFindableMC;
-  TVectorF fUpdates;
-  float fXvMC;
-  float fYvMC;
-  float fZvMC;
-  int fPdgCode;
 
   TTreeSRedirector* fStreamer;
 };
@@ -480,36 +322,26 @@ class GPUTRDTrackerDebug
   GPUd() void Reset() {}
 
   // general information
-  GPUd() void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, int trackId, float pt) {}
-  GPUd() void SetTrackProperties(int nMatch = 0, int nFake = 0, int nRelated = 0) {}
+  GPUd() void SetGeneralInfo(int iEv, int nTPCtracks, int iTrk, float pt) {}
 
   // track parameters
   GPUd() void SetTrackParameter(const T& trk, int ly) {}
   GPUd() void SetTrackParameterNoUp(const T& trk, int ly) {}
-  GPUd() void SetTrackParameterReal(const T& trk, int ly) {}
   GPUd() void SetTrack(const T& trk) {}
 
   // tracklet parameters
-  GPUd() void SetRawTrackletPosition(const float fX, const float* fYZ, int ly) {}
+  GPUd() void SetRawTrackletPosition(const float fX, const float fY, const float fZ, int ly) {}
   GPUd() void SetCorrectedTrackletPosition(const My_Float* fYZ, int ly) {}
   GPUd() void SetTrackletCovariance(const My_Float* fCov, int ly) {}
   GPUd() void SetTrackletProperties(const float dy, const int det, int ly) {}
-  GPUd() void SetRawTrackletPositionReal(float fX, float* fYZ, int ly) {}
-  GPUd() void SetCorrectedTrackletPositionReal(My_Float* fYZ, int ly) {}
-  GPUd() void SetTrackletPropertiesReal(const int det, int ly) {}
 
   // update information
   GPUd() void SetChi2Update(float chi2, int ly) {}
-  GPUd() void SetChi2Real(float chi2, int ly) {}
   GPUd() void SetChi2YZPhiUpdate(float chi2, int ly) {}
 
   // other infos
   GPUd() void SetRoad(float roadY, float roadZ, int ly) {}
-  GPUd() void SetUpdates(int* up) {}
-  GPUd() void SetNmatchAvail(size_t i, int ly) {}
   GPUd() void SetFindable(bool* findable) {}
-  GPUd() void SetFindableMC(bool* findableMC) {}
-  GPUd() void SetMCinfo(float xv, float yv, float zv, int pdg) {}
   GPUd() void Output() {}
 };
 #ifndef GPUCA_ALIROOT_LIB

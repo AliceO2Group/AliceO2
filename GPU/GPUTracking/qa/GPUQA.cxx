@@ -14,7 +14,7 @@
 #define QA_DEBUG 0
 #define QA_TIMING 0
 
-#include "Rtypes.h"
+#include "Rtypes.h" // Include ROOT header first, to use ROOT and disable replacements
 
 #include "TH1F.h"
 #include "TH2F.h"
@@ -206,12 +206,12 @@ static constexpr Color_t defaultColorNUms[COLORCOUNT] = {kRed, kBlue, kGreen, kM
 #ifdef GPUCA_TPC_GEOMETRY_O2
 inline unsigned int GPUQA::GetNMCCollissions() const
 {
-  return mMCInfos.size();
+  return mMCInfosCol.size();
 }
-inline unsigned int GPUQA::GetNMCTracks(int iCol) const { return mMCInfos[iCol].size(); }
+inline unsigned int GPUQA::GetNMCTracks(int iCol) const { return mMCInfosCol[iCol].num; }
 inline unsigned int GPUQA::GetNMCLabels() const { return mClNative->clustersMCTruth ? mClNative->clustersMCTruth->getIndexedSize() : 0; }
-inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(unsigned int iTrk, unsigned int iCol) { return mMCInfos[iCol][iTrk]; }
-inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(const mcLabel_t& label) { return mMCInfos[label.getEventID()][label.getTrackID()]; }
+inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(unsigned int iTrk, unsigned int iCol) { return mMCInfos[mMCInfosCol[iCol].first + iTrk]; }
+inline const GPUQA::mcInfo_t& GPUQA::GetMCTrack(const mcLabel_t& label) { return mMCInfos[mMCInfosCol[label.getEventID()].first + label.getTrackID()]; }
 inline GPUQA::mcLabels_t GPUQA::GetMCLabel(unsigned int i) { return mClNative->clustersMCTruth->getLabels(i); }
 inline int GPUQA::GetMCLabelNID(const mcLabels_t& label) { return label.size(); }
 inline int GPUQA::GetMCLabelNID(unsigned int i) { return mClNative->clustersMCTruth->getLabels(i).size(); }
@@ -561,13 +561,12 @@ void GPUQA::DumpO2MCData(const char* filename) const
   if (fp == nullptr) {
     return;
   }
-  unsigned int n = GetNMCCollissions();
+  unsigned int n = mMCInfos.size();
   fwrite(&n, sizeof(n), 1, fp);
-  for (unsigned int i = 0; i < n; i++) {
-    unsigned int nn = GetNMCTracks(i);
-    fwrite(&nn, sizeof(nn), 1, fp);
-    fwrite(mMCInfos[i].data(), sizeof(mMCInfos[i][0]), nn, fp);
-  }
+  fwrite(mMCInfos.data(), sizeof(mMCInfos[0]), n, fp);
+  n = mMCInfosCol.size();
+  fwrite(&n, sizeof(n), 1, fp);
+  fwrite(mMCInfosCol.data(), sizeof(mMCInfosCol[0]), n, fp);
   fclose(fp);
 }
 
@@ -584,110 +583,131 @@ int GPUQA::ReadO2MCData(const char* filename)
     return 1;
   }
   mMCInfos.resize(n);
-  for (unsigned int i = 0; i < n; i++) {
-    unsigned int nn = GetNMCTracks(i);
-    if (fread(&nn, sizeof(nn), 1, fp) != 1) {
-      fclose(fp);
-      return 1;
-    }
-    mMCInfos[i].resize(nn);
-    if (fread(mMCInfos[i].data(), sizeof(mMCInfos[i][0]), nn, fp) != nn) {
-      fclose(fp);
-      return 1;
-    }
+  if (fread(mMCInfos.data(), sizeof(mMCInfos[0]), n, fp) != n) {
+    fclose(fp);
+    return 1;
+  }
+  if ((x = fread(&n, sizeof(n), 1, fp)) != 1) {
+    fclose(fp);
+    return 1;
+  }
+  mMCInfosCol.resize(n);
+  if (fread(mMCInfosCol.data(), sizeof(mMCInfosCol[0]), n, fp) != n) {
+    fclose(fp);
+    return 1;
   }
   fclose(fp);
+  if (mTracking) {
+    CopyO2MCtoIOPtr(&mTracking->mIOPtrs);
+  }
   return 0;
 }
 
-void GPUQA::InitO2MCData()
+void GPUQA::CopyO2MCtoIOPtr(GPUTrackingInOutPointers* ptr)
+{
+  ptr->mcInfosTPC = mMCInfos.data();
+  ptr->nMCInfosTPC = mMCInfos.size();
+  ptr->mcInfosTPCCol = mMCInfosCol.data();
+  ptr->nMCInfosTPCCol = mMCInfosCol.size();
+}
+
+void GPUQA::InitO2MCData(GPUTrackingInOutPointers* updateIOPtr)
 {
 #ifdef GPUCA_O2_LIB
-  HighResTimer timer;
-  if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
-    GPUInfo("Start reading O2 Track MC information");
-    timer.Start();
-  }
-  static constexpr float PRIM_MAX_T = 0.01f;
-
-  o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
-  int nSimEvents = mcReader.getNEvents(0);
-  mMCInfos.resize(nSimEvents);
-  std::vector<int> refId;
-
-  auto dc = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
-  auto evrec = dc->getEventRecords();
-
-  for (int i = 0; i < nSimEvents; i++) {
-    auto ir = evrec[i];
-    auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
-    float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
-
-    const std::vector<o2::MCTrack>& tracks = mcReader.getTracks(0, i);
-    const std::vector<o2::TrackReference>& trackRefs = mcReader.getTrackRefsByEvent(0, i);
-
-    refId.resize(tracks.size());
-    std::fill(refId.begin(), refId.end(), -1);
-    for (unsigned int j = 0; j < trackRefs.size(); j++) {
-      if (trackRefs[j].getDetectorId() == o2::detectors::DetID::TPC) {
-        int trkId = trackRefs[j].getTrackID();
-        if (refId[trkId] == -1) {
-          refId[trkId] = j;
-        }
-      }
+  if (!mO2MCDataLoaded) {
+    HighResTimer timer;
+    if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
+      GPUInfo("Start reading O2 Track MC information");
+      timer.Start();
     }
-    mMCInfos[i].resize(tracks.size());
-    for (unsigned int j = 0; j < tracks.size(); j++) {
-      auto& info = mMCInfos[i][j];
-      const auto& trk = tracks[j];
-      TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(trk.GetPdgCode());
-      Int_t pid = -1;
-      if (abs(trk.GetPdgCode()) == kElectron) {
-        pid = 0;
-      }
-      if (abs(trk.GetPdgCode()) == kMuonMinus) {
-        pid = 1;
-      }
-      if (abs(trk.GetPdgCode()) == kPiPlus) {
-        pid = 2;
-      }
-      if (abs(trk.GetPdgCode()) == kKPlus) {
-        pid = 3;
-      }
-      if (abs(trk.GetPdgCode()) == kProton) {
-        pid = 4;
-      }
+    static constexpr float PRIM_MAX_T = 0.01f;
 
-      info.charge = particle ? particle->Charge() : 0;
-      info.prim = trk.T() < PRIM_MAX_T;
-      info.primDaughters = 0;
-      if (trk.getFirstDaughterTrackId() != -1) {
-        for (int k = trk.getFirstDaughterTrackId(); k <= trk.getLastDaughterTrackId(); k++) {
-          if (tracks[k].T() < PRIM_MAX_T) {
-            info.primDaughters = 1;
-            break;
+    o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
+    int nSimEvents = mcReader.getNEvents(0);
+    mMCInfos.resize(nSimEvents);
+    std::vector<int> refId;
+
+    auto dc = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
+    auto evrec = dc->getEventRecords();
+
+    mMCInfosCol.resize(nSimEvents);
+    for (int i = 0; i < nSimEvents; i++) {
+      auto ir = evrec[i];
+      auto ir0 = o2::raw::HBFUtils::Instance().getFirstIRofTF(ir);
+      float timebin = (float)ir.differenceInBC(ir0) / o2::tpc::constants::LHCBCPERTIMEBIN;
+
+      const std::vector<o2::MCTrack>& tracks = mcReader.getTracks(0, i);
+      const std::vector<o2::TrackReference>& trackRefs = mcReader.getTrackRefsByEvent(0, i);
+
+      refId.resize(tracks.size());
+      std::fill(refId.begin(), refId.end(), -1);
+      for (unsigned int j = 0; j < trackRefs.size(); j++) {
+        if (trackRefs[j].getDetectorId() == o2::detectors::DetID::TPC) {
+          int trkId = trackRefs[j].getTrackID();
+          if (refId[trkId] == -1) {
+            refId[trkId] = j;
           }
         }
       }
-      info.pid = pid;
-      info.t0 = timebin;
-      if (refId[j] >= 0) {
-        const auto& trkRef = trackRefs[refId[j]];
-        info.x = trkRef.X();
-        info.y = trkRef.Y();
-        info.z = trkRef.Z();
-        info.pX = trkRef.Px();
-        info.pY = trkRef.Py();
-        info.pZ = trkRef.Pz();
-        info.genRadius = std::sqrt(trk.GetStartVertexCoordinatesX() * trk.GetStartVertexCoordinatesX() + trk.GetStartVertexCoordinatesY() * trk.GetStartVertexCoordinatesY() + trk.GetStartVertexCoordinatesZ() * trk.GetStartVertexCoordinatesZ());
-      } else {
-        info.x = info.y = info.z = info.pX = info.pY = info.pZ = 0;
-        info.genRadius = 0;
+      mMCInfosCol[i].first = mMCInfos.size();
+      mMCInfosCol[i].num = tracks.size();
+      mMCInfos.resize(mMCInfos.size() + tracks.size());
+      for (unsigned int j = 0; j < tracks.size(); j++) {
+        auto& info = mMCInfos[mMCInfosCol[i].first + j];
+        const auto& trk = tracks[j];
+        TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(trk.GetPdgCode());
+        Int_t pid = -1;
+        if (abs(trk.GetPdgCode()) == kElectron) {
+          pid = 0;
+        }
+        if (abs(trk.GetPdgCode()) == kMuonMinus) {
+          pid = 1;
+        }
+        if (abs(trk.GetPdgCode()) == kPiPlus) {
+          pid = 2;
+        }
+        if (abs(trk.GetPdgCode()) == kKPlus) {
+          pid = 3;
+        }
+        if (abs(trk.GetPdgCode()) == kProton) {
+          pid = 4;
+        }
+
+        info.charge = particle ? particle->Charge() : 0;
+        info.prim = trk.T() < PRIM_MAX_T;
+        info.primDaughters = 0;
+        if (trk.getFirstDaughterTrackId() != -1) {
+          for (int k = trk.getFirstDaughterTrackId(); k <= trk.getLastDaughterTrackId(); k++) {
+            if (tracks[k].T() < PRIM_MAX_T) {
+              info.primDaughters = 1;
+              break;
+            }
+          }
+        }
+        info.pid = pid;
+        info.t0 = timebin;
+        if (refId[j] >= 0) {
+          const auto& trkRef = trackRefs[refId[j]];
+          info.x = trkRef.X();
+          info.y = trkRef.Y();
+          info.z = trkRef.Z();
+          info.pX = trkRef.Px();
+          info.pY = trkRef.Py();
+          info.pZ = trkRef.Pz();
+          info.genRadius = std::sqrt(trk.GetStartVertexCoordinatesX() * trk.GetStartVertexCoordinatesX() + trk.GetStartVertexCoordinatesY() * trk.GetStartVertexCoordinatesY() + trk.GetStartVertexCoordinatesZ() * trk.GetStartVertexCoordinatesZ());
+        } else {
+          info.x = info.y = info.z = info.pX = info.pY = info.pZ = 0;
+          info.genRadius = 0;
+        }
       }
     }
+    if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
+      GPUInfo("Finished reading O2 Track MC information (%f seconds)", timer.GetCurrentElapsedTime());
+    }
+    mO2MCDataLoaded = true;
   }
-  if (mTracking && mTracking->GetProcessingSettings().debugLevel) {
-    GPUInfo("Finished reading O2 Track MC information (%f seconds)", timer.GetCurrentElapsedTime());
+  if (updateIOPtr) {
+    CopyO2MCtoIOPtr(updateIOPtr);
   }
 #endif
 }
@@ -720,7 +740,7 @@ int GPUQA::InitQA(int tasks)
 
 #ifdef GPUCA_O2_LIB
   if (!mConfig.noMC) {
-    InitO2MCData();
+    InitO2MCData(mTracking ? &mTracking->mIOPtrs : nullptr);
   }
 #endif
 

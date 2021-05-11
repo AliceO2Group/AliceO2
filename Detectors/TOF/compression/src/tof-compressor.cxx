@@ -19,6 +19,8 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -35,6 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(outputDesc);
   workflowOptions.push_back(rdhVersion);
   workflowOptions.push_back(verbose);
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -42,7 +45,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 /// This function hooks up the the workflow specifications into the DPL driver.
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   auto config = cfgc.options().get<std::string>("tof-compressor-config");
   //  auto outputDesc = cfgc.options().get<std::string>("output-desc");
   auto rdhVersion = cfgc.options().get<int>("tof-compressor-rdh-version");

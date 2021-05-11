@@ -25,7 +25,6 @@
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
-#include "TSystem.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include <SimulationDataFormat/IOMCTruthContainerView.h>
@@ -41,6 +40,7 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "SimConfig/DigiParams.h"
+#include <filesystem>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -133,7 +133,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
         readSpaceCharge.push_back(substr);
       }
       if (readSpaceCharge[0].size() != 0) { // use pre-calculated space-charge object
-        if (!gSystem->AccessPathName(readSpaceCharge[0].data())) {
+        if (std::filesystem::exists(readSpaceCharge[0])) {
           TFile fileSC(readSpaceCharge[0].data(), "READ");
           mDigitizer.setUseSCDistortions(fileSC);
         } else {
@@ -150,7 +150,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
           inputHisto.push_back(substr);
         }
         std::unique_ptr<TH3> hisSCDensity;
-        if (!gSystem->AccessPathName(inputHisto[0].data())) {
+        if (std::filesystem::exists(inputHisto[0])) {
           auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
           if (fileSCInput->FindKey(inputHisto[1].data())) {
             hisSCDensity.reset((TH3*)fileSCInput->Get(inputHisto[1].data()));
@@ -216,7 +216,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     /// For the time being use the defaults for the CDB
     auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults();
-    if (!gSystem->AccessPathName("GainMap.root")) {
+    if (std::filesystem::exists("GainMap.root")) {
       LOG(INFO) << "TPC: Using gain map from 'GainMap.root'";
       cdb.setGainMapFromFile("GainMap.root");
     }

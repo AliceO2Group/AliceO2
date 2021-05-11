@@ -14,28 +14,44 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
-#include "TRDWorkflow/TRDTrackletReaderSpec.h"
+#include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "TRDWorkflow/TRDTrackletTransformerSpec.h"
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDWorkflow/TRDTrackWriterSpec.h"
+#include "TRDWorkflow/TRDTrackingWorkflow.h"
+
+using GTrackID = o2::dataformats::GlobalTrackID;
 
 namespace o2
 {
 namespace trd
 {
 
-framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, bool useTrkltTransf)
+framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, GTrackID::mask_t srcTRD)
 {
   framework::WorkflowSpec specs;
   bool useMC = false;
   if (!disableRootInp) {
-    specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
-    specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(useMC, useTrkltTransf));
+    if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
+      specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
+    }
+    if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
+      specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
+    }
+    specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(useMC, false));
   }
 
-  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, useTrkltTransf));
+  specs.emplace_back(o2::trd::getTRDTrackletTransformerSpec());
+  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD));
 
   if (!disableRootOut) {
-    specs.emplace_back(o2::trd::getTRDTrackWriterSpec(useMC));
+    if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
+      specs.emplace_back(o2::trd::getTRDGlobalTrackWriterSpec(useMC));
+    }
+    if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
+      specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC));
+    }
   }
   return specs;
 }

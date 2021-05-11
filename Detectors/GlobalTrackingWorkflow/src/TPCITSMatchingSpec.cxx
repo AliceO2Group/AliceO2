@@ -36,19 +36,17 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
-#include "ITStracking/IOUtils.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonDataFormat/FlatHisto2D.h"
-
-// RSTODO to remove once the framework will start propagating the header.firstTForbit
-#include "DetectorsRaw/HBFUtils.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 using namespace o2::framework;
 using MCLabelsCl = o2::dataformats::MCTruthContainer<o2::MCCompLabel>;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
+using GTrackID = o2::dataformats::GlobalTrackID;
 
 namespace o2
 {
@@ -58,17 +56,20 @@ namespace globaltracking
 class TPCITSMatchingDPL : public Task
 {
  public:
-  TPCITSMatchingDPL(bool useFT0, bool calib, bool useMC) : mUseFT0(useFT0), mCalibMode(calib), mUseMC(useMC) {}
+  TPCITSMatchingDPL(std::shared_ptr<DataRequest> dr, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
+    : mDataRequest(dr), mUseFT0(useFT0), mCalibMode(calib), mSkipTPCOnly(skipTPCOnly), mUseMC(useMC) {}
   ~TPCITSMatchingDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
+  std::shared_ptr<DataRequest> mDataRequest;
   o2::globaltracking::MatchTPCITS mMatching; // matching engine
   o2::itsmft::TopologyDictionary mITSDict;   // cluster patterns dictionary
   bool mUseFT0 = false;
   bool mCalibMode = false;
+  bool mSkipTPCOnly = false; // to use only externally constrained tracks (for test only)
   bool mUseMC = true;
   TStopwatch mTimer;
 };
@@ -79,8 +80,9 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mTimer.Reset();
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+  o2::base::Propagator::initFieldFromGRP();
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+  mMatching.setSkipTPCOnly(mSkipTPCOnly);
   mMatching.setITSTriggered(!grp->isDetContinuousReadOut(o2::detectors::DetID::ITS));
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
   if (mMatching.isITSTriggered()) {
@@ -93,18 +95,19 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setVDriftCalib(mCalibMode);
   //
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
-  if (o2::base::NameConf::pathExists(dictFile)) {
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  if (o2::utils::Str::pathExists(dictFile)) {
     mITSDict.readBinaryFile(dictFile);
     LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
   } else {
     LOG(INFO) << "Dictionary " << dictFile << " is absent, Matching expects ITS cluster patterns";
   }
+  mMatching.setITSDictionary(&mITSDict);
 
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
   std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::base::NameConf::pathExists(matLUTFile)) {
+  if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
     LOG(INFO) << "Loaded material LUT from " << matLUTFile;
@@ -126,69 +129,13 @@ void TPCITSMatchingDPL::init(InitContext& ic)
 
 void TPCITSMatchingDPL::run(ProcessingContext& pc)
 {
-  mTimer.Start(false);
-  const auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
-  const auto trackClIdxITS = pc.inputs().get<gsl::span<int>>("trackClIdx");
-  const auto tracksITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF");
-  const auto clusITS = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("clusITS");
-  const auto clusITSROF = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("clusITSROF");
-  const auto patterns = pc.inputs().get<gsl::span<unsigned char>>("clusITSPatt");
-  const auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
-  const auto tracksTPCClRefs = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
-
-  const auto clusTPCShmap = pc.inputs().get<gsl::span<unsigned char>>("clusTPCshmap");
-
-  const auto& inputsTPCclusters = o2::tpc::getWorkflowTPCInput(pc);
-
-  //
-  MCLabelsTr lblITS;
-  MCLabelsTr lblTPC;
-
-  const MCLabelsCl* lblClusITSPtr = nullptr;
-  std::unique_ptr<const MCLabelsCl> lblClusITS;
-
-  if (mUseMC) {
-    lblITS = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR");
-    lblTPC = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCMCTR");
-
-    lblClusITS = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("clusITSMCTR");
-    lblClusITSPtr = lblClusITS.get();
-  }
-  //
-  // create ITS clusters as spacepoints in tracking frame
-  std::vector<o2::BaseCluster<float>> itsSP;
-  itsSP.reserve(clusITS.size());
-  auto pattIt = patterns.begin();
-  o2::its::ioutils::convertCompactClusters(clusITS, pattIt, itsSP, mITSDict);
-
-  // pass input data to MatchTPCITS object
-  mMatching.setITSTracksInp(tracksITS);
-  mMatching.setITSTrackClusIdxInp(trackClIdxITS);
-  mMatching.setITSTrackROFRecInp(tracksITSROF);
-  mMatching.setITSClustersInp(itsSP);
-  mMatching.setITSClusterROFRecInp(clusITSROF);
-  mMatching.setTPCTracksInp(tracksTPC);
-  mMatching.setTPCTrackClusIdxInp(tracksTPCClRefs);
-  mMatching.setTPCClustersInp(&inputsTPCclusters->clusterIndex);
-  mMatching.setTPCClustersSharingMap(clusTPCShmap);
-
-  if (mUseMC) {
-    mMatching.setITSTrkLabelsInp(lblITS);
-    mMatching.setTPCTrkLabelsInp(lblTPC);
-    mMatching.setITSClsLabelsInp(lblClusITSPtr);
-  }
-
-  if (mUseFT0) {
-    // Note: the particular variable will go out of scope, but the span is passed by copy to the
-    // worker and the underlying memory is valid throughout the whole computation
-    auto fitInfo = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("fitInfo");
-    mMatching.setFITInfoInp(fitInfo);
-  }
-
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
-  mMatching.setStartIR({0, dh->firstTForbit});
+  LOG(INFO) << " startOrbit: " << dh->firstTForbit;
+  mTimer.Start(false);
+  RecoContainer recoData;
+  recoData.collectData(pc, *mDataRequest.get());
 
-  mMatching.run();
+  mMatching.run(recoData);
 
   pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mMatching.getMatchedTracks());
   if (mUseMC) {
@@ -200,7 +147,6 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{"GLO", "TPCITS_VDHDTGL", 0, Lifetime::Timeframe}, (*hdtgl).getBase());
     hdtgl->clear();
   }
-
   mTimer.Stop();
 }
 
@@ -211,27 +157,17 @@ void TPCITSMatchingDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC)
+DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool calib, bool skipTPCOnly, bool useMC)
 {
-
-  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
-  inputs.emplace_back("trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackClIdx", "ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackITSROF", "ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusITS", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusITSPatt", "ITS", "PATTERNS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("clusITSROF", "ITS", "CLUSTERSROF", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackTPCClRefs", "TPC", "CLUSREFS", 0, Lifetime::Timeframe);
+  auto dataRequest = std::make_shared<DataRequest>();
 
-  inputs.emplace_back("clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe);
-  inputs.emplace_back("clusTPCshmap", "TPC", "CLSHAREDMAP", 0, Lifetime::Timeframe);
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
 
   if (useFT0) {
-    inputs.emplace_back("fitInfo", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
+    dataRequest->requestFT0RecPoints(false);
   }
-
   outputs.emplace_back("GLO", "TPCITS", 0, Lifetime::Timeframe);
 
   if (calib) {
@@ -239,18 +175,15 @@ DataProcessorSpec getTPCITSMatchingSpec(bool useFT0, bool calib, bool useMC)
   }
 
   if (useMC) {
-    inputs.emplace_back("trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
-    inputs.emplace_back("trackTPCMCTR", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
-    inputs.emplace_back("clusITSMCTR", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
-    //
+    dataRequest->inputs.emplace_back("clusITSMCTR", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe); // for afterburner
     outputs.emplace_back("GLO", "TPCITS_MC", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
     "itstpc-track-matcher",
-    inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(useFT0, calib, useMC)},
+    AlgorithmSpec{adaptFromTask<TPCITSMatchingDPL>(dataRequest, useFT0, calib, skipTPCOnly, useMC)},
     Options{
       {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
       {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},

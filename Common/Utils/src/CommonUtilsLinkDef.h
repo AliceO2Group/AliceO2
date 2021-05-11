@@ -20,6 +20,7 @@
 #pragma link C++ class o2::utils::RngHelper;
 #pragma link C++ class o2::utils::MemFileHelper + ;
 #pragma link C++ class o2::utils::RootSerializableKeyValueStore::SerializedInfo + ;
+#pragma link C++ class o2::utils::Str + ;
 #pragma link C++ class pair < string, o2::utils::RootSerializableKeyValueStore::SerializedInfo> + ;
 #pragma link C++ class map < string, o2::utils::RootSerializableKeyValueStore::SerializedInfo> + ;
 #pragma link C++ class o2::utils::RootSerializableKeyValueStore + ;

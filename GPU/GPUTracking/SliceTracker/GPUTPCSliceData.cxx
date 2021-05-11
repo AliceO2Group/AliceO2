@@ -310,7 +310,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     GPUbarrier();
     const GPUTPCGrid& grid = row.mGrid;
     const int numberOfBins = grid.N();
-    CONSTEXPR int maxBins = sizeof(calink) < 4 ? (1 << (sizeof(calink) * 8)) : 0x7FFFFFFF; // NOLINT: false warning
+    CONSTEXPR int maxBins = sizeof(calink) < 4 ? (int)(1ul << (sizeof(calink) * 8)) : 0x7FFFFFFF; // NOLINT: false warning
     if (sizeof(calink) < 4 && numberOfBins >= maxBins) {
       if (iThread == 0) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_BIN_OVERFLOW, rowIndex, numberOfBins, maxBins);

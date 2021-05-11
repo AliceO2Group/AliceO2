@@ -35,6 +35,7 @@
 #include <fairlogger/Logger.h>
 #include <array>
 
+#include "DataFormatsTRD/HelperMethods.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/PadPlane.h"
@@ -78,14 +79,11 @@ FeeParam::FeeParam()
   // Default constructor
   //
 
-  // These variables are used internally in the class to elliminate divisions.
-  // putting them at the top was messy.
-  int j = 0;
-  std::for_each(mInvX.begin(), mInvX.end(), [&](float& x) { x = 1. / mX[j]; });
-  j = 0;
-  std::for_each(mInvWidthPad.begin(), mInvWidthPad.end(), [&](float& x) { x = 1. / mWidthPad[j]; });
-  j = 0;
-  std::for_each(mTiltingAngleTan.begin(), mTiltingAngleTan.end(), [&](float& x) { x = std::tan(mTiltingAngle[j] * M_PI / 180.0); });
+  for (int j = 0; j < constants::NLAYER; ++j) {
+    mInvX[j] = 1. / mX[j];
+    mInvWidthPad[j] = 1. / mWidthPad[j];
+    mTiltingAngleTan[j] = std::tan(mTiltingAngle[j] * M_PI / 180.0);
+  }
 
   fillPad2MCMLookUpTable();
 }
@@ -99,7 +97,7 @@ int FeeParam::getPadRowFromMCM(int irob, int imcm)
   // Return on which pad row this mcm sits
   //
 
-  return NMCMROBINROW * (irob / 2) + imcm / NMCMROBINCOL;
+  return HelperMethods::getPadRowFromMCM(irob, imcm);
 }
 
 //_____________________________________________________________________________
@@ -118,15 +116,7 @@ int FeeParam::getPadColFromADC(int irob, int imcm, int iadc)
   // http://wiki.kip.uni-heidelberg.de/ti/TRD/index.php/Image:ROB_MCM_numbering.pdf
   //
 
-  if (iadc < 0 || iadc > NADCMCM) {
-    return -100;
-  }
-  int mcmcol = imcm % NMCMROBINCOL + getROBSide(irob) * NMCMROBINCOL; // MCM column number on ROC [0..7]
-  int padcol = mcmcol * NCOLMCM + NCOLMCM + 1 - iadc;
-  if (padcol < 0 || padcol >= NCOLUMN) {
-    return -1; // this is commented because of reason above OK
-  }
-  return padcol;
+  return HelperMethods::getPadColFromADC(irob, imcm, iadc);
 }
 
 //_____________________________________________________________________________
@@ -155,10 +145,7 @@ int FeeParam::getMCMfromPad(int irow, int icol)
   // Return -1 for error.
   //
 
-  if (irow < 0 || icol < 0 || irow > NROWC1 || icol > NCOLUMN) {
-    return -1;
-  }
-  return (icol % (NCOLUMN / 2)) / NCOLMCM + NMCMROBINCOL * (irow % NMCMROBINROW);
+  return HelperMethods::getMCMfromPad(irow, icol);
 }
 
 //_____________________________________________________________________________
@@ -198,7 +185,7 @@ int FeeParam::getROBfromPad(int irow, int icol)
   //
   // Return on which rob this pad is
   //
-  return (irow / NMCMROBINROW) * 2 + getColSide(icol);
+  return HelperMethods::getROBfromPad(irow, icol);
 }
 
 //_____________________________________________________________________________
@@ -221,12 +208,7 @@ int FeeParam::getROBSide(int irob)
   //
   // Return on which side this rob sits (A side = 0, B side = 1)
   //
-
-  if (irob < 0 || irob >= NROBC1) {
-    return -1;
-  }
-
-  return irob % 2;
+  return HelperMethods::getROBSide(irob);
 }
 
 //_____________________________________________________________________________
@@ -236,11 +218,7 @@ int FeeParam::getColSide(int icol)
   // Return on which side this column sits (A side = 0, B side = 1)
   //
 
-  if (icol < 0 || icol >= NCOLUMN) {
-    return -1;
-  }
-
-  return icol / (NCOLUMN / 2);
+  return HelperMethods::getColSide(icol);
 }
 
 unsigned int FeeParam::aliToExtAli(int rob, int aliid)

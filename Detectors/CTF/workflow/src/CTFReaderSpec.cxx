@@ -66,7 +66,7 @@ using DetID = o2::detectors::DetID;
 class CTFReaderSpec : public o2::framework::Task
 {
  public:
-  CTFReaderSpec(DetID::mask_t dm, const std::string& inp);
+  CTFReaderSpec(DetID::mask_t dm, const std::string& inp, int loop = 1, int delayMUS = 0);
   ~CTFReaderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -76,12 +76,15 @@ class CTFReaderSpec : public o2::framework::Task
   std::vector<std::string> mInput; // input files
   uint32_t mTFCounter = 0;
   size_t mNextToProcess = 0;
+  int mLoops = 1;
+  int mLoopsCounter = 0;
+  int mDelayMUS = 0;
   std::string mCTFDir = "";
   TStopwatch mTimer;
 };
 
 ///_______________________________________
-CTFReaderSpec::CTFReaderSpec(DetID::mask_t dm, const std::string& inp) : mDets(dm)
+CTFReaderSpec::CTFReaderSpec(DetID::mask_t dm, const std::string& inp, int loop, int delayMUS) : mDets(dm), mLoops(loop), mDelayMUS(delayMUS)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -91,7 +94,7 @@ CTFReaderSpec::CTFReaderSpec(DetID::mask_t dm, const std::string& inp) : mDets(d
 ///_______________________________________
 void CTFReaderSpec::init(InitContext& ic)
 {
-  mCTFDir = o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir"));
+  mCTFDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir"));
 }
 
 ///_______________________________________
@@ -100,10 +103,13 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (mNextToProcess >= mInput.size()) {
     return;
   }
+  if (mDelayMUS && mTFCounter > 0) {
+    usleep(mDelayMUS);
+  }
 
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  std::string inputFile = o2::utils::concat_string(mCTFDir, mInput[mNextToProcess]);
+  std::string inputFile = o2::utils::Str::concat_string(mCTFDir, mInput[mNextToProcess]);
   LOG(INFO) << "Reading CTF input " << mNextToProcess << ' ' << inputFile;
 
   TFile flIn(inputFile.c_str());
@@ -124,7 +130,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   auto setFirstTFOrbit = [&](const std::string& label) {
     auto* hd = pc.outputs().findMessageHeader({label});
     if (!hd) {
-      throw std::runtime_error(o2::utils::concat_string("failed to find output message header for ", label));
+      throw std::runtime_error(o2::utils::Str::concat_string("failed to find output message header for ", label));
     }
     hd->firstTForbit = ctfHeader.firstTForbit;
     hd->tfCounter = mTFCounter;
@@ -243,19 +249,30 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOG(INFO) << "Read CTF " << inputFile << " in " << mTimer.CpuTime() - cput << " s";
+  LOGF(INFO, "Read CTF %s in %.3e s", inputFile.c_str(), mTimer.CpuTime() - cput);
 
+  bool moreToProcess = true;
   if (++mNextToProcess >= mInput.size()) {
+    if (++mLoopsCounter >= mLoops) {
+      moreToProcess = false;
+    } else {
+      mNextToProcess = 0;
+      LOG(INFO) << "Starting new loop " << mNextToProcess << " of " << mLoops;
+    }
+  }
+
+  mTFCounter++;
+
+  if (!moreToProcess) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    LOGF(INFO, "CTF reading total timing: Cpu: %.3e Real: %.3e s in %d slots",
-         mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+    LOGF(INFO, "CTF reading total timing: Cpu: %.3e Real: %.3e s for %u TFs in %d loops",
+         mTimer.CpuTime(), mTimer.RealTime(), mTFCounter, mLoops);
   }
-  mTFCounter++;
 }
 
 ///_______________________________________
-DataProcessorSpec getCTFReaderSpec(DetID::mask_t dets, const std::string& inp)
+DataProcessorSpec getCTFReaderSpec(DetID::mask_t dets, const std::string& inp, int loop, int delayMUS)
 {
   std::vector<OutputSpec> outputs;
 
@@ -270,7 +287,7 @@ DataProcessorSpec getCTFReaderSpec(DetID::mask_t dets, const std::string& inp)
     "ctf-reader",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<CTFReaderSpec>(dets, inp)},
+    AlgorithmSpec{adaptFromTask<CTFReaderSpec>(dets, inp, loop, delayMUS)},
     Options{{"input-dir", VariantType::String, "none", {"CTF input directory"}}}};
 }
 

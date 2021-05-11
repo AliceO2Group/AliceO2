@@ -17,7 +17,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+#if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 #include <Math/SMatrix.h>
 #include <Math/SVector.h>
 #include <Math/GenVector/DisplacementVector3D.h>
@@ -150,7 +150,7 @@ class Rotation2D
 using Rotation2Df_t = Rotation2D<float>;
 using Rotation2Dd_t = Rotation2D<double>;
 
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIGPUCODE)
+#if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 
 class Transform3D : public ROOT::Math::Transform3D
 {
@@ -249,7 +249,7 @@ class Transform3D : public ROOT::Math::Transform3D
 } // namespace math_utils
 } // namespace o2
 
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIGPUCODE)
+#if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Df_t& t);
 std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Dd_t& t);
 

@@ -14,10 +14,10 @@
 #include <iostream>
 #include <cstring>
 #include <string>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <boost/algorithm/string/replace.hpp>
 
-namespace bfs = boost::filesystem;
+namespace bfs = std::filesystem;
 
 namespace o2::framework
 {
@@ -168,7 +168,7 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << indScheme << "- \"--monitoring-backend\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ monitoring_dpl_url }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--session\"\n";
-  dumpOut << indLevel << indScheme << "- \"'default'\"\n";
+  dumpOut << indLevel << indScheme << "- \"'{{ session_id }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--infologger-severity\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ infologger_severity }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--infologger-mode\"\n";
@@ -322,6 +322,7 @@ void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, c
   dumpOut << indLevel << indScheme << "fmq_rate_logging: 0\n";
   dumpOut << indLevel << indScheme << "shm_segment_size: 10000000000\n";
   dumpOut << indLevel << indScheme << "shm_throw_bad_alloc: false\n";
+  dumpOut << indLevel << indScheme << "session_id: default\n";
 
   dumpOut << indLevel << "roles:\n";
   for (size_t di = 0; di < specs.size(); di++) {
@@ -342,8 +343,8 @@ void dumpDeviceSpec2O2Control(std::string workflowName,
   LOG(INFO) << "Dumping the workflow configuration for AliECS.";
 
   LOG(INFO) << "Creating directories '" << workflowsDirectory << "' and '" << tasksDirectory << "'.";
-  boost::filesystem::create_directory(workflowsDirectory);
-  boost::filesystem::create_directory(tasksDirectory);
+  std::filesystem::create_directory(workflowsDirectory);
+  std::filesystem::create_directory(tasksDirectory);
   LOG(INFO) << "... created.";
 
   assert(specs.size() == executions.size());

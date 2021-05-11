@@ -16,7 +16,7 @@
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/ConcreteDataMatcher.h"
-#include "GPUWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "GPUWorkflow/GPUWorkflowSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
@@ -37,7 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, zsonthefly, clustersnative, compressed-clusters-root, compressed-clusters-ctf"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, zsonthefly, clustersnative, compressed-clusters-root, compressed-clusters-ctf, trd-tracklets"}},
     {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters-ctf, qa, no-shared-cluster-map"}},
     {"disable-root-input", VariantType::Bool, true, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
@@ -74,6 +74,7 @@ enum struct ioType { Digits,
                      CompClustCTF,
                      Tracks,
                      QA,
+                     TRDTracklets,
                      NoSharedMap };
 
 static const std::unordered_map<std::string, ioType> InputMap{
@@ -82,7 +83,8 @@ static const std::unordered_map<std::string, ioType> InputMap{
   {"zsraw", ioType::ZSRaw},
   {"zsonthefly", ioType::ZSRawOTF},
   {"compressed-clusters-root", ioType::CompClustROOT},
-  {"compressed-clusters-ctf", ioType::CompClustCTF}};
+  {"compressed-clusters-ctf", ioType::CompClustCTF},
+  {"trd-tracklets", ioType::TRDTracklets}};
 
 static const std::unordered_map<std::string, ioType> OutputMap{
   {"clusters", ioType::Clusters},
@@ -131,6 +133,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.processMC = doMC;
   cfg.sendClustersPerSector = false;
   cfg.askDISTSTF = !cfgc.options().get<bool>("ignore-dist-stf");
+  cfg.readTRDtracklets = isEnabled(inputTypes, ioType::TRDTracklets);
   specs.emplace_back(o2::gpu::getGPURecoWorkflowSpec(&gPolicyData, cfg, tpcSectors, gTpcSectorMask, "gpu-reconstruction"));
 
   if (!cfgc.options().get<bool>("ignore-dist-stf")) {
