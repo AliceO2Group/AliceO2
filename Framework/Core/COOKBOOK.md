@@ -369,15 +369,6 @@ ctx.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
 
 Where ctx is either the ProcessingContext or the InitContext.
 
-### Disabling monitoring
-
-Sometimes (e.g. when running a child inside valgrind) it might be useful to disable metrics which might pollute STDOUT. In order to disable monitoring you can use the `no-op://` backend:
-
-```bash
-some-workflow --monitoring-backend=no-op://
-```
-
-notice that the GUI will not function properly if you do so.
 
 ### Vectorised input
 
@@ -433,3 +424,44 @@ undefined. Thus to read an option without default value do e.g.
     vopt1 = ic.options().get<std::string>("opt1");
   }
 ```
+
+## Monitoring
+
+By default DPL exposes the following metrics to the back-end specified with:
+`--monitoring-backend`:
+
+* `malformed_inputs`: number of messages which did not match the O2 DataModel
+* `dropped_computations`: number of messages which DPL could not process
+* `dropped_incoming_messages`: number of messages which DPL could 
+                             not accept in its own queue.
+* `relayed_messages`: number of messages received by DPL.
+
+* `errors`: number of errors recorded inside DPL (not in the actual processing).
+* `exceptions`: number of exceptions raised by the DPL.
+* `inputs/relayed/pending`: number of entries in the DPL queue which are waiting for extra data.
+* `inputs/relayed/incomplete` : 1 if the device is waiting for extra data.
+* `inputs/relayed/total`: how many inputs the processor has.
+* `elapsed_time_ms`:
+* `last_processed_input_size_byte`: how many bytes were processed on last iteration
+* `total_processed_input_size_byte`: how many bytes were processed in total since the beginning
+* `last_processing_rate_mb_s`: at what rate the last message was processed
+* `min_input_latency_ms`: the shortest it took for any message to be processed by this dataprocessor (since created)
+* `max_input_latency_ms`: the maximum it took for any message to be processed by this dataprocessor (since created)
+* `input_rate_mb_s`: 
+
+Moreover if you specify `--resources-monitoring <poll-interval>` the 
+process monitoring metrics described at:
+
+<https://github.com/AliceO2Group/Monitoring/#process-monitoring>
+
+will be pushed every `<poll-interval>` seconds to the same backend and dumped in the `performanceMetrics.json` file on exit.
+
+### Disabling monitoring
+
+Sometimes (e.g. when running a child inside valgrind) it might be useful to disable metrics which might pollute STDOUT. In order to disable monitoring you can use the `no-op://` backend:
+
+```bash
+some-workflow --monitoring-backend=no-op://
+```
+
+notice that the GUI will not function properly if you do so.
