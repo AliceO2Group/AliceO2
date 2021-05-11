@@ -60,7 +60,7 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 #endif
 
 /// Event selection
-struct HfProduceSelCollisions {
+struct HfTagSelCollisions {
 
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
@@ -109,7 +109,7 @@ struct HfProduceSelCollisions {
 };
 
 /// Track selection
-struct HfProduceSelTrack {
+struct HfTagSelTrack {
 
   // enum for candidate type
   enum CandidateType {
