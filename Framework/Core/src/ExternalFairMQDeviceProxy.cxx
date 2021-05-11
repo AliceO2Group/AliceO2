@@ -18,6 +18,7 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/CallbackService.h"
+#include "Framework/SourceInfoHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
@@ -423,7 +424,43 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
       }
     };
     callbacks.set(CallbackService::Id::Start, channelConfigurationChecker);
-    return adaptStateless([](RawDeviceService& rds, InputRecord& inputs) {
+    auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
+
+    auto forwardEos = [device, lastDataProcessingHeader](EndOfStreamContext&) {
+      // DPL implements an internal end of stream signal, which is propagated through
+      // all downstream channels if a source is dry, make it available to other external
+      // devices via a message of type {DPL/EOS/0}
+      for (auto& channelInfo : device->fChannels) {
+        // FIXME: in this function the channel name is hardcoded to 'downstream'
+        // have to check if this simply should be combined with the function below
+        // supporting multiple outputs
+        auto& channelName = channelInfo.first;
+        if (channelName != "downstream") {
+          continue;
+        }
+        DataHeader dh;
+        dh.dataOrigin = "DPL";
+        dh.dataDescription = "EOS";
+        dh.subSpecification = 0;
+        dh.payloadSize = 0;
+        dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+        dh.tfCounter = 0;
+        dh.firstTForbit = 0;
+        SourceInfoHeader sih;
+        sih.state = InputChannelState::Completed;
+        // allocate the header message using the underlying transport of the channel
+        auto channelAlloc = o2::pmr::getTransportAllocator(channelInfo.second[0].Transport());
+        auto headerMessage = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, *lastDataProcessingHeader, sih});
+        FairMQParts out;
+        out.AddPart(std::move(headerMessage));
+        // add empty payload message
+        out.AddPart(std::move(device->NewMessageFor(channelName, 0, 0)));
+        sendOnChannel(*device, out, channelName);
+      }
+    };
+    callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
+
+    return adaptStateless([lastDataProcessingHeader](RawDeviceService& rds, InputRecord& inputs) {
       FairMQParts outputs;
       auto& device = *rds.device();
       for (size_t ii = 0; ii != inputs.size(); ++ii) {
@@ -441,13 +478,20 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
           // the RawDeviceService to forward messages, but this also needs to take into account that
           // other consumers might exist
           size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<std::byte const*>(part.header));
-          auto* dh = o2::header::get<DataHeader*>(part.header);
+          const auto* dh = o2::header::get<DataHeader*>(part.header);
           if (!dh) {
             std::stringstream errorMessage;
             errorMessage << "no data header in " << *first.spec;
             throw std::runtime_error(errorMessage.str());
           }
           size_t payloadMsgSize = dh->payloadSize;
+          const auto* dph = o2::header::get<DataProcessingHeader*>(part.header);
+          if (dph) {
+            // FIXME: should we implement an assignment operator for DataProcessingHeader?
+            lastDataProcessingHeader->startTime = dph->startTime;
+            lastDataProcessingHeader->duration = dph->duration;
+            lastDataProcessingHeader->creation = dph->creation;
+          }
 
           // FIXME: there is a copy here. Why?????
           auto headerMessage = device.NewMessageFor("downstream", index, headerMsgSize);
@@ -474,6 +518,8 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
                                                       const char* defaultChannelConfig,
                                                       ChannelSelector channelSelector)
 {
+  // FIXME: this looks like a code duplication with the function above, check if the
+  // two can be combined
   DataProcessorSpec spec;
   spec.name = name;
   spec.inputs = inputSpecs;
