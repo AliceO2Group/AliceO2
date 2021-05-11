@@ -17,6 +17,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/DevicesManager.h"
 
 #include "CommonMessageBackendsHelpers.h"
 #include <Monitoring/Monitoring.h>
@@ -145,6 +146,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static auto signalLatencyMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-signal-latency");
                        static auto skippedSignalsMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-skipped-signals");
                        static auto remainingBytes = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "aod-remaining-bytes");
+                       auto& manager = registry.get<DevicesManager>();
 
                        bool changed = false;
                        bool hasMetrics = false;
@@ -216,102 +218,27 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        now = uv_hrtime();
                        static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
                        static uint64_t lastReportTime = 0;
-                       while (!done) {
-#ifndef NDEBUG
-                         if (currentState != lastReportedState || now - lastReportTime > 1000000000LL) {
-                           stateMetric(driverMetrics, (uint64_t)(currentState), timestamp);
-                           lastReportedState = currentState;
-                           lastReportTime = timestamp;
+                       static int64_t availableSharedMemory = 2000;
+                       static int64_t offeredSharedMemory = 0;
+                       static size_t lastDeviceOffered = 0;
+                       /// We loop over the devices, starting from where we stopped last time
+                       /// offering 1 GB of shared memory to each reader.
+                       for (size_t di = 0; di < specs.size(); di++) {
+                         if (availableSharedMemory < 1000) {
+                           break;
                          }
-#endif
-                         switch (currentState) {
-                           case RateLimitingState::UNKNOWN: {
-                             for (auto& deviceMetrics : allDeviceMetrics) {
-                               size_t index = DeviceMetricsHelper::metricIdxByName("arrow-bytes-created", deviceMetrics);
-                               if (index < deviceMetrics.metrics.size()) {
-                                 currentState = RateLimitingState::STARTED;
-                               }
-                             }
-                             done = true;
-                           } break;
-                           case RateLimitingState::STARTED: {
-                             for (size_t di = 0; di < specs.size(); ++di) {
-                               if (specs[di].name == "internal-dpl-aod-reader") {
-                                 auto& info = infos[di];
-                                 if (di < infos.size() && ((now - info.lastSignal) > 10000000)) {
-                                   kill(info.pid, SIGUSR1);
-                                   totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
-                                   signalLatencyMetric(driverMetrics, (now - info.lastSignal) / 1000000, timestamp);
-                                   info.lastSignal = now;
-                                 } else {
-                                   skippedSignalsMetric(driverMetrics, skippedCount++, timestamp);
-                                 }
-                               }
-                             }
-                             changed = false;
-                             currentState = RateLimitingState::CHANGED;
-                           } break;
-                           case RateLimitingState::CHANGED: {
-                             remainingBytes(driverMetrics, totalBytesCreated <= (totalBytesDestroyed + memLimit) ? (totalBytesDestroyed + memLimit) - totalBytesCreated : 0, timestamp);
-                             if (totalBytesCreated <= totalBytesDestroyed) {
-                               currentState = RateLimitingState::EMPTY;
-                             } else if (totalBytesCreated <= (totalBytesDestroyed + memLimit)) {
-                               currentState = RateLimitingState::BELOW_LIMIT;
-                             } else {
-                               currentState = RateLimitingState::ABOVE_LIMIT;
-                             }
-                             changed = false;
-                           } break;
-                           case RateLimitingState::EMPTY: {
-                             for (size_t di = 0; di < specs.size(); ++di) {
-                               if (specs[di].name == "internal-dpl-aod-reader") {
-                                 auto& info = infos[di];
-                                 if ((now - info.lastSignal) > 1000000) {
-                                   kill(info.pid, SIGUSR1);
-                                   totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
-                                   signalLatencyMetric(driverMetrics, (now - info.lastSignal) / 1000000, timestamp);
-                                   info.lastSignal = now;
-                                 }
-                               }
-                             }
-                             changed = false;
-                             currentState = RateLimitingState::NEXT_ITERATION_FROM_BELOW;
-                           }
-                           case RateLimitingState::BELOW_LIMIT: {
-                             for (size_t di = 0; di < specs.size(); ++di) {
-                               if (specs[di].name == "internal-dpl-aod-reader") {
-                                 auto& info = infos[di];
-                                 if ((now - info.lastSignal) > 10000000) {
-                                   kill(infos[di].pid, SIGUSR1);
-                                   totalSignalsMetric(driverMetrics, signalsCount++, timestamp);
-                                   signalLatencyMetric(driverMetrics, (now - info.lastSignal) / 1000000, timestamp);
-                                   info.lastSignal = now;
-                                 } else {
-                                   skippedSignalsMetric(driverMetrics, skippedCount++, timestamp);
-                                 }
-                               }
-                             }
-                             changed = false;
-                             currentState = RateLimitingState::NEXT_ITERATION_FROM_BELOW;
-                           } break;
-                           case RateLimitingState::NEXT_ITERATION_FROM_BELOW: {
-                             if (!changed) {
-                               done = true;
-                             } else {
-                               currentState = RateLimitingState::CHANGED;
-                             }
-                           } break;
-                           case RateLimitingState::ABOVE_LIMIT: {
-                             if (!changed) {
-                               done = true;
-                             } else if (totalBytesCreated > (totalBytesDestroyed + memLimit / 3)) {
-                               done = true;
-                             } else {
-                               currentState = RateLimitingState::CHANGED;
-                             }
-                           };
-                         };
+                         size_t candidate = (lastDeviceOffered + di) % specs.size();
+                         if (specs[candidate].name != "internal-dpl-aod-reader") {
+                           continue;
+                         }
+                         LOG(info) << "Offering 1000MB to " << specs[candidate].id;
+                         manager.queueMessage(specs[candidate].id.c_str(), "/shm-offer 1000");
+                         availableSharedMemory -= 1000;
+                         offeredSharedMemory += 1000;
+                         lastDeviceOffered = candidate;
                        }
+
+                       availableSharedMemory = 2000 + totalBytesDestroyed / 1000000 - offeredSharedMemory;
                      },
                      [](ProcessingContext& ctx, void* service) {
                        using DataHeader = o2::header::DataHeader;

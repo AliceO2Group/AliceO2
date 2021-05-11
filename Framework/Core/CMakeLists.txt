@@ -46,6 +46,7 @@ o2_add_library(Framework
                        src/DataRelayerHelpers.cxx
                        src/DataSpecUtils.cxx
                        src/DeviceConfigInfo.cxx
+                       src/DevicesManager.cxx
                        src/DeviceMetricsInfo.cxx
                        src/DeviceMetricsHelper.cxx
                        src/DeviceSpec.cxx
