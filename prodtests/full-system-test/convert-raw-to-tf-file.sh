@@ -34,7 +34,7 @@ RD_PID=$!
 echo Readout PID: $RD_PID
 
 echo Waiting for data to arrive
-while [ `ls 20*/00000001.tf 2> /dev/null | wc -l` == "0" ]; do
+while [ `ls run*_20*/run*_tf00000001.tf 2> /dev/null | wc -l` == "0" ]; do
     sleep 1
 done
 echo Data is arriving, waiting 20 seconds to be sure
