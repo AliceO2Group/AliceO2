@@ -119,7 +119,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setDebugFlag(dbgFlags);
 
   // set bunch filling. Eventually, this should come from CCDB
-  const auto* digctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
+  const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
   const auto& bcfill = digctx->getBunchFilling();
   mMatching.setBunchFilling(bcfill);
 
