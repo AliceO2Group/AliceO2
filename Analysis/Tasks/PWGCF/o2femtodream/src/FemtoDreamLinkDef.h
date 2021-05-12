@@ -12,8 +12,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::analysis::femtoDream::FemtoDreamContainer + ;
-
 #pragma link C++ class o2::analysis::femtoDream::FemtoDreamCollisionSelection + ;
 #pragma link C++ class o2::analysis::femtoDream::FemtoDreamTrackSelection + ;
 #pragma link C++ class o2::analysis::femtoDream::FemtoDreamV0Cuts + ;

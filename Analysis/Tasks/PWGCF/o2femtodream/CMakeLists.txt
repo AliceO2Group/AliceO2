@@ -9,16 +9,14 @@
 # submit itself to any jurisdiction.
 		  
 o2_add_library(FemtoDream
-               SOURCES  src/FemtoDreamContainer.cxx
-                        src/FemtoDreamCollisionSelection.cxx
+               SOURCES  src/FemtoDreamCollisionSelection.cxx
                         src/FemtoDreamTrackSelection.cxx
                         src/FemtoDreamV0Cuts.cxx
                         src/FemtoDreamCascadeCuts.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore)
 
 o2_target_root_dictionary(FemtoDream
-				HEADERS include/o2femtodream/FemtoDreamContainer.h
-						include/o2femtodream/FemtoDreamCollisionSelection.h
+				HEADERS include/o2femtodream/FemtoDreamCollisionSelection.h
 						include/o2femtodream/FemtoDreamTrackSelection.h
 						include/o2femtodream/FemtoDreamV0Cuts.h
 						include/o2femtodream/FemtoDreamCascadeCuts.h

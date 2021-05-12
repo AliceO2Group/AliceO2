@@ -19,11 +19,9 @@
 #include "TLorentzVector.h"
 #include "TMath.h"
 
-//#include "Framework/HistogramRegistry.h"
+#include "Framework/HistogramRegistry.h"
 
 #include <iostream>
-
-//using namespace o2::framework;
 
 namespace o2::analysis
 {
@@ -41,9 +39,7 @@ class FemtoDreamContainer
  public:
   enum class Observable { kstar };
 
-  FemtoDreamContainer();
-  //FemtoDreamContainer(HistogramRegistry* registry, Observable obs = Observable::kstar);
-  virtual ~FemtoDreamContainer() = default;
+  void init(o2::framework::HistogramRegistry* registry, Observable obs = Observable::kstar);
 
   void setMasses(const float m1, const float m2)
   {
@@ -52,7 +48,7 @@ class FemtoDreamContainer
   }
 
   template <typename T>
-  void setPair(T& part1, T& part2);
+  void setPair(o2::framework::HistogramRegistry* registry, T& part1, T& part2);
 
   template <typename T>
   static float getkstar(const T& part1, const float mass1, const T& part2, const float mass2)
@@ -69,22 +65,29 @@ class FemtoDreamContainer
   static float getkstar(const TLorentzVector& part1, const TLorentzVector& part2);
 
  protected:
-  Observable mFemtoObs;
-  //HistogramRegistry* mHistogramRegistry;
+  Observable mFemtoObs = Observable::kstar;
 
- private:
-  float mMassOne;
-  float mMassTwo;
+  float mMassOne = 0.f;
+  float mMassTwo = 0.f;
 };
 
+void FemtoDreamContainer::init(o2::framework::HistogramRegistry* registry, Observable obs)
+{
+  std::string femtoObs;
+  if (mFemtoObs == Observable::kstar) {
+    femtoObs = "#it{k}^{*} (GeV/#it{c})";
+  }
+  registry->add("relPairDist", ("; " + femtoObs + "; Entries").c_str(), o2::framework::kTH1F, {{5000, 0, 5}});
+}
+
 template <typename T>
-inline void FemtoDreamContainer::setPair(T& part1, T& part2)
+inline void FemtoDreamContainer::setPair(o2::framework::HistogramRegistry* registry, T& part1, T& part2)
 {
   float femtoObs;
   if (mFemtoObs == Observable::kstar) {
     femtoObs = getkstar(part1, mMassOne, part2, mMassTwo);
   }
-  //mHistogramRegistry->fill(HIST("relPairDist"), femtoObs);
+  registry->fill(HIST("relPairDist"), femtoObs);
 }
 
 //inline float FemtoDreamContainer::getkstar(const ROOT::Math::PtEtaPhiMVector& part1, const ROOT::Math::PtEtaPhiMVector& part2)

@@ -100,9 +100,6 @@ struct femtoDreamTaskTrackProducer {
       if (!trackCuts.isSelected(track)) {
         continue;
       }
-      auto cutcontainer = trackCuts.getCutContainer(track);
-      std::bitset<7> a(cutcontainer);
-      std::cout << a << " " << track.tpcNClsFound() << "\n";
       qaRegistry.fill(HIST("TrackCuts/tpcnclshist"), track.tpcNClsFound());
       trackCuts.fillQA(track);
 

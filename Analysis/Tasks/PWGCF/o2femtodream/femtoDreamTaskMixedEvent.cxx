@@ -91,14 +91,14 @@ struct femtoDreamTaskMixedEvent {
   //  Filter evtFilter = (aod::mixingEvent::use > 0);
 
   /// Histograms
-  FemtoDreamContainer* mixedEventCont;
+  FemtoDreamContainer mixedEventCont;
   HistogramRegistry resultRegistry{"Correlations", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext&)
   {
-    mixedEventCont = new FemtoDreamContainer();//(&resultRegistry);
-    mixedEventCont->setMasses(TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartOne)->Mass(),
-                              TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartTwo)->Mass());
+    mixedEventCont.init(&resultRegistry);
+    mixedEventCont.setMasses(TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartOne)->Mass(),
+                             TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartTwo)->Mass());
   }
 
   void process(soa::Join<aod::FemtoDreamCollisions, aod::Hashes, aod::MixingEvents>& collisions, aod::FemtoDreamParticles& particles)
@@ -139,7 +139,7 @@ struct femtoDreamTaskMixedEvent {
       //  for (auto& [t1, t2] : combinations(CombinationsFullIndexPolicy(tracks1, tracks2))) {
       for (auto& part1 : particles1) {
         for (auto& part2 : particles2) {
-          mixedEventCont->setPair(part1, part2);
+          mixedEventCont.setPair(&resultRegistry, part1, part2);
         }
       }
     }

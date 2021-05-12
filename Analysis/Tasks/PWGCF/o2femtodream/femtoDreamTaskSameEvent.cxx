@@ -38,14 +38,14 @@ struct femtoDreamTaskSameEvent {
   O2_DEFINE_CONFIGURABLE(CfgPDGCodePartTwo, int, 2212, "PDG Code of particle two");
 
   /// Histograms
-  FemtoDreamContainer* sameEventCont;
+  FemtoDreamContainer sameEventCont;
   HistogramRegistry resultRegistry{"Correlations", {}, OutputObjHandlingPolicy::AnalysisObject};
 
   void init(InitContext&)
   {
-    sameEventCont = new FemtoDreamContainer(); //&resultRegistry);
-    sameEventCont->setMasses(TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartOne)->Mass(),
-                             TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartTwo)->Mass());
+    sameEventCont.init(&resultRegistry);
+    sameEventCont.setMasses(TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartOne)->Mass(),
+                            TDatabasePDG::Instance()->GetParticle(CfgPDGCodePartTwo)->Mass());
 
     trackCuts = CfgTrackSel;
     trackCuts.init(); //&qaRegistry);
@@ -53,14 +53,8 @@ struct femtoDreamTaskSameEvent {
 
   void process(aod::FemtoDreamCollision const& col, aod::FemtoDreamParticles const& parts)
   {
-    for (auto& part : parts) {
-      if (!trackCuts.isSelectedUser(part)) {
-        continue;
-      }
-    }
-
     for (auto& [p1, p2] : combinations(parts, parts)) {
-      sameEventCont->setPair(p1, p2);
+      sameEventCont.setPair(&resultRegistry, p1, p2);
     }
   }
 };
