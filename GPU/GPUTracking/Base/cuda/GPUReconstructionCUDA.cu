@@ -15,7 +15,6 @@
 #include "GPUReconstructionCUDAIncludes.h"
 
 #include <cuda_profiler_api.h>
-#include <unistd.h>
 
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
@@ -93,12 +92,6 @@ class GPUDebugTiming
 };
 
 #include "GPUReconstructionIncludesDevice.h"
-
-#ifndef GPUCA_ALIROOT_LIB
-extern "C" char _curtc_GPUReconstructionCUDArtc_cu_src[];
-extern "C" unsigned int _curtc_GPUReconstructionCUDArtc_cu_src_size;
-extern "C" char _curtc_GPUReconstructionCUDArtc_cu_command[];
-#endif
 
 /*
 // Not using templated kernel any more, since nvidia profiler does not resolve template names
@@ -448,39 +441,9 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 
 #ifndef GPUCA_ALIROOT_LIB
     if (mProcessingSettings.enableRTC) {
-      if (mProcessingSettings.debugLevel >= 0) {
-        GPUInfo("Starting CUDA RTC Compilation");
-      }
-      HighResTimer rtcTimer;
-      rtcTimer.ResetStart();
-      std::string filename = "/tmp/o2cagpu_rtc_";
-      filename += std::to_string(getpid());
-      filename += "_";
-      filename += std::to_string(rand());
-      if (mProcessingSettings.debugLevel >= 3) {
-        printf("Writing to %s\n", filename.c_str());
-      }
-      FILE* fp = fopen((filename + ".cu").c_str(), "w+b");
-      if (fp == nullptr) {
-        throw std::runtime_error("Error opening file");
-      }
-      std::string rtcparam = GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtcConstexpr);
-      if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size()) {
-        throw std::runtime_error("Error writing file");
-      }
-      if (fwrite(_curtc_GPUReconstructionCUDArtc_cu_src, 1, _curtc_GPUReconstructionCUDArtc_cu_src_size, fp) != _curtc_GPUReconstructionCUDArtc_cu_src_size) {
-        throw std::runtime_error("Error writing file");
-      }
-      fclose(fp);
-      std::string command = _curtc_GPUReconstructionCUDArtc_cu_command;
-      command += " -cubin -c " + filename + ".cu -o " + filename + ".o";
-      if (mProcessingSettings.debugLevel >= 3) {
-        printf("Running command %s\n", command.c_str());
-      }
-      if (system(command.c_str())) {
+      if (genRTC()) {
         throw std::runtime_error("Runtime compilation failed");
       }
-      GPUFailedMsg(cuModuleLoad(&mInternals->rtcModule, (filename + ".o").c_str()));
 
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                          \
@@ -495,12 +458,6 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single
 #undef GPUCA_KRNL_LOAD_multi
-
-      remove((filename + ".cu").c_str());
-      remove((filename + ".o").c_str());
-      if (mProcessingSettings.debugLevel >= 0) {
-        GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
-      }
     }
 #endif
     void* devPtrConstantMem;
