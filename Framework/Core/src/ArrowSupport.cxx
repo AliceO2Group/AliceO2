@@ -172,7 +172,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                              MetricInfo info = deviceMetrics.metrics.at(index);
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              totalBytesCreated += (int64_t)data.at((info.pos - 1) % data.size());
-                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][info.pos - 1]);
+                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
                              firstTimestamp = std::min(lastTimestamp, firstTimestamp);
                            }
                          }
