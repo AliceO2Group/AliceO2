@@ -322,10 +322,22 @@ void MatchTPCITS::clear()
   mWinnerChi2Refit.clear();
   mMatchedTracks.clear();
   mITSWork.clear();
+  mTPCWork.clear();
+  mInteractions.clear();
+  mITSROFIntCandEntries.clear();
   mITSROFTimes.clear();
   mITSTrackROFContMapping.clear();
   mITSClustersArray.clear();
   mABClusterLinkIndex.clear();
+  mITSChipClustersRefs.clear();
+
+  mABTrackLinksList.clear();
+  mABTrackLinks.clear();
+  mABClusterLinks.clear();
+  mABBestLinks.clear();
+  mABClusterLinkIndex.clear();
+  mTPCABIndexCache.clear();
+  mTPCABTimeBinStart.clear();
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mITSSectIndexCache[sec].clear();
@@ -578,7 +590,7 @@ bool MatchTPCITS::prepareTPCData()
   mTimer[SWPrepTPC].Start(false);
   const auto& inp = *mRecoCont;
 
-  mTPCTracksArray = inp.getTPCTracks<o2::tpc::TrackTPC>();
+  mTPCTracksArray = inp.getTPCTracks();
   mTPCTrackClusIdx = inp.getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &inp.inputsTPCclusters->clusterIndex;
   mTPCRefitterShMap = inp.clusterShMapTPC;
@@ -594,14 +606,6 @@ bool MatchTPCITS::prepareTPCData()
   }
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mTPCSectIndexCache[sec].reserve(100 + 1.2 * ntr / o2::constants::math::NSectors);
-  }
-
-  mTPCTracksArray = inp.getTPCTracks<o2::tpc::TrackTPC>();
-  mTPCTrackClusIdx = inp.getTPCTracksClusterRefs();
-  mTPCClusterIdxStruct = &inp.inputsTPCclusters->clusterIndex;
-  mTPCRefitterShMap = inp.clusterShMapTPC;
-  if (mMCTruthON) {
-    mTPCTrkLabels = inp.getTPCTracksMCLabels();
   }
 
   auto creator = [this](auto& trk, GTrackID gid, float time0, float terr) {
@@ -707,8 +711,8 @@ bool MatchTPCITS::prepareITSData()
   const auto& inp = *mRecoCont;
 
   // ITS clusters
-  mITSClusterROFRec = inp.getITSClustersROFRecords<o2::itsmft::ROFRecord>();
-  const auto clusITS = inp.getITSClusters<o2::itsmft::CompClusterExt>();
+  mITSClusterROFRec = inp.getITSClustersROFRecords();
+  const auto clusITS = inp.getITSClusters();
   if (mITSClusterROFRec.empty() || clusITS.empty()) {
     LOG(INFO) << "No ITS clusters";
     return false;
@@ -722,9 +726,9 @@ bool MatchTPCITS::prepareITSData()
   }
 
   // ITS tracks
-  mITSTracksArray = inp.getITSTracks<o2::its::TrackITS>();
+  mITSTracksArray = inp.getITSTracks();
   mITSTrackClusIdx = inp.getITSTracksClusterRefs();
-  mITSTrackROFRec = inp.getITSTracksROFRecords<o2::itsmft::ROFRecord>();
+  mITSTrackROFRec = inp.getITSTracksROFRecords();
   if (mMCTruthON) {
     mITSTrkLabels = inp.getITSTracksMCLabels();
   }
@@ -851,7 +855,7 @@ bool MatchTPCITS::prepareFITData()
 {
   // If available, read FIT Info
   if (mUseFT0) {
-    mFITInfo = mRecoCont->getFT0RecPoints<o2::ft0::RecPoints>();
+    mFITInfo = mRecoCont->getFT0RecPoints();
     prepareInteractionTimes();
   }
   return true;
@@ -1445,11 +1449,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     nclRefit++;
   }
   if (nclRefit != ncl) {
-    printf("FAILED after ncl=%d\n", nclRefit);
-    printf("its was:  ");
-    tITS.print();
-    printf("tpc was:  ");
-    tTPC.print();
+    LOGP(WARNING, "Refit in ITS failed after ncl={}, match between TPC track #{} and ITS track #{}", nclRefit, tTPC.sourceID, tITS.sourceID);
+    LOGP(WARNING, "{:s}", trfit.asString());
     mMatchedTracks.pop_back(); // destroy failed track
     return false;
   }
@@ -1602,8 +1603,6 @@ int MatchTPCITS::prepareInteractionTimes()
 {
   // guess interaction times from various sources and relate with ITS rofs
   const float ft0Uncertainty = 0.5e-3;
-  mInteractions.clear();
-  mITSROFIntCandEntries.clear();
   int nITSROFs = mITSROFTimes.size();
   mITSROFIntCandEntries.resize(nITSROFs);
 
@@ -1663,7 +1662,6 @@ void MatchTPCITS::runAfterBurner()
           fillClustersForAfterBurner(mITSChipClustersRefs.back(), mInteractions[iCEnd].rofITS);
           // tst
           int ncl = mITSChipClustersRefs.back().clusterID.size();
-          printf("loaded %d clusters at cache at %p\n", ncl, mInteractions[iCEnd].clRefPtr);
         }
       } while (++iCEnd < nIntCand && !tTPC.tBracket.isOutside(mInteractions[iCEnd].tBracket));
 

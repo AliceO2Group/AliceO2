@@ -1060,7 +1060,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
     uint64_t tEnd = uv_hrtime();
     stats.lastElapsedTimeMs = tEnd - tStart;
-    stats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
+    stats.lastProcessedSize = calculateTotalInputRecordSize(record);
+    stats.totalProcessedSize += stats.lastProcessedSize;
     stats.lastLatency = calculateInputRecordLatency(record, tStart);
   };
 

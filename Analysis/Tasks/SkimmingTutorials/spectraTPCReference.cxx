@@ -86,9 +86,9 @@ struct TPCSpectraReferenceTask {
   }
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
-                                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                                  aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
-                                                  aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                  aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                                  aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
+                                                  aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
                                                   aod::TrackSelection>>;
   void process(soa::Filtered<aod::Collisions>::iterator const& collision, TrackCandidates const& tracks)
   {

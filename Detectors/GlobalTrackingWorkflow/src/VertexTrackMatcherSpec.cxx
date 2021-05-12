@@ -71,7 +71,7 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
   pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}, vtxRefs);
 
   mTimer.Stop();
-  LOG(INFO) << "Made " << trackIndex.size() << " track associationgs for " << recoData.getPrimaryVertices<o2::dataformats::PrimaryVertex>().size()
+  LOG(INFO) << "Made " << trackIndex.size() << " track associationgs for " << recoData.getPrimaryVertices().size()
             << " vertices, timing: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
 }
 

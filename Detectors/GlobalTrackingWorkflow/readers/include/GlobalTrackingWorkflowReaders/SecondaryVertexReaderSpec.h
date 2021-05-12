@@ -13,53 +13,13 @@
 #ifndef O2_SECONDARY_VERTEXREADER
 #define O2_SECONDARY_VERTEXREADER
 
-#include "TFile.h"
-#include "TTree.h"
-
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "CommonDataFormat/RangeReference.h"
-#include "ReconstructionDataFormats/V0.h"
-#include "ReconstructionDataFormats/Cascade.h"
 
 namespace o2
 {
 namespace vertexing
 {
-// read secondary vertices produces by the o2-secondary-vertexing-workflow
-
-class SecondaryVertexReader : public o2::framework::Task
-{
-  using RRef = o2::dataformats::RangeReference<int, int>;
-  using V0 = o2::dataformats::V0;
-  using Cascade = o2::dataformats::Cascade;
-
- public:
-  SecondaryVertexReader() = default;
-  ~SecondaryVertexReader() override = default;
-  void init(o2::framework::InitContext& ic) final;
-  void run(o2::framework::ProcessingContext& pc) final;
-
- protected:
-  void connectTree();
-
-  bool mVerbose = false;
-
-  std::vector<V0> mV0s, *mV0sPtr = &mV0s;
-  std::vector<RRef> mPV2V0Ref, *mPV2V0RefPtr = &mPV2V0Ref;
-  std::vector<Cascade> mCascs, *mCascsPtr = &mCascs;
-  std::vector<RRef> mPV2CascRef, *mPV2CascRefPtr = &mPV2CascRef;
-
-  std::unique_ptr<TFile> mFile;
-  std::unique_ptr<TTree> mTree;
-  std::string mFileName = "";
-  std::string mFileNameMatches = "";
-  std::string mSVertexTreeName = "o2sim";
-  std::string mV0BranchName = "V0s";
-  std::string mPVertex2V0RefBranchName = "PV2V0Refs";
-  std::string mCascBranchName = "Cascades";
-  std::string mPVertex2CascRefBranchName = "PV2CascRefs";
-};
 
 /// create a processor spec
 /// read secondary vertex data from a root file

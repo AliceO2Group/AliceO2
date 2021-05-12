@@ -32,7 +32,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 struct pidTOFTaskBeta {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collision;
-  Produces<aod::pidRespTOFbeta> tablePIDBeta;
+  Produces<aod::pidTOFbeta> tablePIDBeta;
   tof::Beta<Coll, Trks::iterator, PID::Electron> responseElectron;
   Configurable<float> expreso{"tof-expreso", 80, "Expected resolution for the computation of the expected beta"};
 
@@ -126,7 +126,7 @@ struct pidTOFTaskQABeta {
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
-  void process(soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidRespTOFbeta, aod::TrackSelection>::iterator const& track)
+  void process(soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidTOFbeta, aod::TrackSelection>::iterator const& track)
   {
     //
     if (track.tofSignal() < 0) { // Skipping tracks without TOF

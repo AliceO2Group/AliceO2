@@ -12,9 +12,10 @@
 
 #include <vector>
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/TrackTriggerRecord.h"
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "TRDWorkflow/TRDTrackWriterSpec.h"
+#include "TRDWorkflowIO/TRDTrackWriterSpec.h"
 
 using namespace o2::framework;
 using namespace o2::gpu;
@@ -51,6 +52,10 @@ DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC)
                                                                                  "tracks-branch-name",
                                                                                  1,
                                                                                  tracksLogger},
+                                BranchDefinition<std::vector<o2::trd::TrackTriggerRecord>>{InputSpec{"trackTrig", o2::header::gDataOriginTRD, "TRKTRG_GLO", 0},
+                                                                                           "trgrec",
+                                                                                           "trgrec-branch-name",
+                                                                                           1},
                                 // NOTE: this branch template is to show how the conditional MC labels can
                                 // be defined, the '0' disables the branch for the moment
                                 BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", 0},
@@ -82,6 +87,10 @@ DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC)
                                                                                  "tracks-branch-name",
                                                                                  1,
                                                                                  tracksLogger},
+                                BranchDefinition<std::vector<o2::trd::TrackTriggerRecord>>{InputSpec{"trackTrig", o2::header::gDataOriginTRD, "TRKTRG_TPC", 0},
+                                                                                           "trgrec",
+                                                                                           "trgrec-branch-name",
+                                                                                           1},
                                 // NOTE: this branch template is to show how the conditional MC labels can
                                 // be defined, the '0' disables the branch for the moment
                                 BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", "GLO", "SOME_LABELS", 0},

@@ -31,6 +31,7 @@ class InputHelper
   // For matched tracks, maskMatches refers only to the matching information, while the corresponding maskTracks can still be set to load also the refit matched tracks
   static int addInputSpecs(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, GID::mask_t maskClusters, GID::mask_t maskMatches, GID::mask_t maskTracks, bool useMC = true, GID::mask_t maskClustersMC = GID::getSourcesMask(GID::ALL), GID::mask_t maskTracksMC = GID::getSourcesMask(GID::ALL));
   static int addInputSpecsPVertex(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc);
+  static int addInputSpecsSVertex(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs);
 };
 
 } // namespace globaltracking

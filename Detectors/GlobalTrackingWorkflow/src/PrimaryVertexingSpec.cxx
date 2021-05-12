@@ -143,7 +143,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   std::vector<o2::InteractionRecord> ft0Data;
   if (mValidateWithIR) { // select BCs for validation
     const o2::ft0::InteractionTag& ft0Params = o2::ft0::InteractionTag::Instance();
-    auto ft0all = recoData.getFT0RecPoints<o2::ft0::RecPoints>();
+    auto ft0all = recoData.getFT0RecPoints();
     for (const auto& ftRP : ft0all) {
       if (ft0Params.isSelected(ftRP)) {
         ft0Data.push_back(ftRP.getInteractionRecord());
