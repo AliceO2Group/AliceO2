@@ -18,6 +18,8 @@ o2_add_library(
           src/DigitReaderSpec.cxx
           src/EntropyDecoderSpec.cxx
           src/EntropyEncoderSpec.cxx
+          src/MaskHandlerSpec.cxx
+          src/MaskMakerSpec.cxx
           src/RawCheckerSpec.cxx
           src/RawDecoderSpec.cxx
           src/RawGBTDecoderSpec.cxx
@@ -38,6 +40,7 @@ o2_add_library(
     O2::DataFormatsMID
     O2::MIDClustering
     O2::MIDCTF
+    O2::MIDFiltering
     O2::MIDQC
     O2::MIDRaw
     O2::MIDSimulation
@@ -106,3 +109,9 @@ o2_add_executable(
   SOURCES src/tracks-reader-workflow.cxx
   COMPONENT_NAME mid
   PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMID)
+
+o2_add_executable(
+  mask-maker-workflow
+  COMPONENT_NAME mid
+  SOURCES src/mask-maker-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
