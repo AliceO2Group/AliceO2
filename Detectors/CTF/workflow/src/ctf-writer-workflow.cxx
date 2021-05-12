@@ -65,6 +65,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       }
       run = 0;
     }
+    if (dets.none()) {
+      throw std::invalid_argument("Invalid workflow: no detectors found");
+    }
     auto outmode = configcontext.options().get<std::string>("output-type");
     dictPerDet = configcontext.options().get<bool>("dict-per-det");
     if (outmode == "ctf") {
