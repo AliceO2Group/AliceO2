@@ -18,7 +18,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 
-#define TIME_SLOT_CALIBRATION
+//#define TIME_SLOT_CALIBRATION
 #ifdef TIME_SLOT_CALIBRATION
 #include "MFTCalibration/NoiseSlotCalibrator.h"
 using CALIBRATOR = o2::mft::NoiseSlotCalibrator;
@@ -40,7 +40,7 @@ namespace mft
 class NoiseCalibratorSpec : public Task
 {
  public:
-  NoiseCalibratorSpec() = default;
+  NoiseCalibratorSpec(bool digits = false);
   ~NoiseCalibratorSpec() override = default;
 
   void init(InitContext& ic) final;
@@ -56,11 +56,12 @@ class NoiseCalibratorSpec : public Task
   double mThresh;
   int64_t mStart;
   int64_t mEnd;
+  bool mDigits=false;
 };
 
 /// create a processor spec
 /// run MFT noise calibration
-DataProcessorSpec getNoiseCalibratorSpec();
+DataProcessorSpec getNoiseCalibratorSpec(bool useDigits);
 
 } // namespace mft
 } // namespace o2

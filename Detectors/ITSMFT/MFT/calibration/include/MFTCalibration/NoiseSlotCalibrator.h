@@ -44,6 +44,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
   {
     m1pix = one;
     mProbabilityThreshold = prob;
+    mHBFperTF = hbpertf;
     setUpdateAtTheEndOfRunOnly();
   }
   ~NoiseSlotCalibrator() final = default;
@@ -51,6 +52,10 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
   void setThreshold(unsigned int t) { mThreshold = t; }
 
   bool processTimeFrame(gsl::span<const o2::itsmft::Digit> const& digits,
+                        gsl::span<const o2::itsmft::ROFRecord> const& rofs);
+
+  bool processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+                        gsl::span<const unsigned char> const& patterns,
                         gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
   void finalize()

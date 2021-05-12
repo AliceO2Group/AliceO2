@@ -14,6 +14,7 @@
 #include "DetectorsCalibration/Utils.h"
 #include "MFTCalibration/NoiseCalibratorSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
+#include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
 #include "FairLogger.h"
@@ -61,6 +62,11 @@ namespace o2
 namespace mft
 {
 
+NoiseCalibratorSpec::NoiseCalibratorSpec(bool useDigits)
+  : mDigits(useDigits)
+{
+}
+
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
   auto onepix = ic.options().get<bool>("1pix-only");
@@ -80,13 +86,25 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
-  const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
-  const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
+  if (mDigits) { 
+    const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
+    const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
 
-  if (mCalibrator->processTimeFrame(digits, rofs)) {
-    LOG(INFO) << "Minimum number of noise counts has been reached !";
-    sendOutput(pc.outputs());
-    pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    if (mCalibrator->processTimeFrame(digits, rofs)) {
+      LOG(INFO) << "Minimum number of noise counts has been reached !";
+      sendOutput(pc.outputs());
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    }
+  }else{
+    const auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
+    gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
+    const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+
+    if (mCalibrator->processTimeFrame(compClusters, patterns, rofs)) {
+      LOG(INFO) << "Minimum number of noise counts has been reached !";
+      sendOutput(pc.outputs());
+      pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
+    }
   }
 }
 
@@ -157,12 +175,18 @@ void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   sendOutput(ec.outputs());
 }
 
-DataProcessorSpec getNoiseCalibratorSpec()
+DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
 {
   o2::header::DataOrigin detOrig = o2::header::gDataOriginMFT;
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("digits", detOrig, "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("digitsROF", detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
+  if (useDigits) {
+    inputs.emplace_back("digits", detOrig, "DIGITS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("digitsROF", detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
+  }else{
+    inputs.emplace_back("compClusters", detOrig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("patterns", detOrig, "PATTERNS", 0, Lifetime::Timeframe);
+    inputs.emplace_back("ROframes", detOrig, "CLUSTERSROF", 0, Lifetime::Timeframe);
+  }
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
@@ -175,7 +199,7 @@ DataProcessorSpec getNoiseCalibratorSpec()
     "mft-noise-calibrator",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>()},
+    AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useDigits)},
     Options{
       {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only"}},
       {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},

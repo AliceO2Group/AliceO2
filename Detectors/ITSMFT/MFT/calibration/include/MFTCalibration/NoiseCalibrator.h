@@ -34,16 +34,21 @@ class NoiseCalibrator
 {
  public:
   NoiseCalibrator() = default;
-  NoiseCalibrator(bool one, float prob)
+  NoiseCalibrator(bool one, float prob, int hbpertf)
   {
     m1pix = one;
     mProbabilityThreshold = prob;
+    mHBFperTF = hbpertf;
   }
   ~NoiseCalibrator() = default;
 
   void setThreshold(unsigned int t) { mThreshold = t; }
 
   bool processTimeFrame(gsl::span<const o2::itsmft::Digit> const& digits,
+                        gsl::span<const o2::itsmft::ROFRecord> const& rofs);
+
+  bool processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+                        gsl::span<const unsigned char> const& patterns,
                         gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
   void finalize();
@@ -56,6 +61,7 @@ class NoiseCalibrator
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
   bool m1pix = true;
+  int mHBFperTF = 256;
 };
 
 } // namespace mft
