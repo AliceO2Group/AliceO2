@@ -242,7 +242,11 @@ void GPUParamRTC::setFrom(const GPUParam& param)
 
 std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexpr)
 {
-  return "namespace o2::gpu { class GPUDisplayBackend; }\n" + qConfigPrintRtc(std::make_tuple(&param.rec, &param.par), useConstexpr);
+  return "#ifndef GPUCA_GPUCODE_DEVICE\n"
+         "#include <string>\n"
+         "#endif\n"
+         "namespace o2::gpu { class GPUDisplayBackend; }\n" +
+         qConfigPrintRtc(std::make_tuple(&param.rec, &param.par), useConstexpr);
 }
 
 static_assert(alignof(GPUCA_NAMESPACE::gpu::GPUParam) == alignof(GPUCA_NAMESPACE::gpu::GPUSettingsRec));

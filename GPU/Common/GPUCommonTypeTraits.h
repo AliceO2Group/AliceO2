@@ -15,7 +15,9 @@
 #define GPUCOMMONTYPETRAITS_H
 
 #if !defined(GPUCA_GPUCODE_DEVICE) || defined(__CUDACC__) || defined(__HIPCC__)
+#ifndef GPUCA_GPUCODE_GENRTC
 #include <type_traits>
+#endif
 #elif !defined(__OPENCL__) || defined(__OPENCLCPP__)
 // We just reimplement some type traits in std for the GPU
 namespace std
