@@ -22,7 +22,7 @@ using namespace o2::framework::expressions;
 // the relevant data even if you access the data itself through m.collision()
 // This uses the exclusive matcher, so you only get BCs which have a collision
 // If you want also BCs without collision, see the example IterateMuonsSparse below
-//FIXME: Exclusive indicies are not supported and are not supposed to be used for direct grouping at the moment 
+//FIXME: Exclusive indicies are not supported and are not supposed to be used for direct grouping at the moment
 //struct IterateMuonsBCexclusive {
 //  void process(aod::MatchedBCCollisionsExclusive::iterator const& m, aod::Collisions const&, aod::FwdTracks const& muons)
 //  {
