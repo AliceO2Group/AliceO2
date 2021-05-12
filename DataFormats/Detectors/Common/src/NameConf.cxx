@@ -43,6 +43,12 @@ std::string NameConf::getGeomFileName(const std::string_view prefix)
 }
 
 // Filename to store general run parameters (GRP)
+std::string NameConf::getCollisionContextFileName(const std::string_view prefix)
+{
+  return buildFileName(prefix, "", "", COLLISIONCONTEXT, ROOT_EXT_STRING, Instance().mDirCollContext);
+}
+
+// Filename to store general run parameters (GRP)
 std::string NameConf::getGRPFileName(const std::string_view prefix)
 {
   return buildFileName(prefix, "_", STANDARDSIMPREFIX, GRP_STRING, ROOT_EXT_STRING, Instance().mDirGRP);

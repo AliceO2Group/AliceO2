@@ -89,7 +89,7 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   mVertexer.setValidateWithIR(mValidateWithIR);
 
   // set bunch filling. Eventually, this should come from CCDB
-  const auto* digctx = o2::steer::DigitizationContext::loadFromFile("collisioncontext.root");
+  const auto* digctx = o2::steer::DigitizationContext::loadFromFile();
   const auto& bcfill = digctx->getBunchFilling();
   mVertexer.setBunchFilling(bcfill);
   mVertexer.init();
