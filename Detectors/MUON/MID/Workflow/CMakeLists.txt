@@ -17,6 +17,7 @@ o2_add_library(
           src/EntropyDecoderSpec.cxx
           src/EntropyEncoderSpec.cxx
           src/RawAggregatorSpec.cxx
+          src/RawCheckerSpec.cxx
           src/RawDecoderSpec.cxx
           src/RawGBTDecoderSpec.cxx
           src/RawWriterSpec.cxx
@@ -35,6 +36,7 @@ o2_add_library(
     O2::DataFormatsMID
     O2::MIDClustering
     O2::MIDCTF
+    O2::MIDQC
     O2::MIDRaw
     O2::MIDSimulation
     O2::MIDTracking)
@@ -61,28 +63,38 @@ target_include_directories(
 o2_add_executable(
   raw-to-digits-workflow
   COMPONENT_NAME mid
-  SOURCES src/raw-to-digits-workflow.cxx TARGETVARNAME exanamedigitstoraw
+  SOURCES src/raw-to-digits-workflow.cxx TARGETVARNAME exenamedigitstoraw
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
 
 target_include_directories(
-  ${exanamedigitstoraw}
+  ${exenamedigitstoraw}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   reco-workflow
   COMPONENT_NAME mid
-  SOURCES src/reco-workflow.cxx TARGETVARNAME exanamereco
+  SOURCES src/reco-workflow.cxx TARGETVARNAME exenamereco
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
 
 target_include_directories(
-  ${exanamereco} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+  ${exenamereco} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
 
 o2_add_executable(
   digits-reader-workflow
   COMPONENT_NAME mid
-  SOURCES src/digits-reader-workflow.cxx TARGETVARNAME exanamedigitsreader
+  SOURCES src/digits-reader-workflow.cxx TARGETVARNAME exenamedigitsreader
   PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
 
 target_include_directories(
-  ${exanamedigitsreader}
+  ${exenamedigitsreader}
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  raw-checker-workflow
+  COMPONENT_NAME mid
+  SOURCES src/raw-checker-workflow.cxx TARGETVARNAME exenamerawchecker
+  PUBLIC_LINK_LIBRARIES O2::MIDWorkflow)
+
+target_include_directories(
+  ${exenamerawchecker}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
