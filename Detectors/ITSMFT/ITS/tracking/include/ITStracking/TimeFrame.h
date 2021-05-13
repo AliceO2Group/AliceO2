@@ -151,8 +151,8 @@ inline const float3& TimeFrame::getPrimaryVertex(const int vertexIndex) const { 
 
 inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int tf) const
 {
-  const int start = tf > 0 ? tf - 1 : 0;
-  const int stop = tf >= mNrof - 1 ? mNrof : tf + 2;
+  const int start = tf;
+  const int stop = tf >= mNrof - 1 ? mNrof : tf + 1;
   return {&mPrimaryVertices[start], static_cast<gsl::span<const float3>::size_type>(mROframesPV[stop] - mROframesPV[start])};
 }
 
