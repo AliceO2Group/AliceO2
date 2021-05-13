@@ -37,6 +37,8 @@ struct MFTBaseParam : public o2::conf::ConfigurableParamHelper<MFTBaseParam> {
   bool buildPCBSupports = true;
   bool buildPCBs = true;
   bool buildPSU = true;
+  bool buildReadoutCables = true;
+  bool buildServices = true;
 
   // General configurations
   bool minimal = false; // Disables all elements out of MFT acceptance
