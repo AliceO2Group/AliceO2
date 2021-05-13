@@ -14,7 +14,6 @@ o2_add_library(
   DetectorsDCS
   TARGETVARNAME targetName
   SOURCES src/AliasExpander.cxx
-          src/DCSProcessor.cxx
           src/DataPointCompositeObject.cxx
           src/DataPointCreator.cxx
           src/DataPointGenerator.cxx
@@ -31,8 +30,7 @@ o2_target_root_dictionary(
   DetectorsDCS
   HEADERS include/DetectorsDCS/DataPointCompositeObject.h
           include/DetectorsDCS/DataPointIdentifier.h
-          include/DetectorsDCS/DataPointValue.h
-          include/DetectorsDCS/DCSProcessor.h)
+          include/DetectorsDCS/DataPointValue.h)
 
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
