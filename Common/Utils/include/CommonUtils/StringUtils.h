@@ -107,6 +107,9 @@ struct Str {
     return s.str();
   }
 
+  // generate random string of given length, suitable for file names
+  static std::string getRandomString(int length);
+
   // Check if the path exists
   static bool pathExists(const std::string_view p);
 
@@ -118,6 +121,10 @@ struct Str {
 
   // rectify directory, applying convention "none"==""
   static std::string rectifyDirectory(const std::string_view p);
+
+  // create unique non-existing path name starting with prefix. Loose equivalent of boost::filesystem::unique_path()
+  // in absence of such a function in std::filesystem
+  static std::string create_unique_path(const std::string_view prefix = "", int length = 16);
 
   ClassDefNV(Str, 1);
 };

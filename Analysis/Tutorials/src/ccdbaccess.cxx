@@ -7,19 +7,18 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-///
+//
 /// \brief A tutorial task to retrieve objects from CCDB given a run number.
 ///        The tutorial shows also how to use timestamps in your analysis.
-///        This task requires to access the timestamp table in order to be working.
-///        Currently this is done by adding `o2-analysis-timestamp` to the workflow
+///        This task requires to access the timestamp table in order to be
+///        working. Currently this is done by adding `o2-analysis-timestamp`
+///        to the
+///        workflow
 /// \author Nicolo' Jacazio
 /// \since 2020-06-22
-///
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "CommonDataFormat/InteractionRecord.h"
 
@@ -45,10 +44,17 @@ struct TimestampUserTask {
     ccdb->setCreatedNotAfter(nolaterthan.value);
   }
 
-  void process(aod::Collision const& collision, aod::BCsWithTimestamps const& /*bc*/)
+  // goup BCs according to Collisions
+  void process(aod::BCsWithTimestamps::iterator const& bc, aod::Collisions const& collisions)
   {
-    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    // skip if bc has no Collisions
+    LOGF(info, "Size of collisions %i", collisions.size());
+    if (collisions.size() == 0) {
+      return;
+    }
+
     LOGF(info, "Getting object %s for run number %i from timestamp=%llu", path.value.data(), bc.runNumber(), bc.timestamp());
+    // retrieve object for given timestamp
     auto obj = ccdb->getForTimeStamp<TH2F>(path.value, bc.timestamp());
     if (obj) {
       LOGF(info, "Found object!");

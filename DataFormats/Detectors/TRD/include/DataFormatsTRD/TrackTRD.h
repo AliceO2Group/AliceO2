@@ -30,6 +30,22 @@ template <>
 struct is_messageable<o2::trd::TrackTRD> : std::true_type {
 };
 } // namespace framework
+namespace gpu
+{
+static_assert(sizeof(o2::dataformats::GlobalTrackID) == sizeof(unsigned int));
+template <>
+GPUdi() o2::dataformats::GlobalTrackID GPUTRDTrack_t<trackInterface<GPUTRDO2BaseTrack>>::getRefGlobalTrackId() const
+{
+  o2::dataformats::GlobalTrackID retVal;
+  retVal.setRaw(mRefGlobalTrackId);
+  return retVal;
+}
+template <>
+GPUdi() void GPUTRDTrack_t<trackInterface<GPUTRDO2BaseTrack>>::setRefGlobalTrackId(o2::dataformats::GlobalTrackID id)
+{
+  setRefGlobalTrackIdRaw(id.getRaw());
+}
+} // namespace gpu
 } // namespace o2
 
 #endif // O2_DATAFORMATS_TRACK_TRD_H

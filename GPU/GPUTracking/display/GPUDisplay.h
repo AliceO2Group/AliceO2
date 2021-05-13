@@ -53,7 +53,7 @@ class GPUDisplay
   void WaitForNextEvent() {}
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
 
-  void HandleKeyRelease(unsigned char key) {}
+  void HandleKey(unsigned char key) {}
   int DrawGLScene(bool mixAnimation = false, float mAnimateTime = -1.f) { return 1; }
   void HandleSendKey(int key) {}
   int InitGL(bool initFailure = false) { return 1; }
@@ -95,7 +95,7 @@ class GPUDisplay
   void WaitForNextEvent();
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 
-  void HandleKeyRelease(unsigned char key);
+  void HandleKey(unsigned char key);
   int DrawGLScene(bool mixAnimation = false, float mAnimateTime = -1.f);
   void HandleSendKey(int key);
   int InitGL(bool initFailure = false);
@@ -105,11 +105,11 @@ class GPUDisplay
  private:
   static constexpr int NSLICES = GPUChainTracking::NSLICES;
 
-  static constexpr const int N_POINTS_TYPE = 13;
+  static constexpr const int N_POINTS_TYPE = 15;
   static constexpr const int N_POINTS_TYPE_TPC = 9;
   static constexpr const int N_POINTS_TYPE_TRD = 2;
-  static constexpr const int N_POINTS_TYPE_TOF = 1;
-  static constexpr const int N_POINTS_TYPE_ITS = 1;
+  static constexpr const int N_POINTS_TYPE_TOF = 2;
+  static constexpr const int N_POINTS_TYPE_ITS = 2;
   static constexpr const int N_LINES_TYPE = 7;
   static constexpr const int N_FINAL_TYPE = 4;
   static constexpr int TRACK_TYPE_ID_LIMIT = 100;
@@ -125,7 +125,9 @@ class GPUDisplay
                     tTRDCLUSTER = 9,
                     tTRDATTACHED = 10,
                     tTOFCLUSTER = 11,
-                    tITSCLUSTER = 12 };
+                    tTOFATTACHED = 12,
+                    tITSCLUSTER = 13,
+                    tITSATTACHED = 14 };
   enum LineTypes { RESERVED = 0 /*1 -- 6 = INITLINK to GLOBALTRACK*/ };
 
   typedef std::tuple<GLsizei, GLsizei, int> vboList;
@@ -238,7 +240,7 @@ class GPUDisplay
   void UpdateOffscreenBuffers(bool clean = false);
   void updateConfig();
   void drawPointLinestrip(int iSlice, int cid, int id, int id_limit = TRACK_TYPE_ID_LIMIT);
-  vboList DrawClusters(int iSlice, int select, int iCol);
+  vboList DrawClusters(int iSlice, int select, unsigned int iCol);
   vboList DrawSpacePointsTRD(int iSlice, int select, int iCol);
   vboList DrawSpacePointsTOF(int iSlice, int select, int iCol);
   vboList DrawSpacePointsITS(int iSlice, int select, int iCol);
@@ -246,6 +248,8 @@ class GPUDisplay
   vboList DrawSeeds(const GPUTPCTracker& tracker);
   vboList DrawTracklets(const GPUTPCTracker& tracker);
   vboList DrawTracks(const GPUTPCTracker& tracker, int global);
+  void DrawTrackITS(int trackId, int iSlice);
+  GPUDisplay::vboList DrawFinalITS();
   template <class T>
   void DrawFinal(int iSlice, int /*iCol*/, GPUTPCGMPropagator* prop, std::array<vecpod<int>, 2>& trackList, threadVertexBuffer& threadBuffer);
   vboList DrawGrid(const GPUTPCTracker& tracker);
@@ -267,6 +271,7 @@ class GPUDisplay
   const GPUCalibObjectsConst* mCalib;
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfg;
+  GPUSettingsDisplayHeavy mCfg2;
   GPUQA* mQA;
   qSem mSemLockDisplay;
 
@@ -353,6 +358,7 @@ class GPUDisplay
   int mCurrentClustersITS = 0;
   int mCurrentClustersTOF = 0;
   std::vector<int> mTRDTrackIds;
+  std::vector<bool> mITSStandaloneTracks;
 
   int mGlDLrecent = 0;
   int mUpdateDLList = 0;
@@ -385,6 +391,7 @@ class GPUDisplay
   HighResTimer mTimerFPS, mTimerDisplay, mTimerDraw;
   vboList mGlDLLines[NSLICES][N_LINES_TYPE];
   vecpod<std::array<vboList, N_FINAL_TYPE>> mGlDLFinal[NSLICES];
+  vboList mGlDLFinalITS;
   vecpod<vboList> mGlDLPoints[NSLICES][N_POINTS_TYPE];
   vboList mGlDLGrid[NSLICES];
   vboList mGlDLGridTRD[NSLICES / 2];

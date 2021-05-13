@@ -13,6 +13,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessorLabel.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/DeviceControl.h"
@@ -67,6 +68,7 @@ struct DeviceSpec {
   ResourcePolicy resourcePolicy;
   ComputingResource resource;
   unsigned short resourceMonitoringInterval;
+  std::vector<DataProcessorLabel> labels;
 };
 
 } // namespace o2::framework

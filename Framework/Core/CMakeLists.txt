@@ -8,12 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# Given GCC 7.3 does not provide std::filesystem we use Boost instead
-# Drop this once we move to GCC 8.2+
-# if (NOT __APPLE__)
-  set(BOOST_FILESYSTEM Boost::filesystem)
-# endif()
-
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
                        src/ArrowSupport.cxx

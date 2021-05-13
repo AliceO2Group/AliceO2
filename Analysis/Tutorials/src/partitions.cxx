@@ -7,18 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+///
+/// \brief Partitions are subsets of tables.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-// This is a very simple example showing how to iterate over tracks
-// and create a new collection for them.
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
 struct ATask {
   float fPI = static_cast<float>(M_PI);
   Configurable<float> ptlow{"pTlow", 0.5f, "Lowest pT"};
@@ -33,14 +34,19 @@ struct ATask {
   Configurable<float> philow{"phiLow", 1.0f, "lowest phi"};
   Configurable<float> phiup{"phiUp", 2.0f, "highest phi"};
 
+  // all defined filters are applied
   using myTracks = soa::Filtered<aod::Tracks>;
 
+  // definition of partitions
   Partition<myTracks> leftPhi = aod::track::phiraw < philow;
   Partition<myTracks> midPhi = aod::track::phiraw >= philow && aod::track::phiraw < phiup;
   Partition<myTracks> rightPhi = aod::track::phiraw >= phiup;
 
+  // partitions are created and provided within the process function
   void process(aod::Collision const& collision, myTracks const& tracks)
   {
+
+    // all defined partitions are available
     LOGF(INFO, "Collision: %d [N = %d] [left phis = %d] [mid phis = %d] [right phis = %d]",
          collision.globalIndex(), tracks.size(), leftPhi.size(), midPhi.size(), rightPhi.size());
 
@@ -65,8 +71,12 @@ struct BTask {
   void process(aod::Collisions const& collisions, aod::Tracks& tracks)
   {
     for (auto& c : collisions) {
+
+      // create the partition groupedTracks
       Partition<aod::Tracks> groupedTracks = aod::track::collisionId == c.globalIndex();
       groupedTracks.bindTable(tracks);
+
+      // loop over the partition groupedTracks
       for (auto& t : groupedTracks) {
         LOGF(INFO, "collision global index: %d grouped track collision id: %d", c.globalIndex(), t.collisionId());
       }

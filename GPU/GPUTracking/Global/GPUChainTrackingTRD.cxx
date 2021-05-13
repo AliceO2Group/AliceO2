@@ -49,7 +49,7 @@ int GPUChainTracking::RunTRDTracking()
       continue;
     }
 
-    if (Tracker.LoadTrack(trktrd, -1, nullptr, -1, i, false)) {
+    if (Tracker.LoadTrack(trktrd, i, false)) {
       return 1;
     }
   }

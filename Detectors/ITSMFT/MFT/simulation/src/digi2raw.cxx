@@ -13,7 +13,6 @@
 
 #include <boost/program_options.hpp>
 #include <TTree.h>
-#include <TSystem.h>
 #include <TChain.h>
 #include <TFile.h>
 #include <TStopwatch.h>
@@ -21,6 +20,7 @@
 #include <vector>
 #include <string>
 #include <iomanip>
+#include <filesystem>
 #include "ITSMFTReconstruction/ChipMappingMFT.h"
 #include "ITSMFTReconstruction/GBTWord.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -112,13 +112,14 @@ void digi2raw(std::string_view inpName, std::string_view outDir, std::string_vie
   o2::raw::HBFUtils::Instance().print();
 
   // if needed, create output directory
-  if (gSystem->AccessPathName(outDir.data())) {
-    if (gSystem->mkdir(outDir.data(), kTRUE)) {
+  if (!std::filesystem::exists(outDir)) {
+    if (!std::filesystem::create_directories(outDir)) {
       LOG(FATAL) << "could not create output directory " << outDir;
     } else {
       LOG(INFO) << "created output directory " << outDir;
     }
   }
+
   ///-------> input
   std::string digTreeName{o2::base::NameConf::MCTTREENAME.data()};
   TChain digTree(digTreeName.c_str());
@@ -263,8 +264,8 @@ void setupLinks(o2::itsmft::MC2RawEncoder<MAP>& m2r, std::string_view outDir, st
           } else if (fileFor == "cru") {
             outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(link->cruID), ".raw");
           } else if (fileFor == "link") {
-            outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(cruID),
-                                                        "_link", std::to_string(linkID), "_ep", std::to_string(link->endPointID), ".raw");
+            outFileLink = o2::utils::Str::concat_string(outDir, "/", outPrefix, "_cru", std::to_string(link->cruID),
+                                                        "_link", std::to_string(linkID), "_ep", std::to_string(link->endPointID), "_feeid", std::to_string(link->feeID), ".raw");
           } else {
             throw std::runtime_error("invalid option provided for file grouping");
           }

@@ -13,7 +13,7 @@ o2_add_library(PWGDQCore
                         src/HistogramManager.cxx
                         src/AnalysisCut.cxx
                         src/AnalysisCompositeCut.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore)
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::DetectorsVertexing)
 
 o2_target_root_dictionary(PWGDQCore
                           HEADERS  include/PWGDQCore/AnalysisCut.h 

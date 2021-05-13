@@ -11,7 +11,7 @@
 ///
 /// \file   pidTPC.cxx
 /// \author Nicolo' Jacazio
-/// \brief  Task to produce PID tables for TPC split for each particle.
+/// \brief  Task to produce PID tables for TPC split for each particle with only the Nsigma information.
 ///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
 ///
 
@@ -43,15 +43,15 @@ struct tpcPid {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
   // Tables to produce
-  Produces<o2::aod::pidRespTPCEl> tablePIDEl;
-  Produces<o2::aod::pidRespTPCMu> tablePIDMu;
-  Produces<o2::aod::pidRespTPCPi> tablePIDPi;
-  Produces<o2::aod::pidRespTPCKa> tablePIDKa;
-  Produces<o2::aod::pidRespTPCPr> tablePIDPr;
-  Produces<o2::aod::pidRespTPCDe> tablePIDDe;
-  Produces<o2::aod::pidRespTPCTr> tablePIDTr;
-  Produces<o2::aod::pidRespTPCHe> tablePIDHe;
-  Produces<o2::aod::pidRespTPCAl> tablePIDAl;
+  Produces<o2::aod::pidTPCEl> tablePIDEl;
+  Produces<o2::aod::pidTPCMu> tablePIDMu;
+  Produces<o2::aod::pidTPCPi> tablePIDPi;
+  Produces<o2::aod::pidTPCKa> tablePIDKa;
+  Produces<o2::aod::pidTPCPr> tablePIDPr;
+  Produces<o2::aod::pidTPCDe> tablePIDDe;
+  Produces<o2::aod::pidTPCTr> tablePIDTr;
+  Produces<o2::aod::pidTPCHe> tablePIDHe;
+  Produces<o2::aod::pidTPCAl> tablePIDAl;
   // Detector response and input parameters
   DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
@@ -79,12 +79,13 @@ struct tpcPid {
     for (DeviceSpec device : workflows.devices) {
       for (auto input : device.inputs) {
         auto enableFlag = [&input](const std::string particle, Configurable<int>& flag) {
-          const std::string table = "pidRespTPC" + particle;
+          const std::string table = "pidTPC" + particle;
           if (input.matcher.binding == table) {
             if (flag < 0) {
               flag.value = 1;
               LOG(INFO) << "Auto-enabling table: " + table;
             } else if (flag > 0) {
+              flag.value = 1;
               LOG(INFO) << "Table enabled: " + table;
             } else {
               LOG(INFO) << "Table disabled: " + table;
@@ -144,12 +145,20 @@ struct tpcPid {
 
     // Check and fill enabled tables
     auto makeTable = [&tracks](const Configurable<int>& flag, auto& table, const DetectorResponse& response, const auto& responsePID) {
-      if (flag.value) {
+      if (flag.value == 1) {
         // Prepare memory for enabled tables
         table.reserve(tracks.size());
         for (auto const& trk : tracks) { // Loop on Tracks
-          table(responsePID.GetExpectedSigma(response, trk.collision(), trk),
-                responsePID.GetSeparation(response, trk.collision(), trk));
+          const float separation = responsePID.GetSeparation(response, trk.collision(), trk);
+          if (separation <= o2::aod::pidtpc_tiny::binned_min) {
+            table(o2::aod::pidtpc_tiny::lower_bin);
+          } else if (separation >= o2::aod::pidtpc_tiny::binned_max) {
+            table(o2::aod::pidtpc_tiny::upper_bin);
+          } else if (separation >= 0) {
+            table(separation / o2::aod::pidtpc_tiny::bin_width + 0.5f);
+          } else {
+            table(separation / o2::aod::pidtpc_tiny::bin_width - 0.5f);
+          }
         }
       }
     };
@@ -237,17 +246,15 @@ struct tpcPidQa {
   }
 
   template <uint8_t i, typename T>
-  void fillParticleHistos(const T& t, const float mom, const float exp_diff, const float nsigma)
+  void fillParticleHistos(const T& t, const float nsigma)
   {
-    histos.fill(HIST(hexpected[i]), mom, t.tpcSignal() - exp_diff);
-    histos.fill(HIST(hexpected_diff[i]), mom, exp_diff);
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra,
-                                                          aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                                          aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
-                                                          aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                          aod::pidTPCEl, aod::pidTPCMu, aod::pidTPCPi,
+                                                          aod::pidTPCKa, aod::pidTPCPr, aod::pidTPCDe,
+                                                          aod::pidTPCTr, aod::pidTPCHe, aod::pidTPCAl,
                                                           aod::TrackSelection> const& tracks)
   {
     histos.fill(HIST("event/vertexz"), collision.posZ());
@@ -257,15 +264,15 @@ struct tpcPidQa {
       const float mom = t.tpcInnerParam();
       histos.fill(HIST("event/tpcsignal"), mom, t.tpcSignal());
       //
-      fillParticleHistos<0>(t, mom, t.tpcExpSignalDiffEl(), t.tpcNSigmaEl());
-      fillParticleHistos<1>(t, mom, t.tpcExpSignalDiffMu(), t.tpcNSigmaMu());
-      fillParticleHistos<2>(t, mom, t.tpcExpSignalDiffPi(), t.tpcNSigmaPi());
-      fillParticleHistos<3>(t, mom, t.tpcExpSignalDiffKa(), t.tpcNSigmaKa());
-      fillParticleHistos<4>(t, mom, t.tpcExpSignalDiffPr(), t.tpcNSigmaPr());
-      fillParticleHistos<5>(t, mom, t.tpcExpSignalDiffDe(), t.tpcNSigmaDe());
-      fillParticleHistos<6>(t, mom, t.tpcExpSignalDiffTr(), t.tpcNSigmaTr());
-      fillParticleHistos<7>(t, mom, t.tpcExpSignalDiffHe(), t.tpcNSigmaHe());
-      fillParticleHistos<8>(t, mom, t.tpcExpSignalDiffAl(), t.tpcNSigmaAl());
+      fillParticleHistos<0>(t, t.tpcNSigmaEl());
+      fillParticleHistos<1>(t, t.tpcNSigmaMu());
+      fillParticleHistos<2>(t, t.tpcNSigmaPi());
+      fillParticleHistos<3>(t, t.tpcNSigmaKa());
+      fillParticleHistos<4>(t, t.tpcNSigmaPr());
+      fillParticleHistos<5>(t, t.tpcNSigmaDe());
+      fillParticleHistos<6>(t, t.tpcNSigmaTr());
+      fillParticleHistos<7>(t, t.tpcNSigmaHe());
+      fillParticleHistos<8>(t, t.tpcNSigmaAl());
     }
   }
 };

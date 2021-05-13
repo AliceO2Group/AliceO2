@@ -7,35 +7,58 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+/// \brief
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-
-#include <TFile.h>
-#include <TH1F.h>
 
 using namespace o2;
 using namespace o2::framework;
 
-// Another example
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
 struct ATask {
-  void init(InitContext&)
-  {
-    count = 0;
-  }
 
+  // define global variables
+  size_t count = 0;
+
+  // loop over each single track
   void process(aod::Track const& track)
   {
-    LOGF(info, "%d, %f", count, track.alpha());
+    // count the tracks contained in the input file
+    LOGF(INFO, "Track %d: Momentum: %f", count, track.p());
     count++;
   }
+};
 
-  size_t count = 2016927;
+struct BTask {
+
+  // define global variables
+  size_t numberDataFrames = 0;
+  size_t count = 0;
+  size_t totalCount = 0;
+
+  // loop over data frames
+  void process(aod::Tracks const& tracks)
+  {
+    numberDataFrames++;
+
+    // count the tracks contained in each data frame
+    count = 0;
+    for (auto& track : tracks) {
+      count++;
+    }
+    totalCount += count;
+
+    LOGF(INFO, "DataFrame %d: Number of tracks: %d Accumulated number of tracks: %d", numberDataFrames, count, totalCount);
+  }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"track-iteration-tutorial"})};
+    adaptAnalysisTask<ATask>(cfgc, TaskName{"track-iteration-tutorial_A"}),
+    adaptAnalysisTask<BTask>(cfgc, TaskName{"track-iteration-tutorial_B"}),
+  };
 }

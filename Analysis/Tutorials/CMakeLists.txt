@@ -96,6 +96,18 @@ o2_add_dpl_workflow(aodreader
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(tableio-write
+                  SOURCES src/tableIOout.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(tableio-read
+                  SOURCES src/tableIOin.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(outputs
                   SOURCES src/outputs.cxx
                   JOB_POOL analysis

@@ -61,29 +61,29 @@ class GPUDisplayBackend
   static constexpr int KEY_RIGHT = 4;
   static constexpr int KEY_PAGEUP = 5;
   static constexpr int KEY_PAGEDOWN = 6;
-  static constexpr int KEY_SPACE = 7;
   static constexpr int KEY_SHIFT = 8;
   static constexpr int KEY_ALT = 9;
-  static constexpr int KEY_RALT = 29;
-  static constexpr int KEY_CTRL = 10;
-  static constexpr int KEY_RCTRL = 28;
-  static constexpr int KEY_F1 = 11;
-  static constexpr int KEY_F2 = 12;
+  static constexpr int KEY_RALT = 10;
+  static constexpr int KEY_CTRL = 11;
+  static constexpr int KEY_RCTRL = 12;
+  static constexpr int KEY_ENTER = 13; // fixed at 13
+  static constexpr int KEY_F1 = 14;
+  static constexpr int KEY_F2 = 15;
   static constexpr int KEY_F3 = 26;
-  static constexpr int KEY_F4 = 14;
-  static constexpr int KEY_F5 = 15;
-  static constexpr int KEY_F6 = 16;
-  static constexpr int KEY_F7 = 17;
-  static constexpr int KEY_F8 = 18;
-  static constexpr int KEY_F9 = 19;
-  static constexpr int KEY_F10 = 20;
-  static constexpr int KEY_F11 = 21;
-  static constexpr int KEY_F12 = 22;
-  static constexpr int KEY_HOME = 23;
-  static constexpr int KEY_END = 24;
-  static constexpr int KEY_INSERT = 25;
-  static constexpr int KEY_ESCAPE = 27;
-  static constexpr int KEY_ENTER = 13;
+  static constexpr int KEY_F4 = 17;
+  static constexpr int KEY_F5 = 18;
+  static constexpr int KEY_F6 = 19;
+  static constexpr int KEY_F7 = 20;
+  static constexpr int KEY_F8 = 21;
+  static constexpr int KEY_F9 = 22;
+  static constexpr int KEY_F10 = 23;
+  static constexpr int KEY_F11 = 24;
+  static constexpr int KEY_F12 = 25;
+  static constexpr int KEY_INSERT = 26;
+  static constexpr int KEY_ESCAPE = 27; // fixed at 27
+  static constexpr int KEY_HOME = 28;
+  static constexpr int KEY_END = 29;
+  static constexpr int KEY_SPACE = 32; // fixed at 32
 
   // Keyboard / Mouse actions
   bool mMouseDn = false;          // Mouse button down
@@ -100,7 +100,7 @@ class GPUDisplayBackend
 
   GPUDisplay* mDisplay; // Ptr to display, not owning, set by display when it connects to backend
 
-  void HandleKeyRelease(unsigned char key);                             // Callback for handling key presses
+  void HandleKey(unsigned char key);                                    // Callback for handling key presses
   int DrawGLScene(bool mixAnimation = false, float animateTime = -1.f); // Callback to draw the GL scene
   void HandleSendKey();                                                 // Optional callback to handle key press from external source (e.g. stdin by default)
   void ReSizeGLScene(int width, int height);                            // Callback when GL window is resized

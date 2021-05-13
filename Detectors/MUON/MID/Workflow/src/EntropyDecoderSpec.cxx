@@ -10,11 +10,13 @@
 
 /// @file   EntropyDecoderSpec.cxx
 
-#include <vector>
+#include "MIDWorkflow/EntropyDecoderSpec.h"
 
+#include <vector>
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "MIDWorkflow/EntropyDecoderSpec.h"
+#include "DetectorsBase/CTFCoderBase.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
