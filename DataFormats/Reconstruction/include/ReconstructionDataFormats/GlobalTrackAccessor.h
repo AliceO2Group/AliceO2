@@ -16,7 +16,6 @@
 #define O2_GLOBAL_TRACK_ACCESSOR
 
 #include "ReconstructionDataFormats/Track.h"
-#include "ReconstructionDataFormats/TrackFwd.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "CommonDataFormat/AbstractRefAccessor.h"
 
@@ -25,7 +24,6 @@ namespace o2
 namespace dataformats
 {
 using GlobalTrackAccessor = AbstractRefAccessor<o2::track::TrackParCov, GlobalTrackID::NSources>;
-using GlobalFwdTrackAccessor = AbstractRefAccessor<o2::track::TrackParCovFwd, GlobalTrackID::NSources>;
 }
 } // namespace o2
 

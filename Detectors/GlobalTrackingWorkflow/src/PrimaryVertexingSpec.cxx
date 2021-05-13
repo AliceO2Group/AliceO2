@@ -116,7 +116,7 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     if (!_origID.includesDet(DetID::ITS)) {
       return true; // just in case this selection was not done on RecoContainer filling level
     }
-    if constexpr (isITSTrack<decltype(_tr)>() || isMFTTrack<decltype(_tr)>()) {
+    if constexpr (isITSTrack<decltype(_tr)>()) {
       t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
       terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
     }

@@ -170,8 +170,8 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
       t0 += 0.5 * this->mITSROFrameLengthMUS; // ITS time is supplied in \mus as beginning of ROF
       terr *= this->mITSROFrameLengthMUS;     // error is supplied as a half-ROF duration, convert to \mus
     } else if (isMFTTrack<decltype(_tr)>()) {
-      t0 += this->mMFTROFrameLengthMUS;
-      terr *= 0.5 * this->mMFTROFrameLengthMUS;
+      t0 += 0.5 * this->mMFTROFrameLengthMUS;
+      terr *= this->mMFTROFrameLengthMUS;
     }
     // for all other tracks the time is in \mus with gaussian error
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});

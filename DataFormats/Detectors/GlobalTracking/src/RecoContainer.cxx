@@ -421,11 +421,11 @@ void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
 //____________________________________________________________
 void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
 {
-  fwdTracksPool.registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), GTrackID::MFT);
-  clusRefPool.registerContainer(pc.inputs().get<gsl::span<int>>("trackClIdx"), GTrackID::MFT);
-  tracksROFsPool.registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackMFTROF"), GTrackID::MFT);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), TRACKS);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<int>>("trackClIdx"), INDICES);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackMFTROF"), TRACKREFS);
   if (mc) {
-    tracksMCPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMFTMCTR"), GTrackID::MFT);
+    commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMFTMCTR"), MCLABELS);
   }
 }
 

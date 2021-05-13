@@ -59,6 +59,11 @@ namespace o2::its
 class TrackITS;
 }
 
+namespace o2::mft
+{
+class TrackMFT;
+}
+
 namespace o2::itsmft
 {
 class ROFRecord;
@@ -308,6 +313,18 @@ struct RecoContainer {
   auto getITSClusters() const { return getSpan<o2::itsmft::CompClusterExt>(GTrackID::ITS, CLUSTERS); }
   auto getITSClustersPatterns() const { return getSpan<unsigned char>(GTrackID::ITS, PATTERNS); }
   auto getITSClustersMCLabels() const { return mcITSClusters.get(); }
+
+  // MFT
+  const o2::mft::TrackMFT& getMFTTrack(GTrackID gid) const { return getTrack<o2::mft::TrackMFT>(gid); }
+  auto getMFTTracks() const { return getTracks<o2::mft::TrackMFT>(GTrackID::MFT); }
+  auto getMFTTracksROFRecords() const { return getSpan<o2::itsmft::ROFRecord>(GTrackID::MFT, TRACKREFS); }
+  auto getMFTTracksClusterRefs() const { return getSpan<int>(GTrackID::MFT, INDICES); }
+  auto getMFTTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::MFT, MCLABELS); }
+  // MFT clusters
+  //auto getMFTClustersROFRecords() const { return getSpan<o2::itsmft::ROFRecord>(GTrackID::MFT, CLUSREFS); }
+  //auto getMFTClusters() const { return getSpan<o2::itsmft::CompClusterExt>(GTrackID::MFT, CLUSTERS); }
+  //auto getMFTClustersPatterns() const { return getSpan<unsigned char>(GTrackID::MFT, PATTERNS); }
+  //auto getMFTClustersMCLabels() const { return mcMFTClusters.get(); }
 
   // TPC
   const o2::tpc::TrackTPC& getTPCTrack(GTrackID id) const { return getTrack<o2::tpc::TrackTPC>(id); }

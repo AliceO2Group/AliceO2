@@ -134,19 +134,21 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
   }
 
-  // ITS-TPC matches, may refer to ITS, TPC (TODO: something else?) tracks
+  // TPC-TOF matches, may refer to TPC (TODO: something else?) tracks
   {
-    for (unsigned i = 0; i < tracksTPCITS.size(); i++) {
-      const auto& matchTr = tracksTPCITS[i];
-      if (isUsed2(i, GTrackID::ITSTPC)) {
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
-        flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
+    if (matchesTPCTOF.size() && !tracksTPCTOF.size()) {
+      throw std::runtime_error(fmt::format("TPC-TOF matched tracks ({}) require TPCTOF matches ({}) and TPCTOF tracks ({})",
+                                           matchesTPCTOF.size(), tracksTPCTOF.size()));
+    }
+    for (unsigned i = 0; i < matchesTPCTOF.size(); i++) {
+      const auto& match = matchesTPCTOF[i];
+      const auto& gidx = match.getEvIdxTrack().getIndex(); // TPC (or other? but w/o ITS) track global idx (FIXME: TOF has to git rid of EvIndex stuff)
+      if (isUsed(gidx)) {                                  // is TPC track already used
         continue;
       }
-      if (creator(matchTr, {i, GTrackID::ITSTPC}, matchTr.getTimeMUS().getTimeStamp(), matchTr.getTimeMUS().getTimeStampError())) {
-        flagUsed2(i, GTrackID::ITSTPC);
-        flagUsed(matchTr.getRefITS()); // flag used ITS tracks
-        flagUsed(matchTr.getRefTPC()); // flag used TPC tracks
+      const auto& trc = tracksTPCTOF[i];
+      if (creator(trc, {i, GTrackID::TPCTOF}, trc.getTimeMUS().getTimeStamp(), trc.getTimeMUS().getTimeStampError())) {
+        flagUsed(gidx); // flag used TPC tracks
       }
     }
   }
@@ -158,9 +160,9 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
       if (isUsed2(i, GTrackID::TPC)) { // skip used tracks
         continue;
       }
-      const auto& trc = tracksTPCTOF[i];
-      if (creator(trc, {i, GTrackID::TPCTOF}, trc.getTimeMUS().getTimeStamp(), trc.getTimeMUS().getTimeStampError())) {
-        flagUsed(gidx); // flag used TPC tracks
+      const auto& trc = tracksTPC[i];
+      if (creator(trc, {i, GTrackID::TPC}, trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd()), 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd()))) {
+        flagUsed2(i, GTrackID::TPC); // flag used TPC tracks
       }
     }
   }
@@ -185,45 +187,24 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
   }
 
-  // ITS only tracks
-  {
-    const auto& rofrs = getITSTracksROFRecords<o2::itsmft::ROFRecord>();
-    for (unsigned irof = 0; irof < rofrs.size(); irof++) {
-      const auto& rofRec = rofrs[irof];
-      float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-      int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
-      for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
-        if (isUsed2(it, GTrackID::ITS)) { // skip used tracks
-          continue;
-        }
-        GTrackID gidITS(it, GTrackID::ITS);
-        const auto& trc = getITSTrack<o2::its::TrackITS>(gidITS);
-        if (creator(trc, gidITS, t0, 0.5)) {
-          flagUsed2(it, GTrackID::ITS);
-        }
-      }
-    }
-  }
-
   // MFT only tracks
   {
-    const auto& rofrs = getMFTTracksROFRecords<o2::itsmft::ROFRecord>();
+    const auto& rofrs = getMFTTracksROFRecords();
     for (unsigned irof = 0; irof < rofrs.size(); irof++) {
       const auto& rofRec = rofrs[irof];
       float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
       int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
       for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
-        if (isUsed2(it, GTrackID::MFT)) { // skip used tracks
-          continue;
-        }
+
         GTrackID gidMFT(it, GTrackID::MFT);
-        const auto& trc = getMFTTrack<o2::mft::TrackMFT>(gidMFT);
+        const auto& trc = getTrack<o2::mft::TrackMFT>(gidMFT);
         if (creator(trc, gidMFT, t0, 0.5)) {
           flagUsed2(it, GTrackID::MFT);
         }
       }
     }
   }
+
   auto current_time = std::chrono::high_resolution_clock::now();
   LOG(INFO) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
 }
