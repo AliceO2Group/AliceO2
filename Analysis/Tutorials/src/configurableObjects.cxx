@@ -7,9 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This task demonstrates how to use configurable to wrap classes.
+///        Use it with supplied configuration: "configurableObject.json".
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Analysis/configurableCut.h"
 
 #include <sstream>
@@ -17,9 +22,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-
-/// This task demonstrates how to use configurable to wrap classes
-/// use it with supplied configuration: "configurableObject.json"
 
 template <typename T>
 auto printArray(std::vector<T> const& vec)
@@ -55,6 +57,7 @@ static constexpr float defaultm[3][4] = {{1.1, 1.2, 1.3, 1.4}, {2.1, 2.2, 2.3, 2
 static LabeledArray<float> la{&defaultm[0][0], 3, 4, {"r 1", "r 2", "r 3"}, {"c 1", "c 2", "c 3", "c 4"}};
 
 struct ConfigurableObjectDemo {
+  // 
   Configurable<configurableCut> cut{"cut", {0.5, 1, true}, "generic cut"};
   MutableConfigurable<configurableCut> mutable_cut{"mutable_cut", {1., 2, false}, "generic cut"};
 

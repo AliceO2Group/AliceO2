@@ -7,19 +7,21 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This task shows how to access the Muons belong to a collision.
+///        The association is made through the BC column (and in Run 3 may not be unique!).
+///        Note that one has to subscribe to aod::Collisions const& to load
+///        the relevant data even if you access the data itself through m.collision().
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-// This task shows how to access the Muons belong to a collision
-// The association is made through the BC column (and in Run 3 may not be unique!)
-//
-// Note that one has to subscribe to aod::Collisions const& to load
-// the relevant data even if you access the data itself through m.collision()
 // This uses the exclusive matcher, so you only get BCs which have a collision
 // If you want also BCs without collision, see the example IterateMuonsSparse below
 struct IterateMuons {
