@@ -54,12 +54,16 @@ struct ColumnData {
   bool isStripFired(int istrip, int cathode, int line) const;
 
   bool operator==(const ColumnData& right) const;
+
+  bool isEmpty() const;
 };
 
 ColumnData operator|(const ColumnData& col1, const ColumnData& col2);
 ColumnData& operator|=(ColumnData& col1, const ColumnData& col2);
 std::ostream& operator<<(std::ostream& os, const ColumnData& col);
 
+/// Gets an unique ID for the ColumnData
+inline uint16_t getColumnDataUniqueId(uint8_t deId, uint8_t columnId) { return (static_cast<uint16_t>(deId) << 4) | columnId; }
 } // namespace mid
 } // namespace o2
 
