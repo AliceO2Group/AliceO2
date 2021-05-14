@@ -155,6 +155,12 @@ o2_add_dpl_workflow(extended-columns
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(extended-tables
+                  SOURCES src/extendedTables.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(zdc-vzero-iteration
                   SOURCES src/ZDCVZeroIteration.cxx
                   JOB_POOL analysis
