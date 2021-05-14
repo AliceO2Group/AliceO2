@@ -17,6 +17,7 @@
 #include "Framework/Task.h"
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "CCDB/BasicCCDBManager.h"
 #include "TStopwatch.h"
 
 using namespace o2::framework;
