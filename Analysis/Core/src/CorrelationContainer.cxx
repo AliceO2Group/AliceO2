@@ -26,13 +26,13 @@
 #include "TCanvas.h"
 #include "TF1.h"
 #include "THn.h"
-#include "Framework/HistogramRegistry.h"
+#include "Framework/HistogramSpec.h"
 
 using namespace o2::framework;
 
-ClassImp(CorrelationContainer)
+ClassImp(CorrelationContainer);
 
-  const Int_t CorrelationContainer::fgkCFSteps = 11;
+const Int_t CorrelationContainer::fgkCFSteps = 11;
 
 CorrelationContainer::CorrelationContainer() : TNamed(),
                                                mPairHist(nullptr),
@@ -94,11 +94,10 @@ CorrelationContainer::CorrelationContainer(const char* name, const char* objTitl
 
   LOGF(info, "Creating CorrelationContainer");
 
-  // TODO Remove Clone() pending change in HistogramRegistry
-  mPairHist = (StepTHnF*)HistFactory::createHist<StepTHnF>({"mPairHist", "d^{2}N_{ch}/d#varphid#eta", {HistType::kStepTHnF, {axisList[0], axisList[1], axisList[2], axisList[3], axisList[4], axisList[5]}, fgkCFSteps}})->Clone();
-  mTriggerHist = (StepTHnF*)HistFactory::createHist<StepTHnF>({"mTriggerHist", "d^{2}N_{ch}/d#varphid#eta", {HistType::kStepTHnF, {axisList[2], axisList[3], axisList[5]}, fgkCFSteps}})->Clone();
-  mTrackHistEfficiency = (StepTHnD*)HistFactory::createHist<StepTHnD>({"mTrackHistEfficiency", "Tracking efficiency", {HistType::kStepTHnD, {axisList[6], axisList[7], {4, -0.5, 3.5, "species"}, axisList[3], axisList[8]}, fgkCFSteps}})->Clone();
-  mEventCount = (TH2F*)(HistFactory::createHist<TH2F>({"mEventCount", ";step;centrality;count", {HistType::kTH2F, {{fgkCFSteps + 2, -2.5, -0.5 + fgkCFSteps, "step"}, axisList[3]}}})->Clone());
+  mPairHist = HistFactory::createHist<StepTHnF>({"mPairHist", "d^{2}N_{ch}/d#varphid#eta", {HistType::kStepTHnF, {axisList[0], axisList[1], axisList[2], axisList[3], axisList[4], axisList[5]}, fgkCFSteps}}).release();
+  mTriggerHist = HistFactory::createHist<StepTHnF>({"mTriggerHist", "d^{2}N_{ch}/d#varphid#eta", {HistType::kStepTHnF, {axisList[2], axisList[3], axisList[5]}, fgkCFSteps}}).release();
+  mTrackHistEfficiency = HistFactory::createHist<StepTHnD>({"mTrackHistEfficiency", "Tracking efficiency", {HistType::kStepTHnD, {axisList[6], axisList[7], {4, -0.5, 3.5, "species"}, axisList[3], axisList[8]}, fgkCFSteps}}).release();
+  mEventCount = HistFactory::createHist<TH2F>({"mEventCount", ";step;centrality;count", {HistType::kTH2F, {{fgkCFSteps + 2, -2.5, -0.5 + fgkCFSteps, "step"}, axisList[3]}}}).release();
 }
 
 //_____________________________________________________________________________
