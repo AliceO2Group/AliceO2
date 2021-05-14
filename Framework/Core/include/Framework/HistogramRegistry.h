@@ -36,7 +36,7 @@ struct HistFactory {
 
   // create histogram of type T with the axes defined in HistogramSpec
   template <typename T>
-  static std::shared_ptr<T> createHist(const HistogramSpec& histSpec)
+  static std::unique_ptr<T> createHist(const HistogramSpec& histSpec)
   {
     constexpr std::size_t MAX_DIM{10};
     const std::size_t nAxes{histSpec.config.axes.size()};
@@ -57,7 +57,7 @@ struct HistFactory {
     }
 
     // create histogram
-    std::shared_ptr<T> hist{generateHist<T>(histSpec.name, histSpec.title, nAxes, nBins, lowerBounds, upperBounds, histSpec.config.nSteps)};
+    std::unique_ptr<T> hist{generateHist<T>(histSpec.name, histSpec.title, nAxes, nBins, lowerBounds, upperBounds, histSpec.config.nSteps)};
     if (!hist) {
       LOGF(FATAL, "The number of dimensions specified for histogram %s does not match the type.", histSpec.name);
       return nullptr;
@@ -65,7 +65,7 @@ struct HistFactory {
 
     // set axis properties
     for (std::size_t i = 0; i < nAxes; i++) {
-      TAxis* axis{getAxis(i, hist)};
+      TAxis* axis{getAxis(i, hist.get())};
       if (axis) {
         if (histSpec.config.axes[i].title) {
           axis->SetTitle((*histSpec.config.axes[i].title).data());
@@ -98,7 +98,7 @@ struct HistFactory {
   template <typename T>
   static HistPtr createHistVariant(const HistogramSpec& histSpec)
   {
-    if (auto hist = castToVariant(createHist<T>(histSpec))) {
+    if (auto hist = castToVariant(std::move(createHist<T>(histSpec)))) {
       return *hist;
     } else {
       throw runtime_error("Histogram was not created properly.");
@@ -117,7 +117,7 @@ struct HistFactory {
 
   // helper function to get the axis via index for any type of root histogram
   template <typename T>
-  static TAxis* getAxis(const int i, std::shared_ptr<T>& hist)
+  static TAxis* getAxis(const int i, T* hist)
   {
     if constexpr (std::is_base_of_v<THnBase, T> || std::is_base_of_v<StepTHn, T>) {
       return hist->GetAxis(i);
