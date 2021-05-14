@@ -226,8 +226,9 @@ class DigitBlockBase //:public DigitBlock
   {
     mDigit.ref[N - 1].set(std::get<N - 1>(tupleVecSubDigits).size(), std::get<N - 1>(mSubDigit).size());
     std::move(std::get<N - 1>(mSubDigit).begin(), std::get<N - 1>(mSubDigit).end(), std::back_inserter(std::get<N - 1>(tupleVecSubDigits)));
-    if constexpr (N > 1)
+    if constexpr (N > 1) {
       getSubDigit<N - 1, N_TOTAL>(tupleVecSubDigits);
+    }
   }
   template <std::size_t N, std::size_t N_TOTAL, typename... T>
   auto getSubDigit(std::tuple<T...> tupleVecSubDigits) -> std::enable_if_t<(N_TOTAL == 1)>
@@ -240,8 +241,9 @@ class DigitBlockBase //:public DigitBlock
   auto getSingleSubDigit(std::tuple<T...> tupleVecSingleSubDigits) -> std::enable_if_t<(N_TOTAL > 1)>
   {
     std::get<N - 1>(tupleVecSingleSubDigits).push_back(std::move(std::get<N - 1>(mSingleSubDigit)));
-    if constexpr (N > 1)
+    if constexpr (N > 1) {
       getSingleSubDigit<N - 1, N_TOTAL>(tupleVecSingleSubDigits);
+    }
   }
   template <std::size_t N, std::size_t N_TOTAL, typename... T>
   auto getSingleSubDigit(std::tuple<T...> tupleVecSingleSubDigits) -> std::enable_if_t<(N_TOTAL == 1)>
