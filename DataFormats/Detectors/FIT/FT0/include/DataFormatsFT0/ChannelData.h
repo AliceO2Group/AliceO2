@@ -15,7 +15,6 @@
 #ifndef _FT0_CHANNELDATA_H_
 #define _FT0_CHANNELDATA_H_
 
-#include <Framework/Logger.h>
 #include <Rtypes.h>
 #include <tuple>
 namespace o2

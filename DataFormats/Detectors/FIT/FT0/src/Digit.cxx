@@ -10,6 +10,7 @@
 
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
+#include <Framework/Logger.h>
 #include <iostream>
 #include <gsl/span>
 #include <bitset>

@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsFT0/ChannelData.h"
+#include <Framework/Logger.h>
 #include <iostream>
 
 using namespace o2::ft0;

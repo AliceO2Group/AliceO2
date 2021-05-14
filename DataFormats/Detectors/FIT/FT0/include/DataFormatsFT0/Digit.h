@@ -15,7 +15,6 @@
 #ifndef _FT0_DIGIT_H_
 #define _FT0_DIGIT_H_
 
-#include <Framework/Logger.h>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/TimeStamp.h"
