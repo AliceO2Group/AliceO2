@@ -109,8 +109,8 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   //std::vector<o2::mft::TrackMFTExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
+  std::vector<o2::MCCompLabel> trackLabels;
+  std::vector<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::mft::TrackLTF> tracksLTF;
   std::vector<o2::mft::TrackCA> tracksCA;
   auto& allTracksMFT = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
@@ -152,8 +152,9 @@ void TrackerDPL::run(ProcessingContext& pc)
         if (mUseMC) {
           mTracker->computeTracksMClabels(tracksLTF);
           mTracker->computeTracksMClabels(tracksCA);
-          trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-          allTrackLabels.mergeAtBack(trackLabels);
+          trackLabels.swap(mTracker->getTrackLabels());
+          std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+          trackLabels.clear();
         }
 
         LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
