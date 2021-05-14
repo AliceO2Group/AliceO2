@@ -41,15 +41,16 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
 
   Float_t sideAtime = 0, sideCtime = 0;
 
-  auto timeStamp = o2::InteractionRecord::bc2ns(bcd.mIntRecord.bc, bcd.mIntRecord.orbit);
+  // auto timeStamp = o2::InteractionRecord::bc2ns(bcd.mIntRecord.bc, bcd.mIntRecord.orbit);
 
-  LOG(DEBUG) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
+  // LOG(DEBUG) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
 
   int nch = inChData.size();
   const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
+    int offsetChannel = mCalibOffset->mTimeOffsets[inChData[ich].ChId];
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
-                                               inChData[ich].CFDTime * Geometry::ChannelWidth,
+                                               (inChData[ich].CFDTime - offsetChannel) * Geometry::ChannelWidth,
                                                (double)inChData[ich].QTCAmpl * parInv,
                                                inChData[ich].ChainQTC};
 

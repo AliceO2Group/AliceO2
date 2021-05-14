@@ -33,7 +33,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<InputCal
 {
 
   //probably will be set via run parameter
-  static constexpr unsigned int DEFAULT_MIN_ENTRIES = 10000;
+  static constexpr unsigned int DEFAULT_MIN_ENTRIES = 1000;
 
   //temp param for testing
   static constexpr bool DEFAULT_TEST_MODE = true;
