@@ -19,6 +19,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/TimeStamp.h"
+#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include <gsl/span>
 #include <bitset>
 
@@ -28,6 +29,7 @@ namespace ft0
 {
 class CollisionTimeRecoTask
 {
+  using offsetCalib = o2::ft0::FT0ChannelTimeCalibrationObject;
 
  public:
   enum : int { TimeMean,
@@ -40,11 +42,12 @@ class CollisionTimeRecoTask
                              gsl::span<const o2::ft0::ChannelData> inChData,
                              gsl::span<o2::ft0::ChannelDataFloat> outChData);
   void FinishTask();
-  // DigitizationParameters const &mParameters;
-  //  o2::ft0::Geometry mGeometry;
+  void SetChannelOffset(o2::ft0::FT0ChannelTimeCalibrationObject* caliboffsets) { mCalibOffset = caliboffsets; };
 
  private:
-  ClassDefNV(CollisionTimeRecoTask, 1);
+  o2::ft0::FT0ChannelTimeCalibrationObject* mCalibOffset;
+
+  ClassDefNV(CollisionTimeRecoTask, 2);
 };
 } // namespace ft0
 } // namespace o2
