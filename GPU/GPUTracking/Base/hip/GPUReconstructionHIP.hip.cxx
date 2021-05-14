@@ -306,6 +306,9 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       GPUInfo("\tmultiProcessorCount = %d", hipDeviceProp.multiProcessorCount);
       GPUInfo(" ");
     }
+    if (hipDeviceProp.warpSize != GPUCA_WARP_SIZE) {
+      throw std::runtime_error("Invalid warp size on GPU");
+    }
     mBlockCount = hipDeviceProp.multiProcessorCount;
     mMaxThreads = std::max<int>(mMaxThreads, hipDeviceProp.maxThreadsPerBlock * mBlockCount);
     mWarpSize = 64;
