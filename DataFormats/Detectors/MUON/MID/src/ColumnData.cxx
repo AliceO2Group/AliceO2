@@ -52,6 +52,21 @@ bool ColumnData::isStripFired(int istrip, int cathode, int line) const
   return (cathode == 0) ? isBPStripFired(istrip, line) : isNBPStripFired(istrip);
 }
 
+bool ColumnData::isEmpty() const
+{
+  /// Checks if the data is empty
+  /// Returns true if all patterns are 0
+  if (patterns[4]) {
+    return false;
+  }
+  for (int iline = 0; iline < 4; ++iline) {
+    if (patterns[iline]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 bool ColumnData::operator==(const ColumnData& right) const
 {
   /// Comparison operator
