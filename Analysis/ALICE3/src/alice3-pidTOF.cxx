@@ -36,15 +36,15 @@ struct ALICE3pidTOFTask {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
   using Coll = aod::Collisions;
   // Tables to produce
-  Produces<o2::aod::pidRespTOFEl> tablePIDEl;
-  Produces<o2::aod::pidRespTOFMu> tablePIDMu;
-  Produces<o2::aod::pidRespTOFPi> tablePIDPi;
-  Produces<o2::aod::pidRespTOFKa> tablePIDKa;
-  Produces<o2::aod::pidRespTOFPr> tablePIDPr;
-  Produces<o2::aod::pidRespTOFDe> tablePIDDe;
-  Produces<o2::aod::pidRespTOFTr> tablePIDTr;
-  Produces<o2::aod::pidRespTOFHe> tablePIDHe;
-  Produces<o2::aod::pidRespTOFAl> tablePIDAl;
+  Produces<o2::aod::pidTOFFullEl> tablePIDEl;
+  Produces<o2::aod::pidTOFFullMu> tablePIDMu;
+  Produces<o2::aod::pidTOFFullPi> tablePIDPi;
+  Produces<o2::aod::pidTOFFullKa> tablePIDKa;
+  Produces<o2::aod::pidTOFFullPr> tablePIDPr;
+  Produces<o2::aod::pidTOFFullDe> tablePIDDe;
+  Produces<o2::aod::pidTOFFullTr> tablePIDTr;
+  Produces<o2::aod::pidTOFFullHe> tablePIDHe;
+  Produces<o2::aod::pidTOFFullAl> tablePIDAl;
   Parameters resoParameters{1};
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
@@ -221,9 +221,9 @@ struct ALICE3pidTOFTaskQA {
 
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov,
-                         aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                         aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
-                         aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                         aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
+                         aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFFullDe,
+                         aod::pidTOFFullTr, aod::pidTOFFullHe, aod::pidTOFFullAl,
                          aod::TrackSelection> const& tracks)
   {
     // Computing Multiplicity first

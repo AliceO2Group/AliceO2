@@ -53,7 +53,7 @@ class GPUDisplay
   void WaitForNextEvent() {}
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster) {}
 
-  void HandleKeyRelease(unsigned char key) {}
+  void HandleKey(unsigned char key) {}
   int DrawGLScene(bool mixAnimation = false, float mAnimateTime = -1.f) { return 1; }
   void HandleSendKey(int key) {}
   int InitGL(bool initFailure = false) { return 1; }
@@ -95,7 +95,7 @@ class GPUDisplay
   void WaitForNextEvent();
   void SetCollisionFirstCluster(unsigned int collision, int slice, int cluster);
 
-  void HandleKeyRelease(unsigned char key);
+  void HandleKey(unsigned char key);
   int DrawGLScene(bool mixAnimation = false, float mAnimateTime = -1.f);
   void HandleSendKey(int key);
   int InitGL(bool initFailure = false);
@@ -271,6 +271,7 @@ class GPUDisplay
   const GPUCalibObjectsConst* mCalib;
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfg;
+  GPUSettingsDisplayHeavy mCfg2;
   GPUQA* mQA;
   qSem mSemLockDisplay;
 

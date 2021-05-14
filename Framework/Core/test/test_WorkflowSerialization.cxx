@@ -48,7 +48,9 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
                   DataProcessorSpec{"D", {InputSpec{"foo", {"C", "D"}}},                                                                                                                        //
                                     {OutputSpec{{"bar"}, {"I", "L"}}},                                                                                                                          //
                                     AlgorithmSpec{[](ProcessingContext& ctx) {}},                                                                                                               //
-                                    {}}};                                                                                                                                                       //
+                                    {},                                                                                                                                                         //
+                                    CommonServices::defaultServices(),                                                                                                                          //
+                                    {{"label a"}, {"label \"b\""}}}};
 
   std::vector<DataProcessorInfo> metadataOut{
     {"A", "test_Framework_test_SerializationWorkflow", {"foo"}, {ConfigParamSpec{"aBool", VariantType::Bool, true, {"A Bool"}}}},

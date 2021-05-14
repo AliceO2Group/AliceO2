@@ -86,6 +86,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
  private:
   GPUReconstructionCUDAInternals* mInternals;
+  int genRTC();
 };
 
 using GPUReconstructionCUDA = GPUReconstructionKernels<GPUReconstructionCUDABackend>;

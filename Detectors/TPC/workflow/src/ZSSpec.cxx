@@ -126,6 +126,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
         writer.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::TPC)); // must be set explicitly
         uint32_t rdhV = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
         writer.useRDHVersion(rdhV);
+        writer.doLazinessCheck(false); // LazinessCheck is not thread-safe
         std::string outDir = "./";
         const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
         enum LinksGrouping { All,

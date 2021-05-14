@@ -360,11 +360,11 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mFillTracksITS = ic.options().get<int>("fill-tracks-its");
   mFillTracksTPC = ic.options().get<int>("fill-tracks-tpc");
   mFillTracksITSTPC = ic.options().get<int>("fill-tracks-its-tpc");
-  mTFNumber = ic.options().get<int>("aod-timeframe-id");
+  mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mRecoOnly = ic.options().get<int>("reco-mctracks-only");
   mTruncate = ic.options().get<int>("enable-truncation");
 
-  if (mTFNumber == -1) {
+  if (mTFNumber == -1L) {
     LOG(INFO) << "TFNumber will be obtained from CCDB";
   }
 
@@ -501,7 +501,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   uint64_t tfNumber;
   int runNumber = 244918; // TODO: get real run number
-  if (mTFNumber == -1) {
+  if (mTFNumber == -1L) {
     tfNumber = getTFNumber(firstVtxGlBC, runNumber);
   } else {
     tfNumber = mTFNumber;
@@ -954,7 +954,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
       ConfigParamSpec{"fill-tracks-its", VariantType::Int, 1, {"Fill ITS tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-tpc", VariantType::Int, 0, {"Fill TPC tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-its-tpc", VariantType::Int, 1, {"Fill ITS-TPC tracks into tracks table"}},
-      ConfigParamSpec{"aod-timeframe-id", VariantType::Int, -1, {"Set timeframe number"}},
+      ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
 }

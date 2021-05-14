@@ -42,8 +42,8 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
 
-//using FullTracksExt = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta>;
-using FullTracksExt = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTOFbeta>;
+//using FullTracksExt = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection, aod::pidTPC, aod::pidTOF, aod::pidTOFbeta>;
+using FullTracksExt = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTOFbeta>;
 
 struct v0selector {
 

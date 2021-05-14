@@ -14,6 +14,7 @@
 /// @file   TRDTrackReaderSpec.h
 
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/TrackTriggerRecord.h"
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -53,6 +54,7 @@ class TRDTrackReader : public Task
   std::unique_ptr<TTree> mTree;
   std::string mFileName = "";
   std::vector<o2::trd::TrackTRD> mTracks, *mTracksPtr = &mTracks;
+  std::vector<o2::trd::TrackTriggerRecord> mTrigRec, *mTrigRecPtr = &mTrigRec;
 };
 
 /// read TPC-TRD matched tracks from a root file
