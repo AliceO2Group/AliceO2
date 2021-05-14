@@ -93,7 +93,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "TRACKSROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   LOG(INFO) << "MFTTracker pulled " << compClusters.size() << " compressed clusters in "
             << rofsinput.size() << " RO frames";
@@ -196,7 +196,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "TRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "TRACKSROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
 
   if (useMC) {

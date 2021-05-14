@@ -198,7 +198,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
 
         GTrackID gidMFT(it, GTrackID::MFT);
         const auto& trc = getTrack<o2::mft::TrackMFT>(gidMFT);
-        if (creator(trc, gidMFT, t0, 0.5)) {
+        if (creator(trc, gidMFT, t0, 1.0)) {
           flagUsed2(it, GTrackID::MFT);
         }
       }

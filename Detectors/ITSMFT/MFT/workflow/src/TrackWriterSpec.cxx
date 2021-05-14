@@ -57,7 +57,7 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
                                                              "MFTTrackMCTruth",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              ""},
-                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "MFT", "TRACKSROF", 0},
+                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "MFT", "MFTTrackROF", 0},
                                                                                      "MFTTracksROF",
                                                                                      logger},
                                 BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "MFT", "TRACKSMC2ROF", 0},
