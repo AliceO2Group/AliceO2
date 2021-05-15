@@ -37,6 +37,7 @@ std::string Options::printOptions()
   ss << "randomTracks: " << str[this->randomTracks()] << std::endl;
   ss << "itc         : " << str[this->its()] << std::endl;
   ss << "json        : " << str[this->json()] << std::endl;
+  ss << "online      : " << str[this->online()] << std::endl;
   ss << "vsd         : " << str[this->vsd()] << std::endl;
   ss << "tpc         : " << str[this->tpc()] << std::endl;
   return ss.str();
@@ -61,7 +62,9 @@ std::string Options::usage()
   ss << "\t\t"
      << "-j             use json files as a source" << std::endl;
   ss << "\t\t"
-     << "-o name        name of the options file" << std::endl;
+     << "-o             use online json files as a source" << std::endl;
+  ss << "\t\t"
+     << "-p name        name of the options file" << std::endl;
   ss << "\t\t"
      << "-r             use random tracks" << std::endl;
   ss << "\t\t"
@@ -83,8 +86,11 @@ bool Options::processCommandLine(int argc, char* argv[])
   // put ':' in the starting of the
   // string so that program can
   //distinguish between '?' and ':'
-  while ((opt = getopt(argc, argv, ":d:f:hijo:rsvt")) != -1) {
+  while ((opt = getopt(argc, argv, ":d:f:hijop:rsvt")) != -1) {
     switch (opt) {
+      case 'd':
+        this->mDataFolder = optarg;
+        break;
       case 'f':
         this->mFileName = optarg;
         break;
@@ -98,6 +104,9 @@ bool Options::processCommandLine(int argc, char* argv[])
         this->mJSON = true;
         break;
       case 'o':
+        this->mOnline = true;
+        break;
+      case 'p':
         optionsFileName = optarg;
         break;
       case 'r':
@@ -145,6 +154,7 @@ bool Options::saveToJSON(std::string filename)
   rapidjson::Value fileName;
   rapidjson::Value its(rapidjson::kNumberType);
   rapidjson::Value json(rapidjson::kNumberType);
+  rapidjson::Value online(rapidjson::kNumberType);
   rapidjson::Value randomTracks(rapidjson::kNumberType);
   rapidjson::Value tpc(rapidjson::kNumberType);
   rapidjson::Value vsd(rapidjson::kNumberType);
@@ -153,6 +163,7 @@ bool Options::saveToJSON(std::string filename)
   fileName.SetString(rapidjson::StringRef(this->fileName().c_str()));
   its.SetBool(this->its());
   json.SetBool(this->json());
+  online.SetBool(this->online());
   randomTracks.SetBool(this->randomTracks());
   tpc.SetBool(this->tpc());
   vsd.SetBool(this->vsd());
@@ -163,6 +174,7 @@ bool Options::saveToJSON(std::string filename)
   tree.AddMember("fileName", fileName, allocator);
   tree.AddMember("its", its, allocator);
   tree.AddMember("json", json, allocator);
+  tree.AddMember("online", online, allocator);
   tree.AddMember("randomTracks", randomTracks, allocator);
   tree.AddMember("tpc", tpc, allocator);
   tree.AddMember("vsd", vsd, allocator);

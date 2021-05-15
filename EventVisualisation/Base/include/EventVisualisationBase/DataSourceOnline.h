@@ -8,16 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DataSourceOffline.h
+/// \file DataSourceOnline.h
 /// \brief Grouping reading from file(s)
 /// \author julian.myrcha@cern.ch
-/// \author p.nowakowski@cern.ch
 
-#ifndef ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINE_H
-#define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINE_H
+#ifndef O2EVE_DATASOURCEONLINE_H
+#define O2EVE_DATASOURCEONLINE_H
 
 #include <EventVisualisationBase/DataSource.h>
 #include <EventVisualisationBase/DataReader.h>
+#include <EventVisualisationBase/FileWatcher.h>
 
 class TObject;
 
@@ -26,27 +26,25 @@ namespace o2
 namespace event_visualisation
 {
 
-class DataSourceOffline : public DataSource
+class DataSourceOnline : public DataSource
 {
  protected:
-  Int_t mCurrentEvent = 0;
-  DataReader* mDataReaders[EVisualisationGroup::NvisualisationGroups];
-  VisualisationEvent getEventData(int no, EVisualisationGroup purpose, EVisualisationDataType dataType);
+  FileWatcher mFileWatcher;
 
  public:
-  DataSourceOffline();
+  DataSourceOnline(const std::string path);
 
-  ~DataSourceOffline() override = default;
-  DataSourceOffline(DataSourceOffline const&) = delete;
+  ~DataSourceOnline() override = default;
+  DataSourceOnline(DataSourceOnline const&) = delete;
+
+  /// Deleted assigment operator
+  void operator=(DataSourceOnline const&) = delete;
+
+  int getEventCount() override;
   void setCurrentEvent(Int_t currentEvent) override;
   Int_t getCurrentEvent() override;
 
-  /// Deleted assigment operator
-  void operator=(DataSourceOffline const&) = delete;
-
-  int getEventCount() override;
-
-  void registerReader(DataReader* reader, EVisualisationGroup type);
+  bool refresh() override; // recompute
 
   std::vector<std::pair<VisualisationEvent, std::string>> getVisualisationList(int no) override;
 };
@@ -54,4 +52,4 @@ class DataSourceOffline : public DataSource
 } // namespace event_visualisation
 } // namespace o2
 
-#endif //ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCEOFFLINE_H
+#endif //O2EVE_DATASOURCEONLINE_H
