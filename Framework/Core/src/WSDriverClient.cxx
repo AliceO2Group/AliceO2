@@ -36,7 +36,7 @@ struct ClientWebSocketHandler : public WebSocketHandler {
   /// not free the memory.
   void frame(char const* frame, size_t s) override
   {
-    LOG(INFO) << "Invoked" << std::string_view(frame, s);
+    mClient.dispatch(std::string_view(frame, s));
   }
 
   void endFragmentation() override{};
@@ -79,6 +79,12 @@ void on_connect(uv_connect_t* connection, int status)
   };
   std::lock_guard<std::mutex> lock(client->mutex());
   auto handler = std::make_unique<ClientWebSocketHandler>(*client);
+  client->observe("ping", [](std::string_view) {
+    LOG(INFO) << "ping";
+  });
+  client->observe("pong", [](std::string_view) {
+    LOG(INFO) << "pong";
+  });
   auto clientContext = std::make_unique<o2::framework::DriverClientContext>(DriverClientContext{client->spec(), context->state});
   client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, std::move(clientContext), onHandshake, std::move(handler)));
   client->sendHandshake();
@@ -138,10 +144,6 @@ void WSDriverClient::sendHandshake()
 {
   mClient->sendHandshake();
   /// FIXME: nonce should be random
-}
-
-void WSDriverClient::observe(const char*, std::function<void(char const*)>)
-{
 }
 
 void WSDriverClient::tell(const char* msg, size_t s, bool flush)

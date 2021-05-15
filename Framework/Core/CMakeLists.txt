@@ -53,6 +53,7 @@ o2_add_library(Framework
                        src/DeviceSpecHelpers.cxx
                        src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
+                       src/DriverClient.cxx
                        src/DriverInfo.cxx
                        src/Expressions.cxx
                        src/FairMQDeviceProxy.cxx
