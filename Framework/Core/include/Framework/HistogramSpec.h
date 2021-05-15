@@ -272,7 +272,7 @@ struct HistFactory {
   template <typename T>
   static HistPtr createHistVariant(const HistogramSpec& histSpec)
   {
-    if (auto hist = castToVariant(std::move(createHist<T>(histSpec)))) {
+    if (auto hist = castToVariant(std::shared_ptr(std::move(createHist<T>(histSpec))))) {
       return *hist;
     } else {
       throw runtime_error("Histogram was not created properly.");
