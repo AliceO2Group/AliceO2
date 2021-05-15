@@ -73,6 +73,7 @@ void PrimaryVertexingSpec::init(InitContext& ic)
   } else {
     mITSROFrameLengthMUS = alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS ROFrame duration in \mus
   }
+  mVertexer.setITSROFrameLength(mITSROFrameLengthMUS);
 
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
