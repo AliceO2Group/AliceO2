@@ -44,9 +44,10 @@ class RawReaderBase
  public:
   RawReaderBase() = default;
   ~RawReaderBase() = default;
+  typedef DigitBlockType DigitBlock_t;
   typedef boost::mpl::vector<DataBlockTypes...> VecDataBlocks_t;
   std::tuple<std::vector<DataBlockTypes>...> mTupleVecDataBlocks;
-  std::map<InteractionRecord, DigitBlockType> mMapDigits;
+  std::map<InteractionRecord, DigitBlock_t> mMapDigits;
   template <typename T>
   constexpr std::vector<T>& getVecDataBlocks()
   {
@@ -73,15 +74,15 @@ class RawReaderBase
   }
 
   //processing data blocks into digits
-  template <class DataBlockType>
-  void processBinaryData(gsl::span<const uint8_t> payload, int linkID, int ep)
+  template <class DataBlockType, typename... T>
+  void processBinaryData(gsl::span<const uint8_t> payload, T&&... feeParameters)
   {
     auto& vecDataBlocks = getVecDataBlocks<DataBlockType>();
     auto srcPos = decodeBlocks(payload, vecDataBlocks);
     for (auto& dataBlock : vecDataBlocks) {
       auto intRec = dataBlock.getInteractionRecord();
       auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
-      digitIter->second.template process<DataBlockType>(dataBlock, linkID, ep);
+      digitIter->second.template processDigits<DataBlockType>(dataBlock, std::forward<T>(feeParameters)...);
     }
     vecDataBlocks.clear();
   }

@@ -358,6 +358,7 @@ template <class DataBlock, class Header, class... DataStructures>
 class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataBlockWrapper<DataStructures>...>::type
 {
   typedef boost::mpl::vector<DataStructures...> DataBlockTypes;
+  typedef DataBlock DataBlock_t;
   typedef DataBlockBase<DataBlock, Header, DataStructures...> TemplateHeader;
   typedef typename boost::mpl::inherit<DataBlockWrapper<Header>, DataBlockWrapper<DataStructures>...>::type DataBlockDerivedBase;
 
@@ -389,7 +390,7 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
   {
     mSize = 0;
     size_t bytePos = srcPos;
-    static_cast<DataBlock*>(this)->deserialize(payload, bytePos);
+    static_cast<DataBlock_t*>(this)->deserialize(payload, bytePos);
     mSize = bytePos - srcPos;
     //checking sanity and updating
     update();
@@ -402,7 +403,7 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
     mIsCorrect = true;
     checkDeserialization(mIsCorrect, DataBlockWrapper<Header>::mIsIncorrect);                // checking deserialization status for header
     (checkDeserialization(mIsCorrect, DataBlockWrapper<DataStructures>::mIsIncorrect), ...); // checking deserialization status for sub-block
-    static_cast<DataBlock*>(this)->sanityCheck(mIsCorrect);
+    static_cast<DataBlock_t*>(this)->sanityCheck(mIsCorrect);
   }
 
   size_t mSize; //deserialized size
