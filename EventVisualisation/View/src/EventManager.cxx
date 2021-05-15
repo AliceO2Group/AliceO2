@@ -14,11 +14,13 @@
 
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
+#include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/DataSource.h"
 #include "EventVisualisationBase/DataInterpreter.h"
 #include <EventVisualisationBase/DataSourceOffline.h>
+#include <EventVisualisationBase/DataSourceOnline.h>
 #include <EventVisualisationDetectors/DataReaderVSD.h>
 
 #include <TEveManager.h>
@@ -52,9 +54,6 @@ EventManager& EventManager::getInstance()
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
   LOG(INFO) << "Initializing TEveManager";
-  for (unsigned int i = 0; i < elemof(dataReaders); i++) {
-    dataReaders[i] = nullptr;
-  }
   for (unsigned int i = 0; i < elemof(dataTypeLists); i++) {
     dataTypeLists[i] = nullptr;
   }
@@ -63,16 +62,12 @@ EventManager::EventManager() : TEveEventManager("Event", "")
 void EventManager::Open()
 {
   switch (mCurrentDataSourceType) {
-    case SourceOnline:
-      break;
+    case SourceOnline: {
+      DataSourceOnline* source = new DataSourceOnline(Options::Instance()->dataFolder());
+      setDataSource(source);
+    } break;
     case SourceOffline: {
       DataSourceOffline* source = new DataSourceOffline();
-      for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++) {
-        if (dataReaders[i] != nullptr) {
-          dataReaders[i]->open();
-          source->registerReader(dataReaders[i], static_cast<EVisualisationGroup>(i));
-        }
-      }
       setDataSource(source);
     } break;
     case SourceHLT:
@@ -80,48 +75,56 @@ void EventManager::Open()
   }
 }
 
-void EventManager::GotoEvent(Int_t no)
+void EventManager::displayCurrentEvent()
 {
-  if (no == -1) {
-    no = getDataSource()->GetEventCount() - 1;
-  }
-
-  this->currentEvent = no;
-
   MultiView::getInstance()->destroyAllEvents();
+  if (getDataSource()->getEventCount() > 0) {
+    int no = getDataSource()->getCurrentEvent();
 
-  for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
-    dataTypeLists[i] = new TEveElementList(gDataTypeNames[i].c_str());
-  }
+    for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
+      dataTypeLists[i] = new TEveElementList(gDataTypeNames[i].c_str());
+    }
 
-  for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; ++i) {
-    DataReader* reader = dataReaders[i];
-    if (reader) {
-      for (int dataType = 0; dataType < EVisualisationDataType::NdataTypes; ++dataType) {
-        //TObject* data = getDataSource()->getEventData(no, (EVisualisationGroup)i);
-        //std::unique_ptr<VisualisationEvent> event = interpreter->interpretDataForType(data, (EVisualisationDataType)dataType);
-        VisualisationEvent event = getDataSource()->getEventData(no, (EVisualisationGroup)i, (EVisualisationDataType)dataType);
-        displayVisualisationEvent(event, gVisualisationGroupName[i]);
-      }
+    auto displayList = getDataSource()->getVisualisationList(no);
+    for (auto it = displayList.begin(); it != displayList.end(); ++it) {
+      displayVisualisationEvent(it->first, it->second);
+    }
+
+    for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
+      MultiView::getInstance()->registerElement(dataTypeLists[i]);
     }
   }
-
-  for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
-    MultiView::getInstance()->registerElement(dataTypeLists[i]);
-  }
-
   MultiView::getInstance()->redraw3D();
+}
+
+void EventManager::GotoEvent(Int_t no)
+{
+  if (getDataSource()->getEventCount() > 0) {
+    if (no == -1) {
+      no = getDataSource()->getEventCount() - 1;
+    }
+    this->getDataSource()->setCurrentEvent(no);
+    displayCurrentEvent();
+  }
 }
 
 void EventManager::NextEvent()
 {
-  Int_t event = (this->currentEvent + 1) % getDataSource()->GetEventCount();
-  GotoEvent(event);
+  if (getDataSource()->getEventCount() > 0) {
+    if (this->getDataSource()->getCurrentEvent() < getDataSource()->getEventCount() - 1) {
+      Int_t event = (this->getDataSource()->getCurrentEvent() + 1) % getDataSource()->getEventCount();
+      GotoEvent(event);
+    }
+  }
 }
 
 void EventManager::PrevEvent()
 {
-  GotoEvent(this->currentEvent - 1);
+  if (getDataSource()->getEventCount() > 0) {
+    if (this->getDataSource()->getCurrentEvent() > 0) {
+      GotoEvent(this->getDataSource()->getCurrentEvent() - 1);
+    }
+  }
 }
 
 void EventManager::Close()
@@ -202,11 +205,6 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   if (clusterCount != 0) {
     dataTypeLists[EVisualisationDataType::Clusters]->AddElement(point_list);
   }
-}
-
-void EventManager::registerDetector(DataReader* reader, EVisualisationGroup type)
-{
-  dataReaders[type] = reader;
 }
 
 } // namespace event_visualisation
