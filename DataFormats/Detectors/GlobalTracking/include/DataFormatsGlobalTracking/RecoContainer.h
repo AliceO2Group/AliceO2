@@ -85,6 +85,7 @@ class VtxTrackIndex;
 class VtxTrackRef;
 class V0;
 class Cascade;
+class TrackCosmics;
 } // namespace o2::dataformats
 
 namespace o2
@@ -120,6 +121,8 @@ struct DataRequest {
   void requestTPCClusters(bool mc);
   void requestTOFClusters(bool mc);
   void requestTRDTracklets(bool mc);
+
+  void requestCoscmicTracks(bool mc);
 
   void requestPrimaryVertertices(bool mc);
   void requestPrimaryVerterticesTMP(bool mc);
@@ -168,9 +171,15 @@ struct RecoContainer {
                    PVTX_CASCREFS, // PV -> Cascade reference
                    NSVTXSLOTS };
 
+  // slots for cosmics
+  enum CosmicsSlots { COSM_TRACKS,
+                      COSM_TRACKS_MC,
+                      NCOSMSLOTS };
+
   using AccSlots = o2::dataformats::AbstractRefAccessor<int, NCOMMONSLOTS>; // int here is a dummy placeholder
   using PVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NPVTXSLOTS>;
   using SVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NSVTXSLOTS>;
+  using CosmicsAccessor = o2::dataformats::AbstractRefAccessor<int, NCOSMSLOTS>;
   using GTrackID = o2::dataformats::GlobalTrackID;
   using GlobalIDSet = std::array<GTrackID, GTrackID::NSources>;
 
@@ -179,6 +188,7 @@ struct RecoContainer {
   std::array<AccSlots, GTrackID::NSources> commonPool;
   PVertexAccessor pvtxPool; // containers for primary vertex related objects
   SVertexAccessor svtxPool; // containers for secondary vertex related objects
+  CosmicsAccessor cosmPool; // containers for cosmics track data
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcTOFClusters;
@@ -210,6 +220,8 @@ struct RecoContainer {
   void addTRDTracklets(o2::framework::ProcessingContext& pc);
 
   void addFT0RecPoints(o2::framework::ProcessingContext& pc, bool mc);
+
+  void addCosmicTracks(o2::framework::ProcessingContext& pc, bool mc);
 
   void addPVertices(o2::framework::ProcessingContext& pc, bool mc);
   void addPVerticesTMP(o2::framework::ProcessingContext& pc, bool mc);
@@ -375,6 +387,11 @@ struct RecoContainer {
   auto getPV2V0Refs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_V0REFS); }
   auto getCascades() const { return svtxPool.getSpan<o2::dataformats::Cascade>(CASCS); }
   auto getPV2CascadesRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_CASCREFS); }
+
+  const o2::dataformats::TrackCosmics& getCosmicTrack(int i) const { return cosmPool.get_as<o2::dataformats::TrackCosmics>(COSM_TRACKS, i); }
+  auto getCosmicTrackMCLabel(int i) const { return cosmPool.get_as<o2::MCCompLabel>(COSM_TRACKS_MC, i); }
+  auto getCosmicTracks() const { return cosmPool.getSpan<o2::dataformats::TrackCosmics>(COSM_TRACKS); }
+  auto getCosmicTrackMCLabels() const { return cosmPool.getSpan<o2::MCCompLabel>(COSM_TRACKS_MC); }
 };
 
 } // namespace globaltracking

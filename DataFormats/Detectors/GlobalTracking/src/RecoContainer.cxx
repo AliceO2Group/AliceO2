@@ -24,6 +24,7 @@
 #include "ReconstructionDataFormats/Cascade.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
+#include "ReconstructionDataFormats/TrackCosmics.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;
@@ -162,6 +163,15 @@ void DataRequest::requestFT0RecPoints(bool mc)
     LOG(ERROR) << "FT0 RecPoint does not support MC truth";
   }
   requestMap["FT0"] = false;
+}
+
+void DataRequest::requestCoscmicTracks(bool mc)
+{
+  addInput({"cosmics", "GLO", "COSMICTRC", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"cosmicsMC", "GLO", "COSMICTRC_MC", 0, Lifetime::Timeframe});
+  }
+  requestMap["Cosmics"] = mc;
 }
 
 void DataRequest::requestPrimaryVertertices(bool mc)
@@ -310,6 +320,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addTRDTracklets(pc);
   }
 
+  req = reqMap.find("Cosmics");
+  if (req != reqMap.end()) {
+    addCosmicTracks(pc, req->second);
+  }
+
   req = reqMap.find("PVertex");
   if (req != reqMap.end()) {
     addPVertices(pc, req->second);
@@ -361,6 +376,15 @@ void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)
 
   if (mc && !pvtxPool.isLoaded(PVTX_MCTR)) { // in case was loaded via addPVertices
     pvtxPool.registerContainer(pc.inputs().get<gsl::span<o2::MCEventLabel>>("pvtx_mc"), PVTX_MCTR);
+  }
+}
+
+//____________________________________________________________
+void RecoContainer::addCosmicTracks(ProcessingContext& pc, bool mc)
+{
+  cosmPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::TrackCosmics>>("cosmics"), COSM_TRACKS);
+  if (mc) {
+    cosmPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("cosmicsMC"), COSM_TRACKS_MC);
   }
 }
 
