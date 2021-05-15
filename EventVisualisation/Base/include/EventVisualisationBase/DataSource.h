@@ -17,7 +17,9 @@
 #define ALICE_O2_EVENTVISUALISATION_BASE_DATASOURCE_H
 
 #include <EventVisualisationBase/VisualisationConstants.h>
+#include <EventVisualisationBase/DataReader.h>
 #include <EventVisualisationDataConverter/VisualisationEvent.h>
+#include <utility>
 
 class TObject;
 
@@ -29,9 +31,10 @@ namespace event_visualisation
 class DataSource
 {
  public:
-  virtual VisualisationEvent getEventData(int /*no*/, EVisualisationGroup /*purpose*/, EVisualisationDataType dataType) = 0;
-  virtual int GetEventCount() { return 0; };
-
+  virtual Int_t getCurrentEvent() { return 0; };
+  virtual void setCurrentEvent(Int_t /*currentEvent*/){};
+  virtual int getEventCount() { return 0; };
+  virtual bool refresh() { return false; }; // recompute
   DataSource() = default;
 
   /// Default destructor
@@ -42,6 +45,9 @@ class DataSource
 
   /// Deleted assignemt operator
   void operator=(DataSource const&) = delete;
+
+  virtual std::vector<std::pair<VisualisationEvent, std::string>> getVisualisationList(int no) = 0;
+  virtual void registerDetector(DataReader* /*reader*/, EVisualisationGroup /*type*/){};
 };
 
 } // namespace event_visualisation

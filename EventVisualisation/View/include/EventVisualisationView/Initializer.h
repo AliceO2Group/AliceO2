@@ -34,7 +34,8 @@ class Initializer
 {
  public:
   /// Default constructor
-  static void setup(const EventManager::EDataSource defaultDataSource = EventManager::SourceOffline); // default data source will be moved to a config file
+  static void setup(const EventManager::EDataSource defaultDataSource);
+
  private:
   /// Loads geometry for all detectors
   static void setupGeometry();

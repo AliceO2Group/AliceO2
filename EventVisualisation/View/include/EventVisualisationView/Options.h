@@ -28,6 +28,7 @@ class Options
   // stored options
   bool mIts;               // -i
   bool mJSON;              // -j
+  bool mOnline;            // -o (must specify -d!)
   bool mRandomTracks;      // -r
   bool mTpc;               // -t
   bool mVsd;               // -v
@@ -53,6 +54,7 @@ class Options
   // get access methods
   bool its() { return this->mIts; }
   bool json() { return this->mJSON; }
+  bool online() { return this->mOnline; }
   std::string dataFolder() { return this->mDataFolder; }
   std::string fileName() { return this->mFileName; }
   bool randomTracks() { return this->mRandomTracks; }
