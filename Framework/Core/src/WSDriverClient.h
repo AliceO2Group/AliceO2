@@ -39,7 +39,6 @@ class WSDriverClient : public DriverClient
   WSDriverClient(ServiceRegistry& registry, DeviceState& state, char const* ip, unsigned short port);
   ~WSDriverClient();
   void tell(const char* msg, size_t s, bool flush = true) final;
-  void observe(const char* command, std::function<void(char const*)>) final;
   void flushPending() final;
   void setDPLClient(std::unique_ptr<WSDPLClient>);
   void setConnection(uv_connect_t* connection) { mConnection = connection; };
