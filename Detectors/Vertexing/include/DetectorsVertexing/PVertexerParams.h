@@ -27,7 +27,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
 
   // DBSCAN clustering settings
   float dbscanMaxDist2 = 9.;   ///< distance^2 cut (eps^2).
-  float dbscanDeltaT = 10.;    ///< abs. time difference cut
+  float dbscanDeltaT = 10.;    ///< abs. time difference cut, should be >= ITS ROF duration if ITS SA tracks used
   float dbscanAdaptCoef = 0.1; ///< adapt dbscan minPts for each cluster as minPts=max(minPts, currentSize*dbscanAdaptCoef).
 
   int maxVerticesPerCluster = 10; ///< max vertices per time-z cluster to look for
@@ -45,18 +45,25 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
   float addZSigma2 = 0.005 * 0.005; ///< increment z error^2 by this amount when calculating histo weight
 
   // fitting parameters
-  float tukey = kDefTukey;           ///< 1./[Tukey parameter]^2
+  bool useMeanVertexConstraint = true; ///< use MeanVertex as extra measured point
+  float tukey = kDefTukey;             ///< Tukey parameter
   float iniScale2 = 5.;              ///< initial scale to assign
   float minScale2 = 1.;              ///< min slaling factor^2
   float acceptableScale2 = 4.;       ///< if below this factor, try to refit with minScale2
   float maxScale2 = 50;              ///< max slaling factor^2
   float upscaleFactor = 9.;          ///< factor for upscaling if not candidate is found
   float slowConvergenceFactor = 0.5; ///< consider convergence as slow if ratio new/old scale2 exceeds it
-  //
-  float maxTDiffDebris = 2.0;    ///< when reducing debris, don't consider vertices separated by time > this value in \mus
-  float maxZDiffDebris = 0.7;    ///< don't consider vertices separated by Z > this value in cm
-  float maxMultRatDebris = 0.05; ///< don't consider vertices with multiplicity ratio above this
-  float maxChi2TZDebris = 1200.; ///< don't consider vertices with mutual chi2 exceeding this (for pp should be ~10)
+
+  // cleanup
+  bool applyDebrisReduction = true;        ///< apply algorithm reducing split vertices
+  bool applyReattachment = true;           ///< refit vertices reattaching tracks to closest found vertex
+  float timeMarginReattach = 1.;           ///< safety marging for track time vs vertex time difference during reattachment
+  float maxTDiffDebris = 7.0;              ///< when reducing debris, don't consider vertices separated by time > this value in \mus
+  float maxZDiffDebris = 1.0;              ///< don't consider vertices separated by Z > this value in cm
+  float maxMultRatDebris = 0.05;           ///< don't consider vertices with multiplicity ratio above this
+  float maxChi2TZDebris = 2000.;           ///< don't consider vertices with mutual chi2 exceeding this (for pp should be ~10)
+  float addTimeSigma2Debris = 0.05 * 0.05; ///< increment time error^2 by this amount when calculating vertex-to-vertex chi2
+  float addZSigma2Debris = 0.005 * 0.005;  ///< increment z error^2 by this amount when calculating vertex-to-vertex chi2
 
   // validation with externally provided InteractionRecords (e.g. from FT0)
   int minNContributorsForIRcut = 4;     ///< do not apply IR cut to vertices below IR tagging efficiency threshold
