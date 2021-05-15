@@ -103,7 +103,7 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
   ~RawReaderFT0ext() = default;
   void clear()
   {
-    mVecDigitsExt.clear();
+    mVecDigits.clear();
     mVecChannelData.clear();
     mVecTrgExt.clear();
     if constexpr (sUseTrgInput) {
@@ -113,15 +113,15 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
   void accumulateDigits()
   {
     if constexpr (sUseTrgInput) {
-      getDigits(mVecDigitsExt, mVecChannelData, mVecTrgExt, mVecTriggerInput);
+      getDigits(mVecDigits, mVecChannelData, mVecTrgExt, mVecTriggerInput);
     } else {
-      getDigits(mVecDigitsExt, mVecChannelData, mVecTrgExt);
+      getDigits(mVecDigits, mVecChannelData, mVecTrgExt);
     }
-    LOG(INFO) << "Number of Digits: " << mVecDigitsExt.size();
+    LOG(INFO) << "Number of Digits: " << mVecDigits.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
     LOG(INFO) << "Number of TriggerExt: " << mVecTrgExt.size();
     if (mDumpData) {
-      DigitBlockFT0ext::print(mVecDigitsExt, mVecChannelData, mVecTrgExt);
+      DigitBlockFT0ext::print(mVecDigits, mVecChannelData, mVecTrgExt);
     }
   }
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
@@ -135,7 +135,7 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc)
   {
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigitsExt);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0, o2::framework::Lifetime::Timeframe}, mVecTrgExt);
     if constexpr (sUseTrgInput) {
@@ -143,7 +143,7 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
     }
   }
   bool mDumpData;
-  std::vector<DigitExt> mVecDigitsExt;
+  std::vector<Digit> mVecDigits;
   std::vector<ChannelData> mVecChannelData;
   std::vector<TriggersExt> mVecTrgExt;
   std::vector<DetTrigInput> mVecTriggerInput;

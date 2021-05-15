@@ -228,10 +228,7 @@ class LookUpTable
     std::cout << "lut_data.size " << lut_data.size() << std::endl;
     return o2::ft0::LookUpTable{lut_data};
   }
-  bool isTCM(int link, int ep)
-  {
-    return getChannel(link, 1, ep) == TCM_channel;
-  }
+  bool isTCM(int link, int ep) const { return getChannel(link, 1, ep) == TCM_channel; }
 
  private:
   std::vector<Topo> mTopoVector;

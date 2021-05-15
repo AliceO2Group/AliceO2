@@ -53,7 +53,7 @@ class RawDataReaderSpec : public Task
       count++;
       auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.process(rdhPtr->linkID, payload, int(0));
+      mRawReader.process(payload, rdhPtr->linkID, int(0));
     }
     LOG(INFO) << "Pages: " << count;
     mRawReader.accumulateDigits();
