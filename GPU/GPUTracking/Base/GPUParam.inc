@@ -11,8 +11,8 @@
 /// \file GPUParam.inc
 /// \author David Rohr, Sergey Gorbunov
 
-#ifndef GPUPARAM_INC
-#define GPUPARAM_INC
+#ifndef GPU_GPUPARAM_INC_H
+#define GPU_GPUPARAM_INC_H
 
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"

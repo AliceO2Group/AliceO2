@@ -42,7 +42,7 @@ class GPUTRDTracker_t
 #endif
 
 // Dummies for stuff not suppored in legacy code, or for what requires O2 headers while not available
-#if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && defined(HAVE_O2HEADERS)
+#if defined(GPUCA_NOCOMPAT_ALLCINT) && (!defined(GPUCA_GPULIBRARY) || !defined(GPUCA_ALIROOT_LIB)) && defined(GPUCA_HAVE_O2HEADERS)
 #include "GPUTPCConvert.h"
 #include "GPUTPCCompression.h"
 #include "GPUITSFitter.h"

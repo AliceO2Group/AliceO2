@@ -191,7 +191,7 @@ namespace gpu
 #ifdef GPUCA_ALIROOT_LIB // Instantiate AliRoot track version
 template class GPUTRDTrack_t<trackInterface<AliExternalTrackParam>>;
 #endif
-#if defined(HAVE_O2HEADERS) && !defined(GPUCA_O2_LIB) // Instantiate O2 track version, for O2 this happens in GPUTRDTrackO2.cxx
+#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_O2_LIB) // Instantiate O2 track version, for O2 this happens in GPUTRDTrackO2.cxx
 template class GPUTRDTrack_t<trackInterface<o2::gpu::GPUTRDO2BaseTrack>>;
 #endif
 template class GPUTRDTrack_t<trackInterface<GPUTPCGMTrackParam>>; // Always instatiate GM track version

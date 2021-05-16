@@ -80,7 +80,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     int offset = 0;
     for (unsigned int i = 0; i < NSLICES; i++) {
       processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clusterData[i], mIOPtrs.nClusterData[i], offset);
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
       if (doGPU && GetRecoSteps().isSet(RecoStep::TPCConversion)) {
         processorsShadow()->tpcTrackers[i].Data().SetClusterData(processorsShadow()->tpcConverter.mClusters + processors()->tpcTrackers[i].Data().ClusterIdOffset(), processors()->tpcTrackers[i].NHitsTotal(), processors()->tpcTrackers[i].Data().ClusterIdOffset());
       }

@@ -20,7 +20,7 @@
 #include "GPUMemorySizeScalers.h"
 #include "AliHLTTPCRawCluster.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DataFormatsTPC/ClusterNative.h"
 #else
 #include "GPUO2FakeClasses.h"
@@ -32,7 +32,7 @@ using namespace o2::tpc;
 
 int GPUChainTracking::ConvertNativeToClusterData()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   mRec->PushNonPersistentMemory(qStr2Tag("TPCTRANS"));
   const auto& threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCConversion;
@@ -118,7 +118,7 @@ void GPUChainTracking::ConvertRun2RawToNative()
 
 void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   mIOMem.tpcZSmeta2.reset(new GPUTrackingInOutZS::GPUTrackingInOutZSMeta);
   mIOMem.tpcZSmeta.reset(new GPUTrackingInOutZS);
   GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(*mIOPtrs.tpcPackedDigits, &mIOMem.tpcZSpages, &mIOMem.tpcZSmeta2->n[0][0], nullptr, nullptr, param(), zs12bit, true);
@@ -145,7 +145,7 @@ void GPUChainTracking::ConvertZSFilter(bool zs12bit)
 
 int GPUChainTracking::ForwardTPCDigits()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
     throw std::runtime_error("Cannot forward TPC digits with Clusterizer on GPU");
   }

@@ -15,8 +15,8 @@
 #define GPUO2INTERFACEDisplay_H
 
 // Some defines denoting that we are compiling for O2
-#ifndef HAVE_O2HEADERS
-#define HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
+#define GPUCA_HAVE_O2HEADERS
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2

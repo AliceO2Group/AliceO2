@@ -19,7 +19,7 @@
 #include "GPUReconstructionCUDAInternals.h"
 #include "GPUParamRTC.h"
 #include <unistd.h>
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "Framework/SHA1.h"
 #endif
 
@@ -39,7 +39,7 @@ int GPUReconstructionCUDABackend::genRTC()
   filename += std::to_string(getpid());
   filename += "_";
   filename += std::to_string(rand());
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   char shasource[21], shaparam[21], shacmd[21];
   if (mProcessingSettings.cacheRTC) {
     o2::framework::internal::SHA1(shasource, _curtc_GPUReconstructionCUDArtc_cu_src, _curtc_GPUReconstructionCUDArtc_cu_src_size);
@@ -50,7 +50,7 @@ int GPUReconstructionCUDABackend::genRTC()
 
   bool cacheLoaded = false;
   if (mProcessingSettings.cacheRTC) {
-#ifndef HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
     throw std::runtime_error("Cannot use RTC cache without O2 headers");
 #else
     FILE* fp = fopen("rtc.cuda.cache", "rb");

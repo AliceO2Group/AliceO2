@@ -28,7 +28,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUTPCClusterStatistics
 {
  public:
-#ifndef HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
   void RunStatistics(const o2::tpc::ClusterNativeAccess* clustersNative, const o2::tpc::CompressedClusters* clustersCompressed, const GPUParam& param){};
   void Finish(){};
 #else

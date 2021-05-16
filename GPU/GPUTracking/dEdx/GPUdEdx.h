@@ -19,7 +19,7 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 #include "GPUdEdxInfo.h"
-#if defined(HAVE_O2HEADERS) && !defined(GPUCA_OPENCL1)
+#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_OPENCL1)
 #include "TPCdEdxCalibrationSplines.h"
 #endif
 
@@ -27,7 +27,7 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-#if !defined(HAVE_O2HEADERS) || defined(GPUCA_OPENCL1)
+#if !defined(GPUCA_HAVE_O2HEADERS) || defined(GPUCA_OPENCL1)
 
 class GPUdEdx
 {
@@ -156,7 +156,7 @@ GPUdi() void GPUdEdx::fillSubThreshold(int padRow, const GPUParam& GPUrestrict()
   mNSubThresh++;
 }
 
-#endif // !HAVE_O2HEADERS || __OPENCL1__
+#endif // !GPUCA_HAVE_O2HEADERS || __OPENCL1__
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

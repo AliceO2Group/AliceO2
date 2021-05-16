@@ -278,7 +278,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                  PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
                  SOURCES ${SRCS_O2_DATATYPES})
 target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
-                           GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
+                           GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
                  
 
   o2_add_library(${MODULE}
@@ -328,7 +328,7 @@ target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
                             LINKDEF GPUTrackingLinkDef_O2.h)
 
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
-                             GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
+                             GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
 
   install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_CINT_O2} ${HDRS_INSTALL}
           DESTINATION include/GPU)
@@ -478,28 +478,28 @@ endif()
 if(OPENCL1_ENABLED)
   target_compile_definitions(${targetName} PRIVATE OPENCL1_ENABLED)
 endif()
-if(OPENCL2_ENABLED)
-  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED)
+if(GPUCA_GPUCA_OPENCL2_ENABLED)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_GPUCA_OPENCL2_ENABLED)
 endif()
 if(HIP_ENABLED)
   target_compile_definitions(${targetName} PRIVATE HIP_ENABLED)
 endif()
 
 # Add CMake recipes for GPU Tracking librararies
-if(CUDA_ENABLED OR OPENCL1_ENABLED OR OPENCL2_ENABLED OR HIP_ENABLED)
+if(CUDA_ENABLED OR OPENCL1_ENABLED OR GPUCA_GPUCA_OPENCL2_ENABLED OR HIP_ENABLED)
   if(CMAKE_SYSTEM_NAME MATCHES Darwin)
     message(WARNING "GPU Tracking disabled on MacOS")
   else()
     if(CUDA_ENABLED)
       add_subdirectory(Base/cuda)
     endif()
-    if(OPENCL1_ENABLED OR OPENCL2_ENABLED)
+    if(OPENCL1_ENABLED OR GPUCA_GPUCA_OPENCL2_ENABLED)
       add_subdirectory(Base/opencl-common)
     endif()
     if(OPENCL1_ENABLED)
       add_subdirectory(Base/opencl)
     endif()
-    if(OPENCL2_ENABLED)
+    if(GPUCA_GPUCA_OPENCL2_ENABLED)
       add_subdirectory(Base/opencl2)
     endif()
     if(HIP_ENABLED)

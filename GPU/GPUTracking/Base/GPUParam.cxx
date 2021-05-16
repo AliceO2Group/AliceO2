@@ -28,7 +28,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #endif
 #include <cstring>
 #include <tuple>
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DetectorsBase/Propagator.h"
 #endif
 
@@ -257,7 +257,7 @@ static_assert(sizeof(GPUParam) % alignof(GPUConstantMem) == 0 && sizeof(GPUParam
 o2::base::Propagator* GPUParam::GetDefaultO2Propagator(bool useGPUField) const
 {
   o2::base::Propagator* prop = nullptr;
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (useGPUField == false) {
     throw std::runtime_error("o2 propagator withouzt gpu field unsupported");
   }

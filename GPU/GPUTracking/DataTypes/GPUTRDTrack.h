@@ -45,7 +45,7 @@ class GPUTRDTrack_t;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 #else
-#if (!defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)) || defined(HAVE_O2HEADERS)
+#if (!defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)) || defined(GPUCA_HAVE_O2HEADERS)
 #include "GPUTRDO2BaseTrack.h"
 #include "GPUTRDInterfaceO2Track.h"
 #endif

@@ -39,7 +39,7 @@ class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
   };
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {

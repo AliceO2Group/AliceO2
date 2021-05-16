@@ -58,7 +58,7 @@
 
 #define GPUCA_TPC_COMP_CHUNK_SIZE 1024                // Chunk size of sorted unattached TPC cluster in compression
 
-#if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216) && defined(__has_include)
+#if defined(GPUCA_HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216) && defined(__has_include)
   #if __has_include("DataFormatsTPC/Constants.h")
     //Use definitions from the O2 headers if available for nicer code and type safety
     #include "DataFormatsTPC/Constants.h"
