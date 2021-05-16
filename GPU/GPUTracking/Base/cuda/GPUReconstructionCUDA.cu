@@ -471,12 +471,9 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     }
 #else
     GPUFailedMsg(cudaMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize));
-    if (mProcessingSettings.enableRTC) {
-      GPUFailedMsg(cudaMalloc(&devPtrConstantMemRTC, gGPUConstantMemBufferSize));
-    }
+    devPtrConstantMemRTC = devPtrConstantMem;
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
-    mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMemRTC; // TODO: This is a hack, since the memory is sometimes addressed via the pointer from the kernel, should be made consistent!
     if (mProcessingSettings.enableRTC) {
       mDeviceConstantMemRTC.resize(1);
       mDeviceConstantMemRTC[0] = devPtrConstantMemRTC;
@@ -533,10 +530,6 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
     GPUFailedMsgI(cudaFree(mDeviceMemoryBase));
 #ifdef GPUCA_NO_CONSTANT_MEMORY
     GPUFailedMsgI(cudaFree(mDeviceConstantMem));
-    for (unsigned int i = 0; i < mDeviceConstantMemRTC.size(); i++) {
-      GPUFailedMsgI(cudaFree(mDeviceConstantMemRTC[i]));
-    }
-    mDeviceConstantMemRTC.clear();
 #endif
 
     for (int i = 0; i < mNStreams; i++) {
@@ -611,20 +604,10 @@ size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const 
   int iLast = 1 + mDeviceConstantMemRTC.size();
   std::unique_ptr<GPUParamRTC> tmpParam;
   for (int i = iFirst; i < iLast; i++) {
-    if (i == 1) { // First time we copy into the RTC constant mem, need to prepare
-      if (offset < sizeof(GPUParam) && (offset != 0 || size > sizeof(GPUParam))) {
-        throw std::runtime_error("Invalid write to constant memory, crossing GPUParam border");
-      }
-      if (offset == 0) {
-        tmpParam.reset(new GPUParamRTC);
-        tmpParam->setFrom(*(GPUParam*)src);
-        src = tmpParam.get();
-        size = sizeof(*tmpParam);
-      } else {
-        offset = offset - sizeof(GPUParam) + sizeof(GPUParamRTC);
-      }
-    }
     void* basePtr = i ? mDeviceConstantMemRTC[i - 1] : mDeviceConstantMem;
+    if (i && basePtr == (void*)mDeviceConstantMem) {
+      continue;
+    }
     if (stream == -1) {
       GPUFailedMsg(cudaMemcpy(((char*)basePtr) + offset, src, size, cudaMemcpyHostToDevice));
     } else {
