@@ -23,16 +23,6 @@
 #define GPUCA_CUB cub
 #endif
 
-#ifndef GPUCA_GPUCODE_GENRTC
-#ifdef GPUCA_GPUCODE
-#ifdef __CUDACC__
-#include <cub/cub.cuh>
-#elif defined(__HIPCC__)
-#include <hipcub/hipcub.hpp>
-#endif
-#endif
-#endif
-
 namespace GPUCA_NAMESPACE
 {
 namespace gpu
@@ -58,7 +48,7 @@ class GPUKernelTemplate
   template <class T, int I>
   struct GPUSharedMemoryScan64 {
     // Provides the shared memory resources for CUB collectives
-#if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE)
+#if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_HOSTONLY)
     typedef GPUCA_CUB::BlockScan<T, I> BlockScan;
     typedef GPUCA_CUB::BlockReduce<T, I> BlockReduce;
     typedef GPUCA_CUB::WarpScan<T> WarpScan;

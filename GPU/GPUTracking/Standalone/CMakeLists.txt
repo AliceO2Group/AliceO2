@@ -261,5 +261,5 @@ endif()
 # Installation
 install(TARGETS ca GPUTracking TPCFastTransformation standalone_support)
 install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${O2_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/config.cmake ${CMAKE_INSTALL_PREFIX}/config.cmake)")

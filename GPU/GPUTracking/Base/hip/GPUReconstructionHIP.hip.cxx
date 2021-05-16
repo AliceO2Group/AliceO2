@@ -16,12 +16,7 @@
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##HIP
 #define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##HIP()
 
-#include <hip/hip_runtime.h>
-#ifdef __CUDACC__
-#define hipExtLaunchKernelGGL(...)
-#else
-#include <hip/hip_ext.h>
-#endif
+#include "GPUReconstructionHIPIncludes.h"
 
 #include "GPUDef.h"
 
@@ -46,6 +41,7 @@
 
 #include "GPUReconstructionHIP.h"
 #include "GPUReconstructionHIPInternals.h"
+#include "HIPThrustHelpers.h"
 #include "GPUReconstructionIncludes.h"
 
 #ifdef GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
