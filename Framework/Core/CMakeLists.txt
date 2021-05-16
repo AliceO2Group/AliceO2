@@ -106,7 +106,6 @@ o2_add_library(Framework
                        src/ExternalFairMQDeviceProxy.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
-                       src/SHA1.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
                        test/TestClasses.cxx
@@ -272,7 +271,7 @@ foreach(w
         Forwarding
         ParallelPipeline
         ParallelProducer
-        SlowConsumer 
+        SlowConsumer
         SimpleDataProcessingDevice01
         SimpleRDataFrameProcessing
         SimpleStatefulProcessing01
