@@ -17,9 +17,6 @@
 #ifndef GPUCA_GPUCODE_DEVICE
 #error RTC Preprocessing must run on device code
 #endif
-#ifdef GPUCA_NO_CONSTANT_MEMORY
-#error CUDA RTC does not support processing without constant memory
-#endif
 
 extern "C" {
 #undef GPUCA_KRNL_REG

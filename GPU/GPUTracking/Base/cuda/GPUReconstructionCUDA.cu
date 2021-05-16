@@ -149,16 +149,18 @@ void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, con
   if (mProcessingSettings.enableRTC) {
     auto& x = _xyz.x;
     auto& y = _xyz.y;
+    const void* pArgs[sizeof...(Args) + 3]; // 3 is max: cons mem + y.start + y.num
+    int arg_offset = 0;
+#ifdef GPUCA_NO_CONSTANT_MEMORY
+    arg_offset = 1;
+    pArgs[0] = &mDeviceConstantMemRTC[0];
+#endif
+    pArgs[arg_offset] = &y.start;
+    getArgPtrs(&pArgs[arg_offset + 1 + (y.num > 1)], args...);
     if (y.num <= 1) {
-      const void* pArgs[sizeof...(Args) + 1];
-      pArgs[0] = &y.start;
-      getArgPtrs(&pArgs[1], args...);
       GPUFailedMsg(cuLaunchKernel(*mInternals->rtcFunctions[mInternals->getRTCkernelNum<false, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     } else {
-      const void* pArgs[sizeof...(Args) + 2];
-      pArgs[0] = &y.start;
-      pArgs[1] = &y.num;
-      getArgPtrs(&pArgs[2], args...);
+      pArgs[arg_offset + 1] = &y.num;
       GPUFailedMsg(cuLaunchKernel(*mInternals->rtcFunctions[mInternals->getRTCkernelNum<true, T, I>()], x.nBlocks, 1, 1, x.nThreads, 1, 1, 0, mInternals->Streams[x.stream], (void**)pArgs, nullptr));
     }
   } else {
@@ -461,17 +463,24 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
 #undef GPUCA_KRNL_LOAD_multi
     }
 #endif
-    void* devPtrConstantMem;
+    void *devPtrConstantMem, *devPtrConstantMemRTC;
 #ifndef GPUCA_NO_CONSTANT_MEMORY
+    GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer));
     if (mProcessingSettings.enableRTC) {
-      GPUFailedMsg(cuModuleGetGlobal((CUdeviceptr*)&devPtrConstantMem, nullptr, mInternals->rtcModule, "gGPUConstantMemBuffer"));
-    } else {
-      GPUFailedMsg(cudaGetSymbolAddress(&devPtrConstantMem, gGPUConstantMemBuffer));
+      GPUFailedMsg(cuModuleGetGlobal((CUdeviceptr*)&devPtrConstantMemRTC, nullptr, mInternals->rtcModule, "gGPUConstantMemBuffer"));
     }
 #else
     GPUFailedMsg(cudaMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize));
+    if (mProcessingSettings.enableRTC) {
+      GPUFailedMsg(cudaMalloc(&devPtrConstantMemRTC, gGPUConstantMemBufferSize));
+    }
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
+    mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMemRTC; // TODO: This is a hack, since the memory is sometimes addressed via the pointer from the kernel, should be made consistent!
+    if (mProcessingSettings.enableRTC) {
+      mDeviceConstantMemRTC.resize(1);
+      mDeviceConstantMemRTC[0] = devPtrConstantMemRTC;
+    }
   } else {
     GPUReconstructionCUDABackend* master = dynamic_cast<GPUReconstructionCUDABackend*>(mMaster);
     mDeviceId = master->mDeviceId;
@@ -480,6 +489,8 @@ int GPUReconstructionCUDABackend::InitDevice_Runtime()
     mMaxThreads = master->mMaxThreads;
     mDeviceName = master->mDeviceName;
     mDeviceConstantMem = master->mDeviceConstantMem;
+    mDeviceConstantMemRTC.resize(master->mDeviceConstantMemRTC.size());
+    std::copy(master->mDeviceConstantMemRTC.begin(), master->mDeviceConstantMemRTC.end(), mDeviceConstantMemRTC.begin());
     mInternals = master->mInternals;
     GPUFailedMsgI(cuCtxPushCurrent(mInternals->CudaContext));
   }
@@ -522,6 +533,10 @@ int GPUReconstructionCUDABackend::ExitDevice_Runtime()
     GPUFailedMsgI(cudaFree(mDeviceMemoryBase));
 #ifdef GPUCA_NO_CONSTANT_MEMORY
     GPUFailedMsgI(cudaFree(mDeviceConstantMem));
+    for (unsigned int i = 0; i < mDeviceConstantMemRTC.size(); i++) {
+      GPUFailedMsgI(cudaFree(mDeviceConstantMemRTC[i]));
+    }
+    mDeviceConstantMemRTC.clear();
 #endif
 
     for (int i = 0; i < mNStreams; i++) {
@@ -584,17 +599,19 @@ size_t GPUReconstructionCUDABackend::TransferMemoryInternal(GPUMemoryResource* r
 
 size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
 {
+  int iFirst = 0;
 #ifndef GPUCA_NO_CONSTANT_MEMORY
   if (stream == -1) {
     GPUFailedMsg(cudaMemcpyToSymbol(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice));
   } else {
     GPUFailedMsg(cudaMemcpyToSymbolAsync(gGPUConstantMemBuffer, src, size, offset, cudaMemcpyHostToDevice, mInternals->Streams[stream]));
   }
-  if (mProcessingSettings.enableRTC)
+  iFirst = 1;
 #endif
-  {
-    std::unique_ptr<GPUParamRTC> tmpParam;
-    if (mProcessingSettings.rtcConstexpr) {
+  int iLast = 1 + mDeviceConstantMemRTC.size();
+  std::unique_ptr<GPUParamRTC> tmpParam;
+  for (int i = iFirst; i < iLast; i++) {
+    if (i == 1) { // First time we copy into the RTC constant mem, need to prepare
       if (offset < sizeof(GPUParam) && (offset != 0 || size > sizeof(GPUParam))) {
         throw std::runtime_error("Invalid write to constant memory, crossing GPUParam border");
       }
@@ -607,10 +624,11 @@ size_t GPUReconstructionCUDABackend::WriteToConstantMemory(size_t offset, const 
         offset = offset - sizeof(GPUParam) + sizeof(GPUParamRTC);
       }
     }
+    void* basePtr = i ? mDeviceConstantMemRTC[i - 1] : mDeviceConstantMem;
     if (stream == -1) {
-      GPUFailedMsg(cudaMemcpy(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice));
+      GPUFailedMsg(cudaMemcpy(((char*)basePtr) + offset, src, size, cudaMemcpyHostToDevice));
     } else {
-      GPUFailedMsg(cudaMemcpyAsync(((char*)mDeviceConstantMem) + offset, src, size, cudaMemcpyHostToDevice, mInternals->Streams[stream]));
+      GPUFailedMsg(cudaMemcpyAsync(((char*)basePtr) + offset, src, size, cudaMemcpyHostToDevice, mInternals->Streams[stream]));
     }
   }
   if (ev && stream != -1) {
