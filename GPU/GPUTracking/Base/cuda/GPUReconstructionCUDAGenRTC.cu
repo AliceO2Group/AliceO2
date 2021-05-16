@@ -11,8 +11,10 @@
 /// \file GPUReconstructionCUDAGenRTC.cu
 /// \author David Rohr
 
+#define GPUCA_GPUCODE_HOSTONLY
+#include <cuda.h>
+#include <cuda_fp16.h>
 #include "GPUReconstructionCUDADef.h"
-#include "GPUReconstructionCUDAIncludes.h"
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
 #include "GPUParamRTC.h"
@@ -119,7 +121,7 @@ int GPUReconstructionCUDABackend::genRTC()
       GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
     }
     if (mProcessingSettings.cacheRTC) {
-      FILE* fp = fopen((filename + ".o").c_str(), "rb");
+      fp = fopen((filename + ".o").c_str(), "rb");
       if (fp == nullptr) {
         throw std::runtime_error("Cannot open cuda module file");
       }
