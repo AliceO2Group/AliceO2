@@ -13,7 +13,6 @@
 ///
 /// \author Philippe Pillot, Subatech
 
-#include "Framework/runDataProcessing.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "TrackAtVertexSpec.h"
 
@@ -28,6 +27,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   std::swap(workflowOptions, options);
 }
+
+#include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
