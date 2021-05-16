@@ -19,6 +19,9 @@
 #include "GPUReconstructionCUDAInternals.h"
 #include "GPUParamRTC.h"
 #include <unistd.h>
+#ifdef HAVE_O2HEADERS
+#include "Framework/SHA1.h"
+#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -36,36 +39,54 @@ int GPUReconstructionCUDABackend::genRTC()
   filename += std::to_string(getpid());
   filename += "_";
   filename += std::to_string(rand());
+#ifdef HAVE_O2HEADERS
+  char shasource[21], shaparam[21], shacmd[21];
+  if (mProcessingSettings.cacheRTC) {
+    o2::framework::internal::SHA1(shasource, _curtc_GPUReconstructionCUDArtc_cu_src, _curtc_GPUReconstructionCUDArtc_cu_src_size);
+    o2::framework::internal::SHA1(shaparam, rtcparam.c_str(), rtcparam.size());
+    o2::framework::internal::SHA1(shacmd, _curtc_GPUReconstructionCUDArtc_cu_command, strlen(_curtc_GPUReconstructionCUDArtc_cu_command));
+  }
+#endif
 
   bool cacheLoaded = false;
   if (mProcessingSettings.cacheRTC) {
-    FILE* fp = fopen("rtc.cache", "rb");
+#ifndef HAVE_O2HEADERS
+    throw std::runtime_error("Cannot use RTC cache without O2 headers");
+#else
+    FILE* fp = fopen("rtc.cuda.cache", "rb");
+    char sharead[20];
     if (fp) {
       size_t len;
       while (true) {
-        if (fread(&len, sizeof(len), 1, fp) != 1) {
+        if (fread(sharead, 1, 20, fp) != 20) {
           GPUError("Cache file corrupt");
           break;
         }
-        if (len != rtcparam.size()) {
-          GPUError("Cache file content outdated");
+        if (memcmp(sharead, shasource, 20)) {
+          GPUInfo("Cache file content outdated");
+          break;
+        }
+        if (fread(sharead, 1, 20, fp) != 20) {
+          GPUError("Cache file corrupt");
+          break;
+        }
+        if (memcmp(sharead, shaparam, 20)) {
+          GPUInfo("Cache file content outdated");
+          break;
+        }
+        if (fread(sharead, 1, 20, fp) != 20) {
+          GPUError("Cache file corrupt");
+          break;
+        }
+        if (memcmp(sharead, shacmd, 20)) {
+          GPUInfo("Cache file content outdated");
+          break;
+        }
+        if (fread(&len, sizeof(len), 1, fp) != 1) {
+          GPUError("Cache file corrupt");
           break;
         }
         std::unique_ptr<char[]> buffer;
-        buffer.reset(new char[len + 1]);
-        buffer[len] = 0;
-        if (fread(buffer.get(), 1, len, fp) != len) {
-          GPUError("Cache file corrupt");
-          break;
-        }
-        if (strcmp(buffer.get(), rtcparam.c_str()) != 0) {
-          GPUError("Cache file content outdated");
-          break;
-        }
-        if (fread(&len, sizeof(len), 1, fp) != 1) {
-          GPUError("Cache file corrupt");
-          break;
-        }
         buffer.reset(new char[len]);
         if (fread(buffer.get(), 1, len, fp) != len) {
           GPUError("Cache file corrupt");
@@ -88,6 +109,7 @@ int GPUReconstructionCUDABackend::genRTC()
       };
       fclose(fp);
     }
+#endif
   }
   if (!cacheLoaded) {
     if (mProcessingSettings.debugLevel >= 0) {
@@ -133,13 +155,14 @@ int GPUReconstructionCUDABackend::genRTC()
         throw std::runtime_error("Error reading cuda module file");
       }
       fclose(fp);
-      fp = fopen("rtc.cache", "w+b");
+      fp = fopen("rtc.cuda.cache", "w+b");
       if (fp == nullptr) {
         throw std::runtime_error("Cannot open cache file for writing");
       }
-      size_t len = rtcparam.size();
-      if (fwrite(&len, sizeof(len), 1, fp) != 1 ||
-          fwrite(rtcparam.c_str(), 1, len, fp) != len ||
+      GPUInfo("Storing RTC compilation result in cache file");
+      if (fwrite(shasource, 1, 20, fp) != 20 ||
+          fwrite(shaparam, 1, 20, fp) != 20 ||
+          fwrite(shacmd, 1, 20, fp) != 20 ||
           fwrite(&size, sizeof(size), 1, fp) != 1 ||
           fwrite(buffer.get(), 1, size, fp) != size) {
         throw std::runtime_error("Error writing cache file");

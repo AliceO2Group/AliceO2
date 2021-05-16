@@ -173,7 +173,8 @@ include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
                     ${O2_DIR}/Detectors/TOF/base/include
                     ${O2_DIR}/Detectors/TPC/base/include
                     ${O2_DIR}/Detectors/TRD/base/include
-                    ${O2_DIR}/Detectors/TRD/base/src)
+                    ${O2_DIR}/Detectors/TRD/base/src
+                    ${O2_DIR}/Framework/Foundation/3rdparty/include)
 endif()
 
 # Create main targets
