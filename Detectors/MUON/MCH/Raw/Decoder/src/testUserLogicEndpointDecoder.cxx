@@ -32,7 +32,7 @@
 #include <fstream>
 #include <iostream>
 #include <boost/test/data/test_case.hpp>
-#include <boost/mpl/list_c.hpp>
+#include <boost/mpl/list.hpp>
 
 using namespace o2::mch::raw;
 namespace bdata = boost::unit_test::data;
