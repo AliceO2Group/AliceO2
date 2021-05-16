@@ -86,6 +86,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
  private:
   GPUReconstructionCUDAInternals* mInternals;
+  std::vector<void*> mDeviceConstantMemRTC;
   int genRTC();
 };
 
