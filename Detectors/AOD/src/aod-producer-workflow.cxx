@@ -8,17 +8,28 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "AODProducerWorkflow/AODProducerWorkflow.h"
-#include "CommonUtils/ConfigurableParam.h"
+#include "AODProducerWorkflow/AODProducerWorkflowSpec.h"
 #include "Framework/CompletionPolicy.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+#include "DetectorsCommonDataFormats/DetID.h"
+#include "FT0Workflow/ReconstructionSpec.h"
+#include "FT0Workflow/DigitReaderSpec.h"
 
 using namespace o2::framework;
+using GID = o2::dataformats::GlobalTrackID;
+using DetID = o2::detectors::DetID;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable mc info"}},
+    {"vertexing-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
 }
@@ -28,5 +39,20 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  return std::move(o2::aodproducer::getAODProducerWorkflow());
+
+  bool useMC = true;
+
+  GID::mask_t src = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF");
+  GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy;
+
+  WorkflowSpec specs;
+
+  specs.emplace_back(o2::ft0::getDigitReaderSpec(useMC));
+  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC));
+  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src));
+
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, src, src, useMC, srcClus);
+  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+
+  return std::move(specs);
 }

@@ -44,6 +44,7 @@ using PVertex = o2::dataformats::PrimaryVertex;
 using V2TRef = o2::dataformats::VtxTrackRef;
 using GIndex = o2::dataformats::VtxTrackIndex;
 using DataRequest = o2::globaltracking::DataRequest;
+using GID = o2::dataformats::GlobalTrackID;
 
 namespace o2::aodproducer
 {
@@ -345,16 +346,6 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
   }
 }
 
-void AODProducerWorkflowDPL::writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber)
-{
-  std::string treeName;
-  std::string dirName = "DF_" + std::to_string(tfNumber);
-  treeName = dirName + "/" + tableName;
-  TableToTree t2t(table, outfile, treeName.c_str());
-  t2t.addAllBranches();
-  t2t.process();
-}
-
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
@@ -417,36 +408,41 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
+  o2::globaltracking::RecoContainer recoData;
+  recoData.collectData(pc, *mDataRequest);
+
+  gsl::span<const PVertex> primVertices = recoData.getPrimaryVertices();
+  gsl::span<const V2TRef> primVer2TRefs = recoData.getPrimaryVertexMatchedTrackRefs();
+  gsl::span<const GIndex> primVerGIs = recoData.getPrimaryVertexMatchedTracks();
+  gsl::span<const o2::MCEventLabel> primVerLabels = recoData.getPrimaryVertexMCLabels();
+
+  gsl::span<const o2::ft0::RecPoints> ft0RecPoints = recoData.getFT0RecPoints();
   auto ft0ChData = pc.inputs().get<gsl::span<o2::ft0::ChannelDataFloat>>("ft0ChData");
-  auto ft0RecPoints = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("ft0RecPoints");
-  auto primVer2TRefs = pc.inputs().get<gsl::span<V2TRef>>("primVer2TRefs");
-  auto primVerGIs = pc.inputs().get<gsl::span<GIndex>>("primVerGIs");
-  auto primVertices = pc.inputs().get<gsl::span<PVertex>>("primVertices");
-  auto primVerLabels = pc.inputs().get<gsl::span<o2::MCEventLabel>>("primVerLabels");
-  auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
-  auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tracksITSTPC");
-  auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
-  auto tracksTPCMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCMCTruth");
-  auto tracksITSMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTruth");
+
+  gsl::span<const o2::its::TrackITS> tracksITS = recoData.getITSTracks();
+  gsl::span<const o2::dataformats::TrackTPCITS> tracksITSTPC = recoData.getTPCITSTracks();
+  gsl::span<const o2::tpc::TrackTPC> tracksTPC = recoData.getTPCTracks();
+  gsl::span<const o2::MCCompLabel> tracksTPCMCTruth = recoData.getTPCTracksMCLabels();
+  gsl::span<const o2::MCCompLabel> tracksITSMCTruth = recoData.getITSTracksMCLabels();
 
   LOG(DEBUG) << "FOUND " << tracksTPC.size() << " TPC tracks";
   LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
   LOG(DEBUG) << "FOUND " << tracksITSTPC.size() << " ITSTPC tracks";
 
-  TableBuilder bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
-  TableBuilder collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
-  TableBuilder mcColLabelsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISLABEL"});
-  TableBuilder ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
-  TableBuilder mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
-  TableBuilder tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
-  TableBuilder tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"});
-  TableBuilder tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
-  TableBuilder mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
-  TableBuilder mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
-  TableBuilder fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
-  TableBuilder fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
-  TableBuilder fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
-  TableBuilder zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
+  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
+  auto& mcColLabelsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISLABEL"});
+  auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
+  auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
+  auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
+  auto& tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"});
+  auto& tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
+  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
+  auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
+  auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
+  auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
+  auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
+  auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
@@ -668,6 +664,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov),
                      collisionTimeMask);
 
+    LOG(INFO) << "vertex.getNContributors() = " << vertex.getNContributors();
+
     auto trackRef = primVer2TRefs[collisionID];
     int start = trackRef.getFirstEntryOfSource(0);
     int ntracks = trackRef.getEntriesOfSource(0);
@@ -812,22 +810,18 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec()
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src)
 {
-  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
+  auto dataRequest = std::make_shared<DataRequest>();
+
+  bool useMC = true;
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestPrimaryVertertices(useMC);
+
+  auto& inputs = dataRequest->inputs;
 
   inputs.emplace_back("ft0ChData", "FT0", "RECCHDATA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ft0RecPoints", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("primVer2TRefs", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("primVerGIs", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);
-  inputs.emplace_back("primVertices", "GLO", "PVTX", 0, Lifetime::Timeframe);
-  inputs.emplace_back("primVerLabels", "GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tracksITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackTPCMCTruth", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackITSMCTruth", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
@@ -849,7 +843,7 @@ DataProcessorSpec getAODProducerWorkflowSpec()
     "aod-producer-workflow",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>()},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(dataRequest)},
     Options{
       ConfigParamSpec{"fill-tracks-its", VariantType::Int, 1, {"Fill ITS tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-tpc", VariantType::Int, 0, {"Fill TPC tracks into tracks table"}},

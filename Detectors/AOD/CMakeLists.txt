@@ -9,19 +9,18 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(
-  AODProducerWorkflow
-  SOURCES src/AODProducerWorkflow.cxx
-          src/AODProducerWorkflowSpec.cxx
-  PUBLIC_LINK_LIBRARIES
-    O2::AnalysisDataModel
-    O2::DetectorsVertexing
-    O2::Framework
-    O2::FT0Workflow
-    O2::GlobalTracking
-    O2::GlobalTrackingWorkflow
-    O2::ITSMFTWorkflow
-    O2::ITStracking
-    O2::ITSWorkflow
+        AODProducerWorkflow
+        SOURCES src/AODProducerWorkflowSpec.cxx
+        PUBLIC_LINK_LIBRARIES
+        O2::AnalysisDataModel
+        O2::DetectorsVertexing
+        O2::Framework
+        O2::FT0Workflow
+        O2::GlobalTracking
+        O2::GlobalTrackingWorkflow
+        O2::ITSMFTWorkflow
+        O2::ITStracking
+        O2::ITSWorkflow
     O2::SimulationDataFormat
     O2::Steer
     O2::TOFWorkflow

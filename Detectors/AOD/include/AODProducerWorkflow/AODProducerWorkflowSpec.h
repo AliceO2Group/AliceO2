@@ -23,6 +23,8 @@
 #include "Steer/MCKinematicsReader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 #include <string>
 #include <vector>
@@ -31,6 +33,8 @@
 #include <boost/functional/hash.hpp>
 
 using namespace o2::framework;
+using GID = o2::dataformats::GlobalTrackID;
+using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
@@ -126,7 +130,7 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL() = default;
+  AODProducerWorkflowDPL(std::shared_ptr<DataRequest> dataRequest) : mDataRequest(dataRequest) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -140,6 +144,8 @@ class AODProducerWorkflowDPL : public Task
   int mTruncate{1};
   int mRecoOnly{0};
   TStopwatch mTimer;
+
+  std::shared_ptr<DataRequest> mDataRequest;
 
   // truncation is enabled by default
   uint32_t mCollisionPosition = 0xFFFFFFF0;    // 19 bits mantissa
@@ -189,12 +195,10 @@ class AODProducerWorkflowDPL : public Task
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
                             gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthTPC,
                             TripletsMap_t& toStore);
-
-  void writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber);
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec();
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src);
 
 } // namespace o2::aodproducer
 
