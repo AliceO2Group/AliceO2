@@ -126,7 +126,7 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(int ignoreWriter) : mIgnoreWriter(ignoreWriter){};
+  AODProducerWorkflowDPL() = default;
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -138,7 +138,6 @@ class AODProducerWorkflowDPL : public Task
   int mFillTracksITSTPC{1};
   int64_t mTFNumber{-1};
   int mTruncate{1};
-  int mIgnoreWriter{0};
   int mRecoOnly{0};
   TStopwatch mTimer;
 
@@ -195,7 +194,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(int ignoreWriter);
+framework::DataProcessorSpec getAODProducerWorkflowSpec();
 
 } // namespace o2::aodproducer
 

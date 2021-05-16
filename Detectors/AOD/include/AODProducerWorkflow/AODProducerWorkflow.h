@@ -18,7 +18,7 @@
 namespace o2::aodproducer
 {
 
-framework::WorkflowSpec getAODProducerWorkflow(int ignoreWriter);
+framework::WorkflowSpec getAODProducerWorkflow();
 
 } // namespace o2::aodproducer
 #endif

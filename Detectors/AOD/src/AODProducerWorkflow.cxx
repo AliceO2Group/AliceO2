@@ -30,7 +30,7 @@
 namespace o2::aodproducer
 {
 
-framework::WorkflowSpec getAODProducerWorkflow(int ignoreWriter)
+framework::WorkflowSpec getAODProducerWorkflow()
 {
   // TODO:
   // switch to configurable parameters (?)
@@ -46,7 +46,7 @@ framework::WorkflowSpec getAODProducerWorkflow(int ignoreWriter)
     o2::tpc::getTPCTrackReaderSpec(useMC),
     o2::ft0::getDigitReaderSpec(useMC),
     o2::ft0::getReconstructionSpec(useMC),
-    o2::aodproducer::getAODProducerWorkflowSpec(ignoreWriter)};
+    o2::aodproducer::getAODProducerWorkflowSpec()};
 
   return specs;
 }

@@ -16,6 +16,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataTypes.h"
@@ -42,6 +43,7 @@ using namespace o2::math_utils::detail;
 using PVertex = o2::dataformats::PrimaryVertex;
 using V2TRef = o2::dataformats::VtxTrackRef;
 using GIndex = o2::dataformats::VtxTrackIndex;
+using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
@@ -431,35 +433,20 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
   LOG(DEBUG) << "FOUND " << tracksITSTPC.size() << " ITSTPC tracks";
 
-  TableBuilder bcBuilderS;
-  TableBuilder collisionsBuilderS;
-  TableBuilder mcColLabelsBuilderS;
-  TableBuilder ft0BuilderS;
-  TableBuilder mcCollisionsBuilderS;
-  TableBuilder tracksBuilderS;
-  TableBuilder tracksCovBuilderS;
-  TableBuilder tracksExtraBuilderS;
-  TableBuilder mcParticlesBuilderS;
-  TableBuilder mcTrackLabelBuilderS;
-  TableBuilder fv0aBuilderS;
-  TableBuilder fddBuilderS;
-  TableBuilder fv0cBuilderS;
-  TableBuilder zdcBuilderS;
-
-  auto& bcBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "BC"}) : bcBuilderS;
-  auto& collisionsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"}) : collisionsBuilderS;
-  auto& mcColLabelsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISLABEL"}) : mcColLabelsBuilderS;
-  auto& ft0Builder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"}) : ft0BuilderS;
-  auto& mcCollisionsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"}) : mcCollisionsBuilderS;
-  auto& tracksBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"}) : tracksBuilderS;
-  auto& tracksCovBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"}) : tracksCovBuilderS;
-  auto& tracksExtraBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"}) : tracksExtraBuilderS;
-  auto& mcParticlesBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"}) : mcParticlesBuilderS;
-  auto& mcTrackLabelBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"}) : mcTrackLabelBuilderS;
-  auto& fv0aBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"}) : fv0aBuilderS;
-  auto& fddBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"}) : fddBuilderS;
-  auto& fv0cBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"}) : fv0cBuilderS;
-  auto& zdcBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"}) : zdcBuilderS;
+  TableBuilder bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  TableBuilder collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
+  TableBuilder mcColLabelsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISLABEL"});
+  TableBuilder ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
+  TableBuilder mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
+  TableBuilder tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
+  TableBuilder tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"});
+  TableBuilder tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
+  TableBuilder mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
+  TableBuilder mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
+  TableBuilder fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
+  TableBuilder fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
+  TableBuilder fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
+  TableBuilder zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
@@ -507,13 +494,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     tfNumber = mTFNumber;
   }
 
-  TFile* outfile;
-  if (mIgnoreWriter) {
-    std::string dirName = "DF_" + std::to_string(tfNumber);
-    outfile = TFile::Open("AOD.root", "UPDATE");
-    outfile->mkdir(dirName.c_str());
-  }
-
   // TODO: add real FV0A, FV0C, FDD, ZDC tables instead of dummies
   uint64_t dummyBC = 0;
   float dummyTime = 0.f;
@@ -525,23 +505,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              dummyTime,
              dummyTriggerMask);
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableFV0A = fv0aBuilder.finalize();
-    std::string tableName("O2fv0a");
-    writeTableToFile(outfile, tableFV0A, tableName, tfNumber);
-  }
-
   float dummyFV0AmplC[32] = {0.};
   fv0cCursor(0,
              dummyBC,
              dummyFV0AmplC,
              dummyTime);
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableFV0C = fv0cBuilder.finalize();
-    std::string tableName("O2fv0c");
-    writeTableToFile(outfile, tableFV0C, tableName, tfNumber);
-  }
 
   float dummyFDDAmplA[4] = {0.};
   float dummyFDDAmplC[4] = {0.};
@@ -552,12 +520,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             dummyTime,
             dummyTime,
             dummyTriggerMask);
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableFDD = fddBuilder.finalize();
-    std::string tableName("O2fdd");
-    writeTableToFile(outfile, tableFDD, tableName, tfNumber);
-  }
 
   float dummyEnergyZEM1 = 0;
   float dummyEnergyZEM2 = 0;
@@ -587,12 +549,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             dummyTime,
             dummyTime,
             dummyTime);
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableZDC = zdcBuilder.finalize();
-    std::string tableName("O2zdc");
-    writeTableToFile(outfile, tableZDC, tableName, tfNumber);
-  }
 
   // TODO: figure out collision weight
   float mcColWeight = 1.;
@@ -629,12 +585,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     index++;
   }
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableMCCollisions = mcCollisionsBuilder.finalize();
-    std::string tableName("O2mccollision");
-    writeTableToFile(outfile, tableMCCollisions, tableName, tfNumber);
-  }
-
   // vector of FT0 amplitudes
   std::vector<float> vAmplitudes(208, 0.);
   // filling FT0 table
@@ -669,12 +619,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               ft0RecPoint.getTrigger().triggersignals);
   }
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableFT0 = ft0Builder.finalize();
-    std::string tableName("O2ft0");
-    writeTableToFile(outfile, tableFT0, tableName, tfNumber);
-  }
-
   // initializing vectors for trackID --> collisionID connection
   std::vector<int> vCollRefsITS(tracksITS.size(), -1);
   std::vector<int> vCollRefsTPC(tracksTPC.size(), -1);
@@ -685,12 +629,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     int32_t mcCollisionID = label.getEventID();
     uint16_t mcMask = 0; // todo: set mask using normalized weights?
     mcColLabelsCursor(0, mcCollisionID, mcMask);
-  }
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableMCColLabels = mcColLabelsBuilder.finalize();
-    std::string tableName("O2mccollisionlabel");
-    writeTableToFile(outfile, tableMCColLabels, tableName, tfNumber);
   }
 
   // filling collisions table
@@ -751,12 +689,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     collisionID++;
   }
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableCollisions = collisionsBuilder.finalize();
-    std::string tableName("O2collision");
-    writeTableToFile(outfile, tableCollisions, tableName, tfNumber);
-  }
-
   // filling BC table
   // TODO: get real triggerMask
   uint64_t triggerMask = 1;
@@ -775,20 +707,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   BCIDs.clear();
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableBC = bcBuilder.finalize();
-    std::string tableName("O2bc");
-    writeTableToFile(outfile, tableBC, tableName, tfNumber);
-  }
-
   // filling mc particles table
   TripletsMap_t toStore;
   fillMCParticlesTable(mcReader, mcParticlesCursor, tracksITSMCTruth, tracksTPCMCTruth, toStore);
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableMCParticles = mcParticlesBuilder.finalize();
-    std::string tableName("O2mcparticle");
-    writeTableToFile(outfile, tableMCParticles, tableName, tfNumber);
-  }
 
   // filling tracks tables and track label table
 
@@ -880,26 +801,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   toStore.clear();
 
-  if (!mIgnoreWriter) {
-    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
-  }
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableTracks = tracksBuilder.finalize();
-    std::string tableName("O2track");
-    writeTableToFile(outfile, tableTracks, tableName, tfNumber);
-    std::shared_ptr<arrow::Table> tableTracksCov = tracksCovBuilder.finalize();
-    tableName = "O2trackcov";
-    writeTableToFile(outfile, tableTracksCov, tableName, tfNumber);
-    std::shared_ptr<arrow::Table> tableTracksExtra = tracksExtraBuilder.finalize();
-    tableName = "O2trackextra";
-    writeTableToFile(outfile, tableTracksExtra, tableName, tfNumber);
-    std::shared_ptr<arrow::Table> tableMCTrackLabels = mcTrackLabelBuilder.finalize();
-    tableName = "O2mctracklabel";
-    writeTableToFile(outfile, tableMCTrackLabels, tableName, tfNumber);
-    outfile->Close();
-    delete outfile;
-  }
+  pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
 
   mTimer.Stop();
 }
@@ -910,7 +812,7 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
+DataProcessorSpec getAODProducerWorkflowSpec()
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
@@ -927,29 +829,27 @@ DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
   inputs.emplace_back("trackTPCMCTruth", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackITSMCTruth", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
 
-  if (!mIgnoreWriter) {
-    outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISLABEL", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-    outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
-  }
+  outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+  outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "aod-producer-workflow",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(mIgnoreWriter)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>()},
     Options{
       ConfigParamSpec{"fill-tracks-its", VariantType::Int, 1, {"Fill ITS tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-tpc", VariantType::Int, 0, {"Fill TPC tracks into tracks table"}},
