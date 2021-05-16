@@ -259,7 +259,7 @@ EndConfig()
 
 // Settings for the standalone benchmark
 BeginConfig(GPUSettingsStandalone, configStandalone)
-#if defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(OPENCL2_ENABLED) || defined(HIP_ENABLED)
+#if defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(GPUCA_GPUCA_OPENCL2_ENABLED) || defined(HIP_ENABLED)
 AddOption(runGPU, bool, true, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
 #else
 AddOption(runGPU, bool, false, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
@@ -267,7 +267,7 @@ AddOption(runGPU, bool, false, "", 'g', "Use GPU for processing", message("GPU p
 AddOptionSet(runGPU, bool, false, "", 'c', "Use CPU for processing", message("CPU enabled"))
 #if defined(CUDA_ENABLED)
 AddOption(gpuType, const char*, "CUDA", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
-#elif defined(OPENCL2_ENABLED)
+#elif defined(GPUCA_GPUCA_OPENCL2_ENABLED)
 AddOption(gpuType, const char*, "OCL2", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
 #elif defined(OPENCL1_ENABLED)
 AddOption(gpuType, const char*, "OCL", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")

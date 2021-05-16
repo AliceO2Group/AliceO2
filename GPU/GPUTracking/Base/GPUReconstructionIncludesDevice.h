@@ -52,7 +52,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCSliceData.cxx"
 #include "GPUTPCCreateSliceData.cxx"
 
-#if defined(HAVE_O2HEADERS)
+#if defined(GPUCA_HAVE_O2HEADERS)
 // Files for propagation with material
 #include "MatLayerCylSet.cxx"
 #include "MatLayerCyl.cxx"
@@ -121,7 +121,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "Utils.cu"
 #endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
 
-#endif // HAVE_O2HEADERS
+#endif // GPUCA_HAVE_O2HEADERS
 #endif // (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
 
 #endif // GPURECONSTRUCTIONINCLUDESDEVICE_H

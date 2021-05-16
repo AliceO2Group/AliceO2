@@ -39,7 +39,7 @@ __global__ void dummyInitKernel(void*)
 {
 }
 
-#if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
+#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingCUDA/TrackerTraitsNV.h"
 #include "ITStrackingCUDA/VertexerTraitsGPU.h"
 #else

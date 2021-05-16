@@ -34,7 +34,7 @@
 #ifdef GPUCA_NOCOMPAT
 #include "GPUTPCGMMergerGPU.h"
 #endif
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"
 #include "GPUTPCCompressionKernels.h"

@@ -25,11 +25,11 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include <typeinfo>
 #include <cstdlib>
 
-#ifdef OPENCL2_ENABLED_AMD
+#ifdef GPUCA_GPUCA_OPENCL2_ENABLED_AMD
 extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd[];
 extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd_size;
 #endif
-#ifdef OPENCL2_ENABLED_SPIRV
+#ifdef GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV
 extern "C" char _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv[];
 extern "C" unsigned int _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv_size;
 #endif
@@ -66,7 +66,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
 
   cl_int return_status[1] = {CL_SUCCESS};
   cl_int ocl_error;
-#ifdef OPENCL2_ENABLED_AMD
+#ifdef GPUCA_GPUCA_OPENCL2_ENABLED_AMD
   if (strcmp(platform_vendor, "Advanced Micro Devices, Inc.") == 0) {
     size_t program_sizes[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd_size};
     char* program_binaries[1] = {_makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_amd};
@@ -74,7 +74,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
   } else
 #endif
 
-#ifdef OPENCL2_ENABLED_SPIRV // clang-format off
+#ifdef GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV // clang-format off
   if (ver >= 2.2) {
     mInternals->program = clCreateProgramWithIL(mInternals->context, _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv, _makefile_opencl_program_Base_opencl_GPUReconstructionOCL2_cl_spirv_size, &ocl_error);
   } else

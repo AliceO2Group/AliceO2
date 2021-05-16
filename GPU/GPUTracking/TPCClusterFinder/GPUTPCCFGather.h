@@ -25,7 +25,7 @@ class GPUTPCClusterFinder;
 class GPUTPCCFGather : public GPUKernelTemplate
 {
  public:
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {
