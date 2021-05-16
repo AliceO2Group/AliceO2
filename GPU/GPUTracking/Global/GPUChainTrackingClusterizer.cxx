@@ -22,7 +22,7 @@
 #ifdef GPUCA_O2_LIB
 #include "CommonDataFormat/InteractionRecord.h"
 #endif
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUHostDataTypes.h"
 #include "GPUTPCCFChainContext.h"
 #include "DataFormatsTPC/ZeroSuppression.h"

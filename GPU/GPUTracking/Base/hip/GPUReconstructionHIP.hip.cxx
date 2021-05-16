@@ -52,7 +52,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 __global__ void dummyInitKernel(void*) {}
 
-#if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
+#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingHIP/VertexerTraitsHIP.h"
 #else
 namespace o2::its

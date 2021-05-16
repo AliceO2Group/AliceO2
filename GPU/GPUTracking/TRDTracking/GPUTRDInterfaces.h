@@ -134,7 +134,7 @@ class propagatorInterface<AliTrackerBase> : public AliTrackerBase
 
 #endif // GPUCA_ALIROOT_LIB
 
-#if defined(HAVE_O2HEADERS) // Interface for O2, build only with O2
+#if defined(GPUCA_HAVE_O2HEADERS) // Interface for O2, build only with O2
 
 #include "DetectorsBase/Propagator.h" // when included after GPUTRDInterfaceO2Track.h the build fails
 #include "GPUTRDInterfaceO2Track.h"
@@ -192,7 +192,7 @@ class propagatorInterface<o2::base::Propagator>
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif // HAVE_O2HEADERS
+#endif // GPUCA_HAVE_O2HEADERS
 
 #include "GPUTPCGMPropagator.h"
 #include "GPUParam.h"

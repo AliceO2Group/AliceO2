@@ -100,7 +100,7 @@ GPUReconstruction::GPUReconstruction(const GPUSettingsDeviceBackend& cfg) : mHos
   mMemoryScalers.reset(new GPUMemorySizeScalers);
   for (unsigned int i = 0; i < NSLICES; i++) {
     processors()->tpcTrackers[i].SetSlice(i); // TODO: Move to a better place
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
     processors()->tpcClusterer[i].mISlice = i;
 #endif
   }
@@ -202,7 +202,7 @@ int GPUReconstruction::Init()
 
 int GPUReconstruction::InitPhaseBeforeDevice()
 {
-#ifndef HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
   mRecoSteps.setBits(RecoStep::ITSTracking, false);
   mRecoSteps.setBits(RecoStep::TRDTracking, false);
   mRecoSteps.setBits(RecoStep::TPCConversion, false);

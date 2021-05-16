@@ -20,7 +20,7 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 template <int I>
 GPUd() auto& getTracker(GPUTRDTrackerKernels::processorType& processors);
 template <>
@@ -52,6 +52,6 @@ GPUdii() void GPUTRDTrackerKernels::Thread(int nBlocks, int nThreads, int iBlock
 }
 
 template GPUd() void GPUTRDTrackerKernels::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 template GPUd() void GPUTRDTrackerKernels::Thread<1>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& processors);
 #endif
