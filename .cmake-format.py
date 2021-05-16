@@ -186,7 +186,7 @@ with section("format"):
 
   # If a positional argument group contains more than this many arguments, then
   # force it to a vertical layout.
-  max_pargs_hwrap = 5
+  max_pargs_hwrap = 1
 
   # If a cmdline positional group consumes more than this many lines without
   # nesting, then invalidate the layout (and nest)
