@@ -50,6 +50,20 @@ class VertexerTraitsGPU : public VertexerTraits
 } // namespace o2::its
 #endif
 
+GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionDeviceBase(cfg, sizeof(GPUReconstructionDeviceBase))
+{
+  if (mMaster == nullptr) {
+    mInternals = new GPUReconstructionCUDAInternals;
+  }
+}
+
+GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
+{
+  if (mMaster == nullptr) {
+    delete mInternals;
+  }
+}
+
 GPUReconstructionCUDA::GPUReconstructionCUDA(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionKernels(cfg)
 {
   mDeviceBackendSettings.deviceType = DeviceType::CUDA;
@@ -300,7 +314,6 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
       if (genRTC()) {
         throw std::runtime_error("Runtime compilation failed");
       }
-      LoadRTCKernels();
     }
 #endif
     void *devPtrConstantMem, *devPtrConstantMemRTC;
