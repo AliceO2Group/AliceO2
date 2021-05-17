@@ -237,8 +237,12 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
   }
-  if (configStandalone.proc.debugLevel >= 4 && !configStandalone.proc.ompKernels) {
-    configStandalone.proc.ompThreads = 1;
+  if (configStandalone.proc.debugLevel >= 4) {
+    if (configStandalone.proc.ompKernels) {
+      configStandalone.proc.ompKernels = 1;
+    } else {
+      configStandalone.proc.ompThreads = 1;
+    }
   }
 
   if (configStandalone.outputcontrolmem) {

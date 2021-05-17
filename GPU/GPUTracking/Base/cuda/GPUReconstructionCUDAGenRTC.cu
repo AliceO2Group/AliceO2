@@ -12,6 +12,7 @@
 /// \author David Rohr
 
 #define GPUCA_GPUCODE_HOSTONLY
+#include <omp.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
 #include "GPUReconstructionCUDADef.h"
@@ -41,18 +42,20 @@ int GPUReconstructionCUDA::genRTC()
   filename += "_";
   filename += std::to_string(rand());
 
-  std::string kernels;
-  kernels += "extern \"C\" {";
+  std::vector<std::string> kernels;
+  std::string kernelsall;
 #undef GPUCA_KRNL_REG
 #define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
-#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) kernels += GPUCA_M_STR(GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward));
-#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) kernels += GPUCA_M_STR(GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward));
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) kernels.emplace_back(GPUCA_M_STR(GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward)));
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) kernels.emplace_back(GPUCA_M_STR(GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward)));
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single
 #undef GPUCA_KRNL_LOAD_multi
-  kernels += "}";
+  for (unsigned int i = 0; i < kernels.size(); i++) {
+    kernelsall += kernels[i];
+  }
 
 #ifdef GPUCA_HAVE_O2HEADERS
   char shasource[21], shaparam[21], shacmd[21], shakernels[21];
@@ -60,10 +63,11 @@ int GPUReconstructionCUDA::genRTC()
     o2::framework::internal::SHA1(shasource, _curtc_GPUReconstructionCUDArtc_cu_src, _curtc_GPUReconstructionCUDArtc_cu_src_size);
     o2::framework::internal::SHA1(shaparam, rtcparam.c_str(), rtcparam.size());
     o2::framework::internal::SHA1(shacmd, _curtc_GPUReconstructionCUDArtc_cu_command, strlen(_curtc_GPUReconstructionCUDArtc_cu_command));
-    o2::framework::internal::SHA1(shakernels, kernels.c_str(), kernels.size());
+    o2::framework::internal::SHA1(shakernels, kernelsall.c_str(), kernelsall.size());
   }
 #endif
 
+  unsigned int nCompile = mProcessingSettings.rtcCompilePerKernel ? kernels.size() : 1;
   bool cacheLoaded = false;
   if (mProcessingSettings.cacheRTC) {
 #ifndef GPUCA_HAVE_O2HEADERS
@@ -75,57 +79,50 @@ int GPUReconstructionCUDA::genRTC()
       size_t len;
       while (true) {
         if (fread(sharead, 1, 20, fp) != 20) {
-          GPUError("Cache file corrupt");
-          break;
+          throw std::runtime_error("Cache file corrupt");
         }
         if (memcmp(sharead, shasource, 20)) {
-          GPUInfo("Cache file content outdated");
+          GPUInfo("Cache file content outdated (source)");
           break;
         }
         if (fread(sharead, 1, 20, fp) != 20) {
-          GPUError("Cache file corrupt");
-          break;
+          throw std::runtime_error("Cache file corrupt");
         }
         if (memcmp(sharead, shaparam, 20)) {
-          GPUInfo("Cache file content outdated");
+          GPUInfo("Cache file content outdated (param)");
           break;
         }
         if (fread(sharead, 1, 20, fp) != 20) {
-          GPUError("Cache file corrupt");
-          break;
+          throw std::runtime_error("Cache file corrupt");
         }
         if (memcmp(sharead, shacmd, 20)) {
-          GPUInfo("Cache file content outdated");
+          GPUInfo("Cache file content outdated (commandline)");
           break;
         }
         if (fread(sharead, 1, 20, fp) != 20) {
-          GPUError("Cache file corrupt");
+          throw std::runtime_error("Cache file corrupt");
+        }
+        if (memcmp(sharead, shakernels, 20)) {
+          GPUInfo("Cache file content outdated (kernel definitions)");
           break;
         }
-        if (memcmp(shakernels, shacmd, 20)) {
-          GPUInfo("Cache file content outdated");
-          break;
-        }
-        if (fread(&len, sizeof(len), 1, fp) != 1) {
-          GPUError("Cache file corrupt");
-          break;
-        }
-        std::unique_ptr<char[]> buffer;
-        buffer.reset(new char[len]);
-        if (fread(buffer.get(), 1, len, fp) != len) {
-          GPUError("Cache file corrupt");
-          break;
-        }
-        FILE* fp2 = fopen((filename + ".o").c_str(), "w+b");
-        if (fp2 == nullptr) {
-          GPUError("Cannot open tmp file");
-          break;
-        }
-        fclose(fp);
-        fp = fp2;
-        if (fwrite(buffer.get(), 1, len, fp) != len) {
-          GPUError("Error writing file");
-          break;
+        std::vector<char> buffer;
+        for (unsigned int i = 0; i < nCompile; i++) {
+          if (fread(&len, sizeof(len), 1, fp) != 1) {
+            throw std::runtime_error("Cache file corrupt");
+          }
+          buffer.resize(len);
+          if (fread(buffer.data(), 1, len, fp) != len) {
+            throw std::runtime_error("Cache file corrupt");
+          }
+          FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".o").c_str(), "w+b");
+          if (fp2 == nullptr) {
+            throw std::runtime_error("Cannot open tmp file");
+          }
+          if (fwrite(buffer.data(), 1, len, fp2) != len) {
+            throw std::runtime_error("Error writing file");
+          }
+          fclose(fp2);
         }
         GPUInfo("Using RTC cache file");
         cacheLoaded = true;
@@ -141,73 +138,93 @@ int GPUReconstructionCUDA::genRTC()
     }
     HighResTimer rtcTimer;
     rtcTimer.ResetStart();
-    if (mProcessingSettings.debugLevel >= 3) {
-      printf("Writing to %s\n", filename.c_str());
-    }
-    FILE* fp = fopen((filename + ".cu").c_str(), "w+b");
-    if (fp == nullptr) {
-      throw std::runtime_error("Error opening file");
-    }
-    if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size() ||
-        fwrite(_curtc_GPUReconstructionCUDArtc_cu_src, 1, _curtc_GPUReconstructionCUDArtc_cu_src_size, fp) != _curtc_GPUReconstructionCUDArtc_cu_src_size ||
-        fwrite(kernels.c_str(), 1, kernels.size(), fp) != kernels.size()) {
-      throw std::runtime_error("Error writing file");
-    }
-    fclose(fp);
-    std::string command = _curtc_GPUReconstructionCUDArtc_cu_command;
-    command += " -cubin -c " + filename + ".cu -o " + filename + ".o";
-    if (mProcessingSettings.debugLevel >= 3) {
-      printf("Running command %s\n", command.c_str());
-    }
-    if (system(command.c_str())) {
-      return 1;
+#pragma omp parallel for
+    for (unsigned int i = 0; i < nCompile; i++) {
+      if (mProcessingSettings.debugLevel >= 3) {
+        printf("Compiling %s\n", (filename + "_" + std::to_string(i) + ".cu").c_str());
+      }
+      FILE* fp = fopen((filename + "_" + std::to_string(i) + ".cu").c_str(), "w+b");
+      if (fp == nullptr) {
+        throw std::runtime_error("Error opening file");
+      }
+
+      std::string kernel = "extern \"C\" {";
+      kernel += mProcessingSettings.rtcCompilePerKernel ? kernels[i] : kernelsall;
+      kernel += "}";
+
+      if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size() ||
+          fwrite(_curtc_GPUReconstructionCUDArtc_cu_src, 1, _curtc_GPUReconstructionCUDArtc_cu_src_size, fp) != _curtc_GPUReconstructionCUDArtc_cu_src_size ||
+          fwrite(kernel.c_str(), 1, kernel.size(), fp) != kernel.size()) {
+        throw std::runtime_error("Error writing file");
+      }
+      fclose(fp);
+      std::string command = _curtc_GPUReconstructionCUDArtc_cu_command;
+      command += " -cubin -c " + filename + "_" + std::to_string(i) + ".cu -o " + filename + "_" + std::to_string(i) + ".o";
+      if (mProcessingSettings.debugLevel >= 3) {
+        printf("Running command %s\n", command.c_str());
+      }
+      if (system(command.c_str())) {
+        throw std::runtime_error("Error during CUDA compilation");
+      }
     }
     if (mProcessingSettings.debugLevel >= 0) {
       GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
     }
     if (mProcessingSettings.cacheRTC) {
-      fp = fopen((filename + ".o").c_str(), "rb");
-      if (fp == nullptr) {
-        throw std::runtime_error("Cannot open cuda module file");
-      }
-      fseek(fp, 0, SEEK_END);
-      size_t size = ftell(fp);
-      std::unique_ptr<char[]> buffer{new char[size]};
-      fseek(fp, 0, SEEK_SET);
-      if (fread(buffer.get(), 1, size, fp) != size) {
-        throw std::runtime_error("Error reading cuda module file");
-      }
-      fclose(fp);
-      fp = fopen("rtc.cuda.cache", "w+b");
+      FILE* fp = fopen("rtc.cuda.cache", "w+b");
       if (fp == nullptr) {
         throw std::runtime_error("Cannot open cache file for writing");
       }
       GPUInfo("Storing RTC compilation result in cache file");
+
       if (fwrite(shasource, 1, 20, fp) != 20 ||
           fwrite(shaparam, 1, 20, fp) != 20 ||
           fwrite(shacmd, 1, 20, fp) != 20 ||
-          fwrite(shakernels, 1, 20, fp) != 20 ||
-          fwrite(&size, sizeof(size), 1, fp) != 1 ||
-          fwrite(buffer.get(), 1, size, fp) != size) {
+          fwrite(shakernels, 1, 20, fp) != 20) {
         throw std::runtime_error("Error writing cache file");
+      }
+
+      std::vector<char> buffer;
+      for (unsigned int i = 0; i < nCompile; i++) {
+        FILE* fp2 = fopen((filename + "_" + std::to_string(i) + ".o").c_str(), "rb");
+        if (fp2 == nullptr) {
+          throw std::runtime_error("Cannot open cuda module file");
+        }
+        fseek(fp2, 0, SEEK_END);
+        size_t size = ftell(fp2);
+        buffer.resize(size);
+        fseek(fp2, 0, SEEK_SET);
+        if (fread(buffer.data(), 1, size, fp2) != size) {
+          throw std::runtime_error("Error reading cuda module file");
+        }
+        fclose(fp2);
+
+        if (fwrite(&size, sizeof(size), 1, fp) != 1 ||
+            fwrite(buffer.data(), 1, size, fp) != size) {
+          throw std::runtime_error("Error writing cache file");
+        }
       }
       fclose(fp);
     }
   }
 
-  GPUFailedMsg(cuModuleLoad(&mInternals->rtcModule, (filename + ".o").c_str()));
-  remove((filename + ".cu").c_str());
-  remove((filename + ".o").c_str());
+  for (unsigned int i = 0; i < nCompile; i++) {
+    mInternals->rtcModules.emplace_back(std::make_unique<CUmodule>());
+    GPUFailedMsg(cuModuleLoad(mInternals->rtcModules.back().get(), (filename + "_" + std::to_string(i) + ".o").c_str()));
+    remove((filename + "_" + std::to_string(i) + ".cu").c_str());
+    remove((filename + "_" + std::to_string(i) + ".o").c_str());
+  }
 
+  int j = 0;
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                          \
   mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
   mInternals->rtcFunctions.emplace_back(new CUfunction);                                               \
-  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), mInternals->rtcModule, GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
+  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtcCompilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
 #define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                          \
   mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
   mInternals->rtcFunctions.emplace_back(new CUfunction);                                              \
-  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), mInternals->rtcModule, GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
+  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtcCompilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single
