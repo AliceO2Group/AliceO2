@@ -17,6 +17,14 @@
 #include "GPUDef.h"
 #include "GPUDataTypes.h"
 
+#if !defined(GPUCA_GPUCODE_GENRTC) && !defined(GPUCA_GPUCODE_HOSTONLY)
+#if defined(__CUDACC__)
+#include <cub/cub.cuh>
+#elif defined(__HIPCC__)
+#include <hipcub/hipcub.hpp>
+#endif
+#endif
+
 #if defined(__HIPCC__)
 #define GPUCA_CUB hipcub
 #else

@@ -86,7 +86,7 @@ class GPUReconstructionKernels : public T
 };
 
 #ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
-// Hide the body for all files but GPUReconstructionCPU.cxx, otherwise we get weird symbol clashes when the compiler inlines
+// Hide the function bodies for all files but GPUReconstructionCPU.cxx, otherwise we get symbol clashes when the compiler inlines
 template <>
 class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstructionCPUBackend
 {
