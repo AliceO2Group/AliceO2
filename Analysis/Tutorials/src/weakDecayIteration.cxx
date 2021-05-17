@@ -7,13 +7,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Example how to enumerate V0s and cascades. Note ...
+///        V0s = Join<TransientV0s, StoredV0s>
+///        Cascades = Join<TransientCascades, StoredCascades>
+///        TransientV0 and TransientCascades are filled by the helper task weak-decay-indices. Hence use ...
+///        o2-analysis-weak-decay-indices --aod-file AO2D.root | o2-analysistutorial-weak-decay-iteration
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-
-// Example how to enumerate V0s and cascades
-// Needs weak-decay-indices in the workflow
-// Example usage: o2-analysis-weak-decay-indices --aod-file AO2D.root | o2-analysistutorial-weak-decay-iteration
 
 using namespace o2;
 using namespace o2::framework;

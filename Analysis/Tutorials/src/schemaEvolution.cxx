@@ -7,14 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This example shows how schema evolution of tables can be implemented.
+///        Here two tables are defined, EtaPhiV2 has an additional member compared to EtaPhiV1
+///        It is shown how an example task can use a template, and can be instantiated to work
+///        on both.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-
-// This example shows how schema evolution of tables can be implemented
-// Here two tables are defined, EtaPhiV2 has an additional member compared to EtaPhiV1
-// It is shown how an example task can use a template, and can be instantiated to work
-// on both.
 
 namespace o2::aod
 {

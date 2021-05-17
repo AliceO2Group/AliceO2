@@ -60,7 +60,7 @@ DECLARE_SOA_COLUMN(CovZZ, covZZ, float);                           //!
 DECLARE_SOA_COLUMN(Flags, flags, uint16_t);                        //! Run2, see CollisionFlagsRun2 | Run 3, see Vertex::Flags
 DECLARE_SOA_COLUMN(Chi2, chi2, float);                             //!
 DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);              //! Number of tracks at vertex
-DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //!
+DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //! mus
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);     //!
 DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); //! Nature of CollisionTimeRes, MSB 0 = exact range / 1 = Gaussian uncertainty
 } // namespace collision

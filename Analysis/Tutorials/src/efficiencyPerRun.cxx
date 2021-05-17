@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 ///
 /// \brief A tutorial task to retrieve objects from CCDB given a run number.
 ///        This example demonstrates how the CCDB can be used to store an efficiency object which is valid only for a specific time
@@ -17,13 +16,13 @@
 ///        You need to run this with the o2-analysis-timestamp task
 ///        NOTE If only one efficiency object for all runs is needed, this code is not optimal. In this case please check the example:
 ///        efficiencyGlobal.cxx
-///
+/// \author
+/// \since
 
 #include <chrono>
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include <CCDB/BasicCCDBManager.h>
 
 using namespace o2::framework;

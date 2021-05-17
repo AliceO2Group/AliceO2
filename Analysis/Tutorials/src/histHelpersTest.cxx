@@ -7,12 +7,15 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Demonstrates various ways to create, manage, and fill histograms.
+/// \author
+/// \since
 
+#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "AnalysisCore/HistHelpers.h"
 
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/runDataProcessing.h"
 #include <cmath>
 
 using namespace o2;
@@ -198,11 +201,6 @@ struct HistHelpersTest {
   }
 };
 
-//****************************************************************************************
-/**
- * Workflow definition.
- */
-//****************************************************************************************
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{

@@ -7,6 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief In Run 3 the association between collisions and bunch crossings
+///        is not unique as the time of a collision vertex is derived from
+///        the track information themselves.
+/// \author
+/// \since
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -15,12 +21,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-
-///
-///  \brief In Run 3 the association between collisions and bunch crossings
-///         is not unique as the time of a collision vertex is derived from
-///         the track information themselves.
-///
 
 template <typename T>
 T getCompatibleBCs(aod::Collision const& collision, T const& bcs)

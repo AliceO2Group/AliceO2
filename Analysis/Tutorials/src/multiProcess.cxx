@@ -7,8 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This is an example of a task with more than one process function.
+///        Here a configurable is used to decide which process functions need to
+///        be executed.
+/// \author
+/// \since
+
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "AnalysisCore/MC.h"
 
 #include <TH1F.h>

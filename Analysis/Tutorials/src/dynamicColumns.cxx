@@ -7,9 +7,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Dynamic columns are computed on-the-fly when attached to an existing table
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 
 namespace o2::aod
 {
@@ -25,6 +29,7 @@ using namespace o2::framework;
 struct ATask {
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
+    // dynamic columns are attached to existing tables
     auto table_with_extra_dynamic_columns = soa::Attach<aod::Tracks, aod::extension::P2<aod::track::P>>(tracks);
     for (auto& row : table_with_extra_dynamic_columns) {
       if (row.trackType() != 3) {
