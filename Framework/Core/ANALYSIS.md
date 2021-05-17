@@ -2,6 +2,21 @@
 \page refFrameworkCoreANALYSIS Core ANALYSIS
 /doxy -->
 
+The comprehensive documentation of the O2 Analysis Framework is located at [https://aliceo2group.github.io/analysis-framework/](https://aliceo2group.github.io/analysis-framework/).
+
+```note
+Please do not update this document, but contribute directly to the O2 Analysis Framework documentation at  
+
+https://github.com/AliceO2Group/analysis-framework/tree/master/docs/framework
+
+status May 17, 2021
+```
+
+---
+---
+
+
+
 ##  Core ANALYSIS
 
 This document is WIP and provides an idea of what kind of API to expect from the DPL enabled analysis framework. APIs are neither final nor fully implemented in O2.
