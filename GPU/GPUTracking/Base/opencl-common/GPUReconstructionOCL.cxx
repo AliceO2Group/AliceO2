@@ -252,11 +252,14 @@ int GPUReconstructionOCL::InitDevice_Runtime()
 
     for (int i = 0; i < mNStreams; i++) {
 #ifdef CL_VERSION_2_0
-      cl_queue_properties prop = 0;
-      if (mProcessingSettings.deviceTimers) {
-        prop |= CL_QUEUE_PROFILING_ENABLE;
-      }
+      cl_queue_properties prop = mProcessingSettings.deviceTimers ? CL_QUEUE_PROFILING_ENABLE : 0;
       mInternals->command_queue[i] = clCreateCommandQueueWithProperties(mInternals->context, mInternals->device, &prop, &ocl_error);
+      if (mProcessingSettings.deviceTimers && ocl_error == CL_INVALID_QUEUE_PROPERTIES) {
+        GPUError("GPU device timers not supported by OpenCL platform, disabling");
+        mProcessingSettings.deviceTimers = 0;
+        prop = 0;
+        mInternals->command_queue[i] = clCreateCommandQueueWithProperties(mInternals->context, mInternals->device, &prop, &ocl_error);
+      }
 #else
       mInternals->command_queue[i] = clCreateCommandQueue(mInternals->context, mInternals->device, 0, &ocl_error);
 #endif
