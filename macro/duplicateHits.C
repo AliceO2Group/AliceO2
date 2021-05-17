@@ -42,7 +42,7 @@ void duplicate(TTree* tr, const char* brname, TTree* outtree, int factor)
 
   for (int i = 0; i < entries; ++i) {
     br->GetEntry(i);
-    for (int i = 0; i < factor; ++i) {
+    for (int j = 0; j < factor; ++j) {
       outbranch->Fill();
     }
   }
@@ -173,10 +173,10 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   auto kintree = getKinematicsTree(filebase);
   auto newkintree = getKinematicsTree(newfilebase, "RECREATE");
   // duplicate meta branches
-  duplicate<o2::MCTrack>(kintree, "MCTrack", newkintree, factor);
+  duplicate<std::vector<o2::MCTrack>>(kintree, "MCTrack", newkintree, factor);
   duplicate<o2::dataformats::MCEventHeader>(kintree, "MCEventHeader.", newkintree, factor);
   // TODO: fix EventIDs in the newly created MCEventHeaders
-  duplicate<o2::TrackReference>(kintree, "TrackRefs", newkintree, factor);
+  duplicate<std::vector<o2::TrackReference>>(kintree, "TrackRefs", newkintree, factor);
   newkintree->Write();
 
   // duplicating hits
