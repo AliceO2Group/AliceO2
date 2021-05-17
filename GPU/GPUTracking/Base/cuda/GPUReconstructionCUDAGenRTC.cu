@@ -18,6 +18,7 @@
 #include "GPUReconstructionCUDA.h"
 #include "GPUReconstructionCUDAInternals.h"
 #include "GPUParamRTC.h"
+#include "GPUDefMacros.h"
 #include <unistd.h>
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "Framework/SHA1.h"
@@ -39,12 +40,27 @@ int GPUReconstructionCUDA::genRTC()
   filename += std::to_string(getpid());
   filename += "_";
   filename += std::to_string(rand());
+
+  std::string kernels;
+  kernels += "extern \"C\" {";
+#undef GPUCA_KRNL_REG
+#define GPUCA_KRNL_REG(args) __launch_bounds__(GPUCA_M_MAX2_3(GPUCA_M_STRIP(args)))
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
+#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward) kernels += GPUCA_M_STR(GPUCA_KRNLGPU_SINGLE(x_class, x_attributes, x_arguments, x_forward));
+#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward) kernels += GPUCA_M_STR(GPUCA_KRNLGPU_MULTI(x_class, x_attributes, x_arguments, x_forward));
+#include "GPUReconstructionKernels.h"
+#undef GPUCA_KRNL
+#undef GPUCA_KRNL_LOAD_single
+#undef GPUCA_KRNL_LOAD_multi
+  kernels += "}";
+
 #ifdef GPUCA_HAVE_O2HEADERS
-  char shasource[21], shaparam[21], shacmd[21];
+  char shasource[21], shaparam[21], shacmd[21], shakernels[21];
   if (mProcessingSettings.cacheRTC) {
     o2::framework::internal::SHA1(shasource, _curtc_GPUReconstructionCUDArtc_cu_src, _curtc_GPUReconstructionCUDArtc_cu_src_size);
     o2::framework::internal::SHA1(shaparam, rtcparam.c_str(), rtcparam.size());
     o2::framework::internal::SHA1(shacmd, _curtc_GPUReconstructionCUDArtc_cu_command, strlen(_curtc_GPUReconstructionCUDArtc_cu_command));
+    o2::framework::internal::SHA1(shakernels, kernels.c_str(), kernels.size());
   }
 #endif
 
@@ -79,6 +95,14 @@ int GPUReconstructionCUDA::genRTC()
           break;
         }
         if (memcmp(sharead, shacmd, 20)) {
+          GPUInfo("Cache file content outdated");
+          break;
+        }
+        if (fread(sharead, 1, 20, fp) != 20) {
+          GPUError("Cache file corrupt");
+          break;
+        }
+        if (memcmp(shakernels, shacmd, 20)) {
           GPUInfo("Cache file content outdated");
           break;
         }
@@ -124,10 +148,9 @@ int GPUReconstructionCUDA::genRTC()
     if (fp == nullptr) {
       throw std::runtime_error("Error opening file");
     }
-    if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size()) {
-      throw std::runtime_error("Error writing file");
-    }
-    if (fwrite(_curtc_GPUReconstructionCUDArtc_cu_src, 1, _curtc_GPUReconstructionCUDArtc_cu_src_size, fp) != _curtc_GPUReconstructionCUDArtc_cu_src_size) {
+    if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size() ||
+        fwrite(_curtc_GPUReconstructionCUDArtc_cu_src, 1, _curtc_GPUReconstructionCUDArtc_cu_src_size, fp) != _curtc_GPUReconstructionCUDArtc_cu_src_size ||
+        fwrite(kernels.c_str(), 1, kernels.size(), fp) != kernels.size()) {
       throw std::runtime_error("Error writing file");
     }
     fclose(fp);
@@ -163,6 +186,7 @@ int GPUReconstructionCUDA::genRTC()
       if (fwrite(shasource, 1, 20, fp) != 20 ||
           fwrite(shaparam, 1, 20, fp) != 20 ||
           fwrite(shacmd, 1, 20, fp) != 20 ||
+          fwrite(shakernels, 1, 20, fp) != 20 ||
           fwrite(&size, sizeof(size), 1, fp) != 1 ||
           fwrite(buffer.get(), 1, size, fp) != size) {
         throw std::runtime_error("Error writing cache file");
