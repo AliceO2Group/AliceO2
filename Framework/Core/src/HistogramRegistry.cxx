@@ -194,7 +194,7 @@ void HistogramRegistry::print(bool showAxisDetails)
           nDim = hist->GetDimension();
         }
         for (int d = 0; d < nDim; ++d) {
-          TAxis* axis = HistFactory::getAxis(d, hist);
+          TAxis* axis = HistFactory::getAxis(d, hist.get());
           LOGF(INFO, "- Axis %d: %-20s (%d bins)", d, axis->GetTitle(), axis->GetNbins());
         }
       }
