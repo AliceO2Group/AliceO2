@@ -21,5 +21,11 @@
 #include <hip/hip_ext.h>
 #endif
 #include <hipcub/hipcub.hpp>
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wshadow"
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
+#include <thrust/device_ptr.h>
+#pragma GCC diagnostic pop
 
 #endif

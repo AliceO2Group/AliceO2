@@ -31,7 +31,7 @@ extern "C" unsigned int _curtc_GPUReconstructionCUDArtc_cu_src_size;
 extern "C" char _curtc_GPUReconstructionCUDArtc_cu_command[];
 #endif
 
-int GPUReconstructionCUDABackend::genRTC()
+int GPUReconstructionCUDA::genRTC()
 {
 #ifndef GPUCA_ALIROOT_LIB
   std::string rtcparam = GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtcConstexpr);

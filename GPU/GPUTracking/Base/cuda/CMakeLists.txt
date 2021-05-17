@@ -15,7 +15,7 @@ if(DEFINED CUDA_COMPUTETARGET)
 endif()
 message(STATUS "Building GPUTracking with CUDA support ${TMP_TARGET}")
 
-set(SRCS GPUReconstructionCUDA.cu GPUReconstructionCUDAGenRTC.cu)
+set(SRCS GPUReconstructionCUDA.cu GPUReconstructionCUDAKernels.cu GPUReconstructionCUDAGenRTC.cu)
 set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h GPUReconstructionCUDADef.h GPUReconstructionCUDAIncludes.h CUDAThrustHelpers.h)
 
 # -------------------------------- Prepare RTC -------------------------------------------------------
