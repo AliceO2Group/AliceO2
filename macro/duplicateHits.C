@@ -8,7 +8,7 @@
 #include "TRDSimulation/Detector.h" // For TRD Hit
 #include "FT0Simulation/Detector.h" // for Fit Hit
 #include "DataFormatsFV0/Hit.h"
-#include "HMPIDBase/Hit.h"
+#include "DataFormatsHMP/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "PHOSBase/Hit.h"
 #include "DataFormatsFDD/Hit.h"
@@ -17,6 +17,9 @@
 #include "CPVBase/Hit.h"
 #include "DataFormatsZDC/Hit.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/SimTraits.h"
 
 #ifdef ENABLE_UPGRADES
 #include "EndCapsSimulation/Hit.h"

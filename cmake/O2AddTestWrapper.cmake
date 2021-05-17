@@ -100,6 +100,7 @@ function(o2_add_test_wrapper)
 
   # For now, we enforce 3 max attempts for all tests.
   # No need to ignore time out, since we have 3 attempts
+  # PH The line below should be removed - no need to force three attempts
   set(A_MAX_ATTEMPTS 3)
   set(A_DONT_FAIL_ON_TIMEOUT "")
 
