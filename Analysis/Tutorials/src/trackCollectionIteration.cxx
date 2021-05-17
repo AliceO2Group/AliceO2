@@ -7,6 +7,12 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This is not the way histograms should be handeled.
+//         See e.g. tutorial histograms.cxx as a better example!
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 
@@ -16,10 +22,6 @@
 using namespace o2;
 using namespace o2::framework;
 
-// This is a very simple example showing how to iterate over tracks
-// and operate on them.
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
 struct ATask {
   void process(aod::Tracks const& tracks)
   {
