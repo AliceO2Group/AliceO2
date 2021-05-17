@@ -161,9 +161,9 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
       t0 *= this->mTPCBin2MUS;
       terr *= this->mTPCBin2MUS;
-    } else if (isITSTrack<decltype(_tr)>()) {   // error is supplied a half-ROF duration, convert to \mus
-      t0 += this->mITSROFrameLengthMUS;         // ITS time is supplied in \mus as beginning of ROF
-      terr *= 0.5 * this->mITSROFrameLengthMUS; // error is supplied as a half-ROF duration, convert to \mus
+    } else if (isITSTrack<decltype(_tr)>()) {
+      t0 += 0.5 * this->mITSROFrameLengthMUS; // ITS time is supplied in \mus as beginning of ROF
+      terr *= this->mITSROFrameLengthMUS;     // error is supplied as a half-ROF duration, convert to \mus
     }
     // for all other tracks the time is in \mus with gaussian error
     mTBrackets.emplace_back(TrackTBracket{{t0 - terr, t0 + terr}, _origID});
