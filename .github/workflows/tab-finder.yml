@@ -1,0 +1,41 @@
+# Find tabs in modified text files
+name: Tab finder
+on: [push, pull_request]
+env:
+  MAIN_BRANCH: dev
+jobs:
+  build:
+    name: Tab finder
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # needed to get the full history
+      - name: Fetch upstream
+        run: |
+          # Fetch the main upstream branch to find the common ancestor
+          git config --global user.name "Nemo" # required on some servers
+          git remote add upstream https://github.com/AliceO2Group/AliceO2.git || exit 1
+          git fetch upstream ${{ env.MAIN_BRANCH }} || exit 1
+      - name: Find tabs
+        run: |
+          # Find tabs in modified text files and show where they are
+          status=0
+          # Get the common ancestor of the current branch and the main upstream branch
+          BASE_COMMIT=$(git merge-base HEAD upstream/${{ env.MAIN_BRANCH }})
+          # loop over changed files
+          echo "Diffing against: $BASE_COMMIT"
+          for f in $(git diff --diff-filter d --name-only $BASE_COMMIT); do
+            # ignore binary files
+            file -bi "$f" | grep -q "charset=binary" && continue
+            # find tabs in file
+            echo "Scanning file: $f"
+            if grep -q -P "\t" "$f"; then
+              status=1
+              echo "Found some tabs:"
+              # print out where the tabs are
+              grep -P -n -C 1 "\t" "$f"
+            fi
+          done
+          exit $status
