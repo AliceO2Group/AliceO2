@@ -172,10 +172,6 @@ bool GPUChainTracking::ValidateSteps()
       GPUError("Invalid Reconstruction Step Setting: Tracking without early transform requires TPC Conversion to be active");
       return false;
     }
-    if (((GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || (GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging)) && !(GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion)) {
-      GPUError("Invalid GPU Reconstruction Step Setting: Tracking without early transform requires TPC Conversion to be active");
-      return false;
-    }
   }
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) && !(GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCRaw)) {
     GPUError("Invalid input, TPC Clusterizer needs TPC raw input");
