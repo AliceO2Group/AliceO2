@@ -78,6 +78,7 @@ class Cluster;
 namespace o2::ft0
 {
 class RecPoints;
+class ChannelDataFloat;
 }
 
 namespace o2::dataformats
@@ -387,6 +388,7 @@ struct RecoContainer {
 
   // FT0
   auto getFT0RecPoints() const { return getSpan<o2::ft0::RecPoints>(GTrackID::FT0, TRACKS); }
+  auto getFT0ChannelsData() const { return getSpan<o2::ft0::ChannelDataFloat>(GTrackID::FT0, CLUSTERS); }
 
   // Primary vertices
   const o2::dataformats::PrimaryVertex& getPrimaryVertex(int i) const { return pvtxPool.get_as<o2::dataformats::PrimaryVertex>(PVTX, i); }
