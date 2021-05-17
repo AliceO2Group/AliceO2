@@ -60,6 +60,9 @@ GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsDevi
 GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
 {
   if (mMaster == nullptr) {
+    for (unsigned int i = 0; i < mInternals->rtcModules.size(); i++) {
+      cuModuleUnload(*mInternals->rtcModules[i]);
+    }
     delete mInternals;
   }
 }
@@ -316,21 +319,24 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
       }
     }
 #endif
-    void *devPtrConstantMem, *devPtrConstantMemRTC;
+    void* devPtrConstantMem;
+    if (mProcessingSettings.enableRTC) {
+      mDeviceConstantMemRTC.resize(mInternals->rtcModules.size());
+    }
 #ifndef GPUCA_NO_CONSTANT_MEMORY
     devPtrConstantMem = GetBackendConstSymbolAddress();
     if (mProcessingSettings.enableRTC) {
-      GPUFailedMsg(cuModuleGetGlobal((CUdeviceptr*)&devPtrConstantMemRTC, nullptr, mInternals->rtcModule, "gGPUConstantMemBuffer"));
+      for (unsigned int i = 0; i < mDeviceConstantMemRTC.size(); i++) {
+        GPUFailedMsg(cuModuleGetGlobal((CUdeviceptr*)&mDeviceConstantMemRTC[i], nullptr, *mInternals->rtcModules[i], "gGPUConstantMemBuffer"));
+      }
     }
 #else
     GPUFailedMsg(cudaMalloc(&devPtrConstantMem, gGPUConstantMemBufferSize));
-    devPtrConstantMemRTC = devPtrConstantMem;
+    for (unsigned int i = 0; i < mDeviceConstantMemRTC.size(); i++) {
+      mDeviceConstantMemRTC[i] = devPtrConstantMem;
+    }
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
-    if (mProcessingSettings.enableRTC) {
-      mDeviceConstantMemRTC.resize(1);
-      mDeviceConstantMemRTC[0] = devPtrConstantMemRTC;
-    }
   } else {
     GPUReconstructionCUDA* master = dynamic_cast<GPUReconstructionCUDA*>(mMaster);
     mDeviceId = master->mDeviceId;
