@@ -768,15 +768,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       // FIXME: `track<-->vertex` ambiguity is not accounted for in this code
       for (int ti = 0; ti < ntracks; ti++) {
         auto trackIndex = primVerGIs[start + ti];
-        const auto source = trackIndex.getSource();
         // setting collisionID for tracks attached to vertices
-        if (source == GIndex::Source::TPC) {
+        if (src == GIndex::Source::TPC) {
           vCollRefsTPC[trackIndex.getIndex()] = collisionID;
-        } else if (source == GIndex::Source::ITS) {
+        } else if (src == GIndex::Source::ITS) {
           vCollRefsITS[trackIndex.getIndex()] = collisionID;
-        } else if (source == GIndex::Source::MFT) {
+        } else if (src == GIndex::Source::MFT) {
           vCollRefsMFT[trackIndex.getIndex()] = collisionID;
-        } else if (source == GIndex::Source::ITSTPC) {
+        } else if (src == GIndex::Source::ITSTPC) {
           vCollRefsTPCITS[trackIndex.getIndex()] = collisionID;
         } else {
           LOG(WARNING) << "Unsupported track type!";

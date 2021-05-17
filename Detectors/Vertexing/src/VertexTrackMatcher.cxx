@@ -171,7 +171,7 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
     } else if (isITSTrack<decltype(_tr)>()) {
       t0 += 0.5 * this->mITSROFrameLengthMUS; // ITS time is supplied in \mus as beginning of ROF
       terr *= this->mITSROFrameLengthMUS;     // error is supplied as a half-ROF duration, convert to \mus
-    } else if (isMFTTrack<decltype(_tr)>()) {
+    } else if (isMFTTrack<decltype(_tr)>()) { // Same for MFT
       t0 += 0.5 * this->mMFTROFrameLengthMUS;
       terr *= this->mMFTROFrameLengthMUS;
     }
