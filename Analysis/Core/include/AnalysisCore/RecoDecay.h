@@ -717,7 +717,7 @@ class RecoDecay
         }
         // Check that the number of direct daughters is not larger than the number of expected final daughters.
         if (indexDaughterFirst > -1 && indexDaughterLast > -1 && indexDaughterLast - indexDaughterFirst + 1 > N) {
-          //Printf("MC Rec: Rejected: too many direct daughters: %d (expected %d final)", indexDaughterLast - indexDaughterFirst + 1, N);
+          //Printf("MC Rec: Rejected: too many direct daughters: %d (expected %ld final)", indexDaughterLast - indexDaughterFirst + 1, N);
           return -1;
         }
         // Get the list of actual final daughters.
@@ -729,7 +729,7 @@ class RecoDecay
         //printf("\n");
         // Check whether the number of actual final daughters is equal to the number of expected final daughters (i.e. the number of provided prongs).
         if (arrAllDaughtersIndex.size() != N) {
-          //Printf("MC Rec: Rejected: incorrect number of final daughters: %d (expected %d)", arrAllDaughtersIndex.size(), N);
+          //Printf("MC Rec: Rejected: incorrect number of final daughters: %ld (expected %ld)", arrAllDaughtersIndex.size(), N);
           return -1;
         }
       }
@@ -837,19 +837,19 @@ class RecoDecay
       }
       // Check that the number of direct daughters is not larger than the number of expected final daughters.
       if (indexDaughterFirst > -1 && indexDaughterLast > -1 && indexDaughterLast - indexDaughterFirst + 1 > N) {
-        //Printf("MC Gen: Rejected: too many direct daughters: %d (expected %d final)", indexDaughterLast - indexDaughterFirst + 1, N);
+        //Printf("MC Gen: Rejected: too many direct daughters: %d (expected %ld final)", indexDaughterLast - indexDaughterFirst + 1, N);
         return false;
       }
       // Get the list of actual final daughters.
       getDaughters(particlesMC, candidate, &arrAllDaughtersIndex, arrPDGDaughters, depthMax);
-      //printf("MC Gen: Mother %d has %d final daughters:", candidate.globalIndex(), arrAllDaughtersIndex.size());
+      //printf("MC Gen: Mother %ld has %ld final daughters:", candidate.globalIndex(), arrAllDaughtersIndex.size());
       //for (auto i : arrAllDaughtersIndex) {
       //  printf(" %d", i);
       //}
       //printf("\n");
       // Check whether the number of final daughters is equal to the required number.
       if (arrAllDaughtersIndex.size() != N) {
-        //Printf("MC Gen: Rejected: incorrect number of final daughters: %d (expected %d)", arrAllDaughtersIndex.size(), N);
+        //Printf("MC Gen: Rejected: incorrect number of final daughters: %ld (expected %ld)", arrAllDaughtersIndex.size(), N);
         return false;
       }
       // Check daughters' PDG codes.
