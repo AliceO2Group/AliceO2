@@ -114,13 +114,13 @@ class TOFChannelCalibDevice : public o2::framework::Task
         }
         if (lhcphaseIndex == -1) {
           // no new object found, use CCDB
-	  auto lhcPhase = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
+         auto lhcPhase = pc.inputs().get<LHCphase*>("tofccdbLHCphase");
           lhcPhaseObjTmp = std::move(*lhcPhase);
         }
         else {
           const auto pld = pc.inputs().get<gsl::span<char>>("clbPayload", lhcphaseIndex); // this is actually an image of TMemFile
           // now i need to make a LHCphase object; Ruben suggested how, I did not try yet
-	  // ...
+         // ...
         }
       }
       else {
