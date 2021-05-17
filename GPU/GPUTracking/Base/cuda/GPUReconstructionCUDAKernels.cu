@@ -162,23 +162,12 @@ int GPUReconstructionCUDABackend::runKernelBackend(krnlSetup& _xyz, Args... args
   return 0;
 }
 
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments));
+#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward)                                                                           \
+  template int GPUReconstructionCUDABackend::runKernelBackend<GPUCA_M_KRNL_TEMPLATE(x_class)>(krnlSetup & _xyz GPUCA_M_STRIP(x_arguments)); \
+  template int GPUReconstructionCUDAInternals::getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);                               \
+  template int GPUReconstructionCUDAInternals::getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(int k);
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
-
-GPUReconstructionCUDABackend::GPUReconstructionCUDABackend(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionDeviceBase(cfg, sizeof(GPUReconstructionDeviceBase))
-{
-  if (mMaster == nullptr) {
-    mInternals = new GPUReconstructionCUDAInternals;
-  }
-}
-
-GPUReconstructionCUDABackend::~GPUReconstructionCUDABackend()
-{
-  if (mMaster == nullptr) {
-    delete mInternals;
-  }
-}
 
 void* GPUReconstructionCUDABackend::GetBackendConstSymbolAddress()
 {
@@ -210,23 +199,6 @@ void GPUReconstructionCUDABackend::PrintKernelOccupancies()
 #undef GPUCA_KRNL_LOAD_single
 #undef GPUCA_KRNL_LOAD_multi
   GPUFailedMsg(cuCtxPopCurrent(&mInternals->CudaContext));
-}
-
-void GPUReconstructionCUDABackend::LoadRTCKernels()
-{
-#define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
-#define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                          \
-  mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
-  mInternals->rtcFunctions.emplace_back(new CUfunction);                                               \
-  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), mInternals->rtcModule, GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
-#define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                          \
-  mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
-  mInternals->rtcFunctions.emplace_back(new CUfunction);                                              \
-  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), mInternals->rtcModule, GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
-#include "GPUReconstructionKernels.h"
-#undef GPUCA_KRNL
-#undef GPUCA_KRNL_LOAD_single
-#undef GPUCA_KRNL_LOAD_multi
 }
 
 template class GPUReconstructionKernels<GPUReconstructionCUDABackend>;

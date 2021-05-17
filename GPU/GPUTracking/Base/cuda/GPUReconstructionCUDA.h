@@ -38,7 +38,6 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
   void* GetBackendConstSymbolAddress();
   void PrintKernelOccupancies() override;
-  void LoadRTCKernels();
 
   template <class T, int I = 0, typename... Args>
   int runKernelBackend(krnlSetup& _xyz, Args... args);
