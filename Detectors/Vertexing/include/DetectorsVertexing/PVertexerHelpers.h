@@ -234,6 +234,7 @@ struct PVtxCompDump {
   float chi2z{0};
   float chi2t{0};
   bool rej = false;
+  PVtxCompDump() = default;
   ClassDefNV(PVtxCompDump, 1);
 };
 
@@ -244,6 +245,7 @@ struct TrackVFDump {
   float t = 0;
   float te = 0;
   float wh = 0.;
+  TrackVFDump() = default;
   ClassDefNV(TrackVFDump, 1);
 };
 
