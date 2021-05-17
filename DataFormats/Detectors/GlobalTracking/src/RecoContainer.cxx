@@ -170,6 +170,7 @@ void DataRequest::requestTRDTracklets(bool mc)
 void DataRequest::requestFT0RecPoints(bool mc)
 {
   addInput({"ft0recpoints", "FT0", "RECPOINTS", 0, Lifetime::Timeframe});
+  addInput({"ft0channels", "FT0", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(ERROR) << "FT0 RecPoint does not support MC truth";
   }
@@ -518,6 +519,8 @@ void RecoContainer::addTOFClusters(ProcessingContext& pc, bool mc)
 void RecoContainer::addFT0RecPoints(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::FT0].registerContainer(pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("ft0recpoints"), TRACKS);
+  commonPool[GTrackID::FT0].registerContainer(pc.inputs().get<gsl::span<o2::ft0::ChannelDataFloat>>("ft0channels"), CLUSTERS);
+
   if (mc) {
     LOG(ERROR) << "FT0 RecPoint does not support MC truth";
   }
