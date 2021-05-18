@@ -19,7 +19,7 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DataFormatsTPC/CompressedClusters.h"
 #else
 namespace o2::tpc

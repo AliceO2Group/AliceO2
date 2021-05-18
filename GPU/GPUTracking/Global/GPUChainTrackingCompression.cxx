@@ -16,7 +16,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUTrackingInputProvider.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUTPCCFChainContext.h"
 #include "TPCClusterDecompressor.h"
 #endif
@@ -27,7 +27,7 @@ using namespace o2::tpc;
 
 int GPUChainTracking::RunTPCCompression()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   mRec->PushNonPersistentMemory(qStr2Tag("TPCCOMPR"));
   RecoStep myStep = RecoStep::TPCCompression;
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCCompression;
@@ -204,7 +204,7 @@ int GPUChainTracking::RunTPCCompression()
 
 int GPUChainTracking::RunTPCDecompression()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   const auto& threadContext = GetThreadContext();
   TPCClusterDecompressor decomp;
   auto allocator = [this](size_t size) {
