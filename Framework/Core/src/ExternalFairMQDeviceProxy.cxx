@@ -18,11 +18,13 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/CallbackService.h"
+#include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 
 #include "./DeviceSpecHelpers.h"
+#include "./DataProcessingHelpers.h"
 
 #include <fairmq/FairMQParts.h>
 #include <fairmq/FairMQDevice.h>
@@ -213,17 +215,12 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
 
   return [filterSpecs = std::move(filterSpecs), throwOnUnmatchedInputs, droppedDataSpecs = std::make_shared<DroppedDataSpecs>()](FairMQDevice& device, FairMQParts& parts, ChannelRetriever channelRetriever) {
     std::unordered_map<std::string, FairMQParts> outputs;
-    std::vector<bool> indicesDone(parts.Size() / 2, false);
     std::vector<std::string> unmatchedDescriptions;
     int lastSplitPartIndex = -1;
     std::string channelNameForSplitParts;
     static int64_t dplCounter = -1;
     dplCounter++;
     for (size_t msgidx = 0; msgidx < parts.Size() / 2; ++msgidx) {
-      if (indicesDone[msgidx]) {
-        continue;
-      }
-
       const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx * 2)->GetData());
       if (!dh) {
         LOG(ERROR) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
@@ -239,6 +236,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
 
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
       LOG(DEBUG) << "processing " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification}) << " time slice " << dph->startTime << " part " << dh->splitPayloadIndex << " of " << dh->splitPayloadParts;
+      bool indexDone = false;
       for (auto const& spec : filterSpecs) {
         // filter on the specified OutputSpecs, the default value is a ConcreteDataTypeMatcher with origin and description 'any'
         if (DataSpecUtils::match(spec, OutputSpec{{header::gDataOriginAny, header::gDataDescriptionAny}}) ||
@@ -273,11 +271,11 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
           outputs[channelName].AddPart(std::move(parts.At(msgidx * 2)));
           outputs[channelName].AddPart(std::move(parts.At(msgidx * 2 + 1)));
           LOG(DEBUG) << "associating part with index " << msgidx << " to channel " << channelName << " (" << outputs[channelName].Size() << ")";
-          indicesDone[msgidx] = true;
+          indexDone = true;
           break;
         }
       }
-      if (indicesDone[msgidx] == false) {
+      if (indexDone == false) {
         unmatchedDescriptions.emplace_back(DataSpecUtils::describe(query));
       }
     }
@@ -358,6 +356,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     auto device = ctx.services().get<RawDeviceService>().device();
     // make a copy of the output routes and pass to the lambda by move
     auto outputRoutes = ctx.services().get<RawDeviceService>().spec().outputs;
+    auto outputChannels = ctx.services().get<RawDeviceService>().spec().outputChannels;
     assert(device);
 
     // check that the name used for registering the OnData callback corresponds
@@ -372,10 +371,11 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
     };
     ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
-
     // Converter should pump messages
-    auto handler = [device, converter, outputRoutes = std::move(outputRoutes)](FairMQParts& inputs, int) {
-      auto channelRetriever = [outputRoutes = std::move(outputRoutes)](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
+
+    auto handler = [device, converter, outputRoutes = std::move(outputRoutes), control = &ctx.services().get<ControlService>(), outputChannels = std::move(outputChannels)](FairMQParts& inputs, int) {
+      // pass a copy of the outputRoutes
+      auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
           LOG(DEBUG) << "matching: " << DataSpecUtils::describe(query) << " to route " << DataSpecUtils::describe(route.matcher);
           if (DataSpecUtils::match(route.matcher, query) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
@@ -384,7 +384,35 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         }
         return std::string("");
       };
+
+      auto checkEos = [&inputs]() -> bool {
+        std::string channelNameForSplitParts;
+        for (size_t msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
+          auto const sih = o2::header::get<SourceInfoHeader*>(inputs.At(msgidx * 2)->GetData());
+          if (sih != nullptr && sih->state == InputChannelState::Completed) {
+            return true;
+          }
+        }
+        return false;
+      };
+      // we buffer the condition since the converter will forward messages by move
+      bool doEos = checkEos();
       converter(*device, inputs, channelRetriever);
+
+      if (doEos) {
+        for (auto const& channel : outputChannels) {
+          DataProcessingHelpers::sendEndOfStream(*device, channel);
+        }
+        // FIXME: the websocket communication to the driver is not established
+        // because the proxy is using the FairMQDevice::OnData callback, while
+        // DataProcessingDevice is setting up the services in the ConditionalRun
+        // overload
+        control->readyToQuit(QuitRequest::Me);
+        // FIXME: this should be the correct way to terminate the FairMQDevice, but the
+        // status is interpreted as ERROR by the DPL driver logic
+        //return false;
+      }
+
       return true;
     };
 
