@@ -84,8 +84,11 @@ void DataDecoderTask::run(framework::ProcessingContext& pc)
   //  decodeReadout(pc);
   // decodeRawFile(pc);
 
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mIntReco);
+
+  LOG(DEBUG) << "Writing   Digitis=" << mDeco->mDigits.size() << "/" << mTotalDigits << " Frame=" << mTotalFrames << " IntRec " << mDeco->mIntReco;
   mExTimer.elapseMes("Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
-  return;
 }
 
 void DataDecoderTask::endOfStream(framework::EndOfStreamContext& ec)
@@ -192,12 +195,7 @@ void DataDecoderTask::decodeTF(framework::ProcessingContext& pc)
     }
     mTotalFrames++;
   }
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
-  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mIntReco);
-
   mTotalDigits += mDeco->mDigits.size();
-  LOG(DEBUG) << "Writing   Digitis=" << mDeco->mDigits.size() << "/" << mTotalDigits << " Frame=" << mTotalFrames << " IntRec " << mDeco->mIntReco;
-  return;
 }
 
 //_________________________________________________________________________________________________
