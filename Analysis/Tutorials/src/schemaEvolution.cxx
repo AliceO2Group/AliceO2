@@ -85,7 +85,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   return WorkflowSpec{
     adaptAnalysisTask<ProduceEtaPhiV1>(cfgc),
     adaptAnalysisTask<ProduceEtaPhiV2>(cfgc),
-    adaptAnalysisTask<ConsumeEtaPhiVx<aod::EtaPhiV1>>(cfgc), // here ConsumeEtaPhiVx is added with EtaPhiV1 input
-    adaptAnalysisTask<ConsumeEtaPhiVx<aod::EtaPhiV2>>(cfgc), // here ConsumeEtaPhiVx is added with EtaPhiV2 input
+    adaptAnalysisTask<ConsumeEtaPhiVx<aod::EtaPhiV1>>(cfgc, TaskName{"EtaPhiV1"}), // here ConsumeEtaPhiVx is added with EtaPhiV1 input
+    adaptAnalysisTask<ConsumeEtaPhiVx<aod::EtaPhiV2>>(cfgc, TaskName{"EtaPhiV2"}), // here ConsumeEtaPhiVx is added with EtaPhiV2 input
   };
 }
