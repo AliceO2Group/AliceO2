@@ -166,12 +166,6 @@ o2_add_dpl_workflow(zdc-vzero-iteration
                   JOB_POOL analysis
                   COMPONENT_NAME AnalysisTutorial)
 
-o2_add_dpl_workflow(hist-helpers-test
-                    SOURCES src/histHelpersTest.cxx
-                    JOB_POOL analysis
-                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME AnalysisTutorial)
-
 o2_add_dpl_workflow(histogram-registry
                   SOURCES src/histogramRegistry.cxx
                   JOB_POOL analysis
