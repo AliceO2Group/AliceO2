@@ -43,7 +43,8 @@ framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                     bool propagateMC = true,
                                     std::string const& cfgInput = "hits",      //
                                     std::string const& cfgOutput = "clusters", //
-                                    bool fullCluOut = false);
+                                    bool fullCluOut = false,
+                                    int flpId = 0);
 } // namespace reco_workflow
 
 } // namespace phos

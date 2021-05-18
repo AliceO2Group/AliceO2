@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "PHOSBase/Geometry.h"
-#include "PHOSCalib/TriggerMap.h"
+#include "DataFormatsPHOS/TriggerMap.h"
 
 #include "FairLogger.h"
 

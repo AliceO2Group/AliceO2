@@ -15,12 +15,9 @@
 /// @brief  Device to calculate PHOS HG/LG ratio
 
 #include "Framework/Task.h"
-// #include "Framework/ConfigParamRegistry.h"
-// #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
-#include "PHOSReconstruction/CaloRawFitter.h"
 #include "PHOSBase/Mapping.h"
-#include "PHOSCalib/CalibParams.h"
+#include "DataFormatsPHOS/CalibParams.h"
 #include "TH2.h"
 
 using namespace o2::framework;

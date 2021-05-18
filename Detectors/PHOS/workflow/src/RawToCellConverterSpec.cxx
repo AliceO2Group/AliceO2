@@ -234,16 +234,16 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 }
 
-o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec()
+o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec(int flpId)
 {
   std::vector<o2::framework::InputSpec> inputs;
   inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "CELLFITQA", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CELLS", flpId, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CELLTRIGREC", flpId, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "RAWHWERRORS", flpId, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CELLFITQA", flpId, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"PHOSRawToCellConverterSpec",
                                           inputs, // o2::framework::select("A:PHS/RAWDATA"),

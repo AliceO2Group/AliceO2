@@ -68,12 +68,13 @@ void PHOSEnergyCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
   //TODO! extract vertex information and send to Calibrator
   auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
-  auto clusters = pc.inputs().get<std::vector<FullCluster>>("clusters");
-  auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("clusterTriggerRecords");
+  const gsl::span<const Cluster>& clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
+  const gsl::span<const CluElement>& cluelements = pc.inputs().get<gsl::span<CluElement>>("cluelements");
+  const gsl::span<const TriggerRecord>& cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("clusterTriggerRecords");
 
   LOG(INFO) << "[PHOSEnergyCalibDevice - run]  Received " << clusters.size() << " clusters and " << clusters.size() << " clusters, running calibration";
 
-  mCalibrator->process(tfcounter, clusters, cluTR);
+  mCalibrator->process(tfcounter, clusters, cluelements, cluTR);
 }
 
 void PHOSEnergyCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -88,6 +89,7 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool use
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("clusters", o2::header::gDataOriginPHS, "CLUSTERS", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("cluelements", o2::header::gDataOriginPHS, "CLUELEMENTS", 0, o2::framework::Lifetime::Timeframe);
   inputs.emplace_back("clusterTriggerRecords", o2::header::gDataOriginPHS, "CLUSTERTRIGREC", 0, o2::framework::Lifetime::Timeframe);
 
   using clbUtils = o2::calibration::Utils;

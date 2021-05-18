@@ -14,8 +14,8 @@
 #include "Framework/Task.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSBase/Mapping.h"
-#include "PHOSCalib/CalibParams.h"
 #include "PHOSReconstruction/AltroDecoder.h"
 #include "PHOSReconstruction/CaloRawFitter.h"
 #include "PHOSReconstruction/RawReaderError.h"
@@ -78,7 +78,7 @@ class RawToCellConverterSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the PHOS Cell Converter Spec
 ///
 /// Refer to RawToCellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getRawToCellConverterSpec();
+framework::DataProcessorSpec getRawToCellConverterSpec(int flpId);
 
 } // namespace reco_workflow
 

@@ -58,7 +58,7 @@ void PHOSRunbyrunSlot::print() const
   LOG(INFO) << "Total number of entries in pi0 region: " << s[0] << "," << s[1] << "," << s[2] << "," << s[3];
 }
 
-void PHOSRunbyrunSlot::fill(const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& trs)
+void PHOSRunbyrunSlot::fill(const gsl::span<const Cluster>& clusters, const gsl::span<const TriggerRecord>& trs)
 {
   if (!mBadMap) {
     if (mUseCCDB) {
@@ -86,7 +86,7 @@ void PHOSRunbyrunSlot::fill(const std::vector<FullCluster>& clusters, const gsl:
     TVector3 vertex = {0., 0., 0.};
     mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
     for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
-      const FullCluster& clu = clusters[i];
+      const Cluster& clu = clusters[i];
 
       if (!checkCluster(clu)) {
         continue;
@@ -119,7 +119,7 @@ void PHOSRunbyrunSlot::merge(const PHOSRunbyrunSlot* prev)
 {
   //Not used
 }
-bool PHOSRunbyrunSlot::checkCluster(const FullCluster& clu)
+bool PHOSRunbyrunSlot::checkCluster(const Cluster& clu)
 {
   //First check BadMap
   float posX, posZ;
@@ -194,7 +194,7 @@ Slot& PHOSRunbyrunCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64
   return slot;
 }
 
-bool PHOSRunbyrunCalibrator::process(uint64_t tf, const std::vector<FullCluster>& clu, const gsl::span<const TriggerRecord>& tr)
+bool PHOSRunbyrunCalibrator::process(uint64_t tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& tr)
 {
   // if (!mUpdateAtTheEndOfRunOnly) {
   //   int maxDelay = mMaxSlotsDelay * mSlotLength;

@@ -57,7 +57,8 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                         bool propagateMC,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput,
-                                        bool fullCluOut)
+                                        bool fullCluOut,
+                                        int ddlId)
 {
   InputType inputType;
 
@@ -83,13 +84,13 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     //no explicit raw reader ??
 
     if (isEnabled(OutputType::Cells)) {
-      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec());
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(ddlId));
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getCellWriterSpec(false));
       }
     }
     if (isEnabled(OutputType::Clusters)) {
-      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec());
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(ddlId));
       specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(false, fullCluOut)); //no MC propagation
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getClusterWriterSpec(false));

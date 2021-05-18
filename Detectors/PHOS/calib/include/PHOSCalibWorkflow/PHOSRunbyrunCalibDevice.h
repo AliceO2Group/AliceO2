@@ -17,9 +17,9 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ProcessingContext.h"
-#include "PHOSCalib/BadChannelMap.h"
-#include "PHOSCalibWorkflow/PHOSRunbyrunCalibrator.h"
 #include "DataFormatsPHOS/Cluster.h"
+#include "DataFormatsPHOS/BadChannelMap.h"
+#include "PHOSCalibWorkflow/PHOSRunbyrunCalibrator.h"
 
 using namespace o2::framework;
 
