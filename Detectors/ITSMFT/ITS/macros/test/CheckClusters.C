@@ -70,7 +70,7 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
     pattBranch->SetAddress(&patternsPtr);
   }
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
   }
   o2::itsmft::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());

@@ -259,9 +259,9 @@ void CreateDictionaries(bool saveDeltas = false,
 
   completeDictionary.setThreshold(0.0001);
   completeDictionary.groupRareTopologies();
-  completeDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", ".bin"));
+  completeDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", "bin"));
   completeDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", ".txt"));
-  completeDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", ".root"));
+  completeDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "", "root"));
 
   TFile histogramOutput("histograms.root", "recreate");
   TCanvas* cComplete = new TCanvas("cComplete", "Distribution of all the topologies");
@@ -282,14 +282,14 @@ void CreateDictionaries(bool saveDeltas = false,
   if (clusLabArr) {
     noiseDictionary.setThreshold(0.0001);
     noiseDictionary.groupRareTopologies();
-    noiseDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noise", ".bin"));
+    noiseDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noise", "bin"));
     noiseDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noise", ".txt"));
-    noiseDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noise", ".root"));
+    noiseDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "noise", "root"));
     signalDictionary.setThreshold(0.0001);
     signalDictionary.groupRareTopologies();
-    signalDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", ".bin"));
+    signalDictionary.printDictionaryBinary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", "bin"));
     signalDictionary.printDictionary(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", ".txt"));
-    signalDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", ".root"));
+    signalDictionary.saveDictionaryRoot(o2::base::NameConf::getAlpideClusterDictionaryFileName(dID, "signal", "root"));
     cNoise = new TCanvas("cNoise", "Distribution of noise topologies");
     cNoise->cd();
     cNoise->SetLogy();

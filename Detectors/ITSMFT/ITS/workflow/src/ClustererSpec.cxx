@@ -63,7 +63,7 @@ void ClustererDPL::init(InitContext& ic)
   mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mClusterer->loadDictionary(dictFile);
     LOG(INFO) << "ITSClusterer running with a provided dictionary: " << dictFile;

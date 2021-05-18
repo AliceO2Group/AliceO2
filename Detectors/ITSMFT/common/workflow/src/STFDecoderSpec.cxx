@@ -61,7 +61,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
   mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
   mDecoder->setFillCalibData(mDoCalibData);
-  std::string noiseFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mNoiseName, ".root");
+  std::string noiseFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mNoiseName, "root");
   if (o2::utils::Str::pathExists(noiseFile)) {
     TFile* f = TFile::Open(noiseFile.data(), "old");
     auto pnoise = (NoiseMap*)f->Get("Noise");
@@ -89,7 +89,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mClusterer->setMaxBCSeparationToMask(nbc);
     mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
-    std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName, ".bin");
+    std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName, "bin");
     if (o2::utils::Str::pathExists(dictFile)) {
       mClusterer->loadDictionary(dictFile);
       LOG(INFO) << mSelfName << " clusterer running with a provided dictionary: " << dictFile;

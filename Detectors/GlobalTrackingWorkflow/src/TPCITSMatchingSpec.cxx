@@ -95,7 +95,7 @@ void TPCITSMatchingDPL::init(InitContext& ic)
   mMatching.setVDriftCalib(mCalibMode);
   //
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mITSDict.readBinaryFile(dictFile);
     LOG(INFO) << "Matching is running with a provided ITS dictionary: " << dictFile;
