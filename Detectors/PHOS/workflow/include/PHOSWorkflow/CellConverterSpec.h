@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "PHOSCalib/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelMap.h"
 #include "DataFormatsPHOS/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsPHOS/Cell.h"

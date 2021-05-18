@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "PHOSCalib/CalibParams.h"
+#include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSBase/Geometry.h"
 
 #include "FairLogger.h"

@@ -11,14 +11,13 @@
 /// \file Clusterer.cxx
 /// \brief Implementation of the PHOS cluster finder
 #include <memory>
+#include "TDecompBK.h"
 
 #include "PHOSReconstruction/Clusterer.h" // for LOG
 #include "PHOSBase/Geometry.h"
 #include "PHOSBase/PHOSSimParams.h"
 #include "DataFormatsPHOS/Cluster.h"
-#include "PHOSReconstruction/FullCluster.h"
 #include "DataFormatsPHOS/Digit.h"
-#include "CCDB/CcdbApi.h"
 
 #include "FairLogger.h" // for LOG
 
@@ -32,212 +31,142 @@ void Clusterer::initialize()
   if (!mPHOSGeom) {
     mPHOSGeom = Geometry::GetInstance();
   }
-  mFirstDigitInEvent = 0;
-  mLastDigitInEvent = -1;
+  mFirstElememtInEvent = 0;
+  mLastElementInEvent = -1;
 }
 //____________________________________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
                         const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
-                        std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters, std::vector<TriggerRecord>* trigRec,
-                        o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
+                        std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements, std::vector<TriggerRecord>& trigRec,
+                        o2::dataformats::MCTruthContainer<MCLabel>& cluMC)
 {
-  if (mFullCluOutput) {
-    fullclusters->clear(); //final out list of clusters
-  } else {
-    clusters->clear(); //final out list of clusters
-  }
-  trigRec->clear();
-  cluMC->clear();
+  clusters.clear(); //final out list of clusters
+  cluelements.clear();
+  cluelements.reserve(digits.size());
+  trigRec.clear();
+  cluMC.clear();
   mProcessMC = (dmc != nullptr);
 
   for (const auto& tr : dtr) {
-    mFirstDigitInEvent = tr.getFirstEntry();
-    mLastDigitInEvent = mFirstDigitInEvent + tr.getNumberOfObjects();
-    int indexStart;
-    if (mFullCluOutput) {
-      indexStart = fullclusters->size(); //final out list of clusters
-    } else {
-      indexStart = clusters->size(); //final out list of clusters
-    }
+    int indexStart = clusters.size(); //final out list of clusters
 
-    mClusters.clear(); // internal list of FullClusters
-
-    LOG(DEBUG) << "Starting clusteriztion digits from " << mFirstDigitInEvent << " to " << mLastDigitInEvent;
-
-    if (!mBadMap) {
-      if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-        mBadMap.reset(new BadChannelMap(1));    // test default map
-        mCalibParams.reset(new CalibParams(1)); //test calibration map
-        LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
-      } else {
-        LOG(INFO) << "Getting BadMap object from ccdb";
-        o2::ccdb::CcdbApi ccdb;
-        std::map<std::string, std::string> metadata; // do we want to store any meta data?
-        ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-        long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-        // mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
-        // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
-        // if (!mBadMap) {
-        //   LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
-        // }
-        // if (!mCalibParams) {
-        //   LOG(FATAL) << "[PHOSCellConverter - run] can not get CalibParams";
-        // }
+    LOG(DEBUG) << "Starting clusteriztion digits from " << mFirstElememtInEvent << " to " << mLastElementInEvent;
+    //Convert digits to cluelements
+    int firstDigitInEvent = tr.getFirstEntry();
+    int lastDigitInEvent = firstDigitInEvent + tr.getNumberOfObjects();
+    mFirstElememtInEvent = cluelements.size();
+    mCluEl.clear();
+    mTrigger.clear();
+    for (int i = firstDigitInEvent; i < lastDigitInEvent; i++) {
+      const Digit& digitSeed = digits[i];
+      short absId = digitSeed.getAbsId();
+      if (digitSeed.isTRU()) {
+        mTrigger.emplace_back(digitSeed);
+        continue;
       }
+      if (isBadChannel(absId)) {
+        continue;
+      }
+      float energy = calibrate(digitSeed.getAmplitude(), absId, digitSeed.isHighGain());
+      if (energy < o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
+        continue;
+      }
+      float x = 0., z = 0.;
+      Geometry::absIdToRelPosInModule(digits[i].getAbsId(), x, z);
+      mCluEl.emplace_back(absId, digitSeed.isHighGain(), energy, calibrateT(digitSeed.getTime(), absId, digitSeed.isHighGain()),
+                          x, z, digitSeed.getLabel(), 1.);
     }
+    mLastElementInEvent = mCluEl.size();
 
     // Collect digits to clusters
-    makeClusters(digits);
+    makeClusters(clusters, cluelements);
 
-    // Unfold overlapped clusters
-    // Split clusters with several local maxima if necessary
-    if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters) {
-      makeUnfoldings(digits);
+    if (mProcessMC) {
+      evalLabels(clusters, cluelements, dmc, cluMC);
     }
-
-    // Calculate properties of collected clusters (Local position, energy, disp etc.)
-    evalCluProperties(digits, clusters, fullclusters, dmc, cluMC);
-    if (mFullCluOutput) {
-      LOG(DEBUG) << "Found clusters from " << indexStart << " to " << fullclusters->size();
-      trigRec->emplace_back(tr.getBCData(), indexStart, fullclusters->size() - indexStart);
-    } else {
-      LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
-      trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
-    }
+    LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters.size();
+    trigRec.emplace_back(tr.getBCData(), indexStart, clusters.size() - indexStart);
   }
 }
 //____________________________________________________________________________
 void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const TriggerRecord> ctr,
                              const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
-                             std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters, std::vector<TriggerRecord>* trigRec,
-                             o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
+                             std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements, std::vector<TriggerRecord>& trigRec,
+                             o2::dataformats::MCTruthContainer<MCLabel>& cluMC)
 {
   // Transform input Cells to digits and run standard recontruction
-  if (mFullCluOutput) {
-    fullclusters->clear(); //final out list of clusters
-  } else {
-    clusters->clear(); //final out list of clusters
-  }
-  trigRec->clear();
-  cluMC->clear();
+  clusters.clear(); //final out list of clusters
+  trigRec.clear();
+  cluelements.reserve(cells.size());
+  cluMC.clear();
   mProcessMC = (dmc != nullptr);
   miCellLabel = 0;
   for (const auto& tr : ctr) {
     int firstCellInEvent = tr.getFirstEntry();
     int lastCellInEvent = firstCellInEvent + tr.getNumberOfObjects();
-    int indexStart;
-    if (mFullCluOutput) {
-      indexStart = fullclusters->size(); //final out list of clusters
-    } else {
-      indexStart = clusters->size(); //final out list of clusters
-    }
-    mClusters.clear(); // internal list of FullClusters
-
-    LOG(DEBUG) << "Starting clusteriztion cells from " << mFirstDigitInEvent << " to " << mLastDigitInEvent;
-
-    if (mBadMap.get() == nullptr) {
-      if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-        mBadMap.reset(new BadChannelMap(1));    // test default map
-        mCalibParams.reset(new CalibParams(1)); //test calibration map
-        LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
-      } else {
-        //   LOG(INFO) << "Getting BadMap object from ccdb";
-        //   o2::ccdb::CcdbApi ccdb;
-        //   std::map<std::string, std::string> metadata; // do we want to store any meta data?
-        //   ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
-        //   // long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-        //   // mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
-        //   // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
-        //   // if (!mBadMap) {
-        //   //   LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
-        //   // }
-        //   // if (!mCalibParams) {
-        //   //   LOG(FATAL) << "[PHOSCellConverter - run] can not get CalibParams";
-        //   // }
+    int indexStart = clusters.size(); //final out list of clusters
+    LOG(DEBUG) << "Starting clusteriztion cells from " << firstCellInEvent << " to " << lastCellInEvent;
+    //convert cells to cluelements
+    mFirstElememtInEvent = cluelements.size();
+    mCluEl.clear();
+    mTrigger.clear();
+    for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
+      const Cell c = cells[i];
+      short absId = c.getAbsId();
+      if (c.getTRU()) {
+        mTrigger.emplace_back(c.getTRUId(), c.getEnergy(), c.getTime(), 0);
+        continue;
       }
+      if (isBadChannel(absId)) {
+        continue;
+      }
+      float energy = calibrate(c.getEnergy(), absId, c.getHighGain());
+      if (energy < o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
+        continue;
+      }
+      float x = 0., z = 0.;
+      Geometry::absIdToRelPosInModule(absId, x, z);
+      mCluEl.emplace_back(absId, c.getHighGain(), energy, calibrateT(c.getTime(), absId, c.getHighGain()),
+                          x, z, i, 1.);
     }
-    convertCellsToDigits(cells, firstCellInEvent, lastCellInEvent);
-    // Collect digits to clusters
-    makeClusters(mDigits);
-    // Unfold overlapped clusters
-    // Split clusters with several local maxima if necessary
-    if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters) {
-      makeUnfoldings(mDigits);
+    mLastElementInEvent = cluelements.size();
+
+    makeClusters(clusters, cluelements);
+
+    if (mProcessMC) {
+      evalLabels(clusters, cluelements, dmc, cluMC);
     }
 
-    // Calculate properties of collected clusters (Local position, energy, disp etc.)
-    evalCluProperties(mDigits, clusters, fullclusters, dmc, cluMC);
-
-    if (mFullCluOutput) {
-      LOG(DEBUG) << "Found clusters from " << indexStart << " to " << fullclusters->size();
-      trigRec->emplace_back(tr.getBCData(), indexStart, fullclusters->size() - indexStart);
-    } else {
-      LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
-      trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
-    }
+    LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters.size();
+    trigRec.emplace_back(tr.getBCData(), indexStart, clusters.size() - indexStart);
   }
 }
 //____________________________________________________________________________
-void Clusterer::convertCellsToDigits(gsl::span<const Cell> cells, int firstCellInEvent, int lastCellInEvent)
+void Clusterer::makeClusters(std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements)
 {
+  // A cluster is defined as a list of neighbour digits (as defined in Geometry::areNeighbours)
+  // Cluster contains first and (next-to) last index of the combined list of clusterelements, so
+  // add elements to final list and mark element in internal list as used (zero energy)
 
-  mDigits.clear();
-  if (mDigits.capacity() < lastCellInEvent - firstCellInEvent) {
-    mDigits.reserve(lastCellInEvent - firstCellInEvent);
-  }
-  for (int i = firstCellInEvent; i < lastCellInEvent; i++) {
-    const Cell c = cells[i];
-    if (c.getTRU()) { //TRU digit
-      mDigits.emplace_back(c.getTRUId(), c.getEnergy(), c.getTime(), c.getHighGain(), -1);
-    } else {
-      //short cell, float amplitude, float time, int label
-      mDigits.emplace_back(c.getAbsId(), c.getEnergy(), c.getTime(), i);
-      mDigits.back().setHighGain(c.getHighGain());
-    }
-  }
-  mFirstDigitInEvent = 0;
-  mLastDigitInEvent = mDigits.size();
-}
-//____________________________________________________________________________
-void Clusterer::makeClusters(gsl::span<const Digit> digits)
-{
-  // A cluster is defined as a list of neighbour digits
-
-  // Mark all digits as unused yet
-  const int maxNDigits = 12546; // There is no digits more than in PHOS modules ;)
-  bool digitsUsed[maxNDigits];
-  memset(digitsUsed, 0, sizeof(bool) * maxNDigits);
-
-  int iFirst = mFirstDigitInEvent; // first index of digit which potentially can be a part of cluster
-
-  for (int i = iFirst; i < mLastDigitInEvent; i++) {
-    if (digitsUsed[i - mFirstDigitInEvent]) {
+  int iFirst = 0; // first index of digit which potentially can be a part of cluster
+  int n = mCluEl.size();
+  for (int i = iFirst; i < n; i++) {
+    if (mCluEl[i].energy == 0) { //already used
       continue;
     }
 
-    const Digit& digitSeed = digits[i];
-    if (digitSeed.isTRU()) {
-      continue;
-    }
-    float digitSeedEnergy = calibrate(digitSeed.getAmplitude(), digitSeed.getAbsId(), digitSeed.isHighGain());
-    if (isBadChannel(digitSeed.getAbsId())) {
-      digitSeedEnergy = 0.;
-    }
-    if (digitSeedEnergy < o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
-      continue;
-    }
+    CluElement& digitSeed = mCluEl[i];
 
     // is this digit so energetic that start cluster?
-    FullCluster* clu = nullptr;
+    Cluster* clu = nullptr;
     int iDigitInCluster = 0;
-    if (digitSeedEnergy > o2::phos::PHOSSimParams::Instance().mClusteringThreshold) {
+    if (digitSeed.energy > o2::phos::PHOSSimParams::Instance().mClusteringThreshold) {
       // start new cluster
-      mClusters.emplace_back(digitSeed.getAbsId(), digitSeedEnergy,
-                             calibrateT(digitSeed.getTime(), digitSeed.getAbsId(), digitSeed.isHighGain()),
-                             digitSeed.getLabel(), 1.);
-      clu = &(mClusters.back());
-
-      digitsUsed[i - mFirstDigitInEvent] = true;
+      clusters.emplace_back();
+      clu = &(clusters.back());
+      clu->setFirstCluEl(cluelements.size());
+      cluelements.emplace_back(digitSeed);
+      digitSeed.energy = 0;
       iDigitInCluster = 1;
     } else {
       continue;
@@ -245,26 +174,16 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
     // Now scan remaining digits in list to find neigbours of our seed
     int index = 0;
     while (index < iDigitInCluster) { // scan over digits already in cluster
-      short digitSeedAbsId = clu->getDigitAbsId(index);
+      short digitSeedAbsId = cluelements.at(clu->getFirstCluEl() + index).absId;
       index++;
-      for (Int_t j = iFirst; j < mLastDigitInEvent; j++) {
-        if (digitsUsed[j - mFirstDigitInEvent]) {
+      for (int j = iFirst; j < n; j++) {
+        if (mCluEl[j].energy == 0) {
           continue; // look through remaining digits
         }
-        const Digit* digitN = &(digits[j]);
-        if (digitN->isTRU()) {
-          continue;
-        }
-        float digitNEnergy = calibrate(digitN->getAmplitude(), digitN->getAbsId(), digitN->isHighGain());
-        if (isBadChannel(digitN->getAbsId())) { //remove digit
-          digitNEnergy = 0.;
-        }
-        if (digitNEnergy < o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
-          continue;
-        }
+        CluElement& digitN = mCluEl[j];
 
         // call (digit,digitN) in THAT oder !!!!!
-        Int_t ineb = mPHOSGeom->areNeighbours(digitSeedAbsId, digitN->getAbsId());
+        Int_t ineb = Geometry::areNeighbours(digitSeedAbsId, digitN.absId);
         switch (ineb) {
           case -1: // too early (e.g. previous module), do not look before j at subsequent passes
             iFirst = j;
@@ -272,9 +191,9 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
           case 0: // not a neighbour
             break;
           case 1: // are neighbours
-            clu->addDigit(digitN->getAbsId(), digitNEnergy, calibrateT(digitN->getTime(), digitN->getAbsId(), digitN->isHighGain()), digitN->getLabel(), 1.);
+            cluelements.emplace_back(digitN);
+            digitN.energy = 0;
             iDigitInCluster++;
-            digitsUsed[j - mFirstDigitInEvent] = true;
             break;
           case 2: // too far from each other
           default:
@@ -282,34 +201,48 @@ void Clusterer::makeClusters(gsl::span<const Digit> digits)
         } // switch
       }
     } // loop over cluster
-  }   // energy theshold
+    clu->setLastCluEl(cluelements.size());
+
+    // Unfold overlapped clusters
+    // Split clusters with several local maxima if necessary
+    if (o2::phos::PHOSSimParams::Instance().mUnfoldClusters) {
+      makeUnfolding(*clu, clusters, cluelements);
+    } else {
+      evalAll(*clu, cluelements);
+      if (clu->getEnergy() < 1.e-4) { //remove cluster and belonging to it elements
+        for (int i = clu->getMultiplicity(); i--;) {
+          cluelements.pop_back();
+        }
+        clusters.pop_back();
+      }
+    }
+
+  } // energy theshold
 }
 //__________________________________________________________________________
-void Clusterer::makeUnfoldings(gsl::span<const Digit> digits)
+void Clusterer::makeUnfolding(Cluster& clu, std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements)
 {
   //Split cluster if several local maxima are found
+  if (clu.getNExMax() > -1) { //already unfolded
+    return;
+  }
 
-  std::vector<int> maxAt(o2::phos::PHOSSimParams::Instance().mNLMMax); // NLMMax:Maximal number of local maxima
-
-  int numberOfNotUnfolded = mClusters.size();
-
-  for (int i = 0; i < numberOfNotUnfolded; i++) { //can not use iterator here as list can expand
-    FullCluster& clu = mClusters[i];
-    if (clu.getNExMax() > -1) { //already unfolded
-      continue;
-    }
-    char nMultipl = clu.getMultiplicity();
-    char nMax = clu.getNumberOfLocalMax(maxAt);
-    if (nMax > 1) {
-      unfoldOneCluster(clu, nMax, maxAt, digits);
-      clu.setEnergy(0); // will be skipped later
-    } else {
-      clu.setNExMax(nMax); // Only one local maximum
+  char nMax = getNumberOfLocalMax(clu, cluelements);
+  if (nMax > 1) {
+    unfoldOneCluster(clu, nMax, clusters, cluelements);
+  } else {
+    clu.setNExMax(nMax); // Only one local maximum
+    evalAll(clu, cluelements);
+    if (clu.getEnergy() < 1.e-4) { //remove cluster and belonging to it elements
+      for (int i = clu.getMultiplicity(); i--;) {
+        cluelements.pop_back();
+      }
+      clusters.pop_back();
     }
   }
 }
 //____________________________________________________________________________
-void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> digitId, gsl::span<const Digit> digits)
+void Clusterer::unfoldOneCluster(Cluster& iniClu, char nMax, std::vector<Cluster>& clusters, std::vector<CluElement>& cluelements)
 {
   // Performs the unfolding of a cluster with nMax overlapping showers
   // Parameters: iniClu cluster to be unfolded
@@ -319,241 +252,416 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
 
   // Take initial cluster and calculate local coordinates of digits
   // To avoid multiple re-calculation of same parameters
-  char mult = iniClu.getMultiplicity();
+  short mult = iniClu.getMultiplicity();
   std::vector<std::vector<float>> eInClusters(mult, std::vector<float>(nMax));
-  std::vector<std::vector<float>> fij(mult, std::vector<float>(nMax));
+  uint32_t firstCE = iniClu.getFirstCluEl();
+  uint32_t lastCE = iniClu.getLastCluEl();
 
-  const std::vector<FullCluster::CluElement>* cluElist = iniClu.getElementList();
+  mProp.reserve(mult * nMax);
 
-  // Coordinates of centers of clusters
-  std::vector<float> xMax(nMax);
-  std::vector<float> zMax(nMax);
-  std::vector<float> eMax(nMax);
-  std::vector<float> deNew(nMax);
-
-  //transient variables
-  std::vector<float> a(nMax);
-  std::vector<float> b(nMax);
-  std::vector<float> c(nMax);
-
-  for (int iclu = 0; iclu < nMax; iclu++) {
-    xMax[iclu] = (*cluElist)[digitId[iclu]].localX;
-    zMax[iclu] = (*cluElist)[digitId[iclu]].localZ;
-    eMax[iclu] = 2. * (*cluElist)[digitId[iclu]].energy;
+  for (int iclu = nMax; iclu--;) {
+    CluElement& ce = cluelements[mMaxAt[iclu]];
+    mxMax[iclu] = ce.localX;
+    mzMax[iclu] = ce.localZ;
+    meMax[iclu] = ce.energy;
+    mxMaxPrev[iclu] = mxMax[iclu];
+    mzMaxPrev[iclu] = mzMax[iclu];
   }
 
-  std::vector<float> prop(nMax); // proportion of clusters in the current digit
+  TMatrixDSym B(nMax);
+  TVectorD C(nMax);
+  TDecompBK bk(nMax);
 
   // Try to decompose cluster to contributions
   int nIterations = 0;
   bool insuficientAccuracy = true;
+  double chi2Previous = 1.e+6;
+  double step = 0.2;
   while (insuficientAccuracy && nIterations < o2::phos::PHOSSimParams::Instance().mNMaxIterations) {
     insuficientAccuracy = false; // will be true if at least one parameter changed too much
-    a.clear();
-    b.clear();
-    c.clear();
-    //First calculate shower shapes
-    for (int idig = 0; idig < mult; idig++) {
-      auto it = (*cluElist)[idig];
-      for (int iclu = 0; iclu < nMax; iclu++) {
-        fij[idig][iclu] = showerShape(it.localX - xMax[iclu], it.localZ - zMax[iclu]);
-      }
+    B.Zero();
+    C.Zero();
+    mProp.clear();
+    double chi2 = 0.;
+    for (int iclu = nMax; iclu--;) {
+      mA[iclu] = 0;
+      mxB[iclu] = 0;
+      mzB[iclu] = 0;
     }
-
-    //Fit energies
-    for (int idig = 0; idig < mult; idig++) {
-      auto it = (*cluElist)[idig];
+    //Fill matrix and vector
+    for (int idig = firstCE; idig < lastCE; idig++) {
+      CluElement& ce = cluelements[idig];
+      double sumA = 0.;
+      for (int iclu = nMax; iclu--;) {
+        double lx = ce.localX - mxMax[iclu];
+        double lz = ce.localZ - mzMax[iclu];
+        double r2 = lx * lx + lz * lz;
+        double deriv = 0;
+        double ss = showerShape(r2, deriv);
+        mfij[iclu] = ss;
+        mfijr[iclu] = deriv;
+        mfijx[iclu] = deriv * ce.localX; //derivatives
+        mfijz[iclu] = deriv * ce.localZ;
+        sumA += ss * meMax[iclu];
+        C(iclu) += ce.energy * ss;
+      }
+      double dE = ce.energy - sumA;
+      chi2 += dE * dE;
       for (int iclu = 0; iclu < nMax; iclu++) {
-        a[iclu] += fij[idig][iclu] * fij[idig][iclu];
-        b[iclu] += it.energy * fij[idig][iclu];
-        for (int kclu = 0; kclu < nMax; kclu++) {
-          if (iclu == kclu) {
-            continue;
-          }
-          c[iclu] += eMax[kclu] * fij[idig][iclu] * fij[idig][kclu];
+        for (int jclu = iclu; jclu < nMax; jclu++) {
+          B(iclu, jclu) += mfij[iclu] * mfij[jclu];
         }
+        mA[iclu] += mfijr[iclu] * dE;
+        mxB[iclu] += mfijx[iclu] * dE;
+        mzB[iclu] += mfijz[iclu] * dE;
+        mProp[(idig - firstCE) * nMax + iclu] = mfij[iclu] * meMax[iclu] / sumA;
       }
     }
-    //Evaluate new maximal energies
-    for (int iclu = 0; iclu < nMax; iclu++) {
-      if (a[iclu] != 0.) {
-        float eNew = (b[iclu] - c[iclu]) / a[iclu];
-        insuficientAccuracy += (std::abs(eMax[iclu] - eNew) > eNew * o2::phos::PHOSSimParams::Instance().mUnfogingEAccuracy);
-        eMax[iclu] = eNew;
+    if (nIterations > 0 && chi2 > chi2Previous) { //too big step
+      step = 0.5 * step;
+      for (int iclu = nMax; iclu--;) {
+        mxMax[iclu] = mxMaxPrev[iclu] + step * mdx[iclu];
+        mzMax[iclu] = mzMaxPrev[iclu] + step * mdz[iclu];
       }
-    } // otherwise keep old value
-
-    // Loop over all digits of parent cluster and split their energies between daughter clusters
-    // according to shower shape
-    // then re-evaluate local position of clusters
-    for (int idig = 0; idig < mult; idig++) {
-      float eEstimated = 0;
-      for (int iclu = 0; iclu < nMax; iclu++) {
-        prop[iclu] = eMax[iclu] * fij[idig][iclu];
-        eEstimated += prop[iclu];
-      }
-      if (eEstimated == 0.) { // numerical accuracy
-        continue;
-      }
-      // Split energy of digit according to contributions
-      for (int iclu = 0; iclu < nMax; iclu++) {
-        eInClusters[idig][iclu] = (*cluElist)[idig].energy * prop[iclu] / eEstimated;
-      }
+      nIterations++;
+      insuficientAccuracy = true;
+      continue;
+    }
+    //Good iteration, move further
+    step = 0.2;
+    chi2Previous = chi2;
+    for (int iclu = nMax; iclu--;) {
+      mxMaxPrev[iclu] = mxMax[iclu];
+      mzMaxPrev[iclu] = mzMax[iclu];
     }
 
-    // Recalculate parameters of clusters and check relative variation of energy and absolute of position
-    for (int iclu = 0; iclu < nMax; iclu++) {
-      float oldX = xMax[iclu];
-      float oldZ = zMax[iclu];
-      // full energy, need for weight
-      float eTotNew = 0;
-      for (int idig = 0; idig < mult; idig++) {
-        eTotNew += eInClusters[idig][iclu];
+    //calculate next step using derivative
+    //fill remaning part of B
+    for (int iclu = 1; iclu < nMax; iclu++) {
+      for (int jclu = 0; jclu < iclu; jclu++) {
+        B(iclu, jclu) = B(jclu, iclu);
       }
-      xMax[iclu] = 0;
-      zMax[iclu] = 0.;
-      float wtot = 0.;
-      for (int idig = 0; idig < mult; idig++) {
-        if (eInClusters[idig][iclu] > 0) {
-          // In unfolding it is better to use linear weight to reduce contribution of unfolded tails
-          float w = eInClusters[idig][iclu] / eTotNew;
-          // float w = std::max(std::log(eInClusters[idig][iclu] / eTotNew) + o2::phos::PHOSSimParams::Instance().mLogWeight, float(0.));
-          xMax[iclu] += (*cluElist)[idig].localX * w;
-          zMax[iclu] += (*cluElist)[idig].localZ * w;
-          wtot += w;
-        }
-      }
-      if (wtot > 0.) {
-        wtot = 1. / wtot;
-        xMax[iclu] *= wtot;
-        zMax[iclu] *= wtot;
-      }
-      // Compare variation of parameters
-      insuficientAccuracy += (std::abs(xMax[iclu] - oldX) > o2::phos::PHOSSimParams::Instance().mUnfogingXZAccuracy);
-      insuficientAccuracy += (std::abs(zMax[iclu] - oldZ) > o2::phos::PHOSSimParams::Instance().mUnfogingXZAccuracy);
     }
+    for (int iclu = nMax; iclu--;) {
+      if (mA[iclu] != 0) {
+        mdx[iclu] = mxB[iclu] / mA[iclu] - mxMaxPrev[iclu];
+        mdz[iclu] = mzB[iclu] / mA[iclu] - mzMaxPrev[iclu];
+      }
+    }
+
+    for (int iclu = nMax; iclu--;) {
+      //a-la Fletcher-Rivs algorithm
+      mdx[iclu] += 0.2 * mdxprev[iclu];
+      mdz[iclu] += 0.2 * mdzprev[iclu];
+      mdxprev[iclu] = mdx[iclu];
+      mdzprev[iclu] = mdz[iclu];
+      insuficientAccuracy |= fabs(step * mdx[iclu]) > o2::phos::PHOSSimParams::Instance().mUnfogingXZAccuracy;
+      insuficientAccuracy |= fabs(step * mdz[iclu]) > o2::phos::PHOSSimParams::Instance().mUnfogingXZAccuracy;
+      mxMax[iclu] = mxMaxPrev[iclu] + step * mdx[iclu];
+      mzMax[iclu] = mzMaxPrev[iclu] + step * mdz[iclu];
+    }
+    //now exact solution for amplitudes
+    bk.SetMatrix(B);
+    if (bk.Solve(C)) {
+      for (int iclu = 0; iclu < nMax; iclu++) {
+        double eOld = meMax[iclu];
+        meMax[iclu] = C(iclu);
+        // insuficientAccuracy|=fabs(meMax[iclu]-eOld)> meMax[iclu]*o2::phos::PHOSSimParams::Instance().mUnfogingEAccuracy ;
+      }
+    }
+    insuficientAccuracy &= (chi2 > o2::phos::PHOSSimParams::Instance().mUnfogingChi2Accuracy * nMax);
     nIterations++;
   }
-  // Iterations finished, add new clusters
-  for (int iclu = 0; iclu < nMax; iclu++) {
-    mClusters.emplace_back();
-    FullCluster& clu = mClusters.back();
-    clu.setNExMax(nMax);
-    int idig = 0;
-    for (int idig = 0; idig < mult; idig++) {
-      float eDigit = eInClusters[idig][iclu];
-      idig++;
-      if (eDigit < o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
-        continue;
+
+  // Iterations finished, put first new cluster into place of mother one, others to the end of list
+  for (int iclu = nMax; iclu--;) {
+    //copy cluElements to the final list
+    int start = cluelements.size();
+    int nce = 0;
+    for (int idig = firstCE; idig < lastCE; idig++) {
+      float eDigit = eInClusters[idig - firstCE][iclu];
+      CluElement& el = cluelements[idig];
+      float ei = el.energy * mProp[(idig - firstCE) * nMax + iclu];
+      if (ei > o2::phos::PHOSSimParams::Instance().mDigitMinEnergy) {
+        cluelements.emplace_back(el);
+        cluelements.back().energy = ei;
+        cluelements.back().fraction = mProp[(idig - firstCE) * nMax + iclu];
+        nce++;
       }
-      clu.addDigit((*cluElist)[idig].absId, eDigit, (*cluElist)[idig].time, (*cluElist)[idig].label, eDigit / (*cluElist)[idig].energy);
+    }
+    if (iclu == 0) { //replace parent
+      iniClu.setNExMax(nMax);
+      iniClu.setFirstCluEl(start);
+      iniClu.setLastCluEl(start + nce);
+      evalAll(iniClu, cluelements);
+      if (iniClu.getEnergy() < 1.e-4) { //remove cluster and belonging to it elements
+        for (int i = iniClu.getMultiplicity(); i--;) {
+          cluelements.pop_back();
+        }
+        clusters.pop_back();
+      }
+    } else {
+      clusters.emplace_back();
+      Cluster& clu = clusters.back();
+      clu.setNExMax(nMax);
+      clu.setFirstCluEl(start);
+      clu.setLastCluEl(start + nce);
+      evalAll(clu, cluelements);
+      if (clu.getEnergy() < 1.e-4) { //remove cluster and belonging to it elements
+        for (int i = clu.getMultiplicity(); i--;) {
+          cluelements.pop_back();
+        }
+        clusters.pop_back();
+      }
     }
   }
 }
 
 //____________________________________________________________________________
-void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters,
-                                  const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
-                                  o2::dataformats::MCTruthContainer<MCLabel>* cluMC)
+void Clusterer::evalLabels(std::vector<Cluster>& clusters, std::vector<CluElement>& cluElements,
+                           const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
+                           o2::dataformats::MCTruthContainer<MCLabel>& cluMC)
 {
 
-  if (mFullCluOutput) {
-    if (fullclusters->capacity() - fullclusters->size() < mClusters.size()) { //avoid expanding vector per element
-      fullclusters->reserve(fullclusters->size() + mClusters.size());
-    }
-  } else {
-    if (clusters->capacity() - clusters->size() < mClusters.size()) { //avoid expanding vector per element
-      clusters->reserve(clusters->size() + mClusters.size());
-    }
-  }
+  int labelIndex = cluMC.getIndexedSize();
+  auto clu = clusters.begin();
 
-  int labelIndex = 0;
-  if (mProcessMC) {
-    labelIndex = cluMC->getIndexedSize();
-  }
-  auto clu = mClusters.begin();
-
-  while (clu != mClusters.end()) {
-    if (clu->getEnergy() < 1.e-4) { //Marked earlier for removal
-      ++clu;
-      continue;
-    }
-
-    // may be soft digits remain after unfolding
-    clu->purify();
-
-    //  LOG(DEBUG) << "Purify done";
-    clu->evalAll();
-
-    if (clu->getEnergy() > 1.e-4) { //Non-empty cluster
-      if (mFullCluOutput) {
-        fullclusters->emplace_back(*clu);
-      } else {
-        clusters->emplace_back(*clu);
+  while (clu != clusters.end()) {
+    //Calculate list of primaries
+    //loop over entries in digit MCTruthContainer
+    for (uint32_t id = clu->getFirstCluEl(); id < clu->getLastCluEl(); id++) {
+      CluElement& ll = cluElements[id];
+      int i = ll.label; //index
+      float sc = ll.fraction;
+      gsl::span<const MCLabel> spDigList = dmc->getLabels(i);
+      if (spDigList.size() == 0 || spDigList.begin()->isFake()) {
+        continue;
       }
-
-      if (mProcessMC) { //Handle labels
-        //Calculate list of primaries
-        //loop over entries in digit MCTruthContainer
-        const std::vector<FullCluster::CluElement>* vl = clu->getElementList();
-        auto ll = vl->begin();
-        while (ll != vl->end()) {
-          int i = (*ll).label; //index
-          float sc = (*ll).scale;
-          gsl::span<const MCLabel> spDigList = dmc->getLabels(i);
-          if (spDigList.size() == 0 || spDigList.begin()->isFake()) {
-            ++ll;
-            continue;
-          }
-          gsl::span<MCLabel> spCluList = cluMC->getLabels(labelIndex); //get updated list
-          auto digL = spDigList.begin();
-          while (digL != spDigList.end()) {
-            if (digL->isFake()) {
-              digL++;
-              continue;
-            }
-            bool merged = false;
-            auto cluL = spCluList.begin();
-            while (cluL != spCluList.end()) {
-              if (*digL == *cluL) {
-                (*cluL).add(*digL, sc);
-                merged = true;
-                break;
-              }
-              ++cluL;
-            }
-            if (!merged) { //just add label
-              if (sc == 1.) {
-                cluMC->addElement(labelIndex, (*digL));
-              } else { //rare case of unfolded clusters
-                MCLabel tmpL = (*digL);
-                tmpL.scale(sc);
-                cluMC->addElement(labelIndex, tmpL);
-              }
-            }
-            ++digL;
-          }
-          ++ll;
+      gsl::span<MCLabel> spCluList = cluMC.getLabels(labelIndex); //get updated list
+      auto digL = spDigList.begin();
+      while (digL != spDigList.end()) {
+        if (digL->isFake()) {
+          digL++;
+          continue;
         }
-        labelIndex++;
-      } // Work with MC
+        bool merged = false;
+        auto cluL = spCluList.begin();
+        while (cluL != spCluList.end()) {
+          if (*digL == *cluL) {
+            (*cluL).add(*digL, sc);
+            merged = true;
+            break;
+          }
+          ++cluL;
+        }
+        if (!merged) { //just add label
+          if (sc == 1.) {
+            cluMC.addElement(labelIndex, (*digL));
+          } else { //rare case of unfolded clusters
+            MCLabel tmpL = (*digL);
+            tmpL.scale(sc);
+            cluMC.addElement(labelIndex, tmpL);
+          }
+        }
+        ++digL;
+      }
     }
-
+    labelIndex++;
     ++clu;
   }
 }
 //____________________________________________________________________________
-float Clusterer::showerShape(float x, float z)
+double Clusterer::showerShape(double r2, double& deriv)
 {
   // Shape of the shower (see PHOS TDR)
   // we neglect dependence on the incident angle.
 
-  const float width = 1. / (2. * 2.32 * 2.32 * 2.32 * 2.32 * 2.32 * 2.32);
-  float r2 = x * x + z * z;
-  return TMath::Exp(-r2 * r2 * r2 * width);
-/*  float r2 = x * x + z * z;
-  float r4 = r2 * r2;
-  float r295 = TMath::Power(r2, 2.95 / 2.);
-  float shape = TMath::Exp(-r4 * (1. / (2.32 + 0.26 * r4) + 0.0316 / (1 + 0.0652 * r295)));
-  return shape;
-*/}
+  // const float width = 1. / (2. * 2.32 * 2.32 * 2.32 * 2.32 * 2.32 * 2.32);
+  // const float width = 1. / (2. * 2.32 * 2.32 * 2.32 * 2.32 );
+  // return TMath::Exp(-r2 * r2 * width);
+  if (r2 == 0.) {
+    deriv = 0;
+    return 1.;
+  }
+  double r4 = r2 * r2;
+  double r295 = TMath::Power(r2, 2.95 / 2.);
+  double a = 2.32 + 0.26 * r4;
+  double b = 31.645570 + 2.0632911 * r295;
+  double s = TMath::Exp(-r4 * ((a + b) / (a * b)));
+  deriv = -2. * s * r2 * (2.32 / (a * a) + (0.54161392 * r295 + 31.645570) / (b * b));
+  return s;
+}
+
+//____________________________________________________________________________
+void Clusterer::evalAll(Cluster& clu, std::vector<CluElement>& cluel) const
+{
+  //position, energy, coreEnergy, dispersion, time,
+
+  // Calculates the center of gravity in the local PHOS-module coordinates
+  // Note that correction for non-perpendicular incidence will be applied later
+  // when vertex will be known.
+  float fullEnergy = 0.;
+  float time = 0.;
+  float eMax = 0.;
+  uint32_t iFirst = clu.getFirstCluEl(), iLast = clu.getLastCluEl();
+  clu.setModule(Geometry::absIdToModule(cluel[iFirst].absId));
+  float eMin = o2::phos::PHOSSimParams::Instance().mDigitMinEnergy;
+  for (uint32_t i = iFirst; i < iLast; i++) {
+    float ei = cluel[i].energy;
+    if (ei < eMin) {
+      continue;
+    }
+    fullEnergy += ei;
+    if (ei > eMax) {
+      time = cluel[i].time;
+      eMax = ei;
+    }
+  }
+  clu.setEnergy(fullEnergy);
+  if (fullEnergy <= 0) {
+    return;
+  }
+  // Calculate time as time in the digit with maximal energy
+  clu.setTime(time);
+
+  float localPosX = 0., localPosZ = 0.;
+  float wtot = 0.;
+  float invE = 1. / fullEnergy;
+  for (uint32_t i = iFirst; i < iLast; i++) {
+    CluElement& ce = cluel[i];
+    if (ce.energy < eMin) {
+      continue;
+    }
+    float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(ce.energy * invE));
+    localPosX += ce.localX * w;
+    localPosZ += ce.localZ * w;
+    wtot += w;
+  }
+  if (wtot > 0) {
+    wtot = 1. / wtot;
+    localPosX *= wtot;
+    localPosZ *= wtot;
+  }
+  clu.setLocalPosition(localPosX, localPosZ);
+
+  //Dispersion, core energy
+  float coreRadius2 = o2::phos::PHOSSimParams::Instance().mCoreR;
+  coreRadius2 *= coreRadius2;
+  float coreE = 0.;
+  float dispersion = 0.;
+  float dxx = 0., dxz = 0., dzz = 0., lambdaLong = 0., lambdaShort = 0.;
+  for (uint32_t i = iFirst; i < iLast; i++) {
+    CluElement& ce = cluel[i];
+    float ei = ce.energy;
+    if (ei < eMin) {
+      continue;
+    }
+    float x = ce.localX - localPosX;
+    float z = ce.localZ - localPosZ;
+    float distance = x * x + z * z;
+
+    float w = std::max(float(0.), o2::phos::PHOSSimParams::Instance().mLogWeight + std::log(ei * invE));
+    dispersion += w * distance;
+    dxx += w * x * x;
+    dzz += w * z * z;
+    dxz += w * x * z;
+    if (distance < coreRadius2) {
+      coreE += ei;
+    }
+  }
+  clu.setCoreEnergy(coreE);
+  //dispersion
+  if (wtot > 0) {
+    wtot = 1. / wtot;
+    dispersion *= wtot;
+
+    dxx *= wtot;
+    dzz *= wtot;
+    dxz *= wtot;
+
+    lambdaLong = 0.5 * (dxx + dzz) + std::sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
+    if (lambdaLong > 0) {
+      lambdaLong = std::sqrt(lambdaLong);
+    }
+
+    lambdaShort = 0.5 * (dxx + dzz) - std::sqrt(0.25 * (dxx - dzz) * (dxx - dzz) + dxz * dxz);
+    if (lambdaShort > 0) { // To avoid exception if numerical errors lead to negative lambda.
+      lambdaShort = std::sqrt(lambdaShort);
+    } else {
+      lambdaShort = 0.;
+    }
+  }
+  if (dispersion >= 0) {
+    clu.setDispersion(std::sqrt(dispersion));
+  } else {
+    clu.setDispersion(0.);
+  }
+  clu.setElipsAxis(lambdaShort, lambdaLong);
+
+  //Test trigger
+  char relId[3];
+  Geometry::relPosToRelId(clu.module(), localPosX, localPosZ, relId);
+
+  for (auto& trd : mTrigger) {
+    char trurelid[3];
+    Geometry::truAbsToRelNumbering(trd.getAbsId(), trurelid);
+
+    int dx = relId[1] - trurelid[1];
+    int dz = relId[2] - trurelid[2];
+    if (dx > -2 && dx < 3 && dz > -2 && dz < 3) {
+      clu.setFiredTrigger(trd.isHighGain());
+      break;
+    }
+  }
+}
+//____________________________________________________________________________
+char Clusterer::getNumberOfLocalMax(Cluster& clu, std::vector<CluElement>& cluel)
+{
+  // Calculates the number of local maxima in the cluster using LocalMaxCut as the minimum
+  // energy difference between maximum and surrounding digits
+
+  float locMaxCut = o2::phos::PHOSSimParams::Instance().mLocalMaximumCut;
+  float cluSeed = o2::phos::PHOSSimParams::Instance().mClusteringThreshold;
+  mIsLocalMax.clear();
+  mIsLocalMax.reserve(clu.getMultiplicity());
+
+  uint32_t iFirst = clu.getFirstCluEl(), iLast = clu.getLastCluEl();
+  for (uint32_t i = iFirst; i < iLast; i++) {
+    mIsLocalMax.push_back(cluel[i].energy > cluSeed);
+  }
+
+  for (uint32_t i = iFirst; i < iLast - 1; i++) {
+    for (int j = i + 1; j < iLast; j++) {
+
+      if (Geometry::areNeighbours(cluel[i].absId, cluel[j].absId) == 1) {
+        if (cluel[i].energy > cluel[j].energy) {
+          mIsLocalMax[j - iFirst] = false;
+          // but may be digit too is not local max ?
+          if (cluel[j].energy > cluel[i].energy - locMaxCut) {
+            mIsLocalMax[i - iFirst] = false;
+          }
+        } else {
+          mIsLocalMax[i - iFirst] = false;
+          // but may be digitN is not local max too?
+          if (cluel[i].energy > cluel[j].energy - locMaxCut) {
+            mIsLocalMax[j - iFirst] = false;
+          }
+        }
+      } // if areneighbours
+    }   // digit j
+  }     // digit i
+
+  int iDigitN = 0;
+  for (int i = 0; i < mIsLocalMax.size(); i++) {
+    if (mIsLocalMax[i]) {
+      mMaxAt[iDigitN] = i + iFirst;
+      iDigitN++;
+      if (iDigitN >= NLOCMAX) { // Note that size of output arrays is limited:
+        LOG(ERROR) << "Too many local maxima, cluster multiplicity " << mIsLocalMax.size();
+        return iDigitN;
+      }
+    }
+  }
+
+  return iDigitN;
+}

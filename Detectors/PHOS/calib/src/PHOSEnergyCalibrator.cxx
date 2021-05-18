@@ -31,7 +31,7 @@ void PHOSEnergySlot::print() const
   LOG(INFO) << "Collected " << mDigits.size() << " CalibDigits";
 }
 
-void PHOSEnergySlot::fill(const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& cluTR)
+void PHOSEnergySlot::fill(const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR)
 {
   //Scan current list of clusters
   //Fill time, non-linearity and mgg histograms
@@ -52,24 +52,26 @@ void PHOSEnergySlot::fill(const std::vector<FullCluster>& clusters, const gsl::s
 
     mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
     for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
-      const FullCluster& clu = clusters[i];
+      const Cluster& clu = clusters[i];
 
-      fillTimeMassHisto(clu);
+      fillTimeMassHisto(clu, cluelements);
       // bool isGood = checkCluster(clu);
 
-      auto cluList = clu.getElementList();
-      for (auto ce = cluList->begin(); ce != cluList->end(); ce++) {
-        short absId = ce->absId;
+      uint32_t firstCE = clu.getFirstCluEl();
+      uint32_t lastCE = clu.getLastCluEl();
+      for (int idig = firstCE; idig < lastCE; idig++) {
+        const CluElement& ce = cluelements[idig];
+        short absId = ce.absId;
         //Fill cells from cluster for next iterations
-        short adcCounts = ce->energy / mCalibParams->getGain(absId);
+        short adcCounts = ce.energy / mCalibParams->getGain(absId);
         // Need to chale LG gain too to fit dynamic range
-        if (!ce->isHG) {
+        if (!ce.isHG) {
           adcCounts /= mCalibParams->getHGLGRatio(absId);
         }
         CalibDigit d = {0};
         d.mAddress = absId;
         d.mAdcAmp = adcCounts;
-        d.mHgLg = ce->isHG;
+        d.mHgLg = ce.isHG;
         d.mCluster = (i - firstCluInEvent) % kMaxCluInEvent;
         mDigits.push_back(d.mDataWord);
         if (i - firstCluInEvent > kMaxCluInEvent) {
@@ -86,22 +88,25 @@ void PHOSEnergySlot::clear()
   mDigits.clear();
 }
 
-void PHOSEnergySlot::fillTimeMassHisto(const FullCluster& clu)
+void PHOSEnergySlot::fillTimeMassHisto(const Cluster& clu, const gsl::span<const CluElement>& cluelements)
 {
   // Fill time distributions only for cells in cluster
-  auto cluList = clu.getElementList();
-  for (auto ce = cluList->begin(); ce != cluList->end(); ce++) {
-    short absId = ce->absId;
-    if (ce->isHG) {
-      if (ce->energy > mEminHGTime) {
-        mHistos.fill(ETCalibHistos::kTimeHGPerCell, absId, ce->time);
+  uint32_t firstCE = clu.getFirstCluEl();
+  uint32_t lastCE = clu.getLastCluEl();
+
+  for (int idig = firstCE; idig < lastCE; idig++) {
+    const CluElement& ce = cluelements[idig];
+    short absId = ce.absId;
+    if (ce.isHG) {
+      if (ce.energy > mEminHGTime) {
+        mHistos.fill(ETCalibHistos::kTimeHGPerCell, absId, ce.time);
       }
-      mHistos.fill(ETCalibHistos::kTimeHGSlewing, ce->time, ce->energy);
+      mHistos.fill(ETCalibHistos::kTimeHGSlewing, ce.time, ce.energy);
     } else {
-      if (ce->energy > mEminLGTime) {
-        mHistos.fill(ETCalibHistos::kTimeLGPerCell, absId, ce->time);
+      if (ce.energy > mEminLGTime) {
+        mHistos.fill(ETCalibHistos::kTimeLGPerCell, absId, ce.time);
       }
-      mHistos.fill(ETCalibHistos::kTimeLGSlewing, ce->time, ce->energy);
+      mHistos.fill(ETCalibHistos::kTimeLGSlewing, ce.time, ce.energy);
     }
   }
 
@@ -146,7 +151,7 @@ void PHOSEnergySlot::fillTimeMassHisto(const FullCluster& clu)
   }
 }
 
-bool PHOSEnergySlot::checkCluster(const FullCluster& clu)
+bool PHOSEnergySlot::checkCluster(const Cluster& clu)
 {
   //First check BadMap
   float posX, posZ;
@@ -216,7 +221,8 @@ Slot& PHOSEnergyCalibrator::emplaceNewSlot(bool front, uint64_t tstart, uint64_t
   return slot;
 }
 
-bool PHOSEnergyCalibrator::process(uint64_t tf, const std::vector<FullCluster>& clusters,
+bool PHOSEnergyCalibrator::process(uint64_t tf, const gsl::span<const Cluster>& clusters,
+                                   const gsl::span<const CluElement>& cluelements,
                                    const gsl::span<const TriggerRecord>& cluTR)
 {
   // process current TF
@@ -224,7 +230,7 @@ bool PHOSEnergyCalibrator::process(uint64_t tf, const std::vector<FullCluster>& 
 
   auto& slotTF = getSlotForTF(tf);
   slotTF.getContainer()->setRunStartTime(tf);
-  slotTF.getContainer()->fill(clusters, cluTR);
+  slotTF.getContainer()->fill(clusters, cluelements, cluTR);
   return true;
 }
 

@@ -18,10 +18,10 @@
 #include "Framework/WorkflowSpec.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
-#include "PHOSReconstruction/FullCluster.h"
+#include "DataFormatsPHOS/Cluster.h"
 #include "PHOSCalibWorkflow/RingBuffer.h"
-#include "PHOSCalib/CalibParams.h"
-#include "PHOSCalib/BadChannelMap.h"
+#include "DataFormatsPHOS/CalibParams.h"
+#include "DataFormatsPHOS/BadChannelMap.h"
 #include "PHOSBase/Geometry.h"
 #include "PHOSCalibWorkflow/ETCalibHistos.h"
 
@@ -68,9 +68,9 @@ class PHOSEnergySlot
   ~PHOSEnergySlot() = default;
 
   void print() const;
-  void fill(const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& cluTR);
-  void fill(const gsl::span<const FullCluster>& /*c*/){}; //not used
-  void merge(const PHOSEnergySlot* /*prev*/) {}           //not used
+  void fill(const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR);
+  void fill(const gsl::span<const Cluster>& /*c*/){}; //not used
+  void merge(const PHOSEnergySlot* /*prev*/) {}       //not used
   void clear();
 
   ETCalibHistos& getCollectedHistos() { return mHistos; }
@@ -87,8 +87,8 @@ class PHOSEnergySlot
   }
 
  private:
-  void fillTimeMassHisto(const FullCluster& clu);
-  bool checkCluster(const FullCluster& clu);
+  void fillTimeMassHisto(const Cluster& clu, const gsl::span<const CluElement>& cluelements);
+  bool checkCluster(const Cluster& clu);
 
   long mRunStartTime = 0;                    /// start time of the run (sec)
   std::unique_ptr<RingBuffer> mBuffer;       /// Buffer for current and previous events
@@ -108,7 +108,7 @@ class PHOSEnergySlot
   ClassDefNV(PHOSEnergySlot, 1);
 };
 
-class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::FullCluster, o2::phos::PHOSEnergySlot>
+class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cluster, o2::phos::PHOSEnergySlot>
 {
   using Slot = o2::calibration::TimeSlot<o2::phos::PHOSEnergySlot>;
 
@@ -119,7 +119,7 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
   void initOutput() final {}
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
-  bool process(uint64_t tf, const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& cluTR);
+  bool process(uint64_t tf, const gsl::span<const Cluster>& clusters, const gsl::span<const CluElement>& cluelements, const gsl::span<const TriggerRecord>& cluTR);
 
   void endOfStream();
 
