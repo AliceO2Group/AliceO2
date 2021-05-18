@@ -24,7 +24,7 @@ void compareTopologyDistributions(
   string output_file_name = "comparison.root")
 {
   if (dictionary_file_name.empty()) {
-    dictionary_file_name = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+    dictionary_file_name = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
   }
   o2::itsmft::TopologyDictionary dict;
   dict.readBinaryFile(dictionary_file_name.c_str());
