@@ -34,7 +34,7 @@ struct IterateMuons {
   }
 };
 
-// This uses the sparase matcher, so you also get BCs without a collision.
+// This uses the sparse matcher, so you also get BCs without a collision.
 // You need to check with m.has_collision()
 struct IterateMuonsSparse {
   void process(aod::MatchedBCCollisionsSparse::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
@@ -53,7 +53,7 @@ struct IterateMuonsSparse {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<IterateMuons>(cfgc, TaskName{"iterate-muons"}),
-    adaptAnalysisTask<IterateMuonsSparse>(cfgc, TaskName{"iterate-muons-sparse"}),
+    adaptAnalysisTask<IterateMuons>(cfgc),
+    adaptAnalysisTask<IterateMuonsSparse>(cfgc),
   };
 }

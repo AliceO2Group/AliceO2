@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \brief Filters are used to select specific rows of a table
+/// \brief Filters are used to select specific rows of a table.
 /// \author
 /// \since
 
@@ -42,7 +42,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 // production of table o2::aod::TPhi
-struct ATask {
+struct ProduceTPhi {
   Produces<aod::TPhi> tphi;
   void process(aod::Tracks const& tracks)
   {
@@ -53,7 +53,7 @@ struct ATask {
 };
 
 // Apply filters on Collisions, Tracks, and TPhi
-struct BTask {
+struct SpawnExtendedTables {
   // spawn the extended tables
   Spawns<aod::EPhi> ephi;
   Spawns<aod::MTracks> mtrk;
@@ -90,7 +90,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct ConsumeExtendedTables {
   void process(aod::Collision const&, soa::Join<aod::Tracks, aod::EPhi> const& tracks)
   {
     for (auto& track : tracks) {
@@ -100,7 +100,7 @@ struct CTask {
 };
 
 // tracks which are not tracklets
-struct DTask {
+struct FilterTracks {
   Filter notTracklet = aod::track::trackType != static_cast<uint8_t>(aod::track::TrackTypeEnum::Run2Tracklet);
   void process(aod::Collision const&, soa::Filtered<aod::MTracks> const& tracks)
   {
@@ -113,8 +113,9 @@ struct DTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"produce-normalizedphi"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"consume-normalizedphi"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"consume-spawned-ephi"}),
-    adaptAnalysisTask<DTask>(cfgc, TaskName{"consume-spawned-mtracks"})};
+    adaptAnalysisTask<ProduceTPhi>(cfgc),
+    adaptAnalysisTask<SpawnExtendedTables>(cfgc),
+    adaptAnalysisTask<ConsumeExtendedTables>(cfgc),
+    adaptAnalysisTask<FilterTracks>(cfgc),
+  };
 }

@@ -7,9 +7,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Filling tables with data froma root file
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 
 /// This example is to be used together with the aodwriter example.
 /// aodwriter creates three tables and writes them to two sets of files.
@@ -112,7 +116,7 @@ DECLARE_SOA_TABLE(Drei, "AOD", "DREI",
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct aodReader {
   void process(aod::Eins const& unos, aod::Zwei const& dues, aod::Drei const& tres)
   {
     int cnt = 0;
@@ -152,5 +156,6 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"process-unoduetre"})};
+    adaptAnalysisTask<aodReader>(cfgc),
+  };
 }

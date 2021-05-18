@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \brief Task performing basic track selection.
+/// \brief Example of histogram handling with OutputObj.
 /// \author
 /// \since
 
@@ -64,7 +64,8 @@ struct DummyTask3 {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<DummyTask>(cfgc, TaskName{"task1"}),
-    adaptAnalysisTask<DummyTask2>(cfgc, TaskName{"task2"}),
-    adaptAnalysisTask<DummyTask3>(cfgc, TaskName{"task3"})};
+    adaptAnalysisTask<DummyTask>(cfgc),
+    adaptAnalysisTask<DummyTask2>(cfgc),
+    adaptAnalysisTask<DummyTask3>(cfgc),
+  };
 }
