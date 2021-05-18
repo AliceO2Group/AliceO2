@@ -87,17 +87,17 @@ void DataDecoderTask2::run(framework::ProcessingContext& pc)
   //  decodeReadout(pc);
   // decodeRawFile(pc);
 
+  // Output the Digits/Triggers vector
+  orderTriggers();
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mTriggers);
+
   mExTimer.elapseMes("Decoding... Digits decoded = " + std::to_string(mTotalDigits) + " Frames received = " + std::to_string(mTotalFrames));
   return;
 }
 
 void DataDecoderTask2::endOfStream(framework::EndOfStreamContext& ec)
 {
-  // Output the Digits/Triggers vector
-  orderTriggers();
-  ec.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
-  ec.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mTriggers);
-
   // Records the statistics
   float avgEventSize;    //[o2::hmpid::Geo::MAXEQUIPMENTS];
   float avgBusyTime;     //[o2::hmpid::Geo::MAXEQUIPMENTS];
@@ -203,9 +203,6 @@ void DataDecoderTask2::decodeTF(framework::ProcessingContext& pc)
     mTriggers.push_back(o2::hmpid::Trigger(mDeco->mIntReco, pointerToTheFirst, mDeco->mDigits.size() - pointerToTheFirst));
     mTotalFrames++;
   }
-
-  //pc.outputs().snapshot(o2::framework::Output{"HMP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mDigits);
-  //pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS", 0, o2::framework::Lifetime::Timeframe}, mDeco->mIntReco);
 
   mTotalDigits += mDeco->mDigits.size();
   LOG(INFO) << "Writing   Digitis=" << mDeco->mDigits.size() << "/" << mTotalDigits << " Frame=" << mTotalFrames << " IntRec " << mDeco->mIntReco;
