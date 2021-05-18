@@ -38,15 +38,6 @@
 #include "GPUDefMacros.h"
 #include <vector>
 
-namespace o2::gpu::internal::param_nest_parent
-{
-struct configStandalone_t {
-  constexpr operator bool() const { return false; }
-  static constexpr bool GL = true;
-};
-static constexpr configStandalone_t configStandalone;
-} // namespace o2::gpu::internal::param_nest_parent
-
 #define BeginNamespace(name) \
   namespace name             \
   {

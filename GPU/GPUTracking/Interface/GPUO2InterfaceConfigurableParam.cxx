@@ -95,7 +95,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
 
   configProcessing = proc;
   configReconstruction = rec;
-  configDisplay = GL;
+  configDisplay = display;
   configQA = QA;
   if (global.continuousMaxTimeBin) {
     configGRP.continuousMaxTimeBin = global.continuousMaxTimeBin;

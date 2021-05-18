@@ -295,7 +295,7 @@ int SetupReconstruction()
   }
 
   chainTracking->mConfigQA = &configStandalone.QA;
-  chainTracking->mConfigDisplay = &configStandalone.GL;
+  chainTracking->mConfigDisplay = &configStandalone.display;
 
   GPUSettingsGRP grp = rec->GetGRPSettings();
   GPUSettingsRec recSet;
