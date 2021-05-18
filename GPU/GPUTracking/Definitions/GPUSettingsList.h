@@ -150,7 +150,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 #ifndef GPUCA_GPUCODE_DEVICE
-// Settings concerning the event display
+// Settings concerning the event display (fixed settings, cannot be changed)
 BeginSubConfig(GPUSettingsDisplay, GL, configStandalone, "GL", 'g', "OpenGL display settings")
 AddOption(showTPCTracksFromO2Format, bool, false, "", 0, "Use TPC tracks in O2 output format instead of GPU format")
 AddHelp("help", 'h')
