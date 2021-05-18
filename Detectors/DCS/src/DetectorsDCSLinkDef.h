@@ -9,10 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include <unordered_map>
-#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::dcs::DataPointValue> + ;
-#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, std::vector < o2::dcs::DataPointValue>> + ;
 
-#if defined(__CINT__) || defined(__CLING__)
+#if defined(__CLING__)
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
@@ -20,6 +18,8 @@
 #pragma link C++ struct o2::dcs::DataPointCompositeObject + ;
 #pragma link C++ class o2::dcs::DataPointIdentifier + ;
 #pragma link C++ struct o2::dcs::DataPointValue + ;
+#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, o2::dcs::DataPointValue> + ;
+#pragma link C++ class std::unordered_map < o2::dcs::DataPointIdentifier, std::vector < o2::dcs::DataPointValue>> + ;
 #pragma link C++ class std::vector < o2::dcs::DataPointCompositeObject > + ;
 #pragma link C++ class std::vector < o2::dcs::DataPointValue > + ;
 #pragma link C++ class std::vector < o2::dcs::DataPointIdentifier > + ;
