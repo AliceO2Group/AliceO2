@@ -34,7 +34,7 @@ BeginNamespace(gpu)
 
 // Settings concerning the reconstruction
 // There must be no bool in here, use char, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
-BeginSubConfig(GPUSettingsRec, rec, configStandalone, "REC", 0, "Reconstruction settings")
+BeginSubConfig(GPUSettingsRec, rec, configStandalone, "REC", 0, "Reconstruction settings", rec)
 AddOptionRTC(tpcRejectQPt, float, 1.f / 0.05f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt!!!)")
 AddOptionRTC(HitPickUpFactor, float, 2., "", 0, "multiplier for the chi2 window for hit pick up procedure")
 AddOptionRTC(NeighboursSearchArea, float, 3., "", 0, "area in cm for the search of neighbours")
@@ -92,7 +92,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 // Settings steering the processing once the device was selected
-BeginSubConfig(GPUSettingsProcessing, proc, configStandalone, "PROC", 0, "Processing settings")
+BeginSubConfig(GPUSettingsProcessing, proc, configStandalone, "PROC", 0, "Processing settings", proc)
 AddOption(platformNum, int, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (-1 = auto-select)")
 AddOption(deviceNum, int, -1, "gpuDevice", 0, "Set GPU device to use (-1: automatic, -2: for round-robin usage in timeslice-pipeline)")
 AddOption(gpuDeviceOnly, bool, false, "", 0, "Use only GPU as device (i.e. no CPU for OpenCL)")
@@ -200,7 +200,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 // Settings concerning the standalone QA
-BeginSubConfig(GPUSettingsQA, QA, configStandalone, "QA", 'q', "QA settings")
+BeginSubConfig(GPUSettingsQA, QA, configStandalone, "QA", 'q', "QA settings", QA)
 AddOptionVec(compareInputs, const char*, "QAinput", 0, "Read histogram from these input files and include them in the output plots")
 AddOptionVec(compareInputNames, const char*, "QAinputName", 0, "Legend entries for data from comparison histogram files")
 AddOption(name, std::string, "", "", 0, "Legend entry for new data from current processing")
@@ -334,7 +334,7 @@ EndConfig()
 
 //Settings for the O2 workfllow
 #if !defined(QCONFIG_PARSER_CXX) && (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE))
-BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings")
+BeginSubConfig(GPUSettingsO2, global, configStandalone, "O2", 0, "O2 workflow settings", global)
 AddOption(solenoidBz, float, -1e6f, "", 0, "solenoid field strength")
 AddOption(constBz, bool, false, "", 0, "force constant Bz for tests")
 AddOption(continuousMaxTimeBin, int, 0, "", 0, "maximum time bin of continuous data, 0 for triggered events, -1 for default of 23ms")
