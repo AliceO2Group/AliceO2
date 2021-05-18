@@ -270,8 +270,8 @@ class GPUDisplay
   const GPUParam* mParam;
   const GPUCalibObjectsConst* mCalib;
   const GPUSettingsDisplay& mConfig;
-  GPUSettingsDisplayLight mCfg;
-  GPUSettingsDisplayHeavy mCfg2;
+  GPUSettingsDisplayLight mCfgL;
+  GPUSettingsDisplayHeavy mCfgH;
   GPUQA* mQA;
   qSem mSemLockDisplay;
 
