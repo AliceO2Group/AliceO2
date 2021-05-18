@@ -121,10 +121,13 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
       terr *= hw2ErrITS; // error is supplied as a half-ROF duration, convert to \mus
     }
     // for all other tracks the time is in \mus with gaussian error
-    if (terr < maxTrackTimeError) {
-      tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
-      gids.emplace_back(_origID);
+    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
+      if (terr < maxTrackTimeError) {
+        tracks.emplace_back(TrackWithTimeStamp{_tr, {t0, terr}});
+        gids.emplace_back(_origID);
+      }
     }
+
     return true;
   };
 
