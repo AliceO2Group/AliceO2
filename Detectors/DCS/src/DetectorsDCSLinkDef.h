@@ -8,8 +8,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <unordered_map>
-
 #if defined(__CLING__)
 #pragma link off all globals;
 #pragma link off all classes;
