@@ -78,17 +78,17 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   // std::string mFitterVersion = "default"; ///< version of raw fitter to be used
 
   //Parameters used in clusterization
-  float mLogWeight = 4.5;             ///< Cutoff used in log. weight calculation
-  float mDigitMinEnergy = 0.010;      ///< Minimal energy of digits to be used in cluster (GeV)
-  float mClusteringThreshold = 0.050; ///< Minimal energy of digit to start clustering (GeV)
-  float mLocalMaximumCut = 0.015;     ///< Minimal height of local maximum over neighbours
-  bool mUnfoldClusters = false;       ///< To perform cluster unfolding
-  float mUnfogingEAccuracy = 1.e-3;   ///< Accuracy of energy calculation in unfoding prosedure (GeV)
-  float mUnfogingXZAccuracy = 1.e-1;  ///< Accuracy of position calculation in unfolding procedure (cm)
-  int mNMaxIterations = 10;           ///< Maximal number of iterations in unfolding procedure
-  int mNLMMax = 30;                   ///< Maximal number of local maxima in unfolding
-  float mCoreR = 3.5;                 ///< Radius to caluclate core energy
-  float mSortingDelta = 1.;           ///< used in sorting clusters
+  float mLogWeight = 4.5;              ///< Cutoff used in log. weight calculation
+  float mDigitMinEnergy = 0.010;       ///< Minimal energy of digits to be used in cluster (GeV)
+  float mClusteringThreshold = 0.050;  ///< Minimal energy of digit to start clustering (GeV)
+  float mLocalMaximumCut = 0.015;      ///< Minimal height of local maximum over neighbours
+  bool mUnfoldClusters = true;         ///< To perform cluster unfolding
+  float mUnfogingEAccuracy = 1.e-2;    ///< Accuracy of energy calculation in unfoding prosedure (GeV)
+  float mUnfogingXZAccuracy = 1.e-1;   ///< Accuracy of position calculation in unfolding procedure (cm)
+  float mUnfogingChi2Accuracy = 1.e-2; ///< critical chi2/NDF
+  int mNMaxIterations = 10;            ///< Maximal number of iterations in unfolding procedure
+  float mCoreR = 3.5;                  ///< Radius to caluclate core energy
+  float mSortingDelta = 1.;            ///< used in sorting clusters
 
   O2ParamDef(PHOSSimParams, "PHOSSimParams");
 };

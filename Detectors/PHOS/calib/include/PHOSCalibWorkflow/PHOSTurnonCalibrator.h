@@ -17,10 +17,10 @@
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
+#include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
-#include "PHOSReconstruction/FullCluster.h"
-#include "PHOSCalib/TriggerMap.h"
+#include "DataFormatsPHOS/TriggerMap.h"
 #include "PHOSCalibWorkflow/TurnOnHistos.h"
 
 using namespace o2::framework;
@@ -42,9 +42,9 @@ class PHOSTurnonSlot
 
   void print() const;
   void fill(const gsl::span<const Cell>& cells, const gsl::span<const TriggerRecord>& trs,
-            const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& cluTR);
-  void fill(const gsl::span<const FullCluster>& /*cells*/){}; //not used
-  void merge(const PHOSTurnonSlot* /*prev*/) {}               //not used
+            const gsl::span<const Cluster>& clusters, const gsl::span<const TriggerRecord>& cluTR);
+  void fill(const gsl::span<const Cluster>& /*cells*/){}; //not used
+  void merge(const PHOSTurnonSlot* /*prev*/) {}           //not used
   void clear();
 
   TurnOnHistos& getCollectedHistos() { return *mTurnOnHistos; }
@@ -53,7 +53,7 @@ class PHOSTurnonSlot
 
  private:
   void scanClusters(const gsl::span<const Cell>& cells, const TriggerRecord& celltr,
-                    const std::vector<FullCluster>& clusters, const TriggerRecord& clutr);
+                    const gsl::span<const Cluster>& clusters, const TriggerRecord& clutr);
 
  private:
   bool mUseCCDB = false;
@@ -67,7 +67,7 @@ class PHOSTurnonSlot
 };
 
 //==========================================================================================
-class PHOSTurnonCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::FullCluster, o2::phos::PHOSTurnonSlot>
+class PHOSTurnonCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cluster, o2::phos::PHOSTurnonSlot>
 {
   using Slot = o2::calibration::TimeSlot<o2::phos::PHOSTurnonSlot>;
 
@@ -79,7 +79,7 @@ class PHOSTurnonCalibrator final : public o2::calibration::TimeSlotCalibration<o
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
   bool process(uint64_t tf, const gsl::span<const Cell>& cells, const gsl::span<const TriggerRecord>& trs,
-               const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& cluTR);
+               const gsl::span<const Cluster>& clusters, const gsl::span<const TriggerRecord>& cluTR);
 
   TriggerMap& getCalibration() { return *mTriggerMap; }
   void endOfStream();

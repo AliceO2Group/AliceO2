@@ -25,7 +25,7 @@
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DataFormatsPHOS/Digit.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
-#include "PHOSCalib/CalibParams.h"
+#include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSBase/RCUTrailer.h"
 
 namespace o2

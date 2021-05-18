@@ -100,7 +100,7 @@ void PHOSCalibCollector::scanClusters(o2::framework::ProcessingContext& pc)
 
   //  auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime; // is this the timestamp of the current TF?
 
-  auto clusters = pc.inputs().get<std::vector<o2::phos::FullCluster>>("clusters");
+  auto clusters = pc.inputs().get<gsl::span<o2::phos::Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<o2::phos::TriggerRecord>>("cluTR");
   LOG(INFO) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
 
@@ -120,7 +120,7 @@ void PHOSCalibCollector::scanClusters(o2::framework::ProcessingContext& pc)
 
     mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
     for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
-      const FullCluster& clu = clusters[i];
+      const Cluster& clu = clusters[i];
 
       fillTimeMassHisto(clu);
       bool isGood = checkCluster(clu);
@@ -173,7 +173,7 @@ void PHOSCalibCollector::readDigits()
 
     std::vector<uint32_t>::const_iterator digIt = digits->cbegin();
     std::vector<uint32_t>::const_iterator digEnd = digits->cend();
-    FullCluster clu;
+    Cluster clu;
     bool isNextNewEvent;
     mBuffer->startNewEvent(); // mark stored clusters to be used for Mixing
     while (nextCluster(digIt, digEnd, clu, isNextNewEvent)) {
@@ -189,7 +189,7 @@ void PHOSCalibCollector::readDigits()
 }
 
 bool PHOSCalibCollector::nextCluster(std::vector<uint32_t>::const_iterator digitIt, std::vector<uint32_t>::const_iterator digitEnd,
-                                     FullCluster& clu, bool& isNextNewEvent)
+                                     Cluster& clu, bool& isNextNewEvent)
 {
   //Scan digits belonging to cluster
   // return true if cluster read
@@ -253,26 +253,26 @@ void PHOSCalibCollector::writeOutputs()
   fHistoOut.Close();
 }
 
-void PHOSCalibCollector::fillTimeMassHisto(const FullCluster& clu)
+void PHOSCalibCollector::fillTimeMassHisto(const Cluster& clu)
 {
-  // Fill time distributions only for cells in cluster
-  if (mMode == 0) {
-    auto cluList = clu.getElementList();
-    for (auto ce = cluList->begin(); ce != cluList->end(); ce++) {
-      short absId = ce->absId;
-      if (ce->isHG) {
-        if (ce->energy > mEminHGTime) {
-          mHistos[kTimeHGPerCell].Fill(absId, ce->time);
-        }
-        mHistos[kTimeHGSlewing].Fill(ce->time, ce->energy);
-      } else {
-        if (ce->energy > mEminLGTime) {
-          mHistos[kTimeLGPerCell].Fill(absId, ce->time);
-        }
-        mHistos[kTimeLGSlewing].Fill(ce->time, ce->energy);
-      }
-    }
-  }
+  // // Fill time distributions only for cells in cluster
+  // if (mMode == 0) {
+  //   auto cluList = clu.getElementList();
+  //   for (auto ce = cluList->begin(); ce != cluList->end(); ce++) {
+  //     short absId = ce->absId;
+  //     if (ce->isHG) {
+  //       if (ce->energy > mEminHGTime) {
+  //         mHistos[kTimeHGPerCell].Fill(absId, ce->time);
+  //       }
+  //       mHistos[kTimeHGSlewing].Fill(ce->time, ce->energy);
+  //     } else {
+  //       if (ce->energy > mEminLGTime) {
+  //         mHistos[kTimeLGPerCell].Fill(absId, ce->time);
+  //       }
+  //       mHistos[kTimeLGSlewing].Fill(ce->time, ce->energy);
+  //     }
+  //   }
+  // }
 
   //Real and Mixed inv mass distributions
   // prepare TLorentsVector
@@ -314,7 +314,7 @@ void PHOSCalibCollector::fillTimeMassHisto(const FullCluster& clu)
   }
 }
 
-bool PHOSCalibCollector::checkCluster(const FullCluster& clu)
+bool PHOSCalibCollector::checkCluster(const Cluster& clu)
 {
   //First check BadMap
   float posX, posZ;

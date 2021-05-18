@@ -32,7 +32,7 @@ void PHOSRunbyrunCalibDevice::init(o2::framework::InitContext& ic)
 void PHOSRunbyrunCalibDevice::run(o2::framework::ProcessingContext& pc)
 {
   auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
-  auto clusters = pc.inputs().get<std::vector<FullCluster>>("clusters");
+  auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("cluTR");
   LOG(INFO) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
   mCalibrator->process(tfcounter, clusters, cluTR);

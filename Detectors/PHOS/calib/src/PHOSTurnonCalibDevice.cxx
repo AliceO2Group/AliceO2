@@ -40,7 +40,7 @@ void PHOSTurnonCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("clusters").header)->startTime; // is this the timestamp of the current TF?
   auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
   auto cellTR = pc.inputs().get<gsl::span<TriggerRecord>>("cellTriggerRecords");
-  auto clusters = pc.inputs().get<std::vector<FullCluster>>("clusters");
+  auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("clusterTriggerRecords");
 
   LOG(INFO) << "[PHOSTurnonCalibDevice - run]  Received " << cells.size() << " cells and " << clusters.size() << " clusters, running calibration";

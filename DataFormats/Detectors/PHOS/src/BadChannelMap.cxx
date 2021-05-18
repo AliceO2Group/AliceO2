@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "PHOSBase/Geometry.h"
-#include "PHOSCalib/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelMap.h"
 
 #include "FairLogger.h"
 

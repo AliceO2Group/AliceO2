@@ -56,7 +56,7 @@ void PHOSTurnonSlot::print() const
   }
 }
 void PHOSTurnonSlot::fill(const gsl::span<const Cell>& cells, const gsl::span<const TriggerRecord>& cellTR,
-                          const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& cluTR)
+                          const gsl::span<const Cluster>& clusters, const gsl::span<const TriggerRecord>& cluTR)
 {
 
   auto ctr = cellTR.begin();
@@ -82,7 +82,7 @@ void PHOSTurnonSlot::clear()
   mTurnOnHistos.reset();
 }
 void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const TriggerRecord& celltr,
-                                  const std::vector<FullCluster>& clusters, const TriggerRecord& clutr)
+                                  const gsl::span<const Cluster>& clusters, const TriggerRecord& clutr)
 {
   //First fill map of expected tiles from TRU cells
   mNoisyTiles.reset();
@@ -104,7 +104,7 @@ void PHOSTurnonSlot::scanClusters(const gsl::span<const Cell>& cells, const Trig
   int firstCluInEvent = clutr.getFirstEntry();
   int lastCluInEvent = firstCluInEvent + clutr.getNumberOfObjects();
   for (int i = firstCluInEvent; i < lastCluInEvent; i++) {
-    const FullCluster& clu = clusters[i];
+    const Cluster& clu = clusters[i];
     mod = clu.module();
     clu.getLocalPosition(x, z);
     short truId = Geometry::relPosToTruId(mod, x, z, ddl);
@@ -149,7 +149,7 @@ PHOSTurnonCalibrator::Slot& PHOSTurnonCalibrator::emplaceNewSlot(bool front, uin
 }
 
 bool PHOSTurnonCalibrator::process(uint64_t tf, const gsl::span<const Cell>& cells, const gsl::span<const TriggerRecord>& cellTR,
-                                   const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& cluTR)
+                                   const gsl::span<const Cluster>& clusters, const gsl::span<const TriggerRecord>& cluTR)
 {
   // process current TF
   auto& slotTF = getSlotForTF(tf);

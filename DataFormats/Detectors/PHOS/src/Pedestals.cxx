@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "PHOSCalib/Pedestals.h"
+#include "DataFormatsPHOS/Pedestals.h"
 #include "FairLogger.h"
 #include <TH1.h>
 

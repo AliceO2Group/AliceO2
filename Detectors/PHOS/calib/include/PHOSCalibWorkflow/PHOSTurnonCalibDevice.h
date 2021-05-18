@@ -19,7 +19,7 @@
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/Cluster.h"
-#include "PHOSCalib/TriggerMap.h"
+#include "DataFormatsPHOS/TriggerMap.h"
 #include "PHOSCalibWorkflow/PHOSTurnonCalibrator.h"
 
 using namespace o2::framework;

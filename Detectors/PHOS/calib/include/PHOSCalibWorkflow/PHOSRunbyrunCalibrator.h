@@ -16,13 +16,13 @@
 
 #include "Framework/Task.h"
 #include "Framework/ProcessingContext.h"
-#include "PHOSCalib/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelMap.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include <boost/histogram.hpp>
 #include "TH1.h"
 #include "PHOSCalibWorkflow/RingBuffer.h"
-#include "PHOSReconstruction/FullCluster.h"
-#include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/Cluster.h"
 #include "PHOSBase/Geometry.h"
 
 using namespace o2::framework;
@@ -43,8 +43,8 @@ class PHOSRunbyrunSlot
   ~PHOSRunbyrunSlot() = default;
 
   void print() const;
-  void fill(const std::vector<FullCluster>& clusters, const gsl::span<const TriggerRecord>& trs);
-  void fill(const gsl::span<const FullCluster>& /*clusters*/){}; //not used
+  void fill(const gsl::span<const Cluster>& clusters, const gsl::span<const TriggerRecord>& trs);
+  void fill(const gsl::span<const Cluster>& /*clusters*/){}; //not used
   void merge(const PHOSRunbyrunSlot* prev);
   void clear();
 
@@ -53,7 +53,7 @@ class PHOSRunbyrunSlot
   void setRunStartTime(long tf) { mRunStartTime = tf; }
 
  private:
-  bool checkCluster(const FullCluster& clu);
+  bool checkCluster(const Cluster& clu);
 
  private:
   bool mUseCCDB = false;
@@ -68,7 +68,7 @@ class PHOSRunbyrunSlot
 };
 
 //==========================================================================================
-class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::FullCluster, o2::phos::PHOSRunbyrunSlot>
+class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cluster, o2::phos::PHOSRunbyrunSlot>
 {
   using Slot = o2::calibration::TimeSlot<o2::phos::PHOSRunbyrunSlot>;
 
@@ -80,7 +80,7 @@ class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, uint64_t tstart, uint64_t tend) final;
-  bool process(uint64_t tf, const std::vector<FullCluster>& clu, const gsl::span<const TriggerRecord>& trs);
+  bool process(uint64_t tf, const gsl::span<const Cluster>& clu, const gsl::span<const TriggerRecord>& trs);
 
   std::array<float, 8> getCalibration() { return mRunByRun; }
   void endOfStream();
@@ -92,7 +92,7 @@ class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration
 
  private:
   void scanClusters(o2::framework::ProcessingContext& pc);
-  bool checkCluster(const FullCluster& clu);
+  bool checkCluster(const Cluster& clu);
 
  private:
   bool mUseCCDB = false;
