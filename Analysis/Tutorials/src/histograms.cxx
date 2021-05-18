@@ -59,7 +59,7 @@ struct CTask {
   // incomplete definition of an OutputObj
   OutputObj<TH1F> trZ{"trZ", OutputObjHandlingPolicy::QAObject};
 
-  Filter ptfilter = aod::track::pt > 0.5;
+  Filter ptfilter = aod::track::pt > 0.5f;
 
   void init(InitContext const&)
   {
