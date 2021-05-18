@@ -25,6 +25,8 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::GlobalTrackingWorkflowHelpers
                                      O2::ITStracking
                                      O2::ITSWorkflow
+                                     O2::MFTTracking
+                                     O2::MFTWorkflow
                                      O2::TPCWorkflow
                                      O2::FT0Workflow
                                      O2::ITSMFTWorkflow
@@ -45,7 +47,7 @@ o2_add_executable(vertexing-workflow
                   COMPONENT_NAME primary
                   SOURCES src/primary-vertexing-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflow O2::TOFWorkflowUtils)
-                
+
 o2_add_executable(vertex-reader-workflow
                   COMPONENT_NAME primary
                   SOURCES src/primary-vertex-reader-workflow.cxx
