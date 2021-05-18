@@ -54,6 +54,7 @@ class FITDataReaderDPLSpec : public Task
         if (dh->payloadSize == 0) {
           LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+          mRawReader.makeSnapshot(pc); // send empty output
           return;
         }
       }
