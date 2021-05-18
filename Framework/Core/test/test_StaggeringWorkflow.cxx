@@ -62,7 +62,7 @@ using namespace o2::framework;
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 constexpr size_t nPipelines = 3;
