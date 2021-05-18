@@ -13,7 +13,7 @@ o2_add_library(
   SOURCES centralEventFilterProcessor.cxx
   PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore)
 
-o2_add_executable(cefp
+o2_add_executable(central-event-filter-processor
   SOURCES cefp.cxx
   COMPONENT_NAME Analysis
   PUBLIC_LINK_LIBRARIES O2::EventFiltering)
