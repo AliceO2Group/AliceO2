@@ -37,6 +37,7 @@
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 using namespace o2::framework;
@@ -83,6 +84,61 @@ void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& f
     if (maxGlBC < bc) {
       maxGlBC = bc;
     }
+  }
+}
+
+void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
+                                        gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
+                                        const std::vector<o2::InteractionTimeRecord>& mcRecords,
+                                        std::map<uint64_t, int>& bcsMap)
+{
+  // collecting non-empty BCs and enumerating them
+  for (auto& rec : mcRecords) {
+    auto time = rec.getTimeNS();
+    uint64_t globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
+    uint64_t bc = globalBC - minGlBC;
+    if (bc < 0) {
+      bc = 0;
+    } else if (bc > maxGlBC - minGlBC) {
+      bc = maxGlBC - minGlBC;
+    }
+    if (bcsMap.find(bc) == bcsMap.end()) {
+      bcsMap[bc] = 1;
+    }
+  }
+
+  for (auto& ft0RecPoint : ft0RecPoints) {
+    uint64_t globalBC = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
+    uint64_t bc = globalBC - minGlBC;
+    if (bc < 0) {
+      bc = 0;
+    } else if (bc > maxGlBC - minGlBC) {
+      bc = maxGlBC - minGlBC;
+    }
+    if (bcsMap.find(bc) == bcsMap.end()) {
+      bcsMap[bc] = 1;
+    }
+  }
+
+  for (auto& vertex : primVertices) {
+    auto& timeStamp = vertex.getTimeStamp();
+    Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
+    uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+    tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
+    uint64_t bc = globalBC - minGlBC;
+    if (bc < 0) {
+      bc = 0;
+    } else if (bc > maxGlBC - minGlBC) {
+      bc = maxGlBC - minGlBC;
+    }
+    if (bcsMap.find(bc) == bcsMap.end()) {
+      bcsMap[bc] = 1;
+    }
+  }
+  int bcID = 0;
+  for (auto& item : bcsMap) {
+    item.second = bcID;
+    bcID++;
   }
 }
 
@@ -494,11 +550,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(DEBUG) << "FOUND " << mcRecords.size() << " records";
   LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
 
-  uint64_t globalBC;
-  uint64_t BCid;
-  std::vector<uint64_t> BCIDs;
-
+  std::map<uint64_t, int> bcsMap;
   findMinMaxBc(ft0RecPoints, primVertices, mcRecords);
+  collectBCs(ft0RecPoints, primVertices, mcRecords, bcsMap);
 
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
@@ -579,14 +633,20 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   int index = 0;
   for (auto& rec : mcRecords) {
     auto time = rec.getTimeNS();
-    globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
-    BCid = globalBC - minGlBC;
-    if (BCid < 0) {
-      BCid = 0;
-    } else if (BCid > maxGlBC - minGlBC) {
-      BCid = maxGlBC - minGlBC;
+    uint64_t globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
+    uint64_t bc = globalBC - minGlBC;
+    if (bc < 0) {
+      bc = 0;
+    } else if (bc > maxGlBC - minGlBC) {
+      bc = maxGlBC - minGlBC;
     }
-    BCIDs.push_back(BCid);
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << bc << ", index = " << index;
+    }
     auto& colParts = mcParts[index];
     for (auto colPart : colParts) {
       auto eventID = colPart.entryID;
@@ -596,7 +656,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       short generatorID = sourceID;
       auto& header = mcReader.getMCEventHeader(sourceID, eventID);
       mcCollisionsCursor(0,
-                         BCid,
+                         bcID,
                          generatorID,
                          truncateFloatFraction(header.GetX(), mCollisionPosition),
                          truncateFloatFraction(header.GetY(), mCollisionPosition),
@@ -625,16 +685,22 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (int i = 0; i < 112; i++) {
       aAmplitudesC[i] = truncateFloatFraction(vAmplitudes[i + 96], mT0Amplitude);
     }
-    globalBC = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
-    BCid = globalBC - minGlBC;
-    if (BCid < 0) {
-      BCid = 0;
-    } else if (BCid > maxGlBC - minGlBC) {
-      BCid = maxGlBC - minGlBC;
+    uint64_t globalBC = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
+    uint64_t bc = globalBC - minGlBC;
+    if (bc < 0) {
+      bc = 0;
+    } else if (bc > maxGlBC - minGlBC) {
+      bc = maxGlBC - minGlBC;
     }
-    BCIDs.push_back(BCid);
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
+    }
     ft0Cursor(0,
-              BCid,
+              bcID,
               aAmplitudesA,
               aAmplitudesC,
               truncateFloatFraction(ft0RecPoint.getCollisionTimeA() / 1E3, mT0Time), // ps to ns
@@ -661,21 +727,27 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
     Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+    uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
     LOG(DEBUG) << globalBC << " " << tsTimeStamp;
     // collision timestamp in ns wrt the beginning of collision BC
     tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
-    BCid = globalBC - minGlBC;
-    if (BCid < 0) {
-      BCid = 0;
-    } else if (BCid > maxGlBC - minGlBC) {
-      BCid = maxGlBC - minGlBC;
+    uint64_t bc = globalBC - minGlBC;
+    if (bc < 0) {
+      bc = 0;
+    } else if (bc > maxGlBC - minGlBC) {
+      bc = maxGlBC - minGlBC;
     }
-    BCIDs.push_back(BCid);
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a collision; BC = " << bc << ", collisionID = " << collisionID;
+    }
     // TODO: get real collision time mask
     int collisionTimeMask = 0;
     collisionsCursor(0,
-                     BCid,
+                     bcID,
                      truncateFloatFraction(vertex.getX(), mCollisionPosition),
                      truncateFloatFraction(vertex.getY(), mCollisionPosition),
                      truncateFloatFraction(vertex.getZ(), mCollisionPosition),
@@ -721,20 +793,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // filling BC table
   // TODO: get real triggerMask
   uint64_t triggerMask = 1;
-  std::sort(BCIDs.begin(), BCIDs.end());
-  uint64_t prevBCid = BCIDs.back();
-  for (auto& id : BCIDs) {
-    if (id == prevBCid) {
-      continue;
-    }
+  for (auto& item : bcsMap) {
+    uint64_t bc = item.first;
     bcCursor(0,
              runNumber,
-             startBCofTF + minGlBC + id,
+             startBCofTF + minGlBC + bc,
              triggerMask);
-    prevBCid = id;
   }
 
-  BCIDs.clear();
+  bcsMap.clear();
 
   // filling mc particles table
   TripletsMap_t toStore;
