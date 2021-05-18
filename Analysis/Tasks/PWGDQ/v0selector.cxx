@@ -44,14 +44,11 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 using std::array;
 
-//using FullTracksExt = soa::Join<aod::Tracks, aod::TracksExtended,
 using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtra, aod::TracksExtended,
-                                aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                aod::pidRespTPCKa, aod::pidRespTPCPr,
-                                aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                                aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFbeta>;
-
-//using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
+                                aod::pidTPCFullEl, aod::pidTPCFullPi,
+                                aod::pidTPCFullKa, aod::pidTPCFullPr,
+                                aod::pidTOFFullEl, aod::pidTOFFullPi,
+                                aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta>;
 
 namespace o2::aod
 {
@@ -71,14 +68,25 @@ DECLARE_SOA_TABLE(ReducedV0s, "AOD", "REDUCEDV0", //!
 
 // iterators
 using ReducedV0 = ReducedV0s::iterator;
+
+//namespace v0bits
+//{
+//DECLARE_SOA_COLUMN(bit, bit, unsigned int);            //!
+//} //namespace v0bit
+//
+//// basic track information
+//DECLARE_SOA_TABLE(V0Bits, "AOD", "V0BITS", //!
+//                  o2::soa::Index<>, v0bits::bit);
+//
+//// iterators
+//using V0Bit = V0Bits::iterator;
+
 } // namespace o2::aod
 
 struct v0selector {
 
-  //void init(o2::framework::InitContext&)
-  //{
-  //}
   Produces<aod::ReducedV0s> v0Gamma;
+  //Produces<aod::V0Bits> v0bits;
 
   enum { // Reconstructed V0
     kUndef = -1,
@@ -107,109 +115,62 @@ struct v0selector {
 
   float phivv0(const array<float, 3>& ppos, const array<float, 3>& pneg, const int cpos, const int cneg, const float bz)
   {
-    // implementation taken from AliDielectronPair.cxx
-    float px1 = -9999., py1 = -9999., pz1 = -9999.;
-    float px2 = -9999., py2 = -9999., pz2 = -9999.;
+    //momentum of e+ and e- in (ax,ay,az) axis. Note that az=0 by definition.
+    float pxep = 0, pyep = 0, pzep = 0;
+    float pxem = 0, pyem = 0, pzem = 0;
 
     if (cpos * cneg > 0.) { // Like Sign
-      if (bz < 0) {         // inverted behaviour
-        if (cpos > 0) {
-          px1 = ppos[0];
-          py1 = ppos[1];
-          pz1 = ppos[2];
-          px2 = pneg[0];
-          py2 = pneg[1];
-          pz2 = pneg[2];
-        } else {
-          px1 = pneg[0];
-          py1 = pneg[1];
-          pz1 = pneg[2];
-          px2 = ppos[0];
-          py2 = ppos[1];
-          pz2 = ppos[2];
-        }
+      if (bz * cpos < 0) {
+        pxep = ppos[0];
+        pyep = ppos[1];
+        pzep = ppos[2];
+        pxem = pneg[0];
+        pyem = pneg[1];
+        pzem = pneg[2];
       } else {
-        if (cpos > 0) {
-          px1 = pneg[0];
-          py1 = pneg[1];
-          pz1 = pneg[2];
-          px2 = ppos[0];
-          py2 = ppos[1];
-          pz2 = ppos[2];
-        } else {
-          px1 = ppos[0];
-          py1 = ppos[1];
-          pz1 = ppos[2];
-          px2 = pneg[0];
-          py2 = pneg[1];
-          pz2 = pneg[2];
-        }
+        pxep = pneg[0];
+        pyep = pneg[1];
+        pzep = pneg[2];
+        pxem = ppos[0];
+        pyem = ppos[1];
+        pzem = ppos[2];
       }
-    } else {        // Unlike Sign
-      if (bz > 0) { // regular behaviour
-        if (cpos > 0) {
-          px1 = ppos[0];
-          py1 = ppos[1];
-          pz1 = ppos[2];
-          px2 = pneg[0];
-          py2 = pneg[1];
-          pz2 = pneg[2];
-        } else {
-          px1 = pneg[0];
-          py1 = pneg[1];
-          pz1 = pneg[2];
-          px2 = ppos[0];
-          py2 = ppos[1];
-          pz2 = ppos[2];
-        }
+
+    } else { // Unlike Sign
+      if (bz * cpos > 0) {
+        pxep = ppos[0];
+        pyep = ppos[1];
+        pzep = ppos[2];
+        pxem = pneg[0];
+        pyem = pneg[1];
+        pzem = pneg[2];
       } else {
-        if (cpos > 0) {
-          px1 = pneg[0];
-          py1 = pneg[1];
-          pz1 = pneg[2];
-          px2 = ppos[0];
-          py2 = ppos[1];
-          pz2 = ppos[2];
-        } else {
-          px1 = ppos[0];
-          py1 = ppos[1];
-          pz1 = ppos[2];
-          px2 = pneg[0];
-          py2 = pneg[1];
-          pz2 = pneg[2];
-        }
+        pxep = pneg[0];
+        pyep = pneg[1];
+        pzep = pneg[2];
+        pxem = ppos[0];
+        pyem = ppos[1];
+        pzem = ppos[2];
       }
     }
 
-    float px = px1 + px2;
-    float py = py1 + py2;
-    float pz = pz1 + pz2;
-    float dppair = TMath::Sqrt(px * px + py * py + pz * pz);
+    float px = ppos[0] + pneg[0];
+    float py = ppos[1] + pneg[1];
+    float pz = ppos[2] + pneg[2];
 
     //unit vector of (pep+pem)
-    float pl = dppair;
+    float pl = RecoDecay::P(array{px, py, pz});
     float ux = px / pl;
     float uy = py / pl;
     float uz = pz / pl;
-    float ax = uy / TMath::Sqrt(ux * ux + uy * uy);
-    float ay = -ux / TMath::Sqrt(ux * ux + uy * uy);
-
-    //momentum of e+ and e- in (ax,ay,az) axis. Note that az=0 by definition.
-    //Double_t ptep = iep->Px()*ax + iep->Py()*ay;
-    //Double_t ptem = iem->Px()*ax + iem->Py()*ay;
-
-    float pxep = px1;
-    float pyep = py1;
-    float pzep = pz1;
-    float pxem = px2;
-    float pyem = py2;
-    float pzem = pz2;
+    float ax = uy / RecoDecay::sqrtSumOfSquares(ux, uy);
+    float ay = -ux / RecoDecay::sqrtSumOfSquares(ux, uy);
 
     //vector product of pep X pem
     float vpx = pyep * pzem - pzep * pyem;
     float vpy = pzep * pxem - pxep * pzem;
     float vpz = pxep * pyem - pyep * pxem;
-    float vp = TMath::Sqrt(vpx * vpx + vpy * vpy + vpz * vpz);
+    float vp = RecoDecay::P(array{vpx, vpy, vpz});
 
     //unit vector of pep X pem
     float vx = vpx / vp;
@@ -219,37 +180,20 @@ struct v0selector {
     //The third axis defined by vector product (ux,uy,uz)X(vx,vy,vz)
     float wx = uy * vz - uz * vy;
     float wy = uz * vx - ux * vz;
-    // by construction, (wx,wy,wz) must be a unit vector.
-    // measure angle between (wx,wy,wz) and (ax,ay,0). The angle between them
-    // should be small if the pair is conversion
-    // this function then returns values close to pi!
+    // by construction, (wx,wy,wz) must be a unit vector. Measure angle between (wx,wy,wz) and (ax,ay,0).
+    // The angle between them should be small if the pair is conversion. This function then returns values close to pi!
     float cosPhiV = wx * ax + wy * ay;
-    float phiv = TMath::ACos(cosPhiV);
-    return phiv;
+    return TMath::ACos(cosPhiV); //phiv in [0,pi]
   }
 
   float psipairv0(const array<float, 3>& ppos, const array<float, 3>& pneg, const float bz)
   {
-    //Following idea to use opening of colinear pairs in magnetic field from e.g. PHENIX
-    //to ID conversions.
-    float mp[3] = {0, 0, 0};
-    float mn[3] = {0, 0, 0};
-
-    mp[0] = ppos[0];
-    mp[1] = ppos[1];
-    mp[2] = ppos[2];
-
-    mn[0] = pneg[0];
-    mn[1] = pneg[1];
-    mn[2] = pneg[2];
-
-    float deltat = TMath::ATan(mn[2] / (TMath::Sqrt(mn[0] * mn[0] + mn[1] * mn[1]) + 1.e-13)) - TMath::ATan(mp[2] / (TMath::Sqrt(mp[0] * mp[0] + mp[1] * mp[1]) + 1.e-13)); //difference of angles of the two daughter tracks with z-axis
-    float pEle = TMath::Sqrt(mn[0] * mn[0] + mn[1] * mn[1] + mn[2] * mn[2]);                                                                                                //absolute momentum val
-    float pPos = TMath::Sqrt(mp[0] * mp[0] + mp[1] * mp[1] + mp[2] * mp[2]);                                                                                                //absolute momentum val
-    float scalarproduct = mp[0] * mn[0] + mp[1] * mn[1] + mp[2] * mn[2];                                                                                                    //scalar product of propagated posit
-    float chipair = TMath::ACos(scalarproduct / (pEle * pPos));                                                                                                             //Angle between propagated daughter tracks
-    float psipair = TMath::Abs(TMath::ASin(deltat / chipair));
-    return psipair;
+    //Following idea to use opening of colinear pairs in magnetic field from e.g. PHENIX to ID conversions.
+    float deltat = TMath::ATan(pneg[2] / (TMath::Sqrt(pneg[0] * pneg[0] + pneg[1] * pneg[1]))) - TMath::ATan(ppos[2] / (TMath::Sqrt(ppos[0] * ppos[0] + ppos[1] * ppos[1]))); //difference of angles of the two daughter tracks with z-axis
+    float pEle = RecoDecay::P(pneg);                                                                                                                                          //absolute momentum val
+    float pPos = RecoDecay::P(ppos);                                                                                                                                          //absolute momentum val
+    float chipair = TMath::ACos(RecoDecay::dotProd(ppos, pneg) / (pEle * pPos));                                                                                              //Angle between daughter tracks
+    return TMath::Abs(TMath::ASin(deltat / chipair));                                                                                                                         //psipair in [0,pi/2]
   }
 
   int processV0(const array<float, 3>& ppos, const array<float, 3>& pneg)
@@ -406,6 +350,9 @@ struct v0selector {
   Configurable<float> dcav0dau{"dcav0dau", 0.3, "DCA V0 Daughters"};
   Configurable<float> v0Rmin{"v0Rmin", 3.0, "v0Rmin"};
   Configurable<float> v0Rmax{"v0Rmax", 60.0, "v0Rmax"};
+  Configurable<float> dcamin{"dcamin", 0.0, "dcamin"};
+  Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
+  Configurable<float> maxchi2tpc{"maxchi2tpc", 4.0, "max chi2/NclsTPC"};
 
   void process(aod::Collision const& collision, aod::V0s const& V0s, FullTracksExt const& tracks)
   {
@@ -436,24 +383,24 @@ struct v0selector {
         continue;
       }
 
-      if (V0.posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < 70) {
+      if (V0.posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
-      if (V0.negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < 70) {
-        continue;
-      }
-
-      if (V0.posTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0) {
-        continue;
-      }
-      if (V0.negTrack_as<FullTracksExt>().tpcChi2NCl() > 4.0) {
+      if (V0.negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
         continue;
       }
 
-      if (fabs(V0.posTrack_as<FullTracksExt>().dcaXY()) < 0.0) {
+      if (V0.posTrack_as<FullTracksExt>().tpcChi2NCl() > maxchi2tpc) {
         continue;
       }
-      if (fabs(V0.negTrack_as<FullTracksExt>().dcaXY()) < 0.0) {
+      if (V0.negTrack_as<FullTracksExt>().tpcChi2NCl() > maxchi2tpc) {
+        continue;
+      }
+
+      if (fabs(V0.posTrack_as<FullTracksExt>().dcaXY()) < dcamin) {
+        continue;
+      }
+      if (fabs(V0.negTrack_as<FullTracksExt>().dcaXY()) < dcamin) {
         continue;
       }
 
@@ -501,7 +448,8 @@ struct v0selector {
 
       //Apply selections so a skimmed table is created only
       auto V0dca = fitter.getChi2AtPCACandidate(); //distance between 2 legs.
-      auto V0CosinePA = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
+      //auto V0CosinePA = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
+      auto V0CosinePA = RecoDecay::CPA(pVtx, array{pos[0], pos[1], pos[2]}, array{px, py, pz});
       auto V0radius = RecoDecay::sqrtSumOfSquares(pos[0], pos[1]);
 
       registry.fill(HIST("hV0Pt"), pt);
@@ -662,10 +610,6 @@ struct v0selector {
 };
 
 struct v0gammaQA {
-
-  //void init(o2::framework::InitContext&)
-  //{
-  //}
 
   //Basic checks
   HistogramRegistry registry{
