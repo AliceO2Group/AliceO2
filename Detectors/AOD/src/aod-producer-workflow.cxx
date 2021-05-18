@@ -42,13 +42,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   bool useMC = true;
 
-  GID::mask_t src = GID::getSourcesMask("ITS,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF");
+  GID::mask_t src = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF");
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy;
 
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::ft0::getDigitReaderSpec(useMC));
-  specs.emplace_back(o2::ft0::getReconstructionSpec(useMC));
   specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, src, src, useMC, srcClus);
