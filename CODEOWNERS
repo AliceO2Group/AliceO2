@@ -122,11 +122,7 @@
 #/Utilities/DataCompression
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger
-#/Utilities/O2Device
-#/Utilities/O2MessageMonitor
 #/Utilities/PCG
-#/Utilities/Publishers
 #/Utilities/Tools
-#/Utilities/aliceHLTwrapper
 #/Utilities/hough
 /Utilities/rANS               @shahor02 @MichaelLettrich
