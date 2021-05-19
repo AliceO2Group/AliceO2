@@ -14,8 +14,6 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "FT0Workflow/ReconstructionSpec.h"
-#include "FT0Workflow/DigitReaderSpec.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -27,8 +25,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable mc info"}},
-    {"vertexing-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
@@ -43,6 +40,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool useMC = true;
 
   GID::mask_t src = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF");
+  src |= GID::getSourceMask(GID::FT0);
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy;
 
   WorkflowSpec specs;

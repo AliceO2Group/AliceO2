@@ -494,8 +494,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   gsl::span<const GIndex> primVerGIs = recoData.getPrimaryVertexMatchedTracks();
   gsl::span<const o2::MCEventLabel> primVerLabels = recoData.getPrimaryVertexMCLabels();
 
-  gsl::span<const o2::ft0::RecPoints> ft0RecPoints = recoData.getFT0RecPoints();
   gsl::span<const o2::ft0::ChannelDataFloat> ft0ChData = recoData.getFT0ChannelsData();
+  gsl::span<const o2::ft0::RecPoints> ft0RecPoints = recoData.getFT0RecPoints();
 
   gsl::span<const o2::its::TrackITS> tracksITS = recoData.getITSTracks();
   gsl::span<const o2::mft::TrackMFT> tracksMFT = recoData.getMFTTracks();
@@ -509,6 +509,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(DEBUG) << "FOUND " << tracksMFT.size() << " MFT tracks";
   LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
   LOG(DEBUG) << "FOUND " << tracksITSTPC.size() << " ITSTPC tracks";
+  LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
@@ -937,6 +938,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src)
   bool useMC = true;
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->requestFT0RecPoints(false);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
