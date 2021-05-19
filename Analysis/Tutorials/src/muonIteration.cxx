@@ -22,16 +22,15 @@ using namespace o2::framework::expressions;
 // the relevant data even if you access the data itself through m.collision()
 // This uses the exclusive matcher, so you only get BCs which have a collision
 // If you want also BCs without collision, see the example IterateMuonsSparse below
-//FIXME: Exclusive indicies are not supported and are not supposed to be used for direct grouping at the moment
-//struct IterateMuonsBCexclusive {
-//  void process(aod::MatchedBCCollisionsExclusive::iterator const& m, aod::Collisions const&, aod::FwdTracks const& muons)
-//  {
-//    LOGF(INFO, "Vertex = %f has %d muons", m.collision().posZ(), muons.size());
-//    for (auto& muon : muons) {
-//      LOGF(info, "  pT = %.2f", muon.pt());
-//    }
-//  }
-//};
+struct IterateMuonsExclusive {
+  void process(aod::MatchedBCCollisionsExclusive::iterator const& m, aod::Collisions const&, aod::FwdTracks const& muons)
+  {
+    LOGF(INFO, "Vertex = %f has %d muons", m.collision().posZ(), muons.size());
+    for (auto& muon : muons) {
+      LOGF(info, "  pT = %.2f", muon.pt());
+    }
+  }
+};
 
 //Iterate on muon using the collision iterator in the dq-analysis style
 struct IterateMuons {
@@ -43,6 +42,7 @@ struct IterateMuons {
     }
   }
 };
+
 // This uses the sparase matcher, so you also get BCs without a collision.
 // You need to check with m.has_collision()
 struct IterateMuonsSparse {
@@ -62,7 +62,7 @@ struct IterateMuonsSparse {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    //adaptAnalysisTask<IterateMuonsBCexclusives>(cfgc, TaskName{"iterate-muons-bcexclu"}),
+    //adaptAnalysisTask<IterateMuonsExclusives>(cfgc, TaskName{"iterate-muons-bcexclu"}),
     adaptAnalysisTask<IterateMuons>(cfgc, TaskName{"iterate-muons"}),
     adaptAnalysisTask<IterateMuonsSparse>(cfgc, TaskName{"iterate-muons-sparse"}),
   };
