@@ -128,7 +128,6 @@ struct v0selector {
         vpy = pneg[2] * ppos[0] - pneg[0] * ppos[2];
         vpz = pneg[0] * ppos[1] - pneg[2] * ppos[0];
       }
-
     } else { // Unlike Sign
       if (bz * cpos > 0) {
         vpx = ppos[1] * pneg[2] - ppos[2] * pneg[1];
@@ -140,13 +139,13 @@ struct v0selector {
         vpz = pneg[0] * ppos[1] - pneg[2] * ppos[0];
       }
     }
-    
+
     float vp = RecoDecay::P(array{vpx, vpy, vpz});
     //unit vector of pep X pem
     float vx = vpx / vp;
     float vy = vpy / vp;
     float vz = vpz / vp;
-    
+
     float px = ppos[0] + pneg[0];
     float py = ppos[1] + pneg[1];
     float pz = ppos[2] + pneg[2];
@@ -158,7 +157,7 @@ struct v0selector {
     float uz = pz / pl;
     float ax = uy / RecoDecay::sqrtSumOfSquares(ux, uy);
     float ay = -ux / RecoDecay::sqrtSumOfSquares(ux, uy);
-   
+
     //The third axis defined by vector product (ux,uy,uz)X(vx,vy,vz)
     float wx = uy * vz - uz * vy;
     float wy = uz * vx - ux * vz;
