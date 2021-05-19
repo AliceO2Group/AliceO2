@@ -201,13 +201,15 @@ struct v0selector {
 
     // Check for Gamma candidates
     if (qt < cutQTG) {
-      if ((TMath::Abs(alpha) < cutAlphaG))
+      if ((TMath::Abs(alpha) < cutAlphaG)) {
         return kGamma;
+      }
     }
     if (qt < cutQTG2) {
       // additional region - should help high pT gammas
-      if ((TMath::Abs(alpha) > cutAlphaG2[0]) && (TMath::Abs(alpha) < cutAlphaG2[1]))
+      if ((TMath::Abs(alpha) > cutAlphaG2[0]) && (TMath::Abs(alpha) < cutAlphaG2[1])) {
         return kGamma;
+      }
     }
 
     // Check for K0S candidates
