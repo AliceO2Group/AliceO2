@@ -26,7 +26,7 @@ o2_add_library(MFTTracking
 
 o2_target_root_dictionary(MFTTracking
                           HEADERS include/MFTTracking/TrackCA.h
-                          HEADERS include/MFTTracking/TrackFitter.h
-                          HEADERS include/MFTTracking/MFTTrackingParam.h
-			  HEADERS include/MFTTracking/TrackerConfig.h
+                           include/MFTTracking/TrackFitter.h
+                           include/MFTTracking/MFTTrackingParam.h
+			   include/MFTTracking/TrackerConfig.h
                           LINKDEF src/MFTTrackingLinkDef.h)

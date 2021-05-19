@@ -22,13 +22,13 @@ o2_add_test(ElectronTransport
             SOURCES testTPCElectronTransport.cxx)
 
 o2_add_test(GEMAmplification
-            LABELS tpc
+            LABELS tpc long
             PUBLIC_LINK_LIBRARIES O2::TPCSimulation
             COMPONENT_NAME tpc
             SOURCES testTPCGEMAmplification.cxx
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             TIMEOUT 200
-            LABELS long)
+            )
 
 o2_add_test(SAMPAProcessing
             LABELS tpc

@@ -10,10 +10,10 @@
 
 o2_add_library(DataFormatsFT0
   SOURCES src/Digit.cxx
-  SOURCES src/DigitsTemp.cxx
-  SOURCES src/ChannelData.cxx
-  SOURCES src/RecPoints.cxx
-  SOURCES src/RawEventData.cxx
+   src/DigitsTemp.cxx
+   src/ChannelData.cxx
+   src/RecPoints.cxx
+   src/RawEventData.cxx
           src/CTF.cxx
   PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                         O2::Headers

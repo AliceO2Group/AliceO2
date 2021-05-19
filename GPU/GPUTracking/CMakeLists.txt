@@ -316,7 +316,6 @@ target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
                                             Debug
                                             DataCompression
                                             TPCClusterFinder
-                 TARGETVARNAME targetName
                  SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
 
   target_include_directories(

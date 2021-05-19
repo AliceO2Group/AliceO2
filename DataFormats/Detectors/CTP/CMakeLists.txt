@@ -9,8 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsCTP
-  SOURCES src/Digits.cxx 
-  SOURCES src/Configuration.cxx
+  SOURCES src/Digits.cxx
+   src/Configuration.cxx
   PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                         O2::Headers
                         O2::SimulationDataFormat
