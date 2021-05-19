@@ -1046,7 +1046,7 @@ struct HfTrackIndexSkimsCreator {
 /// to run: o2-analysis-weak-decay-indices --aod-file AO2D.root -b | o2-analysis-lambdakzerobuilder -b |
 ///         o2-analysis-trackextension -b | o2-analysis-hf-track-index-skims-creator -b
 
-struct HFTrackIndexSkimsCreatorCascades {
+struct HfTrackIndexSkimsCreatorCascades {
   Produces<aod::HfTrackIndexCasc> rowTrackIndexCasc;
   //  Produces<aod::HfTrackIndexProng2> rowTrackIndexCasc;
 
@@ -1115,9 +1115,12 @@ struct HFTrackIndexSkimsCreatorCascades {
   double massLc = RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus);
   double mass2K0sP{0.}; // WHY HERE?
 
-  using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
+  Filter filterSelectCollisions = (aod::hf_selcollision::whyRejectColl == 0);
 
-  void process(aod::Collision const& collision,
+  using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
+  using SelectedCollisions = soa::Filtered<soa::Join<aod::Collisions, aod::HFSelCollision>>;
+
+  void process(SelectedCollisions::iterator const& collision,
                aod::BCs const& bcs,
                //soa::Filtered<aod::V0Datas> const& V0s,
                aod::V0Datas const& V0s,
@@ -1308,13 +1311,13 @@ struct HFTrackIndexSkimsCreatorCascades {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<HfProduceSelTrack>(cfgc),
-    adaptAnalysisTask<HfTagSelTrack>(cfgc);
-    adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
+    adaptAnalysisTask<HfTagSelCollisions>(cfgc),
+    adaptAnalysisTask<HfTagSelTrack>(cfgc),
+    adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc)};
 
   const bool doLcK0Sp = cfgc.options().get<bool>("do-LcK0Sp");
   if (doLcK0Sp) {
-    workflow.push_back(adaptAnalysisTask<HFTrackIndexSkimsCreatorCascades>(cfgc));
+    workflow.push_back(adaptAnalysisTask<HfTrackIndexSkimsCreatorCascades>(cfgc));
   }
 
   return workflow;
