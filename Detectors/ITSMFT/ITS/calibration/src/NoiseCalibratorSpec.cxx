@@ -70,10 +70,8 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
             << " : " << info.getEndValidityTimestamp();
 
   using clbUtils = o2::calibration::Utils;
-  output.snapshot(
-    Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
-  output.snapshot(
-    Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, 0}, *image.get());
+  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, 0}, info);
 }
 
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -90,10 +88,8 @@ DataProcessorSpec getNoiseCalibratorSpec()
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-  outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ITS_NOISE"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ITS_NOISE"});
 
   return DataProcessorSpec{
     "its-noise-calibrator",

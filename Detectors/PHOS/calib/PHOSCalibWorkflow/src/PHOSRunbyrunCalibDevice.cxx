@@ -59,8 +59,8 @@ void PHOSRunbyrunCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
               << " : " << info.getEndValidityTimestamp();
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Runbyrun", subSpec}, *image.get());
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Runbyrun", subSpec}, info);
   } else {
     LOG(ERROR) << "Incorrect fit results: " << mRunByRun[0] << "+-" << mRunByRun[1] << ", "
                << mRunByRun[2] << "+-" << mRunByRun[3] << ", "
@@ -89,8 +89,8 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSRunbyrunCalibDeviceSpec(bool u
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("PHS", "RUNBYRUNHISTOS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload});
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Runbyrun"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Runbyrun"});
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("clusters", "PHS", "CLUSTERS");

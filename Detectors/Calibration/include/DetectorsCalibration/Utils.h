@@ -28,10 +28,8 @@ namespace calibration
 {
 
 struct Utils {
-
-  static constexpr o2::header::DataOrigin gDataOriginCLB{"CLB"};                          // generic DataOrigin for calibrations
-  static constexpr o2::header::DataDescription gDataDescriptionCLBPayload = "CLBPAYLOAD"; // DataDescription for TMemFile sent for CCDB storage
-  static constexpr o2::header::DataDescription gDataDescriptionCLBInfo = "CCDBWRAPPER";   // DataDescription for wrapper helper
+  static constexpr o2::header::DataOrigin gDataOriginCDBPayload{"CLP"}; // generic DataOrigin for calibrations payload
+  static constexpr o2::header::DataOrigin gDataOriginCDBWrapper{"CLW"}; // generic DataOrigin for calibrations wrapper
 };
 
 } // namespace calibration
