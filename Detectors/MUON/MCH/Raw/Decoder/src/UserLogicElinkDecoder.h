@@ -186,9 +186,15 @@ bool UserLogicElinkDecoder<CHARGESUM>::append10(uint10_t data10)
         if (isSync(mSampaHeader.uint64())) {
           reset();
         } else if (mSampaHeader.packetType() == SampaPacketType::HeartBeat) {
-          sendHBPacket();
-          transition(State::WaitingHeader);
-          result = true;
+          if (mSampaHeader.isHeartbeat()) {
+            sendHBPacket();
+            transition(State::WaitingHeader);
+            result = true;
+          } else {
+            mErrorMessage = "badly formatted Heartbeat packet";
+            sendError(static_cast<int8_t>(mSampaHeader.chipAddress()), static_cast<uint32_t>(ErrorBadHeartBeatPacket));
+            reset();
+          }
         } else {
           if (mSampaHeader.nof10BitWords() > 2) {
             transition(State::WaitingSize);
