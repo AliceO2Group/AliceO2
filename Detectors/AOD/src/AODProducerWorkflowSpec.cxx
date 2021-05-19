@@ -311,6 +311,15 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     int particle = mcTruth.getTrackID();
     toStore[Triplet_t(source, event, particle)] = 1;
   }
+  for (auto& mcTruth : mcTruthMFT) {
+    if (!mcTruth.isValid()) {
+      continue;
+    }
+    int source = mcTruth.getSourceID();
+    int event = mcTruth.getEventID();
+    int particle = mcTruth.getTrackID();
+    toStore[Triplet_t(source, event, particle)] = 1;
+  }
   for (auto& mcTruth : mcTruthTPC) {
     if (!mcTruth.isValid()) {
       continue;

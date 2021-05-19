@@ -95,7 +95,7 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
 
   extractTracks(recoData, vcont); // extract all track t-brackets, excluding those tracks which contribute to vertex (already attached)
 
-  int ivStart = 0;
+  int ivStart = 0, nAssigned = 0, nAmbiguous = 0;
   std::vector<int> vtxList; // list of vertices which match to checked track
   for (const auto& tro : mTBrackets) {
     vtxList.clear();
@@ -116,12 +116,14 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       // track matches to vertex, register
       vtxList.push_back(vto.origID); // flag matching vertex
     }
-    bool ambigous = vtxList.size() > 1; // did track match to multiple vertices?
-    for (auto v : vtxList) {
-      auto& ref = tmpMap[v].emplace_back(tro.origID);
-      if (ambigous) {
-        ref.setAmbiguous();
+    if (vtxList.size() > 1) { // did track match to multiple vertices?
+      nAmbiguous++;
+      for (auto v : vtxList) {
+        tmpMap[v].emplace_back(tro.origID).setAmbiguous();
       }
+    }
+    if (!vtxList.empty()) {
+      nAssigned++;
     }
   }
 
@@ -151,6 +153,7 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
     vr.setEnd(trackIndex.size());
     LOG(INFO) << "Vertxex " << iv << " Tracks " << vr;
   }
+  LOG(INFO) << "Assigned " << nAssigned << " (" << nAmbiguous << " ambigously) out of " << mTBrackets.size() << " non-contributor tracks + " << vcont.size() << " contributors";
 }
 
 //________________________________________________________
@@ -185,5 +188,5 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
   // sort in increasing min.time
   std::sort(mTBrackets.begin(), mTBrackets.end(), [](const TrackTBracket& a, const TrackTBracket& b) { return a.tBracket.getMin() < b.tBracket.getMin(); });
 
-  LOG(INFO) << "collected " << mTBrackets.size() << " seeds";
+  LOG(INFO) << "collected " << mTBrackets.size() << " non-contributor and " << vcont.size() << " contributor seeds";
 }
