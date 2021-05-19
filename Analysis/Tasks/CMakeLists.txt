@@ -18,7 +18,6 @@ add_subdirectory(Utils)
 add_subdirectory(SkimmingTutorials)
 add_subdirectory(PID)
 
-
 o2_add_dpl_workflow(trackextension
                     SOURCES trackextension.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
