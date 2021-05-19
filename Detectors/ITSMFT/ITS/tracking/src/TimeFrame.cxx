@@ -322,5 +322,20 @@ void TimeFrame::printCellLUTs()
   }
 }
 
+void TimeFrame::printVertices()
+{
+  std::cout << "--------" << std::endl;
+  std::cout << "Vertices in ROF (nROF = " << mNrof << ", lut size = " << mROframesPV.size() << ")" << std::endl;
+  for (unsigned int iR{0}; iR < mROframesPV.size(); ++iR) {
+    std::cout << mROframesPV[iR] << "\t";
+  }
+  std::cout << "\n\n Vertices:" << std::endl;
+  for (unsigned int iV{0}; iV < mPrimaryVertices.size(); ++iV) {
+    std::cout << mPrimaryVertices[iV].x << "\t" << mPrimaryVertices[iV].y << "\t" << mPrimaryVertices[iV].z << std::endl;
+  }
+  std::cout << "--------" << std::endl;
+
+}
+
 } // namespace its
 } // namespace o2

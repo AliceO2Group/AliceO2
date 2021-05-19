@@ -106,6 +106,7 @@ class TimeFrame final
   void clear();
 
   /// Debug and printing
+  void printVertices();
   void printTrackletLUTonLayer(int i);
   void printCellLUTonLayer(int i);
   void printTrackletLUTs();
@@ -151,14 +152,14 @@ inline const float3& TimeFrame::getPrimaryVertex(const int vertexIndex) const { 
 
 inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int tf) const
 {
-  const int start = tf;
+  const int start = mROframesPV[tf];
   const int stop = tf >= mNrof - 1 ? mNrof : tf + 1;
-  return {&mPrimaryVertices[start], static_cast<gsl::span<const float3>::size_type>(mROframesPV[stop] - mROframesPV[start])};
+  return {&mPrimaryVertices[start], static_cast<gsl::span<const float3>::size_type>(mROframesPV[stop] - mROframesPV[tf])};
 }
 
 inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int romin, int romax) const
 {
-  return {&mPrimaryVertices[romin], static_cast<gsl::span<const float3>::size_type>(mROframesPV[romax + 1] - mROframesPV[romin])};
+  return {&mPrimaryVertices[mROframesPV[romin]], static_cast<gsl::span<const float3>::size_type>(mROframesPV[romax + 1] - mROframesPV[romin])};
 }
 
 inline int TimeFrame::getPrimaryVerticesNum(int rofID) const
