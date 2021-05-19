@@ -168,6 +168,7 @@ class FileReaderTask
     /// Get the input file and other options from the context
     LOG(INFO) << "initializing file reader";
     mFrameMax = ic.options().get<int>("nframes");
+    mTimeFrameMax = ic.options().get<int>("max-time-frame");
     mPrint = ic.options().get<bool>("print");
     mFullHBF = ic.options().get<bool>("full-hbf");
     mFullTF = ic.options().get<bool>("full-tf");
@@ -186,6 +187,39 @@ class FileReaderTask
       this->mInputFile.close();
     };
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+  }
+
+  void printHBF(char* framePtr, size_t frameSize)
+  {
+    size_t pageStart = 0;
+    std::cout << "----\n";
+    while (pageStart < frameSize) {
+      RDH* rdh = (RDH*)(&(framePtr[pageStart]));
+      // check that the RDH version is ok (only RDH versions from 4 to 6 are supported at the moment)
+      auto rdhVersion = o2::raw::RDHUtils::getVersion(rdh);
+      auto rdhHeaderSize = o2::raw::RDHUtils::getHeaderSize(rdh);
+      uint16_t cruID = o2::raw::RDHUtils::getCRUID(rdh) & 0x3F;
+      uint8_t endPointID = o2::raw::RDHUtils::getEndPointID(rdh);
+      uint8_t linkID = o2::raw::RDHUtils::getLinkID(rdh);
+      uint16_t feeID = cruID * 2 + endPointID;
+      auto stopBit = o2::raw::RDHUtils::getStop(rdh);
+      auto triggerType = o2::raw::RDHUtils::getTriggerType(rdh);
+      auto pageSize = o2::raw::RDHUtils::getOffsetToNext(rdh);
+      auto pageCounter = RDHUtils::getPageCounter(rdh);
+
+      printf("%6d:  V %X  offset %4d  packet %3d  srcID %d  cruID %2d  dp %d  link %2d  orbit %u  bc %4d  trig 0x%08X  p %d  s %d",
+             (int)0, (int)rdhVersion, (int)pageSize,
+             (int)RDHUtils::getPacketCounter(rdh), (int)RDHUtils::getSourceID(rdh),
+             (int)cruID, (int)endPointID, (int)linkID,
+             (uint32_t)RDHUtils::getHeartBeatOrbit(rdh), (int)RDHUtils::getTriggerBC(rdh),
+             (int)triggerType, (int)pageCounter, (int)stopBit);
+      if ((triggerType & 0x800) != 0) {
+        printf(" <===");
+      }
+      printf("\n");
+      pageStart += pageSize;
+    }
+    std::cout << "----\n";
   }
 
   bool appendHBF(TimeFrame& tf, char* framePtr, size_t frameSize, bool addHBF)
@@ -226,6 +260,11 @@ class FileReaderTask
 
     static int TFid = 0;
 
+    if (mTimeFrameMax > 0 && TFid == mTimeFrameMax) {
+      pc.services().get<ControlService>().endOfStream();
+      return;
+    }
+
     while (true) {
 
       // stop if the required number of frames has been reached
@@ -242,6 +281,9 @@ class FileReaderTask
       }
 
       // read the next RDH, stop if no more data is available
+      if (mPrint) {
+        std::cout << "Reading " << sizeof(RDH) << " for RDH from input file\n";
+      }
       mInputFile.read((char*)(&rdh), sizeof(RDH));
       if (mInputFile.fail()) {
         if (mPrint) {
@@ -254,13 +296,6 @@ class FileReaderTask
       // check that the RDH version is ok (only RDH versions from 4 to 6 are supported at the moment)
       auto rdhVersion = o2::raw::RDHUtils::getVersion(rdh);
       auto rdhHeaderSize = o2::raw::RDHUtils::getHeaderSize(rdh);
-      if (mPrint) {
-        std::cout << "header_version=" << (int)rdhVersion << std::endl;
-      }
-      if (rdhVersion < 4 || rdhVersion > 6 || rdhHeaderSize != 64) {
-        return;
-      }
-
       uint16_t cruID = o2::raw::RDHUtils::getCRUID(rdh) & 0x3F;
       uint8_t endPointID = o2::raw::RDHUtils::getEndPointID(rdh);
       uint8_t linkID = o2::raw::RDHUtils::getLinkID(rdh);
@@ -271,7 +306,7 @@ class FileReaderTask
       auto pageCounter = RDHUtils::getPageCounter(rdh);
 
       if (mPrint) {
-        printf("%6d:  version %X  offset %4d  packet %3d  srcID %d  cruID %2d  dp %d  link %2d  orbit %u  bc %4d  trig 0x%08X  page %d  stop %d",
+        printf("%6d:  V %X  offset %4d  packet %3d  srcID %d  cruID %2d  dp %d  link %2d  orbit %u  bc %4d  trig 0x%08X  p %d  s %d",
                (int)0, (int)rdhVersion, (int)pageSize,
                (int)RDHUtils::getPacketCounter(rdh), (int)RDHUtils::getSourceID(rdh),
                (int)cruID, (int)endPointID, (int)linkID,
@@ -281,6 +316,9 @@ class FileReaderTask
           printf(" <===");
         }
         printf("\n");
+      }
+      if (rdhVersion < 4 || rdhVersion > 6 || rdhHeaderSize != 64) {
+        return;
       }
 
       TFQueue& tfQueue = tfQueues[feeID][linkID];
@@ -309,6 +347,9 @@ class FileReaderTask
       memcpy(buf + frameSize, &rdh, rdhHeaderSize);
 
       // read the frame payload into the output buffer
+      if (mPrint) {
+        std::cout << "Reading " << pageSize - rdhHeaderSize << " for payload from input file\n";
+      }
       mInputFile.read(buf + frameSize + rdhHeaderSize, pageSize - rdhHeaderSize);
 
       // stop if data cannot be read completely
@@ -366,6 +407,10 @@ class FileReaderTask
       if (stopBit && tfQueue.size() > 0) {
         // we reached the end of the current HBFrame, we need to append it to the TimeFrame
 
+        if (mPrint) {
+          std::cout << "Appending HBF to TF #" << tfQueue.size() << std::endl;
+          printHBF(buf, frameSize);
+        }
         if (!appendHBF(tfQueue.back(), buf, frameSize, true)) {
           std::cout << mFrameMax << " - failed to append HBframe" << std::endl;
           pc.services().get<ControlService>().endOfStream();
@@ -375,6 +420,10 @@ class FileReaderTask
         if (tfQueue.size() == 2) {
           // we have two TimeFrames in the queue, we also append mOverlap HBFrames to the first one
           if (tfQueue.back().hbframes.size() <= mOverlap) {
+            if (mPrint) {
+              std::cout << "Appending HBF to TF #1" << std::endl;
+              printHBF(buf, frameSize);
+            }
             if (!appendHBF(tfQueue.front(), buf, frameSize, false)) {
               std::cout << mFrameMax << " - failed to append HBframe" << std::endl;
               pc.services().get<ControlService>().endOfStream();
@@ -393,7 +442,7 @@ class FileReaderTask
           tfQueue.front().computePayloadSize();
           if (mPrint) {
             tfQueue.front().print();
-            //sleep(10);
+            sleep(1);
           }
           if (tfQueue.front().payloadSize > 0) {
             if (mSaveTF && TFid < 100) {
@@ -524,6 +573,7 @@ class FileReaderTask
  private:
   std::ifstream mInputFile{}; ///< input file
   int mFrameMax;              ///< number of frames to process
+  int mTimeFrameMax;          ///< number of frames to process
   bool mFullHBF;              ///< send full HeartBeat frames
   bool mFullTF;               ///< send full time frames
   bool mSaveTF;               ///< save individual time frames to file
@@ -542,10 +592,11 @@ o2::framework::DataProcessorSpec getFileReaderSpec()
     AlgorithmSpec{adaptFromTask<FileReaderTask>()},
     Options{{"infile", VariantType::String, "", {"input file name"}},
             {"nframes", VariantType::Int, -1, {"number of frames to process"}},
+            {"max-time-frame", VariantType::Int, -1, {"number of time frames to process"}},
             {"full-hbf", VariantType::Bool, false, {"send full HeartBeat frames"}},
             {"full-tf", VariantType::Bool, false, {"send full time frames"}},
             {"save-tf", VariantType::Bool, false, {"save individual time frames to file"}},
-            {"overlap", VariantType::Int, 1, {"overlap between contiguous TimeFrames"}},
+            {"overlap", VariantType::Int, 0, {"overlap between contiguous TimeFrames"}},
             {"print", VariantType::Bool, false, {"verbose output"}}}};
 }
 // clang-format on
