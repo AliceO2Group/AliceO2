@@ -80,7 +80,7 @@ class ITS3DigitReader : public DigitReader
 
 /// create a processor spec
 /// read ITS/MFT Digit data from a root file
-framework::DataProcessorSpec getITS3DigitReaderSpec(bool useMC = true, bool useCalib = false, std::string defname = "o2_itsdigits.root");
+framework::DataProcessorSpec getITS3DigitReaderSpec(bool useMC = true, bool useCalib = false, std::string defname = "it3digits.root");
 
 } // namespace its3
 } // namespace o2
