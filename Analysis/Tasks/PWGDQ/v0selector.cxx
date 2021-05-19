@@ -116,44 +116,37 @@ struct v0selector {
   float phivv0(const array<float, 3>& ppos, const array<float, 3>& pneg, const int cpos, const int cneg, const float bz)
   {
     //momentum of e+ and e- in (ax,ay,az) axis. Note that az=0 by definition.
-    float pxep = 0, pyep = 0, pzep = 0;
-    float pxem = 0, pyem = 0, pzem = 0;
-
+    //vector product of pep X pem
+    float vpx = 0, vpy = 0, vpz = 0;
     if (cpos * cneg > 0.) { // Like Sign
       if (bz * cpos < 0) {
-        pxep = ppos[0];
-        pyep = ppos[1];
-        pzep = ppos[2];
-        pxem = pneg[0];
-        pyem = pneg[1];
-        pzem = pneg[2];
+        vpx = ppos[1] * pneg[2] - ppos[2] * pneg[1];
+        vpy = ppos[2] * pneg[0] - ppos[0] * pneg[2];
+        vpz = ppos[0] * pneg[1] - ppos[2] * pneg[0];
       } else {
-        pxep = pneg[0];
-        pyep = pneg[1];
-        pzep = pneg[2];
-        pxem = ppos[0];
-        pyem = ppos[1];
-        pzem = ppos[2];
+        vpx = pneg[1] * ppos[2] - pneg[2] * ppos[1];
+        vpy = pneg[2] * ppos[0] - pneg[0] * ppos[2];
+        vpz = pneg[0] * ppos[1] - pneg[2] * ppos[0];
       }
 
     } else { // Unlike Sign
       if (bz * cpos > 0) {
-        pxep = ppos[0];
-        pyep = ppos[1];
-        pzep = ppos[2];
-        pxem = pneg[0];
-        pyem = pneg[1];
-        pzem = pneg[2];
+        vpx = ppos[1] * pneg[2] - ppos[2] * pneg[1];
+        vpy = ppos[2] * pneg[0] - ppos[0] * pneg[2];
+        vpz = ppos[0] * pneg[1] - ppos[2] * pneg[0];
       } else {
-        pxep = pneg[0];
-        pyep = pneg[1];
-        pzep = pneg[2];
-        pxem = ppos[0];
-        pyem = ppos[1];
-        pzem = ppos[2];
+        vpx = pneg[1] * ppos[2] - pneg[2] * ppos[1];
+        vpy = pneg[2] * ppos[0] - pneg[0] * ppos[2];
+        vpz = pneg[0] * ppos[1] - pneg[2] * ppos[0];
       }
     }
-
+    
+    float vp = RecoDecay::P(array{vpx, vpy, vpz});
+    //unit vector of pep X pem
+    float vx = vpx / vp;
+    float vy = vpy / vp;
+    float vz = vpz / vp;
+    
     float px = ppos[0] + pneg[0];
     float py = ppos[1] + pneg[1];
     float pz = ppos[2] + pneg[2];
@@ -165,18 +158,7 @@ struct v0selector {
     float uz = pz / pl;
     float ax = uy / RecoDecay::sqrtSumOfSquares(ux, uy);
     float ay = -ux / RecoDecay::sqrtSumOfSquares(ux, uy);
-
-    //vector product of pep X pem
-    float vpx = pyep * pzem - pzep * pyem;
-    float vpy = pzep * pxem - pxep * pzem;
-    float vpz = pxep * pyem - pyep * pxem;
-    float vp = RecoDecay::P(array{vpx, vpy, vpz});
-
-    //unit vector of pep X pem
-    float vx = vpx / vp;
-    float vy = vpy / vp;
-    float vz = vpz / vp;
-
+   
     //The third axis defined by vector product (ux,uy,uz)X(vx,vy,vz)
     float wx = uy * vz - uz * vy;
     float wy = uz * vx - ux * vz;
