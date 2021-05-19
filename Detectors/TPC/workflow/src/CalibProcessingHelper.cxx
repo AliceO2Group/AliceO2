@@ -36,6 +36,17 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
 
+  // TODO: check if presence of data sampling can be checked in another way
+  bool sampledData = true;
+  for ([[maybe_unused]] auto const& ref : InputRecordWalker(inputs, filter)) {
+    sampledData = false;
+    break;
+  }
+  if (sampledData) {
+    filter = {{"sampled-rawdata", ConcreteDataTypeMatcher{"DS", "RAWDATA"}, Lifetime::Timeframe}};
+    LOGP(info, "Using sampled data");
+  }
+
   uint64_t activeSectors = 0;
   bool isLinkZS = false;
   bool readFirst = false;
