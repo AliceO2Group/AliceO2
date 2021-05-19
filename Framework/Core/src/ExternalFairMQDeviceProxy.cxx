@@ -373,7 +373,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
     ctx.services().get<CallbackService>().set(CallbackService::Id::Start, channelConfigurationChecker);
     // Converter should pump messages
 
-    auto handler = [device, converter, outputRoutes = std::move(outputRoutes), control = &ctx.services().get<ControlService>(), outputChannels = std::move(outputChannels)](FairMQParts& inputs, int) {
+    auto dataHandler = [device, converter, outputRoutes = std::move(outputRoutes), control = &ctx.services().get<ControlService>(), outputChannels = std::move(outputChannels)](FairMQParts& inputs, int) {
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
@@ -403,21 +403,17 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         for (auto const& channel : outputChannels) {
           DataProcessingHelpers::sendEndOfStream(*device, channel);
         }
-        // FIXME: the websocket communication to the driver is not established
-        // because the proxy is using the FairMQDevice::OnData callback, while
-        // DataProcessingDevice is setting up the services in the ConditionalRun
-        // overload
         control->readyToQuit(QuitRequest::Me);
-        // FIXME: this should be the correct way to terminate the FairMQDevice, but the
-        // status is interpreted as ERROR by the DPL driver logic
-        //return false;
       }
-
-      return true;
     };
 
-    device->OnData(channel, handler);
-    return [](ProcessingContext&) {};
+    auto runHandler = [dataHandler, device, channel](ProcessingContext&) {
+      FairMQParts parts;
+      device->Receive(parts, channel, 0);
+      dataHandler(parts, 0);
+    };
+
+    return runHandler;
   }};
   const char* d = strdup(((std::string(defaultChannelConfig).find("name=") == std::string::npos ? (std::string("name=") + name + ",") : "") + std::string(defaultChannelConfig)).c_str());
   spec.options = {
