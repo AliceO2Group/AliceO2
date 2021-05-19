@@ -8,8 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(CTPWorkflow
-               SOURCES src/CTPDigitWriterSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework
-                                     O2::DataFormatsCTP
-                                     O2::DPLUtils)
+o2_add_library(
+  CTPWorkflow
+  SOURCES src/CTPDigitWriterSpec.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::DataFormatsCTP
+    O2::DPLUtils)

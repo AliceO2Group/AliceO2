@@ -8,39 +8,44 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DataFormatsEMCAL
-               SOURCES src/EMCALBlockHeader.cxx 
-                       src/TriggerRecord.cxx
-                       src/Constants.cxx
-                       src/Cluster.cxx
-                       src/AnalysisCluster.cxx
-                       src/Cell.cxx 
-                       src/Digit.cxx
-                       src/EventHandler.cxx
-                       src/CTF.cxx
-                       src/ErrorTypeFEE.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
-                                     O2::Headers 
-                                     O2::MathUtils 
-                                     O2::DetectorsBase 
-                                     O2::SimulationDataFormat
-                                     Boost::serialization)
+o2_add_library(
+  DataFormatsEMCAL
+  SOURCES src/EMCALBlockHeader.cxx
+          src/TriggerRecord.cxx
+          src/Constants.cxx
+          src/Cluster.cxx
+          src/AnalysisCluster.cxx
+          src/Cell.cxx
+          src/Digit.cxx
+          src/EventHandler.cxx
+          src/CTF.cxx
+          src/ErrorTypeFEE.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CommonDataFormat
+    O2::Headers
+    O2::MathUtils
+    O2::DetectorsBase
+    O2::SimulationDataFormat
+    Boost::serialization)
 
-o2_target_root_dictionary(DataFormatsEMCAL
-                          HEADERS include/DataFormatsEMCAL/EMCALBlockHeader.h
-                                  include/DataFormatsEMCAL/TriggerRecord.h
-                                  include/DataFormatsEMCAL/Constants.h
-                                  include/DataFormatsEMCAL/Cell.h
-                                  include/DataFormatsEMCAL/Digit.h
-                                  include/DataFormatsEMCAL/Cluster.h
-                                  include/DataFormatsEMCAL/AnalysisCluster.h
-                                  include/DataFormatsEMCAL/EventHandler.h
-                                  include/DataFormatsEMCAL/MCLabel.h
-                                  include/DataFormatsEMCAL/CTF.h
-                                  include/DataFormatsEMCAL/ErrorTypeFEE.h)
+o2_target_root_dictionary(
+  DataFormatsEMCAL
+  HEADERS include/DataFormatsEMCAL/EMCALBlockHeader.h
+          include/DataFormatsEMCAL/TriggerRecord.h
+          include/DataFormatsEMCAL/Constants.h
+          include/DataFormatsEMCAL/Cell.h
+          include/DataFormatsEMCAL/Digit.h
+          include/DataFormatsEMCAL/Cluster.h
+          include/DataFormatsEMCAL/AnalysisCluster.h
+          include/DataFormatsEMCAL/EventHandler.h
+          include/DataFormatsEMCAL/MCLabel.h
+          include/DataFormatsEMCAL/CTF.h
+          include/DataFormatsEMCAL/ErrorTypeFEE.h)
 
-o2_add_test(Cell
-            SOURCES test/testCell.cxx
-            COMPONENT_NAME DataFormats-EMCAL
-            PUBLIC_LINK_LIBRARIES O2::DataFormatsEMCAL
-            LABELS emcal dataformats)
+o2_add_test(
+  Cell
+  SOURCES test/testCell.cxx
+  COMPONENT_NAME DataFormats-EMCAL
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsEMCAL
+  LABELS emcal
+         dataformats)

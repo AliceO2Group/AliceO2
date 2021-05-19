@@ -8,14 +8,20 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(Device
-               SOURCES src/O2Device.cxx
-               PUBLIC_LINK_LIBRARIES FairMQ::FairMQ O2::MemoryResources
-                                     O2::Headers ms_gsl::ms_gsl
-                                     AliceO2::Monitoring)
-if(NOT APPLE)
-  o2_add_test(O2Device 
-              SOURCES test/test_O2Device.cxx
-              PUBLIC_LINK_LIBRARIES O2::Device
-              COMPONENT_NAME Device)
+o2_add_library(
+  Device
+  SOURCES src/O2Device.cxx
+  PUBLIC_LINK_LIBRARIES
+    FairMQ::FairMQ
+    O2::MemoryResources
+    O2::Headers
+    ms_gsl::ms_gsl
+    AliceO2::Monitoring)
+if(NOT
+   APPLE)
+  o2_add_test(
+    O2Device
+    SOURCES test/test_O2Device.cxx
+    PUBLIC_LINK_LIBRARIES O2::Device
+    COMPONENT_NAME Device)
 endif()

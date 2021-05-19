@@ -8,57 +8,66 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(CCDB
-               SOURCES  src/CcdbApi.cxx
-                        src/BasicCCDBManager.cxx
-                        src/CCDBTimeStampUtils.cxx
-        src/IdPath.cxx src/CCDBQuery.cxx
-        PUBLIC_LINK_LIBRARIES CURL::libcurl
-                                    FairRoot::ParMQ
-                                    ROOT::Hist
-                                    O2::CommonUtils
-                                    FairMQ::FairMQ
-               TARGETVARNAME targetName)
+o2_add_library(
+  CCDB
+  SOURCES src/CcdbApi.cxx
+          src/BasicCCDBManager.cxx
+          src/CCDBTimeStampUtils.cxx
+          src/IdPath.cxx
+          src/CCDBQuery.cxx
+  PUBLIC_LINK_LIBRARIES
+    CURL::libcurl
+    FairRoot::ParMQ
+    ROOT::Hist
+    O2::CommonUtils
+    FairMQ::FairMQ
+  TARGETVARNAME targetName)
 
-o2_target_root_dictionary(CCDB
-                          HEADERS
-                                  include/CCDB/CcdbApi.h
-			          include/CCDB/CcdbObjectInfo.h
-                                  include/CCDB/TObjectWrapper.h
-                                  include/CCDB/IdPath.h
-                                  include/CCDB/BasicCCDBManager.h
-                                  include/CCDB/CCDBTimeStampUtils.h
-                                  include/CCDB/CCDBQuery.h)
+o2_target_root_dictionary(
+  CCDB
+  HEADERS include/CCDB/CcdbApi.h
+          include/CCDB/CcdbObjectInfo.h
+          include/CCDB/TObjectWrapper.h
+          include/CCDB/IdPath.h
+          include/CCDB/BasicCCDBManager.h
+          include/CCDB/CCDBTimeStampUtils.h
+          include/CCDB/CCDBQuery.h)
 
-o2_add_executable(inspectccdbfile
-            COMPONENT_NAME ccdb
-            SOURCES src/InspectCCDBFile.cxx
-            PUBLIC_LINK_LIBRARIES O2::CCDB)
+o2_add_executable(
+  inspectccdbfile
+  COMPONENT_NAME ccdb
+  SOURCES src/InspectCCDBFile.cxx
+  PUBLIC_LINK_LIBRARIES O2::CCDB)
 
-o2_add_executable(upload
-            COMPONENT_NAME ccdb
-            SOURCES src/UploadTool.cxx
-            PUBLIC_LINK_LIBRARIES O2::CCDB)
+o2_add_executable(
+  upload
+  COMPONENT_NAME ccdb
+  SOURCES src/UploadTool.cxx
+  PUBLIC_LINK_LIBRARIES O2::CCDB)
 
-o2_add_executable(downloadccdbfile
-            COMPONENT_NAME ccdb
-            SOURCES src/DownloadCCDBFile.cxx
-            PUBLIC_LINK_LIBRARIES O2::CCDB)
+o2_add_executable(
+  downloadccdbfile
+  COMPONENT_NAME ccdb
+  SOURCES src/DownloadCCDBFile.cxx
+  PUBLIC_LINK_LIBRARIES O2::CCDB)
 
-o2_add_test(CcdbApi
-            SOURCES test/testCcdbApi.cxx
-            COMPONENT_NAME ccdb
-            PUBLIC_LINK_LIBRARIES O2::CCDB
-            LABELS ccdb)
+o2_add_test(
+  CcdbApi
+  SOURCES test/testCcdbApi.cxx
+  COMPONENT_NAME ccdb
+  PUBLIC_LINK_LIBRARIES O2::CCDB
+  LABELS ccdb)
 
-o2_add_test(CcdbApi-Alien
-		SOURCES test/testCcdbApi_alien.cxx
-		COMPONENT_NAME ccdb
-		PUBLIC_LINK_LIBRARIES O2::CCDB
-		LABELS ccdb)
+o2_add_test(
+  CcdbApi-Alien
+  SOURCES test/testCcdbApi_alien.cxx
+  COMPONENT_NAME ccdb
+  PUBLIC_LINK_LIBRARIES O2::CCDB
+  LABELS ccdb)
 
-o2_add_test(BasicCCDBManager
-            SOURCES test/testBasicCCDBManager.cxx
-            COMPONENT_NAME ccdb
-            PUBLIC_LINK_LIBRARIES O2::CCDB
-            LABELS ccdb)
+o2_add_test(
+  BasicCCDBManager
+  SOURCES test/testBasicCCDBManager.cxx
+  COMPONENT_NAME ccdb
+  PUBLIC_LINK_LIBRARIES O2::CCDB
+  LABELS ccdb)

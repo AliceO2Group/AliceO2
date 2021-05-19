@@ -8,10 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(EventVisualisationDataConverter
-               SOURCES src/VisualisationEvent.cxx 
-                       src/VisualisationTrack.cxx
-                       src/VisualisationCluster.cxx
-               PUBLIC_LINK_LIBRARIES RapidJSON::RapidJSON
-
-)
+o2_add_library(
+  EventVisualisationDataConverter
+  SOURCES src/VisualisationEvent.cxx
+          src/VisualisationTrack.cxx
+          src/VisualisationCluster.cxx
+  PUBLIC_LINK_LIBRARIES RapidJSON::RapidJSON)

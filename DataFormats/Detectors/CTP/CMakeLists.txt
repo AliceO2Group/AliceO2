@@ -8,15 +8,17 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DataFormatsCTP
+o2_add_library(
+  DataFormatsCTP
   SOURCES src/Digits.cxx
-   src/Configuration.cxx
-  PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
-                        O2::Headers
-                        O2::SimulationDataFormat
-                        O2::CommonConstants
-                        O2::DataFormatsFT0)
-o2_target_root_dictionary(DataFormatsCTP
-                          HEADERS include/DataFormatsCTP/Digits.h
-                                  include/DataFormatsCTP/Configuration.h)
-
+          src/Configuration.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CommonDataFormat
+    O2::Headers
+    O2::SimulationDataFormat
+    O2::CommonConstants
+    O2::DataFormatsFT0)
+o2_target_root_dictionary(
+  DataFormatsCTP
+  HEADERS include/DataFormatsCTP/Digits.h
+          include/DataFormatsCTP/Configuration.h)

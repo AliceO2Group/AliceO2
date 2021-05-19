@@ -8,13 +8,16 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MCHTracking
-        SOURCES
-        src/Cluster.cxx
-        src/TrackParam.cxx
-        src/Track.cxx
-        src/TrackExtrap.cxx
-        src/TrackFitter.cxx
-        src/TrackFinderOriginal.cxx
-        src/TrackFinder.cxx
-        PUBLIC_LINK_LIBRARIES O2::Field O2::MCHBase O2::Framework)
+o2_add_library(
+  MCHTracking
+  SOURCES src/Cluster.cxx
+          src/TrackParam.cxx
+          src/Track.cxx
+          src/TrackExtrap.cxx
+          src/TrackFitter.cxx
+          src/TrackFinderOriginal.cxx
+          src/TrackFinder.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Field
+    O2::MCHBase
+    O2::Framework)

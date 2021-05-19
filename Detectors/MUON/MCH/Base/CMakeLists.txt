@@ -8,12 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MCHBase
-         SOURCES
-	       src/ClusterBlock.cxx
-           src/PreCluster.cxx
-           src/TrackBlock.cxx
-	       PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH)
+o2_add_library(
+  MCHBase
+  SOURCES src/ClusterBlock.cxx
+          src/PreCluster.cxx
+          src/TrackBlock.cxx
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH)
 
-o2_target_root_dictionary(MCHBase
-  HEADERS include/MCHBase/DecoderError.h)
+o2_target_root_dictionary(MCHBase HEADERS include/MCHBase/DecoderError.h)

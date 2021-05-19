@@ -10,21 +10,25 @@
 
 message(STATUS "Building ITS CUDA tracker")
 
-o2_add_library(ITStrackingCUDA
-               SOURCES src/ClusterLinesGPU.cu
-                       src/Context.cu
-                       src/DeviceStoreNV.cu
-                       src/DeviceStoreVertexerGPU.cu
-                       src/Stream.cu
-                       src/TrackerTraitsNV.cu
-                       src/VertexerTraitsGPU.cu
-                       src/Utils.cu
-               PUBLIC_LINK_LIBRARIES O2::ITStracking
-                                     O2::SimConfig
-                                     O2::SimulationDataFormat
-               TARGETVARNAME targetName)
+o2_add_library(
+  ITStrackingCUDA
+  SOURCES src/ClusterLinesGPU.cu
+          src/Context.cu
+          src/DeviceStoreNV.cu
+          src/DeviceStoreVertexerGPU.cu
+          src/Stream.cu
+          src/TrackerTraitsNV.cu
+          src/VertexerTraitsGPU.cu
+          src/Utils.cu
+  PUBLIC_LINK_LIBRARIES
+    O2::ITStracking
+    O2::SimConfig
+    O2::SimulationDataFormat
+  TARGETVARNAME targetName)
 
-set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+set_property(
+  TARGET ${targetName}
+  PROPERTY CUDA_SEPARABLE_COMPILATION
+           ON)
 
-target_compile_definitions(
-  ${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
+target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)

@@ -10,10 +10,16 @@
 
 set(MODULE GPUTracking)
 
-#set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -O0") # to uncomment if needed, tired of typing this...
+# set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} -O0") # to uncomment if needed, tired
+# of typing this...
 
-if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-  if(ENABLE_CUDA OR ENABLE_OPENCL1 OR ENABLE_OPENCL2 OR ENABLE_HIP)
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "ALIROOT")
+  if(ENABLE_CUDA
+     OR ENABLE_OPENCL1
+     OR ENABLE_OPENCL2
+     OR ENABLE_HIP)
     cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
     include(FeatureSummary)
     find_package(O2GPU)
@@ -21,9 +27,19 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
 else()
   if(OPENGL_FOUND
      AND GLFW_FOUND
-     AND ((ALIGPU_BUILD_TYPE STREQUAL "O2" AND TARGET AliceO2::DebugGUI) OR GLEW_FOUND)
+     AND ((ALIGPU_BUILD_TYPE
+           STREQUAL
+           "O2"
+           AND TARGET
+               AliceO2::DebugGUI
+          )
+          OR GLEW_FOUND
+         )
      AND OPENGL_GLU_FOUND
-     AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+     AND NOT
+         CMAKE_SYSTEM_NAME
+         STREQUAL
+         "Darwin")
     set(GPUCA_EVENT_DISPLAY ON)
   endif()
   if(ROOT_FOUND)
@@ -61,8 +77,7 @@ set(SRCS
     TRDTracking/GPUTRDTrackerKernels.cxx
     Base/GPUParam.cxx)
 
-set(SRCS_O2_DATATYPES
-    DataTypes/GPUTRDTrackO2.cxx)
+set(SRCS_O2_DATATYPES DataTypes/GPUTRDTrackO2.cxx)
 
 set(SRCS_NO_CINT
     DataTypes/GPUDataTypes.cxx
@@ -83,17 +98,18 @@ set(SRCS_NO_CINT
     Debug/GPUROOTDumpCore.cxx
     utils/timer.cxx)
 
-set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
-              Merger/GPUTPCGMMergerDump.cxx
-              Global/GPUChainTrackingClusterizer.cxx
-              Global/GPUChainTrackingTransformation.cxx
-              Global/GPUChainTrackingTRD.cxx
-              Global/GPUChainTrackingRefit.cxx
-              Global/GPUChainTrackingSliceTracker.cxx
-              Global/GPUChainTrackingMerger.cxx
-              Global/GPUChainTrackingCompression.cxx
-              Global/GPUChainTrackingDebugAndProfiling.cxx
-              Global/GPUChainTrackingIO.cxx)
+set(SRCS_NO_H
+    SliceTracker/GPUTPCTrackerDump.cxx
+    Merger/GPUTPCGMMergerDump.cxx
+    Global/GPUChainTrackingClusterizer.cxx
+    Global/GPUChainTrackingTransformation.cxx
+    Global/GPUChainTrackingTRD.cxx
+    Global/GPUChainTrackingRefit.cxx
+    Global/GPUChainTrackingSliceTracker.cxx
+    Global/GPUChainTrackingMerger.cxx
+    Global/GPUChainTrackingCompression.cxx
+    Global/GPUChainTrackingDebugAndProfiling.cxx
+    Global/GPUChainTrackingIO.cxx)
 
 set(HDRS_INSTALL
     SliceTracker/GPUTPCMCInfo.h
@@ -149,72 +165,97 @@ set(HDRS_INSTALL
     Definitions/GPUDefOpenCL12Templates.h
     Definitions/GPULogging.h
     Definitions/GPUDefMacros.h
-    Debug/GPUROOTDump.h
-)
+    Debug/GPUROOTDump.h)
 
 # Sources only for O2
-if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-  set(SRCS ${SRCS} Interface/GPUO2InterfaceConfigurableParam.cxx)
-  set(HDRS_CINT_O2 ${HDRS_CINT_O2} DataTypes/TPCdEdxCalibrationSplines.h Interface/GPUO2InterfaceConfigurableParam.h)
-  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDO2BaseTrack.h) # Manual dependencies for ROOT dictionary generation
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "O2")
+  set(SRCS
+      ${SRCS}
+      Interface/GPUO2InterfaceConfigurableParam.cxx)
+  set(HDRS_CINT_O2
+      ${HDRS_CINT_O2}
+      DataTypes/TPCdEdxCalibrationSplines.h
+      Interface/GPUO2InterfaceConfigurableParam.h)
+  set(HDRS_CINT_O2_ADDITIONAL
+      DataTypes/GPUSettings.h
+      Definitions/GPUSettingsList.h
+      DataTypes/GPUDataTypes.h
+      DataTypes/GPUTRDTrack.h
+      DataTypes/GPUTRDO2BaseTrack.h) # Manual dependencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} display/GPUDisplayBackend.cxx)
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "O2"
+   OR ALIGPU_BUILD_TYPE
+      STREQUAL
+      "Standalone")
+  set(SRCS_NO_CINT
+      ${SRCS_NO_CINT}
+      display/GPUDisplayBackend.cxx)
 endif()
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
-    set(SRCS_NO_CINT
-        ${SRCS_NO_CINT}
-        Global/GPUChainITS.cxx
-        ITS/GPUITSFitter.cxx
-        ITS/GPUITSFitterKernels.cxx
-        dEdx/GPUdEdx.cxx
-        DataTypes/TPCdEdxCalibrationSplines.cxx
-        TPCConvert/GPUTPCConvert.cxx
-        TPCConvert/GPUTPCConvertKernel.cxx
-        DataCompression/GPUTPCCompression.cxx
-        DataCompression/GPUTPCCompressionTrackModel.cxx
-        DataCompression/GPUTPCCompressionKernels.cxx
-        DataCompression/TPCClusterDecompressor.cxx
-        DataCompression/GPUTPCClusterStatistics.cxx
-        TPCClusterFinder/GPUTPCClusterFinder.cxx
-        TPCClusterFinder/ClusterAccumulator.cxx
-        TPCClusterFinder/MCLabelAccumulator.cxx
-        TPCClusterFinder/GPUTPCCFCheckPadBaseline.cxx
-        TPCClusterFinder/GPUTPCCFStreamCompaction.cxx
-        TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
-        TPCClusterFinder/GPUTPCCFPeakFinder.cxx
-        TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
-        TPCClusterFinder/GPUTPCCFClusterizer.cxx
-        TPCClusterFinder/GPUTPCCFDeconvolution.cxx
-        TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
-        TPCClusterFinder/GPUTPCCFDecodeZS.cxx
-        TPCClusterFinder/GPUTPCCFGather.cxx
-        DataTypes/TPCPadGainCalib.cxx
-        Refit/GPUTrackingRefit.cxx
-        Refit/GPUTrackingRefitKernel.cxx
-        Merger/GPUTPCGMO2Output.cxx)
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "O2"
+   OR CONFIG_O2_EXTENSIONS)
+  set(SRCS_NO_CINT
+      ${SRCS_NO_CINT}
+      Global/GPUChainITS.cxx
+      ITS/GPUITSFitter.cxx
+      ITS/GPUITSFitterKernels.cxx
+      dEdx/GPUdEdx.cxx
+      DataTypes/TPCdEdxCalibrationSplines.cxx
+      TPCConvert/GPUTPCConvert.cxx
+      TPCConvert/GPUTPCConvertKernel.cxx
+      DataCompression/GPUTPCCompression.cxx
+      DataCompression/GPUTPCCompressionTrackModel.cxx
+      DataCompression/GPUTPCCompressionKernels.cxx
+      DataCompression/TPCClusterDecompressor.cxx
+      DataCompression/GPUTPCClusterStatistics.cxx
+      TPCClusterFinder/GPUTPCClusterFinder.cxx
+      TPCClusterFinder/ClusterAccumulator.cxx
+      TPCClusterFinder/MCLabelAccumulator.cxx
+      TPCClusterFinder/GPUTPCCFCheckPadBaseline.cxx
+      TPCClusterFinder/GPUTPCCFStreamCompaction.cxx
+      TPCClusterFinder/GPUTPCCFChargeMapFiller.cxx
+      TPCClusterFinder/GPUTPCCFPeakFinder.cxx
+      TPCClusterFinder/GPUTPCCFNoiseSuppression.cxx
+      TPCClusterFinder/GPUTPCCFClusterizer.cxx
+      TPCClusterFinder/GPUTPCCFDeconvolution.cxx
+      TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
+      TPCClusterFinder/GPUTPCCFDecodeZS.cxx
+      TPCClusterFinder/GPUTPCCFGather.cxx
+      DataTypes/TPCPadGainCalib.cxx
+      Refit/GPUTrackingRefit.cxx
+      Refit/GPUTrackingRefitKernel.cxx
+      Merger/GPUTPCGMO2Output.cxx)
 
-    set(SRCS_NO_H ${SRCS_NO_H}
-        TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
+  set(SRCS_NO_H
+      ${SRCS_NO_H}
+      TPCClusterFinder/GPUTPCClusterFinderDump.cxx)
 
-    set(HDRS_INSTALL ${HDRS_INSTALL}
-                     ITS/GPUITSTrack.h
-                     TPCClusterFinder/Array2D.h
-                     TPCClusterFinder/CfConsts.h
-                     TPCClusterFinder/CfFragment.h
-                     TPCClusterFinder/CfUtils.h
-                     TPCClusterFinder/ChargePos.h
-                     Definitions/clusterFinderDefs.h
-                     TPCClusterFinder/GPUTPCClusterFinderKernels.h
-                     TPCClusterFinder/PackedCharge.h
-                     TPCClusterFinder/GPUTPCCFChainContext.h
-                     DataTypes/GPUTRDO2BaseTrack.h)
+  set(HDRS_INSTALL
+      ${HDRS_INSTALL}
+      ITS/GPUITSTrack.h
+      TPCClusterFinder/Array2D.h
+      TPCClusterFinder/CfConsts.h
+      TPCClusterFinder/CfFragment.h
+      TPCClusterFinder/CfUtils.h
+      TPCClusterFinder/ChargePos.h
+      Definitions/clusterFinderDefs.h
+      TPCClusterFinder/GPUTPCClusterFinderKernels.h
+      TPCClusterFinder/PackedCharge.h
+      TPCClusterFinder/GPUTPCCFChainContext.h
+      DataTypes/GPUTRDO2BaseTrack.h)
 endif()
 
 # Sources only for AliRoot
-if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "ALIROOT")
   set(SRCS
       ${SRCS}
       Merger/GPUTPCGlobalMergerComponent.cxx
@@ -225,173 +266,233 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
       TRDTracking/GPUTRDTrackletReaderComponent.cxx
       Global/AliHLTGPUDumpComponent.cxx)
 
-  set(SRCS_NO_CINT ${SRCS_NO_CINT}
-                   ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx
-                   ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx
-                   ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
-                   ${CMAKE_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
+  set(SRCS_NO_CINT
+      ${SRCS_NO_CINT}
+      ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCGeometry.cxx
+      ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCLog.cxx
+      ${CMAKE_SOURCE_DIR}/HLT/TPCLib/AliHLTTPCDefinitions.cxx
+      ${CMAKE_SOURCE_DIR}/HLT/TRD/AliHLTTRDDefinitions.cxx)
 
-  set(HDRS_INSTALL ${HDRS_INSTALL} SliceTracker/GPUTPCDefinitions.h)
+  set(HDRS_INSTALL
+      ${HDRS_INSTALL}
+      SliceTracker/GPUTPCDefinitions.h)
 endif()
 
 # Optional sources depending on optional dependencies
 if(GPUCA_EVENT_DISPLAY)
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} utils/qsem.cxx
-                   display/GPUDisplay.cxx
-                   display/GPUDisplayBackendGlfw.cxx)
-  set(SRCS_NO_H ${SRCS_NO_H} display/GPUDisplayQuaternion.cxx
-                display/GPUDisplayInterpolation.cxx
-                display/GPUDisplayKeys.cxx)
-  set(HDRS_INSTALL ${HDRS_INSTALL}
-                   display/GPUDisplayExt.h
-                   display/GPUDisplayShaders.h)
+  set(SRCS_NO_CINT
+      ${SRCS_NO_CINT}
+      utils/qsem.cxx
+      display/GPUDisplay.cxx
+      display/GPUDisplayBackendGlfw.cxx)
+  set(SRCS_NO_H
+      ${SRCS_NO_H}
+      display/GPUDisplayQuaternion.cxx
+      display/GPUDisplayInterpolation.cxx
+      display/GPUDisplayKeys.cxx)
+  set(HDRS_INSTALL
+      ${HDRS_INSTALL}
+      display/GPUDisplayExt.h
+      display/GPUDisplayShaders.h)
 else()
-  set(HDRS_INSTALL ${HDRS_INSTALL} display/GPUDisplay.h)
+  set(HDRS_INSTALL
+      ${HDRS_INSTALL}
+      display/GPUDisplay.h)
 endif()
 
 if(GPUCA_QA)
-  set(SRCS_NO_CINT ${SRCS_NO_CINT} qa/GPUQA.cxx)
+  set(SRCS_NO_CINT
+      ${SRCS_NO_CINT}
+      qa/GPUQA.cxx)
 else()
-  set(HDRS_INSTALL ${HDRS_INSTALL} qa/GPUQA.h)
+  set(HDRS_INSTALL
+      ${HDRS_INSTALL}
+      qa/GPUQA.h)
 endif()
 
 # Update HDR variables with files derrived from SRC variables
-string(REPLACE ".cxx" ".h" HDRS_CINT_ALIROOT "${SRCS}")
-string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS_NO_CINT}")
-set(HDRS_INSTALL ${HDRS_INSTALL} ${HDRS_TMP})
+string(
+  REPLACE ".cxx"
+          ".h"
+          HDRS_CINT_ALIROOT
+          "${SRCS}")
+string(
+  REPLACE ".cxx"
+          ".h"
+          HDRS_TMP
+          "${SRCS_NO_CINT}")
+set(HDRS_INSTALL
+    ${HDRS_INSTALL}
+    ${HDRS_TMP})
 unset(HDRS_TMP)
 
-# the internal copy of ImgGUI has been removed in commit 64a93f3f and there is
-# only the optional external package
-if (TARGET AliceO2::DebugGUI)
+# the internal copy of ImgGUI has been removed in commit 64a93f3f and there is only the optional external package
+if(TARGET
+   AliceO2::DebugGUI)
   set(DEBUGGUI_TARGET AliceO2::DebugGUI)
 endif()
 # Main CMake part for O2
-if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-  o2_add_library(GPUDataTypeHeaders
-                 TARGETVARNAME targetName
-                 PUBLIC_INCLUDE_DIRECTORIES .
-                                            Definitions
-                                            DataTypes
-                 PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                       O2::ReconstructionDataFormats
-                 PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
-                 SOURCES ${SRCS_O2_DATATYPES})
-target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
-                           GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
-                 
-
-  o2_add_library(${MODULE}
-                 TARGETVARNAME targetName
-                 PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                       O2::GPUUtils
-                                       O2::GPUDataTypeHeaders
-                                       O2::DataFormatsTPC
-                                       O2::DataFormatsTOF
-                                       O2::TPCBase
-                                       O2::TRDBase
-                                       O2::TOFBase
-                                       O2::ITSBase
-                                       O2::ITStracking
-                                       O2::TPCFastTransformation
-                                       O2::DetectorsRaw
-                                       ${DEBUGGUI_TARGET}
-                                       O2::Steer
-                 PUBLIC_INCLUDE_DIRECTORIES .
-                                            Definitions
-                                            DataTypes
-                                            Base
-                                            SliceTracker
-                                            TPCConvert
-                                            dEdx
-                                            ITS
-                                            TRDTracking
-                                            qa
-                                            display
-                                            Global
-                                            HLTHeaders
-                                            Interface
-                                            Merger
-                                            Refit
-                                            Debug
-                                            DataCompression
-                                            TPCClusterFinder
-                 SOURCES ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
-
-  target_include_directories(
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "O2")
+  o2_add_library(
+    GPUDataTypeHeaders
+    TARGETVARNAME targetName
+    PUBLIC_INCLUDE_DIRECTORIES
+      .
+      Definitions
+      DataTypes
+    PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                          O2::ReconstructionDataFormats
+    PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
+    SOURCES ${SRCS_O2_DATATYPES})
+  target_compile_definitions(
     ${targetName}
-    PRIVATE $<TARGET_PROPERTY:O2::Framework,INTERFACE_INCLUDE_DIRECTORIES>)
+    PRIVATE GPUCA_O2_LIB
+            GPUCA_TPC_GEOMETRY_O2
+            GPUCA_HAVE_O2HEADERS)
 
-  o2_target_root_dictionary(${MODULE}
-                            HEADERS ${HDRS_CINT_O2} ${HDRS_CINT_O2_ADDITIONAL}
-                            LINKDEF GPUTrackingLinkDef_O2.h)
+  o2_add_library(
+    ${MODULE}
+    TARGETVARNAME targetName
+    PUBLIC_LINK_LIBRARIES
+      O2::GPUCommon
+      O2::GPUUtils
+      O2::GPUDataTypeHeaders
+      O2::DataFormatsTPC
+      O2::DataFormatsTOF
+      O2::TPCBase
+      O2::TRDBase
+      O2::TOFBase
+      O2::ITSBase
+      O2::ITStracking
+      O2::TPCFastTransformation
+      O2::DetectorsRaw
+      ${DEBUGGUI_TARGET}
+      O2::Steer
+    PUBLIC_INCLUDE_DIRECTORIES
+      .
+      Definitions
+      DataTypes
+      Base
+      SliceTracker
+      TPCConvert
+      dEdx
+      ITS
+      TRDTracking
+      qa
+      display
+      Global
+      HLTHeaders
+      Interface
+      Merger
+      Refit
+      Debug
+      DataCompression
+      TPCClusterFinder
+    SOURCES ${SRCS}
+            ${SRCS_NO_CINT}
+            ${SRCS_NO_H})
 
-  target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
-                             GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
+  target_include_directories(${targetName} PRIVATE $<TARGET_PROPERTY:O2::Framework,INTERFACE_INCLUDE_DIRECTORIES>)
 
-  install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_CINT_O2} ${HDRS_INSTALL}
-          DESTINATION include/GPU)
-  install(DIRECTORY utils
-          DESTINATION include/GPU
-          FILES_MATCHING PATTERN *.h)
+  o2_target_root_dictionary(
+    ${MODULE}
+    HEADERS ${HDRS_CINT_O2}
+            ${HDRS_CINT_O2_ADDITIONAL}
+    LINKDEF GPUTrackingLinkDef_O2.h)
 
-  o2_add_test_root_macro(Standalone/tools/createGeo.C
-                         PUBLIC_LINK_LIBRARIES O2::GPUTracking
-                         LABELS its COMPILE_ONLY)
-  o2_add_test_root_macro(Standalone/tools/createLUT.C
-                         PUBLIC_LINK_LIBRARIES O2::GPUTracking
-                         LABELS its COMPILE_ONLY)
+  target_compile_definitions(
+    ${targetName}
+    PRIVATE GPUCA_O2_LIB
+            GPUCA_TPC_GEOMETRY_O2
+            GPUCA_HAVE_O2HEADERS)
+
+  install(
+    FILES ${HDRS_CINT_ALIROOT}
+          ${HDRS_CINT_O2}
+          ${HDRS_INSTALL}
+    DESTINATION include/GPU)
+  install(
+    DIRECTORY utils
+    DESTINATION include/GPU
+    FILES_MATCHING
+    PATTERN *.h)
+
+  o2_add_test_root_macro(
+    Standalone/tools/createGeo.C
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking
+    LABELS its
+    COMPILE_ONLY)
+  o2_add_test_root_macro(
+    Standalone/tools/createLUT.C
+    PUBLIC_LINK_LIBRARIES O2::GPUTracking
+    LABELS its
+    COMPILE_ONLY)
 
   add_subdirectory(Interface)
 endif()
 
 # Main CMake part for AliRoot
-if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
-  set(HDRS_CINT_ALIROOT ${HDRS_CINT_ALIROOT}
-                        DataTypes/GPUO2DataTypes.h)
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "ALIROOT")
+  set(HDRS_CINT_ALIROOT
+      ${HDRS_CINT_ALIROOT}
+      DataTypes/GPUO2DataTypes.h)
   add_definitions(-DGPUCA_ALIROOT_LIB)
-  include_directories(display qa)
-  include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
-  include_directories(${CMAKE_SOURCE_DIR}/HLT/BASE
-                      ${CMAKE_SOURCE_DIR}/HLT/BASE/util
-                      ${CMAKE_SOURCE_DIR}/HLT/TPCLib
-                      ${CMAKE_SOURCE_DIR}/HLT/TPCLib/transform
-                      ${CMAKE_SOURCE_DIR}/HLT/TPCLib/comp
-                      ${CMAKE_SOURCE_DIR}/HLT/TRD
-                      ${CMAKE_SOURCE_DIR}/TRD/TRDbase
-                      ${CMAKE_SOURCE_DIR}/STEER/STEERBase
-                      ${CMAKE_SOURCE_DIR}/STEER/STEER
-                      ${CMAKE_SOURCE_DIR}/STEER/ESD
-                      ${CMAKE_SOURCE_DIR}/STEER/CDB
-                      ${CMAKE_SOURCE_DIR}/TPC/TPCbase
-                      ${CMAKE_SOURCE_DIR}/TPC/TPCcalib
-                      ${CMAKE_SOURCE_DIR}/TPC/TPCrec
-                      ${CMAKE_SOURCE_DIR}/GPU/Common
-                      ${CMAKE_SOURCE_DIR}/GPU/Utils
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Debug
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Definitions
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/DataTypes
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Global
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/utils
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/hip
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl-common
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl2
-                      ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation)
+  include_directories(
+    display
+    qa)
+  include_directories(
+    SYSTEM
+    ${ROOT_INCLUDE_DIR})
+  include_directories(
+    ${CMAKE_SOURCE_DIR}/HLT/BASE
+    ${CMAKE_SOURCE_DIR}/HLT/BASE/util
+    ${CMAKE_SOURCE_DIR}/HLT/TPCLib
+    ${CMAKE_SOURCE_DIR}/HLT/TPCLib/transform
+    ${CMAKE_SOURCE_DIR}/HLT/TPCLib/comp
+    ${CMAKE_SOURCE_DIR}/HLT/TRD
+    ${CMAKE_SOURCE_DIR}/TRD/TRDbase
+    ${CMAKE_SOURCE_DIR}/STEER/STEERBase
+    ${CMAKE_SOURCE_DIR}/STEER/STEER
+    ${CMAKE_SOURCE_DIR}/STEER/ESD
+    ${CMAKE_SOURCE_DIR}/STEER/CDB
+    ${CMAKE_SOURCE_DIR}/TPC/TPCbase
+    ${CMAKE_SOURCE_DIR}/TPC/TPCcalib
+    ${CMAKE_SOURCE_DIR}/TPC/TPCrec
+    ${CMAKE_SOURCE_DIR}/GPU/Common
+    ${CMAKE_SOURCE_DIR}/GPU/Utils
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Debug
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Definitions
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/DataTypes
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Global
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/utils
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/hip
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl-common
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl
+    ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl2
+    ${CMAKE_SOURCE_DIR}/GPU/TPCFastTransformation)
   alice_usevc()
 
   # Generate the dictionary
-  get_directory_property(incdirs INCLUDE_DIRECTORIES)
-  generate_dictionary_flat("Ali${MODULE}" "GPUTrackingLinkDef_AliRoot.h"
-                           "${HDRS_CINT_ALIROOT}" "${incdirs}")
+  get_directory_property(
+    incdirs
+    INCLUDE_DIRECTORIES)
+  generate_dictionary_flat(
+    "Ali${MODULE}"
+    "GPUTrackingLinkDef_AliRoot.h"
+    "${HDRS_CINT_ALIROOT}"
+    "${incdirs}")
 
   # Generate the ROOT map Dependecies
   set(LIBDEPS
@@ -405,54 +506,98 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
       TPCcalib
       TRDbase
       AliTPCFastTransformation)
-  generate_rootmap("Ali${MODULE}" "${LIBDEPS}"
-                   "${CMAKE_CURRENT_SOURCE_DIR}/GPUTrackingLinkDef_AliRoot.h")
+  generate_rootmap(
+    "Ali${MODULE}"
+    "${LIBDEPS}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/GPUTrackingLinkDef_AliRoot.h")
   # Don't pass Vc to root
-  set(LIBDEPS ${LIBDEPS} Vc)
+  set(LIBDEPS
+      ${LIBDEPS}
+      Vc)
 
   # Add a library to the project using the specified source files
-  add_library_tested(Ali${MODULE}
-                     SHARED
-                     ${SRCS}
-                     ${SRCS_NO_CINT}
-                     ${SRCS_NO_H}
-                     G__Ali${MODULE}.cxx)
-  target_link_libraries(Ali${MODULE} ${LIBDEPS})
+  add_library_tested(
+    Ali${MODULE}
+    SHARED
+    ${SRCS}
+    ${SRCS_NO_CINT}
+    ${SRCS_NO_H}
+    G__Ali${MODULE}.cxx)
+  target_link_libraries(
+    Ali${MODULE}
+    ${LIBDEPS})
 
   # Additional compilation flags
-  set_target_properties(Ali${MODULE} PROPERTIES COMPILE_FLAGS "")
+  set_target_properties(
+    Ali${MODULE}
+    PROPERTIES COMPILE_FLAGS
+               "")
 
   # System dependent: Modify the way the library is build
-  if(${CMAKE_SYSTEM} MATCHES Darwin)
-    set_target_properties(Ali${MODULE}
-                          PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
-  endif(${CMAKE_SYSTEM} MATCHES Darwin)
+  if(${CMAKE_SYSTEM}
+     MATCHES
+     Darwin)
+    set_target_properties(
+      Ali${MODULE}
+      PROPERTIES LINK_FLAGS
+                 "-undefined dynamic_lookup")
+  endif(
+    ${CMAKE_SYSTEM}
+    MATCHES
+    Darwin)
 
   # Installation
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
 
-  install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_INSTALL} DESTINATION include)
-  install(DIRECTORY utils
-          DESTINATION include
-          FILES_MATCHING PATTERN *.h)
+  install(
+    FILES ${HDRS_CINT_ALIROOT}
+          ${HDRS_INSTALL}
+    DESTINATION include)
+  install(
+    DIRECTORY utils
+    DESTINATION include
+    FILES_MATCHING
+    PATTERN *.h)
 
   set(targetName Ali${MODULE})
-  add_library(O2::${MODULE} ALIAS Ali${MODULE})
+  add_library(
+    O2::${MODULE}
+    ALIAS
+    Ali${MODULE})
 endif()
 
 # Main CMake part for Standalone
-if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  add_library(${MODULE} SHARED ${SRCS} ${SRCS_NO_CINT} ${SRCS_NO_H})
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "Standalone")
+  add_library(
+    ${MODULE}
+    SHARED
+    ${SRCS}
+    ${SRCS_NO_CINT}
+    ${SRCS_NO_H})
   set(targetName ${MODULE})
-  add_library(O2::${MODULE} ALIAS ${MODULE})
+  add_library(
+    O2::${MODULE}
+    ALIAS
+    ${MODULE})
 endif()
 
 if(GPUCA_EVENT_DISPLAY)
   message(STATUS "Building GPU Event Display")
   target_compile_definitions(${targetName} PRIVATE GPUCA_BUILD_EVENT_DISPLAY)
-  target_link_libraries(${targetName} PUBLIC ${GLFW_LIBRARIES} OpenGL::GL OpenGL::GLU)
-  if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-    target_compile_definitions(${targetName} PRIVATE GPUCA_DISPLAY_GL3W GPUCA_DISPLAY_OPENGL_CORE)
+  target_link_libraries(
+    ${targetName}
+    PUBLIC ${GLFW_LIBRARIES}
+           OpenGL::GL
+           OpenGL::GLU)
+  if(ALIGPU_BUILD_TYPE
+     STREQUAL
+     "O2")
+    target_compile_definitions(
+      ${targetName}
+      PRIVATE GPUCA_DISPLAY_GL3W
+              GPUCA_DISPLAY_OPENGL_CORE)
   else()
     target_link_libraries(${targetName} PUBLIC ${GLEW_LIBRARIES})
   endif()
@@ -485,8 +630,13 @@ if(HIP_ENABLED)
 endif()
 
 # Add CMake recipes for GPU Tracking librararies
-if(CUDA_ENABLED OR OPENCL1_ENABLED OR GPUCA_GPUCA_OPENCL2_ENABLED OR HIP_ENABLED)
-  if(CMAKE_SYSTEM_NAME MATCHES Darwin)
+if(CUDA_ENABLED
+   OR OPENCL1_ENABLED
+   OR GPUCA_GPUCA_OPENCL2_ENABLED
+   OR HIP_ENABLED)
+  if(CMAKE_SYSTEM_NAME
+     MATCHES
+     Darwin)
     message(WARNING "GPU Tracking disabled on MacOS")
   else()
     if(CUDA_ENABLED)
@@ -507,8 +657,19 @@ if(CUDA_ENABLED OR OPENCL1_ENABLED OR GPUCA_GPUCA_OPENCL2_ENABLED OR HIP_ENABLED
   endif()
 endif()
 
-if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR ALIGPU_BUILD_TYPE STREQUAL "Standalone")
-  if(NOT ${CMAKE_SYSTEM} MATCHES Darwin AND (NOT GPUCA_EVENT_DISPLAY OR (GLUT_FOUND AND GLEW_FOUND AND X11_FOUND)))
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "O2"
+   OR ALIGPU_BUILD_TYPE
+      STREQUAL
+      "Standalone")
+  if(NOT
+     ${CMAKE_SYSTEM}
+     MATCHES
+     Darwin
+     AND (NOT
+          GPUCA_EVENT_DISPLAY
+          OR (GLUT_FOUND AND GLEW_FOUND AND X11_FOUND)))
     add_subdirectory(Benchmark)
   endif()
 endif()

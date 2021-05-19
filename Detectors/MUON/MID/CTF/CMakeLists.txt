@@ -8,12 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MIDCTF
-               SOURCES src/CTFCoder.cxx src/CTFHelper.cxx
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsMID
-                                     O2::DetectorsBase
-                                     O2::CommonDataFormat
-				     O2::DetectorsCommonDataFormats
-                                     O2::rANS
-                                     ms_gsl::ms_gsl)
-
+o2_add_library(
+  MIDCTF
+  SOURCES src/CTFCoder.cxx
+          src/CTFHelper.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::DataFormatsMID
+    O2::DetectorsBase
+    O2::CommonDataFormat
+    O2::DetectorsCommonDataFormats
+    O2::rANS
+    ms_gsl::ms_gsl)

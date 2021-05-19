@@ -8,21 +8,23 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-#TODO Does the O2::GlobalTracking library need to be linked?
-o2_add_library(TPCInterpolationWorkflow
-               SOURCES src/TPCInterpolationSpec.cxx
-                       src/TPCResidualWriterSpec.cxx
-                       src/TrackInterpolationReaderSpec.cxx
-                       src/TrackInterpolationWorkflow.cxx
-               PUBLIC_LINK_LIBRARIES O2::GlobalTracking
-                                     O2::ITSWorkflow
-                                     O2::SpacePoints
-                                     O2::GlobalTrackingWorkflow
-                                     O2::TOFWorkflow
-                                     O2::Framework
-                                     )
+# TODO Does the O2::GlobalTracking library need to be linked?
+o2_add_library(
+  TPCInterpolationWorkflow
+  SOURCES src/TPCInterpolationSpec.cxx
+          src/TPCResidualWriterSpec.cxx
+          src/TrackInterpolationReaderSpec.cxx
+          src/TrackInterpolationWorkflow.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::GlobalTracking
+    O2::ITSWorkflow
+    O2::SpacePoints
+    O2::GlobalTrackingWorkflow
+    O2::TOFWorkflow
+    O2::Framework)
 
-o2_add_executable(scdcalib-interpolation-workflow
-                  COMPONENT_NAME tpc
-                  SOURCES src/tpc-interpolation-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TPCInterpolationWorkflow)
+o2_add_executable(
+  scdcalib-interpolation-workflow
+  COMPONENT_NAME tpc
+  SOURCES src/tpc-interpolation-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::TPCInterpolationWorkflow)

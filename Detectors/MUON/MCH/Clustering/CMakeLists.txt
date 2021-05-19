@@ -8,8 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MCHClustering
-               SOURCES src/ClusterOriginal.cxx
-                       src/ClusterFinderOriginal.cxx
-                       src/MathiesonOriginal.cxx
-               PUBLIC_LINK_LIBRARIES O2::MCHMappingInterface O2::MCHBase O2::MCHPreClustering O2::Framework)
+o2_add_library(
+  MCHClustering
+  SOURCES src/ClusterOriginal.cxx
+          src/ClusterFinderOriginal.cxx
+          src/MathiesonOriginal.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::MCHMappingInterface
+    O2::MCHBase
+    O2::MCHPreClustering
+    O2::Framework)

@@ -8,11 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(GlobalTrackingWorkflowReaders
-               SOURCES src/TrackCosmicsReaderSpec.cxx
-                       src/SecondaryVertexReaderSpec.cxx
-                       src/PrimaryVertexReaderSpec.cxx
-                       src/TrackTPCITSReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                     O2::GlobalTracking
-                                     O2::SimulationDataFormat)
+o2_add_library(
+  GlobalTrackingWorkflowReaders
+  SOURCES src/TrackCosmicsReaderSpec.cxx
+          src/SecondaryVertexReaderSpec.cxx
+          src/PrimaryVertexReaderSpec.cxx
+          src/TrackTPCITSReaderSpec.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::ReconstructionDataFormats
+    O2::GlobalTracking
+    O2::SimulationDataFormat)

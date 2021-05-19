@@ -9,21 +9,17 @@
 # submit itself to any jurisdiction.
 
 #
-# Note that the BUILD_SIMULATION option governs what to do with the simulation
-# parts of the repository, depending on whether or not the MC simulation
-# packages (pythia, geant, etc...) needed for those parts are available or not.
+# Note that the BUILD_SIMULATION option governs what to do with the simulation parts of the repository, depending on
+# whether or not the MC simulation packages (pythia, geant, etc...) needed for those parts are available or not.
 #
-# If BUILD_SIMULATION is specified on the command line (using -D), or set in the
-# cache, then it is a hard requirement :
+# If BUILD_SIMULATION is specified on the command line (using -D), or set in the cache, then it is a hard requirement :
 #
 # * BUILD_SIMULATION=ON and MCpackages found => BUILD_SIMULATION=ON
 # * BUILD_SIMULATION=ON and MCpackages not found => FAILURE
-# * BUILD_SIMULATION=OFF => BUILD_SIMULATION=OFF (regardless of MCpackages found
-#   or not)
+# * BUILD_SIMULATION=OFF => BUILD_SIMULATION=OFF (regardless of MCpackages found or not)
 #
-# If on the other hand BUILD_SIMULATION is NOT specified on the command line
-# then simulation is built if MCpackages are available and the default value for
-# build simulation is set to ON
+# If on the other hand BUILD_SIMULATION is NOT specified on the command line then simulation is built if MCpackages are
+# available and the default value for build simulation is set to ON
 #
 # * MCpackages found => BUILD_SIMULATION=BUILD_SIMULATION_DEFAULT
 # * MCpackages not found => BUILD_SIMULATION=OFF
@@ -32,48 +28,75 @@
 include_guard()
 
 set(mcPackageRequirement OPTIONAL)
-if(DEFINED BUILD_SIMULATION AND BUILD_SIMULATION)
+if(DEFINED
+   BUILD_SIMULATION
+   AND BUILD_SIMULATION)
   set(mcPackageRequirement REQUIRED)
 endif()
 
 # MC specific packages
-find_package(pythia MODULE)
-set_package_properties(pythia
-                       PROPERTIES
-                       TYPE ${mcPackageRequirement} DESCRIPTION
-                            "the Pythia8 generator")
-find_package(pythia6 MODULE)
-set_package_properties(pythia6
-                       PROPERTIES
-                       TYPE ${mcPackageRequirement} DESCRIPTION
-                            "the Pythia6 legacy generator")
-find_package(Geant3 MODULE)
-set_package_properties(Geant3
-                       PROPERTIES
-                       TYPE ${mcPackageRequirement} DESCRIPTION
-                            "the legacy but not slow MC transport engine")
+find_package(
+  pythia
+  MODULE)
+set_package_properties(
+  pythia
+  PROPERTIES
+  TYPE ${mcPackageRequirement}
+       DESCRIPTION
+       "the Pythia8 generator")
+find_package(
+  pythia6
+  MODULE)
+set_package_properties(
+  pythia6
+  PROPERTIES
+  TYPE ${mcPackageRequirement}
+       DESCRIPTION
+       "the Pythia6 legacy generator")
+find_package(
+  Geant3
+  MODULE)
+set_package_properties(
+  Geant3
+  PROPERTIES
+  TYPE ${mcPackageRequirement}
+       DESCRIPTION
+       "the legacy but not slow MC transport engine")
 
-find_package(Geant4 MODULE)
-set_package_properties(Geant4
-                       PROPERTIES
-                       TYPE ${mcPackageRequirement} DESCRIPTION
-                            "more recent and more complete MC transport engine")
+find_package(
+  Geant4
+  MODULE)
+set_package_properties(
+  Geant4
+  PROPERTIES
+  TYPE ${mcPackageRequirement}
+       DESCRIPTION
+       "more recent and more complete MC transport engine")
 
-
-find_package(Geant4VMC MODULE)
+find_package(
+  Geant4VMC
+  MODULE)
 set_package_properties(Geant4VMC PROPERTIES TYPE ${mcPackageRequirement})
 
-find_package(FlukaVMC MODULE)
+find_package(
+  FlukaVMC
+  MODULE)
 set_package_properties(FlukaVMC PROPERTIES TYPE OPTIONAL)
 
-find_package(VGM MODULE)
+find_package(
+  VGM
+  MODULE)
 set_package_properties(VGM PROPERTIES TYPE ${mcPackageRequirement})
 
-find_package(HepMC3 MODULE)
-set_package_properties(HepMC3
-		       PROPERTIES
-		       TYPE OPTIONAL DESCRIPTION
-		       "the HepMC3 event record package")
+find_package(
+  HepMC3
+  MODULE)
+set_package_properties(
+  HepMC3
+  PROPERTIES
+  TYPE OPTIONAL
+       DESCRIPTION
+       "the HepMC3 event record package")
 
 set(doBuildSimulation OFF)
 
@@ -87,15 +110,27 @@ if(pythia_FOUND
   set(doBuildSimulation ON)
 endif()
 
-if(DEFINED BUILD_SIMULATION AND BUILD_SIMULATION AND NOT doBuildSimulation)
+if(DEFINED
+   BUILD_SIMULATION
+   AND BUILD_SIMULATION
+   AND NOT
+       doBuildSimulation)
   return()
 endif()
 
-if(NOT DEFINED BUILD_SIMULATION)
-  if(NOT BUILD_SIMULATION_DEFAULT)
-    option(BUILD_SIMULATION "Build simulation related parts" FALSE)
+if(NOT
+   DEFINED
+   BUILD_SIMULATION)
+  if(NOT
+     BUILD_SIMULATION_DEFAULT)
+    option(
+      BUILD_SIMULATION
+      "Build simulation related parts"
+      FALSE)
   else()
-    option(BUILD_SIMULATION "Build simulation related parts"
-           ${doBuildSimulation})
+    option(
+      BUILD_SIMULATION
+      "Build simulation related parts"
+      ${doBuildSimulation})
   endif()
 endif()

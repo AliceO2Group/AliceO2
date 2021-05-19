@@ -8,6 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(Ex1
-               SOURCES src/A.cxx src/B.cxx
-               PUBLIC_LINK_LIBRARIES FairMQ::FairMQ)
+o2_add_library(
+  Ex1
+  SOURCES src/A.cxx
+          src/B.cxx
+  PUBLIC_LINK_LIBRARIES FairMQ::FairMQ)

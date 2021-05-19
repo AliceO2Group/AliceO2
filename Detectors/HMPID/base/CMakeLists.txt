@@ -8,12 +8,16 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(HMPIDBase
-               SOURCES src/Param.cxx src/Geo.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
-                                     O2::SimulationDataFormat
-                                     ROOT::Physics)
+o2_add_library(
+  HMPIDBase
+  SOURCES src/Param.cxx
+          src/Geo.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CommonDataFormat
+    O2::SimulationDataFormat
+    ROOT::Physics)
 
-o2_target_root_dictionary(HMPIDBase
-                          HEADERS include/HMPIDBase/Param.h
-                                  include/HMPIDBase/Geo.h)
+o2_target_root_dictionary(
+  HMPIDBase
+  HEADERS include/HMPIDBase/Param.h
+          include/HMPIDBase/Geo.h)

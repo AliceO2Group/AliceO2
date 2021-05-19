@@ -8,11 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(GPUWorkflowHelper
-               SOURCES src/GPUWorkflowHelper.cxx
-               TARGETVARNAME targetName
-               PUBLIC_LINK_LIBRARIES O2::Framework
-                                     O2::DataFormatsGlobalTracking
-                                     O2::GPUDataTypeHeaders
-                                     O2::GPUO2Interface
-                                     O2::ITStracking)
+o2_add_library(
+  GPUWorkflowHelper
+  SOURCES src/GPUWorkflowHelper.cxx
+  TARGETVARNAME targetName
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::DataFormatsGlobalTracking
+    O2::GPUDataTypeHeaders
+    O2::GPUO2Interface
+    O2::ITStracking)

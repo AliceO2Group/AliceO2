@@ -1,8 +1,8 @@
-
 o2_add_library(
   DCStestWorkflow
   SOURCES src/DCSRandomDataGeneratorSpec.cxx
-  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::Framework)
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                        O2::Framework)
 
 o2_add_executable(
   data-workflow
@@ -27,4 +27,3 @@ o2_add_executable(
   COMPONENT_NAME dcs
   SOURCES src/dcs-data-client-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
-

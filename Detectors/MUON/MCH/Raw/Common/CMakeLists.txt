@@ -8,12 +8,19 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MCHRawCommon
-        SOURCES src/SampaHeader.cxx src/SampaCluster.cxx
-        PUBLIC_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl Boost::boost O2::Headers O2::CommonConstants
-        O2::DetectorsRaw
-        PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
+o2_add_library(
+  MCHRawCommon
+  SOURCES src/SampaHeader.cxx
+          src/SampaCluster.cxx
+  PUBLIC_LINK_LIBRARIES
+    fmt::fmt
+    ms_gsl::ms_gsl
+    Boost::boost
+    O2::Headers
+    O2::CommonConstants
+    O2::DetectorsRaw
+  PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
 if(BUILD_TESTING)
-        add_subdirectory(test)
+  add_subdirectory(test)
 endif()

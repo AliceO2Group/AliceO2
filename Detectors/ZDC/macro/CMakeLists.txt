@@ -8,15 +8,23 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test_root_macro(CreateSimCondition.C
-                       PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::ZDCSimulation
-                                             O2::SimulationDataFormat O2::CCDB
-                       LABELS zdc)
+o2_add_test_root_macro(
+  CreateSimCondition.C
+  PUBLIC_LINK_LIBRARIES
+    O2::ZDCBase
+    O2::ZDCSimulation
+    O2::SimulationDataFormat
+    O2::CCDB
+  LABELS zdc)
 
-o2_add_test_root_macro(CreateModuleConfig.C
-                       PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::CCDB
-                       LABELS zdc)
+o2_add_test_root_macro(
+  CreateModuleConfig.C
+  PUBLIC_LINK_LIBRARIES O2::ZDCBase
+                        O2::CCDB
+  LABELS zdc)
 
-o2_add_test_root_macro(readZDCDigits.C
-                       PUBLIC_LINK_LIBRARIES O2::ZDCSimulation O2::CCDB
-                       LABELS zdc)
+o2_add_test_root_macro(
+  readZDCDigits.C
+  PUBLIC_LINK_LIBRARIES O2::ZDCSimulation
+                        O2::CCDB
+  LABELS zdc)

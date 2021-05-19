@@ -8,30 +8,36 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DataFormatsQualityControl
-               SOURCES src/FlagReasons.cxx
-                       src/TimeRangeFlag.cxx
-                       src/TimeRangeFlagCollection.cxx
-  PUBLIC_LINK_LIBRARIES O2::Headers
-                        O2::FrameworkLogger
-                        O2::DetectorsCommonDataFormats)
+o2_add_library(
+  DataFormatsQualityControl
+  SOURCES src/FlagReasons.cxx
+          src/TimeRangeFlag.cxx
+          src/TimeRangeFlagCollection.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Headers
+    O2::FrameworkLogger
+    O2::DetectorsCommonDataFormats)
 
-o2_target_root_dictionary(DataFormatsQualityControl
-                          HEADERS include/DataFormatsQualityControl/FlagReasons.h
-                                  include/DataFormatsQualityControl/TimeRangeFlag.h
-                                  include/DataFormatsQualityControl/TimeRangeFlagCollection.h)
+o2_target_root_dictionary(
+  DataFormatsQualityControl
+  HEADERS include/DataFormatsQualityControl/FlagReasons.h
+          include/DataFormatsQualityControl/TimeRangeFlag.h
+          include/DataFormatsQualityControl/TimeRangeFlagCollection.h)
 
-o2_add_test(FlagReasons
+o2_add_test(
+  FlagReasons
   SOURCES test/testFlagReasons.cxx
   COMPONENT_NAME DataFormatsQualityControl
   PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl)
 
-o2_add_test(TimeRangeFlag
-            SOURCES test/testTimeRangeFlag.cxx
-            COMPONENT_NAME DataFormatsQualityControl
-            PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl)
+o2_add_test(
+  TimeRangeFlag
+  SOURCES test/testTimeRangeFlag.cxx
+  COMPONENT_NAME DataFormatsQualityControl
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl)
 
-o2_add_test(TimeRangeFlagCollection
-            SOURCES test/testTimeRangeFlagCollection.cxx
-            COMPONENT_NAME DataFormatsQualityControl
-            PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl)
+o2_add_test(
+  TimeRangeFlagCollection
+  SOURCES test/testTimeRangeFlagCollection.cxx
+  COMPONENT_NAME DataFormatsQualityControl
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsQualityControl)

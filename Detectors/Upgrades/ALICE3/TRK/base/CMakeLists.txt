@@ -8,11 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(TRKBase
-               SOURCES src/MisalignmentParameter.cxx
-                       src/GeometryTGeo.cxx 
-               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTBase)
+o2_add_library(
+  TRKBase
+  SOURCES src/MisalignmentParameter.cxx
+          src/GeometryTGeo.cxx
+  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                        O2::ITSMFTBase)
 
-o2_target_root_dictionary(TRKBase
-                          HEADERS include/TRKBase/GeometryTGeo.h
-                                  include/TRKBase/MisalignmentParameter.h)
+o2_target_root_dictionary(
+  TRKBase
+  HEADERS include/TRKBase/GeometryTGeo.h
+          include/TRKBase/MisalignmentParameter.h)

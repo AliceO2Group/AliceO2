@@ -8,34 +8,36 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(ITSMFTReconstruction
-               TARGETVARNAME targetName
-               SOURCES src/ChipMappingITS.cxx
-                       src/ChipMappingMFT.cxx
-                       src/DigitPixelReader.cxx
-                       src/Clusterer.cxx
-                       src/ClustererParam.cxx
-                       src/PixelData.cxx
-                       src/BuildTopologyDictionary.cxx
-                       src/LookUp.cxx
-                       src/TopologyFastSimulation.cxx
-                       src/AlpideCoder.cxx
-                       src/PayLoadCont.cxx
-                       src/GBTWord.cxx
-                       src/RUInfo.cxx
-                       src/GBTLink.cxx
-                       src/RUDecodeData.cxx
-                       src/RawPixelDecoder.cxx
-                       src/CTFCoder.cxx
-                       src/DecodingStat.cxx
-               PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
-                                     O2::CommonDataFormat
-                                     O2::DetectorsRaw
-                                     O2::SimulationDataFormat 
-                                     O2::DataFormatsITSMFT
-                                     O2::DPLUtils
-                                     O2::rANS
-                                     O2::Headers)
+o2_add_library(
+  ITSMFTReconstruction
+  TARGETVARNAME targetName
+  SOURCES src/ChipMappingITS.cxx
+          src/ChipMappingMFT.cxx
+          src/DigitPixelReader.cxx
+          src/Clusterer.cxx
+          src/ClustererParam.cxx
+          src/PixelData.cxx
+          src/BuildTopologyDictionary.cxx
+          src/LookUp.cxx
+          src/TopologyFastSimulation.cxx
+          src/AlpideCoder.cxx
+          src/PayLoadCont.cxx
+          src/GBTWord.cxx
+          src/RUInfo.cxx
+          src/GBTLink.cxx
+          src/RUDecodeData.cxx
+          src/RawPixelDecoder.cxx
+          src/CTFCoder.cxx
+          src/DecodingStat.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::ITSMFTBase
+    O2::CommonDataFormat
+    O2::DetectorsRaw
+    O2::SimulationDataFormat
+    O2::DataFormatsITSMFT
+    O2::DPLUtils
+    O2::rANS
+    O2::Headers)
 
 o2_target_root_dictionary(
   ITSMFTReconstruction
@@ -59,8 +61,7 @@ o2_target_root_dictionary(
           include/ITSMFTReconstruction/DecodingStat.h
           include/ITSMFTReconstruction/RUInfo.h)
 
-if (OpenMP_CXX_FOUND)
-    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
-    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+if(OpenMP_CXX_FOUND)
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
-  

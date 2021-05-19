@@ -28,15 +28,13 @@ o2_add_library(
     O2::TOFWorkflow
     O2::TPCWorkflow
     O2::CCDB
-    O2::MathUtils
-)
+    O2::MathUtils)
 
 o2_add_executable(
   workflow
   COMPONENT_NAME aod-producer
   SOURCES src/aod-producer-workflow.cxx
-  PUBLIC_LINK_LIBRARIES O2::AODProducerWorkflow
-)
+  PUBLIC_LINK_LIBRARIES O2::AODProducerWorkflow)
 
 o2_add_executable(
   standalone-aod-producer
@@ -58,5 +56,4 @@ o2_add_executable(
     O2::SimConfig
     O2::DataFormatsFT0
     O2::AnalysisDataModel
-    O2::Steer
-)
+    O2::Steer)

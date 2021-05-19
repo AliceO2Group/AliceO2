@@ -8,13 +8,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(FDDReconstruction
-               SOURCES src/Reconstructor.cxx
-	       	       src/ReadRaw.cxx
-                       src/CTFCoder.cxx
-               PUBLIC_LINK_LIBRARIES O2::FDDBase
-	       			     O2::DataFormatsFDD
-	       			     O2::DetectorsRaw)
+o2_add_library(
+  FDDReconstruction
+  SOURCES src/Reconstructor.cxx
+          src/ReadRaw.cxx
+          src/CTFCoder.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::FDDBase
+    O2::DataFormatsFDD
+    O2::DetectorsRaw)
 
 o2_target_root_dictionary(
   FDDReconstruction

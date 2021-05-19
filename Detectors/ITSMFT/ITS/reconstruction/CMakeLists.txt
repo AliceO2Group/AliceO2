@@ -10,10 +10,16 @@
 
 o2_add_library(
   ITSReconstruction
-  SOURCES src/ClustererTask.cxx src/CookedTracker.cxx src/RecoGeomHelper.cxx
-          src/FastMultEstConfig.cxx src/FastMultEst.cxx
-  PUBLIC_LINK_LIBRARIES O2::ITSBase O2::ITSMFTReconstruction O2::DataFormatsITS
-                        O2::CommonUtils)
+  SOURCES src/ClustererTask.cxx
+          src/CookedTracker.cxx
+          src/RecoGeomHelper.cxx
+          src/FastMultEstConfig.cxx
+          src/FastMultEst.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::ITSBase
+    O2::ITSMFTReconstruction
+    O2::DataFormatsITS
+    O2::CommonUtils)
 
 o2_target_root_dictionary(
   ITSReconstruction
@@ -21,5 +27,4 @@ o2_target_root_dictionary(
           include/ITSReconstruction/CookedTracker.h
           include/ITSReconstruction/RecoGeomHelper.h
           include/ITSReconstruction/FastMultEst.h
-          include/ITSReconstruction/FastMultEstConfig.h
-          )
+          include/ITSReconstruction/FastMultEstConfig.h)

@@ -8,21 +8,24 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DetectorsCommonDataFormats
-               SOURCES src/DetID.cxx src/AlignParam.cxx src/DetMatrixCache.cxx
-                       src/NameConf.cxx
-                       src/EncodedBlocks.cxx
-                       src/CTFHeader.cxx
-               PUBLIC_LINK_LIBRARIES
-               ROOT::Core
-               ROOT::Geom
-               O2::GPUCommon
-               O2::GPUUtils
-               O2::MathUtils
-               O2::FrameworkLogger
-               O2::Headers
-               O2::rANS
-               O2::CommonUtils)
+o2_add_library(
+  DetectorsCommonDataFormats
+  SOURCES src/DetID.cxx
+          src/AlignParam.cxx
+          src/DetMatrixCache.cxx
+          src/NameConf.cxx
+          src/EncodedBlocks.cxx
+          src/CTFHeader.cxx
+  PUBLIC_LINK_LIBRARIES
+    ROOT::Core
+    ROOT::Geom
+    O2::GPUCommon
+    O2::GPUUtils
+    O2::MathUtils
+    O2::FrameworkLogger
+    O2::Headers
+    O2::rANS
+    O2::CommonUtils)
 
 o2_target_root_dictionary(
   DetectorsCommonDataFormats
@@ -34,8 +37,9 @@ o2_target_root_dictionary(
           include/DetectorsCommonDataFormats/CTFHeader.h
           include/DetectorsCommonDataFormats/DetMatrixCache.h)
 
-o2_add_test(DetID
-            SOURCES test/testDetID.cxx
-            PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
-            COMPONENT_NAME DetectorsCommonDataFormats
-            LABELS dataformats)
+o2_add_test(
+  DetID
+  SOURCES test/testDetID.cxx
+  PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
+  COMPONENT_NAME DetectorsCommonDataFormats
+  LABELS dataformats)

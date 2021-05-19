@@ -8,21 +8,23 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(HMPIDSimulation
-               SOURCES src/HMPIDDigitizer.cxx
-                       src/Detector.cxx 
-                       src/HmpidCoder2.cxx
-               PUBLIC_LINK_LIBRARIES O2::HMPIDBase
-                                     O2::SimulationDataFormat
-                                     O2::DataFormatsHMP
-                                     O2::DetectorsBase
-                                     O2::DetectorsRaw
-                                     ROOT::Physics)
+o2_add_library(
+  HMPIDSimulation
+  SOURCES src/HMPIDDigitizer.cxx
+          src/Detector.cxx
+          src/HmpidCoder2.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::HMPIDBase
+    O2::SimulationDataFormat
+    O2::DataFormatsHMP
+    O2::DetectorsBase
+    O2::DetectorsRaw
+    ROOT::Physics)
 
-o2_target_root_dictionary(HMPIDSimulation
-                          HEADERS include/HMPIDSimulation/HmpidCoder2.h
-                                  include/HMPIDSimulation/Detector.h
-                                  include/HMPIDSimulation/HMPIDDigitizer.h)
+o2_target_root_dictionary(
+  HMPIDSimulation
+  HEADERS include/HMPIDSimulation/HmpidCoder2.h
+          include/HMPIDSimulation/Detector.h
+          include/HMPIDSimulation/HMPIDDigitizer.h)
 
-
-o2_data_file(COPY data  DESTINATION Detectors/HMP/simulation)
+o2_data_file(COPY data DESTINATION Detectors/HMP/simulation)

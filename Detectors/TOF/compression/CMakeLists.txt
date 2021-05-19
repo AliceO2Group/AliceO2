@@ -8,34 +8,42 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(TOFCompression
-               SOURCES src/Compressor.cxx
-               	       src/CompressorTask.cxx
-               PUBLIC_LINK_LIBRARIES O2::TOFBase O2::Framework O2::Headers O2::DataFormatsTOF
-	                             O2::DetectorsRaw
-	       )
+o2_add_library(
+  TOFCompression
+  SOURCES src/Compressor.cxx
+          src/CompressorTask.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::TOFBase
+    O2::Framework
+    O2::Headers
+    O2::DataFormatsTOF
+    O2::DetectorsRaw)
 
-o2_add_executable(compressor
-                  COMPONENT_NAME tof
-                  SOURCES src/tof-compressor.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TOFCompression
-		  TARGETVARNAME tofcompressor
-		  )
+o2_add_executable(
+  compressor
+  COMPONENT_NAME tof
+  SOURCES src/tof-compressor.cxx
+  PUBLIC_LINK_LIBRARIES O2::TOFCompression
+  TARGETVARNAME tofcompressor)
 
-o2_add_executable(compressed-inspector
-                  COMPONENT_NAME tof
-                  SOURCES src/tof-compressed-inspector.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils
-		  )
+o2_add_executable(
+  compressed-inspector
+  COMPONENT_NAME tof
+  SOURCES src/tof-compressed-inspector.cxx
+  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)
 
-o2_add_executable(compressed-analysis
-                  COMPONENT_NAME tof
-                  SOURCES src/tof-compressed-analysis.cxx
-                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils
-		  )
+o2_add_executable(
+  compressed-analysis
+  COMPONENT_NAME tof
+  SOURCES src/tof-compressed-analysis.cxx
+  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)
 
-if(NOT APPLE)
+if(NOT
+   APPLE)
 
- set_property(TARGET ${tofcompressor} PROPERTY LINK_WHAT_YOU_USE ON)
+  set_property(
+    TARGET ${tofcompressor}
+    PROPERTY LINK_WHAT_YOU_USE
+             ON)
 
 endif()

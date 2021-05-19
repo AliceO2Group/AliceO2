@@ -8,6 +8,13 @@
 #granted to it by virtue of its status as an Intergovernmental Organization or
 #submit itself to any jurisdiction.
 
-o2_add_library(FDDRaw
-               SOURCES src/DataBlockFDD.cxx src/DigitBlockFDD.cxx src/RawReaderFDDBase.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers O2::DataFormatsFDD O2::FITRaw)
+o2_add_library(
+  FDDRaw
+  SOURCES src/DataBlockFDD.cxx
+          src/DigitBlockFDD.cxx
+          src/RawReaderFDDBase.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CommonDataFormat
+    O2::Headers
+    O2::DataFormatsFDD
+    O2::FITRaw)

@@ -7,27 +7,44 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
-find_path(JALIEN_ROOT_INCLUDE_DIR TJAlienFile.h PATH_SUFFIXES include
-          PATHS 
-           ${JALIEN_ROOT_ROOT})
+find_path(
+  JALIEN_ROOT_INCLUDE_DIR
+  TJAlienFile.h
+  PATH_SUFFIXES include
+  PATHS ${JALIEN_ROOT_ROOT})
 
-find_library(JAliEnRoot_LIB JAliEnROOT PATHS ${JALIEN_ROOT_ROOT}/lib)
+find_library(
+  JAliEnRoot_LIB
+  JAliEnROOT
+  PATHS ${JALIEN_ROOT_ROOT}/lib)
 
-if(NOT JALIEN_ROOT_INCLUDE_DIR)
+if(NOT
+   JALIEN_ROOT_INCLUDE_DIR)
   set(JAliEnROOT_FOUND FALSE)
   return()
 endif()
 
 set(JAliEnROOT_FOUND TRUE)
 
-if(NOT TARGET JAliEn::JAliEn)
-  get_filename_component(libdir ${JAliEnRoot_LIB} DIRECTORY)
-  add_library(JAliEn::JAliEn INTERFACE IMPORTED)
-  set_target_properties(JAliEn::JAliEn PROPERTIES 
-                        INTERFACE_INCLUDE_DIRECTORIES ${JALIEN_ROOT_INCLUDE_DIR}
-                        INTERFACE_LINK_LIBRARIES ${JAliEnRoot_LIB}
-                        INTERFACE_LINK_DIRECTORIES ${libdir}
-                        )
+if(NOT
+   TARGET
+   JAliEn::JAliEn)
+  get_filename_component(
+    libdir
+    ${JAliEnRoot_LIB}
+    DIRECTORY)
+  add_library(
+    JAliEn::JAliEn
+    INTERFACE
+    IMPORTED)
+  set_target_properties(
+    JAliEn::JAliEn
+    PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+               ${JALIEN_ROOT_INCLUDE_DIR}
+               INTERFACE_LINK_LIBRARIES
+               ${JAliEnRoot_LIB}
+               INTERFACE_LINK_DIRECTORIES
+               ${libdir})
 endif()
 
 mark_as_advanced(JALIEN_ROOT_INCLUDE_DIR)

@@ -8,26 +8,35 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# FIXME: this part should disappear when we merge all this new cmake stuff and
-# we change the o2.sh recipe accordingly.
+# FIXME: this part should disappear when we merge all this new cmake stuff and we change the o2.sh recipe accordingly.
 #
-# we unset most of the -D variables that were passed to cmake so our auto-
-# detection has a chance to work. Should not be needed in the long run if we use
-# the correct -D set from the beginning
+# we unset most of the -D variables that were passed to cmake so our auto- detection has a chance to work. Should not be
+# needed in the long run if we use the correct -D set from the beginning
 #
 
-function(o2_show_env var)
-  if(DEFINED ENV{${var}})
-    file(TO_CMAKE_PATH $ENV{${var}} path)
+function(
+  o2_show_env
+  var)
+  if(DEFINED
+     ENV{${var}})
+    file(
+      TO_CMAKE_PATH
+      $ENV{${var}}
+      path)
     message(STATUS "!!!")
     message(STATUS "!!! ${var} is : ")
-    foreach(v IN LISTS path)
+    foreach(
+      v
+      IN
+      LISTS path)
       message(STATUS "!!! - ${v}")
     endforeach()
   endif()
 endfunction()
 
-macro(o2_unset var)
+macro(
+  o2_unset
+  var)
   message(STATUS "!!! Unsetting ${var}=${${var}}")
   unset(${var})
 endmacro()
@@ -39,22 +48,21 @@ if(ALICEO2_MODULAR_BUILD)
   message(STATUS "!!!")
 
   #
-  # we use the presence of ALICEO2_MODULAR_BUILD as a signal that we are using
-  # the old recipe and we assume Common_O2_ROOT is defined and can be used to
-  # retrieve the ALIBUILD_BASEDIR
+  # we use the presence of ALICEO2_MODULAR_BUILD as a signal that we are using the old recipe and we assume
+  # Common_O2_ROOT is defined and can be used to retrieve the ALIBUILD_BASEDIR
   #
 
-  if(NOT Common_O2_ROOT)
+  if(NOT
+     Common_O2_ROOT)
     message(FATAL_ERROR "Don't know how to adapt (yet) to this situation")
   endif()
-  get_filename_component(ALIBUILD_BASEDIR ${Common_O2_ROOT}/../.. ABSOLUTE)
-  message(
-    STATUS
-      "!!! Used Common_O2_ROOT location to compute ALIBUILD_BASEDIR=${ALIBUILD_BASEDIR}"
-    )
+  get_filename_component(
+    ALIBUILD_BASEDIR
+    ${Common_O2_ROOT}/../..
+    ABSOLUTE)
+  message(STATUS "!!! Used Common_O2_ROOT location to compute ALIBUILD_BASEDIR=${ALIBUILD_BASEDIR}")
 
-  message(
-    STATUS "!!! Unsetting most of the -D options and detecting them instead")
+  message(STATUS "!!! Unsetting most of the -D options and detecting them instead")
   message(STATUS "!!!")
 
   set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)

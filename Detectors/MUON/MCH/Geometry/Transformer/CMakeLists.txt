@@ -10,13 +10,20 @@
 
 o2_add_library(
   MCHGeometryTransformer
-  SOURCES src/Transformations.cxx src/VolumePaths.cxx
-  PUBLIC_LINK_LIBRARIES ROOT::Geom O2::MathUtils ms_gsl::ms_gsl
-                        RapidJSON::RapidJSON)
+  SOURCES src/Transformations.cxx
+          src/VolumePaths.cxx
+  PUBLIC_LINK_LIBRARIES
+    ROOT::Geom
+    O2::MathUtils
+    ms_gsl::ms_gsl
+    RapidJSON::RapidJSON)
 
 o2_add_executable(
   convert-geometry
   SOURCES src/convert-geometry.cxx
-  PUBLIC_LINK_LIBRARIES ROOT::Geom ms_gsl::ms_gsl Boost::program_options
-                        O2::MCHGeometryTransformer
+  PUBLIC_LINK_LIBRARIES
+    ROOT::Geom
+    ms_gsl::ms_gsl
+    Boost::program_options
+    O2::MCHGeometryTransformer
   COMPONENT_NAME mch)

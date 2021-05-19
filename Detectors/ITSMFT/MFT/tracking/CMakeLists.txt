@@ -8,25 +8,28 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(MFTTracking
-               TARGETVARNAME targetName
-               SOURCES src/Tracker.cxx
-	               src/ROframe.cxx
-	               src/Cluster.cxx
-	               src/IOUtils.cxx
-                       src/TrackFitter.cxx
-                       src/MFTTrackingParam.cxx
-		       src/TrackerConfig.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonConstants
-                                     O2::DataFormatsITSMFT
-                                     O2::SimulationDataFormat
-                                     O2::MFTBase
-                                     O2::SimConfig
-                                     O2::DataFormatsMFT)
+o2_add_library(
+  MFTTracking
+  TARGETVARNAME targetName
+  SOURCES src/Tracker.cxx
+          src/ROframe.cxx
+          src/Cluster.cxx
+          src/IOUtils.cxx
+          src/TrackFitter.cxx
+          src/MFTTrackingParam.cxx
+          src/TrackerConfig.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CommonConstants
+    O2::DataFormatsITSMFT
+    O2::SimulationDataFormat
+    O2::MFTBase
+    O2::SimConfig
+    O2::DataFormatsMFT)
 
-o2_target_root_dictionary(MFTTracking
-                          HEADERS include/MFTTracking/TrackCA.h
-                           include/MFTTracking/TrackFitter.h
-                           include/MFTTracking/MFTTrackingParam.h
-			   include/MFTTracking/TrackerConfig.h
-                          LINKDEF src/MFTTrackingLinkDef.h)
+o2_target_root_dictionary(
+  MFTTracking
+  HEADERS include/MFTTracking/TrackCA.h
+          include/MFTTracking/TrackFitter.h
+          include/MFTTracking/MFTTrackingParam.h
+          include/MFTTracking/TrackerConfig.h
+  LINKDEF src/MFTTrackingLinkDef.h)

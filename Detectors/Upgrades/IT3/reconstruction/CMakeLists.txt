@@ -8,31 +8,30 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(ITS3Reconstruction
-               TARGETVARNAME targetName
-               SOURCES src/Clusterer.cxx
-                       src/TopologyDictionary.cxx
-
-               PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
-                                     O2::ITSMFTReconstruction
-                                     O2::ITS3Base
-                                     O2::CommonDataFormat
-                                     O2::DetectorsRaw
-                                     O2::SimulationDataFormat 
-                                     O2::DataFormatsITSMFT
-                                     O2::DataFormatsITS3
-                                     O2::DPLUtils
-                                     O2::rANS
-                                     O2::Headers)
+o2_add_library(
+  ITS3Reconstruction
+  TARGETVARNAME targetName
+  SOURCES src/Clusterer.cxx
+          src/TopologyDictionary.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::ITSMFTBase
+    O2::ITSMFTReconstruction
+    O2::ITS3Base
+    O2::CommonDataFormat
+    O2::DetectorsRaw
+    O2::SimulationDataFormat
+    O2::DataFormatsITSMFT
+    O2::DataFormatsITS3
+    O2::DPLUtils
+    O2::rANS
+    O2::Headers)
 
 o2_target_root_dictionary(
   ITS3Reconstruction
   HEADERS include/ITS3Reconstruction/Clusterer.h
-          include/ITS3Reconstruction/TopologyDictionary.h
-)
+          include/ITS3Reconstruction/TopologyDictionary.h)
 
-if (OpenMP_CXX_FOUND)
-    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
-    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+if(OpenMP_CXX_FOUND)
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
-  

@@ -8,27 +8,30 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DataFormatsTOF
-               SOURCES src/Cluster.cxx
-                       src/CalibInfoTOFshort.cxx
-                       src/CalibInfoTOF.cxx
-                       src/CalibLHCphaseTOF.cxx
-                       src/CalibTimeSlewingParamTOF.cxx
-                       src/CTF.cxx
-                       src/CalibInfoCluster.cxx
-                       src/CosmicInfo.cxx
-               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                     O2::GPUCommon
-                                     Boost::serialization)
+o2_add_library(
+  DataFormatsTOF
+  SOURCES src/Cluster.cxx
+          src/CalibInfoTOFshort.cxx
+          src/CalibInfoTOF.cxx
+          src/CalibLHCphaseTOF.cxx
+          src/CalibTimeSlewingParamTOF.cxx
+          src/CTF.cxx
+          src/CalibInfoCluster.cxx
+          src/CosmicInfo.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::ReconstructionDataFormats
+    O2::GPUCommon
+    Boost::serialization)
 
-o2_target_root_dictionary(DataFormatsTOF
-                          HEADERS include/DataFormatsTOF/Cluster.h
-                                  include/DataFormatsTOF/CalibInfoTOFshort.h
-                                  include/DataFormatsTOF/CalibInfoTOF.h
-                                  include/DataFormatsTOF/CalibLHCphaseTOF.h
-                                  include/DataFormatsTOF/CalibTimeSlewingParamTOF.h
-                                  include/DataFormatsTOF/RawDataFormat.h
-                                  include/DataFormatsTOF/CompressedDataFormat.h
-                                  include/DataFormatsTOF/CTF.h
-                                  include/DataFormatsTOF/CalibInfoCluster.h
-                                  include/DataFormatsTOF/CosmicInfo.h)
+o2_target_root_dictionary(
+  DataFormatsTOF
+  HEADERS include/DataFormatsTOF/Cluster.h
+          include/DataFormatsTOF/CalibInfoTOFshort.h
+          include/DataFormatsTOF/CalibInfoTOF.h
+          include/DataFormatsTOF/CalibLHCphaseTOF.h
+          include/DataFormatsTOF/CalibTimeSlewingParamTOF.h
+          include/DataFormatsTOF/RawDataFormat.h
+          include/DataFormatsTOF/CompressedDataFormat.h
+          include/DataFormatsTOF/CTF.h
+          include/DataFormatsTOF/CalibInfoCluster.h
+          include/DataFormatsTOF/CosmicInfo.h)

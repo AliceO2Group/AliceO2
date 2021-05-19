@@ -8,10 +8,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(CTPSimulation
+o2_add_library(
+  CTPSimulation
   SOURCES src/Digitizer.cxx
-  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Framework
-  O2::DataFormatsCTP
-  O2::Headers)
-o2_target_root_dictionary(CTPSimulation HEADERS
-  include/CTPSimulation/Digitizer.h)
+  PUBLIC_LINK_LIBRARIES
+    O2::SimulationDataFormat
+    O2::Framework
+    O2::DataFormatsCTP
+    O2::Headers)
+o2_target_root_dictionary(CTPSimulation HEADERS include/CTPSimulation/Digitizer.h)

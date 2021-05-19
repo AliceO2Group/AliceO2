@@ -10,27 +10,47 @@
 
 o2_add_header_only_library(ALICE3Analysis)
 
-o2_add_dpl_workflow(alice3-trackselection
-                    SOURCES src/alice3-trackselection.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(
+  alice3-trackselection
+  SOURCES src/alice3-trackselection.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::AnalysisDataModel
+    O2::AnalysisCore
+  COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(alice3-trackextension
-                    SOURCES src/alice3-trackextension.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(
+  alice3-trackextension
+  SOURCES src/alice3-trackextension.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::AnalysisDataModel
+    O2::AnalysisCore
+  COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(alice3-qa-multiplicity
-                    SOURCES src/alice3-qa-multiplicity.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(
+  alice3-qa-multiplicity
+  SOURCES src/alice3-qa-multiplicity.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::AnalysisDataModel
+    O2::AnalysisCore
+  COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(alice3-pid-rich-qa
-                    SOURCES src/pidRICHqa.cxx
-                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore O2::ALICE3Analysis
-                    COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(
+  alice3-pid-rich-qa
+  SOURCES src/pidRICHqa.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::AnalysisDataModel
+    O2::AnalysisCore
+    O2::ALICE3Analysis
+  COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(alice3-pid-tof
-                    SOURCES src/alice3-pidTOF.cxx
-                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore O2::ALICE3Analysis
-                    COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(
+  alice3-pid-tof
+  SOURCES src/alice3-pidTOF.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::AnalysisDataModel
+    O2::AnalysisCore
+    O2::ALICE3Analysis
+  COMPONENT_NAME Analysis)

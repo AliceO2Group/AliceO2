@@ -26,8 +26,12 @@ o2_add_library(
           src/PreClusterLabeler.cxx
           src/Stepper.cxx
           src/TrackLabeler.cxx
-  PUBLIC_LINK_LIBRARIES O2::MIDBase O2::CommonDataFormat O2::DetectorsBase
-                        O2::SimulationDataFormat O2::MIDClustering)
+  PUBLIC_LINK_LIBRARIES
+    O2::MIDBase
+    O2::CommonDataFormat
+    O2::DetectorsBase
+    O2::SimulationDataFormat
+    O2::MIDClustering)
 
 o2_target_root_dictionary(
   MIDSimulation
@@ -52,6 +56,9 @@ if(BUILD_TESTING)
 
   o2_add_test_root_macro(
     macros/drawMIDGeometry.C
-    PUBLIC_LINK_LIBRARIES FairRoot::Base O2::DetectorsPassive O2::MIDSimulation
+    PUBLIC_LINK_LIBRARIES
+      FairRoot::Base
+      O2::DetectorsPassive
+      O2::MIDSimulation
     LABELS "muon;mid")
 endif()

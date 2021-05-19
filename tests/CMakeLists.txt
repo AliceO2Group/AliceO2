@@ -10,7 +10,9 @@
 
 include_guard()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR})
+set(CMAKE_MODULE_PATH
+    ${CMAKE_MODULE_PATH}
+    ${CMAKE_CURRENT_LIST_DIR})
 
 include(O2SetupTesting)
 o2_setup_testing()

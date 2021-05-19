@@ -11,39 +11,63 @@
 set(MODULE GPUTrackingOpenCLCommon)
 
 set(SRCS GPUReconstructionOCL.cxx)
-set(HDRS GPUReconstructionOCL.h GPUReconstructionOCLInternals.h)
+set(HDRS
+    GPUReconstructionOCL.h
+    GPUReconstructionOCLInternals.h)
 
-if(ALIGPU_BUILD_TYPE STREQUAL "O2")
-  o2_add_library(${MODULE}
-                 SOURCES ${SRCS}
-                 PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}
-                 PUBLIC_LINK_LIBRARIES OpenCL::OpenCL O2::GPUTracking
-                 TARGETVARNAME targetName)
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "O2")
+  o2_add_library(
+    ${MODULE}
+    SOURCES ${SRCS}
+    PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}
+    PUBLIC_LINK_LIBRARIES OpenCL::OpenCL
+                          O2::GPUTracking
+    TARGETVARNAME targetName)
 
   target_compile_definitions(
-    ${targetName} PRIVATE GPUCA_GPULIBRARY=OCL
-    $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
-  # the compile_defitions are not propagated automatically on purpose (they are
-  # declared PRIVATE) so we are not leaking them outside of the GPU**
-  # directories
+    ${targetName}
+    PRIVATE GPUCA_GPULIBRARY=OCL
+            $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
+  # the compile_defitions are not propagated automatically on purpose (they are declared PRIVATE) so we are not leaking
+  # them outside of the GPU** directories
 
   install(FILES ${HDRS} DESTINATION include/GPU)
 endif()
 
-if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "ALIROOT")
   add_definitions(-DGPUCA_GPULIBRARY=OCL)
 
   # Generate the dictionary
-  get_directory_property(incdirs INCLUDE_DIRECTORIES)
-  generate_dictionary("Ali${MODULE}" "" "GPUReconstructionOCL.h" "${incdirs} .")
+  get_directory_property(
+    incdirs
+    INCLUDE_DIRECTORIES)
+  generate_dictionary(
+    "Ali${MODULE}"
+    ""
+    "GPUReconstructionOCL.h"
+    "${incdirs} .")
 
   # Generate the ROOT map
-  generate_rootmap("Ali${MODULE}" "" "")
+  generate_rootmap(
+    "Ali${MODULE}"
+    ""
+    "")
 
   # Add a library to the project using the specified source files
-  add_library_tested(Ali${MODULE} SHARED ${SRCS} G__Ali${MODULE}.cxx)
+  add_library_tested(
+    Ali${MODULE}
+    SHARED
+    ${SRCS}
+    G__Ali${MODULE}.cxx)
   # AMD OpenCL run-time and driver
-  target_link_libraries(Ali${MODULE} PUBLIC OpenCL AliGPUTracking)
+  target_link_libraries(
+    Ali${MODULE}
+    PUBLIC OpenCL
+           AliGPUTracking)
 
   # Installation
   install(TARGETS Ali${MODULE} ARCHIVE DESTINATION lib LIBRARY DESTINATION lib)
@@ -51,10 +75,18 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   install(FILES ${HDRS} DESTINATION include)
 endif()
 
-if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
+if(ALIGPU_BUILD_TYPE
+   STREQUAL
+   "Standalone")
   add_definitions(-DGPUCA_GPULIBRARY=OCL)
-  add_library(${MODULE} SHARED ${SRCS})
-  target_link_libraries(${MODULE} GPUTracking OpenCL)
+  add_library(
+    ${MODULE}
+    SHARED
+    ${SRCS})
+  target_link_libraries(
+    ${MODULE}
+    GPUTracking
+    OpenCL)
   target_include_directories(${MODULE} PUBLIC ${CMAKE_CURRENT_LIST_DIR})
   install(TARGETS ${MODULE})
 endif()

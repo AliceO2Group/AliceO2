@@ -8,11 +8,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DataFormatsMFT
-               SOURCES src/TrackMFT.cxx
-               PUBLIC_LINK_LIBRARIES O2::ReconstructionDataFormats
-                                     O2::MFTBase
-                                     O2::DataFormatsITSMFT)
+o2_add_library(
+  DataFormatsMFT
+  SOURCES src/TrackMFT.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::ReconstructionDataFormats
+    O2::MFTBase
+    O2::DataFormatsITSMFT)
 
-o2_target_root_dictionary(DataFormatsMFT
-                          HEADERS include/DataFormatsMFT/TrackMFT.h)
+o2_target_root_dictionary(DataFormatsMFT HEADERS include/DataFormatsMFT/TrackMFT.h)

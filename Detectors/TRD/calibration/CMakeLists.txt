@@ -8,10 +8,10 @@
 #granted to it by virtue of its status as an Intergovernmental Organization or
 #submit itself to any jurisdiction.
 
-o2_add_library(TRDCalibration
-               SOURCES src/CalibVDrift.cxx
-               PUBLIC_LINK_LIBRARIES O2::TRDBase
-                                     O2::DataFormatsTRD)
+o2_add_library(
+  TRDCalibration
+  SOURCES src/CalibVDrift.cxx
+  PUBLIC_LINK_LIBRARIES O2::TRDBase
+                        O2::DataFormatsTRD)
 
- o2_target_root_dictionary(TRDCalibration
-                           HEADERS include/TRDCalibration/CalibVDrift.h)
+o2_target_root_dictionary(TRDCalibration HEADERS include/TRDCalibration/CalibVDrift.h)

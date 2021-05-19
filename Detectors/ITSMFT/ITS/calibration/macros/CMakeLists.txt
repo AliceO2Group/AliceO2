@@ -8,13 +8,16 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test_root_macro(MakeNoiseMapFromDigits.C
-                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
-                                             O2::ITSMFTBase
-                                             O2::ITSBase)
+o2_add_test_root_macro(
+  MakeNoiseMapFromDigits.C
+  PUBLIC_LINK_LIBRARIES
+    O2::DataFormatsITSMFT
+    O2::ITSMFTBase
+    O2::ITSBase)
 
-o2_add_test_root_macro(MakeNoiseMapFromClusters.C
-                       PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
-                                             O2::ITSMFTBase
-                                             O2::ITSBase)
-
+o2_add_test_root_macro(
+  MakeNoiseMapFromClusters.C
+  PUBLIC_LINK_LIBRARIES
+    O2::DataFormatsITSMFT
+    O2::ITSMFTBase
+    O2::ITSBase)

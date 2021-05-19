@@ -8,22 +8,32 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(TOFBase
-               SOURCES src/Geo.cxx
-                       src/Digit.cxx
-                       src/CableLength.cxx
-                       src/Mapping.cxx
-                       src/Strip.cxx
-                       src/WindowFiller.cxx
-               PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base ms_gsl::ms_gsl
-                                     O2::DetectorsBase O2::CommonDataFormat O2::DetectorsRaw
-                                     O2::DataFormatsTOF)
+o2_add_library(
+  TOFBase
+  SOURCES src/Geo.cxx
+          src/Digit.cxx
+          src/CableLength.cxx
+          src/Mapping.cxx
+          src/Strip.cxx
+          src/WindowFiller.cxx
+  PUBLIC_LINK_LIBRARIES
+    Boost::serialization
+    FairRoot::Base
+    ms_gsl::ms_gsl
+    O2::DetectorsBase
+    O2::CommonDataFormat
+    O2::DetectorsRaw
+    O2::DataFormatsTOF)
 
-o2_target_root_dictionary(TOFBase
-                          HEADERS include/TOFBase/Geo.h include/TOFBase/Digit.h
-                                  include/TOFBase/Strip.h include/TOFBase/WindowFiller.h)
+o2_target_root_dictionary(
+  TOFBase
+  HEADERS include/TOFBase/Geo.h
+          include/TOFBase/Digit.h
+          include/TOFBase/Strip.h
+          include/TOFBase/WindowFiller.h)
 
-o2_add_test(TOFIndex
-            SOURCES test/testTOFIndex.cxx
-            COMPONENT_NAME TOF
-            PUBLIC_LINK_LIBRARIES O2::TOFBase)
+o2_add_test(
+  TOFIndex
+  SOURCES test/testTOFIndex.cxx
+  COMPONENT_NAME TOF
+  PUBLIC_LINK_LIBRARIES O2::TOFBase)

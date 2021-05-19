@@ -8,8 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DataFormatsCalibration
-               SOURCES src/MeanVertexObject.cxx)
+o2_add_library(DataFormatsCalibration SOURCES src/MeanVertexObject.cxx)
 
-o2_target_root_dictionary(DataFormatsCalibration
-                          HEADERS include/DataFormatsCalibration/MeanVertexObject.h)
+o2_target_root_dictionary(DataFormatsCalibration HEADERS include/DataFormatsCalibration/MeanVertexObject.h)

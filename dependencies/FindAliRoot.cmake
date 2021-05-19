@@ -13,12 +13,17 @@ set(AliRoot_FOUND FALSE)
 if(ALIROOT)
 
   # Check if AliRoot is really installed there
-  if(EXISTS ${ALIROOT}/bin/aliroot
-     AND EXISTS ${ALIROOT}/lib
-     AND EXISTS ${ALIROOT}/include)
+  if(EXISTS
+     ${ALIROOT}/bin/aliroot
+     AND EXISTS
+         ${ALIROOT}/lib
+     AND EXISTS
+         ${ALIROOT}/include)
 
     # TODO this is really not the way it should be done
-    include_directories(${ALIROOT}/include ${ALIROOT}/include/pythia)
+    include_directories(
+      ${ALIROOT}/include
+      ${ALIROOT}/include/pythia)
     # TODO neither is this
     link_directories(${ALIROOT}/lib)
 
@@ -33,11 +38,11 @@ if(ALIROOT)
   endif()
 endif(ALIROOT)
 
-if(NOT AliRoot_FOUND)
+if(NOT
+   AliRoot_FOUND)
   if(AliRoot_FIND_REQUIRED)
-    message(
-      FATAL_ERROR
-        "Please point to the AliRoot Core installation using -DALIROOT=<ALIROOT_CORE_INSTALL_DIR>"
-      )
+    message(FATAL_ERROR "Please point to the AliRoot Core installation using -DALIROOT=<ALIROOT_CORE_INSTALL_DIR>")
   endif(AliRoot_FIND_REQUIRED)
-endif(NOT AliRoot_FOUND)
+endif(
+  NOT
+  AliRoot_FOUND)

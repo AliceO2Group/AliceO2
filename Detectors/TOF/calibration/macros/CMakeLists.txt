@@ -10,14 +10,15 @@
 
 o2_add_test_root_macro(
   makeTOFCCDBEntryForDCS.C
-  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                        O2::CCDB)
 
 o2_add_test_root_macro(
   readTOFDCSentries.C
-  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS O2::CCDB)
+  PUBLIC_LINK_LIBRARIES O2::DetectorsDCS
+                        O2::CCDB)
 
 install(
   FILES makeTOFCCDBEntryForDCS.C
-  readTOFDCSentries.C
+        readTOFDCSentries.C
   DESTINATION share/macro/)
-

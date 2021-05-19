@@ -8,15 +8,16 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test_root_macro(CheckCCDBvalues.C
-                       PUBLIC_LINK_LIBRARIES O2::TRDBase
-                       LABELS trd)
+o2_add_test_root_macro(CheckCCDBvalues.C PUBLIC_LINK_LIBRARIES O2::TRDBase LABELS trd)
 
-o2_add_test_root_macro(CheckDigits.C
-                       PUBLIC_LINK_LIBRARIES O2::TRDBase
-                                             O2::DataFormatsTRD
-                       LABELS trd)
+o2_add_test_root_macro(
+  CheckDigits.C
+  PUBLIC_LINK_LIBRARIES O2::TRDBase
+                        O2::DataFormatsTRD
+  LABELS trd)
 
-o2_add_test_root_macro(CheckHits.C
-                       PUBLIC_LINK_LIBRARIES O2::TRDBase O2::TRDSimulation
-                       LABELS trd)
+o2_add_test_root_macro(
+  CheckHits.C
+  PUBLIC_LINK_LIBRARIES O2::TRDBase
+                        O2::TRDSimulation
+  LABELS trd)

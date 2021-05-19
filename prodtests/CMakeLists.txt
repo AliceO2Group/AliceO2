@@ -8,11 +8,24 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-
-install(PROGRAMS sim_performance_test.sh sim_challenge.sh check_embedding_pileup.sh produce_QEDhits.sh
-                 full_system_test.sh full_system_test_ci_extra_tests.sh
-        DESTINATION prodtests)
-install(DIRECTORY full-system-test
-        DESTINATION prodtests
-        PATTERN *
-        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ)
+install(
+  PROGRAMS sim_performance_test.sh
+           sim_challenge.sh
+           check_embedding_pileup.sh
+           produce_QEDhits.sh
+           full_system_test.sh
+           full_system_test_ci_extra_tests.sh
+  DESTINATION prodtests)
+install(
+  DIRECTORY full-system-test
+  DESTINATION prodtests
+  PATTERN
+    *
+    PERMISSIONS
+      OWNER_EXECUTE
+      OWNER_WRITE
+      OWNER_READ
+      GROUP_EXECUTE
+      GROUP_READ
+      WORLD_EXECUTE
+      WORLD_READ)

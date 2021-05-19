@@ -9,5 +9,3 @@
 # submit itself to any jurisdiction.
 
 o2_add_header_only_library(AnalysisTasksUtils)
-
-	    

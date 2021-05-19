@@ -8,15 +8,18 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test(Clusterizer
-            SOURCES testClusterizer.cxx
-            COMPONENT_NAME mid
-            PUBLIC_LINK_LIBRARIES O2::MIDClustering)
+o2_add_test(
+  Clusterizer
+  SOURCES testClusterizer.cxx
+  COMPONENT_NAME mid
+  PUBLIC_LINK_LIBRARIES O2::MIDClustering)
 
 if(benchmark_FOUND)
-  o2_add_executable(clusterizer
-                    SOURCES bench_Clusterizer.cxx
-                    IS_BENCHMARK
-                    PUBLIC_LINK_LIBRARIES O2::MIDClustering benchmark::benchmark
-                    COMPONENT_NAME mid)
+  o2_add_executable(
+    clusterizer
+    SOURCES bench_Clusterizer.cxx
+    IS_BENCHMARK
+    PUBLIC_LINK_LIBRARIES O2::MIDClustering
+                          benchmark::benchmark
+    COMPONENT_NAME mid)
 endif()

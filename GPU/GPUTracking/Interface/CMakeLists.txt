@@ -10,39 +10,52 @@
 
 set(MODULE GPUO2Interface)
 
-set(SRCS GPUO2Interface.cxx GPUO2InterfaceRefit.cxx GPUO2InterfaceQA.cxx GPUO2InterfaceConfiguration.cxx)
+set(SRCS
+    GPUO2Interface.cxx
+    GPUO2InterfaceRefit.cxx
+    GPUO2InterfaceQA.cxx
+    GPUO2InterfaceConfiguration.cxx)
 
 if(OPENGL_FOUND
    AND GLFW_FOUND
-   AND TARGET AliceO2::DebugGUI
+   AND TARGET
+       AliceO2::DebugGUI
    AND OPENGL_GLU_FOUND
-   AND NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin"
-)
-  set(SRCS ${SRCS} GPUO2InterfaceDisplay.cxx)
+   AND NOT
+       CMAKE_SYSTEM_NAME
+       STREQUAL
+       "Darwin")
+  set(SRCS
+      ${SRCS}
+      GPUO2InterfaceDisplay.cxx)
 endif()
 
-string(REPLACE ".cxx" ".h" HDRS_TMP "${SRCS}")
+string(
+  REPLACE ".cxx"
+          ".h"
+          HDRS_TMP
+          "${SRCS}")
 set(HDRS ${HDRS_TMP})
 
-o2_add_library(${MODULE}
-               SOURCES ${SRCS}
-               TARGETVARNAME targetName
-               PRIVATE_LINK_LIBRARIES O2::GPUTracking
-               PUBLIC_LINK_LIBRARIES O2::GPUCommon
-               PUBLIC_INCLUDE_DIRECTORIES ../Definitions
-                                          ../DataTypes
-                                          ../Interface
-                                          ../)
+o2_add_library(
+  ${MODULE}
+  SOURCES ${SRCS}
+  TARGETVARNAME targetName
+  PRIVATE_LINK_LIBRARIES O2::GPUTracking
+  PUBLIC_LINK_LIBRARIES O2::GPUCommon
+  PUBLIC_INCLUDE_DIRECTORIES
+    ../Definitions
+    ../DataTypes
+    ../Interface
+    ../)
 
-o2_target_root_dictionary(${MODULE}
-                          HEADERS ${HDRS}
-                          LINKDEF GPUO2InterfaceLinkDef.h)
+o2_target_root_dictionary(${MODULE} HEADERS ${HDRS} LINKDEF GPUO2InterfaceLinkDef.h)
 
-target_include_directories(${targetName}
-                           PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
-                                  $<INSTALL_INTERFACE:include/GPU>)
+target_include_directories(
+  ${targetName}
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+         $<INSTALL_INTERFACE:include/GPU>)
 
 target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>)
-
 
 install(FILES ${HDRS} DESTINATION include/GPU)

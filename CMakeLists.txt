@@ -12,9 +12,13 @@
 
 cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
-# it's important to specify accurately the list of languages. for instance C and
-# C++ as we _do_ have some C files to compile explicitely as C (e.g. gl3w.c)
-project(O2 LANGUAGES C CXX VERSION 1.2.0)
+# it's important to specify accurately the list of languages. for instance C and C++ as we _do_ have some C files to
+# compile explicitely as C (e.g. gl3w.c)
+project(
+  O2
+  LANGUAGES C
+            CXX
+  VERSION 1.2.0)
 
 include(CTest)
 
@@ -23,16 +27,29 @@ include(CTest)
 # Would better fit inside GPU/CMakeLists.txt, but include GPU/Common directly
 set(ALIGPU_BUILD_TYPE "O2")
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH
+    ${CMAKE_MODULE_PATH}
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set_property(GLOBAL PROPERTY REPORT_UNDEFINED_PROPERTIES)
 
 cmake_host_system_information(RESULT _totalmem QUERY TOTAL_PHYSICAL_MEMORY)
-math(EXPR _total_analysis_jobs "(${_totalmem}-4096)/10240")
-if(_total_analysis_jobs LESS_EQUAL 0)
+math(
+  EXPR
+  _total_analysis_jobs
+  "(${_totalmem}-4096)/10240")
+if(_total_analysis_jobs
+   LESS_EQUAL
+   0)
   set(_total_analysis_jobs 1)
 endif()
-set(ANALYSIS_COMPILE_POOL ${_total_analysis_jobs} CACHE STRING "How many parallel analysis compilation jobs")
-set_property(GLOBAL PROPERTY JOB_POOLS analysis=${ANALYSIS_COMPILE_POOL})
+set(ANALYSIS_COMPILE_POOL
+    ${_total_analysis_jobs}
+    CACHE STRING
+          "How many parallel analysis compilation jobs")
+set_property(
+  GLOBAL
+  PROPERTY JOB_POOLS
+           analysis=${ANALYSIS_COMPILE_POOL})
 
 include(O2BuildSanityChecks)
 o2_build_sanity_checks()
@@ -44,7 +61,7 @@ o2_check_cxx_features()
 include(O2DefineOptions)
 o2_define_options()
 # see if upgrade is enabled
-if (ENABLE_UPGRADES)
+if(ENABLE_UPGRADES)
   add_definitions(-DENABLE_UPGRADES)
 endif()
 
@@ -60,16 +77,15 @@ o2_define_rpath()
 include(dependencies/CMakeLists.txt)
 
 # This is needed because CI might not have X11 or Cocoa available
-if (DPL_TESTS_BATCH_MODE)
+if(DPL_TESTS_BATCH_MODE)
   set(DPL_WORKFLOW_TESTS_EXTRA_OPTIONS -b)
 endif()
 
-if (DPL_ENABLE_TRACING)
+if(DPL_ENABLE_TRACING)
   add_definitions(-DDPL_ENABLE_TRACING)
 endif()
 
-# include macros and functions that are used in the following subdirectories'
-# CMakeLists.txt
+# include macros and functions that are used in the following subdirectories' CMakeLists.txt
 include(O2AddExecutable)
 include(O2AddHeaderOnlyLibrary)
 include(O2AddLibrary)
@@ -96,7 +112,7 @@ add_subdirectory(Generators)
 add_subdirectory(Steer) # consider building this only for simulation ?
 add_subdirectory(prodtests)
 if(BUILD_ANALYSIS)
-add_subdirectory(Analysis)
+  add_subdirectory(Analysis)
 endif()
 add_subdirectory(scripts)
 
@@ -110,12 +126,16 @@ endif()
 
 add_subdirectory(config)
 
-add_custom_target(man ALL)
+add_custom_target(
+  man
+  ALL)
 o2_target_man_page(man NAME o2)
 o2_target_man_page(man NAME FairMQDevice)
 
 # Testing and packaging only needed if we are the top level directory
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+if(CMAKE_SOURCE_DIR
+   STREQUAL
+   CMAKE_CURRENT_SOURCE_DIR)
   # Documentation
   add_subdirectory(doc)
   if(BUILD_TESTING)

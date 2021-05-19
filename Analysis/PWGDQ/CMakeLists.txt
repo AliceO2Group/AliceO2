@@ -8,18 +8,23 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(PWGDQCore
-               SOURCES  src/VarManager.cxx
-                        src/HistogramManager.cxx
-                        src/AnalysisCut.cxx
-                        src/AnalysisCompositeCut.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::DetectorsVertexing)
+o2_add_library(
+  PWGDQCore
+  SOURCES src/VarManager.cxx
+          src/HistogramManager.cxx
+          src/AnalysisCut.cxx
+          src/AnalysisCompositeCut.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::AnalysisCore
+    O2::DetectorsVertexing)
 
-o2_target_root_dictionary(PWGDQCore
-                          HEADERS  include/PWGDQCore/AnalysisCut.h 
-                          include/PWGDQCore/AnalysisCompositeCut.h 
-                          include/PWGDQCore/VarManager.h 
-                          include/PWGDQCore/HistogramManager.h
-                          include/PWGDQCore/CutsLibrary.h 
-                          include/PWGDQCore/HistogramsLibrary.h
-                          LINKDEF src/PWGDQCoreLinkDef.h)
+o2_target_root_dictionary(
+  PWGDQCore
+  HEADERS include/PWGDQCore/AnalysisCut.h
+          include/PWGDQCore/AnalysisCompositeCut.h
+          include/PWGDQCore/VarManager.h
+          include/PWGDQCore/HistogramManager.h
+          include/PWGDQCore/CutsLibrary.h
+          include/PWGDQCore/HistogramsLibrary.h
+  LINKDEF src/PWGDQCoreLinkDef.h)

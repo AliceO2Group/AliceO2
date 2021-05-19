@@ -8,48 +8,53 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DetectorsVertexing
-               TARGETVARNAME targetName
-               SOURCES src/DCAFitterN.cxx
-                       src/PVertexer.cxx
-                       src/PVertexerHelpers.cxx
-                       src/PVertexerParams.cxx
-                       src/VertexTrackMatcher.cxx
-                       src/SVertexer.cxx
-                       src/SVertexerParams.cxx
-                       src/SVertexHypothesis.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Core
-	                             O2::CommonUtils
-                                     O2::ReconstructionDataFormats
-                                     O2::DataFormatsParameters
-                                     O2::DataFormatsTPC
-                                     O2::DataFormatsITS
-                                     O2::TPCBase
-                                     O2::SimulationDataFormat
-                                     O2::FT0Reconstruction
-                                     O2::DataFormatsFT0
-                                     O2::GlobalTracking
-                                     ms_gsl::ms_gsl)
+o2_add_library(
+  DetectorsVertexing
+  TARGETVARNAME targetName
+  SOURCES src/DCAFitterN.cxx
+          src/PVertexer.cxx
+          src/PVertexerHelpers.cxx
+          src/PVertexerParams.cxx
+          src/VertexTrackMatcher.cxx
+          src/SVertexer.cxx
+          src/SVertexerParams.cxx
+          src/SVertexHypothesis.cxx
+  PUBLIC_LINK_LIBRARIES
+    ROOT::Core
+    O2::CommonUtils
+    O2::ReconstructionDataFormats
+    O2::DataFormatsParameters
+    O2::DataFormatsTPC
+    O2::DataFormatsITS
+    O2::TPCBase
+    O2::SimulationDataFormat
+    O2::FT0Reconstruction
+    O2::DataFormatsFT0
+    O2::GlobalTracking
+    ms_gsl::ms_gsl)
 
-o2_target_root_dictionary(DetectorsVertexing
-                          HEADERS include/DetectorsVertexing/HelixHelper.h
-                                  include/DetectorsVertexing/PVertexerHelpers.h
-                                  include/DetectorsVertexing/PVertexerParams.h
-                                  include/DetectorsVertexing/DCAFitterN.h
-                                  include/DetectorsVertexing/SVertexerParams.h
-                                  include/DetectorsVertexing/SVertexHypothesis.h)
+o2_target_root_dictionary(
+  DetectorsVertexing
+  HEADERS include/DetectorsVertexing/HelixHelper.h
+          include/DetectorsVertexing/PVertexerHelpers.h
+          include/DetectorsVertexing/PVertexerParams.h
+          include/DetectorsVertexing/DCAFitterN.h
+          include/DetectorsVertexing/SVertexerParams.h
+          include/DetectorsVertexing/SVertexHypothesis.h)
 
-if (OpenMP_CXX_FOUND)
-    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
-    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+if(OpenMP_CXX_FOUND)
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
 endif()
-                              
 
 o2_add_test(
   DCAFitterN
   SOURCES test/testDCAFitterN.cxx
   COMPONENT_NAME DetectorsVertexing
-  PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing ROOT::Core ROOT::Physics
+  PUBLIC_LINK_LIBRARIES
+    O2::DetectorsVertexing
+    ROOT::Core
+    ROOT::Physics
   LABELS vertexing
   ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-  VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
+              VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})

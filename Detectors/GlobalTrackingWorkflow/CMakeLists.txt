@@ -10,59 +10,75 @@
 
 # FIXME: do we actually need a library here, or is the executable enough ?
 
-o2_add_library(GlobalTrackingWorkflow
-               SOURCES src/TrackWriterTPCITSSpec.cxx
-                       src/TPCITSMatchingSpec.cxx
-                       src/PrimaryVertexingSpec.cxx
-                       src/PrimaryVertexWriterSpec.cxx
-                       src/VertexTrackMatcherSpec.cxx
-                       src/SecondaryVertexingSpec.cxx
-                       src/SecondaryVertexWriterSpec.cxx
-                       src/CosmicsMatchingSpec.cxx
-                       src/TrackCosmicsWriterSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::GlobalTracking
-                                     O2::GlobalTrackingWorkflowReaders
-                                     O2::GlobalTrackingWorkflowHelpers
-                                     O2::ITStracking
-                                     O2::ITSWorkflow
-                                     O2::MFTTracking
-                                     O2::MFTWorkflow
-                                     O2::TPCWorkflow
-                                     O2::FT0Workflow
-                                     O2::ITSMFTWorkflow
-                                     O2::SimulationDataFormat
-                                     O2::DetectorsVertexing)
+o2_add_library(
+  GlobalTrackingWorkflow
+  SOURCES src/TrackWriterTPCITSSpec.cxx
+          src/TPCITSMatchingSpec.cxx
+          src/PrimaryVertexingSpec.cxx
+          src/PrimaryVertexWriterSpec.cxx
+          src/VertexTrackMatcherSpec.cxx
+          src/SecondaryVertexingSpec.cxx
+          src/SecondaryVertexWriterSpec.cxx
+          src/CosmicsMatchingSpec.cxx
+          src/TrackCosmicsWriterSpec.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::GlobalTracking
+    O2::GlobalTrackingWorkflowReaders
+    O2::GlobalTrackingWorkflowHelpers
+    O2::ITStracking
+    O2::ITSWorkflow
+    O2::MFTTracking
+    O2::MFTWorkflow
+    O2::TPCWorkflow
+    O2::FT0Workflow
+    O2::ITSMFTWorkflow
+    O2::SimulationDataFormat
+    O2::DetectorsVertexing)
 
-o2_add_executable(match-workflow
-                  COMPONENT_NAME tpcits
-                  SOURCES src/tpcits-match-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
+o2_add_executable(
+  match-workflow
+  COMPONENT_NAME tpcits
+  SOURCES src/tpcits-match-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
 
-o2_add_executable(match-workflow
-                  COMPONENT_NAME cosmics
-                  SOURCES src/cosmics-match-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow  O2::TOFWorkflow O2::TOFWorkflowUtils)
+o2_add_executable(
+  match-workflow
+  COMPONENT_NAME cosmics
+  SOURCES src/cosmics-match-workflow.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::GlobalTrackingWorkflow
+    O2::TOFWorkflow
+    O2::TOFWorkflowUtils)
 
-o2_add_executable(vertexing-workflow
-                  COMPONENT_NAME primary
-                  SOURCES src/primary-vertexing-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflow O2::TOFWorkflowUtils)
+o2_add_executable(
+  vertexing-workflow
+  COMPONENT_NAME primary
+  SOURCES src/primary-vertexing-workflow.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::GlobalTrackingWorkflow
+    O2::TOFWorkflow
+    O2::TOFWorkflowUtils)
 
-o2_add_executable(vertex-reader-workflow
-                  COMPONENT_NAME primary
-                  SOURCES src/primary-vertex-reader-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
+o2_add_executable(
+  vertex-reader-workflow
+  COMPONENT_NAME primary
+  SOURCES src/primary-vertex-reader-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
 
-o2_add_executable(vertex-reader-workflow
-                  COMPONENT_NAME secondary
-                  SOURCES src/secondary-vertex-reader-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow )
+o2_add_executable(
+  vertex-reader-workflow
+  COMPONENT_NAME secondary
+  SOURCES src/secondary-vertex-reader-workflow.cxx
+  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
 
-o2_add_executable(vertexing-workflow
-                  COMPONENT_NAME secondary
-                  SOURCES src/secondary-vertexing-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow  O2::TOFWorkflow O2::TOFWorkflowUtils)
-
+o2_add_executable(
+  vertexing-workflow
+  COMPONENT_NAME secondary
+  SOURCES src/secondary-vertexing-workflow.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::GlobalTrackingWorkflow
+    O2::TOFWorkflow
+    O2::TOFWorkflowUtils)
 
 add_subdirectory(tofworkflow)
 add_subdirectory(tpcinterpolationworkflow)

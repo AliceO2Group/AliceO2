@@ -10,11 +10,10 @@
 
 # Comments
 #
-# * FIXME: ClusterNative depends on SimulationDataFormats : quite annoying for a
-#   (supposedly real data component)
+# * FIXME: ClusterNative depends on SimulationDataFormats : quite annoying for a (supposedly real data component)
 #
-# * GPUCommonDef -> GPUCommonDef to follow more closely the rest of the AliceO2
-#   code, but probably the name should be simplified to remove some common ...
+# * GPUCommonDef -> GPUCommonDef to follow more closely the rest of the AliceO2 code, but probably the name should be
+#   simplified to remove some common ...
 
 o2_add_library(
   DataFormatsTPC
@@ -25,11 +24,12 @@ o2_add_library(
           src/ClusterNativeHelper.cxx
           src/WorkflowHelper.cxx
           src/CompressedClusters.cxx
-  PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                        O2::SimulationDataFormat
-                        O2::CommonDataFormat
-                        O2::Headers
-                        O2::Algorithm)
+  PUBLIC_LINK_LIBRARIES
+    O2::GPUCommon
+    O2::SimulationDataFormat
+    O2::CommonDataFormat
+    O2::Headers
+    O2::Algorithm)
 
 o2_target_root_dictionary(
   DataFormatsTPC
@@ -55,18 +55,21 @@ o2_add_test(
   SOURCES test/testClusterNative.cxx
   COMPONENT_NAME DataFormats-TPC
   PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
-  LABELS tpc dataformats)
+  LABELS tpc
+         dataformats)
 
 o2_add_test(
   ClusterHardware
   SOURCES test/testClusterHardware.cxx
   COMPONENT_NAME DataFormats-TPC
   PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
-  LABELS tpc dataformats)
+  LABELS tpc
+         dataformats)
 
 o2_add_test(
   CompressedClusters
   SOURCES test/testCompressedClusters.cxx
   COMPONENT_NAME DataFormats-TPC
   PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
-  LABELS tpc dataformats)
+  LABELS tpc
+         dataformats)

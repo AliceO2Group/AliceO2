@@ -24,8 +24,12 @@ o2_add_library(
           src/GenericFunctions.cxx
           src/StringUtils.cxx
           src/Clock.cxx
-  PUBLIC_LINK_LIBRARIES O2::Headers O2::CommonUtils O2::CCDB
-                        O2::DetectorsCalibration ms_gsl::ms_gsl)
+  PUBLIC_LINK_LIBRARIES
+    O2::Headers
+    O2::CommonUtils
+    O2::CCDB
+    O2::DetectorsCalibration
+    ms_gsl::ms_gsl)
 
 o2_target_root_dictionary(
   DetectorsDCS
@@ -45,20 +49,23 @@ if(BUILD_TESTING)
     SOURCES test/testDataPointTypes.cxx
     COMPONENT_NAME dcs
     LABELS "dcs"
-    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
+    PUBLIC_LINK_LIBRARIES O2::Framework
+                          O2::DetectorsDCS)
   o2_add_test(
     alias-expander
     SOURCES test/testAliasExpander.cxx
     COMPONENT_NAME dcs
     LABELS "dcs"
-    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
+    PUBLIC_LINK_LIBRARIES O2::Framework
+                          O2::DetectorsDCS)
   o2_add_test(
     data-point-generator
     SOURCES test/testDataPointGenerator.cxx
     COMPONENT_NAME dcs
     LABELS "dcs"
-    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
-  add_subdirectory(testWorkflow/macros)  
+    PUBLIC_LINK_LIBRARIES O2::Framework
+                          O2::DetectorsDCS)
+  add_subdirectory(testWorkflow/macros)
 endif()
 
 add_subdirectory(testWorkflow)

@@ -8,12 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test_root_macro(CheckTopologies.C
-                       PUBLIC_LINK_LIBRARIES O2::MathUtils
-                                             O2::MFTBase
-                                             O2::ITSMFTReconstruction
-                                             O2::ITSMFTSimulation
-                                             O2::DataFormatsITSMFT
-                                             O2::SimulationDataFormat
-                       LABELS mft)
-
+o2_add_test_root_macro(
+  CheckTopologies.C
+  PUBLIC_LINK_LIBRARIES
+    O2::MathUtils
+    O2::MFTBase
+    O2::ITSMFTReconstruction
+    O2::ITSMFTSimulation
+    O2::DataFormatsITSMFT
+    O2::SimulationDataFormat
+  LABELS mft)

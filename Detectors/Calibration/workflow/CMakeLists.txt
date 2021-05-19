@@ -8,24 +8,27 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(DetectorsCalibrationWorkflow
-               SOURCES src/MeanVertexCalibratorSpec.cxx
-	       PUBLIC_LINK_LIBRARIES O2::Framework
-	       			     O2::Headers
-	       			     O2::CCDB
-                                     O2::CommonUtils
-	                             ms_gsl::ms_gsl
-				     O2::ReconstructionDataFormats
-				     O2::DataFormatsCalibration
-				     O2::DetectorsCalibration)
-				     
+o2_add_library(
+  DetectorsCalibrationWorkflow
+  SOURCES src/MeanVertexCalibratorSpec.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::Headers
+    O2::CCDB
+    O2::CommonUtils
+    ms_gsl::ms_gsl
+    O2::ReconstructionDataFormats
+    O2::DataFormatsCalibration
+    O2::DetectorsCalibration)
 
-o2_add_executable(mean-vertex-calibration-workflow
-                  COMPONENT_NAME calibration
-                  SOURCES src/mean-vertex-calibration-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::Framework
-	                                O2::DetectorsCalibration
-					O2::DetectorsCalibrationWorkflow
-					O2::ReconstructionDataFormats
-					O2::DataFormatsCalibration
-					O2::CCDB)
+o2_add_executable(
+  mean-vertex-calibration-workflow
+  COMPONENT_NAME calibration
+  SOURCES src/mean-vertex-calibration-workflow.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::DetectorsCalibration
+    O2::DetectorsCalibrationWorkflow
+    O2::ReconstructionDataFormats
+    O2::DataFormatsCalibration
+    O2::CCDB)

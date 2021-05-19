@@ -10,60 +10,59 @@
 
 add_subdirectory(SpacePoints)
 
-o2_add_library(TPCCalibration
-               SOURCES src/CalibRawBase.cxx
-                       src/CalibPedestal.cxx
-                       src/CalibPulser.cxx
-                       src/CalibPedestalParam.cxx
-                       src/CalibPulserParam.cxx
-                       src/CalibTreeDump.cxx
-                       src/DigitDump.cxx
-                       src/DigitDumpParam.cxx
-                       src/CalibPadGainTracks.cxx
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
-                                     O2::TPCReconstruction ROOT::Minuit
-                                     ms_gsl::ms_gsl)
+o2_add_library(
+  TPCCalibration
+  SOURCES src/CalibRawBase.cxx
+          src/CalibPedestal.cxx
+          src/CalibPulser.cxx
+          src/CalibPedestalParam.cxx
+          src/CalibPulserParam.cxx
+          src/CalibTreeDump.cxx
+          src/DigitDump.cxx
+          src/DigitDumpParam.cxx
+          src/CalibPadGainTracks.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::DataFormatsTPC
+    O2::TPCBase
+    O2::TPCReconstruction
+    ROOT::Minuit
+    ms_gsl::ms_gsl)
 
-o2_target_root_dictionary(TPCCalibration
-                          HEADERS include/TPCCalibration/CalibRawBase.h
-                                  include/TPCCalibration/CalibPedestal.h
-                                  include/TPCCalibration/CalibPulser.h
-                                  include/TPCCalibration/CalibPedestalParam.h
-                                  include/TPCCalibration/CalibPulserParam.h
-                                  include/TPCCalibration/CalibTreeDump.h
-                                  include/TPCCalibration/DigitDump.h
-                                  include/TPCCalibration/DigitDumpParam.h
-                                  include/TPCCalibration/CalibPadGainTracks.h
-                                  include/TPCCalibration/FastHisto.h)
+o2_target_root_dictionary(
+  TPCCalibration
+  HEADERS include/TPCCalibration/CalibRawBase.h
+          include/TPCCalibration/CalibPedestal.h
+          include/TPCCalibration/CalibPulser.h
+          include/TPCCalibration/CalibPedestalParam.h
+          include/TPCCalibration/CalibPulserParam.h
+          include/TPCCalibration/CalibTreeDump.h
+          include/TPCCalibration/DigitDump.h
+          include/TPCCalibration/DigitDumpParam.h
+          include/TPCCalibration/CalibPadGainTracks.h
+          include/TPCCalibration/FastHisto.h)
 
-o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCBase
-                       LABELS tpc)
-o2_add_test_root_macro(macro/drawNoiseAndPedestal.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCBase
-                       LABELS tpc)
-o2_add_test_root_macro(macro/drawPulser.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCBase
-                       LABELS tpc)
-o2_add_test_root_macro(macro/mergeNoiseAndPedestal.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCBase
-                       LABELS tpc)
-o2_add_test_root_macro(macro/runPedestal.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration
-                       LABELS tpc
-                       ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
-o2_add_test_root_macro(macro/runPulser.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration
-                       LABELS tpc
-                       ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
-o2_add_test_root_macro(macro/dumpDigits.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration
-                       LABELS tpc
-                       ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
-o2_add_test_root_macro(macro/extractGainMap.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration
-                       LABELS tpc
-                       ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
-o2_add_test_root_macro(macro/preparePedestalFiles.C
-                       PUBLIC_LINK_LIBRARIES O2::TPCCalibration
-                       LABELS tpc)
+o2_add_test_root_macro(macro/comparePedestalsAndNoise.C PUBLIC_LINK_LIBRARIES O2::TPCBase LABELS tpc)
+o2_add_test_root_macro(macro/drawNoiseAndPedestal.C PUBLIC_LINK_LIBRARIES O2::TPCBase LABELS tpc)
+o2_add_test_root_macro(macro/drawPulser.C PUBLIC_LINK_LIBRARIES O2::TPCBase LABELS tpc)
+o2_add_test_root_macro(macro/mergeNoiseAndPedestal.C PUBLIC_LINK_LIBRARIES O2::TPCBase LABELS tpc)
+o2_add_test_root_macro(
+  macro/runPedestal.C
+  PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+  LABELS tpc
+  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+o2_add_test_root_macro(
+  macro/runPulser.C
+  PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+  LABELS tpc
+  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+o2_add_test_root_macro(
+  macro/dumpDigits.C
+  PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+  LABELS tpc
+  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+o2_add_test_root_macro(
+  macro/extractGainMap.C
+  PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+  LABELS tpc
+  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage)
+o2_add_test_root_macro(macro/preparePedestalFiles.C PUBLIC_LINK_LIBRARIES O2::TPCCalibration LABELS tpc)

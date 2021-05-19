@@ -8,14 +8,20 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test_root_macro(DisplayEventsComp.C
-                       PUBLIC_LINK_LIBRARIES O2::EventVisualisationView
-                                             O2::ITSMFTReconstruction
-                                             O2::ITSBase O2::DataFormatsITS
-                       LABELS its)
+o2_add_test_root_macro(
+  DisplayEventsComp.C
+  PUBLIC_LINK_LIBRARIES
+    O2::EventVisualisationView
+    O2::ITSMFTReconstruction
+    O2::ITSBase
+    O2::DataFormatsITS
+  LABELS its)
 
-o2_add_test_root_macro(simple_geom_ITS.C
-                       PUBLIC_LINK_LIBRARIES O2::EventVisualisationView
-                                             O2::ITSMFTReconstruction
-                                             O2::ITSBase O2::DataFormatsITS
-                       LABELS its)
+o2_add_test_root_macro(
+  simple_geom_ITS.C
+  PUBLIC_LINK_LIBRARIES
+    O2::EventVisualisationView
+    O2::ITSMFTReconstruction
+    O2::ITSBase
+    O2::DataFormatsITS
+  LABELS its)

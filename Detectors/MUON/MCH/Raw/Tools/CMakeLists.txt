@@ -9,9 +9,11 @@
 # submit itself to any jurisdiction.
 
 o2_add_executable(
-        dump
-        SOURCES rawdump.cxx
-        COMPONENT_NAME mchraw
-        PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder Boost::program_options
-        O2::MCHRawImplHelpers RapidJSON::RapidJSON)
-
+  dump
+  SOURCES rawdump.cxx
+  COMPONENT_NAME mchraw
+  PUBLIC_LINK_LIBRARIES
+    O2::MCHRawDecoder
+    Boost::program_options
+    O2::MCHRawImplHelpers
+    RapidJSON::RapidJSON)

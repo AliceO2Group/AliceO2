@@ -8,9 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(UpgradesAODUtils
-               SOURCES src/Run2LikeAO2D.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Core)
+o2_add_library(UpgradesAODUtils SOURCES src/Run2LikeAO2D.cxx PUBLIC_LINK_LIBRARIES ROOT::Core)
 
-o2_target_root_dictionary(UpgradesAODUtils
-                          HEADERS include/UpgradesAODUtils/Run2LikeAO2D.h)
+o2_target_root_dictionary(UpgradesAODUtils HEADERS include/UpgradesAODUtils/Run2LikeAO2D.h)

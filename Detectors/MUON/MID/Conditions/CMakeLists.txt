@@ -10,15 +10,16 @@
 
 o2_add_library(
   MIDConditions
-  SOURCES src/DCSNamer.cxx 
-  PUBLIC_LINK_LIBRARIES O2::MIDBase fmt::fmt)
+  SOURCES src/DCSNamer.cxx
+  PUBLIC_LINK_LIBRARIES O2::MIDBase
+                        fmt::fmt)
 
 if(BUILD_TESTING)
   o2_add_test(
     dcs-namer
-    SOURCES test/testDCSNamer.cxx test/HVAliases.cxx
+    SOURCES test/testDCSNamer.cxx
+            test/HVAliases.cxx
     COMPONENT_NAME mid
     LABELS "muon;mid;dcs"
     PUBLIC_LINK_LIBRARIES O2::MIDConditions)
 endif()
-

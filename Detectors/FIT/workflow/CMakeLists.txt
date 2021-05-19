@@ -8,11 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(FITWorkflow
-               SOURCES src/FITDataReaderDPLSpec.cxx
-                       src/FITDigitWriterSpec.cxx
-                       src/RawReaderFIT.cxx
-                       PUBLIC_LINK_LIBRARIES O2::Framework
-                                     O2::DetectorsCommonDataFormats
-                                     O2::DPLUtils
-                                     O2::FITRaw)
+o2_add_library(
+  FITWorkflow
+  SOURCES src/FITDataReaderDPLSpec.cxx
+          src/FITDigitWriterSpec.cxx
+          src/RawReaderFIT.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::DetectorsCommonDataFormats
+    O2::DPLUtils
+    O2::FITRaw)

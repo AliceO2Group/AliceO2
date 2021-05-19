@@ -9,44 +9,72 @@
 # submit itself to any jurisdiction.
 
 set(PKGNAME ${CMAKE_FIND_PACKAGE_NAME})
-string(TOUPPER ${PKGNAME} PKGENVNAME)
+string(
+  TOUPPER ${PKGNAME}
+          PKGENVNAME)
 
-find_path(${PKGNAME}_INCLUDE_DIR
-          NAMES Pythia.h
-          PATH_SUFFIXES Pythia8
-          PATHS $ENV{${PKGENVNAME}_ROOT}/include)
+find_path(
+  ${PKGNAME}_INCLUDE_DIR
+  NAMES Pythia.h
+  PATH_SUFFIXES Pythia8
+  PATHS $ENV{${PKGENVNAME}_ROOT}/include)
 
-find_library(${PKGNAME}_LIBRARY_SHARED
-             NAMES libpythia8.so libpythia8.dylib
-             PATHS $ENV{${PKGENVNAME}_ROOT}/lib)
+find_library(
+  ${PKGNAME}_LIBRARY_SHARED
+  NAMES libpythia8.so
+        libpythia8.dylib
+  PATHS $ENV{${PKGENVNAME}_ROOT}/lib)
 
-find_path(${PKGNAME}_DATA
-          NAMES MainProgramSettings.xml
-          PATHS ${${PKGNAME}_ROOT}/share/Pythia8/xmldoc
-                $ENV{${PKGENVNAME}_ROOT}/share/Pythia8/xmldoc)
+find_path(
+  ${PKGNAME}_DATA
+  NAMES MainProgramSettings.xml
+  PATHS ${${PKGNAME}_ROOT}/share/Pythia8/xmldoc
+        $ENV{${PKGENVNAME}_ROOT}/share/Pythia8/xmldoc)
 
 if(${PKGNAME}_INCLUDE_DIR AND ${PKGNAME}_LIBRARY_SHARED AND ${PKGNAME}_DATA)
-  add_library(pythia SHARED IMPORTED)
-  get_filename_component(incdir ${${PKGNAME}_INCLUDE_DIR}/.. ABSOLUTE)
-  get_filename_component(libdir ${${PKGNAME}_LIBRARY_SHARED} DIRECTORY)
-  set_target_properties(pythia
-                        PROPERTIES IMPORTED_LOCATION
-                                   ${${PKGNAME}_LIBRARY_SHARED}
-                                   INTERFACE_INCLUDE_DIRECTORIES ${incdir}
-                                   INTERFACE_LINK_DIRECTORIES ${libdir})
+  add_library(
+    pythia
+    SHARED
+    IMPORTED)
+  get_filename_component(
+    incdir
+    ${${PKGNAME}_INCLUDE_DIR}/..
+    ABSOLUTE)
+  get_filename_component(
+    libdir
+    ${${PKGNAME}_LIBRARY_SHARED}
+    DIRECTORY)
+  set_target_properties(
+    pythia
+    PROPERTIES IMPORTED_LOCATION
+               ${${PKGNAME}_LIBRARY_SHARED}
+               INTERFACE_INCLUDE_DIRECTORIES
+               ${incdir}
+               INTERFACE_LINK_DIRECTORIES
+               ${libdir})
   # Promote the imported target to global visibility (so we can alias it)
-  set_target_properties(pythia PROPERTIES IMPORTED_GLOBAL TRUE)
-  add_library(MC::Pythia ALIAS pythia)
+  set_target_properties(
+    pythia
+    PROPERTIES IMPORTED_GLOBAL
+               TRUE)
+  add_library(
+    MC::Pythia
+    ALIAS
+    pythia)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(${PKGNAME}
-                                  REQUIRED_VARS ${PKGNAME}_INCLUDE_DIR
-                                                ${PKGNAME}_LIBRARY_SHARED
-                                                ${PKGNAME}_DATA)
+find_package_handle_standard_args(
+  ${PKGNAME}
+  REQUIRED_VARS
+    ${PKGNAME}_INCLUDE_DIR
+    ${PKGNAME}_LIBRARY_SHARED
+    ${PKGNAME}_DATA)
 
-mark_as_advanced(${PKGNAME}_INCLUDE_DIR ${PKGNAME}_LIBRARY_SHARED
-                 ${PKGNAME}_DATA)
+mark_as_advanced(
+  ${PKGNAME}_INCLUDE_DIR
+  ${PKGNAME}_LIBRARY_SHARED
+  ${PKGNAME}_DATA)
 
 unset(PKGNAME)
 unset(PKGENVNAME)

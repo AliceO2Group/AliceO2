@@ -11,16 +11,19 @@
 o2_add_test(
   Raw
   SOURCES testRaw.cxx
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDRaw
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsMID
+                        O2::MIDRaw
   COMPONENT_NAME mid
-  LABELS mid muon)
+  LABELS mid
+         muon)
 
 o2_add_test(
   CrateMapper
   SOURCES testCrateMapper.cxx
   PUBLIC_LINK_LIBRARIES O2::MIDRaw
   COMPONENT_NAME mid
-  LABELS mid muon)
+  LABELS mid
+         muon)
 
 if(benchmark_FOUND)
   o2_add_executable(
@@ -28,5 +31,6 @@ if(benchmark_FOUND)
     COMPONENT_NAME mid
     SOURCES bench_Raw.cxx
     IS_BENCHMARK
-    PUBLIC_LINK_LIBRARIES O2::MIDRaw benchmark::benchmark)
+    PUBLIC_LINK_LIBRARIES O2::MIDRaw
+                          benchmark::benchmark)
 endif()

@@ -34,7 +34,7 @@ add_subdirectory(GlobalTracking)
 add_subdirectory(GlobalTrackingWorkflow)
 add_subdirectory(Vertexing)
 if(BUILD_ANALYSIS)
-add_subdirectory(AOD)
+  add_subdirectory(AOD)
 endif()
 
 add_subdirectory(Calibration)

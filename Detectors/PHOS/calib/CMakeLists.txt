@@ -8,32 +8,44 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(PHOSCalib
-               SOURCES src/BadChannelMap.cxx
-                       src/CalibParams.cxx
-                       src/Pedestals.cxx
-                       src/CalibDB.cxx
-                       src/TriggerMap.cxx
-	       PUBLIC_LINK_LIBRARIES O2::CCDB O2::PHOSBase)
+o2_add_library(
+  PHOSCalib
+  SOURCES src/BadChannelMap.cxx
+          src/CalibParams.cxx
+          src/Pedestals.cxx
+          src/CalibDB.cxx
+          src/TriggerMap.cxx
+  PUBLIC_LINK_LIBRARIES O2::CCDB
+                        O2::PHOSBase)
 
-o2_target_root_dictionary(PHOSCalib
-                          HEADERS include/PHOSCalib/BadChannelMap.h
-                                  include/PHOSCalib/CalibParams.h
-                                  include/PHOSCalib/Pedestals.h
-                                  include/PHOSCalib/CalibDB.h
-                                  include/PHOSCalib/TriggerMap.h
-                          LINKDEF src/PHOSCalibLinkDef.h)
+o2_target_root_dictionary(
+  PHOSCalib
+  HEADERS include/PHOSCalib/BadChannelMap.h
+          include/PHOSCalib/CalibParams.h
+          include/PHOSCalib/Pedestals.h
+          include/PHOSCalib/CalibDB.h
+          include/PHOSCalib/TriggerMap.h
+  LINKDEF src/PHOSCalibLinkDef.h)
 
 add_subdirectory(PHOSCalibWorkflow)
 
 if(BUILD_TESTING)
-  o2_add_test_root_macro(macros/PostBadMapCCDB.C  
-                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::PHOSBase O2::PHOSCalib
-                         LABELS PHOS COMPILE_ONLY)
+  o2_add_test_root_macro(
+    macros/PostBadMapCCDB.C
+    PUBLIC_LINK_LIBRARIES
+      O2::CCDB
+      O2::PHOSBase
+      O2::PHOSCalib
+    LABELS PHOS
+    COMPILE_ONLY)
 
-  o2_add_test_root_macro( macros/PostCalibCCDB.C
-                         PUBLIC_LINK_LIBRARIES O2::CCDB O2::PHOSBase O2::PHOSCalib
-                         LABELS PHOS COMPILE_ONLY)
+  o2_add_test_root_macro(
+    macros/PostCalibCCDB.C
+    PUBLIC_LINK_LIBRARIES
+      O2::CCDB
+      O2::PHOSBase
+      O2::PHOSCalib
+    LABELS PHOS
+    COMPILE_ONLY)
 
 endif()
-

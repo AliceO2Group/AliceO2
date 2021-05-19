@@ -11,30 +11,32 @@
 include_guard()
 
 #
-# o2_name_target(baseName NAME var ...) gives a project specific name to the
-# target of the given baseName. The computed name is retrieved in the variable
-# "var".
+# o2_name_target(baseName NAME var ...) gives a project specific name to the target of the given baseName. The computed
+# name is retrieved in the variable "var".
 #
 # * NAME var: will contain the computed name of the target
 # * IS_TEST: present to denote the target is a test executable
 # * IS_BENCH: present to denote the target is a benchmark executable
 # * IS_EXE: present to denote the target is an executable (and not a library)
 #
-function(o2_name_target baseTargetName)
+function(
+  o2_name_target
+  baseTargetName)
 
-  cmake_parse_arguments(PARSE_ARGV
-                        1
-                        A
-                        "IS_TEST;IS_BENCH;IS_EXE"
-                        "NAME;COMPONENT_NAME"
-                        "")
+  cmake_parse_arguments(
+    PARSE_ARGV
+    1
+    A
+    "IS_TEST;IS_BENCH;IS_EXE"
+    "NAME;COMPONENT_NAME"
+    "")
 
   if(A_UNPARSED_ARGUMENTS)
-    message(
-      FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
+    message(FATAL_ERROR "Unexpected unparsed arguments: ${A_UNPARSED_ARGUMENTS}")
   endif()
 
-  if(NOT A_NAME)
+  if(NOT
+     A_NAME)
     message(FATAL_ERROR "Parameter NAME is mandatory")
   endif()
 
@@ -51,12 +53,12 @@ function(o2_name_target baseTargetName)
 
   # get the component part if present
   if(A_COMPONENT_NAME)
-    string(TOLOWER ${A_COMPONENT_NAME} component)
+    string(
+      TOLOWER ${A_COMPONENT_NAME}
+              component)
     set(comp -${component})
   endif()
 
-  set(${A_NAME}
-      ${PROJECT_NAME}${targetType}${comp}-${baseTargetName}
-      PARENT_SCOPE)
+  set(${A_NAME} ${PROJECT_NAME}${targetType}${comp}-${baseTargetName} PARENT_SCOPE)
 
 endfunction()

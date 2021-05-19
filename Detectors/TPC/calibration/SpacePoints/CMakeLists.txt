@@ -8,20 +8,23 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(SpacePoints
-               SOURCES src/SpacePointsCalibParam.cxx
-                       src/TrackResiduals.cxx
-                       src/TrackInterpolation.cxx
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
-                                     O2::TPCBase
-                                     O2::TPCReconstruction
-                                     O2::TPCFastTransformation
-                                     O2::DataFormatsITS
-                                     O2::DataFormatsITSMFT
-                                     O2::DataFormatsTOF)
+o2_add_library(
+  SpacePoints
+  SOURCES src/SpacePointsCalibParam.cxx
+          src/TrackResiduals.cxx
+          src/TrackInterpolation.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::DataFormatsTPC
+    O2::TPCBase
+    O2::TPCReconstruction
+    O2::TPCFastTransformation
+    O2::DataFormatsITS
+    O2::DataFormatsITSMFT
+    O2::DataFormatsTOF)
 
-o2_target_root_dictionary(SpacePoints
-                          HEADERS include/SpacePoints/SpacePointsCalibParam.h
-                                  include/SpacePoints/TrackResiduals.h
-                                  include/SpacePoints/TrackInterpolation.h
-                          LINKDEF src/SpacePointCalibLinkDef.h)
+o2_target_root_dictionary(
+  SpacePoints
+  HEADERS include/SpacePoints/SpacePointsCalibParam.h
+          include/SpacePoints/TrackResiduals.h
+          include/SpacePoints/TrackInterpolation.h
+  LINKDEF src/SpacePointCalibLinkDef.h)

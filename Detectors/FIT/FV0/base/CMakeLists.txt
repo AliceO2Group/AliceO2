@@ -8,13 +8,15 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(FV0Base
-               SOURCES src/Geometry.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Geom 
-                                     FairRoot::Base
-                                     O2::FrameworkLogger)
+o2_add_library(
+  FV0Base
+  SOURCES src/Geometry.cxx
+  PUBLIC_LINK_LIBRARIES
+    ROOT::Geom
+    FairRoot::Base
+    O2::FrameworkLogger)
 
-o2_target_root_dictionary(FV0Base
-                          HEADERS include/FV0Base/Geometry.h
-                                  include/FV0Base/Constants.h)
-
+o2_target_root_dictionary(
+  FV0Base
+  HEADERS include/FV0Base/Geometry.h
+          include/FV0Base/Constants.h)

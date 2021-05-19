@@ -8,9 +8,18 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(ZDCBase
-               SOURCES src/Geometry.cxx src/ModuleConfig.cxx 
-               PUBLIC_LINK_LIBRARIES O2::CommonConstants ROOT::MathCore FairRoot::Base O2::FrameworkLogger)
+o2_add_library(
+  ZDCBase
+  SOURCES src/Geometry.cxx
+          src/ModuleConfig.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CommonConstants
+    ROOT::MathCore
+    FairRoot::Base
+    O2::FrameworkLogger)
 
-o2_target_root_dictionary(ZDCBase HEADERS include/ZDCBase/Geometry.h include/ZDCBase/Constants.h
-				  include/ZDCBase/ModuleConfig.h)
+o2_target_root_dictionary(
+  ZDCBase
+  HEADERS include/ZDCBase/Geometry.h
+          include/ZDCBase/Constants.h
+          include/ZDCBase/ModuleConfig.h)

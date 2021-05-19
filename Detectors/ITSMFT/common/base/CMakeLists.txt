@@ -8,14 +8,18 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(ITSMFTBase
-               SOURCES src/SegmentationAlpide.cxx
-                       src/GeometryTGeo.cxx src/DPLAlpideParam.cxx
-               PUBLIC_LINK_LIBRARIES O2::MathUtils
-                                     O2::DetectorsCommonDataFormats
-                                     O2::SimConfig)
+o2_add_library(
+  ITSMFTBase
+  SOURCES src/SegmentationAlpide.cxx
+          src/GeometryTGeo.cxx
+          src/DPLAlpideParam.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::MathUtils
+    O2::DetectorsCommonDataFormats
+    O2::SimConfig)
 
-o2_target_root_dictionary(ITSMFTBase
-                          HEADERS include/ITSMFTBase/SegmentationAlpide.h
-                                  include/ITSMFTBase/GeometryTGeo.h
-                                  include/ITSMFTBase/DPLAlpideParam.h)
+o2_target_root_dictionary(
+  ITSMFTBase
+  HEADERS include/ITSMFTBase/SegmentationAlpide.h
+          include/ITSMFTBase/GeometryTGeo.h
+          include/ITSMFTBase/DPLAlpideParam.h)

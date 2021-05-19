@@ -9,12 +9,14 @@
 # submit itself to any jurisdiction.
 
 o2_add_header_only_library(
-  MCHRawImplHelpers 
-  INTERFACE_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl
+  MCHRawImplHelpers
+  INTERFACE_LINK_LIBRARIES fmt::fmt
+                           ms_gsl::ms_gsl
   INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIRECTORY})
 
-o2_add_test(movebuffer
-            SOURCES testMoveBuffer.cxx
-            PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers
-            COMPONENT_NAME mchraw
-            LABELS "muon;mch;raw")
+o2_add_test(
+  movebuffer
+  SOURCES testMoveBuffer.cxx
+  PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers
+  COMPONENT_NAME mchraw
+  LABELS "muon;mch;raw")

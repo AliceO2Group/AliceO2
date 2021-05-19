@@ -8,31 +8,41 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(PWGCFCore
-               SOURCES  AnalysisConfigurableCuts.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
+o2_add_library(
+  PWGCFCore
+  SOURCES AnalysisConfigurableCuts.cxx
+  PUBLIC_LINK_LIBRARIES O2::Framework
+                        O2::AnalysisDataModel)
 
-o2_target_root_dictionary(PWGCFCore
-              HEADERS AnalysisConfigurableCuts.h
-              LINKDEF PWGCFCoreLinkDef.h)
+o2_target_root_dictionary(PWGCFCore HEADERS AnalysisConfigurableCuts.h LINKDEF PWGCFCoreLinkDef.h)
 
-o2_add_dpl_workflow(dptdptcorrelations
-                    SOURCES dptdptcorrelations.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel O2::PWGCFCore
-                    COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(
+  dptdptcorrelations
+  SOURCES dptdptcorrelations.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::Framework
+    O2::AnalysisCore
+    O2::AnalysisDataModel
+    O2::PWGCFCore
+  COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(correlations
-                    SOURCES correlations.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(
+  correlations
+  SOURCES correlations.cxx
+  PUBLIC_LINK_LIBRARIES O2::Framework
+                        O2::AnalysisCore
+  COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(filter-cf
-                    SOURCES filterCF.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
+o2_add_dpl_workflow(
+  filter-cf
+  SOURCES filterCF.cxx
+  PUBLIC_LINK_LIBRARIES O2::Framework
+                        O2::AnalysisCore
+  COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(correlations-filtered
-                    SOURCES correlationsFiltered.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
+o2_add_dpl_workflow(
+  correlations-filtered
+  SOURCES correlationsFiltered.cxx
+  PUBLIC_LINK_LIBRARIES O2::Framework
+                        O2::AnalysisCore
+  COMPONENT_NAME Analysis)

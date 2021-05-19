@@ -10,7 +10,8 @@
 
 o2_add_library(
   GlobalTracking
-  SOURCES src/MatchTPCITS.cxx src/MatchTOF.cxx
+  SOURCES src/MatchTPCITS.cxx
+          src/MatchTOF.cxx
           src/MatchTPCITSParams.cxx
           src/MatchCosmics.cxx
           src/MatchCosmicsParams.cxx
@@ -37,4 +38,6 @@ o2_add_library(
 o2_target_root_dictionary(
   GlobalTracking
   HEADERS include/GlobalTracking/MatchTPCITSParams.h
-          include/GlobalTracking/MatchTOF.h include/GlobalTracking/MatchCosmics.h include/GlobalTracking/MatchCosmicsParams.h)
+          include/GlobalTracking/MatchTOF.h
+          include/GlobalTracking/MatchCosmics.h
+          include/GlobalTracking/MatchCosmicsParams.h)
