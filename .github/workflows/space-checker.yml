@@ -1,11 +1,11 @@
-# Find tabs in modified text files
-name: Tab finder
+# Find bad spacing in modified text files
+name: Space checker
 on: [push, pull_request]
 env:
   MAIN_BRANCH: dev
 jobs:
   build:
-    name: Tab finder
+    name: Space checker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -18,24 +18,32 @@ jobs:
           git config --global user.name "Nemo" # required on some servers
           git remote add upstream https://github.com/AliceO2Group/AliceO2.git || exit 1
           git fetch upstream ${{ env.MAIN_BRANCH }} || exit 1
-      - name: Find tabs
+      - name: Find bad spacing
         run: |
-          # Find tabs in modified text files and show where they are
-          status=0
+          # Find tabs and trailing whitespaces in modified text files and show where they are
+          status_tab=0
+          status_trail=0
           # Get the common ancestor of the current branch and the main upstream branch
           BASE_COMMIT=$(git merge-base HEAD upstream/${{ env.MAIN_BRANCH }})
-          # loop over changed files
           echo "Diffing against: $BASE_COMMIT"
+          # loop over changed files
           for f in $(git diff --diff-filter d --name-only $BASE_COMMIT); do
             # ignore binary files
             file -bi "$f" | grep -q "charset=binary" && continue
-            # find tabs in file
             echo "Scanning file: $f"
+            # find tabs
             if grep -q -P "\t" "$f"; then
-              status=1
+              status_tab=1
               echo "Found some tabs:"
-              # print out where the tabs are
+              # print out where they are
               grep -P -n -C 1 "\t" "$f"
             fi
+            # find trailing whitespaces
+            if grep -q " $" "$f"; then
+              status_trail=2
+              echo "Found some trailing whitespaces:"
+              # print out where they are
+              grep -n -C 1 " $" "$f"
+            fi
           done
-          exit $status
+          exit $((status_tab + status_trail))
