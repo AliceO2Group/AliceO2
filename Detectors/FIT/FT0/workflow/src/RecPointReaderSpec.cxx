@@ -66,7 +66,7 @@ void RecPointReader::connectTree(const std::string& filename)
   assert(mTree);
 
   mTree->SetBranchAddress(mRecPointBranchName.c_str(), &mRecPoints);
-  mTree->SetBranchAddress(mRecPointBranchName.c_str(), &mChannelData);
+  mTree->SetBranchAddress(mChannelDataBranchName.c_str(), &mChannelData);
   if (mUseMC) {
     LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
     mUseMC = false;
