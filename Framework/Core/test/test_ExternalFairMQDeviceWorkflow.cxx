@@ -17,6 +17,7 @@ using namespace o2::framework;
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/ControlService.h"
+#include "Framework/CallbackService.h"
 #include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
 #include "fairmq/FairMQDevice.h"
@@ -103,21 +104,28 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // a simple checker process subscribing to the output of the input proxy
   //
   // the compute callback of the checker
-  auto checkerCallback = [nRolls](InputRecord& inputs, ControlService& control) {
+  auto counter = std::make_shared<int>(0);
+  auto checkerCallback = [counter](InputRecord& inputs, ControlService& control) {
     LOG(DEBUG) << "got inputs " << inputs.size();
-    if (inputs.get<int>("datain") == nRolls - 1) {
-      LOG(INFO) << "terminating after " << nRolls << " successful event(s)";
-      // FIXME: this can be removed once the ExternalFairMQDeviceProxy can react on
-      // the EOS. At the moment all devices but the input proxy terminate
-      control.readyToQuit(QuitRequest::All);
+    ASSERT_ERROR(inputs.get<int>("datain") == *counter);
+    ++(*counter);
+  };
+  auto checkCounter = [counter, nRolls](EndOfStreamContext&) {
+    ASSERT_ERROR(*counter == nRolls);
+    if (*counter == nRolls) {
+      LOG(INFO) << "checker has received " << nRolls << " successful event(s)";
     }
+  };
+  auto checkerInit = [checkerCallback, checkCounter](CallbackService& callbacks) {
+    callbacks.set(CallbackService::Id::EndOfStream, checkCounter);
+    return adaptStateless(checkerCallback);
   };
 
   // the checker process connects to the proxy
   workflow.emplace_back(DataProcessorSpec{"checker",
                                           {InputSpec{"datain", "PRX", "DATA", 0, Lifetime::Timeframe}},
                                           {},
-                                          AlgorithmSpec{adaptStateless(checkerCallback)}});
+                                          AlgorithmSpec{adaptStateful(checkerInit)}});
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // the input proxy process
