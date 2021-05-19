@@ -9,8 +9,7 @@
 #submit itself to any jurisdiction.
 
 o2_add_library(TRDCalibration
-               SOURCES src/CalibVDrift.cxx
-                       src/TrackBasedCalib.cxx
+               SOURCES src/TrackBasedCalib.cxx
                        src/CalibratorVdExB.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
@@ -21,6 +20,5 @@ o2_add_library(TRDCalibration
                                      O2::GPUTracking)
 
  o2_target_root_dictionary(TRDCalibration
-                           HEADERS include/TRDCalibration/CalibVDrift.h
-                                   include/TRDCalibration/TrackBasedCalib.h
+                           HEADERS include/TRDCalibration/TrackBasedCalib.h
                                    include/TRDCalibration/CalibratorVdExB.h)
