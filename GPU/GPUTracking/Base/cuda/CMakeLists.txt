@@ -65,7 +65,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
       IMPLICIT_DEPENDS CXX ${CURTC_SRC}
       COMMAND_EXPAND_LISTS
   )
-  
+
   add_custom_command(
       OUTPUT ${CURTC_BIN}.src.S
       COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_src/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.src,g" > ${CURTC_BIN}.src.S
@@ -78,7 +78,7 @@ if(NOT ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
       COMMAND_EXPAND_LISTS
       VERBATIM
   )
-  
+
   add_custom_command(
       OUTPUT ${CURTC_BIN}.command.S
       COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_curtc_GPUReconstructionCUDArtc_cu_command/g" | sed "s,FILENAMENORMAL,${CURTC_BIN}.command,g" > ${CURTC_BIN}.command.S

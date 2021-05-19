@@ -47,7 +47,7 @@ include_guard()
 # │   │   ├── 091de040edb3355dcf2f4a18c425aec51b906f08-1
 # │   │   ├── latest -> 091de040edb3355dcf2f4a18c425aec51b906f08-1
 # │   │   └── latest-cmake-reorg-o2 -> 091de040edb3355dcf2f4a18c425aec51b906f08-1
-# 
+#
 # cmake-format: on
 
 function(o2_find_dependencies_from_alibuild)
