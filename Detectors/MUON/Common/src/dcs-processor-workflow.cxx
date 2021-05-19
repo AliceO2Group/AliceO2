@@ -27,9 +27,11 @@
 #include "CommonUtils/ConfigurableParam.h"
 #if defined(MUON_SUBSYSTEM_MCH)
 #include "MCHConditions/DCSNamer.h"
+#define CCDBOBJ "MCH_DPS"
 #endif
 #if defined(MUON_SUBSYSTEM_MID)
 #include "MIDConditions/DCSNamer.h"
+#define CCDBOBJ "MID_DPS"
 #endif
 
 namespace
@@ -41,8 +43,8 @@ using DPMAP = std::unordered_map<DPID, std::vector<DPVAL>>;
 
 using namespace o2::calibration;
 std::vector<o2::framework::OutputSpec> calibrationOutputs{
-  o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBPayload},
-  o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBInfo}};
+  o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBPayload, CCDBOBJ},
+  o2::framework::ConcreteDataTypeMatcher{Utils::gDataOriginCDBWrapper, CCDBOBJ}};
 
 /*
 * Create a default CCDB Object Info that will be used as a template.
@@ -102,8 +104,8 @@ void sendOutput(const DPMAP& dpmap, o2::framework::DataAllocator& output, o2::cc
   auto image = o2::ccdb::CcdbApi::createObjectImage(&dpmap, &info);
   LOG(DEBUG) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-  output.snapshot(o2::framework::Output{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBPayload, 0}, *image.get());
-  output.snapshot(o2::framework::Output{Utils::gDataOriginCLB, Utils::gDataDescriptionCLBInfo, 0}, info);
+  output.snapshot(o2::framework::Output{Utils::gDataOriginCDBPayload, CCDBOBJ, 0}, *image.get());
+  output.snapshot(o2::framework::Output{Utils::gDataOriginCDBWrapper, CCDBOBJ, 0}, info);
 }
 
 /*

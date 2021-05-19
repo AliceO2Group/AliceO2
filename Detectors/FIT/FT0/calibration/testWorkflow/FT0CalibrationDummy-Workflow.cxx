@@ -39,8 +39,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                                                               o2::ft0::FT0ChannelTimeTimeSlotContainer, o2::ft0::FT0DummyCalibrationObject>;
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload});
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_ChannelTime"});
+  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "FIT_ChannelTime"});
 
   constexpr const char* DEFAULT_INPUT_LABEL = "calib";
 

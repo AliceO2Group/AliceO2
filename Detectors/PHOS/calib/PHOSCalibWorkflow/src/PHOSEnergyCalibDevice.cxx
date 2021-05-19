@@ -93,9 +93,9 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSEnergyCalibDeviceSpec(bool use
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
+    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_EnCalib"});
   outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_EnCalib"});
   //stream for QC data
   //outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
 

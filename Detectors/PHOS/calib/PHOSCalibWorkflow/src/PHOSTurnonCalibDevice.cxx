@@ -68,8 +68,8 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
               << " : " << info.getEndValidityTimestamp();
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Tunron", subSpec}, *image.get());
+    ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Tunron", subSpec}, info);
   } else {
     LOG(ERROR) << "Incorrect fit results";
   }
@@ -90,9 +90,9 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSTurnonCalibDeviceSpec(bool use
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
+    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Tunron"});
   outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+    ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Tunron"});
   //stream for QC data
   //outputs.emplace_back("PHS", "TRIGGERQC", 0, o2::framework::Lifetime::Timeframe);
 

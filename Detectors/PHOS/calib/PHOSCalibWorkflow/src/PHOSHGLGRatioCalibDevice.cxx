@@ -188,8 +188,8 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
               << " : " << info.getEndValidityTimestamp();
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_HGLGratio", subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_HGLGratio", subSpec}, info);
   }
   //Anyway send change to QC
   LOG(INFO) << "[PHOSHGLGRatioCalibDevice - sendOutput] Sending QC ";
@@ -209,9 +209,9 @@ DataProcessorSpec o2::phos::getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate
   std::vector<OutputSpec> outputs;
   if (useCCDB) {
     outputs.emplace_back(
-      ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
+      ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_HGLGratio"});
     outputs.emplace_back(
-      ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+      ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_HGLGratio"});
     outputs.emplace_back("PHS", "HGLGRATIODIFF", 0, o2::framework::Lifetime::Timeframe);
   }
   return o2::framework::DataProcessorSpec{"HGLGRatioCalibSpec",

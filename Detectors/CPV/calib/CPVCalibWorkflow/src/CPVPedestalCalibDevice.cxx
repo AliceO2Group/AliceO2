@@ -112,8 +112,8 @@ void CPVPedestalCalibDevice::sendOutput(DataAllocator& output)
     LOG(INFO) << "Sending object CPV/Calib/Pedestals";
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PEDESTALS", subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PEDESTALS", subSpec}, info);
   }
   //Anyway send change to QC
   LOG(INFO) << "[CPVPedestalCalibDevice - run] Writing ";
@@ -170,7 +170,9 @@ o2::framework::DataProcessorSpec o2::cpv::getPedestalCalibSpec(bool useCCDB, boo
 {
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("CPV", "PEDCALIBS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PEDESTALS"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PEDESTALS"});
+
   outputs.emplace_back("CPV", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",

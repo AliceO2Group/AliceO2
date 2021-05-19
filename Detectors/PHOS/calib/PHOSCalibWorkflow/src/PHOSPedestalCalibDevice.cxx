@@ -90,8 +90,8 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
               << " : " << info.getEndValidityTimestamp();
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Pedestal", subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Pedestal", subSpec}, info);
   }
   //Anyway send change to QC
   LOG(INFO) << "[PHOSPedestalCalibDevice - run] Sending QC ";
@@ -184,9 +184,9 @@ o2::framework::DataProcessorSpec o2::phos::getPedestalCalibSpec(bool useCCDB, bo
   std::vector<OutputSpec> outputs;
   if (useCCDB) {
     outputs.emplace_back(
-      ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
+      ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_Pedestal"});
     outputs.emplace_back(
-      ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+      ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_Pedestal"});
     outputs.emplace_back("PHS", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe);
   }
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",

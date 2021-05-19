@@ -105,7 +105,6 @@ DataProcessorSpec getTOFCalibCollectorDeviceSpec()
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "COLLECTEDINFO", 0, Lifetime::Timeframe);
-  // or should I use the ConcreteDataTypeMatcher? e.g.: outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
   outputs.emplace_back(o2::header::gDataOriginTOF, "ENTRIESCH", 0, Lifetime::Timeframe);
 
   std::vector<InputSpec> inputs;

@@ -53,7 +53,6 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             macro/load_all_libs.C
             macro/putCondition.C
             macro/rootlogon.C
-            Detectors/DCS/test/processor_dpcom_o2.C
             Detectors/FIT/FT0/calibration/macros/makeDummyFT0CalibObjectInCCDB.C)
 
 
