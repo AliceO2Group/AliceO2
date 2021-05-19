@@ -1,0 +1,55 @@
+# Copyright CERN and copyright holders of ALICE O2. This software is distributed
+# under the terms of the GNU General Public License v3 (GPL Version 3), copied
+# verbatim in the file "COPYING".
+#
+# See http://alice-o2.web.cern.ch/license for full licensing information.
+#
+# In applying this license CERN does not waive the privileges and immunities
+# granted to it by virtue of its status as an Intergovernmental Organization or
+# submit itself to any jurisdiction.
+
+add_subdirectory(macro)
+set(HDRS_INSTALL GPUbenchmark.h)
+
+o2_add_library(GPUbenchmarkCUDA
+               SOURCES GPUbenchmark.cu
+               PUBLIC_INCLUDE_DIRECTORIES .
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon
+               TARGETVARNAME targetName)
+
+               set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+
+target_compile_definitions(
+  ${targetName} PRIVATE $<TARGET_PROPERTY:O2::DetectorsVertexing,COMPILE_DEFINITIONS>)
+
+install(FILES ${HDRS_INSTALL} DESTINATION include/GPU/GPUBenchmark)
+
+# set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
+# set(CMAKE_CXX_EXTENSIONS OFF)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
+# # Hipify-perl
+# set(HIPIFY_EXECUTABLE "/opt/rocm/bin/hipify-perl")
+# set(HIP_KERNEL "GPUbenchmark.hip.cxx")
+# set(CU_KERNEL ${CMAKE_CURRENT_SOURCE_DIR}/GPUbenchmark.cu)
+# set(HIP_KERNEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/${HIP_KERNEL}")
+
+# if(EXISTS ${HIPIFY_EXECUTABLE})
+# # generate on-the-fly the HIP kernel
+# execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} ${CU_KERNEL} > ${HIP_KERNEL_PATH}")
+# o2_add_library(GPUbenchmarkHIP
+#                SOURCES GPUbenchmark.hip.cxx
+#                PUBLIC_INCLUDE_DIRECTORIES .
+#                PUBLIC_LINK_LIBRARIES O2::GPUCommon
+#                                      hip::host
+#                                      hip::device
+#                TARGETVARNAME targetName)
+#                target_compile_definitions(
+#                 ${targetName} PRIVATE $<TARGET_PROPERTY:O2::DetectorsVertexing,COMPILE_DEFINITIONS>)
+              
+#   if(HIP_AMDGPUTARGET)
+#     # Need to add gpu target also to link flags due to gpu-rdc option
+#     target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+#   endif()
+# elseif()
+#   message(STATUS "Could not generate ${HIP_KERNEL} HIP kernel, skipping...")
+# endif()
