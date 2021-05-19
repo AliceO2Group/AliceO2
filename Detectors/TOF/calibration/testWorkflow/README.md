@@ -40,7 +40,7 @@ Detailed explanation of the command above:
 
 When all is tested locally, the central simulation in DCS can be done, and the procedure can be tested centrally with the "dcs-proxy" (not for development, see https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/DCS/testWorkflow/src/dcs-proxy.cxx).
 
-The definition per detector of the DPs that it has to subscribe to should be stored in CCDB, see e.g. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/macros/makeTOFCCDBEntryForDCS.C. 
+The definition per detector of the DPs that it has to subscribe to should be stored in CCDB, see e.g. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/macros/makeTOFCCDBEntryForDCS.C.
 
 ## LHC phase:
 
