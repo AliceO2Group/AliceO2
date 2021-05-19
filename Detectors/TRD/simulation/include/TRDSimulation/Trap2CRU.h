@@ -55,7 +55,7 @@ class Trap2CRU
   void setTrackletHCHeader(bool tracklethcheader) { mUseTrackletHCHeader = tracklethcheader; }
   bool isTrackletOnLink(int link, int trackletpos); // is the current tracklet on the the current link
   bool isDigitOnLink(int link, int digitpos);       // is the current digit on the current link
-  int buildDigitRawData(const int digitindex, const std::array<int64_t, 21>& localParseDigits, const uint32_t triggercount);
+  int buildDigitRawData(const int digitstartindex, const int digitendindex, const int mcm, const int rob, const uint32_t triggercount);
   int buildTrackletRawData(const int trackletindex, const int linkid); // from the current position in the tracklet vector, build the outgoing data for the current mcm the tracklet is on.
   int writeDigitEndMarker();                                           // write the digit end marker 0x0 0x0
   int writeTrackletEndMarker();                                        // write the tracklet end maker 0x10001000 0x10001000

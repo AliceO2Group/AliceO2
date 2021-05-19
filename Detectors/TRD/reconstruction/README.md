@@ -10,7 +10,7 @@ Reconstruction is made up of different parts. There are things that run on the f
     - flp :
         - o2-trd-compressor
             This takes in the data from the CRU, optionally compresses it or sends it raw out to the epn via workflows.
-    - epn : 
+    - epn :
         - o2-trd-rawreader
 
 - Generate raw data from montecarlo:
@@ -35,7 +35,7 @@ Now we are ready to play.
     - Data input  (StfBuilder)
     - Data processing (a pipeline of pre compressor, compressor, and post compressor)
     - Data output (StfSender)
- 
+
 ```
 StfBuilder  --id stfb --session default --transport shmem --detector TRD --detector-rdh 6 --dpl-channel-name dpl-chan --channel-config "name=dpl-chan,type=push,method=bind,address=ipc:///tmp/stfb-to-dpl,transport=shmem,rateLogging=1" --data-source-enable --data-source-dir /path/to/data --data-source-rate=44
 ```

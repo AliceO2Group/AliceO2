@@ -65,8 +65,12 @@ constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 mi
 constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
 
 // array size to store incoming half cru payload.
-constexpr int HBFBUFFERMAX = 1048576;    // max buffer size for data read from a half cru, (all events)
-constexpr int CRUPADDING32 = 0xeeeeeeee; // padding word used in the cru.
+constexpr int HBFBUFFERMAX = 1048576;         // max buffer size for data read from a half cru, (all events)
+constexpr int CRUPADDING32 = 0xeeeeeeee;      // padding word used in the cru.
+constexpr int TRACKLETENDMARKER = 0x10001000; // marker for the end of tracklets in raw data, 2 of these.
+constexpr int DIGITENDMARKER = 0x0;           // marker for the end of digits in raw data, 2 of these
+constexpr int MAXDATAPERLINK32 = 13824;       // max number of 32 bit words per link ((21x12+2+4)*64) 64 mcm, 21 channels, 10 words per channel 2 header words(DigitMCMHeader DigitMCMADCmask) 4 words for tracklets.
+constexpr int MAXDATAPERLINK256 = 1728;       // max number of linkwords per cru link. (256bit words)
 
 } //namespace constants
 } // namespace trd

@@ -47,7 +47,7 @@ class TrackletsParser
     mDataWordsParsed = 0;
     mTrackletsFound = 0;
     mPaddingWordsCounter = 0;
-    mTracklets.clear();
+    //    mTracklets.clear();
     return Parse();
   };
   void setVerbose(bool verbose, bool header = false, bool data = false)
@@ -57,7 +57,6 @@ class TrackletsParser
     mDataVerbose = data;
   }
   void setDisableByteSwap(bool swap) { mDisableByteOrderFix = swap; }
-
   int getDataWordsParsed() { return mDataWordsParsed; }
   int getTrackletsFound() { return mTrackletsFound; }
   void setIgnoreTrackletHCHeader(bool ignore) { mIgnoreTrackletHCHeader = ignore; }
@@ -66,9 +65,14 @@ class TrackletsParser
                              StateTrackletMCMHeader,
                              StateTrackletMCMData,
                              StatePadding,
+                             StateTrackletEndMarker,
                              StateFinished };
   std::vector<Tracklet64>& getTracklets() { return mTracklets; }
   inline void swapByteOrder(unsigned int& ui);
+  void clear()
+  {
+    mTracklets.clear();
+  }
 
  private:
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* mData;

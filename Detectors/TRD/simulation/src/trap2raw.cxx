@@ -74,6 +74,7 @@ int main(int argc, char** argv)
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
+    add_option("reject-digits", bpo::value<bool>()->default_value(false), "reject the digits in the raw stream");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);

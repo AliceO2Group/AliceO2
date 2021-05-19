@@ -84,9 +84,8 @@ detector [0-540] 9 bits , rob [0-8] 3 bits , mcm [0-16] 4
 Word of caution, tracklets word size is 64 bit digit word size is 32.
 So the raw data has 2 *different* word sizes!
 TODO ignoring config data of course.
-digits are padded at end with a digit end marker (32 bits of 0xe) and then padded to 64 bits. 
-i.e. possibly 64 bits of 0xe.
-The above is verbose as I have consulted nobody ...
+digits are padded at end with a digit end marker (32 bits of 0xe) and then padded to 64 bits.
+i.e. possibly 64 bits of 0xe
 TODO in real data are the digits sent in zero suppresed?
 */
 
