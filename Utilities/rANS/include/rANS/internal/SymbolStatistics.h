@@ -122,11 +122,6 @@ SymbolStatistics::SymbolStatistics(const Source_IT begin, const Source_IT end, i
   RANSTimer t;
   t.start();
 
-  if (begin == end) {
-    LOG(debug) << "Passed empty message to " << __func__; // RS this is ok for empty columns
-    return;
-  }
-
   // if we did not calculate renormalization size, calculate it.
   if (scaleBits == 0) {
     mScaleBits = [&, this]() {
@@ -158,8 +153,8 @@ SymbolStatistics::SymbolStatistics(const Source_IT begin, const Source_IT end, i
   buildCumulativeFrequencyTable();
   rescale();
 
-  assert(mFrequencyTable.size() > 1);
-  assert(mCumulativeFrequencyTable.size() > 2);
+  assert(mFrequencyTable.size() > 0);
+  assert(mCumulativeFrequencyTable.size() > 1);
   assert(mCumulativeFrequencyTable.size() - mFrequencyTable.size() == 1);
 
   t.stop();
@@ -172,6 +167,10 @@ SymbolStatistics::SymbolStatistics(const Source_IT begin, const Source_IT end, i
               << "frequencyTableSizeB: " << mFrequencyTable.size() * sizeof(typename std::decay_t<decltype(mFrequencyTable)>::value_type) << ", "
               << "CumulativeFrequencyTableSizeB: " << mCumulativeFrequencyTable.size() * sizeof(typename std::decay_t<decltype(mCumulativeFrequencyTable)>::value_type) << "}";
 #endif
+
+  if (begin == end) {                                     // we do this check only after the adding the escape symbol
+    LOG(debug) << "Passed empty message to " << __func__; // RS this is ok for empty columns
+  }
 
   LOG(trace) << "done building symbol statistics";
 }
