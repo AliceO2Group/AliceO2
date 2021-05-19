@@ -72,9 +72,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
      one, where the input matching for each device is provide in
      comma-separated strings. For instance
      A:TRD/RAWDATA/785;B:TRF/RAWDATA/2560,C:TRD/RAWDATA/1280;D:TRD/RAWDATA/1536
-     
+
      will lead to a workflow with 2 devices which will input match
-     
+
      trd-crucompressor-0 --> A:TRD/RAWDATA/768;B:TRD/RAWDATA/1024
      trd-crucompressor-1 --> C:TRD/RAWDATA/1280;D:TRD/RAWDATA/1536
      The number after the RAWDATA is the FeeID in decimal

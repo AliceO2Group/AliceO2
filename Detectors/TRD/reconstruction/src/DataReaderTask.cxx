@@ -56,7 +56,7 @@ void DataReaderTask::run(ProcessingContext& pc)
   auto dataReadStart = std::chrono::high_resolution_clock::now();
   /* set encoder output buffer */
   char bufferOut[o2::trd::constants::HBFBUFFERMAX];
-
+  int loopcounter = 0;
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
@@ -78,33 +78,28 @@ void DataReaderTask::run(ProcessingContext& pc)
         }
 
         int a = 1;
-        int debugstopper = 1;
-        //while(debugstopper==1){
-        //  a=sin(rand());
-        //}
+        int d = 1;
+        //        while(d==1){
+        //          a=sin(rand());
+        //        }
 
         mReader.setDataBuffer(payloadIn);
         mReader.setDataBufferSize(payloadInSize);
         mReader.configure(mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
         if (mVerbose) {
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%% about to run %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+          LOG(info) << "%%% about to run " << loopcounter << " %%%";
         }
         mReader.run();
         if (mVerbose) {
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%% finished running %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
-          LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+          LOG(info) << "%%% finished running " << loopcounter << " %%%";
         }
-        mTracklets = mReader.getTracklets();
-        mCompressedDigits = mReader.getCompressedDigits();
+        loopcounter++;
+        mTracklets.insert(std::end(mTracklets), std::begin(mReader.getTracklets()), std::end(mReader.getTracklets()));
+        mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
+        mReader.clearall();
         if (mVerbose) {
           LOG(info) << "from parsing received: " << mTracklets.size() << " tracklets and " << mCompressedDigits.size() << " compressed digits";
+          LOG(info) << "relevant vectors to read : " << mReader.getTracklets().size() << " tracklets and " << mReader.getCompressedDigits().size() << " compressed digits";
         }
         mTriggers = mReader.getIR();
         //get the payload of trigger and digits out.
@@ -125,6 +120,13 @@ void DataReaderTask::run(ProcessingContext& pc)
 
   auto dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
   LOG(info) << "Processing time for Data reading  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
+  if (!mCompressedData) {
+    LOG(info) << "Digits found : " << mReader.getDigitsFound();
+    LOG(info) << "Digits returned : " << mCompressedDigits.size();
+
+    LOG(info) << "Tracklets found : " << mReader.getTrackletsFound();
+    LOG(info) << "Tracklets returned : " << mTracklets.size();
+  }
 }
 
 } // namespace o2::trd

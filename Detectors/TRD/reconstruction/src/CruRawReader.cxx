@@ -71,11 +71,14 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   mState = CRUStateHalfCRUHeader;
   uint32_t currentsaveddatacount = 0;
   mTotalHBFPayLoad = 0;
+  int loopcount = 0;
   // loop until RDH stop header
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
     if (mVerbose) {
-      LOG(info) << "--- RDH open/continue detected";
-      o2::raw::RDHUtils::printRDH(rdh);
+      LOG(info) << "--- RDH open/continue detected loopcount :" << loopcount;
+      LOG(info) << " rdh first word 0x" << std::hex << (uint32_t)*mDataPointer;
+
+      //      o2::raw::RDHUtils::printRDH(rdh);
       for (int i = 0; i < 64; ++i) {
         LOG(info) << std::hex << " 0x" << *(mDataPointer + i);
       }
@@ -114,8 +117,18 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     if ((char*)(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
       //if (reinterpret_cast<const o2::header::RDHAny*>(rdh) < (char*)&mHBFPayload[0] + mDataBufferSize) {
       if (mVerbose) {
+        LOG(info) << __func__ << " " << __LINE__;
         LOG(info) << "rdh position is still inside the buffer";
-        o2::raw::RDHUtils::printRDH(rdh);
+        LOG(info) << __func__ << " " << __LINE__;
+        LOG(info) << "0x;" << std::hex << (void*)rdh;
+        LOG(info) << "0x;" << std::hex << (void*)rdh;
+        LOG(info) << "0x;" << std::hex << (void*)rdh;
+        LOG(info) << "0x;" << std::hex << (void*)rdh;
+        LOG(info) << "0x;" << std::hex << (void*)rdh;
+        LOG(info) << "0x;" << std::hex << (void*)rdh;
+        LOG(info) << "0x;" << std::hex << (void*)rdh;
+        //        o2::raw::RDHUtils::printRDH(rdh);
+        LOG(info) << __func__ << " " << __LINE__;
       }
       // we can still copy into this buffer.
     } else {
@@ -132,7 +145,8 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
   // at this point the entire HBF data payload is sitting in mHBFPayload and the total data count is mTotalHBFPayLoad
   int counthalfcru = 0;
   mHBFoffset32 = 0;
-  while (mHBFoffset32 < mTotalHBFPayLoad / 4) {
+
+  while ((mHBFoffset32 < ((mTotalHBFPayLoad) / 4))) { //} && mTotalHBFPayLoad>0) { // need at least a complete half cru header else we are in an error condition any case.
     if (mVerbose) {
       LOG(info) << "Looping over cruheaders in HBF, loop count " << counthalfcru << " current offset is" << mHBFoffset32 << " total payload is " << mTotalHBFPayLoad / 4 << "  raw :" << mTotalHBFPayLoad;
     }
@@ -210,6 +224,9 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
     }
     LOG(info) << "end halfcrudump";
   }
+  // verify cru header vs rdh header
+  //FEEID has supermodule/layer/stack/side in it.
+  //CRU has
   mHBFoffset32 += sizeof(mCurrentHalfCRUHeader) / 4;
   linkstart = mHBFPayload.begin() + dataoffsetstart32;
   linkend = mHBFPayload.begin() + dataoffsetstart32;
@@ -244,6 +261,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
       linkstart += trackletwordsread;
       //now we have a tracklethcheader and a digithcheader.
       mHBFoffset32 += trackletwordsread;
+      mTotalTrackletsFound += mTrackletsParser.getTrackletsFound();
       digitwordsread = 0;
       if (mVerbose) {
         LOG(info) << "parse digits";
@@ -253,6 +271,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
         LOG(info) << "mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
       }
       digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
+      mTotalDigitsFound += mDigitsParser.getDigitsFound();
       if (mVerbose) {
         LOG(info) << "digitwordsread : " << digitwordsread << " mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
       }
@@ -284,7 +303,15 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   //extract the vectors and copy them to tracklets and digits here, building the indexing(triggerrecords)
   //TODO version 2 remove the tracklet and digit class and write directly the binary format.
   mEventTracklets.insert(std::end(mEventTracklets), std::begin(mTrackletsParser.getTracklets()), std::end(mTrackletsParser.getTracklets()));
+  if (mVerbose) {
+    LOG(info) << "inserting tracklets from parser of size : " << mTrackletsParser.getTracklets().size() << " mEventTracklets is now :" << mEventTracklets.size();
+  }
+  mTrackletsParser.clear();
   mEventCompressedDigits.insert(std::end(mEventCompressedDigits), std::begin(mDigitsParser.getDigits()), std::end(mDigitsParser.getDigits()));
+  if (mVerbose) {
+    LOG(info) << "inserting digits from parser of size : " << mDigitsParser.getDigits().size();
+  }
+  mDigitsParser.clear();
   if (mVerbose) {
     LOG(info) << "Event digits after eventi # : " << mEventCompressedDigits.size() << " having added : " << mDigitsParser.getDigits().size();
   }

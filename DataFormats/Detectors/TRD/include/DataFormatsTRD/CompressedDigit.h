@@ -15,6 +15,7 @@
 #include <array>
 #include "Rtypes.h" // for ClassDef
 #include "DataFormatsTRD/Constants.h"
+#include "fairlogger/Logger.h"
 #include "gsl/span"
 
 namespace o2
@@ -31,7 +32,7 @@ class CompressedDigit
  public:
   CompressedDigit() = default;
   ~CompressedDigit() = default;
-  CompressedDigit(const int det, const int rob, const int mcm, const int channel, std::array<uint16_t, constants::TIMEBINS> adc);
+  CompressedDigit(const int det, const int rob, const int mcm, const int channel, const std::array<uint16_t, constants::TIMEBINS>& adc);
   CompressedDigit(const int det, const int rob, const int mcm, const int channel); // add adc data in a seperate step
 
   // Copy
@@ -64,9 +65,19 @@ class CompressedDigit
     int adcindex = 0;
     for (auto adc : adcs) {
       int rem = adcindex % 3;
+      //    LOG(info) << "adc index :" << adcindex << " rem:" << rem << " adcindex/3=" << adcindex/3;
       mADC[adcindex / 3] &= ~((0x3ff) << (rem * 10));
-      mADC[adcindex / 3] |= (adcs[adcindex++] << (rem * 10));
+      //     LOG(info) << "mADC[adcindex/3] after &= :" << std::hex << mADC[adcindex/3] << rem;
+      mADC[adcindex / 3] |= (adcs[adcindex] << (rem * 10));
+      //     LOG(info) << "mADC[adcindex/3] after  != :" << std::hex << mADC[adcindex/3] << rem;
+      adcindex++;
     }
+  }
+  void setADCi(int index, uint16_t adcvalue)
+  {
+    int rem = index % 3;
+    mADC[index / 3] &= ~((0x3ff) << (rem * 10));
+    mADC[index / 3] |= (adcvalue << (rem * 10));
   }
   // Get methods
   int getChannel() const { return mHeader & 0x3f; }
@@ -76,6 +87,14 @@ class CompressedDigit
   bool isSharedCompressedDigit() const;
 
   uint16_t operator[](const int index) { return mADC[index / 3] >> ((index % 3) * 10); }
+  uint32_t getADCsum() const
+  {
+    uint32_t sum = 0;
+    for (int i = 0; i < constants::TIMEBINS; ++i) {
+      sum += (mADC[i / 3] >> ((i % 3) * 10));
+    }
+    return sum;
+  }
 
  private:
   uint32_t mHeader;

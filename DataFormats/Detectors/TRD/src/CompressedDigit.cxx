@@ -16,7 +16,7 @@ namespace o2::trd
 
 using namespace constants;
 
-CompressedDigit::CompressedDigit(const int det, const int rob, const int mcm, const int channel, const std::array<uint16_t, constants::TIMEBINS> adc)
+CompressedDigit::CompressedDigit(const int det, const int rob, const int mcm, const int channel, const std::array<uint16_t, constants::TIMEBINS>& adc)
 {
   setDetector(det);
   setROB(rob);
