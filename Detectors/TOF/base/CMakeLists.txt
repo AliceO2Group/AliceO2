@@ -15,7 +15,7 @@ o2_add_library(TOFBase
                        src/Mapping.cxx
                        src/Strip.cxx
                        src/WindowFiller.cxx
-               PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base ms_gsl::ms_gsl
+               PUBLIC_LINK_LIBRARIES Boost::serialization FairRoot::Base Microsoft.GSL::GSL
                                      O2::DetectorsBase O2::CommonDataFormat O2::DetectorsRaw
                                      O2::DataFormatsTOF)
 
