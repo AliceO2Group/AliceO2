@@ -31,7 +31,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::soa;
 
-struct ATask {
+struct TrackCombinations {
   void process(aod::Tracks const& tracks)
   {
     // Strictly upper tracks
@@ -82,7 +82,7 @@ struct HashTask {
   }
 };
 
-struct BTask {
+struct BinnedTrackCombinations {
   void process(soa::Join<aod::Hashes, aod::Tracks> const& hashedTracks)
   {
     // Strictly upper categorised tracks
@@ -95,7 +95,8 @@ struct BTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"tracks-pairs"}),
-    adaptAnalysisTask<HashTask>(cfgc, TaskName{"tracks-hashed"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"tracks-pairs-categorised"})};
+    adaptAnalysisTask<TrackCombinations>(cfgc),
+    adaptAnalysisTask<HashTask>(cfgc),
+    adaptAnalysisTask<BinnedTrackCombinations>(cfgc),
+  };
 }

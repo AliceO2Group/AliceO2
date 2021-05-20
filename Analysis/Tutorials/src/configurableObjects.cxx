@@ -107,5 +107,6 @@ struct ConfigurableObjectDemo {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ConfigurableObjectDemo>(cfgc, TaskName{"configurable-demo"})};
+    adaptAnalysisTask<ConfigurableObjectDemo>(cfgc),
+  };
 }

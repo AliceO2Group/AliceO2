@@ -37,7 +37,7 @@ DECLARE_SOA_TABLE(MinMaxEta, "AOD", "MINMAXETA",
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct ProduceMinMaxPt {
   Produces<aod::MinMaxPt> minmaxpt;
   float minpt;
   float maxpt;
@@ -65,7 +65,7 @@ struct ATask {
   }
 };
 
-struct BTask {
+struct ProduceMinMaxEta {
   Produces<aod::MinMaxEta> minmaxeta;
   float mineta;
   float maxeta;
@@ -92,7 +92,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct ConsumeMinMaxEta {
   void process(aod::MinMaxEta const& minmaxetas)
   {
     for (auto& minmaxeta : minmaxetas) {
@@ -104,8 +104,8 @@ struct CTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"aod-writer-tutorial_A"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"aod-writer-tutorial_B"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"aod-writer-tutorial_C"}),
+    adaptAnalysisTask<ProduceMinMaxPt>(cfgc),
+    adaptAnalysisTask<ProduceMinMaxEta>(cfgc),
+    adaptAnalysisTask<ConsumeMinMaxEta>(cfgc),
   };
 }

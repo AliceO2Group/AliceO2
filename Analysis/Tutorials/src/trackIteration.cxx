@@ -18,7 +18,7 @@
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct SingleTracks {
 
   // define global variables
   size_t count = 0;
@@ -32,7 +32,7 @@ struct ATask {
   }
 };
 
-struct BTask {
+struct AllTracks {
 
   // define global variables
   size_t numberDataFrames = 0;
@@ -58,7 +58,7 @@ struct BTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"track-iteration-tutorial_A"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"track-iteration-tutorial_B"}),
+    adaptAnalysisTask<SingleTracks>(cfgc),
+    adaptAnalysisTask<AllTracks>(cfgc),
   };
 }

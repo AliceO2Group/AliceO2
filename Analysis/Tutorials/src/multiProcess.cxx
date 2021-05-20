@@ -17,7 +17,6 @@
 #include "Framework/AnalysisTask.h"
 #include "AnalysisCore/MC.h"
 
-#include <TH1F.h>
 #include <cmath>
 
 using namespace o2;
@@ -94,7 +93,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (!cfgc.options().get<bool>("doMC")) {
     return WorkflowSpec{
       // only use rec-level process when MC info is not there
-      adaptAnalysisTask<MultipleProcessExample>(cfgc, Processes{&MultipleProcessExample::processRec})};
+      adaptAnalysisTask<MultipleProcessExample>(cfgc, Processes{&MultipleProcessExample::processRec}),
+    };
   }
   return WorkflowSpec{
     // use additional process functions when MC info is present
@@ -104,5 +104,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     // filters will be applied *to all* processes
     adaptAnalysisTask<MultipleProcessExample>(cfgc, Processes{&MultipleProcessExample::processRec,
                                                               &MultipleProcessExample::processGen,
-                                                              &MultipleProcessExample::processResolution})};
+                                                              &MultipleProcessExample::processResolution}),
+  };
 }

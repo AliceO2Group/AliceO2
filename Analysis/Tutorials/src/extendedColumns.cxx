@@ -19,14 +19,14 @@ namespace o2::aod
 {
 namespace extension
 {
-DECLARE_SOA_EXPRESSION_COLUMN(P2, p2, float, track::p * track::p);
+DECLARE_SOA_EXPRESSION_COLUMN(P2, p2, float, track::p* track::p);
 } // namespace extension
 } // namespace o2::aod
 
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct ExtendTable {
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
     auto table_extension = soa::Extend<aod::Tracks, aod::extension::P2>(tracks);
@@ -42,7 +42,7 @@ struct ATask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  // create and use table
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"extend-showcase"})};
+    adaptAnalysisTask<ExtendTable>(cfgc),
+  };
 }

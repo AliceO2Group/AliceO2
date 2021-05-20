@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
 ///
 /// \brief Partitions are subsets of tables.
 /// \author
@@ -20,7 +19,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct ATask {
+struct PartitionOutside {
   float fPI = static_cast<float>(M_PI);
   Configurable<float> ptlow{"pTlow", 0.5f, "Lowest pT"};
   Configurable<float> ptup{"pTup", 2.0f, "highest pT"};
@@ -67,7 +66,7 @@ struct ATask {
 
 // Partition inside process
 // Caveat: partitioned table cannot be passed as const& to process()
-struct BTask {
+struct PartitionInside {
   void process(aod::Collisions const& collisions, aod::Tracks& tracks)
   {
     for (auto& c : collisions) {
@@ -87,6 +86,7 @@ struct BTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"consume-tracks"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"partition-in-process"})};
+    adaptAnalysisTask<PartitionOutside>(cfgc),
+    adaptAnalysisTask<PartitionInside>(cfgc),
+  };
 }

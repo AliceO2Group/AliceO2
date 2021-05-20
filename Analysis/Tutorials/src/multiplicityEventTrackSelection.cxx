@@ -12,13 +12,12 @@
 ///        which pass the INT7 selection and tracks which pass the "isGlobalTrack"
 ///        selection.
 ///        Needs to run with event and track selection:
-///        o2-analysis-timestamp | o2-analysis-event-selection | o2-analysis-trackextension | o2-analysis-trackselection | o2-analysistutorial-multiplicity-event-track-selection
+///        o2-analysis-timestamp --aod-file AO2D.root | o2-analysis-event-selection | o2-analysis-trackextension | o2-analysis-trackselection | o2-analysistutorial-multiplicity-event-track-selection
 /// \author
 /// \since
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include <TH1F.h>
 
 #include "AnalysisDataModel/EventSelection.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
@@ -53,5 +52,6 @@ struct MultiplicityEventTrackSelection {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<MultiplicityEventTrackSelection>(cfgc, TaskName{"multiplicity-event-track-selection"})};
+    adaptAnalysisTask<MultiplicityEventTrackSelection>(cfgc),
+  };
 }

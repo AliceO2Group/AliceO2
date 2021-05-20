@@ -16,11 +16,10 @@
 /// \author
 /// \since
 
-#include <chrono>
-
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include <CCDB/BasicCCDBManager.h>
+#include <chrono>
 
 using namespace o2::framework;
 using namespace o2;
@@ -63,5 +62,7 @@ struct EfficiencyGlobal {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<EfficiencyGlobal>(cfgc, TaskName{"EfficiencyGlobal"})};
+  return WorkflowSpec{
+    adaptAnalysisTask<EfficiencyGlobal>(cfgc),
+  };
 }

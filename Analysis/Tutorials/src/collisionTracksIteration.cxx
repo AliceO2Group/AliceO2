@@ -7,8 +7,10 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
+///
 /// \brief Shows how to loop over collisions and tracks of a data frame.
+///        Requires V0s to be filled with. Therefore use
+///        o2-analysis-weak-decay-indices --aod-file AO2D.root | o2-analysistutorial-collision-tracks-iteration
 /// \author
 /// \since
 
@@ -18,7 +20,7 @@
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct TracksPerCollision {
   void process(aod::Collision const& collision, aod::Tracks const& tracks)
   {
     // `tracks` contains tracks belonging to `collision`
@@ -32,7 +34,7 @@ struct ATask {
   }
 };
 
-struct BTask {
+struct TracksPerDataframe {
 
   void process(aod::Collisions const& collisions, aod::Tracks const& tracks)
   {
@@ -42,7 +44,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct GroupByCollision {
 
   void process(aod::Collision const& collision, aod::Tracks const& tracks, aod::V0s const& v0s)
   {
@@ -57,8 +59,8 @@ struct CTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"collision-tracks-iteration-tutorial_A"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"collision-tracks-iteration-tutorial_B"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"collision-tracks-iteration-tutorial_C"}),
+    adaptAnalysisTask<TracksPerCollision>(cfgc),
+    adaptAnalysisTask<TracksPerDataframe>(cfgc),
+    adaptAnalysisTask<GroupByCollision>(cfgc),
   };
 }

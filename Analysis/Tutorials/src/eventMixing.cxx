@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
 ///
 /// \brief Example task for event mixing.
 /// \author
@@ -198,8 +197,8 @@ struct MixedEventsTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HashTask>(cfgc, TaskName{"eventMixing_A"}),
-    adaptAnalysisTask<MixedEventsTracks>(cfgc, TaskName{"eventMixing_B"}),
-    adaptAnalysisTask<MixedEventsPartitionedTracks>(cfgc, TaskName{"eventMixing_C"}),
+    adaptAnalysisTask<HashTask>(cfgc),
+    adaptAnalysisTask<MixedEventsTracks>(cfgc),
+    adaptAnalysisTask<MixedEventsPartitionedTracks>(cfgc),
   };
 }

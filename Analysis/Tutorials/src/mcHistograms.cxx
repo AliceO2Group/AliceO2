@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
 ///
 /// \brief Accessing MC data and the related MC truth.
 /// \author
@@ -21,7 +20,7 @@ using namespace o2;
 using namespace o2::framework;
 
 // Simple access to collision
-struct ATask {
+struct VertexDistribution {
   OutputObj<TH1F> vertex{TH1F("vertex", "vertex", 100, -10, 10)};
 
   // loop over MC truth McCollisions
@@ -33,7 +32,7 @@ struct ATask {
 };
 
 // Grouping between MC particles and collisions
-struct BTask {
+struct AccessMCData {
   OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
@@ -56,7 +55,7 @@ struct BTask {
 };
 
 // Access from tracks to MC particle
-struct CTask {
+struct AccessMCTruth {
   OutputObj<TH1F> etaDiff{TH1F("etaDiff", ";eta_{MC} - eta_{Rec}", 100, -2, 2)};
   OutputObj<TH1F> phiDiff{TH1F("phiDiff", ";phi_{MC} - phi_{Rec}", 100, -M_PI, M_PI)};
 
@@ -87,8 +86,8 @@ struct CTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"vertex-histogram"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"etaphi-histogram"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"eta-resolution-histogram"}),
+    adaptAnalysisTask<VertexDistribution>(cfgc),
+    adaptAnalysisTask<AccessMCData>(cfgc),
+    adaptAnalysisTask<AccessMCTruth>(cfgc),
   };
 }

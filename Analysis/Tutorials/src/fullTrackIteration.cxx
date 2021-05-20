@@ -15,13 +15,10 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 
-#include <TFile.h>
-#include <TH1F.h>
-
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct UseJoins {
   void init(InitContext&)
   {
     count = 0;
@@ -41,5 +38,6 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"track-iteration-tutorial"})};
+    adaptAnalysisTask<UseJoins>(cfgc),
+  };
 }

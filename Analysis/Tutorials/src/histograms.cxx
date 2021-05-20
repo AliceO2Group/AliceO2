@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
 ///
 /// \brief Both tasks, ATask and BTask create two histograms. But whereas in
 ///        the first case (ATask) the histograms are not saved to file, this
@@ -21,11 +20,12 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-using namespace o2::framework::expressions;
+
 using namespace o2;
 using namespace o2::framework;
+using namespace o2::framework::expressions;
 
-struct ATask {
+struct RootHistograms {
 
   // normal creation of a histogram
   TH1F* phiHA = new TH1F("phiA", "phiA", 100, 0., 2. * M_PI);
@@ -40,7 +40,7 @@ struct ATask {
   }
 };
 
-struct BTask {
+struct OutputObjects {
 
   // histogram created with OutputObj<TH1F>
   OutputObj<TH1F> phiB{TH1F("phiB", "phiB", 100, 0., 2. * M_PI), OutputObjHandlingPolicy::QAObject};
@@ -55,7 +55,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct OutputObjSet {
   // incomplete definition of an OutputObj
   OutputObj<TH1F> trZ{"trZ", OutputObjHandlingPolicy::QAObject};
 
@@ -79,7 +79,7 @@ struct CTask {
   }
 };
 
-struct DTask {
+struct HistRegistry {
 
   // histogram defined with HistogramRegistry
   HistogramRegistry registry{
@@ -99,9 +99,9 @@ struct DTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{TaskName{"histograms-tutorial_A"}}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{TaskName{"histograms-tutorial_B"}}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{TaskName{"histograms-tutorial_C"}}),
-    adaptAnalysisTask<DTask>(cfgc, TaskName{TaskName{"histograms-tutorial_D"}}),
+    adaptAnalysisTask<RootHistograms>(cfgc),
+    adaptAnalysisTask<OutputObjects>(cfgc),
+    adaptAnalysisTask<OutputObjSet>(cfgc),
+    adaptAnalysisTask<HistRegistry>(cfgc),
   };
 }

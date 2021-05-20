@@ -41,13 +41,13 @@ DECLARE_SOA_INDEX_COLUMN(Track, track);
 DECLARE_SOA_INDEX_COLUMN(HMPID, hmpid);
 } // namespace indices
 
-DECLARE_SOA_INDEX_TABLE_USER(HMPIDTracksIndex, Tracks, "HMPIDTRKIDX", indices::HMPIDId);
+DECLARE_SOA_INDEX_TABLE_USER(HMPIDTracksIndex, Tracks, "HMPIDTRKIDX", indices::TrackId, indices::HMPIDId);
 } // namespace o2::aod
 
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct ProduceEtaPhi {
   Produces<aod::EtaPhi> etaphi;
 
   void process(aod::Tracks const& tracks)
@@ -60,7 +60,7 @@ struct ATask {
   }
 };
 
-struct MTask {
+struct ProduceColExtra {
   Produces<aod::CollisionsExtra> colextra;
 
   void process(aod::Collision const&, aod::Tracks const& tracks)
@@ -69,7 +69,7 @@ struct MTask {
   }
 };
 
-struct BTask {
+struct ConsumeEtaPhi {
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::EtaPhi> const& extTracks)
   {
     LOGF(INFO, "ID: %d", collision.globalIndex());
@@ -80,7 +80,7 @@ struct BTask {
   }
 };
 
-struct TTask {
+struct ConsumeColExtra {
   // use collisions with > 10 tracks only
   using myCol = soa::Join<aod::Collisions, aod::CollisionsExtra>;
   expressions::Filter multfilter = aod::collision::mult > 10;
@@ -98,7 +98,7 @@ struct TTask {
   }
 };
 
-struct ZTask {
+struct PartitionColExtra {
   using myCol = soa::Join<aod::Collisions, aod::CollisionsExtra>;
 
   void process(myCol const& collisions, aod::Tracks const& tracks)
@@ -161,12 +161,12 @@ struct ConsumeHmpidIndex {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"produce-etaphi"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"consume-etaphi"}),
-    adaptAnalysisTask<MTask>(cfgc, TaskName{"produce-mult"}),
-    adaptAnalysisTask<TTask>(cfgc, TaskName{"consume-mult"}),
-    adaptAnalysisTask<ZTask>(cfgc, TaskName{"partition-mult"}),
-    adaptAnalysisTask<BuildHmpidIndex>(cfgc, TaskName{"build-index"}),
-    adaptAnalysisTask<ConsumeHmpidIndex>(cfgc, TaskName{"consume-index"}),
+    adaptAnalysisTask<ProduceEtaPhi>(cfgc),
+    adaptAnalysisTask<ConsumeEtaPhi>(cfgc),
+    adaptAnalysisTask<ProduceColExtra>(cfgc),
+    adaptAnalysisTask<ConsumeColExtra>(cfgc),
+    adaptAnalysisTask<PartitionColExtra>(cfgc),
+    adaptAnalysisTask<BuildHmpidIndex>(cfgc),
+    adaptAnalysisTask<ConsumeHmpidIndex>(cfgc),
   };
 }
