@@ -39,20 +39,19 @@ jobs:
             [[ "$filename" == "CMakeLists.txt" || "${filename##*.}" == "cmake" ]] || continue
             echo -e "Testing file: \e[1m$f\e[0m"
             # run cmake-format
-            echo "- Format check: "
-            if cmake-format --check "$f"; then
-              echo "OK"
-            else
-              echo -e "\e[1;31mfailed\e[0m"
+            if ! cmake-format --check "$f"; then
+              echo "::error::Format check failed."
               status_format=1
             fi
             # run cmake-lint
-            echo "- Syntax check: "
-            if cmake-lint --suppress-decorations "$f"; then
-              echo "OK"
-            else
-              echo -e "\e[1;31mfailed\e[0m"
+            if ! cmake-lint --suppress-decorations "$f"; then
+              echo "::error::Syntax check failed."
               status_lint=2
             fi
           done
-          exit $((status_format + status_lint))
+          status=$((status_format + status_lint))
+          if [ "$status" -ne 0 ]; then
+            echo "::warning::Fix the errors
+            See instructions at https://github.com/AliceO2Group/CodingGuidelines"
+          fi
+          exit $status
