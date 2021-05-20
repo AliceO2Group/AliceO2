@@ -12,6 +12,7 @@
 #include "Framework/RuntimeError.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceController.h"
+#include "Framework/DevicesManager.h"
 #include "DriverServerContext.h"
 #include "DriverClientContext.h"
 #include "HTTPParser.h"

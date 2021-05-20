@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ComputingQuotaEvaluator.h"
+#include <vector>
 #include <uv.h>
 
 namespace o2::framework
@@ -26,7 +27,8 @@ ComputingQuotaEvaluator::ComputingQuotaEvaluator(uv_loop_t* loop)
     0,
     0,
     -1,
-    false,
+    -1,
+    OfferScore::Unneeded,
     true};
   mInfos[0] = {
     uv_now(loop),
@@ -34,10 +36,19 @@ ComputingQuotaEvaluator::ComputingQuotaEvaluator(uv_loop_t* loop)
     0};
 }
 
-ComputingQuotaOfferRef ComputingQuotaEvaluator::selectOffer(ComputingQuotaRequest const& evaluator)
+bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const& selector)
 {
-  int8_t bestOfferScore = -1;
-  int bestOfferIndex = -1;
+  auto selectOffer = [&loop = mLoop, &offers = this->mOffers, &infos = this->mInfos, task](int ref) {
+    auto& selected = offers[ref];
+    auto& info = infos[ref];
+    selected.user = task;
+    if (info.firstUsed == 0) {
+      info.firstUsed = uv_now(loop);
+    }
+    info.lastUsed = uv_now(loop);
+  };
+
+  ComputingQuotaOffer accumulated;
 
   for (int i = 0; i != mOffers.size(); ++i) {
     auto& offer = mOffers[i];
@@ -45,43 +56,65 @@ ComputingQuotaOfferRef ComputingQuotaEvaluator::selectOffer(ComputingQuotaReques
 
     // Ignore:
     // - Invalid offers
-    // - Used offers
+    // - Offers which belong to another task
     // - Expired offers
     if (offer.valid == false) {
       continue;
     }
-    if (offer.used == true) {
+    if (offer.user != -1 && offer.user != task) {
       continue;
     }
     if (offer.runtime > 0 && offer.runtime + info.received < uv_now(mLoop)) {
       continue;
     }
-    int score = evaluator(offer);
-    if (score > bestOfferScore) {
-      bestOfferScore = score;
-      bestOfferIndex = i;
-    }
-    if (score == 127) {
-      break;
-    }
+    /// We then check if the offer is suitable
+    auto tmp = accumulated;
+    tmp.cpu += offer.cpu;
+    tmp.memory += offer.memory;
+    tmp.sharedMemory += offer.sharedMemory;
+    offer.score = selector(offer, tmp);
+    switch (offer.score) {
+      case OfferScore::Unneeded:
+      case OfferScore::Unsuitable:
+        continue;
+      case OfferScore::More:
+        selectOffer(i);
+        break;
+      case OfferScore::Enough:
+        selectOffer(i);
+        return true;
+    };
   }
-
-  if (bestOfferScore < 0) {
-    return ComputingQuotaOfferRef{-1};
-  }
-  auto& selected = mOffers[bestOfferIndex];
-  auto& info = mInfos[bestOfferIndex];
-  selected.used = true;
-  if (info.firstUsed == 0) {
-    info.firstUsed = uv_now(mLoop);
-  }
-  info.lastUsed = uv_now(mLoop);
-  return ComputingQuotaOfferRef{bestOfferIndex};
+  // If we get here it means we never got enough offers, so we return false.
+  return false;
 }
 
-void ComputingQuotaEvaluator::dispose(ComputingQuotaOfferRef offer)
+void ComputingQuotaEvaluator::consume(int id, ComputingQuotaConsumer& consumer)
 {
-  mOffers[offer.index].used = false;
+  consumer(id, mOffers);
+}
+
+void ComputingQuotaEvaluator::dispose(int taskId)
+{
+  for (int oi = 0; oi < mOffers.size(); ++oi) {
+    auto& offer = mOffers[oi];
+    if (offer.user != taskId) {
+      continue;
+    }
+    offer.user = -1;
+    // Disposing the offer so that the resource can be recyled.
+    /// An offer with index 0 is always there.
+    /// All the others are reset.
+    if (oi == 0) {
+      return;
+    }
+    if (offer.valid == false) {
+      continue;
+    }
+    if (offer.sharedMemory <= 0) {
+      offer.valid = false;
+    }
+  }
 }
 
 } // namespace o2::framework

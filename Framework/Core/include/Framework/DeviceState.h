@@ -11,6 +11,8 @@
 #define O2_FRAMEWORK_DEVICESTATE_H_
 
 #include "Framework/ChannelInfo.h"
+#include "Framework/ComputingQuotaOffer.h"
+
 #include <vector>
 #include <string>
 #include <map>
@@ -57,6 +59,14 @@ struct DeviceState {
   std::vector<InputChannelInfo> inputChannelInfos;
   StreamingState streaming = StreamingState::Streaming;
   bool quitRequested = false;
+
+  /// ComputingQuotaOffers which have not yet been
+  /// evaluated by the ComputingQuotaEvaluator
+  std::vector<ComputingQuotaOffer> pendingOffers;
+  /// ComputingQuotaOffers which should be removed
+  /// from the queue.
+  std::vector<ComputingQuotaConsumer> offerConsumers;
+
   // The libuv event loop which serves this device.
   uv_loop_t* loop = nullptr;
   // The list of active timers which notify this device.

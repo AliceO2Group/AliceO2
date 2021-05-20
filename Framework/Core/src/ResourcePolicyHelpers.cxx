@@ -27,27 +27,31 @@ ResourcePolicy ResourcePolicyHelpers::trivialTask(char const* s)
     [matcher = std::regex(s)](DeviceSpec const& spec) -> bool {
       return std::regex_match(spec.name, matcher);
     },
-    [](ComputingQuotaOffer const&) { return 127; }};
+    [](ComputingQuotaOffer const&, ComputingQuotaOffer const&) -> OfferScore { return OfferScore::Enough; }};
 }
 
-ResourcePolicy ResourcePolicyHelpers::cpuBoundTask(char const* s, int maxCPUs)
+ResourcePolicy ResourcePolicyHelpers::cpuBoundTask(char const* s, int requestedCPUs)
 {
   return ResourcePolicy{
     "cpu-bound",
     [matcher = std::regex(s)](DeviceSpec const& spec) -> bool {
       return std::regex_match(spec.name, matcher);
     },
-    [maxCPUs](ComputingQuotaOffer const& offer) -> int8_t { return offer.cpu >= maxCPUs ? 127 : 0; }};
+    [requestedCPUs](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore { return accumulated.cpu >= requestedCPUs ? OfferScore::Enough : OfferScore::More; }};
 }
 
-ResourcePolicy ResourcePolicyHelpers::sharedMemoryBoundTask(char const* s, int maxSharedMemory)
+ResourcePolicy ResourcePolicyHelpers::sharedMemoryBoundTask(char const* s, int requestedSharedMemory)
 {
   return ResourcePolicy{
     "shm-bound",
     [matcher = std::regex(s)](DeviceSpec const& spec) -> bool {
       return std::regex_match(spec.name, matcher);
     },
-    [maxSharedMemory](ComputingQuotaOffer const& offer) -> int8_t { return offer.sharedMemory >= maxSharedMemory ? 127 : 0; }};
+    [requestedSharedMemory](ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated) -> OfferScore { 
+      if (offer.sharedMemory == 0) {
+        return OfferScore::Unneeded;
+      }
+      return accumulated.sharedMemory >= requestedSharedMemory ? OfferScore::Enough : OfferScore::More; }};
 }
 
 } // namespace o2::framework

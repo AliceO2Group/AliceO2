@@ -12,9 +12,9 @@
 #define O2_FRAMEWORK_DRIVERSERVERCONTEXT_H_
 
 #include "Framework/DeviceInfo.h"
-#include "Framework/DeviceControl.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceControl.h"
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ServiceSpec.h"
 
