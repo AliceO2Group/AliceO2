@@ -72,12 +72,20 @@ constexpr int NWPerBc = 3;
 constexpr int MaxTriggerChannels = NChannels;
 constexpr int ADCMin = -2048, ADCMax = 2047, ADCRange = 4096; // 12 bit ADC
 
+// Encoding of ZDC energy into an uint32_t value
+// Most significant 5 bits are for channel id, least significant 27 bits are for energy
+// with offset and unit as specified below
+constexpr float EnergyOffset = 10000; // Energy offset (GeV)
+constexpr float EnergyUnit = 0.01;    // Energy unit (GeV)
+constexpr uint32_t EnergyMask = 0x07ffffff;
+constexpr uint32_t EnergyChMask = 0xf8000000;
+
 constexpr int MaxTDCValues = 5;  // max number of TDC values to store in reconstructed event
 constexpr int NTDCChannels = 10; // max number of TDC values to store in reconstructed event
 // Parameters of interpolating function
-constexpr int TSL = 6;    // number of zeros on the right (and on the left) of central peak
-constexpr int TSN = 200;  // Number of interpolated points between each pair = TSN-1
-constexpr int TSNS = 96;  // Number of interpolated points per ns
+constexpr int TSL = 6;                 // number of zeros on the right (and on the left) of central peak
+constexpr int TSN = 200;               // Number of interpolated points between each pair = TSN-1
+constexpr int TSNS = 96;               // Number of interpolated points per ns
 constexpr int NTS = 2 * TSL * TSN + 1; //Tapered sinc function array size
 enum TDCChannelID {
   TDCZNAC,
@@ -196,12 +204,12 @@ constexpr int DbgFull = 3;
 
 const std::string CCDBPathConfigSim = "ZDC/Config/Sim";
 const std::string CCDBPathConfigModule = "ZDC/Config/Module";
-const std::string CCDBPathConfigReco= "ZDC/Calib/RecoParam";
-const std::string CCDBPathConfigIntegration= "ZDC/Calib/IntegrationParam";
-const std::string CCDBPathTDCCalib= "ZDC/Calib/TDCCalib";
+const std::string CCDBPathConfigReco = "ZDC/Calib/RecoParam";
+const std::string CCDBPathConfigIntegration = "ZDC/Calib/IntegrationParam";
+const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 
 // Placeholders
-constexpr int DummyIntRange = -NTimeBinsPerBC -1;
+constexpr int DummyIntRange = -NTimeBinsPerBC - 1;
 
 constexpr std::string_view DummyName = "Dumm";
 constexpr std::string_view VoidName = " NA ";

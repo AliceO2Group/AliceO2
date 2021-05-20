@@ -90,7 +90,7 @@ void DigiReco::init()
       if (!mTDCParam) {
         LOG(FATAL) << "TDC " << itdc << " missing configuration object and no manual override";
       } else {
-        fval = mTDCParam->getShift(itdc) / RecEvent::fVal;
+        fval = mTDCParam->getShift(itdc) / RecEventAux::fVal;
       }
     }
     auto val = std::nearbyint(fval);
@@ -101,12 +101,12 @@ void DigiReco::init()
       LOG(FATAL) << "Shift for TDC " << itdc << " " << val << " is out of range";
     }
     tdc_shift[itdc] = val;
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val*RecEvent::fVal << " ns";
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val*RecEventAux::fVal << " ns";
   }
   // TDC search zone
   // TODO: override with configuration object
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc]*RecEvent::fVal << " ns";
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc]*RecEventAux::fVal << " ns";
   }
 
   // Fill maps channel maps for integration
@@ -768,13 +768,13 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   int& ihit = mReco[ibun].ntdc[itdc];
   if (ihit < MaxTDCValues) {
     mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
-    mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp/RecEvent::fAmp);
+    mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp/RecEventAux::fAmp);
     ihit++;
     LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor*RecEvent::fVal << " amp=" << amp*RecEvent::fAmp;
+              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor*RecEventAux::fVal << " amp=" << amp*RecEventAux::fAmp;
   } else {
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor*RecEvent::fVal << " amp=" << amp*RecEvent::fAmp << " OVERFLOW";
+               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor*RecEventAux::fVal << " amp=" << amp*RecEventAux::fAmp << " OVERFLOW";
   }
 }
 
