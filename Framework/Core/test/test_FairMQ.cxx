@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
   BOOST_REQUIRE(allocZMQ != nullptr);
   auto allocSHM = getTransportAllocator(factorySHM.get());
-  BOOST_REQUIRE(allocZMQ != nullptr);
+  BOOST_REQUIRE(allocSHM != nullptr);
   {
     //check that a message is constructed properly with the default new_delete_resource
     Stack s1{DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}},
