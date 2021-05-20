@@ -25,7 +25,7 @@ DeviceController::DeviceController(WSDPLHandler* handler)
 
 void DeviceController::hello()
 {
-  LOG(INFO) << "Saying hello";
+  LOG(debug) << "Saying hello";
   std::vector<uv_buf_t> outputs;
   encode_websocket_frames(outputs, "hello", strlen("hello"), WebSocketOpCode::Binary, 0);
   mHandler->write(outputs);
@@ -33,7 +33,7 @@ void DeviceController::hello()
 
 void DeviceController::write(char const* message, size_t s)
 {
-  LOGP(INFO, "Saying {} to device", message);
+  LOGP(debug, "Saying {} to device", message);
   std::vector<uv_buf_t> outputs;
   encode_websocket_frames(outputs, message, s, WebSocketOpCode::Binary, 0);
   mHandler->write(outputs);
