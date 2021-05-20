@@ -53,6 +53,7 @@ o2_add_library(Framework
                        src/DeviceSpecHelpers.cxx
                        src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
+                       src/DriverClient.cxx
                        src/DriverInfo.cxx
                        src/Expressions.cxx
                        src/FairMQDeviceProxy.cxx
@@ -105,7 +106,6 @@ o2_add_library(Framework
                        src/ExternalFairMQDeviceProxy.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
-                       src/SHA1.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
                        test/TestClasses.cxx
@@ -164,6 +164,7 @@ foreach(t
         ExternalFairMQDeviceProxy
         FairMQOptionsRetriever
         FairMQResizableBuffer
+        FairMQ
         FrameworkDataFlowToDDS
         FrameworkDataFlowToO2Control
         Graphviz
@@ -271,7 +272,7 @@ foreach(w
         Forwarding
         ParallelPipeline
         ParallelProducer
-        SlowConsumer 
+        SlowConsumer
         SimpleDataProcessingDevice01
         SimpleRDataFrameProcessing
         SimpleStatefulProcessing01

@@ -96,7 +96,7 @@ else()
   add_definitions(-DGPUCA_NO_ROOT)
 endif()
 if(CONFIG_O2_EXTENSIONS)
-  add_definitions(-DHAVE_O2HEADERS)
+  add_definitions(-DGPUCA_HAVE_O2HEADERS)
   if(NOT DEFINED MS_GSL_INCLUDE_DIR AND DEFINED ENV{MS_GSL_ROOT})
     set(MS_GSL_INCLUDE_DIR $ENV{MS_GSL_ROOT}/include)
   endif()
@@ -173,7 +173,8 @@ include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
                     ${O2_DIR}/Detectors/TOF/base/include
                     ${O2_DIR}/Detectors/TPC/base/include
                     ${O2_DIR}/Detectors/TRD/base/include
-                    ${O2_DIR}/Detectors/TRD/base/src)
+                    ${O2_DIR}/Detectors/TRD/base/src
+                    ${O2_DIR}/Framework/Foundation/3rdparty/include)
 endif()
 
 # Create main targets
@@ -261,5 +262,5 @@ endif()
 # Installation
 install(TARGETS ca GPUTracking TPCFastTransformation standalone_support)
 install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${O2_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/config.cmake ${CMAKE_INSTALL_PREFIX}/config.cmake)")

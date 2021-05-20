@@ -18,56 +18,15 @@
 
 #ifndef ALICEO2_FIT_RAWREADERFDDBASE_H_
 #define ALICEO2_FIT_RAWREADERFDDBASE_H_
-#include <iostream>
-#include <vector>
-#include <Rtypes.h>
 #include "FDDRaw/DataBlockFDD.h"
 #include "FDDRaw/DigitBlockFDD.h"
-#include "FITRaw/RawReaderBase.h"
+#include "FITRaw/RawReaderBaseFIT.h"
 
-#include <boost/mpl/inherit.hpp>
-#include <boost/mpl/vector.hpp>
-
-#include <CommonDataFormat/InteractionRecord.h>
-#include "Headers/RAWDataHeader.h"
-
-#include <gsl/span>
-
-using namespace o2::fit;
 namespace o2
 {
 namespace fdd
 {
-
-// Common raw reader for FDD
-template <class DigitBlockFDDtype, class DataBlockPMtype, class DataBlockTCMtype>
-class RawReaderFDDBase : public RawReaderBase<DigitBlockFDDtype, DataBlockPMtype, DataBlockTCMtype>
-{
- public:
-  typedef RawReaderBase<DigitBlockFDDtype, DataBlockPMtype, DataBlockTCMtype> RawReaderBaseType;
-  RawReaderFDDBase() = default;
-  ~RawReaderFDDBase() = default;
-  //deserialize payload to raw data blocks and proccesss them to digits
-  void process(int linkID, gsl::span<const uint8_t> payload, int ep)
-  {
-    if (0 <= linkID && linkID < 2) {
-      //PM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID, 0);
-    } else if (linkID == 2) {
-      //TCM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockTCMtype>(payload, linkID, 0);
-    } else {
-      //put here code in case of bad rdh.linkID value
-      LOG(INFO) << "WARNING! WRONG LINK ID! " << linkID;
-      return;
-    }
-
-    //
-  }
-};
-//Normal TCM mode
-using RawReaderFDDBaseNorm = RawReaderFDDBase<DigitBlockFDD, DataBlockPM, DataBlockTCM>;
-
+using RawReaderFDDBaseNorm = o2::fit::RawReaderBaseFIT<DigitBlockFDD, DataBlockPM, DataBlockTCM>;
 } // namespace fdd
 } // namespace o2
 

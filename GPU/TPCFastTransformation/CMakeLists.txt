@@ -68,7 +68,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                                  O2::TPCReconstruction
                                                  PUBLIC_INCLUDE_DIRECTORIES
                                                  ${CMAKE_BINARY_DIR}/stage/include
-                           LABELS gpu tpc)
+                           LABELS gpu tpc COMPILE_ONLY)
   endforeach()
     foreach(m
           IrregularSpline1DTest.C

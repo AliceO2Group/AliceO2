@@ -7,15 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Dynamic columns are computed on-the-fly when attached to an existing table
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 
 namespace o2::aod
 {
 namespace extension
 {
-DECLARE_SOA_EXPRESSION_COLUMN(P2, p2, float, track::p* track::p);
+DECLARE_SOA_EXPRESSION_COLUMN(P2, p2, float, track::p * track::p);
 } // namespace extension
 } // namespace o2::aod
 

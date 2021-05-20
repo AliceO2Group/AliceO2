@@ -24,6 +24,7 @@
 #include "ReconstructionDataFormats/Cascade.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
+#include "ReconstructionDataFormats/TrackCosmics.h"
 
 using namespace o2::globaltracking;
 using namespace o2::framework;
@@ -51,6 +52,17 @@ void DataRequest::requestITSTracks(bool mc)
     addInput({"trackITSMCTR", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe});
   }
   requestMap["trackITS"] = mc;
+}
+
+void DataRequest::requestMFTTracks(bool mc)
+{
+  addInput({"trackMFT", "MFT", "TRACKS", 0, Lifetime::Timeframe});
+  addInput({"trackMFTROF", "MFT", "MFTTrackROF", 0, Lifetime::Timeframe});
+  addInput({"trackClIdx", "MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"trackMFTMCTR", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe});
+  }
+  requestMap["trackMFT"] = mc;
 }
 
 void DataRequest::requestTPCTracks(bool mc)
@@ -158,10 +170,20 @@ void DataRequest::requestTRDTracklets(bool mc)
 void DataRequest::requestFT0RecPoints(bool mc)
 {
   addInput({"ft0recpoints", "FT0", "RECPOINTS", 0, Lifetime::Timeframe});
+  addInput({"ft0channels", "FT0", "RECCHDATA", 0, Lifetime::Timeframe});
   if (mc) {
     LOG(ERROR) << "FT0 RecPoint does not support MC truth";
   }
   requestMap["FT0"] = false;
+}
+
+void DataRequest::requestCoscmicTracks(bool mc)
+{
+  addInput({"cosmics", "GLO", "COSMICTRC", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"cosmicsMC", "GLO", "COSMICTRC_MC", 0, Lifetime::Timeframe});
+  }
+  requestMap["Cosmics"] = mc;
 }
 
 void DataRequest::requestPrimaryVertertices(bool mc)
@@ -200,6 +222,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   // request tracks for sources probided by the mask
   if (src[GTrackID::ITS]) {
     requestITSTracks(useMC);
+  }
+  if (src[GTrackID::MFT]) {
+    requestMFTTracks(useMC);
   }
   if (src[GTrackID::TPC]) {
     requestTPCTracks(useMC);
@@ -253,6 +278,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   auto req = reqMap.find("trackITS");
   if (req != reqMap.end()) {
     addITSTracks(pc, req->second);
+  }
+
+  req = reqMap.find("trackMFT");
+  if (req != reqMap.end()) {
+    addMFTTracks(pc, req->second);
   }
 
   req = reqMap.find("trackTPC");
@@ -310,6 +340,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addTRDTracklets(pc);
   }
 
+  req = reqMap.find("Cosmics");
+  if (req != reqMap.end()) {
+    addCosmicTracks(pc, req->second);
+  }
+
   req = reqMap.find("PVertex");
   if (req != reqMap.end()) {
     addPVertices(pc, req->second);
@@ -365,6 +400,15 @@ void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)
 }
 
 //____________________________________________________________
+void RecoContainer::addCosmicTracks(ProcessingContext& pc, bool mc)
+{
+  cosmPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::TrackCosmics>>("cosmics"), COSM_TRACKS);
+  if (mc) {
+    cosmPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("cosmicsMC"), COSM_TRACKS_MC);
+  }
+}
+
+//____________________________________________________________
 void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS"), TRACKS);
@@ -372,6 +416,17 @@ void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackITSROF"), TRACKREFS);
   if (mc) {
     commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR"), MCLABELS);
+  }
+}
+
+//____________________________________________________________
+void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), TRACKS);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<int>>("trackClIdx"), INDICES);
+  commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("trackMFTROF"), TRACKREFS);
+  if (mc) {
+    commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMFTMCTR"), MCLABELS);
   }
 }
 
@@ -464,6 +519,8 @@ void RecoContainer::addTOFClusters(ProcessingContext& pc, bool mc)
 void RecoContainer::addFT0RecPoints(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::FT0].registerContainer(pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("ft0recpoints"), TRACKS);
+  commonPool[GTrackID::FT0].registerContainer(pc.inputs().get<gsl::span<o2::ft0::ChannelDataFloat>>("ft0channels"), CLUSTERS);
+
   if (mc) {
     LOG(ERROR) << "FT0 RecPoint does not support MC truth";
   }
@@ -562,14 +619,16 @@ void RecoContainer::fillTrackMCLabels(const gsl::span<GTrackID> gids, std::vecto
 
 void o2::globaltracking::RecoContainer::createTracks(std::function<bool(const o2::track::TrackParCov&, o2::dataformats::GlobalTrackID)> const& creator) const
 {
-  createTracksVariadic([&creator](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) { return creator(_tr, _origID); });
+  createTracksVariadic([&creator](const auto& _tr, GTrackID _origID, float t0, float terr) {
+    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
+      return creator(_tr, _origID);
+    } else {
+      return false;
+    }
+  });
 }
 
-void o2::globaltracking::RecoContainer::createTracksWithMatchingTimeInfo(std::function<bool(const o2::track::TrackParCov&, GTrackID, float, float)> const& creator) const
-{
-  createTracksVariadic([&creator](const o2::track::TrackParCov& _tr, GTrackID _origID, float t0, float terr) { return creator(_tr, _origID, t0, terr); });
-}
-
+//________________________________________________________
 // get contributors from single detectors
 RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) const
 {

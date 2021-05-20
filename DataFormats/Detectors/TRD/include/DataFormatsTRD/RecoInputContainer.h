@@ -37,13 +37,9 @@ namespace trd
 {
 
 struct RecoInputContainer {
-  gsl::span<const o2::dataformats::TrackTPCITS> mTracksTPCITS;
-  gsl::span<const o2::tpc::TrackTPC> mTracksTPC;
   gsl::span<const o2::trd::Tracklet64> mTracklets;
   gsl::span<const o2::trd::CalibratedTracklet> mSpacePoints;
   gsl::span<const o2::trd::TriggerRecord> mTriggerRecords;
-  unsigned int mNTracksTPCITS;
-  unsigned int mNTracksTPC;
   unsigned int mNTracklets;
   unsigned int mNSpacePoints;
   unsigned int mNTriggerRecords;
@@ -51,20 +47,17 @@ struct RecoInputContainer {
   std::vector<int> trdTriggerIndices;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mTrackletLabels;
 
-  void fillGPUIOPtr(o2::gpu::GPUTrackingInOutPointers* ptrs, bool noTracks = false);
+  void fillGPUIOPtr(o2::gpu::GPUTrackingInOutPointers* ptrs);
 };
 
 inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu::GPUTrackingInOutPointers* ptrs, const o2::globaltracking::RecoContainer* inputTracks, bool mc = false)
 {
   auto retVal = std::make_unique<RecoInputContainer>();
-  retVal->mTracksTPCITS = inputTracks->getTPCITSTracks();
-  retVal->mTracksTPC = inputTracks->getTPCTracks();
+
   retVal->mTracklets = pc.inputs().get<gsl::span<o2::trd::Tracklet64>>("trdtracklets");
   retVal->mSpacePoints = pc.inputs().get<gsl::span<CalibratedTracklet>>("trdctracklets");
   retVal->mTriggerRecords = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("trdtriggerrec");
 
-  retVal->mNTracksTPCITS = retVal->mTracksTPCITS.size();
-  retVal->mNTracksTPC = retVal->mTracksTPC.size();
   retVal->mNTracklets = retVal->mTracklets.size();
   retVal->mNSpacePoints = retVal->mSpacePoints.size();
   retVal->mNTriggerRecords = retVal->mTriggerRecords.size();
@@ -76,8 +69,8 @@ inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu:
   for (unsigned int iEv = 0; iEv < retVal->mNTriggerRecords; ++iEv) {
     const auto& trg = retVal->mTriggerRecords[iEv];
     retVal->trdTriggerIndices.push_back(trg.getFirstTracklet());
-    int64_t evTime = trg.getBCData().toLong() * o2::constants::lhc::LHCBunchSpacingNS; // event time in ns
-    retVal->trdTriggerTimes.push_back(evTime / 1000.);                                 // event time in us
+    auto evTime = trg.getBCData().differenceInBC(inputTracks->startIR) * o2::constants::lhc::LHCBunchSpacingNS; // event time in ns
+    retVal->trdTriggerTimes.push_back(evTime * 1e-3);                                                           // event time in us
   }
 
   if (ptrs) {
@@ -87,18 +80,8 @@ inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu:
   return std::move(retVal);
 }
 
-inline void RecoInputContainer::fillGPUIOPtr(o2::gpu::GPUTrackingInOutPointers* ptrs, bool noTracks)
+inline void RecoInputContainer::fillGPUIOPtr(o2::gpu::GPUTrackingInOutPointers* ptrs)
 {
-  if (!noTracks) {
-    if (ptrs->nOutputTracksTPCO2 == 0 && mNTracksTPC) {
-      ptrs->nOutputTracksTPCO2 = mNTracksTPC;
-      ptrs->outputTracksTPCO2 = mTracksTPC.data();
-    }
-    if (ptrs->nTracksTPCITSO2 == 0 && mNTracksTPCITS) {
-      ptrs->nTracksTPCITSO2 = mNTracksTPCITS;
-      ptrs->tracksTPCITSO2 = mTracksTPCITS.data();
-    }
-  }
   ptrs->nTRDTriggerRecords = mNTriggerRecords;
   ptrs->trdTriggerTimes = &(trdTriggerTimes[0]);
   ptrs->trdTrackletIdxFirst = &(trdTriggerIndices[0]);

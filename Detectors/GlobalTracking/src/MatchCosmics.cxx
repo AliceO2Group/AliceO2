@@ -485,22 +485,26 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
   mSeeds.clear();
 
   auto creator = [this](auto& _tr, GTrackID _origID, float t0, float terr) {
-    if (std::abs(_tr.getQ2Pt()) > this->mQ2PtCutoff) {
+    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(_tr)>>) {
+      if (std::abs(_tr.getQ2Pt()) > this->mQ2PtCutoff) {
+        return true;
+      }
+      if constexpr (isTPCTrack<decltype(_tr)>()) {
+        // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
+        t0 *= this->mTPCTBinMUS;
+        terr *= this->mTPCTBinMUS;
+      } else if (isITSTrack<decltype(_tr)>()) {
+        t0 += 0.5 * this->mITSROFrameLengthMUS; // time 0 is supplied as beginning of ROF in \mus
+        terr *= this->mITSROFrameLengthMUS;     // error is supplied a half-ROF duration, convert to \mus
+      } else {                                  // all other tracks are provided with time and its gaussian error in \mus
+        terr *= this->mMatchParams->nSigmaTError;
+      }
+      terr += this->mMatchParams->timeToleranceMUS;
+      mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
       return true;
+    } else {
+      return false;
     }
-    if constexpr (isTPCTrack<decltype(_tr)>()) {
-      // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
-      t0 *= this->mTPCTBinMUS;
-      terr *= this->mTPCTBinMUS;
-    } else if (isITSTrack<decltype(_tr)>()) {
-      t0 += 0.5 * this->mITSROFrameLengthMUS; // time 0 is supplied as beginning of ROF in \mus
-      terr *= this->mITSROFrameLengthMUS;     // error is supplied a half-ROF duration, convert to \mus
-    } else {                                  // all other tracks are provided with time and its gaussian error in \mus
-      terr *= this->mMatchParams->nSigmaTError;
-    }
-    terr += this->mMatchParams->timeToleranceMUS;
-    mSeeds.emplace_back(TrackSeed{_tr, {t0 - terr, t0 + terr}, _origID, MinusOne});
-    return true;
   };
 
   data.createTracksVariadic(creator);

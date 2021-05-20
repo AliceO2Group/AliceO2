@@ -130,7 +130,7 @@ void DisplayTrack(Int_t event = 0, Int_t track = 0, std::string tracfile = "o2tr
   std::vector<o2::itsmft::CompClusterExt>* clusArr = nullptr;
   tree->SetBranchAddress("ITSClusterComp", &clusArr);
   if (dictfile.empty()) {
-    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+    dictfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
   }
   o2::itsmft::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());

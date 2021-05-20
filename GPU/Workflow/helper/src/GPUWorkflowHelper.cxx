@@ -107,7 +107,7 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
   }
 
   if (maskCl[GID::TRD]) {
-    recoCont.inputsTRD->fillGPUIOPtr(&ioPtr, true);
+    recoCont.inputsTRD->fillGPUIOPtr(&ioPtr);
     //LOG(info) << "Got " << ioPtr.nTRDTracklets << " TRD Tracklets";
   }
 
@@ -184,9 +184,13 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
         retVal->tpcLinkTOF[match.getTrackIndex()] = match.getTOFClIndex();
       }
     }
-    retVal->globalTracks.emplace_back(&trk);
-    retVal->globalTrackTimes.emplace_back(time);
-    return true;
+    if constexpr (std::is_base_of_v<o2::track::TrackParCov, std::decay_t<decltype(trk)>>) {
+      retVal->globalTracks.emplace_back(&trk);
+      retVal->globalTrackTimes.emplace_back(time);
+      return true;
+    } else {
+      return false;
+    }
   };
   recoCont.createTracksVariadic(creator);
   if (maskTrk[GID::TPC] && retVal->tpcLinkTRD.size()) {

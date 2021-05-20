@@ -56,7 +56,7 @@
 #include "GPUTPCConvertImpl.h"
 #include "utils/qconfig.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -1365,7 +1365,7 @@ GPUDisplay::vboList GPUDisplay::DrawGridTRD(int sector)
   // TODO: tilted pads ignored at the moment
   size_t startCount = mVertexBufferStart[sector].size();
   size_t startCountInner = mVertexBuffer[sector].size();
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   auto* geo = &trdGeometry();
   if (geo) {
     int trdsector = NSLICES / 2 - 1 - sector;
@@ -1611,7 +1611,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 
     GPUCA_OPENMP(parallel for num_threads(getNumThreads()) reduction(max : mMaxClusterZ))
     for (int i = 0; i < mCurrentClustersTOF; i++) {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
       float4* ptr = &mGlobalPosTOF[i];
       mParam->Slice2Global(mIOPtrs->tofClusters[i].getSector(), mIOPtrs->tofClusters[i].getX() + mXadd, mIOPtrs->tofClusters[i].getY(), mIOPtrs->tofClusters[i].getZ(), &ptr->x, &ptr->y, &ptr->z);
       float ZOffset = 0;
@@ -1631,7 +1631,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
     }
 
     if (mCurrentClustersITS) {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
       float itsROFhalfLen = 0;
 #ifdef GPUCA_O2_LIB // Not available in standalone benchmark
       if (mParam->par.ContinuousTracking) {
@@ -2119,7 +2119,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
         for (int iCol = 0; iCol < mNCollissions; iCol++) {
           mThreadBuffers[numThread].clear();
           for (int iSet = 0; iSet < numThreads; iSet++) {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
             if (mConfig.showTPCTracksFromO2Format) {
               DrawFinal<o2::tpc::TrackTPC>(iSlice, iCol, &prop, mThreadTracks[iSet][iCol][iSlice], mThreadBuffers[numThread]);
             } else

@@ -357,7 +357,7 @@ template <typename value_T>
 GPUdi() void TrackParametrization<value_T>::setPID(const PID pid)
 {
   mPID = pid;
-  setAbsCharge(pid.getCharge());
+  //  setAbsCharge(pid.getCharge()); // If needed, user should change the charge via corr. setter
 }
 
 //____________________________________________________________

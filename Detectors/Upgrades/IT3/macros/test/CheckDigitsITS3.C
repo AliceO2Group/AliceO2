@@ -2,6 +2,7 @@
 /// \brief Simple macro to check ITS3 digits
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#define ENABLE_UPGRADES
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH2F.h>

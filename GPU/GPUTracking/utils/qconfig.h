@@ -248,6 +248,7 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddVariableRTC(name, type, default)                                                                                                                            \
   if (useConstexpr) {                                                                                                                                                  \
     out << "static constexpr " << qon_mxstr(type) << " " << qon_mxstr(name) << " = " << qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name) << ";\n"; \
+    out << qon_mxstr(type) << " " << qon_mxstr(qon_mxcat(_dummy_, name)) << ";\n";                                                                                     \
   } else {                                                                                                                                                             \
     AddOption(name, type, default, optname, optnameshort, help);                                                                                                       \
   }
@@ -266,27 +267,6 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddOptionSet(...)
 
 // End QCONFIG_PRINT_RTC
-#elif defined(QCONFIG_CONVERT_RTC)
-#define AddOption(name, type, default, optname, optnameshort, help, ...) out.name = in.name;
-#define AddVariable(name, type, default) out.name = in.name;
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) \
-  for (unsigned int i = 0; i < count; i++)                                           \
-    out.name[i] = in.name[i];
-#define AddOptionVec(name, type, optname, optnameshort, help, ...) \
-  for (unsigned int i = 0; i < in.name.size(); i++)                \
-    out.name[i] = in.name[i];
-#define AddOptionRTC(name, type, default, optname, optnameshort, help, ...)
-#define AddVariableRTC(name, type, default)
-#define BeginConfig(name, instance)              \
-  template <class T>                             \
-  void qConfigConvertRtc(T& out, const name& in) \
-  {
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) BeginConfig(name, instance)
-#define EndConfig() }
-#define AddSubConfig(name, instance)
-#define AddOptionSet(...)
-
-// End QCONFIG_CONVERT_RTC
 #else // Define structures
 #if defined(QCONFIG_HEADER_GUARD) && !defined(QCONFIG_GENRTC)
 #define QCONFIG_HEADER_GUARD_NO_INCLUDE
@@ -311,8 +291,10 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) void* name[sizeof(std::vector<type>) / sizeof(void*)];
 #endif
 #ifdef QCONFIG_GENRTC
-#define AddOptionRTC(name, type, default, optname, optnameshort, help, ...) static constexpr type name = default;
-#define AddVariableRTC(name, type, default) static constexpr type name = default;
+#define AddVariableRTC(name, type, default) \
+  static constexpr type name = default;     \
+  type _dummy_##name = default;
+#define AddOptionRTC(name, type, default, optname, optnameshort, help, ...) AddVariableRTC(name, type, default)
 #else
 #define AddCustomCPP(...) __VA_ARGS__
 #endif

@@ -91,14 +91,14 @@ o2_add_test_root_macro(duplicateHits.C
 		O2::TRDSimulation
 		O2::FT0Simulation
 		O2::DataFormatsFV0
-		O2::HMPIDBase
+		O2::DataFormatsHMP
 		O2::TPCSimulation
 		O2::PHOSBase
 		O2::FDDSimulation
 		O2::MCHSimulation
 		O2::MIDSimulation
 		O2::ZDCSimulation
-		O2::CPVBase)
+		O2::CPVBase COMPILE_ONLY)
 
 o2_add_test_root_macro(migrateSimFiles.C
 		PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats)
@@ -301,7 +301,7 @@ o2_add_test_root_macro(run_match_tof.C
                        PUBLIC_LINK_LIBRARIES O2::Field O2::DataFormatsParameters
                                              O2::DetectorsBase
                                              O2::GlobalTracking
-                       LABELS tof)
+                       LABELS tof COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_primary_vertexer_ITS.C

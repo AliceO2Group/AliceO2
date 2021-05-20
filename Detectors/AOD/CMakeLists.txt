@@ -22,6 +22,7 @@ o2_add_library(
     O2::ITSMFTWorkflow
     O2::ITStracking
     O2::ITSWorkflow
+    O2::MFTWorkflow
     O2::SimulationDataFormat
     O2::Steer
     O2::TOFWorkflow
@@ -59,6 +60,3 @@ o2_add_executable(
     O2::AnalysisDataModel
     O2::Steer
 )
-
-
-

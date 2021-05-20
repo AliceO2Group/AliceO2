@@ -11,7 +11,7 @@
 #include "HTTPParser.h"
 #include "Framework/RuntimeError.h"
 #include <string_view>
-#include "SHA1.h"
+#include "Framework/SHA1.h"
 #include "Base64.h"
 #include <regex>
 #include <cassert>

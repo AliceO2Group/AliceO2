@@ -65,7 +65,7 @@ int GPUChainTracking::RunTRDTracking()
 
 int GPUChainTracking::DoTRDGPUTracking()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::TRDTracking;
   GPUTRDTrackerGPU& Tracker = processors()->trdTrackerGPU;
   GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTrackerGPU : Tracker;

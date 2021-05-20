@@ -410,6 +410,8 @@ void spawnRemoteDevice(std::string const& forwardedStdin,
   info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
+  // FIXME: use uv_now.
+  info.lastSignal = uv_hrtime() - 10000000;
 
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device
@@ -760,6 +762,7 @@ void spawnDevice(std::string const& forwardedStdin,
   info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
   info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
   info.tracyPort = driverInfo.tracyPort;
+  info.lastSignal = uv_hrtime() - 10000000;
 
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device

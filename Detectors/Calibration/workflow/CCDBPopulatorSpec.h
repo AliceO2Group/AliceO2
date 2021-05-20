@@ -21,6 +21,7 @@
 #include "Framework/Task.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/DataDescriptorQueryBuilder.h"
 #include "Headers/DataHeader.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CCDB/BasicCCDBManager.h"
@@ -54,7 +55,7 @@ class CCDBPopulator : public o2::framework::Task
     assert(pc.inputs().getNofParts(1) == nSlots);
 
     for (int isl = 0; isl < nSlots; isl++) {
-      const auto wrp = pc.inputs().get<CcdbObjectInfo*>("clbInfo", isl);
+      const auto wrp = pc.inputs().get<CcdbObjectInfo*>("clbWrapper", isl);
       const auto pld = pc.inputs().get<gsl::span<char>>("clbPayload", isl); // this is actually an image of TMemFile
 
       LOG(INFO) << "Storing in ccdb " << wrp->getPath() << "/" << wrp->getFileName() << " of size " << pld.size()
@@ -77,9 +78,7 @@ namespace framework
 DataProcessorSpec getCCDBPopulatorDeviceSpec()
 {
   using clbUtils = o2::calibration::Utils;
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("clbPayload", ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-  inputs.emplace_back("clbInfo", ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  std::vector<InputSpec> inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}};
 
   return DataProcessorSpec{
     "ccdb-populator",

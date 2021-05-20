@@ -28,7 +28,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #endif
 #include <cstring>
 #include <tuple>
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DetectorsBase/Propagator.h"
 #endif
 
@@ -235,25 +235,24 @@ void GPUParam::LoadClusterErrors(bool Print)
 
 void GPUParamRTC::setFrom(const GPUParam& param)
 {
-  memcpy((char*)this + sizeof(gpu_rtc::GPUSettingsRec) + sizeof(gpu_rtc::GPUSettingsParam), (char*)&param + sizeof(GPUSettingsRec) + sizeof(GPUSettingsParam), sizeof(param) - sizeof(GPUSettingsRec) - sizeof(GPUSettingsParam));
-  qConfigConvertRtc(this->rec, param.rec);
-  qConfigConvertRtc(this->par, param.par);
+  memcpy((char*)this, (char*)&param, sizeof(param));
 }
 
 std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexpr)
 {
-  return "namespace o2::gpu { class GPUDisplayBackend; }\n" + qConfigPrintRtc(std::make_tuple(&param.rec, &param.par), useConstexpr);
+  return "#ifndef GPUCA_GPUCODE_DEVICE\n"
+         "#include <string>\n"
+         "#endif\n"
+         "namespace o2::gpu { class GPUDisplayBackend; }\n" +
+         qConfigPrintRtc(std::make_tuple(&param.rec, &param.par), useConstexpr);
 }
 
-static_assert(alignof(GPUCA_NAMESPACE::gpu::GPUParam) == alignof(GPUCA_NAMESPACE::gpu::GPUSettingsRec));
-static_assert(alignof(GPUCA_NAMESPACE::gpu::GPUParam) == alignof(GPUCA_NAMESPACE::gpu::GPUSettingsParam));
-static_assert(sizeof(GPUCA_NAMESPACE::gpu::GPUParam) - sizeof(GPUCA_NAMESPACE::gpu::GPUParamRTC) == sizeof(GPUCA_NAMESPACE::gpu::GPUSettingsRec) + sizeof(GPUCA_NAMESPACE::gpu::GPUSettingsParam) - sizeof(GPUCA_NAMESPACE::gpu::gpu_rtc::GPUSettingsRec) - sizeof(GPUCA_NAMESPACE::gpu::gpu_rtc::GPUSettingsParam));
-static_assert(sizeof(GPUParam) % alignof(GPUConstantMem) == 0 && sizeof(GPUParamRTC) % alignof(GPUConstantMem) == 0, "Size of both GPUParam and of GPUParamRTC must be a multiple of the alignmeent of GPUConstantMem");
+static_assert(sizeof(GPUCA_NAMESPACE::gpu::GPUParam) == sizeof(GPUCA_NAMESPACE::gpu::GPUParamRTC), "RTC param size mismatch");
 
 o2::base::Propagator* GPUParam::GetDefaultO2Propagator(bool useGPUField) const
 {
   o2::base::Propagator* prop = nullptr;
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (useGPUField == false) {
     throw std::runtime_error("o2 propagator withouzt gpu field unsupported");
   }
