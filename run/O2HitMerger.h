@@ -125,7 +125,7 @@ class O2HitMerger : public FairMQDevice
 
     std::string outfilename("o2sim_merged_hits.root"); // default name
     // query the sim config ... which is used to extract the filenames
-    if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("primary-get").at(0))) {
+    if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("o2sim-primserv-info").at(0))) {
       outfilename = o2::base::NameConf::getMCKinematicsFileName(o2::conf::SimConfig::Instance().getOutPrefix().c_str());
       mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
     }
@@ -175,18 +175,24 @@ class O2HitMerger : public FairMQDevice
     // a) dir is relative dir. Then we interpret it as relative to the initial
     //    base directory
     // b) or dir is itself absolut.
-    fs::current_path(fs::path(mInitialOutputDir)); // <--- to make sure relative start is always the same
-    auto absolutePath = fs::absolute(fs::path(dir));
-    if (!fs::exists(absolutePath)) {
-      if (!fs::create_directory(absolutePath)) {
-        LOG(ERROR) << "Could not create directory " << absolutePath.string();
-        return false;
+    try {
+      fs::current_path(fs::path(mInitialOutputDir)); // <--- to make sure relative start is always the same
+      if (!dir.empty()) {
+        auto absolutePath = fs::absolute(fs::path(dir));
+        if (!fs::exists(absolutePath)) {
+          if (!fs::create_directory(absolutePath)) {
+            LOG(ERROR) << "Could not create directory " << absolutePath.string();
+            return false;
+          }
+        }
+        // set the current path
+        fs::current_path(absolutePath.string().c_str());
+        mCurrentOutputDir = fs::current_path().string();
       }
+      LOG(INFO) << "FINAL PATH " << mCurrentOutputDir;
+    } catch (std::exception e) {
+      LOG(ERROR) << " could not change path to " << dir;
     }
-    // set the current path
-    fs::current_path(absolutePath.string().c_str());
-    mCurrentOutputDir = fs::current_path().string();
-    LOG(INFO) << "FINAL PATH " << mCurrentOutputDir;
     return true;
   }
 
