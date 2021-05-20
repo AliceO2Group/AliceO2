@@ -14,5 +14,7 @@ using namespace o2::zdc;
 
 void RecEvent::print() const
 {
-  ir.print();
+  for (auto it : mRecBC){
+    it.ir.print();
+  }
 }

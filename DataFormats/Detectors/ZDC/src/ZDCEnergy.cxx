@@ -8,16 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsZDC/BCRecData.h"
-#include "DataFormatsZDC/ChannelData.h"
-#include <bitset>
+#include "DataFormatsZDC/ZDCEnergy.h"
 
 using namespace o2::zdc;
 
-void BCRecData::print() const
+void ZDCEnergy::print() const
 {
-  printf("Orbit %9u bc %4u nch %2d pos %d ntdc %2d pos %d nmsg %2d pos %\n", ir.orbit, ir.bc,
-		  refe.getEntries(), refe.getFirstEntry(),
-		  reft.getEntries(), reft.getFirstEntry(),
-		  refm.getEntries(), refm.getFirstEntry());
+  //printf("%2d (%s) %d @ %d\n", id, channelName(id), amp, val);
 }

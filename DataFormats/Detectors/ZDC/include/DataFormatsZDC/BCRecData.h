@@ -29,27 +29,30 @@ class ChannelData;
 
 
 struct BCRecData {
-  /// we are going to refer to at most 26 channels, so 5 bits for the NChannels and 27 for the reference
-  o2::dataformats::RangeRefComp<5> refe;
-  o2::dataformats::RangeRefComp<5> reft;
+  /// we are going to refer to at most 26 channels, so 5 bits are reserved
+  o2::dataformats::RangeRefComp<5> refe; // Reference to reconstructed energy
+  o2::dataformats::RangeRefComp<5> reft; // Reference to reconstructed TDC
+  o2::dataformats::RangeRefComp<5> refm; // Reference to reconstruction error/information flags
   o2::InteractionRecord ir;
-  uint32_t flags;
 
   BCRecData() = default;
-  BCRecData(int firste, int ne, int firstt, int nt, o2::InteractionRecord iRec, uint32_t fl)
+  BCRecData(int firste, int firstt, int firstm, o2::InteractionRecord iRec)
   {
     refe.setFirstEntry(firste);
-    refe.setEntries(ne);
+    refe.setEntries(0);
     reft.setFirstEntry(firstt);
-    reft.setEntries(nt);
+    reft.setEntries(0);
+    refm.setFirstEntry(firstm);
+    refm.setEntries(0);
     ir = iRec;
-    flags = fl;
   }
 
-  gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
+  inline void addEnergy(){
+    refe.setEntries(refe.getEntries()+1);
+  }
   void print() const;
 
-  ClassDefNV(BCRecData, 1 b);
+  ClassDefNV(BCRecData, 1);
 };
 } // namespace zdc
 } // namespace o2

@@ -14,6 +14,7 @@ o2_add_library(ZDCWorkflow
 		       src/EntropyDecoderSpec.cxx
                        src/ZDCDataReaderDPLSpec.cxx
 		       src/ZDCDigitWriterDPLSpec.cxx
+		       src/ZDCRecoWriterDPLSpec.cxx
 	       PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsZDC
                                      O2::ZDCRaw

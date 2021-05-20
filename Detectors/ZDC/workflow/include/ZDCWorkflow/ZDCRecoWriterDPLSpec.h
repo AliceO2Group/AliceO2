@@ -8,11 +8,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "DataFormatsZDC/TDCData.h"
+/// @file   ZDCRecoWriterDPLSpec.h
 
-using namespace o2::zdc;
+#ifndef O2_ZDCRECOTWRITERDPLSPEC_H
+#define O2_ZDCRECOTWRITERDPLSPEC_H
 
-void TDCData::print() const
+#include "Framework/DataProcessorSpec.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsZDC/MCLabel.h"
+
+using namespace o2::framework;
+
+namespace o2
 {
-  printf("%2d (%s) %d @ %d\n", id, channelName(id), amp, val);
-}
+namespace zdc
+{
+
+/// create a processor spec
+framework::DataProcessorSpec getZDCRecoWriterDPLSpec();
+
+} // namespace zdc
+} // namespace o2
+
+#endif /* O2_ZDCRECOTWRITERDPLSPEC_H */

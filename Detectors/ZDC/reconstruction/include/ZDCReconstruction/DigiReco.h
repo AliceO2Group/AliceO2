@@ -60,12 +60,14 @@ class DigiReco
   void setIntegrationParam(const ZDCIntegrationParam* param) { mIntParam = param; };
   const ZDCIntegrationParam* getIntegrationParam() { return mIntParam; };
 
+  const std::vector<o2::zdc::RecEventAux>& getReco() { return mReco; }
+
  private:
   const ModuleConfig* mModuleConfig = nullptr;                                /// Trigger/readout configuration object
   int reconstruct(int seq_beg, int seq_end);                                  /// Main method for data reconstruction
   void processTrigger(int itdc, int ibeg, int iend);                          /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);                             /// Interpolation of samples to evaluate signal amplitude and arrival time
-  void assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp); // Set reconstructed TDC values
+  void assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp); /// Set reconstructed TDC values
   bool mIsContinuous = true;                                                  /// continuous (self-triggered) or externally-triggered readout
   int mNBCAHead = 0;                                                          /// when storing triggered BC, store also mNBCAHead BCs
   const ZDCTDCParam* mTDCParam = nullptr;                                     /// TDC calibration object

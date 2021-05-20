@@ -8,39 +8,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_TDC_DATA_H
-#define _ZDC_TDC_DATA_H
+#ifndef O2_ZDC_ENERGYPARAM_H
+#define O2_ZDC_ENERGYPARAM_H
 
 #include "ZDCBase/Constants.h"
-#include <array>
 #include <Rtypes.h>
+#include <array>
 
-/// \file TDCData.h
-/// \brief Container class to store a TDC hit in a ZDC channel
-/// \author pietro.cortese@cern.ch
+/// \file ZDCEnergyParam.h
+/// \brief Parameters to correct TDCs
+/// \author P. Cortese
 
 namespace o2
 {
 namespace zdc
 {
+// parameters of ZDC reconstruction
 
-struct TDCData {
+struct ZDCEnergyParam {
+  //std::array<float, NTDCChannels> tdcShift{} 
+  float tdc_shift[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Correction of TDC position (ns)
+  void setShift(uint32_t ich, float val);
+  float getShift(uint32_t ich) const;
+  void print();
 
-  int8_t id = IdDummy; // channel ID
-  int16_t val;         // tdc value
-  int16_t amp;         // tdc amplitude
-
-  TDCData() = default;
-  TDCData(int8_t ida, int16_t vala, int16_t ampa)
-  {
-    id = ida;
-    val = vala;
-    amp = ampa;
-  }
-
-  void print() const;
-
-  ClassDefNV(TDCData, 1);
+  ClassDefNV(ZDCEnergyParam, 1);
 };
 } // namespace zdc
 } // namespace o2
