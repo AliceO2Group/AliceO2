@@ -122,9 +122,8 @@ void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0
 
   for (auto& vertex : primVertices) {
     auto& timeStamp = vertex.getTimeStamp();
-    Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
+    double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
-    tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
     uint64_t bc = globalBC - minGlBC;
     if (bc < 0) {
       bc = 0;
@@ -736,7 +735,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
-    Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
+    double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
     uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
     LOG(DEBUG) << globalBC << " " << tsTimeStamp;
     // collision timestamp in ns wrt the beginning of collision BC
