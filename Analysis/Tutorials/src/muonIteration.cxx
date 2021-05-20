@@ -24,10 +24,21 @@ using namespace o2::framework::expressions;
 
 // This uses the exclusive matcher, so you only get BCs which have a collision
 // If you want also BCs without collision, see the example IterateMuonsSparse below
-struct IterateMuons {
-  void process(aod::MatchedBCCollisionsExclusive::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
+struct IterateMuonsExclusive {
+  void process(aod::MatchedBCCollisionsExclusive::iterator const& m, aod::Collisions const&, aod::FwdTracks const& muons)
   {
     LOGF(INFO, "Vertex = %f has %d muons", m.collision().posZ(), muons.size());
+    for (auto& muon : muons) {
+      LOGF(info, "  pT = %.2f", muon.pt());
+    }
+  }
+};
+
+// Iterate on muon using the collision iterator in the dq-analysis style
+struct IterateMuons {
+  void process(aod::Collisions::iterator const& collision, aod::FwdTracks const& muons)
+  {
+    LOGF(INFO, "Vertex = %f has %d muons", collision.posZ(), muons.size());
     for (auto& muon : muons) {
       LOGF(info, "  pT = %.2f", muon.pt());
     }
@@ -37,7 +48,7 @@ struct IterateMuons {
 // This uses the sparse matcher, so you also get BCs without a collision.
 // You need to check with m.has_collision()
 struct IterateMuonsSparse {
-  void process(aod::MatchedBCCollisionsSparse::iterator const& m, aod::Collisions const&, aod::Muons const& muons)
+  void process(aod::MatchedBCCollisionsSparse::iterator const& m, aod::Collisions const&, aod::FwdTracks const& muons)
   {
     if (m.has_collision()) {
       LOGF(INFO, "Vertex = %f has %d muons", m.collision().posZ(), muons.size());
@@ -53,6 +64,7 @@ struct IterateMuonsSparse {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
+    //adaptAnalysisTask<IterateMuonsExclusives>(cfgc), // currently does not work
     adaptAnalysisTask<IterateMuons>(cfgc),
     adaptAnalysisTask<IterateMuonsSparse>(cfgc),
   };

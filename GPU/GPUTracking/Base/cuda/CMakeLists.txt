@@ -15,7 +15,7 @@ if(DEFINED CUDA_COMPUTETARGET)
 endif()
 message(STATUS "Building GPUTracking with CUDA support ${TMP_TARGET}")
 
-set(SRCS GPUReconstructionCUDA.cu GPUReconstructionCUDAGenRTC.cu)
+set(SRCS GPUReconstructionCUDA.cu GPUReconstructionCUDAKernels.cu GPUReconstructionCUDAGenRTC.cu)
 set(HDRS GPUReconstructionCUDA.h GPUReconstructionCUDAInternals.h GPUReconstructionCUDADef.h GPUReconstructionCUDAIncludes.h CUDAThrustHelpers.h)
 
 # -------------------------------- Prepare RTC -------------------------------------------------------
@@ -169,4 +169,12 @@ elseif(CUDA_COMPUTETARGET AND CUDA_COMPUTETARGET STREQUAL "75")
 target_compile_definitions(${targetName} PUBLIC GPUCA_GPUTYPE_TURING)
 else()
 target_compile_definitions(${targetName} PUBLIC GPUCA_GPUTYPE_AMPERE)
+endif()
+
+if(OpenMP_CXX_FOUND)
+  message(STATUS "GPU: Using OpenMP: ${OpenMP_CXX_SPEC_DATE}")
+  # Must be private, depending libraries might be compiled by compiler not understanding -fopenmp
+  target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+  target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+  set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler -fopenmp")
 endif()

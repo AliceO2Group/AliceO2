@@ -98,8 +98,8 @@ void FIT_CALIBRATION_DEVICE_TYPE::_sendOutputs(o2::framework::DataAllocator& out
 
   uint32_t iSendChannel = 0;
   for (const auto& [ccdbInfo, calibObject] : objectsToSend) {
-    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, iSendChannel}, *calibObject);
-    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, iSendChannel}, ccdbInfo);
+    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCDBPayload, "FIT_CALIB", iSendChannel}, *calibObject);
+    outputs.snapshot(o2::framework::Output{clbUtils::gDataOriginCDBWrapper, "FIT_CALIB", iSendChannel}, ccdbInfo);
     ++iSendChannel;
   }
   mCalibrator->initOutput();

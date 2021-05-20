@@ -164,6 +164,7 @@ foreach(t
         ExternalFairMQDeviceProxy
         FairMQOptionsRetriever
         FairMQResizableBuffer
+        FairMQ
         FrameworkDataFlowToDDS
         FrameworkDataFlowToO2Control
         Graphviz

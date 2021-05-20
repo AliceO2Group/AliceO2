@@ -13,6 +13,7 @@
 #include "AODProducerWorkflow/AODProducerWorkflowSpec.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -216,13 +217,42 @@ void AODProducerWorkflowDPL::fillTracksTable(const TTracks& tracks, std::vector<
   }
 }
 
+template <typename TTracks, typename TTracksCursor>
+void AODProducerWorkflowDPL::fillMFTTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& mftTracksCursor)
+{
+  for (int i = 0; i < tracks.size(); i++) {
+    auto& track = tracks[i];
+    int collisionID = vCollRefs[i];
+
+    mftTracksCursor(0,
+                    collisionID,
+                    track.getX(),
+                    track.getY(),
+                    track.getZ(),
+                    track.getPhi(),
+                    track.getTanl(),
+                    track.getInvQPt(),
+                    track.getNumberOfPoints(),
+                    track.getTrackChi2());
+  }
+}
+
 template <typename MCParticlesCursorType>
 void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                                                  TripletsMap_t& toStore)
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthMFT,
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthTPC, TripletsMap_t& toStore)
 {
   // mark reconstructed MC particles to store them into the table
   for (auto& mcTruth : mcTruthITS) {
+    if (!mcTruth.isValid()) {
+      continue;
+    }
+    int source = mcTruth.getSourceID();
+    int event = mcTruth.getEventID();
+    int particle = mcTruth.getTrackID();
+    toStore[Triplet_t(source, event, particle)] = 1;
+  }
+  for (auto& mcTruth : mcTruthMFT) {
     if (!mcTruth.isValid()) {
       continue;
     }
@@ -358,6 +388,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mTimer.Stop();
 
   mFillTracksITS = ic.options().get<int>("fill-tracks-its");
+  mFillTracksMFT = ic.options().get<int>("fill-tracks-mft");
   mFillTracksTPC = ic.options().get<int>("fill-tracks-tpc");
   mFillTracksITSTPC = ic.options().get<int>("fill-tracks-its-tpc");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
@@ -369,7 +400,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   }
 
   LOG(INFO) << "Track filling flags are set to: "
-            << "\n ITS = " << mFillTracksITS << "\n TPC = " << mFillTracksTPC << "\n ITSTPC = " << mFillTracksITSTPC;
+            << "\n ITS = " << mFillTracksITS << "\n MFT = " << mFillTracksMFT << "\n TPC = " << mFillTracksTPC << "\n ITSTPC = " << mFillTracksITSTPC;
 
   if (mTruncate != 1) {
     LOG(INFO) << "Truncation is not used!";
@@ -422,12 +453,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto primVertices = pc.inputs().get<gsl::span<PVertex>>("primVertices");
   auto primVerLabels = pc.inputs().get<gsl::span<o2::MCEventLabel>>("primVerLabels");
   auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
+  auto tracksMFT = pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT");
   auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tracksITSTPC");
   auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
   auto tracksTPCMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCMCTruth");
   auto tracksITSMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTruth");
+  auto tracksMFTMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMFTMCTruth");
 
   LOG(DEBUG) << "FOUND " << tracksTPC.size() << " TPC tracks";
+  LOG(DEBUG) << "FOUND " << tracksMFT.size() << " MFT tracks";
   LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
   LOG(DEBUG) << "FOUND " << tracksITSTPC.size() << " ITSTPC tracks";
 
@@ -439,6 +473,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   TableBuilder tracksBuilderS;
   TableBuilder tracksCovBuilderS;
   TableBuilder tracksExtraBuilderS;
+  TableBuilder mftTracksBuilderS;
   TableBuilder mcParticlesBuilderS;
   TableBuilder mcTrackLabelBuilderS;
   TableBuilder fv0aBuilderS;
@@ -454,6 +489,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& tracksBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"}) : tracksBuilderS;
   auto& tracksCovBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"}) : tracksCovBuilderS;
   auto& tracksExtraBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"}) : tracksExtraBuilderS;
+  auto& mftTracksBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"}) : mftTracksBuilderS;
   auto& mcParticlesBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"}) : mcParticlesBuilderS;
   auto& mcTrackLabelBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"}) : mcTrackLabelBuilderS;
   auto& fv0aBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"}) : fv0aBuilderS;
@@ -469,6 +505,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksCursor = tracksBuilder.cursor<o2::aodproducer::TracksTable>();
   auto tracksCovCursor = tracksCovBuilder.cursor<o2::aodproducer::TracksCovTable>();
   auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aodproducer::TracksExtraTable>();
+  auto mftTracksCursor = mftTracksBuilder.cursor<o2::aodproducer::MFTTracksTable>();
   auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aodproducer::MCParticlesTable>();
   auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
@@ -677,6 +714,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // initializing vectors for trackID --> collisionID connection
   std::vector<int> vCollRefsITS(tracksITS.size(), -1);
+  std::vector<int> vCollRefsMFT(tracksMFT.size(), -1);
   std::vector<int> vCollRefsTPC(tracksTPC.size(), -1);
   std::vector<int> vCollRefsTPCITS(tracksITSTPC.size(), -1);
 
@@ -731,21 +769,26 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      collisionTimeMask);
 
     auto trackRef = primVer2TRefs[collisionID];
-    int start = trackRef.getFirstEntryOfSource(0);
-    int ntracks = trackRef.getEntriesOfSource(0);
-    // FIXME: `track<-->vertex` ambiguity is not accounted for in this code
-    for (int ti = 0; ti < ntracks; ti++) {
-      auto trackIndex = primVerGIs[start + ti];
-      const auto source = trackIndex.getSource();
-      // setting collisionID for tracks attached to vertices
-      if (source == GIndex::Source::TPC) {
-        vCollRefsTPC[trackIndex.getIndex()] = collisionID;
-      } else if (source == GIndex::Source::ITS) {
-        vCollRefsITS[trackIndex.getIndex()] = collisionID;
-      } else if (source == GIndex::Source::ITSTPC) {
-        vCollRefsTPCITS[trackIndex.getIndex()] = collisionID;
-      } else {
-        LOG(WARNING) << "Unsupported track type!";
+    for (auto src : {GIndex::Source::ITS, GIndex::Source::TPC, GIndex::Source::MFT, GIndex::Source::ITSTPC}) {
+      int start = trackRef.getFirstEntryOfSource(src);
+      int ntracks = trackRef.getEntriesOfSource(src);
+      LOG(DEBUG) << " ====> Collision " << collisionID << " ; src = " << src << " : ntracks = " << ntracks;
+
+      // FIXME: `track<-->vertex` ambiguity is not accounted for in this code
+      for (int ti = 0; ti < ntracks; ti++) {
+        auto trackIndex = primVerGIs[start + ti];
+        // setting collisionID for tracks attached to vertices
+        if (src == GIndex::Source::TPC) {
+          vCollRefsTPC[trackIndex.getIndex()] = collisionID;
+        } else if (src == GIndex::Source::ITS) {
+          vCollRefsITS[trackIndex.getIndex()] = collisionID;
+        } else if (src == GIndex::Source::MFT) {
+          vCollRefsMFT[trackIndex.getIndex()] = collisionID;
+        } else if (src == GIndex::Source::ITSTPC) {
+          vCollRefsTPCITS[trackIndex.getIndex()] = collisionID;
+        } else {
+          LOG(WARNING) << "Unsupported track type!";
+        }
       }
     }
     collisionID++;
@@ -783,7 +826,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // filling mc particles table
   TripletsMap_t toStore;
-  fillMCParticlesTable(mcReader, mcParticlesCursor, tracksITSMCTruth, tracksTPCMCTruth, toStore);
+  fillMCParticlesTable(mcReader, mcParticlesCursor, tracksITSMCTruth, tracksMFTMCTruth, tracksTPCMCTruth, toStore);
   if (mIgnoreWriter) {
     std::shared_ptr<arrow::Table> tableMCParticles = mcParticlesBuilder.finalize();
     std::string tableName("O2mcparticle");
@@ -816,6 +859,27 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         labelMask |= (0x1 << 15);
       }
       if (mcTruthITS.isNoise()) {
+        labelMask |= (0x1 << 14);
+      }
+      mcTrackLabelCursor(0,
+                         labelID,
+                         labelMask);
+    }
+  }
+
+  if (mFillTracksMFT) {
+    fillMFTTracksTable(tracksMFT, vCollRefsMFT, mftTracksCursor);
+    for (auto& mcTruthMFT : tracksMFTMCTruth) {
+      labelID = std::numeric_limits<uint32_t>::max();
+      // TODO: fill label mask
+      labelMask = 0;
+      if (mcTruthMFT.isValid()) {
+        labelID = toStore.at(Triplet_t(mcTruthMFT.getSourceID(), mcTruthMFT.getEventID(), mcTruthMFT.getTrackID()));
+      }
+      if (mcTruthMFT.isFake()) {
+        labelMask |= (0x1 << 15);
+      }
+      if (mcTruthMFT.isNoise()) {
         labelMask |= (0x1 << 14);
       }
       mcTrackLabelCursor(0,
@@ -894,6 +958,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     std::shared_ptr<arrow::Table> tableTracksExtra = tracksExtraBuilder.finalize();
     tableName = "O2trackextra";
     writeTableToFile(outfile, tableTracksExtra, tableName, tfNumber);
+    std::shared_ptr<arrow::Table> mftTracks = mftTracksBuilder.finalize();
+    tableName = "O2mfttrack";
+    writeTableToFile(outfile, mftTracks, tableName, tfNumber);
     std::shared_ptr<arrow::Table> tableMCTrackLabels = mcTrackLabelBuilder.finalize();
     tableName = "O2mctracklabel";
     writeTableToFile(outfile, tableMCTrackLabels, tableName, tfNumber);
@@ -922,10 +989,12 @@ DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
   inputs.emplace_back("primVertices", "GLO", "PVTX", 0, Lifetime::Timeframe);
   inputs.emplace_back("primVerLabels", "GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trackMFT", "MFT", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracksITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackTPCMCTruth", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
   inputs.emplace_back("trackITSMCTruth", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
+  inputs.emplace_back("trackMFTMCTruth", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
 
   if (!mIgnoreWriter) {
     outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
@@ -936,6 +1005,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
     outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
+    outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
     outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
@@ -952,6 +1022,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
     AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(mIgnoreWriter)},
     Options{
       ConfigParamSpec{"fill-tracks-its", VariantType::Int, 1, {"Fill ITS tracks into tracks table"}},
+      ConfigParamSpec{"fill-tracks-mft", VariantType::Int, 1, {"Fill MFT tracks into mfttracks table"}},
       ConfigParamSpec{"fill-tracks-tpc", VariantType::Int, 0, {"Fill TPC tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-its-tpc", VariantType::Int, 1, {"Fill ITS-TPC tracks into tracks table"}},
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},

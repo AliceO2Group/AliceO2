@@ -343,7 +343,7 @@ GPUdi() void GPUCommonAlgorithm::swap(T& a, T& b)
 #elif (defined(__CUDACC__) || defined(__HIPCC__))
 // CUDA and HIP work the same way using cub, need just different header
 
-#ifndef GPUCA_GPUCODE_GENRTC
+#if !defined(GPUCA_GPUCODE_GENRTC) && !defined(GPUCA_GPUCODE_HOSTONLY)
 #if defined(__CUDACC__)
 #include <cub/cub.cuh>
 #elif defined(__HIPCC__)

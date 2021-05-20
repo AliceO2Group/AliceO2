@@ -139,6 +139,7 @@ AddOption(prefetchTPCpageScan, char, 0, "", 0, "Prefetch Data for TPC page scan 
 AddOption(enableRTC, bool, false, "", 0, "Use RTC to optimize GPU code")
 AddOption(cacheRTC, bool, false, "", 0, "Cache RTC compilation results")
 AddOption(rtcConstexpr, bool, true, "", 0, "Replace constant variables by static constexpr expressions")
+AddOption(rtcCompilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(runMC, bool, false, "", 0, "Process MC labels")
 AddOption(runQA, int, 0, "qa", 'q', "Enable tracking QA (negative number to provide bitmask for QA tasks)", message("Running QA: %s"), def(1))
 AddOption(outputSharedClusterMap, bool, false, "", 0, "Ship optional shared cluster map as output for further use")
@@ -149,7 +150,7 @@ AddHelp("help", 'h')
 EndConfig()
 
 #ifndef GPUCA_GPUCODE_DEVICE
-// Settings concerning the event display
+// Settings concerning the event display (fixed settings, cannot be changed)
 BeginSubConfig(GPUSettingsDisplay, GL, configStandalone, "GL", 'g', "OpenGL display settings")
 AddOption(showTPCTracksFromO2Format, bool, false, "", 0, "Use TPC tracks in O2 output format instead of GPU format")
 AddHelp("help", 'h')

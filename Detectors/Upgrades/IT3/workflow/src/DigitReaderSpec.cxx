@@ -117,23 +117,23 @@ void DigitReader::connectTree(const std::string& filename)
 DataProcessorSpec getITS3DigitReaderSpec(bool useMC, bool useCalib, std::string defname)
 {
   std::vector<OutputSpec> outputSpec;
-  outputSpec.emplace_back("ITS", "DIGITS", 0, Lifetime::Timeframe);
-  outputSpec.emplace_back("ITS", "DIGITSROF", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("IT3", "DIGITS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back("IT3", "DIGITSROF", 0, Lifetime::Timeframe);
   if (useCalib) {
-    outputSpec.emplace_back("ITS", "GBTCALIB", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("IT3", "GBTCALIB", 0, Lifetime::Timeframe);
   }
   if (useMC) {
-    outputSpec.emplace_back("ITS", "DIGITSMCTR", 0, Lifetime::Timeframe);
-    outputSpec.emplace_back("ITS", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("IT3", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputSpec.emplace_back("IT3", "DIGITSMC2ROF", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{
-    "its-digit-reader",
+    "its3-digit-reader",
     Inputs{},
     outputSpec,
     AlgorithmSpec{adaptFromTask<ITS3DigitReader>(useMC, useCalib)},
     Options{
-      {"its-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
+      {"it3-digit-infile", VariantType::String, defname, {"Name of the input digit file"}}}};
 }
 
 } // namespace its3
