@@ -36,6 +36,14 @@ set -x
                    --block ) | tee /tmp/${rname1}  # <--- return when everything is fully initialized
 SERVICE1_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
 
+# a second service is used for the continue features (currently reconfiguration of engines/stacks is limited, otherwise
+# the first service could be used as well)
+( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -m ${MODULES} -o simservice2 --configKeyValues GeneratorFromO2Kine.continueMode=true" \
+                   --block ) | tee /tmp/${rname1}  # <--- return when everything is fully initialized
+SERVICE2_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
+
+# sleep 20
+
 # BIASING LOOP
 biasedcount=0
 batch=0
@@ -62,16 +70,21 @@ echo "****************************************"
 
 
 # SIMULATE REMAINING PRIMARIES FOR GOOD TRIGGERED EVENTS
-o2-sim-client.py --pid ${SERVICE1_PID} --command "-g extkinO2 --extKinFile filtered_Kine.root -n ${NTRIGGEREDEVENTS} -o filtered_part2 \
+o2-sim-client.py --pid ${SERVICE2_PID} --command "-g extkinO2 --extKinFile filtered_Kine.root -n ${NTRIGGEREDEVENTS} -o filtered_part2 \
                                                   --configKeyValues GeneratorFromO2Kine.continueMode=true" --block
 
 # bring down the service
 o2-sim-client.py --pid ${SERVICE1_PID} --command "--stop 1"
+o2-sim-client.py --pid ${SERVICE2_PID} --command "--stop 1"
 
 sleep 1
 
 # just some tmp safety-net to make sure all processes are really gone
 . ${O2_ROOT}/share/scripts/jobutils.sh
 for p in $(childprocs ${SERVICE1_PID}); do
+  kill -9 ${p}
+done
+. ${O2_ROOT}/share/scripts/jobutils.sh
+for p in $(childprocs ${SERVICE2_PID}); do
   kill -9 ${p}
 done

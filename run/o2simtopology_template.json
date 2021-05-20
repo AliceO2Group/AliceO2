@@ -18,6 +18,19 @@
                         ]
                     },
                     {
+                        "name":"o2sim-primserv-info",
+                        "sockets":[
+                            {
+                                "type":"req",
+                                "method":"connect",
+                                "address":"ipc:///tmp/o2sim-primserv-info_25005#PID#",
+                                "sndBufSize":"1000",
+                                "rcvBufSize":"1000",
+                                "rateLogging":"0"
+                            }
+                        ]
+                    },
+                    {
                         "name":"simdata",
                         "sockets":[
                             {
@@ -48,19 +61,19 @@
                             }
                         ]
                     },
-		            {
-		                "name":"primary-status",
+                    {
+                        "name":"o2sim-primserv-info",
                         "sockets":[
                             {
                                 "type":"rep",
                                 "method":"bind",
-                                "address":"ipc:///tmp/primary-status_25005#PID#",
+                                "address":"ipc:///tmp/o2sim-primserv-info_25005#PID#",
                                 "sndBufSize":1000,
                                 "rcvBufSize":1000,
                                 "rateLogging":0
                             }
                         ]
-		            },
+                    },
                     {
                         "name":"primary-notifications",
                         "sockets":[
@@ -86,6 +99,19 @@
                                 "type":"req",
                                 "method":"connect",
                                 "address":"ipc:///tmp/primary-get_25005#PID#",
+                                "sndBufSize":"1000",
+                                "rcvBufSize":"1000",
+                                "rateLogging":"0"
+                            }
+                        ]
+                    },
+                    {
+                        "name":"o2sim-primserv-info",
+                        "sockets":[
+                            {
+                                "type":"req",
+                                "method":"connect",
+                                "address":"ipc:///tmp/o2sim-primserv-info_25005#PID#",
                                 "sndBufSize":"1000",
                                 "rcvBufSize":"1000",
                                 "rateLogging":"0"
