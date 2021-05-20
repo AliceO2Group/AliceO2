@@ -406,7 +406,7 @@ int main(int argc, char* argv[])
     const std::string config = localconfig;
 
     // copy all arguments into a common vector
-    const int Nargs = argc + 7;
+    const int Nargs = argc + 9;
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     arguments[1] = "--control";
@@ -415,8 +415,10 @@ int main(int argc, char* argv[])
     arguments[4] = "primary-server";
     arguments[5] = "--mq-config";
     arguments[6] = config.c_str();
+    arguments[7] = "--severity";
+    arguments[8] = "debug";
     for (int i = 1; i < argc; ++i) {
-      arguments[6 + i] = argv[i];
+      arguments[8 + i] = argv[i];
     }
     arguments[Nargs - 1] = nullptr;
     for (int i = 0; i < Nargs; ++i) {
@@ -540,7 +542,9 @@ int main(int argc, char* argv[])
     }
     // we bring down all processes if one of them aborts
     if (WTERMSIG(status) == SIGABRT) {
+      LOG(INFO) << "Problem detected ";
       for (auto p : gChildProcesses) {
+        LOG(INFO) << "KILLING " << p;
         kill(p, SIGTERM);
       }
       cleanup();
@@ -554,7 +558,7 @@ int main(int argc, char* argv[])
   // make sure the rest shuts down
   for (auto p : gChildProcesses) {
     if (p != mergerpid) {
-      LOG(DEBUG) << "SHUTTING DOWN CHILD PROCESS " << p;
+      LOG(INFO) << "SHUTTING DOWN CHILD PROCESS " << p;
       kill(p, SIGTERM);
     }
   }

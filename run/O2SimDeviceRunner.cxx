@@ -63,7 +63,7 @@ bool initializeSim(std::string transport, std::string address, std::unique_ptr<F
 {
   // This needs an already running PrimaryServer
   auto factory = FairMQTransportFactory::CreateTransportFactory(transport);
-  auto channel = FairMQChannel{"primary-get", "req", factory};
+  auto channel = FairMQChannel{"o2sim-primserv-info", "req", factory};
   channel.Connect(address);
   channel.Validate();
 
@@ -131,7 +131,7 @@ KernelSetup initSim(std::string transport, std::string primaddress, std::string 
   primchannel->Connect(primaddress);
   primchannel->Validate();
 
-  auto prim_status_channel = new FairMQChannel{"primary-status", "req", factory};
+  auto prim_status_channel = new FairMQChannel{"o2sim-primserv-info", "req", factory};
   prim_status_channel->Connect(primstatusaddress);
   prim_status_channel->Validate();
 
@@ -324,7 +324,7 @@ int main(int argc, char* argv[])
     // we init the simulation first
     std::unique_ptr<FairRunSim> simrun;
     // TODO: take the addresses from somewhere else
-    if (!initializeSim("zeromq", serveraddress, simrun)) {
+    if (!initializeSim("zeromq", serverstatus_address, simrun)) {
       LOG(ERROR) << "Could not initialize simulation";
       return 1;
     }
