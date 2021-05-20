@@ -34,16 +34,29 @@ jobs:
             # find tabs
             if grep -q -P "\t" "$f"; then
               status_tab=1
-              echo "Found some tabs:"
+              echo "::error::Found some tabs:"
               # print out where they are
-              grep -P -n -C 1 "\t" "$f"
+              #grep -P -n "\t" "$f"
+              awk 'i=index($0, "\t") {printf "%i (col. %i): %s\n", NR, i, $0}' "$f"
             fi
             # find trailing whitespaces
             if grep -q " $" "$f"; then
               status_trail=2
-              echo "Found some trailing whitespaces:"
+              echo "::error::Found some trailing whitespaces:"
               # print out where they are
-              grep -n -C 1 " $" "$f"
+              grep -n " $" "$f"
             fi
           done
-          exit $((status_tab + status_trail))
+          status=$((status_tab + status_trail))
+          if [ "$status" -ne 0 ]; then
+            echo "::warning::Fix the errors in your editor (or with a command)
+            Command tips:
+            - Get list of files you changed: git diff --diff-filter d --name-only \$(git merge-base HEAD upstream/${{ env.MAIN_BRANCH }})
+            - Replace each tab with two spaces: sed -i 's/\t/  /g' <files>
+            - Remove trailing whitespaces: sed -i 's/[[:space:]]*$//' <files>"
+            echo "::warning::To avoid these errors, configure your editor to:
+            - Emit spaces when the Tab key is pressed.
+            - Display whitespace characters.
+            - Replace tabs with spaces and remove trailing whitespaces when a file is saved."
+          fi
+          exit $status
