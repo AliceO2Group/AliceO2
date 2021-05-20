@@ -10,7 +10,7 @@
 
 o2_add_library(MCHRawCommon
         SOURCES src/SampaHeader.cxx src/SampaCluster.cxx
-        PUBLIC_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl Boost::boost O2::Headers O2::CommonConstants
+        PUBLIC_LINK_LIBRARIES fmt::fmt Microsoft.GSL::GSL Boost::boost O2::Headers O2::CommonConstants
         O2::DetectorsRaw
         PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 

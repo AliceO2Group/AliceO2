@@ -17,7 +17,7 @@ o2_add_library(SimulationDataFormat
                        src/StackParam.cxx
                        src/MCEventHeader.cxx
                        src/CustomStreamers.cxx
-               PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl
+               PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
                                      O2::DetectorsCommonDataFormats
                                      O2::GPUCommon O2::DetectorsBase
                                      O2::SimConfig)

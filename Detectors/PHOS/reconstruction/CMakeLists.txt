@@ -18,15 +18,15 @@ o2_add_library(PHOSReconstruction
                        src/AltroDecoder.cxx
                        src/CaloRawFitter.cxx
                        src/CaloRawFitterGS.cxx
-		       src/CTFCoder.cxx
-		       src/CTFHelper.cxx
+                       src/CTFCoder.cxx
+                       src/CTFHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::PHOSBase
                                      O2::PHOSCalib
                                      O2::DataFormatsPHOS
                                      O2::DetectorsRaw
                                      AliceO2::InfoLogger
-				     O2::rANS
-				     ms_gsl::ms_gsl)
+                                     O2::rANS
+                                     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(PHOSReconstruction
                           HEADERS include/PHOSReconstruction/RawReaderMemory.h
@@ -38,6 +38,6 @@ o2_target_root_dictionary(PHOSReconstruction
                                   include/PHOSReconstruction/AltroDecoder.h
                                   include/PHOSReconstruction/CaloRawFitter.h
                                   include/PHOSReconstruction/CaloRawFitterGS.h
-                                  include/PHOSReconstruction/Clusterer.h 
+                                  include/PHOSReconstruction/Clusterer.h
                                   include/PHOSReconstruction/FullCluster.h)
 

@@ -31,9 +31,7 @@
 #include <TVector2.h>
 
 #include <gsl/span>
-#ifdef MS_GSL_V3
 #include <gsl/span_ext>
-#endif
 
 namespace o2
 {

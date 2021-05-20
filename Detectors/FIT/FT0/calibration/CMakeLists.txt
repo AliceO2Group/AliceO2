@@ -17,7 +17,7 @@ o2_add_library(FT0Calibration
             O2::CCDB
             O2::DetectorsCalibration
             ROOT::Minuit
-            ms_gsl::ms_gsl
+            Microsoft.GSL::GSL
         )
 
 

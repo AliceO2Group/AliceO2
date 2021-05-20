@@ -35,7 +35,7 @@ Event header + event data, 2 channels per 1 GBT word;
 if no data for this PM - only headers.
 
 Trigger mode : detector sends data to FLP at each trigger;
-Continueous mode  :   for only bunches with data at least in 1 channel.  
+Continueous mode  :   for only bunches with data at least in 1 channel.
 */
 
 #include "Headers/RAWDataHeader.h"
@@ -60,9 +60,8 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "TBranch.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
-#ifdef MS_GSL_V3
 #include <gsl/span_ext>
-#endif
+
 using namespace o2::ft0;
 using RDHUtils = o2::raw::RDHUtils;
 

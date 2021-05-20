@@ -19,14 +19,14 @@ o2_add_library(DataFormatsITSMFT
                        src/TopologyDictionary.cxx
                        src/CTF.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
-	                             O2::ReconstructionDataFormats
-				     ms_gsl::ms_gsl)
+                       O2::ReconstructionDataFormats
+                       Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(DataFormatsITSMFT
                           HEADERS include/DataFormatsITSMFT/ROFRecord.h
-			                            include/DataFormatsITSMFT/Digit.h
-			                            include/DataFormatsITSMFT/GBTCalibData.h                                  
-			                            include/DataFormatsITSMFT/NoiseMap.h
+                                 include/DataFormatsITSMFT/Digit.h
+                                 include/DataFormatsITSMFT/GBTCalibData.h
+                                 include/DataFormatsITSMFT/NoiseMap.h
                                   include/DataFormatsITSMFT/Cluster.h
                                   include/DataFormatsITSMFT/CompCluster.h
                                   include/DataFormatsITSMFT/ClusterPattern.h

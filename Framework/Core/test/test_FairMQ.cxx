@@ -71,11 +71,7 @@ auto forEach(I begin, I end, F&& function)
 {
 
   using span = gsl::span<const o2::byte>;
-#ifdef MS_GSL_V3
   using SPAN_SIZE_TYPE = span::size_type;
-#else
-  using SPAN_SIZE_TYPE = span::index_type;
-#endif
   using gsl::narrow_cast;
   for (auto it = begin; it != end; ++it) {
     o2::byte* headerBuffer{nullptr};

@@ -9,12 +9,12 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHDigitIO
-            SOURCES DigitWriter.cxx DigitReader.cxx DigitFileFormat.cxx 
+            SOURCES DigitWriter.cxx DigitReader.cxx DigitFileFormat.cxx
                     DigitReaderImpl.cxx DigitWriterImpl.cxx
                     DigitIOV0.cxx DigitIOV1.cxx
                     DigitIOV2.cxx DigitIOV3.cxx
                     IO.cxx
-            PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl fmt::fmt O2::DataFormatsMCH)
+            PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL fmt::fmt O2::DataFormatsMCH)
 
 o2_add_test(digits-io
             SOURCES testDigitIO.cxx
@@ -31,7 +31,7 @@ o2_add_test(digits-io-v0
 o2_add_executable(digits-r23-workflow
                   SOURCES digits-r23-workflow.cxx
                   COMPONENT_NAME mch
-                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH 
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH
                                         O2::MCHBase O2::MCHMappingImpl3)
 
 add_library(MCHDigitIOBaseTask OBJECT)
@@ -44,8 +44,8 @@ o2_add_executable(
         digits-writer-workflow
         SOURCES digits-writer-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::DPLUtils Boost::program_options 
-                              O2::MCHBase O2::MCHRawDecoder 
+        PUBLIC_LINK_LIBRARIES O2::DPLUtils Boost::program_options
+                              O2::MCHBase O2::MCHRawDecoder
                               O2::MCHDigitIO O2::MCHDigitIOBaseTask)
 
 o2_add_executable(
