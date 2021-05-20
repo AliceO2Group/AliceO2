@@ -227,7 +227,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          if (availableSharedMemory < 1000) {
                            break;
                          }
-                         size_t candidate = (lastDeviceOffered + di) % specs.size();
+                         size_t candidate = (lastDeviceOffered + 1 + di) % specs.size();
                          if (specs[candidate].name != "internal-dpl-aod-reader") {
                            continue;
                          }
