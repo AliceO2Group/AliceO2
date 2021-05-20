@@ -55,7 +55,8 @@ class ClusterFinderOriginalTask
     /// Prepare the clusterizer
     LOG(INFO) << "initializing cluster finder";
 
-    mClusterFinder.init();
+    bool run2Config = ic.options().get<bool>("run2-config");
+    mClusterFinder.init(run2Config);
 
     /// Print the timer and clear the clusterizer when the processing is over
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
@@ -136,7 +137,7 @@ o2::framework::DataProcessorSpec getClusterFinderOriginalSpec()
             OutputSpec{{"clusters"}, "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterFinderOriginalTask>()},
-    Options{}};
+    Options{{"run2-config", VariantType::Bool, false, {"setup for run2 data"}}}};
 }
 
 } // end namespace mch
