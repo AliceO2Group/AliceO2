@@ -26,7 +26,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(P2, p2, [](float p) { return p * p; });
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct AttachColumn {
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
     // dynamic columns are attached to existing tables
@@ -43,7 +43,7 @@ struct ATask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  // create and use table
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"attach-showcase"})};
+    adaptAnalysisTask<AttachColumn>(cfgc),
+  };
 }

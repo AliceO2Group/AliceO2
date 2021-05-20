@@ -7,7 +7,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
+///
 /// \brief A tutorial task to retrieve objects from CCDB given a run number.
 ///        The tutorial shows also how to use timestamps in your analysis.
 ///        This task requires to access the timestamp table in order to be
@@ -67,5 +67,7 @@ struct TimestampUserTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<TimestampUserTask>(cfgc, TaskName{"TimestampUserTask"})};
+  return WorkflowSpec{
+    adaptAnalysisTask<TimestampUserTask>(cfgc),
+  };
 }

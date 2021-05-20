@@ -7,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
 ///
 /// \brief Fill a table with data froma root tree.
 /// \author
@@ -34,7 +33,7 @@ DECLARE_SOA_TABLE(EtaRange, "AOD", "ETARANGE", minmax::Mineta, minmax::Maxeta);
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct RootReader {
   void process(aod::PtRange const& ptranges, aod::EtaRange const& etaranges)
   {
     // check ptranges and etaranges to have same number of rows
@@ -54,5 +53,6 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"aod-reader-tutorial_A"})};
+    adaptAnalysisTask<RootReader>(cfgc),
+  };
 }
