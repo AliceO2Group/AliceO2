@@ -38,7 +38,7 @@ void CompressorTask<RDH, verbose>::init(InitContext& ic)
   auto decoderVerbose = ic.options().get<bool>("tof-compressor-decoder-verbose");
   auto encoderVerbose = ic.options().get<bool>("tof-compressor-encoder-verbose");
   auto checkerVerbose = ic.options().get<bool>("tof-compressor-checker-verbose");
-  mOutputBufferSize = ic.options().get<bool>("tof-compressor-output-buffer-size");
+  mOutputBufferSize = ic.options().get<int>("tof-compressor-output-buffer-size");
 
   mCompressor.setDecoderCONET(decoderCONET);
   mCompressor.setDecoderVerbose(decoderVerbose);
@@ -102,7 +102,7 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
     headerOut.payloadSize = 0;
 
     /** initialise output message **/
-    auto bufferSize = mOutputBufferSize > 0 ? mOutputBufferSize : subspecBufferSize[subspec];
+    auto bufferSize = mOutputBufferSize >= 0 ? mOutputBufferSize + subspecBufferSize[subspec] : std::abs(mOutputBufferSize);
     auto payloadMessage = device->NewMessage(bufferSize);
     auto bufferPointer = (char*)payloadMessage->GetData();
 
