@@ -34,7 +34,7 @@ struct PseudorapidityDensity {
   Configurable<float> etaMin{"etaMin", -2.0, "min eta value"};
   Configurable<float> vtxZMax{"vtxZMax", 15, "max z vertex"};
   Configurable<float> vtxZMin{"vtxZMin", -15, "min z vertex"};
-  Configurable<uint8_t> trackType{"trackType", aod::track::TrackTypeEnum::Run2Tracklet, "types of tracks to select"};
+  Configurable<int> trackType{"trackType", aod::track::TrackTypeEnum::Run2Tracklet, "types of tracks to select"};
 
   HistogramRegistry registry{
     "registry",
@@ -56,7 +56,7 @@ struct PseudorapidityDensity {
   }
 
   Filter etaFilter = (aod::track::eta < etaMax) && (aod::track::eta > etaMin);
-  Filter trackTypeFilter = (aod::track::trackType == trackType);
+  Filter trackTypeFilter = (aod::track::trackType == static_cast<uint8_t>(trackType));
   Filter posZFilter = (aod::collision::posZ < vtxZMax) && (aod::collision::posZ > vtxZMin);
 
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, soa::Filtered<aod::Tracks> const& tracks)
@@ -81,7 +81,7 @@ struct PseudorapidityDensityMC {
   Configurable<float> etaMin{"etaMin", -2.0, "min eta value"};
   Configurable<float> vtxZMax{"vtxZMax", 15, "max z vertex"};
   Configurable<float> vtxZMin{"vtxZMin", -15, "min z vertex"};
-  Configurable<uint8_t> trackType{"trackType", aod::track::TrackTypeEnum::Run2Tracklet, "types of tracks to select"};
+  Configurable<int> trackType{"trackType", aod::track::TrackTypeEnum::Run2Tracklet, "types of tracks to select"};
 
   HistogramRegistry registry{
     "registry",
@@ -102,7 +102,7 @@ struct PseudorapidityDensityMC {
   }
 
   Filter etaFilter = (aod::track::eta < etaMax) && (aod::track::eta > etaMin);
-  Filter trackTypeFilter = (aod::track::trackType == trackType);
+  Filter trackTypeFilter = (aod::track::trackType == static_cast<uint8_t>(trackType));
   Filter posZFilter = (aod::collision::posZ < vtxZMax) && (aod::collision::posZ > vtxZMin);
   Filter posZFilterMC = (aod::mccollision::posZ < vtxZMax) && (aod::mccollision::posZ > vtxZMin);
 
