@@ -109,8 +109,8 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
   const float stepYDn = rowDn.mHstepY;
   const float stepZDn = rowDn.mHstepZ;
 
-  const float kAngularMultiplier = tracker.mConstantMem->param.rec.SearchWindowDZDR;
-  const float kAreaSizeY = tracker.mConstantMem->param.rec.NeighboursSearchArea;
+  const float kAngularMultiplier = tracker.mConstantMem->param.rec.tpc.searchWindowDZDR;
+  const float kAreaSizeY = tracker.mConstantMem->param.rec.tpc.neighboursSearchArea;
   const float kAreaSizeZUp = kAngularMultiplier != 0.f ? (s.mUpDx * kAngularMultiplier) : kAreaSizeY;
   const float kAreaSizeZDn = kAngularMultiplier != 0.f ? (-s.mDnDx * kAngularMultiplier) : kAreaSizeY;
   const float kAreaSlopeZUp = kAngularMultiplier != 0.f ? 1.f : s.mUpTx;
