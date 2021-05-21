@@ -28,6 +28,7 @@ enum triggerAliases {
   kCUP9,
   kMUP10,
   kMUP11,
+  kALL,
   kNaliases
 };
 
@@ -42,6 +43,7 @@ static const char* aliasLabels[kNaliases] = {
   "kCUP8",
   "kCUP9",
   "kMUP10",
+  "kALL",
   "kMUP11"};
 
 class TriggerAliases

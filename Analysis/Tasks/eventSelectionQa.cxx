@@ -7,6 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+#include "Framework/ConfigParamSpec.h"
+using namespace o2;
+using namespace o2::framework;
+
+// custom configurable for switching between run2 and run3 selection types
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
+{
+  workflowOptions.push_back(ConfigParamSpec{"selection-run", VariantType::Int, 2, {"selection type: 2 - run 2, 3 - run 3, 0 - run2mc"}});
+}
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
@@ -16,8 +26,17 @@
 #include "TH1F.h"
 #include "TH2F.h"
 
-using namespace o2;
-using namespace o2::framework;
+struct EventSelectionQaPerMcCollision {
+  HistogramRegistry histos{"HistosPerCollisionMc", {}, OutputObjHandlingPolicy::QAObject};
+  void init(InitContext&)
+  {
+    histos.add("hMcEventCounter", ";;", kTH1F, {{1, 0., 1.}});
+  }
+  void process(aod::McCollision const& mcCol)
+  {
+    histos.fill(HIST("hMcEventCounter"), 0.);
+  }
+};
 
 struct EventSelectionQaPerBc {
   // TODO fill class names in axis labels
@@ -121,9 +140,23 @@ struct EventSelectionQaPerCollision {
     float multRingV0C3 = col.multRingV0C()[3];
     float multRingV0C012 = multV0C - multRingV0C3;
 
+    histos.fill(HIST("kALL/hTimeV0Aall"), timeV0A);
+    histos.fill(HIST("kALL/hTimeV0Call"), timeV0C);
+    histos.fill(HIST("kALL/hTimeZNAall"), timeZNA);
+    histos.fill(HIST("kALL/hTimeZNCall"), timeZNC);
+    histos.fill(HIST("kALL/hTimeT0Aall"), timeT0A);
+    histos.fill(HIST("kALL/hTimeT0Call"), timeT0C);
+    histos.fill(HIST("kALL/hTimeFDAall"), timeFDA);
+    histos.fill(HIST("kALL/hTimeFDCall"), timeFDC);
+    histos.fill(HIST("kALL/hSPDClsVsTklAll"), col.spdClusters(), col.nTracklets());
+    histos.fill(HIST("kALL/hSPDOnVsOfAll"), ofSPD, onSPD);
+    histos.fill(HIST("kALL/hV0MOnVsOfAll"), multV0M, chargeV0M);
+    histos.fill(HIST("kALL/hV0C3vs012All"), multRingV0C012, multRingV0C3);
+    histos.fill(HIST("kALL/hV0C012vsTklAll"), col.nTracklets(), multRingV0C012);
+
     // Filling only kINT7 histos for the moment
     // need dynamic histo names in the fill function
-    if (isMC || col.alias()[kINT7]) {
+    if (col.alias()[kINT7]) {
       histos.fill(HIST("kINT7/hTimeV0Aall"), timeV0A);
       histos.fill(HIST("kINT7/hTimeV0Call"), timeV0C);
       histos.fill(HIST("kINT7/hTimeZNAall"), timeZNA);
@@ -165,7 +198,21 @@ struct EventSelectionQaPerCollision {
       LOGF(fatal, "Unknown selection type! Use `--sel 7` or `--sel 8`");
     }
 
-    if (isMC || col.alias()[kINT7]) {
+    histos.fill(HIST("kALL/hTimeV0Aacc"), timeV0A);
+    histos.fill(HIST("kALL/hTimeV0Cacc"), timeV0C);
+    histos.fill(HIST("kALL/hTimeZNAacc"), timeZNA);
+    histos.fill(HIST("kALL/hTimeZNCacc"), timeZNC);
+    histos.fill(HIST("kALL/hTimeT0Aacc"), timeT0A);
+    histos.fill(HIST("kALL/hTimeT0Cacc"), timeT0C);
+    histos.fill(HIST("kALL/hTimeFDAacc"), timeFDA);
+    histos.fill(HIST("kALL/hTimeFDCacc"), timeFDC);
+    histos.fill(HIST("kALL/hSPDClsVsTklAcc"), col.spdClusters(), col.nTracklets());
+    histos.fill(HIST("kALL/hSPDOnVsOfAcc"), ofSPD, onSPD);
+    histos.fill(HIST("kALL/hV0MOnVsOfAcc"), multV0M, chargeV0M);
+    histos.fill(HIST("kALL/hV0C3vs012Acc"), multRingV0C012, multRingV0C3);
+    histos.fill(HIST("kALL/hV0C012vsTklAcc"), col.nTracklets(), multRingV0C012);
+
+    if (col.alias()[kINT7]) {
       histos.fill(HIST("kINT7/hTimeV0Aacc"), timeV0A);
       histos.fill(HIST("kINT7/hTimeV0Cacc"), timeV0C);
       histos.fill(HIST("kINT7/hTimeZNAacc"), timeZNA);
@@ -183,9 +230,77 @@ struct EventSelectionQaPerCollision {
   }
 };
 
+struct EventSelectionQaPerBcRun3 {
+  HistogramRegistry histos{"HistosPerBC", {}, OutputObjHandlingPolicy::QAObject};
+  void init(InitContext&)
+  {
+    histos.add("hTimeT0Aall", "All events;T0A time;Entries", kTH1F, {{200, -2., 2.}});
+    histos.add("hTimeT0Call", "All events;T0C time;Entries", kTH1F, {{200, -2., 2.}});
+    histos.add("hGlobalBcFT0", ";;", kTH1F, {{10000, 0., 10000.}});
+  }
+
+  void process(aod::FT0 ft0, aod::BCs const& bcs)
+  {
+    float timeA = ft0.timeA();
+    float timeC = ft0.timeC();
+    histos.fill(HIST("hTimeT0Aall"), timeA);
+    histos.fill(HIST("hTimeT0Call"), timeC);
+    histos.fill(HIST("hGlobalBcFT0"), ft0.bc().globalBC());
+  }
+};
+
+struct EventSelectionQaPerCollisionRun3 {
+  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
+  void init(InitContext&)
+  {
+    histos.add("hNcontrib", ";n contributors;", kTH1F, {{100, 0, 100.}});
+    histos.add("hNcontribFT0", ";n contributors;", kTH1F, {{100, 0, 100.}});
+    histos.add("hGlobalBcCol", ";;", kTH1F, {{10000, 0., 10000.}});
+    histos.add("hGlobalBcColFT0", ";;", kTH1F, {{10000, 0., 10000.}});
+  }
+  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& col, aod::BCs const& bcs)
+  {
+    int nContributors = col.numContrib();
+    histos.fill(HIST("hNcontrib"), nContributors);
+    uint64_t globalBc = col.bc().globalBC();
+    histos.fill(HIST("hGlobalBcCol"), globalBc);
+    if (col.foundFT0() >= 0) {
+      histos.fill(HIST("hNcontribFT0"), nContributors);
+      histos.fill(HIST("hGlobalBcColFT0"), globalBc);
+    }
+  }
+};
+
+struct EventSelectionQaPerMcCollisionRun3 {
+  HistogramRegistry histos{"HistosPerCollisionMc", {}, OutputObjHandlingPolicy::QAObject};
+  void init(InitContext&)
+  {
+    histos.add("hMcEventCounter", ";;", kTH1F, {{1, 0., 1.}});
+    histos.add("hGlobalBcMcCol", ";;", kTH1F, {{10000, 0., 10000.}});
+  }
+  void process(aod::McCollision const& mcCol, aod::BCs const& bcs)
+  {
+    histos.fill(HIST("hMcEventCounter"), 0.);
+    uint64_t globalBc = mcCol.bc().globalBC();
+    histos.fill(HIST("hGlobalBcMcCol"), globalBc);
+  }
+};
+
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionQaPerBc>(cfgc),
-    adaptAnalysisTask<EventSelectionQaPerCollision>(cfgc)};
+  if (cfgc.options().get<int>("selection-run") == 2) {
+    return WorkflowSpec{
+      adaptAnalysisTask<EventSelectionQaPerBc>(cfgc),
+      adaptAnalysisTask<EventSelectionQaPerCollision>(cfgc)};
+  } else if (cfgc.options().get<int>("selection-run") == 0) {
+    return WorkflowSpec{
+      adaptAnalysisTask<EventSelectionQaPerBc>(cfgc),
+      adaptAnalysisTask<EventSelectionQaPerCollision>(cfgc),
+      adaptAnalysisTask<EventSelectionQaPerMcCollision>(cfgc)};
+  } else {
+    return WorkflowSpec{
+      adaptAnalysisTask<EventSelectionQaPerBcRun3>(cfgc),
+      adaptAnalysisTask<EventSelectionQaPerCollisionRun3>(cfgc),
+      adaptAnalysisTask<EventSelectionQaPerMcCollisionRun3>(cfgc)};
+  }
 }
