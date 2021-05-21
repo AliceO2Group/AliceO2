@@ -20,6 +20,7 @@
 #include "MFTBase/GeometryTGeo.h"
 
 #include "MFTSimulation/Detector.h"
+#include "MFTSimulation/GeometryMisAligner.h"
 
 #include "Field/MagneticField.h"
 #include "SimulationDataFormat/Stack.h"
@@ -709,6 +710,36 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
   if (!gGeoManager->SetAlignableEntry(sname, path.Data(), uid)) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
+}
+
+//_____________________________________________________________________________
+void Detector::MisalignGeometry() const
+{
+  // Function to misalign the MFT geometry
+
+  // Initialize the misaligner
+  o2::mft::GeometryMisAligner aGMA;
+
+  aGMA.SetHalfCartMisAlig(0., 0., 0., 0., 0., 0.); // half-MFT translated on X, Y, Z axis
+  aGMA.SetHalfAngMisAlig(0., 0., 0., 0., 0., 0.);  // half-MFT  rotated on Z, X, Y axis
+    
+  aGMA.SetDiskCartMisAlig(0., 0., 0., 0., 0., 0.); // Half-disks translated on X, Y, Z axis
+  aGMA.SetDiskAngMisAlig(0., 0., 0., 0., 0., 0.);  // Half-disks rotated on Z, X, Y axis
+    
+  aGMA.SetLadderCartMisAlig(0., 0., 0., 0., 0., 0.); // Ladders translated on X, Y, Z axis
+  aGMA.SetLadderAngMisAlig(0., 0., 0., 0., 0., 0.);   // Ladders rotated on Z, X, Y axis
+    
+  aGMA.SetSensorCartMisAlig(0., 0., 0., 0., 0., 0.); // Sensors translated on X, Y, Z axis
+  aGMA.SetSensorAngMisAlig(0., 0., 0., 0., 0., 0.);   // Sensors rotated on Z, X, Y axis
+
+  aGMA.MisAlign(true);  // Misalign the geometry
+
+  // lock the geometry, or unlock with "false"
+  gGeoManager->RefreshPhysicalNodes();
+
+  // store the misaligned geometry in a root file
+  gGeoManager->Export("o2sim_geometry_misaligned.root");
+        
 }
 
 //_____________________________________________________________________________
