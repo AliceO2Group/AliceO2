@@ -54,7 +54,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
-  if (mDigits) { 
+  if (mDigits) {
     const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
     const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
 
@@ -63,7 +63,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
       sendOutput(pc.outputs());
       pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
     }
-  }else{
+  } else {
     const auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
     gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
     const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
@@ -90,12 +90,11 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
   }
 
-
   auto toKeyValPairs = [](std::vector<std::string> const& tokens) {
     std::vector<std::pair<std::string, std::string>> pairs;
     Str strutils;
     for (auto& token : tokens) {
-//      auto keyval = splitString(token, '=');
+      //      auto keyval = splitString(token, '=');
       auto keyval = Str::tokenize(token, '=', false);
       if (keyval.size() != 2) {
         // LOG(FATAL) << "Illegal command-line key/value string: " << token;
@@ -103,14 +102,14 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
       }
 
       strutils.trim(keyval[1]);
-      std::pair<std::string, std::string> pair = std::make_pair(keyval[0],keyval[1]);
+      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], keyval[1]);
       pairs.push_back(pair);
     }
 
     return pairs;
   };
   std::map<std::string, std::string> meta;
-//  auto keyvalues = toKeyValPairs(splitString(mMeta, ';', true));
+  //  auto keyvalues = toKeyValPairs(splitString(mMeta, ';', true));
   auto keyvalues = toKeyValPairs(Str::tokenize(mMeta, ';', true));
 
   // fill meta map
@@ -150,7 +149,7 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
   if (useDigits) {
     inputs.emplace_back("digits", detOrig, "DIGITS", 0, Lifetime::Timeframe);
     inputs.emplace_back("digitsROF", detOrig, "DIGITSROF", 0, Lifetime::Timeframe);
-  }else{
+  } else {
     inputs.emplace_back("compClusters", detOrig, "COMPCLUSTERS", 0, Lifetime::Timeframe);
     inputs.emplace_back("patterns", detOrig, "PATTERNS", 0, Lifetime::Timeframe);
     inputs.emplace_back("ROframes", detOrig, "CLUSTERSROF", 0, Lifetime::Timeframe);

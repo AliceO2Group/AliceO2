@@ -114,8 +114,6 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
   return hasEnoughData(slotTF);
 }
 
-
-
 // Functions overloaded from the calibration framework
 bool NoiseSlotCalibrator::process(calibration::TFType tf, const gsl::span<const o2::itsmft::CompClusterExt> data)
 {
