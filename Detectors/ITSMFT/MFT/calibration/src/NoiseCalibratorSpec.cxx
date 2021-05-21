@@ -11,6 +11,7 @@
 /// @file   NoiseCalibratorSpec.cxx
 
 #include "CCDB/CcdbApi.h"
+#include "CommonUtils/StringUtils.h"
 #include "DetectorsCalibration/Utils.h"
 #include "MFTCalibration/NoiseCalibratorSpec.h"
 #include "DataFormatsITSMFT/Digit.h"
@@ -22,40 +23,7 @@
 #include "Framework/ConfigParamRegistry.h"
 
 using namespace o2::framework;
-
-// Remove leading whitespace
-std::string ltrimSpace(std::string src)
-{
-  return src.erase(0, src.find_first_not_of(' '));
-}
-
-// Remove trailing whitespace
-std::string rtrimSpace(std::string src)
-{
-  return src.erase(src.find_last_not_of(' ') + 1);
-}
-
-// Remove leading/trailing whitespace
-std::string trimSpace(std::string const& src)
-{
-  return ltrimSpace(rtrimSpace(src));
-}
-
-std::vector<std::string> splitString(const std::string& src, char delim, bool trim = false)
-{
-  std::stringstream ss(src);
-  std::string token;
-  std::vector<std::string> tokens;
-
-  while (std::getline(ss, token, delim)) {
-    token = (trim ? trimSpace(token) : token);
-    if (!token.empty()) {
-      tokens.push_back(std::move(token));
-    }
-  }
-
-  return tokens;
-}
+using namespace o2::utils;
 
 namespace o2
 {
@@ -122,24 +90,28 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
   }
 
+
   auto toKeyValPairs = [](std::vector<std::string> const& tokens) {
     std::vector<std::pair<std::string, std::string>> pairs;
-
+    Str strutils;
     for (auto& token : tokens) {
-      auto keyval = splitString(token, '=');
+//      auto keyval = splitString(token, '=');
+      auto keyval = Str::tokenize(token, '=', false);
       if (keyval.size() != 2) {
         // LOG(FATAL) << "Illegal command-line key/value string: " << token;
         continue;
       }
 
-      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], trimSpace(keyval[1]));
+      strutils.trim(keyval[1]);
+      std::pair<std::string, std::string> pair = std::make_pair(keyval[0],keyval[1]);
       pairs.push_back(pair);
     }
 
     return pairs;
   };
   std::map<std::string, std::string> meta;
-  auto keyvalues = toKeyValPairs(splitString(mMeta, ';', true));
+//  auto keyvalues = toKeyValPairs(splitString(mMeta, ';', true));
+  auto keyvalues = toKeyValPairs(Str::tokenize(mMeta, ';', true));
 
   // fill meta map
   for (auto& p : keyvalues) {
@@ -148,11 +120,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 
   long startTF, endTF;
 
-#ifdef TIME_SLOT_CALIBRATION
-  const auto& payload = mCalibrator->getNoiseMap(startTF, endTF);
-#else
   const auto& payload = mCalibrator->getNoiseMap();
-#endif
 
   o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
