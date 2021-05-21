@@ -44,6 +44,6 @@ void ZDCIntegrationParam::setIntegration(uint32_t ich, int beg, int end, int beg
 void ZDCIntegrationParam::print()
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {
-    LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << beg_int[ich] << ":" << end_int[ich] << "] pedestal=[" << beg_ped_int[ich] << ":" << end_ped_int[ich] <<"]";
+    LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << beg_int[ich] << ":" << end_int[ich] << "] pedestal=[" << beg_ped_int[ich] << ":" << end_ped_int[ich] << "]";
   }
 }
