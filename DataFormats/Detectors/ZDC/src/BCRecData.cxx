@@ -16,8 +16,8 @@ using namespace o2::zdc;
 
 void BCRecData::print() const
 {
-  printf("Orbit %9u bc %4u nch %2d pos %d ntdc %2d pos %d nmsg %2d pos %\n", ir.orbit, ir.bc,
-		  refe.getEntries(), refe.getFirstEntry(),
-		  reft.getEntries(), reft.getFirstEntry(),
-		  refm.getEntries(), refm.getFirstEntry());
+  printf("Orbit %9u bc %4u nch %2d pos %d ntdc %2d pos %d nmsg %2d pos %d\n", ir.orbit, ir.bc,
+         refe.getEntries(), refe.getFirstEntry(),
+         reft.getEntries(), reft.getFirstEntry(),
+         refi.getEntries(), refi.getFirstEntry());
 }

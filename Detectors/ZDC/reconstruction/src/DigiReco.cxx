@@ -13,12 +13,11 @@
 #include "ZDCReconstruction/DigiReco.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 
-
 namespace o2
 {
 namespace zdc
 {
-using O2_ZDC_DIGIRECO_FLT=float;
+using O2_ZDC_DIGIRECO_FLT = float;
 
 void DigiReco::init()
 {
@@ -101,12 +100,12 @@ void DigiReco::init()
       LOG(FATAL) << "Shift for TDC " << itdc << " " << val << " is out of range";
     }
     tdc_shift[itdc] = val;
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val*RecEventAux::fVal << " ns";
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * RecEventAux::fVal << " ns";
   }
   // TDC search zone
   // TODO: override with configuration object
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc]*RecEventAux::fVal << " ns";
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * RecEventAux::fVal << " ns";
   }
 
   // Fill maps channel maps for integration
@@ -178,8 +177,8 @@ int DigiReco::process(const std::vector<o2::zdc::OrbitData>* orbitdata, const st
     auto& bcr = mReco[ibc];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
       for (int i = 0; i < MaxTDCValues; i++) {
-	bcr.tdcVal[itdc][i] = kMinShort;
-	bcr.tdcAmp[itdc][i] = kMinShort;
+        bcr.tdcVal[itdc][i] = kMinShort;
+        bcr.tdcAmp[itdc][i] = kMinShort;
       }
     }
     auto& bcd = BCData[ibc];
@@ -205,9 +204,11 @@ int DigiReco::process(const std::vector<o2::zdc::OrbitData>* orbitdata, const st
   //     }
   //   }
 
-  // Assign interaction record
+  // Assign interaction record and event information
   for (int ibc = 0; ibc < mNBC; ibc++) {
     mReco[ibc].ir = BCData[ibc].ir;
+    mReco[ibc].channels = BCData[ibc].channels;
+    mReco[ibc].triggers = BCData[ibc].triggers;
   }
 
   // Find consecutive bunch crossings and perform interpolation
@@ -326,7 +327,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
       }
     }
 
-    auto &rec = mReco[ibun];
+    auto& rec = mReco[ibun];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
       if (rec.fired[itdc] != 0x0) {
         printf("%d %u.%u TDC %d %x", ibun, rec.ir.orbit, rec.ir.bc, itdc, rec.fired[itdc]);
@@ -404,10 +405,10 @@ int DigiReco::reconstruct(int ibeg, int iend)
       }
     }
     // TODO: energy calibration
-    if(mTreeDbg){
-    mRec = rec;
-    mTDbg->Fill();
-  }
+    if (mTreeDbg) {
+      mRec = rec;
+      mTDbg->Fill();
+    }
   } // Loop on bunches
 }
 
@@ -768,13 +769,13 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   int& ihit = mReco[ibun].ntdc[itdc];
   if (ihit < MaxTDCValues) {
     mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
-    mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp/RecEventAux::fAmp);
+    mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp / RecEventAux::fAmp);
     ihit++;
     LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor*RecEventAux::fVal << " amp=" << amp*RecEventAux::fAmp;
+              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * RecEventAux::fVal << " amp=" << amp * RecEventAux::fAmp;
   } else {
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor*RecEventAux::fVal << " amp=" << amp*RecEventAux::fAmp << " OVERFLOW";
+               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * RecEventAux::fVal << " amp=" << amp * RecEventAux::fAmp << " OVERFLOW";
   }
 }
 

@@ -32,25 +32,27 @@ struct ZDCEnergy {
   ZDCEnergy() = default;
   ZDCEnergy(uint8_t ch, float energy)
   {
-    float escaled=(energy+EnergyOffset)/EnergyUnit;
-    value=0;
-    if(escaled>0){
-      if(escaled>EnergyMask){
-	value=EnergyMask;
-      }else{
-	value=std::nearbyint(escaled);
+    float escaled = (energy + EnergyOffset) / EnergyUnit;
+    value = 0;
+    if (escaled > 0) {
+      if (escaled > EnergyMask) {
+        value = EnergyMask;
+      } else {
+        value = std::nearbyint(escaled);
       }
     }
-    if(ch>=NChannels){
-      ch=0x1f;
+    if (ch >= NChannels) {
+      ch = 0x1f;
     }
-    value=(value&EnergyMask)|(ch<<27);
+    value = (value & EnergyMask) | (ch << 27);
   }
-  float energy(){
-    return (float(value&EnergyMask)-EnergyOffset)*EnergyUnit;
+  float energy()
+  {
+    return (float(value & EnergyMask) - EnergyOffset) * EnergyUnit;
   }
-  uint8_t ch(){
-    return (value&EnergyChMask)>>27;
+  uint8_t ch()
+  {
+    return (value & EnergyChMask) >> 27;
   }
 
   void print() const;
