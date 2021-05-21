@@ -9,6 +9,9 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#include <string>
+#include <string_view>
+
 #include "TROOT.h"
 #include "TMath.h"
 #include "TH2.h"
@@ -47,10 +50,15 @@ TObjArray* drawNoiseAndPedestal(std::string_view pedestalFile, int mode = 0, std
 
   if (pedestalFile.find("cdb") != std::string::npos) {
     auto& cdb = CDBInterface::instance();
-    if (pedestalFile == "cdb-test") {
+    if (pedestalFile.find("cdb-test") == 0) {
       cdb.setURL("http://ccdb-test.cern.ch:8080");
-    } else if (pedestalFile == "cdb-prod") {
+    } else if (pedestalFile.find("cdb-prod") == 0) {
       cdb.setURL("");
+    }
+    const auto timePos = pedestalFile.find("@");
+    if (timePos != std::string_view::npos) {
+      std::cout << "set time stamp " << std::stol(pedestalFile.substr(timePos + 1).data()) << "\n";
+      cdb.setTimeStamp(std::stol(pedestalFile.substr(timePos + 1).data()));
     }
     calPedestal = &cdb.getPedestals();
     calNoise = &cdb.getNoise();
