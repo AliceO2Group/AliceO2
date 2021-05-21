@@ -111,7 +111,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
   auto allocator = [&clusterBuffer](size_t size) {clusterBuffer.resize(size); return clusterBuffer.data(); };
   mDecoder.decompress(clustersCompressed, clustersNativeDecoded, allocator, param);
   std::vector<o2::tpc::ClusterNative> tmpClusters;
-  if (param.rec.tpcRejectionMode == GPUSettings::RejectionNone) { // verification does not make sense if we reject clusters during compression
+  if (param.rec.tpc.rejectionStrategy == GPUSettings::RejectionNone) { // verification does not make sense if we reject clusters during compression
     for (unsigned int i = 0; i < NSLICES; i++) {
       for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
         if (clustersNative->nClusters[i][j] != clustersNativeDecoded.nClusters[i][j]) {
@@ -122,7 +122,7 @@ void GPUTPCClusterStatistics::RunStatistics(const o2::tpc::ClusterNativeAccess* 
         tmpClusters.resize(clustersNative->nClusters[i][j]);
         for (unsigned int k = 0; k < clustersNative->nClusters[i][j]; k++) {
           tmpClusters[k] = clustersNative->clusters[i][j][k];
-          if (param.rec.tpcCompressionModes & GPUSettings::CompressionTruncate) {
+          if (param.rec.tpc.compressionTypeMask & GPUSettings::CompressionTruncate) {
             GPUTPCCompression::truncateSignificantBitsChargeMax(tmpClusters[k].qMax, param);
             GPUTPCCompression::truncateSignificantBitsCharge(tmpClusters[k].qTot, param);
             GPUTPCCompression::truncateSignificantBitsWidth(tmpClusters[k].sigmaPadPacked, param);

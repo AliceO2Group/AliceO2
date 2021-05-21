@@ -177,7 +177,7 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Invalid input, TPC Clusterizer needs TPC raw input");
     return false;
   }
-  if (param().rec.mergerReadFromTrackerDirectly && (GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && ((GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCSectorTracks) || (GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) || !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion))) {
+  if (param().rec.tpc.mergerReadFromTrackerDirectly && (GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && ((GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCSectorTracks) || (GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) || !(GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion))) {
     GPUError("Invalid input / output / step, mergerReadFromTrackerDirectly cannot read/store sectors tracks and needs TPC conversion");
     return false;
   }
@@ -247,19 +247,19 @@ bool GPUChainTracking::ValidateSteps()
 
 bool GPUChainTracking::ValidateSettings()
 {
-  if ((param().rec.NWays & 1) == 0) {
+  if ((param().rec.tpc.nWays & 1) == 0) {
     GPUError("nWay setting musst be odd number!");
     return false;
   }
-  if (param().rec.mergerInterpolateErrors && param().rec.NWays == 1) {
+  if (param().rec.tpc.mergerInterpolateErrors && param().rec.tpc.nWays == 1) {
     GPUError("Cannot do error interpolation with NWays = 1!");
     return false;
   }
-  if ((param().rec.mergerReadFromTrackerDirectly || !param().par.earlyTpcTransform) && param().rec.NonConsecutiveIDs) {
+  if ((param().rec.tpc.mergerReadFromTrackerDirectly || !param().par.earlyTpcTransform) && param().rec.nonConsecutiveIDs) {
     GPUError("incompatible settings for non consecutive ids");
     return false;
   }
-  if (!param().rec.mergerReadFromTrackerDirectly && GetProcessingSettings().ompKernels) {
+  if (!param().rec.tpc.mergerReadFromTrackerDirectly && GetProcessingSettings().ompKernels) {
     GPUError("OMP Kernels require mergerReadFromTrackerDirectly");
     return false;
   }
@@ -575,7 +575,7 @@ int GPUChainTracking::RunChain()
 
   for (unsigned int i = 0; i < NSLICES; i++) {
     // GPUInfo("slice %d clusters %d tracks %d", i, mClusterData[i].NumberOfClusters(), processors()->tpcTrackers[i].Output()->NTracks());
-    processors()->tpcMerger.SetSliceData(i, param().rec.mergerReadFromTrackerDirectly ? nullptr : processors()->tpcTrackers[i].Output());
+    processors()->tpcMerger.SetSliceData(i, param().rec.tpc.mergerReadFromTrackerDirectly ? nullptr : processors()->tpcTrackers[i].Output());
   }
   if (runRecoStep(RecoStep::TPCMerging, &GPUChainTracking::RunTPCTrackingMerger, false)) {
     return 1;
@@ -715,7 +715,7 @@ int GPUChainTracking::HelperReadEvent(int iSlice, int threadId, GPUReconstructio
 
 int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par)
 {
-  if (param().rec.GlobalTracking) {
+  if (param().rec.tpc.globalTracking) {
     unsigned int tmpSlice = GPUTPCGlobalTracking::GlobalTrackingSliceOrder(iSlice);
     unsigned int sliceLeft, sliceRight;
     GPUTPCGlobalTracking::GlobalTrackingSliceLeftRight(tmpSlice, sliceLeft, sliceRight);
