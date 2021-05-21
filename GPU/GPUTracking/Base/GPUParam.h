@@ -83,7 +83,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
     if (iSlice >= GPUCA_NSLICES / 4) {
       iSlice -= GPUCA_NSLICES / 2;
     }
-    return 0.174533f + par.DAlpha * iSlice;
+    return 0.174533f + par.dAlpha * iSlice;
   }
   GPUd() float GetClusterRMS(int yz, int type, float z, float angle2) const;
   GPUd() void GetClusterRMS2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;

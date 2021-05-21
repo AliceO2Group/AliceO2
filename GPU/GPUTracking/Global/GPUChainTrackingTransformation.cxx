@@ -140,7 +140,7 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 
 void GPUChainTracking::ConvertZSFilter(bool zs12bit)
 {
-  GPUReconstructionConvert::RunZSFilter(mIOMem.tpcDigits, mIOPtrs.tpcPackedDigits->tpcDigits, mIOMem.digitMap->nTPCDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, param(), zs12bit, param().rec.tpcZSthreshold);
+  GPUReconstructionConvert::RunZSFilter(mIOMem.tpcDigits, mIOPtrs.tpcPackedDigits->tpcDigits, mIOMem.digitMap->nTPCDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, param(), zs12bit, param().rec.tpc.zsThreshold);
 }
 
 int GPUChainTracking::ForwardTPCDigits()
@@ -151,7 +151,7 @@ int GPUChainTracking::ForwardTPCDigits()
   }
   std::vector<ClusterNative> tmp[NSLICES][GPUCA_ROW_COUNT];
   unsigned int nTotal = 0;
-  const float zsThreshold = param().rec.tpcZSthreshold;
+  const float zsThreshold = param().rec.tpc.zsThreshold;
   for (int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < mIOPtrs.tpcPackedDigits->nTPCDigits[i]; j++) {
       const auto& d = mIOPtrs.tpcPackedDigits->tpcDigits[i][j];

@@ -96,7 +96,7 @@ using namespace GPUCA_NAMESPACE::gpu;
   int id = attach & gputpcgmmergertypes::attachTrackMask;                 \
   if (!unattached) {                                                      \
     qpt = fabsf(mTracking->mIOPtrs.mergedTracks[id].GetParam().GetQPt()); \
-    lowPt = qpt > mTracking->GetParam().rec.tpcRejectQPt;                 \
+    lowPt = qpt > mTracking->GetParam().rec.tpc.rejectQPt;                \
     mev200 = qpt > 5;                                                     \
     mergedLooper = mTracking->mIOPtrs.mergedTracks[id].MergedLooper();    \
   }                                                                       \
@@ -848,7 +848,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
 
   bool mcAvail = mcPresent() || tracksExtMC;
 
-  if (mcAvail && !tracksExtMC && mTracking->GetParam().rec.NonConsecutiveIDs) {
+  if (mcAvail && !tracksExtMC && mTracking->GetParam().rec.nonConsecutiveIDs) {
     GPUError("QA incompatible to non-consecutive MC labels");
     return;
   }
@@ -1194,7 +1194,6 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
       prop.SetMaxSinPhi(.999);
       prop.SetMaterialTPC();
       prop.SetPolynomialField(&mParam.polynomialField);
-      prop.SetToyMCEventsFlag(mParam.par.ToyMCEventsFlag);
 
       for (unsigned int i = 0; i < mTrackMCLabels.size(); i++) {
         if (mConfig.writeMCLabels) {

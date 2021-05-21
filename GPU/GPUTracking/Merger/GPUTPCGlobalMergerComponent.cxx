@@ -295,16 +295,16 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   GPUSettingsProcessing devProc;
   grp.solenoidBz = fSolenoidBz;
   if (fClusterErrorCorrectionY > 1.e-4) {
-    rec.ClusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
+    rec.tpc.clusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
   }
   if (fClusterErrorCorrectionZ > 1.e-4) {
-    rec.ClusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
+    rec.tpc.clusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
   }
-  rec.NWays = fNWays;
-  rec.NWaysOuter = fNWaysOuter;
-  rec.mergerInterpolateErrors = false;
-  rec.NonConsecutiveIDs = true;
-  rec.mergerReadFromTrackerDirectly = false;
+  rec.tpc.nWays = fNWays;
+  rec.tpc.nWaysOuter = fNWaysOuter;
+  rec.tpc.mergerInterpolateErrors = false;
+  rec.nonConsecutiveIDs = true;
+  rec.tpc.mergerReadFromTrackerDirectly = false;
   devProc.ompThreads = 1;
   devProc.ompKernels = false;
 

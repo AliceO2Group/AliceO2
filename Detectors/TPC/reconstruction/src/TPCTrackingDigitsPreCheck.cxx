@@ -50,7 +50,7 @@ TPCTrackingDigitsPreCheck::precheckModifiedData TPCTrackingDigitsPreCheck::runPr
   if (ptrs->tpcPackedDigits) {
     std::unique_ptr<precheckModifiedDataInternal> retVal = std::make_unique<precheckModifiedDataInternal>();
     retVal->tpcDigitsMap = *ptrs->tpcPackedDigits;
-    const float zsThreshold = config->configReconstruction.tpcZSthreshold;
+    const float zsThreshold = config->configReconstruction.tpc.zsThreshold;
     const int maxContTimeBin = config->configGRP.continuousMaxTimeBin;
     bool updateDigits = zsThreshold > 0 && ptrs->tpcZS == nullptr;
     const auto& d = ptrs->tpcPackedDigits;

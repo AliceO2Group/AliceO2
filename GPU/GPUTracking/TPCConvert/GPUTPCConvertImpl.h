@@ -28,7 +28,7 @@ class GPUTPCConvertImpl
  public:
   GPUd() static void convert(const GPUConstantMem& GPUrestrict() cm, int slice, int row, float pad, float time, float& GPUrestrict() x, float& GPUrestrict() y, float& GPUrestrict() z)
   {
-    if (cm.param.par.ContinuousTracking) {
+    if (cm.param.par.continuousTracking) {
       cm.calibObjects.fastTransform->TransformInTimeFrame(slice, row, pad, time, x, y, z, cm.param.par.continuousMaxTimeBin);
     } else {
       cm.calibObjects.fastTransform->Transform(slice, row, pad, time, x, y, z);
@@ -36,7 +36,7 @@ class GPUTPCConvertImpl
   }
   GPUd() static void convert(const TPCFastTransform& GPUrestrict() transform, const GPUParam& GPUrestrict() param, int slice, int row, float pad, float time, float& GPUrestrict() x, float& GPUrestrict() y, float& GPUrestrict() z)
   {
-    if (param.par.ContinuousTracking) {
+    if (param.par.continuousTracking) {
       transform.TransformInTimeFrame(slice, row, pad, time, x, y, z, param.par.continuousMaxTimeBin);
     } else {
       transform.Transform(slice, row, pad, time, x, y, z);

@@ -68,7 +68,7 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned
 
   unsigned int nClAreduced = reducedClA ? nClA - nTr : nClA;
 
-  if (!(mRec->GetParam().rec.tpcCompressionModes & GPUSettings::CompressionTrackModel)) {
+  if (!(mRec->GetParam().rec.tpc.compressionTypeMask & GPUSettings::CompressionTrackModel)) {
     return; // Track model disabled, do not allocate memory
   }
   computePointerWithAlignment(mem, c.qTotA, nClA);
@@ -116,7 +116,7 @@ void GPUTPCCompression::RegisterMemoryAllocation()
 void GPUTPCCompression::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mMaxClusters = io.clustersNative->nClustersTotal;
-  mMaxClusterFactorBase1024 = mMaxClusters > 100000000 ? mRec->MemoryScalers()->tpcCompressedUnattachedHitsBase1024[mRec->GetParam().rec.tpcRejectionMode] : 1024;
+  mMaxClusterFactorBase1024 = mMaxClusters > 100000000 ? mRec->MemoryScalers()->tpcCompressedUnattachedHitsBase1024[mRec->GetParam().rec.tpc.rejectionStrategy] : 1024;
   mMaxClustersInCache = mMaxClusters * mMaxClusterFactorBase1024 / 1024;
   mMaxTrackClusters = mRec->GetConstantMem().tpcMerger.NOutputTrackClusters();
   mMaxTracks = mRec->GetConstantMem().tpcMerger.NOutputTracks();

@@ -29,7 +29,7 @@ using namespace o2::tpc;
 using namespace o2::tpc::constants;
 
 GPUdi() static constexpr unsigned char getFlagsReject() { return GPUTPCGMMergedTrackHit::flagReject | GPUTPCGMMergedTrackHit::flagNotFit; }
-GPUdi() static unsigned int getFlagsRequired(const GPUSettingsRec& rec) { return rec.dropSecondaryLegsInOutput ? gputpcgmmergertypes::attachGoodLeg : gputpcgmmergertypes::attachZero; }
+GPUdi() static unsigned int getFlagsRequired(const GPUSettingsRec& rec) { return rec.tpc.dropSecondaryLegsInOutput ? gputpcgmmergertypes::attachGoodLeg : gputpcgmmergertypes::attachZero; }
 
 template <>
 GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() merger)
@@ -52,7 +52,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::prepare>(int nBlocks, i
     if (nCl == 0) {
       continue;
     }
-    if (merger.Param().rec.dropSecondaryLegsInOutput && nCl + 2 < GPUCA_TRACKLET_SELECTOR_MIN_HITS(tracks[i].GetParam().GetQPt())) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
+    if (merger.Param().rec.tpc.dropSecondaryLegsInOutput && nCl + 2 < GPUCA_TRACKLET_SELECTOR_MIN_HITS(tracks[i].GetParam().GetQPt())) { // Give 2 hits tolerance in the primary leg, compared to the full fit of the looper
       continue;
     }
     unsigned int myId = CAMath::AtomicAdd(&merger.Memory()->nO2Tracks, 1u);
@@ -166,7 +166,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
 
     bool cce = tracks[i].CCE() && ((sector1 < MAXSECTOR / 2) ^ (sector2 < MAXSECTOR / 2));
     float time0 = 0.f, tFwd = 0.f, tBwd = 0.f;
-    if (merger.Param().par.ContinuousTracking) {
+    if (merger.Param().par.continuousTracking) {
       time0 = tracks[i].GetParam().GetTZOffset();
       if (cce) {
         bool lastSide = trackClusters[tracks[i].FirstClusterRef()].slice < MAXSECTOR / 2;

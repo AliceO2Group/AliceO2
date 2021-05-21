@@ -41,7 +41,7 @@ GPUdii() bool GPUTPCCFPeakFinder::isPeak(
 {
   ushort ll = get_local_id(0);
 
-  bool belowThreshold = (q <= calib.tpcCFqmaxCutoff);
+  bool belowThreshold = (q <= calib.tpc.cfQMaxCutoff);
 
   ushort lookForPeaks;
   ushort partId = CfUtils::partition<SCRATCH_PAD_WORK_GROUP_SIZE>(
@@ -120,5 +120,5 @@ GPUd() void GPUTPCCFPeakFinder::findPeaksImpl(int nBlocks, int nThreads, int iBl
 
   isPeakPredicate[idx] = peak;
 
-  peakMap[pos] = (uchar(charge > calib.tpcCFinnerThreshold) << 1) | peak;
+  peakMap[pos] = (uchar(charge > calib.tpc.cfInnerThreshold) << 1) | peak;
 }

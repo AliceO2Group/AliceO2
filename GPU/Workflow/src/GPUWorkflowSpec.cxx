@@ -187,7 +187,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           config.configProcessing.runQA = -processAttributes->qaTaskMask;
         }
       }
-      config.configReconstruction.NWaysOuter = true;
+      config.configReconstruction.tpc.nWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
 
       // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
