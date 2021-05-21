@@ -38,6 +38,7 @@
 #include <stdexcept>
 #include <string>
 #include <climits>
+#include <limits>
 // FIXME: for o2::byte. Use std::byte as soon as we move to C++17..
 #include "MemoryResources/Types.h"
 #include <cerrno>
