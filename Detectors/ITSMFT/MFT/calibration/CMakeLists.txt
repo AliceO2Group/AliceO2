@@ -10,18 +10,18 @@
 
 o2_add_library(MFTCalibration
                SOURCES src/NoiseCalibrator.cxx
-	       SOURCES src/NoiseCalibratorSpec.cxx
-	       PUBLIC_LINK_LIBRARIES O2::DataFormatsMFT O2::MFTBase
+         SOURCES src/NoiseCalibratorSpec.cxx
+         PUBLIC_LINK_LIBRARIES O2::DataFormatsMFT O2::MFTBase
                                      O2::DetectorsCalibration
                                      O2::CCDB)
 
 o2_target_root_dictionary(MFTCalibration
-			  HEADERS include/MFTCalibration/NoiseCalibrator.h
-			  LINKDEF src/MFTCalibrationLinkDef.h)
+        HEADERS include/MFTCalibration/NoiseCalibrator.h
+        LINKDEF src/MFTCalibrationLinkDef.h)
 
 o2_add_executable(mft-calib-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/mft-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
-		  O2::MFTCalibration)
+      O2::MFTCalibration)
 
