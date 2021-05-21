@@ -484,7 +484,7 @@ struct AnalysisDataProcessorBuilder {
                              task);
       if constexpr (soa::is_soa_iterator_t<G>::value) {
         for (auto& element : groupingTable) {
-          std::invoke(processingFunction, task, *element);
+          std::invoke(processingFunction, task, element);
         }
       } else {
         static_assert(soa::is_soa_table_like_t<G>::value,

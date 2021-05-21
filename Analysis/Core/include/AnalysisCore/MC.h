@@ -60,6 +60,39 @@ bool isStable(int pdg)
   return false;
 }
 
+bool isStableCharged(int pdg)
+{
+  constexpr int kNstableCharged = 18;
+  int pdgStableCharged[kNstableCharged] = {
+    kElectron,   // Electron
+    kMuonPlus,   // Muon
+    kPiPlus,     // Pion
+    kKPlus,      // Kaon
+    kProton,     // Proton
+    kSigmaMinus, // Sigma Minus
+    kSigmaPlus,  // Sigma Plus
+    3312,        // Xsi Minus
+    3334         // Omega
+  };
+
+  for (int i = 0; i < kNstableCharged; i++) {
+    if (pdg == std::abs(pdgStableCharged[i])) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+// temporary
+template <typename T>
+bool isPhysicalPrimaryChargedRun3(T const& p)
+{
+  if (!isStableCharged(std::abs(p.pdgCode()))) {
+    return false;
+  };
+}
+
 // Ported from AliRoot AliStack::IsPhysicalPrimary
 template <typename Particle>
 bool isPhysicalPrimary(Particle const& particle)
