@@ -26,7 +26,7 @@ namespace zdc
 // parameters of ZDC reconstruction
 
 struct ZDCTDCParam {
-  //std::array<float, NTDCChannels> tdcShift{} 
+  //std::array<float, NTDCChannels> tdcShift{}
   float tdc_shift[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Correction of TDC position (ns)
   void setShift(uint32_t ich, float val);
   float getShift(uint32_t ich) const;
