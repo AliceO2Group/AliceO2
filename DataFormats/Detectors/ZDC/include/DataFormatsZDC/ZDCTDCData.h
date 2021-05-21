@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_TDC_DATA_H
-#define _ZDC_TDC_DATA_H
+#ifndef ZDC_TDC_DATA_H
+#define ZDC_TDC_DATA_H
 
 #include "ZDCBase/Constants.h"
 #include <array>
@@ -27,8 +27,8 @@ namespace zdc
 struct ZDCTDCData {
 
   int8_t id = IdDummy; // channel ID
-  int16_t val;         // tdc value
-  int16_t amp;         // tdc amplitude
+  int16_t val = 0;     // tdc value
+  int16_t amp = 0;     // tdc amplitude
 
   ZDCTDCData() = default;
   ZDCTDCData(int8_t ida, int16_t vala, int16_t ampa)

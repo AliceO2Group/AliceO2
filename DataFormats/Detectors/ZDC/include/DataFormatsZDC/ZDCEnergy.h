@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_TDC_DATA_H
-#define _ZDC_TDC_DATA_H
+#ifndef ZDC_ENERGY_H
+#define ZDC_ENERGY_H
 
 #include "ZDCBase/Constants.h"
 #include <array>
