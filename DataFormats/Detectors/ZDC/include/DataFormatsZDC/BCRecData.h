@@ -17,8 +17,8 @@
 #include <Rtypes.h>
 #include <gsl/span>
 
-/// \file BCData.h
-/// \brief Class to describe reconstructed data and refer to channel data
+/// \file BCRecData.h
+/// \brief Class to refer to the reconstructed information
 /// \author ruben.shahoyan@cern.ch, pietro.cortese@cern.ch
 
 namespace o2
@@ -27,28 +27,44 @@ namespace zdc
 {
 class ChannelData;
 
-
 struct BCRecData {
-  /// we are going to refer to at most 26 channels, so 5 bits are reserved
+  o2::InteractionRecord ir;
+  uint32_t channels = 0;                 // Pattern of channels acquired
+  uint32_t triggers = 0;                 // Pattern of channels with autotrigger bit
   o2::dataformats::RangeRefComp<5> refe; // Reference to reconstructed energy
   o2::dataformats::RangeRefComp<5> reft; // Reference to reconstructed TDC
-  o2::dataformats::RangeRefComp<5> refm; // Reference to reconstruction error/information flags
-  o2::InteractionRecord ir;
+  o2::dataformats::RangeRefComp<5> refi; // Reference to reconstruction error/information flags
 
   BCRecData() = default;
-  BCRecData(int firste, int firstt, int firstm, o2::InteractionRecord iRec)
+
+  // Insert interaction record for new event (will set later the number of entries)
+  BCRecData(int firste, int firstt, int firsti, o2::InteractionRecord iRec)
   {
     refe.setFirstEntry(firste);
     refe.setEntries(0);
     reft.setFirstEntry(firstt);
     reft.setEntries(0);
-    refm.setFirstEntry(firstm);
-    refm.setEntries(0);
+    refi.setFirstEntry(firsti);
+    refi.setEntries(0);
     ir = iRec;
   }
 
-  inline void addEnergy(){
-    refe.setEntries(refe.getEntries()+1);
+  // Update counter of energy entries
+  inline void addEnergy()
+  {
+    refe.setEntries(refe.getEntries() + 1);
+  }
+
+  // Update counter of TDC entries
+  inline void addTDC()
+  {
+    reft.setEntries(reft.getEntries() + 1);
+  }
+
+  // Update counter of Info entries
+  inline void addInfo()
+  {
+    refi.setEntries(refi.getEntries() + 1);
   }
   void print() const;
 
