@@ -10,9 +10,9 @@
 #ifndef CUSTOMWORKFLOWTERMINATIONHOOK_H
 #define CUSTOMWORKFLOWTERMINATIONHOOK_H
 
-namespace o2
-{
-namespace framework
+#include <functional>
+
+namespace o2::framework
 {
 
 /// A callback definition for a hook to be invoked when processes terminate
@@ -40,7 +40,6 @@ namespace framework
 ///     #include "Framework/runDataProcessing.h"
 using OnWorkflowTerminationHook = std::function<void(const char*)>;
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif

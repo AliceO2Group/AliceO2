@@ -16,9 +16,11 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "DataFormatsZDC/RawEventData.h"
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCRaw/DumpRaw.h"
+#include "CommonUtils/ConfigurableParam.h"
 #include <vector>
 #include <sstream>
 
@@ -28,8 +30,13 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(
+    ConfigParamSpec{"input-spec", VariantType::String, "A:ZDC/RAWDATA", {"selection string input specs"}});
+  workflowOptions.push_back(
     ConfigParamSpec{
-      "input-spec", VariantType::String, "A:ZDC/RAWDATA", {"selection string input specs"}});
+      "configKeyValues",
+      VariantType::String,
+      "",
+      {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -37,6 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   WorkflowSpec workflow;
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   workflow.emplace_back(DataProcessorSpec{
     "zdc-raw-parser",
     select(config.options().get<std::string>("input-spec").c_str()),
@@ -67,9 +75,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
               if (dh != lastDataHeader) {
                 // print the DataHeader information only for the first part or if we have high verbosity
                 if (loglevel > 1 || dh->splitPayloadIndex == 0) {
-                  rdhprintout << dh->dataOrigin.as<std::string>() << "/"
-                              << dh->dataDescription.as<std::string>() << "/"
-                              << dh->subSpecification << "  ";
+                  rdhprintout << fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification)
+                              << "  ";
                   // at high verbosity print part number, otherwise only the total number of parts
                   if (loglevel > 1) {
                     rdhprintout << "part " + std::to_string(dh->splitPayloadIndex) + " of " + std::to_string(dh->splitPayloadParts);

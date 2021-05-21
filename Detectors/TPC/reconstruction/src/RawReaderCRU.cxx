@@ -13,7 +13,7 @@
 /// \author Torsten Alt (Torsten.Alt@cern.ch)
 
 #include <fmt/format.h>
-
+#include <filesystem>
 #include "TSystem.h"
 #include "TObjArray.h"
 
@@ -52,11 +52,13 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& 
 
   for (auto& ev : mEventInformation) {
     const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit);
+    const long hbDiff = long(heartbeatOrbit) - long(ev.HeartbeatOrbits.front());
     if (hbMatch) {
       mLastEvent = &ev;
       return ev;
-    } else if (std::abs(long(ev.HeartbeatOrbits.back()) - long(heartbeatOrbit)) < 54) {
+    } else if ((hbDiff >= 0) && (hbDiff < 256)) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
+      std::sort(ev.HeartbeatOrbits.begin(), ev.HeartbeatOrbits.end());
       mLastEvent = &ev;
       return ev;
     }
@@ -1176,8 +1178,12 @@ void RawReaderCRUManager::writeGBTDataPerLink(std::string_view outputDirectory, 
 
 void RawReaderCRUManager::writeGBTDataPerLink(const std::string_view inputFileNames, std::string_view outputDirectory, int maxEvents)
 {
-  if (gSystem->AccessPathName(outputDirectory.data())) {
-    gSystem->mkdir(outputDirectory.data(), kTRUE);
+  if (!std::filesystem::exists(outputDirectory)) {
+    if (!std::filesystem::create_directories(outputDirectory)) {
+      LOG(FATAL) << "could not create output directory " << outputDirectory;
+    } else {
+      LOG(INFO) << "created output directory " << outputDirectory;
+    }
   }
 
   RawReaderCRUManager manager;

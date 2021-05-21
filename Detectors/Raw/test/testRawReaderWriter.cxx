@@ -26,6 +26,7 @@
 #include "CommonConstants/Triggers.h"
 #include "Framework/Logger.h"
 #include "Framework/InputRecord.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "CommonUtils/StringUtils.h"
 
@@ -69,7 +70,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
     int feeIDShift = writer.isCRUDetector() ? 8 : 9;
     // register links
     for (int icru = 0; icru < NCRU; icru++) {
-      std::string outFileName = o2::utils::concat_string("testdata_", writer.isCRUDetector() ? "cru" : "rorc", std::to_string(icru), ".raw");
+      std::string outFileName = o2::utils::Str::concat_string("testdata_", writer.isCRUDetector() ? "cru" : "rorc", std::to_string(icru), ".raw");
       for (int il = 0; il < NLinkPerCRU; il++) {
         auto& link = writer.registerLink((icru << feeIDShift) + il, icru, il, 0, outFileName);
         RDHUtils::setDetectorField(link.rdhCopy, 0xff << icru); // if needed, set extra link info, will be copied to all RDHs
@@ -83,6 +84,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
     writer.setCarryOverCallBack(this); // we want that writer to ask the detector code how to split large payloads
 
     writer.setApplyCarryOverToLastPage(true); // call CarryOver method also for the last chunk
+    writer.doLazinessCheck(false);            // do not apply auto-completion since the test mixes preformatted links filled per HBF and standard links filled per IR.
   }
 
   //_________________________________________________________________
@@ -337,7 +339,7 @@ BOOST_AUTO_TEST_CASE(RawReaderWriter_CRU)
       }
       if (RDHUtils::getCRUID(*rdh) == NCRU - 1) {
         if (newLink) {
-          dh->print();
+          LOGP(INFO, "{}", *dh);
         }
         RDHUtils::printRDH(rdh);
         if (RDHUtils::getMemorySize(*rdh) > sizeof(RDHAny) + RDHUtils::GBTWord) { // special CRU with predefined sizes

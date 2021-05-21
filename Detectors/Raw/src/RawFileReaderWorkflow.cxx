@@ -76,7 +76,6 @@ class RawReaderSpecs : public o2f::Task
   size_t mSentSize = 0;
   size_t mSentMessages = 0;
   bool mPartPerSP = true;                                          // fill part per superpage
-  bool mDone = false;                                              // processing is over or not
   std::string mRawChannelName = "";                                // name of optional non-DPL channel
   std::unique_ptr<o2::raw::RawFileReader> mReader;                 // matching engine
   std::unordered_map<std::string, std::pair<int, int>> mDropTFMap; // allows to drop certain fraction of TFs
@@ -154,9 +153,6 @@ void RawReaderSpecs::init(o2f::InitContext& ic)
 void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 {
   assert(mReader);
-  if (mDone) {
-    return;
-  }
   auto tTotStart = mTimer[TimerTotal].CpuTime(), tIOStart = mTimer[TimerIO].CpuTime();
   mTimer[TimerTotal].Start(false);
   auto device = ctx.services().get<o2f::RawDeviceService>().device();
@@ -212,7 +208,6 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
       }
       ctx.services().get<o2f::ControlService>().endOfStream();
       ctx.services().get<o2f::ControlService>().readyToQuit(o2f::QuitRequest::Me);
-      mDone = true;
       return;
     }
   }
@@ -322,7 +317,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
 }
 
 //_________________________________________________________
-o2f::DataProcessorSpec getReaderSpec(const ReaderInp& rinp)
+o2f::DataProcessorSpec getReaderSpec(ReaderInp rinp)
 {
   // check which inputs are present in files to read
   o2f::DataProcessorSpec spec;
@@ -350,8 +345,8 @@ o2f::DataProcessorSpec getReaderSpec(const ReaderInp& rinp)
     if (nameEnd == std::string::npos) {
       nameEnd = rinp.rawChannelConfig.size();
     }
-    rawChannelName = rinp.rawChannelConfig.substr(nameStart, nameEnd - nameStart);
     spec.options = {o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.rawChannelConfig, {"Out-of-band channel config"}}};
+    rinp.rawChannelConfig = rinp.rawChannelConfig.substr(nameStart, nameEnd - nameStart);
     LOG(INFO) << "Will send output to non-DPL channel " << rinp.rawChannelConfig;
   }
 
@@ -360,7 +355,7 @@ o2f::DataProcessorSpec getReaderSpec(const ReaderInp& rinp)
   return spec;
 }
 
-o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(const ReaderInp& rinp)
+o2f::WorkflowSpec o2::raw::getRawFileReaderWorkflow(ReaderInp& rinp)
 {
   o2f::WorkflowSpec specs;
   specs.emplace_back(getReaderSpec(rinp));

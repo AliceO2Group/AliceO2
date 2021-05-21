@@ -13,7 +13,6 @@
 #include <gsl/span>
 #include <Rtypes.h>
 
-#include "CPVBase/RCUTrailer.h"
 #include "Headers/RAWDataHeader.h"
 #include "Headers/RDHAny.h"
 
@@ -24,19 +23,23 @@ namespace cpv
 {
 
 enum RawErrorType_t {
-  kOK,         ///< NoError
-  kNO_PAYLOAD, ///< No payload per ddl
-  kHEADER_DECODING,
+  kOK,            ///< NoError
+  kOK_NO_PAYLOAD, ///< No payload per ddl (not error)
+  kRDH_DECODING,
+  kRDH_INVALID,
+  kNOT_CPV_RDH,
+  kSTOPBIT_NOTFOUND,
   kPAGE_NOTFOUND,
-  kPAYLOAD_DECODING,
-  kHEADER_INVALID,
-  kRCU_TRAILER_ERROR,      ///< RCU trailer cannot be decoded or invalid
-  kRCU_VERSION_ERROR,      ///< RCU trailer version not matching with the version in the raw header
-  kRCU_TRAILER_SIZE_ERROR, ///< RCU trailer size length
+  kPAYLOAD_INCOMPLETE,
+  kNO_CPVHEADER,
+  kNO_CPVTRAILER,
+  kCPVHEADER_INVALID,
+  kCPVTRAILER_INVALID,
   kSEGMENT_HEADER_ERROR,
   kROW_HEADER_ERROR,
   kEOE_HEADER_ERROR,
   kPADERROR,
+  kUNKNOWN_WORD,
   kPadAddress
 };
 
@@ -46,7 +49,7 @@ enum RawErrorType_t {
 /// \author Dmitri Peresunko after Markus Fasel
 /// \since Sept. 25, 2020
 ///
-///
+///It reads one HBF, stores HBF orbit number in getCurrentHBFOrbit() and produces digits in AddressChargeBC format
 class RawReaderMemory
 {
  public:
@@ -95,6 +98,9 @@ class RawReaderMemory
   /// \return true if there is a next page
   bool hasNext() const { return mCurrentPosition < mRawMemoryBuffer.size(); }
 
+  /// \return HeartBeatFrame orbit number
+  uint32_t getCurrentHBFOrbit() const { return mCurrentHBFOrbit; }
+
  protected:
   /// \brief Initialize the raw stream
   ///
@@ -107,13 +113,13 @@ class RawReaderMemory
   gsl::span<const char> mRawMemoryBuffer; ///< Memory block with multiple DMA pages
   o2::header::RDHAny mRawHeader;          ///< Raw header
   std::vector<char> mRawPayload;          ///< Raw payload (can consist of multiple pages)
-  RCUTrailer mCurrentTrailer;             ///< RCU trailer
-  uint64_t mTrailerPayloadWords = 0;      ///< Payload words in common trailer
   int mCurrentPosition = 0;               ///< Current page in file
   bool mRawHeaderInitialized = false;     ///< RDH for current page initialized
   bool mPayloadInitialized = false;       ///< Payload for current page initialized
+  uint32_t mCurrentHBFOrbit = 0;          ///< Current orbit of HBF
+  bool mStopBitWasNotFound;               ///< True if StopBit was not found but HBF orbit changed
 
-  ClassDefNV(RawReaderMemory, 1);
+  ClassDefNV(RawReaderMemory, 2);
 };
 
 } // namespace cpv

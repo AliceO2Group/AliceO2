@@ -11,6 +11,7 @@
 #include "FDDWorkflow/RecoWorkflow.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 using namespace o2::framework;
 
@@ -20,14 +21,15 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
-  workflowOptions.push_back(ConfigParamSpec{
-    "disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
-  std::string keyvaluehelp("Semicolon separated key=value strings ...");
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+
+  std::swap(workflowOptions, options);
 }
 
 // ------------------------------------------------------------------
@@ -39,11 +41,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the digitizer workflow
-  o2::conf::ConfigurableParam::writeINI("o2tpcits-match-recoflow_configuration.ini");
+  o2::conf::ConfigurableParam::writeINI("o2-fdd-recoflow_configuration.ini");
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
-  return std::move(o2::fdd::getRecoWorkflow(useMC, disableRootInp, disableRootOut));
+  auto wf = o2::fdd::getRecoWorkflow(useMC, disableRootInp, disableRootOut);
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
+
+  return std::move(wf);
 }

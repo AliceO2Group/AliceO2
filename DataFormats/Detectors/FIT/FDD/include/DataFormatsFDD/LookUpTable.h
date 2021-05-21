@@ -74,19 +74,20 @@ class LookUpTable
     }
   }
 
-  int getChannel(int link, int mcp) const { return mInvTopo[getIdx(link, mcp)]; }
+  int getChannel(int link, int mcp, int ep = 0) const { return mInvTopo[getIdx(link, mcp)]; }
   int getLink(int channel) const { return mTopoVector[channel].modLink; }
   int getModChannel(int channel) const { return mTopoVector[channel].modCh; }
   int getTcmLink() const { return Nmodules; }
+  bool isTCM(int link, int ep) const { return link == 2 && ep == 0; }
   void printFullMap() const
   {
-    std::cout << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]" << std::endl;
+    LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
       std::cout << "  " << std::right << std::setw(2) << channel << "  ";
       std::cout << std::right << std::setw(2) << mTopoVector[channel].modLink << "  ";
       std::cout << std::right << std::setw(3) << mTopoVector[channel].modCh << std::endl;
     }
-    std::cout << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]" << std::endl;
+    LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
       std::cout << "  " << std::right << std::setw(3) << idx << "  ";
       std::cout << std::right << std::setw(3) << mInvTopo[idx] << "    ";
@@ -115,6 +116,21 @@ class LookUpTable
   ClassDefNV(LookUpTable, 1);
 };
 
+//Singleton for LookUpTable
+class SingleLUT : public LookUpTable
+{
+ private:
+  SingleLUT() : LookUpTable(LookUpTable::linear()) {}
+  SingleLUT(const SingleLUT&) = delete;
+  SingleLUT& operator=(SingleLUT&) = delete;
+
+ public:
+  static SingleLUT& Instance()
+  {
+    static SingleLUT instanceLUT;
+    return instanceLUT;
+  }
+};
 } // namespace fdd
 } // namespace o2
 #endif

@@ -9,6 +9,7 @@
 * [Raw to digits](#raw-to-digits)
 * [Preclustering](#preclustering)
 * [Clustering](#clustering)
+* [CTF encoding/decoding](#ctf-encodingdecoding)
 * [Local to global cluster transformation](#local-to-global-cluster-transformation)
 * [Tracking](#tracking)
   * [Original track finder](#original-track-finder)
@@ -44,7 +45,7 @@ The workflow accepts the following options:
 Example of a DPL chain to go from a raw data file to a file of preclusters :
 
 ```shell
-o2-raw-file-reader-workflow --input-conf file-reader.cfg --loop 0  -b |
+o2-raw-file-sampler-workflow --input-conf file-reader.cfg --loop 0  -b |
 o2-mch-raw-to-digits-workflow -b |
 o2-mch-digits-to-preclusters-workflow -b |
 o2-mch-preclusters-sink-workflow -b
@@ -76,6 +77,16 @@ o2-mch-preclusters-to-clusters-original-workflow
 ```
 
 Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
+
+## CTF encoding/decoding
+
+Entropy encoding is done be attaching the `o2-mch-entropy-encoder-workflow` to the output of `DIGITS` and `DIGITROF` data-descriptions, providing `Digit` and `ROFRecord` respectively. Afterwards the encoded data can be stored by the `o2-ctf-writer-workflow`.
+
+```shell
+o2-raw-file-reader-workflow --input-conf raw/MCH/MCHraw.cfg | o2-mch-raw-to-digits-workflow  | o2-mch-entropy-encoder-workflow | o2-ctf-writer-workflow --onlyDet MCH
+```
+
+The decoding is done automatically by the `o2-ctf-reader-workflow`.
 
 ## Local to global cluster transformation
 
@@ -152,7 +163,7 @@ Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current
 ### Digit sampler
 
 ```shell
-o2-mch-digits-reader-workflow --infile "digits.in"
+o2-mch-digits-sampler-workflow --infile "digits.in"
 ```
 
 where `digits.in` is a binary file containing for each event:

@@ -134,7 +134,7 @@ class AnalyticalFields
 /// This class gives tricubic interpolation of the electric fields and can be used to calculate the distortions/corrections.
 /// The electric fields have to be calculated by the poisson solver or given by the analytical formula.
 ///
-template <typename DataT = double, size_t Nr = 129, size_t Nz = 129, size_t Nphi = 180>
+template <typename DataT = double, size_t Nz = 129, size_t Nr = 129, size_t Nphi = 180>
 class NumericalFields
 {
   using RegularGrid = o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>;
@@ -196,7 +196,7 @@ class NumericalFields
 /// This class gives tricubic interpolation of the local distortions or corrections.
 /// The the local distortions or corrections can be used to calculate the global distortions/corrections.
 ///
-template <typename DataT = double, size_t Nr = 129, size_t Nz = 129, size_t Nphi = 180>
+template <typename DataT = double, size_t Nz = 129, size_t Nr = 129, size_t Nphi = 180>
 class DistCorrInterpolator
 {
   using RegularGrid = o2::tpc::RegularGrid3D<DataT, Nz, Nr, Nphi>;

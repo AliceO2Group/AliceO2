@@ -49,7 +49,6 @@ struct getWorkflowTPCInput_ret_internal {
   std::map<int, InputRef> inputrefs;
   std::vector<o2::dataformats::ConstMCLabelContainerView> mcInputs;
   std::vector<gsl::span<const char>> inputs;
-  std::array<int, constants::MAXSECTOR> inputDigitsMCIndex;
   std::vector<o2::dataformats::ConstMCLabelContainerView> inputDigitsMC;
   std::unique_ptr<ClusterNative[]> clusterBuffer;
   ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clustersMCBuffer;
@@ -69,6 +68,7 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
   if (do_clusters && do_digits) {
     throw std::invalid_argument("Currently cannot process both clusters and digits");
   }
+  std::array<int, constants::MAXSECTOR> inputDigitsMCIndex;
 
   if (do_mcLabels) {
     std::vector<o2::framework::InputSpec> filter = {
@@ -76,6 +76,9 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
       {"check", o2::framework::ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "CLNATIVEMCLBL"}, o2::framework::Lifetime::Timeframe},
     };
     unsigned long recvMask = 0;
+    if (do_digits) {
+      std::fill(inputDigitsMCIndex.begin(), inputDigitsMCIndex.end(), -1);
+    }
     for (auto const& ref : o2::framework::InputRecordWalker(pc.inputs(), filter)) {
       auto const* sectorHeader = o2::framework::DataRefUtils::getHeader<TPCSectorHeader*>(ref);
       if (sectorHeader == nullptr) {
@@ -90,10 +93,10 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
       if (recvMask & sectorHeader->sectorBits) {
         throw std::runtime_error("can only have one MC data set per sector");
       }
-      recvMask |= sectorHeader->sectorBits;
+      recvMask |= (sectorHeader->sectorBits & tpcSectorMask);
       retVal->internal.inputrefs[sector].labels = ref;
       if (do_digits) {
-        retVal->internal.inputDigitsMCIndex[sector] = retVal->internal.inputDigitsMC.size();
+        inputDigitsMCIndex[sector] = retVal->internal.inputDigitsMC.size();
         retVal->internal.inputDigitsMC.emplace_back(o2::dataformats::ConstMCLabelContainerView(pc.inputs().get<gsl::span<char>>(ref)));
       }
     }
@@ -102,10 +105,17 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
     }
     if (do_digits) {
       for (unsigned int i = 0; i < constants::MAXSECTOR; i++) {
-        if (verbosity >= 1) {
-          LOG(INFO) << "GOT MC LABELS FOR SECTOR " << i << " -> " << retVal->internal.inputDigitsMC[retVal->internal.inputDigitsMCIndex[i]].getNElements();
+        if (tpcSectorMask & (1ul << i)) {
+          if (verbosity >= 1) {
+            LOG(INFO) << "GOT MC LABELS FOR SECTOR " << i << " -> " << retVal->internal.inputDigitsMC[inputDigitsMCIndex[i]].getNElements();
+          }
+          if (inputDigitsMCIndex[i] == -1) {
+            throw std::runtime_error("digit mc labels missing");
+          }
+          retVal->inputDigitsMCPtrs[i] = &retVal->internal.inputDigitsMC[inputDigitsMCIndex[i]];
+        } else {
+          retVal->inputDigitsMCPtrs[i] = nullptr;
         }
-        retVal->inputDigitsMCPtrs[i] = &retVal->internal.inputDigitsMC[retVal->internal.inputDigitsMCIndex[i]];
       }
     }
   }
@@ -128,12 +138,14 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
       if (recvMask & sectorHeader->sectorBits) {
         throw std::runtime_error("can only have one cluster data set per sector");
       }
-      recvMask |= sectorHeader->sectorBits;
+      recvMask |= (sectorHeader->sectorBits & tpcSectorMask);
       retVal->internal.inputrefs[sector].data = ref;
       if (do_digits) {
-        retVal->inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
-        if (verbosity >= 1) {
-          LOG(INFO) << "GOT DIGITS SPAN FOR SECTOR " << sector << " -> " << retVal->inputDigits[sector].size();
+        if (tpcSectorMask & (1ul << sector)) {
+          retVal->inputDigits[sector] = pc.inputs().get<gsl::span<o2::tpc::Digit>>(ref);
+          if (verbosity >= 1) {
+            LOG(INFO) << "GOT DIGITS SPAN FOR SECTOR " << sector << " -> " << retVal->inputDigits[sector].size();
+          }
         }
       }
     }
@@ -149,6 +161,9 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
           // skip zero-length message
           continue;
         }
+        if (!(tpcSectorMask & (1ul << sector))) {
+          continue;
+        }
         if (refentry.second.labels.header != nullptr && refentry.second.labels.payload != nullptr) {
           retVal->internal.mcInputs.emplace_back(o2::dataformats::ConstMCLabelContainerView(pc.inputs().get<gsl::span<char>>(refentry.second.labels)));
         }
@@ -162,10 +177,10 @@ static auto getWorkflowTPCInput(o2::framework::ProcessingContext& pc, int verbos
 
   if (do_clusters) {
     memset(&retVal->clusterIndex, 0, sizeof(retVal->clusterIndex));
-    ClusterNativeHelper::Reader::fillIndex(retVal->clusterIndex, retVal->internal.clusterBuffer, retVal->internal.clustersMCBuffer, retVal->internal.inputs, retVal->internal.mcInputs, [&tpcSectorMask](auto& index) { return tpcSectorMask & (1ul << index); });
+    ClusterNativeHelper::Reader::fillIndex(retVal->clusterIndex, retVal->internal.clusterBuffer, retVal->internal.clustersMCBuffer, retVal->internal.inputs, retVal->internal.mcInputs, tpcSectorMask);
   }
 
-  return retVal;
+  return std::move(retVal);
 }
 
 } // namespace tpc

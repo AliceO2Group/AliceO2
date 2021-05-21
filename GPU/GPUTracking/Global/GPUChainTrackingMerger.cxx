@@ -280,7 +280,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0, &mEvents->single);
     runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::sort>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
     mRec->ReturnVolatileDeviceMemory();
-    SynchronizeEventAndRelease(&mEvents->single);
+    SynchronizeEventAndRelease(&mEvents->single, doGPUall);
 
     if (GetProcessingSettings().clearO2OutputFromGPU) {
       mRec->AllocateVolatileDeviceMemory(0); // make future device memory allocation volatile
@@ -294,7 +294,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       AllocateRegisteredMemory(Merger.MemoryResOutputO2MC(), mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTracksO2Labels)]);
       TransferMemoryResourcesToHost(RecoStep::TPCMerging, &Merger, -1, true);
       runKernel<GPUTPCGMO2Output, GPUTPCGMO2Output::mc>(GetGridAuto(0, GPUReconstruction::krnlDeviceType::CPU), krnlRunRangeNone, krnlEventNone);
-    } else {
+    } else if (doGPUall) {
       RecordMarker(&mEvents->single, 0);
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2(), outputStream, nullptr, &mEvents->single);
       TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResOutputO2Clus(), outputStream);
@@ -313,6 +313,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   mIOPtrs.mergedTracks = Merger.OutputTracks();
   mIOPtrs.nMergedTracks = Merger.NOutputTracks();
   mIOPtrs.mergedTrackHits = Merger.Clusters();
+  mIOPtrs.mergedTrackHitsXYZ = Merger.ClustersXYZ();
   mIOPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
   mIOPtrs.mergedTrackHitAttachment = Merger.ClusterAttachment();
   mIOPtrs.mergedTrackHitStates = Merger.ClusterStateExt();
@@ -326,6 +327,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     processorsShadow()->ioPtrs.mergedTracks = MergerShadow.OutputTracks();
     processorsShadow()->ioPtrs.nMergedTracks = Merger.NOutputTracks();
     processorsShadow()->ioPtrs.mergedTrackHits = MergerShadow.Clusters();
+    processorsShadow()->ioPtrs.mergedTrackHitsXYZ = MergerShadow.ClustersXYZ();
     processorsShadow()->ioPtrs.nMergedTrackHits = Merger.NOutputTrackClusters();
     processorsShadow()->ioPtrs.mergedTrackHitAttachment = MergerShadow.ClusterAttachment();
     processorsShadow()->ioPtrs.mergedTrackHitStates = MergerShadow.ClusterStateExt();

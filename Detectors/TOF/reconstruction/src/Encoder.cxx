@@ -76,12 +76,12 @@ bool Encoder::open(const std::string& name, const std::string& path, const std::
     std::string outFileLink;
     if (mCrateOn[feeid]) {
       if (fileFor == "all") { // single file for all links
-        outFileLink = o2::utils::concat_string(path, "/TOF.raw");
+        outFileLink = o2::utils::Str::concat_string(path, "/TOF.raw");
       } else if (fileFor == "cru") {
-        outFileLink = o2::utils::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), ".raw");
+        outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), ".raw");
       } else if (fileFor == "link") {
-        outFileLink = o2::utils::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), "_link",
-                                               std::to_string(RDHUtils::getLinkID(rdh)), "_ep", std::to_string(RDHUtils::getEndPointID(rdh)), ".raw");
+        outFileLink = o2::utils::Str::concat_string(path, "/", "TOF_cru", std::to_string(RDHUtils::getCRUID(rdh)), "_link",
+                                                    std::to_string(RDHUtils::getLinkID(rdh)), "_ep", std::to_string(RDHUtils::getEndPointID(rdh)), ".raw");
       } else {
         throw std::runtime_error("invalid option provided for file grouping");
       }

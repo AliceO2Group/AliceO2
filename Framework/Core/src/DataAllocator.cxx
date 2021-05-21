@@ -23,6 +23,7 @@
 #include <arrow/ipc/writer.h>
 #include <arrow/type.h>
 #include <arrow/io/memory.h>
+#include <arrow/util/config.h>
 
 #include <TClonesArray.h>
 
@@ -157,7 +158,11 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
     }
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+#if ARROW_VERSION_MAJOR < 3
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+#else
+    auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
+#endif
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
       if (outStatus.ok() == false) {
@@ -190,7 +195,11 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
     auto table = payload->finalize();
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+#if ARROW_VERSION_MAJOR < 3
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+#else
+    auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
+#endif
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
       if (outStatus.ok() == false) {
@@ -218,7 +227,11 @@ void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
 
   auto writer = [table = ptr](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+#if ARROW_VERSION_MAJOR < 3
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+#else
+    auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
+#endif
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
       if (outStatus.ok() == false) {

@@ -216,24 +216,24 @@ class ClusterNativeHelper
     // @param mcBuffer
     // @param inputs         data arrays, fixed array, one per sector
     // @param mcinputs       vectors mc truth container, fixed array, one per sector
-    // @param checkFct       check whether a sector index is valid
-    template <typename DataArrayType, typename MCArrayType, typename CheckFct = std::function<bool(size_t&)>>
+    // @param sectorMask     Bitmask with tpc sectors to process
+    template <typename DataArrayType, typename MCArrayType>
     static int fillIndex(
       ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
       ConstMCLabelContainerViewWithBuffer& mcBuffer, DataArrayType& inputs, MCArrayType const& mcinputs,
-      CheckFct checkFct = [](auto const&) { return true; });
+      unsigned long sectorMask = 0xFFFFFFFFF);
 
-    template <typename DataArrayType, typename CheckFct = std::function<bool(size_t&)>>
+    template <typename DataArrayType>
     static int fillIndex(
       ClusterNativeAccess& clusterIndex, std::unique_ptr<ClusterNative[]>& clusterBuffer,
-      DataArrayType& inputs, CheckFct checkFct = [](auto const&) { return true; })
+      DataArrayType& inputs, unsigned long sectorMask = 0xFFFFFFFFF)
     {
       // just use a dummy parameter with empty vectors
       // TODO: maybe do in one function with conditional template parameter
       std::vector<std::unique_ptr<MCLabelContainer>> dummy;
       // another default, nothing will be added to the container
       ConstMCLabelContainerViewWithBuffer mcBuffer;
-      return fillIndex(clusterIndex, clusterBuffer, mcBuffer, inputs, dummy, checkFct);
+      return fillIndex(clusterIndex, clusterBuffer, mcBuffer, inputs, dummy, sectorMask);
     }
 
     // Process data for one sector.
@@ -348,10 +348,10 @@ class ClusterNativeHelper
   static void copySectorData(ClusterNativeAccess const& index, int sector, BufferType& target, MCArrayType& mcTarget);
 };
 
-template <typename DataArrayType, typename MCArrayType, typename CheckFct>
+template <typename DataArrayType, typename MCArrayType>
 int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
                                            std::unique_ptr<ClusterNative[]>& clusterBuffer, ConstMCLabelContainerViewWithBuffer& mcBuffer,
-                                           DataArrayType& inputs, MCArrayType const& mcinputs, CheckFct checkFct)
+                                           DataArrayType& inputs, MCArrayType const& mcinputs, unsigned long sectorMask)
 {
   if (mcinputs.size() > 0 && mcinputs.size() != inputs.size()) {
     std::runtime_error("inconsistent size of MC label array " + std::to_string(mcinputs.size()) + ", expected " + std::to_string(inputs.size()));
@@ -371,6 +371,13 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
     if (sizeof(ClusterCountIndex) + clusterIndex.nClustersTotal * sizeof(ClusterNative) > inputs[0].size()) {
       throw std::runtime_error("inconsistent input buffer, expecting size " + std::to_string(sizeof(ClusterCountIndex) + clusterIndex.nClustersTotal * sizeof(ClusterNative)) + " got " + std::to_string(inputs[0].size()));
     }
+    if (sectorMask != 0xFFFFFFFFF) {
+      for (unsigned int sector = 0; sector < NSectors; sector++) {
+        if (!(sectorMask & (1ul << sector)) && clusterIndex.nClustersSector[sector]) {
+          throw std::runtime_error("TPC sector mask provided, but received more sectors than set. (A filter could be implemented here if needed.)");
+        }
+      }
+    }
     return clusterIndex.nClustersTotal;
   }
 
@@ -378,15 +385,8 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
   const ConstMCLabelContainerView* clustersMCTruth[NSectors] = {nullptr};
   int result = 0;
   for (size_t index = 0, end = inputs.size(); index < end; index++) {
-    if (!checkFct(index)) {
-      continue;
-    }
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> const* labelsptr = nullptr;
-#ifdef MS_GSL_V3
     std::size_t extent = 0;
-#else
-    int extent = 0;
-#endif
     if (index < mcinputs.size()) {
       labelsptr = &mcinputs[index];
       extent = 1;

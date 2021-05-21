@@ -158,7 +158,7 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out)
     const auto& p = trk.GetParam();
     const auto& po = trk.OuterParam();
     out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
         << " dEdx " << trkdEdx.dEdxTotTPC << "/" << trkdEdx.dEdxMaxTPC
 #endif
         << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4] << "\n";

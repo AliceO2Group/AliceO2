@@ -10,22 +10,22 @@
 
 o2_add_library(MCHCalibration
          SOURCES
-	       src/PedestalDigit.cxx
-	       src/PedestalProcessor.cxx
-	       src/MCHChannelCalibrator.cxx
-	       PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DetectorsCalibration O2::CCDB O2::MCHBase O2::MCHRawDecoder O2::DataFormatsMCH)
+           src/PedestalDigit.cxx
+           src/PedestalProcessor.cxx
+           src/PedestalCalibrator.cxx
+           PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL O2::DetectorsCalibration O2::CCDB O2::MCHBase O2::MCHRawDecoder O2::DataFormatsMCH)
 
 o2_target_root_dictionary(MCHCalibration
-  HEADERS include/MCHCalibration/PedestalDigit.h include/MCHCalibration/PedestalProcessor.h include/MCHCalibration/MCHChannelCalibrator.h)
+  HEADERS include/MCHCalibration/PedestalDigit.h include/MCHCalibration/PedestalProcessor.h include/MCHCalibration/PedestalCalibrator.h)
 
-o2_add_executable(pedestals-decoding-workflow
-        SOURCES src/pedestals-decoding-workflow.cxx
+o2_add_executable(pedestal-decoding-workflow
+        SOURCES src/pedestal-decoding-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES Boost::program_options O2::Framework O2::DPLUtils O2::MCHCalibration)
 
-o2_add_executable(mch-channel-calib-workflow
+o2_add_executable(mch-pedestal-calib-workflow
                   COMPONENT_NAME calibration
-                  SOURCES src/channel-calib-workflow.cxx
+                  SOURCES src/pedestal-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHCalibration O2::DetectorsCalibration)
 
-  
+

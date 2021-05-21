@@ -13,8 +13,8 @@
 /Algorithm  @matthiasrichter
 
 /Analysis   @jgrosseo @iarsene
-/Analysis/Tasks/ALICE3  @ginnocen
-/Analysis/Tasks/PWGHF  @ginnocen
+/Analysis/Tasks/ALICE3  @ginnocen @vkucera
+/Analysis/Tasks/PWGHF  @ginnocen @vkucera
 
 /CCDB  @costing @Barthelemy @sawenzel @AliceO2Group/framework-admins
 
@@ -36,7 +36,7 @@
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
-/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
 /DataFormats/Detectors/MUON                    @aphecetche
 /DataFormats/Detectors/PHOS                    @peressounko @kharlov
 /DataFormats/Detectors/Passive                 @sawenzel
@@ -57,14 +57,15 @@
 /DataFormats/simulation        @sawenzel
 
 /Detectors/Base                    @sawenzel @shahor02
-/Detectors/Geometry                @sawenzel @shahor02
+/Detectors/Calibration             @chiarazampolli @shahor02
 /Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa
 /Detectors/FIT                     @AllaMaevskaya @jotwinow @mslupeck
+/Detectors/Geometry                @sawenzel @shahor02
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
-/Detectors/ITSMFT                  @iouribelikov @bovulpes
+/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
 /Detectors/MUON                    @aphecetche
 /Detectors/PHOS                    @peressounko @kharlov
 /Detectors/Passive                 @sawenzel
@@ -121,11 +122,7 @@
 #/Utilities/DataCompression
 #/Utilities/DataFlow
 #/Utilities/MCStepLogger
-#/Utilities/O2Device
-#/Utilities/O2MessageMonitor
 #/Utilities/PCG
-#/Utilities/Publishers
 #/Utilities/Tools
-#/Utilities/aliceHLTwrapper
 #/Utilities/hough
 /Utilities/rANS               @shahor02 @MichaelLettrich

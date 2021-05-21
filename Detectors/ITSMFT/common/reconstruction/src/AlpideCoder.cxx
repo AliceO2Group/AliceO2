@@ -12,8 +12,6 @@
 /// \brief Implementation of the ALPIDE data decoding/encoding
 
 #include "ITSMFTReconstruction/AlpideCoder.h"
-#include <TClass.h>
-#include <TFile.h>
 
 using namespace o2::itsmft;
 
@@ -145,11 +143,4 @@ void AlpideCoder::resetMap()
   // reset map of hits for current chip
   mFirstInRow.clear();
   mPix2Encode.clear();
-}
-
-//_____________________________________
-int AlpideCoder::unexpectedEOF(const std::string& message)
-{
-  LOG(ERROR) << message;
-  return Error;
 }

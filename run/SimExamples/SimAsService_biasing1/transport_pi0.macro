@@ -1,0 +1,28 @@
+o2::data::Stack::TransportFcn
+transport_pi0()
+{
+
+  /** this function returns true/false depending on whether the
+   ** current particle is either a pi0 produced at mid-rapidity 
+   ** or a daughter of a pi0 produced at mid-rapidity **/
+
+  o2::data::Stack::TransportFcn decision;
+  decision = [&decision](const TParticle& particle, const std::vector<TParticle>& particles) -> bool {
+//  std::cout << particles.size() << std::endl;
+//particle.Print();
+//return false;
+	       if (particle.GetPdgCode() == 111)         // if particle is a pi0
+		 return std::fabs(particle.Eta()) < 1.0; // decision is based on particle rapidity
+	       auto motherL = particle.GetFirstMother(); // if not a pi0, we look at the mother
+	       if (motherL == -1) return false;          // if particle has no mother, decision is false
+	       if (motherL >= particles.size()) {
+	       std::cout << "this makes no sense: " << motherL << " " << particles.size() << std::endl;
+	       return false;
+}
+auto mother = particles[motherL];         // if particle has mother
+	       return decision(mother, particles);       // decision is based on the mother
+	     };
+  
+  return decision;
+
+}

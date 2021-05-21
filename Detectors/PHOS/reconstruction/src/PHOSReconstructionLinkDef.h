@@ -14,6 +14,8 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::phos::CaloRawFitter + ;
+#pragma link C++ class o2::phos::CaloRawFitterGS + ;
 #pragma link C++ class o2::phos::Clusterer + ;
 #pragma link C++ class o2::phos::FullCluster + ;
 #pragma link C++ class std::vector < o2::phos::FullCluster> + ;

@@ -7,11 +7,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Example task generating a multiplicity distribution of collisions
+///        which pass the INT7 selection and tracks which pass the "isGlobalTrack"
+///        selection.
+///        Needs to run with event and track selection:
+///        o2-analysis-timestamp --aod-file AO2D.root | o2-analysis-event-selection | o2-analysis-trackextension | o2-analysis-trackselection | o2-analysistutorial-multiplicity-event-track-selection
+/// \author
+/// \since
 
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
-#include <TH1F.h>
+#include "Framework/AnalysisTask.h"
 
 #include "AnalysisDataModel/EventSelection.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
@@ -19,13 +25,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-
-// Example task generating a multiplicity distribution of
-// collision which pass the INT7 selection and
-// tracks which pass the "isGlobalTrack" selection
-//
-// Needs to run with event and track selection:
-// o2-analysis-timestamp | o2-analysis-event-selection | o2-analysis-trackextension | o2-analysis-trackselection | o2-analysistutorial-multiplicity-event-track-selection
 
 struct MultiplicityEventTrackSelection {
 
@@ -53,5 +52,6 @@ struct MultiplicityEventTrackSelection {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<MultiplicityEventTrackSelection>(cfgc, TaskName{"multiplicity-event-track-selection"})};
+    adaptAnalysisTask<MultiplicityEventTrackSelection>(cfgc),
+  };
 }

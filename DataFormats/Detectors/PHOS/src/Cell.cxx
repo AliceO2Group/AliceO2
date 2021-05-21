@@ -22,20 +22,16 @@ using namespace o2::phos;
 
 Cell::Cell(short absId, float energy, float time, ChannelType_t ctype)
 {
-  if (ctype == ChannelType_t::TRU) {
-    setTRUId(absId);
-  } else {
-    setAbsId(absId);
-  }
+  setAbsId(absId);
   setTime(time);
-  setEnergy(energy);
   setType(ctype);
+  setEnergy(energy);
 }
 
 void Cell::setAbsId(short absId)
 {
   //14 bits available
-  if (absId > kNmaxCell || absId < kOffset) {
+  if (absId < kOffset) {
     absId = kNmaxCell;
   }
   ULong_t t = (ULong_t)(absId - kOffset);
@@ -43,16 +39,6 @@ void Cell::setAbsId(short absId)
   ULong_t b = getLong() & 0xffffffc000; // 1111 1111 1111 1111 1111 1111 1100 0000 0000 0000
   mBits = b + t;
 }
-void Cell::setTRUId(short absId)
-{
-  //14 bits available
-  absId += kNmaxCell - kOffset + 1;
-  ULong_t t = (ULong_t)absId;
-
-  ULong_t b = getLong() & 0xffffffc000; // 1111 1111 1111 1111 1111 1111 1100 0000 0000 0000
-  mBits = b + t;
-}
-
 short Cell::getAbsId() const
 {
   ULong_t t = getLong() & 0x3fff; //14 bits
@@ -80,9 +66,9 @@ void Cell::setTime(float time)
   //10 bits available for time
   ULong_t t = 0;
   //Convert time to long
-  t = ULong_t((time + kTime0) / kTimeAccuracy);
-  if (t > 0x3ff) {
-    t = 0x3ff;
+  t = ULong_t((time - kTime0) / kTimeAccuracy);
+  if (t > 0x1fff) {
+    t = 0x1fff;
   } else {
     if (t < 0) {
       t = 0;
@@ -90,46 +76,56 @@ void Cell::setTime(float time)
   }
 
   t <<= 14;
-  ULong_t b = getLong() & 0xffff003fff; // 1111 1111 1111 1111 0000 0000 0011 1111 1111 1111
+  ULong_t b = getLong() & 0xfff8003fff; // 1111 1111 1111 1000 0000 0000 0011 1111 1111 1111
   mBits = b + t;
 }
-
 float Cell::getTime() const
 {
   ULong_t t = getLong();
   t >>= 14;
-  t &= 0x3ff;
+  t &= 0x1fff;
   //Convert back long to float
 
-  return float(t * kTimeAccuracy) - kTime0;
+  return float(t * kTimeAccuracy) + kTime0;
 }
 
-void Cell::setEnergy(float energy)
+void Cell::setEnergy(float amp)
 {
-  //15 bits
-  ULong_t a = static_cast<ULong_t>(energy / kEnergyConv);
-  a = a & 0x7FFF; //15 bits
+  //12 bits
+  ULong_t a;
+  if (getType() == HIGH_GAIN) {
+    a = static_cast<ULong_t>(amp * 4);
+  } else {
+    a = static_cast<ULong_t>(amp);
+  }
+  a = a & 0xfff; //12 bits
 
-  a <<= 24;
-  ULong_t b = getLong() & 0x8000ffffff; // 1000 0000 0000 0000 1111 1111 1111 1111 1111 1111
+  a <<= 27;
+  ULong_t b = getLong() & 0x8007ffffff; // 1000 0000 0000 0111 1111 1111 1111 1111 1111 1111
   mBits = b + a;
 }
 
 float Cell::getEnergy() const
 {
   ULong_t a = getLong();
-  a >>= 24;
-  a &= 0x7FFF;
-  return float(a * kEnergyConv);
+  a >>= 27;
+  a &= 0xfff;
+  if (getType() == HIGH_GAIN) {
+    return float(0.25 * a);
+  } else {
+    return float(a);
+  }
 }
 
 void Cell::setType(ChannelType_t ctype)
 {
   switch (ctype) {
     case ChannelType_t::HIGH_GAIN:
+    case ChannelType_t::TRU2x2:
       setHighGain();
       break;
     case ChannelType_t::LOW_GAIN:
+    case ChannelType_t::TRU4x4:
       setLowGain();
       break;
     default:;
@@ -138,12 +134,19 @@ void Cell::setType(ChannelType_t ctype)
 
 ChannelType_t Cell::getType() const
 {
-  if (getHighGain()) {
-    return ChannelType_t::HIGH_GAIN;
-  } else if (getTRU()) {
-    return ChannelType_t::TRU;
+  if (getTRU()) {
+    if (getHighGain()) {
+      return ChannelType_t::TRU2x2;
+    } else {
+      return ChannelType_t::TRU4x4;
+    }
+  } else {
+    if (getHighGain()) {
+      return ChannelType_t::HIGH_GAIN;
+    } else {
+      return ChannelType_t::LOW_GAIN;
+    }
   }
-  return ChannelType_t::LOW_GAIN;
 }
 
 void Cell::setLowGain()

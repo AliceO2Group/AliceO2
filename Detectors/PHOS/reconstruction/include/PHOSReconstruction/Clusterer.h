@@ -37,15 +37,15 @@ class Clusterer
   void initialize();
   void process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
                const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
-               std::vector<Cluster>* clusters, std::vector<TriggerRecord>* rigRec,
+               std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters, std::vector<TriggerRecord>* rigRec,
                o2::dataformats::MCTruthContainer<MCLabel>* cluMC);
   void processCells(gsl::span<const Cell> digits, gsl::span<const TriggerRecord> dtr,
                     const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
-                    std::vector<Cluster>* clusters, std::vector<TriggerRecord>* rigRec,
+                    std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters, std::vector<TriggerRecord>* rigRec,
                     o2::dataformats::MCTruthContainer<MCLabel>* cluMC);
 
   void makeClusters(gsl::span<const Digit> digits);
-  void evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
+  void evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters, std::vector<FullCluster>* fullclusters,
                          const o2::dataformats::MCTruthContainer<MCLabel>* dmc,
                          o2::dataformats::MCTruthContainer<MCLabel>* cluMC);
 
@@ -54,11 +54,20 @@ class Clusterer
   void makeUnfoldings(gsl::span<const Digit> digits); // Find and unfold clusters with few local maxima
   void unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> digitId, gsl::span<const Digit> digits);
 
+  void setFullOutput(bool useFullClusters = true) { mFullCluOutput = useFullClusters; }
+
  protected:
   void convertCellsToDigits(gsl::span<const Cell> cells, int firstCellInEvent, int lastCellInEvent);
 
   //Calibrate energy
-  inline float calibrate(float amp, short absId) { return amp * mCalibParams->getGain(absId); }
+  inline float calibrate(float amp, short absId, bool isHighGain)
+  {
+    if (isHighGain) {
+      return amp * mCalibParams->getGain(absId);
+    } else {
+      return amp * mCalibParams->getGain(absId) * mCalibParams->getHGLGRatio(absId);
+    }
+  }
   //Calibrate time
   inline float calibrateT(float time, short absId, bool isHighGain)
   {
@@ -75,6 +84,7 @@ class Clusterer
  protected:
   bool mProcessMC = false;
   int miCellLabel = 0;
+  bool mFullCluOutput = false;               ///< Write output full of reduced (no contributed digits) clusters
   Geometry* mPHOSGeom = nullptr;             ///< PHOS geometry
   std::unique_ptr<CalibParams> mCalibParams; ///! Calibration coefficients
   std::unique_ptr<BadChannelMap> mBadMap;    ///! Bad map

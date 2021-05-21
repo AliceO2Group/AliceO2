@@ -18,13 +18,17 @@
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
 #include "TStopwatch.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "Steer/MCKinematicsReader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+
 #include <string>
 #include <vector>
+#include <boost/tuple/tuple.hpp>
+#include <boost/unordered_map.hpp>
+#include <boost/functional/hash.hpp>
 
 using namespace o2::framework;
 
@@ -77,6 +81,16 @@ using TracksExtraTable = o2::soa::Table<o2::aod::track::TPCInnerParam,
                                         o2::aod::track::TrackEtaEMCAL,
                                         o2::aod::track::TrackPhiEMCAL>;
 
+using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
+                                      o2::aod::fwdtrack::X,
+                                      o2::aod::fwdtrack::Y,
+                                      o2::aod::fwdtrack::Z,
+                                      o2::aod::fwdtrack::Phi,
+                                      o2::aod::fwdtrack::Tgl,
+                                      o2::aod::fwdtrack::Signed1Pt,
+                                      o2::aod::fwdtrack::NClusters,
+                                      o2::aod::fwdtrack::Chi2>;
+
 using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::PdgCode,
                                         o2::aod::mcparticle::StatusCode,
@@ -95,6 +109,30 @@ using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::Vz,
                                         o2::aod::mcparticle::Vt>;
 
+typedef boost::tuple<int, int, int> Triplet_t;
+
+struct TripletHash : std::unary_function<Triplet_t, std::size_t> {
+  std::size_t operator()(Triplet_t const& e) const
+  {
+    std::size_t seed = 0;
+    boost::hash_combine(seed, e.get<0>());
+    boost::hash_combine(seed, e.get<1>());
+    boost::hash_combine(seed, e.get<2>());
+    return seed;
+  }
+};
+
+struct TripletEqualTo : std::binary_function<Triplet_t, Triplet_t, bool> {
+  bool operator()(Triplet_t const& x, Triplet_t const& y) const
+  {
+    return (x.get<0>() == y.get<0>() &&
+            x.get<1>() == y.get<1>() &&
+            x.get<2>() == y.get<2>());
+  }
+};
+
+typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> TripletsMap_t;
+
 class AODProducerWorkflowDPL : public Task
 {
  public:
@@ -106,9 +144,10 @@ class AODProducerWorkflowDPL : public Task
 
  private:
   int mFillTracksITS{1};
+  int mFillTracksMFT{1};
   int mFillTracksTPC{0};
   int mFillTracksITSTPC{1};
-  int mTFNumber{-1};
+  int64_t mTFNumber{-1};
   int mTruncate{1};
   int mIgnoreWriter{0};
   int mRecoOnly{0};
@@ -151,17 +190,20 @@ class AODProducerWorkflowDPL : public Task
   uint64_t maxGlBC = 0;
   uint64_t minGlBC = INT64_MAX;
 
-  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::vertexing::PVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
+  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::PrimaryVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
   uint64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
 
   template <typename TTracks, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
   void fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
                        const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType);
 
+  template <typename TTracks, typename TTracksCursor>
+  void fillMFTTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor);
+
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                            std::vector<std::vector<std::vector<int>>>& toStore);
+                            gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthMFT,
+                            gsl::span<const o2::MCCompLabel>& mcTruthTPC, TripletsMap_t& toStore);
 
   void writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber);
 };

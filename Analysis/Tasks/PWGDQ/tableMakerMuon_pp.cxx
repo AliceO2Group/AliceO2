@@ -35,7 +35,9 @@ using namespace o2::framework;
 //using namespace o2::framework::expressions;
 using namespace o2::aod;
 
-using MyEvents = soa::Join<aod::Collisions, aod::EvSels>;
+using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Timestamps>;
+using MyMuons = soa::Join<aod::FwdTracks, aod::FwdTracksCov>;
+//using MyMuons = aod::Muons;
 
 // HACK: In order to be able to deduce which kind of aod object is transmitted to the templated VarManager::Fill functions
 //         a constexpr static bit map must be defined and sent as template argument
@@ -53,7 +55,8 @@ struct TableMakerMuon_pp {
   Produces<ReducedEventsVtxCov> eventVtxCov;
   Produces<ReducedTracks> trackBasic;
   Produces<ReducedMuons> muonBasic;
-  Produces<ReducedMuonsExtended> muonExtended;
+  Produces<ReducedMuonsExtra> muonExtended;
+  Produces<ReducedMuonsCov> muonCov; // TODO: use with fwdtracks
 
   float* fValues;
 
@@ -67,7 +70,8 @@ struct TableMakerMuon_pp {
 
   // TODO a few of the important muon variables in the central data model are dynamic columns so not usable in expressions (e.g. eta, phi)
   //        Update the data model to have them as expression columns
-  Partition<aod::Muons> muonSelectedTracks = o2::aod::muon::pt >= 0.5f; // For pp collisions a 0.5 GeV/c pp cuts is defined
+  //Partition<MyMuons> muonSelectedTracks = o2::aod::muon::pt >= 0.5f; // For pp collisions a 0.5 GeV/c pp cuts is defined
+  Partition<MyMuons> muonSelectedTracks = o2::aod::fwdtrack::pt >= 0.5f; // For pp collisions a 0.5 GeV/c pp cuts is defined
 
   void init(o2::framework::InitContext&)
   {
@@ -94,7 +98,7 @@ struct TableMakerMuon_pp {
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvents::iterator const& collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs)
+  void process(MyEvents::iterator const& collision, MyMuons const& muonTracks, aod::BCs const& bcs)
   {
     uint64_t tag = 0;
     uint32_t triggerAliases = 0;
@@ -115,22 +119,24 @@ struct TableMakerMuon_pp {
     fHistMan->FillHistClass("Event_AfterCuts", fValues);
 
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
-    eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), triggerAliases, 0.0f);
+    eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), collision.timestamp(), triggerAliases, 0.0f);
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
 
     uint64_t trackFilteringTag = 0;
 
+    // TODO: to be used with the fwdtrack tables
     muonBasic.reserve(muonSelectedTracks.size());
     muonExtended.reserve(muonSelectedTracks.size());
+    muonCov.reserve(muonSelectedTracks.size());
     for (auto& muon : muonSelectedTracks) {
-      // TODO: add proper information for muon tracks
-      if (muon.bcId() != collision.bcId()) {
-        continue;
-      }
-      // TODO: the trackFilteringTag will not be needed to encode whether the track is a muon since there is a dedicated table for muons
-      trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
       muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.sign());
-      muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
+      muonExtended(muon.nClusters(), muon.pDca(), muon.rAtAbsorberEnd(),
+                   muon.chi2(), muon.chi2MatchMCHMID(), muon.chi2MatchMCHMFT(),
+                   muon.matchScoreMCHMFT(), muon.matchMFTTrackID(), muon.matchMCHTrackID());
+      muonCov(muon.x(), muon.y(), muon.z(), muon.phi(), muon.tgl(), muon.signed1Pt(),
+              muon.cXX(), muon.cXY(), muon.cYY(), muon.cPhiX(), muon.cPhiY(), muon.cPhiPhi(),
+              muon.cTglX(), muon.cTglY(), muon.cTglPhi(), muon.cTglTgl(), muon.c1PtX(), muon.c1PtY(),
+              muon.c1PtPhi(), muon.c1PtTgl(), muon.c1Pt21Pt2());
     }
   }
 

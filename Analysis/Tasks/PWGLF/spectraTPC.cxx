@@ -8,11 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+///
+/// \file   spectraTPC.h
+/// \author Nicolo' Jacazio
+///
+/// \brief Task for the analysis of the spectra with the TPC detector
+///        In addition the task makes histograms of the TPC signal with TOF selections.
+///
+
 // O2 includes
 #include "ReconstructionDataFormats/Track.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/ASoAHelpers.h"
+#include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
@@ -29,13 +36,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-#define CANDIDATE_SELECTION                                                           \
-  Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"}; \
-  Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};           \
-  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;                 \
-  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
-
-// FIXME: we should put this function in some common header so it has to be defined only once
 template <typename T>
 void makelogaxis(T h)
 {
@@ -55,8 +55,9 @@ void makelogaxis(T h)
   h->GetXaxis()->Set(nbins, binp);
 }
 
-constexpr int Np = 9;
-struct TPCSpectraTask {
+// Spectra task
+struct tpcSpectra {
+  static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hp[Np] = {"p/El", "p/Mu", "p/Pi", "p/Ka", "p/Pr", "p/De", "p/Tr", "p/He", "p/Al"};
   static constexpr std::string_view hpt[Np] = {"pt/El", "pt/Mu", "pt/Pi", "pt/Ka", "pt/Pr", "pt/De", "pt/Tr", "pt/He", "pt/Al"};
@@ -72,22 +73,28 @@ struct TPCSpectraTask {
     }
   }
 
-  //Defining filters and input
-  CANDIDATE_SELECTION
-
-  Configurable<float> nsigmacut{"nsigmacut", 3, "Value of the Nsigma cut"};
-
   template <std::size_t i, typename T>
   void fillParticleHistos(const T& track, const float& nsigma)
   {
-    if (abs(nsigma) > nsigmacut.value) {
+    if (abs(nsigma) > cfgNSigmaCut) {
       return;
     }
     histos.fill(HIST(hp[i]), track.p());
     histos.fill(HIST(hpt[i]), track.pt());
   }
 
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;
+  //Defining filters and input
+  Configurable<float> cfgNSigmaCut{"cfgNSigmaCut", 3, "Value of the Nsigma cut"};
+  Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
+  Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
+  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                                  aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
+                                                  aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
+                                                  aod::TrackSelection>>;
+
   void process(TrackCandidates::iterator const& track)
   {
     histos.fill(HIST("p/Unselected"), track.p());
@@ -102,10 +109,12 @@ struct TPCSpectraTask {
     fillParticleHistos<6>(track, track.tpcNSigmaTr());
     fillParticleHistos<7>(track, track.tpcNSigmaHe());
     fillParticleHistos<8>(track, track.tpcNSigmaAl());
-  }
+
+  } // end of the process function
 };
 
-struct TPCPIDQASignalwTOFTask {
+struct tpcPidQaSignalwTof {
+  static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view htpcsignal[Np] = {"tpcsignal/El", "tpcsignal/Mu", "tpcsignal/Pi",
                                                       "tpcsignal/Ka", "tpcsignal/Pr", "tpcsignal/De",
@@ -133,10 +142,20 @@ struct TPCPIDQASignalwTOFTask {
   }
 
   // Filters
-  CANDIDATE_SELECTION
-
+  Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
+  Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
+  Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
+  Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
   Filter trackFilterTOF = (aod::track::tofSignal > 0.f); // Skip tracks without TOF
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::pidRespTOF, aod::TrackSelection>>;
+
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                                  aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
+                                                  aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
+                                                  aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
+                                                  aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFFullDe,
+                                                  aod::pidTOFFullTr, aod::pidTOFFullHe, aod::pidTOFFullAl,
+                                                  aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {
     // const float mom = track.p();
@@ -155,10 +174,9 @@ struct TPCPIDQASignalwTOFTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  int TPCwTOF = cfgc.options().get<int>("add-tof-histos");
-  WorkflowSpec workflow{adaptAnalysisTask<TPCSpectraTask>(cfgc, TaskName{"tpcspectra-task"})};
-  if (TPCwTOF) {
-    workflow.push_back(adaptAnalysisTask<TPCPIDQASignalwTOFTask>(cfgc, TaskName{"TPCpidqa-signalwTOF-task"}));
+  WorkflowSpec workflow{adaptAnalysisTask<tpcSpectra>(cfgc)};
+  if (cfgc.options().get<int>("add-tof-histos")) {
+    workflow.push_back(adaptAnalysisTask<tpcPidQaSignalwTof>(cfgc));
   }
   return workflow;
 }

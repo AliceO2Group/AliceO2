@@ -38,7 +38,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(const ConfigContext& ctx)
 {
   WorkflowSpec specs;
-
+  o2::conf::ConfigurableParam::updateFromString(ctx.options().get<std::string>("configKeyValues"));
   DataProcessorSpec producer = o2::fdd::getFDDDigitReaderSpec(ctx.options().get<bool>("disable-mc"));
   specs.push_back(producer);
   return specs;

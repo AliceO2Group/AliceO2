@@ -21,6 +21,7 @@ o2_add_library(TOFWorkflowUtils
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/TOFCalClusInfoWriterSpec.cxx
+                       src/CalibClusReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction)
 
 o2_add_executable(entropy-encoder-workflow
@@ -38,8 +39,12 @@ o2_add_executable(cluster-writer-workflow
                   COMPONENT_NAME tof
                   PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)
 
-o2_add_executable(cluster-calib
+o2_add_executable(cluster-calib-workflow
                   SOURCES src/cluster-calib.cxx
                   COMPONENT_NAME tof
                   PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)
 
+o2_add_executable(cluscal-reader-workflow
+                  SOURCES src/cluscal-reader.cxx
+                  COMPONENT_NAME tof
+                  PUBLIC_LINK_LIBRARIES O2::TOFWorkflowUtils)

@@ -12,7 +12,7 @@ o2_add_library(MIDClustering
                SOURCES src/Clusterizer.cxx src/PreClusterizer.cxx
                        src/PreCluster.cxx src/PreClusterHelper.cxx
                        src/PreClustersDE.cxx
-               PUBLIC_LINK_LIBRARIES O2::MIDBase ms_gsl::ms_gsl)
+               PUBLIC_LINK_LIBRARIES O2::MIDBase Microsoft.GSL::GSL)
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif()

@@ -12,7 +12,7 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include <boost/program_options.hpp>
-#include <TSystem.h>
+#include <filesystem>
 #include <TFile.h>
 #include <TStopwatch.h>
 #include <string>
@@ -52,8 +52,7 @@ int main(int argc, char** argv)
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
-    //add_option("digitization-config,d", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "configKeyValues file from digitization");
-    add_option("digitization-config,d", bpo::value<std::string>()->default_value("none"), "configKeyValues file from digitization");
+    add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -75,9 +74,9 @@ int main(int argc, char** argv)
     exit(2);
   }
 
-  std::string confDig = vm["digitization-config"].as<std::string>();
+  std::string confDig = vm["hbfutils-config"].as<std::string>();
   if (!confDig.empty() && confDig != "none") {
-    o2::conf::ConfigurableParam::updateFromFile(confDig);
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   digi2raw(vm["input-file"].as<std::string>(),
@@ -85,6 +84,8 @@ int main(int argc, char** argv)
            vm["file-per-link"].as<bool>(),
            vm["rdh-version"].as<uint32_t>(),
            vm["no-empty-hbf"].as<bool>());
+
+  o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }
@@ -107,9 +108,10 @@ void digi2raw(const std::string& inpName, const std::string& outDir, bool filePe
   if (outDirName.back() != '/') {
     outDirName += '/';
   }
+
   // if needed, create output directory
-  if (gSystem->AccessPathName(outDirName.c_str())) {
-    if (gSystem->mkdir(outDirName.c_str(), kTRUE)) {
+  if (!std::filesystem::exists(outDirName)) {
+    if (!std::filesystem::create_directories(outDirName)) {
       LOG(FATAL) << "could not create output directory " << outDirName;
     } else {
       LOG(INFO) << "created output directory " << outDirName;
@@ -117,8 +119,8 @@ void digi2raw(const std::string& inpName, const std::string& outDir, bool filePe
   }
 
   m2r.readDigits(outDirName, inpName);
-  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
-  //LOG(INFO)<<o2::utils::concat_string(outDirName, wr.getOrigin().str)<<"\n";
+  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
+  //LOG(INFO)<<o2::utils::Str::concat_string(outDirName, wr.getOrigin().str)<<"\n";
   //
   swTot.Stop();
   swTot.Print();

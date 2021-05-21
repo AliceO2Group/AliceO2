@@ -68,7 +68,7 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
 
     LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters->size();
 
-    trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size());
+    trigRec->emplace_back(tr.getBCData(), indexStart, clusters->size() - indexStart);
   }
 }
 //____________________________________________________________________________

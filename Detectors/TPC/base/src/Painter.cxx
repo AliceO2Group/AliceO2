@@ -11,6 +11,7 @@
 #include <string>
 #include <algorithm>
 #include <fmt/format.h>
+#include <cmath>
 
 #include "TString.h"
 #include "TAxis.h"
@@ -18,7 +19,10 @@
 #include "TH2.h"
 #include "TH2Poly.h"
 #include "TCanvas.h"
+#include "TLine.h"
+#include "TLatex.h"
 
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Mapper.h"
@@ -138,9 +142,13 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
 
   c->cd(1);
   hAside2D->Draw("colz");
+  hAside2D->SetStats(0);
+  drawSectorsXY(Side::A);
 
   c->cd(2);
   hCside2D->Draw("colz");
+  hCside2D->SetStats(0);
+  drawSectorsXY(Side::C);
 
   c->cd(3);
   hAside1D->Draw();
@@ -438,6 +446,105 @@ void painter::fillPoly2D(TH2Poly& h2D, const CalDet<T>& calDet, Side side)
   }
 }
 
+//______________________________________________________________________________
+void painter::drawSectorsXY(Side side, int sectorLineColor, int sectorTextColor)
+{
+  TLine l;
+  l.SetLineColor(sectorLineColor);
+
+  TLine l2;
+  l2.SetLineColor(sectorLineColor);
+  l2.SetLineStyle(kDotted);
+
+  TLatex latSide;
+  latSide.SetTextColor(sectorTextColor);
+  latSide.SetTextAlign(22);
+  latSide.SetTextSize(0.08);
+  latSide.DrawLatex(0, 0, (side == Side::C) ? "C" : "A");
+
+  TLatex lat;
+  lat.SetTextAlign(22);
+  lat.SetTextSize(0.03);
+  lat.SetTextColor(sectorLineColor);
+
+  constexpr float phiWidth = float(SECPHIWIDTH);
+  const float rFactor = std::cos(phiWidth / 2.);
+  const float rLow = 83.65 / rFactor;
+  const float rIROCup = 133.3 / rFactor;
+  const float rOROClow = 133.5 / rFactor;
+  const float rOROC12 = 169.75 / rFactor;
+  const float rOROC23 = 207.85 / rFactor;
+  const float rOut = 247.7 / rFactor;
+  const float rText = rLow * rFactor * 3. / 4.;
+
+  for (Int_t isector = 0; isector < 18; ++isector) {
+    const float sinR = std::sin(phiWidth * isector);
+    const float cosR = std::cos(phiWidth * isector);
+
+    const float sinL = std::sin(phiWidth * ((isector + 1) % 18));
+    const float cosL = std::cos(phiWidth * ((isector + 1) % 18));
+
+    const float sinText = std::sin(phiWidth * (isector + 0.5));
+    const float cosText = std::cos(phiWidth * (isector + 0.5));
+
+    const float xR1 = rLow * cosR;
+    const float yR1 = rLow * sinR;
+    const float xR2 = rOut * cosR;
+    const float yR2 = rOut * sinR;
+
+    const float xL1 = rLow * cosL;
+    const float yL1 = rLow * sinL;
+    const float xL2 = rOut * cosL;
+    const float yL2 = rOut * sinL;
+
+    const float xOROCmup1 = rOROClow * cosR;
+    const float yOROCmup1 = rOROClow * sinR;
+    const float xOROCmup2 = rOROClow * cosL;
+    const float yOROCmup2 = rOROClow * sinL;
+
+    const float xIROCmup1 = rIROCup * cosR;
+    const float yIROCmup1 = rIROCup * sinR;
+    const float xIROCmup2 = rIROCup * cosL;
+    const float yIROCmup2 = rIROCup * sinL;
+
+    const float xO121 = rOROC12 * cosR;
+    const float yO121 = rOROC12 * sinR;
+    const float xO122 = rOROC12 * cosL;
+    const float yO122 = rOROC12 * sinL;
+
+    const float xO231 = rOROC23 * cosR;
+    const float yO231 = rOROC23 * sinR;
+    const float xO232 = rOROC23 * cosL;
+    const float yO232 = rOROC23 * sinL;
+
+    const float xText = rText * cosText;
+    const float yText = rText * sinText;
+
+    // left side line
+    l.DrawLine(xR1, yR1, xR2, yR2);
+
+    // IROC inner line
+    l.DrawLine(xR1, yR1, xL1, yL1);
+
+    // IROC end line
+    l.DrawLine(xIROCmup1, yIROCmup1, xIROCmup2, yIROCmup2);
+
+    // OROC start line
+    l.DrawLine(xOROCmup1, yOROCmup1, xOROCmup2, yOROCmup2);
+
+    // OROC1 - OROC2 line
+    l.DrawLine(xO121, yO121, xO122, yO122);
+
+    // OROC2 - OROC3 line
+    l.DrawLine(xO231, yO231, xO232, yO232);
+
+    // IROC inner line
+    l.DrawLine(xR2, yR2, xL2, yL2);
+
+    // sector numbers
+    lat.DrawLatex(xText, yText, fmt::format("{}", isector).data());
+  }
+}
 // ===| explicit instantiations |===============================================
 // this is required to force the compiler to create instances with the types
 // we usually would like to deal with

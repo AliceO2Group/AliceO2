@@ -10,15 +10,17 @@
 
 #include "GlobalTrackingWorkflow/SecondaryVertexingSpec.h"
 #include "GlobalTrackingWorkflow/SecondaryVertexWriterSpec.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
-#include "GlobalTrackingWorkflow/PrimaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigParamSpec.h"
 
@@ -38,6 +40,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+
   std::swap(workflowOptions, options);
 }
 
@@ -47,43 +51,33 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  GID::mask_t alowedSourcesSV = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TOF,TPC-TOF");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TOF,TPC-TOF");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2secondary-vertexing-workflow_configuration.ini");
   bool useMC = false;
-  auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
 
-  GID::mask_t srcSV = alowedSourcesSV & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
-  WorkflowSpec specs;
-  if (!disableRootInp) {
-    if (srcSV[GID::ITS]) {
-      specs.emplace_back(o2::its::getITSTrackReaderSpec(useMC));
-    }
-    if (srcSV[GID::TPC]) {
-      specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
-    }
-    if (srcSV[GID::ITSTPC] || srcSV[GID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
-      specs.emplace_back(o2::globaltracking::getTrackTPCITSReaderSpec(useMC));
-    }
-    if (srcSV[GID::ITSTPCTOF]) {
-      specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(useMC, false, false)); // MC, MatchInfo_glo, no TOF_TPCtracks
-      specs.emplace_back(o2::tof::getClusterReaderSpec(false));                  // RSTODO Needed just to set the time of ITSTPC track, consider moving to MatchInfoTOF
-    }
-    if (srcSV[GID::TPCTOF]) {
-      specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(useMC, true, true)); // mc, MatchInfo_TPC, TOF_TPCtracks
-    }
-    specs.emplace_back(o2::vertexing::getPrimaryVertexReaderSpec(useMC));
-  }
+  GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
+  GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy;
 
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(srcSV, enableCasc));
+  WorkflowSpec specs;
+
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc));
+
+  // only TOF clusters are needed if TOF is involved, no clusters MC needed
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, src, src, useMC, srcClus);
+  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
 
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getSecondaryVertexWriterSpec());
   }
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+
   return std::move(specs);
 }

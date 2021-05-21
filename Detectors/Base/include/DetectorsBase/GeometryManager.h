@@ -22,7 +22,7 @@
 #include <TObject.h> // for TObject
 #include <string_view>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "FairLogger.h" // for LOG
+#include "GPUCommonLogger.h" // for LOG
 #include "MathUtils/Cartesian.h"
 #include "DetectorsBase/MatCell.h"
 #include <mutex>

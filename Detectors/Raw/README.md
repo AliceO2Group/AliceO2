@@ -48,7 +48,7 @@ See `Detectors/Raw/test/testHBFUtils.cxx` for details of usage of this class (al
 ## RawFileWriter
 
 A class to facilitate writing to files the MC data converted to raw data payload. Payload will be formatted according to CRU data
-specifications and should be simular to produced by the readout.exe (and can be pumped into the DPL workflows)
+specifications and should be simular to produced by the o2-readout-exe (and can be pumped into the DPL workflows)
 
 The detector code for MC to raw conversion should instatiate the RawFileWriter object and:
 
@@ -167,6 +167,11 @@ It proveds the ``RDH`` of the page for which it is called, information if the pr
 
 Some detectors signal the end of the HBF by adding an empty CRU page containing just a header with ``RDH.stop=1`` while others may simply set the ``RDH.stop=1`` in the last CRU page of the HBF (it may appear to be also the 1st and the only page of the HBF and may or may not contain the payload).
 This behaviour is steered by ``writer.setAddSeparateHBFStopPage(bool v)`` switch. By default end of the HBF is signaled on separate page.
+
+RawFileWriter will check for every bc/orbit for which at least 1 link was filled by the detector if all other registered links also got `addData` call.
+If not, it will be enforced internally with 0 payload and `trigger` and `detField` RDH fields provided in the 1st addData call of this IR.
+This may be pose a problem in case detector needs to insert some header even for 0-size payloads.
+In this case it is detector's responsibility to make sure that all links receive their proper `addData` call for every IR.
 
 Extra arguments:
 

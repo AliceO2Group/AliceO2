@@ -20,6 +20,7 @@
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
 #include "genEvents.h"
+#include "GPUMemorySizeScalers.h"
 
 #include <iostream>
 #include <fstream>
@@ -54,7 +55,7 @@
 #include <xmmintrin.h>
 
 #include "GPUO2DataTypes.h"
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUChainITS.h"
 #endif
 
@@ -79,7 +80,7 @@ extern GPUSettingsStandalone configStandalone;
 
 GPUReconstruction *rec, *recAsync, *recPipeline;
 GPUChainTracking *chainTracking, *chainTrackingAsync, *chainTrackingPipeline;
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 GPUChainITS *chainITS, *chainITSAsync, *chainITSPipeline;
 #endif
 void unique_ptr_aligned_delete(char* v)
@@ -170,7 +171,7 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
-#ifndef HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
   configStandalone.runTRD = configStandalone.rundEdx = configStandalone.runCompression = configStandalone.runTransformation = configStandalone.testSyncAsync = configStandalone.testSync = 0;
   configStandalone.rec.ForceEarlyTPCTransform = 1;
   configStandalone.runRefit = false;
@@ -178,6 +179,7 @@ int ReadConfiguration(int argc, char** argv)
 #ifndef GPUCA_TPC_GEOMETRY_O2
   configStandalone.rec.mergerReadFromTrackerDirectly = 0;
   configStandalone.proc.ompKernels = false;
+  configStandalone.proc.createO2Output = 0;
   if (configStandalone.rundEdx == -1) {
     configStandalone.rundEdx = 0;
   }
@@ -235,8 +237,12 @@ int ReadConfiguration(int argc, char** argv)
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
   }
-  if (configStandalone.proc.debugLevel >= 4 && !configStandalone.proc.ompKernels) {
-    configStandalone.proc.ompThreads = 1;
+  if (configStandalone.proc.debugLevel >= 4) {
+    if (configStandalone.proc.ompKernels) {
+      configStandalone.proc.ompKernels = 1;
+    } else {
+      configStandalone.proc.ompThreads = 1;
+    }
   }
 
   if (configStandalone.outputcontrolmem) {
@@ -453,7 +459,7 @@ int SetupReconstruction()
     }
   }
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   chainTracking->SetDefaultO2PropagatorForGPU();
   if (configStandalone.testSyncAsync) {
     chainTrackingAsync->SetDefaultO2PropagatorForGPU();
@@ -482,6 +488,7 @@ int SetupReconstruction()
   if (configStandalone.proc.debugLevel >= 4) {
     rec->PrintKernelOccupancies();
   }
+  rec->MemoryScalers()->factor *= configStandalone.memoryBufferScaleFactor;
   return (0);
 }
 
@@ -497,12 +504,12 @@ int ReadEvent(int n)
     return r;
   }
 #if defined(GPUCA_TPC_GEOMETRY_O2) && defined(GPUCA_BUILD_QA) && !defined(GPUCA_O2_LIB)
-  if (configStandalone.proc.runQA && !configStandalone.QA.noMC) {
+  if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.EventsDir, n);
     if (chainTracking->GetQA()->ReadO2MCData(filename)) {
       snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.EventsDir, 0);
-      if (chainTracking->GetQA()->ReadO2MCData(filename)) {
+      if (chainTracking->GetQA()->ReadO2MCData(filename) && configStandalone.proc.runQA) {
         throw std::runtime_error("Error reading O2 MC dump");
       }
     }
@@ -639,7 +646,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       }
     }
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
     if (tmpRetVal == 0 && configStandalone.testSyncAsync) {
       if (configStandalone.testSyncAsync) {
         printf("Running asynchronous phase\n");
@@ -654,6 +661,8 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       chainTrackingAsync->mIOPtrs.tpcPackedDigits = nullptr;
       chainTrackingAsync->mIOPtrs.mcInfosTPC = nullptr;
       chainTrackingAsync->mIOPtrs.nMCInfosTPC = 0;
+      chainTrackingAsync->mIOPtrs.mcInfosTPCCol = nullptr;
+      chainTrackingAsync->mIOPtrs.nMCInfosTPCCol = 0;
       chainTrackingAsync->mIOPtrs.mcLabelsTPC = nullptr;
       chainTrackingAsync->mIOPtrs.nMCLabelsTPC = 0;
       for (int i = 0; i < chainTracking->NSLICES; i++) {
@@ -735,7 +744,7 @@ int main(int argc, char** argv)
     }
     chainTrackingPipeline = recPipeline->AddChain<GPUChainTracking>();
   }
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (!configStandalone.proc.doublePipeline) {
     chainITS = rec->AddChain<GPUChainITS>(0);
     if (configStandalone.testSyncAsync) {

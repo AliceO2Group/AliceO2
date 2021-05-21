@@ -1152,6 +1152,7 @@ void MatchTOF::doMatchingForTPC(int sec)
   std::vector<std::array<int, 2>> nStepsInsideSameStrip;
 
   LOG(DEBUG) << "Trying to match %d tracks" << cacheTrk.size();
+
   for (int itrk = 0; itrk < cacheTrk.size(); itrk++) {
     auto& trackWork = mTracksWork[cacheTrk[itrk]];
     auto& trefTrk = trackWork.first;
@@ -1170,13 +1171,14 @@ void MatchTOF::doMatchingForTPC(int sec)
 
     //   printf("trk time %f - %f (max shift +/- %f cm)\n",minTrkTime,maxTrkTime,trackWork.second.getTimeStampError()*vdrift );
 
-    for (double tBC = minTrkTime; tBC < maxTrkTime; tBC += BCgranularity) {
-      unsigned long ibc = (unsigned long)(tBC * Geo::BC_TIME_INPS_INV);
-      BCcand.emplace_back(ibc);
-      nStripsCrossedInPropagation.emplace_back(0);
+    if (mIsCosmics) {
+      for (double tBC = minTrkTime; tBC < maxTrkTime; tBC += BCgranularity) {
+        unsigned long ibc = (unsigned long)(tBC * Geo::BC_TIME_INPS_INV);
+        BCcand.emplace_back(ibc);
+        nStripsCrossedInPropagation.emplace_back(0);
+      }
     }
 
-    /*
     for (auto itof = itof0; itof < nTOFCls; itof++) {
       auto& trefTOF = mTOFClusWork[cacheTOF[itof]];
 
@@ -1212,7 +1214,7 @@ void MatchTOF::doMatchingForTPC(int sec)
         nStripsCrossedInPropagation.emplace_back(0);
       }
     }
-*/
+
     //    printf("BC = %ld\n",BCcand.size());
 
     detId.clear();

@@ -88,7 +88,6 @@ AddOptionRTC(trdStopTrkAfterNMissLy, unsigned char, 6, "", 0, "Abandon track fol
 AddOptionRTC(trackingRefitGPUModel, char, 1, "", 0, "Use GPU track model for the Global Track Refit")
 AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 AddCustomCPP(void SetMinTrackPt(float v) { MaxTrackQPt = v > 0.001 ? (1. / v) : (1. / 0.001); })
-AddVariable(dummyRTC, void*, nullptr) // Ensure non empty struct and proper alignment even if all normal members are constexpr
 AddHelp("help", 'h')
 EndConfig()
 
@@ -100,7 +99,6 @@ AddOption(gpuDeviceOnly, bool, false, "", 0, "Use only GPU as device (i.e. no CP
 AddOption(globalInitMutex, bool, false, "", 0, "Use global mutex to synchronize initialization of multiple GPU instances")
 AddOption(stuckProtection, int, 0, "", 0, "Timeout in us, When AMD GPU is stuck, just continue processing and skip tracking, do not crash or stall the chain")
 AddOption(trdNCandidates, int, 1, "", 0, "Number of branching track candidates for single input track during propagation")
-AddOption(trdNMaxCollisions, int, 1000, "", 0, "Maximum number of collisions per TF which the TRD tracker can handle")
 AddOption(debugLevel, int, -1, "debug", 'd', "Set debug level (-1 = silend)")
 AddOption(allocDebugLevel, int, 0, "allocDebug", 0, "Some debug output for memory allocations (without messing with normal debug level)")
 AddOption(debugMask, int, -1, "", 0, "Mask for debug output dumps to file")
@@ -139,7 +137,9 @@ AddOption(doublePipeline, bool, false, "", 0, "Double pipeline mode")
 AddOption(doublePipelineClusterizer, bool, true, "", 0, "Include the input data of the clusterizer in the double-pipeline")
 AddOption(prefetchTPCpageScan, char, 0, "", 0, "Prefetch Data for TPC page scan in CPU cache")
 AddOption(enableRTC, bool, false, "", 0, "Use RTC to optimize GPU code")
+AddOption(cacheRTC, bool, false, "", 0, "Cache RTC compilation results")
 AddOption(rtcConstexpr, bool, true, "", 0, "Replace constant variables by static constexpr expressions")
+AddOption(rtcCompilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(runMC, bool, false, "", 0, "Process MC labels")
 AddOption(runQA, int, 0, "qa", 'q', "Enable tracking QA (negative number to provide bitmask for QA tasks)", message("Running QA: %s"), def(1))
 AddOption(outputSharedClusterMap, bool, false, "", 0, "Ship optional shared cluster map as output for further use")
@@ -150,15 +150,14 @@ AddHelp("help", 'h')
 EndConfig()
 
 #ifndef GPUCA_GPUCODE_DEVICE
-// Settings concerning the event display
+// Settings concerning the event display (fixed settings, cannot be changed)
 BeginSubConfig(GPUSettingsDisplay, GL, configStandalone, "GL", 'g', "OpenGL display settings")
-AddOption(clustersOnly, bool, false, "", 0, "Visualize clusters only")
-AddOption(clustersOnNominalRow, bool, false, "", 0, "Show clusters at nominal x of pad row for early-transformed data")
+AddOption(showTPCTracksFromO2Format, bool, false, "", 0, "Use TPC tracks in O2 output format instead of GPU format")
 AddHelp("help", 'h')
 EndConfig()
 
 // Light settings concerning the event display (can be changed without rebuilding vertices)
-BeginSubConfig(GPUSettingsDisplayLight, GLlight, configStandalone, "GL", 'g', "OpenGL display settings")
+BeginSubConfig(GPUSettingsDisplayLight, GLlight, configStandalone, "GL", 'g', "Light OpenGL display settings")
 AddOption(animationMode, int, 0, "", 0, "")
 AddOption(smoothPoints, bool, true, "", 0, "Apply smoothing to points")
 AddOption(smoothLines, bool, false, "", 0, "Apply smoothing to lines")
@@ -183,6 +182,20 @@ AddOption(pointSize, float, 2.0f, "", 0, "Set point size")
 AddOption(lineWidth, float, 1.4f, "", 0, "Set line width")
 AddOption(drawTPC, bool, true, "", 0, "Enable drawing TPC data")
 AddOption(drawTRD, bool, true, "", 0, "Enabale drawing TRD data")
+AddOption(drawTOF, bool, true, "", 0, "Enabale drawing TOF data")
+AddOption(drawITS, bool, true, "", 0, "Enabale drawing ITS data")
+AddHelp("help", 'h')
+EndConfig()
+
+// Heavy settings concerning the event display (can be changed only with rebuilding vertices)
+BeginSubConfig(GPUSettingsDisplayHeavy, GLheavy, configStandalone, "GL2", 0, "Heavy OpenGL display settings")
+AddOption(drawTPCTracks, bool, true, "", 0, "Show tracks with TPC contribution")
+AddOption(drawITSTracks, bool, true, "", 0, "Show tracks with ITS contribution")
+AddOption(drawTRDTracks, bool, true, "", 0, "Show tracks with TRD contribution")
+AddOption(drawTOFTracks, bool, true, "", 0, "Show tracks with TOF contribution")
+AddOption(drawTracksAndFilter, bool, false, "", 0, "Use AND filter instead of OR filter for selecting tracks")
+AddOption(clustersOnly, bool, false, "", 0, "Visualize clusters only")
+AddOption(clustersOnNominalRow, bool, false, "", 0, "Show clusters at nominal x of pad row for early-transformed data")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -246,7 +259,7 @@ EndConfig()
 
 // Settings for the standalone benchmark
 BeginConfig(GPUSettingsStandalone, configStandalone)
-#if defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(OPENCL2_ENABLED) || defined(HIP_ENABLED)
+#if defined(CUDA_ENABLED) || defined(OPENCL1_ENABLED) || defined(GPUCA_GPUCA_OPENCL2_ENABLED) || defined(HIP_ENABLED)
 AddOption(runGPU, bool, true, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
 #else
 AddOption(runGPU, bool, false, "", 'g', "Use GPU for processing", message("GPU processing: %s"))
@@ -254,7 +267,7 @@ AddOption(runGPU, bool, false, "", 'g', "Use GPU for processing", message("GPU p
 AddOptionSet(runGPU, bool, false, "", 'c', "Use CPU for processing", message("CPU enabled"))
 #if defined(CUDA_ENABLED)
 AddOption(gpuType, const char*, "CUDA", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
-#elif defined(OPENCL2_ENABLED)
+#elif defined(GPUCA_GPUCA_OPENCL2_ENABLED)
 AddOption(gpuType, const char*, "OCL2", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
 #elif defined(OPENCL1_ENABLED)
 AddOption(gpuType, const char*, "OCL", "", 0, "GPU type (CUDA / HIP / OCL / OCL2)")
@@ -305,6 +318,7 @@ AddOption(rundEdx, int, -1, "", 0, "Enable dEdx processing")
 AddOption(runCompression, int, 1, "", 0, "Enable TPC Compression")
 AddOption(runTransformation, int, 1, "", 0, "Enable TPC Transformation")
 AddOption(runRefit, bool, false, "", 0, "Enable final track refit")
+AddOption(memoryBufferScaleFactor, float, 1.f, "", 0, "Factor to scale buffer size estimations")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(GPUSettingsRec, rec)
@@ -313,9 +327,10 @@ AddSubConfig(GPUSettingsTFSim, TF)
 AddSubConfig(GPUSettingsQA, QA)
 AddSubConfig(GPUSettingsDisplay, GL)
 AddSubConfig(GPUSettingsDisplayLight, GLlight)
+AddSubConfig(GPUSettingsDisplayHeavy, GLheavy)
 AddSubConfig(GPUSettingsEG, EG)
 EndConfig()
-#endif
+#endif // BeginConfig
 
 //Settings for the O2 workfllow
 #if !defined(QCONFIG_PARSER_CXX) && (defined(GPUCA_O2_LIB) || defined(GPUCA_O2_INTERFACE))
@@ -353,7 +368,6 @@ AddVariableRTC(dodEdx, char, 0)              // Do dEdx computation
 AddVariableRTC(earlyTpcTransform, char, 0)   // do Early TPC transformation
 AddVariableRTC(debugLevel, char, 0)          // Debug level
 AddVariableRTC(continuousMaxTimeBin, int, 0) // Max time bin for continuous tracking
-AddVariable(dummyRTC, void*, nullptr)        // Ensure non empty struct and proper alignment even if all normal members are constexpr
 EndConfig()
 
 EndNamespace() // gpu

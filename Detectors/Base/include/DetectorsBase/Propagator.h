@@ -85,6 +85,13 @@ class PropagatorImpl
                            value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrLUT,
                            track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const;
 
+  template <typename track_T>
+  GPUd() bool propagateTo(track_T& track, value_type x, bool bzOnly = false, value_type maxSnp = MAX_SIN_PHI, value_type maxStep = MAX_STEP,
+                          MatCorrType matCorr = MatCorrType::USEMatCorrLUT, track::TrackLTIntegral* tofInfo = nullptr, int signCorr = 0) const
+  {
+    return bzOnly ? propagateToX(track, x, getNominalBz(), maxSnp, maxStep, matCorr, tofInfo, signCorr) : PropagateToXBxByBz(track, x, maxSnp, maxStep, matCorr, tofInfo, signCorr);
+  }
+
   GPUd() bool propagateToDCA(const o2::dataformats::VertexBase& vtx, o2::track::TrackParametrizationWithError<value_type>& track, value_type bZ,
                              value_type maxStep = MAX_STEP, MatCorrType matCorr = MatCorrType::USEMatCorrLUT,
                              o2::dataformats::DCA* dcaInfo = nullptr, track::TrackLTIntegral* tofInfo = nullptr,
@@ -127,7 +134,7 @@ class PropagatorImpl
   }
 
   static int initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose = false);
-  static int initFieldFromGRP(const std::string grpFileName, std::string grpName = "GRP", bool verbose = false);
+  static int initFieldFromGRP(const std::string grpFileName = "", std::string grpName = "GRP", bool verbose = false);
 #endif
 
   GPUd() MatBudget getMatBudget(MatCorrType corrType, const o2::math_utils::Point3D<value_type>& p0, const o2::math_utils::Point3D<value_type>& p1) const;

@@ -17,6 +17,8 @@
 #include "Framework/ConfigParamSpec.h"
 #include "EMCALWorkflow/RecoWorkflow.h"
 #include "Algorithm/RangeTokenizer.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 #include <string>
 #include <stdexcept>
@@ -32,8 +34,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-digits-printer", o2::framework::VariantType::Bool, false, {"enable digits printer component"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"do not initialize root files readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not initialize root file writers"}},
+    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
   };
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+
   std::swap(workflowOptions, options);
 }
 
@@ -54,10 +60,16 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& cfgc)
 {
   //bla
-  return o2::emcal::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),        //
-                                               cfgc.options().get<bool>("enable-digits-printer"), //
-                                               cfgc.options().get<std::string>("input-type"),     //
-                                               cfgc.options().get<std::string>("output-type"),    //
-                                               cfgc.options().get<bool>("disable-root-input"),
-                                               cfgc.options().get<bool>("disable-root-output"));
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
+  auto wf = o2::emcal::reco_workflow::getWorkflow(not cfgc.options().get<bool>("disable-mc"),        //
+                                                  cfgc.options().get<bool>("enable-digits-printer"), //
+                                                  cfgc.options().get<std::string>("input-type"),     //
+                                                  cfgc.options().get<std::string>("output-type"),    //
+                                                  cfgc.options().get<bool>("disable-root-input"),
+                                                  cfgc.options().get<bool>("disable-root-output"));
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
+
+  return std::move(wf);
 }

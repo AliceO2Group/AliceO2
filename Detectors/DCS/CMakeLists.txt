@@ -14,7 +14,6 @@ o2_add_library(
   DetectorsDCS
   TARGETVARNAME targetName
   SOURCES src/AliasExpander.cxx
-          src/DCSProcessor.cxx
           src/DataPointCompositeObject.cxx
           src/DataPointCreator.cxx
           src/DataPointGenerator.cxx
@@ -25,14 +24,13 @@ o2_add_library(
           src/StringUtils.cxx
           src/Clock.cxx
   PUBLIC_LINK_LIBRARIES O2::Headers O2::CommonUtils O2::CCDB
-                        O2::DetectorsCalibration ms_gsl::ms_gsl)
+                        O2::DetectorsCalibration Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(
   DetectorsDCS
   HEADERS include/DetectorsDCS/DataPointCompositeObject.h
           include/DetectorsDCS/DataPointIdentifier.h
-          include/DetectorsDCS/DataPointValue.h
-          include/DetectorsDCS/DCSProcessor.h)
+          include/DetectorsDCS/DataPointValue.h)
 
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
@@ -58,7 +56,7 @@ if(BUILD_TESTING)
     COMPONENT_NAME dcs
     LABELS "dcs"
     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
-  add_subdirectory(testWorkflow/macros)  
+  add_subdirectory(testWorkflow/macros)
 endif()
 
 add_subdirectory(testWorkflow)

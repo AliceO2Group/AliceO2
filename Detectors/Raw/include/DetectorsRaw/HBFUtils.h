@@ -125,7 +125,7 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
 
   void print() const { printKeyValues(true); }
 
-  int nHBFPerTF = 128;     ///< number of orbits per BC
+  int nHBFPerTF = 256;     ///< number of orbits per BC
   uint32_t orbitFirst = 0; ///< orbit of 1st TF of the run
 
   // used for MC

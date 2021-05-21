@@ -8,10 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/DataTakingContext.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ControlService.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include <FairMQDevice.h>
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -42,8 +44,9 @@ void customize(std::vector<CompletionPolicy>& policies)
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
-  return AlgorithmSpec{adaptStateful([what, minDelay]() {
+  return AlgorithmSpec{adaptStateful([what, minDelay](RunningWorkflowInfo const& runningWorkflow) {
     srand(getpid());
+    LOG(INFO) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
       device.device()->WaitFor(std::chrono::seconds(rand() % 2));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
@@ -60,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      {OutputSpec{{"a1"}, "TST", "A1"},
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device) {
+       [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device, DataTakingContext& context) {
          device.device()->WaitFor(std::chrono::seconds(rand() % 2));
          auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
          auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);

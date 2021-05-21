@@ -24,8 +24,11 @@
 #include "DataProcessingStatus.h"
 #include "DataRelayerHelpers.h"
 
+#include "Headers/DataHeaderHelpers.h"
+
 #include <Monitoring/Monitoring.h>
 
+#include <fmt/format.h>
 #include <gsl/span>
 #include <numeric>
 #include <string>
@@ -79,7 +82,7 @@ TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
 }
 
 DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<ExpirationHandler> const& expirationHandlers,
-                                                              ServiceRegistry& services)
+                                                              ServiceRegistry& services, bool createNew)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
@@ -90,8 +93,10 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
   }
   // Create any slot for the time based fields
   std::vector<TimesliceSlot> slotsCreatedByHandlers;
-  for (auto& handler : expirationHandlers) {
-    slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
+  if (createNew) {
+    for (auto& handler : expirationHandlers) {
+      slotsCreatedByHandlers.push_back(handler.creator(mTimesliceIndex));
+    }
   }
   if (slotsCreatedByHandlers.empty() == false) {
     activity.newSlots++;
@@ -105,6 +110,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     }
     assert(mDistinctRoutesIndex.empty() == false);
     auto timestamp = mTimesliceIndex.getTimesliceForSlot(slot);
+    auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
     // We iterate on all the hanlders checking if they need to be expired.
     for (size_t ei = 0; ei < expirationHandlers.size(); ++ei) {
       auto& expirator = expirationHandlers[ei];
@@ -134,7 +140,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
       if (part.size() == 0) {
         part.parts.resize(1);
       }
-      expirator.handler(services, part[0], timestamp.value);
+      expirator.handler(services, part[0], timestamp.value, variables);
       activity.expiredSlots++;
 
       mTimesliceIndex.markAsDirty(slot, true);
@@ -175,6 +181,8 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
   for (size_t i = 0; i < MAX_MATCHING_VARIABLE; i++) {
     auto& var = context.get(i);
     if (auto pval = std::get_if<uint64_t>(&var)) {
+      metrics.send(monitoring::Metric{std::to_string(*pval), names[16 * slot.index + i]});
+    } else if (auto pval = std::get_if<uint32_t>(&var)) {
       metrics.send(monitoring::Metric{std::to_string(*pval), names[16 * slot.index + i]});
     } else if (auto pval2 = std::get_if<std::string>(&var)) {
       metrics.send(monitoring::Metric{*pval2, names[16 * slot.index + i]});
@@ -249,7 +257,7 @@ DataRelayer::RelayChoice
     assert(numInputTypes * slot.index < cache.size());
     for (size_t ai = slot.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       cache[ai].clear();
-      cachedStateMetrics[ai] = 0;
+      cachedStateMetrics[ai] = CacheEntryStatus::EMPTY;
     }
   };
 
@@ -262,7 +270,7 @@ DataRelayer::RelayChoice
                      &metrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
     auto cacheIdx = numInputTypes * slot.index + input;
     std::vector<PartRef>& parts = cache[cacheIdx].parts;
-    cachedStateMetrics[cacheIdx] = 1;
+    cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
     // TODO: make sure that multiple parts can only be added within the same call of
     // DataRelayer::relay
     PartRef entry{std::move(header), std::move(payload)};
@@ -298,6 +306,7 @@ DataRelayer::RelayChoice
   auto timeslice = TimesliceId{TimesliceId::INVALID};
   auto slot = TimesliceSlot{TimesliceSlot::INVALID};
 
+  bool needsCleaning = false;
   // First look for matching slots which already have some
   // partial match.
   for (size_t ci = 0; ci < index.size(); ++ci) {
@@ -321,6 +330,7 @@ DataRelayer::RelayChoice
       }
       std::tie(input, timeslice) = getInputTimeslice(index.getVariablesForSlot(slot));
       if (input != INVALID_INPUT) {
+        needsCleaning = true;
         break;
       }
     }
@@ -329,6 +339,9 @@ DataRelayer::RelayChoice
   /// If we get a valid result, we can store the message in cache.
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
     O2_SIGNPOST(O2_PROBE_DATARELAYER, timeslice.value, 0, 0, 0);
+    if (needsCleaning) {
+      pruneCache(slot);
+    }
     saveInSlot(timeslice, input, slot);
     index.publishSlot(slot);
     index.markAsDirty(slot, true);
@@ -345,7 +358,7 @@ DataRelayer::RelayChoice
     std::string error;
     const auto* dh = o2::header::get<o2::header::DataHeader*>(header->GetData());
     if (dh) {
-      error += dh->dataOrigin.as<std::string>() + "/" + dh->dataDescription.as<std::string>() + "/" + dh->subSpecification;
+      error += fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     } else {
       error += "invalid header";
     }
@@ -477,6 +490,25 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   }
 }
 
+void DataRelayer::updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStatus, CacheEntryStatus newStatus)
+{
+  std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  const auto numInputTypes = mDistinctRoutesIndex.size();
+  auto& index = mTimesliceIndex;
+
+  auto markInputDone = [&cachedStateMetrics = mCachedStateMetrics,
+                        &index, &numInputTypes](TimesliceSlot s, size_t arg, CacheEntryStatus oldStatus, CacheEntryStatus newStatus) {
+    auto cacheId = s.index * numInputTypes + arg;
+    if (cachedStateMetrics[cacheId] == oldStatus) {
+      cachedStateMetrics[cacheId] = newStatus;
+    }
+  };
+
+  for (size_t ai = 0, ae = numInputTypes; ai != ae; ++ai) {
+    markInputDone(slot, ai, oldStatus, newStatus);
+  }
+}
+
 std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(TimesliceSlot slot)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
@@ -501,7 +533,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
                                     &cachedStateMetrics = mCachedStateMetrics,
                                     &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
     auto cacheId = s.index * numInputTypes + arg;
-    cachedStateMetrics[cacheId] = 2;
+    cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
     // check if the 2 above corresponds to the number of messages.
     if (cache[cacheId].size() > 0) {
@@ -514,7 +546,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
   // timeslice, so I can simply do that. I keep the assertion there because in principle
   // we should have dispatched the timeslice already!
   // FIXME: what happens when we have enough timeslices to hit the invalid one?
-  auto invalidateCacheFor = [&numInputTypes, &index, &cache](TimesliceSlot s) {
+  auto invalidateCacheFor = [&numInputTypes, &cachedStateMetrics = mCachedStateMetrics, &index, &cache](TimesliceSlot s) {
     for (size_t ai = s.index * numInputTypes, ae = ai + numInputTypes; ai != ae; ++ai) {
       assert(std::accumulate(cache[ai].begin(), cache[ai].end(), true, [](bool result, auto const& element) { return result && element.header.get() == nullptr && element.payload.get() == nullptr; }));
       cache[ai].clear();
@@ -623,7 +655,12 @@ void DataRelayer::sendContextState()
                                mMetrics, sVariablesMetricsNames);
   }
   for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
-    mMetrics.send({mCachedStateMetrics[si], sMetricsNames[si]});
+    mMetrics.send({static_cast<int>(mCachedStateMetrics[si]), sMetricsNames[si]});
+    // Anything which is done is actually already empty,
+    // so after we report it we mark it as such.
+    if (mCachedStateMetrics[si] == CacheEntryStatus::DONE) {
+      mCachedStateMetrics[si] = CacheEntryStatus::EMPTY;
+    }
   }
 }
 

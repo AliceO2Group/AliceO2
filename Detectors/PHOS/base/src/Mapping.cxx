@@ -18,13 +18,39 @@
 #include "PHOSBase/Geometry.h"
 
 using namespace o2::phos;
-
+Mapping* Mapping::sMapping = nullptr;
+//_______________________________________________________
 Mapping::Mapping(std::basic_string_view<char> path) : mPath(path),
                                                       mInitialized(false)
 {
 }
 //_______________________________________________________
-Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, CaloFlag& caloFlag)
+Mapping* Mapping::Instance()
+{
+  if (sMapping) {
+    return sMapping;
+  } else {
+    sMapping = new Mapping();
+    sMapping->setMapping();
+    return sMapping;
+  }
+}
+//_______________________________________________________
+Mapping* Mapping::Instance(std::basic_string_view<char> path)
+{
+  if (sMapping) {
+    if (sMapping->mPath == path) {
+      return sMapping;
+    } else {
+      delete sMapping;
+    }
+  }
+  sMapping = new Mapping(path);
+  sMapping->setMapping();
+  return sMapping;
+}
+//_______________________________________________________
+Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, CaloFlag& caloFlag) const
 {
 
   if (!mInitialized) {
@@ -35,6 +61,11 @@ Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, C
   if (ddl < 0 || ddl > 14) {
     return kWrongDDL;
   }
+  if ((hwAddr >= 112 && hwAddr < 128) || (hwAddr >= 2159 && hwAddr < 2176)) { //TRU flags
+    caloFlag = kTRU;
+    absId = -1;
+    return kOK;
+  }
   if (hwAddr < 0 || hwAddr >= NMaxHWAddress) {
     return kWrongHWAddress;
   }
@@ -43,25 +74,33 @@ Mapping::ErrorStatus Mapping::hwToAbsId(short ddl, short hwAddr, short& absId, C
   absId = mAbsId[ddl][hwAddr];
   caloFlag = mCaloFlag[ddl][hwAddr];
 
-  if (absId > NCHANNELS) {
+  if (absId > NCHANNELS || absId <= 1792) {
     absId = 0;
     return kWrongHWAddress;
   }
   return kOK;
 }
 //_______________________________________________________
-Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl, short& hwAddr)
+Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl, short& hwAddr) const
 {
 
-  if (absId < 0 || absId > NCHANNELS) {
-    ddl = 0;
-    hwAddr = 0;
-    return kWrongAbsId;
-  }
   if (caloFlag < 0 || caloFlag > 2) {
     ddl = 0;
     hwAddr = 0;
     return kWrongCaloFlag;
+  }
+  if (caloFlag < 2) {
+    if (absId <= 1792 || absId > NCHANNELS) {
+      ddl = 0;
+      hwAddr = 0;
+      return kWrongAbsId;
+    }
+  } else {
+    if (absId < 0 || absId > NTRUReadoutChannels) {
+      ddl = 0;
+      hwAddr = 0;
+      return kWrongAbsId;
+    }
   }
 
   if (!mInitialized) {
@@ -77,8 +116,6 @@ Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl,
 Mapping::ErrorStatus Mapping::setMapping()
 {
   //Read mapping from data files a-la Run2
-
-  o2::phos::Geometry* geom = o2::phos::Geometry::GetInstance();
 
   std::string p;
   if (mPath.empty()) { //use default path
@@ -96,14 +133,13 @@ Mapping::ErrorStatus Mapping::setMapping()
 
       short numberOfChannels = 0;
       short maxHWAddress = 0;
-      char fname[255];
-      snprintf(fname, 255, "%s/Mod%dRCU%d.data", p.data(), m, i);
-      std::ifstream* fIn = new std::ifstream(fname);
-      if (!*fIn) {
+      std::string fname = fmt::format("{:s}/Mod{:d}RCU{:d}.data", p, m, i);
+      std::ifstream fIn(fname);
+      if (!fIn.is_open()) {
         LOG(FATAL) << "Missing mapping file " << p << "/Mod" << m << "RCU" << i << ".data";
         return kNotInitialized;
       }
-      if (!(*fIn >> numberOfChannels)) {
+      if (!(fIn >> numberOfChannels)) {
         LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no numberOfChannels";
         return kNotInitialized;
       }
@@ -111,7 +147,7 @@ Mapping::ErrorStatus Mapping::setMapping()
         LOG(FATAL) << "Unexpected number of channels: " << numberOfChannels << " expecting " << NHWPERDDL << " file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no numberOfChannels";
         return kNotInitialized;
       }
-      if (!(*fIn >> maxHWAddress)) {
+      if (!(fIn >> maxHWAddress)) {
         LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no maxHWAddress";
         return kNotInitialized;
       }
@@ -121,7 +157,7 @@ Mapping::ErrorStatus Mapping::setMapping()
       }
       for (short ich = 0; ich < numberOfChannels; ich++) { // 1792 = 2*896 channels connected to each RCU
         int hwAddress;
-        if (!(*fIn >> hwAddress)) {
+        if (!(fIn >> hwAddress)) {
           LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong: no HWadd for ch " << ich;
           return kNotInitialized;
         }
@@ -130,7 +166,7 @@ Mapping::ErrorStatus Mapping::setMapping()
           return kNotInitialized;
         }
         int row, col, caloFlag;
-        if (!(*fIn >> row >> col >> caloFlag)) {
+        if (!(fIn >> row >> col >> caloFlag)) {
           LOG(FATAL) << "Syntax of mapping file " << p << "/Mod" << m << "RCU" << i << ".data is wrong:  no (raw col caloFlag)";
           return kNotInitialized;
         }
@@ -140,24 +176,31 @@ Mapping::ErrorStatus Mapping::setMapping()
           return kNotInitialized;
         }
 
-        if (caloFlag == 2) { //TODO!!!! TRU mapping not known yet
-          continue;
-        }
-
         //convert ddl, col,raw caloFlag to AbsId
         // Converts the absolute numbering into the following array
         //  relid[0] = PHOS Module number
         //  relid[1] = Row number inside a PHOS module (Phi coordinate)
         //  relid[2] = Column number inside a PHOS module (Z coordinate)
         short ddl = 4 * m + i - 2;
-
-        char relid[3] = {static_cast<char>(m), static_cast<char>(row + 1), static_cast<char>(col + 1)};
-        short absId;
-        geom->relToAbsNumbering(relid, absId);
-
         if (ddl < 0 || ddl >= NDDL) {
           LOG(FATAL) << "Wrong ddl address found (" << ddl << "). Module= " << m << " RCU =" << i;
           return kNotInitialized;
+        }
+
+        short absId;
+        if (caloFlag < 2) { //readout channels
+          char relid[3] = {static_cast<char>(m + 1), static_cast<char>(row + 1), static_cast<char>(col + 1)};
+          Geometry::relToAbsNumbering(relid, absId);
+        } else { //TRU channels
+          if (isTRUReadoutchannel(hwAddress)) {
+            if (hwAddress < 2048) { //branch 28<=z<56
+              absId = ddl * 2 * NTRUBranchReadoutChannels + hwAddress;
+            } else { //branch 0<=z<28
+              absId = (ddl * 2 + 1) * NTRUBranchReadoutChannels + hwAddress - 2048;
+            }
+          } else { //TRU flag channels, no absId
+            continue;
+          }
         }
 
         mAbsId[ddl][hwAddress] = absId;
@@ -165,7 +208,7 @@ Mapping::ErrorStatus Mapping::setMapping()
         mAbsToHW[absId][caloFlag][0] = ddl;
         mAbsToHW[absId][caloFlag][1] = hwAddress;
       }
-      fIn->close();
+      fIn.close();
     } //RCU
   }   // module
   mInitialized = true;

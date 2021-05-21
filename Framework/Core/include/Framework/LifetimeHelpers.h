@@ -52,10 +52,10 @@ struct LifetimeHelpers {
   static ExpirationHandler::Handler doNothing();
 
   /// Build a fetcher for an object from CCDB when the record is expired.
-  /// @a prefix is the lookup prefix in CCDB.
+  /// @a spec is the associated InputSpec
+  /// @a prefix is the lookup prefix in CCDB
   /// @a overrideTimestamp can be used to override the timestamp found in the data.
-  /// FIXME: provide a way to customize the namespace from the ProcessingContext
-  static ExpirationHandler::Handler fetchFromCCDBCache(ConcreteDataMatcher const& matcher,
+  static ExpirationHandler::Handler fetchFromCCDBCache(InputSpec const& spec,
                                                        std::string const& prefix,
                                                        std::string const& overrideTimestamp,
                                                        std::string const& sourceChannel);
@@ -76,7 +76,8 @@ struct LifetimeHelpers {
   /// dataOrigin, dataDescrition and dataSpecification of the given @a route.
   /// The payload of each message will contain an incremental number for each
   /// message being created.
-  static ExpirationHandler::Handler enumerate(ConcreteDataMatcher const& spec, std::string const& sourceChannel);
+  static ExpirationHandler::Handler enumerate(ConcreteDataMatcher const& spec, std::string const& sourceChannel,
+                                              int64_t orbitOffset, int64_t orbitMultiplier);
 
   /// Create a dummy (empty) message every time a record expires, suing @a spec
   /// as content of the payload.

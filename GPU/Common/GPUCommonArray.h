@@ -11,8 +11,8 @@
 /// \file GPUCommonArray.h
 /// \author David Rohr
 
-#ifndef GPUCOMMONFAIRARRAY_H
-#define GPUCOMMONFAIRARRAY_H
+#ifndef GPUCOMMONARRAY_H
+#define GPUCOMMONARRAY_H
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
@@ -24,8 +24,10 @@ namespace o2::gpu::gpustd
 #ifdef GPUCA_GPUCODE_DEVICE
 template <typename T, size_t N>
 struct array {
-  GPUd() T& operator[](size_t i) { return m_internal_V__[i]; }
-  GPUd() const T& operator[](size_t i) const { return m_internal_V__[i]; }
+  GPUd() T& operator[](size_t i) { return m_internal_V__[i]; };
+  GPUd() const T& operator[](size_t i) const { return m_internal_V__[i]; };
+  GPUd() T* data() { return m_internal_V__; };
+  GPUd() const T* data() const { return m_internal_V__; };
   T m_internal_V__[N];
 };
 template <class T, class... E>

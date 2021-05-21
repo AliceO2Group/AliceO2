@@ -88,7 +88,11 @@ struct TPCSpectraProviderTask {
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
   Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (aod::track::pt > trackPtCut) && (aod::track::isGlobalTrack == (uint8_t) true);
 
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                                  aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
+                                                  aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
+                                                  aod::TrackSelection>>;
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, TrackCandidates const& tracks)
   {
     if (!collision.alias()[kINT7]) {

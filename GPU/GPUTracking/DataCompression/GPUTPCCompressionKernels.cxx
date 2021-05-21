@@ -188,7 +188,7 @@ GPUdii() void GPUTPCCompressionKernels::Thread<GPUTPCCompressionKernels::step1un
     const int iRow = iSliceRow % GPUCA_ROW_COUNT;
     const int idOffset = clusters->clusterOffset[iSlice][iRow];
     const int idOffsetOut = clusters->clusterOffset[iSlice][iRow] * compressor.mMaxClusterFactorBase1024 / 1024;
-    const int idOffsetOutMax = clusters->clusterOffset[iSlice][iRow + 1] * compressor.mMaxClusterFactorBase1024 / 1024;
+    const int idOffsetOutMax = ((const unsigned int*)clusters->clusterOffset[iSlice])[iRow + 1] * compressor.mMaxClusterFactorBase1024 / 1024; // Array out of bounds access is ok, since it goes to the correct nClustersTotal
     if (iThread == nThreads - 1) {
       smem.nCount = 0;
     }

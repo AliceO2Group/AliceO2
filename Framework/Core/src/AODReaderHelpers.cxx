@@ -167,15 +167,19 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
           auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          return o2::framework::spawner(expressions{}, original_table.get());
+          return o2::framework::spawner(expressions{}, original_table.get(), input.binding.c_str());
         };
 
         if (description == header::DataDescription{"TRACK"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
         } else if (description == header::DataDescription{"TRACKCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
-        } else if (description == header::DataDescription{"MUON"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
+        } else if (description == header::DataDescription{"MFTTRACK"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::MFTTracksExtensionMetadata{}));
+        } else if (description == header::DataDescription{"FWDTRACK"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksExtensionMetadata{}));
+        } else if (description == header::DataDescription{"FWDTRACKCOV"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksCovExtensionMetadata{}));
         } else {
           throw runtime_error("Not an extended table");
         }

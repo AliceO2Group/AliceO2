@@ -50,6 +50,51 @@ void TOFCalibInfoSlot::fill(const gsl::span<const o2::dataformats::CalibInfoTOF>
   }
 }
 //_____________________________________________
+void TOFCalibInfoSlot::fill(const gsl::span<const o2::tof::CalibInfoCluster> data)
+{
+  // fill container
+  // we do not apply any calibration at this stage, it will be applied when we
+  // process the data before filling the CCDB in the separate process
+
+  // we first order the data that arrived, to improve speed when filling
+  int nd = data.size();
+  LOG(DEBUG) << "entries in incoming data = " << nd;
+  std::vector<int> ord(nd);
+  std::iota(ord.begin(), ord.end(), 0);
+  std::sort(ord.begin(), ord.end(), [&data](int i, int j) { return data[i].getCH() < data[j].getCH(); });
+  int chPrev = 0, offsPrev = 0;
+  for (int i = 0; i < nd; i++) {
+    const auto& dti = data[ord[i]];
+    auto ch = dti.getCH();
+    auto dch = dti.getDCH();
+    auto dt = dti.getDT();
+    auto tot1 = dti.getTOT1();
+    auto tot2 = dti.getTOT2();
+
+    // we order them so that the channel number of the first cluster is smaller than
+    // the one of the second cluster
+    if (dch < 0) {
+      ch += dch;
+      dt = -dt;
+      dch = -dch;
+      float inv = tot1;
+      tot1 = tot2;
+      tot2 = inv;
+    }
+
+    auto offset = offsPrev;
+    if (ch > chPrev) {
+      offset += std::accumulate(mEntriesSlot.begin() + chPrev, mEntriesSlot.begin() + ch, 0);
+    }
+    offsPrev = offset;
+    chPrev = ch;
+
+    // TO be adjusted
+    //mTOFCollectedCalibInfoSlot.emplace(mTOFCollectedCalibInfoSlot.begin() + offset, data[ord[i]].getTimestamp(), data[ord[i]].getDeltaTimePi(), data[ord[i]].getTot(), data[ord[i]].getFlags());
+    //mEntriesSlot[ch]++;
+  }
+}
+//_____________________________________________
 void TOFCalibInfoSlot::merge(const TOFCalibInfoSlot* prev)
 {
   // merge data of 2 slots

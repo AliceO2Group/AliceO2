@@ -175,22 +175,22 @@ void Trap2CRU::readTrapData()
     // filename structure of trd_cru_[CRU#]_[upper/lower].raw
     std::string whichrun = mUseTrackletHCHeader ? "run3" : "run2";
     if (mFilePer == "all") { // single file for all links
-      outFileLink = o2::utils::concat_string(mOutputDir, "/", outPrefix, outSuffix);
+      outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, outSuffix);
     } else if (mFilePer == "sm") {
       int sm = link / 4;
       std::stringstream ss;
       ss << std::setw(2) << std::setfill('0') << sm;
       std::string supermodule = ss.str();
-      outFileLink = o2::utils::concat_string(mOutputDir, "/", outPrefix, "_sm_", supermodule, outSuffix);
+      outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, "_sm_", supermodule, outSuffix);
     } else if (mFilePer == "cru") {
-      outFileLink = o2::utils::concat_string(mOutputDir, "/", outPrefix, "_cru_", std::to_string(mCruID), outSuffix);
+      outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, "_cru_", std::to_string(mCruID), outSuffix);
     } else if (mFilePer == "halfcru") {
-      outFileLink = o2::utils::concat_string(mOutputDir, "/", outPrefix, "_cru_", std::to_string(mCruID), trdside, outSuffix);
+      outFileLink = o2::utils::Str::concat_string(mOutputDir, "/", outPrefix, "_cru_", std::to_string(mCruID), trdside, outSuffix);
     } else {
       throw std::runtime_error("invalid option provided for file grouping");
     }
 
-    //std::string outputFilelink = o2::utils::concat_string(prefix, "trd_cru_", std::to_string(mCruID), "_", trdside, "_", whichrun, ".raw");
+    //std::string outputFilelink = o2::utils::Str::concat_string(prefix, "trd_cru_", std::to_string(mCruID), "_", trdside, "_", whichrun, ".raw");
     LOG(info) << "registering links";
     mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
   }

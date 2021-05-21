@@ -14,13 +14,14 @@
 /// @file   TRDTrackingWorkflow.h
 
 #include "Framework/WorkflowSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 namespace o2
 {
 namespace trd
 {
 
-framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, bool useTrackletTransformer);
+framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, o2::dataformats::GlobalTrackID::mask_t srcTRD);
 
 } // namespace trd
 } // namespace o2

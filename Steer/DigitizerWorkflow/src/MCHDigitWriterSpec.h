@@ -15,6 +15,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "DataFormatsMCH/Digit.h"
+#include "DataFormatsMCH/ROFRecord.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
 
@@ -35,7 +36,8 @@ o2::framework::DataProcessorSpec getMCHDigitWriterSpec(bool mctruth)
                                 "o2sim",
                                 1, //default number of events
                                 BranchDefinition<std::vector<o2::mch::Digit>>{InputSpec{"mchdigits", "MCH", "DIGITS"}, "MCHDigit"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mchdigitlabels", "MCH", "DIGITSMCTR"}, "MCHMCLabels", mctruth ? 1 : 0}
+                                BranchDefinition<std::vector<o2::mch::ROFRecord>>{InputSpec{"mchrofrecords", "MCH", "DIGITROFS"}, "MCHROFRecords"},
+                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"mchdigitlabels", "MCH", "DIGITSLABELS"}, "MCHMCLabels", mctruth ? 1 : 0}
                                 // add more branch definitions (for example Monte Carlo labels here)
                                 )();
 }

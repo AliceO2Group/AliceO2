@@ -24,7 +24,6 @@
 
 #include <TBranch.h>
 #include <TFile.h>
-#include <TSystem.h>
 #include <TTree.h>
 #include <boost/program_options.hpp>
 #include <fmt/format.h>
@@ -32,6 +31,7 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <filesystem>
 
 namespace po = boost::program_options;
 using namespace o2::mch::raw;
@@ -94,8 +94,7 @@ int main(int argc, char* argv[])
       ("input-file,i",po::value<std::string>(&input)->default_value("mchdigits.root"),"input file name")
       ("configKeyValues", po::value<std::string>()->default_value(""), "comma-separated configKeyValues")
       ("no-empty-hbf,e", po::value<bool>()->default_value(true), "do not create empty HBF pages (except for HBF starting TF)")
-      //("digitization-config", po::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "configKeyValues file from digitization")
-      ("digitization-config", po::value<std::string>()->default_value("none"), "configKeyValues file from digitization")
+      ("hbfutils-config", po::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)")
       ("verbosity,v",po::value<std::string>()->default_value("verylow"), "(fair)logger verbosity");
   // clang-format on
 
@@ -118,9 +117,9 @@ int main(int argc, char* argv[])
 
   po::notify(vm);
 
-  std::string confDig = vm["digitization-config"].as<std::string>();
+  std::string confDig = vm["hbfutils-config"].as<std::string>();
   if (!confDig.empty() && confDig != "none") {
-    o2::conf::ConfigurableParam::updateFromFile(confDig);
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
@@ -150,8 +149,9 @@ int main(int argc, char* argv[])
 
   auto outDirName = vm["output-dir"].as<std::string>();
 
-  if (gSystem->AccessPathName(outDirName.c_str())) {
-    if (gSystem->mkdir(outDirName.c_str(), kTRUE)) {
+  // if needed, create output directory
+  if (!std::filesystem::exists(outDirName)) {
+    if (!std::filesystem::create_directories(outDirName)) {
       LOG(FATAL) << "could not create output directory " << outDirName;
     } else {
       LOG(INFO) << "created output directory " << outDirName;
@@ -164,6 +164,8 @@ int main(int argc, char* argv[])
   PayloadPaginator paginator(fw, output, solar2feelink, userLogic, chargeSumMode);
 
   digit2raw(input, encoder, paginator);
+
+  o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }

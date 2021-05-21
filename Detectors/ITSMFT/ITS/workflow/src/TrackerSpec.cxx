@@ -54,7 +54,7 @@ void TrackerDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = parameters::GRPObject::loadFrom(filename.c_str());
+  const auto grp = parameters::GRPObject::loadFrom(filename);
   if (grp) {
     mGRP.reset(grp);
     base::Propagator::initFieldFromGRP(grp);
@@ -64,6 +64,16 @@ void TrackerDPL::init(InitContext& ic)
     GeometryTGeo* geom = GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                    o2::math_utils::TransformType::T2G));
+
+    std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+    std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+    if (o2::utils::Str::pathExists(matLUTFile)) {
+      auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+      o2::base::Propagator::Instance()->setMatLUT(lut);
+      LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    } else {
+      LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    }
 
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
     mRecChain->Init();
@@ -116,17 +126,17 @@ void TrackerDPL::init(InitContext& ic)
 
     mVertexer->getGlobalConfiguration();
     mTracker->getGlobalConfiguration();
-    LOG(INFO) << Form("%ssing lookup table for material budget approximation", (mTracker->isMatLUT() ? "U" : "Not u"));
+    LOG(INFO) << Form("Using %s for material budget approximation", (mTracker->isMatLUT() ? "lookup table" : "TGeometry"));
 
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
-    throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
+    throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
-  if (o2::base::NameConf::pathExists(dictFile)) {
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
+  if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
@@ -323,7 +333,8 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu
     AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, trModeS, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // namespace its

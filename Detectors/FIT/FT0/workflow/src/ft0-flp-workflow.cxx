@@ -46,6 +46,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     o2::framework::VariantType::Bool,
                     false,
                     {"disable root-files output writers"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"configKeyValues",
+                    o2::framework::VariantType::String,
+                    "",
+                    {"Semicolon separated key=value strings"}});
+  workflowOptions.push_back(ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
 }
 
 // ------------------------------------------------------------------
@@ -60,6 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
   auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
   LOG(INFO) << "WorkflowSpec FLPWorkflow";
-  return std::move(o2::ft0::getFT0Workflow(isExtendedMode, useProcessor, dumpProcessor, dumpReader, disableRootOut));
+  return std::move(o2::ft0::getFT0Workflow(isExtendedMode, useProcessor, dumpProcessor, dumpReader, disableRootOut, askSTFDist));
 }

@@ -7,22 +7,20 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+/// \brief Use the HistogramRegistry to manipulate histograms.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/HistogramRegistry.h"
-#include <TH1F.h>
 #include <TParameter.h>
-
-#include <cmath>
 
 using namespace o2;
 using namespace o2::framework;
 
-// This is a very simple example showing how to create an histogram
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
-struct ATask {
+struct EtaPhiHistograms {
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{
     "registry",
@@ -41,7 +39,7 @@ struct ATask {
   }
 };
 
-struct BTask {
+struct FilteredHistograms {
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{
     "registry",
@@ -58,7 +56,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct DimensionTest {
 
   HistogramRegistry registry{
     "registry",
@@ -132,7 +130,7 @@ struct CTask {
   }
 };
 
-struct DTask {
+struct RealisticExample {
   HistogramRegistry spectra{"spectra", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
   HistogramRegistry etaStudy{"etaStudy", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
 
@@ -216,7 +214,7 @@ struct DTask {
   }
 };
 
-struct ETask {
+struct OutputObjTest {
   OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
@@ -229,7 +227,7 @@ struct ETask {
   }
 };
 
-struct FTask {
+struct TListTest {
   Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks FB96"};
   OutputObj<TList> fOutput{"TListForTests", OutputObjHandlingPolicy::AnalysisObject, OutputObjSourceType::OutputObjSource};
   HistogramRegistry registry{
@@ -257,24 +255,17 @@ struct FTask {
   }
 };
 
-struct GTask {
+struct ConfigurablesTest {
   HistogramRegistry histos{"Histos"};
 
-  // for testing: assume first element in vector is number of bins; if it is zero variable binning is assumed
-  // note that the size of the default vector fixes the size of the vector that can be provided via configurable
-  Configurable<std::vector<double>> ptBinning{"pt-bin-edges", {0., 0.15, 1., 5., 10., 50.}, ""}; // variable bin edges
-  Configurable<std::vector<double>> centBinning{"cent-binning", {9., 0., 90}, ""};               // fixed size bins
-
-  // best would be to make it work with the actual AxisSpec and its ctors:
-  //Configurable<AxisSpec> phiAxis{"phi-axis", {{0., 0.25, 0.5, 0.75, 1., 1.6, 2.}}, ""};
-  //Configurable<AxisSpec> etaAxis{"eta-axis", {{8, -1., 1.}}, ""};
+  // first element in vector is number of bins (fixed binning) or VARIABLE_WIDTH (variable binning)
+  ConfigurableAxis ptBinning{"pt-bin-edges", {VARIABLE_WIDTH, 0.15, 1., 5., 10., 50.}, ""}; // variable bin edges
+  ConfigurableAxis centBinning{"cent-binning", {9, 0., 90}, ""};                            // fixed size bins
 
   void init(InitContext const&)
   {
-    // first bool argument is needed here to distingish the custom ctor (from double vector where first element is nBins)
-    // form the 'ordinary' one which has bin edges as argument
-    AxisSpec ptAxis = {true, ptBinning, "#it{p}_{T} (GeV/c)"};
-    AxisSpec centAxis = {true, centBinning, "#it{p}_{T} (GeV/c)"};
+    AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/c)"};
+    AxisSpec centAxis = {centBinning, "#it{p}_{T} (GeV/c)"};
 
     // for all axes that do not actually need to be configurable, better dont use the Configurables to avoid code clutter!
     const int nCuts = 5;
@@ -283,8 +274,6 @@ struct GTask {
     histos.add("myPtHistFromConfig", "", {HistType::kTH1D, {ptAxis}});
     histos.add("myCentHistFromConfig", "", {HistType::kTH1D, {centAxis}});
     histos.add("myCutHistNotFromConfig", "", {HistType::kTH1D, {cutAxis}});
-
-    //histos.add("histFromConfigAxisSpec", "", {HistType::kTH2F, {phiAxis, etaAxis}});
   }
 
   void process(aod::Track const& track)
@@ -297,11 +286,12 @@ struct GTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ETask>(cfgc, TaskName{"output-obj-test"}),
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"eta-and-phi-histograms"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"filtered-histograms"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"dimension-test"}),
-    adaptAnalysisTask<DTask>(cfgc, TaskName{"realistic-example"}),
-    adaptAnalysisTask<FTask>(cfgc, TaskName{"tlist-test"}),
-    adaptAnalysisTask<GTask>(cfgc, TaskName{"configurables-test"})};
+    adaptAnalysisTask<OutputObjTest>(cfgc),
+    adaptAnalysisTask<EtaPhiHistograms>(cfgc),
+    adaptAnalysisTask<FilteredHistograms>(cfgc),
+    adaptAnalysisTask<DimensionTest>(cfgc),
+    adaptAnalysisTask<RealisticExample>(cfgc),
+    adaptAnalysisTask<TListTest>(cfgc),
+    adaptAnalysisTask<ConfigurablesTest>(cfgc),
+  };
 }

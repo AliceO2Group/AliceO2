@@ -13,6 +13,7 @@
 
 #include "Rtypes.h"
 #include "TOFBase/Geo.h"
+#include <array>
 
 using namespace o2::tof;
 

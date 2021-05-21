@@ -37,7 +37,7 @@ BadChannelMap* CalibDB::readBadChannelMap(ULong_t timestamp, const std::map<std:
   if (!mInit) {
     init();
   }
-  auto result = mCCDBManager.retrieveFromTFile("BadChannelMap/PHS", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFileAny<TObject>("BadChannelMap/PHS", metadata, timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, "BadChannelMap/PHS", metadata, timestamp);
   }
@@ -62,7 +62,7 @@ CalibParams* CalibDB::readCalibParams(ULong_t timestamp, const std::map<std::str
   if (!mInit) {
     init();
   }
-  auto result = mCCDBManager.retrieveFromTFile("CalibParams/PHS", metadata, timestamp);
+  auto result = mCCDBManager.retrieveFromTFileAny<TObject>("CalibParams/PHS", metadata, timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, "CalibParams/PHS", metadata, timestamp);
   }

@@ -29,7 +29,7 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
   // define composie cuts, typically combinations of all the ingredients needed for a full cut
   //
   // TODO: Agree on some conventions for the naming
-  //       Possibly think of possible customization of the predefined cuts
+  //       Think of possible customization of the predefined cuts via names
 
   AnalysisCompositeCut* cut = new AnalysisCompositeCut(cutName, cutName);
   std::string nameStr = cutName;
@@ -42,7 +42,7 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
   }
 
   if (!nameStr.compare("jpsiPID1")) {
-    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine")); // standard kine cuts usually are applied via Filter in the task
     cut->AddCut(GetAnalysisCut("electronStandardQuality"));
     cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
     cut->AddCut(GetAnalysisCut("electronPID1"));
@@ -56,6 +56,75 @@ AnalysisCompositeCut* o2::aod::dqcuts::GetCompositeCut(const char* cutName)
     cut->AddCut(GetAnalysisCut("electronPID2"));
     return cut;
   }
+
+  if (!nameStr.compare("jpsiPIDnsigma")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigma"));
+    return cut;
+  }
+
+  //---------------------------------------------------------------------------------------
+  // NOTE: Below there are several TPC pid cuts used for studies of the dE/dx degradation
+  //    and its impact on the high lumi pp quarkonia triggers
+  //  To be removed when not needed anymore
+  if (!nameStr.compare("jpsiPID1Randomized")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine")); // standard kine cuts usually are applied via Filter in the task
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("electronPID1randomized"));
+    return cut;
+  }
+
+  if (!nameStr.compare("jpsiPID2Randomized")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("electronPID2randomized"));
+    return cut;
+  }
+
+  if (!nameStr.compare("jpsiPIDnsigmaRandomized")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("electronPIDnsigmaRandomized"));
+    return cut;
+  }
+
+  if (!nameStr.compare("jpsiPIDworseRes")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("electronPIDworseRes"));
+    return cut;
+  }
+
+  if (!nameStr.compare("jpsiPIDshift")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("electronPIDshift"));
+    return cut;
+  }
+
+  if (!nameStr.compare("jpsiPID1shiftUp")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("electronPID1shiftUp"));
+    return cut;
+  }
+
+  if (!nameStr.compare("jpsiPID1shiftDown")) {
+    cut->AddCut(GetAnalysisCut("jpsiStandardKine"));
+    cut->AddCut(GetAnalysisCut("electronStandardQuality"));
+    cut->AddCut(GetAnalysisCut("standardPrimaryTrack"));
+    cut->AddCut(GetAnalysisCut("electronPID1shiftDown"));
+    return cut;
+  }
+  // -------------------------------------------------------------------------------------------------
 
   if (!nameStr.compare("lmeePID_TPChadrejTOFrec")) {
     cut->AddCut(GetAnalysisCut("lmeeStandardKine"));
@@ -173,6 +242,11 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
     return cut;
   }
 
+  if (!nameStr.compare("eventStandardNoINT7")) {
+    cut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
+    return cut;
+  }
+
   if (!nameStr.compare("int7vtxZ5")) {
     cut->AddCut(VarManager::kVtxZ, -5.0, 5.0);
     cut->AddCut(VarManager::kIsINT7, 0.5, 1.5);
@@ -225,16 +299,73 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
   }
 
   TF1* cutLow1 = new TF1("cutLow1", "pol1", 0., 10.);
-  cutLow1->SetParameters(130., -40.0);
   if (!nameStr.compare("electronPID1")) {
+    cutLow1->SetParameters(130., -40.0);
     cut->AddCut(VarManager::kTPCsignal, 70., 100.);
     cut->AddCut(VarManager::kTPCsignal, cutLow1, 100.0, false, VarManager::kPin, 0.5, 3.0);
     return cut;
   }
 
+  if (!nameStr.compare("electronPID1shiftUp")) {
+    cut->AddCut(VarManager::kTPCsignal, 70. - 0.85, 100. - 0.85);
+    cutLow1->SetParameters(130. - 0.85, -40.0);
+    cut->AddCut(VarManager::kTPCsignal, cutLow1, 100.0 - 0.85, false, VarManager::kPin, 0.5, 3.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("electronPID1shiftDown")) {
+    cut->AddCut(VarManager::kTPCsignal, 70.0 + 0.85, 100.0 + 0.85);
+    cutLow1->SetParameters(130. + 0.85, -40.0);
+    cut->AddCut(VarManager::kTPCsignal, cutLow1, 100.0 + 0.85, false, VarManager::kPin, 0.5, 3.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("electronPID1randomized")) {
+    cutLow1->SetParameters(130., -40.0);
+    cut->AddCut(VarManager::kTPCsignalRandomized, 70., 100.);
+    cut->AddCut(VarManager::kTPCsignalRandomized, cutLow1, 100.0, false, VarManager::kPin, 0.5, 3.0);
+    return cut;
+  }
+
   if (!nameStr.compare("electronPID2")) {
+    cutLow1->SetParameters(130., -40.0);
     cut->AddCut(VarManager::kTPCsignal, 73., 100.);
     cut->AddCut(VarManager::kTPCsignal, cutLow1, 100.0, false, VarManager::kPin, 0.5, 3.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("electronPID2randomized")) {
+    cutLow1->SetParameters(130., -40.0);
+    cut->AddCut(VarManager::kTPCsignalRandomized, 73., 100.);
+    cut->AddCut(VarManager::kTPCsignalRandomized, cutLow1, 100.0, false, VarManager::kPin, 0.5, 3.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("electronPIDnsigma")) {
+    cut->AddCut(VarManager::kTPCnSigmaEl, -3.0, 3.0);
+    cut->AddCut(VarManager::kTPCnSigmaPr, 3.0, 3000.0);
+    cut->AddCut(VarManager::kTPCnSigmaPi, 3.0, 3000.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("electronPIDnsigmaRandomized")) {
+    cut->AddCut(VarManager::kTPCnSigmaElRandomized, -3.0, 3.0);
+    cut->AddCut(VarManager::kTPCnSigmaPrRandomized, 3.0, 3000.0);
+    cut->AddCut(VarManager::kTPCnSigmaPiRandomized, 3.0, 3000.0);
+    return cut;
+  }
+
+  if (!nameStr.compare("electronPIDworseRes")) {
+    cut->AddCut(VarManager::kTPCnSigmaEl, -3.0, 3.0);
+    cut->AddCut(VarManager::kTPCnSigmaPr, 3.0 * 0.8, 3000.0); // emulates a 20% degradation in PID resolution
+    cut->AddCut(VarManager::kTPCnSigmaPi, 3.0 * 0.8, 3000.0); //    proton and pion rejections are effectively relaxed by 20%
+    return cut;
+  }
+
+  if (!nameStr.compare("electronPIDshift")) {
+    cut->AddCut(VarManager::kTPCnSigmaEl, -3.0, 3.0);
+    cut->AddCut(VarManager::kTPCnSigmaPr, 3.0 - 0.2, 3000.0);
+    cut->AddCut(VarManager::kTPCnSigmaPi, 3.0 - 0.2, 3000.0);
     return cut;
   }
 
@@ -275,7 +406,7 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("muonQualityCuts")) {
     cut->AddCut(VarManager::kEta, -4.0, -2.5);
-    cut->AddCut(VarManager::kMuonRAtAbsorberEnd, 200.0, 900.0);
+    cut->AddCut(VarManager::kMuonRAtAbsorberEnd, 25.0, 90.0);
     cut->AddCut(VarManager::kMuonPDca, 0.0, 300.0);
     return cut;
   }

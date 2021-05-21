@@ -14,7 +14,7 @@
 /// @brief  Basic DPL workflow for TOF reconstruction starting from digits
 
 #include "DetectorsBase/Propagator.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflowUtils/DigitReaderSpec.h"
 #include "TOFWorkflowUtils/TOFDigitWriterSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
@@ -33,6 +33,7 @@
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 // FIT
 #include "FT0Workflow/RecPointReaderSpec.h"
@@ -45,24 +46,27 @@
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters"}});
-  workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", {"digits, clusters, matching-info, calib-info, raw, ctf"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}});
-  workflowOptions.push_back(ConfigParamSpec{"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
-  workflowOptions.push_back(ConfigParamSpec{"conet-mode", o2::framework::VariantType::Bool, false, {"enable conet mode"}});
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-row-writing", o2::framework::VariantType::Bool, false, {"disable ROW in Digit writing"}});
-  workflowOptions.push_back(ConfigParamSpec{"write-decoding-errors", o2::framework::VariantType::Bool, false, {"trace errors in digits output when decoding"}});
-  workflowOptions.push_back(ConfigParamSpec{"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}});
-  //workflowOptions.push_back(ConfigParamSpec{"digitization-config", o2::framework::VariantType::String, {std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE), "configKeyValues file from digitization, used for raw output only!!!"}});
-  workflowOptions.push_back(ConfigParamSpec{"digitization-config", o2::framework::VariantType::String, "none", {"configKeyValues file from digitization, used for raw output only!!!"}});
-  workflowOptions.push_back(ConfigParamSpec{"cosmics", VariantType::Bool, false, {"to enable cosmics utils"}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"input-type", o2::framework::VariantType::String, "digits", {"digits, raw, clusters"}},
+    {"output-type", o2::framework::VariantType::String, "clusters,matching-info,calib-info", {"digits, clusters, matching-info, calib-info, raw, ctf"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}},
+    {"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}},
+    {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}},
+    {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
+    {"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}},
+    {"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
+    {"conet-mode", o2::framework::VariantType::Bool, false, {"enable conet mode"}},
+    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}},
+    {"disable-row-writing", o2::framework::VariantType::Bool, false, {"disable ROW in Digit writing"}},
+    {"write-decoding-errors", o2::framework::VariantType::Bool, false, {"trace errors in digits output when decoding"}},
+    {"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}},
+    {"cosmics", VariantType::Bool, false, {"to enable cosmics utils"}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -114,10 +118,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   if (outputType.rfind("raw") < outputType.size()) {
     writeraw = 1;
-    std::string confDig = cfgc.options().get<std::string>("digitization-config");
-    if (!confDig.empty() && confDig != "none") {
-      o2::conf::ConfigurableParam::updateFromFile(confDig);
-    }
   }
   if (outputType.rfind("ctf") < outputType.size()) {
     writectf = 1;
@@ -225,6 +225,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
 
   LOG(INFO) << "Number of active devices = " << specs.size();
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return std::move(specs);
 }

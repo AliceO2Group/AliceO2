@@ -33,7 +33,7 @@
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "GPUTPCClusterStatistics.h"
@@ -75,7 +75,7 @@ void GPUChainTracking::DumpData(const char* filename)
   fwrite(&GPUReconstruction::geometryType, sizeof(GPUReconstruction::geometryType), 1, fp);
   DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
   DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (mIOPtrs.clustersNative) {
     if (DumpData(fp, &mIOPtrs.clustersNative->clustersLinear, &mIOPtrs.clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE)) {
       fwrite(&mIOPtrs.clustersNative->nClusters[0][0], sizeof(mIOPtrs.clustersNative->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
@@ -130,11 +130,16 @@ void GPUChainTracking::DumpData(const char* filename)
   DumpData(fp, mIOPtrs.sliceClusters, mIOPtrs.nSliceClusters, InOutPointerType::SLICE_OUT_CLUSTER);
   DumpData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, InOutPointerType::MC_LABEL_TPC);
   DumpData(fp, &mIOPtrs.mcInfosTPC, &mIOPtrs.nMCInfosTPC, InOutPointerType::MC_INFO_TPC);
+  DumpData(fp, &mIOPtrs.mcInfosTPCCol, &mIOPtrs.nMCInfosTPCCol, InOutPointerType::MC_INFO_TPC);
   DumpData(fp, &mIOPtrs.mergedTracks, &mIOPtrs.nMergedTracks, InOutPointerType::MERGED_TRACK);
   DumpData(fp, &mIOPtrs.mergedTrackHits, &mIOPtrs.nMergedTrackHits, InOutPointerType::MERGED_TRACK_HIT);
   DumpData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, InOutPointerType::TRD_TRACK);
   DumpData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, InOutPointerType::TRD_TRACKLET);
-  DumpData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
+  if (mIOPtrs.trdSpacePoints) {
+    DumpData(fp, &mIOPtrs.trdSpacePoints, &mIOPtrs.nTRDTracklets, InOutPointerType::TRD_SPACEPOINT);
+  }
+  DumpData(fp, &mIOPtrs.trdTriggerTimes, &mIOPtrs.nTRDTriggerRecords, InOutPointerType::TRD_TRIGGERRECORDS);
+  DumpData(fp, &mIOPtrs.trdTrackletIdxFirst, &mIOPtrs.nTRDTriggerRecords, InOutPointerType::TRD_TRIGGERRECORDS);
   fclose(fp);
 }
 
@@ -165,7 +170,7 @@ int GPUChainTracking::ReadData(const char* filename)
   AliHLTTPCRawCluster* ptrRawClusters[NSLICES];
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS, ptrRawClusters);
   int nClustersTotal = 0;
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   mIOMem.clusterNativeAccess.reset(new ClusterNativeAccess);
   if (ReadData<ClusterNative>(fp, &mIOMem.clusterNativeAccess->clustersLinear, &mIOMem.clusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
     r = fread(&mIOMem.clusterNativeAccess->nClusters[0][0], sizeof(mIOMem.clusterNativeAccess->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
@@ -218,11 +223,15 @@ int GPUChainTracking::ReadData(const char* filename)
   ReadData(fp, mIOPtrs.sliceClusters, mIOPtrs.nSliceClusters, mIOMem.sliceClusters, InOutPointerType::SLICE_OUT_CLUSTER);
   ReadData(fp, &mIOPtrs.mcLabelsTPC, &mIOPtrs.nMCLabelsTPC, &mIOMem.mcLabelsTPC, InOutPointerType::MC_LABEL_TPC);
   ReadData(fp, &mIOPtrs.mcInfosTPC, &mIOPtrs.nMCInfosTPC, &mIOMem.mcInfosTPC, InOutPointerType::MC_INFO_TPC);
+  ReadData(fp, &mIOPtrs.mcInfosTPCCol, &mIOPtrs.nMCInfosTPCCol, &mIOMem.mcInfosTPCCol, InOutPointerType::MC_INFO_TPC);
   ReadData(fp, &mIOPtrs.mergedTracks, &mIOPtrs.nMergedTracks, &mIOMem.mergedTracks, InOutPointerType::MERGED_TRACK);
   ReadData(fp, &mIOPtrs.mergedTrackHits, &mIOPtrs.nMergedTrackHits, &mIOMem.mergedTrackHits, InOutPointerType::MERGED_TRACK_HIT);
   ReadData(fp, &mIOPtrs.trdTracks, &mIOPtrs.nTRDTracks, &mIOMem.trdTracks, InOutPointerType::TRD_TRACK);
   ReadData(fp, &mIOPtrs.trdTracklets, &mIOPtrs.nTRDTracklets, &mIOMem.trdTracklets, InOutPointerType::TRD_TRACKLET);
-  ReadData(fp, &mIOPtrs.trdTrackletsMC, &mIOPtrs.nTRDTrackletsMC, &mIOMem.trdTrackletsMC, InOutPointerType::TRD_TRACKLET_MC);
+  unsigned int dummy = 0;
+  ReadData(fp, &mIOPtrs.trdSpacePoints, &dummy, &mIOMem.trdSpacePoints, InOutPointerType::TRD_SPACEPOINT);
+  ReadData(fp, &mIOPtrs.trdTriggerTimes, &mIOPtrs.nTRDTriggerRecords, &mIOMem.trdTriggerTimes, InOutPointerType::TRD_TRIGGERRECORDS);
+  ReadData(fp, &mIOPtrs.trdTrackletIdxFirst, &mIOPtrs.nTRDTriggerRecords, &mIOMem.trdTrackletIdxFirst, InOutPointerType::TRD_TRIGGERRECORDS);
 
   size_t fptr = ftell(fp);
   fseek(fp, 0, SEEK_END);
@@ -269,7 +278,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "tpcpadgaincalib.dump";
     DumpStructToFile(processors()->calibObjects.tpcPadGain, f.c_str());
   }
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (processors()->calibObjects.dEdxSplines != nullptr) {
     f = dir;
     f += "dedxsplines.dump";
@@ -300,7 +309,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());
   processors()->calibObjects.tpcPadGain = mTPCPadGainCalibU.get();
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   f = dir;
   f += "dedxsplines.dump";
   mdEdxSplinesU = ReadFlatObjectFromFile<TPCdEdxCalibrationSplines>(f.c_str());

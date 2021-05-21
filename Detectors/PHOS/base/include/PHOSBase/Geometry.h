@@ -106,6 +106,12 @@ class Geometry
   static void absIdToRelPosInModule(short absId, float& x, float& z);
   static bool relToAbsNumbering(const char* RelId, short& AbsId);
 
+  //Converters for TRU digits
+  static bool truAbsToRelNumbering(short truId, char* relid);
+  static short truRelToAbsNumbering(const char* relId);
+  static bool truRelId2RelId(const char* truRelId, char* relId);
+  static short relPosToTruId(char mod, float x, float z, short& ddl);
+
   //local position to absId
   static void relPosToAbsId(char module, float x, float z, short& absId);
 
@@ -119,6 +125,8 @@ class Geometry
   } // TODO: evaluate from real geometry
 
   const std::string& GetName() const { return mGeoName; }
+
+  const TGeoHMatrix* getAlignmentMatrix(int mod) const { return &(mPHOS[mod]); }
 
  private:
   static Geometry* sGeom;           // Pointer to the unique instance of the singleton

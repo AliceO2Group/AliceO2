@@ -4570,7 +4570,7 @@
                 },
                 {
                   "node": {
-                    "path": "Detectors/TPC/workflow/include/TPCWorkflow/PublisherSpec.h"
+                    "path": "Detectors/TPC/workflow/include/TPCReaderWorkflow/PublisherSpec.h"
                   }
                 },
                 {

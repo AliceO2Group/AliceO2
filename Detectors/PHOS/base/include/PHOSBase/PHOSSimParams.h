@@ -54,15 +54,21 @@ struct PHOSSimParams : public o2::conf::ConfigurableParamHelper<PHOSSimParams> {
   float mMinNoiseTime = -200.;   ///< minimum time in noise channels (in ns)
   float mMaxNoiseTime = 2000.;   ///< minimum time in noise channels (in ns)
 
+  float mTrig2x2MinThreshold = 800.; ///< threshold to simulate 2x2 trigger turn-on curve (in ADC counts~0.005 GeV/count!)
+  float mTrig4x4MinThreshold = 900.; ///< threshold to simulate 4x4 trigger turn-on curve (in ADC counts!)
+
   //Parameters used in Raw simulation
   float mSampleDecayTime = 0.091; ///< Time parameter in Gamma2 function (1/tau, 100.e-9/2.1e-6)
 
   // //Parameters used in raw data reconstruction
-  short mSpikeThreshold = 100; ///< Single spike >100 ADC channels
-  short mBaseLine = 0;         ///<
-  short mPreSamples = 2;       ///< number of pre-samples readout before sample (if no pedestal subtrauction)
-  short mMCOverflow = 970;     ///< Overflow level for MC simulations: 1023-(pedestal~50)
-  float mTimeTick = 100.;      ///< ns to PHOS digitization step conversion
+  short mSpikeThreshold = 100;          ///< Single spike >100 ADC channels
+  short mBaseLine = 0;                  ///<
+  short mPreSamples = 2;                ///< number of pre-samples readout before sample (if no pedestal subtrauction)
+  short mMCOverflow = 970;              ///< Overflow level for MC simulations: 1023-(pedestal~50)
+  float mTimeTick = 100.;               ///< ns to PHOS digitization step conversion
+  float mSampleTimeFitAccuracy = 1.e-3; //Abs accuracy of time fit of saturated samples (in 100ns tick units)
+  float mSampleAmpFitAccuracy = 1.e-2;  //Relative accuracy of amp. fit
+  short mNIterations = 5;               ///< maximal number of iterations in oveflow sample fit
 
   // bool  mSubtractPedestal = false ;    ///< subtract pedestals
   // bool  mCreateSampleQualityOutput = false ; ///< Create stream of sample quality

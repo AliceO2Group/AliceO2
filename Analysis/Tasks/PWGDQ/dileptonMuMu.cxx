@@ -20,7 +20,6 @@
 #include "PWGDQCore/AnalysisCut.h"
 #include "PWGDQCore/AnalysisCompositeCut.h"
 #include <TH1F.h>
-#include <TMath.h>
 #include <THashList.h>
 #include <TString.h>
 #include <iostream>
@@ -58,8 +57,8 @@ using MyEvents = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>;
 using MyEventsSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::EventCuts>;
 using MyEventsVtxCov = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>;
 using MyEventsVtxCovSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov, aod::EventCuts>;
-using MyMuonTracks = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended>;
-using MyMuonTracksSelected = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtended, aod::MuonTrackCuts>;
+using MyMuonTracks = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtra>;
+using MyMuonTracksSelected = soa::Join<aod::ReducedMuons, aod::ReducedMuonsExtra, aod::MuonTrackCuts>;
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses);
 
@@ -71,9 +70,9 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses);
 //        This is a temporary fix until the arrow/ROOT issues are solved, at which point it will be possible
 //           to automatically detect the object types transmitted to the VarManager
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::ReducedEvent | VarManager::ObjTypes::ReducedEventExtended;
-constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedTrackMuon;
+constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::ReducedTrack | VarManager::ObjTypes::ReducedMuon;
 
-struct EventSelection {
+struct DQEventSelection {
   Produces<aod::EventCuts> eventSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -126,7 +125,7 @@ struct EventSelection {
   }
 };
 
-struct MuonTrackSelection {
+struct DQMuonTrackSelection {
   Produces<aod::MuonTrackCuts> trackSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -346,14 +345,14 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
       histMan->AddHistogram(classStr.Data(), "Pz", "p_{z} distribution", false, 400, -20.0, 20.0, VarManager::kPz);
 
       if (classStr.Contains("Muon")) {
-        histMan->AddHistogram(classStr.Data(), "InvBendingMom", "", false, 100, 0.0, 1.0, VarManager::kMuonInvBendingMomentum);
+        /*histMan->AddHistogram(classStr.Data(), "InvBendingMom", "", false, 100, 0.0, 1.0, VarManager::kMuonInvBendingMomentum);
         histMan->AddHistogram(classStr.Data(), "ThetaX", "", false, 100, -1.0, 1.0, VarManager::kMuonThetaX);
         histMan->AddHistogram(classStr.Data(), "ThetaY", "", false, 100, -2.0, 2.0, VarManager::kMuonThetaY);
         histMan->AddHistogram(classStr.Data(), "ZMu", "", false, 100, -30.0, 30.0, VarManager::kMuonZMu);
         histMan->AddHistogram(classStr.Data(), "BendingCoor", "", false, 100, 0.32, 0.35, VarManager::kMuonBendingCoor);
         histMan->AddHistogram(classStr.Data(), "NonBendingCoor", "", false, 100, 0.065, 0.07, VarManager::kMuonNonBendingCoor);
         histMan->AddHistogram(classStr.Data(), "Chi2", "", false, 100, 0.0, 200.0, VarManager::kMuonChi2);
-        histMan->AddHistogram(classStr.Data(), "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);
+        histMan->AddHistogram(classStr.Data(), "Chi2MatchTrigger", "", false, 100, 0.0, 20.0, VarManager::kMuonChi2MatchTrigger);*/
         histMan->AddHistogram(classStr.Data(), "RAtAbsorberEnd", "", false, 140, 10, 150, VarManager::kMuonRAtAbsorberEnd);
         histMan->AddHistogram(classStr.Data(), "p x dca", "", false, 700, 0.0, 700, VarManager::kMuonRAtAbsorberEnd);
       }
@@ -373,7 +372,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelection>(cfgc, TaskName{"my-event-selection"}),
-    adaptAnalysisTask<MuonTrackSelection>(cfgc, TaskName{"muon-track-selection"}),
-    adaptAnalysisTask<DileptonMuMu>(cfgc, TaskName{"dilepton-mumu"})};
+    adaptAnalysisTask<DQEventSelection>(cfgc),
+    adaptAnalysisTask<DQMuonTrackSelection>(cfgc),
+    adaptAnalysisTask<DileptonMuMu>(cfgc)};
 }

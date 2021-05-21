@@ -334,4 +334,17 @@ struct InteractionTimeRecord : public InteractionRecord {
 };
 } // namespace o2
 
+namespace std
+{
+// defining std::hash for InteractionRecord to be used with std containers
+template <>
+struct hash<o2::InteractionRecord> {
+ public:
+  size_t operator()(const o2::InteractionRecord& ir) const
+  {
+    return ir.toLong();
+  }
+};
+} // namespace std
+
 #endif

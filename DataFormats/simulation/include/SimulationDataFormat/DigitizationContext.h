@@ -109,7 +109,7 @@ class DigitizationContext
   // helper functions to save and load a context
   void saveToFile(std::string_view filename) const;
 
-  static DigitizationContext const* loadFromFile(std::string_view filename);
+  static DigitizationContext const* loadFromFile(std::string_view filename = "collisioncontext.root");
 
  private:
   int mNofEntries = 0;
@@ -145,7 +145,7 @@ inline void DigitizationContext::retrieveHits(std::vector<TChain*> const& chains
 {
   auto br = chains[sourceID]->GetBranch(brname);
   if (!br) {
-    LOG(ERROR) << "No branch found";
+    LOG(ERROR) << "No branch found with name " << brname;
     return;
   }
   br->SetAddress(&hits);

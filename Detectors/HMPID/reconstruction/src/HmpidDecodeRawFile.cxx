@@ -17,6 +17,8 @@
 
 /* ------ HISTORY ---------
 */
+#include "FairLogger.h" // for LOG
+#include "Framework/Logger.h"
 
 #include "HMPIDReconstruction/HmpidDecodeRawFile.h"
 
@@ -58,13 +60,13 @@ bool HmpidDecodeRawFile::setUpStream(void* FileName, long Size)
   strcpy(mInputFile, (const char*)FileName);
   // files section ----
   if (!fileExists(mInputFile)) {
-    LOG(ERROR) << "The input file " << mInputFile << " does not exist at this time." << FairLogger::endl;
+    LOG(ERROR) << "The input file " << mInputFile << " does not exist at this time.";
     throw TH_FILENOTEXISTS;
   }
   // open the file
   fh = fopen(mInputFile, "rb");
   if (fh == 0) {
-    LOG(ERROR) << "ERROR to open Input file ! [" << mInputFile << "]" << FairLogger::endl;
+    LOG(ERROR) << "ERROR to open Input file ! [" << mInputFile << "]";
     throw TH_OPENFILE;
   }
 
@@ -95,7 +97,7 @@ bool HmpidDecodeRawFile::getBlockFromStream(uint32_t** streamPtr, uint32_t Size)
   }
   Size = ((mFileBuffer[2] & 0x0000FFFF) / sizeof(int32_t)) - HEADERDIMENSION_W;
   nr = fread(mFileBuffer + HEADERDIMENSION_W, sizeof(int32_t), Size, fh);
-  LOG(DEBUG) << " getBlockFromStream read " << nr << " of " << Size + HEADERDIMENSION_W << " words !" << FairLogger::endl;
+  LOG(DEBUG) << " getBlockFromStream read " << nr << " of " << Size + HEADERDIMENSION_W << " words !";
   if (nr != Size) {
     throw TH_WRONGFILELEN;
   }
@@ -152,3 +154,4 @@ int HmpidDecodeRawFile::fileExists(char* filewithpath)
     return (false);
   }
 }
+o2::hmpid::Digit

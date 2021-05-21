@@ -14,6 +14,7 @@
 #ifndef GPUITSTRACK_H
 #define GPUITSTRACK_H
 
+#include "GPUTPCGMMergerTypes.h"
 #include "GPUTPCGMTrackParam.h"
 
 namespace GPUCA_NAMESPACE::gpu
@@ -21,7 +22,7 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUITSTrack : public GPUTPCGMTrackParam
 {
  public:
-  GPUTPCGMTrackParam::GPUTPCOuterParam mOuterParam;
+  gputpcgmmergertypes::GPUTPCOuterParam mOuterParam;
   float mAlpha;
   int mClusters[7];
 };
