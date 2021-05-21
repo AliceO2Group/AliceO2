@@ -23,6 +23,10 @@
 #include "Steer/MCKinematicsReader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsMFT/TrackMFT.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
 
 #include <string>
 #include <vector>
@@ -193,12 +197,20 @@ class AODProducerWorkflowDPL : public Task
   void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::PrimaryVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
   uint64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
 
-  template <typename TTracks, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
-  void fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
-                       const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType);
-
-  template <typename TTracks, typename TTracksCursor>
-  void fillMFTTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor);
+  template <typename TMFTCursor, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
+  void fillTracksTable(gsl::span<const o2::its::TrackITS>& tracksITS,
+                       gsl::span<const o2::mft::TrackMFT>& tracksMFT,
+                       gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC,
+                       gsl::span<const o2::tpc::TrackTPC> tracksTPC,
+                       std::vector<int>& vCollRefsITS,
+                       std::vector<int>& vCollRefsMFT,
+                       std::vector<int>& vCollRefsTPC,
+                       std::vector<int>& vCollRefsTPCITS,
+                       std::vector<std::vector<int>>& vTracksIdx,
+                       const TMFTCursor& mftTracksCursor,
+                       const TTracksCursor& tracksCursor,
+                       const TTracksCovCursor& tracksCovCursor,
+                       const TTracksExtraCursor& tracksExtraCursor);
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,

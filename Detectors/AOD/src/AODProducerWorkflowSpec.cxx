@@ -121,119 +121,214 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(uint64_t firstVtxGlBC, int runNumbe
   return ts;
 };
 
-template <typename TTracks, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
-void AODProducerWorkflowDPL::fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
-                                             const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType)
+template <typename TMFTCursor, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
+void AODProducerWorkflowDPL::fillTracksTable(gsl::span<const o2::its::TrackITS>& tracksITS,
+                                             gsl::span<const o2::mft::TrackMFT>& tracksMFT,
+                                             gsl::span<const o2::dataformats::TrackTPCITS>& tracksITSTPC,
+                                             gsl::span<const o2::tpc::TrackTPC> tracksTPC,
+                                             std::vector<int>& vCollRefsITS,
+                                             std::vector<int>& vCollRefsMFT,
+                                             std::vector<int>& vCollRefsTPC,
+                                             std::vector<int>& vCollRefsTPCITS,
+                                             std::vector<std::vector<int>>& vTracksIdx,
+                                             const TMFTCursor& mftTracksCursor,
+                                             const TTracksCursor& tracksCursor,
+                                             const TTracksCovCursor& tracksCovCursor,
+                                             const TTracksExtraCursor& tracksExtraCursor)
 {
-  for (int i = 0; i < tracks.size(); i++) {
-    auto& track = tracks[i];
-    int collisionID = vCollRefs[i];
+  int collisionID;
+  int trackType;
+  float tpcInnerParam = 0.f;
+  uint32_t flags = 0;
+  uint8_t itsClusterMap = 0;
+  uint8_t tpcNClsFindable = 0;
+  int8_t tpcNClsFindableMinusFound = 0;
+  int8_t tpcNClsFindableMinusCrossedRows = 0;
+  uint8_t tpcNClsShared = 0;
+  uint8_t trdPattern = 0;
+  float itsChi2NCl = -999.f;
+  float tpcChi2NCl = -999.f;
+  float trdChi2 = -999.f;
+  float tofChi2 = -999.f;
+  float tpcSignal = -999.f;
+  float trdSignal = -999.f;
+  float tofSignal = -999.f;
+  float length = -999.f;
+  float tofExpMom = -999.f;
+  float trackEtaEMCAL = -999.f;
+  float trackPhiEMCAL = -999.f;
 
-    float tpcInnerParam = 0.f;
-    uint32_t flags = 0;
-    uint8_t itsClusterMap = 0;
-    uint8_t tpcNClsFindable = 0;
-    int8_t tpcNClsFindableMinusFound = 0;
-    int8_t tpcNClsFindableMinusCrossedRows = 0;
-    uint8_t tpcNClsShared = 0;
-    uint8_t trdPattern = 0;
-    float itsChi2NCl = -999.f;
-    float tpcChi2NCl = -999.f;
-    float trdChi2 = -999.f;
-    float tofChi2 = -999.f;
-    float tpcSignal = -999.f;
-    float trdSignal = -999.f;
-    float tofSignal = -999.f;
-    float length = -999.f;
-    float tofExpMom = -999.f;
-    float trackEtaEMCAL = -999.f;
-    float trackPhiEMCAL = -999.f;
-
-    // filling available columns for different track types
-    std::variant<o2::its::TrackITS, o2::tpc::TrackTPC, o2::dataformats::TrackTPCITS> tmp = track;
-    std::visit(
-      overloaded{
-        [&](o2::its::TrackITS itsTrack) {
-          itsClusterMap = itsTrack.getPattern();
-        },
-        [&](o2::tpc::TrackTPC tpcTrack) {
-          tpcChi2NCl = tpcTrack.getNClusters() ? tpcTrack.getChi2() / tpcTrack.getNClusters() : 0;
-          tpcSignal = tpcTrack.getdEdx().dEdxTotTPC;
-          tpcNClsFindable = tpcTrack.getNClusters();
-        },
-        [&](o2::dataformats::TrackTPCITS itsTpcTrack) {
-          LOG(DEBUG) << "TrackTPCITS: check";
-        }},
-      tmp);
-
-    // TODO:
-    // fill trackextra table
-    tracksCursor(0,
-                 collisionID,
-                 trackType,
-                 truncateFloatFraction(track.getX(), mTrackX),
-                 truncateFloatFraction(track.getAlpha(), mTrackAlpha),
-                 track.getY(),
-                 track.getZ(),
-                 truncateFloatFraction(track.getSnp(), mTrackSnp),
-                 truncateFloatFraction(track.getTgl(), mTrackTgl),
-                 truncateFloatFraction(track.getQ2Pt(), mTrack1Pt));
-    tracksCovCursor(0,
-                    truncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
-                    truncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
-                    truncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
-                    truncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
-                    truncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
-                    (Char_t)(128. * track.getSigmaZY() / track.getSigmaZ2() / track.getSigmaY2()),
-                    (Char_t)(128. * track.getSigmaSnpY() / track.getSigmaSnp2() / track.getSigmaY2()),
-                    (Char_t)(128. * track.getSigmaSnpZ() / track.getSigmaSnp2() / track.getSigmaZ2()),
-                    (Char_t)(128. * track.getSigmaTglY() / track.getSigmaTgl2() / track.getSigmaY2()),
-                    (Char_t)(128. * track.getSigmaTglZ() / track.getSigmaTgl2() / track.getSigmaZ2()),
-                    (Char_t)(128. * track.getSigmaTglSnp() / track.getSigmaTgl2() / track.getSigmaSnp2()),
-                    (Char_t)(128. * track.getSigma1PtY() / track.getSigma1Pt2() / track.getSigmaY2()),
-                    (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
-                    (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
-                    (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()));
-    tracksExtraCursor(0,
-                      truncateFloatFraction(tpcInnerParam, mTrack1Pt),
-                      flags,
-                      itsClusterMap,
-                      tpcNClsFindable,
-                      tpcNClsFindableMinusFound,
-                      tpcNClsFindableMinusCrossedRows,
-                      tpcNClsShared,
-                      trdPattern,
-                      truncateFloatFraction(itsChi2NCl, mTrackCovOffDiag),
-                      truncateFloatFraction(tpcChi2NCl, mTrackCovOffDiag),
-                      truncateFloatFraction(trdChi2, mTrackCovOffDiag),
-                      truncateFloatFraction(tofChi2, mTrackCovOffDiag),
-                      truncateFloatFraction(tpcSignal, mTrackSignal),
-                      truncateFloatFraction(trdSignal, mTrackSignal),
-                      truncateFloatFraction(tofSignal, mTrackSignal),
-                      truncateFloatFraction(length, mTrackSignal),
-                      truncateFloatFraction(tofExpMom, mTrack1Pt),
-                      truncateFloatFraction(trackEtaEMCAL, mTrackPosEMCAL),
-                      truncateFloatFraction(trackPhiEMCAL, mTrackPosEMCAL));
-  }
-}
-
-template <typename TTracks, typename TTracksCursor>
-void AODProducerWorkflowDPL::fillMFTTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& mftTracksCursor)
-{
-  for (int i = 0; i < tracks.size(); i++) {
-    auto& track = tracks[i];
-    int collisionID = vCollRefs[i];
-
-    mftTracksCursor(0,
-                    collisionID,
-                    track.getX(),
-                    track.getY(),
-                    track.getZ(),
-                    track.getPhi(),
-                    track.getTanl(),
-                    track.getInvQPt(),
-                    track.getNumberOfPoints(),
-                    track.getTrackChi2());
+  for (int i = 0; i < vTracksIdx.size(); i++) {
+    trackType = vTracksIdx[i][1];
+    if (trackType == GIndex::Source::MFT && mFillTracksMFT) {
+      auto& track = tracksMFT[vTracksIdx[i][0]];
+      collisionID = vCollRefsMFT[vTracksIdx[i][0]];
+      mftTracksCursor(0,
+                      collisionID,
+                      track.getX(),
+                      track.getY(),
+                      track.getZ(),
+                      track.getPhi(),
+                      track.getTanl(),
+                      track.getInvQPt(),
+                      track.getNumberOfPoints(),
+                      track.getTrackChi2());
+    } else if (mFillTracksITS || mFillTracksTPC || mFillTracksITSTPC) {
+      if (trackType == GIndex::Source::ITS) {
+        auto& track = tracksITS[vTracksIdx[i][0]];
+        collisionID = vCollRefsITS[vTracksIdx[i][0]];
+        itsClusterMap = track.getPattern();
+        tracksCursor(0,
+                     collisionID,
+                     trackType,
+                     truncateFloatFraction(track.getX(), mTrackX),
+                     truncateFloatFraction(track.getAlpha(), mTrackAlpha),
+                     track.getY(),
+                     track.getZ(),
+                     truncateFloatFraction(track.getSnp(), mTrackSnp),
+                     truncateFloatFraction(track.getTgl(), mTrackTgl),
+                     truncateFloatFraction(track.getQ2Pt(), mTrack1Pt));
+        tracksCovCursor(0,
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
+                        (Char_t)(128. * track.getSigmaZY() / track.getSigmaZ2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaSnpY() / track.getSigmaSnp2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaSnpZ() / track.getSigmaSnp2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigmaTglY() / track.getSigmaTgl2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaTglZ() / track.getSigmaTgl2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigmaTglSnp() / track.getSigmaTgl2() / track.getSigmaSnp2()),
+                        (Char_t)(128. * track.getSigma1PtY() / track.getSigma1Pt2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
+                        (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()));
+        tracksExtraCursor(0,
+                          truncateFloatFraction(tpcInnerParam, mTrack1Pt),
+                          flags,
+                          itsClusterMap,
+                          tpcNClsFindable,
+                          tpcNClsFindableMinusFound,
+                          tpcNClsFindableMinusCrossedRows,
+                          tpcNClsShared,
+                          trdPattern,
+                          truncateFloatFraction(itsChi2NCl, mTrackCovOffDiag),
+                          truncateFloatFraction(tpcChi2NCl, mTrackCovOffDiag),
+                          truncateFloatFraction(trdChi2, mTrackCovOffDiag),
+                          truncateFloatFraction(tofChi2, mTrackCovOffDiag),
+                          truncateFloatFraction(tpcSignal, mTrackSignal),
+                          truncateFloatFraction(trdSignal, mTrackSignal),
+                          truncateFloatFraction(tofSignal, mTrackSignal),
+                          truncateFloatFraction(length, mTrackSignal),
+                          truncateFloatFraction(tofExpMom, mTrack1Pt),
+                          truncateFloatFraction(trackEtaEMCAL, mTrackPosEMCAL),
+                          truncateFloatFraction(trackPhiEMCAL, mTrackPosEMCAL));
+      }
+      if (trackType == GIndex::Source::TPC) {
+        auto& track = tracksTPC[vTracksIdx[i][0]];
+        collisionID = vCollRefsTPC[vTracksIdx[i][0]];
+        tpcChi2NCl = track.getNClusters() ? track.getChi2() / track.getNClusters() : 0;
+        tpcSignal = track.getdEdx().dEdxTotTPC;
+        tpcNClsFindable = track.getNClusters();
+        tracksCursor(0,
+                     collisionID,
+                     trackType,
+                     truncateFloatFraction(track.getX(), mTrackX),
+                     truncateFloatFraction(track.getAlpha(), mTrackAlpha),
+                     track.getY(),
+                     track.getZ(),
+                     truncateFloatFraction(track.getSnp(), mTrackSnp),
+                     truncateFloatFraction(track.getTgl(), mTrackTgl),
+                     truncateFloatFraction(track.getQ2Pt(), mTrack1Pt));
+        tracksCovCursor(0,
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
+                        (Char_t)(128. * track.getSigmaZY() / track.getSigmaZ2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaSnpY() / track.getSigmaSnp2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaSnpZ() / track.getSigmaSnp2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigmaTglY() / track.getSigmaTgl2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaTglZ() / track.getSigmaTgl2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigmaTglSnp() / track.getSigmaTgl2() / track.getSigmaSnp2()),
+                        (Char_t)(128. * track.getSigma1PtY() / track.getSigma1Pt2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
+                        (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()));
+        tracksExtraCursor(0,
+                          truncateFloatFraction(tpcInnerParam, mTrack1Pt),
+                          flags,
+                          itsClusterMap,
+                          tpcNClsFindable,
+                          tpcNClsFindableMinusFound,
+                          tpcNClsFindableMinusCrossedRows,
+                          tpcNClsShared,
+                          trdPattern,
+                          truncateFloatFraction(itsChi2NCl, mTrackCovOffDiag),
+                          truncateFloatFraction(tpcChi2NCl, mTrackCovOffDiag),
+                          truncateFloatFraction(trdChi2, mTrackCovOffDiag),
+                          truncateFloatFraction(tofChi2, mTrackCovOffDiag),
+                          truncateFloatFraction(tpcSignal, mTrackSignal),
+                          truncateFloatFraction(trdSignal, mTrackSignal),
+                          truncateFloatFraction(tofSignal, mTrackSignal),
+                          truncateFloatFraction(length, mTrackSignal),
+                          truncateFloatFraction(tofExpMom, mTrack1Pt),
+                          truncateFloatFraction(trackEtaEMCAL, mTrackPosEMCAL),
+                          truncateFloatFraction(trackPhiEMCAL, mTrackPosEMCAL));
+      }
+      if (trackType == GIndex::Source::ITSTPC) {
+        auto& track = tracksITSTPC[vTracksIdx[i][0]];
+        collisionID = vCollRefsTPCITS[vTracksIdx[i][0]];
+        tracksCursor(0,
+                     collisionID,
+                     trackType,
+                     truncateFloatFraction(track.getX(), mTrackX),
+                     truncateFloatFraction(track.getAlpha(), mTrackAlpha),
+                     track.getY(),
+                     track.getZ(),
+                     truncateFloatFraction(track.getSnp(), mTrackSnp),
+                     truncateFloatFraction(track.getTgl(), mTrackTgl),
+                     truncateFloatFraction(track.getQ2Pt(), mTrack1Pt));
+        tracksCovCursor(0,
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
+                        truncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
+                        (Char_t)(128. * track.getSigmaZY() / track.getSigmaZ2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaSnpY() / track.getSigmaSnp2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaSnpZ() / track.getSigmaSnp2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigmaTglY() / track.getSigmaTgl2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigmaTglZ() / track.getSigmaTgl2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigmaTglSnp() / track.getSigmaTgl2() / track.getSigmaSnp2()),
+                        (Char_t)(128. * track.getSigma1PtY() / track.getSigma1Pt2() / track.getSigmaY2()),
+                        (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
+                        (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
+                        (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()));
+        tracksExtraCursor(0,
+                          truncateFloatFraction(tpcInnerParam, mTrack1Pt),
+                          flags,
+                          itsClusterMap,
+                          tpcNClsFindable,
+                          tpcNClsFindableMinusFound,
+                          tpcNClsFindableMinusCrossedRows,
+                          tpcNClsShared,
+                          trdPattern,
+                          truncateFloatFraction(itsChi2NCl, mTrackCovOffDiag),
+                          truncateFloatFraction(tpcChi2NCl, mTrackCovOffDiag),
+                          truncateFloatFraction(trdChi2, mTrackCovOffDiag),
+                          truncateFloatFraction(tofChi2, mTrackCovOffDiag),
+                          truncateFloatFraction(tpcSignal, mTrackSignal),
+                          truncateFloatFraction(trdSignal, mTrackSignal),
+                          truncateFloatFraction(tofSignal, mTrackSignal),
+                          truncateFloatFraction(length, mTrackSignal),
+                          truncateFloatFraction(tofExpMom, mTrack1Pt),
+                          truncateFloatFraction(trackEtaEMCAL, mTrackPosEMCAL),
+                          truncateFloatFraction(trackPhiEMCAL, mTrackPosEMCAL));
+      }
+    }
   }
 }
 
@@ -835,6 +930,55 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   // filling tracks tables and track label table
 
+  std::vector<std::vector<int>> vTracksIdx;
+  int nCollisions = primVertices.size();
+  for (int iCollision = -1; iCollision < nCollisions; iCollision++) {
+    auto prevItem = vCollRefsITS.begin();
+    auto item = std::find(prevItem, vCollRefsITS.end(), iCollision);
+    while (item != vCollRefsITS.end()) {
+      int idx = item - vCollRefsITS.begin();
+      vTracksIdx.push_back({idx, GIndex::Source::ITS});
+      prevItem = item;
+      item = std::find(prevItem + 1, vCollRefsITS.end(), iCollision);
+    }
+    prevItem = vCollRefsMFT.begin();
+    item = std::find(prevItem, vCollRefsMFT.end(), iCollision);
+    while (item != vCollRefsMFT.end()) {
+      int idx = item - vCollRefsMFT.begin();
+      vTracksIdx.push_back({idx, GIndex::Source::MFT});
+      prevItem = item;
+      item = std::find(prevItem + 1, vCollRefsMFT.end(), iCollision);
+    }
+    prevItem = vCollRefsTPC.begin();
+    item = std::find(prevItem, vCollRefsTPC.end(), iCollision);
+    while (item != vCollRefsTPC.end()) {
+      int idx = item - vCollRefsTPC.begin();
+      vTracksIdx.push_back({idx, GIndex::Source::TPC});
+      prevItem = item;
+      item = std::find(prevItem + 1, vCollRefsTPC.end(), iCollision);
+    }
+    prevItem = vCollRefsTPCITS.begin();
+    item = std::find(prevItem, vCollRefsTPCITS.end(), iCollision);
+    while (item != vCollRefsTPCITS.end()) {
+      int idx = item - vCollRefsTPCITS.begin();
+      vTracksIdx.push_back({idx, GIndex::Source::ITSTPC});
+      prevItem = item;
+      item = std::find(prevItem + 1, vCollRefsTPCITS.end(), iCollision);
+    }
+  }
+
+  LOG(DEBUG) << "vTracksIdx.size() = " << vTracksIdx.size();
+
+  fillTracksTable(tracksITS, tracksMFT, tracksITSTPC, tracksTPC,
+                  vCollRefsITS, vCollRefsMFT, vCollRefsTPC, vCollRefsTPCITS,
+                  vTracksIdx, mftTracksCursor, tracksCursor, tracksCovCursor, tracksExtraCursor);
+
+  vTracksIdx.clear();
+  vCollRefsITS.clear();
+  vCollRefsMFT.clear();
+  vCollRefsTPC.clear();
+  vCollRefsTPCITS.clear();
+
   // labelMask (temporary) usage:
   //   bit 13 -- ITS and TPC labels are not equal
   //   bit 14 -- isNoise() == true
@@ -847,7 +991,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint16_t labelMask;
 
   if (mFillTracksITS) {
-    fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, tracksCovCursor, tracksExtraCursor, GIndex::Source::ITS);
     for (auto& mcTruthITS : tracksITSMCTruth) {
       labelID = std::numeric_limits<uint32_t>::max();
       // TODO: fill label mask
@@ -868,7 +1011,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksMFT) {
-    fillMFTTracksTable(tracksMFT, vCollRefsMFT, mftTracksCursor);
     for (auto& mcTruthMFT : tracksMFTMCTruth) {
       labelID = std::numeric_limits<uint32_t>::max();
       // TODO: fill label mask
@@ -889,7 +1031,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksTPC) {
-    fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, tracksCovCursor, tracksExtraCursor, GIndex::Source::TPC);
     for (auto& mcTruthTPC : tracksTPCMCTruth) {
       labelID = std::numeric_limits<uint32_t>::max();
       // TODO: fill label mask
@@ -910,7 +1051,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksITSTPC) {
-    fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, tracksCovCursor, tracksExtraCursor, GIndex::Source::ITSTPC);
     for (int i = 0; i < tracksITSTPC.size(); i++) {
       const auto& trc = tracksITSTPC[i];
       auto mcTruthITS = tracksITSMCTruth[trc.getRefITS()];
