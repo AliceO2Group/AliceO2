@@ -750,6 +750,14 @@ void spawnDevice(std::string const& forwardedStdin,
     perror("Unable to install signal handler");
     exit(1);
   }
+  struct sigaction sa_handle_term;
+  sa_handle_term.sa_handler = handle_sigint;
+  sigemptyset(&sa_handle_term.sa_mask);
+  sa_handle_term.sa_flags = SA_RESTART;
+  if (sigaction(SIGTERM, &sa_handle_int, nullptr) == -1) {
+    perror("Unable to install signal handler");
+    exit(1);
+  }
 
   LOG(INFO) << "Starting " << spec.id << " on pid " << id;
   DeviceInfo info;
