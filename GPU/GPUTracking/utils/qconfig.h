@@ -263,7 +263,7 @@ enum qConfigRetVal { qcrOK = 0,
   }
 #define BeginNamespace(name) out << "namespace " << qon_mxstr(name) << " {\n";
 #define EndNamespace() out << "}\n";
-#define AddSubConfig(name, instance)
+#define AddSubConfig(name, instance) out << qon_mxstr(name) << " " << qon_mxstr(instance) << ";";
 #define AddOptionSet(...)
 
 // End QCONFIG_PRINT_RTC

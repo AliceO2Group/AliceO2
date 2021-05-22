@@ -34,7 +34,7 @@ BeginNamespace(gpu)
 
 // Settings concerning the reconstruction
 // There must be no bool in here, use char, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
-BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "REC", 0, "Reconstruction settings", rec_tpc)
+BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
 AddOptionRTC(rejectQPt, float, 1.f / 0.05f, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt!!!)")
 AddOptionRTC(hitPickUpFactor, float, 2., "", 0, "multiplier for the chi2 window for hit pick up procedure")
 AddOptionRTC(neighboursSearchArea, float, 3., "", 0, "area in cm for the search of neighbours")
@@ -78,7 +78,7 @@ AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary 
 AddHelp("help", 'h')
 EndConfig()
 
-BeginSubConfig(GPUSettingsRecTRD, trd, configStandalone.rec, "REC", 0, "Reconstruction settings", rec_trd)
+BeginSubConfig(GPUSettingsRecTRD, trd, configStandalone.rec, "RECTRD", 0, "Reconstruction settings", rec_trd)
 AddOptionRTC(minTrackPt, float, .5f, "", 0, "Min Pt for tracks to be propagated through the TRD")
 AddOptionRTC(maxChi2, float, 15.f, "", 0, "Max chi2 for TRD tracklets to be matched to a track")
 AddOptionRTC(penaltyChi2, float, 12.f, "", 0, "Chi2 penalty for no available TRD tracklet (effective chi2 cut value)")
@@ -102,6 +102,14 @@ AddHelp("help", 'h')
 EndConfig()
 
 // Settings steering the processing once the device was selected
+BeginSubConfig(GPUSettingsProcessingRTC, rtc, configStandalone.proc, "RTC", 0, "Processing settings", proc_rtc)
+AddOption(cacheOutput, bool, false, "", 0, "Cache RTC compilation results")
+AddOption(optConstexpr, bool, true, "", 0, "Replace constant variables by static constexpr expressions")
+AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
+AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
+AddHelp("help", 'h')
+EndConfig()
+
 BeginSubConfig(GPUSettingsProcessing, proc, configStandalone, "PROC", 0, "Processing settings", proc)
 AddOption(platformNum, int, -1, "", 0, "Platform to use, in case the backend provides multiple platforms (-1 = auto-select)")
 AddOption(deviceNum, int, -1, "gpuDevice", 0, "Set GPU device to use (-1: automatic, -2: for round-robin usage in timeslice-pipeline)")
@@ -146,16 +154,13 @@ AddOption(tpccfGatherKernel, bool, true, "", 0, "Use a kernel instead of the DMA
 AddOption(doublePipeline, bool, false, "", 0, "Double pipeline mode")
 AddOption(doublePipelineClusterizer, bool, true, "", 0, "Include the input data of the clusterizer in the double-pipeline")
 AddOption(prefetchTPCpageScan, char, 0, "", 0, "Prefetch Data for TPC page scan in CPU cache")
-AddOption(enableRTC, bool, false, "", 0, "Use RTC to optimize GPU code")
-AddOption(cacheRTC, bool, false, "", 0, "Cache RTC compilation results")
-AddOption(rtcConstexpr, bool, true, "", 0, "Replace constant variables by static constexpr expressions")
-AddOption(rtcCompilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(runMC, bool, false, "", 0, "Process MC labels")
 AddOption(runQA, int, 0, "qa", 'q', "Enable tracking QA (negative number to provide bitmask for QA tasks)", message("Running QA: %s"), def(1))
 AddOption(outputSharedClusterMap, bool, false, "", 0, "Ship optional shared cluster map as output for further use")
 AddOption(createO2Output, char, 2, "", 0, "Create Track output in O2 format (2 = skip non-O2 output in GPU track format (reverts to =1 if QA is requested))")
 AddOption(clearO2OutputFromGPU, bool, false, "", 0, "Free the GPU memory used for O2 output after copying to host, prevents further O2 processing on the GPU")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
+AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
 EndConfig()
 
