@@ -24,6 +24,7 @@
 #include "TGeoManager.h"                      // for gGeoManager, TGeoManager (ptr only)
 #include "TLorentzVector.h"                   // for TLorentzVector
 #include "TVector3.h"                         // for TVector3
+#include "FT3Base/FT3BaseParam.h"
 
 class FairVolume;
 class TGeoVolume;
@@ -110,8 +111,9 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return mNumberOfLayers; }
 
-  void buildBasicFT3(int nLayers = 10, Float_t z_first = -16.0, Float_t z_length = 263, Float_t etaIn = -4.5, Float_t etaOut = -1.5, Float_t Layerx2X0 = 0.01);
+  void buildBasicFT3(const FT3BaseParam& param);
   void buildFT3V1();
+  void buildFT3FromFile(std::string);
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
