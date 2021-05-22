@@ -280,7 +280,7 @@ struct BcSelectionTaskRun3 {
     uint32_t spdClusters = 0;
 
     int64_t foundFT0 = bc.has_ft0() ? bc.ft0().globalIndex() : -1;
-    printf("foundFT0=%lld\n", foundFT0);
+    LOGP(INFO, "foundFT0={}\n", foundFT0);
     // Fill bc selection columns
     bcsel(alias, selection,
           bbV0A, bbV0C, bgV0A, bgV0C,
@@ -466,7 +466,7 @@ struct EventSelectionTaskRun3 {
         bc.moveByIndex(-backwardMoveCount + forwardMoveCount); // move forward
       }
     }
-    printf("%i\n", bc.foundFT0());
+    LOGP(INFO, "{}", bc.foundFT0());
 
     // copy alias decisions from bcsel table
     int32_t alias[kNaliases];
