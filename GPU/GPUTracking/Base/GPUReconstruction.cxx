@@ -287,8 +287,8 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!mProcessingSettings.trackletConstructorInPipeline) {
     mProcessingSettings.trackletSelectorInPipeline = false;
   }
-  if (!mProcessingSettings.enableRTC) {
-    mProcessingSettings.rtcConstexpr = false;
+  if (!mProcessingSettings.rtc.enable) {
+    mProcessingSettings.rtc.optConstexpr = false;
   }
 
   mMemoryScalers->factor = mProcessingSettings.memoryScalingFactor;
