@@ -117,7 +117,7 @@ template <class T, int I, typename... Args>
 void GPUReconstructionCUDABackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
   GPUDebugTiming timer(mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0, (void**)mDebugEvents, mInternals->Streams, _xyz);
-  if (mProcessingSettings.enableRTC) {
+  if (mProcessingSettings.rtc.enable) {
     auto& x = _xyz.x;
     auto& y = _xyz.y;
     const void* pArgs[sizeof...(Args) + 3]; // 3 is max: cons mem + y.start + y.num

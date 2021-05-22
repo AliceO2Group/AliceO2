@@ -313,19 +313,19 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
             (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
 #ifndef GPUCA_ALIROOT_LIB
-    if (mProcessingSettings.enableRTC) {
+    if (mProcessingSettings.rtc.enable) {
       if (genRTC()) {
         throw std::runtime_error("Runtime compilation failed");
       }
     }
 #endif
     void* devPtrConstantMem;
-    if (mProcessingSettings.enableRTC) {
+    if (mProcessingSettings.rtc.enable) {
       mDeviceConstantMemRTC.resize(mInternals->rtcModules.size());
     }
 #ifndef GPUCA_NO_CONSTANT_MEMORY
     devPtrConstantMem = GetBackendConstSymbolAddress();
-    if (mProcessingSettings.enableRTC) {
+    if (mProcessingSettings.rtc.enable) {
       for (unsigned int i = 0; i < mDeviceConstantMemRTC.size(); i++) {
         GPUFailedMsg(cuModuleGetGlobal((CUdeviceptr*)&mDeviceConstantMemRTC[i], nullptr, *mInternals->rtcModules[i], "gGPUConstantMemBuffer"));
       }
