@@ -60,7 +60,7 @@ class CTFCoderBase
   void createCoder(OpType op, const o2::rans::FrequencyTable& freq, uint8_t probabilityBits, int slot)
   {
     if (!freq.size()) {
-      LOG(WARNING) << "Empty dictionary for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
+      LOG(WARNING) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
     }
 
     switch (op) {
