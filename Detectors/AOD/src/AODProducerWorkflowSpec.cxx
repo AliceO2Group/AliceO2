@@ -136,29 +136,28 @@ void AODProducerWorkflowDPL::fillTracksTable(gsl::span<const o2::its::TrackITS>&
                                              const TTracksCovCursor& tracksCovCursor,
                                              const TTracksExtraCursor& tracksExtraCursor)
 {
-  int collisionID;
-  int trackType;
-  float tpcInnerParam = 0.f;
-  uint32_t flags = 0;
-  uint8_t itsClusterMap = 0;
-  uint8_t tpcNClsFindable = 0;
-  int8_t tpcNClsFindableMinusFound = 0;
-  int8_t tpcNClsFindableMinusCrossedRows = 0;
-  uint8_t tpcNClsShared = 0;
-  uint8_t trdPattern = 0;
-  float itsChi2NCl = -999.f;
-  float tpcChi2NCl = -999.f;
-  float trdChi2 = -999.f;
-  float tofChi2 = -999.f;
-  float tpcSignal = -999.f;
-  float trdSignal = -999.f;
-  float tofSignal = -999.f;
-  float length = -999.f;
-  float tofExpMom = -999.f;
-  float trackEtaEMCAL = -999.f;
-  float trackPhiEMCAL = -999.f;
-
   for (int i = 0; i < vTracksIdx.size(); i++) {
+    int collisionID;
+    int trackType;
+    float tpcInnerParam = 0.f;
+    uint32_t flags = 0;
+    uint8_t itsClusterMap = 0;
+    uint8_t tpcNClsFindable = 0;
+    int8_t tpcNClsFindableMinusFound = 0;
+    int8_t tpcNClsFindableMinusCrossedRows = 0;
+    uint8_t tpcNClsShared = 0;
+    uint8_t trdPattern = 0;
+    float itsChi2NCl = -999.f;
+    float tpcChi2NCl = -999.f;
+    float trdChi2 = -999.f;
+    float tofChi2 = -999.f;
+    float tpcSignal = -999.f;
+    float trdSignal = -999.f;
+    float tofSignal = -999.f;
+    float length = -999.f;
+    float tofExpMom = -999.f;
+    float trackEtaEMCAL = -999.f;
+    float trackPhiEMCAL = -999.f;
     trackType = vTracksIdx[i][1];
     if (trackType == GIndex::Source::MFT && mFillTracksMFT) {
       auto& track = tracksMFT[vTracksIdx[i][0]];
@@ -868,7 +867,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       int start = trackRef.getFirstEntryOfSource(src);
       int ntracks = trackRef.getEntriesOfSource(src);
       LOG(DEBUG) << " ====> Collision " << collisionID << " ; src = " << src << " : ntracks = " << ntracks;
-
       // FIXME: `track<-->vertex` ambiguity is not accounted for in this code
       for (int ti = 0; ti < ntracks; ti++) {
         auto trackIndex = primVerGIs[start + ti];
