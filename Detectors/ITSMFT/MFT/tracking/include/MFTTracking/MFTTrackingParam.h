@@ -25,14 +25,15 @@ namespace mft
 enum MFTTrackModel {
   Helix,
   Quadratic,
-  Linear
+  Linear,
+  Optimized
 };
 
 // **
 // ** Parameters for MFT tracking configuration
 // **
 struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingParam> {
-  Int_t trackmodel = MFTTrackModel::Helix;
+  Int_t trackmodel = MFTTrackModel::Optimized;
   double MFTRadLength = 1.0; // MFT average material budget within acceptance. Should be 0.041
   bool verbose = false;
 

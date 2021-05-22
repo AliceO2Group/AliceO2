@@ -136,69 +136,20 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
 
   if (mVerbose) {
     std::cout << " Init " << (track.isCA() ? "CA Track " : "LTF Track") << std::endl;
-    auto model = (mTrackModel == Helix) ? "Helix" : (mTrackModel == Quadratic) ? "Quadratic" : "Linear";
+    auto model = (mTrackModel == Helix) ? "Helix" : (mTrackModel == Quadratic) ? "Quadratic"
+                                                  : (mTrackModel == Optimized) ? "Optimized"
+                                                                               : "Linear";
     std::cout << "Track Model: " << model << std::endl;
     std::cout << "  initTrack: X = " << x0 << " Y = " << y0 << " Z = " << z0 << " Tgl = " << tanl0 << "  Phi = " << phi0 << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
     std::cout << " Variances: sigma2_x0 = " << TMath::Sqrt(sigmax0sq) << " sigma2_y0 = " << TMath::Sqrt(sigmay0sq) << " sigma2_q/pt = " << TMath::Sqrt(sigmainvQPtsq) << std::endl;
   }
 
-  auto deltaR2 = deltaR * deltaR;
-  auto deltaR3 = deltaR2 * deltaR;
-  auto deltaR4 = deltaR2 * deltaR2;
-  auto k2 = k * k;
-  auto A = TMath::Sqrt(track.getInvQPt() * track.getInvQPt() * deltaR2 * k2 + 1);
-  auto A2 = A * A;
-  auto B = A + 1.0;
-  auto B2 = B * B;
-  auto B3 = B * B * B;
-  auto B12 = TMath::Sqrt(B);
-  auto B32 = B * B12;
-  auto B52 = B * B32;
-  auto C = invQPt0 * k;
-  auto C2 = C * C;
-  auto C3 = C * C2;
-  auto D = 1.0 / (A2 * B2 * B2 * deltaR4);
-  auto E = D * deltaZ / (B * deltaR);
-  auto F = deltaR * deltaX * C3 * Hz / (A * B32);
-  auto G = 0.5 * TMath::Sqrt2() * A * B32 * C * Hz * deltaR;
-  auto Gx = G * deltaX;
-  auto Gy = G * deltaY;
-  auto H = -0.25 * TMath::Sqrt2() * B12 * C3 * Hz * deltaR3;
-  auto Hx = H * deltaX;
-  auto Hy = H * deltaY;
-  auto I = A * B2;
-  auto Ix = I * deltaX;
-  auto Iy = I * deltaY;
-  auto J = 2 * B * deltaR3 * deltaR3 * k2;
-  auto K = 0.5 * A * B - 0.25 * C2 * deltaR2;
-  auto L0 = Gx + Hx + Iy;
-  auto M0 = -Gy - Hy + Ix;
-  auto N = -0.5 * B3 * C * Hz * deltaR3 * deltaR4 * k2;
-  auto O = 0.125 * C2 * deltaR4 * deltaR4 * k2;
-  auto P = -K * k * Hz * deltaR / A;
-  auto Q = deltaZ * deltaZ / (A2 * B * deltaR3 * deltaR3);
-  auto R = 0.25 * C * deltaZ * TMath::Sqrt2() * deltaR * k / (A * B12);
-
-  SMatrix55 lastParamCov;
-  lastParamCov(0, 0) = sigmax0sq; // <X,X>
-  lastParamCov(0, 1) = 0;         // <Y,X>
-  lastParamCov(0, 2) = 0;         // <PHI,X>
-  lastParamCov(0, 3) = 0;         // <TANL,X>
-  lastParamCov(0, 4) = 0;         // <INVQPT,X>
-
-  lastParamCov(1, 1) = sigmay0sq; // <Y,Y>
-  lastParamCov(1, 2) = 0;         // <PHI,Y>
-  lastParamCov(1, 3) = 0;         // <TANL,Y>
-  lastParamCov(1, 4) = 0;         // <INVQPT,Y>
-
-  lastParamCov(2, 2) = D * (J * K * K * sigmainvQPtsq + L0 * L0 * sigmaDeltaXsq + M0 * M0 * sigmaDeltaYsq);                              // <PHI,PHI>
-  lastParamCov(2, 3) = E * K * (TMath::Sqrt2() * B52 * (L0 * deltaX * sigmaDeltaXsq - deltaY * sigmaDeltaYsq * M0) + N * sigmainvQPtsq); //  <TANL,PHI>
-  lastParamCov(2, 4) = P * sigmainvQPtsq * TMath::Sqrt2() / B32;                                                                         //  <INVQPT,PHI>
-
-  lastParamCov(3, 3) = Q * (2 * K * K * (deltaX * deltaX * sigmaDeltaXsq + deltaY * deltaY * sigmaDeltaYsq) + O * sigmainvQPtsq); // <TANL,TANL>
-  lastParamCov(3, 4) = R * sigmainvQPtsq;                                                                                         // <INVQPT,TANL>
-
-  lastParamCov(4, 4) = sigmainvQPtsq; // <INVQPT,INVQPT>
+  SMatrix55Sym lastParamCov;
+  lastParamCov(0, 0) = 1;                       // <X,X>
+  lastParamCov(1, 1) = 1;                       // <Y,X>
+  lastParamCov(2, 2) = 1;                       // <PHI,X>
+  lastParamCov(3, 3) = 1;                       // <TANL,X>
+  lastParamCov(4, 4) = 1.0 * invQPt0 * invQPt0; // <INVQPT,X>
 
   track.setCovariances(lastParamCov);
   track.setTrackChi2(0.);
@@ -220,11 +171,6 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
   const auto& sigmaX2 = track.getSigmasX2()[cluster];
   const auto& sigmaY2 = track.getSigmasY2()[cluster];
 
-  if (track.getZ() == clz) {
-    LOG(INFO) << "AddCluster ERROR: The new cluster must be upstream! Bug on TrackFinder. " << (track.isCA() ? " CATrack" : "LTFTrack");
-    LOG(INFO) << "track.getZ() = " << track.getZ() << " ; newClusterZ = " << clz << " ==> Skipping point.";
-    return true;
-  }
   if (mVerbose) {
     std::cout << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << std::endl;
   }
@@ -264,6 +210,11 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
 
   if ((NDisksMS * MFTDiskThicknessInX0) != 0) {
     track.addMCSEffect(-1, NDisksMS * MFTDiskThicknessInX0);
+    if (mVerbose) {
+      std::cout << "Track covariances after MCS effects: \n"
+                << track.getCovariances() << std::endl
+                << std::endl;
+    }
   }
 
   if (mVerbose) {
@@ -281,6 +232,9 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
     case Helix:
       track.propagateToZhelix(clz, mBZField);
       break;
+    case Optimized:
+      track.propagateToZ(clz, mBZField);
+      break;
     default:
       std::cout << " Invalid track model.\n";
       return false;
@@ -289,6 +243,9 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
 
   if (mVerbose) {
     std::cout << "   AfterExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
+    std::cout << "Track covariances after extrap: \n"
+              << track.getCovariances() << std::endl
+              << std::endl;
   }
 
   // recompute parameters
@@ -300,8 +257,9 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
       std::cout << "   New Cluster: X = " << clx << " Y = " << cly << " Z = " << clz << std::endl;
       std::cout << "   AfterKalman: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
       std::cout << std::endl;
-      // Outputs track covariance matrix:
-      // param.getCovariances().Print();
+      std::cout << "Track covariances after Kalman update: \n"
+                << track.getCovariances() << std::endl
+                << std::endl;
     }
     return true;
   }

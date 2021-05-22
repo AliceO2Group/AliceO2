@@ -19,7 +19,7 @@ namespace track
 using namespace std;
 
 //_________________________________________________________________________
-TrackParCovFwd::TrackParCovFwd(const Double_t z, const SMatrix5 parameters, const SMatrix55 covariances, const Double_t chi2)
+TrackParCovFwd::TrackParCovFwd(const Double_t z, const SMatrix5 parameters, const SMatrix55Sym covariances, const Double_t chi2)
 {
   setZ(z);
   setParameters(parameters);
@@ -67,7 +67,7 @@ void TrackParCovFwd::propagateToZlinear(double zEnd)
   setZ(zEnd);
 
   // Calculate Jacobian
-  SMatrix55 jacob = ROOT::Math::SMatrixIdentity();
+  SMatrix55Std jacob = ROOT::Math::SMatrixIdentity();
   jacob(0, 2) = -n * sinphi0;
   jacob(0, 3) = -m * cosphi0;
   jacob(1, 2) = n * cosphi0;
@@ -132,7 +132,7 @@ void TrackParCovFwd::propagateToZquadratic(double zEnd, double zField)
   mZ = zEnd;
 
   // Calculate Jacobian
-  SMatrix55 jacob = ROOT::Math::SMatrixIdentity();
+  SMatrix55Std jacob = ROOT::Math::SMatrixIdentity();
   jacob(0, 2) = -n * theta * 0.5 * Hz * cosphi0 - n * sinphi0;
   jacob(0, 3) = Hz * m * theta * sinphi0 - m * cosphi0;
   jacob(0, 4) = k * m * 0.5 * Hz * dZ * sinphi0;
@@ -227,13 +227,62 @@ void TrackParCovFwd::propagateToZhelix(double zEnd, double zField)
   mZ = zEnd;
 
   // Calculate Jacobian
-  SMatrix55 jacob = ROOT::Math::SMatrixIdentity();
+  SMatrix55Std jacob = ROOT::Math::SMatrixIdentity();
   jacob(0, 2) = Hz * X - Hz * XC + YS;
   jacob(0, 3) = Hz * R * m - S * m;
   jacob(0, 4) = -Hz * N * R + Hz * T * Y - Hz * V * Y + N * S + U * X;
   jacob(1, 2) = Hz * Y - Hz * YC - XS;
   jacob(1, 3) = -Hz * O * m - P * m;
   jacob(1, 4) = Hz * N * O - Hz * T * X + Hz * V * X + N * P + U * Y;
+  jacob(2, 3) = -Hz * theta * invtanl0;
+  jacob(2, 4) = -Hz * k * n;
+
+  // Extrapolate track parameter covariances to "zEnd"
+  setCovariances(ROOT::Math::Similarity(jacob, mCovariances));
+}
+
+//__________________________________________________________________________
+void TrackParCovFwd::propagateToZ(double zEnd, double zField)
+{
+  // Extrapolate track parameters and covariances matrix to "zEnd"
+  // Parameters: helix track model; Error propagation: Quadratic
+
+  auto dZ = (zEnd - getZ());
+  auto phi0 = getPhi();
+  auto tanl0 = getTanl();
+  auto invtanl0 = 1.0 / tanl0;
+  auto invqpt0 = getInvQPt();
+  auto qpt0 = 1.0 / invqpt0;
+  auto [sinphi0, cosphi0] = o2::math_utils::sincosd(phi0);
+  auto k = TMath::Abs(o2::constants::math::B2C * zField);
+  auto invk = 1.0 / k;
+  auto theta = -invqpt0 * dZ * k * invtanl0;
+  auto [sintheta, costheta] = o2::math_utils::sincosd(theta);
+  auto Hz = std::copysign(1, zField);
+  auto Y = sinphi0 * qpt0 * invk;
+  auto X = cosphi0 * qpt0 * invk;
+  auto YC = Y * costheta;
+  auto YS = Y * sintheta;
+  auto XC = X * costheta;
+  auto XS = X * sintheta;
+  auto n = dZ * invtanl0;
+  auto m = n * invtanl0;
+
+  // Extrapolate track parameters to "zEnd"
+  // Helix
+  mParameters(0) += Hz * (Y - YC) - XS;
+  mParameters(1) += Hz * (-X + XC) - YS;
+  mParameters(2) += Hz * theta;
+  mZ = zEnd;
+
+  // Jacobian (quadratic)
+  SMatrix55Std jacob = ROOT::Math::SMatrixIdentity();
+  jacob(0, 2) = -n * theta * 0.5 * Hz * cosphi0 - n * sinphi0;
+  jacob(0, 3) = Hz * m * theta * sinphi0 - m * cosphi0;
+  jacob(0, 4) = k * m * 0.5 * Hz * dZ * sinphi0;
+  jacob(1, 2) = -n * theta * 0.5 * Hz * sinphi0 + n * cosphi0;
+  jacob(1, 3) = -Hz * m * theta * cosphi0 - m * sinphi0;
+  jacob(1, 4) = -k * m * 0.5 * Hz * dZ * cosphi0;
   jacob(2, 3) = -Hz * theta * invtanl0;
   jacob(2, 4) = -Hz * k * n;
 
@@ -251,9 +300,8 @@ bool TrackParCovFwd::update(const std::array<float, 2>& p, const std::array<floa
   using SMatrix22 = ROOT::Math::SMatrix<double, 2>;
   using SMatrix25 = ROOT::Math::SMatrix<double, 2, 5>;
   using SMatrix52 = ROOT::Math::SMatrix<double, 5, 2>;
-  using SMatrix55Std = ROOT::Math::SMatrix<double, 5>;
 
-  SMatrix55 I = ROOT::Math::SMatrixIdentity();
+  SMatrix55Sym I = ROOT::Math::SMatrixIdentity();
   SMatrix25 H_k;
   SMatrix22 V_k;
   SVector2 m_k(p[0], p[1]), r_k_kminus1;
@@ -322,7 +370,7 @@ void TrackParCovFwd::addMCSEffect(double dZ, double x_over_X0)
   sigmathetasq *= sigmathetasq * pathLengthOverX0;
 
   // Get covariance matrix
-  SMatrix55 newParamCov(getCovariances());
+  SMatrix55Sym newParamCov(getCovariances());
 
   if (dZ > 0) {
     auto A = tanl0 * tanl0 + 1;

@@ -33,7 +33,7 @@ namespace mft
 class TrackFitter
 {
 
-  using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+  using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
   using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
  public:
@@ -62,7 +62,7 @@ class TrackFitter
   bool mFieldON = true;
   Float_t mBZField; // kiloGauss.
   Float_t mMFTRadLength = 0.1;
-  Int_t mTrackModel = MFTTrackModel::Helix;
+  Int_t mTrackModel = MFTTrackModel::Optimized;
 
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
   /// default layer thickness in X0 for reconstruction  //FIXME: set values for the MFT
