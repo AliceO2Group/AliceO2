@@ -1,5 +1,5 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include <GPUBenchmark/GPUbenchmark.h>
+#include <GPUBenchmark/Steer/Kernels/Kernels.h>
 #endif
 
 void runGPUbenchmark()

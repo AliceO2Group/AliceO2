@@ -8,22 +8,24 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-set(HDRS_INSTALL ../GPUbenchmark.h)
+set(HDRS_INSTALL ../Kernels.h)
 
 set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
+ 
 # Hipify-perl
 set(HIPIFY_EXECUTABLE "/opt/rocm/bin/hipify-perl")
-set(HIP_KERNEL "GPUbenchmark.hip.cxx")
-set(CU_KERNEL ${CMAKE_CURRENT_SOURCE_DIR}/cuda/GPUbenchmark.cu)
+set(HIP_KERNEL "Kernels.hip.cxx")
+message(FATAL_ERROR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(CU_KERNEL ${CMAKE_CURRENT_SOURCE_DIR}/cuda/Kernels.cu)
 set(HIP_KERNEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${HIP_KERNEL}")
 
 if(EXISTS ${HIPIFY_EXECUTABLE})
 # generate on-the-fly the HIP kernel
 execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} ${CU_KERNEL} > ${HIP_KERNEL_PATH}")
-o2_add_library(GPUbenchmarkHIP
-               SOURCES GPUbenchmark.hip.cxx
+o2_add_library(HIPbenchmark
+               SOURCES Kernels.hip.cxx
                PUBLIC_INCLUDE_DIRECTORIES ../
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      hip::host

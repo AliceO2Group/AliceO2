@@ -8,27 +8,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file GPUbenchmark.cu
+/// \file GPUbenchmark.h
 /// \author: mconcas@cern.ch
+#ifndef GPUBENCHMARK_H
+#define GPUBENCHMARK_H
 
-#include <GPUbenchmark.h>
-#include <stdio.h>
+#include "GPUCommonDef.h"
 
 namespace o2
 {
 namespace benchmark
 {
-namespace gpu
-{
-GPUg() void helloKernel()
-{
-  printf("Hello World from GPU!!\n");
-}
-} // namespace gpu
+void hello_util();
 
-void hello_util()
+class GPUbenchmark final
 {
-  gpu::helloKernel<<<1, 1>>>();
+ public:
+  GPUbenchmark() = default;
+  virtual ~GPUbenchmark() = default;
+  void hello();
+};
+
+// Steers
+void GPUbenchmark::hello()
+{
+  hello_util();
 }
 } // namespace benchmark
 } // namespace o2
+#endif

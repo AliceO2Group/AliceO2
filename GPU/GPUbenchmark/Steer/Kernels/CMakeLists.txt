@@ -8,14 +8,5 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-set(HDRS_INSTALL ../GPUbenchmark.h)
-
-o2_add_library(GPUbenchmarkCUDA
-               SOURCES GPUbenchmark.cu
-               PUBLIC_INCLUDE_DIRECTORIES ../
-               PUBLIC_LINK_LIBRARIES O2::GPUCommon
-               TARGETVARNAME targetName)
-
-               set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-
-install(FILES ${HDRS_INSTALL} DESTINATION include/GPU/GPUBenchmark)
+add_subdirectory(cuda)
+add_subdirectory(hip)

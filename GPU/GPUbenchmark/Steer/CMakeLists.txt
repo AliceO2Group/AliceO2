@@ -8,5 +8,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(macro)
-add_subdirectory(Steer)
+add_subdirectory(Kernels)
+
+o2_add_library(GPUBenchmark
+               SOURCES BenchmarkSteer.cxx
+               PUBLIC_LINK_LIBRARIES O2::HIPbenchmark
+                                     O2::CUDAbenchmark
+               TARGETVARNAME targetName)
