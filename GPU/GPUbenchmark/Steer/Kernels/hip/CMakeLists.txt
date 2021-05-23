@@ -17,7 +17,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
 # Hipify-perl
 set(HIPIFY_EXECUTABLE "/opt/rocm/bin/hipify-perl")
 set(HIP_KERNEL "Kernels.hip.cxx")
-message(FATAL_ERROR "${CMAKE_CURRENT_SOURCE_DIR}")
+
 set(CU_KERNEL ${CMAKE_CURRENT_SOURCE_DIR}/cuda/Kernels.cu)
 set(HIP_KERNEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${HIP_KERNEL}")
 
@@ -33,7 +33,6 @@ o2_add_library(HIPbenchmark
                TARGETVARNAME targetName)
 
   if(HIP_AMDGPUTARGET)
-  message(FATAL_ERROR ${HIP_AMDGPUTARGET})
     # Need to add gpu target also to link flags due to gpu-rdc option
     target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
   endif()
