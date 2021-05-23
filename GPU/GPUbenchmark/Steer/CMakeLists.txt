@@ -12,6 +12,7 @@ add_subdirectory(Kernels)
 
 o2_add_library(GPUBenchmark
                SOURCES BenchmarkSteer.cxx
+               PUBLIC_INCLUDE_DIRECTORIES .
                PUBLIC_LINK_LIBRARIES O2::HIPbenchmark
                                      O2::CUDAbenchmark
                TARGETVARNAME targetName)
