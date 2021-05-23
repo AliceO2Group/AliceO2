@@ -45,9 +45,6 @@ class TGeoMedium;
 
 class TParticle;
 
-using std::cout;
-using std::endl;
-
 using namespace o2::ft3;
 using o2::itsmft::Hit;
 
@@ -64,26 +61,44 @@ void Detector::buildFT3FromFile(std::string configFileName)
 {
   // Geometry description from file. One line per disk
   // z_layer r_in r_out Layerx2X0
+  // This simple file reader is not failproof. Do not add empty lines!
+
+  /*
+  # Sample MFT configuration
+  # z_layer    r_in    r_out   Layerx2X0
+  -45.3       2.5     9.26    0.0042
+  -46.7       2.5     9.26    0.0042
+  -48.6       2.5     9.8     0.0042
+  -50.0       2.5     9.8     0.0042
+  -52.4       2.5     10.43   0.0042
+  -53.8       2.5     10.43   0.0042
+  -67.7       3.82    13.01   0.0042
+  -69.1       3.82    13.01   0.0042
+  -76.1       3.92    14.35   0.0042
+  -77.5       3.92    14.35   0.0042
+  */
 
   mLayerName.clear();
   mLayers.clear();
   mLayerID.clear();
   mLayerName.resize(1);
   mLayers.resize(1);
-  mLayerID.resize(1);
 
   LOG(INFO) << "Building FT3 Detector: From file";
   LOG(INFO) << "   FT3 detector configuration: " << configFileName;
-  if (configFileName == "") {
-    LOG(FATAL) << " Empty FT3Base.configFile!";
-  }
   std::ifstream ifs(configFileName.c_str());
+  if (!ifs.good()) {
+    LOG(FATAL) << " Invalid FT3Base.configFile!";
+  }
   std::string tempstr;
   float z_layer, r_in, r_out, Layerx2X0;
   char delimiter;
   int layerNumber = 0;
   while (std::getline(ifs, tempstr)) {
-    std::cout << " Layer " << layerNumber << " = " << tempstr << std::endl;
+    if (tempstr[0] == '#') {
+      LOG(INFO) << " Comment: " << tempstr;
+      continue;
+    }
     std::istringstream iss(tempstr);
     iss >> z_layer;
     iss >> r_in;
@@ -118,9 +133,7 @@ void Detector::buildBasicFT3(const FT3BaseParam& param)
   mLayerName.resize(2);
   mLayerName[0].resize(mNumberOfLayers);
   mLayerName[1].resize(mNumberOfLayers);
-  mLayerID.resize(2);
-  mLayerID[0].resize(mNumberOfLayers);
-  mLayerID[1].resize(mNumberOfLayers);
+  mLayerID.clear();
   mLayers.resize(2);
 
   for (Int_t direction : {0, 1}) {
@@ -163,9 +176,7 @@ void Detector::buildFT3V1()
   mLayerName.resize(2);
   mLayerName[0].resize(mNumberOfLayers);
   mLayerName[1].resize(mNumberOfLayers);
-  mLayerID.resize(2);
-  mLayerID[0].resize(mNumberOfLayers);
-  mLayerID[1].resize(mNumberOfLayers);
+  mLayerID.clear();
   mLayers.resize(2);
 
   for (auto direction : {0, 1}) {
@@ -196,19 +207,22 @@ Detector::Detector(Bool_t active)
   // FT3 Base configuration parameters
   auto& ft3BaseParam = FT3BaseParam::Instance();
 
-  switch (ft3BaseParam.geoModel) {
-    case Default:
-      buildFT3V1(); // FT3V1
-      break;
-    case Telescope:
-      buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized detector equidistant layers
-      break;
-    case External:
-      buildFT3FromFile(ft3BaseParam.configFile);
-      break;
-    default:
-      LOG(FATAL) <<  " Invalid Geometry.\n";
-      break;
+  if (ft3BaseParam.configFile != "") {
+    LOG(INFO) << "FT3 Geometry configuration file provided. Overriding FT3Base.geoModel configuration.";
+    buildFT3FromFile(ft3BaseParam.configFile);
+
+  } else {
+    switch (ft3BaseParam.geoModel) {
+      case Default:
+        buildFT3V1(); // FT3V1
+        break;
+      case Telescope:
+        buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized telescopic detector (equidistant layers)
+        break;
+      default:
+        LOG(FATAL) << "Invalid Geometry.\n";
+        break;
+    }
   }
 }
 
@@ -285,8 +299,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
   }
 
   Int_t lay = 0, volID = vol->getMCid();
-
-  while ((lay <= mLayers[0] * mLayers.size()) && (volID != mLayerID[lay % mLayers.size()][lay / mLayers.size()])) {
+  while ((lay <= mLayerID.size()) && (volID != mLayerID[lay])) {
     ++lay;
   }
 
@@ -433,37 +446,41 @@ void Detector::createGeometry()
     LOG(FATAL) << "Could not find the top volume";
   }
 
-  LOG(DEBUG) << "buildGeometry: "
+  LOG(DEBUG) << "FT3 createGeometry: "
              << Form("gGeoManager name is %s title is %s", gGeoManager->GetName(), gGeoManager->GetTitle());
 
   if (mLayers.size() == 2) {
-    for (Int_t direction : {0, 1}) {
-
-      for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
+    for (Int_t direction : {0, 1}) { // Backward layers at mLayers[0]; Forward layers at mLayers[1]
+      std::string directionString = direction ? "Forward" : "Backward";
+      LOG(INFO) << "Creating FT3 " << directionString << " layers:";
+      for (Int_t iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
         mLayers[direction][iLayer].createLayer(volFT3);
       }
     }
     vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
 
-    LOG(INFO) << "Creating FT3 Geometry: Forward/Backward symmetry";
     for (auto direction : {0, 1}) {
-      for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
-        mLayerID[direction][iLayer] = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer)) : 0;
-        std::string directionString = direction ? "Forward" : "Backward";
-        LOG(INFO) << "mLayerID for " << directionString << " layer " << iLayer << " = " << mLayerID[direction][iLayer];
+      std::string directionString = direction ? "Forward" : "Backward";
+      LOG(INFO) << "Registering FT3 " << directionString << " LayerIDs:";
+      for (int iLayer = 0; iLayer < mLayers[direction].size(); iLayer++) {
+        auto layerID = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer)) : 0;
+        mLayerID.push_back(layerID);
+        LOG(INFO) << " " << directionString << " layer " << iLayer << " LayerID " << layerID;
       }
     }
   }
 
-  if (mLayers.size() == 1) {
-    for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
+  if (mLayers.size() == 1) { // All layers registered at mLayers[0]
+    LOG(INFO) << "Creating FT3 layers:";
+    for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
       mLayers[0][iLayer].createLayer(volFT3);
     }
     vALIC->AddNode(volFT3, 2, new TGeoTranslation(0., 30., 0.));
-    LOG(INFO) << "Creating FT3 Geometry";
-    for (int iLayer = 0; iLayer < mLayerID[0].size(); iLayer++) {
-      mLayerID[0][iLayer] = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), 0, iLayer)) : 0;
-      LOG(INFO) << "mLayerID for  layer " << iLayer << " = " << mLayerID[0][iLayer];
+    LOG(INFO) << "Registering FT3 LayerIDs:";
+    for (int iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
+      auto layerID = gMC ? TVirtualMC::GetMC()->VolId(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), 0, iLayer)) : 0;
+      mLayerID.push_back(layerID);
+      LOG(INFO) << "  mLayerID[" << iLayer << "] = " << layerID;
     }
   }
 }
@@ -483,7 +500,7 @@ void Detector::defineSensitiveVolumes()
       for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
         volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
         v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), direction, iLayer));
-        LOG(INFO) << "Adding FT3 Sensitive Volume => " << v->GetName() << std::endl;
+        LOG(INFO) << "Adding FT3 Sensitive Volume => " << v->GetName();
         AddSensitiveVolume(v);
       }
     }
@@ -493,7 +510,7 @@ void Detector::defineSensitiveVolumes()
     for (Int_t iLayer = 0; iLayer < mLayers[0].size(); iLayer++) {
       volumeName = o2::ft3::GeometryTGeo::getFT3SensorPattern() + std::to_string(iLayer);
       v = geoManager->GetVolume(Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), 0, iLayer));
-      LOG(INFO) << "Adding FT3 Sensitive Volume => " << v->GetName() << std::endl;
+      LOG(INFO) << "Adding FT3 Sensitive Volume => " << v->GetName();
       AddSensitiveVolume(v);
     }
   }
