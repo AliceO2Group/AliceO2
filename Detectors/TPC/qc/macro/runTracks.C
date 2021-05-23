@@ -56,7 +56,7 @@ void runTracks(std::string outputFileName = "tpcQcTracks", std::string_view inpu
     tree->GetEntry(i);
     size_t nTracks = (maxTracks > 0) ? std::min(tpcTracks->size(), maxTracks) : tpcTracks->size();
     // ---| track loop |---
-    for (int k = 0; k < nTracks; k++) {
+    for (size_t k = 0; k < nTracks; k++) {
       auto track = (*tpcTracks)[k];
       tracksQC.processTrack(track);
     }
