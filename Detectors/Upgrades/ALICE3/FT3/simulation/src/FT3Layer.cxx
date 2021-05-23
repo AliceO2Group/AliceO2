@@ -50,12 +50,12 @@ FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerNam
   mx2X0 = Layerx2X0;
   mInnerRadius = rIn;
   mOuterRadius = rOut;
+  auto Si_X0 = 9.5;
+  mChipThickness = Layerx2X0 * Si_X0;
 
-  LOG(INFO) << " Using silicon Radiation Length =  " << 9.5 << " to emulate layer radiation length.";
-
-  mChipThickness = Layerx2X0 * 9.5;
-
-  LOG(INFO) << "Creating FT3 Layer " << mLayerNumber << ": z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; ChipThickness = " << mChipThickness;
+  LOG(INFO) << "Creating FT3 Layer " << mLayerNumber << " ; direction " << mDirection;
+  LOG(INFO) << "   Using silicon X0 = " << Si_X0 << " to emulate layer radiation length.";
+  LOG(INFO) << "   Layer z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; x2X0 = " << mx2X0 << " ; ChipThickness = " << mChipThickness;
 }
 
 void FT3Layer::createLayer(TGeoVolume* motherVolume)
