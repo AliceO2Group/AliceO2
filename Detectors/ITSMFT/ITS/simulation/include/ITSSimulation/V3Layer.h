@@ -33,7 +33,7 @@ namespace its
 {
 
 /// This class defines the Geometry for the ITS  using TGeo. This is a work class used
-/// to study different configurations during the development of the new ITS structure
+/// to study different configurations during the development of the new ITS structure.
 class V3Layer : public V11Geometry
 {
 
@@ -161,10 +161,12 @@ class V3Layer : public V11Geometry
   /// \param mgr The GeoManager (used only to get the proper material)
   TGeoVolume* createStave(const TGeoManager* mgr = gGeoManager);
 
-  /// Creates the IB Module: (only the chips for the time being)
+  /// Creates the IB Module: all elements except the Chip
   /// Returns the module as a TGeoVolume
+  /// \param xchip the Chip width
+  /// \param zchip the Chip length
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* createModuleInnerB(const TGeoManager* mgr = gGeoManager);
+  TGeoVolume* createModuleInnerB(const Double_t xchip, const Double_t zchip, const TGeoManager* mgr = gGeoManager);
 
   /// Creates the OB Module: HIC + FPC + Carbon plate
   /// Returns the module as a TGeoVolume
@@ -190,10 +192,11 @@ class V3Layer : public V11Geometry
   /// \param mgr The GeoManager (used only to get the proper material)
   void createIBCapacitors(TGeoVolume* modvol, Double_t zchip, Double_t yzero, const TGeoManager* mgr = gGeoManager);
 
-  /// Create the chip stave for the Inner Barrel(Here we fake the halfstave volume to have the
-  /// same formal geometry hierarchy as for the Outer Barrel)
+  /// Create the chip stave for the Inner Barrel
+  /// Returns the old "module" thickness
+  /// \param mother The mother volume
   /// \param mgr The GeoManager (used only to get the proper material)
-  TGeoVolume* createStaveInnerB(const TGeoManager* mgr = gGeoManager);
+  Double_t createStaveInnerB(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
   /// Create the mechanical stave structure
   /// \param mgr  The GeoManager (used only to get the proper material)
