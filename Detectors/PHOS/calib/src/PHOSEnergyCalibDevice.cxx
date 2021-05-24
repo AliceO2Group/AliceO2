@@ -38,7 +38,7 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
       o2::ccdb::CcdbApi ccdb;
       ccdb.init(mCCDBPath); // or http://localhost:8080 for a local installation
       std::map<std::string, std::string> metadata;
-      mBadMap.reset(ccdb.retrieveFromTFileAny<BadChannelMap>("PHS/Calib/BadChannels", metadata, mRunStartTime));
+      mBadMap.reset(ccdb.retrieveFromTFileAny<BadChannelsMap>("PHS/Calib/BadChannels", metadata, mRunStartTime));
 
       if (!mBadMap) { //was not read from CCDB, but expected
         LOG(FATAL) << "Can not read BadMap from CCDB, you may use --not-use-ccdb option to create default bad map";
@@ -51,7 +51,7 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
       }
     } else {
       LOG(INFO) << "Do not use CCDB, create default BadMap and calibration";
-      mBadMap.reset(new BadChannelMap(1));
+      mBadMap.reset(new BadChannelsMap(1));
       mCalibParams.reset(new CalibParams(1));
     }
   }

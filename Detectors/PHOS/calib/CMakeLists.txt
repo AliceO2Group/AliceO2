@@ -23,6 +23,7 @@ o2_add_library(PHOSCalibWorkflow
                                      O2::DetectorsRaw
                                      O2::PHOSReconstruction
                                      O2::DetectorsCalibration)
+o2_add_header_only_library(PHOSCalib)
 
 o2_target_root_dictionary(PHOSCalibWorkflow
                           HEADERS include/PHOSCalibWorkflow/PHOSPedestalCalibDevice.h
