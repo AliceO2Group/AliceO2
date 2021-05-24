@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFITcommoncalibration Calibration workflow
+/doxy -->
+
 ## FIT Calibration workflow
 
 ###Overview
