@@ -8,5 +8,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(cuda)
-add_subdirectory(hip)
+# if(CUDA_ENABLED)
+  # message("Building CUDA benchmark library")
+  # add_subdirectory(cuda)
+  # target_compile_definitions(${targetName} PRIVATE CUDA_ENABLED)
+# endif()
+if(HIP_ENABLED)
+  message("Building HIP benchmark library")
+  add_subdirectory(hip)
+  # target_compile_definitions(${targetName} PRIVATE HIP_ENABLED)
+endif()
