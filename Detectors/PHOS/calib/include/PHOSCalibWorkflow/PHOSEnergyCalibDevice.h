@@ -19,7 +19,7 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsPHOS/Cluster.h"
-#include "DataFormatsPHOS/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSCalibWorkflow/PHOSEnergyCalibrator.h"
 
@@ -52,7 +52,7 @@ class PHOSEnergyCalibDevice : public o2::framework::Task
   float mEminHGTime = 1.5;
   float mEminLGTime = 5.;
   std::unique_ptr<PHOSEnergyCalibrator> mCalibrator; /// Agregator of calibration TimeFrameSlots
-  std::unique_ptr<BadChannelMap> mBadMap;            /// Latest bad channels map
+  std::unique_ptr<BadChannelsMap> mBadMap;           /// Latest bad channels map
   std::unique_ptr<CalibParams> mCalibParams;         /// Latest bad channels map
   ClassDefNV(PHOSEnergyCalibDevice, 1);
 };

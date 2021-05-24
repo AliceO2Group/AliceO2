@@ -179,7 +179,7 @@ PHOSEnergySlot::PHOSEnergySlot(const PHOSEnergySlot& other)
   mRunStartTime = other.mRunStartTime;
   mBuffer.reset(new RingBuffer());
   mCalibParams.reset(new CalibParams(*(other.mCalibParams)));
-  mBadMap.reset(new BadChannelMap(*(other.mBadMap)));
+  mBadMap.reset(new BadChannelsMap(*(other.mBadMap)));
   mEvBC = other.mEvBC;
   mEvOrbit = other.mEvOrbit;
   mEvent = 0;
