@@ -25,7 +25,7 @@ endif()
 set(CL_SRC ${GPUDIR}/Base/opencl-common/GPUReconstructionOCL.cl)
 set(CL_BIN ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL2Code)
 
-set(OCL_FLAGS -Xclang -fdenormal-fp-math-f32=ieee -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Xclang -finclude-default-header -Dcl_clang_storage_class_specifiers -Wno-invalid-constexpr -Wno-unused-command-line-argument -cl-std=clc++)
+set(OCL_FLAGS -Xclang -fdenormal-fp-math-f32=ieee -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Dcl_clang_storage_class_specifiers -Wno-invalid-constexpr -Wno-unused-command-line-argument -cl-std=clc++)
 set(OCL_DEFINECL "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS>,$<SEMICOLON>-D>"
             "-I$<JOIN:$<FILTER:$<TARGET_PROPERTY:O2::GPUTracking,INCLUDE_DIRECTORIES>,EXCLUDE,^/usr/include/?>,$<SEMICOLON>-I>"
             -I${CMAKE_SOURCE_DIR}/Detectors/TRD/base/src
@@ -39,7 +39,7 @@ set(OCL_DEFINECL "-D$<JOIN:$<TARGET_PROPERTY:O2::GPUTracking,COMPILE_DEFINITIONS
 set(SRCS GPUReconstructionOCL2.cxx)
 set(HDRS GPUReconstructionOCL2.h GPUReconstructionOCL2Internals.h)
 
-if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
+if(GPUCA_GPUCA_OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
   if(NOT DEFINED OCL2_GPUTARGET)
     execute_process(COMMAND ${ROCM_AGENT_ENUMERATOR} COMMAND "sort" COMMAND "tail -n 1" OUTPUT_VARIABLE OCL2_GPUTARGET)
   endif()
@@ -78,7 +78,7 @@ if(OPENCL2_ENABLED_AMD) # BUILD OpenCL2 binaries for AMD target
   set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.amd.S)
 endif()
 
-if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
+if(GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   # executes clang to create llvm IL code
   add_custom_command(
       OUTPUT ${CL_BIN}.bc
@@ -119,12 +119,12 @@ if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   set(SRCS ${SRCS} ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.spirv.S)
 endif()
 
-if(OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
+if(GPUCA_GPUCA_OPENCL2_ENABLED) # BUILD OpenCL2 source code for runtime compilation target
   # executes clang to preprocess
   add_custom_command(
       OUTPUT ${CL_BIN}.src
       COMMAND clang
-              ${OCL_DEFINECL}
+              ${OCL_DEFINECL} -cl-no-stdinc
               -E ${CL_SRC} > ${CL_BIN}.src
       MAIN_DEPENDENCY ${CL_SRC}
       IMPLICIT_DEPENDS CXX ${CL_SRC}
@@ -196,10 +196,10 @@ if(ALIGPU_BUILD_TYPE STREQUAL "Standalone")
   set(targetName ${MODULE})
 endif()
 
-if(OPENCL2_ENABLED_AMD)
-  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED_AMD)
+if(GPUCA_GPUCA_OPENCL2_ENABLED_AMD)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_GPUCA_OPENCL2_ENABLED_AMD)
 endif()
-if(OPENCL2_ENABLED_SPIRV)
-  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED_SPIRV)
+if(GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_GPUCA_OPENCL2_ENABLED_SPIRV)
 endif()
 target_compile_definitions(${targetName} PRIVATE OCL_FLAGS=$<JOIN:${OCL_FLAGS},\ >)

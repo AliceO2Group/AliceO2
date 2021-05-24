@@ -31,6 +31,12 @@
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "gsl/span"
 #include <numeric>
+#include <TTree.h>
+#include <TFile.h>
+
+//TODO: MeanVertex and parameters input from CCDB
+
+//#define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
 
 namespace o2
 {
@@ -50,18 +56,13 @@ class PVertexer
                                OK };
 
   void init();
+  void end();
 
   template <typename TR>
   int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
               std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
               const gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
 
-  int runVertexing(gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
-                   std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
-                   gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
-
-  static void createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks, const std::vector<PVertex> vertices,
-                             const std::vector<uint32_t> trackIDs, const std::vector<V2TRef> v2tRefs, std::vector<o2::MCEventLabel>& lblVtx);
   bool findVertex(const VertexingInput& input, PVertex& vtx);
 
   void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; } ///< set InteractionRecods for the beginning of the TF
@@ -72,7 +73,6 @@ class PVertexer
   }
   float getTukey() const;
 
-  void finalizeVertex(const VertexingInput& input, const PVertex& vtx, std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<uint32_t>& trackIDs, SeedHisto& histo);
   bool setCompatibleIR(PVertex& vtx);
 
   void setBunchFilling(const o2::BunchFilling& bf);
@@ -83,7 +83,6 @@ class PVertexer
 
   auto& getTracksPool() const { return mTracksPool; }
   auto& getTimeZClusters() const { return mTimeZClusters; }
-  auto& getSortedTrackIndices() const { return mSortedTrackID; }
 
   auto& getMeanVertex() const { return mMeanVertex; }
   void setMeanVertex(const o2d::VertexBase& v)
@@ -92,16 +91,22 @@ class PVertexer
     initMeanVertexConstraint();
   }
 
-  float estimateScale2()
+  void setITSROFrameLength(float v)
   {
-    auto sc = mPVParams->zHistoBinSize * mPVParams->zHistoBinSize * mTukey2I / (mStatZErr.getMean() * mStatZErr.getMean());
-    return sc;
+    mITSROFrameLengthMUS = v;
   }
 
  private:
   static constexpr int DBS_UNDEF = -2, DBS_NOISE = -1, DBS_INCHECK = -10;
 
+  SeedHistoTZ buildHistoTZ(const VertexingInput& input);
+  int runVertexing(gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
+                   std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
+                   gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
+  void createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks, const std::vector<uint32_t>& trackIDs, const std::vector<V2TRef>& v2tRefs, std::vector<o2::MCEventLabel>& lblVtx);
+  void reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& timeSort, const std::vector<o2::MCEventLabel>& lblVtx);
   FitStatus fitIteration(const VertexingInput& input, VertexSeed& vtxSeed);
+  void finalizeVertex(const VertexingInput& input, const PVertex& vtx, std::vector<PVertex>& vertices, std::vector<V2TRef>& v2tRefs, std::vector<uint32_t>& trackIDs, SeedHistoTZ* histo = nullptr);
   void accountTrack(TrackVF& trc, VertexSeed& vtxSeed) const;
   bool solveVertex(VertexSeed& vtxSeed) const;
   FitStatus evalIterations(VertexSeed& vtxSeed, PVertex& vtx) const;
@@ -115,11 +120,14 @@ class PVertexer
   void createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTrackID> gids);
 
   int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<uint32_t>& trackIDs, std::vector<V2TRef>& v2tRefs);
+  void reAttach(std::vector<PVertex>& vertices, std::vector<int>& timeSort, std::vector<uint32_t>& trackIDs, std::vector<V2TRef>& v2tRefs);
 
   std::pair<int, int> getBestIR(const PVertex& vtx, const gsl::span<o2::InteractionRecord> bcData, int& currEntry) const;
 
   int dbscan_RangeQuery(int idxs, std::vector<int>& cand, std::vector<int>& status);
   void dbscan_clusterize();
+  void doDBScanDump(const VertexingInput& input, gsl::span<const o2::MCCompLabel> lblTracks);
+  void doVtxDump(std::vector<PVertex>& vertices, std::vector<uint32_t> trackIDsLoc, std::vector<V2TRef>& v2tRefsLoc, gsl::span<const o2::MCCompLabel> lblTracks);
 
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
@@ -127,13 +135,9 @@ class PVertexer
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   std::array<float, 3> mXYConstraintInvErr = {1.0f, 0.f, 1.0f}; ///< nominal vertex constraint inverted errors^2
   //
-  o2::math_utils::StatAccumulator mStatZErr;
-  o2::math_utils::StatAccumulator mStatTErr;
-  std::vector<TrackVF> mTracksPool;        ///< tracks in internal representation used for vertexing
-  std::vector<int> mSortedTrackID;         ///< indices of tracks sorted in time
+  std::vector<TrackVF> mTracksPool;         ///< tracks in internal representation used for vertexing, sorted in time
   std::vector<TimeZCluster> mTimeZClusters; ///< set of time clusters
-  std::vector<int> mClusterTrackIDs;        ///< IDs of tracks making the clusters
-
+  float mITSROFrameLengthMUS = 0;           ///< ITS readout time span in \mus
   float mBz = 0.;                          ///< mag.field at beam line
   bool mValidateWithIR = false;            ///< require vertex validation with InteractionRecords (if available)
 
@@ -147,6 +151,25 @@ class PVertexer
   static constexpr float kAlmost0F = 1e-12;  ///< tiny float
   static constexpr double kAlmost0D = 1e-16; ///< tiny double
 
+#ifdef _PV_DEBUG_TREE_
+  std::unique_ptr<TFile> mDebugDumpFile;
+  std::unique_ptr<TTree> mDebugDBScanTree;
+  std::unique_ptr<TTree> mDebugVtxTree;
+  std::unique_ptr<TTree> mDebugVtxCompTree;
+
+  std::vector<TrackVFDump> mDebugDumpDBSTrc;
+  std::vector<GTrackID> mDebugDumpDBSGID;
+  std::vector<o2::MCCompLabel> mDebugDumpDBSTrcMC;
+
+  PVertex mDebugDumpVtx;
+  std::vector<TrackVFDump> mDebugDumpVtxTrc;
+  std::vector<GTrackID> mDebugDumpVtxGID;
+  std::vector<o2::MCCompLabel> mDebugDumpVtxTrcMC;
+
+  std::vector<PVtxCompDump> mDebugDumpPVComp;
+  std::vector<o2::MCEventLabel> mDebugDumpPVCompLbl0; // for some reason the added as a class member
+  std::vector<o2::MCEventLabel> mDebugDumpPVCompLbl1; // gets stored as simple uint
+#endif
 };
 
 //___________________________________________________________________
@@ -178,42 +201,34 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
 {
   // create pull of all candidate tracks in a global array ordered in time
   mTracksPool.clear();
-  mSortedTrackID.clear();
-
   auto ntGlo = tracks.size();
+  std::vector<int> sortedTrackID(ntGlo);
   mTracksPool.reserve(ntGlo);
+  std::iota(sortedTrackID.begin(), sortedTrackID.end(), 0);
+  std::sort(sortedTrackID.begin(), sortedTrackID.end(), [&tracks](int i, int j) {
+    return tracks[i].timeEst.getTimeStamp() < tracks[j].timeEst.getTimeStamp();
+  });
+
   // check all containers
   float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2());
-  float pullIniCut = 9.; // RS FIXME  pullIniCut should be a parameter
   o2d::DCA dca;
 
   for (uint32_t i = 0; i < ntGlo; i++) {
-    o2::track::TrackParCov trc = tracks[i];
+    int id = sortedTrackID[i];
+    o2::track::TrackParCov trc = tracks[id];
     if (!trc.propagateToDCA(mMeanVertex, mBz, &dca, mPVParams->dcaTolerance) ||
         dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > mPVParams->pullIniCut) {
       continue;
     }
-    auto& tvf = mTracksPool.emplace_back(trc, tracks[i].getTimeMUS(), i);
-    mStatZErr.add(std::sqrt(trc.getSigmaZ2()));
-    mStatTErr.add(tvf.timeEst.getTimeStampError());
+    auto& tvf = mTracksPool.emplace_back(trc, tracks[id].getTimeMUS(), id, gids[id], mPVParams->addTimeSigma2, mPVParams->addZSigma2);
   }
-  // TODO: try to narrow timestamps using tof times
-  auto [zerrMean, zerrRMS] = mStatZErr.getMeanRMS2<float>();
-
-  auto [terrMean, terrRMS] = mStatTErr.getMeanRMS2<float>();
 
   if (mTracksPool.empty()) {
     return;
   }
   //
-  mSortedTrackID.resize(mTracksPool.size());
-  std::iota(mSortedTrackID.begin(), mSortedTrackID.end(), 0);
-
-  std::sort(mSortedTrackID.begin(), mSortedTrackID.end(), [this](int i, int j) {
-    return this->mTracksPool[i].timeEst.getTimeStamp() < this->mTracksPool[j].timeEst.getTimeStamp();
-  });
-  auto tMin = mTracksPool[mSortedTrackID.front()].timeEst.getTimeStamp();
-  auto tMax = mTracksPool[mSortedTrackID.back()].timeEst.getTimeStamp();
+  auto tMin = mTracksPool.front().timeEst.getTimeStamp();
+  auto tMax = mTracksPool.back().timeEst.getTimeStamp();
 }
 
 //___________________________________________________________________

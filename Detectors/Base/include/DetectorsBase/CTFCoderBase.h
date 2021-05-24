@@ -77,7 +77,7 @@ class CTFCoderBase
   }
 
  protected:
-  std::string getPrefix() const { return o2::utils::concat_string(mDet.getName(), "_CTF: "); }
+  std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
 
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;

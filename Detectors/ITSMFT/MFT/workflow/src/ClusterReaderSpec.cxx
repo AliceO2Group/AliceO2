@@ -34,8 +34,8 @@ namespace mft
 
 void ClusterReader::init(InitContext& ic)
 {
-  auto filename = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                           ic.options().get<std::string>("mft-cluster-infile"));
+  auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                ic.options().get<std::string>("mft-cluster-infile"));
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
   if (!mFile->IsOpen()) {
     LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";

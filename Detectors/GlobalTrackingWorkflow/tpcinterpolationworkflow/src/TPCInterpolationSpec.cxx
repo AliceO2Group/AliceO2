@@ -32,7 +32,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+  o2::base::Propagator::initFieldFromGRP();
   mTimer.Stop();
   mTimer.Reset();
   mInterpolation.init();
@@ -79,7 +79,7 @@ void TPCInterpolationDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTPCInterpolationSpec(bool useMC, const std::vector<int>& tpcClusLanes)
+DataProcessorSpec getTPCInterpolationSpec(bool useMC)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;

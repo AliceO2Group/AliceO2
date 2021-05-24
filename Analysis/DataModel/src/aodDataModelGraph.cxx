@@ -259,12 +259,12 @@ int main(int, char**)
   displayEntity<Run2BCInfos>();
 
   displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection,
-                  pidRespTOFEl, pidRespTOFMu, pidRespTOFPi,
-                  pidRespTOFKa, pidRespTOFPr, pidRespTOFDe,
-                  pidRespTOFTr, pidRespTOFHe, pidRespTOFAl,
-                  pidRespTPCEl, pidRespTPCMu, pidRespTPCPi,
-                  pidRespTPCKa, pidRespTPCPr, pidRespTPCDe,
-                  pidRespTPCTr, pidRespTPCHe, pidRespTPCAl>();
+                  pidTOFFullEl, pidTOFFullMu, pidTOFFullPi,
+                  pidTOFFullKa, pidTOFFullPr, pidTOFFullDe,
+                  pidTOFFullTr, pidTOFFullHe, pidTOFFullAl,
+                  pidTPCFullEl, pidTPCFullMu, pidTPCFullPi,
+                  pidTPCFullKa, pidTPCFullPr, pidTPCFullDe,
+                  pidTPCFullTr, pidTPCFullHe, pidTPCFullAl>();
   displayEntity<UnassignedTracks>();
   displayEntity<UnassignedMFTTracks>();
 

@@ -60,7 +60,7 @@ DECLARE_SOA_COLUMN(CovZZ, covZZ, float);                           //!
 DECLARE_SOA_COLUMN(Flags, flags, uint16_t);                        //! Run2, see CollisionFlagsRun2 | Run 3, see Vertex::Flags
 DECLARE_SOA_COLUMN(Chi2, chi2, float);                             //!
 DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);              //! Number of tracks at vertex
-DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //!
+DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //! in ns
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);     //!
 DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); //! Nature of CollisionTimeRes, MSB 0 = exact range / 1 = Gaussian uncertainty
 } // namespace collision
@@ -486,6 +486,7 @@ namespace hmpid
 DECLARE_SOA_INDEX_COLUMN(Track, track);                  //!
 DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);     //!
 DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float); //!
+DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, short); //!
 DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);         //!
 } // namespace hmpid
 
@@ -494,6 +495,7 @@ DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID", //!
                   hmpid::TrackId,
                   hmpid::HMPIDSignal,
                   hmpid::HMPIDDistance,
+                  hmpid::HMPIDNPhotons,
                   hmpid::HMPIDQMip);
 using HMPID = HMPIDs::iterator;
 
@@ -751,16 +753,25 @@ using Cascade = Cascades::iterator;
 // ---- Run 2 tables ----
 namespace run2
 {
-DECLARE_SOA_COLUMN(EventCuts, eventCuts, uint32_t);                 //!
-DECLARE_SOA_COLUMN(TriggerMaskNext50, triggerMaskNext50, uint64_t); //!
-DECLARE_SOA_COLUMN(SPDClustersL0, spdClustersL0, uint16_t);         //!
-DECLARE_SOA_COLUMN(SPDClustersL1, spdClustersL1, uint16_t);         //!
+DECLARE_SOA_COLUMN(EventCuts, eventCuts, uint32_t);                   //!
+DECLARE_SOA_COLUMN(TriggerMaskNext50, triggerMaskNext50, uint64_t);   //!
+DECLARE_SOA_COLUMN(L0TriggerInputMask, l0TriggerInputMask, uint32_t); //!
+DECLARE_SOA_COLUMN(SPDClustersL0, spdClustersL0, uint16_t);           //!
+DECLARE_SOA_COLUMN(SPDClustersL1, spdClustersL1, uint16_t);           //!
+DECLARE_SOA_COLUMN(SPDFiredChipsL0, spdFiredChipsL0, uint16_t);       //!
+DECLARE_SOA_COLUMN(SPDFiredChipsL1, spdFiredChipsL1, uint16_t);       //!
+DECLARE_SOA_COLUMN(SPDFiredFastOrL0, spdFiredFastOrL0, uint16_t);     //!
+DECLARE_SOA_COLUMN(SPDFiredFastOrL1, spdFiredFastOrL1, uint16_t);     //!
+DECLARE_SOA_COLUMN(V0TriggerChargeA, v0TriggerChargeA, uint16_t);     //!
+DECLARE_SOA_COLUMN(V0TriggerChargeC, v0TriggerChargeC, uint16_t);     //!
 } // namespace run2
 
-DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", //!
-                  run2::EventCuts, run2::TriggerMaskNext50,
-                  run2::SPDClustersL0, run2::SPDClustersL1);
-
+DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", run2::EventCuts, //!
+                  run2::TriggerMaskNext50, run2::L0TriggerInputMask,
+                  run2::SPDClustersL0, run2::SPDClustersL1,
+                  run2::SPDFiredChipsL0, run2::SPDFiredChipsL1,
+                  run2::SPDFiredFastOrL0, run2::SPDFiredFastOrL1,
+                  run2::V0TriggerChargeA, run2::V0TriggerChargeC);
 using Run2BCInfo = Run2BCInfos::iterator;
 
 // ---- MC tables ----

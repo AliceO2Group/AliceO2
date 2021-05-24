@@ -9,15 +9,16 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   pidTPC_split.cxx
+/// \file   pidTPC.cxx
 /// \author Nicolo' Jacazio
-/// \brief  Task to produce PID tables for TPC split for each particle.
+/// \brief  Task to produce PID tables for TPC split for each particle with only the Nsigma information.
 ///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
 ///
 
 // O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
@@ -38,19 +39,19 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-struct pidTPCTaskSplit {
+struct tpcPid {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra>;
   using Coll = aod::Collisions;
   // Tables to produce
-  Produces<o2::aod::pidRespTPCEl> tablePIDEl;
-  Produces<o2::aod::pidRespTPCMu> tablePIDMu;
-  Produces<o2::aod::pidRespTPCPi> tablePIDPi;
-  Produces<o2::aod::pidRespTPCKa> tablePIDKa;
-  Produces<o2::aod::pidRespTPCPr> tablePIDPr;
-  Produces<o2::aod::pidRespTPCDe> tablePIDDe;
-  Produces<o2::aod::pidRespTPCTr> tablePIDTr;
-  Produces<o2::aod::pidRespTPCHe> tablePIDHe;
-  Produces<o2::aod::pidRespTPCAl> tablePIDAl;
+  Produces<o2::aod::pidTPCEl> tablePIDEl;
+  Produces<o2::aod::pidTPCMu> tablePIDMu;
+  Produces<o2::aod::pidTPCPi> tablePIDPi;
+  Produces<o2::aod::pidTPCKa> tablePIDKa;
+  Produces<o2::aod::pidTPCPr> tablePIDPr;
+  Produces<o2::aod::pidTPCDe> tablePIDDe;
+  Produces<o2::aod::pidTPCTr> tablePIDTr;
+  Produces<o2::aod::pidTPCHe> tablePIDHe;
+  Produces<o2::aod::pidTPCAl> tablePIDAl;
   // Detector response and input parameters
   DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
@@ -58,20 +59,51 @@ struct pidTPCTaskSplit {
   Configurable<std::string> signalname{"param-signal", "BetheBloch", "Name of the parametrization for the expected signal, used in both file and CCDB mode"};
   Configurable<std::string> sigmaname{"param-sigma", "TPCReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+  Configurable<std::string> ccdbPath{"ccdbPath", "Analysis/PID/TPC", "Path of the TPC parametrization on the CCDB"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
   // Configuration flags to include and exclude particle hypotheses
-  Configurable<int> pidEl{"pid-el", 0, {"Produce PID information for the Electron mass hypothesis"}};
-  Configurable<int> pidMu{"pid-mu", 0, {"Produce PID information for the Muon mass hypothesis"}};
-  Configurable<int> pidPi{"pid-pi", 0, {"Produce PID information for the Pion mass hypothesis"}};
-  Configurable<int> pidKa{"pid-ka", 0, {"Produce PID information for the Kaon mass hypothesis"}};
-  Configurable<int> pidPr{"pid-pr", 0, {"Produce PID information for the Proton mass hypothesis"}};
-  Configurable<int> pidDe{"pid-de", 0, {"Produce PID information for the Deuterons mass hypothesis"}};
-  Configurable<int> pidTr{"pid-tr", 0, {"Produce PID information for the Triton mass hypothesis"}};
-  Configurable<int> pidHe{"pid-he", 0, {"Produce PID information for the Helium3 mass hypothesis"}};
-  Configurable<int> pidAl{"pid-al", 0, {"Produce PID information for the Alpha mass hypothesis"}};
+  Configurable<int> pidEl{"pid-el", -1, {"Produce PID information for the Electron mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidMu{"pid-mu", -1, {"Produce PID information for the Muon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidPi{"pid-pi", -1, {"Produce PID information for the Pion mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidKa{"pid-ka", -1, {"Produce PID information for the Kaon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidPr{"pid-pr", -1, {"Produce PID information for the Proton mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidDe{"pid-de", -1, {"Produce PID information for the Deuterons mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidTr{"pid-tr", -1, {"Produce PID information for the Triton mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidHe{"pid-he", -1, {"Produce PID information for the Helium3 mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidAl{"pid-al", -1, {"Produce PID information for the Alpha mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
 
-  void init(o2::framework::InitContext&)
+  void init(o2::framework::InitContext& initContext)
   {
+    // Checking the tables are requested in the workflow and enabling them
+    auto& workflows = initContext.services().get<RunningWorkflowInfo const>();
+    for (DeviceSpec device : workflows.devices) {
+      for (auto input : device.inputs) {
+        auto enableFlag = [&input](const std::string particle, Configurable<int>& flag) {
+          const std::string table = "pidTPC" + particle;
+          if (input.matcher.binding == table) {
+            if (flag < 0) {
+              flag.value = 1;
+              LOG(INFO) << "Auto-enabling table: " + table;
+            } else if (flag > 0) {
+              flag.value = 1;
+              LOG(INFO) << "Table enabled: " + table;
+            } else {
+              LOG(INFO) << "Table disabled: " + table;
+            }
+          }
+        };
+        enableFlag("El", pidEl);
+        enableFlag("Mu", pidMu);
+        enableFlag("Pi", pidPi);
+        enableFlag("Ka", pidKa);
+        enableFlag("Pr", pidPr);
+        enableFlag("De", pidDe);
+        enableFlag("Tr", pidTr);
+        enableFlag("He", pidHe);
+        enableFlag("Al", pidAl);
+      }
+    }
+    // Getting the parametrization parameters
     ccdb->setURL(url.value);
     ccdb->setTimestamp(timestamp.value);
     ccdb->setCaching(true);
@@ -81,17 +113,24 @@ struct pidTPCTaskSplit {
     //
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
+      LOG(INFO) << "Loading exp. signal parametrization from file" << fname << ", using param: " << signalname.value;
       response.LoadParamFromFile(fname.data(), signalname.value, DetectorResponse::kSignal);
+
+      LOG(INFO) << "Loading exp. sigma parametrization from file" << fname << ", using param: " << sigmaname.value;
       response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
-      const std::string path = "Analysis/PID/TPC";
-      response.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path + "/" + signalname.value, timestamp.value));
-      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      std::string path = ccdbPath.value + "/" + signalname.value;
+      LOG(INFO) << "Loading exp. signal parametrization from CCDB, using path: " << path << " for timestamp " << timestamp.value;
+      response.LoadParam(DetectorResponse::kSignal, ccdb->getForTimeStamp<Parametrization>(path, timestamp.value));
+
+      path = ccdbPath.value + "/" + sigmaname.value;
+      LOG(INFO) << "Loading exp. sigma parametrization from CCDB, using path: " << path << " for timestamp " << timestamp.value;
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path, timestamp.value));
     }
   }
 
   template <o2::track::PID::ID pid>
-  using ResponseImplementation = tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
+  using ResponseImplementation = o2::pid::tpc::ELoss<Coll::iterator, Trks::iterator, pid>;
   void process(Coll const& collisions, Trks const& tracks)
   {
     constexpr auto responseEl = ResponseImplementation<PID::Electron>();
@@ -106,12 +145,20 @@ struct pidTPCTaskSplit {
 
     // Check and fill enabled tables
     auto makeTable = [&tracks](const Configurable<int>& flag, auto& table, const DetectorResponse& response, const auto& responsePID) {
-      if (flag.value) {
+      if (flag.value == 1) {
         // Prepare memory for enabled tables
         table.reserve(tracks.size());
         for (auto const& trk : tracks) { // Loop on Tracks
-          table(responsePID.GetExpectedSigma(response, trk.collision(), trk),
-                responsePID.GetSeparation(response, trk.collision(), trk));
+          const float separation = responsePID.GetSeparation(response, trk.collision(), trk);
+          if (separation <= o2::aod::pidtpc_tiny::binned_min) {
+            table(o2::aod::pidtpc_tiny::lower_bin);
+          } else if (separation >= o2::aod::pidtpc_tiny::binned_max) {
+            table(o2::aod::pidtpc_tiny::upper_bin);
+          } else if (separation >= 0) {
+            table(separation / o2::aod::pidtpc_tiny::bin_width + 0.5f);
+          } else {
+            table(separation / o2::aod::pidtpc_tiny::bin_width - 0.5f);
+          }
         }
       }
     };
@@ -127,7 +174,7 @@ struct pidTPCTaskSplit {
   }
 };
 
-struct pidTPCTaskQA {
+struct tpcPidQa {
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
   static constexpr std::string_view hexpected[Np] = {"expected/El", "expected/Mu", "expected/Pi",
@@ -199,17 +246,15 @@ struct pidTPCTaskQA {
   }
 
   template <uint8_t i, typename T>
-  void fillParticleHistos(const T& t, const float mom, const float exp_diff, const float nsigma)
+  void fillParticleHistos(const T& t, const float nsigma)
   {
-    histos.fill(HIST(hexpected[i]), mom, t.tpcSignal() - exp_diff);
-    histos.fill(HIST(hexpected_diff[i]), mom, exp_diff);
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra,
-                                                          aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                                          aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
-                                                          aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                          aod::pidTPCEl, aod::pidTPCMu, aod::pidTPCPi,
+                                                          aod::pidTPCKa, aod::pidTPCPr, aod::pidTPCDe,
+                                                          aod::pidTPCTr, aod::pidTPCHe, aod::pidTPCAl,
                                                           aod::TrackSelection> const& tracks)
   {
     histos.fill(HIST("event/vertexz"), collision.posZ());
@@ -219,24 +264,24 @@ struct pidTPCTaskQA {
       const float mom = t.tpcInnerParam();
       histos.fill(HIST("event/tpcsignal"), mom, t.tpcSignal());
       //
-      fillParticleHistos<0>(t, mom, t.tpcExpSignalDiffEl(), t.tpcNSigmaEl());
-      fillParticleHistos<1>(t, mom, t.tpcExpSignalDiffMu(), t.tpcNSigmaMu());
-      fillParticleHistos<2>(t, mom, t.tpcExpSignalDiffPi(), t.tpcNSigmaPi());
-      fillParticleHistos<3>(t, mom, t.tpcExpSignalDiffKa(), t.tpcNSigmaKa());
-      fillParticleHistos<4>(t, mom, t.tpcExpSignalDiffPr(), t.tpcNSigmaPr());
-      fillParticleHistos<5>(t, mom, t.tpcExpSignalDiffDe(), t.tpcNSigmaDe());
-      fillParticleHistos<6>(t, mom, t.tpcExpSignalDiffTr(), t.tpcNSigmaTr());
-      fillParticleHistos<7>(t, mom, t.tpcExpSignalDiffHe(), t.tpcNSigmaHe());
-      fillParticleHistos<8>(t, mom, t.tpcExpSignalDiffAl(), t.tpcNSigmaAl());
+      fillParticleHistos<0>(t, t.tpcNSigmaEl());
+      fillParticleHistos<1>(t, t.tpcNSigmaMu());
+      fillParticleHistos<2>(t, t.tpcNSigmaPi());
+      fillParticleHistos<3>(t, t.tpcNSigmaKa());
+      fillParticleHistos<4>(t, t.tpcNSigmaPr());
+      fillParticleHistos<5>(t, t.tpcNSigmaDe());
+      fillParticleHistos<6>(t, t.tpcNSigmaTr());
+      fillParticleHistos<7>(t, t.tpcNSigmaHe());
+      fillParticleHistos<8>(t, t.tpcNSigmaAl());
     }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTPCTaskSplit>(cfgc, TaskName{"pidTPC-split-task"})};
+  auto workflow = WorkflowSpec{adaptAnalysisTask<tpcPid>(cfgc)};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<pidTPCTaskQA>(cfgc, TaskName{"pidTOFQA-task"}));
+    workflow.push_back(adaptAnalysisTask<tpcPidQa>(cfgc));
   }
   return workflow;
 }

@@ -10,23 +10,18 @@
 
 #add_compile_options(-O0 -pg -fPIC)
 
+add_subdirectory(io)
+
 o2_add_library(TRDWorkflow
                TARGETVARNAME targetName
                SOURCES src/TRDDigitizerSpec.cxx
-                       src/TRDDigitWriterSpec.cxx
-                       src/TRDDigitReaderSpec.cxx
-                       src/TRDTrackletWriterSpec.cxx
-                       src/TRDCalibratedTrackletWriterSpec.cxx
-                       src/TRDTrackletReaderSpec.cxx
-                       src/TRDTrapRawWriterSpec.cxx
                        src/TRDTrapSimulatorSpec.cxx
                        src/TRDTrackletTransformerSpec.cxx
                        src/TRDGlobalTrackingSpec.cxx
-                       src/TRDTrackWriterSpec.cxx
                        src/TRDTrackingWorkflow.cxx
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
-                       PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::TRDReconstruction O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::TRDCalibration O2::GPUTracking O2::GlobalTrackingWorkflow)
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::TRDReconstruction O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::TRDCalibration O2::GPUTracking O2::GlobalTrackingWorkflowReaders O2::GPUWorkflowHelper O2::ReconstructionDataFormats O2::TPCWorkflow O2::TRDWorkflowIO)
 
                    #o2_target_root_dictionary(TRDWorkflow
                    # HEADERS include/TRDWorkflow/TRDTrapSimulatorSpec.h)
@@ -50,6 +45,7 @@ o2_add_executable(tracklet-transformer
                   COMPONENT_NAME trd
                   SOURCES src/TRDTrackletTransformerWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
 
 
 if (OpenMP_CXX_FOUND)

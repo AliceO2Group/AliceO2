@@ -17,15 +17,33 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DetectorsVertexing/VertexTrackMatcher.h"
+#include "TStopwatch.h"
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
+using GTrackID = o2::dataformats::GlobalTrackID;
+using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2
 {
 namespace vertexing
 {
-o2::globaltracking::DataRequest dataRequestV2T;
+
+class VertexTrackMatcherSpec : public Task
+{
+ public:
+  VertexTrackMatcherSpec(std::shared_ptr<DataRequest> dr) : mDataRequest(dr){};
+  ~VertexTrackMatcherSpec() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
+
+ private:
+  std::shared_ptr<DataRequest> mDataRequest;
+  o2::vertexing::VertexTrackMatcher mMatcher;
+  TStopwatch mTimer;
+};
 
 void VertexTrackMatcherSpec::init(InitContext& ic)
 {
@@ -42,27 +60,19 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   o2::globaltracking::RecoContainer recoData;
-
-  // RS FIXME this will not have effect until the 1st orbit is propagated, until that will work only for TF starting at orbit 0
-  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
-  mMatcher.setStartIR({0, dh->firstTForbit});
-  recoData.collectData(pc, dataRequestV2T);
-
-  const auto vertices = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("vertices");
-  const auto vtxTracks = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("vtxTracks");
-  const auto vtxTrackRefs = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("vtxTrackRefs");
+  recoData.collectData(pc, *mDataRequest.get());
 
   std::vector<o2::dataformats::VtxTrackIndex> trackIndex;
   std::vector<o2::dataformats::VtxTrackRef> vtxRefs;
 
-  mMatcher.process(vertices, vtxTracks, vtxTrackRefs, recoData, trackIndex, vtxRefs);
+  mMatcher.process(recoData, trackIndex, vtxRefs);
 
   pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe}, trackIndex);
   pc.outputs().snapshot(Output{"GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe}, vtxRefs);
 
   mTimer.Stop();
-  LOG(INFO) << "Made " << trackIndex.size() << " track associationgs for " << vertices.size() << " vertices, timing: CPU: "
-            << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
+  LOG(INFO) << "Made " << trackIndex.size() << " track associationgs for " << recoData.getPrimaryVertices().size()
+            << " vertices, timing: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
 }
 
 void VertexTrackMatcherSpec::endOfStream(EndOfStreamContext& ec)
@@ -74,37 +84,19 @@ void VertexTrackMatcherSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
 {
   std::vector<OutputSpec> outputs;
+  auto dataRequest = std::make_shared<DataRequest>();
 
-  if (src[GTrackID::ITS]) {
-    dataRequestV2T.requestITSTracks(false);
-  }
-  if (src[GTrackID::TPC]) {
-    dataRequestV2T.requestTPCTracks(false);
-  }
-  if (src[GTrackID::ITSTPC] || src[GTrackID::ITSTPCTOF]) { // ITSTPCTOF does not provide tracks, only matchInfo
-    dataRequestV2T.requestITSTPCTracks(false);
-  }
-  if (src[GTrackID::ITSTPCTOF]) {
-    dataRequestV2T.requestTOFMatches(false);
-    dataRequestV2T.requestTOFClusters(false);
-  }
-  if (src[GTrackID::TPCTOF]) {
-    dataRequestV2T.requestTPCTOFTracks(false);
-  }
-
-  auto& inputs = dataRequestV2T.inputs;
-  inputs.emplace_back("vertices", "GLO", "PVTX", 0, Lifetime::Timeframe);
-  inputs.emplace_back("vtxTracks", "GLO", "PVTX_CONTID", 0, Lifetime::Timeframe);
-  inputs.emplace_back("vtxTrackRefs", "GLO", "PVTX_CONTIDREFS", 0, Lifetime::Timeframe);
+  dataRequest->requestTracks(src, false);
+  dataRequest->requestPrimaryVerterticesTMP(false);
 
   outputs.emplace_back("GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "pvertex-track-matching",
-    inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<VertexTrackMatcherSpec>()},
+    AlgorithmSpec{adaptFromTask<VertexTrackMatcherSpec>(dataRequest)},
     Options{}};
 }
 

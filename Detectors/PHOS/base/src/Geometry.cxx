@@ -59,7 +59,7 @@ short Geometry::relToAbsId(char moduleNumber, int strip, int cell)
   short row = nStrpZ - (strip - 1) % nStrpZ;
   short col = (int)std::ceil((float)strip / (nStrpZ)) - 1;
 
-  return moduleNumber * nCrystalsInModule + row * 2 + (col * nCellsXInStrip + (cell - 1) / 2) * nZ -
+  return (moduleNumber - 1) * nCrystalsInModule + row * 2 + (col * nCellsXInStrip + (cell - 1) / 2) * nZ -
          (cell & 1 ? 1 : 0);
 }
 
@@ -74,7 +74,7 @@ bool Geometry::absToRelNumbering(short absId, char* relid)
 
   short phosmodulenumber = (absId - 1) / (nZ * nPhi);
 
-  relid[0] = phosmodulenumber;
+  relid[0] = phosmodulenumber + 1;
   absId -= phosmodulenumber * nPhi * nZ;
   relid[1] = 1 + (absId - 1) / nZ;
   relid[2] = absId - (relid[1] - 1) * nZ;
@@ -98,7 +98,7 @@ short Geometry::truRelToAbsNumbering(const char* relId)
 }
 bool Geometry::truRelId2RelId(const char* truRelId, char* relId)
 {
-  relId[0] = (truRelId[0] + 2) / 4;
+  relId[0] = 1 + (truRelId[0] + 2) / 4;
   relId[1] = ((truRelId[0] + 2) % 4) * 16 + truRelId[1] * 2 + 1;
   relId[2] = truRelId[2] * 2 + 1;
   return true;
@@ -106,9 +106,8 @@ bool Geometry::truRelId2RelId(const char* truRelId, char* relId)
 short Geometry::relPosToTruId(char mod, float x, float z, short& ddl)
 {
   //tranform local cluster coordinates to truId
-  const float cellStep = 2.25;
-  char relid[3] = {mod, static_cast<char>(ceil(x / cellStep + 32.5)), static_cast<char>(ceil(z / cellStep + 28.5))};
-  ddl = mod / 4 + relid[1] / 16 - 2;
+  char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
+  ddl = (mod - 1) * 4 + relid[1] / 16 - 2;
   char truid[3] = {static_cast<char>(ddl), static_cast<char>((relid[1] % 16) / 2), static_cast<char>(relid[2] / 2)};
   return truRelToAbsNumbering(truid);
 }
@@ -118,7 +117,7 @@ char Geometry::absIdToModule(short absId)
   const short nZ = 56;
   const short nPhi = 64;
 
-  return (absId - 1) / (nZ * nPhi);
+  return 1 + (absId - 1) / (nZ * nPhi);
 }
 
 int Geometry::areNeighbours(short absId1, short absId2)
@@ -163,13 +162,11 @@ int Geometry::areNeighbours(short absId1, short absId2)
 void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
 {
 
-  const float cellStep = 2.25;
-
   char relid[3];
   absToRelNumbering(absId, relid);
 
-  x = (relid[1] - 32 - 0.5) * cellStep;
-  z = (relid[2] - 28 - 0.5) * cellStep;
+  x = (relid[1] - 32 - 0.5) * CELLSTEP;
+  z = (relid[2] - 28 - 0.5) * CELLSTEP;
 }
 bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 {
@@ -177,19 +174,23 @@ bool Geometry::relToAbsNumbering(const char* relId, short& absId)
   const short nPhi = 64; // nStripZ * nCellsZInStrip
 
   absId =
-    relId[0] * nPhi * nZ + // the offset of PHOS modules
-    (relId[1] - 1) * nZ +  // the offset along phi
-    relId[2];              // the offset along z
+    (relId[0] - 1) * nPhi * nZ + // the offset of PHOS modules
+    (relId[1] - 1) * nZ +        // the offset along phi
+    relId[2];                    // the offset along z
 
   return true;
 }
 //local position to absId
 void Geometry::relPosToAbsId(char module, float x, float z, short& absId)
 {
-  const float cellStep = 2.25;
-
-  char relid[3] = {module, static_cast<char>(ceil(x / cellStep + 32.5)), static_cast<char>(ceil(z / cellStep + 28.5))};
+  char relid[3] = {module, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
   relToAbsNumbering(relid, absId);
+}
+void Geometry::relPosToRelId(short module, float x, float z, char* relId)
+{
+  relId[0] = module;
+  relId[1] = static_cast<char>(ceil(x / CELLSTEP + 32.5));
+  relId[2] = static_cast<char>(ceil(z / CELLSTEP + 28.5));
 }
 
 // convert local position in module to global position in ALICE
@@ -197,7 +198,7 @@ void Geometry::local2Global(char module, float x, float z, TVector3& globaPos) c
 {
   // constexpr float shiftY=-10.76; Run2
   constexpr float shiftY = -1.26; //Depth-optimized
-  Double_t posL[3] = {x, shiftY, -z};
+  Double_t posL[3] = {x, z, shiftY};
   Double_t posG[3];
   mPHOS[module].LocalToMaster(posL, posG);
   globaPos.SetXYZ(posG[0], posG[1], posG[2]);

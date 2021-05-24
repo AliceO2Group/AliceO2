@@ -12,6 +12,11 @@
 #
 # authors: D. Rohr / S. Wenzel
 
+if [ "0$O2_ROOT" == "0" ] || [ "0$AEGIS_ROOT" == "0" ]; then
+  echo Missing O2sim environment
+  exit 1
+fi
+
 # include jobutils, which notably brings
 # --> the taskwrapper as a simple control and monitoring tool
 #     (look inside the jobutils.sh file for documentation)
@@ -19,7 +24,8 @@
 . ${O2_ROOT}/share/scripts/jobutils.sh
 
 # make sure that correct format will be used irrespecive of the locale
-LC_NUMERIC=C
+export LC_NUMERIC=C
+export LC_ALL=C
 
 NEvents=${NEvents:-10} #550 for full TF (the number of PbPb events)
 NEventsQED=${NEventsQED:-1000} #35000 for full TF
@@ -168,7 +174,7 @@ for STAGE in $STAGES; do
     echo "walltime_${STAGE},${TAG} value=${walltime}" >> ${METRICFILE}
 
     # GPU reconstruction (also in CPU version) processing time
-    gpurecotime=`grep "tpc-tracker" reco_NOGPU.log | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
+    gpurecotime=`grep "gpu-reconstruction" reco_NOGPU.log | grep -e "Total Wall Time:" | awk '//{printf "%f", $6/1000000}'`
     echo "gpurecotime_${STAGE},${TAG} value=${gpurecotime}" >> ${METRICFILE}
 
     # memory
@@ -178,7 +184,7 @@ for STAGE in $STAGES; do
     echo "avgmem_${STAGE},${TAG} value=${avgmem}" >> ${METRICFILE}
 
     # some physics quantities
-    tpctracks=`grep "tpc-tracker" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
+    tpctracks=`grep "gpu-reconstruction" ${logfile} | grep -e "found.*track" | awk '//{print $4}'`
     echo "tpctracks_${STAGE},${TAG} value=${tpctracks}" >> ${METRICFILE}
     tpcclusters=`grep -e "Event has.*TPC Clusters" ${logfile} | awk '//{print $5}'`
     echo "tpcclusters_${STAGE},${TAG} value=${tpcclusters}" >> ${METRICFILE}

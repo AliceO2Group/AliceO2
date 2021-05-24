@@ -51,14 +51,20 @@ namespace o2::framework
 
 namespace detail
 {
-void timer_callback(uv_timer_t*)
+void timer_callback(uv_timer_t* handle)
 {
   // We simply wake up the event loop. Nothing to be done here.
+  DeviceState* state = (DeviceState*)handle->data;
+  state->loopReason |= DeviceState::TIMER_EXPIRED;
+  state->loopReason |= DeviceState::DATA_INCOMING;
 }
 
-void signal_callback(uv_signal_t*, int)
+void signal_callback(uv_signal_t* handle, int)
 {
   // We simply wake up the event loop. Nothing to be done here.
+  DeviceState* state = (DeviceState*)handle->data;
+  state->loopReason |= DeviceState::SIGNAL_ARRIVED;
+  state->loopReason |= DeviceState::DATA_INCOMING;
 }
 } // namespace detail
 
@@ -77,6 +83,7 @@ struct ExpirationHandlerHelpers {
       // timeslot creation and record expiration still happens
       // in a synchronous way.
       uv_timer_t* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
+      timer->data = &state;
       uv_timer_init(state.loop, timer);
       uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
       state.activeTimers.push_back(timer);
@@ -99,6 +106,7 @@ struct ExpirationHandlerHelpers {
       // in a synchronous way.
       uv_signal_t* sh = (uv_signal_t*)(malloc(sizeof(uv_signal_t)));
       uv_signal_init(state.loop, sh);
+      sh->data = &state;
       uv_signal_start(sh, detail::signal_callback, SIGUSR1);
       state.activeSignals.push_back(sh);
 
@@ -332,6 +340,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     device.inputTimesliceId = edge.producerTimeIndex;
     device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
+    device.labels = processor.labels;
     devices.push_back(device);
     return devices.size() - 1;
   };
@@ -543,6 +552,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     device.inputTimesliceId = edge.timeIndex;
     device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
+    device.labels = processor.labels;
 
     // FIXME: maybe I should use an std::map in the end
     //        but this is really not performance critical
@@ -729,6 +739,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::vector<ChannelConfigurationPolicy> const& channelPolicies,
                                                        std::vector<CompletionPolicy> const& completionPolicies,
                                                        std::vector<DispatchPolicy> const& dispatchPolicies,
+                                                       std::vector<ResourcePolicy> const& resourcePolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
                                                        std::string const& uniqueWorkflowId,
@@ -807,6 +818,17 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
         device.dispatchPolicy = policy;
         break;
       }
+    }
+    bool hasPolicy = false;
+    for (auto& policy : resourcePolicies) {
+      if (policy.matcher(device) == true) {
+        device.resourcePolicy = policy;
+        hasPolicy = true;
+        break;
+      }
+    }
+    if (hasPolicy == false) {
+      throw runtime_error_f("Unable to find a resource policy for %s", device.id.c_str());
     }
   }
 

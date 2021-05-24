@@ -7,13 +7,17 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief in this tutorial the information contained in table TrackSelection is
+///        used to retrieve tracks of a given type.
+///        This requires tables TracksExtended and TrackSelection. Therefor use
+///        o2-analysis-trackextension --aod-file AO2D.root | o2-analysis-trackselection | o2-analysistutorial-histogram-track-selection --select n
+///        with n: 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD
+/// \author
+/// \since
 
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
-#include <TH1F.h>
-
-#include <cmath>
+#include "Framework/AnalysisTask.h"
 
 #include "AnalysisCore/TrackSelection.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
@@ -22,9 +26,6 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-//--------------------------------------------------------------------
-// Task generating pT spectrum of charged particles
-//--------------------------------------------------------------------
 struct HistogramTrackSelection {
 
   Configurable<int> selectedTracks{"select", 1, "Choice of track selection. 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD"};
@@ -33,27 +34,28 @@ struct HistogramTrackSelection {
 
   void init(o2::framework::InitContext&) {}
 
+  // group tracks according to collision
   void process(aod::Collision const& collision,
                soa::Join<aod::Tracks, aod::TrackSelection> const& tracks)
   {
     for (auto& track : tracks) {
 
+      // select tracks according to configurable selectedTracks
       if (selectedTracks == 1 && !track.isGlobalTrack()) {
         continue;
       } else if (selectedTracks == 2 && !track.isGlobalTrackSDD()) {
         continue;
       }
 
+      // fill pt histogram
       pt->Fill(track.pt());
     }
   }
 };
 
-//--------------------------------------------------------------------
-// Workflow definition
-//--------------------------------------------------------------------
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HistogramTrackSelection>(cfgc, TaskName{"histogram-track-selection"})};
+    adaptAnalysisTask<HistogramTrackSelection>(cfgc),
+  };
 }

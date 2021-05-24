@@ -19,7 +19,7 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DataFormatsTPC/CompressedClusters.h"
 #else
 namespace o2::tpc
@@ -65,9 +65,9 @@ class GPUTPCCompression : public GPUProcessor
   static constexpr unsigned int P_MAX_FLAGS = 1 << 8;
   static constexpr unsigned int P_MAX_QPT = 1 << 8;
 
-  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpcSigBitsCharge, P_MAX_QTOT); }
-  GPUd() static void truncateSignificantBitsChargeMax(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpcSigBitsCharge, P_MAX_QMAX); }
-  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpcSigBitsWidth, P_MAX_SIGMA); }
+  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QTOT); }
+  GPUd() static void truncateSignificantBitsChargeMax(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QMAX); }
+  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpc.sigBitsWidth, P_MAX_SIGMA); }
 
  protected:
   struct memory {

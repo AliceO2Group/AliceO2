@@ -49,7 +49,7 @@ struct TOFFEElightInfo {
   bool getChannelEnabled(int idx) { return idx < Geo::NCHANNELS ? mChannelEnabled[idx] : false; }
   int getMatchingWindow(int idx) { return idx < Geo::NCHANNELS ? mMatchingWindow[idx] : 0; }
   int getLatencyWindow(int idx) { return idx < Geo::NCHANNELS ? mLatencyWindow[idx] : 0; }
-  uint getTriggerMask(int ddl) { return ddl < TOFFEElightConfig::NTRIGGERMAPS ? mTriggerMask[ddl] : 0; }
+  uint64_t getTriggerMask(int ddl) { return ddl < TOFFEElightConfig::NTRIGGERMAPS ? mTriggerMask[ddl] : 0; }
 
   ClassDefNV(TOFFEElightInfo, 1);
 };

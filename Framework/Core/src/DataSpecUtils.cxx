@@ -643,7 +643,7 @@ bool DataSpecUtils::includes(const InputSpec& left, const InputSpec& right)
               auto leftInfo = extractMatcherInfo(leftMatcher);
               return (!leftInfo.hasOrigin || (rightInfo.hasOrigin && leftInfo.origin == rightInfo.origin)) &&
                      (!leftInfo.hasDescription || (rightInfo.hasDescription && leftInfo.description == rightInfo.description)) &&
-                     (!leftInfo.hasSubSpec || (rightInfo.hasSubSpec && leftInfo.subSpec == rightInfo.hasSubSpec));
+                     (!leftInfo.hasSubSpec || (rightInfo.hasSubSpec && leftInfo.subSpec == rightInfo.subSpec));
             }},
           left.matcher);
       }},

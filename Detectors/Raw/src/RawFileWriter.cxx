@@ -39,9 +39,13 @@ void RawFileWriter::close()
   if (mFName2File.empty()) {
     return;
   }
-
   if (mCachingStage) {
     fillFromCache();
+  }
+  if (mDoLazinessCheck) {
+    IR newIR = mDetLazyCheck.ir;
+    mDetLazyCheck.completeLinks(this, ++newIR); // make sure that all links for previously called IR got their addData call
+    mDoLazinessCheck = false;
   }
 
   if (!mFirstIRAdded.isDummy()) { // flushing and completing the last HBF makes sense only if data was added.
@@ -63,6 +67,10 @@ void RawFileWriter::close()
     flh.second.handler = nullptr;
   }
   mFName2File.clear();
+  if (mDetLazyCheck.completeCount) {
+    LOG(WARNING) << "RawFileWriter forced " << mDetLazyCheck.completeCount << " dummy addData calls in "
+                 << mDetLazyCheck.irSeen << " IRs for links which did not receive data";
+  }
   mTimer.Stop();
   mTimer.Print();
 }
@@ -76,6 +84,10 @@ void RawFileWriter::fillFromCache()
     for (const auto& entry : cache.second) {
       auto& link = getLinkWithSubSpec(entry.first);
       link.cacheTree->GetEntry(entry.second);
+      if (mDoLazinessCheck) {
+        mDetLazyCheck.completeLinks(this, cache.first); // make sure that all links for previously called IR got their addData call
+        mDetLazyCheck.acknowledge(link.subspec, cache.first, link.cacheBuffer.preformatted, link.cacheBuffer.trigger, link.cacheBuffer.detField);
+      }
       link.addData(cache.first, link.cacheBuffer.payload, link.cacheBuffer.preformatted, link.cacheBuffer.trigger, link.cacheBuffer.detField);
     }
   }
@@ -163,12 +175,15 @@ RawFileWriter::LinkData& RawFileWriter::registerLink(uint16_t fee, uint16_t cru,
 void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger, uint32_t detField)
 {
   // add payload to relevant links
+  auto sspec = RDHUtils::getSubSpec(cru, lnk, endpoint, feeid);
+  auto& link = getLinkWithSubSpec(sspec);
+  if (mVerbosity > 10) {
+    LOGP(INFO, "addData for {}  on IR BCid:{} Orbit: {}, payload: {}, preformatted: {}, trigger: {}, detField: {}", link.describe(), ir.bc, ir.orbit, data.size(), preformatted, trigger, detField);
+  }
   if (isCRUDetector() && (data.size() % RDHUtils::GBTWord)) {
     LOG(ERROR) << "provided payload size " << data.size() << " is not multiple of GBT word size";
     throw std::runtime_error("payload size is not mutiple of GBT word size");
   }
-  auto sspec = RDHUtils::getSubSpec(cru, lnk, endpoint, feeid);
-  auto& link = getLinkWithSubSpec(sspec);
   if (ir < mHBFUtils.getFirstIR()) {
     LOG(WARNING) << "provided " << ir << " precedes first TF " << mHBFUtils.getFirstIR() << " | discarding data for " << link.describe();
     return;
@@ -182,6 +197,10 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
   }
   if (ir < mFirstIRAdded) {
     mFirstIRAdded = ir;
+  }
+  if (mDoLazinessCheck && !mCachingStage) {
+    mDetLazyCheck.completeLinks(this, ir); // make sure that all links for previously called IR got their addData call
+    mDetLazyCheck.acknowledge(sspec, ir, preformatted, trigger, detField);
   }
   link.addData(ir, data, preformatted, trigger, detField);
 }
@@ -234,7 +253,7 @@ void RawFileWriter::writeConfFile(std::string_view origin, std::string_view desc
     cfgfile << "dataOrigin = " << origin << std::endl;
     cfgfile << "dataDescription = " << description << std::endl;
     cfgfile << "readoutCard = " << (isCRUDetector() ? "CRU" : "RORC") << std::endl;
-    cfgfile << "filePath = " << (fullPath ? o2::base::NameConf::getFullPath(getOutputFileName(i)) : getOutputFileName(i)) << std::endl;
+    cfgfile << "filePath = " << (fullPath ? o2::utils::Str::getFullPath(getOutputFileName(i)) : getOutputFileName(i)) << std::endl;
   }
   cfgfile.close();
 }
@@ -250,7 +269,7 @@ void RawFileWriter::useCaching()
   if (mCacheFile) {
     return; // already done
   }
-  auto cachename = o2::utils::concat_string("_rawWriter_cache_", mOrigin.str, ::getpid(), ".root");
+  auto cachename = o2::utils::Str::concat_string("_rawWriter_cache_", mOrigin.str, ::getpid(), ".root");
   mCacheFile.reset(TFile::Open(cachename.c_str(), "recreate"));
   LOG(INFO) << "Switched caching ON";
 }
@@ -264,7 +283,7 @@ void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data
   std::lock_guard<std::mutex> lock(writer->mCacheFileMtx);
   if (!cacheTree) {
     writer->mCacheFile->cd();
-    cacheTree = std::make_unique<TTree>(o2::utils::concat_string("lnk", std::to_string(subspec)).c_str(), "cache");
+    cacheTree = std::make_unique<TTree>(o2::utils::Str::concat_string("lnk", std::to_string(subspec)).c_str(), "cache");
     cacheTree->Branch("cache", &cacheBuffer);
   }
   cacheBuffer.preformatted = preformatted;
@@ -632,10 +651,59 @@ void RawFileWriter::LinkData::print() const
   LOGF(INFO, "Summary for %s : NTF: %u NRDH: %u Nbytes: %u", describe(), nTFWritten, nRDHWritten, nBytesWritten);
 }
 
+//____________________________________________
+size_t RawFileWriter::LinkData::pushBack(const char* ptr, size_t sz, bool keepLastOnFlash)
+{
+  if (!sz) {
+    return buffer.size();
+  }
+  nBytesWritten += sz;
+  // do we have a space one this superpage?
+  if ((writer->mSuperPageSize - int(buffer.size())) < 0) { // need to flush
+    flushSuperPage(keepLastOnFlash);
+  }
+  auto offs = expandBufferBy(sz);
+  memmove(&buffer[offs], ptr, sz);
+  return offs;
+}
+
 //================================================
 
+//____________________________________________
 void RawFileWriter::OutputFile::write(const char* data, size_t sz)
 {
   std::lock_guard<std::mutex> lock(fileMtx);
   fwrite(data, 1, sz, handler); // flush to file
+}
+
+//____________________________________________
+void RawFileWriter::DetLazinessCheck::acknowledge(LinkSubSpec_t s, const IR& _ir, bool _preformatted, uint32_t _trigger, uint32_t _detField)
+{
+  if (_ir != ir) { // unseen IR arrived
+    ir = _ir;
+    irSeen++;
+    preformatted = _preformatted;
+    trigger = _trigger;
+    detField = _detField;
+  }
+  linksDone[s] = true;
+}
+
+//____________________________________________
+void RawFileWriter::DetLazinessCheck::completeLinks(RawFileWriter* wr, const IR& _ir)
+{
+  if (wr->mSSpec2Link.size() == linksDone.size() || ir == _ir || ir.isDummy()) { // nothing to do
+    return;
+  }
+  for (auto& it : wr->mSSpec2Link) {
+    auto res = linksDone.find(it.first);
+    if (res == linksDone.end()) {
+      if (wr->mVerbosity > 10) {
+        LOGP(INFO, "Complete {} for IR BCid:{} Orbit: {}", it.second.describe(), ir.bc, ir.orbit);
+      }
+      completeCount++;
+      it.second.addData(ir, gsl::span<char>{}, preformatted, trigger, detField);
+    }
+  }
+  clear();
 }

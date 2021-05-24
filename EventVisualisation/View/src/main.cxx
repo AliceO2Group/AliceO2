@@ -63,13 +63,15 @@ int main(int argc, char** argv)
     exit(0);
   }
 
+  //gEve->SpawnNewViewer("3D View", "");  exit(0);
+
   // Initialize o2 Event Visualisation
-  Initializer::setup();
+  Initializer::setup(Options::Instance()->online() ? EventManager::SourceOnline : EventManager::SourceOffline);
 
   // Start the application
   app->Run(kTRUE);
 
-  DataInterpreter::removeInstances();
+  //DataInterpreter::removeInstances();
   // Terminate application
   TEveManager::Terminate();
   app->Terminate(0);

@@ -53,6 +53,7 @@ class FT0DataReaderDPLSpec : public Task
         if (dh->payloadSize == 0) {
           LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+          mRawReader.makeSnapshot(pc); // send empty output
           return;
         }
       }
@@ -65,7 +66,7 @@ class FT0DataReaderDPLSpec : public Task
       count++;
       auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.process(rdhPtr->linkID, payload, rdhPtr->endPointID);
+      mRawReader.process(payload, rdhPtr->linkID, rdhPtr->endPointID);
     }
     LOG(INFO) << "Pages: " << count;
     mRawReader.accumulateDigits();

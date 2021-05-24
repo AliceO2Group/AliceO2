@@ -50,6 +50,8 @@ class TrackletTransformer
 
   CalibratedTracklet transformTracklet(Tracklet64 tracklet);
 
+  double getTimebin(double x);
+
  private:
   o2::trd::Geometry* mGeo;
   const o2::trd::PadPlane* mPadPlane;

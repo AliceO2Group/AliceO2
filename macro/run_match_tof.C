@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
+#define MS_GSL_V3
 #include <TFile.h>
 #include <TChain.h>
 #include <TTree.h>

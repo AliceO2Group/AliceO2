@@ -9,15 +9,16 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// \file   pidTOF_split.cxx
+/// \file   pidTOF.cxx
 /// \author Nicolo' Jacazio
-/// \brief  Task to produce PID tables for TOF split for each particle.
+/// \brief  Task to produce PID tables for TOF split for each particle with only the Nsigma information.
 ///         Only the tables for the mass hypotheses requested are filled, the others are sent empty.
 ///
 
 // O2 includes
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include "ReconstructionDataFormats/Track.h"
 #include <CCDB/BasicCCDBManager.h>
 #include "AnalysisDataModel/PID/PIDResponse.h"
@@ -38,39 +39,70 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
-struct pidTOFTaskSplit {
+struct tofPid {
   using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
   using Coll = aod::Collisions;
   // Tables to produce
-  Produces<o2::aod::pidRespTOFEl> tablePIDEl;
-  Produces<o2::aod::pidRespTOFMu> tablePIDMu;
-  Produces<o2::aod::pidRespTOFPi> tablePIDPi;
-  Produces<o2::aod::pidRespTOFKa> tablePIDKa;
-  Produces<o2::aod::pidRespTOFPr> tablePIDPr;
-  Produces<o2::aod::pidRespTOFDe> tablePIDDe;
-  Produces<o2::aod::pidRespTOFTr> tablePIDTr;
-  Produces<o2::aod::pidRespTOFHe> tablePIDHe;
-  Produces<o2::aod::pidRespTOFAl> tablePIDAl;
+  Produces<o2::aod::pidTOFEl> tablePIDEl;
+  Produces<o2::aod::pidTOFMu> tablePIDMu;
+  Produces<o2::aod::pidTOFPi> tablePIDPi;
+  Produces<o2::aod::pidTOFKa> tablePIDKa;
+  Produces<o2::aod::pidTOFPr> tablePIDPr;
+  Produces<o2::aod::pidTOFDe> tablePIDDe;
+  Produces<o2::aod::pidTOFTr> tablePIDTr;
+  Produces<o2::aod::pidTOFHe> tablePIDHe;
+  Produces<o2::aod::pidTOFAl> tablePIDAl;
   // Detector response and input parameters
   DetectorResponse response;
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
   Configurable<std::string> sigmaname{"param-sigma", "TOFReso", "Name of the parametrization for the expected sigma, used in both file and CCDB mode"};
   Configurable<std::string> url{"ccdb-url", "http://ccdb-test.cern.ch:8080", "url of the ccdb repository"};
+  Configurable<std::string> ccdbPath{"ccdbPath", "Analysis/PID/TOF", "Path of the TOF parametrization on the CCDB"};
   Configurable<long> timestamp{"ccdb-timestamp", -1, "timestamp of the object"};
   // Configuration flags to include and exclude particle hypotheses
-  Configurable<int> pidEl{"pid-el", 0, {"Produce PID information for the Electron mass hypothesis"}};
-  Configurable<int> pidMu{"pid-mu", 0, {"Produce PID information for the Muon mass hypothesis"}};
-  Configurable<int> pidPi{"pid-pi", 0, {"Produce PID information for the Pion mass hypothesis"}};
-  Configurable<int> pidKa{"pid-ka", 0, {"Produce PID information for the Kaon mass hypothesis"}};
-  Configurable<int> pidPr{"pid-pr", 0, {"Produce PID information for the Proton mass hypothesis"}};
-  Configurable<int> pidDe{"pid-de", 0, {"Produce PID information for the Deuterons mass hypothesis"}};
-  Configurable<int> pidTr{"pid-tr", 0, {"Produce PID information for the Triton mass hypothesis"}};
-  Configurable<int> pidHe{"pid-he", 0, {"Produce PID information for the Helium3 mass hypothesis"}};
-  Configurable<int> pidAl{"pid-al", 0, {"Produce PID information for the Alpha mass hypothesis"}};
+  Configurable<int> pidEl{"pid-el", -1, {"Produce PID information for the Electron mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidMu{"pid-mu", -1, {"Produce PID information for the Muon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidPi{"pid-pi", -1, {"Produce PID information for the Pion mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidKa{"pid-ka", -1, {"Produce PID information for the Kaon mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidPr{"pid-pr", -1, {"Produce PID information for the Proton mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidDe{"pid-de", -1, {"Produce PID information for the Deuterons mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidTr{"pid-tr", -1, {"Produce PID information for the Triton mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidHe{"pid-he", -1, {"Produce PID information for the Helium3 mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
+  Configurable<int> pidAl{"pid-al", -1, {"Produce PID information for the Alpha mass hypothesis, overrides the automatic setup: the corresponding table can be set off (0) or on (1)"}};
 
-  void init(o2::framework::InitContext&)
+  void init(o2::framework::InitContext& initContext)
   {
+    // Checking the tables are requested in the workflow and enabling them
+    auto& workflows = initContext.services().get<RunningWorkflowInfo const>();
+    for (DeviceSpec device : workflows.devices) {
+      for (auto input : device.inputs) {
+        auto enableFlag = [&input](const std::string particle, Configurable<int>& flag) {
+          const std::string table = "pidTOF" + particle;
+          if (input.matcher.binding == table) {
+            if (flag < 0) {
+              flag.value = 1;
+              LOG(INFO) << "Auto-enabling table: " + table;
+            } else if (flag > 0) {
+              flag.value = 1;
+              LOG(INFO) << "Table enabled: " + table;
+            } else {
+              LOG(INFO) << "Table disabled: " + table;
+            }
+          }
+        };
+        enableFlag("El", pidEl);
+        enableFlag("Mu", pidMu);
+        enableFlag("Pi", pidPi);
+        enableFlag("Ka", pidKa);
+        enableFlag("Pr", pidPr);
+        enableFlag("De", pidDe);
+        enableFlag("Tr", pidTr);
+        enableFlag("He", pidHe);
+        enableFlag("Al", pidAl);
+      }
+    }
+    // Getting the parametrization parameters
     ccdb->setURL(url.value);
     ccdb->setTimestamp(timestamp.value);
     ccdb->setCaching(true);
@@ -82,10 +114,12 @@ struct pidTOFTaskSplit {
     response.SetParameters(DetectorResponse::kSigma, p);
     const std::string fname = paramfile.value;
     if (!fname.empty()) { // Loading the parametrization from file
+      LOG(INFO) << "Loading exp. sigma parametrization from file" << fname << ", using param: " << sigmaname.value;
       response.LoadParamFromFile(fname.data(), sigmaname.value, DetectorResponse::kSigma);
     } else { // Loading it from CCDB
-      const std::string path = "Analysis/PID/TOF";
-      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path + "/" + sigmaname.value, timestamp.value));
+      std::string path = ccdbPath.value + "/" + sigmaname.value;
+      LOG(INFO) << "Loading exp. sigma parametrization from CCDB, using path: " << path << " for timestamp " << timestamp.value;
+      response.LoadParam(DetectorResponse::kSigma, ccdb->getForTimeStamp<Parametrization>(path, timestamp.value));
     }
   }
 
@@ -105,12 +139,20 @@ struct pidTOFTaskSplit {
 
     // Check and fill enabled tables
     auto makeTable = [&tracks](const Configurable<int>& flag, auto& table, const DetectorResponse& response, const auto& responsePID) {
-      if (flag.value) {
+      if (flag.value == 1) {
         // Prepare memory for enabled tables
         table.reserve(tracks.size());
         for (auto const& trk : tracks) { // Loop on Tracks
-          table(responsePID.GetExpectedSigma(response, trk.collision(), trk),
-                responsePID.GetSeparation(response, trk.collision(), trk));
+          const float separation = responsePID.GetSeparation(response, trk.collision(), trk);
+          if (separation <= o2::aod::pidtof_tiny::binned_min) {
+            table(o2::aod::pidtof_tiny::lower_bin);
+          } else if (separation >= o2::aod::pidtof_tiny::binned_max) {
+            table(o2::aod::pidtof_tiny::upper_bin);
+          } else if (separation >= 0) {
+            table(separation / o2::aod::pidtof_tiny::bin_width + 0.5f);
+          } else {
+            table(separation / o2::aod::pidtof_tiny::bin_width - 0.5f);
+          }
         }
       }
     };
@@ -126,7 +168,7 @@ struct pidTOFTaskSplit {
   }
 };
 
-struct pidTOFTaskQA {
+struct tofPidQa {
 
   static constexpr int Np = 9;
   static constexpr const char* pT[Np] = {"e", "#mu", "#pi", "K", "p", "d", "t", "^{3}He", "#alpha"};
@@ -141,13 +183,23 @@ struct pidTOFTaskQA {
                                                    "nsigma/Tr", "nsigma/He", "nsigma/Al"};
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
+  Configurable<int> logAxis{"logAxis", 1, "Flag to use a log momentum axis"};
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
-  Configurable<float> MinP{"MinP", 0.1, "Minimum momentum in range"};
-  Configurable<float> MaxP{"MaxP", 5, "Maximum momentum in range"};
+  Configurable<float> MinP{"MinP", 0.1f, "Minimum momentum in range"};
+  Configurable<float> MaxP{"MaxP", 5.f, "Maximum momentum in range"};
+  Configurable<int> nBinsDelta{"nBinsDelta", 200, "Number of bins for the Delta"};
+  Configurable<float> MinDelta{"MinDelta", -1000.f, "Minimum Delta in range"};
+  Configurable<float> MaxDelta{"MaxDelta", 1000.f, "Maximum Delta in range"};
+  Configurable<int> nBinsNSigma{"nBinsNSigma", 200, "Number of bins for the NSigma"};
+  Configurable<float> MinNSigma{"MinNSigma", -10.f, "Minimum NSigma in range"};
+  Configurable<float> MaxNSigma{"MaxNSigma", 10.f, "Maximum NSigma in range"};
 
   template <typename T>
   void makelogaxis(T h)
   {
+    if (logAxis == 0) {
+      return;
+    }
     const int nbins = h->GetNbinsX();
     double binp[nbins + 1];
     double max = h->GetXaxis()->GetBinUpEdge(nbins);
@@ -167,16 +219,8 @@ struct pidTOFTaskQA {
   template <uint8_t i>
   void addParticleHistos()
   {
-    // Exp signal
-    histos.add(hexpected[i].data(), Form(";#it{p} (GeV/#it{c});t_{exp}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 2e6}});
-    makelogaxis(histos.get<TH2>(HIST(hexpected[i])));
-
-    // T-Texp
-    histos.add(hexpected_diff[i].data(), Form(";#it{p} (GeV/#it{c});(t-t_{evt}-t_{exp}(%s))", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {100, -1000, 1000}});
-    makelogaxis(histos.get<TH2>(HIST(hexpected_diff[i])));
-
     // NSigma
-    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {200, -10, 10}});
+    histos.add(hnsigma[i].data(), Form(";#it{p} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {nBinsNSigma, MinNSigma, MaxNSigma}});
     makelogaxis(histos.get<TH2>(HIST(hnsigma[i])));
   }
 
@@ -205,17 +249,15 @@ struct pidTOFTaskQA {
   }
 
   template <uint8_t i, typename T>
-  void fillParticleHistos(const T& t, const float tof, const float exp_diff, const float nsigma)
+  void fillParticleHistos(const T& t, const float nsigma)
   {
-    histos.fill(HIST(hexpected[i]), t.p(), tof - exp_diff);
-    histos.fill(HIST(hexpected_diff[i]), t.p(), exp_diff);
     histos.fill(HIST(hnsigma[i]), t.p(), nsigma);
   }
 
   void process(aod::Collision const& collision, soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov,
-                                                          aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                                                          aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
-                                                          aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                                                          aod::pidTOFEl, aod::pidTOFMu, aod::pidTOFPi,
+                                                          aod::pidTOFKa, aod::pidTOFPr, aod::pidTOFDe,
+                                                          aod::pidTOFTr, aod::pidTOFHe, aod::pidTOFAl,
                                                           aod::TrackSelection> const& tracks)
   {
     const float collisionTime_ps = collision.collisionTime() * 1000.f;
@@ -225,6 +267,9 @@ struct pidTOFTaskQA {
     for (auto t : tracks) {
       //
       if (t.tofSignal() < 0) { // Skipping tracks without TOF
+        continue;
+      }
+      if (!t.isGlobalTrack()) {
         continue;
       }
 
@@ -237,24 +282,24 @@ struct pidTOFTaskQA {
       histos.fill(HIST("event/pt"), t.pt());
       histos.fill(HIST("event/ptreso"), t.p(), t.sigma1Pt() * t.pt() * t.pt());
       //
-      fillParticleHistos<0>(t, tof, t.tofExpSignalDiffEl(), t.tofNSigmaEl());
-      fillParticleHistos<1>(t, tof, t.tofExpSignalDiffMu(), t.tofNSigmaMu());
-      fillParticleHistos<2>(t, tof, t.tofExpSignalDiffPi(), t.tofNSigmaPi());
-      fillParticleHistos<3>(t, tof, t.tofExpSignalDiffKa(), t.tofNSigmaKa());
-      fillParticleHistos<4>(t, tof, t.tofExpSignalDiffPr(), t.tofNSigmaPr());
-      fillParticleHistos<5>(t, tof, t.tofExpSignalDiffDe(), t.tofNSigmaDe());
-      fillParticleHistos<6>(t, tof, t.tofExpSignalDiffTr(), t.tofNSigmaTr());
-      fillParticleHistos<7>(t, tof, t.tofExpSignalDiffHe(), t.tofNSigmaHe());
-      fillParticleHistos<8>(t, tof, t.tofExpSignalDiffAl(), t.tofNSigmaAl());
+      fillParticleHistos<0>(t, t.tofNSigmaEl());
+      fillParticleHistos<1>(t, t.tofNSigmaMu());
+      fillParticleHistos<2>(t, t.tofNSigmaPi());
+      fillParticleHistos<3>(t, t.tofNSigmaKa());
+      fillParticleHistos<4>(t, t.tofNSigmaPr());
+      fillParticleHistos<5>(t, t.tofNSigmaDe());
+      fillParticleHistos<6>(t, t.tofNSigmaTr());
+      fillParticleHistos<7>(t, t.tofNSigmaHe());
+      fillParticleHistos<8>(t, t.tofNSigmaAl());
     }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto workflow = WorkflowSpec{adaptAnalysisTask<pidTOFTaskSplit>(cfgc, TaskName{"pidTOF-split-task"})};
+  auto workflow = WorkflowSpec{adaptAnalysisTask<tofPid>(cfgc)};
   if (cfgc.options().get<int>("add-qa")) {
-    workflow.push_back(adaptAnalysisTask<pidTOFTaskQA>(cfgc, TaskName{"pidTOFQA-task"}));
+    workflow.push_back(adaptAnalysisTask<tofPidQa>(cfgc));
   }
   return workflow;
 }

@@ -29,8 +29,8 @@ namespace tof
 void ClusterReader::init(InitContext& ic)
 {
   LOG(INFO) << "Init Cluster reader!";
-  mFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                       ic.options().get<std::string>("tof-cluster-infile"));
+  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>("tof-cluster-infile"));
   connectTree(mFileName);
 }
 

@@ -20,7 +20,7 @@
 #include "GPUMemorySizeScalers.h"
 #include "AliHLTTPCRawCluster.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DataFormatsTPC/ClusterNative.h"
 #else
 #include "GPUO2FakeClasses.h"
@@ -32,7 +32,7 @@ using namespace o2::tpc;
 
 int GPUChainTracking::ConvertNativeToClusterData()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   mRec->PushNonPersistentMemory(qStr2Tag("TPCTRANS"));
   const auto& threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::TPCConversion;
@@ -118,7 +118,7 @@ void GPUChainTracking::ConvertRun2RawToNative()
 
 void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   mIOMem.tpcZSmeta2.reset(new GPUTrackingInOutZS::GPUTrackingInOutZSMeta);
   mIOMem.tpcZSmeta.reset(new GPUTrackingInOutZS);
   GPUReconstructionConvert::RunZSEncoder<o2::tpc::Digit>(*mIOPtrs.tpcPackedDigits, &mIOMem.tpcZSpages, &mIOMem.tpcZSmeta2->n[0][0], nullptr, nullptr, param(), zs12bit, true);
@@ -140,18 +140,18 @@ void GPUChainTracking::ConvertZSEncoder(bool zs12bit)
 
 void GPUChainTracking::ConvertZSFilter(bool zs12bit)
 {
-  GPUReconstructionConvert::RunZSFilter(mIOMem.tpcDigits, mIOPtrs.tpcPackedDigits->tpcDigits, mIOMem.digitMap->nTPCDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, param(), zs12bit, param().rec.tpcZSthreshold);
+  GPUReconstructionConvert::RunZSFilter(mIOMem.tpcDigits, mIOPtrs.tpcPackedDigits->tpcDigits, mIOMem.digitMap->nTPCDigits, mIOPtrs.tpcPackedDigits->nTPCDigits, param(), zs12bit, param().rec.tpc.zsThreshold);
 }
 
 int GPUChainTracking::ForwardTPCDigits()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (GetRecoStepsGPU() & RecoStep::TPCClusterFinding) {
     throw std::runtime_error("Cannot forward TPC digits with Clusterizer on GPU");
   }
   std::vector<ClusterNative> tmp[NSLICES][GPUCA_ROW_COUNT];
   unsigned int nTotal = 0;
-  const float zsThreshold = param().rec.tpcZSthreshold;
+  const float zsThreshold = param().rec.tpc.zsThreshold;
   for (int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < mIOPtrs.tpcPackedDigits->nTPCDigits[i]; j++) {
       const auto& d = mIOPtrs.tpcPackedDigits->tpcDigits[i][j];

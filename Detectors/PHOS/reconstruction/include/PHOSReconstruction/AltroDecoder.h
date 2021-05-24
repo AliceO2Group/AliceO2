@@ -13,9 +13,12 @@
 #include <iosfwd>
 #include <gsl/span>
 #include <string>
+#include <bitset>
 #include "PHOSBase/RCUTrailer.h"
-#include "PHOSReconstruction/Bunch.h"
-#include "PHOSReconstruction/Channel.h"
+#include "DataFormatsPHOS/Cell.h"
+#include "PHOSBase/Mapping.h"
+#include "PHOSReconstruction/RawReaderError.h"
+#include "PHOSReconstruction/CaloRawFitter.h"
 #include "PHOSReconstruction/RawReaderMemory.h"
 
 namespace o2
@@ -82,8 +85,7 @@ class AltroDecoder
 {
  public:
   /// \brief Constructor
-  /// \param reader Raw reader instance to be decoded
-  AltroDecoder(RawReaderMemory& reader);
+  AltroDecoder() = default;
 
   /// \brief Destructor
   ~AltroDecoder() = default;
@@ -97,35 +99,41 @@ class AltroDecoder
   /// a reference to the RCU trailer and a vector
   /// with the decoded chanenels, each containing
   /// its bunches.
-  AltroDecoderError::ErrorType_t decode();
+  AltroDecoderError::ErrorType_t decode(RawReaderMemory& rawreader, CaloRawFitter* rawFitter,
+                                        std::vector<o2::phos::Cell>& cellContainer,
+                                        std::vector<o2::phos::Cell>& truContainer);
 
   /// \brief Get reference to the RCU trailer object
   /// \return reference to the RCU trailers vector
   const RCUTrailer& getRCUTrailer() const { return mRCUTrailer; }
 
-  /// \brief Get the reference to the channel container
-  /// \return Reference to the channel container
-  /// \throw AltroDecoderError with CHANNEL_ERROR if the channel container was not initialized for the current event
-  const std::vector<Channel>& getChannels() const;
-
-  /// \brief Read RCU trailer for the current event in the raw buffer
-  void readRCUTrailer();
-
   /// \brief Read channels for the current event in the raw buffer
-  void readChannels();
+  void readChannels(const std::vector<uint32_t>& payloadwords, CaloRawFitter* rawFitter,
+                    std::vector<o2::phos::Cell>& cellContainer,
+                    std::vector<o2::phos::Cell>& truContainer);
+  void setPedestalRun()
+  {
+    mPedestalRun = true;
+    mCombineGHLG = false;
+  }
+  void setCombineHGLG(bool a) { mCombineGHLG = a; }
 
  private:
-  /// \brief run checks on the RCU trailer
-  /// \throw Error if the RCU trailer has inconsistencies
-  ///
-  /// Performing various consistency checks on the RCU trailer
-  /// In case of failure an exception is thrown.
-  void checkRCUTrailer();
+  //check and convert HW address to absId and caloFlag
+  bool hwToAbsAddress(short hwaddress, short& absId, Mapping::CaloFlag& caloFlag);
+  //read trigger digits
+  void readTRUDigits(short absId, int payloadSize, std::vector<o2::phos::Cell>& truContainer) const;
+  //read trigger summary tables
+  void readTRUFlags(short hwAddress, int payloadSize);
 
-  RawReaderMemory& mRawReader;       ///< underlying raw reader
-  RCUTrailer mRCUTrailer;            ///< RCU trailer
-  std::vector<Channel> mChannels;    ///< vector of channels in the raw stream
-  bool mChannelsInitialized = false; ///< check whether the channels are initialized
+  bool mCombineGHLG = true;                                ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
+  bool mPedestalRun = false;                               ///< Analyze pedestal run (calculate pedestal mean and RMS)
+  short mddl;                                              ///< Current DDL
+  std::vector<uint16_t> mBunchwords;                       ///< (transient) bunch of samples for current channel
+  std::vector<o2::phos::RawReaderError> mOutputHWErrors;   ///< Errors occured in reading data
+  std::vector<short> mOutputFitChi;                        ///< Raw sample fit quality
+  std::bitset<Mapping::NTRUReadoutChannels + 2> mTRUFlags; ///< trigger summary table
+  RCUTrailer mRCUTrailer;                                  ///< RCU trailer
 
   ClassDefNV(AltroDecoder, 1);
 };

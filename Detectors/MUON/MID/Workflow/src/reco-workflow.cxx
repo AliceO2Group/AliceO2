@@ -27,6 +27,7 @@
 #include "MIDWorkflow/ClusterizerSpec.h"
 #include "MIDWorkflow/TrackerMCSpec.h"
 #include "MIDWorkflow/TrackerSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -37,7 +38,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     options{
       {"disable-mc", VariantType::Bool, false, {"Do not propagate MC labels"}},
       {"disable-tracking", VariantType::Bool, false, {"Only run clustering"}},
-      {"disable-root-output", VariantType::Bool, false, {"Do not write output to file"}}};
+      {"disable-root-output", VariantType::Bool, false, {"Do not write output to file"}},
+      {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
 
@@ -48,6 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool disableMC = cfgc.options().get<bool>("disable-mc");
   bool disableTracking = cfgc.options().get<bool>("disable-tracking");
   bool disableFile = cfgc.options().get<bool>("disable-root-output");
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
   specs.emplace_back(disableMC ? o2::mid::getClusterizerSpec() : o2::mid::getClusterizerMCSpec());

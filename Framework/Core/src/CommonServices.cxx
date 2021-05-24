@@ -13,6 +13,7 @@
 #include "Framework/DriverClient.h"
 #include "Framework/CallbackService.h"
 #include "Framework/TimesliceIndex.h"
+#include "Framework/DataTakingContext.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/LocalRootFileService.h"
@@ -104,6 +105,51 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                        Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring;
                      },
+                     ServiceKind::Serial};
+}
+
+o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
+{
+  return ServiceSpec{"datataking-contex",
+                     simpleServiceInit<DataTakingContext, DataTakingContext>(),
+                     noConfiguration(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     [](ServiceRegistry& services, void* service) {
+                       auto& context = services.get<DataTakingContext>();
+                       context.runNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+                       // FIXME: we actually need to get the orbit, not only to know where it is
+                       std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
+                       auto is_number = [](const std::string& s) -> bool {
+                         return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
+                       };
+
+                       if (orbitResetTimeUrl.rfind("file://") == 0) {
+                         // FIXME: read it from a file
+                         context.orbitResetTime = 490917600;
+                       } else if (orbitResetTimeUrl.rfind("http://") == 0) {
+                         // FIXME: read it from ccdb
+                         context.orbitResetTime = 490917600;
+                       } else if (is_number(orbitResetTimeUrl)) {
+                         context.orbitResetTime = std::stoull(orbitResetTimeUrl.data());
+                         // FIXME: specify it from the command line
+                       } else {
+                         context.orbitResetTime = 490917600;
+                       }
+                       context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128);
+                     },
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -550,16 +596,19 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastTotalProcessedSize, "processed_input_size_byte"}
+  monitoring.send(Metric{stats.lastProcessedSize, "last_processed_input_size_byte"}
                     .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastTotalProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
+  monitoring.send(Metric{stats.totalProcessedSize, "total_processed_input_size_byte"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{stats.totalSigusr1.load(), "total_sigusr1"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(stats.lastProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
                          "processing_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastLatency.minLatency, "min_input_latency_ms"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastLatency.maxLatency, "max_input_latency_ms"}
                     .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
+  monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
 
   stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
@@ -637,6 +686,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     timesliceIndex(),
     driverClientSpec(),
     monitoringSpec(),
+    datatakingContextSpec(),
     infologgerContextSpec(),
     infologgerSpec(),
     configurationSpec(),

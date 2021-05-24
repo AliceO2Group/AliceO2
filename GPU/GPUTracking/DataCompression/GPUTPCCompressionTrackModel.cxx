@@ -90,7 +90,7 @@ GPUd() int GPUTPCCompressionTrackModel::Propagate(float x, float alpha)
   if (alpha != mAlpha && !mTrk.Rotate(alpha, t0, GPUCA_MAX_SIN_PHI)) {
     return 2;
   }
-  int retVal = !mTrk.TransportToX(x, t0, mParam->par.ConstBz, GPUCA_MAX_SIN_PHI);
+  int retVal = !mTrk.TransportToX(x, t0, mParam->par.constBz, GPUCA_MAX_SIN_PHI);
   // GPUInfo("Propagated to: x %f y %f z %f alpha %f qPt %f", x, mTrk.Y(), mTrk.Z(), alpha, mTrk.QPt());
   return retVal;
 }
@@ -126,7 +126,7 @@ GPUd() void GPUTPCCompressionTrackModel::Init(float x, float y, float z, float a
   mP[4] = (qPt - 127.f) * (20.f / 127.f);
   resetCovariance();
   mNDF = -5;
-  mBz = param.par.ConstBz;
+  mBz = param.par.constBz;
   float pti = CAMath::Abs(mP[4]);
   if (pti < 1.e-4f) {
     pti = 1.e-4f; // set 10.000 GeV momentum for straight track

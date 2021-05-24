@@ -37,3 +37,8 @@ o2_add_dpl_workflow(table-maker-muon-pp
                     SOURCES tableMakerMuon_pp.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
                     COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(v0-selector
+                    SOURCES v0selector.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore  O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)

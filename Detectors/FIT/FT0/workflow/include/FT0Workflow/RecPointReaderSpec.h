@@ -46,10 +46,12 @@ class RecPointReader : public Task
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginFT0;
 
   std::vector<o2::ft0::RecPoints>* mRecPoints = nullptr;
+  std::vector<o2::ft0::ChannelDataFloat>* mChannelData = nullptr;
 
   std::string mInputFileName = "o2reco_ft0.root";
   std::string mRecPointTreeName = "o2sim";
   std::string mRecPointBranchName = "FT0Cluster";
+  std::string mChannelDataBranchName = "FT0RecChData";
 };
 
 /// create a processor spec

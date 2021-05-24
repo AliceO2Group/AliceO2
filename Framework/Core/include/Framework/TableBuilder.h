@@ -770,14 +770,13 @@ auto makeEmptyTable()
 
 /// Expression-based column generator to materialize columns
 template <typename... C>
-auto spawner(framework::pack<C...> columns, arrow::Table* atable)
+auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* name)
 {
-  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
-
   if (atable->num_rows() == 0) {
     return makeEmptyTable<soa::Table<C...>>();
   }
+  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
 
   arrow::TableBatchReader reader(*atable);
   std::shared_ptr<arrow::RecordBatch> batch;
@@ -788,15 +787,20 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw runtime_error_f("Cannot read batches from table: %s", s.ToString().c_str());
+      throw runtime_error_f("Cannot read batches from table %s: %s", name, s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
     }
-    s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
-    if (!s.ok()) {
-      throw runtime_error_f("Cannot apply projector: %s", s.ToString().c_str());
+    try {
+      s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
+      if (!s.ok()) {
+        throw runtime_error_f("Cannot apply projector to table %s: %s", name, s.ToString().c_str());
+      }
+    } catch (std::exception& e) {
+      throw runtime_error_f("Cannot apply projector to table %s: exception caught: %s", name, e.what());
     }
+
     for (auto i = 0u; i < sizeof...(C); ++i) {
       chunks[i].emplace_back(v.at(i));
     }

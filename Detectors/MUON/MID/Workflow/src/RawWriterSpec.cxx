@@ -14,8 +14,8 @@
 /// \date   02 October 2019
 
 #include "MIDWorkflow/RawWriterSpec.h"
-#include <TSystem.h>
 #include <fstream>
+#include <filesystem>
 #include <gsl/gsl>
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -45,15 +45,15 @@ class RawWriterDeviceDPL
     auto filename = ic.options().get<std::string>("mid-raw-outfile");
     auto dirname = ic.options().get<std::string>("mid-raw-outdir");
     auto perLink = ic.options().get<bool>("mid-raw-perlink");
-    if (gSystem->AccessPathName(dirname.c_str())) {
-      if (gSystem->mkdir(dirname.c_str(), kTRUE)) {
+    if (!std::filesystem::exists(dirname)) {
+      if (!std::filesystem::create_directories(dirname)) {
         LOG(FATAL) << "could not create output directory " << dirname;
       } else {
         LOG(INFO) << "created output directory " << dirname;
       }
     }
 
-    std::string fullFName = o2::utils::concat_string(dirname, "/", filename);
+    std::string fullFName = o2::utils::Str::concat_string(dirname, "/", filename);
     mEncoder.init(fullFName.c_str(), perLink);
 
     std::string inputGRP = o2::base::NameConf::getGRPFileName();
@@ -66,7 +66,7 @@ class RawWriterDeviceDPL
     ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
 
     // Write basic config files to be used with raw data reader workflow
-    mEncoder.getWriter().writeConfFile("MID", "RAWDATA", o2::utils::concat_string(dirname, '/', "MIDraw.cfg"));
+    mEncoder.getWriter().writeConfFile("MID", "RAWDATA", o2::utils::Str::concat_string(dirname, '/', "MIDraw.cfg"));
   }
 
   void run(o2::framework::ProcessingContext& pc)

@@ -21,7 +21,7 @@
 #include "Framework/PartRef.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
-#include "TPCWorkflow/TPCSectorCompletionPolicy.h"
+#include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -49,14 +49,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters, compressed-clusters-ctf"}},
     {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer, send-clusters-per-sector, qa, no-shared-cluster-map"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"no-ca-clusterer", VariantType::Bool, false, {"Use HardwareClusterer instead of clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"tpc-sectors", VariantType::String, "0-35", {"TPC sector range, e.g. 5-7,8,9"}},
     {"tpc-lanes", VariantType::Int, 1, {"number of parallel lanes up to the tracker"}},
     {"dispatching-mode", VariantType::String, "prompt", {"determines when to dispatch: prompt, complete"}},
     {"no-tpc-zs-on-the-fly", VariantType::Bool, false, {"Do not use TPC zero suppression on the fly"}},
-    {"zs-threshold", VariantType::Float, 2.0f, {"zero suppression threshold"}},
-    {"zs-10bit", VariantType::Bool, false, {"use 10 bit ADCs for TPC zero suppression, default = 12 bit ADC"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
@@ -157,15 +156,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 nLanes,                                            //
                                                 inputType,                                         //
                                                 cfgc.options().get<std::string>("output-type"),    //
+                                                cfgc.options().get<bool>("disable-root-input"),    //
                                                 !cfgc.options().get<bool>("no-ca-clusterer"),      //
                                                 !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
-                                                cfgc.options().get<bool>("zs-10bit"),              //
-                                                cfgc.options().get<float>("zs-threshold"),         //
                                                 !cfgc.options().get<bool>("ignore-dist-stf")       //
   );
 
-  // write the configuration used for the digitizer workflow
-  o2::conf::ConfigurableParam::writeINI("o2tpcrecoflow_configuration.ini");
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
 
   return std::move(wf);
 }

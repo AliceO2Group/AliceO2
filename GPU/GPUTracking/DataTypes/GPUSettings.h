@@ -68,6 +68,8 @@ struct GPUSettingsTF {
   int runStartOrbit = 0;
   int hasSimStartOrbit = 0;
   int simStartOrbit = 0;
+  int hasNHBFPerTF = 0;
+  int nHBFPerTF = 0;
 };
 
 // Settings defining the setup of the GPUReconstruction processing (basically selecting the device / class instance)
