@@ -97,7 +97,7 @@ void RecoGeomHelper::RecoLayer::init()
   float dzH = o2::itsmft::SegmentationAlpide::SensorSizeCols / 2; // half width in Z
   int nCh = gm->getNumberOfChipsPerLayer(id), chip0 = gm->getFirstChipIndex(id);
   int nChMod = gm->getNumberOfChipsPerModule(id), nChModH = nChMod / 2;
-  nLadders = nStaves * nHStaves * (id > 2 ? 2 : 1); // 2 ladders per h-stave for OB
+  nLadders = nHStaves > 1 ? nStaves * nHStaves * 2 : nStaves; // 2 ladders per h-stave for OB
   ladders.resize(nLadders);
 
   for (auto lad : ladders) {
