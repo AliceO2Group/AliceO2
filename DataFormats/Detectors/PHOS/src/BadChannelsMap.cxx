@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "PHOSBase/Geometry.h"
-#include "DataFormatsPHOS/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelsMap.h"
 
 #include "FairLogger.h"
 
@@ -19,7 +19,7 @@
 
 using namespace o2::phos;
 
-BadChannelMap::BadChannelMap(int /*dummy*/)
+BadChannelsMap::BadChannelsMap(int /*dummy*/)
 {
 
   //Mark few channels as bad for test peurposes
@@ -44,7 +44,7 @@ BadChannelMap::BadChannelMap(int /*dummy*/)
   }
 }
 
-void BadChannelMap::getHistogramRepresentation(char module, TH2* h) const
+void BadChannelsMap::getHistogramRepresentation(char module, TH2* h) const
 {
   const char MAXX = 64,
              MAXZ = 56;
@@ -76,7 +76,7 @@ void BadChannelMap::getHistogramRepresentation(char module, TH2* h) const
   }
 }
 
-void BadChannelMap::PrintStream(std::ostream& stream) const
+void BadChannelsMap::PrintStream(std::ostream& stream) const
 {
   // first sort bad channel IDs
   stream << "Number of bad cells:  " << mBadCells.count() << "\n";
@@ -87,7 +87,7 @@ void BadChannelMap::PrintStream(std::ostream& stream) const
   }
 }
 
-std::ostream& o2::phos::operator<<(std::ostream& stream, const BadChannelMap& bcm)
+std::ostream& o2::phos::operator<<(std::ostream& stream, const BadChannelsMap& bcm)
 {
   bcm.PrintStream(stream);
   return stream;

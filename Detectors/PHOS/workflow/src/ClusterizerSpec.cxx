@@ -23,10 +23,10 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
 
   //get BadMap and calibration CCDB
   std::unique_ptr<CalibParams> calibParams; ///! Calibration coefficients
-  std::unique_ptr<BadChannelMap> badMap;    ///! Bad map
+  std::unique_ptr<BadChannelsMap> badMap;   ///! Bad map
 
   // if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-  badMap.reset(new BadChannelMap(1));    // test default map
+  badMap.reset(new BadChannelsMap(1));   // test default map
   calibParams.reset(new CalibParams(1)); //test calibration map
   LOG(INFO) << "No reading BadMap/Calibration from ccdb requested, set default";
   // } else {
@@ -35,7 +35,7 @@ void ClusterizerSpec::init(framework::InitContext& ctx)
   //   std::map<std::string, std::string> metadata; // do we want to store any meta data?
   //   ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
   //   long bcTime = 1;                             //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-  // mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
+  // mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelsMap>("PHOS/BadMap", metadata, bcTime);
   // mCalibParams = ccdb.retrieveFromTFileAny<o2::phos::CalibParams>("PHOS/Calib", metadata, bcTime);
   // if (!mBadMap) {
   //   LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";

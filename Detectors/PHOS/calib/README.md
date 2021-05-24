@@ -17,7 +17,7 @@ Object contains trigger bad map and 14 parameterizations of L0 turn-on curves (o
 ## Runbyrun
 Time-dependent energy scale corrections, one number per module (plus uncertainty of the fitting procedure)
 
-## BadChannelMap
+## BadChannelsMap
 Bad channels map used in reconstruction and simulation. Caclulated by combining inputs from pedestal, noisy, LED and physics runs and DCS configuration
 
 # Calibration procedures

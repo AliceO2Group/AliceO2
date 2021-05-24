@@ -16,7 +16,7 @@ o2_add_library(DataFormatsPHOS
                        src/MCLabel.cxx
                        src/TriggerRecord.cxx
                        src/CTF.cxx
-                       src/BadChannelMap.cxx
+                       src/BadChannelsMap.cxx
                        src/CalibParams.cxx
                        src/Pedestals.cxx
                        src/TriggerMap.cxx
@@ -37,7 +37,7 @@ o2_target_root_dictionary(DataFormatsPHOS
                                   include/DataFormatsPHOS/MCLabel.h
                                   include/DataFormatsPHOS/TriggerRecord.h
                                   include/DataFormatsPHOS/CTF.h
-                                  include/DataFormatsPHOS/BadChannelMap.h
+                                  include/DataFormatsPHOS/BadChannelsMap.h
                                   include/DataFormatsPHOS/CalibParams.h
                                   include/DataFormatsPHOS/Pedestals.h
                                   include/DataFormatsPHOS/TriggerMap.h)

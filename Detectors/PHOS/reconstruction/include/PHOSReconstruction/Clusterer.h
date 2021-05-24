@@ -16,7 +16,7 @@
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/Cluster.h"
 #include "DataFormatsPHOS/CalibParams.h"
-#include "DataFormatsPHOS/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/MCLabel.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -45,7 +45,7 @@ class Clusterer
 
   void makeClusters(std::vector<Cluster>& clusters, std::vector<o2::phos::CluElement>& cluel);
 
-  void setBadMap(std::unique_ptr<BadChannelMap>& m) { mBadMap = std::move(m); }
+  void setBadMap(std::unique_ptr<BadChannelsMap>& m) { mBadMap = std::move(m); }
   void setCalibration(std::unique_ptr<CalibParams>& c) { mCalibParams = std::move(c); }
 
  protected:
@@ -89,7 +89,7 @@ class Clusterer
   bool mFullCluOutput = false;               ///< Write output full of reduced (no contributed digits) clusters
   Geometry* mPHOSGeom = nullptr;             ///< PHOS geometry
   std::unique_ptr<CalibParams> mCalibParams; ///! Calibration coefficients
-  std::unique_ptr<BadChannelMap> mBadMap;    ///! Bad map
+  std::unique_ptr<BadChannelsMap> mBadMap;   ///! Bad map
 
   std::vector<CluElement> mCluEl; ///< internal vector of clusters
   std::vector<Digit> mTrigger;    ///< internal vector of clusters

@@ -34,7 +34,7 @@
 #pragma link C++ struct o2::phos::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::phos::CTFHeader, 7, uint32_t> + ;
 
-#pragma link C++ class o2::phos::BadChannelMap + ;
+#pragma link C++ class o2::phos::BadChannelsMap + ;
 #pragma link C++ class o2::phos::CalibParams + ;
 #pragma link C++ class o2::phos::Pedestals + ;
 #pragma link C++ class o2::phos::TriggerMap + ;

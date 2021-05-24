@@ -16,7 +16,7 @@
 
 #include "Framework/Task.h"
 #include "Framework/ProcessingContext.h"
-#include "DataFormatsPHOS/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include <boost/histogram.hpp>
@@ -62,7 +62,7 @@ class PHOSRunbyrunSlot
   std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"}; /// CCDB path to retrieve current CCDB objects for comparison
   std::array<boostHisto, 8> mReMi;                        /// Real and Mixed inv mass distributions per module
   std::unique_ptr<RingBuffer> mBuffer;                    /// Buffer for current and previous events
-  std::unique_ptr<BadChannelMap> mBadMap;                 /// Latest bad channels map
+  std::unique_ptr<BadChannelsMap> mBadMap;                /// Latest bad channels map
 
   ClassDefNV(PHOSRunbyrunSlot, 1);
 };

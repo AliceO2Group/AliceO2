@@ -21,7 +21,7 @@
 #include "DataFormatsPHOS/Cluster.h"
 #include "PHOSCalibWorkflow/RingBuffer.h"
 #include "DataFormatsPHOS/CalibParams.h"
-#include "DataFormatsPHOS/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelsMap.h"
 #include "PHOSBase/Geometry.h"
 #include "PHOSCalibWorkflow/ETCalibHistos.h"
 
@@ -78,7 +78,7 @@ class PHOSEnergySlot
 
   void setRunStartTime(long tf) { mRunStartTime = tf; }
   void setCalibration(CalibParams& c) { mCalibParams.reset(new CalibParams(c)); }
-  void setBadMap(BadChannelMap& map) { mBadMap.reset(new BadChannelMap(map)); }
+  void setBadMap(BadChannelsMap& map) { mBadMap.reset(new BadChannelsMap(map)); }
   void setCuts(float ptMin, float eminHGTime, float eminLGTime)
   {
     mPtMin = ptMin;
@@ -93,7 +93,7 @@ class PHOSEnergySlot
   long mRunStartTime = 0;                    /// start time of the run (sec)
   std::unique_ptr<RingBuffer> mBuffer;       /// Buffer for current and previous events
   std::unique_ptr<CalibParams> mCalibParams; /// Final calibration object
-  std::unique_ptr<BadChannelMap> mBadMap;    /// Final calibration object
+  std::unique_ptr<BadChannelsMap> mBadMap;   /// Final calibration object
   Geometry* mGeom;                           /// Pointer to PHOS singleton geometry
   TVector3 mVertex;
   ETCalibHistos mHistos; /// final histograms
@@ -125,7 +125,7 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
 
   void setOutDigitsFile(std::string& name) { mdigitsfilename = name; };
   void setCalibration(CalibParams& c) { mCalibParams.reset(new CalibParams(c)); }
-  void setBadMap(BadChannelMap& map) { mBadMap.reset(new BadChannelMap(map)); }
+  void setBadMap(BadChannelsMap& map) { mBadMap.reset(new BadChannelsMap(map)); }
   void setCuts(float ptMin, float eminHGTime, float eminLGTime)
   {
     mPtMin = ptMin;
@@ -144,7 +144,7 @@ class PHOSEnergyCalibrator final : public o2::calibration::TimeSlotCalibration<o
   float mEminHGTime = 1.5;
   float mEminLGTime = 5.;
   std::unique_ptr<CalibParams> mCalibParams; /// Current calibration object
-  std::unique_ptr<BadChannelMap> mBadMap;    /// Current BadMap
+  std::unique_ptr<BadChannelsMap> mBadMap;   /// Current BadMap
   ETCalibHistos mHistos;                     /// final histograms
   std::vector<uint32_t> mDigits;             /// list of calibration digits to fill
   std::unique_ptr<TFile> mFout;              /// file to write calib digits
