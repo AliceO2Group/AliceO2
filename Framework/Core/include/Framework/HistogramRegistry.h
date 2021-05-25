@@ -407,9 +407,15 @@ class HistogramRegistry
   /// @return the associated OutputSpec
   OutputSpec const spec()
   {
-    ConcreteDataMatcher matcher{"ATSK", "\0", 0};
-    strncpy(matcher.description.str, mName.data(), 16);
-    return OutputSpec{OutputLabel{mName}, matcher};
+    header::DataDescription desc{};
+    auto lhash = compile_time_hash(mName.c_str());
+    std::memset(desc.str, '_', 16);
+    std::stringstream s;
+    s << std::hex << lhash;
+    s << std::hex << mTaskHash;
+    s << std::hex << reinterpret_cast<uint64_t>(this);
+    std::memcpy(desc.str, s.str().c_str(), 12);
+    return OutputSpec{OutputLabel{mName}, "ATSK", desc, 0};
   }
 
   OutputRef ref()
