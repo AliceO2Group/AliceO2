@@ -23,7 +23,7 @@ namespace o2
 namespace mft
 {
 bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
-                           gsl::span<const o2::itsmft::Digit> const& digits,
+                                       gsl::span<const o2::itsmft::Digit> const& digits,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
@@ -44,7 +44,7 @@ bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
 }
 
 bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
-                           gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+                                       gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                                        gsl::span<const unsigned char> const& patterns,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {

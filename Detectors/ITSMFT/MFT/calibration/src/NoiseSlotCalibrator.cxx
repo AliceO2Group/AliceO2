@@ -25,7 +25,7 @@ using Slot = calibration::TimeSlot<o2::itsmft::NoiseMap>;
 namespace mft
 {
 bool NoiseSlotCalibrator::processTimeFrame(calibration::TFType nTF,
-                               gsl::span<const o2::itsmft::Digit> const& digits,
+                                           gsl::span<const o2::itsmft::Digit> const& digits,
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   LOG(INFO) << "Processing TF# " << nTF;
@@ -49,7 +49,7 @@ bool NoiseSlotCalibrator::processTimeFrame(calibration::TFType nTF,
 }
 
 bool NoiseSlotCalibrator::processTimeFrame(calibration::TFType nTF,
-                               gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+                                           gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                                            gsl::span<const unsigned char> const& patterns,
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {

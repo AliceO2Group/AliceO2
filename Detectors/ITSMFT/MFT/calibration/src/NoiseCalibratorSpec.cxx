@@ -46,7 +46,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   mEnd = ic.options().get<int64_t>("tend");
 
   mCalibrator = std::make_unique<CALIBRATOR>(probT);
-//  mCalibrator->setSlotLength(std::numeric_limits<TFType>::max); //For TimeSlot calibration
+  //  mCalibrator->setSlotLength(std::numeric_limits<TFType>::max); //For TimeSlot calibration
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
@@ -117,7 +117,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
   long startTF, endTF;
 
   const auto& payload = mCalibrator->getNoiseMap();
-//  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
+  //  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
 
   o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
@@ -155,7 +155,6 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "MFT_NoiseMap"});
   outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "MFT_NoiseMap"});
-
 
   return DataProcessorSpec{
     "mft-noise-calibrator",
