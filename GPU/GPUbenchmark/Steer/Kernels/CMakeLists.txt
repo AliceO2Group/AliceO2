@@ -8,11 +8,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-# if(CUDA_ENABLED)
-  # message("Building CUDA benchmark library")
-  # add_subdirectory(cuda)
+if(CUDA_ENABLED)
+  message("Building CUDA benchmark library")
+  add_subdirectory(cuda)
   # target_compile_definitions(${targetName} PRIVATE CUDA_ENABLED)
-# endif()
+endif()
 if(HIP_ENABLED)
   message("Building HIP benchmark library")
   add_subdirectory(hip)
