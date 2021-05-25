@@ -27,7 +27,7 @@ o2_add_library(
   PUBLIC_LINK_LIBRARIES
     O2::Framework
     O2::SimConfig
-    ms_gsl::ms_gsl
+    Microsoft.GSL::GSL
     O2::CommonUtils
     O2::DetectorsBase
     O2::DetectorsCommonDataFormats

@@ -19,7 +19,7 @@ namespace o2::aod
 {
 namespace extension
 {
-DECLARE_SOA_EXPRESSION_COLUMN(P2exp, p2exp, float, track::p * track::p);
+DECLARE_SOA_EXPRESSION_COLUMN(P2exp, p2exp, float, track::p* track::p);
 
 DECLARE_SOA_COLUMN(mX, mx, float);
 DECLARE_SOA_COLUMN(mY, my, float);
@@ -41,14 +41,14 @@ using namespace o2;
 using namespace o2::framework;
 
 // Extend table Tracks with expression column
-struct ATask {
+struct ExtendTable {
   // group tracks according to collisions
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
     // add expression column o2::aod::extension::P2exp to table
     // o2::aod::Tracks
     auto table_extension = soa::Extend<aod::Tracks, aod::extension::P2exp>(tracks);
-    
+
     // loop over the rows of the new table
     for (auto& row : table_extension) {
       if (row.trackType() != 3) {
@@ -61,15 +61,14 @@ struct ATask {
 };
 
 // Attach dynamic columns to table Tracks
-struct BTask {
+struct AttachColumn {
   // group tracks according to collisions
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
     // add dynamic columns o2::aod::extension::P2dyn and
     // o2::aod::extension::R2dyn to table o2::aod::Tracks
     auto table_extension = soa::Attach<aod::Tracks,
-                                       aod::extension::R2dyn<aod::track::X,aod::track::Y>
-                                      > (tracks); 
+                                       aod::extension::R2dyn<aod::track::X, aod::track::Y>>(tracks);
     // loop over the rows of the new table
     for (auto& row : table_extension) {
       if (row.trackType() != 3) {
@@ -82,53 +81,52 @@ struct BTask {
 };
 
 // extend and attach within process function
-struct CTask {              
+struct ExtendAndAttach {
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
 
     // combine Extend and Attach to create a new table
-    auto table_extension = soa::Extend<aod::Tracks, aod::extension::P2exp> (tracks);
-    auto table_attached  = soa::Attach<decltype(table_extension),
-                                       aod::extension::P2dyn<aod::track::P>,
-                                       aod::extension::R2dyn<aod::track::X,aod::track::Y>
-                                      > (table_extension);
+    auto table_extension = soa::Extend<aod::Tracks, aod::extension::P2exp>(tracks);
+    auto table_attached = soa::Attach<decltype(table_extension),
+                                      aod::extension::P2dyn<aod::track::P>,
+                                      aod::extension::R2dyn<aod::track::X, aod::track::Y>>(table_extension);
 
     // loop over the rows of the new table
     for (auto& row : table_attached) {
       if (row.trackType() != 3) {
         if (row.index() % 10000 == 0) {
-          LOGF(info, "C: EXPRESSION P^2 = %.3f, DYNAMIC P^2 = %.3f R^2 = %.3f", row.p2exp(),row.p2dyn(),row.r2dyn());
+          LOGF(info, "C: EXPRESSION P^2 = %.3f, DYNAMIC P^2 = %.3f R^2 = %.3f", row.p2exp(), row.p2dyn(), row.r2dyn());
         }
       }
     }
   }
-};                          
+};
 
 // spawn ExTable and produce DynTable
-struct DTask {
+struct SpawnDynamicColumns {
   Produces<aod::DynTable> dyntable;
   Spawns<aod::ExTable> extable;
 
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
-      dyntable(track.x(),track.y(),track.p());
+      dyntable(track.x(), track.y(), track.p());
     }
   }
 };
-  
+
 // loop over the joined table <ExTable, DynTable>
-struct ETask {
+struct ProcessExtendedTables {
   // join the table ExTable and DynTable
-  using allinfo = soa::Join<aod::ExTable,aod::DynTable>;
-  
+  using allinfo = soa::Join<aod::ExTable, aod::DynTable>;
+
   void process(aod::Collision const&, allinfo const& tracks)
   {
     // loop over the rows of the new table
     for (auto& row : tracks) {
       if (row.trackType() != 3) {
         if (row.index() % 10000 == 0) {
-          LOGF(info, "E: EXPRESSION P^2 = %.3f, DYNAMIC P^2 = %.3f R^2 = %.3f", row.p2exp(),row.p2dyn(),row.r2dyn());
+          LOGF(info, "E: EXPRESSION P^2 = %.3f, DYNAMIC P^2 = %.3f R^2 = %.3f", row.p2exp(), row.p2dyn(), row.r2dyn());
         }
       }
     }
@@ -137,12 +135,11 @@ struct ETask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  // create and use table
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"extend-table-tutorial_A"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"extend-table-tutorial_B"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"extend-table-tutorial_C"}),
-    adaptAnalysisTask<DTask>(cfgc, TaskName{"extend-table-tutorial_D"}),
-    adaptAnalysisTask<ETask>(cfgc, TaskName{"extend-table-tutorial_E"}),
+    adaptAnalysisTask<ExtendTable>(cfgc),
+    adaptAnalysisTask<AttachColumn>(cfgc),
+    adaptAnalysisTask<ExtendAndAttach>(cfgc),
+    adaptAnalysisTask<SpawnDynamicColumns>(cfgc),
+    adaptAnalysisTask<ProcessExtendedTables>(cfgc),
   };
 }

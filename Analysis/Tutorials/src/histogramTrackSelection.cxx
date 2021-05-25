@@ -8,15 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \brief This uses the information contained in table TrackSelection to retrieve tracks of a given type.
-///        Task o2-analysis-trackselection needs to be run to fill TrackSelection.
-///        o2-analysis-trackselection --aod-file AO2D.root | o2-analysistutorial-track-selection
+/// \brief in this tutorial the information contained in table TrackSelection is
+///        used to retrieve tracks of a given type.
+///        This requires tables TracksExtended and TrackSelection. Therefor use
+///        o2-analysis-trackextension --aod-file AO2D.root | o2-analysis-trackselection | o2-analysistutorial-histogram-track-selection --select n
+///        with n: 0 = no selection, 1 = globalTracks, 2 = globalTracksSDD
 /// \author
 /// \since
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include <TH1F.h>
 
 #include "AnalysisCore/TrackSelection.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
@@ -55,5 +56,6 @@ struct HistogramTrackSelection {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<HistogramTrackSelection>(cfgc, TaskName{"histogram-track-selection"})};
+    adaptAnalysisTask<HistogramTrackSelection>(cfgc),
+  };
 }

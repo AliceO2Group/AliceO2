@@ -8,12 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \brief jet analysis tasks (subscribing to jet finder task)
-///        o2-analysis-jetfinder --aod-file <aod> -b | o2-analysistutorial-jet-analysis -b
+/// \brief jet analysis tasks (subscribing to jet finder task).
+///        o2-analysis-jetfinder --aod-file AO2D.root | o2-analysistutorial-jet-analysis
 /// \author Jochen Klein
 /// \since
-
-#include "TH1F.h"
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
@@ -49,5 +47,6 @@ struct JetAnalysis {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetAnalysis>(cfgc, TaskName{"jet-analysis"})};
+    adaptAnalysisTask<JetAnalysis>(cfgc),
+  };
 }

@@ -11,6 +11,8 @@
 #ifndef O2_FRAMEWORK_DEVICECONTROLLER_H_
 #define O2_FRAMEWORK_DEVICECONTROLLER_H_
 
+#include <cstddef>
+
 namespace o2::framework
 {
 
@@ -19,6 +21,7 @@ struct WSDPLHandler;
 struct DeviceController {
   DeviceController(WSDPLHandler* handler);
   void hello();
+  void write(const char* message, size_t s);
 
   WSDPLHandler* mHandler;
 };

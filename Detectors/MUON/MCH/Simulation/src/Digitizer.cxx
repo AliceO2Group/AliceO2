@@ -113,7 +113,7 @@ void Digitizer::process(const std::vector<Hit> hits, std::vector<Digit>& digits,
   provideMC(mcContainer);
 }
 //______________________________________________________________________
-int Digitizer::processHit(const Hit& hit, int detID, int event_time)
+int Digitizer::processHit(const Hit& hit, int detID, int eventTime)
 {
   math_utils::Point3D<float> pos(hit.GetX(), hit.GetY(), hit.GetZ());
 
@@ -123,7 +123,8 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
   auto charge = resp.etocharge(hit.GetEnergyLoss());
 
   //convert float ns time to BC counts
-  auto time = event_time & int(hit.GetTime() / 25.);
+  auto time = int(eventTime / 25.) & int(hit.GetTime() / 25.);
+  //FIXME: final time information in digit to be decided
 
   //transformation from global to local
   auto transformation = o2::mch::geo::transformationFromTGeoManager(*gGeoManager);
@@ -175,8 +176,9 @@ int Digitizer::processHit(const Hit& hit, int detID, int event_time)
       }
       auto signal = (uint32_t)q * resp.getInverseChargeThreshold();
       if (signal > 0) {
+
         /// FIXME: which time definition is used when calling this function?
-        digits.emplace_back(detID, padid, signal, static_cast<int32_t>(time));
+        digits.emplace_back(detID, padid, signal, time);
         ++ndigits;
       }
     }
@@ -188,7 +190,7 @@ void Digitizer::generateNoiseDigits()
 {
 
   o2::mch::mapping::forEachDetectionElement([&digits = this->mDigits, &normProbNoise = this->mNormProbNoise,
-                                             &eventTime = this->mEventTime, &eventID = this->mEventID,
+                                             &time = this->mEventTime, &eventID = this->mEventID,
                                              &srcID = this->mSrcID, &mcTruthOutputContainer = this->mMCTruthOutputContainer](int detID) {
     auto& seg = segmentation(detID);
     auto nPads = seg.nofPads();
@@ -196,8 +198,9 @@ void Digitizer::generateNoiseDigits()
     int nNoisyPads = TMath::Nint(gRandom->Gaus(nNoisyPadsAv, TMath::Sqrt(nNoisyPadsAv)));
     for (int i = 0; i < nNoisyPads; i++) {
       int padid = gRandom->Integer(nNoisyPads + 1);
-      // FIXME: can we use eventTime as the digit time?
-      digits.emplace_back(detID, padid, 0.6, static_cast<int32_t>(eventTime));
+      // FIXME
+      time = int(time / 25.); //not clear if ok
+      digits.emplace_back(detID, padid, 0.6, time);
       //just to roun adbove threshold when added
       MCCompLabel label(-1, eventID, srcID, true);
       mcTruthOutputContainer.addElement(digits.size() - 1, label);
@@ -208,34 +211,37 @@ void Digitizer::generateNoiseDigits()
   //otherwise the probability will strongly depend on read-out-frame time length
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits()
+void Digitizer::mergeDigits(std::vector<Digit>& rofdigits, std::vector<o2::MCCompLabel>& rofLabels, std::vector<int>& indexhelper)
 {
-  std::vector<int> indices(mDigits.size());
-  std::iota(begin(indices), end(indices), 0);
-  std::sort(indices.begin(), indices.end(), [&digits = this->mDigits, this](int a, int b) {
-    return (getGlobalDigit(digits[a].getDetID(), digits[a].getPadID()) < getGlobalDigit(digits[b].getDetID(), digits[b].getPadID()));
-  });
+  std::vector<int> indices(rofdigits.size()); //TODO problematic. since mDigits.reserve in mergeDi
+  std::iota(begin(indices), end(indices), 0); //problem with iota if vector longer than number of non-trivial entries
+  //labels go WRONG!
+  std::sort(indices.begin(), indices.end(), [&rofdigits, this](int a, int b) {
+    return (getGlobalDigit(rofdigits[a].getDetID(), rofdigits[a].getPadID()) < getGlobalDigit(rofdigits[b].getDetID(), rofdigits[b].getPadID()));
+  }); // this is ok!
 
-  auto sortedDigits = [digits = this->mDigits, &indices](int i) {
-    return digits[indices[i]];
+  auto sortedDigits = [rofdigits, &indices](int i) {
+    return rofdigits[indices[i]];
   };
 
-  auto sortedLabels = [labels = this->mTrackLabels, &indices](int i) {
-    return labels[indices[i]];
+  auto sortedLabels = [rofLabels, &indices](int i) {
+    return rofLabels[indices[i]];
   };
 
-  auto sizedigits = mDigits.size();
+  auto sizedigits = rofdigits.size();
+  auto sizelabels = rofLabels.size();
 
-  mDigits.clear();
-  mDigits.reserve(sizedigits);
-  mMCTruthOutputContainer.clear();
+  rofdigits.clear();
+  rofdigits.reserve(sizedigits);
+  rofLabels.clear();
+  rofLabels.reserve(sizelabels);
 
-  int count = 0;
+  int count = mDigits.size();
 
   int i = 0;
   while (i < indices.size()) {
     int j = i + 1;
-    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime() - sortedDigits(j).getTime()) < mDeltat)) {
+    while (j < indices.size() && (getGlobalDigit(sortedDigits(i).getDetID(), sortedDigits(i).getPadID())) == (getGlobalDigit(sortedDigits(j).getDetID(), sortedDigits(j).getPadID())) && (std::fabs(sortedDigits(i).getTime() - sortedDigits(j).getTime()) < mDeltat)) { //important that time is unambiguous within one processing, i.e. that simulation only does one TF and that it passes a new processing
       j++;
     }
     uint32_t adc{0};
@@ -245,42 +251,64 @@ void Digitizer::mergeDigits()
     for (int k = i; k < j; k++) {
       adc += sortedDigits(k).getADC();
       if (k == i) {
-        MCCompLabel label(sortedLabels(i).getTrackID(), sortedLabels(i).getEventID(), sortedLabels(i).getSourceID(), false);
-        mMCTruthOutputContainer.addElement(count, label);
+        rofLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+        indexhelper.emplace_back(count);
       } else {
         if ((sortedLabels(k).getTrackID() != sortedLabels(k - 1).getTrackID()) || (sortedLabels(k).getSourceID() != sortedLabels(k - 1).getSourceID())) {
-          MCCompLabel label(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
-          mMCTruthOutputContainer.addElement(count, label);
+          rofLabels.emplace_back(sortedLabels(k).getTrackID(), sortedLabels(k).getEventID(), sortedLabels(k).getSourceID(), false);
+          indexhelper.emplace_back(count);
         }
       }
     }
     padc = adc * resp.getChargeThreshold();
     adc = TMath::Nint(padc);
     adc = resp.response(adc);
-    mDigits.emplace_back(sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc, sortedDigits(i).getTime());
+    rofdigits.emplace_back(sortedDigits(i).getDetID(), sortedDigits(i).getPadID(), adc, sortedDigits(i).getTime());
     i = j;
     ++count;
   }
-  mDigits.resize(mDigits.size());
+  rofdigits.resize(rofdigits.size());
 }
 //______________________________________________________________________
-void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer)
+void Digitizer::mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer, std::vector<ROFRecord>& rofs)
 {
   mDigits.clear();
   mDigits.reserve(digits.size());
   mTrackLabels.clear();
+  //could also loop here over several ROF...
+  //and not touch mDigits
+  //always only doing the index from the start to the end of the ROF
+  //mDigits only for one Rof used
+  std::vector<Digit> rofDigits; // use accumDIgits for mDigits and pass digits
+  std::vector<o2::MCCompLabel> rofLabels;
+  std::vector<int> indexhelper;
+  for (int rofindex = 0; rofindex < rofs.size(); ++rofindex) {
+    for (int index = rofs[rofindex].getFirstIdx(); index < (rofs[rofindex].getLastIdx() + 1); ++index) {
+      auto digit = digits.at(index);
+      rofDigits.emplace_back(digit.getDetID(), digit.getPadID(), digit.getADC(), digit.getTime());
+    }
+    for (int index = rofs[rofindex].getFirstIdx(); index < (rofs[rofindex].getLastIdx() + 1); ++index) {
+      //at this stage label schould still have 1-to-1 corresponds in term of number to number of digits
+      auto label = mcContainer.getElement(index);
+      rofLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), label.isFake());
+    }
+    //mergeDigits does simply merging within 1 ROF
+    mergeDigits(rofDigits, rofLabels, indexhelper);
+    rofs[rofindex].setDataRef(mDigits.size(), rofDigits.size());
 
-  for (int index = 0; index < digits.size(); ++index) {
-    auto digit = digits.at(index);
-    mDigits.emplace_back(digit.getDetID(), digit.getPadID(), digit.getADC(), digit.getTime());
-  }
-  for (int index = 0; index < mcContainer.getNElements(); ++index) {
-    auto label = mcContainer.getElement(index);
-    mTrackLabels.emplace_back(label.getTrackID(), label.getEventID(), label.getSourceID(), false);
+    mDigits.insert(std::end(mDigits), std::begin(rofDigits), std::end(rofDigits));
+    mTrackLabels.insert(std::end(mTrackLabels), std::begin(rofLabels), std::end(rofLabels));
+    rofDigits.clear();
+    rofLabels.clear();
   }
 
-  mergeDigits();
+  for (int labelindex = 0; labelindex < mTrackLabels.size(); ++labelindex) {
+    auto digitindex = indexhelper.at(labelindex);
+    MCCompLabel label(mTrackLabels[labelindex].getTrackID(), mTrackLabels[labelindex].getEventID(), mTrackLabels[labelindex].getSourceID(), mTrackLabels[labelindex].isFake());
+    mMCTruthOutputContainer.addElement(digitindex, label);
+  }
   fillOutputContainer(digits);
+
   provideMC(mcContainer);
 }
 //______________________________________________________________________

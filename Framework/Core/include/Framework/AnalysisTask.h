@@ -261,6 +261,23 @@ struct AnalysisDataProcessorBuilder {
         }
       }
 
+      template <typename Z>
+      auto changeShifts()
+      {
+        constexpr auto index = framework::has_type_at_v<Z>(associated_pack_t{});
+        if (unassignedGroups[index] > 0) {
+          uint64_t pos;
+          if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
+            pos = (*groupSelection)[position];
+          } else {
+            pos = position;
+          }
+          if ((idValues[index])[pos] < 0) {
+            ++shifts[index];
+          }
+        }
+      }
+
       GroupSlicerIterator(G& gt, std::tuple<A...>& at)
         : mAt{&at},
           mGroupingElement{gt.begin()},
@@ -281,12 +298,14 @@ struct AnalysisDataProcessorBuilder {
                                                        x.asArrowTable(),
                                                        static_cast<int32_t>(gt.tableSize()),
                                                        &groups[index],
+                                                       &idValues[index],
                                                        &offsets[index]);
             if (result.ok() == false) {
               throw runtime_error("Cannot split collection");
             }
-            if (groups[index].size() != gt.tableSize()) {
-              throw runtime_error_f("Splitting collection resulted in different group number (%d) than there is rows in the grouping table (%d).", groups[index].size(), gt.tableSize());
+            unassignedGroups[index] = std::count_if(idValues[index].begin(), idValues[index].end(), [](auto&& x) { return x < 0; });
+            if ((groups[index].size() - unassignedGroups[index]) > gt.tableSize()) {
+              throw runtime_error_f("Splitting collection resulted in a larger group number (%d, %d of them unassigned) than there is rows in the grouping table (%d).", groups[index].size(), unassignedGroups[index], gt.tableSize());
             };
           }
         };
@@ -311,6 +330,8 @@ struct AnalysisDataProcessorBuilder {
             (extractor(x), ...);
           },
           at);
+
+        (changeShifts<A>(), ...);
       }
 
       template <typename B, typename... C>
@@ -345,10 +366,11 @@ struct AnalysisDataProcessorBuilder {
         return false;
       }
 
-      GroupSlicerIterator operator++()
+      GroupSlicerIterator& operator++()
       {
         ++position;
         ++mGroupingElement;
+        (changeShifts<A>(), ...);
         return *this;
       }
 
@@ -388,6 +410,7 @@ struct AnalysisDataProcessorBuilder {
           } else {
             pos = position;
           }
+          pos += shifts[index];
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
 
@@ -420,9 +443,12 @@ struct AnalysisDataProcessorBuilder {
       soa::SelectionVector const* groupSelection = nullptr;
 
       std::array<std::vector<arrow::Datum>, sizeof...(A)> groups;
+      std::array<std::vector<int32_t>, sizeof...(A)> idValues;
       std::array<std::vector<uint64_t>, sizeof...(A)> offsets;
       std::array<soa::SelectionVector const*, sizeof...(A)> selections;
       std::array<soa::SelectionVector::const_iterator, sizeof...(A)> starts;
+      std::array<int, sizeof...(A)> unassignedGroups{0};
+      std::array<int, sizeof...(A)> shifts{0};
     };
 
     GroupSlicerIterator& begin()

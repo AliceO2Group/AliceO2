@@ -12,11 +12,11 @@
 #define ALICEO2_PHOS_DIGITIZER_H
 
 #include "DataFormatsPHOS/Digit.h"
-#include "PHOSBase/Geometry.h"
-#include "PHOSCalib/CalibParams.h"
-#include "PHOSCalib/TriggerMap.h"
-#include "PHOSBase/Hit.h"
+#include "DataFormatsPHOS/CalibParams.h"
+#include "DataFormatsPHOS/TriggerMap.h"
 #include "DataFormatsPHOS/MCLabel.h"
+#include "PHOSBase/Geometry.h"
+#include "PHOSBase/Hit.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2

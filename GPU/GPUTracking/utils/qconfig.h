@@ -90,16 +90,16 @@ enum qConfigRetVal { qcrOK = 0,
     if (found) {                          \
     }
 
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
-  {                                                                                \
-    constexpr const char* preopt = preoptname;                                     \
-    (void)preopt;                                                                  \
-    constexpr const char preoptshort = preoptnameshort;                            \
-    (void)preoptshort;                                                             \
-    name& tmp = parent.instance;                                                   \
-    (void)tmp;                                                                     \
-    bool tmpfound = true;                                                          \
-    if (found) {                                                                   \
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) \
+  {                                                                                     \
+    constexpr const char* preopt = preoptname;                                          \
+    (void)preopt;                                                                       \
+    constexpr const char preoptshort = preoptnameshort;                                 \
+    (void)preoptshort;                                                                  \
+    name& tmp = parent.instance;                                                        \
+    (void)tmp;                                                                          \
+    bool tmpfound = true;                                                               \
+    if (found) {                                                                        \
     }
 
 #define BeginHiddenConfig(name, instance) \
@@ -165,7 +165,7 @@ enum qConfigRetVal { qcrOK = 0,
     constexpr const char* preopt = "";           \
     constexpr const char preoptshort = 0;        \
     printf("\n");
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)                                                                                                                        \
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...)                                                                                                                   \
   const char* qon_mxcat(qConfig_subconfig_, name) = preoptnameshort == 0 ? (qon_mxstr(name) ": --" preoptname "\n\t\t" descr) : (qon_mxstr(name) ": -" qon_mxstr('a') " (--" preoptname ")\n\t\t" descr); \
   (void)qon_mxcat(qConfig_subconfig_, name);                                                                                                                                                              \
   if (subConfig == nullptr || strcmp(subConfig, followSub == 2 ? qon_mxstr(name) : preoptname) == 0) {                                                                                                    \
@@ -213,10 +213,10 @@ enum qConfigRetVal { qcrOK = 0,
   {                                 \
     name& tmp = instance;           \
     blockName = "";
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
-  {                                                                                \
-    name& tmp = parent.instance;                                                   \
-    blockName = std::string("\t") + qon_mxstr(name) + ".";                         \
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) \
+  {                                                                                     \
+    name& tmp = parent.instance;                                                        \
+    blockName = std::string("\t") + qon_mxstr(name) + ".";                              \
     std::cout << "\t" << qon_mxstr(name) << "\n";
 #define BeginHiddenConfig(name, instance) \
   if (0) {                                \
@@ -236,7 +236,7 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
 #define AddSubConfig(name, instance)
 #define BeginConfig(name, instance) name instance;
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...)
 #define EndConfig()
 
 // End QCONFIG_INSTANCE
@@ -257,13 +257,13 @@ enum qConfigRetVal { qcrOK = 0,
   {                                  \
     using qConfigCurrentType = name; \
     out << "struct " << qon_mxstr(name) << " {\n";
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) BeginConfig(name, instance)
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) BeginConfig(name, instance)
 #define EndConfig() \
   out << "};";      \
   }
 #define BeginNamespace(name) out << "namespace " << qon_mxstr(name) << " {\n";
 #define EndNamespace() out << "}\n";
-#define AddSubConfig(name, instance)
+#define AddSubConfig(name, instance) out << qon_mxstr(name) << " " << qon_mxstr(instance) << ";";
 #define AddOptionSet(...)
 
 // End QCONFIG_PRINT_RTC
@@ -301,7 +301,7 @@ enum qConfigRetVal { qcrOK = 0,
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddSubConfig(name, instance) name instance;
 #define BeginConfig(name, instance) struct name {
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) struct name {
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) struct name {
 #define EndConfig() \
   }                 \
   ;

@@ -16,9 +16,9 @@ o2_add_library(MCHSimulation
                        src/Stepper.h
                        src/Response.cxx
 		       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
-		                             O2::MCHBase O2::DetectorsPassive
-                                     O2::MCHMappingImpl4 O2::DetectorsBase
-                                     O2::MCHGeometryCreator)
+		                             O2::MCHBase O2::DataFormatsMCH
+					     O2::DetectorsPassive O2::MCHMappingImpl4
+					     O2::DetectorsBase O2::MCHGeometryCreator)
 
 o2_target_root_dictionary(MCHSimulation
                           HEADERS include/MCHSimulation/Detector.h
