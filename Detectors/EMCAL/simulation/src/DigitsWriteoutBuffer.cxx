@@ -10,6 +10,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <list>
 #include <deque>
 #include <gsl/span>
 #include "EMCALSimulation/LabeledDigit.h"
@@ -25,7 +26,7 @@ DigitsWriteoutBuffer::DigitsWriteoutBuffer(unsigned int nTimeBins, unsigned int 
   mMarker.mPositionInBuffer = mTimedDigits.begin();
 }
 
-void DigitsWriteoutBuffer::reset()
+void DigitsWriteoutBuffer::clear()
 {
   mTimedDigits.clear();
   mMarker.mReferenceTime = 0.;
@@ -36,8 +37,8 @@ void DigitsWriteoutBuffer::addDigit(unsigned int towerID, LabeledDigit dig, doub
 {
 
   int nsamples = int((eventTime - mMarker.mReferenceTime) / mTimeBinWidth);
-  auto timeEntry = mMarker.mPositionInBuffer + nsamples;
-  timeEntry->insert(std::make_pair(towerID, dig));
+  auto timeEntry = mMarker.mPositionInBuffer;
+  timeEntry[nsamples][towerID].push_back(dig);
 }
 
 void DigitsWriteoutBuffer::forwardMarker(double eventTime)
@@ -46,7 +47,7 @@ void DigitsWriteoutBuffer::forwardMarker(double eventTime)
   mMarker.mPositionInBuffer++;
 
   // Allocate new memory at the end
-  mTimedDigits.push_back(std::unordered_map<int, LabeledDigit>());
+  mTimedDigits.push_back(std::unordered_map<int, std::list<LabeledDigit>>());
 
   // Drop entry at the front, because it is outside the current readout window
   // only done if we have at least 15 entries
@@ -55,7 +56,7 @@ void DigitsWriteoutBuffer::forwardMarker(double eventTime)
   }
 }
 
-gsl::span<std::unordered_map<int, LabeledDigit>> DigitsWriteoutBuffer::getLastNSamples(int nsamples)
+gsl::span<std::unordered_map<int, std::list<LabeledDigit>>> DigitsWriteoutBuffer::getLastNSamples(int nsamples)
 {
-  return gsl::span<std::unordered_map<int, LabeledDigit>>(&mTimedDigits[int(mMarker.mPositionInBuffer - mTimedDigits.begin() - nsamples)], nsamples);
+  return gsl::span<std::unordered_map<int, std::list<LabeledDigit>>>(&mTimedDigits[int(mMarker.mPositionInBuffer - mTimedDigits.begin() - nsamples)], nsamples);
 }
