@@ -24,10 +24,10 @@ using Slot = calibration::TimeSlot<o2::itsmft::NoiseMap>;
 
 namespace mft
 {
-bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::Digit> const& digits,
+bool NoiseSlotCalibrator::processTimeFrame(calibration::TFType nTF,
+                               gsl::span<const o2::itsmft::Digit> const& digits,
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
-  calibration::TFType nTF = rofs[0].getBCData().orbit / mHBFperTF;
   LOG(INFO) << "Processing TF# " << nTF;
 
   auto& slotTF = getSlotForTF(nTF);
@@ -48,11 +48,11 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::Digit> co
   return hasEnoughData(slotTF);
 }
 
-bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+bool NoiseSlotCalibrator::processTimeFrame(calibration::TFType nTF,
+                               gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                                            gsl::span<const unsigned char> const& patterns,
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
-  calibration::TFType nTF = rofs[0].getBCData().orbit / 256;
   LOG(INFO) << "Processing TF# " << nTF;
 
   auto& slotTF = getSlotForTF(nTF);
@@ -77,9 +77,6 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
       // Fast 1-pixel calibration
       if ((rowSpan == 1) && (colSpan == 1)) {
         noiseMap.increaseNoiseCount(id, row, col);
-        continue;
-      }
-      if (m1pix) {
         continue;
       }
 

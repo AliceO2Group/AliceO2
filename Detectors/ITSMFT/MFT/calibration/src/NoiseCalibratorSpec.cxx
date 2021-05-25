@@ -37,19 +37,16 @@ NoiseCalibratorSpec::NoiseCalibratorSpec(bool useDigits)
 
 void NoiseCalibratorSpec::init(InitContext& ic)
 {
-  auto onepix = ic.options().get<bool>("1pix-only");
-  LOG(INFO) << "Fast 1=pixel calibration: " << onepix;
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(INFO) << "Setting the probability threshold to " << probT;
-  auto HBperTF = ic.options().get<int>("hb-per-tf");
-  LOG(INFO) << "Nb of HBF per TF used : " << HBperTF;
 
   mPath = ic.options().get<std::string>("path");
   mMeta = ic.options().get<std::string>("meta");
   mStart = ic.options().get<int64_t>("tstart");
   mEnd = ic.options().get<int64_t>("tend");
 
-  mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT, HBperTF);
+  mCalibrator = std::make_unique<CALIBRATOR>(probT);
+//  mCalibrator->setSlotLength(std::numeric_limits<TFType>::max); //For TimeSlot calibration
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
@@ -57,8 +54,9 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
   if (mDigits) {
     const auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
     const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("digitsROF");
+    const auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("digitsROF").header)->startTime;
 
-    if (mCalibrator->processTimeFrame(digits, rofs)) {
+    if (mCalibrator->processTimeFrame(tfcounter, digits, rofs)) {
       LOG(INFO) << "Minimum number of noise counts has been reached !";
       sendOutput(pc.outputs());
       pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
@@ -67,8 +65,9 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     const auto compClusters = pc.inputs().get<gsl::span<o2::itsmft::CompClusterExt>>("compClusters");
     gsl::span<const unsigned char> patterns = pc.inputs().get<gsl::span<unsigned char>>("patterns");
     const auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
+    const auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("ROframes").header)->startTime;
 
-    if (mCalibrator->processTimeFrame(compClusters, patterns, rofs)) {
+    if (mCalibrator->processTimeFrame(tfcounter, compClusters, patterns, rofs)) {
       LOG(INFO) << "Minimum number of noise counts has been reached !";
       sendOutput(pc.outputs());
       pc.services().get<ControlService>().readyToQuit(QuitRequest::All);
@@ -94,7 +93,6 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     std::vector<std::pair<std::string, std::string>> pairs;
     Str strutils;
     for (auto& token : tokens) {
-      //      auto keyval = splitString(token, '=');
       auto keyval = Str::tokenize(token, '=', false);
       if (keyval.size() != 2) {
         // LOG(FATAL) << "Illegal command-line key/value string: " << token;
@@ -109,7 +107,6 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     return pairs;
   };
   std::map<std::string, std::string> meta;
-  //  auto keyvalues = toKeyValPairs(splitString(mMeta, ';', true));
   auto keyvalues = toKeyValPairs(Str::tokenize(mMeta, ';', true));
 
   // fill meta map
@@ -120,6 +117,7 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
   long startTF, endTF;
 
   const auto& payload = mCalibrator->getNoiseMap();
+//  const auto& payload = mCalibrator->getNoiseMap(starTF, endTF); //For TimeSlot calibration
 
   o2::ccdb::CcdbObjectInfo info(mPath, "NoiseMap", "noise.root", meta, tstart, tend);
   auto flName = o2::ccdb::CcdbApi::generateFileName("noise");
@@ -131,10 +129,8 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
             << " : " << info.getEndValidityTimestamp();
 
   using clbUtils = o2::calibration::Utils;
-  output.snapshot(
-    Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
-  output.snapshot(
-    Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info);
+  output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "MFT_NoiseMap", 0}, *image.get());
+  output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "MFT_NoiseMap", 0}, info);
 }
 
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -157,10 +153,9 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-  outputs.emplace_back(
-    ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "MFT_NoiseMap"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "MFT_NoiseMap"});
+
 
   return DataProcessorSpec{
     "mft-noise-calibrator",
@@ -168,8 +163,7 @@ DataProcessorSpec getNoiseCalibratorSpec(bool useDigits)
     outputs,
     AlgorithmSpec{adaptFromTask<NoiseCalibratorSpec>(useDigits)},
     Options{
-      {"1pix-only", VariantType::Bool, false, {"Fast 1-pixel calibration only"}},
-      {"prob-threshold", VariantType::Float, 3.e-6f, {"Probability threshold for noisy pixels"}},
+      {"prob-threshold", VariantType::Float, 1.e-6f, {"Probability threshold for noisy pixels"}},
       {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
       {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
       {"path", VariantType::String, "/MFT/Calib/NoiseMap", {"Path to write to in CCDB"}},

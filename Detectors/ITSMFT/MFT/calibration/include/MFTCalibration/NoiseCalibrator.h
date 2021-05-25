@@ -16,6 +16,8 @@
 #include <string>
 
 #include "DataFormatsITSMFT/NoiseMap.h"
+#include "DetectorsCalibration/TimeSlotCalibration.h"
+#include "DetectorsCalibration/TimeSlot.h"
 #include "gsl/span"
 
 namespace o2
@@ -34,20 +36,20 @@ class NoiseCalibrator
 {
  public:
   NoiseCalibrator() = default;
-  NoiseCalibrator(bool one, float prob, int hbpertf)
+  NoiseCalibrator(float prob)
   {
-    m1pix = one;
     mProbabilityThreshold = prob;
-    mHBFperTF = hbpertf;
   }
   ~NoiseCalibrator() = default;
 
   void setThreshold(unsigned int t) { mThreshold = t; }
 
-  bool processTimeFrame(gsl::span<const o2::itsmft::Digit> const& digits,
+  bool processTimeFrame(calibration::TFType tf,
+            gsl::span<const o2::itsmft::Digit> const& digits,
                         gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
-  bool processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+  bool processTimeFrame(calibration::TFType tf,
+            gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                         gsl::span<const unsigned char> const& patterns,
                         gsl::span<const o2::itsmft::ROFRecord> const& rofs);
 
@@ -57,11 +59,9 @@ class NoiseCalibrator
 
  private:
   o2::itsmft::NoiseMap mNoiseMap{936};
-  float mProbabilityThreshold = 3e-6f;
+  float mProbabilityThreshold = 1e-6f;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
-  bool m1pix = true;
-  int mHBFperTF = 256;
 };
 
 } // namespace mft

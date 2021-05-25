@@ -22,7 +22,8 @@ namespace o2
 {
 namespace mft
 {
-bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::Digit> const& digits,
+bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
+                           gsl::span<const o2::itsmft::Digit> const& digits,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
@@ -42,7 +43,8 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::Digit> const&
   return (mNumberOfStrobes * mProbabilityThreshold >= mThreshold) ? true : false;
 }
 
-bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
+bool NoiseCalibrator::processTimeFrame(calibration::TFType tf,
+                           gsl::span<const o2::itsmft::CompClusterExt> const& clusters,
                                        gsl::span<const unsigned char> const& patterns,
                                        gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
@@ -68,9 +70,6 @@ bool NoiseCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClusterEx
       // Fast 1-pixel calibration
       if ((rowSpan == 1) && (colSpan == 1)) {
         mNoiseMap.increaseNoiseCount(id, row, col);
-        continue;
-      }
-      if (m1pix) {
         continue;
       }
 

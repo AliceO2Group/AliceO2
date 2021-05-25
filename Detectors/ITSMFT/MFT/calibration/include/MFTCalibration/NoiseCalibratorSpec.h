@@ -21,6 +21,9 @@
 #include "MFTCalibration/NoiseCalibrator.h"
 using CALIBRATOR = o2::mft::NoiseCalibrator;
 
+//#include "MFTCalibration/NoiseSlotCalibrator.h" //For TimeSlot calibration
+//using CALIBRATOR = o2::mft::NoiseSlotCalibrator;
+
 #include "DataFormatsITSMFT/NoiseMap.h"
 
 using namespace o2::framework;
