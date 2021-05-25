@@ -14,6 +14,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/VariantJSONHelpers.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/Logger.h"
 
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
@@ -284,12 +285,16 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
                                                       StartTimeValueMatcher{ContextRef{0}})))};
 
         dataProcessors.back().inputs.push_back(InputSpec({binding}, std::move(expectedMatcher00)));
-      }
-      if (inputHasSubSpec) {
-        dataProcessors.back().inputs.push_back(InputSpec(binding, origin, description, subspec, lifetime, inputOptions));
+      } else if (inputHasDescription) {
+        if (inputHasSubSpec) {
+          dataProcessors.back().inputs.push_back(InputSpec(binding, origin, description, subspec, lifetime, inputOptions));
+        } else {
+          dataProcessors.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime, inputOptions));
+        }
       } else {
-        dataProcessors.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime, inputOptions));
+        LOG(ERROR) << "Input w/o description but with subspec is not supported";
       }
+
       inputOptions.clear();
       inputHasDescription = false;
       inputHasSubSpec = false;
