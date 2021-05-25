@@ -9,14 +9,15 @@ There is no module description yet.
 <!-- doxy
 This module contains the following submodules:
 
-* \subpage refDetectorsRaw
+* \subpage refDetectorsAlign
 * \subpage refDetectorsBase
 * \subpage refDetectorsBasetest
+* \subpage refDetectorsCalibration
 * \subpage refDetectorsGeometry
 * \subpage refDetectorsGlobalTracking
 * \subpage refDetectorsGlobalTrackingWorkflow
+* \subpage refDetectorsRaw
 * \subpage refDetectorsVertexing
-* \subpage refDetectorsCalibration
 * \subpage refDetectorsCPV
 * \subpage refDetectorsCTF
 * \subpage refDetectorsDCS
