@@ -76,7 +76,7 @@ struct PseudorapidityDensity {
   }
 };
 
-struct PseudorapidityDensityMC {
+struct PseudorapidityDensityMc {
   Configurable<float> etaMax{"etaMax", 2.0, "max eta value"};
   Configurable<float> etaMin{"etaMin", -2.0, "min eta value"};
   Configurable<float> vtxZMax{"vtxZMax", 15, "max z vertex"};
@@ -130,9 +130,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool doMC = cfgc.options().get<bool>("doMC");
   WorkflowSpec ws{adaptAnalysisTask<PseudorapidityDensity>(cfgc)};
   if (doMC) {
-    ws.push_back(adaptAnalysisTask<PseudorapidityDensityMC>(cfgc, Processes{
-                                                                    &PseudorapidityDensityMC::processGen,
-                                                                    &PseudorapidityDensityMC::processMatching //
+    ws.push_back(adaptAnalysisTask<PseudorapidityDensityMc>(cfgc, Processes{
+                                                                    &PseudorapidityDensityMc::processGen,
+                                                                    &PseudorapidityDensityMc::processMatching //
                                                                   }));
   }
   return ws;
