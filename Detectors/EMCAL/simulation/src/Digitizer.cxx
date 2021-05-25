@@ -10,13 +10,12 @@
 
 #include "EMCALSimulation/Digitizer.h"
 #include "EMCALSimulation/SimParam.h"
+#include "EMCALSimulation/DigitsWriteoutBuffer.h"
 #include "DataFormatsEMCAL/Digit.h"
-#include "EMCALBase/Geometry.h"
-#include "EMCALBase/GeometryBase.h"
 #include "EMCALBase/Hit.h"
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-
+#include "EMCALSimulation/DigitsWriteoutBuffer.h"
 #include <climits>
 #include <forward_list>
 #include <chrono>
@@ -106,29 +105,22 @@ void Digitizer::clear()
 }
 
 //_______________________________________________________________________
-void Digitizer::process(const std::vector<Hit>& hits)
+void Digitizer::process(const std::vector<LabeledDigit>& labeledSDigits)
 {
-  for (auto hit : hits) {
-    try {
-      hitToDigits(hit);
 
-      for (auto digit : mTempDigitVector) {
-        Int_t id = digit.getTower();
+  for (auto labeleddigit : labeledSDigits) {
 
-        if (id < 0 || id > mGeometry->GetNCells()) {
-          LOG(WARNING) << "tower index out of range: " << id;
-          continue;
-        }
+    sampleSDigit(labeleddigit.getDigit());
 
-        MCLabel label(hit.GetTrackID(), mCurrEvID, mCurrSrcID, false, 1.0);
-        if (digit.getAmplitude() == 0) {
-          label.setAmplitudeFraction(0);
-        }
-        LabeledDigit d(digit, label);
-        mDigits[id].push_back(d);
+    for (auto digit : mTempDigitVector) {
+      Int_t id = digit.getTower();
+
+      MCLabel label(labeleddigit.getLabels()[0]);
+      if (digit.getAmplitude() == 0) {
+        label.setAmplitudeFraction(0);
       }
-    } catch (InvalidPositionException& e) {
-      LOG(ERROR) << "Error in creating the digit: " << e.what();
+      LabeledDigit d(digit, label);
+      mDigits[id].push_back(d);
     }
   }
 
@@ -136,20 +128,24 @@ void Digitizer::process(const std::vector<Hit>& hits)
 }
 
 //_______________________________________________________________________
-void Digitizer::hitToDigits(const Hit& hit)
+void Digitizer::sampleSDigit(const Digit& sDigit)
 {
   mTempDigitVector.clear();
-  Int_t tower = hit.GetDetectorID();
-  Double_t energy = hit.GetEnergyLoss();
+  Int_t tower = sDigit.getTower();
+  Double_t energy = sDigit.getAmplitude();
 
   if (mSmearEnergy) {
     energy = smearEnergy(energy);
   }
 
+  // Convert the amplitude from energy GeV to ADC
+  energy = energy / constants::EMCAL_ADCENERGY;
+
   if (mSimulateTimeResponse && (energy != 0)) {
     for (int j = 0; j < mAmplitudeInTimeBins.at(mPhase).size(); j++) {
       double val = energy * (mAmplitudeInTimeBins.at(mPhase).at(j));
 
+      // @TODO check if the time is set correctly
       Digit digit(tower, val, (mEventTimeOffset + j - mTimeBinOffset.at(mPhase) + mDelay) * constants::EMCAL_TIMESAMPLE);
       mTempDigitVector.push_back(digit);
     }
@@ -212,44 +208,28 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
 {
   std::list<LabeledDigit> l;
 
-  for (auto t : mDigits) {
-    std::list<LabeledDigit> tower = t.second;
-    tower.sort();
+  for (auto [tower, digitsList] : mDigits) {
+    digitsList.sort();
 
-    while (!tower.empty()) {
-      LabeledDigit ld1 = tower.front();
-      tower.pop_front();
-
-      // loop over all other entries in the container, check if we can add the digits
-      std::vector<decltype(tower.begin())> toDelete;
-      for (auto ld2 = tower.begin(); ld2 != tower.end(); ++ld2) { // must be iterator in order to know the position in the container for erasing
-        if (ld1.canAdd(*ld2)) {
-          ld1 += *ld2;
-          toDelete.push_back(ld2);
-        }
-      }
-      for (auto del : toDelete) {
-        tower.erase(del);
-      }
+    for (auto ld : digitsList) {
 
       if (mSimulateNoiseDigits) {
-        addNoiseDigits(ld1);
+        addNoiseDigits(ld);
       }
 
-      if (mRemoveDigitsBelowThreshold && (ld1.getAmplitude() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
+      if (mRemoveDigitsBelowThreshold && (ld.getAmplitude() < mSimParam->getDigitThreshold() * (constants::EMCAL_ADCENERGY))) {
         continue;
       }
-      if (ld1.getAmplitude() < 0) {
+      if (ld.getAmplitude() < 0) {
         continue;
       }
-      if (ld1.getTimeStamp() >= mSimParam->getLiveTime()) {
+      if (ld.getTimeStamp() >= mSimParam->getLiveTime()) {
         continue;
       }
 
-      l.push_back(ld1);
+      l.push_back(ld);
     }
   }
-
   l.sort();
 
   for (auto d : l) {
@@ -265,24 +245,4 @@ void Digitizer::fillOutputContainer(std::vector<Digit>& digits, o2::dataformats:
 
   mDigits.clear();
   mEmpty = true;
-}
-
-//_______________________________________________________________________
-void Digitizer::setCurrSrcID(int v)
-{
-  // set current MC source ID
-  if (v > MCCompLabel::maxSourceID()) {
-    LOG(FATAL) << "MC source id " << v << " exceeds max storable in the label " << MCCompLabel::maxSourceID();
-  }
-  mCurrSrcID = v;
-}
-
-//_______________________________________________________________________
-void Digitizer::setCurrEvID(int v)
-{
-  // set current MC event ID
-  if (v > MCCompLabel::maxEventID()) {
-    LOG(FATAL) << "MC event id " << v << " exceeds max storable in the label " << MCCompLabel::maxEventID();
-  }
-  mCurrEvID = v;
 }
