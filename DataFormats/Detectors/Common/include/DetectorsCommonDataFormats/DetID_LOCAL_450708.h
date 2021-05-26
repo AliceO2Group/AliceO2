@@ -81,8 +81,7 @@ class DetID
   static constexpr ID IT3 = 17;
   static constexpr ID TRK = 18;
   static constexpr ID FT3 = 19;
-  static constexpr ID PSR = 20;
-  static constexpr ID Last = PSR;
+  static constexpr ID Last = FT3;
 #else
   static constexpr ID Last = CTP; ///< if extra detectors added, update this !!!
 #endif
@@ -168,21 +167,10 @@ class DetID
   // detector names, will be defined in DataSources
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", "IT3", "TRK", "FT3", "PSR", nullptr};
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", "IT3", "TRK", "FT3", nullptr};
 #else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", nullptr};
 #endif
-  // detector names, will be defined in DataSources
-  static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
-    {math_utils::bit2Mask(ITS), math_utils::bit2Mask(TPC), math_utils::bit2Mask(TRD), math_utils::bit2Mask(TOF), math_utils::bit2Mask(PHS),
-     math_utils::bit2Mask(CPV), math_utils::bit2Mask(EMC), math_utils::bit2Mask(HMP), math_utils::bit2Mask(MFT), math_utils::bit2Mask(MCH),
-     math_utils::bit2Mask(MID), math_utils::bit2Mask(ZDC), math_utils::bit2Mask(FT0), math_utils::bit2Mask(FV0), math_utils::bit2Mask(FDD),
-     math_utils::bit2Mask(ACO)
-#ifdef ENABLE_UPGRADES
-       ,
-     math_utils::bit2Mask(IT3), math_utils::bit2Mask(TRK), math_utils::bit2Mask(FT3), math_utils::bit2Mask(PSR)
-#endif
-  };
 
   static constexpr std::array<o2h::DataOrigin, nDetectors>
     sOrigins = ///< detector data origins
@@ -192,7 +180,7 @@ class DetID
      o2h::gDataOriginACO, o2h::gDataOriginCTP
 #ifdef ENABLE_UPGRADES
      ,
-     o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3, o2h::gDataOriginPSR
+     o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3
 #endif
   };
 #endif // GPUCA_GPUCODE_DEVICE
