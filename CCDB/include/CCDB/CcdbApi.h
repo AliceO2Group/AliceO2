@@ -289,6 +289,12 @@ class CcdbApi //: public DatabaseInterface
    */
   static void curlSetSSLOptions(CURL* curl);
 
+  TObject* retrieve(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp) const;
+
+  TObject* retrieveFromTFile(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp,
+                             std::map<std::string, std::string>* headers, std::string const& etag,
+                             const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+
  private:
   /**
    * Initialize in local mode; Objects will be retrieved from snapshot
