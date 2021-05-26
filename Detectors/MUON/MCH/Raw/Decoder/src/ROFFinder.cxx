@@ -165,8 +165,12 @@ void ROFFinder::sortDigits()
     mOrderedDigits.emplace_back(i);
   }
 
-  mRawDigitIdComp.digits = &mInputDigits;
-  std::sort(mOrderedDigits.begin(), mOrderedDigits.end(), mRawDigitIdComp);
+  auto rawDigitIdComp = [&](const RawDigitId& id1, const RawDigitId& id2) -> bool {
+    const RawDigit& d1 = mInputDigits[id1];
+    const RawDigit& d2 = mInputDigits[id2];
+    return (d1 < d2);
+  };
+  std::sort(mOrderedDigits.begin(), mOrderedDigits.end(), rawDigitIdComp);
 }
 
 //_________________________________________________________________________________________________
@@ -252,18 +256,12 @@ bool ROFFinder::isRofTimeMonotonic()
 {
   // number of bunch crossings in one orbit
   static const int32_t BCINORBIT = o2::constants::lhc::LHCMaxBunches;
-  auto rofDiff = [](const o2::mch::ROFRecord& rof1, const o2::mch::ROFRecord& rof2) -> int64_t {
-    int64_t dOrbit = static_cast<int64_t>(rof2.getBCData().orbit) - static_cast<int64_t>(rof1.getBCData().orbit);
-    int64_t dBC = static_cast<int64_t>(rof2.getBCData().bc) - static_cast<int64_t>(rof1.getBCData().bc);
-
-    return (dOrbit * BCINORBIT + dBC);
-  };
 
   bool result = true;
   for (size_t i = 1; i < mOutputROFs.size(); i++) {
     const auto& rof = mOutputROFs[i];
     const auto& rofPrev = mOutputROFs[i - 1];
-    int64_t delta = rofDiff(rof, rofPrev);
+    int64_t delta = rof.getBCData().differenceInBC(rofPrev.getBCData());
     if (rof.getBCData() < rofPrev.getBCData()) {
       LOG(ERROR) << "Non-monotonic ROFs encountered:";
       LOG(ERROR) << fmt::format("ROF1 {}-{} {},{}  ", rofPrev.getFirstIdx(), rofPrev.getLastIdx(),

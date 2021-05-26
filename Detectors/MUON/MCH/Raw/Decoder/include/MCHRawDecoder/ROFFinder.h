@@ -39,16 +39,6 @@ class ROFFinder
  public:
   using RawDigit = DataDecoder::RawDigit;
   using RawDigitId = size_t;
-  struct RawDigitIdComp {
-    const DataDecoder::RawDigitVector* digits{nullptr};
-    RawDigitIdComp() = default;
-    bool operator()(const RawDigitId& id1, const RawDigitId& id2)
-    {
-      const RawDigit& d1 = (*digits)[id1];
-      const RawDigit& d2 = (*digits)[id2];
-      return (d1 < d2);
-    }
-  };
   using RawDigitIdVector = std::vector<RawDigitId>;
 
   ROFFinder(const DataDecoder::RawDigitVector& digits, uint32_t firstTForbit);
@@ -81,7 +71,6 @@ class ROFFinder
   int mEntries{0};
   o2::InteractionRecord mIR;
 
-  RawDigitIdComp mRawDigitIdComp;
   RawDigitIdVector mOrderedDigits;
   std::vector<o2::mch::ROFRecord> mOutputROFs{};
 };
