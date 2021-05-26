@@ -552,7 +552,7 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
       if (!memFile.IsZombie()) {
         result = (TObject*)extractFromTFile(memFile, TClass::GetClass("TObject"));
         if (result == nullptr) {
-          errStr = o2::utils::concat_string("Couldn't retrieve the object ", path);
+          errStr = o2::utils::Str::concat_string("Couldn't retrieve the object ", path);
           LOG(ERROR) << errStr;
         }
         memFile.Close();
@@ -560,11 +560,11 @@ TObject* CcdbApi::retrieveFromTFile(std::string const& path, std::map<std::strin
         LOG(DEBUG) << "Object " << path << " is stored in a TMemFile";
       }
     } else {
-      errStr = o2::utils::concat_string("Invalid URL : ", fullUrl);
+      errStr = o2::utils::Str::concat_string("Invalid URL : ", fullUrl);
       LOG(ERROR) << errStr;
     }
   } else {
-    errStr = o2::utils::concat_string("curl_easy_perform() failed: ", curl_easy_strerror(res));
+    errStr = o2::utils::Str::concat_string("curl_easy_perform() failed: ", curl_easy_strerror(res));
     fprintf(stderr, "%s", errStr.c_str());
   }
 
