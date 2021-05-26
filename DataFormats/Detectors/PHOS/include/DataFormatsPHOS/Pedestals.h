@@ -36,7 +36,7 @@ class Pedestals
   // module numbering:
   //  start from module 0 (non-existing), 1 (half-module), 2 (bottom),... 4(highest)
   // absId:
-  // start from 1 till 5*64*56. Numbering in each module starts at bottom left and first go in z direction:
+  // start from 1 till 5*64*56 =14336. Numbering in each module starts at bottom left and first go in z direction:
   //  56   112   3584
   //  ...  ...    ...
   //  1    57 ...3529
@@ -61,7 +61,7 @@ class Pedestals
   /// \brief Set pedestal
   /// \param cellID Absolute ID of cell
   /// \param c is the pedestal (expected to be in range <254)
-  void setHGPedestal(short cellID, short c) { mHGPedestals[cellID - OFFSET] = static_cast<unsigned char>(c); }
+  void setHGPedestal(short cellID, short c) { mHGPedestals.at(cellID - OFFSET) = static_cast<unsigned char>(c); }
 
   /// \brief Get pedestal
   /// \param cellID Absolute ID of cell
@@ -71,7 +71,7 @@ class Pedestals
   /// \brief Set pedestal
   /// \param cellID Absolute ID of cell
   /// \param c is the pedestal (expected to be in range <254)
-  void setLGPedestal(short cellID, short c) { mLGPedestals[cellID - OFFSET] = static_cast<unsigned char>(c); }
+  void setLGPedestal(short cellID, short c) { mLGPedestals.at(cellID - OFFSET) = static_cast<unsigned char>(c); }
 
   /// \brief Set pedestals from 1D histogram with cell absId in x axis
   /// \param 1D(NCHANNELS) histogram with calibration coefficients
@@ -91,7 +91,7 @@ class Pedestals
   /// \brief Set pedestal RMS
   /// \param cellID Absolute ID of cell
   /// \param c is the pedestal RMS (expected to be in range 0..5, larger values=bad channel=overflow)
-  void setHGRMS(short cellID, float c) { mHGRMS[cellID - OFFSET] = static_cast<unsigned char>(c * RMSCOMPRESS); }
+  void setHGRMS(short cellID, float c) { mHGRMS.at(cellID - OFFSET) = static_cast<unsigned char>(c * RMSCOMPRESS); }
 
   /// \brief Get pedestal
   /// \param cellID Absolute ID of cell
@@ -101,10 +101,10 @@ class Pedestals
   /// \brief Set LG pedestal RMS
   /// \param cellID Absolute ID of cell
   /// \param c is the pedestal RMS (expected to be in range 0..5, larger values=bad channel=overflow)
-  void setLGRMS(short cellID, float c) { mLGRMS[cellID - OFFSET] = static_cast<unsigned char>(c * RMSCOMPRESS); }
+  void setLGRMS(short cellID, float c) { mLGRMS.at(cellID - OFFSET) = static_cast<unsigned char>(c * RMSCOMPRESS); }
 
  private:
-  static constexpr short NCHANNELS = 14337;          ///< Number of channels starting from 1
+  static constexpr short NCHANNELS = 12544;          ///< Number of channels = 14336-1792
   static constexpr short OFFSET = 1793;              ///< Non-existing channels 56*64*1.5+1
   static constexpr short RMSCOMPRESS = 50;           ///< Conversion to store float RMS in range ~[0..5] in uchar
   std::array<unsigned char, NCHANNELS> mHGPedestals; ///< Container for HG pedestals

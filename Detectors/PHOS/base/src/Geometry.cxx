@@ -24,7 +24,7 @@ ClassImp(Geometry);
 //  56   112   3584
 //  ...  ...    ...
 //  1    57 ...3529
-//  relid[3]: (module number[0...3], iphi[1...64], iz[1...56])
+//  relid[3]: (module number[1...4], iphi[1...64], iz[1...56])
 //
 //  Then TRU channels go 112 per branch, 2 branches per ddl
 //  absId = getTotalNCells() + TRUabsId ;

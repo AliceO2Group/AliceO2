@@ -47,19 +47,18 @@ class PHOSPedestalCalibDevice : public o2::framework::Task
 
  private:
   bool mUseCCDB = false;
-  bool mForceUpdate = false;                                  /// Update CCDB even if difference to current is large
-  bool mUpdateCCDB = true;                                    /// set is close to current and can update it
-  static constexpr short kMinorChange = 10;                   /// ignore if number of channels changed smaller than...
-  long mRunStartTime = 0;                                     /// start time of the run (sec)
-  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"};     /// CCDB path to retrieve current CCDB objects for comparison
-  std::unique_ptr<Pedestals> mPedestals;                      //! Final calibration object
-  std::unique_ptr<Pedestals> mOldPed;                         //! Pedestals currently stored in CCDB for comparisoin
-  std::unique_ptr<TH2F> mMeanHG;                              //! Mean values in High Gain channels
-  std::unique_ptr<TH2F> mMeanLG;                              //! RMS of values in High Gain channels
-  std::unique_ptr<TH2F> mRMSHG;                               //! Mean values in Low Gain channels
-  std::unique_ptr<TH2F> mRMSLG;                               //! RMS of values in Low Gain channels
-  std::array<short, o2::phos::Mapping::NCHANNELS> mPedHGDiff; //! Pedestal variation wrt previous map
-  std::array<short, o2::phos::Mapping::NCHANNELS> mPedLGDiff; //! Pedestal variation wrt previous map
+  bool mForceUpdate = false;                                    /// Update CCDB even if difference to current is large
+  bool mUpdateCCDB = true;                                      /// set is close to current and can update it
+  static constexpr short kMinorChange = 10;                     /// ignore if number of channels changed smaller than...
+  long mRunStartTime = 0;                                       /// start time of the run (sec)
+  std::string mCCDBPath{"http://ccdb-test.cern.ch:8080"};       /// CCDB path to retrieve current CCDB objects for comparison
+  std::unique_ptr<Pedestals> mPedestals;                        //! Final calibration object
+  std::unique_ptr<Pedestals> mOldPed;                           //! Pedestals currently stored in CCDB for comparisoin
+  std::unique_ptr<TH2F> mMeanHG;                                //! Mean values in High Gain channels
+  std::unique_ptr<TH2F> mMeanLG;                                //! RMS of values in High Gain channels
+  std::unique_ptr<TH2F> mRMSHG;                                 //! Mean values in Low Gain channels
+  std::unique_ptr<TH2F> mRMSLG;                                 //! RMS of values in Low Gain channels
+  std::array<short, 2 * o2::phos::Mapping::NCHANNELS> mPedDiff; //! Pedestal variation wrt previous map
 };
 
 o2::framework::DataProcessorSpec getPedestalCalibSpec(bool useCCDB, bool forceUpdate, std::string path);
