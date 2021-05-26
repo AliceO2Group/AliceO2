@@ -30,8 +30,8 @@ void PHOSHGLGRatioCalibDevice::init(o2::framework::InitContext& ic)
 {
 
   //Create histograms for mean and RMS
-  short n = o2::phos::Mapping::NCHANNELS;
-  mhRatio.reset(new TH2F("HGLGRatio", "HGLGRatio", n, 0.5, n + 0.5, 100, 10., 20.));
+  short n = o2::phos::Mapping::NCHANNELS - 1792;
+  mhRatio.reset(new TH2F("HGLGRatio", "HGLGRatio", n, 1792.5, n + 1792.5, 100, 10., 20.));
   mCalibParams.reset(new CalibParams());
 }
 
@@ -115,7 +115,7 @@ void PHOSHGLGRatioCalibDevice::calculateRatios()
       }
       tmp->Fit(fitFunc, "QL0", "", 0., 20.);
       float a = fitFunc->GetParameter(1);
-      mCalibParams->setHGLGRatio(i - 1, a); //absId starts from 0
+      mCalibParams->setHGLGRatio(i, a); //absId starts from 0
       tmp->Delete();
     }
   }
@@ -174,7 +174,7 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
 {
 
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
-  if (mUseCCDB && (mUpdateCCDB || mForceUpdate)) {
+  if (mUpdateCCDB || mForceUpdate) {
     // prepare all info to be sent to CCDB
     auto flName = o2::ccdb::CcdbApi::generateFileName("CalibParams");
     std::map<std::string, std::string> md;
@@ -193,27 +193,21 @@ void PHOSHGLGRatioCalibDevice::sendOutput(DataAllocator& output)
   }
   //Anyway send change to QC
   LOG(INFO) << "[PHOSHGLGRatioCalibDevice - sendOutput] Sending QC ";
-  if (mUseCCDB) { //can get previous calibration
-    output.snapshot(o2::framework::Output{"PHS", "HGLGRATIODIFF", 0, o2::framework::Lifetime::Timeframe}, mRatioDiff);
-  }
+  output.snapshot(o2::framework::Output{"PHS", "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe}, mRatioDiff);
 }
 
 DataProcessorSpec o2::phos::getHGLGRatioCalibSpec(bool useCCDB, bool forceUpdate, std::string path)
 {
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("cells", o2::header::gDataOriginPHS, "CELLS", 0, o2::framework::Lifetime::Timeframe);
-  inputs.emplace_back("cellTriggerRecords", o2::header::gDataOriginPHS, "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("cells", ConcreteDataTypeMatcher{o2::header::gDataOriginPHS, "CELLS"}, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("cellTriggerRecords", ConcreteDataTypeMatcher{o2::header::gDataOriginPHS, "CELLTRIGREC"}, o2::framework::Lifetime::Timeframe);
 
   using clbUtils = o2::calibration::Utils;
   std::vector<OutputSpec> outputs;
-  if (useCCDB) {
-    outputs.emplace_back(
-      ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_HGLGratio"});
-    outputs.emplace_back(
-      ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_HGLGratio"});
-    outputs.emplace_back("PHS", "HGLGRATIODIFF", 0, o2::framework::Lifetime::Timeframe);
-  }
+  outputs.emplace_back(o2::header::gDataOriginPHS, "CALIBDIFF", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBPayload, "PHOS_HGLGratio"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCDBWrapper, "PHOS_HGLGratio"});
   return o2::framework::DataProcessorSpec{"HGLGRatioCalibSpec",
                                           inputs,
                                           outputs,
