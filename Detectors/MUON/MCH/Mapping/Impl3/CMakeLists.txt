@@ -39,12 +39,3 @@ set_target_properties(${targetName} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         target_compile_options(${targetName} PRIVATE -fext-numeric-literals)
 endif()
-if(APPLE)
-        get_filename_component(
-                script ${CMAKE_CURRENT_LIST_DIR}/../../../check_nof_exported_symbols.sh
-                ABSOLUTE)
-        add_custom_command(
-                TARGET ${targetName} POST_BUILD
-                COMMAND ${script} $<TARGET_LINKER_FILE:${targetName}> 19
-                COMMENT "Checking number of exported symbols in the library")
-endif()
