@@ -38,7 +38,9 @@ using namespace o2::analysis::hf_cuts_single_track;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   ConfigParamSpec optionDoMC{"do-LcK0Sp", VariantType::Bool, false, {"Skim also Lc --> K0S+p"}};
+  ConfigParamSpec optionEvSel{"doEvSel", VariantType::Bool, false, {"Apply event selection"}};
   workflowOptions.push_back(optionDoMC);
+  workflowOptions.push_back(optionEvSel);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -58,6 +60,72 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 #define MY_DEBUG_MSG(condition, cmd)
 #endif
 
+<<<<<<< HEAD
+=======
+/// Event selection
+struct HfTagSelCollisions {
+
+  Produces<aod::HFSelCollision> rowSelectedCollision;
+
+  Configurable<bool> doValPlots{"doValPlots", true, "fill histograms"};
+  Configurable<std::string> triggerClassName{"triggerClassName", "kINT7", "trigger class"};
+  int triggerClass = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, triggerClassName.value.data()));
+
+  HistogramRegistry registry{
+    "registry",
+    {{"hEvents", "Events;;entries", {HistType::kTH1F, {{3, 0.5, 3.5}}}}}};
+
+  void init(InitContext const&)
+  {
+    std::string labels[3] = {"processed collisions", "selected collisions", "rej. trigger class"};
+    for (int iBin = 0; iBin < 3; iBin++) {
+      registry.get<TH1>(HIST("hEvents"))->GetXaxis()->SetBinLabel(iBin + 1, labels[iBin].data());
+    }
+  }
+
+  // event selection
+  void processEvSel(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision)
+  {
+    int statusCollision = 0;
+
+    if (doValPlots) {
+      registry.get<TH1>(HIST("hEvents"))->Fill(1);
+    }
+
+    if (!collision.alias()[triggerClass]) {
+      statusCollision |= BIT(0);
+      if (doValPlots) {
+        registry.get<TH1>(HIST("hEvents"))->Fill(3);
+      }
+    }
+
+    //TODO: add more event selection criteria
+
+    // selected events
+    if (doValPlots && statusCollision == 0) {
+      registry.get<TH1>(HIST("hEvents"))->Fill(2);
+    }
+
+    // fill table row
+    rowSelectedCollision(statusCollision);
+  };
+
+  // no event selection in case of no event-selection task attached
+  void processNoEvSel(aod::Collision const& collision)
+  {
+    int statusCollision = 0;
+
+    if (doValPlots) {
+      registry.get<TH1>(HIST("hEvents"))->Fill(1);
+      registry.get<TH1>(HIST("hEvents"))->Fill(2);
+    }
+
+    // fill table row
+    rowSelectedCollision(statusCollision);
+  };
+};
+
+>>>>>>> Add possibility to run without event selection (for ALICE3 MC)
 /// Track selection
 struct SelectTracks {
 
@@ -1261,9 +1329,23 @@ struct HFTrackIndexSkimsCreatorCascades {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+<<<<<<< HEAD
   WorkflowSpec workflow{
     adaptAnalysisTask<SelectTracks>(cfgc, TaskName{"hf-produce-sel-track"}),
     adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
+=======
+  WorkflowSpec workflow{};
+
+  const bool doEvSel = cfgc.options().get<bool>("doEvSel");
+  if (doEvSel) {
+    workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc, Processes{&HfTagSelCollisions::processEvSel}));
+  } else {
+    workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc, Processes{&HfTagSelCollisions::processNoEvSel}));
+  }
+
+  workflow.push_back(adaptAnalysisTask<HfTagSelTrack>(cfgc));
+  workflow.push_back(adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc));
+>>>>>>> Add possibility to run without event selection (for ALICE3 MC)
 
   const bool doLcK0Sp = cfgc.options().get<bool>("do-LcK0Sp");
   if (doLcK0Sp) {
