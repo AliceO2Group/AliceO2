@@ -626,6 +626,7 @@ void Detector::addAlignableVolumes() const
   for (Int_t hf = 0; hf < nHalf; hf++) {
     addAlignableVolumesHalf(hf, path, lastUID);
   }
+  MisalignGeometry();
 }
 
 //_____________________________________________________________________________
@@ -722,24 +723,25 @@ void Detector::MisalignGeometry() const
 
   aGMA.SetHalfCartMisAlig(0., 0., 0., 0., 0., 0.); // half-MFT translated on X, Y, Z axis
   aGMA.SetHalfAngMisAlig(0., 0., 0., 0., 0., 0.);  // half-MFT  rotated on Z, X, Y axis
-    
+
   aGMA.SetDiskCartMisAlig(0., 0., 0., 0., 0., 0.); // Half-disks translated on X, Y, Z axis
   aGMA.SetDiskAngMisAlig(0., 0., 0., 0., 0., 0.);  // Half-disks rotated on Z, X, Y axis
-    
+
   aGMA.SetLadderCartMisAlig(0., 0., 0., 0., 0., 0.); // Ladders translated on X, Y, Z axis
-  aGMA.SetLadderAngMisAlig(0., 0., 0., 0., 0., 0.);   // Ladders rotated on Z, X, Y axis
-    
+  aGMA.SetLadderAngMisAlig(0., 0., 0., 0., 0., 0.);  // Ladders rotated on Z, X, Y axis
+
   aGMA.SetSensorCartMisAlig(0., 0., 0., 0., 0., 0.); // Sensors translated on X, Y, Z axis
-  aGMA.SetSensorAngMisAlig(0., 0., 0., 0., 0., 0.);   // Sensors rotated on Z, X, Y axis
+  aGMA.SetSensorAngMisAlig(0., 0., 0., 0., 0., 0.);  // Sensors rotated on Z, X, Y axis
 
-  aGMA.MisAlign(true);  // Misalign the geometry
+  aGMA.MisAlign(false); // Misalign the geometry ('option'=verbose)
 
-  // lock the geometry, or unlock with "false"
-  gGeoManager->RefreshPhysicalNodes();
+  // lock the geometry, or unlock with 'false'
+  //gGeoManager->RefreshPhysicalNodes();
 
   // store the misaligned geometry in a root file
   gGeoManager->Export("o2sim_geometry_misaligned.root");
-        
+
+  //gGeoManager->RefreshPhysicalNodes(false);
 }
 
 //_____________________________________________________________________________

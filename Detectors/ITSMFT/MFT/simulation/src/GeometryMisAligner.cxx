@@ -207,7 +207,7 @@ void GeometryMisAligner::SetZCartMisAligFactor(Double_t factor)
 void GeometryMisAligner::GetUniMisAlign(double cartMisAlig[3], double angMisAlig[3], const double lParMisAlig[6][2]) const
 {
   /// Misalign using uniform distribution
-  
+
   ///  misalign the centre of the local transformation
   ///  rotation axes :
   ///  fAngMisAlig[1,2,3] = [x,y,z]
@@ -215,7 +215,7 @@ void GeometryMisAligner::GetUniMisAlign(double cartMisAlig[3], double angMisAlig
   ///  is much smaller, since the entire detection plane has to be moved (the
   ///  detection elements are on a support structure), while rotation of the x-y
   ///  plane is more free.
-  
+
   cartMisAlig[0] = gRandom->Uniform(-lParMisAlig[0][1] + lParMisAlig[0][0], lParMisAlig[0][0] + lParMisAlig[0][1]);
   cartMisAlig[1] = gRandom->Uniform(-lParMisAlig[1][1] + lParMisAlig[1][0], lParMisAlig[1][0] + lParMisAlig[1][1]);
   cartMisAlig[2] = gRandom->Uniform(-lParMisAlig[2][1] + lParMisAlig[2][0], lParMisAlig[2][0] + lParMisAlig[2][1]);
@@ -229,7 +229,7 @@ void GeometryMisAligner::GetUniMisAlign(double cartMisAlig[3], double angMisAlig
 void GeometryMisAligner::GetGausMisAlign(double cartMisAlig[3], double angMisAlig[3], const double lParMisAlig[6][2]) const
 {
   /// Misalign using gaussian distribution
-  
+
   ///  misalign the centre of the local transformation
   ///  rotation axes :
   ///  fAngMisAlig[1,2,3] = [x,y,z]
@@ -237,7 +237,7 @@ void GeometryMisAligner::GetGausMisAlign(double cartMisAlig[3], double angMisAli
   ///  is much smaller, since the entire detection plane has to be moved (the
   ///  detection elements are on a support structure), while rotation of the x-y
   ///  plane is more free.
-  
+
   cartMisAlig[0] = gRandom->Gaus(lParMisAlig[0][0], lParMisAlig[0][1]);
   cartMisAlig[1] = gRandom->Gaus(lParMisAlig[1][0], lParMisAlig[1][1]);
   cartMisAlig[2] = gRandom->Gaus(lParMisAlig[2][0], lParMisAlig[2][1]);
@@ -386,10 +386,9 @@ TGeoCombiTrans
   deltaRot.RotateZ(angMisAlig[2]);
 
   TGeoCombiTrans deltaTransf(deltaTrans, deltaRot);
-  
+
   return TGeoCombiTrans(deltaTransf);
 }
-
 
 //______________________________________________________________________
 bool GeometryMisAligner::matrixToAngles(const double* rot, double& psi, double& theta, double& phi)
@@ -398,7 +397,7 @@ bool GeometryMisAligner::matrixToAngles(const double* rot, double& psi, double& 
   /// using the rotation matrix
   /// Returns false in case the rotation angles can not be
   /// extracted from the matrix
-  
+
   if (std::abs(rot[0]) < 1e-7 || std::abs(rot[8]) < 1e-7) {
     LOG(ERROR) << "Failed to extract roll-pitch-yall angles!";
     return false;
@@ -437,13 +436,11 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
   o2::detectors::AlignParam lAP;
 
   std::vector<std::vector<o2::detectors::AlignParam>> lAPvec;
-  std::vector<o2::detectors::AlignParam> lAPvecDisk;  // storage for disk
+  std::vector<o2::detectors::AlignParam> lAPvecDisk;   // storage for disk
   std::vector<o2::detectors::AlignParam> lAPvecLadder; // storage for ladder
 
-    if (verbose) {
-      LOG(INFO) << "----   MisAlign MFT geometry   ----";
-    }
-    
+  LOG(INFO) << " GeometryMisAligner::MisAlign ";
+
   Int_t nAlignID = 0;
   double lPsi, lTheta, lPhi = 0.;
   Int_t nChip = 0;
@@ -454,7 +451,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
 
     // New module transformation
     TGeoCombiTrans localDeltaTransform = MisAlignHalf();
-      
+
     TString sname = mGeometryTGeo->composeSymNameHalf(hf);
 
     lAP.setSymName(sname);
@@ -467,7 +464,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
     LOG(DEBUG) << "** LocalDeltaTransform Half: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], localDeltaTransform.GetRotationMatrix()[0], localDeltaTransform.GetRotationMatrix()[1], localDeltaTransform.GetRotationMatrix()[2]);
 
     lAP.setLocalParams(localDeltaTransform);
-      
+
     // Apply misalignment of the half to the ideal geometry
     lAP.applyToGeometry();
 
@@ -490,6 +487,10 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
 
       LOG(DEBUG) << "**** AlignParam Disk: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), lAP.getX(), lAP.getY(), lAP.getZ(), lAP.getPsi(), lAP.getTheta(), lAP.getPhi());
 
+      if (verbose) {
+        LOG(INFO) << "-> misalign element: " << sname << ", disk: " << dk;
+      }
+
       Int_t nLadders = 0;
 
       for (Int_t sensor = mGeometryTGeo->getMinSensorsPerLadder(); sensor < mGeometryTGeo->getMaxSensorsPerLadder() + 1; sensor++) {
@@ -499,10 +500,10 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
       // Apply misalignment to the ideal geometry
       lAP.applyToGeometry();
 
-        // Store AlignParam (misalignment parameters)
+      // Store AlignParam (misalignment parameters)
       lAPvecDisk.push_back(lAP);
 
-      for (Int_t lr = 0; lr < nLadders; lr++) {  //nLadders
+      for (Int_t lr = 0; lr < nLadders; lr++) { //nLadders
 
         localDeltaTransform = MisAlignLadder();
 
@@ -516,14 +517,14 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
         lAP.setAlignableID(nAlignID++);
 
         LOG(DEBUG) << "LocalDeltaTransform Ladder: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], lPsi, lTheta, lPhi);
-          
+
         // Set the local transformations
         lAP.setLocalParams(localDeltaTransform);
 
         LOG(DEBUG) << "AlignParam Ladder: " << fmt::format("  {} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), lAP.getX(), lAP.getY(), lAP.getZ(), lAP.getPsi(), lAP.getTheta(), lAP.getPhi());
 
         if (verbose) {
-          LOG(INFO) << "-> MisAligned element : " << sname << "   Ladder: " << lr;
+          LOG(INFO) << "--> misalign element: " << sname << ", ladder: " << lr;
         }
 
         // Apply misaligned detection element to the geometry
@@ -531,20 +532,23 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
 
         // Store AlignParam (misalignment parameters)
         lAPvecLadder.push_back(lAP);
-          
+
         for (Int_t sr = 0; sr < nSensorsPerLadder; sr++) {
 
           localDeltaTransform = MisAlignSensor();
 
           sname = mGeometryTGeo->composeSymNameChip(hf, dk, lr, sr);
 
+          if (verbose) {
+            LOG(INFO) << "---> misalign element: " << sname << ", sensor: " << sr;
+          }
+
           lAP.setSymName(sname);
           lAP.setAlignableID(nAlignID++);
           lAP.setLocalParams(localDeltaTransform);
           lAP.applyToGeometry();
-           
+
           nChip++;
-            
         }
       }
     }
@@ -552,7 +556,6 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
 
   lAPvec.push_back(lAPvecDisk);
   lAPvec.push_back(lAPvecLadder);
-
 }
 
 void GeometryMisAligner::SetAlignmentResolution(const TClonesArray* misAlignArray, Int_t rChId, Double_t rChResX, Double_t rChResY, Double_t rDeResX, Double_t rDeResY)
@@ -575,4 +578,3 @@ void GeometryMisAligner::SetAlignmentResolution(const TClonesArray* misAlignArra
 
   // not yet implemented
 }
-
