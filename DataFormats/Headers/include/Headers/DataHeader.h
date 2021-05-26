@@ -570,6 +570,7 @@ constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
 constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
 constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
 constexpr o2::header::DataOrigin gDataOriginFT3{"FT3"};
+constexpr o2::header::DataOrigin gDataOriginPSR{"PSR"};
 
 //possible data types
 constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};

@@ -1,9 +1,8 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
 //
-// This software is distributed under the terms of the GNU General Public
-// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+// See http://alice-o2.web.cern.ch/license for full licensing information.
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,17 +23,11 @@
   }
   printf("joint mask: 0x%lx\n",mskTot.to_ulong());
  */
-//
-//
+
 #ifndef O2_BASE_DETID_
 #define O2_BASE_DETID_
 
-#include "GPUCommonRtypes.h"
-#include "GPUCommonBitSet.h"
-#include "MathUtils/Utils.h"
-#include "DetectorsCommonDataFormats/UpgradesStatus.h"
-#ifndef GPUCA_GPUCODE_DEVICE
-#include "Headers/DataHeader.h"
+#include <Rtypes.h>
 #include <array>
 #include <bitset>
 #include <cassert>
@@ -42,13 +35,11 @@
 #include <string_view>
 #include <string>
 #include <type_traits>
-#endif
+#include "MathUtils/Utils.h"
+#include "Headers/DataHeader.h"
 
 namespace o2
 {
-namespace header
-{
-}
 namespace detectors
 {
 
@@ -59,7 +50,7 @@ class DetID
 {
  public:
   /// Detector identifiers: continuous, starting from 0
-  typedef int ID;
+  typedef std::int32_t ID;
 
   static constexpr ID ITS = 0;
   static constexpr ID TPC = 1;
@@ -90,47 +81,35 @@ class DetID
   static constexpr ID First = ITS;
 
   static constexpr int nDetectors = Last + 1; ///< number of defined detectors
-  typedef o2::gpu::gpustd::bitset<32> mask_t;
-  static_assert(nDetectors <= 32, "bitset<32> insufficient");
 
-  static constexpr mask_t FullMask = (0x1u << nDetectors) - 1;
-
-#ifndef GPUCA_GPUCODE_DEVICE
   static constexpr std::string_view NONE{"none"}; ///< keywork for no-detector
   static constexpr std::string_view ALL{"all"};   ///< keywork for all detectors
-#endif                                            // GPUCA_GPUCODE_DEVICE
 
-  GPUdi() DetID(ID id) : mID(id)
-  {
-  }
+  typedef std::bitset<32> mask_t;
+
+  DetID(ID id) : mID(id) {}
   DetID(const char* name);
-  GPUdDefault() DetID(const DetID& src) = default;
-  GPUdDefault() DetID& operator=(const DetID& src) = default;
-  // we need default c-tor only for root persistency, code must use c-tor with argument
-  DetID() : mID(First) {}
+  DetID(const DetID& src) = default;
+  DetID& operator=(const DetID& src) = default;
 
   /// get derector id
-  GPUdi() ID getID() const { return mID; }
+  ID getID() const { return mID; }
   /// get detector mask
-  GPUdi() mask_t getMask() const { return getMask(mID); }
-#ifndef GPUCA_GPUCODE_DEVICE
-  /// get detector origin
-  GPUdi() o2h::DataOrigin getDataOrigin() const { return getDataOrigin(mID); }
+  mask_t getMask() const { return getMask(mID); }
+  /// get detector mask
+  o2h::DataOrigin getDataOrigin() const { return getDataOrigin(mID); }
   /// get detector name
   const char* getName() const { return getName(mID); }
-#endif // GPUCA_GPUCODE_DEVICE
   /// conversion operator to int
-  GPUdi() operator int() const { return static_cast<int>(mID); }
+  operator int() const { return static_cast<int>(mID); }
 
   //  ---------------- general static methods -----------------
   /// get number of defined detectors
-  GPUdi() static constexpr int getNDetectors() { return nDetectors; }
-  // detector ID to mask conversion
-  GPUd() static constexpr mask_t getMask(ID id);
-
-#ifndef GPUCA_GPUCODE_DEVICE
+  static constexpr int getNDetectors() { return nDetectors; }
   /// names of defined detectors
   static constexpr const char* getName(ID id) { return sDetNames[id]; }
+  // detector ID to mask conversion
+  static constexpr mask_t getMask(ID id) { return sMasks[id]; }
   // detector ID to DataOrigin conversions
   static constexpr o2h::DataOrigin getDataOrigin(ID id) { return sOrigins[id]; }
 
@@ -139,34 +118,23 @@ class DetID
 
   static std::string getNames(mask_t mask, char delimiter = ',');
 
-  inline static constexpr int nameToID(char const* name, int id = First)
-  {
-    return id > Last ? -1 : sameStr(name, sDetNames[id]) ? id
-                                                         : nameToID(name, id + 1);
-  }
-
-#endif // GPUCA_GPUCODE_DEVICE
-
-  static bool upgradesEnabled()
-  {
-#ifdef ENABLE_UPGRADES
-    return true;
-#else
-    return false;
-#endif
-  }
+  // we need default c-tor only for root persistency, code must use c-tor with argument
+  DetID() : mID(First) {}
 
  private:
   // are 2 strings equal ? (trick from Giulio)
-  GPUdi() static constexpr bool sameStr(char const* x, char const* y)
+  inline static constexpr bool sameStr(char const* x, char const* y)
   {
     return !*x && !*y ? true : /* default */ (*x == *y && sameStr(x + 1, y + 1));
   }
 
+  inline static constexpr int nameToID(char const* name, int id)
+  {
+    return id > Last ? id : sameStr(name, sDetNames[id]) ? id : nameToID(name, id + 1);
+  }
+
   ID mID = First; ///< detector ID
 
-#ifndef GPUCA_GPUCODE_DEVICE
-  // detector names, will be defined in DataSources
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", "IT3", "TRK", "FT3", "PSR", nullptr};
@@ -196,27 +164,9 @@ class DetID
      o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3, o2h::gDataOriginPSR
 #endif
   };
-#endif // GPUCA_GPUCODE_DEVICE
 
-  ClassDefNV(DetID, 3);
+  ClassDefNV(DetID, 2);
 };
-
-namespace detid_internal
-{
-// static constexpr array class members not possible on the GPU, thus we use this trick.
-GPUconstexpr() DetID::mask_t sMasks[DetID::nDetectors] = ///< detectot masks
-  {DetID::mask_t(math_utils::bit2Mask(DetID::ITS)), DetID::mask_t(math_utils::bit2Mask(DetID::TPC)), DetID::mask_t(math_utils::bit2Mask(DetID::TRD)), DetID::mask_t(math_utils::bit2Mask(DetID::TOF)), DetID::mask_t(math_utils::bit2Mask(DetID::PHS)),
-   DetID::mask_t(math_utils::bit2Mask(DetID::CPV)), DetID::mask_t(math_utils::bit2Mask(DetID::EMC)), DetID::mask_t(math_utils::bit2Mask(DetID::HMP)), DetID::mask_t(math_utils::bit2Mask(DetID::MFT)), DetID::mask_t(math_utils::bit2Mask(DetID::MCH)),
-   DetID::mask_t(math_utils::bit2Mask(DetID::MID)), DetID::mask_t(math_utils::bit2Mask(DetID::ZDC)), DetID::mask_t(math_utils::bit2Mask(DetID::FT0)), DetID::mask_t(math_utils::bit2Mask(DetID::FV0)), DetID::mask_t(math_utils::bit2Mask(DetID::FDD)),
-   DetID::mask_t(math_utils::bit2Mask(DetID::ACO)), DetID::mask_t(math_utils::bit2Mask(DetID::CTP))
-#ifdef ENABLE_UPGRADES
-                                                      ,
-   DetID::mask_t(math_utils::bit2Mask(DetID::IT3)), DetID::mask_t(math_utils::bit2Mask(DetID::TRK)), DetID::mask_t(math_utils::bit2Mask(DetID::FT3))
-#endif
-};
-} // namespace detid_internal
-
-GPUdi() constexpr DetID::mask_t DetID::getMask(ID id) { return detid_internal::sMasks[id]; }
 
 } // namespace detectors
 } // namespace o2
