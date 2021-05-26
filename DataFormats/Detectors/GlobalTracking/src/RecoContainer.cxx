@@ -726,7 +726,11 @@ GTrackID RecoContainer::getTPCContributorGID(GTrackID gidx) const
 GTrackID RecoContainer::getITSContributorGID(GTrackID gidx) const
 {
   auto src = gidx.getSource();
-  if (src == GTrackID::ITSTPCTOF) {
+  if (src == GTrackID::ITSTPCTRD) {
+    const auto& parent0 = getITSTPCTRDTrack<o2::trd::TrackTRD>(gidx);
+    const auto& parent1 = getTPCITSTrack(parent0.getRefGlobalTrackId());
+    return parent1.getRefITS();
+  } else if (src == GTrackID::ITSTPCTOF) {
     const auto& parent0 = getTOFMatch(gidx); //ITS/TPC : TOF
     const auto& parent1 = getTPCITSTrack(parent0.getEvIdxTrack().getIndex());
     return parent1.getRefITS();
