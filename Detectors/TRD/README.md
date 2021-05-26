@@ -2,7 +2,7 @@
 \page refDetectorsTRD TRD
 /doxy -->
 
-# TRD 
+# TRD
 
 <!-- doxy
 * \subpage refDetectorsTRDsimulation
