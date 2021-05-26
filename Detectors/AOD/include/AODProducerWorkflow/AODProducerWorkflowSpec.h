@@ -81,6 +81,16 @@ using TracksExtraTable = o2::soa::Table<o2::aod::track::TPCInnerParam,
                                         o2::aod::track::TrackEtaEMCAL,
                                         o2::aod::track::TrackPhiEMCAL>;
 
+using MFTTracksTable = o2::soa::Table<o2::aod::fwdtrack::CollisionId,
+                                      o2::aod::fwdtrack::X,
+                                      o2::aod::fwdtrack::Y,
+                                      o2::aod::fwdtrack::Z,
+                                      o2::aod::fwdtrack::Phi,
+                                      o2::aod::fwdtrack::Tgl,
+                                      o2::aod::fwdtrack::Signed1Pt,
+                                      o2::aod::fwdtrack::NClusters,
+                                      o2::aod::fwdtrack::Chi2>;
+
 using MCParticlesTable = o2::soa::Table<o2::aod::mcparticle::McCollisionId,
                                         o2::aod::mcparticle::PdgCode,
                                         o2::aod::mcparticle::StatusCode,
@@ -134,9 +144,10 @@ class AODProducerWorkflowDPL : public Task
 
  private:
   int mFillTracksITS{1};
+  int mFillTracksMFT{1};
   int mFillTracksTPC{0};
   int mFillTracksITSTPC{1};
-  int mTFNumber{-1};
+  int64_t mTFNumber{-1};
   int mTruncate{1};
   int mIgnoreWriter{0};
   int mRecoOnly{0};
@@ -186,10 +197,13 @@ class AODProducerWorkflowDPL : public Task
   void fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
                        const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType);
 
+  template <typename TTracks, typename TTracksCursor>
+  void fillMFTTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor);
+
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthTPC,
-                            TripletsMap_t& toStore);
+                            gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthMFT,
+                            gsl::span<const o2::MCCompLabel>& mcTruthTPC, TripletsMap_t& toStore);
 
   void writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber);
 };

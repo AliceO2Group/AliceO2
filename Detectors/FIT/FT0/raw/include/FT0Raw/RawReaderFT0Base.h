@@ -18,52 +18,18 @@
 
 #ifndef ALICEO2_FIT_RAWREADERFT0BASE_H_
 #define ALICEO2_FIT_RAWREADERFT0BASE_H_
-#include <iostream>
-#include <vector>
-#include <Rtypes.h>
 #include "FT0Raw/DataBlockFT0.h"
 #include "FT0Raw/DigitBlockFT0.h"
-#include "FITRaw/RawReaderBase.h"
+#include "FITRaw/RawReaderBaseFIT.h"
 
-#include <boost/mpl/inherit.hpp>
-#include <boost/mpl/vector.hpp>
-
-#include <CommonDataFormat/InteractionRecord.h>
-#include "Headers/RAWDataHeader.h"
-
-#include <gsl/span>
-
-using namespace o2::fit;
 namespace o2
 {
 namespace ft0
 {
-
-// Common raw reader for FT0
-template <class DigitBlockFT0type, class DataBlockPMtype, class DataBlockTCMtype>
-class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type, DataBlockPMtype, DataBlockTCMtype>
-{
- public:
-  typedef RawReaderBase<DigitBlockFT0type, DataBlockPMtype, DataBlockTCMtype> RawReaderBaseType;
-  RawReaderFT0Base() = default;
-  ~RawReaderFT0Base() = default;
-  //deserialize payload to raw data blocks and proccesss them to digits
-  void process(int linkID, gsl::span<const uint8_t> payload, int ep)
-  {
-    if (o2::ft0::SingleLUT::Instance().isTCM(linkID, ep)) {
-      //TCM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockTCMtype>(payload, linkID, ep);
-    } else {
-      //PM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID, ep);
-    }
-  }
-};
 //Normal TCM mode
-using RawReaderFT0BaseNorm = RawReaderFT0Base<DigitBlockFT0, DataBlockPM, DataBlockTCM>;
+using RawReaderFT0BaseNorm = o2::fit::RawReaderBaseFIT<DigitBlockFT0, DataBlockPM, DataBlockTCM>;
 //Extended TCM mode
-using RawReaderFT0BaseExt = RawReaderFT0Base<DigitBlockFT0ext, DataBlockPM, DataBlockTCMext>;
-
+using RawReaderFT0BaseExt = o2::fit::RawReaderBaseFIT<DigitBlockFT0ext, DataBlockPM, DataBlockTCMext>;
 } // namespace ft0
 } // namespace o2
 

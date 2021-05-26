@@ -25,6 +25,8 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using OutputType = std::vector<o2::tof::CalibInfoCluster>;
 using OutputCosmicType = std::vector<o2::tof::CosmicInfo>;
+using OutputTrackType = std::vector<o2::tof::CalibInfoTrackCl>;
+using OutputTrackSizeType = std::vector<int>;
 using namespace o2::header;
 
 DataProcessorSpec getTOFCalClusInfoWriterSpec(bool isCosmics)
@@ -35,6 +37,12 @@ DataProcessorSpec getTOFCalClusInfoWriterSpec(bool isCosmics)
   };
   auto loggerCosmics = [](OutputCosmicType const& indata) {
     LOG(DEBUG) << "RECEIVED COSMICS INFO SIZE " << indata.size();
+  };
+  auto loggerTracks = [](OutputTrackType const& indata) {
+    LOG(DEBUG) << "RECEIVED COSMICS TRACK CLUSTERS INFO SIZE " << indata.size();
+  };
+  auto loggerTracksSize = [](OutputTrackSizeType const& indata) {
+    LOG(DEBUG) << "RECEIVED COSMICS TRACK INFO SIZE " << indata.size();
   };
 
   return MakeRootTreeWriterSpec("TOFCalClusInfoWriter",
@@ -49,7 +57,17 @@ DataProcessorSpec getTOFCalClusInfoWriterSpec(bool isCosmics)
                                                                    "TOFCosmics",
                                                                    "tofcosmics-branch-name",
                                                                    (isCosmics ? 1 : 0),
-                                                                   loggerCosmics})();
+                                                                   loggerCosmics},
+                                BranchDefinition<OutputTrackType>{InputSpec{"tracks", gDataOriginTOF, "INFOTRACKCOS", 0},
+                                                                  "TOFTracks",
+                                                                  "toftracks-branch-name",
+                                                                  (isCosmics ? 1 : 0),
+                                                                  loggerTracks},
+                                BranchDefinition<OutputTrackSizeType>{InputSpec{"tracksize", gDataOriginTOF, "INFOTRACKSIZE", 0},
+                                                                      "TOFTracksSize",
+                                                                      "toftrackssize-branch-name",
+                                                                      (isCosmics ? 1 : 0),
+                                                                      loggerTracksSize})();
 }
 } // namespace tof
 } // namespace o2

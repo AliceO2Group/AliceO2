@@ -9,7 +9,4 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Raw/DigitBlockFT0.h"
-using namespace o2::ft0;
-
-int DigitBlockFT0::sEventID = 0;
-int DigitBlockFT0ext::sEventID = 0;
+//using namespace o2::ft0;

@@ -84,6 +84,7 @@ struct TestRawWriter { // simple class to create detector payload for multiple l
     writer.setCarryOverCallBack(this); // we want that writer to ask the detector code how to split large payloads
 
     writer.setApplyCarryOverToLastPage(true); // call CarryOver method also for the last chunk
+    writer.doLazinessCheck(false);            // do not apply auto-completion since the test mixes preformatted links filled per HBF and standard links filled per IR.
   }
 
   //_________________________________________________________________

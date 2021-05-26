@@ -17,8 +17,8 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 const char* HelpText[] = {
-  "[n] / [SPACE]                 Next event",
-  "[q] / [Q] / [ESC]             Quit",
+  "[ESC]                         Quit",
+  "[n]                           Next event",
   "[r]                           Reset Display Settings",
   "[l] / [k] / [J]               Draw single slice (next  / previous slice), draw related slices (same plane in phi)",
   "[;] / [:]                     Show splitting of TPC in slices by extruding volume, [:] resets",
@@ -57,11 +57,13 @@ const char* HelpText[] = {
   "[MOUSE 2]                     Strafe camera",
   "[MOUSE 1+2]                   Zoom / Rotate",
   "[SHIFT]                       Slow Zoom / Move / Rotate",
-  "[ALT] / [CTRL] / [m]          Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
+  "[ALT] / [CTRL] / [ENTER]      Focus camera on origin / orient y-axis upwards (combine with [SHIFT] to lock) / Cycle through modes",
   "[RCTRL] / [RALT]              Rotate model instead of camera / rotate TPC around beamline",
-  "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors"
-  "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS"
-  // FREE: none
+  "[1] ... [8] / [N]             Enable display of clusters, preseeds, seeds, starthits, tracklets, tracks, global tracks, merged tracks / Show assigned clusters in colors",
+  "[F1] / [F2] / [F3] / [F4]     Enable / disable drawing of TPC / TRD / TOF / ITS",
+  "[SHIFT] + [F1] to [F4]        Enable / disable track detector filter",
+  "[SHIFT] + [F12]               Switch track detector filter between AND and OR mode"
+  // FREE: [m] [SPACE] [q] [Q]
   // Test setting: ^ --> mHideUnmatchedClusters
 };
 
@@ -73,12 +75,12 @@ void GPUDisplay::PrintHelp()
   }
 }
 
-void GPUDisplay::HandleKeyRelease(unsigned char key)
+void GPUDisplay::HandleKey(unsigned char key)
 {
-  if (key == mBackend->KEY_ENTER || key == 'n') {
+  if (key == 'n') {
     mBackend->mDisplayControl = 1;
     SetInfo("Showing next event", 1);
-  } else if (key == 27 || key == 'q' || key == 'Q' || key == mBackend->KEY_ESCAPE) {
+  } else if (key == 27 || key == mBackend->KEY_ESCAPE) {
     mBackend->mDisplayControl = 2;
     SetInfo("Exiting", 1);
   } else if (key == 'r') {
@@ -92,7 +94,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     mCamYUp ^= 1;
     mCameraMode = mCamLookOrigin + 2 * mCamYUp;
     SetInfo("Camera locked on y-axis facing upwards: %s", mCamYUp ? "enabled" : "disabled");
-  } else if (key == 'm') {
+  } else if (key == mBackend->KEY_ENTER) {
     mCameraMode++;
     if (mCameraMode == 4) {
       mCameraMode = 0;
@@ -104,45 +106,45 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
   } else if (key == mBackend->KEY_ALT) {
     mBackend->mKeys[mBackend->KEY_CTRL] = false; // Release CTRL with alt, to avoid orienting along y automatically!
   } else if (key == 'l') {
-    if (mCfg.drawSlice >= (mCfg.drawRelatedSlices ? (NSLICES / 4 - 1) : (NSLICES - 1))) {
-      mCfg.drawSlice = -1;
+    if (mCfgL.drawSlice >= (mCfgL.drawRelatedSlices ? (NSLICES / 4 - 1) : (NSLICES - 1))) {
+      mCfgL.drawSlice = -1;
       SetInfo("Showing all slices", 1);
     } else {
-      mCfg.drawSlice++;
-      SetInfo("Showing slice %d", mCfg.drawSlice);
+      mCfgL.drawSlice++;
+      SetInfo("Showing slice %d", mCfgL.drawSlice);
     }
   } else if (key == 'k') {
-    if (mCfg.drawSlice <= -1) {
-      mCfg.drawSlice = mCfg.drawRelatedSlices ? (NSLICES / 4 - 1) : (NSLICES - 1);
+    if (mCfgL.drawSlice <= -1) {
+      mCfgL.drawSlice = mCfgL.drawRelatedSlices ? (NSLICES / 4 - 1) : (NSLICES - 1);
     } else {
-      mCfg.drawSlice--;
+      mCfgL.drawSlice--;
     }
-    if (mCfg.drawSlice == -1) {
+    if (mCfgL.drawSlice == -1) {
       SetInfo("Showing all slices", 1);
     } else {
-      SetInfo("Showing slice %d", mCfg.drawSlice);
+      SetInfo("Showing slice %d", mCfgL.drawSlice);
     }
   } else if (key == 'J') {
-    mCfg.drawRelatedSlices ^= 1;
-    SetInfo("Drawing of related slices %s", mCfg.drawRelatedSlices ? "enabled" : "disabled");
+    mCfgL.drawRelatedSlices ^= 1;
+    SetInfo("Drawing of related slices %s", mCfgL.drawRelatedSlices ? "enabled" : "disabled");
   } else if (key == 'L') {
-    if (mCfg.showCollision >= mNCollissions - 1) {
-      mCfg.showCollision = -1;
+    if (mCfgL.showCollision >= mNCollissions - 1) {
+      mCfgL.showCollision = -1;
       SetInfo("Showing all collisions", 1);
     } else {
-      mCfg.showCollision++;
-      SetInfo("Showing collision %d / %d", mCfg.showCollision, mNCollissions);
+      mCfgL.showCollision++;
+      SetInfo("Showing collision %d / %d", mCfgL.showCollision, mNCollissions);
     }
   } else if (key == 'K') {
-    if (mCfg.showCollision <= -1) {
-      mCfg.showCollision = mNCollissions - 1;
+    if (mCfgL.showCollision <= -1) {
+      mCfgL.showCollision = mNCollissions - 1;
     } else {
-      mCfg.showCollision--;
+      mCfgL.showCollision--;
     }
-    if (mCfg.showCollision == -1) {
+    if (mCfgL.showCollision == -1) {
       SetInfo("Showing all collisions", 1);
     } else {
-      SetInfo("Showing collision %d", mCfg.showCollision);
+      SetInfo("Showing collision %d", mCfgL.showCollision);
     }
   } else if (key == 'F') {
     mFullScreen ^= 1;
@@ -213,18 +215,18 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     }
     mUpdateDLList = true;
   } else if (key == 'C') {
-    mCfg.colorCollisions ^= 1;
-    SetInfo("Color coding of collisions %s", mCfg.colorCollisions ? "enabled" : "disabled");
+    mCfgL.colorCollisions ^= 1;
+    SetInfo("Color coding of collisions %s", mCfgL.colorCollisions ? "enabled" : "disabled");
   } else if (key == 'N') {
-    mCfg.colorClusters ^= 1;
-    SetInfo("Color coding for seed / trrack attachmend %s", mCfg.colorClusters ? "enabled" : "disabled");
+    mCfgL.colorClusters ^= 1;
+    SetInfo("Color coding for seed / trrack attachmend %s", mCfgL.colorClusters ? "enabled" : "disabled");
   } else if (key == 'E') {
-    mCfg.propagateTracks += 1;
-    if (mCfg.propagateTracks == 4) {
-      mCfg.propagateTracks = 0;
+    mCfgL.propagateTracks += 1;
+    if (mCfgL.propagateTracks == 4) {
+      mCfgL.propagateTracks = 0;
     }
     const char* infoText[] = {"Hits connected", "Hits connected and propagated to vertex", "Reconstructed track propagated inwards and outwards", "Monte Carlo track"};
-    SetInfo("Display of propagated tracks: %s", infoText[mCfg.propagateTracks]);
+    SetInfo("Display of propagated tracks: %s", infoText[mCfgL.propagateTracks]);
   } else if (key == 'G') {
     mPropagateLoopers ^= 1;
     SetInfo("Propagation of loopers %s", mPropagateLoopers ? "enabled" : "disabled");
@@ -238,18 +240,18 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     SetInfo("Projection onto xy plane %s", mProjectXY ? "enabled" : "disabled");
     mUpdateDLList = true;
   } else if (key == 'S') {
-    mCfg.smoothPoints ^= true;
-    SetInfo("Smoothing of points %s", mCfg.smoothPoints ? "enabled" : "disabled");
+    mCfgL.smoothPoints ^= true;
+    SetInfo("Smoothing of points %s", mCfgL.smoothPoints ? "enabled" : "disabled");
   } else if (key == 'A') {
-    mCfg.smoothLines ^= true;
-    SetInfo("Smoothing of lines %s", mCfg.smoothLines ? "enabled" : "disabled");
+    mCfgL.smoothLines ^= true;
+    SetInfo("Smoothing of lines %s", mCfgL.smoothLines ? "enabled" : "disabled");
   } else if (key == 'D') {
-    mCfg.depthBuffer ^= true;
+    mCfgL.depthBuffer ^= true;
     GLint depthBits = 0;
 #ifndef GPUCA_DISPLAY_OPENGL_CORE
     glGetIntegerv(GL_DEPTH_BITS, &depthBits);
 #endif
-    SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, mCfg.depthBuffer ? "enabled" : "disabled");
+    SetInfo("Depth buffer (z-buffer, %d bits) %s", depthBits, mCfgL.depthBuffer ? "enabled" : "disabled");
     setDepthBuffer();
   } else if (key == 'W') {
     mDrawQualityMSAA *= 2;
@@ -295,39 +297,70 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
   } else if (key == '#') {
     mInvertColors ^= 1;
   } else if (key == 'g') {
-    mCfg.drawGrid ^= 1;
-    SetInfo("Fast Cluster Search Grid %s", mCfg.drawGrid ? "shown" : "hidden");
+    mCfgL.drawGrid ^= 1;
+    SetInfo("Fast Cluster Search Grid %s", mCfgL.drawGrid ? "shown" : "hidden");
   } else if (key == 'x') {
-    mCfg.excludeClusters ^= 1;
-    SetInfo(mCfg.excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown", 1);
+    mCfgL.excludeClusters ^= 1;
+    SetInfo(mCfgL.excludeClusters ? "Clusters of selected category are excluded from display" : "Clusters are shown", 1);
   } else if (key == '.') {
     mHideRejectedTracks ^= 1;
     SetInfo("Rejected tracks are %s", mHideRejectedTracks ? "hidden" : "shown");
     mUpdateDLList = true;
   } else if (key == '1') {
-    mCfg.drawClusters ^= 1;
+    mCfgL.drawClusters ^= 1;
   } else if (key == '2') {
-    mCfg.drawInitLinks ^= 1;
+    mCfgL.drawInitLinks ^= 1;
   } else if (key == '3') {
-    mCfg.drawLinks ^= 1;
+    mCfgL.drawLinks ^= 1;
   } else if (key == '4') {
-    mCfg.drawSeeds ^= 1;
+    mCfgL.drawSeeds ^= 1;
   } else if (key == '5') {
-    mCfg.drawTracklets ^= 1;
+    mCfgL.drawTracklets ^= 1;
   } else if (key == '6') {
-    mCfg.drawTracks ^= 1;
+    mCfgL.drawTracks ^= 1;
   } else if (key == '7') {
-    mCfg.drawGlobalTracks ^= 1;
+    mCfgL.drawGlobalTracks ^= 1;
   } else if (key == '8') {
-    mCfg.drawFinal ^= 1;
+    mCfgL.drawFinal ^= 1;
   } else if (key == mBackend->KEY_F1) {
-    mCfg.drawTPC ^= 1;
+    if (mBackend->mKeysShift[mBackend->KEY_F1]) {
+      mCfgH.drawTPCTracks ^= 1;
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
+      mUpdateDLList = true;
+    } else {
+      mCfgL.drawTPC ^= 1;
+      SetInfo("Showing TPC Clusters: %d", (int)mCfgL.drawTPC);
+    }
   } else if (key == mBackend->KEY_F2) {
-    mCfg.drawTRD ^= 1;
+    if (mBackend->mKeysShift[mBackend->KEY_F2]) {
+      mCfgH.drawTRDTracks ^= 1;
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
+      mUpdateDLList = true;
+    } else {
+      mCfgL.drawTRD ^= 1;
+      SetInfo("Showing TRD Tracklets: %d", (int)mCfgL.drawTRD);
+    }
   } else if (key == mBackend->KEY_F3) {
-    mCfg.drawTOF ^= 1;
+    if (mBackend->mKeysShift[mBackend->KEY_F3]) {
+      mCfgH.drawTOFTracks ^= 1;
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
+      mUpdateDLList = true;
+    } else {
+      mCfgL.drawTOF ^= 1;
+      SetInfo("Showing TOF Hits: %d", (int)mCfgL.drawTOF);
+    }
   } else if (key == mBackend->KEY_F4) {
-    mCfg.drawITS ^= 1;
+    if (mBackend->mKeysShift[mBackend->KEY_F4]) {
+      mCfgH.drawITSTracks ^= 1;
+      SetInfo("Track Filter Mask: TPC:%d TRD:%d TOF:%d ITS:%d", (int)mCfgH.drawTPCTracks, (int)mCfgH.drawTRDTracks, (int)mCfgH.drawTOFTracks, (int)mCfgH.drawITSTracks);
+      mUpdateDLList = true;
+    } else {
+      mCfgL.drawITS ^= 1;
+      SetInfo("Showing ITS Clusters: %d", (int)mCfgL.drawITS);
+    }
+  } else if (key == mBackend->KEY_F12 && mBackend->mKeysShift[mBackend->KEY_F12]) {
+    mCfgH.drawTracksAndFilter ^= 1;
+    SetInfo("Track filter: %s", mCfgH.drawTracksAndFilter ? "AND" : "OR");
   } else if (key == 't') {
     GPUInfo("Taking screenshot");
     static int nScreenshot = 1;
@@ -364,15 +397,15 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
     removeAnimationPoint();
     SetInfo("Removed Animation point", 1);
   } else if (key == 'M') {
-    mCfg.animationMode++;
-    if (mCfg.animationMode == 7) {
-      mCfg.animationMode = 0;
+    mCfgL.animationMode++;
+    if (mCfgL.animationMode == 7) {
+      mCfgL.animationMode = 0;
     }
     resetAnimation();
-    if (mCfg.animationMode == 6) {
-      SetInfo("Animation mode %d - Centered on origin", mCfg.animationMode);
+    if (mCfgL.animationMode == 6) {
+      SetInfo("Animation mode %d - Centered on origin", mCfgL.animationMode);
     } else {
-      SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfg.animationMode, (mCfg.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfg.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfg.animationMode & 1) ? "Euler angles" : "Quaternion");
+      SetInfo("Animation mode %d - Position: %s, Direction: %s", mCfgL.animationMode, (mCfgL.animationMode & 2) ? "Spherical (spherical rotation)" : (mCfgL.animationMode & 4) ? "Spherical (Euler angles)" : "Cartesian", (mCfgL.animationMode & 1) ? "Euler angles" : "Quaternion");
     }
   } else if (key == 'u') {
     mTrackFilter = (mTrackFilter + 1) % 3;
@@ -409,7 +442,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
   } else if (key == 'O') {
     FILE* ftmp = fopen("glanimation.tmp", "w+b");
     if (ftmp) {
-      fwrite(&mCfg, sizeof(mCfg), 1, ftmp);
+      fwrite(&mCfgL, sizeof(mCfgL), 1, ftmp);
       int size = mAnimateVectors[0].size();
       fwrite(&size, sizeof(size), 1, ftmp);
       for (int i = 0; i < 9; i++) {
@@ -424,7 +457,7 @@ void GPUDisplay::HandleKeyRelease(unsigned char key)
   } else if (key == 'P') {
     FILE* ftmp = fopen("glanimation.tmp", "rb");
     if (ftmp) {
-      int retval = fread(&mCfg, sizeof(mCfg), 1, ftmp);
+      int retval = fread(&mCfgL, sizeof(mCfgL), 1, ftmp);
       int size;
       retval += fread(&size, sizeof(size), 1, ftmp);
       for (int i = 0; i < 9; i++) {
@@ -466,7 +499,7 @@ void GPUDisplay::HandleSendKey(int key)
   }
   bool oldShift = mBackend->mKeysShift[press];
   mBackend->mKeysShift[press] = shifted;
-  HandleKeyRelease(key);
+  HandleKey(key);
   mBackend->mKeysShift[press] = oldShift;
 }
 

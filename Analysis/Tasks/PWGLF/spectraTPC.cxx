@@ -90,9 +90,9 @@ struct tpcSpectra {
   Filter collisionFilter = nabs(aod::collision::posZ) < cfgCutVertex;
   Filter trackFilter = (nabs(aod::track::eta) < cfgCutEta) && (aod::track::isGlobalTrack == (uint8_t) true);
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
-                                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                                  aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
-                                                  aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
+                                                  aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                                  aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
+                                                  aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
                                                   aod::TrackSelection>>;
 
   void process(TrackCandidates::iterator const& track)
@@ -149,12 +149,12 @@ struct tpcPidQaSignalwTof {
   Filter trackFilterTOF = (aod::track::tofSignal > 0.f); // Skip tracks without TOF
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
-                                                  aod::pidRespTPCEl, aod::pidRespTPCMu, aod::pidRespTPCPi,
-                                                  aod::pidRespTPCKa, aod::pidRespTPCPr, aod::pidRespTPCDe,
-                                                  aod::pidRespTPCTr, aod::pidRespTPCHe, aod::pidRespTPCAl,
-                                                  aod::pidRespTOFEl, aod::pidRespTOFMu, aod::pidRespTOFPi,
-                                                  aod::pidRespTOFKa, aod::pidRespTOFPr, aod::pidRespTOFDe,
-                                                  aod::pidRespTOFTr, aod::pidRespTOFHe, aod::pidRespTOFAl,
+                                                  aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                                  aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
+                                                  aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
+                                                  aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
+                                                  aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFFullDe,
+                                                  aod::pidTOFFullTr, aod::pidTOFFullHe, aod::pidTOFFullAl,
                                                   aod::TrackSelection>>;
   void process(TrackCandidates::iterator const& track)
   {

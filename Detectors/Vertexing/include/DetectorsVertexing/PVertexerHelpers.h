@@ -35,6 +35,12 @@ using V2TRef = o2::dataformats::VtxTrackRef;
 using GIndex = o2::dataformats::VtxTrackIndex;
 using GTrackID = o2::dataformats::GlobalTrackID;
 
+struct VertexingInput {
+  gsl::span<int> idRange;
+  TimeEst timeEst{0, -1.}; // negative error means don't use time info
+  float scaleSigma2 = 10;
+};
+
 ///< weights and scaling params for current vertex
 struct VertexSeed : public PVertex {
   double wghSum = 0.;                                                                              // sum of tracks weights
@@ -49,8 +55,6 @@ struct VertexSeed : public PVertex {
   int nScaleSlowConvergence = 0;
   int nScaleIncrease = 0;
   int nIterations = 0;
-  bool useConstraint = true;
-  bool fillErrors = true;
 
   void setScale(float scale2, float tukey2I)
   {
@@ -71,8 +75,8 @@ struct VertexSeed : public PVertex {
   }
 
   VertexSeed() = default;
-  VertexSeed(const PVertex& vtx, bool _constraint, bool _errors)
-    : PVertex(vtx), useConstraint(_constraint), fillErrors(_errors) {}
+  VertexSeed(const PVertex& vtx)
+    : PVertex(vtx) {}
 
   void print() const;
 };
@@ -108,7 +112,7 @@ struct TrackVF {
   float wghHisto = 0.; // weight based on track errors, used for histogramming
   int entry;      ///< track entry in the input vector
   int32_t bin = -1; // seeds histo bin
-  uint8_t flags = 0;
+  GTrackID gid{};
   int vtxID = kNoVtx; ///< assigned vertex
   //
   bool canAssign() const { return wgh > 0. && vtxID == kNoVtx; }
@@ -152,9 +156,32 @@ struct TrackVF {
     return (dy * dy * sig2YI + dz * dz * sig2ZI) + 2. * dy * dz * sigYZI;
   }
 
+  float getResiduals(const PVertex& vtx) const
+  {
+    // get residuals (Y and Z DCA in track frame) and calculate chi2
+    float dx = vtx.getX() * cosAlp + vtx.getY() * sinAlp - x; // VX rotated to track frame - trackX
+    auto dy = y + tgP * dx - (-vtx.getX() * sinAlp + vtx.getY() * cosAlp);
+    auto dz = z + tgL * dx - vtx.getZ();
+    return (dy * dy * sig2YI + dz * dz * sig2ZI) + 2. * dy * dz * sigYZI;
+  }
+
+  float evalChi2ToVertex(const PVertex& vtx, bool useTime)
+  {
+    constexpr float NDOF2I = 1. / 2, NDOF3I = 1. / 3;
+    float chi2T = getResiduals(vtx); // track-vertex residuals and chi2
+    if (useTime) {
+      float dt = timeEst.getTimeStamp() - vtx.getTimeStamp().getTimeStamp();
+      chi2T += dt * dt / (timeEst.getTimeStampError() * timeEst.getTimeStampError());
+      chi2T *= NDOF3I;
+    } else {
+      chi2T *= NDOF2I;
+    }
+    return chi2T;
+  }
+
   TrackVF() = default;
-  TrackVF(const o2::track::TrackParCov& src, const TimeEst& t_est, int _entry, float addHTErr2 = 0., float addHZErr2 = 0.)
-    : x(src.getX()), y(src.getY()), z(src.getZ()), tgL(src.getTgl()), tgP(src.getSnp() / std::sqrt(1. - src.getSnp()) * (1. + src.getSnp())), timeEst(t_est), entry(_entry)
+  TrackVF(const o2::track::TrackParCov& src, const TimeEst& t_est, int _entry, GTrackID _gid, float addHTErr2 = 0., float addHZErr2 = 0.)
+    : x(src.getX()), y(src.getY()), z(src.getZ()), tgL(src.getTgl()), tgP(src.getSnp() / std::sqrt(1. - src.getSnp()) * (1. + src.getSnp())), timeEst(t_est), entry(_entry), gid(_gid)
   {
     o2::math_utils::sincos(src.getAlpha(), sinAlp, cosAlp);
     auto det = src.getSigmaY2() * src.getSigmaZ2() - src.getSigmaZY() * src.getSigmaZY();
@@ -164,14 +191,6 @@ struct TrackVF {
     sigYZI = -src.getSigmaZY() * detI;
     wghHisto = 1. / ((src.getSigmaZ2() + addHZErr2) * (t_est.getTimeStampError() * t_est.getTimeStampError() + addHTErr2));
   }
-};
-
-struct VertexingInput {
-  gsl::span<int> idRange;
-  TimeEst timeEst{0, -1.}; // negative error means don't use time info
-  float scaleSigma2 = 10;
-  bool useConstraint = false;
-  bool fillErrors = true;
 };
 
 struct SeedHistoTZ : public o2::dataformats::FlatHisto2D_f {
@@ -204,76 +223,8 @@ struct SeedHistoTZ : public o2::dataformats::FlatHisto2D_f {
 };
 
 struct TimeZCluster {
-  TimeEst timeEst;
-  int first = -1;
-  int last = -1;
-  int count = 0;
-
-  void clear()
-  {
-    first = last = -1;
-    count = 0;
-  }
-
-  void addTrack(int i, const TimeEst& trcT)
-  {
-    auto trcTErr2 = trcT.getTimeStampError() * trcT.getTimeStampError();
-    auto trcTErr2Inv = 1. / trcTErr2;
-    if (first < 0) {
-      first = last = i;
-      timeEst.setTimeStamp(trcT.getTimeStamp());
-      timeEst.setTimeStampError(trcT.getTimeStampError());
-    } else {
-      auto vtxTErr2Inv = 1. / (timeEst.getTimeStampError() * timeEst.getTimeStampError());
-      auto vtxTErr2UpdInv = trcTErr2Inv + vtxTErr2Inv;
-      auto vtxTErr2Upd = 1. / vtxTErr2UpdInv;
-      timeEst.setTimeStamp((timeEst.getTimeStamp() * vtxTErr2Inv + trcT.getTimeStamp() * trcTErr2Inv) * vtxTErr2Upd);
-      timeEst.setTimeStampError(std::sqrt(vtxTErr2Upd));
-      if (i > last) {
-        last = i;
-      }
-    }
-    count++;
-  }
-
-  bool isCompatible(const TimeEst& c, float margin, float cut) const
-  {
-    if (first < 0) {
-      return true;
-    }
-    float dt = timeEst.getTimeStamp() - c.getTimeStamp();
-    if (c.getTimeStampError() && timeEst.getTimeStampError()) {
-      float trcTErr2 = c.getTimeStampError() * c.getTimeStampError();
-      float err = trcTErr2 + timeEst.getTimeStampError() + margin;
-      return dt * dt / err < cut;
-    } else {
-      return std::abs(dt) < cut;
-    }
-  }
-
-  void merge(TimeZCluster& c)
-  {
-    if (c.first < last) {
-      first = c.first;
-    } else {
-      last = c.last;
-    }
-    if (timeEst.getTimeStampError() && c.timeEst.getTimeStampError()) { // weighted average
-      auto cTErr2 = c.timeEst.getTimeStampError() * c.timeEst.getTimeStampError();
-      auto cTErr2Inv = 1. / cTErr2;
-
-      auto tErr2 = timeEst.getTimeStampError();
-      auto tErr2Inv = 1. / (tErr2 * tErr2);
-      auto tErr2UpdInv = cTErr2Inv + tErr2Inv;
-      auto tErr2Upd = 1. / tErr2UpdInv;
-      timeEst.setTimeStamp((timeEst.getTimeStamp() * tErr2Inv + c.timeEst.getTimeStamp() * cTErr2Inv) * tErr2Upd);
-      timeEst.setTimeStampError(std::sqrt(tErr2Upd));
-    } else {
-      timeEst.setTimeStamp((timeEst.getTimeStamp() * count + c.timeEst.getTimeStamp() * c.count) / (count + c.count));
-      count += c.count;
-      c.count = 0;
-    }
-  }
+  std::vector<int> trackIDs{};
+  TimeEst timeEst{};
 };
 
 // structure to produce debug dump for neighbouring vertices comparison
@@ -282,6 +233,8 @@ struct PVtxCompDump {
   PVertex vtx1{};
   float chi2z{0};
   float chi2t{0};
+  bool rej = false;
+  PVtxCompDump() = default;
   ClassDefNV(PVtxCompDump, 1);
 };
 
@@ -292,6 +245,7 @@ struct TrackVFDump {
   float t = 0;
   float te = 0;
   float wh = 0.;
+  TrackVFDump() = default;
   ClassDefNV(TrackVFDump, 1);
 };
 

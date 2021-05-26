@@ -14,9 +14,9 @@ add_subdirectory(PWGHF)
 add_subdirectory(PWGJE)
 add_subdirectory(PWGLF)
 add_subdirectory(PWGUD)
+add_subdirectory(Utils)
 add_subdirectory(SkimmingTutorials)
 add_subdirectory(PID)
-
 
 o2_add_dpl_workflow(trackextension
                     SOURCES trackextension.cxx

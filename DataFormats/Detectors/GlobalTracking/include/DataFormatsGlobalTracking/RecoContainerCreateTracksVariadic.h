@@ -17,9 +17,9 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTRD/RecoInputContainer.h"
-#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -28,6 +28,7 @@
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 //________________________________________________________
 template <class T>
@@ -58,38 +59,63 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   auto isUsed = [&usedData, isUsed2](const GTrackID gidx) { return isUsed2(gidx.getIndex(), gidx.getSource()); };
 
   // create only for those data types which are used
-  const auto& tracksITS = getITSTracks<o2::its::TrackITS>();
-  const auto& tracksTPC = getTPCTracks<o2::tpc::TrackTPC>();
-  const auto& tracksTPCITS = getTPCITSTracks<o2::dataformats::TrackTPCITS>();
-  const auto& tracksTPCTOF = getTPCTOFTracks<o2::dataformats::TrackTPCTOF>();
-  const auto& matchesTPCTOF = getTPCTOFMatches<o2::dataformats::MatchInfoTOF>();
+  const auto tracksITS = getITSTracks();
+  const auto tracksMFT = getMFTTracks();
+  const auto tracksTPC = getTPCTracks();
+  const auto tracksTPCITS = getTPCITSTracks();
+  const auto tracksTPCTOF = getTPCTOFTracks();   // TOF-TPC tracks with refit
+  const auto matchesTPCTOF = getTPCTOFMatches(); // and corresponding matches
+  const auto tracksTPCTRD = getTPCTRDTracks<o2::trd::TrackTRD>();
+  const auto matchesITSTPCTOF = getTOFMatches(); // just matches, no refit done
+  const auto tofClusters = getTOFClusters();
+  const auto tracksITSTPCTRD = getITSTPCTRDTracks<o2::trd::TrackTRD>();
 
   usedData[GTrackID::ITS].resize(tracksITS.size());                                      // to flag used ITS tracks
+  usedData[GTrackID::MFT].resize(tracksMFT.size());                                      // to flag used MFT tracks
   usedData[GTrackID::TPC].resize(tracksTPC.size());                                      // to flag used TPC tracks
   usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());                                // to flag used ITSTPC tracks
-  usedData[GTrackID::TOF].resize(getTOFMatches<o2::dataformats::MatchInfoTOF>().size()); // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::TOF].resize(getTOFMatches().size());                                // to flag used ITSTPC-TOF matches
 
-  // ITS-TPC-TOF matches, may refer to ITS-TPC (TODO: something else?) tracks
+  // ITS-TPC-TRD-TOF
+  // TODO, will flag used ITS-TPC-TRD
+
+  // ITS-TPC-TOF matches, thes are just MatchInfoTOF objects, pointing on ITS-TPC match and TOF cl.
   {
-    auto matches = getTOFMatches<o2::dataformats::MatchInfoTOF>(); // thes are just MatchInfoTOF objects, pointing on ITS-TPC match and TOF cl.
-    auto tofClusters = getTOFClusters<o2::tof::Cluster>();
-    if (matches.size() && (!tofClusters.size() || !tracksTPCITS.size())) {
+
+    if (matchesITSTPCTOF.size() && (!tofClusters.size() || !tracksTPCITS.size())) {
       throw std::runtime_error(fmt::format("Global-TOF tracks ({}) require ITS-TPC tracks ({}) and TOF clusters ({})",
-                                           matches.size(), tracksTPCITS.size(), tofClusters.size()));
+                                           matchesITSTPCTOF.size(), tracksTPCITS.size(), tofClusters.size()));
     }
-    for (unsigned i = 0; i < matches.size(); i++) {
-      const auto& match = matches[i];
+    for (unsigned i = 0; i < matchesITSTPCTOF.size(); i++) {
+      const auto& match = matchesITSTPCTOF[i];
+      auto gidx = match.getEvIdxTrack().getIndex(); // this should be corresponding ITS-TPC track
+      // no need to check isUsed: by construction this ITS-TPC was not used elsewhere
       const auto& tofCl = tofClusters[match.getTOFClIndex()];
       float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
       const float timeErr = 0.010f;                                                                          // assume 10 ns error FIXME
-
-      auto gidx = match.getEvIdxTrack().getIndex(); // this should be corresponding ITS-TPC track
       if (creator(tracksTPCITS[gidx.getIndex()], {i, GTrackID::ITSTPCTOF}, timeTOFMUS, timeErr)) {
-        flagUsed2(i, GTrackID::TOF);
+        flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
+        flagUsed(gidx);              // flag used ITS-TPC tracks
+      }
+    }
+  }
+
+  /* // TODO : need trigger input for time info
+  // ITS-TPC-TRD
+  {
+    for (unsigned i = 0; i < tracksITSTPCTRD.size(); i++) {
+      const auto& track = tracksITSTPCTRD[i];
+      if (isUsed2(i, GTrackID::ITSTPCTRD)) {
+        flagUsed(track->getReferenceGlobalID()); //TODO once the TrackTRD will be finalized
+        continue;
+      }
+      if (creator(tracksTPCITS[gidx.getIndex()], {i, GTrackID::ITSTPCTOF}, timeTOFMUS, timeErr)) {
+        flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
         flagUsed(gidx); // flag used ITS-TPC tracks
       }
     }
   }
+  */
 
   // ITS-TPC matches, may refer to ITS, TPC (TODO: something else?) tracks
   {
@@ -129,6 +155,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
 
   // TPC only tracks
   {
+    int nacc = 0, noffer = 0;
     for (unsigned i = 0; i < tracksTPC.size(); i++) {
       if (isUsed2(i, GTrackID::TPC)) { // skip used tracks
         continue;
@@ -142,7 +169,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
 
   // ITS only tracks
   {
-    const auto& rofrs = getITSTracksROFRecords<o2::itsmft::ROFRecord>();
+    const auto& rofrs = getITSTracksROFRecords();
     for (unsigned irof = 0; irof < rofrs.size(); irof++) {
       const auto& rofRec = rofrs[irof];
       float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
@@ -152,13 +179,32 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
           continue;
         }
         GTrackID gidITS(it, GTrackID::ITS);
-        const auto& trc = getITSTrack<o2::its::TrackITS>(gidITS);
+        const auto& trc = getTrack<o2::its::TrackITS>(gidITS);
         if (creator(trc, gidITS, t0, 0.5)) {
           flagUsed2(it, GTrackID::ITS);
         }
       }
     }
   }
+
+  // MFT only tracks
+  {
+    const auto& rofrs = getMFTTracksROFRecords();
+    for (unsigned irof = 0; irof < rofrs.size(); irof++) {
+      const auto& rofRec = rofrs[irof];
+      float t0 = rofRec.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+      int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
+      for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
+
+        GTrackID gidMFT(it, GTrackID::MFT);
+        const auto& trc = getTrack<o2::mft::TrackMFT>(gidMFT);
+        if (creator(trc, gidMFT, t0, 0.5)) {
+          flagUsed2(it, GTrackID::MFT);
+        }
+      }
+    }
+  }
+
   auto current_time = std::chrono::high_resolution_clock::now();
   LOG(INFO) << "RecoContainer::createTracks took " << std::chrono::duration_cast<std::chrono::microseconds>(current_time - start_time).count() * 1e-6 << " CPU s.";
 }
@@ -167,6 +213,12 @@ template <class T>
 inline constexpr auto isITSTrack()
 {
   return std::is_same_v<std::decay_t<T>, o2::its::TrackITS>;
+}
+
+template <class T>
+inline constexpr auto isMFTTrack()
+{
+  return std::is_same_v<std::decay_t<T>, o2::mft::TrackMFT>;
 }
 
 template <class T>

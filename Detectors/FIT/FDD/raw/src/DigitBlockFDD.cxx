@@ -9,6 +9,4 @@
 // or submit itself to any jurisdiction.
 
 #include "FDDRaw/DigitBlockFDD.h"
-using namespace o2::fdd;
-
-int DigitBlockFDD::sEventID = 0;
+//using namespace o2::fdd;

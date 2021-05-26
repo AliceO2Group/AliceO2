@@ -7,11 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This is an example of a task with more than one process function.
+///        Here a configurable is used to decide which process functions need to
+///        be executed.
+/// \author
+/// \since
+
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "AnalysisCore/MC.h"
 
-#include <TH1F.h>
 #include <cmath>
 
 using namespace o2;
@@ -88,7 +93,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (!cfgc.options().get<bool>("doMC")) {
     return WorkflowSpec{
       // only use rec-level process when MC info is not there
-      adaptAnalysisTask<MultipleProcessExample>(cfgc, Processes{&MultipleProcessExample::processRec})};
+      adaptAnalysisTask<MultipleProcessExample>(cfgc, Processes{&MultipleProcessExample::processRec}),
+    };
   }
   return WorkflowSpec{
     // use additional process functions when MC info is present
@@ -98,5 +104,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     // filters will be applied *to all* processes
     adaptAnalysisTask<MultipleProcessExample>(cfgc, Processes{&MultipleProcessExample::processRec,
                                                               &MultipleProcessExample::processGen,
-                                                              &MultipleProcessExample::processResolution})};
+                                                              &MultipleProcessExample::processResolution}),
+  };
 }

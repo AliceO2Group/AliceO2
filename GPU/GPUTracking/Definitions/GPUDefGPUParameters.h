@@ -411,6 +411,10 @@
 #define GPUCA_LB_GPUTPCCompressionGatherKernels_buffered128 GPUCA_LB_COMPRESSION_GATHER
 #define GPUCA_LB_GPUTPCCompressionGatherKernels_multiBlock GPUCA_LB_COMPRESSION_GATHER
 
+#if defined(__CUDACC__) || defined(__HIPCC__)
+#define GPUCA_SPECIALIZE_THRUST_SORTS
+#endif
+
 #ifndef GPUCA_NEIGHBORSFINDER_REGS
 #define GPUCA_NEIGHBORSFINDER_REGS NONE, 0
 #endif

@@ -58,6 +58,29 @@ class CosmicInfo
 
   ClassDefNV(CosmicInfo, 2);
 };
+
+class CalibInfoTrackCl
+{
+  int mCh = 0;
+  float mX = 0;
+  float mY = 0;
+  float mZ = 0;
+  float mT = 0;
+  short mTot = 0;
+
+ public:
+  int getCH() const { return mCh; }
+  float getT() const { return mT; }
+  float getX() const { return mX; }
+  float getY() const { return mY; }
+  float getZ() const { return mZ; }
+  short getTOT() const { return mTot; }
+
+  CalibInfoTrackCl() = default;
+  CalibInfoTrackCl(int ch, float x, float y, float z, float t, short tot) : mCh(ch), mX(x), mY(y), mZ(z), mT(t), mTot(tot) {}
+  ClassDefNV(CalibInfoTrackCl, 1);
+};
+
 } // namespace tof
 
 } // namespace o2

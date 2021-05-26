@@ -24,6 +24,7 @@
 #include "GlobalTrackingWorkflow/TrackWriterTPCITSSpec.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
+#include "MFTWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/PublisherSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 
@@ -43,6 +44,7 @@ framework::WorkflowSpec getAODProducerWorkflow(int ignoreWriter)
     o2::vertexing::getPrimaryVertexReaderSpec(useMC),
     o2::globaltracking::getTrackTPCITSReaderSpec(useMC),
     o2::its::getITSTrackReaderSpec(useMC),
+    o2::mft::getMFTTrackReaderSpec(useMC),
     o2::tpc::getTPCTrackReaderSpec(useMC),
     o2::ft0::getDigitReaderSpec(useMC),
     o2::ft0::getReconstructionSpec(useMC),

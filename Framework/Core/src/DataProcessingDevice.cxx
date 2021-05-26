@@ -82,9 +82,9 @@ void on_idle_timer(uv_timer_t* handle)
   state->loopReason |= DeviceState::TIMER_EXPIRED;
 }
 
-DataProcessingDevice::DataProcessingDevice(RunningWorkflowInfo const& runningWorkflow, RunningDeviceRef ref, ServiceRegistry& registry, DeviceState& state)
-  : mSpec{runningWorkflow.devices[ref.index]},
-    mState{state},
+DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry& registry)
+  : mSpec{registry.get<RunningWorkflowInfo const>().devices[ref.index]},
+    mState{registry.get<DeviceState>()},
     mInit{mSpec.algorithm.onInit},
     mStatefulProcess{nullptr},
     mStatelessProcess{mSpec.algorithm.onProcess},
@@ -92,7 +92,7 @@ DataProcessingDevice::DataProcessingDevice(RunningWorkflowInfo const& runningWor
     mConfigRegistry{nullptr},
     mAllocator{&mTimingInfo, &registry, mSpec.outputs},
     mServiceRegistry{registry},
-    mQuotaEvaluator{state.loop}
+    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()}
 {
   /// FIXME: move erro handling to a service?
   if (mError != nullptr) {
@@ -145,7 +145,11 @@ void run_completion(uv_work_t* handle, int status)
 {
   TaskStreamInfo* task = (TaskStreamInfo*)handle->data;
   DataProcessorContext& context = *task->context;
-  context.deviceContext->quotaEvaluator->dispose(task->offer);
+  for (auto& consumer : context.deviceContext->state->offerConsumers) {
+    context.deviceContext->quotaEvaluator->consume(task->id.index, consumer);
+  }
+  context.deviceContext->state->offerConsumers.clear();
+  context.deviceContext->quotaEvaluator->dispose(task->id.index);
   task->running = false;
   ZoneScopedN("run_completion");
 }
@@ -306,8 +310,34 @@ void on_signal_callback(uv_signal_t* handle, int signum)
 {
   ZoneScopedN("Signal callaback");
   LOG(debug) << "Signal " << signum << " received.";
-  DeviceState* state = (DeviceState*)handle->data;
-  state->loopReason |= DeviceState::SIGNAL_ARRIVED;
+  DeviceContext* context = (DeviceContext*)handle->data;
+  context->state->loopReason |= DeviceState::SIGNAL_ARRIVED;
+  size_t ri = 0;
+  while (ri != context->quotaEvaluator->mOffers.size()) {
+    auto& offer = context->quotaEvaluator->mOffers[ri];
+    // We were already offered some sharedMemory, so we
+    // do not consider the offer.
+    // FIXME: in principle this should account for memory
+    //        available and being offered, however we
+    //        want to get out of the woods for now.
+    if (offer.valid && offer.sharedMemory != 0) {
+      return;
+    }
+    ri++;
+  }
+  // Find the first empty offer and have 1GB of shared memory there
+  for (size_t i = 0; i < context->quotaEvaluator->mOffers.size(); ++i) {
+    auto& offer = context->quotaEvaluator->mOffers[i];
+    if (offer.valid == false) {
+      offer.cpu = 0;
+      offer.memory = 0;
+      offer.sharedMemory = 1000000000;
+      offer.valid = true;
+      offer.user = -1;
+      break;
+    }
+  }
+  context->stats->totalSigusr1 += 1;
 }
 
 void DataProcessingDevice::InitTask()
@@ -330,7 +360,7 @@ void DataProcessingDevice::InitTask()
   // is no data pending to be processed.
   uv_signal_t* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
   uv_signal_init(mState.loop, sigusr1Handle);
-  sigusr1Handle->data = &mState;
+  sigusr1Handle->data = &mDeviceContext;
   uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
 
   // We add a timer only in case a channel poller is not there.
@@ -433,6 +463,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   deviceContext.spec = &mSpec;
   deviceContext.state = &mState;
   deviceContext.quotaEvaluator = &mQuotaEvaluator;
+  deviceContext.stats = &mStats;
 
   context.relayer = mRelayer;
   context.registry = &mServiceRegistry;
@@ -462,6 +493,25 @@ void DataProcessingDevice::PostRun()
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
+namespace
+{
+/// Move offers from the pending list to the actual available offers
+void updateOffers(std::array<ComputingQuotaOffer, ComputingQuotaEvaluator::MAX_INFLIGHT_OFFERS>& store, std::vector<ComputingQuotaOffer>& offers)
+{
+  for (auto& storeOffer : store) {
+    if (offers.empty()) {
+      return;
+    }
+    if (storeOffer.valid == true) {
+      continue;
+    }
+    auto& offer = offers.back();
+    storeOffer = offer;
+    offers.pop_back();
+  }
+}
+} // namespace
+
 bool DataProcessingDevice::ConditionalRun()
 {
   // This will block for the correct delay (or until we get data
@@ -483,6 +533,9 @@ bool DataProcessingDevice::ConditionalRun()
     TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
 
     mState.loopReason = DeviceState::NO_REASON;
+    if (!mState.pendingOffers.empty()) {
+      updateOffers(mQuotaEvaluator.mOffers, mState.pendingOffers);
+    }
 
     // A new state was requested, we exit.
     if (NewStatePending()) {
@@ -525,10 +578,10 @@ bool DataProcessingDevice::ConditionalRun()
     // Deciding wether to run or not can be done by passing a request to
     // the evaluator. In this case, the request is always satisfied and
     // we run on whatever resource is available.
-    ComputingQuotaOfferRef offer = mQuotaEvaluator.selectOffer(mSpec.resourcePolicy.request);
+    bool enough = mQuotaEvaluator.selectOffer(streamRef.index, mSpec.resourcePolicy.request);
 
-    if (offer.index != -1) {
-      stream.offer = offer;
+    if (enough) {
+      stream.id = streamRef;
       stream.running = true;
       stream.context = &mDataProcessorContexes.at(0);
       run_callback(&handle);
@@ -1060,7 +1113,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
     uint64_t tEnd = uv_hrtime();
     stats.lastElapsedTimeMs = tEnd - tStart;
-    stats.lastTotalProcessedSize = calculateTotalInputRecordSize(record);
+    stats.lastProcessedSize = calculateTotalInputRecordSize(record);
+    stats.totalProcessedSize += stats.lastProcessedSize;
     stats.lastLatency = calculateInputRecordLatency(record, tStart);
   };
 

@@ -12,8 +12,6 @@
 
 #include <vector>
 
-#include "TTree.h"
-
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
@@ -49,8 +47,9 @@ void RecPointReader::run(ProcessingContext& pc)
   assert(ent < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(ent);
 
-  LOG(INFO) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints at entry " << ent;
+  LOG(INFO) << "FT0 RecPointReader pushes " << mRecPoints->size() << " recpoints with " << mChannelData->size() << " channels at entry " << ent;
   pc.outputs().snapshot(Output{mOrigin, "RECPOINTS", 0, Lifetime::Timeframe}, *mRecPoints);
+  pc.outputs().snapshot(Output{mOrigin, "RECCHDATA", 0, Lifetime::Timeframe}, *mChannelData);
 
   if (mTree->GetReadEntry() + 1 >= mTree->GetEntries()) {
     pc.services().get<ControlService>().endOfStream();
@@ -67,6 +66,7 @@ void RecPointReader::connectTree(const std::string& filename)
   assert(mTree);
 
   mTree->SetBranchAddress(mRecPointBranchName.c_str(), &mRecPoints);
+  mTree->SetBranchAddress(mChannelDataBranchName.c_str(), &mChannelData);
   if (mUseMC) {
     LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
     mUseMC = false;
@@ -79,6 +79,7 @@ DataProcessorSpec getRecPointReaderSpec(bool useMC)
 {
   std::vector<OutputSpec> outputSpec;
   outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
+  outputSpec.emplace_back(o2::header::gDataOriginFT0, "RECCHDATA", 0, Lifetime::Timeframe);
   if (useMC) {
     LOG(WARNING) << "MC-truth is not supported for FT0 recpoints currently";
   }

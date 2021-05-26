@@ -20,7 +20,7 @@ INCLUDES="-I${GPU_DIR}/. -I${GPU_DIR}/DataTypes -I${GPU_DIR}/Definitions -I${GPU
           -I${O2_DIR}/Detectors/TRD/base/include -I${O2_DIR}/Detectors/TRD/base/src -I${O2_DIR}/Detectors/ITSMFT/ITS/tracking/include -I${O2_DIR}/Detectors/ITSMFT/ITS/tracking/cuda/include -I${O2_DIR}/Common/Constants/include \
           -I${O2_DIR}/DataFormats/common/include -I${O2_DIR}/DataFormats/Detectors/Common/include -I${O2_DIR}/DataFormats/Detectors/TRD/include -I${O2_DIR}/DataFormats/Reconstruction/include -I${O2_DIR}/DataFormats/Reconstruction/src \
           -I${O2_DIR}/Detectors/Raw/include"
-DEFINES="-DGPUCA_STANDALONE -DGPUCA_GPULIBRARY=OCL -DNDEBUG -D__OPENCLCPP__ -DHAVE_O2HEADERS -DGPUCA_TPC_GEOMETRY_O2"
+DEFINES="-DGPUCA_STANDALONE -DGPUCA_GPULIBRARY=OCL -DNDEBUG -D__OPENCLCPP__ -DGPUCA_HAVE_O2HEADERS -DGPUCA_TPC_GEOMETRY_O2"
 FLAGS="-Xclang -fdenormal-fp-math-f32=ieee -cl-mad-enable -cl-no-signed-zeros -ferror-limit=1000 -Dcl_clang_storage_class_specifiers"
 
 echo Test1 - Preprocess

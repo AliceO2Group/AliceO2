@@ -28,26 +28,9 @@ int main()
     }
     void print() const
     {
-      std::cout << std::endl;
-      std::cout << "------DIGITS--------\n";
-      std::cout << "ref: " << mDigit.ref.getFirstEntry() << "|" << mDigit.ref.getEntries();
-      std::cout << "\nbc-orbit: " << mDigit.mIntRecord.bc << "|" << mDigit.mIntRecord.orbit;
-      //std::cout<<"\nmEventStatus: "<< static_cast<uint16_t>(mDigit.mEventStatus);//Excluded, init problem
-      std::cout << "\nTriggers\n";
-      std::cout << "triggersignals: " << static_cast<uint16_t>(mDigit.mTriggers.triggersignals);
-      std::cout << "\nnChanA: " << static_cast<uint16_t>(mDigit.mTriggers.nChanA);
-      std::cout << "\nnChanC: " << static_cast<uint16_t>(mDigit.mTriggers.nChanC);
-      std::cout << "\namplA: " << mDigit.mTriggers.amplA << std::endl;
-      std::cout << "amplC: " << mDigit.mTriggers.amplC << std::endl;
-      std::cout << "timeA: " << mDigit.mTriggers.timeA << std::endl;
-      std::cout << "timeC: " << mDigit.mTriggers.timeC << std::endl;
-      std::cout << "------CHANNEL DATA--------";
+      mDigit.printLog();
       for (const auto& entry : mVecChannelData) {
-        std::cout << "\nChId: " << static_cast<uint16_t>(entry.ChId);
-        //std::cout<<"\nChainQTC: "<< static_cast<uint16_t>(entry.ChainQTC);//Excluded, init problem
-        std::cout << "\nCFDTime: " << entry.CFDTime << std::endl;
-        std::cout << "QTCAmpl: " << entry.QTCAmpl << std::endl;
-        std::cout << "-------------------------";
+        entry.printLog();
       }
     }
   };

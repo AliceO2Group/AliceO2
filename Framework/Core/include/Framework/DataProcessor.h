@@ -21,6 +21,7 @@ class StringContext;
 class ArrowContext;
 class RawBufferContext;
 class ServiceRegistry;
+class DeviceState;
 
 /// Helper class to send messages from a contex at the end
 /// of a computation.

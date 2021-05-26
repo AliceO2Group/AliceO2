@@ -19,12 +19,11 @@ o2_add_library(PHOSWorkflow
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
                        src/WriterSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsPHOS 
-                                     O2::DPLUtils 
-                                     O2::PHOSBase 
-                                     O2::PHOSCalib 
-                                     O2::PHOSSimulation 
-                                     O2::PHOSReconstruction 
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsPHOS
+                                     O2::DPLUtils
+                                     O2::PHOSBase
+                                     O2::PHOSSimulation
+                                     O2::PHOSReconstruction
                                      O2::Algorithm)
 
 o2_add_executable(reco-workflow

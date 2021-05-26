@@ -596,16 +596,19 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastTotalProcessedSize, "processed_input_size_byte"}
+  monitoring.send(Metric{stats.lastProcessedSize, "last_processed_input_size_byte"}
                     .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastTotalProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
+  monitoring.send(Metric{stats.totalProcessedSize, "total_processed_input_size_byte"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{stats.totalSigusr1.load(), "total_sigusr1"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(stats.lastProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
                          "processing_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastLatency.minLatency, "min_input_latency_ms"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastLatency.maxLatency, "max_input_latency_ms"}
                     .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
+  monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
 
   stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());

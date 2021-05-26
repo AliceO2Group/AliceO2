@@ -96,11 +96,8 @@ else()
   add_definitions(-DGPUCA_NO_ROOT)
 endif()
 if(CONFIG_O2_EXTENSIONS)
-  add_definitions(-DHAVE_O2HEADERS)
-  if(NOT DEFINED MS_GSL_INCLUDE_DIR AND DEFINED ENV{MS_GSL_ROOT})
-    set(MS_GSL_INCLUDE_DIR $ENV{MS_GSL_ROOT}/include)
-  endif()
-  find_package(ms_gsl REQUIRED)
+  add_definitions(-DGPUCA_HAVE_O2HEADERS)
+  find_package(Microsoft.GSL REQUIRED)
   if(CONFIG_O2_ITS_TRAITS)
     if(NOT CONFIG_ROOT)
       message(FATAL_ERROR "Can not build ITS traits without ROOT")
@@ -173,7 +170,8 @@ include_directories(${GPUTRACKING_DIR}/TPCClusterFinder
                     ${O2_DIR}/Detectors/TOF/base/include
                     ${O2_DIR}/Detectors/TPC/base/include
                     ${O2_DIR}/Detectors/TRD/base/include
-                    ${O2_DIR}/Detectors/TRD/base/src)
+                    ${O2_DIR}/Detectors/TRD/base/src
+                    ${O2_DIR}/Framework/Foundation/3rdparty/include)
 endif()
 
 # Create main targets
@@ -243,7 +241,7 @@ if(CONFIG_ROOT)
                              ROOT::Tree)
 endif()
 if(CONFIG_O2_EXTENSIONS)
-  target_link_libraries(standalone_support PUBLIC ms_gsl::ms_gsl)
+  target_link_libraries(standalone_support PUBLIC Microsoft.GSL::GSL)
 endif()
 
 if(CONFIG_VC)
@@ -261,5 +259,5 @@ endif()
 # Installation
 install(TARGETS ca GPUTracking TPCFastTransformation standalone_support)
 install(FILES "cmake/makefile" DESTINATION "${CMAKE_INSTALL_PREFIX}")
-install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
+install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${O2_DIR} ${CMAKE_INSTALL_PREFIX}/src)")
 install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_BINARY_DIR}/config.cmake ${CMAKE_INSTALL_PREFIX}/config.cmake)")

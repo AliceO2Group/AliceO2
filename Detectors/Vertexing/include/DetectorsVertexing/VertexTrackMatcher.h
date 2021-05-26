@@ -56,11 +56,12 @@ class VertexTrackMatcher
                std::vector<VRef>& vtxRefs);      // references on these tracks
 
  private:
-  void updateTPCTimeDependentParams();
+  void updateTimeDependentParams();
   void extractTracks(const o2::globaltracking::RecoContainer& data, const std::unordered_map<GIndex, bool>& vcont);
 
   std::vector<TrackTBracket> mTBrackets;
   float mITSROFrameLengthMUS = 0;       ///< ITS RO frame in mus
+  float mMFTROFrameLengthMUS = 0;       ///< MFT RO frame in mus
   float mMaxTPCDriftTimeMUS = 0;
   float mTPCBin2MUS = 0;
   const o2::vertexing::PVertexerParams* mPVParams = nullptr;

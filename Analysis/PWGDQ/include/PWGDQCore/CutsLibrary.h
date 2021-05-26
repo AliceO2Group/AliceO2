@@ -406,7 +406,7 @@ AnalysisCut* o2::aod::dqcuts::GetAnalysisCut(const char* cutName)
 
   if (!nameStr.compare("muonQualityCuts")) {
     cut->AddCut(VarManager::kEta, -4.0, -2.5);
-    cut->AddCut(VarManager::kMuonRAtAbsorberEnd, 200.0, 900.0);
+    cut->AddCut(VarManager::kMuonRAtAbsorberEnd, 25.0, 90.0);
     cut->AddCut(VarManager::kMuonPDca, 0.0, 300.0);
     return cut;
   }

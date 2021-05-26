@@ -11,6 +11,11 @@
 #ifndef FRAMEWORK_HISTOGRAMSPEC_H_
 #define FRAMEWORK_HISTOGRAMSPEC_H_
 
+#include <string>
+#include <variant>
+#include <deque>
+#include <optional>
+
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
@@ -23,13 +28,10 @@
 #include <TDataMember.h>
 #include <TDataType.h>
 
-#include <string>
-#include <variant>
-#include <deque>
-
 #include "Framework/StepTHn.h"
 #include "Framework/Configurable.h"
 #include "Framework/StringHelpers.h"
+#include "Framework/RuntimeError.h"
 
 namespace o2::framework
 {

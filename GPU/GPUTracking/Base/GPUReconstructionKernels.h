@@ -60,7 +60,7 @@ GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step2                ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step0            ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step1            ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step2            ), (simple), (), ())
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 GPUCA_KRNL_LB((GPUTPCGMO2Output, prepare                    ), (simple), (), ())
 GPUCA_KRNL((   GPUTPCGMO2Output, sort                       ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMO2Output, output                     ), (simple), (), ())

@@ -248,8 +248,8 @@ void displayDeviceInspector(DeviceSpec const& spec,
   }
 #endif
   if (control.controller) {
-    if (ImGui::Button("Say hello")) {
-      control.controller->hello();
+    if (ImGui::Button("Offer SHM")) {
+      control.controller->write("/shm-offer 1000", strlen("/shm-offer 1000"));
     }
   }
 

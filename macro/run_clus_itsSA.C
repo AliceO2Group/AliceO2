@@ -42,7 +42,7 @@ void run_clus_itsSA(std::string inputfile = "rawits.bin", // input file name
   clus->setMaxROframe(2 << 21); // about 3 cluster files per a raw data chunk
 
   if (dictionaryfile.empty()) {
-    dictionaryfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", ".bin");
+    dictionaryfile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, "", "bin");
   }
   std::ifstream file(dictionaryfile.c_str());
   if (file.good()) {

@@ -22,6 +22,20 @@ struct ComputingQuotaOfferRef {
   int index;
 };
 
+enum struct OfferScore {
+  // The offers seen so far are enough. We can proceed with the dataprocessing.
+  Enough,
+  // The offers seen so far are not enough, but the current one
+  // is ok and we need to look for more.
+  More,
+  // The offer is not needed, but something else in the device
+  // might use it.
+  Unneeded,
+  // The offer is not suitable and should be given back to the
+  // driver.
+  Unsuitable
+};
+
 struct ComputingQuotaOffer {
   /// How many cores it can use
   int cpu = 0;
@@ -32,10 +46,12 @@ struct ComputingQuotaOffer {
   /// How much runtime it can use before giving back the resource
   /// in milliseconds.
   int64_t runtime = 0;
-  /// Whether or not the offer is being used
-  bool used;
+  /// Which task is using the offer
+  int user = -1;
+  /// The score for the given offer
+  OfferScore score = OfferScore::Unneeded;
   /// Whether or not the offer is valid
-  bool valid;
+  bool valid = false;
 };
 
 struct ComputingQuotaInfo {
@@ -47,10 +63,14 @@ struct ComputingQuotaInfo {
   size_t lastUsed = 0;
 };
 
-/// A request is a function which evaluates to true if the offer
-/// is ok for running. The higher the return value, the
-/// better match is the given resource for the computation.
-using ComputingQuotaRequest = std::function<int8_t(ComputingQuotaOffer const&)>;
+/// A request is a function which gets applied to all available
+/// offers one after the other. If the offer itself is deemed
+/// is ok for running.
+using ComputingQuotaRequest = std::function<OfferScore(ComputingQuotaOffer const& offer, ComputingQuotaOffer const& accumulated)>;
+
+/// A consumer is a function which updates a given function removing the
+/// amount of resources which are considered as consumed.
+using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&)>;
 
 } // namespace o2::framework
 

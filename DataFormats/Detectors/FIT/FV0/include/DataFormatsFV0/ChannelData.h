@@ -11,9 +11,10 @@
 #ifndef _FV0_CHANNEL_DATA_H_
 #define _FV0_CHANNEL_DATA_H_
 
+#include <Framework/Logger.h>
 #include <array>
 #include <Rtypes.h>
-
+#include <tuple>
 /// \file ChannelData.h
 /// \brief Container class to store time and charge values of single FV0 channel
 
@@ -23,6 +24,8 @@ namespace fv0
 {
 
 struct ChannelData {
+  static constexpr char sChannelNameDPL[] = "DIGITSCH";
+  static constexpr char sDigitName[] = "ChannelData";
   Short_t pmtNumber = -1; // PhotoMultiplier number (0 to 47)
   Short_t time = -1;      // [ns] Time associated with rising edge of the singal in a given channel
   Short_t chargeAdc = -1; // ADC sample as present in raw data
@@ -36,7 +39,11 @@ struct ChannelData {
   }
 
   void print() const;
-
+  void printLog() const;
+  bool operator==(ChannelData const& other) const
+  {
+    return std::tie(pmtNumber, time, chargeAdc) == std::tie(other.pmtNumber, other.time, other.chargeAdc);
+  }
   ClassDefNV(ChannelData, 1);
 };
 } // namespace fv0

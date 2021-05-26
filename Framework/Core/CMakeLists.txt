@@ -46,6 +46,7 @@ o2_add_library(Framework
                        src/DataRelayerHelpers.cxx
                        src/DataSpecUtils.cxx
                        src/DeviceConfigInfo.cxx
+                       src/DevicesManager.cxx
                        src/DeviceMetricsInfo.cxx
                        src/DeviceMetricsHelper.cxx
                        src/DeviceSpec.cxx
@@ -53,6 +54,7 @@ o2_add_library(Framework
                        src/DeviceSpecHelpers.cxx
                        src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
+                       src/DriverClient.cxx
                        src/DriverInfo.cxx
                        src/Expressions.cxx
                        src/FairMQDeviceProxy.cxx
@@ -75,6 +77,7 @@ o2_add_library(Framework
                        src/Metric2DViewIndex.cxx
                        src/SimpleOptionsRetriever.cxx
                        src/O2ControlHelpers.cxx
+                       src/O2ControlLabels.cxx
                        src/OutputSpec.cxx
                        src/PropertyTreeHelpers.cxx
                        src/RCombinedDS.cxx
@@ -105,7 +108,6 @@ o2_add_library(Framework
                        src/ExternalFairMQDeviceProxy.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
-                       src/SHA1.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
                        test/TestClasses.cxx
@@ -124,7 +126,7 @@ o2_add_library(Framework
                                      O2::PCG
                                      RapidJSON::RapidJSON
                                      arrow::arrow_shared
-                                     ms_gsl::ms_gsl
+                                     Microsoft.GSL::GSL
                                      ROOT::ROOTDataFrame
                                      O2::FrameworkLogger
                                      Boost::serialization
@@ -164,6 +166,7 @@ foreach(t
         ExternalFairMQDeviceProxy
         FairMQOptionsRetriever
         FairMQResizableBuffer
+        FairMQ
         FrameworkDataFlowToDDS
         FrameworkDataFlowToO2Control
         Graphviz
@@ -194,7 +197,7 @@ foreach(t
         WorkflowSerialization
         TreeToTable
         DataOutputDirector
-	DataInputDirector)
+    DataInputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
@@ -254,7 +257,7 @@ foreach(b
   o2_add_executable(benchmark-${b}
                     SOURCES test/benchmark_${b}.cxx
                     COMPONENT_NAME Framework
-	            IS_BENCHMARK
+                    IS_BENCHMARK
                     PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
 endforeach()
 
@@ -271,7 +274,7 @@ foreach(w
         Forwarding
         ParallelPipeline
         ParallelProducer
-        SlowConsumer 
+        SlowConsumer
         SimpleDataProcessingDevice01
         SimpleRDataFrameProcessing
         SimpleStatefulProcessing01

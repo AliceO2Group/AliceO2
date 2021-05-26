@@ -33,7 +33,7 @@
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "GPUTPCClusterStatistics.h"
@@ -75,7 +75,7 @@ void GPUChainTracking::DumpData(const char* filename)
   fwrite(&GPUReconstruction::geometryType, sizeof(GPUReconstruction::geometryType), 1, fp);
   DumpData(fp, mIOPtrs.clusterData, mIOPtrs.nClusterData, InOutPointerType::CLUSTER_DATA);
   DumpData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, InOutPointerType::RAW_CLUSTERS);
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (mIOPtrs.clustersNative) {
     if (DumpData(fp, &mIOPtrs.clustersNative->clustersLinear, &mIOPtrs.clustersNative->nClustersTotal, InOutPointerType::CLUSTERS_NATIVE)) {
       fwrite(&mIOPtrs.clustersNative->nClusters[0][0], sizeof(mIOPtrs.clustersNative->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
@@ -170,7 +170,7 @@ int GPUChainTracking::ReadData(const char* filename)
   AliHLTTPCRawCluster* ptrRawClusters[NSLICES];
   ReadData(fp, mIOPtrs.rawClusters, mIOPtrs.nRawClusters, mIOMem.rawClusters, InOutPointerType::RAW_CLUSTERS, ptrRawClusters);
   int nClustersTotal = 0;
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   mIOMem.clusterNativeAccess.reset(new ClusterNativeAccess);
   if (ReadData<ClusterNative>(fp, &mIOMem.clusterNativeAccess->clustersLinear, &mIOMem.clusterNativeAccess->nClustersTotal, &mIOMem.clustersNative, InOutPointerType::CLUSTERS_NATIVE)) {
     r = fread(&mIOMem.clusterNativeAccess->nClusters[0][0], sizeof(mIOMem.clusterNativeAccess->nClusters[0][0]), NSLICES * GPUCA_ROW_COUNT, fp);
@@ -278,7 +278,7 @@ void GPUChainTracking::DumpSettings(const char* dir)
     f += "tpcpadgaincalib.dump";
     DumpStructToFile(processors()->calibObjects.tpcPadGain, f.c_str());
   }
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   if (processors()->calibObjects.dEdxSplines != nullptr) {
     f = dir;
     f += "dedxsplines.dump";
@@ -309,7 +309,7 @@ void GPUChainTracking::ReadSettings(const char* dir)
   f += "tpcpadgaincalib.dump";
   mTPCPadGainCalibU = ReadStructFromFile<TPCPadGainCalib>(f.c_str());
   processors()->calibObjects.tpcPadGain = mTPCPadGainCalibU.get();
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   f = dir;
   f += "dedxsplines.dump";
   mdEdxSplinesU = ReadFlatObjectFromFile<TPCdEdxCalibrationSplines>(f.c_str());

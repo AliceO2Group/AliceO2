@@ -28,6 +28,12 @@ o2_add_executable(digit-reader-workflow
                   COMPONENT_NAME fv0
                   PUBLIC_LINK_LIBRARIES O2::FV0Workflow)
 
+o2_add_executable(flp-dpl-workflow
+                  COMPONENT_NAME fv0
+                  SOURCES src/fv0-flp-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::FV0Workflow O2::FITWorkflow O2::FV0Raw
+                  TARGETVARNAME fv0flpexe)
+
 if(NOT APPLE)
  set_property(TARGET ${fitrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)
 endif()    		

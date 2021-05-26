@@ -8,13 +8,9 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(aliceHLTwrapper)
-add_subdirectory(O2MessageMonitor)
 add_subdirectory(DataSampling)
-add_subdirectory(Publishers)
 add_subdirectory(DataCompression)
 add_subdirectory(Mergers)
-add_subdirectory(O2Device)
 add_subdirectory(PCG)
 add_subdirectory(rANS)
 add_subdirectory(Tools)

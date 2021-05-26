@@ -71,7 +71,7 @@ void TrackerDPL::init(InitContext& ic)
   }
 
   std::string dictPath = ic.options().get<std::string>("mft-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, ".bin");
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::MFT, dictPath, "bin");
   if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
@@ -93,7 +93,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   // the output vector however is created directly inside the message memory thus avoiding copy by
   // snapshot
   auto rofsinput = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "TRACKSROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"MFT", "MFTTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   LOG(INFO) << "MFTTracker pulled " << compClusters.size() << " compressed clusters in "
             << rofsinput.size() << " RO frames";
@@ -109,8 +109,8 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   //std::vector<o2::mft::TrackMFTExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"MFT", "TRACKCLSID", 0, Lifetime::Timeframe});
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> allTrackLabels;
+  std::vector<o2::MCCompLabel> trackLabels;
+  std::vector<o2::MCCompLabel> allTrackLabels;
   std::vector<o2::mft::TrackLTF> tracksLTF;
   std::vector<o2::mft::TrackCA> tracksCA;
   auto& allTracksMFT = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
@@ -152,8 +152,9 @@ void TrackerDPL::run(ProcessingContext& pc)
         if (mUseMC) {
           mTracker->computeTracksMClabels(tracksLTF);
           mTracker->computeTracksMClabels(tracksCA);
-          trackLabels = mTracker->getTrackLabels(); /// FIXME: assignment ctor is not optimal.
-          allTrackLabels.mergeAtBack(trackLabels);
+          trackLabels.swap(mTracker->getTrackLabels());
+          std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+          trackLabels.clear();
         }
 
         LOG(INFO) << "Found tracks LTF: " << tracksLTF.size();
@@ -195,7 +196,7 @@ DataProcessorSpec getTrackerSpec(bool useMC)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MFT", "TRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MFT", "TRACKSROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MFT", "MFTTrackROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("MFT", "TRACKCLSID", 0, Lifetime::Timeframe);
 
   if (useMC) {

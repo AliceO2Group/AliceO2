@@ -19,6 +19,7 @@
 #include <string_view>
 #include <tuple>
 #include <iostream>
+#include <limits>
 
 namespace o2::framework
 {
