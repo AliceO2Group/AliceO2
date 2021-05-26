@@ -56,6 +56,7 @@ static constexpr int NPadRows = o2::tpc::constants::MAXGLOBALPADROW;
 static constexpr int NROCTypes = 4;
 static constexpr int NRowsPerROC[NROCTypes] = {63, 34, 30, 25};
 static constexpr int NRowsAccumulated[NROCTypes] = {63, 97, 127, 152};
+static constexpr float ZLimit[2] = {2.49725e2f, 2.49698e2f}; ///< max z-positions for A/C side
 static constexpr float RowDX[NROCTypes] = {.75f, 1.f, 1.2f, 1.5f};
 static constexpr float MinX = 84.85f;
 static constexpr float MaxX = 246.4f;
