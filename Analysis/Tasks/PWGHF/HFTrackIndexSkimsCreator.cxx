@@ -18,7 +18,6 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "DetectorsVertexing/DCAFitterN.h"
-#include "AnalysisDataModel/EventSelection.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisCore/trackUtilities.h"
 #include "AnalysisCore/HFConfigurables.h"
@@ -59,57 +58,8 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 #define MY_DEBUG_MSG(condition, cmd)
 #endif
 
-/// Event selection
-struct HfTagSelCollisions {
-
-  Produces<aod::HFSelCollision> rowSelectedCollision;
-
-  Configurable<bool> doValPlots{"doValPlots", true, "fill histograms"};
-  Configurable<std::string> triggerClassName{"triggerClassName", "kINT7", "trigger class"};
-  int triggerClass = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, triggerClassName.value.data()));
-
-  HistogramRegistry registry{
-    "registry",
-    {{"hEvents", "Events;;entries", {HistType::kTH1F, {{3, 0.5, 3.5}}}}}};
-
-  void init(InitContext const&)
-  {
-    std::string labels[3] = {"processed collisions", "selected collisions", "rej. trigger class"};
-    for (int iBin = 0; iBin < 3; iBin++) {
-      registry.get<TH1>(HIST("hEvents"))->GetXaxis()->SetBinLabel(iBin + 1, labels[iBin].data());
-    }
-  }
-
-  // event selection
-  void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision)
-  {
-    int statusCollision = 0;
-
-    if (doValPlots) {
-      registry.get<TH1>(HIST("hEvents"))->Fill(1);
-    }
-
-    if (!collision.alias()[triggerClass]) {
-      statusCollision |= BIT(0);
-      if (doValPlots) {
-        registry.get<TH1>(HIST("hEvents"))->Fill(3);
-      }
-    }
-
-    //TODO: add more event selection criteria
-
-    // selected events
-    if (doValPlots && statusCollision == 0) {
-      registry.get<TH1>(HIST("hEvents"))->Fill(2);
-    }
-
-    // fill table row
-    rowSelectedCollision(statusCollision);
-  };
-};
-
 /// Track selection
-struct HfTagSelTrack {
+struct SelectTracks {
 
   // enum for candidate type
   enum CandidateType {
@@ -314,7 +264,7 @@ struct HfTagSelTrack {
 //____________________________________________________________________________________________________________________________________________
 
 /// Pre-selection of 2-prong and 3-prong secondary vertices
-struct HfTrackIndexSkimsCreator {
+struct HFTrackIndexSkimsCreator {
   Produces<aod::HfTrackIndexProng2> rowTrackIndexProng2;
   Produces<aod::HfCutStatusProng2> rowProng2CutStatus;
   Produces<aod::HfTrackIndexProng3> rowTrackIndexProng3;
@@ -323,6 +273,8 @@ struct HfTrackIndexSkimsCreator {
   //Configurable<int> nCollsMax{"nCollsMax", -1, "Max collisions per file"}; //can be added to run over limited collisions per file - for tesing purposes
   Configurable<bool> dovalplots{"dovalplots", true, "fill histograms"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
+  // event selection
+  Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
   // vertexing parameters
   Configurable<double> bz{"bz", 5., "magnetic field kG"};
   Configurable<bool> propdca{"propdca", true, "create tracks version propagated to PCA"};
@@ -357,9 +309,6 @@ struct HfTrackIndexSkimsCreator {
      {"hmassXicToPKPi", "#Xi_{c} candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
 
   Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0 && aod::hf_seltrack::isSelProng < 4);
-  Filter filterSelectCollisions = (aod::hf_selcollision::whyRejectColl == 0);
-
-  using SelectedCollisions = soa::Filtered<soa::Join<aod::Collisions, aod::HFSelCollision>>;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
 
   // FIXME
@@ -374,7 +323,7 @@ struct HfTrackIndexSkimsCreator {
   // int nColls{0}; //can be added to run over limited collisions per file - for tesing purposes
 
   void process( //soa::Join<aod::Collisions, aod::Cents>::iterator const& collision, //FIXME add centrality when option for variations to the process function appears
-    SelectedCollisions::iterator const& collision,
+    aod::Collision const& collision,
     aod::BCs const& bcs,
     SelectedTracks const& tracks)
   {
@@ -391,6 +340,15 @@ struct HfTrackIndexSkimsCreator {
     */
 
     //auto centrality = collision.centV0M(); //FIXME add centrality when option for variations to the process function appears
+
+    int trigindex = int{triggerindex};
+    if (trigindex != -1) {
+      uint64_t triggerMask = collision.bc().triggerMask();
+      bool isTriggerClassFired = triggerMask & 1ul << (trigindex - 1);
+      if (!isTriggerClassFired) {
+        return;
+      }
+    }
 
     //FIXME move above process function
     const int n2ProngDecays = hf_cand_prong2::DecayType::N2ProngDecays; // number of 2-prong hadron types
@@ -1045,7 +1003,7 @@ struct HfTrackIndexSkimsCreator {
 /// to run: o2-analysis-weak-decay-indices --aod-file AO2D.root -b | o2-analysis-lambdakzerobuilder -b |
 ///         o2-analysis-trackextension -b | o2-analysis-hf-track-index-skims-creator -b
 
-struct HfTrackIndexSkimsCreatorCascades {
+struct HFTrackIndexSkimsCreatorCascades {
   Produces<aod::HfTrackIndexCasc> rowTrackIndexCasc;
   //  Produces<aod::HfTrackIndexProng2> rowTrackIndexCasc;
 
@@ -1114,12 +1072,9 @@ struct HfTrackIndexSkimsCreatorCascades {
   double massLc = RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus);
   double mass2K0sP{0.}; // WHY HERE?
 
-  Filter filterSelectCollisions = (aod::hf_selcollision::whyRejectColl == 0);
-
   using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
-  using SelectedCollisions = soa::Filtered<soa::Join<aod::Collisions, aod::HFSelCollision>>;
 
-  void process(SelectedCollisions::iterator const& collision,
+  void process(aod::Collision const& collision,
                aod::BCs const& bcs,
                //soa::Filtered<aod::V0Datas> const& V0s,
                aod::V0Datas const& V0s,
@@ -1310,13 +1265,12 @@ struct HfTrackIndexSkimsCreatorCascades {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<HfTagSelCollisions>(cfgc),
-    adaptAnalysisTask<HfTagSelTrack>(cfgc),
-    adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc)};
+    adaptAnalysisTask<SelectTracks>(cfgc, TaskName{"hf-produce-sel-track"}),
+    adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
 
   const bool doLcK0Sp = cfgc.options().get<bool>("do-LcK0Sp");
   if (doLcK0Sp) {
-    workflow.push_back(adaptAnalysisTask<HfTrackIndexSkimsCreatorCascades>(cfgc));
+    workflow.push_back(adaptAnalysisTask<HFTrackIndexSkimsCreatorCascades>(cfgc, TaskName{"hf-track-index-skims-cascades-creator"}));
   }
 
   return workflow;
