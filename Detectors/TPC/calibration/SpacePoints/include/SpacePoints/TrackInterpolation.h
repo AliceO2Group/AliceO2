@@ -23,19 +23,27 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Constants.h"
 #include "DataFormatsTOF/Cluster.h"
+#include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
 #include "SpacePoints/SpacePointsCalibParam.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DetectorsBase/Propagator.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "TRDBase/RecoParam.h"
+#include "TRDBase/Geometry.h"
 
 class TTree;
 
 namespace o2
 {
+
 namespace tpc
 {
 
@@ -61,7 +69,7 @@ struct TPCClusterResiduals {
 
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
 struct TrackData {
-  int trkId{};                 ///< track ID for debugging
+  o2::dataformats::GlobalTrackID gid{}; ///< global track ID for seeding track
   float eta{};                 ///< track dip angle
   float phi{};                 ///< track azimuthal angle
   float qPt{};                 ///< track q/pT
@@ -70,10 +78,9 @@ struct TrackData {
   unsigned short nClsTPC{};    ///< number of attached TPC clusters
   unsigned short nClsITS{};    ///< number of attached ITS clusters
   unsigned short nTrkltsTRD{}; ///< number of attached TRD tracklets
-  // TODO: Add an additional structure with event information and reference to the tracks for given event?
-  int nTracksInEvent{};                      ///< total number of tracks in given event / timeframe ? Used for multiplicity estimate
+  unsigned short clAvailTOF{}; ///< whether or not track seed has a matched TOF cluster
   o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of cluster residuals of this track
-  ClassDefNV(TrackData, 1);
+  ClassDefNV(TrackData, 2);
 };
 
 /// \class TrackInterpolation
@@ -117,27 +124,15 @@ class TrackInterpolation
   void init();
 
   /// Main processing function
-  void process();
+  void process(const o2::globaltracking::RecoContainer& inp, const std::vector<o2::dataformats::GlobalTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes);
 
   /// Extrapolate ITS-only track through TPC and store residuals to TPC clusters along the way
-  /// \param trkITS ITS only track to be extrapolated
-  /// \param trkTPC TPC track matched to trkITS used for TPC cluster access
-  /// \param trkTime time assigned to TPC track (needed for cluster coordinate transformation)
-  /// \param trkIdTPC TPC track ID
-  /// \return flag if track could successfully be extrapolated to all TPC clusters
-  bool extrapolateTrackITS(const o2::its::TrackITS& trkITS, const TrackTPC& trkTPC, float trkTime, int trkIdTPC);
+  /// \param seed index
+  void extrapolateTrack(int iSeed);
 
-  /// Interpolate ITS-TPC-TOF tracks in the TPC and store residuals to TPC clusters
-  /// \param matchTOF
-  /// \return flag if track could be processed successfully
-  bool interpolateTrackITSTOF(const o2::dataformats::MatchInfoTOF& matchTOF);
-
-  /// Check if given ITS-TPC track fullfills quality criteria
-  /// \param matchITSTPC ITS-TPC track to be checked
-  /// \param hasOuterPoint Flag if track has an attached cluster in TRD or TOF
-  /// \return Flag if quality criteria are met
-  bool trackPassesQualityCuts(const o2::dataformats::TrackTPCITS& matchITSTPC, bool hasOuterPoint = true) const;
-
+  /// Interpolate ITS-TRD-TOF track inside TPC and store residuals to TPC clusters along the way
+  /// \param seed index
+  void interpolateTrack(int iSeed);
 
   /// Reset cache and output vectors
   void reset();
@@ -150,25 +145,6 @@ class TrackInterpolation
   void setMaxStep(float step) { mMaxStep = step; }
   /// Sets the flag if material correction should be applied when extrapolating the tracks
   void setMatCorr(MatCorrType matCorr) { mMatCorr = matCorr; }
-  /// Sets whether ITS tracks without match in TRD or TOF should be processed as well
-  void setDoITSOnlyTracks(bool flag) { mDoITSOnlyTracks = flag; }
-
-  // --------------------------------- input ---------------------------------------------
-
-  /// Sets input ITS tracks received via DPL
-  void setITSTracksInp(const gsl::span<const o2::its::TrackITS> inp) { mITSTracksArray = inp; }
-  /// Sets input ITS-TPC matched tracks received via DPL
-  void setITSTPCTrackMatchesInp(const gsl::span<const o2::dataformats::TrackTPCITS> inp) { mITSTPCTracksArray = inp; }
-  /// Sets input TPC tracks received via DPL
-  void setTPCTracksInp(const gsl::span<const o2::tpc::TrackTPC> inp) { mTPCTracksArray = inp; }
-  /// Sets input TPC track cluster indices received via DPL
-  void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp) { mTPCTracksClusIdx = inp; }
-  /// Sets input TPC clusters received via DPL
-  void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp) { mTPCClusterIdxStruct = inp; }
-  /// Sets input TOF matching records received via DPL
-  void setTOFMatchesInp(const gsl::span<const o2::dataformats::MatchInfoTOF> inp) { mTOFMatchesArray = inp; }
-  /// Sets input TOF clusters received via DPL
-  void setTOFClustersInp(const gsl::span<const o2::tof::Cluster> inp) { mTOFClustersArray = inp; }
 
   // --------------------------------- output ---------------------------------------------
   std::vector<TPCClusterResiduals>& getClusterResiduals() { return mClRes; }
@@ -181,16 +157,16 @@ class TrackInterpolation
   float mMaxSnp{.85f};          ///< max snp when propagating ITS tracks
   float mMaxStep{2.f};          ///< maximum step for propagation
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
-  bool mDoITSOnlyTracks{false}; ///< if ITS only tracks should be processed or not
+  o2::trd::RecoParam mRecoParam;                     ///< parameters required for TRD refit
+  o2::trd::Geometry* mGeoTRD;                        ///< TRD geometry instance (needed for tilted pad correction)
 
   // input
-  gsl::span<const o2::dataformats::TrackTPCITS> mITSTPCTracksArray; ///< input ITS-TPC matched tracks from span
-  gsl::span<const TrackTPC> mTPCTracksArray;                        ///< input TPC tracks from span
-  gsl::span<const TPCClRefElem> mTPCTracksClusIdx;                  ///< input TPC tracks cluster indicies from span
-  gsl::span<const o2::its::TrackITS> mITSTracksArray;               ///< input ITS tracks from span
-  gsl::span<const o2::dataformats::MatchInfoTOF> mTOFMatchesArray;  ///< input ITS-TPC-TOF matching information from span
-  gsl::span<const o2::tof::Cluster> mTOFClustersArray;              ///< input TOF clusters from span
-
+  const o2::globaltracking::RecoContainer* mRecoCont = nullptr;                            ///< input reco container
+  const std::vector<o2::dataformats::GlobalTrackID>* mGIDs = nullptr;                      ///< GIDs of input tracks
+  const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>* mGIDtables = nullptr; ///< GIDs of contributors from single detectors for each seed
+  const std::vector<float>* mTrackTimes = nullptr;                                         ///< time estimates for all input tracks in micro seconds
+  std::vector<o2::track::TrackParCov>* mSeeds = nullptr;                                   ///< seeding track parameters (ITS tracks)
+  gsl::span<const TPCClRefElem> mTPCTracksClusIdx;                                         ///< input TPC cluster indices from span
   const ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
   // output
@@ -199,10 +175,13 @@ class TrackInterpolation
 
   // cache
   std::array<CacheStruct, constants::MAXGLOBALPADROW> mCache{{}}; ///< caching positions, covariances and angles for track extrapolations and interpolation
+  std::vector<o2::dataformats::GlobalTrackID> mGIDsSuccess;       ///< keep track of the GIDs which could be processed successfully
 
   // helpers
   std::unique_ptr<TPCFastTransform> mFastTransform{}; ///< TPC cluster transformation
   bool mInitDone{false};                              ///< initialization done flag
+
+  ClassDefNV(TrackInterpolation, 1);
 };
 
 } // namespace tpc
