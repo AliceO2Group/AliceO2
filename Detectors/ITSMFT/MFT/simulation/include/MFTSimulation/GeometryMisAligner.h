@@ -231,10 +231,10 @@ class GeometryMisAligner : public TObject
   Bool_t fUseUni;  ///< use uniform distribution for misaligmnets
   Bool_t fUseGaus; ///< use gaussian distribution for misaligmnets
 
-  Double_t fSensorMisAlig[6][2];  ///< Mean and width of the displacements of the sensors along x,y,z (translations) and about x,y,z (rotations)
+  Double_t fSensorMisAlig[6][2]; ///< Mean and width of the displacements of the sensors along x,y,z (translations) and about x,y,z (rotations)
   Double_t fLadderMisAlig[6][2]; ///< Mean and width of the displacements of the ladder along x,y,z (translations) and about x,y,z (rotations)
-  Double_t fDiskMisAlig[6][2];  ///< Mean and width of the displacements of the half-disk along x,y,z (translations) and about x,y,z (rotations)
-  Double_t fHalfMisAlig[6][2];    ///< Mean and width of the displacements of the half-MF along x,y,z (translations) and about x,y,z (rotations)
+  Double_t fDiskMisAlig[6][2];   ///< Mean and width of the displacements of the half-disk along x,y,z (translations) and about x,y,z (rotations)
+  Double_t fHalfMisAlig[6][2];   ///< Mean and width of the displacements of the half-MF along x,y,z (translations) and about x,y,z (rotations)
 
   Double_t fXYAngMisAligFactor; ///< factor (<1) to apply to angular misalignment range since range of motion is restricted out of the xy plane
   Double_t fZCartMisAligFactor; ///< factor (<1) to apply to cartetian misalignment range since range of motion is restricted in z direction
