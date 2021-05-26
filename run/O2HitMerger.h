@@ -67,6 +67,7 @@
 #include <ITS3Simulation/Detector.h>
 #include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
+#include <PSRSimulation/Detector.h>
 #endif
 
 namespace o2
@@ -752,6 +753,10 @@ void O2HitMerger::initDetInstances()
     }
     if (i == DetID::FT3) {
       mDetectorInstances[i] = std::move(std::make_unique<o2::ft3::Detector>(true));
+      counter++;
+    }
+    if (i == DetID::PSR) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::psr::Detector>(true));
       counter++;
     }
 #endif

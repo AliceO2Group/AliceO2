@@ -92,7 +92,8 @@ class SimTraits
       ,
       /*IT3*/ VS{ "IT3Hit" },
       /*TRK*/ VS{ "TRKHit" },
-      /*FT3*/ VS{ "FT3Hit" }
+      /*FT3*/ VS{ "FT3Hit" },
+      /*PSR*/ VS{ "PSRHit" }
 #endif
     };
   // clang-format on
@@ -237,6 +238,11 @@ template <>
 struct DetIDToHitTypes<o2::detectors::DetID::FT3> {
   using HitType = o2::itsmft::Hit;
 };
+template <>
+struct DetIDToHitTypes<o2::detectors::DetID::PSR> {
+  using HitType = o2::itsmft::Hit;
+};
+
 #endif
 
 } // namespace detectors

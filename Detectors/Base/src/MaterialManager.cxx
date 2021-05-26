@@ -291,6 +291,7 @@ void MaterialManager::insertMaterialName(const char* uniquename, int index)
 // inserts the last
 void MaterialManager::insertTGeoMedium(std::string modname, int localindex)
 {
+//  LOG(INFO)<<"Changes for build";
   auto p = std::make_pair(modname, localindex);
   assert(mTGeoMediumMap.find(p) == mTGeoMediumMap.end());
   auto list = gGeoManager->GetListOfMedia();

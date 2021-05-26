@@ -74,11 +74,11 @@ void Detector::buildBasicFT3(int nLayers, Float_t z_first, Float_t z_length, Flo
   mLayerID[1].resize(mNumberOfLayers);
   mLayers.resize(2);
 
-  for (Int_t direction : {0, 1}) {
+  for (Int_t direction : {1}) {
     for (Int_t layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
       std::string layerName = GeometryTGeo::getFT3LayerPattern() + std::to_string(layerNumber + mNumberOfLayers * direction);
       mLayerName[direction][layerNumber] = layerName;
-
+      
       // Adds evenly spaced layers
       Float_t layerZ = z_first + (layerNumber * z_length / (mNumberOfLayers - 1)) * std::copysign(1, z_first);
       Float_t rIn = std::abs(layerZ * std::tan(2.f * std::atan(std::exp(-etaIn))));

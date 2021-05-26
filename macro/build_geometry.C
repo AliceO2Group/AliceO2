@@ -49,6 +49,7 @@
 #include <ITS3Simulation/Detector.h>
 #include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
+#include <PSRSimulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
 #endif
 
@@ -199,6 +200,11 @@ void build_geometry(FairRunSim* run = nullptr)
     // ALICE 3 FT3
     auto ft3 = new o2::ft3::Detector(true);
     run->AddModule(ft3);
+ }
+  if (isActivated("PSR")) {
+    // ALICE 3 PSR
+    auto psr = new o2::psr::Detector(true);
+    run->AddModule(psr);
   }
 #endif
 

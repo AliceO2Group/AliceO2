@@ -73,7 +73,8 @@ class DetID
   static constexpr ID IT3 = 17;
   static constexpr ID TRK = 18;
   static constexpr ID FT3 = 19;
-  static constexpr ID Last = FT3;
+  static constexpr ID PSR = 20;
+  static constexpr ID Last = PSR;
 #else
   static constexpr ID Last = CTP; ///< if extra detectors added, update this !!!
 #endif
@@ -136,7 +137,7 @@ class DetID
 
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
-    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", "IT3", "TRK", "FT3", nullptr};
+    {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", "IT3", "TRK", "FT3", "PSR", nullptr};
 #else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", nullptr};
 #endif
@@ -148,7 +149,7 @@ class DetID
      math_utils::bit2Mask(ACO)
 #ifdef ENABLE_UPGRADES
        ,
-     math_utils::bit2Mask(IT3), math_utils::bit2Mask(TRK), math_utils::bit2Mask(FT3)
+     math_utils::bit2Mask(IT3), math_utils::bit2Mask(TRK), math_utils::bit2Mask(FT3), math_utils::bit2Mask(PSR)
 #endif
   };
 
@@ -160,7 +161,7 @@ class DetID
      o2h::gDataOriginACO, o2h::gDataOriginCTP
 #ifdef ENABLE_UPGRADES
      ,
-     o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3
+     o2h::gDataOriginIT3, o2h::gDataOriginTRK, o2h::gDataOriginFT3, o2h::gDataOriginPSR
 #endif
   };
 
