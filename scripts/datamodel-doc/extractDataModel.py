@@ -17,17 +17,17 @@ def main(initCard):
     todo = 1
   else:
     todo = int(todo.text)
-  
+
   # O2dir and main header file
   O2dir = initCard.find('O2general/mainDir/local')
   if O2dir == None:
     return
   O2dir = O2dir.text.strip()
-  
+
   DMH = initCard.find('O2general/DataModelHeader')
   if DMH == None:
     return
-  
+
   fileName = O2dir+"/"+DMH.text.strip()
   mainProducer = initCard.find('O2general/producer')
   if mainProducer == None:
@@ -35,7 +35,7 @@ def main(initCard):
   else:
     mainProducer = mainProducer.text.strip()
 
-  #=============================================== main header file ============
+  # =============================================== main header file ============
   # read the file and create AO2D datamodel
   if todo == 1:
     print("Main header file: ", fileName)
@@ -47,14 +47,14 @@ def main(initCard):
     print()
     print("Other header files")
 
-  #=============================================== other header files ==========
+  # =============================================== other header files ==========
   hfMainDir = initCard.find('headerFiles/mainDir')
   if hfMainDir == None:
     hfMainDir = ""
   else:
     hfMainDir = hfMainDir.text.strip()
   hfMainDir = O2dir+"/"+hfMainDir
-    
+
   hfSubDirs = initCard.find('headerFiles/subDirs')
   if hfSubDirs == None:
     hfSubDirs = ['']
@@ -79,13 +79,13 @@ def main(initCard):
     # extract datamodel name
     path = infile.split('/')[:-1]
     cfile = infile.split('/')[-1]
-    CErelation = [path,cfile,""]
+    CErelation = [path, cfile, ""]
     if todo == 1:
       print("  ", infile.rstrip())
     dmnew = DM.datamodel(cfile.split(".")[0], CErelation, infile.rstrip())
     dm.join(dmnew)
 
-  #=============================================== CMakeLists.txt ==============
+  # =============================================== CMakeLists.txt ==============
   # analyze CMakeLists.txt and extract code - executable relations defined
   # with o2_add_dpl_workflow
   # the directories to consider
@@ -99,7 +99,7 @@ def main(initCard):
   else:
     cmMainDir = cmMainDir.text.strip()
   cmMainDir = O2dir+"/"+cmMainDir
-    
+
   cmSubDirs = initCard.find('CMLfiles/subDirs')
   if cmSubDirs == None:
     cmSubDirs = [""]
@@ -125,7 +125,7 @@ def main(initCard):
     cfile = cfile.rstrip("\n")
     cerelations.addRelations(cfile)
 
-  #=============================================== code files ==================
+  # =============================================== code files ==================
   # get a list of producer code files (*.cxx)
   # the directories to consider
   if todo == 1:
@@ -138,7 +138,7 @@ def main(initCard):
   else:
     codeMainDir = codeMainDir.text.strip()
   codeMainDir = O2dir+"/"+codeMainDir
-    
+
   codeSubDirs = initCard.find('codeFiles/subDirs')
   if codeSubDirs == None:
     codeSubDirs = [""]
@@ -173,7 +173,7 @@ def main(initCard):
       tableName = DM.fullDataModelName("o2::aod", prod.split("<")[-1].split(">")[0])
       dm.setProducer(CErelation, tableName)
 
-  #=============================================== print out ===================
+  # =============================================== print out ===================
   # print the data model
   if todo == 2:
     dm.print()
@@ -185,7 +185,7 @@ def main(initCard):
 if __name__ == "__main__":
 
   initCard = ET.parse("inputCard.xml")
-  
+
   main(initCard)
 
 # -----------------------------------------------------------------------------

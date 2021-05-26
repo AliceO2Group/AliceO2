@@ -14,6 +14,8 @@ import nltk
 # 3: EXPRESSION_COLUMN
 # 4: DYNAMIC_COLUMN
 #
+
+
 def columnTypes(abbr=0):
   if abbr == 0:
     types = ["", "INDEX_", "INDEX_", "EXPRESSION_", "DYNAMIC_"]
@@ -21,7 +23,7 @@ def columnTypes(abbr=0):
     types = ["DECLARE_SOA_"+s for s in types]
     types[1] = types[1]+"_FULL"
   else:
-    types = ["", "I", "I", "E", "D","GI"]
+    types = ["", "I", "I", "E", "D", "GI"]
 
   return types
 
@@ -34,6 +36,8 @@ def columnTypes(abbr=0):
 # 4: INDEX_TABLE_EXCLUSIVE
 # 5: EXTENDED_TABLE_USER
 #
+
+
 def tableTypes(abbr=0):
   if abbr == 0:
     types = ["", "", "EXTENDED_", "INDEX_", "INDEX_", "EXTENDED_"]
@@ -52,12 +56,16 @@ def tableTypes(abbr=0):
 #
 # .............................................................................
 # holds a word and the corresponding line number
+
+
 class word:
   def __init__(self, txt, lnr):
     self.txt = txt
     self.lnr = lnr
 
 # .............................................................................
+
+
 class typedef:
   def __init__(self, name, cont):
     self.name = name
@@ -68,6 +76,8 @@ class typedef:
     print("      content: "+self.cont)
 
 # .............................................................................
+
+
 class define:
   def __init__(self, name, line):
     self.name = name
@@ -114,6 +124,8 @@ class define:
     print("      content: "+self.cont)
 
 # .............................................................................
+
+
 class using:
   def __init__(self, nslevel, name, definition, cont):
     self.nslevel = nslevel
@@ -127,12 +139,14 @@ class using:
     self.master = fullDataModelName(nslevel, definition)
     if definition.find("::iterator") != -1:
       self.kind += 1
-      self.master = fullDataModelName(nslevel, "::".join(definition.split("::")[:-1]))
+      self.master = fullDataModelName(
+          nslevel, "::".join(definition.split("::")[:-1]))
     if definition.find("::Join<") != -1:
       self.kind += 2
       tmp = definition.split("<")[1]
       tmp = tmp.split(">")[0]
-      self.joiners = [fullDataModelName(self.nslevel, s) for s in tmp.split(",")]
+      self.joiners = [fullDataModelName(
+          self.nslevel, s) for s in tmp.split(",")]
 
   # is this included
   def where(self, usings):
@@ -178,6 +192,8 @@ class using:
     print("        <li>"+toPrint+"</li>")
 
 # -----------------------------------------------------------------------------
+
+
 class column:
   def __init__(self, kind, nslevel, hfile, cname, gname, type, cont):
     self.kind = kind
@@ -213,6 +229,8 @@ class column:
     print("      </tr>")
 
 # .............................................................................
+
+
 class table:
   def __init__(self, kind, nslevel, hfile, tname, cont):
     self.kind = kind
@@ -252,7 +270,8 @@ class table:
     tableName = self.tname
     if tableTypes(1)[self.kind] != "":
       tableName += " ("+tableTypes(1)[self.kind]+")"
-    print("  <button class=\"myaccordion\"><i class=\"fa fa-table\"></i> "+tableName+"</button>")
+    print("  <button class=\"myaccordion\"><i class=\"fa fa-table\"></i> " +
+          tableName+"</button>")
     print("  <div class=\"panel\">")
 
   def printSubHeaderHTML(self):
@@ -332,8 +351,10 @@ class namespace:
       col.print()
 
 # -----------------------------------------------------------------------------
+
+
 class datamodel:
-  def __init__(self, dmname, CErelation, hfile, initCard = None):
+  def __init__(self, dmname, CErelation, hfile, initCard=None):
     with open(hfile, 'r') as file:
       self.dmname = dmname
       self.CErelations = list()
@@ -435,7 +456,7 @@ class datamodel:
     else:
       tmp = tmp.text.strip()
     O2href = tmp
-    
+
     # gather all tables and columns
     tabs = list()
     uses = list()
@@ -448,9 +469,10 @@ class datamodel:
     # loop over producers
     HTheaderToWrite = True
     amFirst = True
-    for CErelation in self.CErelations:    
+    for CErelation in self.CErelations:
       # get tables with given producer
-      inds = [i for i, x in enumerate(tabs) if x.CErelation[2] == CErelation[2]]
+      inds = [i for i, x in enumerate(
+          tabs) if x.CErelation[2] == CErelation[2]]
       if len(inds) == 0:
         continue
 
@@ -460,14 +482,15 @@ class datamodel:
 
       print("")
       print("#### ", CErelation[2])
-      
+
       # add source code information if available
       if CErelation[1] != "":
         if O2href != "":
-          print ("Code file: <a href=\""+O2href+"/"+CErelation[0].split(O2path)[1]+"/"+CErelation[1]+"\" target=\"_blank\">"+CErelation[1]+"</a>")
+          print("Code file: <a href=\""+O2href+"/"+CErelation[0].split(O2path)[
+                1]+"/"+CErelation[1]+"\" target=\"_blank\">"+CErelation[1]+"</a>")
         else:
-          print ("Code file: "+CErelation[0]+"/"+CErelation[1])
-          
+          print("Code file: "+CErelation[0]+"/"+CErelation[1])
+
       print("<div>")
       print("")
 
@@ -478,24 +501,26 @@ class datamodel:
         tab.printHeaderHTML()
 
         # print table comment
-        print ("    <div>")
-        print ("      ",tab.comment)
-        print ("    </div>")
-        
+        print("    <div>")
+        print("      ", tab.comment)
+        print("    </div>")
+
         # print header file
-        hf2u = block(tab.hfile.split(O2path)[1:],False).strip().lstrip("/")
-        print ("    <div>")
-        print ("      Header file: <a href=\""+O2href+"/"+hf2u+"\" target=\"_blank\">"+hf2u+"</a>")
-        print ("    </div>")
-        
+        hf2u = block(tab.hfile.split(O2path)[
+                     1:], False).strip().lstrip("/")
+        print("    <div>")
+        print("      Header file: <a href=\""+O2href +
+              "/"+hf2u+"\" target=\"_blank\">"+hf2u+"</a>")
+        print("    </div>")
+
         # print extends
         if tab.kind == 2 or tab.kind == 5:
-          print ("    <div>Extends:")
-          print ("      <ul>")
-          print ("        ",tab.toExtendWith)
-          print ("      </ul>")
-          print ("    </div>")
-        
+          print("    <div>Extends:")
+          print("      <ul>")
+          print("        ", tab.toExtendWith)
+          print("      </ul>")
+          print("    </div>")
+
         # find all usings with tab
         useTable = list()
         for use in uses:
@@ -520,7 +545,8 @@ class datamodel:
         if tab.kind == 2 or tab.kind == 5:
           # this table has to be extended, find the extending table and
           # print all of its columns
-          einds = [i for i, x in enumerate(tabs) if x.tname == tab.toExtendWith]
+          einds = [i for i, x in enumerate(
+              tabs) if x.tname == tab.toExtendWith]
           for ind in einds:
             for col in tabs[ind].columns:
               col.printHTML()
@@ -543,7 +569,8 @@ class datamodel:
       print("<div>")
       for use in uses:
         print("")
-        print("  <button class=\"myaccordion\"><i class=\"fa fa-map-pin\"></i> "+use.name+"</button>")
+        print(
+            "  <button class=\"myaccordion\"><i class=\"fa fa-map-pin\"></i> "+use.name+"</button>")
         print("  <div class=\"panel\">")
         print("    <ul>")
         use.printHTML()
@@ -564,6 +591,8 @@ class datamodel:
 # functions
 #
 # .............................................................................
+
+
 def block(words, withspace=True, space=" "):
   sep = ""
   if withspace == True:
@@ -583,6 +612,8 @@ def block(words, withspace=True, space=" "):
   return cont
 
 # .............................................................................
+
+
 def split(block):
 
   # split into words
@@ -593,6 +624,8 @@ def split(block):
 # .............................................................................
 # content is a tuple<list<word>, list<str>>
 # create tuple with (content[0][[i1:i2],[i3:i4]], content[1])
+
+
 def select(content, i1, i2=-1, i3=-1, i4=-1):
   wsel = list()
 
@@ -614,13 +647,17 @@ def select(content, i1, i2=-1, i3=-1, i4=-1):
 # obr and cbr are sequences of characters
 # return modified line and int stat
 # stat is the number of not completed brackets (needs to be >= 0)
+
+
 def removeInBrackets(obr, cbr, line, stat):
   # find obr
-  answ = list(map(lambda x: line[x:x + len(obr)] == obr, range(len(line) - len(obr) + 1)))
+  answ = list(map(lambda x: line[x:x + len(obr)]
+              == obr, range(len(line) - len(obr) + 1)))
   iop = [i for i, x in enumerate(answ) if x == True]
 
   # find cbr
-  answ = list(map(lambda x: line[x:x + len(cbr)] == cbr, range(len(line) - len(cbr) + 1)))
+  answ = list(map(lambda x: line[x:x + len(cbr)]
+              == cbr, range(len(line) - len(cbr) + 1)))
   icl = [i for i, x in enumerate(answ) if x == True]
 
   # build sequence which holds the number of open brackets
@@ -646,6 +683,8 @@ def removeInBrackets(obr, cbr, line, stat):
   return stat, newline
 
 # .............................................................................
+
+
 def pickContent(lines_in_file):
 
   # 1. remove the comments // but not the //!
@@ -681,7 +720,8 @@ def pickContent(lines_in_file):
     linesWithoutComments[ind] = res[1]
 
   # select all lines starting with #define
-  idfs = [l for l, s in enumerate(linesWithoutComments) if s.lstrip().startswith("#define")][::-1]
+  idfs = [l for l, s in enumerate(
+      linesWithoutComments) if s.lstrip().startswith("#define")][::-1]
   for idf in idfs:
     ws = split(linesWithoutComments[idf])
     defstring = linesWithoutComments[idf].split(ws[2], 1)[1]
@@ -689,7 +729,8 @@ def pickContent(lines_in_file):
 
     # find the corresponding #undef
     iend = len(linesWithoutComments)
-    iudfs = [l for l, s in enumerate(linesWithoutComments) if s.lstrip().startswith("#undef")][::-1]
+    iudfs = [l for l, s in enumerate(
+        linesWithoutComments) if s.lstrip().startswith("#undef")][::-1]
     for iudf in iudfs:
       ws = split(linesWithoutComments[iudf])
       if ws[2] == df.name:
@@ -721,6 +762,8 @@ def pickContent(lines_in_file):
 # a: list of strings
 # b: list of words
 # is a contained in b?
+
+
 def list_in(a, b):
 
   # create list of strings
@@ -732,6 +775,8 @@ def list_in(a, b):
   return list(map(lambda x: b2u[x:x + len(a)] == a, range(len(b2u) - len(a) + 1)))
 
 # .............................................................................
+
+
 def fullDataModelName(nslevel, name):
   toks0 = nslevel.split("::")
   toks1 = name.split("::")
@@ -756,6 +801,8 @@ def fullDataModelName(nslevel, name):
 # .............................................................................
 # extract the column names from a table declaration
 # cont contains the declaration
+
+
 def tableColumnNames(nslevel, cont, kind=0):
 
   # specification according to kind of table
@@ -809,6 +856,8 @@ def tableColumnNames(nslevel, cont, kind=0):
   return fullColNames
 
 # .............................................................................
+
+
 def extractTables(nslevel, content):
   words = content[0]
   lines = content[1]
@@ -827,7 +876,8 @@ def extractTables(nslevel, content):
 
   # loop over declarations
   for icol in inds:
-    iend = [i for i, x in enumerate(list_in([")", ";"], words[icol:])) if x == True]
+    iend = [i for i, x in enumerate(
+        list_in([")", ";"], words[icol:])) if x == True]
     if len(iend) == 0:
       print(nslevel)
       sys.exit('Ending ); not found in table declaration! EXIT -->')
@@ -856,6 +906,8 @@ def extractTables(nslevel, content):
   return tables
 
 # .............................................................................
+
+
 def extractColumns(nslevel, content):
   words = content[0]
   lines = content[1]
@@ -877,7 +929,8 @@ def extractColumns(nslevel, content):
 
   # loop over declarations
   for icol in inds:
-    iend = [i for i, x in enumerate(list_in([")", ";"], words[icol:])) if x == True]
+    iend = [i for i, x in enumerate(
+        list_in([")", ";"], words[icol:])) if x == True]
     if len(iend) == 0:
       print(nslevel)
       sys.exit('Ending ); not found in column declaration! EXIT -->')
@@ -886,7 +939,7 @@ def extractColumns(nslevel, content):
     kind = [i for i, x in enumerate(types) if x == words[icol].txt][0]
     cname = words[icol+2].txt
     gname = words[icol+4].txt
-    if kind in [1,2]:
+    if kind in [1, 2]:
       cname = cname+"Id"
       gname = gname+"Id"
 
@@ -894,19 +947,22 @@ def extractColumns(nslevel, content):
     # can be type, array<type,n>, or type[n]
     type = ""
     if words[icol].txt == types[0]:
-      type = block(words[icol+6:icol+iend[0]],False)
+      type = block(words[icol+6:icol+iend[0]], False)
     elif words[icol].txt == types[1]:
       type = words[icol+6].txt
     elif words[icol].txt == types[2]:
       type = "int32"
     elif words[icol].txt == types[3]:
-      iend = [i for i, x in enumerate(list_in([","], words[icol+6:])) if x == True]
-      type = block(words[icol+6:icol++6+iend[0]],False)
+      iend = [i for i, x in enumerate(
+          list_in([","], words[icol+6:])) if x == True]
+      type = block(words[icol+6:icol++6+iend[0]], False)
     elif words[icol].txt == types[4]:
-      iarr = [i for i, x in enumerate(list_in(["-", ">"], cont)) if x == True]
+      iarr = [i for i, x in enumerate(
+          list_in(["-", ">"], cont)) if x == True]
       if len(iarr) > 0:
-        iend = [i for i, x in enumerate(list_in(["{"], cont[iarr[0]+2:])) if x == True]
-        type = block(cont[iarr[0]+2:iarr[0]+2+iend[0]],False)
+        iend = [i for i, x in enumerate(
+            list_in(["{"], cont[iarr[0]+2:])) if x == True]
+        type = block(cont[iarr[0]+2:iarr[0]+2+iend[0]], False)
       else:
         type = "?"
 
@@ -918,8 +974,8 @@ def extractColumns(nslevel, content):
       col.pointsInto = words[icol+2].txt+"s"
 
     # add a comment if available
-    comment =""
-    if kind in [1,2]:
+    comment = ""
+    if kind in [1, 2]:
       comment = "Pointer into "+col.pointsInto
     line = lines[words[icol].lnr]
     toks = line.split("//!")
@@ -934,6 +990,8 @@ def extractColumns(nslevel, content):
   return cols
 
 # .............................................................................
+
+
 def extractUsings(nslevel, content):
   words = content[0]
   lines = content[1]
@@ -953,7 +1011,8 @@ def extractUsings(nslevel, content):
 
   # loop over cases
   for icol in inds:
-    iend = [i for i, x in enumerate(list_in([";"], words[icol:])) if x == True]
+    iend = [i for i, x in enumerate(
+        list_in([";"], words[icol:])) if x == True]
     if len(iend) == 0:
       print(nslevel)
       sys.exit('Ending ; not found in using declaration! EXIT -->')
@@ -972,6 +1031,8 @@ def extractUsings(nslevel, content):
 # .............................................................................
 # A namespace is contained between "namespace 'name' {" and "}"
 # Be aware that namespaces can be nested!
+
+
 def parseContent(hfile, content, nslevel, dm):
   words = content[0]
   lines = content[1]
@@ -991,8 +1052,8 @@ def parseContent(hfile, content, nslevel, dm):
         print(block(words[p10:]))
         exit()
       p11 = len(words)
-      
-    else:      
+
+    else:
       # 2. namespace .... {}
       iop = [ind for ind, x in enumerate(words[p10:]) if x.txt == "{"]
       if len(iop) == 0:
@@ -1012,7 +1073,7 @@ def parseContent(hfile, content, nslevel, dm):
       ind[icl] = -1
       p11 = np.where(np.cumsum(ind[iop[0]:]) == 0)
       if len(p11[0]) <= 0:
-        print (hfile)
+        print(hfile)
         exit()
       p11 = p10+iop[0]+p11[0][0]
 
@@ -1077,6 +1138,8 @@ def parseContent(hfile, content, nslevel, dm):
 #   [0]: path
 #   [1]: code file (without path)
 #   [2]: executable
+
+
 class CERelations:
   def __init__(self, initCard):
     self.relations = list()
@@ -1087,14 +1150,15 @@ class CERelations:
       self.exePreamble = ""
     else:
       self.exePreamble = self.exePreamble.text.strip()
-    
+
     # CEdeclarationString from initCard
-    self.CEdeclarationString = initCard.find('O2general/CEdeclarationString')
+    self.CEdeclarationString = initCard.find(
+        'O2general/CEdeclarationString')
     if self.CEdeclarationString == None:
       self.CEdeclarationString = "o2_add_dpl_workflow"
     else:
       self.CEdeclarationString = self.CEdeclarationString.text.strip()
-    
+
   def addRelations(self, fileName):
     path = block(fileName.split("/")[:-1], True, "/")
     with open(fileName, 'r') as file:
@@ -1104,7 +1168,8 @@ class CERelations:
 
       # parse CMakeLists file
       # executable - code relations are defined with o2_add_dpl_workflow
-      idef = [ind for ind, x in enumerate(content[0]) if x.txt == self.CEdeclarationString]
+      idef = [ind for ind, x in enumerate(
+          content[0]) if x.txt == self.CEdeclarationString]
       for ind in idef:
         ename = self.exePreamble + content[0][ind+2].txt
         cname = content[0][ind+4].txt
@@ -1115,7 +1180,8 @@ class CERelations:
   def getExecutable(self, codeFile):
     # find the executable corresponding to codeFile
     CErelation = ["", "", ""]
-    ice = [ind for ind, x in enumerate(self.relations) if x[0]+x[1] == codeFile]
+    ice = [ind for ind, x in enumerate(
+        self.relations) if x[0]+x[1] == codeFile]
     if len(ice) > 0:
       CErelation = self.relations[ice[0]]
     return CErelation
@@ -1123,7 +1189,8 @@ class CERelations:
   def getCodeFile(self, executable):
     # find the code file corresponding to executable
     CErelation = ["", "", ""]
-    ice = [ind for ind, x in enumerate(self.relations) if x[2] == executable]
+    ice = [ind for ind, x in enumerate(
+        self.relations) if x[2] == executable]
     if len(ice) > 0:
       CErelation = self.relations[ice[0]]
     return CErelation
