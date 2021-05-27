@@ -20,6 +20,7 @@
 #include <TString.h>
 #include <Math/Vector4D.h>
 #include <TRandom.h>
+#include <TLorentzVector.h>
 
 #include <vector>
 #include <map>
@@ -129,6 +130,9 @@ class VarManager : public TObject
     kMass,
     kCharge,
     kNBasicTrackVariables,
+    //-----Luca-----//
+    kCosThetaHE,
+    //-----Luca-----//
 
     // Barrel track variables
     kPin,
@@ -634,6 +638,29 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidate
   values[kEta] = v12.Eta();
   values[kPhi] = v12.Phi();
   values[kRap] = -v12.Rapidity();
+  // CosTheta Helicity calculation
+  double px1 = t1.px();
+  double py1 = t1.py();
+  double pz1 = t1.pz();
+  double e1 = TMath::Sqrt(px1*px1 + py1*py1 + pz1*pz1 + m1*m1);
+  double px2 = t2.px();
+  double py2 = t2.py();
+  double pz2 = t2.pz();
+  double e2 = TMath::Sqrt(px2*px2 + py2*py2 + pz2*pz2 + m2*m2);
+  TLorentzVector pMuon1_Lab(px1,py1,pz1,e1);
+  TLorentzVector pMuon2_Lab(px2,py2,pz2,e2);
+  TLorentzVector pDimuon_Lab = pMuon1_Lab + pMuon2_Lab;
+  TVector3 beta = (-1./pDimuon_Lab.E())*pDimuon_Lab.Vect();
+  TLorentzVector pMuon1_CM = pMuon1_Lab;
+  TLorentzVector pMuon2_CM = pMuon2_Lab;
+  pMuon1_CM.Boost(beta);
+  pMuon2_CM.Boost(beta);
+  TVector3 zaxis;
+  zaxis = (pDimuon_Lab.Vect()).Unit();
+  double cosTheta;
+  if(t1.sign() > 0) cosTheta = zaxis.Dot((pMuon1_CM.Vect()).Unit());
+  else cosTheta = zaxis.Dot((pMuon2_CM.Vect()).Unit());
+  values[kCosThetaHE] = cosTheta;
 }
 
 template <typename C, typename T>
