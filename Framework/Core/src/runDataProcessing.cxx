@@ -988,6 +988,80 @@ void doDefaultWorkflowTerminationHook()
   //LOG(INFO) << "Process " << getpid() << " is exiting.";
 }
 
+int doChildNoCatch(int argc, char** argv, ServiceRegistry& serviceRegistry,
+                   RunningWorkflowInfo const& runningWorkflow,
+                   RunningDeviceRef ref,
+                   TerminationPolicy errorPolicy,
+                   std::string const& defaultDriverClient,
+                   uv_loop_t* loop)
+{
+  DeviceSpec const& spec = runningWorkflow.devices[ref.index];
+  LOGP(INFO, "Spawing new device {} in process with pid {}.", spec.id, getpid());
+  fair::mq::DeviceRunner runner{argc, argv};
+
+  // Populate options from the command line. Notice that only the options
+  // declared in the workflow definition are allowed.
+  runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
+    boost::program_options::options_description optsDesc;
+    ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
+    optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
+      ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
+      ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
+      ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
+      ("infologger-mode", bpo::value<std::string>()->default_value(""), "O2_INFOLOGGER_MODE override");
+    r.fConfig.AddToCmdLineOptions(optsDesc, true);
+  });
+
+  // This is to control lifetime. All these services get destroyed
+  // when the runner is done.
+  std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
+  std::unique_ptr<DeviceState> deviceState;
+  ComputingQuotaEvaluator quotaEvaluator{loop};
+
+  auto afterConfigParsingCallback = [&simpleRawDeviceService,
+                                     &runningWorkflow,
+                                     ref,
+                                     &spec,
+                                     &quotaEvaluator,
+                                     &serviceRegistry,
+                                     &deviceState,
+                                     &errorPolicy,
+                                     &loop](fair::mq::DeviceRunner& r) {
+    deviceState = std::make_unique<DeviceState>();
+    deviceState->loop = loop;
+
+    simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
+
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec>(&spec));
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(&quotaEvaluator));
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
+
+    // The decltype stuff is to be able to compile with both new and old
+    // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
+    decltype(r.fDevice) device;
+    device = std::move(make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry));
+    dynamic_cast<DataProcessingDevice*>(device.get())->SetErrorPolicy(errorPolicy);
+
+    serviceRegistry.get<RawDeviceService>().setDevice(device.get());
+    r.fDevice = std::move(device);
+    fair::Logger::SetConsoleColor(false);
+
+    /// Create all the requested services and initialise them
+    for (auto& service : spec.services) {
+      LOG(debug) << "Declaring service " << service.name;
+      serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
+    }
+    if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
+      serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
+    }
+  };
+
+  runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
+  return runner.Run();
+}
+
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
@@ -996,73 +1070,16 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             uv_loop_t* loop)
 {
   fair::Logger::SetConsoleColor(false);
-  DeviceSpec const& spec = runningWorkflow.devices[ref.index];
-  LOG(INFO) << "Spawing new device " << spec.id << " in process with pid " << getpid();
+  bool noCatch = false;
+
+  if (noCatch) {
+    return doChildNoCatch(argc, argv, serviceRegistry, runningWorkflow, ref, errorPolicy,
+                          defaultDriverClient, loop);
+  }
 
   try {
-    fair::mq::DeviceRunner runner{argc, argv};
-
-    // Populate options from the command line. Notice that only the options
-    // declared in the workflow definition are allowed.
-    runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
-      boost::program_options::options_description optsDesc;
-      ConfigParamsHelper::populateBoostProgramOptions(optsDesc, spec.options, gHiddenDeviceOptions);
-      optsDesc.add_options()("monitoring-backend", bpo::value<std::string>()->default_value("default"), "monitoring backend info")                                                           //
-        ("driver-client-backend", bpo::value<std::string>()->default_value(defaultDriverClient), "backend for device -> driver communicataon: stdout://: use stdout, ws://: use websockets") //
-        ("infologger-severity", bpo::value<std::string>()->default_value(""), "minimum FairLogger severity to send to InfoLogger")                                                           //
-        ("configuration,cfg", bpo::value<std::string>()->default_value("command-line"), "configuration backend")                                                                             //
-        ("infologger-mode", bpo::value<std::string>()->default_value(""), "O2_INFOLOGGER_MODE override");
-      r.fConfig.AddToCmdLineOptions(optsDesc, true);
-    });
-
-    // This is to control lifetime. All these services get destroyed
-    // when the runner is done.
-    std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
-    std::unique_ptr<DeviceState> deviceState;
-    ComputingQuotaEvaluator quotaEvaluator{loop};
-
-    auto afterConfigParsingCallback = [&simpleRawDeviceService,
-                                       &runningWorkflow,
-                                       ref,
-                                       &spec,
-                                       &quotaEvaluator,
-                                       &serviceRegistry,
-                                       &deviceState,
-                                       &errorPolicy,
-                                       &loop](fair::mq::DeviceRunner& r) {
-      deviceState = std::make_unique<DeviceState>();
-      deviceState->loop = loop;
-
-      simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
-
-      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
-      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec>(&spec));
-      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
-      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(&quotaEvaluator));
-      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
-
-      // The decltype stuff is to be able to compile with both new and old
-      // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
-      decltype(r.fDevice) device;
-      device = std::move(make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry));
-      dynamic_cast<DataProcessingDevice*>(device.get())->SetErrorPolicy(errorPolicy);
-
-      serviceRegistry.get<RawDeviceService>().setDevice(device.get());
-      r.fDevice = std::move(device);
-      fair::Logger::SetConsoleColor(false);
-
-      /// Create all the requested services and initialise them
-      for (auto& service : spec.services) {
-        LOG(debug) << "Declaring service " << service.name;
-        serviceRegistry.declareService(service, *deviceState.get(), r.fConfig);
-      }
-      if (ResourcesMonitoringHelper::isResourcesMonitoringEnabled(spec.resourceMonitoringInterval)) {
-        serviceRegistry.get<Monitoring>().enableProcessMonitoring(spec.resourceMonitoringInterval);
-      }
-    };
-
-    runner.AddHook<fair::mq::hooks::InstantiateDevice>(afterConfigParsingCallback);
-    return runner.Run();
+    return doChildNoCatch(argc, argv, serviceRegistry, runningWorkflow, ref, errorPolicy,
+                          defaultDriverClient, loop);
   } catch (boost::exception& e) {
     LOG(ERROR) << "Unhandled boost::exception reached the top of main, device shutting down. Details follow: \n"
                << boost::current_exception_diagnostic_information(true);
@@ -1077,7 +1094,6 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     LOG(ERROR) << "Unknown exception reached the top of main.\n";
     return 1;
   }
-  return 0;
 }
 
 struct WorkflowInfo {
