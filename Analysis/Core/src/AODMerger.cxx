@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
             for (const auto& idx : indexList) {
               // if negative, the index is unassigned. In this case, the different unassigned blocks have to get unique negative IDs
               if (*(idx.first) < 0) {
-                *(idx.first) -= (mergedDFs-1);
+                *(idx.first) -= (mergedDFs - 1);
               } else {
                 *(idx.first) += idx.second;
               }
