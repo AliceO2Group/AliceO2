@@ -69,7 +69,11 @@ inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu:
   for (unsigned int iEv = 0; iEv < retVal->mNTriggerRecords; ++iEv) {
     const auto& trg = retVal->mTriggerRecords[iEv];
     retVal->trdTriggerIndices.push_back(trg.getFirstTracklet());
-    auto evTime = trg.getBCData().differenceInBC(inputTracks->startIR) * o2::constants::lhc::LHCBunchSpacingNS; // event time in ns
+    //auto evTime = trg.getBCData().differenceInBC(inputTracks->startIR) * o2::constants::lhc::LHCBunchSpacingNS; // event time in ns
+    // TODO at the moment the InteractionRecord contained in the TRD TriggerRecord stores the time relative to the beginning of the TF
+    // Other detectors are storing the absolute time, so that the event time needs to be shifted (as it is done in the commented line above)
+    // Should this be changed? Which format is expected from the real data?
+    auto evTime = trg.getBCData().toLong() * o2::constants::lhc::LHCBunchSpacingNS;                             // event time in ns
     retVal->trdTriggerTimes.push_back(evTime * 1e-3);                                                           // event time in us
   }
 
