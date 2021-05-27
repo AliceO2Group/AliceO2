@@ -1,5 +1,5 @@
 <!-- doxy
-\page refMUONMCHCTF MCH CTF encoding library
+\page refDetectorsMUONMCHCTF MCH CTF encoding library
 /doxy -->
 
 # MCH CTF

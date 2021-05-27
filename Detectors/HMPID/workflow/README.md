@@ -1,5 +1,5 @@
 <!-- doxy
-\page refHMPworkflow HMP workflow
+\page refHMPIDworkflow HMP workflow
 /doxy -->
 
 # DPL workflows for the HMPID  v.0.7
