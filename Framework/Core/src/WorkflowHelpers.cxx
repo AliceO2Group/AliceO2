@@ -815,6 +815,9 @@ WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::Workfl
     if (spec.name.empty()) {
       throw std::runtime_error("Invalid DataProcessorSpec name");
     }
+    if (strpbrk(spec.name.data(), ",;:\"'$") != nullptr) {
+      throw std::runtime_error("Cannot use any of ,;:\"'$ as DataProcessor name");
+    }
     if (validNames.find(spec.name) != validNames.end()) {
       throw std::runtime_error("Name " + spec.name + " is used twice.");
     }
