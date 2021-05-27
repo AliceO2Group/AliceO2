@@ -16,8 +16,7 @@
 
 int main()
 {
-  std::cout << "HELLO WORLD" << std::endl;
   o2::benchmark::GPUbenchmark bm{};
-  bm.hello();
+  bm.run();
   return 0;
 }

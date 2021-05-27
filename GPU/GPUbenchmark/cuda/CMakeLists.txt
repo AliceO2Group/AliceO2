@@ -17,5 +17,3 @@ o2_add_library(CUDAbenchmark
                TARGETVARNAME targetName)
 
                set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
-
-# install(FILES ${HDRS_INSTALL} DESTINATION include/GPU/GPUBenchmark/Steer/Kernels)

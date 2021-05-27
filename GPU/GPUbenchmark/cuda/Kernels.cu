@@ -12,24 +12,7 @@
 /// \author: mconcas@cern.ch
 
 #include <Kernels.h>
-#include <iostream>
-#include <iomanip>
-
-#define KNRM "\x1B[0m"
-#define KRED "\x1B[31m"
-#define KGRN "\x1B[32m"
-#define KYEL "\x1B[33m"
-#define KBLU "\x1B[34m"
-#define KMAG "\x1B[35m"
-#define KCYN "\x1B[36m"
-#define KWHT "\x1B[37m"
-
-#define failed(...)                       \
-  printf("%serror: ", KRED);              \
-  printf(__VA_ARGS__);                    \
-  printf("\n");                           \
-  printf("error: TEST FAILED\n%s", KNRM); \
-  exit(EXIT_FAILURE);
+#include <Common.h>
 
 #define GPUCHECK(error)                                                                        \
   if (error != cudaSuccess) {                                                                  \
@@ -37,13 +20,6 @@
            __LINE__, KNRM);                                                                    \
     failed("API returned error code.");                                                        \
   }
-
-void printCompilerInfo()
-{
-#ifdef __NVCC__
-  printf("compiler: nvcc\n");
-#endif
-}
 
 double bytesToKB(size_t s) { return (double)s / (1024.0); }
 double bytesToGB(size_t s) { return (double)s / (1024.0 * 1024.0 * 1024.0); }
@@ -61,165 +37,137 @@ namespace benchmark
 {
 namespace gpu
 {
-GPUg() void helloKernel()
-{
-  printf("Hello World from GPU!\n");
-}
-
+// Kernels here
 } // namespace gpu
 void printDeviceProp(int deviceId)
 {
-  using namespace std;
   const int w1 = 34;
-  cout << left;
-  cout << setw(w1)
-       << "--------------------------------------------------------------------------------"
-       << endl;
-  cout << setw(w1) << "device#" << deviceId << endl;
+  std::cout << std::left;
+  std::cout << std::setw(w1)
+            << "--------------------------------------------------------------------------------"
+            << std::endl;
+  std::cout << std::setw(w1) << "device#" << deviceId << std::endl;
 
   cudaDeviceProp props;
   GPUCHECK(cudaGetDeviceProperties(&props, deviceId));
 
-  cout << setw(w1) << "Name: " << props.name << endl;
-  cout << setw(w1) << "pciBusID: " << props.pciBusID << endl;
-  cout << setw(w1) << "pciDeviceID: " << props.pciDeviceID << endl;
-  cout << setw(w1) << "pciDomainID: " << props.pciDomainID << endl;
-  cout << setw(w1) << "multiProcessorCount: " << props.multiProcessorCount << endl;
-  cout << setw(w1) << "maxThreadsPerMultiProcessor: " << props.maxThreadsPerMultiProcessor
-       << endl;
-  cout << setw(w1) << "isMultiGpuBoard: " << props.isMultiGpuBoard << endl;
-  cout << setw(w1) << "clockRate: " << (float)props.clockRate / 1000.0 << " Mhz" << endl;
-  cout << setw(w1) << "memoryClockRate: " << (float)props.memoryClockRate / 1000.0 << " Mhz"
-       << endl;
-  cout << setw(w1) << "memoryBusWidth: " << props.memoryBusWidth << endl;
-  cout << setw(w1) << "clockInstructionRate: " << (float)props.clockRate / 1000.0
-       << " Mhz" << endl;
-  cout << setw(w1) << "totalGlobalMem: " << fixed << setprecision(2)
-       << bytesToGB(props.totalGlobalMem) << " GB" << endl;
+  std::cout << std::setw(w1) << "Name: " << props.name << std::endl;
+  std::cout << std::setw(w1) << "pciBusID: " << props.pciBusID << std::endl;
+  std::cout << std::setw(w1) << "pciDeviceID: " << props.pciDeviceID << std::endl;
+  std::cout << std::setw(w1) << "pciDomainID: " << props.pciDomainID << std::endl;
+  std::cout << std::setw(w1) << "multiProcessorCount: " << props.multiProcessorCount << std::endl;
+  std::cout << std::setw(w1) << "maxThreadsPerMultiProcessor: " << props.maxThreadsPerMultiProcessor
+            << std::endl;
+  std::cout << std::setw(w1) << "isMultiGpuBoard: " << props.isMultiGpuBoard << std::endl;
+  std::cout << std::setw(w1) << "clockRate: " << (float)props.clockRate / 1000.0 << " Mhz" << std::endl;
+  std::cout << std::setw(w1) << "memoryClockRate: " << (float)props.memoryClockRate / 1000.0 << " Mhz"
+            << std::endl;
+  std::cout << std::setw(w1) << "memoryBusWidth: " << props.memoryBusWidth << std::endl;
+  std::cout << std::setw(w1) << "clockInstructionRate: " << (float)props.clockRate / 1000.0
+            << " Mhz" << std::endl;
+  std::cout << std::setw(w1) << "totalGlobalMem: " << std::fixed << std::setprecision(2)
+            << bytesToGB(props.totalGlobalMem) << " GB" << std::endl;
 #if !defined(__CUDACC__)
-  cout << setw(w1) << "maxSharedMemoryPerMultiProcessor: " << fixed << setprecision(2)
-       << bytesToKB(props.sharedMemPerMultiprocessor) << " KB" << endl;
+  std::cout << std::setw(w1) << "maxSharedMemoryPerMultiProcessor: " << std::fixed << std::setprecision(2)
+            << bytesToKB(props.sharedMemPerMultiprocessor) << " KB" << std::endl;
 #endif
 #if defined(__HIPCC__)
-  cout << setw(w1) << "maxSharedMemoryPerMultiProcessor: " << fixed << setprecision(2)
-       << bytesToKB(props.maxSharedMemoryPerMultiProcessor) << " KB" << endl;
+  std::cout << std::setw(w1) << "maxSharedMemoryPerMultiProcessor: " << std::fixed << std::setprecision(2)
+            << bytesToKB(props.maxSharedMemoryPerMultiProcessor) << " KB" << std::endl;
 #endif
-  cout << setw(w1) << "totalConstMem: " << props.totalConstMem << endl;
-  cout << setw(w1) << "sharedMemPerBlock: " << (float)props.sharedMemPerBlock / 1024.0 << " KB"
-       << endl;
-  cout << setw(w1) << "canMapHostMemory: " << props.canMapHostMemory << endl;
-  cout << setw(w1) << "regsPerBlock: " << props.regsPerBlock << endl;
-  cout << setw(w1) << "warpSize: " << props.warpSize << endl;
-  cout << setw(w1) << "l2CacheSize: " << props.l2CacheSize << endl;
-  cout << setw(w1) << "computeMode: " << props.computeMode << endl;
-  cout << setw(w1) << "maxThreadsPerBlock: " << props.maxThreadsPerBlock << endl;
-  cout << setw(w1) << "maxThreadsDim.x: " << props.maxThreadsDim[0] << endl;
-  cout << setw(w1) << "maxThreadsDim.y: " << props.maxThreadsDim[1] << endl;
-  cout << setw(w1) << "maxThreadsDim.z: " << props.maxThreadsDim[2] << endl;
-  cout << setw(w1) << "maxGridSize.x: " << props.maxGridSize[0] << endl;
-  cout << setw(w1) << "maxGridSize.y: " << props.maxGridSize[1] << endl;
-  cout << setw(w1) << "maxGridSize.z: " << props.maxGridSize[2] << endl;
-  cout << setw(w1) << "major: " << props.major << endl;
-  cout << setw(w1) << "minor: " << props.minor << endl;
-  cout << setw(w1) << "concurrentKernels: " << props.concurrentKernels << endl;
-  cout << setw(w1) << "cooperativeLaunch: " << props.cooperativeLaunch << endl;
-  cout << setw(w1) << "cooperativeMultiDeviceLaunch: " << props.cooperativeMultiDeviceLaunch << endl;
+  std::cout << std::setw(w1) << "totalConstMem: " << props.totalConstMem << std::endl;
+  std::cout << std::setw(w1) << "sharedMemPerBlock: " << (float)props.sharedMemPerBlock / 1024.0 << " KB"
+            << std::endl;
+  std::cout << std::setw(w1) << "canMapHostMemory: " << props.canMapHostMemory << std::endl;
+  std::cout << std::setw(w1) << "regsPerBlock: " << props.regsPerBlock << std::endl;
+  std::cout << std::setw(w1) << "warpSize: " << props.warpSize << std::endl;
+  std::cout << std::setw(w1) << "l2CacheSize: " << props.l2CacheSize << std::endl;
+  std::cout << std::setw(w1) << "computeMode: " << props.computeMode << std::endl;
+  std::cout << std::setw(w1) << "maxThreadsPerBlock: " << props.maxThreadsPerBlock << std::endl;
+  std::cout << std::setw(w1) << "maxThreadsDim.x: " << props.maxThreadsDim[0] << std::endl;
+  std::cout << std::setw(w1) << "maxThreadsDim.y: " << props.maxThreadsDim[1] << std::endl;
+  std::cout << std::setw(w1) << "maxThreadsDim.z: " << props.maxThreadsDim[2] << std::endl;
+  std::cout << std::setw(w1) << "maxGridSize.x: " << props.maxGridSize[0] << std::endl;
+  std::cout << std::setw(w1) << "maxGridSize.y: " << props.maxGridSize[1] << std::endl;
+  std::cout << std::setw(w1) << "maxGridSize.z: " << props.maxGridSize[2] << std::endl;
+  std::cout << std::setw(w1) << "major: " << props.major << std::endl;
+  std::cout << std::setw(w1) << "minor: " << props.minor << std::endl;
+  std::cout << std::setw(w1) << "concurrentKernels: " << props.concurrentKernels << std::endl;
+  std::cout << std::setw(w1) << "cooperativeLaunch: " << props.cooperativeLaunch << std::endl;
+  std::cout << std::setw(w1) << "cooperativeMultiDeviceLaunch: " << props.cooperativeMultiDeviceLaunch << std::endl;
 #if defined(__HIPCC__)
-  cout << setw(w1) << "arch.hasGlobalInt32Atomics: " << props.arch.hasGlobalInt32Atomics << endl;
-  cout << setw(w1) << "arch.hasGlobalFloatAtomicExch: " << props.arch.hasGlobalFloatAtomicExch
-       << endl;
-  cout << setw(w1) << "arch.hasSharedInt32Atomics: " << props.arch.hasSharedInt32Atomics << endl;
-  cout << setw(w1) << "arch.hasSharedFloatAtomicExch: " << props.arch.hasSharedFloatAtomicExch
-       << endl;
-  cout << setw(w1) << "arch.hasFloatAtomicAdd: " << props.arch.hasFloatAtomicAdd << endl;
-  cout << setw(w1) << "arch.hasGlobalInt64Atomics: " << props.arch.hasGlobalInt64Atomics << endl;
-  cout << setw(w1) << "arch.hasSharedInt64Atomics: " << props.arch.hasSharedInt64Atomics << endl;
-  cout << setw(w1) << "arch.hasDoubles: " << props.arch.hasDoubles << endl;
-  cout << setw(w1) << "arch.hasWarpVote: " << props.arch.hasWarpVote << endl;
-  cout << setw(w1) << "arch.hasWarpBallot: " << props.arch.hasWarpBallot << endl;
-  cout << setw(w1) << "arch.hasWarpShuffle: " << props.arch.hasWarpShuffle << endl;
-  cout << setw(w1) << "arch.hasFunnelShift: " << props.arch.hasFunnelShift << endl;
-  cout << setw(w1) << "arch.hasThreadFenceSystem: " << props.arch.hasThreadFenceSystem << endl;
-  cout << setw(w1) << "arch.hasSyncThreadsExt: " << props.arch.hasSyncThreadsExt << endl;
-  cout << setw(w1) << "arch.hasSurfaceFuncs: " << props.arch.hasSurfaceFuncs << endl;
-  cout << setw(w1) << "arch.has3dGrid: " << props.arch.has3dGrid << endl;
-  cout << setw(w1) << "arch.hasDynamicParallelism: " << props.arch.hasDynamicParallelism << endl;
-  cout << setw(w1) << "gcnArchName: " << props.gcnArchName << endl;
+  std::cout << std::setw(w1) << "arch.hasGlobalInt32Atomics: " << props.arch.hasGlobalInt32Atomics << std::endl;
+  std::cout << std::setw(w1) << "arch.hasGlobalFloatAtomicExch: " << props.arch.hasGlobalFloatAtomicExch
+            << std::endl;
+  std::cout << std::setw(w1) << "arch.hasSharedInt32Atomics: " << props.arch.hasSharedInt32Atomics << std::endl;
+  std::cout << std::setw(w1) << "arch.hasSharedFloatAtomicExch: " << props.arch.hasSharedFloatAtomicExch
+            << std::endl;
+  std::cout << std::setw(w1) << "arch.hasFloatAtomicAdd: " << props.arch.hasFloatAtomicAdd << std::endl;
+  std::cout << std::setw(w1) << "arch.hasGlobalInt64Atomics: " << props.arch.hasGlobalInt64Atomics << std::endl;
+  std::cout << std::setw(w1) << "arch.hasSharedInt64Atomics: " << props.arch.hasSharedInt64Atomics << std::endl;
+  std::cout << std::setw(w1) << "arch.hasDoubles: " << props.arch.hasDoubles << std::endl;
+  std::cout << std::setw(w1) << "arch.hasWarpVote: " << props.arch.hasWarpVote << std::endl;
+  std::cout << std::setw(w1) << "arch.hasWarpBallot: " << props.arch.hasWarpBallot << std::endl;
+  std::cout << std::setw(w1) << "arch.hasWarpShuffle: " << props.arch.hasWarpShuffle << std::endl;
+  std::cout << std::setw(w1) << "arch.hasFunnelShift: " << props.arch.hasFunnelShift << std::endl;
+  std::cout << std::setw(w1) << "arch.hasThreadFenceSystem: " << props.arch.hasThreadFenceSystem << std::endl;
+  std::cout << std::setw(w1) << "arch.hasSyncThreadsExt: " << props.arch.hasSyncThreadsExt << std::endl;
+  std::cout << std::setw(w1) << "arch.hasSurfaceFuncs: " << props.arch.hasSurfaceFuncs << std::endl;
+  std::cout << std::setw(w1) << "arch.has3dGrid: " << props.arch.has3dGrid << std::endl;
+  std::cout << std::setw(w1) << "arch.hasDynamicParallelism: " << props.arch.hasDynamicParallelism << std::endl;
+  std::cout << std::setw(w1) << "gcnArchName: " << props.gcnArchName << std::endl;
 #endif
-  cout << setw(w1) << "isIntegrated: " << props.integrated << endl;
-  cout << setw(w1) << "maxTexture1D: " << props.maxTexture1D << endl;
-  cout << setw(w1) << "maxTexture2D.width: " << props.maxTexture2D[0] << endl;
-  cout << setw(w1) << "maxTexture2D.height: " << props.maxTexture2D[1] << endl;
-  cout << setw(w1) << "maxTexture3D.width: " << props.maxTexture3D[0] << endl;
-  cout << setw(w1) << "maxTexture3D.height: " << props.maxTexture3D[1] << endl;
-  cout << setw(w1) << "maxTexture3D.depth: " << props.maxTexture3D[2] << endl;
+  std::cout << std::setw(w1) << "isIntegrated: " << props.integrated << std::endl;
+  std::cout << std::setw(w1) << "maxTexture1D: " << props.maxTexture1D << std::endl;
+  std::cout << std::setw(w1) << "maxTexture2D.width: " << props.maxTexture2D[0] << std::endl;
+  std::cout << std::setw(w1) << "maxTexture2D.height: " << props.maxTexture2D[1] << std::endl;
+  std::cout << std::setw(w1) << "maxTexture3D.width: " << props.maxTexture3D[0] << std::endl;
+  std::cout << std::setw(w1) << "maxTexture3D.height: " << props.maxTexture3D[1] << std::endl;
+  std::cout << std::setw(w1) << "maxTexture3D.depth: " << props.maxTexture3D[2] << std::endl;
 #if defined(__HIPCC__)
-  cout << setw(w1) << "isLargeBar: " << props.isLargeBar << endl;
-  cout << setw(w1) << "asicRevision: " << props.asicRevision << endl;
+  std::cout << std::setw(w1) << "isLargeBar: " << props.isLargeBar << std::endl;
+  std::cout << std::setw(w1) << "asicRevision: " << props.asicRevision << std::endl;
 #endif
 
   int deviceCnt;
-  cudaGetDeviceCount(&deviceCnt);
-  cout << setw(w1) << "peers: ";
+  GPUCHECK(cudaGetDeviceCount(&deviceCnt));
+  std::cout << std::setw(w1) << "peers: ";
   for (int i = 0; i < deviceCnt; i++) {
     int isPeer;
-    cudaDeviceCanAccessPeer(&isPeer, i, deviceId);
+    GPUCHECK(cudaDeviceCanAccessPeer(&isPeer, i, deviceId));
     if (isPeer) {
-      cout << "device#" << i << " ";
+      std::cout << "device#" << i << " ";
     }
   }
-  cout << endl;
-  cout << setw(w1) << "non-peers: ";
+  std::cout << std::endl;
+  std::cout << std::setw(w1) << "non-peers: ";
   for (int i = 0; i < deviceCnt; i++) {
     int isPeer;
-    cudaDeviceCanAccessPeer(&isPeer, i, deviceId);
+    GPUCHECK(cudaDeviceCanAccessPeer(&isPeer, i, deviceId));
     if (!isPeer) {
-      cout << "device#" << i << " ";
+      std::cout << "device#" << i << " ";
     }
   }
-  cout << endl;
+  std::cout << std::endl;
 
   size_t free, total;
-  cudaMemGetInfo(&free, &total);
+  GPUCHECK(cudaMemGetInfo(&free, &total));
 
-  cout << fixed << setprecision(2);
-  cout << setw(w1) << "memInfo.total: " << bytesToGB(total) << " GB" << endl;
-  cout << setw(w1) << "memInfo.free:  " << bytesToGB(free) << " GB (" << setprecision(0)
-       << (float)free / total * 100.0 << "%)" << endl;
+  std::cout << std::fixed << std::setprecision(2);
+  std::cout << std::setw(w1) << "memInfo.total: " << bytesToGB(total) << " GB" << std::endl;
+  std::cout << std::setw(w1) << "memInfo.free:  " << bytesToGB(free) << " GB (" << std::setprecision(0)
+            << (float)free / total * 100.0 << "%)" << std::endl;
 }
 
-void hello_util()
+void printDevices()
 {
   int deviceCnt;
-
   GPUCHECK(cudaGetDeviceCount(&deviceCnt));
 
   for (int i = 0; i < deviceCnt; i++) {
-    cudaSetDevice(i);
+    GPUCHECK(cudaSetDevice(i));
     printDeviceProp(i);
   }
-
-  // gpu::helloKernel<<<1, 1>>>();
-  // displayCard();
 }
 } // namespace benchmark
 } // namespace o2
-
-/*In particular: I'd allocate one single large buffer filling almost the whole GPU memory, and then assume that it is more or less linear, at least if the GPU memory was free before.
-I.e., at least the lower ~ 14 GB of the buffer should be in the lower 16 GB memory, and the higher ~14 GB in the upper 16 GP.
-
-Then we partition this buffer in say 1GB segments, and run benchmarks in the segments individually, or in multiple segments in parallel.
-For running on multiple segments in parallel, it would be interesting to split on the block level and on the thread level.
-We should always start as many blocks as there are multiprocessors on the GPU, such that we have a 1 to 1 mapping without scheduling blocks.
-We should make sure that the test runs long enough, say >5 seconds, then the initial scheduling should become irrelevant.
-
-For the tests I want to run in the segments, I think these should be:
-- Linear read in a multithreaded way: i.e. the standard GPU for loop:
-for (int i = threadIdx.x; i < segmentSIze; i += blockDim.x) foo += array[i];
-In the end we have to write foo to some output address to make sure the compiler cannot optimize anything.
-- Then I'd do the same with some stride, i.e.:
-foo += array[i * stride];
-- I'd try a random access with some simple linear congruence RNG per thread to determine the address.
-- Then I'd do the same with writing memory, and with copying memory.
-- Finally the data type should be flexible, going from char to uint4.
-That should cover most cases, but if you have more ideas, feel free to add something.*/

@@ -24,7 +24,7 @@ set(HIP_KERNEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${HIP_KERNEL}")
 if(EXISTS ${HIPIFY_EXECUTABLE})
 
 # Generate on-the-fly the HIP kernel
-message("Generating HIP kernel code on the fly...")
+message("Generating HIP kernel code ....")
 execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} ${CU_KERNEL} | tee ${HIP_KERNEL_PATH}")
 o2_add_library(HIPbenchmark
                SOURCES Kernels.hip.cxx
@@ -37,5 +37,3 @@ o2_add_library(HIPbenchmark
 elseif()
   message(STATUS "Could not generate ${HIP_KERNEL} HIP kernel, skipping...")
 endif()
-
-# install(FILES ${HDRS_INSTALL} DESTINATION include/GPU/GPUBenchmark/Steer/Kernels)
