@@ -22,7 +22,7 @@ To obtain plots of (FairMQ) devices operating in the simulation you will have to
 
 e.g. if you wish to monitor 50 pp (pythia) events with Geant3 as the VMC backend using the FIT detector and utilizing parallel mode with 2 simulation workers AND keep track of FairMQ devices, you can do:
 
-`$> ./monitor.sh o2-sim -g pythia8 -e TGeant3 -m FV0 FT0 FDD -j 2 -n 50 | tee o2sim.log`
+`$> ./monitor.sh o2-sim -g pythia8pp -e TGeant3 -m FV0 FT0 FDD -j 2 -n 50 | tee o2sim.log`
 
 ---
 
@@ -40,7 +40,7 @@ The monitored data has to be processed as:
 
 This will generate an output: 
 
-```Your command was:  o2-sim -g pythia8 -e TGeant3 -m FV0 FT0 FDD -j 2 -n 50
+```Your command was:  o2-sim -g pythia8pp -e TGeant3 -m FV0 FT0 FDD -j 2 -n 50
 You have monitored o2 simulation in parallel.
 
 ********************************
