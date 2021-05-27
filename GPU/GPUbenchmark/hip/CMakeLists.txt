@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-set(HDRS_INSTALL ../Kernels.h)
+set(HDRS_INSTALL ../Shared/Kernels.h)
 
 set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -28,19 +28,14 @@ message("Generating HIP kernel code on the fly...")
 execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} ${CU_KERNEL} | tee ${HIP_KERNEL_PATH}")
 o2_add_library(HIPbenchmark
                SOURCES Kernels.hip.cxx
-               PUBLIC_INCLUDE_DIRECTORIES ../
+               PUBLIC_INCLUDE_DIRECTORIES ../Shared
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      hip::host
                                      hip::device
                TARGETVARNAME targetName)
 
-  # if(HIP_AMDGPUTARGET)
-  #   # Need to add gpu target also to link flags due to gpu-rdc option
-
-  #   target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
-  # endif()
 elseif()
   message(STATUS "Could not generate ${HIP_KERNEL} HIP kernel, skipping...")
 endif()
 
-install(FILES ${HDRS_INSTALL} DESTINATION include/GPU/GPUBenchmark/Steer/Kernels)
+# install(FILES ${HDRS_INSTALL} DESTINATION include/GPU/GPUBenchmark/Steer/Kernels)

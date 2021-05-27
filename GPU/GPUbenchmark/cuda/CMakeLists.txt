@@ -8,10 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-add_subdirectory(Kernels)
+set(HDRS_INSTALL ../Shared/Kernels.h)
 
-# o2_add_library(GPUBenchmark
-#                SOURCES BenchmarkSteer.cxx
-#                PUBLIC_INCLUDE_DIRECTORIES .
-#                PUBLIC_LINK_LIBRARIES O2::HIPbenchmark
-#                                      O2::CUDAbenchmark)
+o2_add_library(CUDAbenchmark
+               SOURCES Kernels.cu
+               PUBLIC_INCLUDE_DIRECTORIES ../Shared
+               PUBLIC_LINK_LIBRARIES O2::GPUCommon
+               TARGETVARNAME targetName)
+
+               set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+
+# install(FILES ${HDRS_INSTALL} DESTINATION include/GPU/GPUBenchmark/Steer/Kernels)
