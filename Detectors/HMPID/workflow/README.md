@@ -1,5 +1,5 @@
 <!-- doxy
-\page refHMPworkflow HMP workflow
+\page refHMPIDworkflow HMP workflow
 /doxy -->
 
 # DPL workflows for the HMPID  v.0.7
@@ -109,7 +109,7 @@ Data processor options: HMPDigitWriter:
   --in-file arg (=hmpidRaw.raw)         name of the input Raw file
   --out-file arg (=hmpReco.root)        name of the output file
   --base-file arg (=hmpDecode)          base name for statistical output file
-  --fast-decode                         Use the fast algorithm. (error 0.8%)  
+  --fast-decode                         Use the fast algorithm. (error 0.8%)
 ```
 
 Example
