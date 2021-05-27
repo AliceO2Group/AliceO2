@@ -127,7 +127,7 @@ class CruRawReader
   bool mVerbose{false};
   bool mHeaderVerbose{false};
   bool mDataVerbose{false};
-  bool mByteSwap{true};
+  bool mByteSwap{false};
   const char* mDataBuffer = nullptr;
   static const uint32_t mMaxHBFBufferSize = o2::trd::constants::HBFBUFFERMAX;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX> mHBFPayload; //this holds the O2 payload held with in the HBFs to pass to parsing.

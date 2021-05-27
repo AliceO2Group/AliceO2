@@ -76,7 +76,7 @@ class Trap2CRU
   std::string mFilePer; // how to split up the raw data files, sm:per supermodule, halfcru: per half cru, cru: per cru, all: singular file.
   //  std::string mInputFileName;
   std::string mOutputFileName;
-  int mVerbosity = 0;
+  int mVerbosity{0};
   std::string mOutputDir;
   uint32_t mSuperPageSizeInB;
   //HalfCRUHeader mHalfCRUHeader;

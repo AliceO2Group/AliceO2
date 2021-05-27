@@ -65,7 +65,7 @@ int DigitsParser::Parse(bool verbose)
   if (mDataVerbose) {
     LOG(info) << "trackletdata to parse begin";
     std::vector<uint32_t> datacopy(mStartParse, mEndParse);
-    if (!mDisableByteOrderFix) {
+    if (mByteOrderFix) {
       for (auto a : datacopy) {
         swapByteOrder(a);
       }
@@ -101,7 +101,7 @@ int DigitsParser::Parse(bool verbose)
       LOG(info) << "at start of data";
     }
     mDigitHCHeader = (DigitHCHeader*)mStartParse;
-    if (!mDisableByteOrderFix) {
+    if (!mByteOrderFix) {
       // byte swap if needed.
       swapByteOrder(mDigitHCHeader->word0);
       swapByteOrder(mDigitHCHeader->word1);
@@ -124,7 +124,7 @@ int DigitsParser::Parse(bool verbose)
       LOG(info) << "parsing word : " << std::hex << *word;
     }
     //check for digit end marker
-    if (!mDisableByteOrderFix) {
+    if (!mByteOrderFix) {
       // byte swap if needed.
       swapByteOrder(*word);
     }
