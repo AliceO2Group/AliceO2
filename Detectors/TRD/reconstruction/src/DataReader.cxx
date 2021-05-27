@@ -34,7 +34,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"trd-datareader-headerverbose", VariantType::Bool, false, {"Enable verbose header info"}},
     {"trd-datareader-dataverbose", VariantType::Bool, false, {"Enable verbose data info"}},
     {"trd-datareader-compresseddata", VariantType::Bool, false, {"The incoming data is compressed or not"}},
-    {"trd-datareader-disablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
+    {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
@@ -68,7 +68,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TRD", "TRIGGERRECORD"}));
   //outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TRD", "FLPSTAT"}));
   LOG(info) << "input spec is:" << inputspec;
-  LOG(info) << "disablebyteswap :" << byteswap;
+  LOG(info) << "enablebyteswap :" << byteswap;
   AlgorithmSpec algoSpec;
   algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(compresseddata, byteswap, verbose, headerverbose, dataverbose)};
 

@@ -49,7 +49,7 @@
 namespace bpo = boost::program_options;
 
 void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName,
-              const std::string& outDir, int verbosity, std::string filePerLink,
+              const std::string& outDir, bool verbose, std::string filePerLink,
               uint32_t rdhV = 6, bool noEmptyHBF = false, bool tracklethcheader = false, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
@@ -75,6 +75,7 @@ int main(int argc, char** argv)
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     add_option("reject-digits", bpo::value<bool>()->default_value(false), "reject the digits in the raw stream");
+    add_option("verbose,w", bpo::value<bool>()->default_value(false), "verbose");
 
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
@@ -103,16 +104,15 @@ int main(int argc, char** argv)
   return 0;
 }
 
-void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, int verbosity, std::string filePer, uint32_t rdhV, bool noEmptyHBF, bool trackletHCHeader, int superPageSizeInB)
+void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, bool verbose, std::string filePer, uint32_t rdhV, bool noEmptyHBF, bool trackletHCHeader, int superPageSizeInB)
 {
-
   TStopwatch swTot;
   swTot.Start();
   LOG(info) << "timer started";
   o2::trd::Trap2CRU mc2raw(outDir, inpDigitsName, inpTrackletsName); //,superPageSizeInB);
   LOG(info) << "class instantiated";
   mc2raw.setFilePer(filePer);
-  mc2raw.setVerbosity(verbosity);
+  mc2raw.setVerbosity(verbose);
   mc2raw.setTrackletHCHeader(trackletHCHeader); // run3 or run2
   auto& wr = mc2raw.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
@@ -137,6 +137,7 @@ void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsN
   }
 
   mc2raw.setTrackletHCHeader(trackletHCHeader);
+  LOG(info) << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%;";
   mc2raw.readTrapData();
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //

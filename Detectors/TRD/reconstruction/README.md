@@ -12,6 +12,7 @@ Reconstruction is made up of different parts. There are things that run on the f
             This takes in the data from the CRU, optionally compresses it or sends it raw out to the epn via workflows.
     - epn :
         - o2-trd-rawreader
+            Take the piped in raw data and unpacks it to a vector tracklets/digits/triggerrecords.
 
 - Generate raw data from montecarlo:
 ```
@@ -30,6 +31,12 @@ Now we are ready to play.
 - Where to find some raw data.
     - Generate some as above, one can keep looping through a set of data if the traversal of your data is too quick for your purposes.
     - Pulling taken data from EOS (14 December 2020(testpattern) and January 2021(test pattern)). [link instructions of eos access]
+
+- MC to raw
+    - pipe the simulated raw data through the rawreader and onto where ever you want to use it.
+```
+o2-raw-file-reader-workflow --input-conf TRDraw.cfg | o2-trd-datareader --trd-datareader-disablebyteswapdata
+```
 
 - Bits and pieces required.
     - Data input  (StfBuilder)

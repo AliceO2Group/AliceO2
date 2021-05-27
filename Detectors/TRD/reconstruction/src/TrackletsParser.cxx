@@ -40,7 +40,7 @@ int TrackletsParser::Parse()
   //producing a vector of digits.
   if (mVerbose) {
     LOG(info) << "Tracklet Parser parse of data sitting at :" << std::hex << (void*)mData << " starting at pos " << mStartParse;
-    if (mDisableByteOrderFix) {
+    if (mByteOrderFix) {
 
       LOG(info) << " we will not be byte swapping";
     } else {
@@ -51,7 +51,7 @@ int TrackletsParser::Parse()
   if (mDataVerbose) {
     LOG(info) << "trackletdata to parse begin";
     std::vector<uint32_t> datacopy(mStartParse, mEndParse);
-    if (!mDisableByteOrderFix) {
+    if (!mByteOrderFix) {
       for (auto a : datacopy) {
         swapByteOrder(a);
       }
@@ -105,12 +105,12 @@ int TrackletsParser::Parse()
     if (mDataVerbose) {
       LOG(info) << "Before byteswapping " << index << " word is : " << std::hex << word << " next word is : " << nextwordcopy << " and raw nextword is :" << std::hex << (*mData)[index + 1];
     }
-    if (!mDisableByteOrderFix) {
+    if (!mByteOrderFix) {
       swapByteOrder(*word);
       swapByteOrder(nextwordcopy);
     }
     if (mDataVerbose) {
-      if (!mDisableByteOrderFix) {
+      if (!mByteOrderFix) {
         LOG(info) << "After byteswapping " << index << " word is : " << std::hex << word << " next word is : " << nextwordcopy << " and raw nextword is :" << std::hex << (*mData)[index + 1];
       } else {
         LOG(info) << "After byteswapping " << index << " word is : " << std::hex << word << " next word is : " << nextwordcopy << " and raw nextword is :" << std::hex << (*mData)[index + 1];

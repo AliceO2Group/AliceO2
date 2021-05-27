@@ -53,7 +53,7 @@ class DigitsParser
     if (cleardigits) {
       clearDigits();
     }
-    setDisableByteSwap(disablebyteswap);
+    setByteSwap(disablebyteswap);
     mReturnVectorPos = 0;
     return Parse();
   };
@@ -73,7 +73,7 @@ class DigitsParser
     mHeaderVerbose = header;
     mDataVerbose = data;
   }
-  void setDisableByteSwap(bool disablebyteswap) { mDisableByteOrderFix = disablebyteswap; }
+  void setByteSwap(bool byteswap) { mByteOrderFix = byteswap; }
   std::vector<CompressedDigit>& getDigits() { return mDigits; }
   void clearDigits() { mDigits.clear(); }
   void clear() { mDigits.clear(); }
@@ -85,7 +85,7 @@ class DigitsParser
   int mBufferLocation;
   int mPaddingWordsCounter;
   bool mSanityCheck{true};
-  bool mDisableByteOrderFix{false}; // simulated data is not byteswapped, real is, so deal with it accodringly.
+  bool mByteOrderFix{false}; // simulated data is not byteswapped, real is, so deal with it accodringly.
   bool mReturnVector{true};         // whether we are returing a vector or the raw data buffer.
   // yes this is terrible design but it works,
   int mReturnVectorPos;

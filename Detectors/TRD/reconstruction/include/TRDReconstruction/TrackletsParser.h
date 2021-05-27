@@ -42,7 +42,7 @@ class TrackletsParser
     mDetector = detector;
     setData(data);
     setVerbose(verbose, headerverbose, dataverbose);
-    setDisableByteSwap(disablebyteswap);
+    setByteSwap(disablebyteswap);
     mWordsRead = 0;
     mDataWordsParsed = 0;
     mTrackletsFound = 0;
@@ -56,7 +56,7 @@ class TrackletsParser
     mHeaderVerbose = header;
     mDataVerbose = data;
   }
-  void setDisableByteSwap(bool swap) { mDisableByteOrderFix = swap; }
+  void setByteSwap(bool swap) { mByteOrderFix = swap; }
   int getDataWordsParsed() { return mDataWordsParsed; }
   int getTrackletsFound() { return mTrackletsFound; }
   void setIgnoreTrackletHCHeader(bool ignore) { mIgnoreTrackletHCHeader = ignore; }
@@ -93,7 +93,7 @@ class TrackletsParser
   bool mDataVerbose{false};
 
   bool mIgnoreTrackletHCHeader{false}; // Is the data with out the tracklet HC Header? defaults to having it in.
-  bool mDisableByteOrderFix{false};    // simulated data is not byteswapped, real is, so deal with it accodringly.
+  bool mByteOrderFix{false};    // simulated data is not byteswapped, real is, so deal with it accodringly.
   bool mReturnVector{false};           // whether weare returing a vector or the raw data buffer.
 
   uint16_t mDetector;
