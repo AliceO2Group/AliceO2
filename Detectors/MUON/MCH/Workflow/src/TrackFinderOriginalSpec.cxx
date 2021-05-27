@@ -19,6 +19,7 @@
 #include <array>
 #include <list>
 #include <stdexcept>
+#include <string>
 
 #include <gsl/span>
 
@@ -31,6 +32,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
+#include "CommonUtils/ConfigurableParam.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/ClusterBlock.h"
@@ -59,13 +61,11 @@ class TrackFinderTask
 
     auto l3Current = ic.options().get<float>("l3Current");
     auto dipoleCurrent = ic.options().get<float>("dipoleCurrent");
+    auto config = ic.options().get<std::string>("config");
+    if (!config.empty()) {
+      o2::conf::ConfigurableParam::updateFromFile(config, "MCHTracking", true);
+    }
     mTrackFinder.init(l3Current, dipoleCurrent);
-
-    auto moreCandidates = ic.options().get<bool>("moreCandidates");
-    mTrackFinder.findMoreTrackCandidates(moreCandidates);
-
-    auto refineTracks = !ic.options().get<bool>("noRefinement");
-    mTrackFinder.refineTracks(refineTracks);
 
     auto debugLevel = ic.options().get<int>("debug");
     mTrackFinder.debug(debugLevel);
@@ -156,8 +156,7 @@ o2::framework::DataProcessorSpec getTrackFinderOriginalSpec()
     AlgorithmSpec{adaptFromTask<TrackFinderTask>()},
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
-            {"moreCandidates", VariantType::Bool, false, {"Find more track candidates"}},
-            {"noRefinement", VariantType::Bool, false, {"Disable the track refinement"}},
+            {"config", VariantType::String, "", {"JSON or INI file with tracking parameters"}},
             {"debug", VariantType::Int, 0, {"debug level"}}}};
 }
 

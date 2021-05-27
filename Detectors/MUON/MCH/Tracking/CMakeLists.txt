@@ -17,4 +17,8 @@ o2_add_library(MCHTracking
         src/TrackFitter.cxx
         src/TrackFinderOriginal.cxx
         src/TrackFinder.cxx
-        PUBLIC_LINK_LIBRARIES O2::Field O2::MCHBase O2::Framework)
+        src/TrackerParam.cxx
+        PUBLIC_LINK_LIBRARIES O2::Field O2::MCHBase O2::Framework O2::CommonUtils)
+
+o2_target_root_dictionary(MCHTracking
+                          HEADERS include/MCHTracking/TrackerParam.h)
