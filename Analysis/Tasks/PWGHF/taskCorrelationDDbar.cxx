@@ -58,7 +58,7 @@ double evaluatePhiByVertex(double xVertex1, double xVertex2, double yVertex1, do
 }
 /*
 /// definition of axes for THnSparse (dPhi,dEta,pTD,pTDbar) - note: last two axis are dummy, will be replaced later
-const int nBinsSparse[4] = {32,120,10,10}; 
+const int nBinsSparse[4] = {32,120,10,10};
 const double binMinSparse[4] = {-o2::constants::math::PI / 2.,-6.,0.,0.;  //is the minimum for all the bins
 const double binMaxSparse[4] = {3. * o2::constants::math::PI / 2.,6.,10.,10.};  //is the maximum for all the bins
 */
