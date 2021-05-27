@@ -130,9 +130,7 @@ class VarManager : public TObject
     kMass,
     kCharge,
     kNBasicTrackVariables,
-    //-----Luca-----//
     kCosThetaHE,
-    //-----Luca-----//
 
     // Barrel track variables
     kPin,
