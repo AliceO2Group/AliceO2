@@ -46,7 +46,6 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   mEnd = ic.options().get<int64_t>("tend");
 
   mCalibrator = std::make_unique<CALIBRATOR>(probT);
-  //  mCalibrator->setSlotLength(std::numeric_limits<TFType>::max); //For TimeSlot calibration
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
@@ -89,30 +88,19 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
     tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
   }
 
-  auto toKeyValPairs = [](std::vector<std::string> const& tokens) {
-    std::vector<std::pair<std::string, std::string>> pairs;
-    Str strutils;
-    for (auto& token : tokens) {
-      auto keyval = Str::tokenize(token, '=', false);
-      if (keyval.size() != 2) {
-        // LOG(FATAL) << "Illegal command-line key/value string: " << token;
-        continue;
-      }
-
-      strutils.trim(keyval[1]);
-      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], keyval[1]);
-      pairs.push_back(pair);
-    }
-
-    return pairs;
-  };
   std::map<std::string, std::string> meta;
-  auto keyvalues = toKeyValPairs(Str::tokenize(mMeta, ';', true));
-
-  // fill meta map
-  for (auto& p : keyvalues) {
-    meta[p.first] = p.second;
-  }
+  auto toKeyValPairs = [&meta](std::vector<std::string> const& tokens) {
+    for (auto&amp; token : tokens) {
+       auto keyval = Str::tokenize(token, '=', false);
+       if (keyval.size() != 2) {
+          LOG(ERROR) << "Illegal command-line key/value string: " << token;
+          continue;
+       }
+       Str::trim(keyval[1]);
+       meta[keyval[0]] = keyval[1];
+    }
+  };
+  toKeyValPairs(Str::tokenize(mMeta, ';', true));
 
   long startTF, endTF;
 

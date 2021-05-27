@@ -44,6 +44,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
   {
     mProbabilityThreshold = prob;
     setUpdateAtTheEndOfRunOnly();
+    setSlotLength(std::numeric_limits<TFType>::max);
   }
   ~NoiseSlotCalibrator() final = default;
 
@@ -83,7 +84,7 @@ class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsm
   bool hasEnoughData(const Slot& slot) const final;
 
  private:
-  float mProbabilityThreshold = 3e-6f;
+  float mProbabilityThreshold = 1e-6f;
   unsigned int mThreshold = 100;
   unsigned int mNumberOfStrobes = 0;
 };
