@@ -96,4 +96,9 @@ BOOST_AUTO_TEST_CASE(TestStructToTuple)
 
   FooMax fooMax;
   auto t4 = o2::framework::to_tuple_refs(fooMax);
+
+  auto t5 = o2::framework::homogeneous_apply_refs([](auto i) -> bool { return i > 20; }, fooMax);
+  BOOST_CHECK_EQUAL(t5[0], false);
+  BOOST_CHECK_EQUAL(t5[19], false);
+  BOOST_CHECK_EQUAL(t5[20], true);
 }
