@@ -8,10 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file BenchmarkSteer.h
+/// \file benchmark.cxx
 /// \author: mconcas@cern.ch
 
-#ifndef BENCHAMARKSTEER_H
-#define BENCHAMARKSTEER_H
+#include <iostream>
+#include <Kernels.h>
 
-#endif
+int main()
+{
+  std::cout << "HELLO WORLD" << std::endl;
+  o2::benchmark::GPUbenchmark bm{};
+  bm.hello();
+  return 0;
+}

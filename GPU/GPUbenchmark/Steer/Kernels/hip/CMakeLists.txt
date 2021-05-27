@@ -34,11 +34,11 @@ o2_add_library(HIPbenchmark
                                      hip::device
                TARGETVARNAME targetName)
 
-  if(HIP_AMDGPUTARGET)
-    # Need to add gpu target also to link flags due to gpu-rdc option
+  # if(HIP_AMDGPUTARGET)
+  #   # Need to add gpu target also to link flags due to gpu-rdc option
 
-    target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
-  endif()
+  #   target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+  # endif()
 elseif()
   message(STATUS "Could not generate ${HIP_KERNEL} HIP kernel, skipping...")
 endif()
