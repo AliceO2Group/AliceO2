@@ -25,6 +25,10 @@
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsMFT/TrackMFT.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
 
 #include <string>
 #include <vector>
@@ -205,13 +209,6 @@ class AODProducerWorkflowDPL : public Task
                   std::map<uint64_t, int>& bcsMap);
 
   uint64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
-
-  template <typename TTracks, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
-  void fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
-                       const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType);
-
-  template <typename TTracks, typename TTracksCursor>
-  void fillMFTTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor);
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
