@@ -8,24 +8,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file DplusDminusCorrelator.cxx
+/// \file HFCorrelatorDplusDminus.cxx
 /// \brief Dplus-Dminus correlator task - data-like, MC-reco and MC-kine analyses. For ULS and LS pairs
 ///
 /// \author Fabio Colamaria <fabio.colamaria@ba.infn.it>, INFN Bari
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong3;
-using namespace o2::analysis::hf_cuts_dplus_topikpi;
 using namespace o2::framework::expressions;
+using namespace o2::aod::hf_cand_prong3;
+using namespace o2::aod::hf_correlation_ddbar;
+using namespace o2::analysis::hf_cuts_dplus_topikpi;
 using namespace o2::constants::math;
-using namespace o2::aod::hf_ddbar_correlation;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
@@ -57,7 +56,7 @@ const double incrementPtThreshold = 0.5;
 const double epsilon = 1E-5;
 
 /// Dplus-Dminus correlation pair builder - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
-struct DplusDminusCorrelator {
+struct HfCorrelatorDplusDminus {
   Produces<aod::DDbarPair> entryDplusDminusPair;
   Produces<aod::DDbarRecoInfo> entryDplusDminusRecoInfo;
 
@@ -68,13 +67,13 @@ struct DplusDminusCorrelator {
      {"hPtProng0", "Dplus,Dminus candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
      {"hPtProng1", "Dplus,Dminus candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
      {"hPtProng2", "Dplus,Dminus candidates;prong 2 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
-     {"hSelectionStatus", "Dplus,Dminus candidates;selection status;entries", {HistType::kTH1F, {{5, -0.5, 4.5}}}},
+     {"hSelectionStatus", "Dplus,Dminus candidates;selection status;entries", {HistType::kTH1F, {{2, -0.5, 1.5}}}},
      {"hEta", "Dplus,Dminus candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhi", "Dplus,Dminus candidates;candidate #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
      {"hY", "Dplus,Dminus candidates;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hDDbarVsEtaCut", "Dplus,Dminus pairs vs #eta cut;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}}};
 
-  Configurable<int> dSelectionFlagDplus{"dSelectionFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
+  Configurable<int> selectionFlagDplus{"selectionFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
   Configurable<std::vector<double>> bins{"ptBinsForMass", std::vector<double>{o2::analysis::hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits for candidate mass plots"};
@@ -86,7 +85,7 @@ struct DplusDminusCorrelator {
     registry.add("hMassDminus", "Dplus,Dminus candidates;inv. mass Dminus only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= dSelectionFlagDplus);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= selectionFlagDplus);
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelDplusToPiKPiCandidate>> const& candidates, aod::BigTracks const& tracks)
   {
@@ -94,11 +93,11 @@ struct DplusDminusCorrelator {
       if (cutYCandMax >= 0. && std::abs(YDPlus(candidate1)) > cutYCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       //check decay channel flag for candidate1
-      if (!(candidate1.hfflag() & 1 << DPlusToPiKPi)) { //probably dummy since already selected? not sure...
+      if (!(candidate1.hfflag() & 1 << DecayType::DPlusToPiKPi)) { //probably dummy since already selected? not sure...
         continue;
       }
       int outerParticleSign = 1; //Dplus
@@ -126,52 +125,49 @@ struct DplusDminusCorrelator {
 
       //D-Dbar correlation dedicated section
       //if the candidate is a Dplus, search for Dminus and evaluate correlations
-      if (outerParticleSign == 1) {
-        for (auto& candidate2 : candidates) {
-          //check decay channel flag for candidate2
-          if (!(candidate2.hfflag() & 1 << DPlusToPiKPi)) { //probably dummy since already selected? not sure...
-            continue;
-          }
-          int innerParticleSign = 1; //Dplus
-          auto innerSecondTrack = candidate2.index1_as<aod::BigTracks>();
-          if (innerSecondTrack.sign() == 1) {
-            innerParticleSign = -1; //Dminus (second daughter track is positive)
-          }
-          if (innerParticleSign == -1) {
-            if (cutYCandMax >= 0. && std::abs(YDPlus(candidate2)) > cutYCandMax) {
-              continue;
-            }
-            if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
-              continue;
-            }
-            entryDplusDminusPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),
-                                 candidate2.eta() - candidate1.eta(),
-                                 candidate1.pt(),
-                                 candidate2.pt());
-            entryDplusDminusRecoInfo(InvMassDPlus(candidate1),
-                                     InvMassDPlus(candidate2),
-                                     0);
-            double etaCut = 0.;
-            double ptCut = 0.;
-            do { //fill pairs vs etaCut plot
-              ptCut = 0.;
-              etaCut += incrementEtaCut;
-              do { //fill pairs vs etaCut plot
-                if (std::abs(candidate1.eta()) < etaCut && std::abs(candidate2.eta()) < etaCut && candidate1.pt() > ptCut && candidate2.pt() > ptCut)
-                  registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
-                ptCut += incrementPtThreshold;
-              } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
-            } while (etaCut < maxEtaCut - epsilon);
-          }
-        } // end inner loop (Dbars)
+      if (outerParticleSign != 1) {
+        continue;
       }
-
-    } //end outer loop
+      for (auto& candidate2 : candidates) {
+        //check decay channel flag for candidate2
+        if (!(candidate2.hfflag() & 1 << DecayType::DPlusToPiKPi)) { //probably dummy since already selected? not sure...
+          continue;
+        }
+        auto innerSecondTrack = candidate2.index1_as<aod::BigTracks>();
+        if (innerSecondTrack.sign() != 1) { //keep only Dminus (with second daughter track positive)
+          continue;
+        }
+        if (cutYCandMax >= 0. && std::abs(YDPlus(candidate2)) > cutYCandMax) {
+          continue;
+        }
+        if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
+          continue;
+        }
+        entryDplusDminusPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),
+                             candidate2.eta() - candidate1.eta(),
+                             candidate1.pt(),
+                             candidate2.pt());
+        entryDplusDminusRecoInfo(InvMassDPlus(candidate1),
+                                 InvMassDPlus(candidate2),
+                                 0);
+        double etaCut = 0.;
+        double ptCut = 0.;
+        do { //fill pairs vs etaCut plot
+          ptCut = 0.;
+          etaCut += incrementEtaCut;
+          do { //fill pairs vs etaCut plot
+            if (std::abs(candidate1.eta()) < etaCut && std::abs(candidate2.eta()) < etaCut && candidate1.pt() > ptCut && candidate2.pt() > ptCut)
+              registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
+            ptCut += incrementPtThreshold;
+          } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
+        } while (etaCut < maxEtaCut - epsilon);
+      } // end inner loop (Dminus)
+    }   //end outer loop (Dplus)
   }
 };
 
 /// Dplus-Dminus correlation pair builder - for MC reco-level analysis (candidates matched to true signal only, but also the various bkg sources are studied)
-struct DplusDminusCorrelatorMCRec {
+struct HfCorrelatorDplusDminusMCRec {
   Produces<aod::DDbarPair> entryDplusDminusPair;
   Produces<aod::DDbarRecoInfo> entryDplusDminusRecoInfo;
 
@@ -182,13 +178,13 @@ struct DplusDminusCorrelatorMCRec {
      {"hPtProng0MCRec", "Dplus,Dminus candidates - MC reco;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
      {"hPtProng1MCRec", "Dplus,Dminus candidates - MC reco;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
      {"hPtProng2MCRec", "Dplus,Dminus candidates - MC reco;prong 2 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
-     {"hSelectionStatusMCRec", "Dplus,Dminus candidates - MC reco;selection status;entries", {HistType::kTH1F, {{5, -0.5, 4.5}}}},
+     {"hSelectionStatusMCRec", "Dplus,Dminus candidates - MC reco;selection status;entries", {HistType::kTH1F, {{2, -0.5, 1.5}}}},
      {"hEtaMCRec", "Dplus,Dminus candidates - MC reco;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiMCRec", "Dplus,Dminus candidates - MC reco;candidate #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
      {"hYMCRec", "Dplus,Dminus candidates - MC reco;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hDDbarVsEtaCut", "Dplus,Dminus pairs vs #eta cut;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}}};
 
-  Configurable<int> dSelectionFlagDplus{"dSelectionFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
+  Configurable<int> selectionFlagDplus{"selectionFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
   Configurable<std::vector<double>> bins{"ptBinsForMass", std::vector<double>{o2::analysis::hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits for candidate mass plots"};
@@ -199,22 +195,22 @@ struct DplusDminusCorrelatorMCRec {
     registry.add("hMassDminusMCRec", "Dplus,Dminus candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= dSelectionFlagDplus);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= selectionFlagDplus);
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelDplusToPiKPiCandidate, aod::HfCandProng3MCRec>> const& candidates, aod::BigTracks const& tracks)
   {
     //MC reco level
-    bool flagDplusSignal = kFALSE;
-    bool flagDminusSignal = kFALSE;
+    bool flagDplusSignal = false;
+    bool flagDminusSignal = false;
     for (auto& candidate1 : candidates) {
       //check decay channel flag for candidate1
-      if (!(candidate1.hfflag() & 1 << DPlusToPiKPi)) {
+      if (!(candidate1.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YDPlus(candidate1)) > cutYCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       int outerParticleSign = 1; //Dplus
@@ -222,7 +218,7 @@ struct DplusDminusCorrelatorMCRec {
       if (outerSecondTrack.sign() == 1) {
         outerParticleSign = -1; //Dminus (second daughter track is positive)
       }
-      if (std::abs(candidate1.flagMCMatchRec()) == 1 << DPlusToPiKPi) {
+      if (std::abs(candidate1.flagMCMatchRec()) == 1 << DecayType::DPlusToPiKPi) {
         //fill invariant mass plots and generic info from all Dplus/Dminus candidates
         if (outerParticleSign == 1) { //matched as Dplus
           registry.fill(HIST("hMassDplusMCRec"), InvMassDPlus(candidate1), candidate1.pt());
@@ -243,33 +239,20 @@ struct DplusDminusCorrelatorMCRec {
       if (outerParticleSign == -1) {
         continue; //reject Dminus in outer loop
       }
-      if (std::abs(candidate1.flagMCMatchRec()) == 1 << DPlusToPiKPi) { //candidate matched to Dplus (particle)
-        flagDplusSignal = kTRUE;
-      } else { //candidate of bkg, wrongly selected as Dplus
-        flagDplusSignal = kFALSE;
-      }
+      flagDplusSignal = std::abs(candidate1.flagMCMatchRec()) == 1 << DecayType::DPlusToPiKPi; //flagDplusSignal 'true' if candidate1 matched to Dplus
       for (auto& candidate2 : candidates) {
-        if (!(candidate2.hfflag() & 1 << DPlusToPiKPi)) { //check decay channel flag for candidate2
+        if (!(candidate2.hfflag() & 1 << DecayType::DPlusToPiKPi)) { //check decay channel flag for candidate2
           continue;
         }
-        int innerParticleSign = 1; //Dplus
         auto innerSecondTrack = candidate2.index1_as<aod::BigTracks>();
-        if (innerSecondTrack.sign() == 1) {
-          innerParticleSign = -1; //Dminus (second daughter track is positive)
+        if (innerSecondTrack.sign() != 1) { //keep only Dminus (with second daughter track positive)
+          continue;
         }
-
-        if (innerParticleSign == 1) {
-          continue; //reject Dplus in outer loop
-        }
-        if (std::abs(candidate2.flagMCMatchRec()) == 1 << DPlusToPiKPi) { //candidate matched to Dminus (antiparticle)
-          flagDminusSignal = kTRUE;
-        } else { //candidate of bkg, wrongly selected as Dminus
-          flagDminusSignal = kFALSE;
-        }
+        flagDminusSignal = std::abs(candidate2.flagMCMatchRec()) == 1 << DecayType::DPlusToPiKPi; //flagDminusSignal 'true' if candidate2 matched to Dminus
         if (cutYCandMax >= 0. && std::abs(YDPlus(candidate2)) > cutYCandMax) {
           continue;
         }
-        if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
+        if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
           continue;
         }
         //choice of options (Dplus/Dminus signal/bkg)
@@ -305,7 +288,7 @@ struct DplusDminusCorrelatorMCRec {
 };
 
 /// Dplus-Dminus correlation pair builder - for MC gen-level analysis (no filter/selection, only true signal)
-struct DplusDminusCorrelatorMCGen {
+struct HfCorrelatorDplusDminusMCGen {
 
   Produces<aod::DDbarPair> entryDplusDminusPair;
 
@@ -335,60 +318,62 @@ struct DplusDminusCorrelatorMCGen {
     //MC gen level
     for (auto& particle1 : particlesMC) {
       //check if the particle is Dplus or Dminus (for general plot filling and selection, so both cases are fine) - NOTE: decay channel is not probed!
-      if (std::abs(particle1.pdgCode()) != 411) {
+      if (std::abs(particle1.pdgCode()) != pdg::Code::kDPlus) {
         continue;
       }
-      if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()))) > cutYCandMax) {
+      double yD = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      if (cutYCandMax >= 0. && std::abs(yD) > cutYCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
       registry.fill(HIST("hPtCandMCGen"), particle1.pt());
       registry.fill(HIST("hEtaMCGen"), particle1.eta());
       registry.fill(HIST("hPhiMCGen"), particle1.phi());
-      registry.fill(HIST("hYMCGen"), RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      registry.fill(HIST("hYMCGen"), yD);
       counterDplusDminus++;
 
       //D-Dbar correlation dedicated section
       //if it's a Dplus particle, search for Dminus and evaluate correlations
-      if (particle1.pdgCode() == 411) {                                     //just checking the particle PDG, not the decay channel (differently from Reco: you have a BR factor btw such levels!)
-        registry.fill(HIST("hcountDplustriggersMCGen"), 0, particle1.pt()); //to count trigger Dplus (for normalisation)
-        for (auto& particle2 : particlesMC) {
-          if (particle2.pdgCode() == -411) {
-            if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
-              continue;
-            }
-            if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
-              continue;
-            }
-            entryDplusDminusPair(getDeltaPhi(particle2.phi(), particle1.phi()),
-                                 particle2.eta() - particle1.eta(),
-                                 particle1.pt(),
-                                 particle2.pt());
-            double etaCut = 0.;
-            double ptCut = 0.;
-            do { //fill pairs vs etaCut plot
-              ptCut = 0.;
-              etaCut += incrementEtaCut;
-              do { //fill pairs vs etaCut plot
-                if (std::abs(particle1.eta()) < etaCut && std::abs(particle2.eta()) < etaCut && particle1.pt() > ptCut && particle2.pt() > ptCut)
-                  registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
-                ptCut += incrementPtThreshold;
-              } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
-            } while (etaCut < maxEtaCut - epsilon);
-          } // end Dminus check
-        }   //end inner loop
-      }     //end Dplus check
-
-    } //end outer loop
+      if (particle1.pdgCode() != pdg::Code::kDPlus) { //just checking the particle PDG, not the decay channel (differently from Reco: you have a BR factor btw such levels!)
+        continue;
+      }
+      registry.fill(HIST("hcountDplustriggersMCGen"), 0, particle1.pt()); //to count trigger Dplus (for normalisation)
+      for (auto& particle2 : particlesMC) {
+        if (particle2.pdgCode() != -pdg::Code::kDPlus) { //check that inner particle is a Dminus
+          continue;
+        }
+        if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
+          continue;
+        }
+        if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
+          continue;
+        }
+        entryDplusDminusPair(getDeltaPhi(particle2.phi(), particle1.phi()),
+                             particle2.eta() - particle1.eta(),
+                             particle1.pt(),
+                             particle2.pt());
+        double etaCut = 0.;
+        double ptCut = 0.;
+        do { //fill pairs vs etaCut plot
+          ptCut = 0.;
+          etaCut += incrementEtaCut;
+          do { //fill pairs vs etaCut plot
+            if (std::abs(particle1.eta()) < etaCut && std::abs(particle2.eta()) < etaCut && particle1.pt() > ptCut && particle2.pt() > ptCut)
+              registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
+            ptCut += incrementPtThreshold;
+          } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
+        } while (etaCut < maxEtaCut - epsilon);
+      } //end inner loop
+    }   //end outer loop
     registry.fill(HIST("hcountDplusDminusPerEvent"), counterDplusDminus);
   }
 };
 
 /// Dplus-Dminus correlation pair builder - LIKE SIGN - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 /// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled, since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
-struct DplusDminusCorrelatorLS {
+struct HfCorrelatorDplusDminusLS {
 
   Produces<aod::DDbarPair> entryDplusDminusPair;
   Produces<aod::DDbarRecoInfo> entryDplusDminusRecoInfo;
@@ -400,12 +385,12 @@ struct DplusDminusCorrelatorLS {
      {"hPtProng0", "Dplus,Dminus candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
      {"hPtProng1", "Dplus,Dminus candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
      {"hPtProng2", "Dplus,Dminus candidates;prong 2 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
-     {"hSelectionStatus", "Dplus,Dminus candidates;selection status;entries", {HistType::kTH1F, {{5, -0.5, 4.5}}}},
+     {"hSelectionStatus", "Dplus,Dminus candidates;selection status;entries", {HistType::kTH1F, {{2, -0.5, 1.5}}}},
      {"hEta", "Dplus,Dminus candidates;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhi", "Dplus,Dminus candidates;candidate #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
      {"hY", "Dplus,Dminus candidates;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}}}};
 
-  Configurable<int> dSelectionFlagDplus{"dSelectivonFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
+  Configurable<int> selectionFlagDplus{"dSelectivonFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
   Configurable<std::vector<double>> bins{"ptBinsForMass", std::vector<double>{o2::analysis::hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits for candidate mass plots"};
@@ -417,7 +402,7 @@ struct DplusDminusCorrelatorLS {
     registry.add("hMassDminus", "Dplus,Dminus candidates;inv. mass Dminus only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= dSelectionFlagDplus);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= selectionFlagDplus);
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelDplusToPiKPiCandidate>> const& candidates, aod::BigTracks const& tracks)
   {
@@ -425,11 +410,11 @@ struct DplusDminusCorrelatorLS {
       if (cutYCandMax >= 0. && std::abs(YDPlus(candidate1)) > cutYCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       //check decay channel flag for candidate1
-      if (!(candidate1.hfflag() & 1 << DPlusToPiKPi)) { //probably dummy since already selected? not sure...
+      if (!(candidate1.hfflag() & 1 << DecayType::DPlusToPiKPi)) { //probably dummy since already selected? not sure...
         continue;
       }
       int outerParticleSign = 1; //Dplus
@@ -437,7 +422,6 @@ struct DplusDminusCorrelatorLS {
       if (outerSecondTrack.sign() == 1) {
         outerParticleSign = -1; //Dminus (second daughter track is positive)
       }
-
       //fill invariant mass plots and generic info from all Dplus/Dminus candidates
       if (outerParticleSign == 1) {
         registry.fill(HIST("hMass"), InvMassDPlus(candidate1), candidate1.pt());
@@ -459,7 +443,7 @@ struct DplusDminusCorrelatorLS {
       //For like-sign, first loop on both Dplus and Dminus. First candidate is for sure a Dplus/Dminus (checked before, so don't re-check anything on it)
       for (auto& candidate2 : candidates) {
         //check decay channel flag for candidate2
-        if (!(candidate2.hfflag() & 1 << DPlusToPiKPi)) {
+        if (!(candidate2.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
           continue;
         }
         //check if inner particle is Dplus or Dminus
@@ -473,7 +457,7 @@ struct DplusDminusCorrelatorLS {
           if (cutYCandMax >= 0. && std::abs(YDPlus(candidate2)) > cutYCandMax) {
             continue;
           }
-          if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
+          if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
             continue;
           }
           //Excluding self-correlations
@@ -495,7 +479,7 @@ struct DplusDminusCorrelatorLS {
 
 /// Dplus-Dminus correlation pair builder - LIKE SIGN - for MC reco analysis (data-like but matching to true Dplus and Dminus)
 /// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled, since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
-struct DplusDminusCorrelatorMCRecLS {
+struct HfCorrelatorDplusDminusMCRecLS {
   Produces<aod::DDbarPair> entryDplusDminusPair;
   Produces<aod::DDbarRecoInfo> entryDplusDminusRecoInfo;
 
@@ -506,12 +490,12 @@ struct DplusDminusCorrelatorMCRecLS {
      {"hPtProng0MCRec", "Dplus,Dminus candidates - MC reco;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
      {"hPtProng1MCRec", "Dplus,Dminus candidates - MC reco;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
      {"hPtProng2MCRec", "Dplus,Dminus candidates - MC reco;prong 2 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{180, 0., 36.}}}},
-     {"hSelectionStatusMCRec", "Dplus,Dminus candidates - MC reco;selection status;entries", {HistType::kTH1F, {{5, -0.5, 4.5}}}},
+     {"hSelectionStatusMCRec", "Dplus,Dminus candidates - MC reco;selection status;entries", {HistType::kTH1F, {{2, -0.5, 1.5}}}},
      {"hEtaMCRec", "Dplus,Dminus candidates - MC reco;candidate #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiMCRec", "Dplus,Dminus candidates - MC reco;candidate #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
      {"hYMCRec", "Dplus,Dminus candidates - MC reco;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}}}};
 
-  Configurable<int> dSelectionFlagDplus{"dSelectionFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
+  Configurable<int> selectionFlagDplus{"selectionFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
   Configurable<std::vector<double>> bins{"ptBinsForMass", std::vector<double>{o2::analysis::hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits for candidate mass plots"};
@@ -522,20 +506,20 @@ struct DplusDminusCorrelatorMCRecLS {
     registry.add("hMassDminusMCRec", "Dplus,Dminus candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= dSelectionFlagDplus);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_dplus::isSelDplusToPiKPi >= selectionFlagDplus);
 
   void process(aod::Collision const& collision, soa::Filtered<soa::Join<aod::HfCandProng3, aod::HFSelDplusToPiKPiCandidate, aod::HfCandProng3MCRec>> const& candidates, aod::BigTracks const& tracks)
   {
     //MC reco level
     for (auto& candidate1 : candidates) {
       //check decay channel flag for candidate1
-      if (!(candidate1.hfflag() & 1 << DPlusToPiKPi)) {
+      if (!(candidate1.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
         continue;
       }
       if (cutYCandMax >= 0. && std::abs(YDPlus(candidate1)) > cutYCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(candidate1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
       int outerParticleSign = 1; //Dplus
@@ -543,67 +527,67 @@ struct DplusDminusCorrelatorMCRecLS {
       if (outerSecondTrack.sign() == 1) {
         outerParticleSign = -1; //Dminus (second daughter track is positive)
       }
-      if (std::abs(candidate1.flagMCMatchRec()) == 1 << DPlusToPiKPi) {
-        //fill invariant mass plots and generic info from all Dplus/Dminus candidates
-        if (outerParticleSign == 1) { //matched as Dplus
-          registry.fill(HIST("hMassDplusMCRec"), InvMassDPlus(candidate1), candidate1.pt());
-        } else { //matched as Dminus
-          registry.fill(HIST("hMassDminusMCRec"), InvMassDPlus(candidate1), candidate1.pt());
+      if (std::abs(candidate1.flagMCMatchRec()) != 1 << DecayType::DPlusToPiKPi) { //keep only Dplus/Dminus matched candidates
+        continue;
+      }
+      //fill invariant mass plots and generic info from all Dplus/Dminus candidates
+      if (outerParticleSign == 1) { //matched as Dplus
+        registry.fill(HIST("hMassDplusMCRec"), InvMassDPlus(candidate1), candidate1.pt());
+      } else { //matched as Dminus
+        registry.fill(HIST("hMassDminusMCRec"), InvMassDPlus(candidate1), candidate1.pt());
+      }
+      registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
+      registry.fill(HIST("hPtProng0MCRec"), candidate1.ptProng0());
+      registry.fill(HIST("hPtProng1MCRec"), candidate1.ptProng1());
+      registry.fill(HIST("hPtProng2MCRec"), candidate1.ptProng2());
+      registry.fill(HIST("hEtaMCRec"), candidate1.eta());
+      registry.fill(HIST("hPhiMCRec"), candidate1.phi());
+      registry.fill(HIST("hYMCRec"), YDPlus(candidate1));
+      registry.fill(HIST("hSelectionStatusMCRec"), candidate1.isSelDplusToPiKPi());
+
+      //D-Dbar correlation dedicated section
+      //For like-sign, first loop on both Dplus and Dminus. First candidate is for sure a Dplus/Dminus (looping on filtered) and was already matched, so don't re-check anything on it)
+      for (auto& candidate2 : candidates) {
+        //check decay channel flag for candidate2
+        if (!(candidate2.hfflag() & 1 << DecayType::DPlusToPiKPi)) {
+          continue;
         }
-        registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
-        registry.fill(HIST("hPtProng0MCRec"), candidate1.ptProng0());
-        registry.fill(HIST("hPtProng1MCRec"), candidate1.ptProng1());
-        registry.fill(HIST("hPtProng2MCRec"), candidate1.ptProng2());
-        registry.fill(HIST("hEtaMCRec"), candidate1.eta());
-        registry.fill(HIST("hPhiMCRec"), candidate1.phi());
-        registry.fill(HIST("hYMCRec"), YDPlus(candidate1));
-        registry.fill(HIST("hSelectionStatusMCRec"), candidate1.isSelDplusToPiKPi());
-
-        //D-Dbar correlation dedicated section
-        //For like-sign, first loop on both Dplus and Dminus. First candidate is for sure a Dplus/Dminus (looping on filtered) and was already matched, so don't re-check anything on it)
-        for (auto& candidate2 : candidates) {
-          //check decay channel flag for candidate2
-          if (!(candidate2.hfflag() & 1 << DPlusToPiKPi)) {
+        int innerParticleSign = 1; //Dplus
+        auto innerSecondTrack = candidate2.index1_as<aod::BigTracks>();
+        if (innerSecondTrack.sign() == 1) {
+          innerParticleSign = -1; //Dminus (second daughter track is positive)
+        }
+        if (!std::abs(candidate2.flagMCMatchRec()) == 1 << DecayType::DPlusToPiKPi) { //reject fake candidates
+          continue;
+        }
+        if (outerParticleSign == innerParticleSign) { //LS pair (of Dplus or Dminus) + pt2<pt1
+          if (cutYCandMax >= 0. && std::abs(YDPlus(candidate2)) > cutYCandMax) {
             continue;
           }
-          int innerParticleSign = 1; //Dplus
-          auto innerSecondTrack = candidate2.index1_as<aod::BigTracks>();
-          if (innerSecondTrack.sign() == 1) {
-            innerParticleSign = -1; //Dminus (second daughter track is positive)
-          }
-          if (!std::abs(candidate2.flagMCMatchRec()) == 1 << DPlusToPiKPi) { //reject fake candidates
+          if (cutPtCandMin >= 0. && candidate2.pt() < cutPtCandMin) {
             continue;
           }
-          if (outerParticleSign == innerParticleSign) { //LS pair (of Dplus or Dmnius) + pt2<pt1
-            if (cutYCandMax >= 0. && std::abs(YDPlus(candidate2)) > cutYCandMax) {
-              continue;
-            }
-            if (cutPtCandMin >= 0. && std::abs(candidate2.pt()) < cutPtCandMin) {
-              continue;
-            }
-            //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
-            if (candidate1.mRowIndex == candidate2.mRowIndex) {
-              continue;
-            }
-            entryDplusDminusPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),
-                                 candidate2.eta() - candidate1.eta(),
-                                 candidate1.pt(),
-                                 candidate2.pt());
-            entryDplusDminusRecoInfo(InvMassDPlus(candidate1),
-                                     InvMassDPlus(candidate2),
-                                     0); //for LS studies we set a dummy 0 for pairSignalStatus (there are no more the usual 4 possible combinations)
+          //Excluding self-correlations (in principle not possible due to the '<' condition, but could rounding break it?)
+          if (candidate1.mRowIndex == candidate2.mRowIndex) {
+            continue;
+          }
+          entryDplusDminusPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),
+                               candidate2.eta() - candidate1.eta(),
+                               candidate1.pt(),
+                               candidate2.pt());
+          entryDplusDminusRecoInfo(InvMassDPlus(candidate1),
+                                   InvMassDPlus(candidate2),
+                                   0); //for LS studies we set a dummy 0 for pairSignalStatus (there are no more the usual 4 possible combinations)
 
-          } //end inner if (MC match)
-
-        } // end inner loop
-      }   //end outer if (MC match)
+        } //end inner if (MC match)
+      }   // end inner loop
     }     //end outer loop
   }
 };
 
 /// Dplus-Dminus correlation pair builder - for MC gen-level analysis, like sign particles
 /// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled, since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
-struct DplusDminusCorrelatorMCGenLS {
+struct HfCorrelatorDplusDminusMCGenLS {
 
   Produces<aod::DDbarPair> entryDplusDminusPair;
 
@@ -632,33 +616,34 @@ struct DplusDminusCorrelatorMCGenLS {
     //MC gen level
     for (auto& particle1 : particlesMC) {
       //check if the particle is Dplus or Dminus (both can be trigger) - NOTE: decay channel is not probed!
-      if (std::abs(particle1.pdgCode()) != 411) {
+      if (std::abs(particle1.pdgCode()) != pdg::Code::kDPlus) {
         continue;
       }
-      if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()))) > cutYCandMax) {
+      double yD = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      if (cutYCandMax >= 0. && std::abs(yD) > cutYCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
 
       registry.fill(HIST("hPtCandMCGen"), particle1.pt());
       registry.fill(HIST("hEtaMCGen"), particle1.eta());
       registry.fill(HIST("hPhiMCGen"), particle1.phi());
-      registry.fill(HIST("hYMCGen"), RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      registry.fill(HIST("hYMCGen"), yD);
       counterDplusDminus++;
 
       //D-Dbar correlation dedicated section
       //if it's Dplus/Dminus, search for LS pair companions and evaluate correlations.
       registry.fill(HIST("hcountDplustriggersMCGen"), 0, particle1.pt()); //to count trigger Dplus (normalisation)
       for (auto& particle2 : particlesMC) {
-        if (std::abs(particle2.pdgCode()) != 411) { //check that associated is a Dplus/Dminus (both are fine)
+        if (std::abs(particle2.pdgCode()) != pdg::Code::kDPlus) { //check that associated is a Dplus/Dminus (both are fine)
           continue;
         }
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
           continue;
         }
-        if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
+        if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
           continue;
         }
         if (particle2.pdgCode() == particle1.pdgCode()) { //like-sign condition (both 411 or both -411) and pT_Trig>pT_assoc
@@ -678,7 +663,7 @@ struct DplusDminusCorrelatorMCGenLS {
 };
 
 /// c-cbar correlator table builder - for MC gen-level analysis
-struct CCbarCorrelatorMCGen {
+struct HfCorrelatorCCbarMCGen {
 
   Produces<aod::DDbarPair> entryccbarPair;
 
@@ -689,7 +674,8 @@ struct CCbarCorrelatorMCGen {
      {"hEtaMCGen", "c,cbar particles - MC gen;particle #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hYMCGen", "c,cbar candidates - MC gen;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiMCGen", "c,cbar particles - MC gen;particle #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
-     {"hcountCCbarPerEvent", "c,cbar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}}}};
+     {"hcountCCbarPerEvent", "c,cbar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}},
+     {"hcountCCbarPerEventPreEtaCut", "c,cbar particles - MC gen;Number per event pre #eta cut;entries", {HistType::kTH1F, {{20, 0., 20.}}}}}};
 
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
@@ -716,51 +702,53 @@ struct CCbarCorrelatorMCGen {
         continue;
       }
       counterccbarPreEtasel++; //count c or cbar (before kinematic selection)
-      if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()))) > cutYCandMax) {
+      double yC = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      if (cutYCandMax >= 0. && std::abs(yC) > cutYCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
       registry.fill(HIST("hPtcandMCGen"), particle1.pt());
       registry.fill(HIST("hEtaMCGen"), particle1.eta());
       registry.fill(HIST("hPhiMCGen"), particle1.phi());
-      registry.fill(HIST("hYMCGen"), RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      registry.fill(HIST("hYMCGen"), yC);
       counterccbar++; //count if c or cbar don't come from themselves during fragmentation (after kinematic selection)
 
       //c-cbar correlation dedicated section
       //if it's c, search for cbar and evaluate correlations.
-      if (particle1.pdgCode() == 4) {
+      if (particle1.pdgCode() != 4) {
+        continue;
+      }
+      registry.fill(HIST("hcountCtriggersMCGen"), 0, particle1.pt()); //to count trigger c quark (for normalisation)
 
-        registry.fill(HIST("hcountCtriggersMCGen"), 0, particle1.pt()); //to count trigger c quark (for normalisation)
-
-        for (auto& particle2 : particlesMC) {
-          if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
-            continue;
-          }
-          if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
-            continue;
-          }
-          if (particle2.pdgCode() == -4) {
-            //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
-            if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == -4) {
-              continue;
-            }
-            entryccbarPair(getDeltaPhi(particle2.phi(), particle1.phi()),
-                           particle2.eta() - particle1.eta(),
-                           particle1.pt(),
-                           particle2.pt());
-          } // end outer if (check cbar)
-        }   // end inner loop
-      }     //end outer if (check c)
-    }       //end outer loop
+      for (auto& particle2 : particlesMC) {
+        if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
+          continue;
+        }
+        if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
+          continue;
+        }
+        if (particle2.pdgCode() != -4) {
+          continue;
+        }
+        //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
+        if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == -4) {
+          continue;
+        }
+        entryccbarPair(getDeltaPhi(particle2.phi(), particle1.phi()),
+                       particle2.eta() - particle1.eta(),
+                       particle1.pt(),
+                       particle2.pt());
+      } // end inner loop
+    }   //end outer loop
     registry.fill(HIST("hcountCCbarPerEvent"), counterccbar);
+    registry.fill(HIST("hcountCCbarPerEventPreEtaCut"), counterccbarPreEtasel);
   }
 };
 
 /// c-cbar correlator table builder - for MC gen-level analysis - Like Sign
-/// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled, since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
-struct CCbarCorrelatorMCGenLS {
+struct HfCorrelatorCCbarMCGenLS {
 
   Produces<aod::DDbarPair> entryccbarPair;
 
@@ -771,7 +759,8 @@ struct CCbarCorrelatorMCGenLS {
      {"hEtaMCGen", "c,cbar particles - MC gen;particle #it{#eta};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hYMCGen", "c,cbar candidates - MC gen;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hPhiMCGen", "c,cbar particles - MC gen;particle #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
-     {"hcountCCbarPerEvent", "c,cbar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}}}};
+     {"hcountCCbarPerEvent", "c,cbar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}},
+     {"hcountCCbarPerEventPreEtaCut", "c,cbar particles - MC gen;Number per event pre #eta cut;entries", {HistType::kTH1F, {{20, 0., 20.}}}}}};
 
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
@@ -779,7 +768,7 @@ struct CCbarCorrelatorMCGenLS {
 
   void init(o2::framework::InitContext&)
   {
-    registry.add("hcountCtriggersMCGen", "c trigger particles - MC gen;;N of trigger D0", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hcountCtriggersMCGen", "c trigger particles - MC gen;;N of trigger c quark", {HistType::kTH2F, {{1, -0.5, 0.5}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
   void process(aod::McCollision const& mccollision, soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC)
@@ -798,16 +787,17 @@ struct CCbarCorrelatorMCGenLS {
         continue;
       }
       counterccbarPreEtasel++; //count c or cbar (before kinematic selection)
-      if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()))) > cutYCandMax) {
+      double yC = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      if (cutYCandMax >= 0. && std::abs(yC) > cutYCandMax) {
         continue;
       }
-      if (cutPtCandMin >= 0. && std::abs(particle1.pt()) < cutPtCandMin) {
+      if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
       registry.fill(HIST("hPtcandMCGen"), particle1.pt());
       registry.fill(HIST("hEtaMCGen"), particle1.eta());
       registry.fill(HIST("hPhiMCGen"), particle1.phi());
-      registry.fill(HIST("hYMCGen"), RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      registry.fill(HIST("hYMCGen"), yC);
       counterccbar++; //count if c or cbar don't come from themselves during fragmentation (after kinematic selection)
 
       //c-cbar correlation dedicated section
@@ -820,7 +810,7 @@ struct CCbarCorrelatorMCGenLS {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
           continue;
         }
-        if (cutPtCandMin >= 0. && std::abs(particle2.pt()) < cutPtCandMin) {
+        if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
           continue;
         }
         if (particle2.pdgCode() == particle1.pdgCode()) {
@@ -840,6 +830,7 @@ struct CCbarCorrelatorMCGenLS {
       }   // end inner loop
     }     //end outer loop
     registry.fill(HIST("hcountCCbarPerEvent"), counterccbar);
+    registry.fill(HIST("hcountCCbarPerEventPreEtaCut"), counterccbarPreEtasel);
   }
 };
 
@@ -852,23 +843,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool doLikeSign = cfgc.options().get<bool>("doLikeSign");
   if (!doLikeSign) { //unlike-sign analyses
     if (doMCGen) {   //MC-Gen analysis
-      workflow.push_back(adaptAnalysisTask<DplusDminusCorrelatorMCGen>(cfgc, TaskName{"dplusdminus-correlator-mc-gen"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorDplusDminusMCGen>(cfgc, TaskName{"hf-correlator-dplusdminus-mc-gen"}));
     } else if (doMCRec) { //MC-Reco analysis
-      workflow.push_back(adaptAnalysisTask<DplusDminusCorrelatorMCRec>(cfgc, TaskName{"dplusdminus-correlator-mc-rec"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorDplusDminusMCRec>(cfgc, TaskName{"hf-correlator-dplusdminus-mc-rec"}));
     } else if (doMCccbar) { //MC-Reco analysis
-      workflow.push_back(adaptAnalysisTask<CCbarCorrelatorMCGen>(cfgc, TaskName{"ccbar-correlator-mc-gen"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorCCbarMCGen>(cfgc, TaskName{"hf-correlator-ccbar-mc-gen"}));
     } else { //data analysis
-      workflow.push_back(adaptAnalysisTask<DplusDminusCorrelator>(cfgc, TaskName{"dplusdminus-correlator"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorDplusDminus>(cfgc, TaskName{"hf-correlator-dplusdminus"}));
     }
-  } else {
+  } else {         //like-sign analyses
     if (doMCGen) { //MC-Gen analysis
-      workflow.push_back(adaptAnalysisTask<DplusDminusCorrelatorMCGenLS>(cfgc, TaskName{"dplusdminus-correlator-mc-gen-ls"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorDplusDminusMCGenLS>(cfgc, TaskName{"hf-correlator-dplusdminus-mc-gen-ls"}));
     } else if (doMCRec) { //MC-Reco analysis
-      workflow.push_back(adaptAnalysisTask<DplusDminusCorrelatorMCRecLS>(cfgc, TaskName{"dplusdminus-correlator-mc-rec-ls"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorDplusDminusMCRecLS>(cfgc, TaskName{"hf-correlator-dplusdminus-mc-rec-ls"}));
     } else if (doMCccbar) { //MC-Reco analysis
-      workflow.push_back(adaptAnalysisTask<CCbarCorrelatorMCGenLS>(cfgc, TaskName{"ccbar-correlator-mc-gen-ls"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorCCbarMCGenLS>(cfgc, TaskName{"hf-correlator-ccbar-mc-gen-ls"}));
     } else { //data analysis
-      workflow.push_back(adaptAnalysisTask<DplusDminusCorrelatorLS>(cfgc, TaskName{"dplusdminus-correlator-ls"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorDplusDminusLS>(cfgc, TaskName{"hf-correlator-dplusdminus-ls"}));
     }
   }
 

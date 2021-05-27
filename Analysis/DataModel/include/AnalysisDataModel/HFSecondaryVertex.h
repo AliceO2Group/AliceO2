@@ -653,7 +653,7 @@ DECLARE_SOA_TABLE(HfCandProng3MCGen, "AOD", "HFCANDP3MCGEN", //!
                   hf_cand_prong3::FlagMCDecayChanGen);
 
 // definition of columns and tables for D-Dbar correlation pairs
-namespace hf_ddbar_correlation
+namespace hf_correlation_ddbar
 {
 DECLARE_SOA_COLUMN(DeltaPhi, deltaPhi, float);
 DECLARE_SOA_COLUMN(DeltaEta, deltaEta, float);
@@ -662,16 +662,16 @@ DECLARE_SOA_COLUMN(PtDbar, ptDbar, float);
 DECLARE_SOA_COLUMN(MD, mD, float);
 DECLARE_SOA_COLUMN(MDbar, mDbar, float);
 DECLARE_SOA_COLUMN(SignalStatus, signalStatus, int);
-} // namespace hf_ddbar_correlation
+} // namespace hf_correlation_ddbar
 DECLARE_SOA_TABLE(DDbarPair, "AOD", "DDBARPAIR",
-                  aod::hf_ddbar_correlation::DeltaPhi,
-                  aod::hf_ddbar_correlation::DeltaEta,
-                  aod::hf_ddbar_correlation::PtD,
-                  aod::hf_ddbar_correlation::PtDbar);
+                  aod::hf_correlation_ddbar::DeltaPhi,
+                  aod::hf_correlation_ddbar::DeltaEta,
+                  aod::hf_correlation_ddbar::PtD,
+                  aod::hf_correlation_ddbar::PtDbar);
 DECLARE_SOA_TABLE(DDbarRecoInfo, "AOD", "DDBARRECOINFO",
-                  aod::hf_ddbar_correlation::MD,
-                  aod::hf_ddbar_correlation::MDbar,
-                  aod::hf_ddbar_correlation::SignalStatus);
+                  aod::hf_correlation_ddbar::MD,
+                  aod::hf_correlation_ddbar::MDbar,
+                  aod::hf_correlation_ddbar::SignalStatus);
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_HFSECONDARYVERTEX_H_

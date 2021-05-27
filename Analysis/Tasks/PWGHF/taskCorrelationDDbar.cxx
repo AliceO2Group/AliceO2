@@ -8,24 +8,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file taskDDbarCorrelation.cxx
+/// \file taskCorrelationDDbar.cxx
 /// \brief D-Dbar analysis task - data-like, MC-reco and MC-kine analyses. For ULS and LS pairs
 ///
 /// \author Fabio Colamaria <fabio.colamaria@ba.infn.it>, INFN Bari
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
-#include "AnalysisCore/HFSelectorCuts.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong2;
-using namespace o2::analysis::hf_cuts_d0_topik;
 using namespace o2::framework::expressions;
+using namespace o2::aod::hf_cand_prong2;
+using namespace o2::aod::hf_correlation_ddbar;
+using namespace o2::analysis::hf_cuts_d0_topik;
 using namespace o2::constants::math;
-using namespace o2::aod::hf_ddbar_correlation;
 
 namespace o2::aod
 {
@@ -51,14 +50,6 @@ double getDeltaPhi(double phiD, double phiDbar)
 }
 
 ///
-/// Returns deltaPhi value in range [-pi, pi], for resolution distributions
-///
-double getDeltaPhiForResolution(double phiD, double phiDbar)
-{
-  return RecoDecay::constrainAngle(phiDbar - phiD, -o2::constants::math::PI);
-}
-
-///
 /// Returns phi of candidate/particle evaluated from x and y components of segment connecting primary and secondary vertices
 ///
 double evaluatePhiByVertex(double xVertex1, double xVertex2, double yVertex1, double yVertex2)
@@ -74,7 +65,7 @@ const double binMaxSparse[4] = {3. * o2::constants::math::PI / 2.,6.,10.,10.};  
 
 /// D-Dbar correlation pair filling task, from pair tables - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 /// Works on both USL and LS analyses pair tables
-struct TaskDDbarCorrelation {
+struct HfTaskCorrelationDDbar {
 
   HistogramRegistry registry{
     "registry",
@@ -127,20 +118,17 @@ struct TaskDDbarCorrelation {
       double massD = pairEntry.mD();
       double massDbar = pairEntry.mDbar();
 
-      //reject entries outside pT ranges of interest
-      double minPtAllowed = binsCorrelations->at(0);
-      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size() - 1);
-      if (ptD < minPtAllowed || ptDbar < minPtAllowed || ptD > maxPtAllowed || ptDbar > maxPtAllowed) {
-        continue;
-      }
-
       //fill 2D invariant mass plots
       registry.fill(HIST("hMass2DCorrelationPairs"), massD, massDbar, ptD, ptDbar);
 
-      //check if correlation entry belongs to signal region, sidebands or is outside both, and fill correlation plots
+      //reject entries outside pT ranges of interest
       int pTBinD = o2::analysis::findBin(binsCorrelations, ptD);
       int pTBinDbar = o2::analysis::findBin(binsCorrelations, ptDbar);
+      if (pTBinD == -1 || pTBinDbar == -1) { //at least one particle outside accepted pT range
+        continue;
+      }
 
+      //check if correlation entry belongs to signal region, sidebands or is outside both, and fill correlation plots
       if (massD > signalRegionInner->at(pTBinD) && massD < signalRegionOuter->at(pTBinD) && massDbar > signalRegionInner->at(pTBinDbar) && massDbar < signalRegionOuter->at(pTBinDbar)) {
         //in signal region
         registry.fill(HIST("hCorrel2DVsPtSignalRegion"), deltaPhi, deltaEta, ptD, ptDbar);
@@ -169,7 +157,7 @@ struct TaskDDbarCorrelation {
 
 /// D-Dbar correlation pair filling task, from pair tables - for MC reco-level analysis (candidates matched to true signal only, but also bkg sources are studied)
 /// Works on both USL and LS analyses pair tables
-struct TaskDDbarCorrelationMCRec {
+struct HfTaskCorrelationDDbarMCRec {
 
   HistogramRegistry registry{
     "registry",
@@ -241,9 +229,9 @@ struct TaskDDbarCorrelationMCRec {
       double massDbar = pairEntry.mDbar();
 
       //reject entries outside pT ranges of interest
-      double minPtAllowed = binsCorrelations->at(0);
-      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size() - 1);
-      if (ptD < minPtAllowed || ptDbar < minPtAllowed || ptD > maxPtAllowed || ptDbar > maxPtAllowed) {
+      int pTBinD = o2::analysis::findBin(binsCorrelations, ptD);
+      int pTBinDbar = o2::analysis::findBin(binsCorrelations, ptDbar);
+      if (pTBinD == -1 || pTBinDbar == -1) { //at least one particle outside accepted pT range
         continue;
       }
 
@@ -266,9 +254,6 @@ struct TaskDDbarCorrelationMCRec {
       }
 
       //check if correlation entry belongs to signal region, sidebands or is outside both, and fill correlation plots
-      int pTBinD = o2::analysis::findBin(binsCorrelations, ptD);
-      int pTBinDbar = o2::analysis::findBin(binsCorrelations, ptDbar);
-
       if (massD > signalRegionInner->at(pTBinD) && massD < signalRegionOuter->at(pTBinD) && massDbar > signalRegionInner->at(pTBinDbar) && massDbar < signalRegionOuter->at(pTBinDbar)) {
         //in signal region
         registry.fill(HIST("hCorrel2DPtIntSignalRegionMCRec"), deltaPhi, deltaEta);
@@ -327,7 +312,7 @@ struct TaskDDbarCorrelationMCRec {
 
 /// D-Dbar correlation pair filling task, from pair tables - for MC gen-level analysis (no filter/selection, only true signal) - Ok for both USL and LS analyses
 /// Works on both USL and LS analyses pair tables (and if tables are filled with quark pairs as well)
-struct TaskDDbarCorrelationMCGen {
+struct HfTaskCorrelationDDbarMCGen {
 
   HistogramRegistry registry{
     "registry",
@@ -362,9 +347,7 @@ struct TaskDDbarCorrelationMCGen {
       double ptDbar = pairEntry.ptDbar();
 
       //reject entries outside pT ranges of interest
-      double minPtAllowed = binsCorrelations->at(0);
-      double maxPtAllowed = binsCorrelations->at(binsCorrelations->size() - 1);
-      if (ptD < minPtAllowed || ptDbar < minPtAllowed || ptD > maxPtAllowed || ptDbar > maxPtAllowed) {
+      if (o2::analysis::findBin(binsCorrelations, ptD) == -1 || o2::analysis::findBin(binsCorrelations, ptDbar) == -1) {
         continue;
       }
 
@@ -385,11 +368,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool doMCGen = cfgc.options().get<bool>("doMCGen");
   const bool doMCRec = cfgc.options().get<bool>("doMCRec");
   if (doMCGen) { //MC-Gen analysis
-    workflow.push_back(adaptAnalysisTask<TaskDDbarCorrelationMCGen>(cfgc, TaskName{"task-ddbar-correlation-mc-gen"}));
+    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbarMCGen>(cfgc, TaskName{"hf-task-correlation-ddbar-mc-gen"}));
   } else if (doMCRec) { //MC-Rec analysis
-    workflow.push_back(adaptAnalysisTask<TaskDDbarCorrelationMCRec>(cfgc, TaskName{"task-ddbar-correlation-mc-rec"}));
+    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbarMCRec>(cfgc, TaskName{"hf-task-correlation-ddbar-mc-rec"}));
   } else { //data analysis
-    workflow.push_back(adaptAnalysisTask<TaskDDbarCorrelation>(cfgc, TaskName{"task-ddbar-correlation"}));
+    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbar>(cfgc, TaskName{"hf-task-correlation-ddbar"}));
   }
   return workflow;
 }
