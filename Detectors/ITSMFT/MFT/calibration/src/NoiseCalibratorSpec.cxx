@@ -90,14 +90,14 @@ void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 
   std::map<std::string, std::string> meta;
   auto toKeyValPairs = [&meta](std::vector<std::string> const& tokens) {
-    for (auto&amp; token : tokens) {
-       auto keyval = Str::tokenize(token, '=', false);
-       if (keyval.size() != 2) {
-          LOG(ERROR) << "Illegal command-line key/value string: " << token;
-          continue;
-       }
-       Str::trim(keyval[1]);
-       meta[keyval[0]] = keyval[1];
+    for (auto& amp; token : tokens) {
+      auto keyval = Str::tokenize(token, '=', false);
+      if (keyval.size() != 2) {
+        LOG(ERROR) << "Illegal command-line key/value string: " << token;
+        continue;
+      }
+      Str::trim(keyval[1]);
+      meta[keyval[0]] = keyval[1];
     }
   };
   toKeyValPairs(Str::tokenize(mMeta, ';', true));
