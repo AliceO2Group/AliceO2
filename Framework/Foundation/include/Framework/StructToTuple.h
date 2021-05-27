@@ -56,8 +56,25 @@ auto constexpr to_tuple(T&& object) noexcept
   }
 }
 
+#if __cplusplus >= 202002L
+struct UniversalType {
+  template <typename T>
+  operator T()
+  {
+  }
+};
+
 template <typename T>
-constexpr int brace_constructible_size()
+consteval auto brace_constructible_size(auto... Members)
+{
+  if constexpr (requires { T{Members...}; } == false)
+    return sizeof...(Members) - 1;
+  else
+    return brace_constructible_size<T>(Members..., UniversalType{});
+}
+#else
+template <typename T>
+constexpr long brace_constructible_size()
 {
   using A = any_type;
   using type = std::decay_t<T>;
@@ -144,6 +161,7 @@ constexpr int brace_constructible_size()
     return 0;
   }
 }
+#endif
 
 /// Helper function to convert a brace-initialisable struct to
 /// a tuple.
@@ -151,7 +169,7 @@ template <class T>
 auto constexpr to_tuple_refs(T&& object) noexcept
 {
   using type = std::decay_t<T>;
-  constexpr int numElements = brace_constructible_size<T>();
+  constexpr unsigned long numElements = brace_constructible_size<T>();
   if constexpr (numElements == 40) {
     auto&& [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39] = object;
     return std::tie(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39);
