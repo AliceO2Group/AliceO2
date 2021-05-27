@@ -600,6 +600,7 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.totalProcessedSize, "total_processed_input_size_byte"}
                     .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{stats.totalSigusr1.load(), "total_sigusr1"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(stats.lastProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
                          "processing_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));

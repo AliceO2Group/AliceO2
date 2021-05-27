@@ -34,7 +34,7 @@ struct IterateMuonsExclusive {
   }
 };
 
-//Iterate on muon using the collision iterator in the dq-analysis style
+// Iterate on muon using the collision iterator in the dq-analysis style
 struct IterateMuons {
   void process(aod::Collisions::iterator const& collision, aod::FwdTracks const& muons)
   {
@@ -45,7 +45,7 @@ struct IterateMuons {
   }
 };
 
-// This uses the sparase matcher, so you also get BCs without a collision.
+// This uses the sparse matcher, so you also get BCs without a collision.
 // You need to check with m.has_collision()
 struct IterateMuonsSparse {
   void process(aod::MatchedBCCollisionsSparse::iterator const& m, aod::Collisions const&, aod::FwdTracks const& muons)
@@ -64,8 +64,8 @@ struct IterateMuonsSparse {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    //adaptAnalysisTask<IterateMuonsExclusives>(cfgc, TaskName{"iterate-muons-bcexclu"}),
-    adaptAnalysisTask<IterateMuons>(cfgc, TaskName{"iterate-muons"}),
-    adaptAnalysisTask<IterateMuonsSparse>(cfgc, TaskName{"iterate-muons-sparse"}),
+    //adaptAnalysisTask<IterateMuonsExclusives>(cfgc), // currently does not work
+    adaptAnalysisTask<IterateMuons>(cfgc),
+    adaptAnalysisTask<IterateMuonsSparse>(cfgc),
   };
 }

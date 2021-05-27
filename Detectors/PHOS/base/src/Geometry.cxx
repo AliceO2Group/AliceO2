@@ -106,8 +106,7 @@ bool Geometry::truRelId2RelId(const char* truRelId, char* relId)
 short Geometry::relPosToTruId(char mod, float x, float z, short& ddl)
 {
   //tranform local cluster coordinates to truId
-  const float cellStep = 2.25;
-  char relid[3] = {mod, static_cast<char>(ceil(x / cellStep + 32.5)), static_cast<char>(ceil(z / cellStep + 28.5))};
+  char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
   ddl = (mod - 1) * 4 + relid[1] / 16 - 2;
   char truid[3] = {static_cast<char>(ddl), static_cast<char>((relid[1] % 16) / 2), static_cast<char>(relid[2] / 2)};
   return truRelToAbsNumbering(truid);
@@ -163,13 +162,11 @@ int Geometry::areNeighbours(short absId1, short absId2)
 void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
 {
 
-  const float cellStep = 2.25;
-
   char relid[3];
   absToRelNumbering(absId, relid);
 
-  x = (relid[1] - 32 - 0.5) * cellStep;
-  z = (relid[2] - 28 - 0.5) * cellStep;
+  x = (relid[1] - 32 - 0.5) * CELLSTEP;
+  z = (relid[2] - 28 - 0.5) * CELLSTEP;
 }
 bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 {
@@ -186,10 +183,14 @@ bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 //local position to absId
 void Geometry::relPosToAbsId(char module, float x, float z, short& absId)
 {
-  const float cellStep = 2.25;
-
-  char relid[3] = {module, static_cast<char>(ceil(x / cellStep + 32.5)), static_cast<char>(ceil(z / cellStep + 28.5))};
+  char relid[3] = {module, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
   relToAbsNumbering(relid, absId);
+}
+void Geometry::relPosToRelId(short module, float x, float z, char* relId)
+{
+  relId[0] = module;
+  relId[1] = static_cast<char>(ceil(x / CELLSTEP + 32.5));
+  relId[2] = static_cast<char>(ceil(z / CELLSTEP + 28.5));
 }
 
 // convert local position in module to global position in ALICE

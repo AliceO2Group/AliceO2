@@ -38,30 +38,30 @@
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1
 
-#define GPUCA_GPUReconstructionUpdateDefailts()                                        \
-  if (mProcessingSettings.trackletConstructorInPipeline < 0) {                         \
-    mProcessingSettings.trackletConstructorInPipeline = GPUCA_CONSTRUCTOR_IN_PIPELINE; \
-  }                                                                                    \
-  if (mProcessingSettings.trackletSelectorInPipeline < 0) {                            \
-    mProcessingSettings.trackletSelectorInPipeline = GPUCA_SELECTOR_IN_PIPELINE;       \
-  }                                                                                    \
-  if (mProcessingSettings.trackletSelectorSlices < 0) {                                \
-    mProcessingSettings.trackletSelectorSlices = GPUCA_TRACKLET_SELECTOR_SLICE_COUNT;  \
-  }                                                                                    \
-  if (mProcessingSettings.alternateBorderSort < 0) {                                   \
-    mProcessingSettings.alternateBorderSort = GPUCA_ALTERNATE_BORDER_SORT;             \
-  }                                                                                    \
-  if (mProcessingSettings.mergerSortTracks < 0) {                                      \
-    mProcessingSettings.mergerSortTracks = GPUCA_SORT_BEFORE_FIT;                      \
-  }                                                                                    \
-  if (param().rec.loopInterpolationInExtraPass < 0) {                                  \
-    param().rec.loopInterpolationInExtraPass = GPUCA_MERGER_SPLIT_LOOP_INTERPOLATION;  \
-  }                                                                                    \
-  if (mProcessingSettings.tpcCompressionGatherModeKernel < 0) {                        \
-    mProcessingSettings.tpcCompressionGatherModeKernel = GPUCA_COMP_GATHER_KERNEL;     \
-  }                                                                                    \
-  if (mProcessingSettings.tpcCompressionGatherMode < 0) {                              \
-    mProcessingSettings.tpcCompressionGatherMode = GPUCA_COMP_GATHER_MODE;             \
+#define GPUCA_GPUReconstructionUpdateDefailts()                                           \
+  if (mProcessingSettings.trackletConstructorInPipeline < 0) {                            \
+    mProcessingSettings.trackletConstructorInPipeline = GPUCA_CONSTRUCTOR_IN_PIPELINE;    \
+  }                                                                                       \
+  if (mProcessingSettings.trackletSelectorInPipeline < 0) {                               \
+    mProcessingSettings.trackletSelectorInPipeline = GPUCA_SELECTOR_IN_PIPELINE;          \
+  }                                                                                       \
+  if (mProcessingSettings.trackletSelectorSlices < 0) {                                   \
+    mProcessingSettings.trackletSelectorSlices = GPUCA_TRACKLET_SELECTOR_SLICE_COUNT;     \
+  }                                                                                       \
+  if (mProcessingSettings.alternateBorderSort < 0) {                                      \
+    mProcessingSettings.alternateBorderSort = GPUCA_ALTERNATE_BORDER_SORT;                \
+  }                                                                                       \
+  if (mProcessingSettings.mergerSortTracks < 0) {                                         \
+    mProcessingSettings.mergerSortTracks = GPUCA_SORT_BEFORE_FIT;                         \
+  }                                                                                       \
+  if (param().rec.tpc.loopInterpolationInExtraPass < 0) {                                 \
+    param().rec.tpc.loopInterpolationInExtraPass = GPUCA_MERGER_SPLIT_LOOP_INTERPOLATION; \
+  }                                                                                       \
+  if (mProcessingSettings.tpcCompressionGatherModeKernel < 0) {                           \
+    mProcessingSettings.tpcCompressionGatherModeKernel = GPUCA_COMP_GATHER_KERNEL;        \
+  }                                                                                       \
+  if (mProcessingSettings.tpcCompressionGatherMode < 0) {                                 \
+    mProcessingSettings.tpcCompressionGatherMode = GPUCA_COMP_GATHER_MODE;                \
   }
 
 #endif

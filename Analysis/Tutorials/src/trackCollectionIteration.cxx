@@ -22,7 +22,7 @@
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct RootHistograms {
   void process(aod::Tracks const& tracks)
   {
     // FIXME: to see some output, we create the histogram
@@ -47,5 +47,6 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"track-collection-iteration-tutorial"})};
+    adaptAnalysisTask<RootHistograms>(cfgc),
+  };
 }

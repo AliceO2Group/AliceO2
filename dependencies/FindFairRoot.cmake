@@ -72,7 +72,7 @@ if(NOT TARGET FairRoot::Base)
                                    INTERFACE_LINK_DIRECTORIES ${libdir})
   target_link_libraries(FairRoot::Base
                         INTERFACE FairRoot::Tools FairRoot::ParBase
-                                  FairRoot::GeoBase ROOT::ROOTDataFrame)
+                                  FairRoot::GeoBase ROOT::ROOTDataFrame ROOT::VMC)
   if(TARGET arrow_shared)
     # FIXME: this dependency (coming from ROOTDataFrame) should be handled in
     # ROOT itself

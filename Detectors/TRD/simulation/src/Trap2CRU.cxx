@@ -95,7 +95,7 @@ void Trap2CRU::sortDataToLinks()
     if (trig.getNumberOfDigits() != 0) {
       LOG(debug) << " sorting digits from : " << trig.getFirstDigit() << " till " << trig.getFirstDigit() + trig.getNumberOfDigits();
       std::stable_sort(mDigitsIndex.begin() + trig.getFirstDigit(), mDigitsIndex.begin() + trig.getNumberOfDigits() + trig.getFirstDigit(), //,digitcompare);
-                       [this](const uint32_t i, const uint32_t j) { 
+                       [this](const uint32_t i, const uint32_t j) {
              uint32_t hcida = mDigits[i].getDetector() * 2 + (mDigits[i].getROB() % 2);
              uint32_t hcidb = mDigits[j].getDetector() * 2 + (mDigits[j].getROB() % 2);
              if(hcida!=hcidb){return hcida<hcidb;}

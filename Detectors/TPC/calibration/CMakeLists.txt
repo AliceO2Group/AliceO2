@@ -22,7 +22,7 @@ o2_add_library(TPCCalibration
                        src/CalibPadGainTracks.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
-                                     ms_gsl::ms_gsl)
+                                     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(TPCCalibration
                           HEADERS include/TPCCalibration/CalibRawBase.h

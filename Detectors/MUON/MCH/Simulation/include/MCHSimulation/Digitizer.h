@@ -21,6 +21,7 @@
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsMCH/ROFRecord.h"
 
 namespace o2
 {
@@ -39,10 +40,10 @@ class Digitizer
   //process hits: fill digit vector with digits
   void process(const std::vector<Hit> hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
   void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
-  void mergeDigits();
+  void mergeDigits(std::vector<Digit>& rofdigits, std::vector<o2::MCCompLabel>& rofLabels, std::vector<int>& indexhelper);
   void generateNoiseDigits();
   //external pile-up adding up
-  void mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
+  void mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer, std::vector<ROFRecord>& rofs);
 
   void fillOutputContainer(std::vector<Digit>& digits);
 
@@ -73,7 +74,7 @@ class Digitizer
   bool mNoise = true;
 
   //time difference allowed for pileup (in ns (assuming that event time is in ns))
-  float mDeltat = 100.;
+  int mDeltat = 4;
 
   //number of detector elements
   const static int mNdE = 156;
@@ -92,7 +93,7 @@ class Digitizer
   //MCLabel container (output)
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
 
-  int processHit(const Hit& hit, int detID, int event_time);
+  int processHit(const Hit& hit, int detID, int eventTime);
 };
 
 } // namespace mch

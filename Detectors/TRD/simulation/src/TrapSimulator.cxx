@@ -989,7 +989,7 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
   }
 
   // Produce ADC mask : nncc cccm mmmm mmmm mmmm mmmm mmmm 1100
-  // 				n : unused , c : ADC count, m : selected ADCs
+  // n : unused , c : ADC count, m : selected ADCs
   if (rawVer >= 3 &&
       (mTrapConfig->getTrapReg(TrapConfig::kC15CPUA, mDetector, mRobPos, mMcmPos) & (1 << 13))) { // check for zs flag in TRAP configuration
     int nActiveADC = 0;                                                                           // number numberOverFlowWordsWritten activated ADC bits in a word

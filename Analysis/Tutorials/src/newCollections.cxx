@@ -31,7 +31,7 @@ DECLARE_SOA_TABLE(EtaPhi, "AOD", "ETAPHI",
 using namespace o2;
 using namespace o2::framework;
 
-struct ATask {
+struct ProduceEtaPhi {
   // declare production of table etaphi
   Produces<aod::EtaPhi> etaphi;
 
@@ -47,7 +47,7 @@ struct ATask {
   }
 };
 
-struct BTask {
+struct ConsumeEtaPhi {
   // consume the table produced in ATask
   // process the entire table in one step
   void process(aod::EtaPhi const& etaPhis)
@@ -59,7 +59,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct LoopEtaPhi {
   using EtaPhiRow = aod::EtaPhi::iterator;
 
   // consume the table produced in ATask
@@ -73,8 +73,8 @@ struct CTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"new-collections-tutorial_A"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"new-collections-tutorial_B"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"new-collections-tutorial_C"}),
+    adaptAnalysisTask<ProduceEtaPhi>(cfgc),
+    adaptAnalysisTask<ConsumeEtaPhi>(cfgc),
+    adaptAnalysisTask<LoopEtaPhi>(cfgc),
   };
 }

@@ -58,13 +58,12 @@ The output to be sent by the calibrator should include:
 *   a vector of the `o2::ccdb::CcdbObjectInfo` objects that contain the extra
 information (metadata, startValidity...) associated to the objects themselves.
 
-E.g.:
+The origins of the pair of outputs will always be `o2::calibration::Utils::gDataOriginCDBPayload` and `o2::calibration::Utils::gDataOriginCDBWrapper` respectively, while the DataDescription must be unique for given calibration type, e.g.
 
 ```c++
-output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, i}, *image.get()); // vector<char>
-output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
 ```
-The origin of the output will always be `o2::calibration::Utils::gDataOriginCLB`, while the description will be `clbUtils::gDataDescriptionCLBPayload` for the object itself, and `o2::calibration::Utils::gDataDescriptionCLBInfo` for the description.
 
 See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h,  AliceO2/Detectors/TOF/calibration/testWorkflow/lhc-clockphase-workflow.cxx 
 

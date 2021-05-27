@@ -8,6 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "O2ControlHelpers.h"
+#include "Framework/O2ControlLabels.h"
 #include "ChannelSpecHelpers.h"
 #include "Framework/Logger.h"
 
@@ -15,7 +16,6 @@
 #include <cstring>
 #include <string>
 #include <filesystem>
-#include <boost/algorithm/string/replace.hpp>
 
 namespace bfs = std::filesystem;
 
@@ -63,39 +63,43 @@ struct RawChannel {
   std::string_view transport;
 };
 
-void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, std::string indLevel)
+std::string rawChannelReference(std::string_view channelName, bool isUniqueChannel)
 {
-  auto templateFriendlyChannelName = std::string(channel.name);
-  boost::replace_all(templateFriendlyChannelName, "-", "_");
-  boost::replace_all(templateFriendlyChannelName, "/", "_");
-  boost::replace_all(templateFriendlyChannelName, "*", "_");
-  boost::replace_all(templateFriendlyChannelName, "+", "_");
-  boost::replace_all(templateFriendlyChannelName, ".", "_");
-  boost::replace_all(templateFriendlyChannelName, "%", "_");
-  std::string pathToChannel = "path_to_" + templateFriendlyChannelName;
+  if (isUniqueChannel) {
+    return std::string(channelName);
+  } else {
+    return std::string(channelName) + "-{{ it }}";
+  }
+}
 
+void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, std::string indLevel)
+{
+  auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
   LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
-            << " Please provide the path to this channel under the name '" << pathToChannel
-            << "' in the mother workflow.";
+            << " Please make sure it is declared in the global channel space under the name '" << channelRef
+            << "' in the mother workflow or another subworkflow.";
 
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
-
-  dumpOut << indLevel << indScheme << "target: \"{{ " << pathToChannel << " }}\"\n";
+  dumpOut << indLevel << indScheme << "target: \"::" << channelRef << "\"\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
 }
 
-void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, std::string indLevel)
+void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, std::string indLevel)
 {
-  LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'."
-            << " Please make sure that another device connects to this channel elsewhere.";
+  auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
+  LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'"
+            << " and declare it in the global channel space under the name '" << channelRef << "'."
+            << " Please make sure that another device connects to this channel elsewhere."
+            << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
 
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
   dumpOut << indLevel << indScheme << "addressing: " << (channel.address.find("ipc") != std::string_view::npos ? "ipc" : "tcp") << "\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
+  dumpOut << indLevel << indScheme << "global: \"" << channelRef << "\"\n";
 }
 
 std::string_view extractValueFromChannelConfig(std::string_view string, std::string_view token)
@@ -151,17 +155,7 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << "shell: true\n";
   dumpOut << indLevel << "log: \"{{ log_task_output }}\"\n";
   dumpOut << indLevel << "user: \"{{ user }}\"\n";
-
-  dumpOut << indLevel << "value: >-\n";
-  // fixme : how to find out when to include QC? Now we include it always, just in case
-  dumpOut << indLevel << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
-
-  if (bfs::path(execution.args[0]).filename().string() != execution.args[0]) {
-    LOG(WARNING) << "The workflow template generation was started with absolute or relative executables paths."
-                    " Please use the symlinks exported by the build infrastructure or remove the paths manually in the generated templates,"
-                    " unless you really need executables within concrete directories";
-  }
-  dumpOut << indLevel << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
+  dumpOut << indLevel << "value: \"{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}\"\n";
 
   dumpOut << indLevel << "arguments:\n";
   dumpOut << indLevel << indScheme << "- \"-b\"\n";
@@ -179,6 +173,8 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
   dumpOut << indLevel << indScheme << "- \"'{{ shm_segment_size }}'\"\n";
   dumpOut << indLevel << indScheme << "- \"--shm-throw-bad-alloc\"\n";
   dumpOut << indLevel << indScheme << "- \"'{{ shm_throw_bad_alloc }}'\"\n";
+  dumpOut << indLevel << indScheme << "- \"--resources-monitoring\"\n";
+  dumpOut << indLevel << indScheme << "- \"'{{ resources_monitoring }}'\"\n";
 
   for (size_t ai = 1; ai < execution.args.size(); ++ai) {
     const char* option = execution.args[ai];
@@ -197,7 +193,7 @@ void dumpCommand(std::ostream& dumpOut, const DeviceExecution& execution, std::s
     static const std::set<std::string> omitOptions = {
       "--channel-config", "--o2-control", "--control", "--session", "--monitoring-backend",
       "-b", "--color", "--infologger-severity", "--infologger-mode", "--driver-client-backend",
-      "--shm-segment-size", "--shm-throw-bad-alloc"};
+      "--shm-segment-size", "--shm-throw-bad-alloc", "--resources-monitoring"};
     if (omitOptions.find(option) != omitOptions.end()) {
       continue;
     }
@@ -228,6 +224,11 @@ std::string findBinder(const std::vector<DeviceSpec>& specs, const std::string& 
   throw std::runtime_error("Could not find a device which binds the '" + channel + "' channel.");
 }
 
+bool isUniqueProxy(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::uniqueProxyLabel) != spec.labels.end();
+}
+
 void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSpec& spec, const std::vector<DeviceSpec>& allSpecs, const DeviceExecution& execution, const std::string indLevel)
 {
   dumpOut << indLevel << "- name: \"" << spec.id << "\"\n";
@@ -244,10 +245,24 @@ void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSp
       dumpChannelConnect(dumpOut, inputChannel, findBinder(allSpecs, inputChannel.name), indLevel + indScheme);
     }
   }
+  bool uniqueProxy = isUniqueProxy(spec);
+  bool bindsRawChannels = false;
   auto rawChannels = extractRawChannels(spec, execution);
   for (const auto& rawChannel : rawChannels) {
     if (rawChannel.method == "connect") {
-      dumpRawChannelConnect(dumpOut, rawChannel, indLevel + indScheme);
+      dumpRawChannelConnect(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
+    } else if (rawChannel.method == "bind") {
+      bindsRawChannels = true;
+    }
+  }
+
+  // for the time being we have to publish global bound channels also in WFT
+  if (bindsRawChannels) {
+    dumpOut << indLevel << indScheme << "bind:\n";
+    for (const auto& rawChannel : rawChannels) {
+      if (rawChannel.method == "bind") {
+        dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
+      }
     }
   }
 
@@ -278,13 +293,23 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << "defaults:\n";
   dumpOut << indLevel << indScheme << "log_task_output: none\n";
 
+  if (bfs::path(execution.args[0]).filename().string() != execution.args[0]) {
+    LOG(WARNING) << "The workflow template generation was started with absolute or relative executables paths."
+                    " Please use the symlinks exported by the build infrastructure or remove the paths manually in the generated templates,"
+                    " unless you really need executables within concrete directories";
+  }
+  dumpOut << indLevel << indScheme << "_module_cmdline: >-\n";
+  dumpOut << indLevel << indScheme << indScheme << "source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&\n";
+  dumpOut << indLevel << indScheme << indScheme << "{{ dpl_command }} | " << execution.args[0] << "\n";
+  dumpOut << indLevel << indScheme << "_plain_cmdline: \"source /etc/profile.d/o2.sh && {{ dpl_command }} | " << execution.args[0] << "\"\n";
+
   dumpOut << indLevel << "control:\n";
   dumpOut << indLevel << indScheme << "mode: \"fairmq\"\n";
 
   // todo: find out proper values perhaps...
   dumpOut << indLevel << "wants:\n";
-  dumpOut << indLevel << indScheme << "cpu: 0.15\n";
-  dumpOut << indLevel << indScheme << "memory: 128\n";
+  dumpOut << indLevel << indScheme << "cpu: 0.01\n";
+  dumpOut << indLevel << indScheme << "memory: 1\n";
 
   dumpOut << indLevel << "bind:\n";
   for (const auto& outputChannel : spec.outputChannels) {
@@ -297,10 +322,11 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
       implementation::dumpChannelBind(dumpOut, inputChannel, indLevel + indScheme);
     }
   }
+  bool uniqueProxy = implementation::isUniqueProxy(spec);
   auto rawChannels = implementation::extractRawChannels(spec, execution);
   for (const auto& rawChannel : rawChannels) {
     if (rawChannel.method == "bind") {
-      dumpRawChannelBind(dumpOut, rawChannel, indLevel + indScheme);
+      dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
     }
   }
 
@@ -323,6 +349,7 @@ void dumpWorkflow(std::ostream& dumpOut, const std::vector<DeviceSpec>& specs, c
   dumpOut << indLevel << indScheme << "shm_segment_size: 10000000000\n";
   dumpOut << indLevel << indScheme << "shm_throw_bad_alloc: false\n";
   dumpOut << indLevel << indScheme << "session_id: default\n";
+  dumpOut << indLevel << indScheme << "resources_monitoring: 15\n";
 
   dumpOut << indLevel << "roles:\n";
   for (size_t di = 0; di < specs.size(); di++) {

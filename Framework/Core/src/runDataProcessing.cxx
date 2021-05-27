@@ -14,6 +14,7 @@
 #include "Framework/ConfigParamsHelper.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/DataProcessingDevice.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Plugins.h"
@@ -25,6 +26,7 @@
 #include "Framework/DeviceConfigInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DevicesManager.h"
 #include "Framework/DebugGUI.h"
 #include "Framework/LocalRootFileService.h"
 #include "Framework/LogParsingHelpers.h"
@@ -748,6 +750,14 @@ void spawnDevice(std::string const& forwardedStdin,
     perror("Unable to install signal handler");
     exit(1);
   }
+  struct sigaction sa_handle_term;
+  sa_handle_term.sa_handler = handle_sigint;
+  sigemptyset(&sa_handle_term.sa_mask);
+  sa_handle_term.sa_flags = SA_RESTART;
+  if (sigaction(SIGTERM, &sa_handle_int, nullptr) == -1) {
+    perror("Unable to install signal handler");
+    exit(1);
+  }
 
   LOG(INFO) << "Starting " << spec.id << " on pid " << id;
   DeviceInfo info;
@@ -1009,11 +1019,13 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     // when the runner is done.
     std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
     std::unique_ptr<DeviceState> deviceState;
+    ComputingQuotaEvaluator quotaEvaluator{loop};
 
     auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                        &runningWorkflow,
                                        ref,
                                        &spec,
+                                       &quotaEvaluator,
                                        &serviceRegistry,
                                        &deviceState,
                                        &errorPolicy,
@@ -1026,11 +1038,13 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
       serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
       serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec>(&spec));
       serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
+      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(&quotaEvaluator));
+      serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
       // The decltype stuff is to be able to compile with both new and old
       // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
       decltype(r.fDevice) device;
-      device = std::move(make_matching<decltype(device), DataProcessingDevice>(runningWorkflow, ref, serviceRegistry, *deviceState.get()));
+      device = std::move(make_matching<decltype(device), DataProcessingDevice>(ref, serviceRegistry));
       dynamic_cast<DataProcessingDevice*>(device.get())->SetErrorPolicy(errorPolicy);
 
       serviceRegistry.get<RawDeviceService>().setDevice(device.get());
@@ -1118,6 +1132,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   RunningWorkflowInfo runningWorkflow;
   DeviceInfos infos;
   DeviceControls controls;
+  DevicesManager* devicesManager = new DevicesManager{controls, infos, runningWorkflow.devices};
   DeviceExecutions deviceExecutions;
   DataProcessorInfos dataProcessorInfos = previousDataProcessorInfos;
 
@@ -1193,9 +1208,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
 
+  serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
+
   // This is to make sure we can process metrics, commands, configuration
   // changes coming from websocket (or even via any standard uv_stream_t, I guess).
   DriverServerContext serverContext;
+  serverContext.registry = &serviceRegistry;
   serverContext.loop = loop;
   serverContext.controls = &controls;
   serverContext.infos = &infos;
@@ -1487,7 +1505,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                               driverInfo.port,
                                               dataProcessorInfos,
                                               runningWorkflow.devices,
-                                              deviceExecutions, controls,
+                                              deviceExecutions,
+                                              controls,
                                               driverInfo.uniqueWorkflowId);
         } catch (o2::framework::RuntimeErrorRef& ref) {
           auto& err = o2::framework::error_from_ref(ref);
@@ -1545,6 +1564,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // Run any pending libUV event loop, block if
         // any, so that we do not consume CPU time when the driver is
         // idle.
+        devicesManager->flush();
         uv_run(loop, once ? UV_RUN_ONCE : UV_RUN_NOWAIT);
         once = true;
         // Calculate what we should do next and eventually

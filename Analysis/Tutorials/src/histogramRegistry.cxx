@@ -292,5 +292,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     adaptAnalysisTask<DimensionTest>(cfgc),
     adaptAnalysisTask<RealisticExample>(cfgc),
     adaptAnalysisTask<TListTest>(cfgc),
-    adaptAnalysisTask<ConfigurablesTest>(cfgc)};
+    adaptAnalysisTask<ConfigurablesTest>(cfgc),
+  };
 }

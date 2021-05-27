@@ -91,22 +91,21 @@ DECLARE_SOA_COLUMN(SpdClusters, spdClusters, uint32_t); //! Number of SPD cluste
 DECLARE_SOA_COLUMN(NTracklets, nTracklets, int);        //! Tracklet multiplicity
 DECLARE_SOA_COLUMN(Sel7, sel7, bool);                   //! Event selection decision based on V0A & V0C
 DECLARE_SOA_COLUMN(Sel8, sel8, bool);                   //! Event selection decision based on TVX
-DECLARE_SOA_COLUMN(FoundFT0, foundFT0, int64_t);        //! The nearest FT0 signal
+DECLARE_SOA_COLUMN(FoundFT0, foundFT0, int64_t);        //! FT0 entry index in FT0s table (-1 if doesn't exist)
 } // namespace evsel
 DECLARE_SOA_TABLE(EvSels, "AOD", "EVSEL", //!
                   evsel::Alias, evsel::Selection,
                   evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C,
                   evsel::BBFDA, evsel::BBFDC, evsel::BGFDA, evsel::BGFDC,
                   evsel::MultRingV0A, evsel::MultRingV0C, evsel::SpdClusters, evsel::NTracklets,
-                  evsel::Sel7, evsel::Sel8,
-                  evsel::FoundFT0);
+                  evsel::Sel7, evsel::Sel8, evsel::FoundFT0);
 using EvSel = EvSels::iterator;
 
 DECLARE_SOA_TABLE(BcSels, "AOD", "BCSEL", //!
                   evsel::Alias, evsel::Selection,
                   evsel::BBV0A, evsel::BBV0C, evsel::BGV0A, evsel::BGV0C,
                   evsel::BBFDA, evsel::BBFDC, evsel::BGFDA, evsel::BGFDC,
-                  evsel::MultRingV0A, evsel::MultRingV0C, evsel::SpdClusters);
+                  evsel::MultRingV0A, evsel::MultRingV0C, evsel::SpdClusters, evsel::FoundFT0);
 using BcSel = BcSels::iterator;
 } // namespace o2::aod
 

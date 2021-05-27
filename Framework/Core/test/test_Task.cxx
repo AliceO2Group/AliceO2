@@ -15,7 +15,7 @@
 
 #define ASSERT_ERROR(condition)                                                                      \
   if ((condition) == false) {                                                                        \
-    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed at )" << __FILE__ << ":" << __LINE__; \
+    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed at )" << __FILE__ << ":" << __LINE__; \
   }
 
 using namespace o2::framework;

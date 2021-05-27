@@ -10,10 +10,10 @@
 
 o2_add_library(MCHCalibration
          SOURCES
-	       src/PedestalDigit.cxx
-	       src/PedestalProcessor.cxx
-	       src/PedestalCalibrator.cxx
-	       PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl O2::DetectorsCalibration O2::CCDB O2::MCHBase O2::MCHRawDecoder O2::DataFormatsMCH)
+           src/PedestalDigit.cxx
+           src/PedestalProcessor.cxx
+           src/PedestalCalibrator.cxx
+           PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL O2::DetectorsCalibration O2::CCDB O2::MCHBase O2::MCHRawDecoder O2::DataFormatsMCH)
 
 o2_target_root_dictionary(MCHCalibration
   HEADERS include/MCHCalibration/PedestalDigit.h include/MCHCalibration/PedestalProcessor.h include/MCHCalibration/PedestalCalibrator.h)
@@ -28,4 +28,4 @@ o2_add_executable(mch-pedestal-calib-workflow
                   SOURCES src/pedestal-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::MCHCalibration O2::DetectorsCalibration)
 
-  
+
