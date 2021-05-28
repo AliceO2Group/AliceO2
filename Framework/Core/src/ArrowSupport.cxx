@@ -229,7 +229,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        now = uv_hrtime();
                        static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
                        static uint64_t lastReportTime = 0;
-                       constexpr int64_t MAX_SHARED_MEMORY = 1800;
+                       constexpr int64_t MAX_SHARED_MEMORY = 2000;
                        constexpr int64_t QUANTUM_SHARED_MEMORY = 500;
                        static int64_t availableSharedMemory = MAX_SHARED_MEMORY;
                        static int64_t offeredSharedMemory = 0;
