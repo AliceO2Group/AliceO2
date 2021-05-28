@@ -21,6 +21,7 @@
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisCore/trackUtilities.h"
 #include "AnalysisCore/HFConfigurables.h"
+#include "AnalysisDataModel/EventSelection.h"
 //#include "AnalysisDataModel/Centrality.h"
 #include "AnalysisDataModel/StrangenessTables.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
@@ -60,8 +61,6 @@ using MyTracks = soa::Join<aod::FullTracks, aod::HFSelTrack, aod::TracksExtended
 #define MY_DEBUG_MSG(condition, cmd)
 #endif
 
-<<<<<<< HEAD
-=======
 /// Event selection
 struct HfTagSelCollisions {
 
@@ -125,9 +124,8 @@ struct HfTagSelCollisions {
   };
 };
 
->>>>>>> Add possibility to run without event selection (for ALICE3 MC)
 /// Track selection
-struct SelectTracks {
+struct HfTagSelTrack {
 
   // enum for candidate type
   enum CandidateType {
@@ -332,7 +330,7 @@ struct SelectTracks {
 //____________________________________________________________________________________________________________________________________________
 
 /// Pre-selection of 2-prong and 3-prong secondary vertices
-struct HFTrackIndexSkimsCreator {
+struct HfTrackIndexSkimsCreator {
   Produces<aod::HfTrackIndexProng2> rowTrackIndexProng2;
   Produces<aod::HfCutStatusProng2> rowProng2CutStatus;
   Produces<aod::HfTrackIndexProng3> rowTrackIndexProng3;
@@ -1068,7 +1066,7 @@ struct HFTrackIndexSkimsCreator {
 /// to run: o2-analysis-weak-decay-indices --aod-file AO2D.root -b | o2-analysis-lambdakzerobuilder -b |
 ///         o2-analysis-trackextension -b | o2-analysis-hf-track-index-skims-creator -b
 
-struct HFTrackIndexSkimsCreatorCascades {
+struct HfTrackIndexSkimsCreatorCascades {
   Produces<aod::HfTrackIndexCasc> rowTrackIndexCasc;
   //  Produces<aod::HfTrackIndexProng2> rowTrackIndexCasc;
 
@@ -1329,11 +1327,6 @@ struct HFTrackIndexSkimsCreatorCascades {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-<<<<<<< HEAD
-  WorkflowSpec workflow{
-    adaptAnalysisTask<SelectTracks>(cfgc, TaskName{"hf-produce-sel-track"}),
-    adaptAnalysisTask<HFTrackIndexSkimsCreator>(cfgc, TaskName{"hf-track-index-skims-creator"})};
-=======
   WorkflowSpec workflow{};
 
   const bool doEvSel = cfgc.options().get<bool>("doEvSel");
@@ -1345,11 +1338,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   workflow.push_back(adaptAnalysisTask<HfTagSelTrack>(cfgc));
   workflow.push_back(adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc));
->>>>>>> Add possibility to run without event selection (for ALICE3 MC)
 
   const bool doLcK0Sp = cfgc.options().get<bool>("do-LcK0Sp");
   if (doLcK0Sp) {
-    workflow.push_back(adaptAnalysisTask<HFTrackIndexSkimsCreatorCascades>(cfgc, TaskName{"hf-track-index-skims-cascades-creator"}));
+    workflow.push_back(adaptAnalysisTask<HfTrackIndexSkimsCreatorCascades>(cfgc));
   }
 
   return workflow;
