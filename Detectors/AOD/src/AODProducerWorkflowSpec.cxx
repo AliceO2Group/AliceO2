@@ -405,7 +405,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
-  auto& mcColLabelsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISLABEL"});
+  auto& mcColLabelsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISIONLABEL"});
   auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
   auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
   auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
@@ -966,8 +966,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint32_t labelTPC;
   uint16_t labelMask;
 
+  // filling track labels
+
   if (mFillTracksITS) {
-    for (auto& mcTruthITS : tracksITSMCTruth) {
+    for (int iLabel = 0; iLabel < tracksITSMCTruth.size(); iLabel++) {
+      if (!vToFillITS[iLabel]) {
+        continue;
+      }
+      auto& mcTruthITS = tracksITSMCTruth[iLabel];
       labelID = std::numeric_limits<uint32_t>::max();
       // TODO: fill label mask
       labelMask = 0;
@@ -1007,7 +1013,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   if (mFillTracksTPC) {
-    for (auto& mcTruthTPC : tracksTPCMCTruth) {
+    for (int iLabel = 0; iLabel < tracksTPCMCTruth.size(); iLabel++) {
+      if (!vToFillTPC[iLabel]) {
+        continue;
+      }
+      auto& mcTruthTPC = tracksTPCMCTruth[iLabel];
       labelID = std::numeric_limits<uint32_t>::max();
       // TODO: fill label mask
       labelMask = 0;
@@ -1085,7 +1095,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src)
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
