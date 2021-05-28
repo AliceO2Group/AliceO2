@@ -38,6 +38,19 @@ struct ZDCTDCData {
     amp = ampa;
   }
 
+  inline float amplitude() const
+  {
+    return FTDCAmp*amp;
+  }
+  inline float value() const
+  {
+    return FTDCVal*val;
+  }
+  inline uint8_t ch() const
+  {
+    return id;
+  }
+
   void print() const;
 
   ClassDefNV(ZDCTDCData, 1);

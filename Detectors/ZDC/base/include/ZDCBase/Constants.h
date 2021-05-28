@@ -83,10 +83,13 @@ constexpr uint32_t EnergyChMask = 0xf8000000;
 constexpr int MaxTDCValues = 5;  // max number of TDC values to store in reconstructed event
 constexpr int NTDCChannels = 10; // max number of TDC values to store in reconstructed event
 // Parameters of interpolating function
-constexpr int TSL = 6;                 // number of zeros on the right (and on the left) of central peak
-constexpr int TSN = 200;               // Number of interpolated points between each pair = TSN-1
-constexpr int TSNS = 96;               // Number of interpolated points per ns
-constexpr int NTS = 2 * TSL * TSN + 1; //Tapered sinc function array size
+constexpr int TSL = 6;                      // number of zeros on the right (and on the left) of central peak
+constexpr int TSN = 200;                    // Number of interpolated points between each pair = TSN-1
+constexpr int TSNS = 96;                    // Number of interpolated points per ns
+constexpr int NTS = 2 * TSL * TSN + 1;      //Tapered sinc function array size
+constexpr static float FTDCAmp = 1. / 8.;   /// Multiplication factor in conversion from integer
+constexpr static float FTDCVal = 1. / TSNS; /// Multiplication factor in conversion from integer
+
 enum TDCChannelID {
   TDCZNAC,
   TDCZNAS,
