@@ -199,12 +199,14 @@ DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);                                    
 DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);                                                  //!
 DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);                                              //!
 DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);                                              //!
-DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);                                              //!
-DECLARE_SOA_COLUMN(Length, length, float);                                                    //!
-DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                              //!
+DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);                                              //! TOF signal matched to the track
+DECLARE_SOA_COLUMN(Length, length, float);                                                    //! Track length
+DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                              //! TOF expected momentum obtained in tracking, used to compute the expected times
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                                      //!
-DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking,                                    //!
+DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF,                                                    //! Flag to check if track has a TOF measurement
+                           [](float tofSignal) -> bool { return tofSignal > 0.f; });
+DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //!
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //!
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t { return (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound; });
@@ -290,6 +292,7 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA", //!
                   track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                   track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length, track::TOFExpMom,
                   track::PIDForTracking<track::Flags>,
+                  track::HasTOF<track::TOFSignal>,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
