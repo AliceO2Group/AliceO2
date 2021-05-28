@@ -49,7 +49,7 @@ void ROFFinder::process(bool dummyROFs)
 {
   if (dummyROFs) {
     if (!mInputDigits.empty()) {
-      mOrderedDigits.reserve(mInputDigits.size());
+      mOrderedDigits.resize(mInputDigits.size());
       // fill the ordered vector with indexes in ascending order (no time sorting)
       std::iota(mOrderedDigits.begin(), mOrderedDigits.end(), 0);
       mOutputROFs.emplace_back(digitTime2IR(mInputDigits[0]), 0, mInputDigits.size());
