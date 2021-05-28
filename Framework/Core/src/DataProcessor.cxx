@@ -80,6 +80,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
   using o2::monitoring::Monitoring;
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
+  auto& monitoring = registry.get<Monitoring>();
 
   for (auto& messageRef : context) {
     FairMQParts parts;
@@ -95,13 +96,13 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     DataHeader* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = payload->GetSize();
     dh->serialization = o2::header::gSerializationMethodArrow;
+    monitoring.send(Metric{(uint64_t)payload->GetSize(), fmt::format("table-bytes-{}-{}-created", dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>())}.addTag(Key::Subsystem, Value::DPL));
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
     device.Send(parts, messageRef.channel, 0);
   }
-  auto& monitoring = registry.get<Monitoring>();
   auto disposeResources = [bs = context.bytesSent()](int taskId, std::array<ComputingQuotaOffer, 16>& offers) {
     auto bytesSent = bs;
     for (auto offer : offers) {
