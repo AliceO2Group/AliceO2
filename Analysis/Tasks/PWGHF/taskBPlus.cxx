@@ -72,12 +72,11 @@ struct TaskBplus{
 
   void process(soa::Filtered<soa::Join<aod::HfCandBPlus, aod::HFSelBPlusToD0PiCandidate>> const& candidates)
   {
-	 
-    for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << DecayType::BPlusToD0Pi)) {
+    for (auto& candidate : candidates){
+      if (!(candidate.hfflag() & 1 << DecayType::BPlusToD0Pi)){
         continue;
       }
-      if (cutYCandMax >= 0. && std::abs(YBplus(candidate)) > cutYCandMax) {
+      if (cutYCandMax >= 0. && std::abs(YBplus(candidate)) > cutYCandMax){
         continue;
       }
 
@@ -96,8 +95,8 @@ struct TaskBplus{
       registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength(), candidate.pt());
       registry.fill(HIST("hDecLenXYErr"), candidate.errorDecayLengthXY(), candidate.pt());
     } // candidate loop
-  }   // process
-};    // struct
+  }// process
+};// struct
 
 /// BPlus MC analysis and fill histograms
 struct TaskBplusMC {
@@ -153,19 +152,19 @@ struct TaskBplusMC {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_bplus::isSelBPlusToD0Pi >= d_selectionFlagBPlus);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandBPlus, aod::HFSelBPlusToD0PiCandidate, aod::HfCandBPMCRec>> const& candidates, 
+  void process(soa::Filtered<soa::Join<aod::HfCandBPlus, aod::HFSelBPlusToD0PiCandidate, aod::HfCandBPMCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandBPMCGen> const& particlesMC, aod::BigTracksMC const& tracks, aod::HfCandProng2)
   {
     //MC rec
-    for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << DecayType::BPlusToD0Pi)) {
+    for (auto& candidate : candidates){
+      if (!(candidate.hfflag() & 1 << DecayType::BPlusToD0Pi)){
         continue;
       }
-      if (cutYCandMax >= 0. && std::abs(YBplus(candidate)) > cutYCandMax) {
+      if (cutYCandMax >= 0. && std::abs(YBplus(candidate)) > cutYCandMax){
         continue;
       }
       auto D0cand = candidate.index0_as<aod::HfCandProng2>();
-      if (std::abs(candidate.flagMCMatchRec()) == 1 << DecayType::BPlusToD0Pi) {
+      if (std::abs(candidate.flagMCMatchRec()) == 1 << DecayType::BPlusToD0Pi){
 
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index1_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandBPMCGen>>(), pdg::Code::kBPlus, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
@@ -204,36 +203,37 @@ struct TaskBplusMC {
 
     // MC gen. level
     //Printf("MC Particles: %d", particlesMC.size());
-    for (auto& particle : particlesMC) {
-      if (std::abs(particle.flagMCMatchGen()) == 1  << DecayType::BPlusToD0Pi) {
-        if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(pdg::Code::kBPlus))) > cutYCandMax) {
-        continue;
+    for(auto& particle : particlesMC){
+      if (std::abs(particle.flagMCMatchGen()) == 1  << DecayType::BPlusToD0Pi){
+        if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(pdg::Code::kBPlus))) > cutYCandMax){
+          continue;
         }
-        
+
         float ptProngs[2], yProngs[2], etaProngs[2];
         int counter = 0;
         for (int iD = particle.daughter0(); iD <= particle.daughter1(); ++iD) {
           ptProngs[counter] = particlesMC.iteratorAt(iD).pt();
           etaProngs[counter] = particlesMC.iteratorAt(iD).eta();
 
-	  auto daught = particlesMC.iteratorAt(iD);
-	  yProngs[counter] = RecoDecay::Y(array{daught.px(), daught.py(), daught.pz()}, RecoDecay::getMassPDG(daught.pdgCode()));
+          auto daught = particlesMC.iteratorAt(iD);
+          yProngs[counter] = RecoDecay::Y(array{daught.px(), daught.py(), daught.pz()}, RecoDecay::getMassPDG(daught.pdgCode()));
           counter++;
         }
+       
         registry.fill(HIST("hPtGenProng0"), ptProngs[0], particle.pt());
         registry.fill(HIST("hPtGenProng1"), ptProngs[1], particle.pt());
         registry.fill(HIST("hYGenProng0"), yProngs[0], particle.pt());
         registry.fill(HIST("hYGenProng1"), yProngs[1], particle.pt());
-      
-       if (cutYCandMax >= 0. && (std::abs(yProngs[0])>cutYCandMax  || std::abs(yProngs[1])>cutYCandMax))	
-	       continue;
 
-	registry.fill(HIST("hPtGen"), particle.pt());
+        if(cutYCandMax >= 0. && (std::abs(yProngs[0])>cutYCandMax  || std::abs(yProngs[1])>cutYCandMax))
+          continue;
+
+        registry.fill(HIST("hPtGen"), particle.pt());
         registry.fill(HIST("hEtaGen"), particle.eta(), particle.pt());
       }
-    } //gen
-  }   // process
-};    // struct
+    }//gen
+  }// process
+};// struct
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {

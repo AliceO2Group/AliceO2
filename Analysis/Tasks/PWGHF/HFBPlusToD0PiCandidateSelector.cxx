@@ -49,7 +49,6 @@ struct HFBPlusToD0PiCandidateSelector {
 
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_bplus_tod0pi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"BPlus_to_d0pi_cuts", {hf_cuts_bplus_tod0pi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "B+ candidate selection per pT bin"};
-  
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
 
@@ -71,48 +70,48 @@ struct HFBPlusToD0PiCandidateSelector {
   bool selectionTopol(const T1& hfCandBPlus, const T2& hfCandD0, const T3& trackPos)
   {
     auto candpT = hfCandBPlus.pt();
-    int pTBin = findBin(pTBins, candpT); 
-    if (pTBin == -1) {
+    int pTBin = findBin(pTBins, candpT);
+    if (pTBin == -1){
       // Printf("B+ topol selection failed at getpTBin");
       return false;
     }
 
-    //pi pt 
+    //pi pt
     if(trackPos.pt() < cuts->get(pTBin, "pT Pi")){
-	    return false;
+      return false;
     }
 
     //d0(D0)xd0(pi)
     if (hfCandBPlus.impactParameterProduct() > cuts->get(pTBin, "Imp. Par. Product")) {
-	    return false;
+      return false;
     }
 
     //D0 mass
     if (trackPos.sign() > 0) {
-	    if (TMath::Abs(InvMassD0bar(hfCandD0) - RecoDecay::getMassPDG(421)) > cuts->get(pTBin, "DeltaMD0")) {
-		    return false;
-	    }
+      if (TMath::Abs(InvMassD0bar(hfCandD0) - RecoDecay::getMassPDG(421)) > cuts->get(pTBin, "DeltaMD0")) {
+        return false;
+      }
     }
     if (trackPos.sign() < 0) {
-	    if (TMath::Abs(InvMassD0(hfCandD0) - RecoDecay::getMassPDG(421)) > cuts->get(pTBin, "DeltaMD0")) {
-		    return false;
+      if (TMath::Abs(InvMassD0(hfCandD0) - RecoDecay::getMassPDG(421)) > cuts->get(pTBin, "DeltaMD0")) {
+        return false;
       }
     }
 
     //B Decay length
     if (TMath::Abs(hfCandBPlus.decayLength()) < cuts->get(pTBin, "B decLen")) {
-	    return false;
+      return false;
     }
 
     //B+ CPA cut
     if (hfCandBPlus.cpa() < cuts->get(pTBin, "CPA")) {
-	    return false;
+      return false;
     }
 
     //if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
       // Printf("B+ topol selection failed at cand pT check");
-     // return false; 
-   // }
+     // return false;
+     // }
 
     //B+ mass cut
     //if (TMath::Abs(InvMassBplus(hfCandBPlus) - RecoDecay::getMassPDG(521)) > cuts->get(pTBin, "m")) {
@@ -122,15 +121,13 @@ struct HFBPlusToD0PiCandidateSelector {
 
     //d0 of D0 and pi
     //if ((TMath::Abs(hfCandBPlus.impactParameter0()) > cuts->get(pTBin, "d0 D0")) ||
-    //    (TMath::Abs(hfCandBPlus.impactParameter1()) > cuts->get(pTBin, "d0 Pi"))) { 
-    //  return false; 
+    //    (TMath::Abs(hfCandBPlus.impactParameter1()) > cuts->get(pTBin, "d0 Pi"))){
+    //  return false;
+    //}
+   //D0 CPA
+   // if (TMath::Abs(hfCandD0.cpa()) < cuts->get(pTBin, "CPA D0")){
+   //  return false;
    //}
-
-    //D0 CPA
-    // if (TMath::Abs(hfCandD0.cpa()) < cuts->get(pTBin, "CPA D0")) {
-    //  return false; 
-    //} 
-
     return true;
   }
 
@@ -166,11 +163,11 @@ struct HFBPlusToD0PiCandidateSelector {
     } else {
       return false;
     }
-    if(std::abs(nSigma) < nSigmaCut) 
-	    return true;
-    else 
-	    return false;
-//    return std::abs(nSigma) < nSigmaCut;
+    if(std::abs(nSigma) < nSigmaCut)
+      return true;
+    else
+      return false;
+    //return std::abs(nSigma) < nSigmaCut;
   }
 
   /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
@@ -185,9 +182,9 @@ struct HFBPlusToD0PiCandidateSelector {
       return false;
     }
     if(std::abs(nSigma) < nSigmaCut)
-	    return true;
+      return true;
     else
-	    return false;
+      return false;
     //  return std::abs(nSigma) < nSigmaCut;
   }
 
@@ -241,12 +238,11 @@ struct HFBPlusToD0PiCandidateSelector {
     */
     //temporary till I understand
     if(statusTPC == 2 || statusTOF == 2){
-	    return 1;
+      return 1;
     }
     else {
       return -1;
     }
-
   }
 
   void process(aod::HfCandBPlus const& hfCandBs, soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>, aod::BigTracksPID const& tracks)
@@ -254,7 +250,7 @@ struct HFBPlusToD0PiCandidateSelector {
     for (auto& hfCandB : hfCandBs) { //looping over Bplus candidates
       // D0 is always index0 and pi is index1 by default
       auto candD0 = hfCandB.index0_as<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>>();
-      auto trackPos = hfCandB.index1_as<aod::BigTracksPID>(); 
+      auto trackPos = hfCandB.index1_as<aod::BigTracksPID>();
 
       int statusBplus= 0;
 
