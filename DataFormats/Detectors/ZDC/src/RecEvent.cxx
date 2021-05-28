@@ -16,13 +16,13 @@ void RecEvent::print() const
 {
   for (auto bcdata : mRecBC) {
     bcdata.ir.print();
-    int fe,ne,ft,nt,fi,ni;
-    bcdata.getRef(fe,ne,ft,nt,fi,ni);
-    for(int ie=0; ie<ne; ie++){
-      mEnergy[fe+ie].print();
+    int fe, ne, ft, nt, fi, ni;
+    bcdata.getRef(fe, ne, ft, nt, fi, ni);
+    for (int ie = 0; ie < ne; ie++) {
+      mEnergy[fe + ie].print();
     }
-    for(int it=0; it<nt; it++){
-      mTDCData[ft+it].print();
+    for (int it = 0; it < nt; it++) {
+      mTDCData[ft + it].print();
     }
     // TODO: event info
   }

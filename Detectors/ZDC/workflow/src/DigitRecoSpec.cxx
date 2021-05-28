@@ -40,15 +40,15 @@ DigitRecoSpec::DigitRecoSpec()
 void DigitRecoSpec::init(o2::framework::InitContext& ic)
 {
   // At this stage we cannot access the CCDB yet
-//   std::string dictPath = ic.options().get<std::string>("zdc-ctf-dictionary");
-//   if (!dictPath.empty() && dictPath != "none") {
-//     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
-//   }
+  //   std::string dictPath = ic.options().get<std::string>("zdc-ctf-dictionary");
+  //   if (!dictPath.empty() && dictPath != "none") {
+  //     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
+  //   }
 }
 
 void DigitRecoSpec::run(ProcessingContext& pc)
 {
-  if(!mInitialized){
+  if (!mInitialized) {
     mInitialized = true;
     // Initialization from CCDB
   }
@@ -58,14 +58,14 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   auto chans = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 
-//   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"ZDC", "CTFDATA", 0, Lifetime::Timeframe});
-//   mCTFCoder.encode(buffer, bcdata, chans, peds);
-//   auto eeb = CTF::get(buffer.data()); // cast to container pointer
-//   eeb->compactify();                  // eliminate unnecessary padding
-//   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
+  //   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"ZDC", "CTFDATA", 0, Lifetime::Timeframe});
+  //   mCTFCoder.encode(buffer, bcdata, chans, peds);
+  //   auto eeb = CTF::get(buffer.data()); // cast to container pointer
+  //   eeb->compactify();                  // eliminate unnecessary padding
+  //   buffer.resize(eeb->size());         // shrink buffer to strictly necessary size
   //  eeb->print();
   mTimer.Stop();
-//  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for ZDC in " << mTimer.CpuTime() - cput << " s";
+  //  LOG(INFO) << "Created encoded data of size " << eeb->size() << " for ZDC in " << mTimer.CpuTime() - cput << " s";
 }
 
 void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
@@ -73,7 +73,6 @@ void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
   LOGF(INFO, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
-
 
 DataProcessorSpec getDigitRecoSpec()
 {
