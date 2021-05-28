@@ -49,12 +49,12 @@ using BigTracksPID = soa::Join<BigTracks,
 
 namespace hf_track_index
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, Tracks, "_0"); //!
-DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, Tracks, "_1"); //!
-DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, Tracks, "_2"); //!
-DECLARE_SOA_INDEX_COLUMN_FULL(Index3, index3, int, Tracks, "_3"); //!
+DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, Tracks, "_0");          //!
+DECLARE_SOA_INDEX_COLUMN_FULL(Index1, index1, int, Tracks, "_1");          //!
+DECLARE_SOA_INDEX_COLUMN_FULL(Index2, index2, int, Tracks, "_2");          //!
+DECLARE_SOA_INDEX_COLUMN_FULL(Index3, index3, int, Tracks, "_3");          //!
 DECLARE_SOA_INDEX_COLUMN_FULL(IndexV0, indexV0, int, aod::V0Datas, "_V0"); //!
-DECLARE_SOA_COLUMN(HFflag, hfflag, uint8_t);                      //!
+DECLARE_SOA_COLUMN(HFflag, hfflag, uint8_t);                               //!
 
 DECLARE_SOA_COLUMN(D0ToKPiFlag, d0ToKPiFlag, uint8_t);   //!
 DECLARE_SOA_COLUMN(JpsiToEEFlag, jpsiToEEFlag, uint8_t); //!
@@ -444,11 +444,11 @@ DECLARE_SOA_TABLE(HfCandCascBase, "AOD", "HFCANDCASCBASE", //!
                   v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                   v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                   v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
-/*,
-		  v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
-		  v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
-		  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
-*/
+//                  ,
+//                  v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+//                  v0data::MAntiLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+//                  v0data::MK0Short<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>);
+
 // extended table with expression columns that can be used as arguments of dynamic columns
 DECLARE_SOA_EXTENDED_TABLE_USER(HfCandCascExt, HfCandCascBase, "HFCANDCASCEXT", //!
                                 hf_cand_casc::Px, hf_cand_casc::Py, hf_cand_casc::Pz);

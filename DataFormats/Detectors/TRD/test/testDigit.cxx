@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(TRDDigit_test)
   Digit x(10, 6, 0, 2);
   testDigitDetRowPad(x, 10, 12, NCOLMCM - 1);
 
-  /* 
+  /*
   * The below is left in, it helps to remove confusion when debugging
  for(int rob=0;rob<8;rob++)for(int mcm=0;mcm<16;mcm++)for(int channel=0;channel<21;channel++){
   std::cout << "Digit e(0,"<<rob<<"," << mcm <<","<< channel<<");" << std::endl;

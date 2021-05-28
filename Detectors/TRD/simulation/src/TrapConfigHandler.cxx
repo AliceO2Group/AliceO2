@@ -496,7 +496,7 @@ void TrapConfigHandler::configureDRange(int det)
 
         // cout << "maxdefl: " << maxDeflAngle << ", localPhi " << localPhi << endl;
         // cout << "r " << r << ", m" << m << ", c " << c << ", min angle: " << localPhi-maxDeflAngle << ", max: " << localPhi+maxDeflAngle
-        // 	<< ", min int: " << dyMinInt << ", max int: " << dyMaxInt << endl;
+        //<< ", min int: " << dyMinInt << ", max int: " << dyMaxInt << endl;
         int dest = 1 << 10 | r << 7 | m;
         int lutAddr = TrapSimulator::mgkDmemAddrDeflCutStart + 2 * c;
         mFeeParam->getDyRange(det, r, m, c, dyMinInt, dyMaxInt);

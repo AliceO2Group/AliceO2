@@ -69,11 +69,11 @@ struct SelectTracks {
 
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
-  Configurable<bool> dovalplots{"dovalplots", true, "fill histograms"};
-  Configurable<double> bz{"bz", 5., "bz field"};
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
+  Configurable<double> d_bz{"d_bz", 5., "bz field"};
   // quality cut
   Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
-  Configurable<int> tpcnclsfound{"tpcnclsfound", 70, ">= min. number of TPC clusters needed"};
+  Configurable<int> d_tpcnclsfound{"d_tpcnclsfound", 70, ">= min. number of TPC clusters needed"};
   // pT bins for single-track cuts
   Configurable<std::vector<double>> pTBinsTrack{"ptbins_singletrack", std::vector<double>{hf_cuts_single_track::pTBinsTrack_v}, "track pT bin limits for 2-prong DCAXY pT-depentend cut"};
   // 2-prong cuts
@@ -168,7 +168,7 @@ struct SelectTracks {
       int status_prong = 7; // selection flag , 3 bits on
 
       auto trackPt = track.pt();
-      if (dovalplots.value) {
+      if (b_dovalplots.value) {
         registry.get<TH1>(HIST("hpt_nocuts"))->Fill(trackPt);
       }
 
@@ -179,9 +179,9 @@ struct SelectTracks {
       if (trackPt < ptmintrack_3prong) {
         status_prong = status_prong & ~(1 << 1);
       }
-      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " pt = " << track.pt() << " (cut " << ptMinTrackBach << ")");
+      MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " pt = " << trackPt << " (cut " << ptMinTrackBach << ")");
 
-      if (track.pt() < ptMinTrackBach) {
+      if (trackPt < ptMinTrackBach) {
         status_prong = status_prong & ~(1 << 2);
       }
 
@@ -204,7 +204,7 @@ struct SelectTracks {
 
       if (doCutQuality.value && status_prong > 0) { // FIXME to make a more complete selection e.g track.flags() & o2::aod::track::TPCrefit && track.flags() & o2::aod::track::GoldenChi2 &&
         UChar_t clustermap = track.itsClusterMap();
-        if (!(track.tpcNClsFound() >= tpcnclsfound.value && // is this the number of TPC clusters? It should not be used
+        if (!(track.tpcNClsFound() >= d_tpcnclsfound.value &&
               track.flags() & o2::aod::track::ITSrefit &&
               (TESTBIT(clustermap, 0) || TESTBIT(clustermap, 1)))) {
           status_prong = 0;
@@ -217,7 +217,7 @@ struct SelectTracks {
       if (status_prong > 0) {
         double dcaToPrimXYMinBach_ptDep = dcaToPrimXYMinBach * TMath::Max(0., (1 - TMath::Floor(trackPt / dcaToPrimXYMaxPtBach)));
         auto trackparvar0 = getTrackParCov(track);
-        if (!trackparvar0.propagateParamToDCA(vtxXYZ, bz, &dca, 100.)) { // get impact parameters
+        if (!trackparvar0.propagateParamToDCA(vtxXYZ, d_bz, &dca, 100.)) { // get impact parameters
           status_prong = 0;
         }
         if ((status_prong & (1 << 0)) && !isSelectedTrack(track, dca, Cand2Prong)) {
@@ -236,7 +236,7 @@ struct SelectTracks {
       MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "status_prong = " << status_prong; printf("\n"));
 
       // fill histograms
-      if (dovalplots) {
+      if (b_dovalplots) {
         if (status_prong & (1 << 0)) {
           registry.get<TH1>(HIST("hpt_cuts_2prong"))->Fill(trackPt);
           registry.get<TH1>(HIST("hdcatoprimxy_cuts_2prong"))->Fill(dca[0]);
@@ -271,20 +271,20 @@ struct HFTrackIndexSkimsCreator {
   Produces<aod::HfCutStatusProng3> rowProng3CutStatus;
 
   //Configurable<int> nCollsMax{"nCollsMax", -1, "Max collisions per file"}; //can be added to run over limited collisions per file - for tesing purposes
-  Configurable<bool> dovalplots{"dovalplots", true, "fill histograms"};
+  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
   // event selection
   Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
   // vertexing parameters
-  Configurable<double> bz{"bz", 5., "magnetic field kG"};
-  Configurable<bool> propdca{"propdca", true, "create tracks version propagated to PCA"};
+  Configurable<double> d_bz{"d_bz", 5., "magnetic field kG"};
+  Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
   Configurable<bool> useAbsDCA{"useAbsDCA", true, "Minimise abs. distance rather than chi2"};
-  Configurable<double> maxr{"maxr", 200., "reject PCA's above this radius"};
-  Configurable<double> maxdzini{"maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
-  Configurable<double> minparamchange{"minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
-  Configurable<double> minrelchi2change{"minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
+  Configurable<double> d_maxr{"d_maxr", 200., "reject PCA's above this radius"};
+  Configurable<double> d_maxdzini{"d_maxdzini", 4., "reject (if>0) PCA candidate if tracks DZ exceeds threshold"};
+  Configurable<double> d_minparamchange{"d_minparamchange", 1.e-3, "stop iterations if largest change of any X is smaller than this"};
+  Configurable<double> d_minrelchi2change{"d_minrelchi2change", 0.9, "stop iterations if chi2/chi2old > this"};
   Configurable<HFTrackIndexSkimsCreatorConfigs> configs{"configs", {}, "configurables"};
-  Configurable<bool> debug{"debug", false, "debug mode"};
+  Configurable<bool> b_debug{"b_debug", false, "debug mode"};
 
   HistogramRegistry registry{
     "registry",
@@ -308,7 +308,7 @@ struct HFTrackIndexSkimsCreator {
      {"hmassDsToPiKK", "D_{s} candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassXicToPKPi", "#Xi_{c} candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
 
-  Filter filterSelectTracks = (aod::hf_seltrack::isSelProng > 0 && aod::hf_seltrack::isSelProng < 4);
+  Filter filterSelectTracks = aod::hf_seltrack::isSelProng > 0;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
 
   // FIXME
@@ -440,22 +440,22 @@ struct HFTrackIndexSkimsCreator {
 
     // 2-prong vertex fitter
     o2::vertexing::DCAFitterN<2> df2;
-    df2.setBz(bz);
-    df2.setPropagateToPCA(propdca);
-    df2.setMaxR(maxr);
-    df2.setMaxDZIni(maxdzini);
-    df2.setMinParamChange(minparamchange);
-    df2.setMinRelChi2Change(minrelchi2change);
+    df2.setBz(d_bz);
+    df2.setPropagateToPCA(b_propdca);
+    df2.setMaxR(d_maxr);
+    df2.setMaxDZIni(d_maxdzini);
+    df2.setMinParamChange(d_minparamchange);
+    df2.setMinRelChi2Change(d_minrelchi2change);
     df2.setUseAbsDCA(useAbsDCA);
 
     // 3-prong vertex fitter
     o2::vertexing::DCAFitterN<3> df3;
-    df3.setBz(bz);
-    df3.setPropagateToPCA(propdca);
-    df3.setMaxR(maxr);
-    df3.setMaxDZIni(maxdzini);
-    df3.setMinParamChange(minparamchange);
-    df3.setMinRelChi2Change(minrelchi2change);
+    df3.setBz(d_bz);
+    df3.setPropagateToPCA(b_propdca);
+    df3.setMaxR(d_maxr);
+    df3.setMaxDZIni(d_maxdzini);
+    df3.setMinParamChange(d_minparamchange);
+    df3.setMinRelChi2Change(d_minrelchi2change);
     df3.setUseAbsDCA(useAbsDCA);
 
     // used to calculate number of candidiates per event
@@ -468,12 +468,9 @@ struct HFTrackIndexSkimsCreator {
       if (trackPos1.signed1Pt() < 0) {
         continue;
       }
-      bool sel2ProngStatus = true;
+      bool sel2ProngStatusPos = trackPos1.isSelProng() & (1 << 0);
       bool sel3ProngStatusPos1 = trackPos1.isSelProng() & (1 << 1);
-      if (!(trackPos1.isSelProng() & (1 << 0))) {
-        sel2ProngStatus = false;
-      }
-      if (!sel2ProngStatus && !sel3ProngStatusPos1) {
+      if (!sel2ProngStatusPos && !sel3ProngStatusPos1) {
         continue;
       }
 
@@ -485,11 +482,9 @@ struct HFTrackIndexSkimsCreator {
         if (trackNeg1.signed1Pt() > 0) {
           continue;
         }
+        bool sel2ProngStatusNeg = trackNeg1.isSelProng() & (1 << 0);
         bool sel3ProngStatusNeg1 = trackNeg1.isSelProng() & (1 << 1);
-        if (sel2ProngStatus && !(trackNeg1.isSelProng() & (1 << 0))) {
-          sel2ProngStatus = false;
-        }
-        if (!sel2ProngStatus && !sel3ProngStatusNeg1) {
+        if (!sel2ProngStatusNeg && !sel3ProngStatusNeg1) {
           continue;
         }
 
@@ -497,7 +492,7 @@ struct HFTrackIndexSkimsCreator {
 
         int isSelected2ProngCand = n2ProngBit; //bitmap for checking status of two-prong candidates (1 is true, 0 is rejected)
 
-        if (debug) {
+        if (b_debug) {
           for (int n2 = 0; n2 < n2ProngDecays; n2++) {
             for (int n2cut = 0; n2cut < nCuts2Prong; n2cut++) {
               cutStatus2Prong[n2][n2cut] = true;
@@ -506,19 +501,21 @@ struct HFTrackIndexSkimsCreator {
         }
         int iDebugCut = 0;
 
-        // 2-prong invariant-mass cut
-        if (sel2ProngStatus > 0) {
+        // 2-prong vertex reconstruction
+        if (sel2ProngStatusPos && sel2ProngStatusNeg) {
+
+          // invariant-mass cut
           auto arrMom = array{
             array{trackPos1.px(), trackPos1.py(), trackPos1.pz()},
             array{trackNeg1.px(), trackNeg1.py(), trackNeg1.pz()}};
           for (int n2 = 0; n2 < n2ProngDecays; n2++) {
             mass2ProngHypo1[n2] = RecoDecay::M(arrMom, arr2Mass1[n2]);
             mass2ProngHypo2[n2] = RecoDecay::M(arrMom, arr2Mass2[n2]);
-            if ((debug || (isSelected2ProngCand & 1 << n2)) && cut2ProngInvMassCandMin[n2] >= 0. && cut2ProngInvMassCandMax[n2] > 0.) { //no need to check isSelected2Prong but to avoid mistakes
+            if ((b_debug || (isSelected2ProngCand & 1 << n2)) && cut2ProngInvMassCandMin[n2] >= 0. && cut2ProngInvMassCandMax[n2] > 0.) { //no need to check isSelected2Prong but to avoid mistakes
               if ((mass2ProngHypo1[n2] < cut2ProngInvMassCandMin[n2] || mass2ProngHypo1[n2] >= cut2ProngInvMassCandMax[n2]) &&
                   (mass2ProngHypo2[n2] < cut2ProngInvMassCandMin[n2] || mass2ProngHypo2[n2] >= cut2ProngInvMassCandMax[n2])) {
                 isSelected2ProngCand = isSelected2ProngCand & ~(1 << n2);
-                if (debug) {
+                if (b_debug) {
                   cutStatus2Prong[n2][iDebugCut] = false;
                 }
               }
@@ -526,7 +523,7 @@ struct HFTrackIndexSkimsCreator {
           }
           iDebugCut++;
 
-          //secondary vertex reconstruction and further 2 prong selections
+          // secondary vertex reconstruction and further 2-prong selections
           if (isSelected2ProngCand > 0 && df2.process(trackParVarPos1, trackParVarNeg1) > 0) { //should it be this or > 0 or are they equivalent
             // get secondary vertex
             const auto& secondaryVertex2 = df2.getPCACandidate();
@@ -539,12 +536,12 @@ struct HFTrackIndexSkimsCreator {
             auto pVecCandProng2 = RecoDecay::PVec(pvec0, pvec1);
 
             // candidate pT cut
-            if ((debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngPtCandMin), std::end(cut2ProngPtCandMin), [](double d) { return d >= 0.; }) > 0)) {
+            if ((b_debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngPtCandMin), std::end(cut2ProngPtCandMin), [](double d) { return d >= 0.; }) > 0)) {
               double cand2ProngPt = RecoDecay::Pt(pVecCandProng2);
               for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-                if ((debug || (isSelected2ProngCand & 1 << n2)) && cand2ProngPt < cut2ProngPtCandMin[n2]) {
+                if ((b_debug || (isSelected2ProngCand & 1 << n2)) && cand2ProngPt < cut2ProngPtCandMin[n2]) {
                   isSelected2ProngCand = isSelected2ProngCand & ~(1 << n2);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus2Prong[n2][iDebugCut] = false;
                   }
                 }
@@ -553,12 +550,12 @@ struct HFTrackIndexSkimsCreator {
             iDebugCut++;
 
             // imp. par. product cut
-            if ((debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngImpParProductCandMax), std::end(cut2ProngImpParProductCandMax), [](double d) { return d < 100.; }) > 0)) {
+            if ((b_debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngImpParProductCandMax), std::end(cut2ProngImpParProductCandMax), [](double d) { return d < 100.; }) > 0)) {
               auto impParProduct = trackPos1.dcaPrim0() * trackNeg1.dcaPrim0();
               for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-                if ((debug || (isSelected2ProngCand & 1 << n2)) && impParProduct > cut2ProngImpParProductCandMax[n2]) {
+                if ((b_debug || (isSelected2ProngCand & 1 << n2)) && impParProduct > cut2ProngImpParProductCandMax[n2]) {
                   isSelected2ProngCand = isSelected2ProngCand & ~(1 << n2);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus2Prong[n2][iDebugCut] = false;
                   }
                 }
@@ -567,12 +564,12 @@ struct HFTrackIndexSkimsCreator {
             iDebugCut++;
 
             // CPA cut
-            if ((debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngCPACandMin), std::end(cut2ProngCPACandMin), [](double d) { return d > -2.; }) > 0)) {
+            if ((b_debug || isSelected2ProngCand > 0) && (std::count_if(std::begin(cut2ProngCPACandMin), std::end(cut2ProngCPACandMin), [](double d) { return d > -2.; }) > 0)) {
               auto cpa = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex2, pVecCandProng2);
               for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-                if ((debug || (isSelected2ProngCand & 1 << n2)) && cpa < cut2ProngCPACandMin[n2]) {
+                if ((b_debug || (isSelected2ProngCand & 1 << n2)) && cpa < cut2ProngCPACandMin[n2]) {
                   isSelected2ProngCand = isSelected2ProngCand & ~(1 << n2);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus2Prong[n2][iDebugCut] = false;
                   }
                 }
@@ -584,7 +581,7 @@ struct HFTrackIndexSkimsCreator {
               // fill table row
               rowTrackIndexProng2(trackPos1.globalIndex(),
                                   trackNeg1.globalIndex(), isSelected2ProngCand);
-              if (debug) {
+              if (b_debug) {
                 int Prong2CutStatus[n2ProngDecays];
                 for (int n2 = 0; n2 < n2ProngDecays; n2++) {
                   Prong2CutStatus[n2] = nCutStatus2ProngBit;
@@ -598,7 +595,7 @@ struct HFTrackIndexSkimsCreator {
               }
 
               // fill histograms
-              if (dovalplots) {
+              if (b_dovalplots) {
 
                 registry.get<TH1>(HIST("hvtx2_x"))->Fill(secondaryVertex2[0]);
                 registry.get<TH1>(HIST("hvtx2_y"))->Fill(secondaryVertex2[1]);
@@ -646,7 +643,7 @@ struct HFTrackIndexSkimsCreator {
 
             int isSelected3ProngCand = n3ProngBit;
 
-            if (debug) {
+            if (b_debug) {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 for (int n3cut = 0; n3cut < nCuts3Prong; n3cut++) {
                   cutStatus3Prong[n3][n3cut] = true;
@@ -668,13 +665,13 @@ struct HFTrackIndexSkimsCreator {
                 if ((mass3ProngHypo1[n3] < cut3ProngInvMassCandMin[n3] || mass3ProngHypo1[n3] >= cut3ProngInvMassCandMax[n3]) &&
                     (mass3ProngHypo2[n3] < cut3ProngInvMassCandMin[n3] || mass3ProngHypo2[n3] >= cut3ProngInvMassCandMax[n3])) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
             }
-            if (!debug && isSelected3ProngCand == 0) {
+            if (!b_debug && isSelected3ProngCand == 0) {
               continue;
             }
             iDebugCut++;
@@ -703,11 +700,11 @@ struct HFTrackIndexSkimsCreator {
                 if (cand3ProngPt < cut3ProngPtCandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
                 }
-                if (debug) {
+                if (b_debug) {
                   cutStatus3Prong[n3][iDebugCut] = false;
                 }
               }
-              if (!debug && isSelected3ProngCand == 0) {
+              if (!b_debug && isSelected3ProngCand == 0) {
                 continue; //this and all further instances should be changed if 4 track loop is added
               }
             }
@@ -720,11 +717,11 @@ struct HFTrackIndexSkimsCreator {
                 if ((isSelected3ProngCand & 1 << n3) && cpa < cut3ProngCPACandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
                 }
-                if (debug) {
+                if (b_debug) {
                   cutStatus3Prong[n3][iDebugCut] = false;
                 }
               }
-              if (!debug && isSelected3ProngCand == 0) {
+              if (!b_debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -736,12 +733,12 @@ struct HFTrackIndexSkimsCreator {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if ((isSelected3ProngCand & 1 << n3) && decayLength < cut3ProngDecLenCandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
-              if (!debug && isSelected3ProngCand == 0) {
+              if (!b_debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -752,7 +749,7 @@ struct HFTrackIndexSkimsCreator {
                                 trackNeg1.globalIndex(),
                                 trackPos2.globalIndex(), isSelected3ProngCand);
 
-            if (debug) {
+            if (b_debug) {
               int Prong3CutStatus[n3ProngDecays];
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 Prong3CutStatus[n3] = nCutStatus3ProngBit;
@@ -766,7 +763,7 @@ struct HFTrackIndexSkimsCreator {
             }
 
             // fill histograms
-            if (dovalplots) {
+            if (b_dovalplots) {
 
               registry.get<TH1>(HIST("hvtx3_x"))->Fill(secondaryVertex3[0]);
               registry.get<TH1>(HIST("hvtx3_y"))->Fill(secondaryVertex3[1]);
@@ -818,7 +815,7 @@ struct HFTrackIndexSkimsCreator {
 
             int isSelected3ProngCand = n3ProngBit;
 
-            if (debug) {
+            if (b_debug) {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 for (int n3cut = 0; n3cut < nCuts3Prong; n3cut++) {
                   cutStatus3Prong[n3][n3cut] = true;
@@ -840,13 +837,13 @@ struct HFTrackIndexSkimsCreator {
                 if ((mass3ProngHypo1[n3] < cut3ProngInvMassCandMin[n3] || mass3ProngHypo1[n3] >= cut3ProngInvMassCandMax[n3]) &&
                     (mass3ProngHypo2[n3] < cut3ProngInvMassCandMin[n3] || mass3ProngHypo2[n3] >= cut3ProngInvMassCandMax[n3])) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
             }
-            if (!debug && isSelected3ProngCand == 0) {
+            if (!b_debug && isSelected3ProngCand == 0) {
               continue;
             }
             iDebugCut++;
@@ -875,12 +872,12 @@ struct HFTrackIndexSkimsCreator {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if (cand3ProngPt < cut3ProngPtCandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
-              if (!debug && isSelected3ProngCand == 0) {
+              if (!b_debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -892,12 +889,12 @@ struct HFTrackIndexSkimsCreator {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if ((isSelected3ProngCand & 1 << n3) && cpa < cut3ProngCPACandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
-              if (!debug && isSelected3ProngCand == 0) {
+              if (!b_debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -909,12 +906,12 @@ struct HFTrackIndexSkimsCreator {
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 if ((isSelected3ProngCand & 1 << n3) && decayLength < cut3ProngDecLenCandMin[n3]) {
                   isSelected3ProngCand = isSelected3ProngCand & ~(1 << n3);
-                  if (debug) {
+                  if (b_debug) {
                     cutStatus3Prong[n3][iDebugCut] = false;
                   }
                 }
               }
-              if (!debug && isSelected3ProngCand == 0) {
+              if (!b_debug && isSelected3ProngCand == 0) {
                 continue;
               }
             }
@@ -925,7 +922,7 @@ struct HFTrackIndexSkimsCreator {
                                 trackPos1.globalIndex(),
                                 trackNeg2.globalIndex(), isSelected3ProngCand);
 
-            if (debug) {
+            if (b_debug) {
               int Prong3CutStatus[n3ProngDecays];
               for (int n3 = 0; n3 < n3ProngDecays; n3++) {
                 Prong3CutStatus[n3] = nCutStatus3ProngBit;
@@ -939,7 +936,7 @@ struct HFTrackIndexSkimsCreator {
             }
 
             // fill histograms
-            if (dovalplots) {
+            if (b_dovalplots) {
 
               registry.get<TH1>(HIST("hvtx3_x"))->Fill(secondaryVertex3[0]);
               registry.get<TH1>(HIST("hvtx3_y"))->Fill(secondaryVertex3[1]);
