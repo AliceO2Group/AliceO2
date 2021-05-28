@@ -28,7 +28,7 @@
 #ifndef ALICEO2_MATHUTILS_RANDOMRING_H_
 #define ALICEO2_MATHUTILS_RANDOMRING_H_
 
-#include "Vc/Vc"
+#include <Vc/vector.h>
 #include <array>
 
 #include "TF1.h"
