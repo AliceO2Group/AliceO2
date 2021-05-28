@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
       auto dfName = ((TObjString*)key1)->GetString().Data();
 
       printf("  Processing folder %s\n", dfName);
-      mergedDFs++;
+      ++mergedDFs;
       auto folder = (TDirectoryFile*)inputFile->Get(dfName);
       auto treeList = folder->GetListOfKeys();
 
@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
             for (const auto& idx : indexList) {
               // if negative, the index is unassigned. In this case, the different unassigned blocks have to get unique negative IDs
               if (*(idx.first) < 0) {
-                *(idx.first) -= (mergedDFs - 1);
+                *(idx.first) = -mergedDFs;
               } else {
                 *(idx.first) += idx.second;
               }
