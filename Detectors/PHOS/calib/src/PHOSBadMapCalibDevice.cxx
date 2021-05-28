@@ -67,7 +67,7 @@ void PHOSCalibCollector::init(o2::framework::InitContext& ic)
 
   //TODO: configure reading bad map from file
   // this is special bad map for calibration
-  mBadMap.reset(new BadChannelMap());
+  mBadMap.reset(new BadChannelsMap());
 
   mGeom = Geometry::GetInstance("Run3");
 }

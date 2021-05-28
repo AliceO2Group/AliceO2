@@ -35,7 +35,7 @@ using namespace o2::framework;
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 // this function is only used to do the static checks for API return types

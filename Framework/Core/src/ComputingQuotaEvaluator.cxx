@@ -11,6 +11,7 @@
 #include "Framework/ComputingQuotaEvaluator.h"
 #include <vector>
 #include <uv.h>
+#include <cassert>
 
 namespace o2::framework
 {
@@ -68,6 +69,7 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
       continue;
     }
     /// We then check if the offer is suitable
+    assert(offer.sharedMemory >= 0);
     auto tmp = accumulated;
     tmp.cpu += offer.cpu;
     tmp.memory += offer.memory;
@@ -113,6 +115,7 @@ void ComputingQuotaEvaluator::dispose(int taskId)
     }
     if (offer.sharedMemory <= 0) {
       offer.valid = false;
+      offer.score = OfferScore::Unneeded;
     }
   }
 }

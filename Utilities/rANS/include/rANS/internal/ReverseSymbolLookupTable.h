@@ -38,11 +38,6 @@ class ReverseSymbolLookupTable
   {
     LOG(trace) << "start building reverse symbol lookup table";
 
-    if (stats.size() == 1) {
-      LOG(warning) << "SymbolStatistics of empty message passed to " << __func__;
-      return;
-    }
-
     mLut.resize(bitsToRange(probabilityBits));
     // go over all symbols
     for (auto symbolIT = std::begin(stats); symbolIT != std::end(stats); ++symbolIT) {
@@ -68,6 +63,10 @@ class ReverseSymbolLookupTable
                 << "elements: " << mLut.size() << ", "
                 << "sizeB: " << mLut.size() * sizeof(typename std::decay_t<decltype(mLut)>::value_type) << "}";
 #endif
+
+    if (stats.size() == 1) {
+      LOG(warning) << "SymbolStatistics of empty message passed to " << __func__;
+    }
 
     LOG(trace) << "done building reverse symbol lookup table";
   };

@@ -198,50 +198,6 @@ constexpr T String2(const char (&str)[N])
 }
 
 //__________________________________________________________________________________________________
-/// helper traits to efficiently compare descriptors
-/// the default implementation with memcmp is basically never used
-/// specializations handle the two relevant cases
-template <int S>
-struct DescriptorCompareTraits {
-  template <typename T, typename Length>
-  static bool compare(const T& lh, const T& rh, Length N)
-  {
-    return std::memcmp(lh.str, rh.str, N) == 0;
-  }
-  template <typename T, typename Length>
-  static bool lessThen(const T& lh, const T& rh, Length N)
-  {
-    return std::memcmp(lh.str, rh.str, N) < 0;
-  }
-};
-template <>
-struct DescriptorCompareTraits<1> {
-  template <typename T, typename Length>
-  static bool compare(const T& lh, const T& rh, Length)
-  {
-    return lh.itg[0] == rh.itg[0];
-  }
-  template <typename T, typename Length>
-  static bool lessThen(const T& lh, const T& rh, Length)
-  {
-    return lh.itg[0] < rh.itg[0];
-  }
-};
-template <>
-struct DescriptorCompareTraits<2> {
-  template <typename T, typename Length>
-  static bool compare(const T& lh, const T& rh, Length)
-  {
-    return (lh.itg[0] == rh.itg[0]) && (lh.itg[1] == rh.itg[1]);
-  }
-  template <typename T, typename Length>
-  static bool lessThen(const T& lh, const T& rh, Length)
-  {
-    return std::tie(lh.itg[0], lh.itg[1]) < std::tie(rh.itg[0], rh.itg[1]);
-  }
-};
-
-//__________________________________________________________________________________________________
 /// generic descriptor class faturing the union of a char and a uint element
 /// of the same size
 /// this is currently working only for up to 8 bytes aka uint64_t, the general
@@ -320,8 +276,8 @@ struct Descriptor {
     }
   }
 
-  bool operator==(const Descriptor& other) const { return DescriptorCompareTraits<arraySize>::compare(*this, other, N); }
-  bool operator<(const Descriptor& other) const { return DescriptorCompareTraits<arraySize>::lessThen(*this, other, N); }
+  bool operator==(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) == 0; }
+  bool operator<(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) < 0; }
   bool operator!=(const Descriptor& other) const { return not this->operator==(other); }
 
   // explicitly forbid comparison with e.g. const char* strings

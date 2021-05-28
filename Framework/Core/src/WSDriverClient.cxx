@@ -16,6 +16,8 @@
 #include "DriverClientContext.h"
 #include "DPLWebSocket.h"
 #include <uv.h>
+#include <string_view>
+#include <charconv>
 
 namespace o2::framework
 {
@@ -83,12 +85,24 @@ void on_connect(uv_connect_t* connection, int status)
     LOG(INFO) << "ping";
   });
   /// FIXME: for now we simply take any offer as 1GB of SHM available
-  client->observe("/shm-offer", [state = context->state](std::string_view) {
-    LOG(info) << "Received shared memory offer";
+  client->observe("/shm-offer", [state = context->state](std::string_view cmd) {
+    static constexpr int prefixSize = std::string_view{"/shm-offer "}.size();
+    if (prefixSize > cmd.size()) {
+      LOG(ERROR) << "Malformed shared memory offer";
+      return;
+    }
+    cmd.remove_prefix(prefixSize);
+    size_t offerSize;
+    auto offerSizeError = std::from_chars(cmd.data(), cmd.data() + cmd.size(), offerSize);
+    if (offerSizeError.ec != std::errc()) {
+      LOG(ERROR) << "Malformed shared memory offer";
+      return;
+    }
+    LOGP(info, "Received {}MB shared memory offer", offerSize);
     ComputingQuotaOffer offer;
     offer.cpu = 0;
     offer.memory = 0;
-    offer.sharedMemory = 1000000000;
+    offer.sharedMemory = offerSize * 1000000;
     offer.runtime = -1;
     offer.user = -1;
     offer.valid = true;

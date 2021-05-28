@@ -36,7 +36,7 @@ extern "C" char _curtc_GPUReconstructionCUDArtc_cu_command[];
 int GPUReconstructionCUDA::genRTC()
 {
 #ifndef GPUCA_ALIROOT_LIB
-  std::string rtcparam = GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtcConstexpr);
+  std::string rtcparam = GPUParamRTC::generateRTCCode(param(), mProcessingSettings.rtc.optConstexpr);
   std::string filename = "/tmp/o2cagpu_rtc_";
   filename += std::to_string(getpid());
   filename += "_";
@@ -59,7 +59,7 @@ int GPUReconstructionCUDA::genRTC()
 
 #ifdef GPUCA_HAVE_O2HEADERS
   char shasource[21], shaparam[21], shacmd[21], shakernels[21];
-  if (mProcessingSettings.cacheRTC) {
+  if (mProcessingSettings.rtc.cacheOutput) {
     o2::framework::internal::SHA1(shasource, _curtc_GPUReconstructionCUDArtc_cu_src, _curtc_GPUReconstructionCUDArtc_cu_src_size);
     o2::framework::internal::SHA1(shaparam, rtcparam.c_str(), rtcparam.size());
     o2::framework::internal::SHA1(shacmd, _curtc_GPUReconstructionCUDArtc_cu_command, strlen(_curtc_GPUReconstructionCUDArtc_cu_command));
@@ -67,9 +67,9 @@ int GPUReconstructionCUDA::genRTC()
   }
 #endif
 
-  unsigned int nCompile = mProcessingSettings.rtcCompilePerKernel ? kernels.size() : 1;
+  unsigned int nCompile = mProcessingSettings.rtc.compilePerKernel ? kernels.size() : 1;
   bool cacheLoaded = false;
-  if (mProcessingSettings.cacheRTC) {
+  if (mProcessingSettings.rtc.cacheOutput) {
 #ifndef GPUCA_HAVE_O2HEADERS
     throw std::runtime_error("Cannot use RTC cache without O2 headers");
 #else
@@ -104,6 +104,14 @@ int GPUReconstructionCUDA::genRTC()
         }
         if (memcmp(sharead, shakernels, 20)) {
           GPUInfo("Cache file content outdated (kernel definitions)");
+          break;
+        }
+        GPUSettingsProcessingRTC cachedSettings;
+        if (fread(&cachedSettings, sizeof(cachedSettings), 1, fp) != 1) {
+          throw std::runtime_error("Cache file corrupt");
+        }
+        if (memcmp(&cachedSettings, &mProcessingSettings.rtc, sizeof(cachedSettings))) {
+          GPUInfo("Cache file content outdated (rtc parameters)");
           break;
         }
         std::vector<char> buffer;
@@ -149,7 +157,7 @@ int GPUReconstructionCUDA::genRTC()
       }
 
       std::string kernel = "extern \"C\" {";
-      kernel += mProcessingSettings.rtcCompilePerKernel ? kernels[i] : kernelsall;
+      kernel += mProcessingSettings.rtc.compilePerKernel ? kernels[i] : kernelsall;
       kernel += "}";
 
       if (fwrite(rtcparam.c_str(), 1, rtcparam.size(), fp) != rtcparam.size() ||
@@ -170,7 +178,7 @@ int GPUReconstructionCUDA::genRTC()
     if (mProcessingSettings.debugLevel >= 0) {
       GPUInfo("RTC Compilation finished (%f seconds)", rtcTimer.GetCurrentElapsedTime());
     }
-    if (mProcessingSettings.cacheRTC) {
+    if (mProcessingSettings.rtc.cacheOutput) {
       FILE* fp = fopen("rtc.cuda.cache", "w+b");
       if (fp == nullptr) {
         throw std::runtime_error("Cannot open cache file for writing");
@@ -180,7 +188,8 @@ int GPUReconstructionCUDA::genRTC()
       if (fwrite(shasource, 1, 20, fp) != 20 ||
           fwrite(shaparam, 1, 20, fp) != 20 ||
           fwrite(shacmd, 1, 20, fp) != 20 ||
-          fwrite(shakernels, 1, 20, fp) != 20) {
+          fwrite(shakernels, 1, 20, fp) != 20 ||
+          fwrite(&mProcessingSettings.rtc, sizeof(mProcessingSettings.rtc), 1, fp) != 1) {
         throw std::runtime_error("Error writing cache file");
       }
 
@@ -220,11 +229,11 @@ int GPUReconstructionCUDA::genRTC()
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                          \
   mInternals->getRTCkernelNum<false, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
   mInternals->rtcFunctions.emplace_back(new CUfunction);                                               \
-  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtcCompilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
+  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtc.compilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class)))));
 #define GPUCA_KRNL_LOAD_multi(x_class, x_attributes, x_arguments, x_forward)                          \
   mInternals->getRTCkernelNum<true, GPUCA_M_KRNL_TEMPLATE(x_class)>(mInternals->rtcFunctions.size()); \
   mInternals->rtcFunctions.emplace_back(new CUfunction);                                              \
-  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtcCompilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
+  GPUFailedMsg(cuModuleGetFunction(mInternals->rtcFunctions.back().get(), *mInternals->rtcModules[mProcessingSettings.rtc.compilePerKernel ? j++ : 0], GPUCA_M_STR(GPUCA_M_CAT3(krnl_, GPUCA_M_KRNL_NAME(x_class), _multi))));
 #include "GPUReconstructionKernels.h"
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single
