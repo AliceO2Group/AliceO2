@@ -13,13 +13,8 @@
 
 #ifndef GPUBENCHMARK_COMMON_H
 #define GPUBENCHMARK_COMMON_H
-#if defined (__HIPCC__)
+#if defined(__HIPCC__)
 #include "hip/hip_runtime.h"
-#endif
-#if defined (__HIPCC__)
-#define AUTO_DISCARD "auto discard ="
-#else
-#define AUTO_DISCARD
 #endif
 
 #include <iostream>

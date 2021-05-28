@@ -169,5 +169,15 @@ void printDevices()
     printDeviceProp(i);
   }
 }
+
+void init()
+{
+  size_t free, total;
+  GPUCHECK(cudaMemGetInfo(&free, &total));
+
+  void* devicePtr;
+  GPUCHECK(cudaMalloc(&devicePtr, total));
+}
+
 } // namespace benchmark
 } // namespace o2

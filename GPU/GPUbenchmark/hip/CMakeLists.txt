@@ -22,9 +22,10 @@ set(CU_KERNEL ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/Kernels.cu)
 set(HIP_KERNEL_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${HIP_KERNEL}")
 
 if(EXISTS ${HIPIFY_EXECUTABLE})
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CU_KERNEL})
 
 # Generate on-the-fly the HIP kernel
-message("Generating HIP kernel code ....")
+message("Generating HIP kernel code ...")
 execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} ${CU_KERNEL} | tee ${HIP_KERNEL_PATH}")
 o2_add_library(HIPbenchmark
                SOURCES Kernels.hip.cxx

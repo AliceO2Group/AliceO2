@@ -15,12 +15,32 @@
 #define GPU_BENCHMARK_KERNELS_H
 
 #include "GPUCommonDef.h"
+#include <iostream>
+#include <iomanip>
+#include <chrono>
 
 namespace o2
 {
 namespace benchmark
 {
 void printDevices();
+void init();
+template <typename... T>
+float measure(void (*task)(T...), const char* taskName, T&&... args)
+{
+  float diff{0.f};
+
+  auto start = std::chrono::high_resolution_clock::now();
+  (*task)(std::forward<T>(args)...);
+  auto end = std::chrono::high_resolution_clock::now();
+
+  std::chrono::duration<double, std::milli> diff_t{end - start};
+  diff = diff_t.count();
+
+  std::cout << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+
+  return diff;
+}
 
 class GPUbenchmark final
 {
@@ -33,7 +53,8 @@ class GPUbenchmark final
 // Steers
 void GPUbenchmark::run()
 {
-  printDevices();
+  // printDevices();
+  measure(&init, "Init");
 }
 } // namespace benchmark
 } // namespace o2
