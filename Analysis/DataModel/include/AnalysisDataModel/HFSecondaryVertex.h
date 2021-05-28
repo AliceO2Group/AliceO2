@@ -746,4 +746,3 @@ DECLARE_SOA_TABLE(HfCandProng3MCGen, "AOD", "HFCANDP3MCGEN", //!
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_HFSECONDARYVERTEX_H_
-

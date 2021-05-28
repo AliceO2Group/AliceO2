@@ -71,13 +71,13 @@ struct HFBPlusToD0PiCandidateSelector {
   {
     auto candpT = hfCandBPlus.pt();
     int pTBin = findBin(pTBins, candpT);
-    if (pTBin == -1){
+    if (pTBin == -1) {
       // Printf("B+ topol selection failed at getpTBin");
       return false;
     }
 
     //pi pt
-    if(trackPos.pt() < cuts->get(pTBin, "pT Pi")){
+    if (trackPos.pt() < cuts->get(pTBin, "pT Pi")) {
       return false;
     }
 
@@ -109,25 +109,25 @@ struct HFBPlusToD0PiCandidateSelector {
     }
 
     //if (candpT < d_pTCandMin || candpT >= d_pTCandMax) {
-      // Printf("B+ topol selection failed at cand pT check");
-     // return false;
-     // }
+    // Printf("B+ topol selection failed at cand pT check");
+    // return false;
+    // }
 
     //B+ mass cut
     //if (TMath::Abs(InvMassBplus(hfCandBPlus) - RecoDecay::getMassPDG(521)) > cuts->get(pTBin, "m")) {
-      // Printf("B+ topol selection failed at mass diff check");
+    // Printf("B+ topol selection failed at mass diff check");
     //  return false;
-   // }
+    // }
 
     //d0 of D0 and pi
     //if ((TMath::Abs(hfCandBPlus.impactParameter0()) > cuts->get(pTBin, "d0 D0")) ||
     //    (TMath::Abs(hfCandBPlus.impactParameter1()) > cuts->get(pTBin, "d0 Pi"))){
     //  return false;
     //}
-   //D0 CPA
-   // if (TMath::Abs(hfCandD0.cpa()) < cuts->get(pTBin, "CPA D0")){
-   //  return false;
-   //}
+    //D0 CPA
+    // if (TMath::Abs(hfCandD0.cpa()) < cuts->get(pTBin, "CPA D0")){
+    //  return false;
+    //}
     return true;
   }
 
@@ -163,7 +163,7 @@ struct HFBPlusToD0PiCandidateSelector {
     } else {
       return false;
     }
-    if(std::abs(nSigma) < nSigmaCut)
+    if (std::abs(nSigma) < nSigmaCut)
       return true;
     else
       return false;
@@ -181,7 +181,7 @@ struct HFBPlusToD0PiCandidateSelector {
     } else {
       return false;
     }
-    if(std::abs(nSigma) < nSigmaCut)
+    if (std::abs(nSigma) < nSigmaCut)
       return true;
     else
       return false;
@@ -237,10 +237,9 @@ struct HFBPlusToD0PiCandidateSelector {
     }
     */
     //temporary till I understand
-    if(statusTPC == 2 || statusTOF == 2){
+    if (statusTPC == 2 || statusTOF == 2) {
       return 1;
-    }
-    else {
+    } else {
       return -1;
     }
   }
@@ -252,7 +251,7 @@ struct HFBPlusToD0PiCandidateSelector {
       auto candD0 = hfCandB.index0_as<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>>();
       auto trackPos = hfCandB.index1_as<aod::BigTracksPID>();
 
-      int statusBplus= 0;
+      int statusBplus = 0;
 
       // check if flagged as B+ --> D0bar Pi
       if (!(hfCandB.hfflag() & 1 << DecayType::BPlusToD0Pi)) {
@@ -275,7 +274,7 @@ struct HFBPlusToD0PiCandidateSelector {
         continue;
       }
 
-/*      //Pion PID
+      /*      //Pion PID
       //if (selectionPID(trackPos, kPiPlus) == 0) {
       if (selectionPID(trackPos, kPiPlus) != 1) {
         hfSelBPlusToD0PiCandidate(statusBplus);

@@ -43,7 +43,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 /// Reconstruction of B± → D0bar(D0) π± → (K± π∓) π±
-struct HFCandidateCreatorBPlus{
+struct HFCandidateCreatorBPlus {
   Produces<aod::HfCandBPlusBase> rowCandidateBase;
   // vertexing parameters
   Configurable<double> d_bz{"d_bz", 5., "magnetic field"};
@@ -56,7 +56,7 @@ struct HFCandidateCreatorBPlus{
 
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
   OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "2-prong candidates;XX element of cov. matrix of sec. vtx. position (cm^{2});entries", 100, 0., 0.2)};
-  OutputObj<TH1F> hNevents{TH1F("hNevents", "Number of events;Nevents;entries",5,0.,5)};
+  OutputObj<TH1F> hNevents{TH1F("hNevents", "Number of events;Nevents;entries", 5, 0., 5)};
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
@@ -71,7 +71,7 @@ struct HFCandidateCreatorBPlus{
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
 
   void process(aod::Collision const& collisions,
-      soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates, aod::BigTracks const& tracks)
+               soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates, aod::BigTracks const& tracks)
   {
     hNevents->Fill(1);
 
@@ -94,21 +94,21 @@ struct HFCandidateCreatorBPlus{
     df.setUseAbsDCA(d_UseAbsDCA);
 
     // loop over pairs of track indices
-    for(auto& candidate : candidates){
-      if(!(candidate.hfflag() & 1 << D0ToPiK)){
+    for (auto& candidate : candidates) {
+      if (!(candidate.hfflag() & 1 << D0ToPiK)) {
         continue;
       }
-      if(cutYCandMax >= 0. && std::abs(YD0(candidate)) > cutYCandMax){
+      if (cutYCandMax >= 0. && std::abs(YD0(candidate)) > cutYCandMax) {
         continue;
       }
-      if((candidate.isSelD0bar() < d_selectionFlagD0bar) && (candidate.isSelD0() < d_selectionFlagD0))
+      if ((candidate.isSelD0bar() < d_selectionFlagD0bar) && (candidate.isSelD0() < d_selectionFlagD0))
         continue;
 
       double D0InvMass = -1;
-      if(candidate.isSelD0bar() >= d_selectionFlagD0bar){
+      if (candidate.isSelD0bar() >= d_selectionFlagD0bar) {
         D0InvMass = InvMassD0bar(candidate);
       }
-      if(candidate.isSelD0() >= d_selectionFlagD0){
+      if (candidate.isSelD0() >= d_selectionFlagD0) {
         D0InvMass = InvMassD0(candidate);
       }
 
@@ -125,7 +125,7 @@ struct HFCandidateCreatorBPlus{
       // LOGF(INFO, "All track pT: %f (prong0); %f (prong1)", prong0.pt(), prong1.pt());
 
       // reconstruct D0 secondary vertex
-      if (df.process(prong0TrackParCov, prong1TrackParCov) == 0){
+      if (df.process(prong0TrackParCov, prong1TrackParCov) == 0) {
         continue;
       }
 
@@ -139,23 +139,22 @@ struct HFCandidateCreatorBPlus{
 
       //loop over tracks for pi selection
       auto count = 0;
-      for(auto& track : tracks)
-      {
+      for (auto& track : tracks) {
         //if(count % 100 == 0){
         //LOGF(INFO, "Col: %d (cand); %d (track)", candidate.collisionId(), track.collisionId());
         //  count++;
         // }
 
-        if(cutEtaTrkMax >= 0. && std::abs(track.eta()) > cutEtaTrkMax){
+        if (cutEtaTrkMax >= 0. && std::abs(track.eta()) > cutEtaTrkMax) {
           continue;
         }
 
-        if(candidate.isSelD0() >= d_selectionFlagD0 && track.signed1Pt() > 0)
+        if (candidate.isSelD0() >= d_selectionFlagD0 && track.signed1Pt() > 0)
           continue; //to select D0pi- pair
 
-        if(candidate.isSelD0bar() >= d_selectionFlagD0bar && track.signed1Pt() < 0)
+        if (candidate.isSelD0bar() >= d_selectionFlagD0bar && track.signed1Pt() < 0)
           continue; //to select D0(bar)pi+ pair
-        if(candidate.index0Id() == track.globalIndex() || candidate.index1Id() == track.globalIndex())
+        if (candidate.index0Id() == track.globalIndex() || candidate.index1Id() == track.globalIndex())
           continue; //daughter track id and bachelor track id not the same
 
         auto bachTrack = getTrackParCov(track);
@@ -169,19 +168,17 @@ struct HFCandidateCreatorBPlus{
         if (nCand == 0)
           continue;
 
-        bfitter.propagateTracksToVertex();// propagate the bachelor and D0 to the B+ vertex
-        bfitter.getTrack(0).getPxPyPzGlo(pvecD0);//momentum of D0 at the B+ vertex
-        bfitter.getTrack(1).getPxPyPzGlo(pvecbach);//momentum of pi+ at the B+ vertex
+        bfitter.propagateTracksToVertex();          // propagate the bachelor and D0 to the B+ vertex
+        bfitter.getTrack(0).getPxPyPzGlo(pvecD0);   //momentum of D0 at the B+ vertex
+        bfitter.getTrack(1).getPxPyPzGlo(pvecbach); //momentum of pi+ at the B+ vertex
         const auto& BSecVertex = bfitter.getPCACandidate();
         auto chi2PCA = bfitter.getChi2AtPCACandidate();
         auto covMatrixPCA = bfitter.calcPCACovMatrix().Array();
-        hCovSVXX->Fill(covMatrixPCA[0]);//FIXME: Calculation of errorDecayLength(XY) gives wrong values without this line.
-
+        hCovSVXX->Fill(covMatrixPCA[0]); //FIXME: Calculation of errorDecayLength(XY) gives wrong values without this line.
 
         pvecBCand = array{pvecbach[0] + pvecD0[0],
                           pvecbach[1] + pvecD0[1],
                           pvecbach[2] + pvecD0[2]};
-
 
         // get track impact parameters
         // This modifies track momenta!
@@ -214,19 +211,19 @@ struct HFCandidateCreatorBPlus{
                          std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
                          candidate.globalIndex(), track.globalIndex(), //index D0 and bachelor
                          hfFlag);
-      }//track loop
-    }//D0 cand loop
-  }//process
-};//struct
+      } //track loop
+    }   //D0 cand loop
+  }     //process
+};      //struct
 
 /// Extends the base table with expression columns.
-struct HFCandidateCreatorBPlusExpressions{
+struct HFCandidateCreatorBPlusExpressions {
   Spawns<aod::HfCandBPlusExt> rowCandidateBPlus;
   void init(InitContext const&) {}
 };
 
 /// Performs MC matching.
-struct HFCandidateCreatorBPlusMC{
+struct HFCandidateCreatorBPlusMC {
   Produces<aod::HfCandBPMCRec> rowMCMatchRec;
   Produces<aod::HfCandBPMCGen> rowMCMatchGen;
 
@@ -241,7 +238,7 @@ struct HFCandidateCreatorBPlusMC{
     int kD0pdg = pdg::Code::kD0;
 
     // Match reconstructed candidates.
-    for(auto& candidate : candidates){
+    for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
 
       flag = 0;
@@ -251,43 +248,41 @@ struct HFCandidateCreatorBPlusMC{
       // B± → D0bar(D0) π± → (K± π∓) π±
       //Printf("Checking B± → D0(bar) π±");
       indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kBPlus, array{+kPiPlus, +kKPlus, -kPiPlus}, true, &sign, 2);
-      if(indexRec > -1){
+      if (indexRec > -1) {
         flag = sign * (1 << DecayType::BPlusToD0Pi);
       }
       rowMCMatchRec(flag);
     }
 
     // Match generated particles.
-    for(auto& particle : particlesMC){
+    for (auto& particle : particlesMC) {
       //Printf("New gen. candidate");
       flag = 0;
 
       // B± → D0bar(D0) π± → (K± π∓) π±
       //Printf("Checking B± → D0(bar) π±");
-      if(RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kBPlus, array{-kD0pdg, +kPiPlus}, true, &sign, 1))
-      {
+      if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kBPlus, array{-kD0pdg, +kPiPlus}, true, &sign, 1)) {
         // D0(bar) → π± K∓
         //Printf("Checking D0(bar) → π± K∓");
         std::vector<int> arrayDaughterB;
-        RecoDecay::getDaughters(particlesMC, particle, &arrayDaughterB, array{kD0pdg}, 1);//it takes abs. of PDG codes
+        RecoDecay::getDaughters(particlesMC, particle, &arrayDaughterB, array{kD0pdg}, 1); //it takes abs. of PDG codes
         auto D0candidateMC = particlesMC.iteratorAt(arrayDaughterB[0]);
-        if (RecoDecay::isMatchedMCGen(particlesMC, D0candidateMC, pdg::Code::kD0, array{-kKPlus, +kPiPlus}, true, &sign))
-        {
+        if (RecoDecay::isMatchedMCGen(particlesMC, D0candidateMC, pdg::Code::kD0, array{-kKPlus, +kPiPlus}, true, &sign)) {
           flag = (-1) * sign * (1 << DecayType::BPlusToD0Pi);
         }
       }
       rowMCMatchGen(flag);
-    }//B candidate
-  }// process
-};// struct
+    } //B candidate
+  }   // process
+};    // struct
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
     adaptAnalysisTask<HFCandidateCreatorBPlus>(cfgc, TaskName{"hf-cand-creator-bplus"}),
-      adaptAnalysisTask<HFCandidateCreatorBPlusExpressions>(cfgc, TaskName{"hf-cand-creator-bplus-expressions"})};
+    adaptAnalysisTask<HFCandidateCreatorBPlusExpressions>(cfgc, TaskName{"hf-cand-creator-bplus-expressions"})};
   const bool doMC = cfgc.options().get<bool>("doMC");
-  if(doMC){
+  if (doMC) {
     workflow.push_back(adaptAnalysisTask<HFCandidateCreatorBPlusMC>(cfgc, TaskName{"hf-cand-creator-bplus-mc"}));
   }
   return workflow;

@@ -67,4 +67,3 @@ DECLARE_SOA_TABLE(HFSelXicToPKPiCandidate, "AOD", "HFSELXICCAND", //!
                   hf_selcandidate_xic::IsSelXicToPKPi, hf_selcandidate_xic::IsSelXicToPiKP);
 } // namespace o2::aod
 #endif // O2_ANALYSIS_HFCANDIDATESELECTIONTABLES_H_
-
