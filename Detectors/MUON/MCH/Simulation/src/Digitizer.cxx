@@ -200,7 +200,7 @@ void Digitizer::generateNoiseDigits()
       int padid = gRandom->Integer(nNoisyPads + 1);
       // FIXME
       time = int(time / 25.); //not clear if ok
-      digits.emplace_back(detID, padid, 0.6, time);
+      digits.emplace_back(detID, padid, 1, time);
       //just to roun adbove threshold when added
       MCCompLabel label(-1, eventID, srcID, true);
       mcTruthOutputContainer.addElement(digits.size() - 1, label);

@@ -80,7 +80,8 @@ class Digitizer
   const static int mNdE = 156;
 
   //noise above threshold probability within read-out window
-  float mProbNoise = 1e-5;
+  //FIX ME, added suppression by 100 to make noise not dominant source of digits
+  float mProbNoise = 1e-5/100;
   //sum_i 1/padcount_i where i is the detelemID
   float mInvPadSum = 0.0450832;
   float mNormProbNoise = mProbNoise / mInvPadSum;
