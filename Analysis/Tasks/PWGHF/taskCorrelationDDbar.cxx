@@ -63,6 +63,14 @@ const double binMinSparse[4] = {-o2::constants::math::PI / 2.,-6.,0.,0.;  //is t
 const double binMaxSparse[4] = {3. * o2::constants::math::PI / 2.,6.,10.,10.};  //is the maximum for all the bins
 */
 
+// string definitions, used for histogram axis labels
+const TString stringPtD = "#it{p}_{T}^{D} (GeV/#it{c})";
+const TString stringPtDbar = "#it{p}_{T}^{Dbar} (GeV/#it{c})";
+const TString stringDeltaPt = "#it{p}_{T}^{Dbar}-#it{p}_{T}^{D} (GeV/#it{c})";
+const TString stringDeltaPtMaxMin = "#it{p}_{T}^{max}-#it{p}_{T}^{min} (GeV/#it{c})";
+const TString stringDeltaEta = "#it{#eta}^{Dbar}-#it{#eta}^{D}";
+const TString stringDeltaPhi = "#it{#varphi}^{Dbar}-#it{#varphi}^{D} (rad)";
+
 /// D-Dbar correlation pair filling task, from pair tables - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 /// Works on both USL and LS analyses pair tables
 struct HfTaskCorrelationDDbar {
@@ -70,19 +78,19 @@ struct HfTaskCorrelationDDbar {
   HistogramRegistry registry{
     "registry",
     //NOTE: use hMassD0 (from correlator task) for normalisation, and hMass2DCorrelationPairs for 2D-sideband-subtraction purposes
-    {{"hMass2DCorrelationPairs", "D,Dbar candidates 2D;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hDeltaEtaPtIntSignalRegion", "D,Dbar candidates signal region;#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH1F, {{200, -10., 10.}}}},
-     {"hDeltaPhiPtIntSignalRegion", "D,Dbar candidates signal region;#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
-     {"hCorrel2DPtIntSignalRegion", "D,Dbar candidates signal region;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
-     {"hCorrel2DVsPtSignalRegion", "D,Dbar candidates signal region;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hDeltaPtDDbarSignalRegion", "D,Dbar candidates signal region;#it{p}_{T}^{Dbar}-#it{p}_{T}^{D};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
-     {"hDeltaPtMaxMinSignalRegion", "D,Dbar candidates signal region;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}},
-     {"hDeltaEtaPtIntSidebands", "D,Dbar candidates sidebands;#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH1F, {{200, -10., 10.}}}},
-     {"hDeltaPhiPtIntSidebands", "D,Dbar candidates sidebands;#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
-     {"hCorrel2DPtIntSidebands", "D,Dbar candidates sidebands;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
-     {"hCorrel2DVsPtSidebands", "D,Dbar candidates sidebands;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hDeltaPtDDbarSidebands", "D,Dbar candidates sidebands;#it{p}_{T}^{Dbar}-#it{p}_{T}^{D};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
-     {"hDeltaPtMaxMinSidebands", "D,Dbar candidates sidebands;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}}}};
+    {{"hMass2DCorrelationPairs", "D,Dbar candidates 2D;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});" + stringPtD + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hDeltaEtaPtIntSignalRegion", "D,Dbar candidates signal region;" + stringDeltaEta + ";entries", {HistType::kTH1F, {{200, -10., 10.}}}},
+     {"hDeltaPhiPtIntSignalRegion", "D,Dbar candidates signal region;" + stringDeltaPhi + ";entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
+     {"hCorrel2DPtIntSignalRegion", "D,Dbar candidates signal region;" + stringDeltaPhi + ";" + stringDeltaEta + ";entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
+     {"hCorrel2DVsPtSignalRegion", "D,Dbar candidates signal region;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hDeltaPtDDbarSignalRegion", "D,Dbar candidates signal region;" + stringDeltaPt + ";entries", {HistType::kTH1F, {{144, -36., 36.}}}},
+     {"hDeltaPtMaxMinSignalRegion", "D,Dbar candidates signal region;" + stringDeltaPtMaxMin + ";entries", {HistType::kTH1F, {{72, 0., 36.}}}},
+     {"hDeltaEtaPtIntSidebands", "D,Dbar candidates sidebands;" + stringDeltaEta + ";entries", {HistType::kTH1F, {{200, -10., 10.}}}},
+     {"hDeltaPhiPtIntSidebands", "D,Dbar candidates sidebands;" + stringDeltaPhi + ";entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
+     {"hCorrel2DPtIntSidebands", "D,Dbar candidates sidebands;" + stringDeltaPhi + ";" + stringDeltaEta + ";entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
+     {"hCorrel2DVsPtSidebands", "D,Dbar candidates sidebands;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hDeltaPtDDbarSidebands", "D,Dbar candidates sidebands;" + stringDeltaPt + ";entries", {HistType::kTH1F, {{144, -36., 36.}}}},
+     {"hDeltaPtMaxMinSidebands", "D,Dbar candidates sidebands;" + stringDeltaPtMaxMin + ";entries", {HistType::kTH1F, {{72, 0., 36.}}}}}};
 
   //pT ranges for correlation plots: the default values are those embedded in hf_cuts_d0_topik (i.e. the mass pT bins), but can be redefined via json files
   Configurable<std::vector<double>> binsCorrelations{"ptBinsForCorrelations", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for correlation plots"};
@@ -162,28 +170,28 @@ struct HfTaskCorrelationDDbarMCRec {
   HistogramRegistry registry{
     "registry",
     //NOTE: use hMassD0 (from correlator task) for normalisation, and hMass2DCorrelationPairs for 2D-sideband-subtraction purposes
-    {{"hMass2DCorrelationPairsMCRecSigSig", "D,Dbar candidates 2D SigSig - MC reco;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hMass2DCorrelationPairsMCRecSigBkg", "D,Dbar candidates 2D SigBkg - MC reco;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hMass2DCorrelationPairsMCRecBkgSig", "D,Dbar candidates 2D BkgSig - MC reco;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hMass2DCorrelationPairsMCRecBkgBkg", "D,Dbar candidates 2D BkgBkg - MC reco;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hDeltaEtaPtIntSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH1F, {{200, -10., 10.}}}},
-     {"hDeltaPhiPtIntSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
-     {"hCorrel2DPtIntSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
-     {"hDeltaPtDDbarSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;#it{p}_{T}^{Dbar}-#it{p}_{T}^{D};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
-     {"hDeltaPtMaxMinSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}},
-     {"hCorrel2DVsPtSignalRegionMCRecSigSig", "D,Dbar candidates signal region SigSig - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hCorrel2DVsPtSignalRegionMCRecSigBkg", "D,Dbar candidates signal region SigBkg - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hCorrel2DVsPtSignalRegionMCRecBkgSig", "D,Dbar candidates signal region BkgSig - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hCorrel2DVsPtSignalRegionMCRecBkgBkg", "D,Dbar candidates signal region BkgBkg - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hDeltaEtaPtIntSidebandsMCRec", "D,Dbar candidates sidebands - MC reco;#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH1F, {{200, -10., 10.}}}},
-     {"hDeltaPhiPtIntSidebandsMCRec", "D,Dbar candidates sidebands - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
-     {"hCorrel2DPtIntSidebandsMCRec", "D,Dbar candidates sidebands - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
-     {"hCorrel2DVsPtSidebandsMCRecSigSig", "D,Dbar candidates sidebands SigSig - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init() - should be empty, kept for cross-check and debug
-     {"hCorrel2DVsPtSidebandsMCRecSigBkg", "D,Dbar candidates sidebands SigBkg - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hCorrel2DVsPtSidebandsMCRecBkgSig", "D,Dbar candidates sidebands BkgSig - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hCorrel2DVsPtSidebandsMCRecBkgBkg", "D,Dbar candidates sidebands BkgBkg - MC reco;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hDeltaPtDDbarSidebandsMCRec", "D,Dbar candidates signal region - MC reco;#it{p}_{T}^{Dbar}-#it{p}_{T}^{D};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
-     {"hDeltaPtMaxMinSidebandsMCRec", "D,Dbar candidates signal region - MC reco;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}}}};
+    {{"hMass2DCorrelationPairsMCRecSigSig", "D,Dbar candidates 2D SigSig - MC reco;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});" + stringPtD + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hMass2DCorrelationPairsMCRecSigBkg", "D,Dbar candidates 2D SigBkg - MC reco;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});" + stringPtD + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hMass2DCorrelationPairsMCRecBkgSig", "D,Dbar candidates 2D BkgSig - MC reco;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});" + stringPtD + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hMass2DCorrelationPairsMCRecBkgBkg", "D,Dbar candidates 2D BkgBkg - MC reco;inv. mass D (GeV/#it{c}^{2});inv. mass Dbar (GeV/#it{c}^{2});" + stringPtD + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{200, 1.6, 2.1}, {200, 1.6, 2.1}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hDeltaEtaPtIntSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;" + stringDeltaEta + ";entries", {HistType::kTH1F, {{200, -10., 10.}}}},
+     {"hDeltaPhiPtIntSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;" + stringDeltaPhi + ";entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
+     {"hCorrel2DPtIntSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
+     {"hDeltaPtDDbarSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;" + stringDeltaPt + ";entries", {HistType::kTH1F, {{144, -36., 36.}}}},
+     {"hDeltaPtMaxMinSignalRegionMCRec", "D,Dbar candidates signal region - MC reco;" + stringDeltaPtMaxMin + ";entries", {HistType::kTH1F, {{72, 0., 36.}}}},
+     {"hCorrel2DVsPtSignalRegionMCRecSigSig", "D,Dbar candidates signal region SigSig - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hCorrel2DVsPtSignalRegionMCRecSigBkg", "D,Dbar candidates signal region SigBkg - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hCorrel2DVsPtSignalRegionMCRecBkgSig", "D,Dbar candidates signal region BkgSig - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hCorrel2DVsPtSignalRegionMCRecBkgBkg", "D,Dbar candidates signal region BkgBkg - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hDeltaEtaPtIntSidebandsMCRec", "D,Dbar candidates sidebands - MC reco;" + stringDeltaEta + ";entries", {HistType::kTH1F, {{200, -10., 10.}}}},
+     {"hDeltaPhiPtIntSidebandsMCRec", "D,Dbar candidates sidebands - MC reco;" + stringDeltaPhi + ";entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
+     {"hCorrel2DPtIntSidebandsMCRec", "D,Dbar candidates sidebands - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
+     {"hCorrel2DVsPtSidebandsMCRecSigSig", "D,Dbar candidates sidebands SigSig - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init() - should be empty, kept for cross-check and debug
+     {"hCorrel2DVsPtSidebandsMCRecSigBkg", "D,Dbar candidates sidebands SigBkg - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hCorrel2DVsPtSidebandsMCRecBkgSig", "D,Dbar candidates sidebands BkgSig - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hCorrel2DVsPtSidebandsMCRecBkgBkg", "D,Dbar candidates sidebands BkgBkg - MC reco;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hDeltaPtDDbarSidebandsMCRec", "D,Dbar candidates signal region - MC reco;" + stringDeltaPt + ";entries", {HistType::kTH1F, {{144, -36., 36.}}}},
+     {"hDeltaPtMaxMinSidebandsMCRec", "D,Dbar candidates signal region - MC reco;" + stringDeltaPtMaxMin + ";entries", {HistType::kTH1F, {{72, 0., 36.}}}}}};
 
   //pT ranges for correlation plots: the default values are those embedded in hf_cuts_d0_topik (i.e. the mass pT bins), but can be redefined via json files
   Configurable<std::vector<double>> binsCorrelations{"ptBinsForCorrelations", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for correlation plots"};
@@ -316,12 +324,12 @@ struct HfTaskCorrelationDDbarMCGen {
 
   HistogramRegistry registry{
     "registry",
-    {{"hDeltaEtaPtIntMCGen", "D,Dbar particles - MC gen;#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH1F, {{200, -10., 10.}}}},
-     {"hDeltaPhiPtIntMCGen", "D,Dbar particles - MC gen;#it{#varphi}^{Dbar}-#it{#varphi}^{D};entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
-     {"hCorrel2DPtIntMCGen", "D,Dbar particles - MC gen;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
-     {"hCorrel2DVsPtMCGen", "D,Dbar particles - MC gen;#it{#varphi}^{Dbar}-#it{#varphi}^{D};#it{#eta}^{Dbar}-#it{#eta}^{D};#it{p}_{T}^{D};#it{p}_{T}^{Dbar};entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
-     {"hDeltaPtDDbarMCGen", "D,Dbar particles - MC gen;#it{p}_{T}^{Dbar}-#it{p}_{T}^{D};entries", {HistType::kTH1F, {{144, -36., 36.}}}},
-     {"hDeltaPtMaxMinMCGen", "D,Dbar particles - MC gen;#it{p}_{T}^{max}-#it{p}_{T}^{min};entries", {HistType::kTH1F, {{72, 0., 36.}}}}}};
+    {{"hDeltaEtaPtIntMCGen", "D,Dbar particles - MC gen;" + stringDeltaEta + ";entries", {HistType::kTH1F, {{200, -10., 10.}}}},
+     {"hDeltaPhiPtIntMCGen", "D,Dbar particles - MC gen;" + stringDeltaPhi + ";entries", {HistType::kTH1F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}}}},
+     {"hCorrel2DPtIntMCGen", "D,Dbar particles - MC gen;" + stringDeltaPhi + ";" + stringDeltaEta + ";entries", {HistType::kTH2F, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {200, -10., 10.}}}},
+     {"hCorrel2DVsPtMCGen", "D,Dbar particles - MC gen;" + stringDeltaPhi + ";" + stringDeltaEta + ";" + stringPtD + ";" + stringPtDbar + ";entries", {HistType::kTHnSparseD, {{32, -o2::constants::math::PI / 2., 3. * o2::constants::math::PI / 2.}, {120, -6., 6.}, {10, 0., 10.}, {10, 0., 10.}}}}, //note: axes 3 and 4 (the pT) are updated in the init()
+     {"hDeltaPtDDbarMCGen", "D,Dbar particles - MC gen;" + stringDeltaPt + ";entries", {HistType::kTH1F, {{144, -36., 36.}}}},
+     {"hDeltaPtMaxMinMCGen", "D,Dbar particles - MC gen;" + stringDeltaPtMaxMin + ";entries", {HistType::kTH1F, {{72, 0., 36.}}}}}};
 
   //pT ranges for correlation plots: the default values are those embedded in hf_cuts_d0_topik (i.e. the mass pT bins), but can be redefined via json files
   Configurable<std::vector<double>> binsCorrelations{"ptBinsForCorrelations", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for correlation plots"};

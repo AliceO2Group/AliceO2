@@ -321,7 +321,7 @@ struct HfCorrelatorDplusDminusMCGen {
       if (std::abs(particle1.pdgCode()) != pdg::Code::kDPlus) {
         continue;
       }
-      double yD = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      double yD = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()));
       if (cutYCandMax >= 0. && std::abs(yD) > cutYCandMax) {
         continue;
       }
@@ -619,7 +619,7 @@ struct HfCorrelatorDplusDminusMCGenLS {
       if (std::abs(particle1.pdgCode()) != pdg::Code::kDPlus) {
         continue;
       }
-      double yD = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      double yD = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()));
       if (cutYCandMax >= 0. && std::abs(yD) > cutYCandMax) {
         continue;
       }
@@ -693,7 +693,7 @@ struct HfCorrelatorCCbarMCGen {
 
     //loop over particles at MC gen level
     for (auto& particle1 : particlesMC) {
-      if (std::abs(particle1.pdgCode()) != 4) { //search c or cbar particles
+      if (std::abs(particle1.pdgCode()) != PDG_t::kCharm) { //search c or cbar particles
         continue;
       }
       int partMothPDG = particlesMC.iteratorAt(particle1.mother0()).pdgCode();
@@ -702,7 +702,7 @@ struct HfCorrelatorCCbarMCGen {
         continue;
       }
       counterccbarPreEtasel++; //count c or cbar (before kinematic selection)
-      double yC = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      double yC = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()));
       if (cutYCandMax >= 0. && std::abs(yC) > cutYCandMax) {
         continue;
       }
@@ -717,7 +717,7 @@ struct HfCorrelatorCCbarMCGen {
 
       //c-cbar correlation dedicated section
       //if it's c, search for cbar and evaluate correlations.
-      if (particle1.pdgCode() != 4) {
+      if (particle1.pdgCode() != PDG_t::kCharm) {
         continue;
       }
       registry.fill(HIST("hcountCtriggersMCGen"), 0, particle1.pt()); //to count trigger c quark (for normalisation)
@@ -729,11 +729,11 @@ struct HfCorrelatorCCbarMCGen {
         if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
           continue;
         }
-        if (particle2.pdgCode() != -4) {
+        if (particle2.pdgCode() != PDG_t::kCharmBar) {
           continue;
         }
         //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
-        if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == -4) {
+        if (particlesMC.iteratorAt(particle2.mother0()).pdgCode() == PDG_t::kCharmBar) {
           continue;
         }
         entryccbarPair(getDeltaPhi(particle2.phi(), particle1.phi()),
@@ -778,7 +778,7 @@ struct HfCorrelatorCCbarMCGenLS {
 
     //loop over particles at MC gen level
     for (auto& particle1 : particlesMC) {
-      if (std::abs(particle1.pdgCode()) != 4) { //search c or cbar particles
+      if (std::abs(particle1.pdgCode()) != PDG_t::kCharm) { //search c or cbar particles
         continue;
       }
       int partMothPDG = particlesMC.iteratorAt(particle1.mother0()).pdgCode();
@@ -787,7 +787,7 @@ struct HfCorrelatorCCbarMCGenLS {
         continue;
       }
       counterccbarPreEtasel++; //count c or cbar (before kinematic selection)
-      double yC = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode())));
+      double yC = RecoDecay::Y(array{particle1.px(), particle1.py(), particle1.pz()}, RecoDecay::getMassPDG(particle1.pdgCode()));
       if (cutYCandMax >= 0. && std::abs(yC) > cutYCandMax) {
         continue;
       }
@@ -804,7 +804,7 @@ struct HfCorrelatorCCbarMCGenLS {
       registry.fill(HIST("hcountCtriggersMCGen"), 0, particle1.pt()); //to count trigger c quark (for normalisation)
 
       for (auto& particle2 : particlesMC) {
-        if (std::abs(particle2.pdgCode()) != 4) { //search c or cbar for associated particles
+        if (std::abs(particle2.pdgCode()) != PDG_t::kCharm) { //search c or cbar for associated particles
           continue;
         }
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
