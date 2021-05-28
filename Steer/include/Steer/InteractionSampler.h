@@ -20,16 +20,19 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/BunchFilling.h"
 #include "CommonConstants/LHCConstants.h"
-#include "MathUtils/RandomRing.h"
 
 namespace o2
 {
 namespace steer
 {
+
+struct InteractionSamplerContext;
+
 class InteractionSampler
 {
  public:
   static constexpr float Sec2NanoSec = 1.e9; // s->ns conversion
+  ~InteractionSampler();
   const o2::InteractionTimeRecord& generateCollisionTime();
   void generateCollisionTimes(std::vector<o2::InteractionTimeRecord>& dest);
 
@@ -69,9 +72,7 @@ class InteractionSampler
   int simulateInteractingBC();
   void nextCollidingBC(int n);
 
-  o2::math_utils::RandomRing<10000> mBCJumpGenerator;  // generator of random jumps in BC
-  o2::math_utils::RandomRing<1000> mNCollBCGenerator;  // generator of number of interactions in BC
-  o2::math_utils::RandomRing<1000> mCollTimeGenerator; // generator of number of interactions in BC
+  InteractionSamplerContext* mContext = nullptr;
 
   o2::InteractionTimeRecord mIR{{0, 0}, 0.};
   o2::InteractionTimeRecord mFirstIR{{4, 0}, 0.};

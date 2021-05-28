@@ -9,13 +9,26 @@
 // or submit itself to any jurisdiction.
 
 #include "Steer/InteractionSampler.h"
+#include "MathUtils/RandomRing.h"
 #include <FairLogger.h>
 
 using namespace o2::steer;
 
+namespace o2::steer{
+struct InteractionSamplerContext {
+  o2::math_utils::RandomRing<10000> mBCJumpGenerator;  // generator of random jumps in BC
+  o2::math_utils::RandomRing<1000> mNCollBCGenerator;  // generator of number of interactions in BC
+  o2::math_utils::RandomRing<1000> mCollTimeGenerator; // generator of number of interactions in BC
+};
+}
+
+InteractionSampler::~InteractionSampler() {
+   delete mContext;
+}
 //_________________________________________________
 void InteractionSampler::init()
 {
+  mContext = new InteractionSamplerContext{};
   // (re-)initialize sample and check parameters consistency
 
   int nBCSet = mBCFilling.getNBunches();
@@ -50,10 +63,10 @@ void InteractionSampler::init()
   // prob. of not having interaction in N consecutive BCs is P(N) = mu*exp(-(N-1)*mu), hence its cumulative distribution
   // is T(N) = integral_1^N {P(N)} = 1. - exp(-(N-1)*mu)
   // We generate random N using its inverse, N = 1 - log(1 - Rndm)/mu
-  mBCJumpGenerator.initialize([mu]() { return (1. - std::log(1. - gRandom->Rndm()) / mu); });
+  mContext->mBCJumpGenerator.initialize([mu]() { return (1. - std::log(1. - gRandom->Rndm()) / mu); });
 
   // Poisson distribution of number of collisions in the bunch excluding 0
-  mNCollBCGenerator.initialize([mu]() {
+  mContext->mNCollBCGenerator.initialize([mu]() {
     int n = 0;
     while ((n = gRandom->Poisson(mu)) == 0) {
       ;
@@ -62,7 +75,7 @@ void InteractionSampler::init()
   });
 
   auto trms = mBCTimeRMS;
-  mCollTimeGenerator.initialize([trms]() {
+  mContext->mCollTimeGenerator.initialize([trms]() {
     float t; // make sure it does not go outside half bunch
     while (std::abs(t = gRandom->Gaus(0, trms)) > o2::constants::lhc::LHCBunchSpacingNS / 2.1) {
       ;
@@ -115,13 +128,13 @@ int InteractionSampler::simulateInteractingBC()
 {
   // Returns number of collisions assigned to selected BC
 
-  nextCollidingBC(mBCJumpGenerator.getNextValue());
+  nextCollidingBC(mContext->mBCJumpGenerator.getNextValue());
   // once BC is decided, enforce at least one interaction
-  int ncoll = mNCollBCGenerator.getNextValue();
+  int ncoll = mContext->mNCollBCGenerator.getNextValue();
 
   // assign random time withing a bunch
   for (int i = ncoll; i--;) {
-    mTimeInBC.push_back(mCollTimeGenerator.getNextValue());
+    mTimeInBC.push_back(mContext->mCollTimeGenerator.getNextValue());
   }
   if (ncoll > 1) { // sort in DECREASING time order (we are reading vector from the end)
     std::sort(mTimeInBC.begin(), mTimeInBC.end(), [](const float a, const float b) { return a > b; });
