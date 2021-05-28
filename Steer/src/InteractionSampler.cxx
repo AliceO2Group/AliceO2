@@ -14,16 +14,18 @@
 
 using namespace o2::steer;
 
-namespace o2::steer{
+namespace o2::steer
+{
 struct InteractionSamplerContext {
   o2::math_utils::RandomRing<10000> mBCJumpGenerator;  // generator of random jumps in BC
   o2::math_utils::RandomRing<1000> mNCollBCGenerator;  // generator of number of interactions in BC
   o2::math_utils::RandomRing<1000> mCollTimeGenerator; // generator of number of interactions in BC
 };
-}
+} // namespace o2::steer
 
-InteractionSampler::~InteractionSampler() {
-   delete mContext;
+InteractionSampler::~InteractionSampler()
+{
+  delete mContext;
 }
 //_________________________________________________
 void InteractionSampler::init()
