@@ -57,7 +57,7 @@ struct HFCandidateCreatorBPlus{
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "2-prong candidates;XX element of cov. matrix of prim. vtx. position (cm^{2});entries", 100, 0., 1.e-4)};
   OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "2-prong candidates;XX element of cov. matrix of sec. vtx. position (cm^{2});entries", 100, 0., 0.2)};
   OutputObj<TH1F> hNevents{TH1F("hNevents", "Number of events;Nevents;entries",5,0.,5)};
-  
+
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
   double massPiK{0.};
@@ -123,7 +123,7 @@ struct HFCandidateCreatorBPlus{
 
       // LOGF(INFO, "All track: %d (prong0); %d (prong1)", candidate.index0().globalIndex(), candidate.index1().globalIndex());
       // LOGF(INFO, "All track pT: %f (prong0); %f (prong1)", prong0.pt(), prong1.pt());
-      
+
       // reconstruct D0 secondary vertex
       if (df.process(prong0TrackParCov, prong1TrackParCov) == 0){
         continue;
@@ -241,9 +241,9 @@ struct HFCandidateCreatorBPlusMC{
     int kD0pdg = pdg::Code::kD0;
 
     // Match reconstructed candidates.
-    for (auto& candidate : candidates) {
+    for(auto& candidate : candidates){
       //Printf("New rec. candidate");
-      
+
       flag = 0;
       auto D0barTrack = candidate.index0_as<aod::HfCandProng2>();
       auto arrayDaughters = array{candidate.index1_as<aod::BigTracksMC>(), D0barTrack.index0_as<aod::BigTracksMC>(), D0barTrack.index1_as<aod::BigTracksMC>()};
@@ -261,7 +261,7 @@ struct HFCandidateCreatorBPlusMC{
     for(auto& particle : particlesMC){
       //Printf("New gen. candidate");
       flag = 0;
-      
+
       // B± → D0bar(D0) π± → (K± π∓) π±
       //Printf("Checking B± → D0(bar) π±");
       if(RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kBPlus, array{-kD0pdg, +kPiPlus}, true, &sign, 1))

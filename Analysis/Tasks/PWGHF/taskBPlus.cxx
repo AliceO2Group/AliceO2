@@ -219,7 +219,7 @@ struct TaskBplusMC {
           yProngs[counter] = RecoDecay::Y(array{daught.px(), daught.py(), daught.pz()}, RecoDecay::getMassPDG(daught.pdgCode()));
           counter++;
         }
-       
+
         registry.fill(HIST("hPtGenProng0"), ptProngs[0], particle.pt());
         registry.fill(HIST("hPtGenProng1"), ptProngs[1], particle.pt());
         registry.fill(HIST("hYGenProng0"), yProngs[0], particle.pt());
