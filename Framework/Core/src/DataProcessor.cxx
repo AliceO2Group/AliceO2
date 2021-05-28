@@ -103,21 +103,24 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     parts.AddPart(std::move(payload));
     device.Send(parts, messageRef.channel, 0);
   }
-  auto disposeResources = [bs = context.bytesSent()](int taskId, std::array<ComputingQuotaOffer, 16>& offers) {
-    auto bytesSent = bs;
-    for (auto offer : offers) {
+  static int64_t previousBytesSent = 0;
+  auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId, std::array<ComputingQuotaOffer, 16>& offers) {
+    int64_t bytesSent = bs;
+    for (size_t oi = 0; oi < offers.size(); oi++) {
+      auto& offer = offers[oi];
       if (offer.user != taskId) {
         continue;
       }
-      auto toRemove = std::min((int64_t)bytesSent, offer.sharedMemory);
+      int64_t toRemove = std::min((int64_t)bytesSent, offer.sharedMemory);
       offer.sharedMemory -= toRemove;
       bytesSent -= toRemove;
-      if (bytesSent == 0) {
+      if (bytesSent <= 0) {
         return;
       }
     }
   };
   registry.get<DeviceState>().offerConsumers.push_back(disposeResources);
+  previousBytesSent = context.bytesSent();
   monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.flushBuffer();
