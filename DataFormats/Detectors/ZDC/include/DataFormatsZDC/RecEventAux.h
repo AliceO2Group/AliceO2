@@ -32,8 +32,6 @@ struct RecEventAux {
   uint32_t channels = 0;                                 /// pattern of channels acquired
   uint32_t triggers = 0;                                 /// pattern of channels with autotrigger bit
   uint32_t flags;                                        /// reconstruction flags
-  constexpr static float fAmp = 1. / 8.;                 /// Multiplication factor in conversion from integer
-  constexpr static float fVal = 1. / TSNS;               /// Multiplication factor in conversion from integer
   std::map<uint8_t, float> ezdc;                         /// signal in ZDCs
   int16_t tdcVal[NTDCChannels][MaxTDCValues];            /// TdcChannels
   int16_t tdcAmp[NTDCChannels][MaxTDCValues];            /// TdcAmplitudes

@@ -15,6 +15,7 @@ o2_add_library(ZDCWorkflow
                        src/ZDCDataReaderDPLSpec.cxx
 		       src/ZDCDigitWriterDPLSpec.cxx
 		       src/ZDCRecoWriterDPLSpec.cxx
+		       src/DigitRecoSpec.cxx
 	       PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsZDC
                                      O2::ZDCRaw

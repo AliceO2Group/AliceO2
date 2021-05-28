@@ -66,6 +66,18 @@ struct BCRecData {
   {
     refi.setEntries(refi.getEntries() + 1);
   }
+
+  // Get information about event
+  inline void getRef(int& firste, int& ne, int& firstt, int& nt, int& firsti, int& ni)
+  {
+    firste = refe.getFirstEntry();
+    firstt = reft.getFirstEntry();
+    firsti = refi.getFirstEntry();
+    ne = refe.getEntries();
+    nt = reft.getEntries();
+    ni = refi.getEntries();
+  }
+
   void print() const;
 
   ClassDefNV(BCRecData, 1);

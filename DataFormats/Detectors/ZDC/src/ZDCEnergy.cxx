@@ -14,5 +14,6 @@ using namespace o2::zdc;
 
 void ZDCEnergy::print() const
 {
-  //printf("%2d (%s) %d @ %d\n", id, channelName(id), amp, val);
+  auto id = this->ch();
+  printf("%2d (%s): %9u = %9.2f\n", id, channelName(id), value & EnergyChMask, energy());
 }

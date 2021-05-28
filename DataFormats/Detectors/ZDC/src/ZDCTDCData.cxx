@@ -14,5 +14,5 @@ using namespace o2::zdc;
 
 void o2::zdc::ZDCTDCData::print() const
 {
-  printf("%2d (%s) %d @ %d\n", id, channelName(id), amp, val);
+  printf("%2d (%s) %d = %8.3f @ %d = %6.3f\n", id, channelName(id), amp, amplitude(), val, value());
 }

@@ -17,7 +17,7 @@
 #include <Rtypes.h>
 
 /// \file ZDCEnergy.h
-/// \brief Container class to store energy released in a ZDC
+/// \brief Container class to store energy released in the ZDC
 /// \author pietro.cortese@cern.ch
 
 namespace o2
@@ -46,11 +46,11 @@ struct ZDCEnergy {
     }
     value = (value & EnergyMask) | (ch << 27);
   }
-  float energy()
+  float energy() const
   {
     return (float(value & EnergyMask) - EnergyOffset) * EnergyUnit;
   }
-  uint8_t ch()
+  uint8_t ch() const
   {
     return (value & EnergyChMask) >> 27;
   }

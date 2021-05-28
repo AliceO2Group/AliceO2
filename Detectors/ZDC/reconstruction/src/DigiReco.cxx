@@ -89,7 +89,7 @@ void DigiReco::init()
       if (!mTDCParam) {
         LOG(FATAL) << "TDC " << itdc << " missing configuration object and no manual override";
       } else {
-        fval = mTDCParam->getShift(itdc) / RecEventAux::fVal;
+        fval = mTDCParam->getShift(itdc) / FTDCVal;
       }
     }
     auto val = std::nearbyint(fval);
@@ -100,12 +100,12 @@ void DigiReco::init()
       LOG(FATAL) << "Shift for TDC " << itdc << " " << val << " is out of range";
     }
     tdc_shift[itdc] = val;
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * RecEventAux::fVal << " ns";
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * FTDCVal << " ns";
   }
   // TDC search zone
   // TODO: override with configuration object
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * RecEventAux::fVal << " ns";
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * FTDCVal << " ns";
   }
 
   // Fill maps channel maps for integration
@@ -145,7 +145,7 @@ void DigiReco::init()
         ropt.end_ped_int[ich] = mIntParam->end_ped_int[ich];
       }
     }
-    LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << "-" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << "-" << ropt.end_ped_int[ich] << "]";
+    LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
   }
 }
 
@@ -211,10 +211,12 @@ int DigiReco::process(const std::vector<o2::zdc::OrbitData>* orbitdata, const st
     mReco[ibc].triggers = BCData[ibc].triggers;
   }
 
-  // Find consecutive bunch crossings and perform interpolation
+  // Find consecutive bunch crossings and perform signal interpolation
+  // in the identified ranges (in the reconstruction method we take into
+  // account for signals that do not span the entire reange)
   int seq_beg = 0;
   int seq_end = 0;
-  LOG(INFO) << "Reconstruction for " << mNBC << " bunch crossings";
+  LOG(INFO) << "ZDC reconstruction for " << mNBC << " bunch crossings";
   for (int ibc = 0; ibc < mNBC; ibc++) {
     auto& ir = BCData[seq_end].ir;
     auto bcd = BCData[ibc].ir.differenceInBC(ir);
@@ -769,13 +771,13 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   int& ihit = mReco[ibun].ntdc[itdc];
   if (ihit < MaxTDCValues) {
     mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
-    mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp / RecEventAux::fAmp);
+    mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp / FTDCAmp);
     ihit++;
     LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * RecEventAux::fVal << " amp=" << amp * RecEventAux::fAmp;
+              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp;
   } else {
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * RecEventAux::fVal << " amp=" << amp * RecEventAux::fAmp << " OVERFLOW";
+               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";
   }
 }
 
