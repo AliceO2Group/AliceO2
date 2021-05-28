@@ -47,7 +47,7 @@ o2_add_dpl_workflow(hf-candidate-creator-3prong
                     SOURCES HFCandidateCreator3Prong.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
                     COMPONENT_NAME Analysis)
-	    
+
 o2_add_dpl_workflow(hf-candidate-creator-bplus
                     SOURCES HFCandidateCreatorBPlus.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing ROOT::EG
@@ -85,7 +85,7 @@ o2_add_dpl_workflow(hf-xic-topkpi-candidate-selector
 
 o2_add_dpl_workflow(hf-lc-tok0sp-candidate-selector
                     SOURCES HFLcK0sPCandidateSelector.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils 
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(hf-bplus-tod0pi-candidate-selector
@@ -135,7 +135,7 @@ o2_add_dpl_workflow(hf-mc-validation
 
 o2_add_dpl_workflow(hf-task-lc-tok0sp
                     SOURCES taskLcK0sP.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils 
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils
                     COMPONENT_NAME Analysis)
 
 
