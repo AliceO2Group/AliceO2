@@ -40,11 +40,11 @@ struct ZDCTDCData {
 
   inline float amplitude() const
   {
-    return FTDCAmp*amp;
+    return FTDCAmp * amp;
   }
   inline float value() const
   {
-    return FTDCVal*val;
+    return FTDCVal * val;
   }
   inline uint8_t ch() const
   {
