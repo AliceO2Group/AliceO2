@@ -226,7 +226,7 @@ DECLARE_SOA_COLUMN(OriginMCGen, originMCGen, int8_t);       //! particle origin,
 // mapping of decay types
 enum DecayType { D0ToPiK = 0,
                  JpsiToEE,
-		 BPlusToD0Pi,
+                 BPlusToD0Pi,
                  N2ProngDecays }; //always keep N2ProngDecays at the end
 
 // functions for specific particles
@@ -325,7 +325,7 @@ auto InvMassJpsiToEE(const T& candidate)
 
 // 2-prong decay candidate table
 DECLARE_SOA_TABLE(HfCandProng2Base, "AOD", "HFCANDP2BASE", //!
-		o2::soa::Index<>,
+                  o2::soa::Index<>,
                   // general columns
                   HFCAND_COLUMNS,
                   // 2-prong specific columns
