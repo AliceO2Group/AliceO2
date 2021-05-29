@@ -641,32 +641,160 @@ void ws_connect_callback(uv_stream_t* server, int status)
   }
 }
 
-/// This will start a new device by forking and executing a
-/// new child
-void spawnDevice(std::string const& forwardedStdin,
-                 DeviceSpec const& spec,
-                 DriverInfo& driverInfo,
-                 DeviceControl& control,
-                 DeviceExecution& execution,
-                 std::vector<DeviceInfo>& deviceInfos,
-                 ServiceRegistry& serviceRegistry,
-                 boost::program_options::variables_map& varmap,
-                 uv_loop_t* loop,
-                 std::vector<uv_poll_t*> handles,
-                 unsigned parentCPU,
-                 unsigned parentNode)
+struct StreamConfigContext {
+  std::string configuration;
+  int fd;
+};
+
+void stream_config(uv_work_t* req)
 {
+  StreamConfigContext* context = (StreamConfigContext*)req->data;
+  size_t result = write(context->fd, context->configuration.data(), context->configuration.size());
+  if (result != context->configuration.size()) {
+    LOG(ERROR) << "Unable to pass configuration to children";
+  }
+  {
+    auto error = fsync(context->fd);
+    switch (error) {
+      case EBADF:
+        LOGP(ERROR, "EBADF while flushing child stdin");
+        break;
+      case EINVAL:
+        LOGP(ERROR, "EINVAL while flushing child stdin");
+        break;
+      case EINTR:
+        LOGP(ERROR, "EINTR while flushing child stdin");
+        break;
+      case EIO:
+        LOGP(ERROR, "EIO while flushing child stdin");
+        break;
+      default:;
+    }
+  }
+  {
+    auto error = close(context->fd); // Not allowing further communication...
+    switch (error) {
+      case EBADF:
+        LOGP(ERROR, "EBADF while closing child stdin");
+        break;
+      case EINTR:
+        LOGP(ERROR, "EINTR while closing child stdin");
+        break;
+      case EIO:
+        LOGP(ERROR, "EIO while closing child stdin");
+        break;
+      default:;
+    }
+  }
+}
+
+struct DeviceRef {
+  int index;
+};
+
+struct DeviceStdioContext {
   int childstdin[2];
   int childstdout[2];
   int childstderr[2];
+};
 
-  createPipes(childstdin);
-  createPipes(childstdout);
-  createPipes(childstderr);
+void prepareStdio(std::vector<DeviceStdioContext>& deviceStdio)
+{
+  for (auto& context : deviceStdio) {
+    createPipes(context.childstdin);
+    createPipes(context.childstdout);
+    createPipes(context.childstderr);
+  }
+}
+void handleSignals()
+{
+  struct sigaction sa_handle_int;
+  sa_handle_int.sa_handler = handle_sigint;
+  sigemptyset(&sa_handle_int.sa_mask);
+  sa_handle_int.sa_flags = SA_RESTART;
+  if (sigaction(SIGINT, &sa_handle_int, nullptr) == -1) {
+    perror("Unable to install signal handler");
+    exit(1);
+  }
+  struct sigaction sa_handle_term;
+  sa_handle_term.sa_handler = handle_sigint;
+  sigemptyset(&sa_handle_term.sa_mask);
+  sa_handle_term.sa_flags = SA_RESTART;
+  if (sigaction(SIGTERM, &sa_handle_int, nullptr) == -1) {
+    perror("Unable to install signal handler");
+    exit(1);
+  }
+}
 
+void handleChildrenStdio(uv_loop_t* loop,
+                         std::string const& forwardedStdin,
+                         std::vector<DeviceInfo>& deviceInfos,
+                         std::vector<DeviceStdioContext>& childFds,
+                         std::vector<uv_poll_t*>& handles)
+{
+  for (size_t i = 0; i < childFds.size(); ++i) {
+    auto& childstdin = childFds[i].childstdin;
+    auto& childstdout = childFds[i].childstdout;
+    auto& childstderr = childFds[i].childstderr;
+    close(childstdin[0]);
+    close(childstdout[1]);
+    close(childstderr[1]);
+
+    uv_work_t* req = (uv_work_t*)malloc(sizeof(uv_work_t));
+    req->data = new StreamConfigContext{forwardedStdin, childstdin[1]};
+    uv_queue_work(loop, req, stream_config, nullptr);
+
+    // Setting them to non-blocking to avoid haing the driver hang when
+    // reading from child.
+    int resultCode = fcntl(childstdout[0], F_SETFL, O_NONBLOCK);
+    if (resultCode == -1) {
+      LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
+    }
+    resultCode = fcntl(childstderr[0], F_SETFL, O_NONBLOCK);
+    if (resultCode == -1) {
+      LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
+    }
+
+    /// Add pollers for stdout and stderr
+    auto addPoller = [&handles, &deviceInfos, &loop](int index, int fd) {
+      DeviceLogContext* context = new DeviceLogContext{};
+      context->index = index;
+      context->fd = fd;
+      context->loop = loop;
+      context->infos = &deviceInfos;
+      handles.push_back((uv_poll_t*)malloc(sizeof(uv_poll_t)));
+      auto handle = handles.back();
+      handle->data = context;
+      uv_poll_init(loop, handle, fd);
+      uv_poll_start(handle, UV_READABLE, log_callback);
+    };
+
+    addPoller(i, childstdout[0]);
+    addPoller(i, childstderr[0]);
+  }
+}
+
+/// This will start a new device by forking and executing a
+/// new child
+void spawnDevice(DeviceRef ref,
+                 std::vector<DeviceSpec> const& specs,
+                 DriverInfo& driverInfo,
+                 std::vector<DeviceControl>& controls,
+                 std::vector<DeviceExecution>& executions,
+                 std::vector<DeviceInfo>& deviceInfos,
+                 ServiceRegistry& serviceRegistry,
+                 boost::program_options::variables_map& varmap,
+                 std::vector<DeviceStdioContext>& childFds,
+                 unsigned parentCPU,
+                 unsigned parentNode)
+{
   // FIXME: this might not work when more than one DPL driver on the same
   // machine. Hopefully we do not care.
   // Not how the first port is actually used to broadcast clients.
+  auto& spec = specs[ref.index];
+  auto& control = controls[ref.index];
+  auto& execution = executions[ref.index];
+
   driverInfo.tracyPort++;
 
   for (auto& service : spec.services) {
@@ -689,15 +817,25 @@ void spawnDevice(std::string const& forwardedStdin,
     // old descriptor, and then replace it with the write part of the pipe.
     // For stdin, we close the write part of the pipe, the old descriptor,
     // and then we replace it with the read part of the pipe.
-    close(childstdin[1]);
-    close(childstdout[0]);
-    close(childstderr[0]);
+    // We also close all the filedescriptors for our sibilings.
+    for (size_t i = 0; i < childFds.size(); ++i) {
+      close(childFds[i].childstdin[1]);
+      close(childFds[i].childstdout[0]);
+      close(childFds[i].childstderr[0]);
+      if (i == ref.index) {
+        continue;
+      }
+      close(childFds[i].childstdin[0]);
+      close(childFds[i].childstdout[1]);
+      close(childFds[i].childstderr[1]);
+    }
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-    dup2(childstdin[0], STDIN_FILENO);
-    dup2(childstdout[1], STDOUT_FILENO);
-    dup2(childstderr[1], STDERR_FILENO);
+    dup2(childFds[ref.index].childstdin[0], STDIN_FILENO);
+    dup2(childFds[ref.index].childstdout[1], STDOUT_FILENO);
+    dup2(childFds[ref.index].childstderr[1], STDERR_FILENO);
+
     auto portS = std::to_string(driverInfo.tracyPort);
     setenv("TRACY_PORT", portS.c_str(), 1);
     for (auto& service : spec.services) {
@@ -742,23 +880,6 @@ void spawnDevice(std::string const& forwardedStdin,
     }
   }
 
-  struct sigaction sa_handle_int;
-  sa_handle_int.sa_handler = handle_sigint;
-  sigemptyset(&sa_handle_int.sa_mask);
-  sa_handle_int.sa_flags = SA_RESTART;
-  if (sigaction(SIGINT, &sa_handle_int, nullptr) == -1) {
-    perror("Unable to install signal handler");
-    exit(1);
-  }
-  struct sigaction sa_handle_term;
-  sa_handle_term.sa_handler = handle_sigint;
-  sigemptyset(&sa_handle_term.sa_mask);
-  sa_handle_term.sa_flags = SA_RESTART;
-  if (sigaction(SIGTERM, &sa_handle_int, nullptr) == -1) {
-    perror("Unable to install signal handler");
-    exit(1);
-  }
-
   LOG(INFO) << "Starting " << spec.id << " on pid " << id;
   DeviceInfo info;
   info.pid = id;
@@ -777,42 +898,6 @@ void spawnDevice(std::string const& forwardedStdin,
   deviceInfos.emplace_back(info);
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
-
-  close(childstdin[0]);
-  close(childstdout[1]);
-  close(childstderr[1]);
-  size_t result = write(childstdin[1], forwardedStdin.data(), forwardedStdin.size());
-  if (result != forwardedStdin.size()) {
-    LOG(ERROR) << "Unable to pass configuration to children";
-  }
-  close(childstdin[1]); // Not allowing further communication...
-
-  // Setting them to non-blocking to avoid haing the driver hang when
-  // reading from child.
-  int resultCode = fcntl(childstdout[0], F_SETFL, O_NONBLOCK);
-  if (resultCode == -1) {
-    LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
-  }
-  resultCode = fcntl(childstderr[0], F_SETFL, O_NONBLOCK);
-  if (resultCode == -1) {
-    LOGP(ERROR, "Error while setting the socket to non-blocking: {}", strerror(errno));
-  }
-  /// Add pollers for stdout and stderr
-  auto addPoller = [&handles, &deviceInfos, &loop](int index, int fd) {
-    DeviceLogContext* context = new DeviceLogContext{};
-    context->index = index;
-    context->fd = fd;
-    context->loop = loop;
-    context->infos = &deviceInfos;
-    handles.push_back((uv_poll_t*)malloc(sizeof(uv_poll_t)));
-    auto handle = handles.back();
-    handle->data = context;
-    uv_poll_init(loop, handle, fd);
-    uv_poll_start(handle, UV_READABLE, log_callback);
-  };
-
-  addPoller(deviceInfos.size() - 1, childstdout[0]);
-  addPoller(deviceInfos.size() - 1, childstderr[0]);
 }
 
 
@@ -1137,6 +1222,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   DataProcessorInfos dataProcessorInfos = previousDataProcessorInfos;
 
   std::vector<uv_poll_t*> pollHandles;
+  std::vector<DeviceStdioContext> childFds;
+
   std::vector<ComputingResource> resources;
 
   if (driverInfo.resources != "") {
@@ -1269,7 +1356,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_timer_t force_step_timer;
   uv_timer_init(loop, &force_step_timer);
-
 
   bool guiDeployedOnce = false;
   bool once = false;
@@ -1543,17 +1629,23 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         for (auto& callback : preScheduleCallbacks) {
           callback(serviceRegistry, varmap);
         }
-        for (size_t di = 0; di < runningWorkflow.devices.size(); ++di) {
+        childFds.resize(runningWorkflow.devices.size());
+        prepareStdio(childFds);
+        for (int di = 0; di < runningWorkflow.devices.size(); ++di) {
           if (runningWorkflow.devices[di].resource.hostname != driverInfo.deployHostname) {
             spawnRemoteDevice(forwardedStdin.str(),
                               runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos);
           } else {
-            spawnDevice(forwardedStdin.str(),
-                        runningWorkflow.devices[di], driverInfo,
-                        controls[di], deviceExecutions[di], infos,
-                        serviceRegistry, varmap, loop, pollHandles, parentCPU, parentNode);
+            DeviceRef ref{di};
+            spawnDevice(ref,
+                        runningWorkflow.devices, driverInfo,
+                        controls, deviceExecutions, infos,
+                        serviceRegistry, varmap,
+                        childFds, parentCPU, parentNode);
           }
         }
+        handleSignals();
+        handleChildrenStdio(loop, forwardedStdin.str(), infos, childFds, pollHandles);
         for (auto& callback : postScheduleCallbacks) {
           callback(serviceRegistry, varmap);
         }
