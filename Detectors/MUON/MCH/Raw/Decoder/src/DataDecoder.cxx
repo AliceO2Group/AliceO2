@@ -18,7 +18,9 @@
 #include "MCHRawDecoder/DataDecoder.h"
 
 #include <fstream>
+#include <FairMQLogger.h>
 #include "Headers/RAWDataHeader.h"
+#include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "MCHMappingInterface/Segmentation.h"
 
@@ -67,29 +69,51 @@ static int ds2manu(int i)
 
 static void patchPage(gsl::span<const std::byte> rdhBuffer, bool verbose)
 {
-  static int sNrdhs = 0;
   auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(rdhBuffer[0])));
-  sNrdhs++;
 
-  auto cruId = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF;
-  auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
-  auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
   auto existingFeeId = o2::raw::RDHUtils::getFEEID(rdhAny);
   if (existingFeeId == 0) {
     // early versions of raw data did not set the feeId
     // which we need to select the right decoder
+
+    auto cruId = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF;
+    auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
+    auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
+
     uint32_t feeId = cruId * 2 + endpoint + flags;
     o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
   }
-
-  if (verbose) {
-    std::cout << "RDH number " << sNrdhs << "--\n";
-    o2::raw::RDHUtils::printRDH(rdhAny);
-  }
 };
+
+bool operator<(const DataDecoder::RawDigit& d1, const DataDecoder::RawDigit& d2)
+{
+  return (d1.getTime() < d2.getTime());
+}
+
+std::ostream& operator<<(std::ostream& os, const DataDecoder::RawDigit& d)
+{
+  return os;
+}
 
 //=======================
 // Data decoder
+
+bool DataDecoder::SampaInfo::operator==(const DataDecoder::SampaInfo& other) const
+{
+  return chip == other.chip &&
+         ds == other.ds &&
+         solar == other.solar &&
+         sampaTime == other.sampaTime &&
+         bunchCrossing == other.bunchCrossing &&
+         orbit == other.orbit &&
+         tfTime == other.tfTime;
+  ;
+}
+
+bool DataDecoder::RawDigit::operator==(const DataDecoder::RawDigit& other) const
+{
+  return digit == other.digit && info == other.info;
+}
 
 DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose)
   : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose)
@@ -117,6 +141,14 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
   size_t pageStart = 0;
   while (bufSize > pageStart) {
     RDH* rdh = reinterpret_cast<RDH*>(const_cast<std::byte*>(&(buf[pageStart])));
+    if (mDebug) {
+      if (pageStart == 0) {
+        std::cout << "+++\n[decodeBuffer]" << std::endl;
+      } else {
+        std::cout << "---\n[decodeBuffer]" << std::endl;
+      }
+      o2::raw::RDHUtils::printRDH(rdh);
+    }
     auto rdhVersion = o2::raw::RDHUtils::getVersion(rdh);
     auto rdhHeaderSize = o2::raw::RDHUtils::getHeaderSize(rdh);
     if (rdhHeaderSize != 64) {
@@ -129,33 +161,34 @@ void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
 
     pageStart += pageSize;
   }
+
+  if (mDebug) {
+    std::cout << "[decodeBuffer] mOrbits size: " << mOrbits.size() << std::endl;
+    dumpOrbits(mOrbits);
+    std::cout << "[decodeBuffer] mDigits size: " << mDigits.size() << std::endl;
+    dumpDigits();
+  }
 }
 
-void DataDecoder::dumpDigits(bool bending)
+void DataDecoder::dumpDigits()
 {
-  if (mOutputDigits.size() != mSampaInfos.size()) {
-    return;
-  }
-
-  for (size_t di = 0; di < mOutputDigits.size(); di++) {
-    auto& d = mOutputDigits[di];
-    auto& t = mSampaInfos[di];
-    if (d.getPadID() < 0) {
+  for (size_t di = 0; di < mDigits.size(); di++) {
+    auto& d = mDigits[di];
+    auto detID = d.getDetID();
+    auto padID = d.getPadID();
+    if (padID < 0) {
       continue;
     }
-    const Segmentation& segment = segmentation(d.getDetID());
-    bool bend = segment.isBendingPad(d.getPadID());
-    if (bending != segment.isBendingPad(d.getPadID())) {
-      continue;
-    }
-    float X = segment.padPositionX(d.getPadID());
-    float Y = segment.padPositionY(d.getPadID());
-    uint32_t orbit = t.orbit;
-    uint32_t bunchCrossing = t.bunchCrossing;
-    uint32_t sampaTime = t.sampaTime;
+    const Segmentation& segment = segmentation(detID);
+    bool bend = segment.isBendingPad(padID);
+    float X = segment.padPositionX(padID);
+    float Y = segment.padPositionY(padID);
+    uint32_t orbit = d.getOrbit();
+    uint32_t bunchCrossing = d.getBunchCrossing();
+    uint32_t sampaTime = d.getSampaTime();
     std::cout << fmt::format("  DE {:4d}  PAD {:5d}  ADC {:6d}  TIME ({} {} {:4d})",
-                             d.getDetID(), d.getPadID(), d.getADC(), orbit, bunchCrossing, sampaTime);
-    std::cout << fmt::format("\tC {}  PAD_XY {:+2.2f} , {:+2.2f}", (bending ? (int)0 : (int)1), X, Y);
+                             detID, padID, d.getADC(), orbit, bunchCrossing, sampaTime);
+    std::cout << fmt::format("\tC {}  PAD_XY {:+2.2f} , {:+2.2f}", (bend ? (int)0 : (int)1), X, Y);
     std::cout << std::endl;
   }
 };
@@ -170,9 +203,6 @@ void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits)
 
 void DataDecoder::decodePage(gsl::span<const std::byte> page)
 {
-  if (mDebug) {
-    std::cout << "\n----------------------------\nStart of new page\n\n";
-  }
   size_t ndigits{0};
 
   auto heartBeatHandler = [&](DsElecId dsElecId, uint8_t chip, uint32_t bunchCrossing) {
@@ -183,7 +213,8 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     mSampaTimeFrameStarts[sampaId.id].emplace(mOrbit, bunchCrossing);
     if (mDebug) {
-      std::cout << "HeartBeat: solar " << sampaId.solar << "  ds " << sampaId.ds << "  chip " << sampaId.chip
+      auto s = asString(dsElecId);
+      std::cout << "HeartBeat: " << s << "  ID " << sampaId.id << "  solar " << sampaId.solar << "  ds " << sampaId.ds << "  chip " << sampaId.chip
                 << "  mOrbit " << mOrbit << "  bunchCrossing " << bunchCrossing << std::endl;
     }
   };
@@ -243,11 +274,22 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     sampaInfo.bunchCrossing = sc.bunchCrossing;
     sampaInfo.orbit = mOrbit;
 
-    mOutputDigits.emplace_back(o2::mch::Digit(deId, padId, digitadc, 0, sc.nofSamples()));
-    mSampaInfos.emplace_back(sampaInfo);
+    RawDigit digit;
+    digit.digit = o2::mch::Digit(deId, padId, digitadc, 0, sc.nofSamples());
+    digit.info.chip = channel / 32;
+    digit.info.ds = dsElecId.elinkId();
+    digit.info.solar = dsElecId.solarId();
+    digit.info.sampaTime = sc.sampaTime;
+    digit.info.bunchCrossing = sc.bunchCrossing;
+    digit.info.orbit = mOrbit;
+
+    mDigits.emplace_back(digit);
 
     if (mDebug) {
-      std::cout << "DIGIT STORED:\nADC " << mOutputDigits.back().getADC() << " DE# " << mOutputDigits.back().getDetID() << " PadId " << mOutputDigits.back().getPadID() << " time " << mSampaInfos.back().sampaTime << std::endl;
+      RawDigit& lastDigit = mDigits.back();
+      std::cout << "DIGIT STORED:\n ORBIT " << mOrbitId << "  ADC " << lastDigit.getADC()
+                << " DE# " << lastDigit.getDetID() << " PadId " << lastDigit.getPadID()
+                << " time " << lastDigit.getSampaTime() << std::endl;
     }
     ++ndigits;
   };
@@ -256,9 +298,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
   auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
   mOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhAny);
-  if (mDebug) {
-    std::cout << "[decodeBuffer] mOrbit set to " << mOrbit << std::endl;
-  }
+  mOrbitId = mOrbit - mFirstTForbit;
 
   if (mRdhHandler) {
     mRdhHandler(&rdhAny);
@@ -275,34 +315,24 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
                           : o2::mch::raw::createPageDecoder(page, handlers);
   }
   mDecoder(page);
-
-  if (mDebug) {
-    std::cout << "[decodeBuffer] mOrbits size: " << mOrbits.size() << std::endl;
-    //dumpOrbits(mOrbits);
-    std::cout << "[decodeBuffer] mOutputDigits size: " << mOutputDigits.size() << std::endl;
-    dumpDigits(true);
-    dumpDigits(false);
-  }
 };
 
 int32_t DataDecoder::digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2)
 {
   // bunch crossings are stored with 20 bits
   static const int32_t BCROLLOVER = (1 << 20);
-  // bunch crossings half range
-  //static const int32_t BCHALFRANGE = (1 << 19);
   // number of bunch crossings in one orbit
-  static const int32_t BCINORBIT = 3564;
+  static const int32_t BCINORBIT = o2::constants::lhc::LHCMaxBunches;
 
   // We use the difference of orbits values to estimate the minimum and maximum allowed
   // difference in bunch crossings
   int64_t dOrbit = static_cast<int64_t>(orbit2) - static_cast<int64_t>(orbit1);
 
   // Digits might be sent out later than the orbit in which they were recorded.
-  // We account for this by allowing an extra +/- 2 orbits when converting the
+  // We account for this by allowing an extra +/- 3 orbits when converting the
   // difference from orbit numbers to bunch crossings.
-  int64_t dBcMin = (dOrbit - 2) * BCINORBIT;
-  int64_t dBcMax = (dOrbit + 2) * BCINORBIT;
+  int64_t dBcMin = (dOrbit - 3) * BCINORBIT;
+  int64_t dBcMax = (dOrbit + 3) * BCINORBIT;
 
   // Difference in bunch crossing values
   int64_t dBc = static_cast<int64_t>(bc2) - static_cast<int64_t>(bc1);
@@ -320,13 +350,9 @@ int32_t DataDecoder::digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbi
   return static_cast<int32_t>(dBc);
 }
 
-void DataDecoder::computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::vector<SampaInfo>& sampaInfo, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug)
+void DataDecoder::computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug)
 {
-  if (digits.size() != sampaInfo.size()) {
-    throw std::logic_error(fmt::format("{} mismatch in digits and sampaInfo vector sizes ({} and {})\n",
-                                       __PRETTY_FUNCTION__, digits.size(), sampaInfo.size()));
-  }
-
+  constexpr int32_t timeInvalid = DataDecoder::tfTimeInvalid;
   auto setDigitTime = [&](Digit& d, int32_t tfTime) {
     d.setTime(tfTime);
     if (debug) {
@@ -335,25 +361,36 @@ void DataDecoder::computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::v
   };
 
   for (size_t di = 0; di < digits.size(); di++) {
-    Digit& d = digits[di];
-    SampaInfo& info = sampaInfo[di];
+    Digit& d = digits[di].digit;
+    SampaInfo& info = digits[di].info;
     std::optional<SampaTimeFrameStart>& tfStart = sampaTimeFrameStarts[info.id];
 
     if (!tfStart) {
-      d.setTime(0xFFFFFFFF);
-      continue;
+      LOG(ERROR) << "\n[computeDigitsTime_] missing TimeFrame start for ID " << info.id << "  DS " << info.solar << ","
+                 << info.ds << " (J" << (info.ds / 5) + 1 << " B" << (info.ds % 5) << ")," << info.chip
+                 << "  pad " << d.getDetID() << "," << d.getPadID() << "  "
+                 << info.orbit << " " << info.tfTime << " " << info.bunchCrossing << " "
+                 << info.sampaTime << " " << info.getBXTime();
+      d.setTime(timeInvalid);
+      info.tfTime = timeInvalid;
+    } else {
+      int32_t tfTime = 0;
+      uint32_t bc = tfStart->mBunchCrossing;
+      uint32_t orbit = tfStart->mOrbit;
+      tfTime = DataDecoder::digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
+      if (debug) {
+        std::cout << "\n[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
+                  << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime << std::endl;
+      }
+      setDigitTime(d, tfTime);
+      info.tfTime = tfTime;
     }
 
-    int32_t tfTime = 0;
-    uint32_t bc = tfStart->mBunchCrossing;
-    uint32_t orbit = tfStart->mOrbit;
-    tfTime = DataDecoder::digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
     if (debug) {
-      std::cout << "[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
-                << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime << std::endl;
+      std::cout << "                     solar " << info.solar << "  ds " << info.ds << "  chip " << info.chip << std::endl;
+      std::cout << "                     pad " << d.getDetID() << "," << d.getPadID() << " "
+                << info.orbit << " " << info.tfTime << " " << info.getBXTime() << std::endl;
     }
-
-    setDigitTime(d, tfTime);
   }
 }
 
@@ -413,8 +450,8 @@ void DataDecoder::init()
 //_________________________________________________________________________________________________
 void DataDecoder::reset()
 {
-  mOutputDigits.clear();
-  mSampaInfos.clear();
+  mSampaTimeFrameStarts.clear();
+  mDigits.clear();
   mOrbits.clear();
 }
 
