@@ -209,14 +209,12 @@ struct HFCandidateCreatorXiccMC {
     int8_t sign = 0;
     int8_t flag = 0;
     int8_t origin = 0;
-    int8_t channel = 0;
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
       flag = 0;
       origin = 0;
-      channel = 0;
 
       auto xicCand = candidate.index0();
       auto arrayDaughters = array{xicCand.index0_as<aod::BigTracksMC>(),
@@ -226,10 +224,9 @@ struct HFCandidateCreatorXiccMC {
 
       // Ξcc±± → p± K∓ π± π±
       //Printf("Checking Ξcc±± → p± K∓ π± π±");
-      //FIXME Be aware that at the moment, you are not considering any resonant channel
       indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kXiCCPlusPlus, array{+kProton, -kKPlus, +kPiPlus, +kPiPlus}, true, &sign, 3);
       if (indexRec > -1) {
-        flag = 1 << XiccToXicPi;
+        flag = 1 << DecayType::XiccToXicPi;
       }
 
       // Check whether the particle is non-prompt (from a b quark).
@@ -238,7 +235,7 @@ struct HFCandidateCreatorXiccMC {
         origin = (RecoDecay::getMother(particlesMC, particle, 5, true) > -1 ? NonPrompt : Prompt);
       }
 
-      rowMCMatchRec(flag, origin, channel);
+      rowMCMatchRec(flag, origin);
     }
 
     // Match generated particles.
@@ -246,7 +243,6 @@ struct HFCandidateCreatorXiccMC {
       //Printf("New gen. candidate");
       flag = 0;
       origin = 0;
-      channel = 0;
       // Xicc → Xic + π+
       if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kXiCCPlusPlus, array{4232, +kPiPlus}, true)) {
         // Match Xic -> pKπ
@@ -260,9 +256,9 @@ struct HFCandidateCreatorXiccMC {
       }
       // Check whether the particle is non-prompt (from a b quark).
       if (flag != 0) {
-        origin = (RecoDecay::getMother(particlesMC, particle, 5, true) > -1 ? NonPrompt : Prompt);
+        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? OriginType::NonPrompt : OriginType::Prompt);
       }
-      rowMCMatchGen(flag, origin, channel);
+      rowMCMatchGen(flag, origin);
     }
   }
 };
