@@ -131,6 +131,13 @@ class DetID
   static mask_t getMask(const std::string_view detList);
 
   static std::string getNames(mask_t mask, char delimiter = ',');
+
+  inline static constexpr int nameToID(char const* name, int id)
+  {
+    return id > Last ? -1 : sameStr(name, sDetNames[id]) ? id
+                                                         : nameToID(name, id + 1);
+  }
+
 #endif // GPUCA_GPUCODE_DEVICE
 
  private:
@@ -143,11 +150,6 @@ class DetID
   ID mID = First; ///< detector ID
 
 #ifndef GPUCA_GPUCODE_DEVICE
-  inline static constexpr int nameToID(char const* name, int id)
-  {
-    return id > Last ? id : sameStr(name, sDetNames[id]) ? id : nameToID(name, id + 1);
-  }
-
   // detector names, will be defined in DataSources
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES
