@@ -251,7 +251,7 @@ struct HFCandidateCreatorXiccMC {
         auto XicCandMC = particlesMC.iteratorAt(arrDaughter[0]);
         //Printf("Checking Ξc± → p± K∓ π±");
         if (RecoDecay::isMatchedMCGen(particlesMC, XicCandMC, 4232, array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
-          flag = sign * (1 << XiccToXicPi);
+          flag = sign * (1 << DecayType::XiccToXicPi);
         }
       }
       // Check whether the particle is non-prompt (from a b quark).
