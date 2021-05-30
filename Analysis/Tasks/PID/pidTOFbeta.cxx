@@ -129,7 +129,7 @@ struct pidTOFTaskQABeta {
   void process(soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::pidTOFbeta, aod::TrackSelection>::iterator const& track)
   {
     //
-    if (track.tofSignal() < 0) { // Skipping tracks without TOF
+    if (!track.hasTOF()) { // Skipping tracks without TOF
       return;
     }
     if (!track.isGlobalTrack()) {
