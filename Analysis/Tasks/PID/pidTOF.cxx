@@ -266,7 +266,7 @@ struct tofPidQa {
 
     for (auto t : tracks) {
       //
-      if (t.tofSignal() < 0) { // Skipping tracks without TOF
+      if (!t.hasTOF()) { // Skipping tracks without TOF
         continue;
       }
       if (!t.isGlobalTrack()) {
