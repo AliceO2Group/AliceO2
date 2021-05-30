@@ -301,10 +301,16 @@ void RawFileWriter::LinkData::cacheData(const IR& ir, const gsl::span<char> data
 //___________________________________________________________________________________
 void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger, uint32_t detField)
 {
-  // add payload corresponding to IR
-  LOG(DEBUG) << "Adding " << data.size() << " bytes in IR " << ir << " to " << describe();
+  // add payload corresponding to IR, locking access to this method
   std::lock_guard<std::mutex> lock(mtx);
+  addDataInternal(ir, data, preformatted, trigger, detField);
+}
 
+//___________________________________________________________________________________
+void RawFileWriter::LinkData::addDataInternal(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger, uint32_t detField, bool checkEmpty)
+{
+  // add payload corresponding to IR
+  LOG(DEBUG) << "Adding " << data.size() << " bytes in IR " << ir << " to " << describe() << " checkEmpty=" << checkEmpty;
   if (writer->mCachingStage) {
     cacheData(ir, data, preformatted, trigger, detField);
     return;
@@ -318,7 +324,7 @@ void RawFileWriter::LinkData::addData(const IR& ir, const gsl::span<char> data, 
   }
 
   int dataSize = data.size();
-  if (ir >= updateIR) { // new IR exceeds or equal IR of next HBF to open, insert missed HBFs if needed
+  if (ir >= updateIR && checkEmpty) { // new IR exceeds or equal IR of next HBF to open, insert missed HBFs if needed
     fillEmptyHBHs(ir, true);
   }
   // we are guaranteed to be under the valid RDH + possibly some data
@@ -460,16 +466,6 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
   // finalize last RDH
   auto& lastRDH = *getLastRDH();
   int psize = getCurrentPageSize(); // set the size for the previous header RDH
-  bool emptyPage = psize == sizeof(RDHAny);
-  if (stop && emptyPage && writer->emptyHBFFunc) { // we are closing an empty page, does detector want to add something?
-    std::vector<char> emtyHBFFiller;               // working space for optional empty HBF filler
-    writer->emptyHBFFunc(&lastRDH, emtyHBFFiller);
-    if (emtyHBFFiller.size()) {
-      LOG(DEBUG) << "Adding empty HBF filler of size " << emtyHBFFiller.size() << " for " << describe();
-      pushBack(emtyHBFFiller.data(), emtyHBFFiller.size());
-      psize += emtyHBFFiller.size();
-    }
-  }
   RDHUtils::setOffsetToNext(lastRDH, psize);
   RDHUtils::setMemorySize(lastRDH, psize);
 
@@ -496,7 +492,7 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
     std::vector<char> userData;
     int sz = sizeof(RDHAny);
     if (stop && writer->newRDHFunc) { // detector may want to write something in closing page
-      writer->newRDHFunc(&rdhCopy, emptyPage, userData);
+      writer->newRDHFunc(&rdhCopy, psize == sizeof(RDHAny), userData);
       sz += userData.size();
     }
     RDHUtils::setOffsetToNext(rdhCopy, sz);
@@ -517,6 +513,28 @@ void RawFileWriter::LinkData::addHBFPage(bool stop)
     startOfRun = false; // signal that we are definitely not in the beginning of the run
   }
   //
+}
+
+//___________________________________________________________________________________
+void RawFileWriter::LinkData::closeHBFPage()
+{
+  // close the HBF page, if it is empty and detector has a special treatment of empty pages
+  // invoke detector callback method
+  if (lastRDHoffset < 0) {
+    return; // no page was open
+  }
+  bool emptyPage = getCurrentPageSize() == sizeof(RDHAny);
+  if (emptyPage && writer->emptyHBFFunc) { // we are closing an empty page, does detector want to add something?
+    std::vector<char> emtyHBFFiller;       // working space for optional empty HBF filler
+    const auto rdh = getLastRDH();
+    writer->emptyHBFFunc(rdh, emtyHBFFiller);
+    if (!emtyHBFFiller.empty()) {
+      auto ir = RDHUtils::getTriggerIR(rdh);
+      LOG(DEBUG) << "Adding empty HBF filler of size " << emtyHBFFiller.size() << " for " << describe();
+      addDataInternal(ir, emtyHBFFiller, false, 0, 0, false); // add filler w/o new check for empty HBF
+    }
+  }
+  addHBFPage(true);
 }
 
 //___________________________________________________________________________________
