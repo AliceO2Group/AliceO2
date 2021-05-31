@@ -154,7 +154,6 @@ function(o2_find_dependencies_from_alibuild)
   protected_set_root(Geant3 GEANT3)
   protected_set_root(Geant4 GEANT4)
   protected_set_root(Geant4VMC GEANT4_VMC)
-  protected_set_root(FlukaVMC FLUKA_VMC)	
   protected_set_root(VGM vgm)
   protected_set_root(HepMC HepMC3)
 
