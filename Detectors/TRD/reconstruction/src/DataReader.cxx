@@ -57,7 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto inputspec = cfgc.options().get<std::string>("trd-datareader-inputspec");
   //auto outputspec = cfgc.options().get<std::string>("trd-datareader-outputspec");
   auto verbose = cfgc.options().get<bool>("trd-datareader-verbose");
-  auto byteswap = cfgc.options().get<bool>("trd-datareader-disablebyteswapdata");
+  auto byteswap = cfgc.options().get<bool>("trd-datareader-enablebyteswapdata");
   auto compresseddata = cfgc.options().get<bool>("trd-datareader-compresseddata");
   auto headerverbose = cfgc.options().get<bool>("trd-datareader-headerverbose");
   auto dataverbose = cfgc.options().get<bool>("trd-datareader-dataverbose");
