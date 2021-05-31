@@ -46,7 +46,7 @@ struct TaskXicc {
 
   Configurable<int> d_selectionFlagXicc{"d_selectionFlagXicc", 1, "Selection Flag for Xicc"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
-  Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_xicc_topkipipi::pTBins_v}, "pT bin limits"};
+  Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_xicc_topkpipi::pTBins_v}, "pT bin limits"};
 
   void init(o2::framework::InitContext&)
   {
@@ -66,10 +66,9 @@ struct TaskXicc {
     registry.add("hDecLenErr", "#Xi^{++}_{cc} candidates;decay length error (cm);entries", {HistType::kTH2F, {{100, 0., 1.}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  //Filter filterSelectCandidates = (aod::hf_selcandidate_xicc::isSelXiccToPKPiPi >= d_selectionFlagXicc || aod::hf_selcandidate_xicc::isSelXicToPiKPPi >= d_selectionFlagXicc);
-
-  //void process(soa::Filtered<soa::Join<aod::HfCandXicc, aod::HFSelXiccToPKPiPiCandidate>> const& candidates)
-  void process(aod::HfCandXicc const& candidates)
+  Filter filterSelectCandidates = (aod::hf_selcandidate_xicc::isSelXiccToPKPiPi >= d_selectionFlagXicc);
+  void process(soa::Filtered<soa::Join<aod::HfCandXicc, aod::HFSelXiccToPKPiPiCandidate>> const& candidates)
+  //void process(aod::HfCandXicc const& candidates)
   {
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << DecayType::XiccToXicPi)) {
@@ -90,8 +89,7 @@ struct TaskXicc {
       registry.fill(HIST("habsCPA"), abs(candidate.cpa()), candidate.pt());
       registry.fill(HIST("hEta"), candidate.eta(), candidate.pt());
       registry.fill(HIST("hY"), YXicc(candidate), candidate.pt());
-      //registry.fill(HIST("hselectionstatus"), candidate.isSelXicToPKPi(), candidate.pt());
-      //registry.fill(HIST("hselectionstatus"), candidate.isSelXicToPiKP(), candidate.pt());
+      registry.fill(HIST("hselectionstatus"), candidate.isSelXiccToPKPiPi(), candidate.pt());
       registry.fill(HIST("hImpParErr0"), candidate.errorImpactParameter0(), candidate.pt());
       registry.fill(HIST("hImpParErr1"), candidate.errorImpactParameter1(), candidate.pt());
       registry.fill(HIST("hDecLenErr"), candidate.errorDecayLength(), candidate.pt());
@@ -116,7 +114,7 @@ struct TaskXiccMC {
 
   Configurable<int> d_selectionFlagXicc{"d_selectionFlagXicc", 1, "Selection Flag for Xicc"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
-  Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_xicc_topkipipi::pTBins_v}, "pT bin limits"};
+  Configurable<std::vector<double>> bins{"pTBins", std::vector<double>{hf_cuts_xicc_topkpipi::pTBins_v}, "pT bin limits"};
 
   void init(o2::framework::InitContext&)
   {
@@ -147,9 +145,9 @@ struct TaskXiccMC {
     registry.add("hImpParErr1Bg", "#Xi^{++}_{cc} (rec. unmatched) candidates;impact parameter error (cm);entries", {HistType::kTH2F, {{200, -0.1, 0.1}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  //Filter filterSelectCandidates = (aod::hf_selcandidate_xic::isSelXicToPKPi >= d_selectionFlagXic || aod::hf_selcandidate_xic::isSelXicToPiKP >= d_selectionFlagXic);
-
-  void process(soa::Join<aod::HfCandXicc, aod::HfCandXiccMCRec> const& candidates,
+  Filter filterSelectCandidates = (aod::hf_selcandidate_xicc::isSelXiccToPKPiPi >= d_selectionFlagXicc);
+  //void process(soa::Filtered<soa::Join<aod::HfCandXicc, aod::HFSelXiccToPKPiPiCandidate>> const& candidates)
+  void process(soa::Filtered<soa::Join<aod::HfCandXicc, aod::HFSelXiccToPKPiPiCandidate, aod::HfCandXiccMCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandXiccMCGen> const& particlesMC, aod::BigTracksMC const& tracks)
   {
     // MC rec.

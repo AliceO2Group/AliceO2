@@ -53,7 +53,6 @@ struct HFCandidateCreatorXicc {
   OutputObj<TH1F> hmassXic{TH1F("hmassXic", "xic candidates;inv. mass (#pi K #pi) (GeV/#it{c}^{2});entries", 500, 1.6, 2.6)};
   OutputObj<TH1F> hCovPVXX{TH1F("hCovPVXX", "3-prong candidates;XX element of cov. matrix of prim. vtx position (cm^{2});entries", 100, 0., 1.e-4)};
   OutputObj<TH1F> hCovSVXX{TH1F("hCovSVXX", "3-prong candidates;XX element of cov. matrix of sec. vtx position (cm^{2});entries", 100, 0., 0.2)};
-  OutputObj<TH1F> hmassXicc{TH1F("hmassXicc", "xicc candidates;inv. mass (#Xi_{c} #pi) (GeV/#it{c}^{2});entries", 400, 2.5, 6.5)};
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
@@ -180,10 +179,6 @@ struct HFCandidateCreatorXicc {
                          std::sqrt(impactParameter0.getSigmaY2()), std::sqrt(impactParameter1.getSigmaY2()),
                          xicCand.globalIndex(), trackpion.globalIndex(),
                          hfFlag);
-        // calculate invariant mass
-        auto arrayMomenta = array{pvecxic, pvecpion};
-        massXicc = RecoDecay::M(std::move(arrayMomenta), array{massXic, massPi});
-        hmassXicc->Fill(massXicc);
       } // if on selected Xicc
     }   // loop over candidates
   }     // end of process
