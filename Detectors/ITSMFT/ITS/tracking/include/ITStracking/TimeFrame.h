@@ -21,6 +21,8 @@
 #include <cassert>
 #include <gsl/gsl>
 
+#include "DataFormatsITS/TrackITS.h"
+
 #include "ITStracking/Cell.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Configuration.h"
@@ -29,6 +31,7 @@
 #include "ITStracking/Road.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
+
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -82,6 +85,9 @@ class TimeFrame final
   const MCCompLabel& getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
 
+  std::vector<MCCompLabel>& getTrackletsLabel(int layer) { return mTrackletLabels[layer]; }
+  std::vector<MCCompLabel>& getCellsLabel(int layer) { return mCellLabels[layer]; }
+
   bool hasMCinformation() const;
   void initialise(const int iteration, const MemoryParameters& memParam, const TrackingParameters& trkParam);
 
@@ -93,10 +99,13 @@ class TimeFrame final
 
   std::vector<std::vector<Cluster>>& getClusters();
   std::vector<std::vector<Cluster>>& getUnsortedClusters();
+  int getClusterROF(int iLayer, int iCluster);
   std::vector<std::vector<Cell>>& getCells();
   std::vector<std::vector<int>>& getCellsLookupTable();
   std::vector<std::vector<std::vector<int>>>& getCellsNeighbours();
   std::vector<Road>& getRoads();
+  std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
+  std::vector<MCCompLabel>& getTracksLabel(int rof) { return mTracksLabel[rof]; }
 
   void initialiseRoadLabels();
   void setRoadLabel(int i, const unsigned long long& lab, bool fake);
@@ -135,11 +144,16 @@ class TimeFrame final
   std::vector<std::vector<bool>> mUsedClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<MCCompLabel>> mClusterLabels;
+  std::vector<std::vector<MCCompLabel>> mTrackletLabels;
+  std::vector<std::vector<MCCompLabel>> mCellLabels;
   std::vector<std::vector<int>> mClusterExternalIndices;
   std::vector<std::vector<Cell>> mCells;
   std::vector<std::vector<int>> mCellsLookupTable;
   std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
   std::vector<Road> mRoads;
+  std::vector<std::vector<MCCompLabel>> mTracksLabel;
+  std::vector<std::vector<TrackITSExt>> mTracks;
+
 
   std::vector<index_table_t> mIndexTables;
   std::vector<std::vector<Tracklet>> mTracklets;
@@ -193,6 +207,10 @@ inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int lay
   }
   int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
   return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId] - startIdx)};
+}
+
+inline int TimeFrame::getClusterROF(int iLayer, int iCluster) {
+  return std::lower_bound(mROframesClusters[iLayer].begin(), mROframesClusters[iLayer].end(), iCluster + 1) - mROframesClusters[iLayer].begin() - 1;
 }
 
 inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId, int layerId) const

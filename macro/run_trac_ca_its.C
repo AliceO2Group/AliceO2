@@ -214,26 +214,12 @@ void run_trac_ca_its(bool cosmics = false,
   } else {
     // PbPb tracking params
     // ----
-    // trackParams.resize(3);
-    // memParams.resize(3);
-    // for (int iParam{0}; iParam < 3; ++iParam) {
-    //   for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
-    //     memParams[iParam].TrackletsMemoryCoefficients[iLayer] = 5.f;
-    //     memParams[iParam].CellsMemoryCoefficients[iLayer] = 0.1f;
-    //   }
-    // }
-    // for (auto i{0}; i < 3; ++i) {
-    //   trackParams[i].TrackletMaxDeltaPhi = 3.f;
-    //   trackParams[i].CellMaxDeltaPhi = 3.f;
-    //   trackParams[i].CellMaxDeltaTanLambda = 1.f;
-    //   for (auto j{0}; j < 6; ++j) {
-    //     trackParams[i].TrackletMaxDeltaZ[j] = 10.f;
-    //   }
-    //   for (auto j{0}; j < 5; ++j) {
-    //     trackParams[i].CellMaxDeltaZ[j] = 10.f;
-    //   }
-    // }
+    trackParams.resize(1);
+    memParams.resize(1);
+    // trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+    // trackParams[1].TrackletMaxDeltaPhi = 0.1f;
     // trackParams[2].MinTrackLength = 4;
+    // trackParams[2].TrackletMaxDeltaPhi = 0.3;
     // ---
     // Uncomment for pp
     trackParams.resize(2);
@@ -266,6 +252,7 @@ void run_trac_ca_its(bool cosmics = false,
   o2::its::TimeFrame tf;
   tf.loadROFrameData(rofs, clSpan, pattIt, dict, labels);
   pattIt = patt.begin();
+  int rofId{0};
   for (auto& rof : *rofs) {
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -280,8 +267,10 @@ void run_trac_ca_its(bool cosmics = false,
     std::vector<Vertex> vertITS = vertexer.exportVertices();
     std::vector<std::pair<float3, int>> tfVert;
     for (const auto& vert : vertITS) {
+      std::cout << "ROF " << rofId << ", pv " << vert.getX() << "\t" << vert.getY() << "\t" << vert.getZ() << std::endl;
       tfVert.push_back(std::make_pair<float3, int>({vert.getX(), vert.getY(), vert.getZ()}, vert.getNContributors()));
     }
+    rofId++;
     tf.addPrimaryVertices(tfVert);
     auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
     vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
@@ -307,6 +296,7 @@ void run_trac_ca_its(bool cosmics = false,
     outTree.Fill();
     roFrameCounter++;
   }
+  tf.printVertices();
 
   o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU(&tf));
   tracker.setBz(field->getBz(origD));
@@ -326,10 +316,9 @@ void run_trac_ca_its(bool cosmics = false,
     LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
   }
 
-  std::cout << "Final number of tracks: " << tracker.getTracks().size() << std::endl;
   for (int iROF{0}; iROF < tf.getNrof(); ++iROF) {
     tracksITS.clear();
-    for (auto& trc : tracker.getTracks()) {
+    for (auto& trc : tf.getTracks(iROF)) {
       trc.setFirstClusterEntry(trackClIdx.size()); // before adding tracks, create final cluster indices
       int ncl = trc.getNumberOfClusters();
       for (int ic = 0; ic < ncl; ic++) {
@@ -337,7 +326,7 @@ void run_trac_ca_its(bool cosmics = false,
       }
       tracksITS.emplace_back(trc);
     }
-    trackLabels = tracker.getTrackLabels(); /// FIXME: assignment ctor is not optimal.
+    trackLabels = tf.getTracksLabel(iROF); /// FIXME: assignment ctor is not optimal.
     outTree.Fill();
   }
 

@@ -57,9 +57,6 @@ Tracker::~Tracker() = default;
 
 void Tracker::clustersToTracks(std::ostream& timeBenchmarkOutputStream)
 {
-  mTracks.clear();
-  mTrackLabels.clear();
-
   double total{0};
   for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
     mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
@@ -214,13 +211,6 @@ void Tracker::findTracks()
 {
   std::vector<TrackITSExt> tracks;
   tracks.reserve(mTimeFrame->getRoads().size());
-#ifdef CA_DEBUG
-  std::vector<int> roadCounters(mTrkParams[0].NLayers - 3, 0);
-  std::vector<int> fitCounters(mTrkParams[0].NLayers - 3, 0);
-  std::vector<int> backpropagatedCounters(mTrkParams[0].NLayers - 3, 0);
-  std::vector<int> refitCounters(mTrkParams[0].NLayers - 3, 0);
-  std::vector<int> nonsharingCounters(mTrkParams[0].NLayers - 3, 0);
-#endif
 
   for (auto& road : mTimeFrame->getRoads()) {
     std::vector<int> clusters(mTrkParams[0].NLayers, constants::its::UnusedIndex);
@@ -305,110 +295,56 @@ void Tracker::findTracks()
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
     fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].FitIterationMaxChi2[1]);
-#ifdef CA_DEBUG
-    mDebugger->dumpTrackToBranchWithInfo("testBranch", temporaryTrack, event, mPrimaryVertexContext, true);
-#endif
     if (!fitSuccess) {
       continue;
     }
-    CA_DEBUGGER(refitCounters[nClusters - 4]++);
     // temporaryTrack.setROFrame(rof);
     tracks.emplace_back(temporaryTrack);
-    CA_DEBUGGER(assert(nClusters == temporaryTrack.getNumberOfClusters()));
   }
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
 
   std::sort(tracks.begin(), tracks.end(),
             [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
-#ifdef CA_DEBUG
-  // std::array<int, 26> sharingMatrix{0};
-  // int prevNclusters = 7;
-  // auto cumulativeIndex = [](int ncl) -> int {
-  //   constexpr int idx[5] = {0, 5, 11, 18, 26};
-  //   return idx[ncl - 4];
-  // };
-  // std::array<int, 4> xcheckCounters{0};
-#endif
   for (auto& track : tracks) {
-    CA_DEBUGGER(int nClusters = 0);
     int nShared = 0;
     for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
         continue;
       }
       nShared += int(mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
-      CA_DEBUGGER(nClusters++);
     }
-
-    // #ifdef CA_DEBUG
-    //     assert(nClusters == track.getNumberOfClusters());
-    //     xcheckCounters[nClusters - 4]++;
-    //     assert(nShared <= nClusters);
-    //     sharingMatrix[cumulativeIndex(nClusters) + nShared]++;
-    // #endif
 
     if (nShared > mTrkParams[0].ClusterSharing) {
       continue;
     }
 
-    // #ifdef CA_DEBUG
-    //     nonsharingCounters[nClusters - 4]++;
-    //     assert(nClusters <= prevNclusters);
-    //     prevNclusters = nClusters;
-    // #endif
-
+    std::pair<int, int> rofs[3]{{-1,0}, {-1, 0}, {-1, 0}};
     for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
         continue;
       }
       mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+      int currentROF = mTimeFrame->getClusterROF(iLayer, track.getClusterIndex(iLayer));
+      for (int iR{0}; iR < 3; ++iR) {
+        if (rofs[iR].first == -1) {
+          rofs[iR].first = currentROF;
+        }
+        if (rofs[iR].first == currentROF) {
+          rofs[iR].second++;
+          break;
+        }
+      }
     }
-    mTracks.emplace_back(track);
+    if (rofs[2].first != -1) {
+      continue;
+    }
+    int trackROF{rofs[0].second > rofs[1].second ? rofs[0].first : rofs[1].first};
+    if (trackROF >= mTimeFrame->getNrof() || trackROF < 0) {
+      std::cout << "OOB ROF " << trackROF << std::endl;
+    }
+    mTimeFrame->getTracks(trackROF).emplace_back(track);
   }
-
-#ifdef CA_DEBUG
-  std::cout << "+++ Found candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : roadCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  std::cout << "+++ Fitted candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : fitCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  std::cout << "+++ Backprop candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : backpropagatedCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  std::cout << "+++ Refitted candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : refitCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  // std::cout << "+++ Cross check counters for 4, 5, 6 and 7 clusters:\t";
-  // for (size_t iCount = 0; iCount < refitCounters.size(); ++iCount) {
-  //   std::cout << xcheckCounters[iCount] << "\t";
-  //   //assert(refitCounters[iCount] == xcheckCounters[iCount]);
-  // }
-  // std::cout << std::endl;
-
-  // std::cout << "+++ Nonsharing candidates with 4, 5, 6 and 7 clusters:\t";
-  // for (int count : nonsharingCounters)
-  //   std::cout << count << "\t";
-  // std::cout << std::endl;
-
-  // std::cout << "+++ Sharing matrix:\n";
-  // for (int iCl = 4; iCl <= 7; ++iCl) {
-  //   std::cout << "+++ ";
-  //   for (int iSh = cumulativeIndex(iCl); iSh < cumulativeIndex(iCl + 1); ++iSh) {
-  //     std::cout << sharingMatrix[iSh] << "\t";
-  //   }
-  //   std::cout << std::endl;
-  // }
-#endif
 }
 
 bool Tracker::fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut)
@@ -560,29 +496,17 @@ void Tracker::computeTracksMClabels()
     return;
   }
 
-  int tracksNum{static_cast<int>(mTracks.size())};
-  mTrackLabels.reserve(mTracks.size());
-
-  for (auto& track : mTracks) {
-
-    MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
-                                    constants::its::UnusedIndex, false};
-    int count{0};
-    bool isFakeTrack{false};
-    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
-      const int index = track.getClusterIndex(iCluster);
-      if (index == constants::its::UnusedIndex) {
-        continue;
-      }
-      const MCCompLabel& currentLabel = mTimeFrame->getClusterLabels(iCluster, index);
-      if (currentLabel == maxOccurrencesValue) {
-        ++count;
-      } else {
-        if (count != 0) { // only in the first iteration count can be 0 at this point
-          isFakeTrack = true;
-          --count;
+  for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
+    for (auto& track : mTimeFrame->getTracks(iROF)) {
+      MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
+                                      constants::its::UnusedIndex, false};
+      int count{0};
+      bool isFakeTrack{false};
+      for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+        const int index = track.getClusterIndex(iCluster);
+        if (index == constants::its::UnusedIndex) {
+          continue;
         }
-
         const MCCompLabel& currentLabel = mTimeFrame->getClusterLabels(iCluster, index);
         if (currentLabel == maxOccurrencesValue) {
           ++count;
@@ -591,30 +515,40 @@ void Tracker::computeTracksMClabels()
             isFakeTrack = true;
             --count;
           }
-          if (count == 0) {
-            maxOccurrencesValue = currentLabel;
-            count = 1;
-          }
-        }
-        track.setExternalClusterIndex(iCluster, mTimeFrame->getClusterExternalIndex(iCluster, index));
-      }
 
-      if (isFakeTrack) {
-        maxOccurrencesValue.setFakeFlag();
+          if (currentLabel == maxOccurrencesValue) {
+            ++count;
+          } else {
+            if (count != 0) { // only in the first iteration count can be 0 at this point
+              isFakeTrack = true;
+              --count;
+            }
+            if (count == 0) {
+              maxOccurrencesValue = currentLabel;
+              count = 1;
+            }
+          }
+          track.setExternalClusterIndex(iCluster, mTimeFrame->getClusterExternalIndex(iCluster, index));
+        }
+
+        if (isFakeTrack) {
+          maxOccurrencesValue.setFakeFlag();
+        }
       }
+      mTimeFrame->getTracksLabel(iROF).emplace_back(maxOccurrencesValue);
     }
-    mTrackLabels.emplace_back(maxOccurrencesValue);
   }
 }
 
 void Tracker::rectifyClusterIndices()
 {
-  int tracksNum{static_cast<int>(mTracks.size())};
-  for (auto& track : mTracks) {
-    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
-      const int index = track.getClusterIndex(iCluster);
-      if (index != constants::its::UnusedIndex) {
-        track.setExternalClusterIndex(iCluster, mTimeFrame->getClusterExternalIndex(iCluster, index));
+  for (int iROF{0}; iROF < mTimeFrame->getNrof(); ++iROF) {
+    for (auto& track : mTimeFrame->getTracks(iROF)) {
+      for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+        const int index = track.getClusterIndex(iCluster);
+        if (index != constants::its::UnusedIndex) {
+          track.setExternalClusterIndex(iCluster, mTimeFrame->getClusterExternalIndex(iCluster, index));
+        }
       }
     }
   }

@@ -70,9 +70,6 @@ class Tracker
   void setBz(float bz);
   float getBz() const;
 
-  std::vector<TrackITSExt>& getTracks();
-  std::vector<MCCompLabel>& getTrackLabels();
-
   void clustersToTracks(std::ostream& = std::cout);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
@@ -111,8 +108,6 @@ class Tracker
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
   float mBz = 5.f;
   std::uint32_t mROFrame = 0;
-  std::vector<TrackITSExt> mTracks;
-  std::vector<MCCompLabel> mTrackLabels;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
 #ifdef CA_DEBUG
@@ -140,16 +135,6 @@ template <typename... T>
 void Tracker::initialiseTimeFrame(T&&... args)
 {
   mTimeFrame->initialise(std::forward<T>(args)...);
-}
-
-inline std::vector<TrackITSExt>& Tracker::getTracks()
-{
-  return mTracks;
-}
-
-inline std::vector<MCCompLabel>& Tracker::getTrackLabels()
-{
-  return mTrackLabels;
 }
 
 template <typename... T>

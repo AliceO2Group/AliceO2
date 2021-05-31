@@ -119,6 +119,11 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
                   tf->getTracklets()[iLayer].emplace_back(currentSortedIndex, tf->getSortedIndex(rof1, iLayer + 1, iNextCluster), currentCluster,
                                                           nextCluster, rof0, rof1);
+                  if (tf->hasMCinformation()) {
+                    MCCompLabel currentLab{tf->getClusterLabels(iLayer, currentCluster.clusterId)};
+                    MCCompLabel nextLab{tf->getClusterLabels(iLayer + 1, nextCluster.clusterId)};
+                    tf->getTrackletsLabel(iLayer).emplace_back(currentLab == nextLab ? currentLab : MCCompLabel());
+                  }
                 }
               }
             }

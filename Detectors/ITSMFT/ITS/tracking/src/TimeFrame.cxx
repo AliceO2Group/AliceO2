@@ -166,11 +166,16 @@ int TimeFrame::getTotalClusters() const
 void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam, const TrackingParameters& trkParam)
 {
   if (iteration == 0) {
-
+    mTracks.clear();
+    mTracksLabel.clear();
+    mTracks.resize(mNrof);
+    mTracksLabel.resize(mNrof);
     mCells.resize(trkParam.CellsPerRoad());
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
+    mCellLabels.resize(trkParam.CellsPerRoad());
     mTracklets.resize(trkParam.TrackletsPerRoad());
+    mTrackletLabels.resize(trkParam.TrackletsPerRoad());
     mTrackletsLookupTable.resize(trkParam.CellsPerRoad());
     mIndexTableUtils.setTrackingParameters(trkParam);
 
@@ -205,7 +210,6 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
           float phi = math_utils::computePhi(x, y);
           const int zBin{mIndexTableUtils.getZBinIndex(iLayer, c.zCoordinate)};
           int bin = mIndexTableUtils.getBinIndex(zBin, mIndexTableUtils.getPhiBinIndex(phi));
-
           h.phi = phi;
           h.r = math_utils::hypot(x, y);
           mMinR[iLayer] = o2::gpu::GPUCommonMath::Min(h.r, mMinR[iLayer]);
@@ -244,44 +248,18 @@ void TimeFrame::initialise(const int iteration, const MemoryParameters& memParam
 
   mRoads.clear();
 
-  for (unsigned int iLayer{0}; iLayer < mClusters.size(); ++iLayer) {
+  for (unsigned int iLayer{0}; iLayer < mTracklets.size(); ++iLayer) {
+    mTracklets[iLayer].clear();
+    mTrackletLabels[iLayer].clear();
     if (iLayer < mCells.size()) {
       mCells[iLayer].clear();
-      // int cellsMemorySize =
-      //   memParam.MemoryOffset +
-      //   std::ceil(((memParam.CellsMemoryCoefficients[iLayer] * mUnsortedClusters[iLayer].size()) *
-      //              mUnsortedClusters[iLayer + 1].size()) *
-      //             mUnsortedClusters[iLayer + 2].size());
-
-      // if (cellsMemorySize > mCells[iLayer].capacity()) {
-      //             << mUnsortedClusters[iLayer + 1].size() << "\t" << mUnsortedClusters[iLayer + 2].size() << "\t" << cellsMemorySize << std::endl;
-      //   mCells[iLayer].reserve(cellsMemorySize);
-      // }
+      mTrackletsLookupTable[iLayer].clear();
+      mCellLabels[iLayer].clear();
     }
 
     if (iLayer < mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
-      // mCellsLookupTable[iLayer].reserve(
-      //   std::max(mUnsortedClusters[iLayer + 1].size(), mUnsortedClusters[iLayer + 2].size()) +
-      //     std::ceil((memParam.TrackletsMemoryCoefficients[iLayer + 1] *
-      //                mUnsortedClusters[iLayer + 1].size()) * mUnsortedClusters[iLayer + 2].size()));
       mCellsNeighbours[iLayer].clear();
-    }
-  }
-
-  for (unsigned int iLayer{0}; iLayer < mTracklets.size(); ++iLayer) {
-    float trackletsMemorySize =
-      std::max(mUnsortedClusters[iLayer].size(), mUnsortedClusters[iLayer + 1].size()) +
-      std::ceil((memParam.TrackletsMemoryCoefficients[iLayer] * mUnsortedClusters[iLayer].size()) *
-                mUnsortedClusters[iLayer + 1].size());
-
-    // if (trackletsMemorySize > mTracklets[iLayer].capacity()) {
-    //   mTracklets[iLayer].reserve(trackletsMemorySize);
-    // }
-
-    if (iLayer < mCells.size()) {
-      mTrackletsLookupTable[iLayer].clear();
-      // mTrackletsLookupTable[iLayer].reserve(mUnsortedClusters[iLayer + 1].size());
     }
   }
 }

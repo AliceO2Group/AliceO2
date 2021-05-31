@@ -263,10 +263,10 @@ void TrackerDPL::run(ProcessingContext& pc)
         }
         mTracker->setROFrame(roFrame);
         // mTracker->clustersToTracks(event);
-        tracks.swap(mTracker->getTracks());
+        // tracks.swap(mTracker->getTracks());
         LOG(INFO) << "Found tracks: " << tracks.size();
         int number = tracks.size();
-        trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+        // trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
         int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
         rof.setFirstEntry(first);
         rof.setNEntries(number);
@@ -308,9 +308,9 @@ void TrackerDPL::run(ProcessingContext& pc)
     // RS: FIXME: this part seems to be not functional !!!
     event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
     // mTracker->clustersToTracks(event);
-    tracks.swap(mTracker->getTracks());
+    // tracks.swap(mTracker->getTracks());
     copyTracks(tracks, allTracks, allClusIdx);
-    allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+    // allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
   }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
