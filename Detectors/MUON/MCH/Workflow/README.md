@@ -94,14 +94,14 @@ The `o2-mch-clusters-transformer-workflow` takes as input the list of all cluste
 
 It sends the list of the same clusters, but converted in global reference frame, with the data description "GLOBALCLUSTERS".
 
-To test it one can use e.g. a sampler-transformer-sink pipeline as such : 
+To test it one can use e.g. a sampler-transformer-sink pipeline as such :
 
-``` 
-o2-mch-clusters-sampler-workflow 
+```
+o2-mch-clusters-sampler-workflow
     -b --nEventsPerTF 1000 --infile someclusters.data |
-o2-mch-clusters-transformer-workflow  
-    -b --geometry Detectors/MUON/MCH/Geometry/Test/ideal-geometry-o2.json | 
-o2-mch-clusters-sink-workflow 
+o2-mch-clusters-transformer-workflow
+    -b --geometry Detectors/MUON/MCH/Geometry/Test/ideal-geometry-o2.json |
+o2-mch-clusters-sink-workflow
     -b --txt --outfile global-clusters.txt --no-digits --global
 ```
 
