@@ -265,8 +265,8 @@ int main(int, char**)
                   pidTPCFullEl, pidTPCFullMu, pidTPCFullPi,
                   pidTPCFullKa, pidTPCFullPr, pidTPCFullDe,
                   pidTPCFullTr, pidTPCFullHe, pidTPCFullAl>();
-  displayEntity<UnassignedTracks>();
-  displayEntity<UnassignedMFTTracks>();
+  displayEntity<AmbiguousTracks>();
+  displayEntity<AmbiguousMFTTracks>();
 
   displayEntity<McParticles>();
   displayEntity<McTrackLabels>();
