@@ -27,8 +27,17 @@ void TOFFEElightReader::loadFEElightConfig(const char* fileName)
 }
 
 //_______________________________________________________________
+void TOFFEElightReader::loadFEElightConfig(gsl::span<const char> configBuf)
+{
+  // load FEElight config from buffer
 
-int TOFFEElightReader::parseFEElightConfig()
+  //mFEElightConfig = reinterpret_cast<TOFFEElightConfig*>(*configBuf.data());
+  memcpy(&mFEElightConfig, configBuf.data(), sizeof(mFEElightConfig));
+}
+
+//_______________________________________________________________
+
+int TOFFEElightReader::parseFEElightConfig(bool verbose)
 {
   // parse FEElight config
   // loops over all FEE channels, checks whether they are enabled
@@ -44,8 +53,10 @@ int TOFFEElightReader::parseFEElightConfig()
         for (int tdcId = 0; tdcId < Geo::kNTdc; tdcId++) {
           for (int channelId = 0; channelId < Geo::kNCh; channelId++) {
             channelConfig = mFEElightConfig.getChannelConfig(crateId, trmId, chainId, tdcId, channelId);
-            LOG(INFO) << "Processing electronic channel with indices: crate = " << crateId << ", trm = " << trmId << ", chain = "
-                      << chainId << ", tdc = " << tdcId << ", tdcChannel = " << channelId << " -> " << channelConfig;
+            if (verbose) {
+              LOG(INFO) << "Processing electronic channel with indices: crate = " << crateId << ", trm = " << trmId << ", chain = "
+                        << chainId << ", tdc = " << tdcId << ", tdcChannel = " << channelId << " -> " << channelConfig;
+            }
             if (channelConfig) {
               if (!channelConfig->isEnabled()) {
                 continue;
@@ -56,6 +67,7 @@ int TOFFEElightReader::parseFEElightConfig()
                 continue;
               }
               nEnabled++;
+              LOG(INFO) << "Enabling channel " << index;
               mFEElightInfo.mChannelEnabled[index] = channelConfig->isEnabled();
               mFEElightInfo.mMatchingWindow[index] = channelConfig->mMatchingWindow;
               mFEElightInfo.mLatencyWindow[index] = channelConfig->mLatencyWindow;
@@ -69,7 +81,9 @@ int TOFFEElightReader::parseFEElightConfig()
   TOFFEEtriggerConfig* triggerConfig = nullptr;
   for (Int_t iddl = 0; iddl < TOFFEElightConfig::NTRIGGERMAPS; iddl++) {
     triggerConfig = mFEElightConfig.getTriggerConfig(iddl);
-    LOG(INFO) << "Processing trigger config " << iddl << ": " << triggerConfig;
+    if (verbose) {
+      LOG(INFO) << "Processing trigger config " << iddl << ": " << triggerConfig;
+    }
     if (triggerConfig) {
       mFEElightInfo.mTriggerMask[iddl] = triggerConfig->mStatusMap;
     }

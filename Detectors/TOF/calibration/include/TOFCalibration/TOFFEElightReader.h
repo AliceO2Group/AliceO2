@@ -14,6 +14,7 @@
 #include "Rtypes.h"
 #include "TOFCalibration/TOFFEElightConfig.h"
 #include "TOFBase/Geo.h"
+#include <gsl/span>
 
 /// @brief Class to read the TOFFEElight information
 
@@ -62,8 +63,9 @@ class TOFFEElightReader
   ~TOFFEElightReader() = default; // default destructor
 
   void loadFEElightConfig(const char* fileName); // load FEElight config
+  void loadFEElightConfig(gsl::span<const char> configBuf); // load FEElight config
   //  void createFEElightConfig(const char *filename); // create FEElight config
-  int parseFEElightConfig(); // parse FEElight config
+  int parseFEElightConfig(bool verbose = false); // parse FEElight config
 
   TOFFEElightConfig& getTOFFEElightConfig() { return mFEElightConfig; }
   TOFFEElightInfo& getTOFFEElightInfo() { return mFEElightInfo; }
