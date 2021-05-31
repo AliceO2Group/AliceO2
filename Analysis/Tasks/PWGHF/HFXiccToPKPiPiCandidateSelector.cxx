@@ -46,7 +46,6 @@ struct HFXiccToPKPiPiCandidateSelector {
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_xicc_topkpipi::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Xicc_to_p_K_pi_pi_cuts", {hf_cuts_xicc_topkpipi::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Xicc candidate selection per pT bin"};
 
-
   /// Conjugate-independent topological cuts
   /// \param candidate is candidate
   /// \return true if candidate passes all cuts
@@ -68,12 +67,12 @@ struct HFXiccToPKPiPiCandidateSelector {
     if (hfCandXicc.cpa() <= cuts->get(pTBin, "cos pointing angle")) {
       return false;
     }
-    
+
     // candidate decay length
     if (hfCandXicc.decayLength() <= cuts->get(pTBin, "decay length")) {
       return false;
     }
- 
+
     // candidate chi2PC
     if (candidate.chi2PCA() > cuts->get(pTBin, "chi2PCA")) {
       return false;
@@ -114,7 +113,7 @@ struct HFXiccToPKPiPiCandidateSelector {
       }
 
       // conjugate-independent topological selection
-      if (!selectionTopol(hfCandXicc,hfCandXic,trackPi)) {
+      if (!selectionTopol(hfCandXicc, hfCandXic, trackPi)) {
         hfSelXiccToPKPiPiCandidate(statusXiccToPKPiPi);
         continue;
       }
