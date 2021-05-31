@@ -339,8 +339,6 @@ struct HfTrackIndexSkimsCreator {
   //Configurable<int> nCollsMax{"nCollsMax", -1, "Max collisions per file"}; //can be added to run over limited collisions per file - for tesing purposes
   Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
-  // event selection
-  Configurable<int> triggerindex{"triggerindex", -1, "trigger index"};
   // vertexing parameters
   Configurable<double> d_bz{"d_bz", 5., "magnetic field kG"};
   Configurable<bool> b_propdca{"b_propdca", true, "create tracks version propagated to PCA"};
@@ -406,15 +404,6 @@ struct HfTrackIndexSkimsCreator {
     */
 
     //auto centrality = collision.centV0M(); //FIXME add centrality when option for variations to the process function appears
-
-    int trigindex = int{triggerindex};
-    if (trigindex != -1) {
-      uint64_t triggerMask = collision.bc().triggerMask();
-      bool isTriggerClassFired = triggerMask & 1ul << (trigindex - 1);
-      if (!isTriggerClassFired) {
-        return;
-      }
-    }
 
     //FIXME move above process function
     const int n2ProngDecays = hf_cand_prong2::DecayType::N2ProngDecays; // number of 2-prong hadron types
