@@ -168,18 +168,19 @@ std::vector<OutputSpec> DataSampling::OutputSpecsForPolicy(ConfigurationInterfac
   return outputs;
 }
 
-uint16_t DataSampling::PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
+std::optional<uint16_t> DataSampling::PortForPolicy(configuration::ConfigurationInterface* const config, const std::string& policyName)
 {
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
   for (auto&& policyConfig : policiesTree) {
     if (policyConfig.second.get<std::string>("id") == policyName) {
-      return policyConfig.second.get<uint16_t>("port");
+      auto boostOptionalPort = policyConfig.second.get_optional<uint16_t>("port");
+      return boostOptionalPort.has_value() ? std::optional<uint16_t>(boostOptionalPort.value()) : std::nullopt;
     }
   }
   throw std::runtime_error("Could not find the policy '" + policyName + "'");
 }
 
-uint16_t DataSampling::PortForPolicy(const std::string& policiesSource, const std::string& policyName)
+std::optional<uint16_t> DataSampling::PortForPolicy(const std::string& policiesSource, const std::string& policyName)
 {
   std::unique_ptr<ConfigurationInterface> config = ConfigurationFactory::getConfiguration(policiesSource);
   return PortForPolicy(config.get(), policyName);
@@ -190,7 +191,7 @@ std::vector<std::string> DataSampling::MachinesForPolicy(configuration::Configur
   std::vector<std::string> machines;
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
   for (auto&& policyConfig : policiesTree) {
-    if (policyConfig.second.get<std::string>("id") == policyName) {
+    if (policyConfig.second.get<std::string>("id") == policyName && policyConfig.second.count("machines") > 0) {
       for (const auto& machine : policyConfig.second.get_child("machines")) {
         machines.emplace_back(machine.second.get<std::string>(""));
       }
