@@ -10,7 +10,7 @@
                             {
                                 "type":"req",
                                 "method":"connect",
-                                "address":"ipc:///tmp/primary-get_25005#PID#",
+                                "address":"ipc:///tmp/o2sim-primary-get_25005#PID#",
                                 "sndBufSize":"100000",
                                 "rcvBufSize":"100000",
                                 "rateLogging":"0"
@@ -36,7 +36,7 @@
                             {
                                 "type":"push",
                                 "method":"connect",
-                                "address":"ipc:///tmp/hitmerger-simdata_25009#PID#",
+                                "address":"ipc:///tmp/o2sim-hitmerger-simdata_25009#PID#",
                                 "sndBufSize":1000,
                                 "rcvBufSize":1000,
                                 "rateLogging":0
@@ -54,7 +54,7 @@
                             {
                                 "type":"rep",
                                 "method":"bind",
-                                "address":"ipc:///tmp/primary-get_25005#PID#",
+                                "address":"ipc:///tmp/o2sim-primary-get_25005#PID#",
                                 "sndBufSize":100000,
                                 "rcvBufSize":100000,
                                 "rateLogging":0
@@ -98,7 +98,7 @@
                             {
                                 "type":"req",
                                 "method":"connect",
-                                "address":"ipc:///tmp/primary-get_25005#PID#",
+                                "address":"ipc:///tmp/o2sim-primary-get_25005#PID#",
                                 "sndBufSize":"1000",
                                 "rcvBufSize":"1000",
                                 "rateLogging":"0"
@@ -124,7 +124,7 @@
                             {
                                 "type":"pull",
                                 "method":"bind",
-                                "address":"ipc:///tmp/hitmerger-simdata_25009#PID#",
+                                "address":"ipc:///tmp/o2sim-hitmerger-simdata_25009#PID#",
                                 "sndBufSize":1000,
                                 "rcvBufSize":1000,
                                 "rateLogging":0
