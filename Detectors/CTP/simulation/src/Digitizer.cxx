@@ -17,18 +17,19 @@
 #include "FairLogger.h"
 #include <bitset>
 
+
 using namespace o2::ctp;
 
 ClassImp(Digitizer);
 
-std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit> digits)
+std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit> detinputs)
 {
-  std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> prerawdata;
-  for (auto const& inp : digits) {
-    prerawdata[inp.intRecord].push_back(&inp);
+  std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> predigits;
+  for (auto const& inp : detinputs) {
+    predigits[inp.intRecord].push_back(&inp);
   }
-  std::vector<CTPDigit> vrawdata;
-  for (auto const& coll : prerawdata) {
+  std::vector<CTPDigit> digits;
+  for (auto const& coll : predigits) {
     CTPDigit data;
     data.intRecord = coll.first;
     std::bitset<CTP_NINPUTS> inpmaskcoll = 0;
@@ -53,10 +54,10 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
       }
     }
     data.CTPInputMask = inpmaskcoll;
-    calculateClassMask(coll.second, data.CTPClassMask);
-    vrawdata.emplace_back(data);
+    //calculateClassMask(coll.second, data.CTPClassMask);
+    digits.emplace_back(data);
   }
-  return std::move(vrawdata);
+  return std::move(digits);
 }
 void Digitizer::calculateClassMask(std::vector<const CTPInputDigit*> inputs, std::bitset<CTP_NCLASSES>& classmask)
 {

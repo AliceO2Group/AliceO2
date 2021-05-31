@@ -54,6 +54,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     TStopwatch timer;
     timer.Start();
     LOG(INFO) << "CALLING CTP DIGITIZATION";
+    // Input order: T0, V0, ... but O need also poisition of inputs DETInputs
     for (const auto& inp : ft0inputs) {
       finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
     }

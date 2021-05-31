@@ -16,6 +16,7 @@
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/Configuration.h"
 
 #include <gsl/span>
 
@@ -28,12 +29,11 @@ class Digitizer
  public:
   Digitizer() = default;
   ~Digitizer() = default;
-  std::vector<CTPDigit> process(const gsl::span<o2::ctp::CTPInputDigit> digits);
+  std::vector<CTPDigit> process(const gsl::span<o2::ctp::CTPInputDigit> detinputs);
   void calculateClassMask(std::vector<const CTPInputDigit*> inputs, std::bitset<CTP_NCLASSES>& classmask);
   void init();
-
  private:
-  ClassDefNV(Digitizer, 1);
+  ClassDefNV(Digitizer, 2);
 };
 } // namespace ctp
 } // namespace o2
