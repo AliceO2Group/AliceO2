@@ -23,6 +23,9 @@ namespace o2
 {
 namespace ctp
 {
+/// Database constants
+const std::string CCDBPathCTPConfig = "CTP/Config";
+/// CTP Config items
 struct BCMask {
   BCMask() = default;
   std::string name;
@@ -33,18 +36,21 @@ struct BCMask {
 struct CTPInput {
   CTPInput() = default;
   std::string name;
-  o2::detectors::DetID::ID detID;
+  std::string level;
+  std::string detName;
   std::uint64_t inputMask;
+  o2::detectors::DetID::ID detID;
   void printStream(std::ostream& strem) const;
-  ClassDefNV(CTPInput, 1);
+  ClassDefNV(CTPInput, 2);
 };
 struct CTPDescriptor {
   CTPDescriptor() = default;
   std::string name;
   std::uint64_t inputsMask;
-  std::vector<std::string> inputsNames;
+  std::vector<std::string> inputNames;
+  std::vector<CTPInput> inputs;
   void printStream(std::ostream& strem) const;
-  ClassDefNV(CTPDescriptor, 1)
+  ClassDefNV(CTPDescriptor, 2)
 };
 /// The main part is Local Trigger Generator (LTG)
 struct CTPDetector {
@@ -56,17 +62,17 @@ struct CTPDetector {
 struct CTPCluster {
   CTPCluster() = default;
   std::string name;
-  uint32_t detectorsMask;
-  std::vector<std::string> detectorsNames;
+  o2::detectors::DetID::mask_t detectorsMask;
+  std::vector<o2::detectors::DetID> detectors;
   void printStream(std::ostream& strem) const;
-  ClassDefNV(CTPCluster, 1)
+  ClassDefNV(CTPCluster, 2)
 };
 struct CTPClass {
   CTPClass() = default;
   std::string name;
   std::uint64_t classMask;
-  CTPDescriptor* descriptor;
-  CTPCluster* cluster;
+  CTPDescriptor const* descriptor;
+  CTPCluster const* cluster;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPClass, 1);
 };
@@ -74,6 +80,7 @@ class CTPConfiguration
 {
  public:
   CTPConfiguration() = default;
+  int loadConfiguration(std::string& ctpconfiguartion);
   void addBCMask(const BCMask& bcmask);
   void addCTPInput(const CTPInput& input);
   void addCTPDescriptor(const CTPDescriptor& descriptor);
@@ -81,16 +88,20 @@ class CTPConfiguration
   void addCTPCluster(const CTPCluster& cluster);
   void addCTPClass(const CTPClass& ctpclass);
   void printStream(std::ostream& stream) const;
-
+  std::vector<CTPInput>& getCTPInputs(){return mInputs;}
+  uint64_t getInputMask(const std::string& name);
+  bool isMaskInInputs(uint64_t& mask);
  private:
   std::string mName;
+  std::string mVersion;
   std::vector<BCMask> mBCMasks;
   std::vector<CTPInput> mInputs;
   std::vector<CTPDescriptor> mDescriptors;
   std::vector<CTPDetector> mDetectors;
   std::vector<CTPCluster> mClusters;
   std::vector<CTPClass> mCTPClasses;
-  ClassDefNV(CTPConfiguration, 1);
+  int processConfigurationLine(std::string& line, int& level);
+  ClassDefNV(CTPConfiguration, 2);
 };
 } // namespace ctp
 } // namespace o2
