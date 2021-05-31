@@ -354,11 +354,11 @@ struct DataBlockWrapper {
 };
 
 //CRTP(static polymorphism) + Composition over multiple inheritance(Header + multiple data structures)
-template <class DataBlock, class Header, class... DataStructures>
+template <template <typename...> class DataBlock, class Header, class... DataStructures>
 class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataBlockWrapper<DataStructures>...>::type
 {
   typedef boost::mpl::vector<DataStructures...> DataBlockTypes;
-  typedef DataBlock DataBlock_t;
+  typedef DataBlock<Header, DataStructures...> DataBlock_t;
   typedef DataBlockBase<DataBlock, Header, DataStructures...> TemplateHeader;
   typedef typename boost::mpl::inherit<DataBlockWrapper<Header>, DataBlockWrapper<DataStructures>...>::type DataBlockDerivedBase;
 

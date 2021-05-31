@@ -32,10 +32,10 @@ namespace fit
 {
 //Normal data taking mode
 template <typename LookupTableType, typename Digit, typename ChannelData>
-class DigitBlockFIT : public DigitBlockBase<DigitBlockFIT<LookupTableType, Digit, ChannelData>, Digit, ChannelData>
+class DigitBlockFIT : public DigitBlockBase<Digit, ChannelData>
 {
  public:
-  typedef DigitBlockBase<DigitBlockFIT<LookupTableType, Digit, ChannelData>, Digit, ChannelData> DigitBlockBase_t;
+  typedef DigitBlockBase<Digit, ChannelData> DigitBlockBase_t;
   typedef LookupTableType LookupTable_t;
   template <typename... Args>
   DigitBlockFIT(Args&&... args) : DigitBlockBase_t(std::forward<Args>(args)...)
@@ -102,10 +102,10 @@ class DigitBlockFIT : public DigitBlockBase<DigitBlockFIT<LookupTableType, Digit
 
 //TCM extended data taking mode
 template <typename LookupTableType, typename Digit, typename ChannelData, typename TriggersExt>
-class DigitBlockFIText : public DigitBlockBase<DigitBlockFIText<LookupTableType, Digit, ChannelData, TriggersExt>, Digit, ChannelData, TriggersExt>
+class DigitBlockFIText : public DigitBlockBase<Digit, ChannelData, TriggersExt>
 {
  public:
-  typedef DigitBlockBase<DigitBlockFIText<LookupTableType, Digit, ChannelData, TriggersExt>, Digit, ChannelData, TriggersExt> DigitBlockBase_t;
+  typedef DigitBlockBase<Digit, ChannelData, TriggersExt> DigitBlockBase_t;
   typedef LookupTableType LookupTable_t;
   template <typename... Args>
   DigitBlockFIText(Args&&... args) : DigitBlockBase_t(std::forward<Args>(args)...)

@@ -32,7 +32,7 @@ namespace fit
 
 //standard data block from PM
 template <typename RawHeaderPMtype, typename RawDataPMtype>
-class DataBlockPM : public DataBlockBase<DataBlockPM<RawHeaderPMtype, RawDataPMtype>, RawHeaderPMtype, RawDataPMtype>
+class DataBlockPM : public DataBlockBase<DataBlockPM, RawHeaderPMtype, RawDataPMtype>
 {
  public:
   DataBlockPM() = default;
@@ -61,7 +61,7 @@ class DataBlockPM : public DataBlockBase<DataBlockPM<RawHeaderPMtype, RawDataPMt
 
 //standard data block from TCM
 template <typename RawHeaderTCMtype, typename RawDataTCMtype>
-class DataBlockTCM : public DataBlockBase<DataBlockTCM<RawHeaderTCMtype, RawDataTCMtype>, RawHeaderTCMtype, RawDataTCMtype>
+class DataBlockTCM : public DataBlockBase<DataBlockTCM, RawHeaderTCMtype, RawDataTCMtype>
 {
  public:
   DataBlockTCM() = default;
@@ -83,7 +83,7 @@ class DataBlockTCM : public DataBlockBase<DataBlockTCM<RawHeaderTCMtype, RawData
 
 //extended TCM mode, 1 TCMdata + 8 TCMdataExtendedstructs
 template <typename RawHeaderTCMextType, typename RawDataTCMtype, typename RawDataTCMextType>
-class DataBlockTCMext : public DataBlockBase<DataBlockTCMext<RawHeaderTCMextType, RawDataTCMtype, RawDataTCMextType>, RawHeaderTCMextType, RawDataTCMtype, RawDataTCMextType>
+class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, RawHeaderTCMextType, RawDataTCMtype, RawDataTCMextType>
 {
  public:
   DataBlockTCMext() = default;

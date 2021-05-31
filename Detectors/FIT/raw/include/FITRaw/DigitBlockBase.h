@@ -166,7 +166,7 @@ struct GetSubDigitField<T, std::enable_if_t<(boost::mpl::size<T>::value > 1)>> {
 // SubDigit - sub digit structure which shouldn't contain InteractionRecord field
 // SingleSubDigit - separated SubDigits which contain InteractionRecord field and not referred by ReferenceRange field in Digit structure.
 // For example extended TCM mode uses such SingleSubDigits
-template <typename DigitBlockType, typename DigitType, typename... SubDigitTypes>
+template <typename DigitType, typename... SubDigitTypes>
 class DigitBlockBase //:public DigitBlock
 {
  public:
@@ -177,7 +177,6 @@ class DigitBlockBase //:public DigitBlock
   DigitBlockBase() = default;
   DigitBlockBase(const DigitBlockBase& other) = default;
   ~DigitBlockBase() = default;
-  typedef DigitBlockType DigitBlock_t;
   typedef DigitType Digit_t;
   typedef boost::mpl::vector<SubDigitTypes...> VecAllSubDigit_t;
   typedef DigitBlockHelper::GetVecSubDigit<VecAllSubDigit_t> VecSubDigit_t;
@@ -189,19 +188,6 @@ class DigitBlockBase //:public DigitBlock
   Digit_t mDigit;
   SubDigit_t mSubDigit;
   SingleSubDigit_t mSingleSubDigit;
-  /*
-  template <typename T,typename ... U>
-  void process(T& dataBlock, U&&... feeParameters)
-  {
-    static_cast<DigitBlock_t*>(this)->processDigits(dataBlock, std::forward<U>(feeParameters)...);
-  }
-  */
-  template <typename... T>
-  void pop(std::vector<T>&... vecDigits)
-  {
-    static_cast<DigitBlock_t*>(this)->getDigits(vecDigits...);
-  }
-
   template <typename... T>
   auto getSubDigits(std::vector<Digit_t>& vecDigits, std::vector<T>&... vecSubDigits)
     -> std::enable_if_t<sizeof...(T) == sNSubDigits>

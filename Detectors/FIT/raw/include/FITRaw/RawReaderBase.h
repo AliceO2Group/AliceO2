@@ -92,7 +92,7 @@ class RawReaderBase
   {
     int digitCounter = mMapDigits.size();
     for (auto& digit : mMapDigits) {
-      digit.second.pop(vecDigit...);
+      digit.second.getDigits(vecDigit...);
     }
     mMapDigits.clear();
     return digitCounter;
