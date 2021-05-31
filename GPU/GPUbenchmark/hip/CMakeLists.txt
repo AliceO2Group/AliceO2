@@ -35,6 +35,13 @@ o2_add_library(HIPbenchmark
                                      hip::device
                TARGETVARNAME targetName)
 
+target_compile_definitions(${targetName} PRIVATE $<TARGET_PROPERTY:O2exe-memory-benchmark-hip,COMPILE_DEFINITIONS>)
+
+if(HIP_AMDGPUTARGET)
+  # Need to add gpu target also to link flags due to gpu-rdc option
+  target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+endif()
+
 elseif()
   message(STATUS "Could not generate ${HIP_KERNEL} HIP kernel, skipping...")
 endif()

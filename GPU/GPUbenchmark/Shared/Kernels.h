@@ -15,51 +15,75 @@
 #define GPU_BENCHMARK_KERNELS_H
 
 #include "GPUCommonDef.h"
+#include <vector>
 #include <iostream>
 #include <iomanip>
 #include <chrono>
+
+#define PARTITION_SIZE_GB 1
+#define FREE_MEMORY_FRACTION_TO_ALLOCATE 0.99f
+#define GB 1073741824
+
+double bytesToKB(size_t s) { return (double)s / (1024.0); }
+double bytesToGB(size_t s) { return (double)s / (1024.0 * 1024.0 * 1024.0); }
 
 namespace o2
 {
 namespace benchmark
 {
-void printDevices();
-void init();
-template <typename... T>
-float measure(void (*task)(T...), const char* taskName, T&&... args)
-{
-  float diff{0.f};
 
-  auto start = std::chrono::high_resolution_clock::now();
-  (*task)(std::forward<T>(args)...);
-  auto end = std::chrono::high_resolution_clock::now();
+template <class T>
+struct gpuState {
+  int getMaxSegments()
+  {
+    return bytesToGB(allocatedMemory);
+  }
 
-  std::chrono::duration<double, std::milli> diff_t{end - start};
-  diff = diff_t.count();
+  void computeBufferPointers()
+  {
+    addresses.resize(getMaxSegments());
+    for (size_t iBuffAddress{0}; iBuffAddress < getMaxSegments(); ++iBuffAddress) {
+      addresses[iBuffAddress] = scratchPtr + GB * PARTITION_SIZE_GB * iBuffAddress;
+    }
+  }
 
-  std::cout << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
+  std::vector<T*> getBuffersPointers()
+  {
+    return addresses;
+  }
 
-  return diff;
-}
+  std::vector<T*> addresses;
+  size_t allocatedMemory;
+  T* scratchPtr;
 
+  //Static info
+  size_t totalMemory;
+  size_t nMultiprocessors;
+  size_t nMaxThreadsPerBlock;
+};
+
+template <class buffer_type>
 class GPUbenchmark final
 {
  public:
   GPUbenchmark() = default;
   virtual ~GPUbenchmark() = default;
+  template <typename... T>
+  float measure(void (GPUbenchmark::*)(T...), const char*, T&&... args);
+
+  void init(const int deviceId);
   void run();
+  void finalize();
+  void readingBenchmark();
+  void printDevices();
+
+ private:
+  gpuState<buffer_type> mState;
 };
 
-// Steers
-void GPUbenchmark::run()
-{
-  // printDevices();
-  measure(&init, "Init");
-}
 } // namespace benchmark
 } // namespace o2
 #endif
-
 
 /*In particular: I'd allocate one single large buffer filling almost the whole GPU memory, and then assume that it is more or less linear, at least if the GPU memory was free before.
 I.e., at least the lower ~ 14 GB of the buffer should be in the lower 16 GB memory, and the higher ~14 GB in the upper 16 GP.

@@ -21,24 +21,27 @@
     failed("API returned error code.");                                                        \
   }
 
-double bytesToKB(size_t s) { return (double)s / (1024.0); }
-double bytesToGB(size_t s) { return (double)s / (1024.0 * 1024.0 * 1024.0); }
-
-#define printLimit(w1, limit, units)                                          \
-  {                                                                           \
-    size_t val;                                                               \
-    cudaDeviceGetLimit(&val, limit);                                          \
-    std::cout << setw(w1) << #limit ": " << val << " " << units << std::endl; \
-  }
-
 namespace o2
 {
 namespace benchmark
 {
 namespace gpu
 {
-// Kernels here
+// Kernels go here
+template <class buffer_type>
+GPUg() void readerKernel(
+  // buffer_type* buffer,
+  // size_t bufferSize)
+)
+{
+  printf("ciao");
+  // for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < bufferSize; i += blockDim.x * gridDim.x) {
+  //   if (i == 0) {
+  //       }
+  // }
+}
 } // namespace gpu
+
 void printDeviceProp(int deviceId)
 {
   const int w1 = 34;
@@ -159,7 +162,22 @@ void printDeviceProp(int deviceId)
             << (float)free / total * 100.0 << "%)" << std::endl;
 }
 
-void printDevices()
+template <class buffer_type>
+template <typename... T>
+float GPUbenchmark<buffer_type>::measure(void (GPUbenchmark<buffer_type>::*task)(T...), const char* taskName, T&&... args)
+{
+  float diff{0.f};
+  auto start = std::chrono::high_resolution_clock::now();
+  (this->*task)(std::forward<T>(args)...);
+  auto end = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> diff_t{end - start};
+  diff = diff_t.count();
+  std::cout << std::setw(2) << ">>> " << taskName << " completed in: " << diff << " ms" << std::endl;
+  return diff;
+}
+
+template <class buffer_type>
+void GPUbenchmark<buffer_type>::printDevices()
 {
   int deviceCnt;
   GPUCHECK(cudaGetDeviceCount(&deviceCnt));
@@ -170,14 +188,56 @@ void printDevices()
   }
 }
 
-void init()
+template <class buffer_type>
+void GPUbenchmark<buffer_type>::init(const int deviceId)
 {
-  size_t free, total;
-  GPUCHECK(cudaMemGetInfo(&free, &total));
+  cudaDeviceProp props;
+  size_t free;
 
-  void* devicePtr;
-  GPUCHECK(cudaMalloc(&devicePtr, total));
+  // Fetch and store traits
+  GPUCHECK(cudaGetDeviceProperties(&props, deviceId));
+  GPUCHECK(cudaMemGetInfo(&free, &mState.totalMemory));
+
+  mState.nMultiprocessors = props.multiProcessorCount;
+  mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
+  mState.allocatedMemory = static_cast<long int>(FREE_MEMORY_FRACTION_TO_ALLOCATE * free);
+
+  // Setup
+  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.allocatedMemory));
 }
+
+template <class buffer_type>
+void GPUbenchmark<buffer_type>::readingBenchmark()
+{
+  dim3 nBlocks(mState.nMultiprocessors);
+  dim3 nThreads(mState.nMaxThreadsPerBlock);
+  gpu::readerKernel<buffer_type><<<1, 1>>>();
+}
+
+template <class buffer_type>
+void GPUbenchmark<buffer_type>::finalize()
+{
+  GPUCHECK(cudaFree(mState.scratchPtr));
+}
+
+template <class buffer_type>
+void GPUbenchmark<buffer_type>::run()
+{
+  printDevices();
+  measure(&GPUbenchmark<buffer_type>::init, "Init", 0);
+  std::cout << "  ├ Allocated " << mState.allocatedMemory << "/" << mState.totalMemory
+            << " bytes (" << std::setprecision(3) << (100.f) * (mState.allocatedMemory / (float)mState.totalMemory) << "%)\n";
+  std::cout << "  └ Can do " << mState.getMaxSegments() << " of 1GB memory segments\n";
+  mState.computeBufferPointers();
+
+  // for (auto& addr : mState.getBuffersPointers()) {
+  //   std::cout << (void*)addr << std::endl;
+  // }
+  measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark");
+  GPUbenchmark<buffer_type>::finalize();
+}
+
+template class GPUbenchmark<char>;
 
 } // namespace benchmark
 } // namespace o2

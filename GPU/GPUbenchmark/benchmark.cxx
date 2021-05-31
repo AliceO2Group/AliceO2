@@ -16,7 +16,7 @@
 
 int main()
 {
-  o2::benchmark::GPUbenchmark bm{};
+  o2::benchmark::GPUbenchmark<char> bm{};
   bm.run();
   return 0;
 }
