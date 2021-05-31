@@ -344,7 +344,6 @@ class O2PrimaryServerDevice final : public FairMQDevice
 
       if (bytes < 0) {
         LOG(ERROR) << "Some error occurred on socket during receive";
-        // return true; // keep going
       }
       auto prestate = mState.load();
       auto more = HandleRequest(request, 0, channel);
@@ -360,8 +359,8 @@ class O2PrimaryServerDevice final : public FairMQDevice
       timer.Stop();
       auto time = timer.CpuTime();
       LOG(INFO) << "COND-RUN TOOK " << time << " s";
-      // return mState.load() != O2PrimaryServerState::Stopped; // will be taken down by external driver
     }
+    _exit(0); // --> exit immediately (shutdown may have problems)
   }
 
   bool HandleRequest(FairMQMessagePtr& request, int /*index*/, FairMQChannel& channel)
