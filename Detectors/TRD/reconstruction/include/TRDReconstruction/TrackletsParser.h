@@ -93,7 +93,7 @@ class TrackletsParser
   bool mDataVerbose{false};
 
   bool mIgnoreTrackletHCHeader{false}; // Is the data with out the tracklet HC Header? defaults to having it in.
-  bool mByteOrderFix{false};    // simulated data is not byteswapped, real is, so deal with it accodringly.
+  bool mByteOrderFix{false};           // simulated data is not byteswapped, real is, so deal with it accodringly.
   bool mReturnVector{false};           // whether weare returing a vector or the raw data buffer.
 
   uint16_t mDetector;

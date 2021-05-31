@@ -54,7 +54,7 @@ int DigitsParser::Parse(bool verbose)
   std::array<uint16_t, constants::TIMEBINS> mADCValues{};
   if (mVerbose) {
     LOG(info) << "Digit Parser parse of data sitting at :" << std::hex << (void*)mData << " starting at pos " << mStartParse;
-    if (mDisableByteOrderFix) {
+    if (mByteOrderFix) {
 
       LOG(info) << " we will not be byte swapping";
     } else {
