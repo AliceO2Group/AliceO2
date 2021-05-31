@@ -136,7 +136,9 @@ bool O2MCApplicationBase::MisalignGeometry()
     }
   }
 
-  auto b = FairMCApplication::MisalignGeometry();
+  // RS We want to store ideal geometry to be able to apply different alignments on the fly
+  // auto b = FairMCApplication::MisalignGeometry();
+
   // we use this moment to stream our geometry (before other
   // VMC engine dependent modifications are done)
 
@@ -145,7 +147,7 @@ bool O2MCApplicationBase::MisalignGeometry()
   gGeoManager->Export(geomfile.c_str());
 
   // return original return value of misalignment procedure
-  return b;
+  return true;
 }
 
 void O2MCApplicationBase::finishEventCommon()
