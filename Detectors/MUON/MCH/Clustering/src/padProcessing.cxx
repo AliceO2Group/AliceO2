@@ -873,6 +873,138 @@ void forceSplitCathodes( double *newCath0, double *newcath1) {
   }
 }
 */
+// Assign a group to the original pads
+int assignPadsToGroupFromProj( short *projPadGroup, int nProjPads, 
+        const PadIdx_t *cath0ToPadIdx, const PadIdx_t *cath1ToPadIdx, 
+        int nGrp, int nPads, short *padMergedGrp) {
+// outputs:
+//   - wellSplitGroup[ nGrp+1]: 1 if the group is well splitted,  0 if not
+  short padToGrp[nPads];
+  short matGrpGrp[ (nGrp+1)*(nGrp+1)];
+  vectorSetZeroShort( padToGrp, nPads);
+  // 
+  // vectorSetShort( wellSplitGroup, 1, nGrp+1);
+  vectorSetZeroShort( matGrpGrp, (nGrp+1)*(nGrp+1) );
+  //
+  PadIdx_t i, j; 
+  short g, prevGroup;
+  for( int k=0; k < nProjPads; k++) {
+    g = projPadGroup[k];
+    // give the indexes of overlapping pads
+    i = mapKToIJ[k].i; j = mapKToIJ[k].j;
+    //
+    // Cathode 0
+    //
+    if ( (i >= 0) && (cath0ToPadIdx !=0) ) {
+      // Remark: if i is an alone pad (j<0)
+      // i is processed as well
+      //
+      // cath0ToPadIdx: map cathode-pad to the original pad
+      PadIdx_t padIdx = cath0ToPadIdx[i];
+      prevGroup = padToGrp[ padIdx ];
+      if ( (prevGroup == 0) || (prevGroup == g) ) {
+        // Case: no group before or same group
+        //
+        padToGrp[ padIdx ] = g;
+        matGrpGrp[ g*(nGrp+1) +  g ] = 1; 
+      } else {
+        // Already a Grp which differs
+        if ( prevGroup > 0) {
+          // Invalid prev group
+          // wellSplitGroup[ prevGroup ] = 0;
+          // Store in the grp to grp matrix  
+          matGrpGrp[ g*(nGrp+1) +  prevGroup ] = 1; 
+          matGrpGrp[ prevGroup*(nGrp+1) +  g ] = 1; 
+        }
+        padToGrp[padIdx] = -g;
+        // Invalid current group
+        // wellSplitGroup[ g ] = 0;
+      }
+    }
+    //
+    // Cathode 1
+    //
+    if ( (j >= 0) && (cath1ToPadIdx != 0) ) {
+      // Remark: if j is an alone pad (j<0)
+      // j is processed as well
+      //
+      // cath1ToPadIdx: map cathode-pad to the original pad
+      PadIdx_t padIdx = cath1ToPadIdx[j];
+      prevGroup = padToGrp[padIdx];
+      if ( (prevGroup == 0) || (prevGroup == g) ){
+         // No group before
+         padToGrp[padIdx] = g;
+         matGrpGrp[ g*(nGrp+1) +  g ] = 1; 
+      } else {
+        // Already a Group 
+        if ( prevGroup > 0) {
+          // Invalid Old group
+          // wellSplitGroup[ prevGroup ] = 0;
+          matGrpGrp[ g*(nGrp+1) +  prevGroup ] = 1; 
+          matGrpGrp[ prevGroup*(nGrp+1) +  g ] = 1; 
+        }
+        padToGrp[padIdx] = -g;
+        // Invalid current group
+        // wellSplitGroup[ g ] = 0;
+      }
+    }
+  }
+  if (VERBOSE) printMatrixShort("Group/Group matrix", matGrpGrp, nGrp+1, nGrp+1);
+  vectorPrintShort( "padToGrp ??? ", padToGrp, nPads);
+  //
+  // Merge overlapping groups
+  //
+  short grpToMergedGrp[nGrp+1];
+  vectorSetZeroShort(grpToMergedGrp, nGrp+1);
+  int newGroupID = 0;
+  //
+  int iNewGroup = 1;
+  while ( iNewGroup < (nGrp+1)) {
+    // Define the new group
+    newGroupID++; 
+    grpToMergedGrp[iNewGroup] = newGroupID; 
+    // printf("new Group idx=%d, newGroupID=%d\n", iNewGroup, newGroupID);
+    //
+    // Propagate the new grp 
+    /// ??? for (int i=iNewGroup; i < (nGrp+1); i++) {
+    int i = iNewGroup;
+      int ishift = i*(nGrp+1);
+      // Check if there are an overlaping group
+      for (int j=i+1; j < (nGrp+1); j++) {
+        if ( matGrpGrp[ishift+j] ) {
+          /*
+          if (CHECK) {
+            if ( (grpToGrp[j] != 0) && (grpToGrp[j] != i) ) {
+              printf("The mapping grpTogrp can't have 2 group values (surjective) oldGrp=%d newGrp=%d\n", grpToGrp[j], i);
+              throw std::overflow_error("The mapping grpTogrp can't have 2 group values");
+            }
+          }
+          */
+          // Merge the groups with the current one 
+          grpToMergedGrp[j] = newGroupID;        
+        }
+      }
+    // ???? }
+    // Go to the next index which have not a group
+    int k;
+    for( k = iNewGroup; k < (nGrp+1) && (grpToMergedGrp[k] > 0); k++);
+    iNewGroup = k; 
+  }
+  // vectorPrintShort( "grpToMergedGrp", grpToMergedGrp, nGrp+1);
+  //
+  // Perform the mapping group -> mergedGroups
+  for (int p=0; p < nPads; p++) {
+    padMergedGrp[p] = grpToMergedGrp[ abs( padToGrp[p] ) ];
+  }
+  if (CHECK) {
+    for (int p=0; p < nPads; p++) {
+      if ( padMergedGrp[p] == 0)
+        printf("  assignPadsToGroupFromProj: pad %d with no group\n", p);
+    }
+  }
+  //
+  return newGroupID;  
+}
 
 void assignCathPadsToGroupFromProj( short *projPadGroup, int nPads, int nGrp, int nCath0, int nCath1, short *wellSplitGroup, short *matGrpGrp) {
   cath0ToGrpFromProj = new short[nCath0];
@@ -940,6 +1072,8 @@ void assignCathPadsToGroupFromProj( short *projPadGroup, int nPads, int nGrp, in
 }
 
 int assignCathPadsToGroup( short *matGrpGrp, int nGrp, int nCath0, int nCath1, short *grpToGrp ) {
+// Merge the ovelaping groups, renumber them 
+// and give the mapping OldGrp -> newMergedGroup in grpToGrp array
   cath0ToTGrp = new short[nCath0];
   cath1ToTGrp = new short[nCath1];
   vectorSetZeroShort(grpToGrp, nGrp+1);
@@ -947,9 +1081,11 @@ int assignCathPadsToGroup( short *matGrpGrp, int nGrp, int nCath0, int nCath1, s
   //
   int iNewGroup = 1;
   while ( iNewGroup < (nGrp+1)) {
+    // Define the new group
     newGroupID++; 
     grpToGrp[iNewGroup] = newGroupID; 
     // printf("new Group idx=%d, newGroupID=%d\n", iNewGroup, newGroupID);
+
     for (int i=iNewGroup; i < (nGrp+1); i++) {
       // New Group
       int ishift = i*(nGrp+1);
@@ -963,11 +1099,12 @@ int assignCathPadsToGroup( short *matGrpGrp, int nGrp, int nCath0, int nCath1, s
             }
           }
           */
+          // Merge the groups 
           grpToGrp[j] = newGroupID;        
         }
       }
     }
-    // Get the next index which have not a group
+    // Go to the next index which have not a group
     int k;
     for( k = iNewGroup; k < (nGrp+1) && (grpToGrp[k] > 0); k++);
     iNewGroup = k; 

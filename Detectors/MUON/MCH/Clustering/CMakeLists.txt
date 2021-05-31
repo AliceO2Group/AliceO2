@@ -12,7 +12,9 @@
 find_package(GSL REQUIRED)
 
 o2_add_library(MCHClustering
-               SOURCES src/ClusterOriginal.cxx
+               SOURCES src/ClusterDump.cxx
+                       src/dataStructure.cxx
+                       src/ClusterOriginal.cxx
                        src/ClusterFinderOriginal.cxx
                        src/MathiesonOriginal.cxx
                        src/ClusterizerParam.cxx
@@ -23,7 +25,8 @@ o2_target_root_dictionary(MCHClustering
                           HEADERS include/MCHClustering/ClusterizerParam.h)
 
 o2_add_library(MCHClusteringGEM
-               SOURCES src/ClusterOriginal.cxx
+               SOURCES src/ClusterDump.cxx
+                       src/ClusterOriginal.cxx
                        src/ClusterFinderGEM.cxx
                        src/dataStructure.cxx
                        src/mathUtil.cxx

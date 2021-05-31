@@ -1,6 +1,9 @@
 # ifndef  _PADPROCESSING_H
 # define  _PADPROCESSING_H
 
+#include "dataStructure.h"
+
+
 typedef struct {
     PadIdx_t i;
     PadIdx_t j;
@@ -53,6 +56,8 @@ extern "C" {
                                       short *wellSplitGroup, short *matGrpGrp);
 
   int assignCathPadsToGroup( short *matGrpGrp, int nGrp, int nCath0, int nCath1, short *grpToGrp );
+  
+  int assignPadsToGroupFromProj( short *projPadGroup, int nProjPads, const PadIdx_t *, const PadIdx_t *, int nGrp, int nPads, short *padGrp);  
   
   void storeProjectedPads ( const double *xyDxyProj, const double *z, int nPads);
   //

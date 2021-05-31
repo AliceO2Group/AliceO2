@@ -24,6 +24,11 @@ void printArrayState( const char *str, const double *array, int K, int N) {
           str, vectorMin(array, K*N), vectorMax(array, K*N), vectorSum(array, K*N));
     
 } 
+double crossEntropy( const double *zObs, const double *zPredicted, int N) {
+  double cross = 0.0; 
+  for (int i=0; i < N; i++) cross += (zObs[i] * log( zPredicted[i] )); 
+  return cross;
+}
 
 void computeDiscretizedGaussian2D( const double *xyInfSup, const double *theta, 
                                    int K, int N, int k, double *z ) {
@@ -171,9 +176,10 @@ void EStep( const double *xyInfSup, const double *theta, int K, int N, int verbo
           nSum[k] += eta[k*N+i];  
         }    
       }
-      printf("  E-Step check: sum_k{eta} min=%f max=%f\n", vectorMin(kSum, N), vectorMax(kSum, N));
-      printf("  E-Step check: sum_n{eta} min=%f max=%f\n", vectorMin(nSum, K), vectorMax(nSum, K));
+      printf("  E-Step check: sum_k{eta}[0:N] min=%f max=%f\n", vectorMin(kSum, N), vectorMax(kSum, N));
+      printf("  E-Step check: sum_n{eta}[0:K] min=%f max=%f\n", vectorMin(nSum, K), vectorMax(nSum, K));
       printf("  E-Step check: sum_{eta} =%f\n", vectorSum(nSum, K) );
+      vectorPrint("  E-Step check: sum_k{eta}[0:N]", kSum, N); 
   }
   return;
 }
@@ -224,9 +230,10 @@ void maskedEStep( const double *xyInfSup, const double *theta, const Mask_t *mas
           nSum[k] += eta[k*N+i];  
         }    
       }
-      printf("  E-Step check: sum_k{eta} min=%f max=%f\n", vectorMin(kSum, N), vectorMax(kSum, N));
-      printf("  E-Step check: sum_n{eta} min=%f max=%f\n", vectorMin(nSum, K), vectorMax(nSum, K));
-      printf("  E-Step check: sum_{eta} =%f\n", vectorSum(nSum, K) );
+      printf("  EMask-Step check: sum_k{eta}[0:N] min=%f max=%f\n", vectorMin(kSum, N), vectorMax(kSum, N));
+      printf("  EMask-Step check: sum_n{eta}[0:K] min=%f max=%f\n", vectorMin(nSum, K), vectorMax(nSum, K));
+      printf("  EMask-Step check: sum_{eta} =%f\n", vectorSum(nSum, K) );
+      vectorPrint("  EMask-Step check: sum_k{eta}[0:N]", kSum, N); 
   }
   return;
 }
@@ -314,7 +321,24 @@ void weightedMStep( const double *xyDxy, const double *z, const double *eta, int
   //
   // Calculate w (normalization)
   //  w = wk / N
-  double sum = vectorSum( z, N );
+  //
+  // Build the mask from eta
+  // because of the  points which don't 
+  // participate eta[k, :] = 0
+  double etaN[N];
+  vectorSetZero( etaN, N);
+  for ( int k = 0; k < K; k++) {
+    for ( int i = 0; i < N; i++) {
+      etaN[i] += eta[ k*N + i];            
+    }
+  }
+  double zMasked[N];
+  vectorMultVector( z, etaN, N, zMasked);
+  double sum = vectorSum( zMasked, N );
+  if ( 1 ) {
+    vectorPrint( "MStep z", z, N);
+    vectorPrint( "MStep wk", wk, K);
+  }
   vectorMultScalar( wk, 1.0 / sum, K, w);
   return;
 }
@@ -418,7 +442,19 @@ double weightedEMLoop( const double *xyDxy, const Mask_t *saturated, const doubl
   
   // Return BIC criterion
   int kSignificant = vectorSumOfGreater( w, 10.e-5, K);
-  return (-2*logL + (3*kSignificant-1) * log(N - nbrSaturatedPads) );
+  printf("EMLoop # parameters %d, log( N -saturated)= %f \n", (3*kSignificant-1), log(N - nbrSaturatedPads) );
+  printf("EMLoop LogL=%f\n", logL );
+  double dof = (3*kSignificant-1);
+  double nData = N - nbrSaturatedPads;
+  double BIC = -2*logL + (3*kSignificant-1) * log(N - nbrSaturatedPads) ;
+  double AIC = 2*(3*kSignificant-1) -2*logL;
+  double AICc = 2*(3*kSignificant-1) -2*logL + 2*dof*(dof+1) / (nData - dof - 1);
+  double zPredict[N];
+  generateMixedGaussians2D( xyInfSup, theta, K, N, zPredict);
+  double crossE = crossEntropy( zObs, zPredict, N);
+  printf("EMLoop BIC=%f, AIC=%f, AICc=%f crossEntropy=%f\n", BIC, AIC, AICc, crossE );
+  
+  return logL;
 }
 
 
