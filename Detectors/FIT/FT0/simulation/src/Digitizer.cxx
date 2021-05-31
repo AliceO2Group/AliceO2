@@ -21,10 +21,49 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
+#include <Vc/Vc>
 
 using namespace o2::ft0;
 
 ClassImp(Digitizer);
+
+namespace o2::ft0
+{
+// signal shape function
+template <typename Float>
+Float signalForm_i(Float x)
+{
+  using namespace std;
+  Float const a = -0.45458;
+  Float const b = -0.83344945;
+  return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
+  //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
+};
+
+// integrated signal shape function
+inline float signalForm_integral(float x)
+{
+  using namespace std;
+  double const a = -0.45458;
+  double const b = -0.83344945;
+  if (x < 0) {
+    x = 0;
+  }
+  return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
+};
+
+// SIMD version of the integrated signal shape function
+inline Vc::float_v signalForm_integralVc(Vc::float_v x)
+{
+  auto const mask = (x >= 0.0f);
+  Vc::float_v arg(0);
+  arg.assign(x, mask); // branchless if
+  Vc::float_v const a(-0.45458f);
+  Vc::float_v const b(-0.83344945f);
+  Vc::float_v result = -(Vc::exp(b * arg) / b - Vc::exp(a * arg) / a) / 7.8446501f;
+  return result;
+};
+} // namespace o2::ft0
 
 Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float deadTime)
 {
