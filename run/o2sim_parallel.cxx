@@ -64,8 +64,18 @@ std::string getMergerLogName()
   return str.str();
 }
 
+void remove_tmp_files()
+{
+  // remove all (known) socket files in /tmp
+  // using the naming convention /tmp/o2sim-.*PID
+  std::stringstream command;
+  command << "rm /tmp/o2sim-*" << getpid();
+  auto rc = system(command.str().c_str()); // a solution based on std::filesystem may be preferred but is longer
+}
+
 void cleanup()
 {
+  remove_tmp_files();
   o2::utils::ShmManager::Instance().release();
 
   // special mode in which we dump the output from various
