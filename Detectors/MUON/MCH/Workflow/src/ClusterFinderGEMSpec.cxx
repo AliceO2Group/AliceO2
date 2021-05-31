@@ -84,13 +84,20 @@ class ClusterFinderGEMTask
     clusterROFs.reserve(preClusterROFs.size());
     for (const auto& preClusterROF : preClusterROFs) {
 
-      //LOG(INFO) << "processing interaction: " << preClusterROF.getBCData() << "...";
-
+      LOG(INFO) << "processing interaction: ev ??? " << preClusterROF.getBCData().orbit << "...";
+      // GG infos
+      // uint16_t bc = DummyBC;       ///< bunch crossing ID of interaction
+      // uint32_t orbit = DummyOrbit; ///< LHC orbit
       // clusterize every preclusters
+      uint16_t bCrossing = preClusterROF.getBCData().bc;
+      uint32_t orbit= preClusterROF.getBCData().orbit;
+      uint32_t iROF=0;
       auto tStart = std::chrono::high_resolution_clock::now();
+      //
       mClusterFinder.reset();
       for (const auto& preCluster : preClusters.subspan(preClusterROF.getFirstIdx(), preClusterROF.getNEntries())) {
-        mClusterFinder.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits));
+        mClusterFinder.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iROF);
+        iROF++;
       }
       auto tEnd = std::chrono::high_resolution_clock::now();
       mTimeClusterFinder += tEnd - tStart;

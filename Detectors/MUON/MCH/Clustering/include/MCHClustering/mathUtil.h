@@ -2,6 +2,7 @@
 # define  _MATHUTIL_H
 
 # include <math.h>
+# include <limits.h>
 # include <float.h>
 # include <stddef.h>
 
@@ -63,6 +64,9 @@ inline static double vectorMin( const double *u, int N) {
 
 inline static double vectorMax( const double *u, int N) { 
   double res = -DBL_MAX; for (int i=0; i < N; i++) res = fmax(res, u[i]); return res; }
+
+inline static short vectorMaxShort( const short *u, int N) { 
+  short res = SHRT_MIN; for (int i=0; i < N; i++) res = std::max(res, u[i]); return res; }
 //
 // Logical operations
 //
@@ -90,6 +94,9 @@ inline static void vectorAppyMapIdxInt( const int *vect, const int *map, int N, 
 
 inline static int vectorGather( const double *v, const Mask_t *mask, int N, double *gatherVector ) { 
   int k=0;for (int i=0; i < N; i++) { if ( mask[i] ) gatherVector[k++] = v[i];} return k;}
+
+inline static int vectorScatter( const double *v, const Mask_t *mask, int N, double *scatterVec ) { 
+  int k=0;for (int i=0; i < N; i++) { if ( mask[i] ) scatterVec[i] = v[k++];} return k;}
 
 inline static int vectorGatherShort( const short *v, const Mask_t *mask, int N, short *gatherVector ) { 
   int k=0;for (int i=0; i < N; i++) { if ( mask[i] ) gatherVector[k++] = v[i];} return k;}

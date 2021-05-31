@@ -32,6 +32,7 @@
 #include "MCHPreClustering/PreClusterFinder.h"
 
 // GG
+#include "ClusterDump.h"
 #include "dataStructure.h"
 #include "mathieson.h"
 #include "padProcessing.h"
@@ -65,7 +66,7 @@ class ClusterFinderGEM
   void deinit();
   void reset();
   //
-  void findClusters(gsl::span<const Digit> digits);
+  void findClusters( gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF, bool samePreCluster = 0);
   //
   /// return the list of reconstructed clusters
   const std::vector<ClusterStruct>& getClusters() const { return mClusters; }
@@ -85,7 +86,7 @@ class ClusterFinderGEM
   static constexpr float SDefaultClusterResolution = 0.2f;              ///< default cluster resolution (cm)
   static constexpr float SBadClusterResolution = 10.f;                  ///< bad (e.g. mono-cathode) cluster resolution (cm)
   */
-  void initPreCluster(gsl::span<const Digit>& digits);
+  void initPreCluster(gsl::span<const Digit>& digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF);
   void simplifyPreCluster(std::vector<int>& removedDigits);
   void processPreCluster();
   /*   
@@ -146,7 +147,15 @@ class ClusterFinderGEM
   Mask_t *cathode;
   Mask_t *saturated;
   double *padCharge;
-  int chId;
+  int DEId;
+  // PreCluster Identification
+  uint32_t currentBC;
+  uint32_t currentOrbit;
+  uint32_t currentPreClusterID;
+  
+  // 
+  ClusterDump *pClusterDump;
+
 };
 
 } // namespace mch

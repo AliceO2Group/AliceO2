@@ -93,12 +93,16 @@ class ClusterFinderOriginalTask
     for (const auto& preClusterROF : preClusterROFs) {
 
       //LOG(INFO) << "processing interaction: " << preClusterROF.getBCData() << "...";
-
+      // GG
+      uint16_t bCrossing = preClusterROF.getBCData().bc;
+      uint32_t orbit= preClusterROF.getBCData().orbit;
+      uint32_t iROF=0;
       // clusterize every preclusters
       auto tStart = std::chrono::high_resolution_clock::now();
       mClusterFinder.reset();
       for (const auto& preCluster : preClusters.subspan(preClusterROF.getFirstIdx(), preClusterROF.getNEntries())) {
-        mClusterFinder.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits));
+        mClusterFinder.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iROF);
+        iROF++;
       }
       auto tEnd = std::chrono::high_resolution_clock::now();
       mTimeClusterFinder += tEnd - tStart;
