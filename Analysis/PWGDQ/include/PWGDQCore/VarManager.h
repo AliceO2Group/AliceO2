@@ -642,10 +642,12 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidate
   ROOT::Math::XYZVectorF v1_CM{(boostv12(v1).Vect()).Unit()};
   ROOT::Math::XYZVectorF v2_CM{(boostv12(v2).Vect()).Unit()};
   ROOT::Math::XYZVectorF zaxis{(v12.Vect()).Unit()};
- 
+
   double cosTheta = 0;
-  if(t1.sign() > 0) cosTheta = zaxis.Dot(v1_CM);
-  else cosTheta = zaxis.Dot(v2_CM);  
+  if(t1.sign() > 0)
+    cosTheta = zaxis.Dot(v1_CM);
+  else
+    cosTheta = zaxis.Dot(v2_CM);  
   values[kCosThetaHE] = cosTheta;
 }
 
