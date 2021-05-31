@@ -1,0 +1,22 @@
+#include "SimSetup/FlukaParam.h"
+
+TVirtualMC* FlukaRuntimeConfig() {
+  FairRunSim* run = FairRunSim::Instance();
+  TString* gModel = run->GetGeoModel();
+  TFluka* fluka = new TFluka("C++ Interface to Fluka", 0);
+
+  // additional configuration paramters if requested from command line
+  auto& params = o2::FlukaParam::Instance();
+  auto isAct = params.activationSimulation;
+  if (isAct) {
+    LOG(INFO) << "Set special FLUKA parameters for activation simulation";
+    auto hadronCut = params.activationHadronCut;
+    auto inpFile = params.scoringFile;
+    fluka->SetActivationSimulation(true, hadronCut);
+    fluka->SetUserScoringFileName(inpFile.c_str());
+  }
+
+  std::cout << "FLUKA ptr " << fluka << "\n";
+  std::cout << "VMC ptr " << TVirtualMC::GetMC() << "\n";
+  return fluka;
+}
