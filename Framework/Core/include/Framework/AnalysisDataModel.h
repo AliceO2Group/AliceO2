@@ -205,7 +205,7 @@ DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                                      //!
 DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF,                                                    //! Flag to check if track has a TOF measurement
-                           [](float tofSignal) -> bool { return tofSignal > 0.f; });
+                           [](float tofSignal, float tofExpMom) -> bool { return (tofSignal > 0.f) && (tofExpMom > 0.f); });
 DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //!
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //!
@@ -292,7 +292,7 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA", //!
                   track::TPCChi2NCl, track::TRDChi2, track::TOFChi2,
                   track::TPCSignal, track::TRDSignal, track::TOFSignal, track::Length, track::TOFExpMom,
                   track::PIDForTracking<track::Flags>,
-                  track::HasTOF<track::TOFSignal>,
+                  track::HasTOF<track::TOFSignal, track::TOFExpMom>,
                   track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
