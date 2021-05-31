@@ -372,7 +372,10 @@ struct HfTrackIndexSkimsCreator {
      {"hmassDsToPiKK", "D_{s} candidates;inv. mass (K K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}},
      {"hmassXicToPKPi", "#Xi_{c} candidates;inv. mass (p K #pi) (GeV/#it{c}^{2});entries", {HistType::kTH1F, {{500, 0., 5.}}}}}};
 
+  Filter filterSelectCollisions = (aod::hf_selcollision::whyRejectColl == 0);
   Filter filterSelectTracks = aod::hf_seltrack::isSelProng > 0;
+
+  using SelectedCollisions = soa::Filtered<soa::Join<aod::Collisions, aod::HFSelCollision>>;
   using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra, aod::HFSelTrack>>;
 
   // FIXME
@@ -387,7 +390,7 @@ struct HfTrackIndexSkimsCreator {
   // int nColls{0}; //can be added to run over limited collisions per file - for tesing purposes
 
   void process( //soa::Join<aod::Collisions, aod::Cents>::iterator const& collision, //FIXME add centrality when option for variations to the process function appears
-    aod::Collision const& collision,
+    SelectedCollisions::iterator const& collision,
     aod::BCs const& bcs,
     SelectedTracks const& tracks)
   {
@@ -1124,9 +1127,12 @@ struct HfTrackIndexSkimsCreatorCascades {
   double massLc = RecoDecay::getMassPDG(pdg::Code::kLambdaCPlus);
   double mass2K0sP{0.}; // WHY HERE?
 
+  Filter filterSelectCollisions = (aod::hf_selcollision::whyRejectColl == 0);
+
+  using SelectedCollisions = soa::Filtered<soa::Join<aod::Collisions, aod::HFSelCollision>>;
   using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
 
-  void process(aod::Collision const& collision,
+  void process(SelectedCollisions::iterator const& collision,
                aod::BCs const& bcs,
                //soa::Filtered<aod::V0Datas> const& V0s,
                aod::V0Datas const& V0s,
