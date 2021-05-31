@@ -97,7 +97,6 @@ o2_add_executable(tof-dcs-config-processor-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/tof-dcs-config-processor-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
-                  O2::TOFCalibration
-		  O2::DetectorsCalibration
-		  )
+                                        O2::TOFCalibration
+                                        O2::DetectorsCalibration)
 

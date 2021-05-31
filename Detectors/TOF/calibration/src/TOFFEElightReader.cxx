@@ -32,6 +32,9 @@ void TOFFEElightReader::loadFEElightConfig(gsl::span<const char> configBuf)
   // load FEElight config from buffer
 
   //mFEElightConfig = reinterpret_cast<TOFFEElightConfig*>(*configBuf.data());
+  if (!configBuf.size() == sizeof(mFEElightConfig)) {
+    LOG(FATAL) << "Incoming message with TOFFEE configuration does not match expected size!";
+  }
   memcpy(&mFEElightConfig, configBuf.data(), sizeof(mFEElightConfig));
 }
 

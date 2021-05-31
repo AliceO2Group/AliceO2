@@ -55,12 +55,10 @@ class TOFDCSConfigProcessor : public o2::framework::Task
     auto configBuff = pc.inputs().get<gsl::span<char>>("inputConfig");
     auto configFileName = pc.inputs().get<std::string>("inputConfigFileName");
     auto timer = std::chrono::duration_cast<std::chrono::milliseconds>(HighResClock::now().time_since_epoch()).count();
-    ;
-    //std::string configFileName = "pippo";
     LOG(INFO) << "got input file " << configFileName << " of size " << configBuff.size();
     mTOFFEElightReader.loadFEElightConfig(configBuff);
     mTOFFEElightReader.parseFEElightConfig(mVerbose);
-    //auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header)->startTime;
+    //auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().getByPos(0).header)->startTime;
     sendOutput(pc.outputs(), timer);
   }
 
