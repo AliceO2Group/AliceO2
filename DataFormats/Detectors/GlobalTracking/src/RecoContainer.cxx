@@ -212,8 +212,8 @@ void DataRequest::requestSecondaryVertertices(bool)
 {
   addInput({"v0s", "GLO", "V0s", 0, Lifetime::Timeframe});
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
-  addInput({"cacss", "GLO", "CASCS", 0, Lifetime::Timeframe});
-  addInput({"p2v0s", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
+  addInput({"cascs", "GLO", "CASCS", 0, Lifetime::Timeframe});
+  addInput({"p2cascs", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
@@ -364,10 +364,10 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
 //____________________________________________________________
 void RecoContainer::addSVertices(ProcessingContext& pc, bool)
 {
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::V0>>("V0S"), V0S);
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("PVTX_V0REFS"), PVTX_V0REFS);
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("CASCS"), CASCS);
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("PVTX_CASCREFS"), PVTX_CASCREFS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::V0>>("v0s"), V0S);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2v0s"), PVTX_V0REFS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("cascs"), CASCS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2cascs"), PVTX_CASCREFS);
   // no mc
 }
 
