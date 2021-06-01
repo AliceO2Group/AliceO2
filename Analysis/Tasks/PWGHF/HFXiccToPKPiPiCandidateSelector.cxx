@@ -74,7 +74,7 @@ struct HFXiccToPKPiPiCandidateSelector {
     }
 
     // candidate chi2PC
-    if (candidate.chi2PCA() > cuts->get(pTBin, "chi2PCA")) {
+    if (hfCandXicc.chi2PCA() > cuts->get(pTBin, "chi2PCA")) {
       return false;
     }
     if ((TMath::Abs(hfCandXicc.impactParameter0()) > cuts->get(pTBin, "d0 Xic")) ||
