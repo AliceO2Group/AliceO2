@@ -17,7 +17,6 @@
 #include "FairLogger.h"
 #include <bitset>
 
-
 using namespace o2::ctp;
 
 ClassImp(Digitizer);

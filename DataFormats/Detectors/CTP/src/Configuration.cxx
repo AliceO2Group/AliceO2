@@ -32,7 +32,9 @@ void CTPInput::printStream(std::ostream& stream) const
 void CTPDescriptor::printStream(std::ostream& stream) const
 {
   stream << "CTP Descriptor:" << name << " Inputs:";
-  for(const auto &inp : inputNames){ stream << inp << " "; }
+  for (const auto& inp : inputNames) {
+    stream << inp << " ";
+  }
   stream << std::endl;
 }
 //
@@ -44,99 +46,94 @@ void CTPDetector::printStream(std::ostream& stream) const
 //
 o2::detectors::DetID::mask_t CTPCluster::getClusterDetMask() const
 {
-    o2::detectors::DetID::mask_t detmask = 0;
-    for(auto const& det: detectors) {
-        detmask |= det.getMask();
-    }
-    return detmask;
+  o2::detectors::DetID::mask_t detmask = 0;
+  for (auto const& det : detectors) {
+    detmask |= det.getMask();
+  }
+  return detmask;
 }
 void CTPCluster::printStream(std::ostream& stream) const
 {
-  stream << "CTP Cluster:" << name << " mask:0b" << std::hex << getClusterDetMask() << " "<< std::dec;
-  for(const auto &det : detectors){ stream << det.getName() << " ";}
+  stream << "CTP Cluster:" << name << " mask:0b" << std::hex << getClusterDetMask() << " " << std::dec;
+  for (const auto& det : detectors) {
+    stream << det.getName() << " ";
+  }
   stream << std::endl;
 }
 //
 void CTPClass::printStream(std::ostream& stream) const
 {
-  stream << "CTP Class:" << name << " Hardware mask:" << classMask << " Descriptor:" << descriptor->name << " Cluster:"<< cluster->name << std::endl;
+  stream << "CTP Class:" << name << " Hardware mask:" << classMask << " Descriptor:" << descriptor->name << " Cluster:" << cluster->name << std::endl;
 }
 /// CTP configuration
 /// Assuming Run2 format + LTG
 //
 bool CTPConfiguration::isDetector(const o2::detectors::DetID& det)
 {
-    if(det.getID() >= det.getNDetectors()) {
-       LOG(FATAL) << " Detector does not exist: " << det.getName() ;
-       return false;
-    }
-    return true;
+  if (det.getID() >= det.getNDetectors()) {
+    LOG(FATAL) << " Detector does not exist: " << det.getName();
+    return false;
+  }
+  return true;
 }
 int CTPConfiguration::loadConfiguration(const std::string& ctpconfiguration)
 {
-  std::cout << "Loading CTP configuration." << std::endl;  
+  std::cout << "Loading CTP configuration." << std::endl;
   std::istringstream iss(ctpconfiguration);
   int ret = 0;
-  int level=0;
+  int level = 0;
   std::string line;
-  while(std::getline(iss,line))
-  {
+  while (std::getline(iss, line)) {
     o2::utils::Str::trim(line);
-    if( (ret = processConfigurationLine(line,level)) !=0 )
-    {
-        return ret;
+    if ((ret = processConfigurationLine(line, level)) != 0) {
+      return ret;
     }
   }
-  return ret;    
+  return ret;
 }
 int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
 {
-  if(line.size() == 0) return 0;
-  if(line.at(0) == '#') return 0;
-  size_t first;  
-  if((first=line.find("PARTITION:")) != std::string::npos)
-  {
-    mName = o2::utils::Str::trim_copy(line.erase(first,10));
+  if (line.size() == 0)
+    return 0;
+  if (line.at(0) == '#')
+    return 0;
+  size_t first;
+  if ((first = line.find("PARTITION:")) != std::string::npos) {
+    mName = o2::utils::Str::trim_copy(line.erase(first, 10));
     return 0;
   }
-  if((first=line.find("VERSION:")) != std::string::npos)
-  {
-    mVersion = o2::utils::Str::trim_copy(line.erase(first,8));
+  if ((first = line.find("VERSION:")) != std::string::npos) {
+    mVersion = o2::utils::Str::trim_copy(line.erase(first, 8));
     return 0;
   }
-  if((first=line.find("INPUTS:")) != std::string::npos)
-  {
+  if ((first = line.find("INPUTS:")) != std::string::npos) {
     level = 1;
     return 0;
   }
-  if((first=line.find("DESCRIPTORS:")) != std::string::npos)
-  {
+  if ((first = line.find("DESCRIPTORS:")) != std::string::npos) {
     level = 3;
     return 0;
   }
-  if((first=line.find("CLUSTERS:")) != std::string::npos)
-  {
-      level = 4;
-      return 0;
+  if ((first = line.find("CLUSTERS:")) != std::string::npos) {
+    level = 4;
+    return 0;
   }
-  if((first=line.find("CLASSES:")) != std::string::npos)
-  {
+  if ((first = line.find("CLASSES:")) != std::string::npos) {
     level = 7;
     return 0;
   }
   /// Do parse levels
-  std::vector<std::string> tokens = o2::utils::Str::tokenize(line,' ');
-  size_t ntokens=tokens.size();
-  if(ntokens == 0) return 0;
-  switch (level)
-  {
+  std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
+  size_t ntokens = tokens.size();
+  if (ntokens == 0)
+    return 0;
+  switch (level) {
     case 1:
-    /// INPUTS: name det level indexCTP<0:45>
-    {
-        if(ntokens != 4)
-        {
-            LOG(ERROR) << "Syntax error in INPUTS:" << line;
-            return level;
+      /// INPUTS: name det level indexCTP<0:45>
+      {
+        if (ntokens != 4) {
+          LOG(ERROR) << "Syntax error in INPUTS:" << line;
+          return level;
         }
         CTPInput inp;
         inp.name = tokens[0];
@@ -146,94 +143,78 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         inp.detector = det;
         //std::cout << "id:" << det.getID() << " ndets:" << det.getNDetectors() << std::endl;
         isDetector(det);
-        try
-        {
-            inp.inputMask = std::stoull(tokens[3],nullptr,0);
-        }
-        catch(...)
-        {
-            LOG(ERROR) << "Syntax error in INPUTS in mask:" << line;
-            return level;
+        try {
+          inp.inputMask = std::stoull(tokens[3], nullptr, 0);
+        } catch (...) {
+          LOG(ERROR) << "Syntax error in INPUTS in mask:" << line;
+          return level;
         }
         mInputs.push_back(inp);
         break;
-    }
+      }
     case 3:
-    /// Descriptors: name input1 , input2, ...   
-    {
+      /// Descriptors: name input1 , input2, ...
+      {
         CTPDescriptor desc;
         desc.name = tokens[0];
         tokens.erase(tokens.begin());
-        for(auto &item: tokens)
-        {
-            desc.inputNames.push_back(item);
+        for (auto& item : tokens) {
+          desc.inputNames.push_back(item);
         }
         /// Create inputs and mask
         mDescriptors.push_back(desc);
         break;
-    }
+      }
     case 4:
-    /// Clusters: name det1 det2 ... det N
-    {
+      /// Clusters: name det1 det2 ... det N
+      {
         CTPCluster cluster;
         cluster.name = tokens[0];
         tokens.erase(tokens.begin());
         o2::detectors::DetID::mask_t maskCluster;
-        for(auto &item: tokens)
-        {
-            o2::detectors::DetID det(item.c_str());
-            isDetector(det);
-            cluster.detectors.push_back(det);
+        for (auto& item : tokens) {
+          o2::detectors::DetID det(item.c_str());
+          isDetector(det);
+          cluster.detectors.push_back(det);
         }
         mClusters.push_back(cluster);
         break;
-    }
+      }
     case 7:
-    /// CLASSES: name mask descriptor cluster LM L0 L1
-    {
+      /// CLASSES: name mask descriptor cluster LM L0 L1
+      {
         CTPClass cls;
-        if(ntokens != 4)
-        {
-            LOG(ERROR) << "Syntax error in CLASSES:" << line;
-            return level;
+        if (ntokens != 4) {
+          LOG(ERROR) << "Syntax error in CLASSES:" << line;
+          return level;
         }
         cls.name = tokens[0];
-        try
-        {
-            cls.classMask = std::stoull(tokens[1]);
+        try {
+          cls.classMask = std::stoull(tokens[1]);
+        } catch (...) {
+          LOG(ERROR) << "Syntax error in CLASSES in mask:" << line;
+          return level;
         }
-        catch(...)
-        {
-            LOG(ERROR) << "Syntax error in CLASSES in mask:" << line;
-            return level;
-        }
-        std::string token=tokens[2];
-        auto it = std::find_if(mDescriptors.begin(),mDescriptors.end(),[&token](const CTPDescriptor& obj){return obj.name == token;});
-        if(it != mDescriptors.end())
-        {
-            cls.descriptor = &*it;
-        }
-        else
-        {
-            ///Internal error
+        std::string token = tokens[2];
+        auto it = std::find_if(mDescriptors.begin(), mDescriptors.end(), [&token](const CTPDescriptor& obj) { return obj.name == token; });
+        if (it != mDescriptors.end()) {
+          cls.descriptor = &*it;
+        } else {
+          ///Internal error
         }
         ///
-        token=tokens[3];
-        auto it2 = std::find_if(mClusters.begin(),mClusters.end(),[&token](const CTPCluster& obj){return obj.name == token;});
-        if(it2 != mClusters.end())
-        {
-            cls.cluster = &*it2;
-        }
-        else
-        {
-            ///INternal error
+        token = tokens[3];
+        auto it2 = std::find_if(mClusters.begin(), mClusters.end(), [&token](const CTPCluster& obj) { return obj.name == token; });
+        if (it2 != mClusters.end()) {
+          cls.cluster = &*it2;
+        } else {
+          ///INternal error
         }
         mCTPClasses.push_back(cls);
         break;
-    }
-    default:
-    {
-        LOG(ERROR) << "Error: Unknown level:"<< level;
+      }
+    default: {
+      LOG(ERROR) << "Error: Unknown level:" << level;
     }
   }
   return 0;
@@ -264,7 +245,7 @@ void CTPConfiguration::addCTPClass(const CTPClass& ctpclass)
 }
 void CTPConfiguration::printStream(std::ostream& stream) const
 {
-  stream << "Configuration:" << mName << "\n Version:"<< mVersion <<  std::endl;
+  stream << "Configuration:" << mName << "\n Version:" << mVersion << std::endl;
   stream << "CTP BC  masks:" << std::endl;
   for (const auto i : mBCMasks) {
     i.printStream(stream);
@@ -292,17 +273,18 @@ void CTPConfiguration::printStream(std::ostream& stream) const
 }
 uint64_t CTPConfiguration::getInputMask(const std::string& name)
 {
-  for(auto const& inp: mInputs) {
-    if(inp.name == name) {
-        return inp.inputMask;
-      }
+  for (auto const& inp : mInputs) {
+    if (inp.name == name) {
+      return inp.inputMask;
+    }
   }
   return 0;
 }
 bool CTPConfiguration::isMaskInInputs(uint64_t& mask)
 {
-  for(auto const& inp: mInputs) {
-     if(inp.inputMask == mask) return true;
+  for (auto const& inp : mInputs) {
+    if (inp.inputMask == mask)
+      return true;
   }
   return false;
 }

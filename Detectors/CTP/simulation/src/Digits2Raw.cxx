@@ -11,11 +11,9 @@
 /// \file Digits2Raw.cxx
 /// \author Roman Lietava
 
-
 #include "CTPSimulation/Digits2Raw.h"
 #include "FairLogger.h"
 #include "CommonUtils/StringUtils.h"
-
 
 using namespace o2::ctp;
 
@@ -24,10 +22,10 @@ using namespace o2::ctp;
 void Digits2Raw::init()
 {
   // CTP Configuration
-    if(mCCDBServer.empty()) {
+  if (mCCDBServer.empty()) {
     LOG(FATAL) << "CTP digitizer: CCDB server is not set";
   } else {
-    LOG(INFO) << "CTP digitizer:: CCDB server:" << mCCDBServer;  
+    LOG(INFO) << "CTP digitizer:: CCDB server:" << mCCDBServer;
   }
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   mgr.setURL(mCCDBServer);
@@ -38,7 +36,7 @@ void Digits2Raw::init()
   std::string outd = mOutDir;
   if (outd.back() != '/') {
     outd += '/';
-  }  
+  }
   for (int ilink = 0; ilink < mNLinks; ilink++) {
     mFeeID = uint64_t(ilink);
     std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "ctp.raw");
@@ -67,8 +65,8 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
   }
   // Get first orbit
   digiTree->GetEntry(0);
-  uint32_t orbit0 ;
-  if(CTPDigits.size()>0) {
+  uint32_t orbit0;
+  if (CTPDigits.size() > 0) {
     orbit0 = CTPDigits[0].intRecord.orbit;
   } else {
     LOG(FATAL) << "Branch CTPDigits there but no entries";
@@ -80,14 +78,14 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     int nbc = CTPDigits.size();
     LOG(INFO) << "Entry " << ient << " : " << nbc << " BCs stored";
     std::vector<std::bitset<NGBT>> hbf;
-    for(auto const& ctpdig: CTPDigits) {
-      if(orbit0 == ctpdig.intRecord.orbit) {
+    for (auto const& ctpdig : CTPDigits) {
+      if (orbit0 == ctpdig.intRecord.orbit) {
         std::bitset<NGBT> gbtdig;
-        digit2GBTdigit(gbtdig,ctpdig);
+        digit2GBTdigit(gbtdig, ctpdig);
         hbf.push_back(gbtdig);
       } else {
         std::vector<char> buffer;
-        buffer = digits2HBTPayload(hbf,NIntRecPayload);
+        buffer = digits2HBTPayload(hbf, NIntRecPayload);
         std::string PLTrailer;
         std::memcpy(buffer.data() + buffer.size() - o2::raw::RDHUtils::GBTWord, PLTrailer.c_str(), o2::raw::RDHUtils::GBTWord);
         orbit0 = ctpdig.intRecord.orbit;
@@ -97,98 +95,89 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
 }
 void Digits2Raw::emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& toAdd) const
 {
-  // TriClassRecord data zero suppressed  
+  // TriClassRecord data zero suppressed
   // CTP INteraction Data
-  if(mActiveLink == CRULinkIDIntRec) {
-    if(mZeroSuppressedIntRec == false)
-    {
+  if (mActiveLink == CRULinkIDIntRec) {
+    if (mZeroSuppressedIntRec == false) {
       toAdd.clear();
       std::vector<std::bitset<NGBT>> digits;
-      for(uint32_t i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
-          std::bitset<NGBT> dig = i;
-          digits.push_back(dig);
+      for (uint32_t i = 0; i < o2::constants::lhc::LHCMaxBunches; i++) {
+        std::bitset<NGBT> dig = i;
+        digits.push_back(dig);
       }
-      toAdd = digits2HBTPayload(digits,NIntRecPayload);
+      toAdd = digits2HBTPayload(digits, NIntRecPayload);
     }
   }
 }
 std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT>> digits, uint32_t Npld) const
 {
   std::vector<char> toAdd;
-  uint32_t size_gbt=0;
+  uint32_t size_gbt = 0;
   std::bitset<NGBT> gbtword;
-  for(auto const &dig: digits)
-  {
-      if(makeGBTWord(dig, gbtword, size_gbt, Npld) == true)
-      {
-          for(uint32_t i=0; i< NGBT; i+=8)
-          {
-              uint32_t w =0;
-              for(uint32_t j = 0 ;j < 8 ; j++)
-              {
-                  w += (1<<j) * gbtword[i+j];
-              }
-              char c = w;    
-              toAdd.push_back(c);
-          }
-          // Pad zeros up to 128 bits
-          uint32_t NZeros = (o2::raw::RDHUtils::GBTWord*8 - NGBT)/8;
-          for(uint32_t i=0; i< NZeros; i++)
-          {
-            char c=0;
-            toAdd.push_back(c);
-          }
+  for (auto const& dig : digits) {
+    if (makeGBTWord(dig, gbtword, size_gbt, Npld) == true) {
+      for (uint32_t i = 0; i < NGBT; i += 8) {
+        uint32_t w = 0;
+        for (uint32_t j = 0; j < 8; j++) {
+          w += (1 << j) * gbtword[i + j];
+        }
+        char c = w;
+        toAdd.push_back(c);
       }
+      // Pad zeros up to 128 bits
+      uint32_t NZeros = (o2::raw::RDHUtils::GBTWord * 8 - NGBT) / 8;
+      for (uint32_t i = 0; i < NZeros; i++) {
+        char c = 0;
+        toAdd.push_back(c);
+      }
+    }
   }
   return std::move(toAdd);
-} 
-bool Digits2Raw::makeGBTWord(const std::bitset<NGBT> &pld,std::bitset<NGBT> &gbtword, uint32_t& size_gbt,uint32_t Npld) const
+}
+bool Digits2Raw::makeGBTWord(const std::bitset<NGBT>& pld, std::bitset<NGBT>& gbtword, uint32_t& size_gbt, uint32_t Npld) const
 {
   bool valid = false;
   //printBitset(gbtword,"GBTword");
   gbtword |= (pld << size_gbt);
-  if((size_gbt+Npld) < NGBT)
-  {
-      size_gbt += Npld;
-  }
-  else
-  {
-      // sendData
-      //printBitset(gbtword,"Sending");
-      gbtword = pld >> (NGBT - size_gbt);
-      size_gbt = size_gbt + Npld - NGBT;
-      valid = true;
+  if ((size_gbt + Npld) < NGBT) {
+    size_gbt += Npld;
+  } else {
+    // sendData
+    //printBitset(gbtword,"Sending");
+    gbtword = pld >> (NGBT - size_gbt);
+    size_gbt = size_gbt + Npld - NGBT;
+    valid = true;
   }
   return valid;
 }
 int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigit, const CTPDigit& digit)
 {
-  uint64_t gbtmask=0;
-  uint64_t digmask=(digit.CTPInputMask).to_ullong();
+  uint64_t gbtmask = 0;
+  uint64_t digmask = (digit.CTPInputMask).to_ullong();
   // Also CTP Detector Input configuration shoiuld be employed
-  uint64_t allT0s =  (CTP_INPUTMASK_FT0.second).to_ullong() >> CTP_INPUTMASK_FT0.first;
-  if(digmask & allT0s) {
+  uint64_t allT0s = (CTP_INPUTMASK_FT0.second).to_ullong() >> CTP_INPUTMASK_FT0.first;
+  if (digmask & allT0s) {
     // assuming T0A - 1st bit
-    if(digmask & (1ull >> CTP_INPUTMASK_FT0.first)) {
+    if (digmask & (1ull >> CTP_INPUTMASK_FT0.first)) {
       gbtmask |= mCTPConfiguration->getInputMask("T0A");
     }
     // assuming T0B - 2nd bit
-    if(digmask & (2ull >> CTP_INPUTMASK_FT0.first)) {
+    if (digmask & (2ull >> CTP_INPUTMASK_FT0.first)) {
       gbtmask |= mCTPConfiguration->getInputMask("T0B");
     }
   }
-  uint64_t allV0s =  (CTP_INPUTMASK_FV0.second).to_ullong() >> CTP_INPUTMASK_FV0.first;
-  if(digmask & allV0s) {
-      // assuming V0A - 1st bit
-    if(digmask & (1ull >> CTP_INPUTMASK_FV0.first)) {
+  uint64_t allV0s = (CTP_INPUTMASK_FV0.second).to_ullong() >> CTP_INPUTMASK_FV0.first;
+  if (digmask & allV0s) {
+    // assuming V0A - 1st bit
+    if (digmask & (1ull >> CTP_INPUTMASK_FV0.first)) {
       gbtmask |= mCTPConfiguration->getInputMask("V0A");
     }
     // assuming V0B - 2nd bit
-    if(digmask & (2ull >> CTP_INPUTMASK_FV0.first)) {
+    if (digmask & (2ull >> CTP_INPUTMASK_FV0.first)) {
       gbtmask |= mCTPConfiguration->getInputMask("V0B");
     }
   }
-  gbtdigit = gbtmask>>12;
+  gbtdigit = gbtmask >> 12;
   gbtdigit |= digit.intRecord.bc;
   return 0;
 }

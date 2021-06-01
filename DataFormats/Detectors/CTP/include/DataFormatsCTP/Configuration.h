@@ -41,7 +41,7 @@ struct CTPInput {
   std::string level;
   std::uint64_t inputMask;
   o2::detectors::DetID detector;
-  std::string getInputDetName() const {return detector.getName();}
+  std::string getInputDetName() const { return detector.getName(); }
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPInput, 2);
 };
@@ -91,9 +91,10 @@ class CTPConfiguration
   void addCTPCluster(const CTPCluster& cluster);
   void addCTPClass(const CTPClass& ctpclass);
   void printStream(std::ostream& stream) const;
-  std::vector<CTPInput>& getCTPInputs(){return mInputs;}
+  std::vector<CTPInput>& getCTPInputs() { return mInputs; }
   uint64_t getInputMask(const std::string& name);
   bool isMaskInInputs(uint64_t& mask);
+
  private:
   std::string mName;
   std::string mVersion;
