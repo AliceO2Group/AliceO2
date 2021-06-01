@@ -13,7 +13,7 @@
 
 // To keep internal data
 # define INSPECTMODEL 1
-# define VERBOSE 1
+# define VERBOSE 0
 # define CHECK 1
 
 // Type of projection
@@ -24,7 +24,7 @@ static int includeAlonePads = 0;
 static const double EMConvergence = 10.0e-6;
 // EM mode : 1 constant variance
 static const int EMmode = 1;
-static const int EMverbose = 1;
+static const int EMverbose = 0;
 // Mathieson approximation with one gaussian 
 /*
 static double cstSigXCh1ToCh2 = 0.1814;    
@@ -721,7 +721,7 @@ int clusterProcess( const double *xyDxyi, const Mask_t *cathi, const Mask_t *sat
   double laplacian[nProjPads];
   Group_t thetaLToGrp[nProjPads];
   PadIdx_t thetaPadProjIdx[nProjPads];
-  vectorPrint( "xyDxyProj", xyDxyProj, 4*nProjPads);
+  // ??? vectorPrint( "xyDxyProj", xyDxyProj, 4*nProjPads);
   int KProj = findLocalMaxWithLaplacian( xyDxyProj, chProj, projPadToGrp, nGroups, nProjPads, nProjPads, 
                                      laplacian, thetaL, thetaPadProjIdx, thetaLToGrp);
   // printf("??? KProj %d\n", KProj);

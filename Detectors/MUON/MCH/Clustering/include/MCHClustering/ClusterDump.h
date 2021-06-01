@@ -29,11 +29,11 @@ namespace o2
 {
 namespace mch
 {
-    
+// Utilities to dump a file    
 class ClusterDump
 {
  public:
-  ClusterDump(const char *str);
+  ClusterDump(const char *str, int mode);
   ~ClusterDump();
 
   ClusterDump(const ClusterDump&) = delete;
@@ -56,6 +56,7 @@ class ClusterDump
  private:
   std::string fileName;
   std::fstream dumpFiles[4];
+  int mode; // 1 write the file else don't
  };
 } // namespace mch
 } // namespace o2

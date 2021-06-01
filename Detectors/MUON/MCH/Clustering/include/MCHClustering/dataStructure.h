@@ -3,9 +3,6 @@
 
 # include "mathUtil.h"
 
-// ??? To Remove
-# define Malloc( type, len) ( (type *) malloc( ((size_t ) len) * sizeof(type)))
-
 typedef int PadIdx_t;
 
 // theta
