@@ -132,6 +132,24 @@ static bool isValidDeID(int deId)
   return false;
 }
 
+void DataDecoder::setFirstOrbitInTF(uint32_t orbit)
+{
+  constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
+  constexpr int TWENTYBITSATONE = 0xFFFFF;
+  if (!mFirstOrbitInRun) {
+    LOG(ERROR) << "[setFirstOrbitInTF] first orbit in run not set!";
+    return;
+  }
+
+  // the SAMPA BC value at the beginning of the TF is computed by counting the number of orbits
+  // since the beginning of the run, and then multiplying this number by the number of BC in one orbit.
+  // We then take the first 20 bits of the result to emulate the internal SAMPA BC counter.
+  mFirstOrbitInTF = orbit;
+  uint32_t nOrbitsInRun = mFirstOrbitInTF.value() - mFirstOrbitInRun.value();
+  uint32_t bc = (nOrbitsInRun * BCINORBIT + DataDecoder::sSampaTimeOffset) & TWENTYBITSATONE;
+  mSampaTimeFrameStart = SampaTimeFrameStart(mFirstOrbitInTF.value(), bc);
+}
+
 void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
 {
   if (mDebug) {
@@ -203,21 +221,21 @@ void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits)
 
 void DataDecoder::decodePage(gsl::span<const std::byte> page)
 {
-  size_t ndigits{0};
-
+  /*
+   * TODO: we should use the HBPackets to verify the synchronization between the SAMPA chips
   auto heartBeatHandler = [&](DsElecId dsElecId, uint8_t chip, uint32_t bunchCrossing) {
     SampaInfo sampaId;
     sampaId.chip = chip;
     sampaId.ds = dsElecId.elinkId();
     sampaId.solar = dsElecId.solarId();
 
-    mSampaTimeFrameStarts[sampaId.id].emplace(mOrbit, bunchCrossing);
     if (mDebug) {
       auto s = asString(dsElecId);
       std::cout << "HeartBeat: " << s << "  ID " << sampaId.id << "  solar " << sampaId.solar << "  ds " << sampaId.ds << "  chip " << sampaId.chip
                 << "  mOrbit " << mOrbit << "  bunchCrossing " << bunchCrossing << std::endl;
     }
   };
+   */
 
   auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
     if (mChannelHandler) {
@@ -287,18 +305,19 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     if (mDebug) {
       RawDigit& lastDigit = mDigits.back();
-      std::cout << "DIGIT STORED:\n ORBIT " << mOrbitId << "  ADC " << lastDigit.getADC()
+      std::cout << "DIGIT STORED:\n ORBIT " << mOrbit << "  ADC " << lastDigit.getADC()
                 << " DE# " << lastDigit.getDetID() << " PadId " << lastDigit.getPadID()
                 << " time " << lastDigit.getSampaTime() << std::endl;
     }
-    ++ndigits;
   };
 
   patchPage(page, mDebug);
 
   auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
   mOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhAny);
-  mOrbitId = mOrbit - mFirstTForbit;
+  if (mDebug) {
+    std::cout << "[decodeBuffer] mOrbit set to " << mOrbit << std::endl;
+  }
 
   if (mRdhHandler) {
     mRdhHandler(&rdhAny);
@@ -310,7 +329,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
   if (!mDecoder) {
     DecodedDataHandlers handlers;
     handlers.sampaChannelHandler = channelHandler;
-    handlers.sampaHeartBeatHandler = heartBeatHandler;
+    //handlers.sampaHeartBeatHandler = heartBeatHandler;
     mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, handlers, mFee2Solar)
                           : o2::mch::raw::createPageDecoder(page, handlers);
   }
@@ -322,7 +341,7 @@ int32_t DataDecoder::digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbi
   // bunch crossings are stored with 20 bits
   static const int32_t BCROLLOVER = (1 << 20);
   // number of bunch crossings in one orbit
-  static const int32_t BCINORBIT = o2::constants::lhc::LHCMaxBunches;
+  constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
 
   // We use the difference of orbits values to estimate the minimum and maximum allowed
   // difference in bunch crossings
@@ -350,7 +369,7 @@ int32_t DataDecoder::digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbi
   return static_cast<int32_t>(dBc);
 }
 
-void DataDecoder::computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug)
+void DataDecoder::computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug)
 {
   constexpr int32_t timeInvalid = DataDecoder::tfTimeInvalid;
   auto setDigitTime = [&](Digit& d, int32_t tfTime) {
@@ -363,28 +382,18 @@ void DataDecoder::computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart
   for (size_t di = 0; di < digits.size(); di++) {
     Digit& d = digits[di].digit;
     SampaInfo& info = digits[di].info;
-    std::optional<SampaTimeFrameStart>& tfStart = sampaTimeFrameStarts[info.id];
+    SampaTimeFrameStart& tfStart = sampaTimeFrameStart;
 
-    if (!tfStart) {
-      LOG(ERROR) << "\n[computeDigitsTime_] missing TimeFrame start for ID " << info.id << "  DS " << info.solar << ","
-                 << info.ds << " (J" << (info.ds / 5) + 1 << " B" << (info.ds % 5) << ")," << info.chip
-                 << "  pad " << d.getDetID() << "," << d.getPadID() << "  "
-                 << info.orbit << " " << info.tfTime << " " << info.bunchCrossing << " "
-                 << info.sampaTime << " " << info.getBXTime();
-      d.setTime(timeInvalid);
-      info.tfTime = timeInvalid;
-    } else {
-      int32_t tfTime = 0;
-      uint32_t bc = tfStart->mBunchCrossing;
-      uint32_t orbit = tfStart->mOrbit;
-      tfTime = DataDecoder::digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
-      if (debug) {
-        std::cout << "\n[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
-                  << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime << std::endl;
-      }
-      setDigitTime(d, tfTime);
-      info.tfTime = tfTime;
+    int32_t tfTime = 0;
+    uint32_t bc = tfStart.mBunchCrossing;
+    uint32_t orbit = tfStart.mOrbit;
+    tfTime = DataDecoder::digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
+    if (debug) {
+      std::cout << "\n[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
+                << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime << std::endl;
     }
+    setDigitTime(d, tfTime);
+    info.tfTime = tfTime;
 
     if (debug) {
       std::cout << "                     solar " << info.solar << "  ds " << info.ds << "  chip " << info.chip << std::endl;
@@ -450,7 +459,7 @@ void DataDecoder::init()
 //_________________________________________________________________________________________________
 void DataDecoder::reset()
 {
-  mSampaTimeFrameStarts.clear();
+  mFirstOrbitInTF.reset();
   mDigits.clear();
   mOrbits.clear();
 }
