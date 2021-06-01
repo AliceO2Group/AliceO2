@@ -47,7 +47,7 @@ class ClusterOriginal;
 /* ???
 class MathiesonOriginal;
 */
-    
+
 class ClusterFinderGEM
 {
  public:
@@ -58,7 +58,7 @@ class ClusterFinderGEM
   ClusterFinderGEM& operator=(const ClusterFinderGEM&) = delete;
   ClusterFinderGEM(ClusterFinderGEM&&) = delete;
   ClusterFinderGEM& operator=(ClusterFinderGEM&&) = delete;
-  
+
   //
   // GG method called by the process workflow ( ClusterFinderGEMSpec )
   //
@@ -66,7 +66,7 @@ class ClusterFinderGEM
   void deinit();
   void reset();
   //
-  void findClusters( gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF, bool samePreCluster = 0);
+  void findClusters(gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF, bool samePreCluster = 0);
   //
   /// return the list of reconstructed clusters
   const std::vector<ClusterStruct>& getClusters() const { return mClusters; }
@@ -84,8 +84,8 @@ class ClusterFinderGEM
   static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1;        ///< maximum number of fit parameters
   static constexpr double SLowestCoupling = 1.e-2;                      ///< minimum coupling between clusters of pixels and pads
   */
-  static constexpr float SDefaultClusterResolution = 0.2f;              ///< default cluster resolution (cm)
-  static constexpr float SBadClusterResolution = 10.f;                  ///< bad (e.g. mono-cathode) cluster resolution (cm)
+  static constexpr float SDefaultClusterResolution = 0.2f; ///< default cluster resolution (cm)
+  static constexpr float SBadClusterResolution = 10.f;     ///< bad (e.g. mono-cathode) cluster resolution (cm)
   void initPreCluster(gsl::span<const Digit>& digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF);
   void processPreCluster();
   /*   
@@ -137,25 +137,24 @@ class ClusterFinderGEM
   // GG Inv std::vector<PadOriginal> mPixels;   ///< list of pixels for the current precluster
 
   const mapping::Segmentation* mSegmentation = nullptr; ///< pointer to the DE segmentation for the current precluster
-  std::vector<ClusterStruct> mClusters{}; ///< list of reconstructed clusters
-  std::vector<Digit> mUsedDigits{};       ///< list of digits used in reconstructed clusters
+  std::vector<ClusterStruct> mClusters{};               ///< list of reconstructed clusters
+  std::vector<Digit> mUsedDigits{};                     ///< list of digits used in reconstructed clusters
 
   PreClusterFinder mPreClusterFinder{}; ///< preclusterizer
   // GG Added to process GEM and use Dump Files
   int nPads;
-  double *xyDxy;
-  Mask_t *cathode;
-  Mask_t *saturated;
-  double *padCharge;
+  double* xyDxy;
+  Mask_t* cathode;
+  Mask_t* saturated;
+  double* padCharge;
   int DEId;
   // PreCluster Identification
   uint32_t currentBC;
   uint32_t currentOrbit;
   uint32_t currentPreClusterID;
-  
-  // 
-  ClusterDump *pClusterDump;
 
+  //
+  ClusterDump* pClusterDump;
 };
 
 } // namespace mch

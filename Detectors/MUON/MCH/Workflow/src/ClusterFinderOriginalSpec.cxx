@@ -95,8 +95,8 @@ class ClusterFinderOriginalTask
       //LOG(INFO) << "processing interaction: " << preClusterROF.getBCData() << "...";
       // GG
       uint16_t bCrossing = preClusterROF.getBCData().bc;
-      uint32_t orbit= preClusterROF.getBCData().orbit;
-      uint32_t iROF=0;
+      uint32_t orbit = preClusterROF.getBCData().orbit;
+      uint32_t iROF = 0;
       // clusterize every preclusters
       auto tStart = std::chrono::high_resolution_clock::now();
       mClusterFinder.reset();

@@ -47,7 +47,7 @@ namespace mch
 
 //_________________________________________________________________________________________________
 ClusterFinderGEM::ClusterFinderGEM()
-   : mPreCluster(std::make_unique<ClusterOriginal>())
+  : mPreCluster(std::make_unique<ClusterOriginal>())
 /*
   : mMathiesons(std::make_unique<MathiesonOriginal[]>(2)),
 */
@@ -148,7 +148,7 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits)
   initPreCluster(digits);
 
   // Find subClusters with there seeds
-  // 
+  //
   std::cout << "Results preCluster " << digits.size() << std::endl;
   int nGroups = 1;
   int nSeeds[nGroups] = {1};
@@ -159,38 +159,32 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits)
       if (pad.isReal()) {
         mUsedDigits.emplace_back(digits[pad.digitIndex()]);
       }
-    }    
+    }
     uint32_t nDigits = mUsedDigits.size() - firstDigit;
     for (int s = 0; s < nSeeds[g]; s++) {
-      double x  = mPreCluster->pad(0).x();
-      double y  = mPreCluster->pad(0).y();
+      double x = mPreCluster->pad(0).x();
+      double y = mPreCluster->pad(0).y();
       double dx = mPreCluster->pad(0).dx();
       double dy = mPreCluster->pad(0).dy();
       int seedId = s;
       uint32_t uid = ClusterStruct::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), seedId);
       mClusters.push_back({
-        static_cast<float>(x),  static_cast<float>(y), 0.0, // x, y, z
-        static_cast<float>(dx), static_cast<float>(dy),     // x, y resolution
-        uid,                                                // uid 
-        firstDigit, nDigits                                 // firstDigit, nDigits
-       });
+        static_cast<float>(x), static_cast<float>(y), 0.0, // x, y, z
+        static_cast<float>(dx), static_cast<float>(dy),    // x, y resolution
+        uid,                                               // uid
+        firstDigit, nDigits                                // firstDigit, nDigits
+      });
     }
   }
   std::cout << "Finished preCluster " << digits.size() << std::endl;
-
 }
-
-
 
 //_________________________________________________________________________________________________
 void ClusterFinderGEM::processPreCluster()
 {
   /// builds an array of pixel and extract clusters from it
-  std::cout << "Test GG" << std::endl; 
-
+  std::cout << "Test GG" << std::endl;
 }
-
-
 
 } // namespace mch
 } // namespace o2

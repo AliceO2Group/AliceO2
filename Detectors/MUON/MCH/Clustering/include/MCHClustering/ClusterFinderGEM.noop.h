@@ -40,7 +40,7 @@ class ClusterOriginal;
 /* ???
 class MathiesonOriginal;
 */
-    
+
 class ClusterFinderGEM
 {
  public:
@@ -51,7 +51,7 @@ class ClusterFinderGEM
   ClusterFinderGEM& operator=(const ClusterFinderGEM&) = delete;
   ClusterFinderGEM(ClusterFinderGEM&&) = delete;
   ClusterFinderGEM& operator=(ClusterFinderGEM&&) = delete;
-  
+
   //
   // GG called by the process workflow ( ClusterFinderGEMSpec )
   //
@@ -130,8 +130,8 @@ class ClusterFinderGEM
   // GG Inv std::vector<PadOriginal> mPixels;             ///< list of pixels for the current precluster
 
   const mapping::Segmentation* mSegmentation = nullptr; ///< pointer to the DE segmentation for the current precluster
-  std::vector<ClusterStruct> mClusters{}; ///< list of reconstructed clusters
-  std::vector<Digit> mUsedDigits{};       ///< list of digits used in reconstructed clusters
+  std::vector<ClusterStruct> mClusters{};               ///< list of reconstructed clusters
+  std::vector<Digit> mUsedDigits{};                     ///< list of digits used in reconstructed clusters
 
   PreClusterFinder mPreClusterFinder{}; ///< preclusterizer
 };
