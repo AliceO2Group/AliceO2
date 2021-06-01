@@ -12,4 +12,9 @@ o2_add_library(MCHClustering
                SOURCES src/ClusterOriginal.cxx
                        src/ClusterFinderOriginal.cxx
                        src/MathiesonOriginal.cxx
-               PUBLIC_LINK_LIBRARIES O2::MCHMappingInterface O2::MCHBase O2::MCHPreClustering O2::Framework)
+                       src/ClusterizerParam.cxx
+               PUBLIC_LINK_LIBRARIES O2::MCHMappingInterface O2::MCHBase O2::MCHPreClustering
+                                     O2::Framework O2::CommonUtils)
+
+o2_target_root_dictionary(MCHClustering
+                          HEADERS include/MCHClustering/ClusterizerParam.h)
