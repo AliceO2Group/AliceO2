@@ -65,6 +65,7 @@ struct BCData {
     triggers = chTrig;
     ext_triggers = extTrig;
   }
+  BCData(const BCData&) = default;
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   void print(uint32_t triggerMask = 0, int diff = 0) const;

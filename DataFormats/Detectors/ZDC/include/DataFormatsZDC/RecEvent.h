@@ -15,8 +15,8 @@
 #include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
-#include "MathUtils/Cartesian.h"
 #include "ZDCBase/Constants.h"
+#include "MathUtils/Cartesian.h"
 #include <Rtypes.h>
 #include <array>
 #include <vector>
@@ -69,23 +69,11 @@ struct RecEvent {
     mRecBC.back().addInfo();
   }
   void print() const;
+  // TODO: remove persitency of this object (here for debugging)
   ClassDefNV(RecEvent, 1);
 };
 
 } // namespace zdc
-
-/// Defining RecEvent explicitly as messageable
-///
-/// It does not fulfill is_messageable because the underlying ROOT
-/// classes of Point2D are note trivially copyable.
-namespace framework
-{
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::zdc::RecEvent> : std::true_type {
-};
-} // namespace framework
 } // namespace o2
 
 #endif

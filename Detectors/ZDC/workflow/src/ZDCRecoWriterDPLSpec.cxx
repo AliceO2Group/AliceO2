@@ -35,7 +35,9 @@ DataProcessorSpec getZDCRecoWriterDPLSpec(bool mctruth, bool simVersion)
   return MakeRootTreeWriterSpec(writerName.data(),
                                 fnameDef.data(),
                                 "o2rec",
-                                BranchDefinition<std::vector<o2::zdc::BCRecData>>{InputSpec{"RecBCinput", "ZDC", "RECBC"}, "ZDCRecBC"})();
+                                BranchDefinition<std::vector<o2::zdc::BCRecData>>{InputSpec{"bcrec", "ZDC", "BCREC"}, "ZDCRecBC"},
+                                BranchDefinition<std::vector<o2::zdc::BCRecData>>{InputSpec{"energy", "ZDC", "ENERGY"}, "ZDCRecE"},
+                                BranchDefinition<std::vector<o2::zdc::BCRecData>>{InputSpec{"tdcdata", "ZDC", "TDCDATA"}, "ZDCRecTDC"})();
 }
 
 } // namespace zdc

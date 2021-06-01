@@ -48,8 +48,8 @@ void DigiReco::init()
 
   if (mTreeDbg) {
     // Open debug file
-    mDbg = new TFile("ZDCReco.root", "recreate");
-    mTDbg = new TTree("zdcr", "ZDCReco");
+    mDbg = std::make_unique<TFile>("ZDCReco.root", "recreate");
+    mTDbg = std::make_unique<TTree>("zdcr", "ZDCReco");
     mTDbg->Branch("zdcr", "RecEvent", &mRec);
   }
   // Update reconstruction parameters
@@ -149,27 +149,23 @@ void DigiReco::init()
   }
 }
 
-int DigiReco::process(const std::vector<o2::zdc::OrbitData>* orbitdata, const std::vector<o2::zdc::BCData>* bcdata, const std::vector<o2::zdc::ChannelData>* chdata)
+int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata)
 {
   // We assume that vectors contain data from a full time frame
   mOrbitData = orbitdata;
   mBCData = bcdata;
   mChData = chdata;
 
-  const std::vector<o2::zdc::OrbitData>& OrbitData = *orbitdata;
-  const std::vector<o2::zdc::BCData>& BCData = *bcdata;
-  const std::vector<o2::zdc::ChannelData>& ChData = *chdata;
-
   // Initialization of lookup structure for pedestals
   mOrbit.clear();
-  int norb = OrbitData.size();
+  int norb = mOrbitData.size();
   for (int iorb = 0; iorb < norb; iorb++) {
-    mOrbit[OrbitData[iorb].ir.orbit] = iorb;
+    mOrbit[mOrbitData[iorb].ir.orbit] = iorb;
     if (mVerbosity >= DbgFull) {
-      LOG(INFO) << "OrbitData[" << OrbitData[iorb].ir.orbit << "] = " << iorb;
+      LOG(INFO) << "mOrbitData[" << mOrbitData[iorb].ir.orbit << "] = " << iorb;
     }
   }
-  mNBC = BCData.size();
+  mNBC = mBCData.size();
   mReco.clear();
   mReco.resize(mNBC);
   // Initialization of reco structure
@@ -181,11 +177,11 @@ int DigiReco::process(const std::vector<o2::zdc::OrbitData>* orbitdata, const st
         bcr.tdcAmp[itdc][i] = kMinShort;
       }
     }
-    auto& bcd = BCData[ibc];
+    auto& bcd = mBCData[ibc];
     bcr.ir = bcd.ir;
     int chEnt = bcd.ref.getFirstEntry();
     for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
-      auto& chd = ChData[chEnt];
+      auto& chd = mChData[chEnt];
       if (chd.id > IdDummy && chd.id < NChannels) {
         bcr.ref[chd.id] = chEnt;
       }
@@ -206,9 +202,9 @@ int DigiReco::process(const std::vector<o2::zdc::OrbitData>* orbitdata, const st
 
   // Assign interaction record and event information
   for (int ibc = 0; ibc < mNBC; ibc++) {
-    mReco[ibc].ir = BCData[ibc].ir;
-    mReco[ibc].channels = BCData[ibc].channels;
-    mReco[ibc].triggers = BCData[ibc].triggers;
+    mReco[ibc].ir = mBCData[ibc].ir;
+    mReco[ibc].channels = mBCData[ibc].channels;
+    mReco[ibc].triggers = mBCData[ibc].triggers;
   }
 
   // Find consecutive bunch crossings and perform signal interpolation
@@ -218,10 +214,10 @@ int DigiReco::process(const std::vector<o2::zdc::OrbitData>* orbitdata, const st
   int seq_end = 0;
   LOG(INFO) << "ZDC reconstruction for " << mNBC << " bunch crossings";
   for (int ibc = 0; ibc < mNBC; ibc++) {
-    auto& ir = BCData[seq_end].ir;
-    auto bcd = BCData[ibc].ir.differenceInBC(ir);
+    auto& ir = mBCData[seq_end].ir;
+    auto bcd = mBCData[ibc].ir.differenceInBC(ir);
     if (bcd < 0) {
-      LOG(FATAL) << "Orbit number is not increasing " << BCData[seq_end].ir.orbit << "." << BCData[seq_end].ir.bc << " followed by " << BCData[ibc].ir.orbit << "." << BCData[ibc].ir.bc;
+      LOG(FATAL) << "Orbit number is not increasing " << mBCData[seq_end].ir.orbit << "." << mBCData[seq_end].ir.bc << " followed by " << mBCData[ibc].ir.orbit << "." << mBCData[ibc].ir.bc;
       return __LINE__;
     } else if (bcd > 1) {
       // Detected a gap
@@ -264,10 +260,6 @@ int DigiReco::reconstruct(int ibeg, int iend)
     return 0;
   }
   LOG(INFO) << __func__ << "(" << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
-  // Get references to arrays
-  const std::vector<o2::zdc::OrbitData>& OrbitData = *mOrbitData;
-  const std::vector<o2::zdc::BCData>& BCData = *mBCData;
-  const std::vector<o2::zdc::ChannelData>& ChData = *mChData;
 
   // Get reconstruction parameters
   auto& ropt = RecoParamZDC::Instance();
@@ -280,7 +272,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
     int istart = -1, istop = -1;
     // Loop allows for gaps in the data sequence for each TDC channel
     for (int ibun = ibeg; ibun <= iend; ibun++) {
-      if (BCData[ibun].channels & mTDCMask[itdc]) { // TDC channel has data for this event
+      if (mBCData[ibun].channels & mTDCMask[itdc]) { // TDC channel has data for this event
         if (istart < 0) {
           istart = ibun;
         }
@@ -308,11 +300,11 @@ int DigiReco::reconstruct(int ibeg, int iend)
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     // Look for offset
     float pbun[NChannels];
-    auto orbit = BCData[ibun].ir.orbit;
+    auto orbit = mBCData[ibun].ir.orbit;
     std::map<uint32_t, int>::iterator it = mOrbit.find(orbit);
     if (it != mOrbit.end()) {
       // Subtract pedestal
-      auto& orbitdata = OrbitData[it->second];
+      auto& orbitdata = mOrbitData[it->second];
       for (int ich = 0; ich < NChannels; ich++) {
         pbun[ich] = orbitdata.asFloat(ich);
       }
@@ -399,7 +391,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
             // TODO: fallback if offset is missing
             // TODO: fallback if channel has pile-up
             // TODO: manage signal positioned across boundary
-            sum += (pbun[ich] - float(ChData[ref].data[is]));
+            sum += (pbun[ich] - float(mChData[ref].data[is]));
           }
           printf("CH %d %s: %f\n", ich, ChannelNames[ich].data(), sum);
           rec.ezdc[ich] = sum;
@@ -417,10 +409,6 @@ int DigiReco::reconstruct(int ibeg, int iend)
 void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 {
   LOG(INFO) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
-
-  const std::vector<o2::zdc::OrbitData>& OrbitData = *mOrbitData;
-  const std::vector<o2::zdc::BCData>& BCData = *mBCData;
-  const std::vector<o2::zdc::ChannelData>& ChData = *mChData;
 
   // Get reconstruction parameters
   auto& ropt = RecoParamZDC::Instance();
@@ -464,7 +452,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
       return;
     }
     // TODO: More checks that bunch crossings are indeed consecutive
-    int diff = ChData[ref_m].data[s1] - ChData[ref_s].data[s2];
+    int diff = mChData[ref_m].data[s1] - mChData[ref_s].data[s2];
     // Triple trigger condition
     if (diff > thr) {
       isfired[0] = 1;
@@ -502,10 +490,6 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   int nint = (nbun * NTimeBinsPerBC - 1) * TSN;  // Total points in the interpolation region (-1)
   constexpr int nsp = 5;                         // Number of points to be searched
 
-  const std::vector<o2::zdc::OrbitData>& OrbitData = *mOrbitData;
-  const std::vector<o2::zdc::BCData>& BCData = *mBCData;
-  const std::vector<o2::zdc::ChannelData>& ChData = *mChData;
-
   // At this level there should be no need to check if the TDC channel is connected
   // since a fatal should have been raised already
   for (int ibun = ibeg; ibun <= iend; ibun++) {
@@ -524,8 +508,8 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   auto ref_beg = mReco[ibeg].ref[TDCSignal[itdc]];
   auto ref_end = mReco[iend].ref[TDCSignal[itdc]];
 
-  O2_ZDC_DIGIRECO_FLT first_sample = ChData[ref_beg].data[0];
-  O2_ZDC_DIGIRECO_FLT last_sample = ChData[ref_end].data[NTimeBinsPerBC - 1];
+  O2_ZDC_DIGIRECO_FLT first_sample = mChData[ref_beg].data[0];
+  O2_ZDC_DIGIRECO_FLT last_sample = mChData[ref_end].data[NTimeBinsPerBC - 1];
 
   // Constant extrapolation at the beginning and at the end of the array
   // Assign value of first sample
@@ -551,7 +535,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         LOG(FATAL) << "ib=" << ib << " ibun=" << ibun;
         return;
       }
-      mReco[ibun].inter[itdc][isam] = ChData[mReco[ibun].ref[TDCSignal[itdc]]].data[ip];
+      mReco[ibun].inter[itdc][isam] = mChData[mReco[ibun].ref[TDCSignal[itdc]]].data[ip];
     } else {
       // Do the actual interpolation
       O2_ZDC_DIGIRECO_FLT y = 0;
@@ -564,7 +548,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
           if (ii < nsam) {
             int ip = ii % NTimeBinsPerBC;
             int ib = ibeg + ii / NTimeBinsPerBC;
-            yy = ChData[mReco[ib].ref[TDCSignal[itdc]]].data[ip];
+            yy = mChData[mReco[ib].ref[TDCSignal[itdc]]].data[ip];
           } else {
             // Last acquired point
             yy = last_sample;
@@ -694,11 +678,11 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         int ibun = ibeg + isam_amp / nsbun;
         int tdc = isam_amp % nsbun;
         // Look for offset
-        auto orbit = BCData[ibun].ir.orbit;
+        auto orbit = mBCData[ibun].ir.orbit;
         std::map<uint32_t, int>::iterator it = mOrbit.find(orbit);
         if (it != mOrbit.end()) {
           // Subtract pedestal
-          auto& orbitdata = OrbitData[it->second];
+          auto& orbitdata = mOrbitData[it->second];
           amp = orbitdata.asFloat(ich) - amp;
         } else {
           LOG(ERROR) << "Missing pedestal";
@@ -726,11 +710,11 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       int ibun = ibeg + isam_amp / nsbun;
       int tdc = isam_amp % nsbun;
       // Look for offset
-      auto orbit = BCData[ibun].ir.orbit;
+      auto orbit = mBCData[ibun].ir.orbit;
       std::map<uint32_t, int>::iterator it = mOrbit.find(orbit);
       if (it != mOrbit.end()) {
         // Subtract pedestal
-        auto& orbitdata = OrbitData[it->second];
+        auto& orbitdata = mOrbitData[it->second];
         amp = orbitdata.asFloat(ich) - amp;
       } else {
         LOG(ERROR) << "Missing pedestal";
