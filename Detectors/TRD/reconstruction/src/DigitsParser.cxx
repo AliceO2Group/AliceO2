@@ -101,7 +101,7 @@ int DigitsParser::Parse(bool verbose)
       LOG(info) << "at start of data";
     }
     mDigitHCHeader = (DigitHCHeader*)mStartParse;
-    if (!mByteOrderFix) {
+    if (mByteOrderFix) {
       // byte swap if needed.
       swapByteOrder(mDigitHCHeader->word0);
       swapByteOrder(mDigitHCHeader->word1);
@@ -124,7 +124,7 @@ int DigitsParser::Parse(bool verbose)
       LOG(info) << "parsing word : " << std::hex << *word;
     }
     //check for digit end marker
-    if (!mByteOrderFix) {
+    if (mByteOrderFix) {
       // byte swap if needed.
       swapByteOrder(*word);
     }

@@ -63,10 +63,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto dataverbose = cfgc.options().get<bool>("trd-datareader-dataverbose");
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TRD", "TRACKLETS"}));
-  outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TRD", "DIGITS"}));
-  outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TRD", "TRIGGERRECORD"}));
-  //outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TRD", "FLPSTAT"}));
+  outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "TRIGGERRECORD", 0, Lifetime::Timeframe);
+  //outputs.emplace_back("TRD", "FLPSTAT", 0, Lifetime::Timeframe);
   LOG(info) << "input spec is:" << inputspec;
   LOG(info) << "enablebyteswap :" << byteswap;
   AlgorithmSpec algoSpec;
