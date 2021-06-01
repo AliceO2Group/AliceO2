@@ -335,7 +335,8 @@ void weightedMStep( const double *xyDxy, const double *z, const double *eta, int
   double zMasked[N];
   vectorMultVector( z, etaN, N, zMasked);
   double sum = vectorSum( zMasked, N );
-  if ( 1 ) {
+  // verbose ??? 
+  if ( 0 ) {
     vectorPrint( "MStep z", z, N);
     vectorPrint( "MStep wk", wk, K);
   }
@@ -442,8 +443,8 @@ double weightedEMLoop( const double *xyDxy, const Mask_t *saturated, const doubl
   
   // Return BIC criterion
   int kSignificant = vectorSumOfGreater( w, 10.e-5, K);
-  printf("EMLoop # parameters %d, log( N -saturated)= %f \n", (3*kSignificant-1), log(N - nbrSaturatedPads) );
-  printf("EMLoop LogL=%f\n", logL );
+  // printf("EMLoop # parameters %d, log( N -saturated)= %f \n", (3*kSignificant-1), log(N - nbrSaturatedPads) );
+  // printf("EMLoop LogL=%f\n", logL );
   double dof = (3*kSignificant-1);
   double nData = N - nbrSaturatedPads;
   double BIC = -2*logL + (3*kSignificant-1) * log(N - nbrSaturatedPads) ;
@@ -452,7 +453,7 @@ double weightedEMLoop( const double *xyDxy, const Mask_t *saturated, const doubl
   double zPredict[N];
   generateMixedGaussians2D( xyInfSup, theta, K, N, zPredict);
   double crossE = crossEntropy( zObs, zPredict, N);
-  printf("EMLoop BIC=%f, AIC=%f, AICc=%f crossEntropy=%f\n", BIC, AIC, AICc, crossE );
+  // printf("EMLoop BIC=%f, AIC=%f, AICc=%f crossEntropy=%f\n", BIC, AIC, AICc, crossE );
   
   return logL;
 }

@@ -950,7 +950,7 @@ int assignPadsToGroupFromProj( short *projPadGroup, int nProjPads,
     }
   }
   if (VERBOSE) printMatrixShort("Group/Group matrix", matGrpGrp, nGrp+1, nGrp+1);
-  vectorPrintShort( "padToGrp ??? ", padToGrp, nPads);
+  // vectorPrintShort( "padToGrp ??? ", padToGrp, nPads);
   //
   // Merge overlapping groups
   //

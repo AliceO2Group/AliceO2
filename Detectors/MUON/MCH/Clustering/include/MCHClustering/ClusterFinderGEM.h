@@ -31,7 +31,7 @@
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 
-// GG
+// GG Added include
 #include "ClusterDump.h"
 #include "dataStructure.h"
 #include "mathieson.h"
@@ -60,7 +60,7 @@ class ClusterFinderGEM
   ClusterFinderGEM& operator=(ClusterFinderGEM&&) = delete;
   
   //
-  // GG called by the process workflow ( ClusterFinderGEMSpec )
+  // GG method called by the process workflow ( ClusterFinderGEMSpec )
   //
   void init();
   void deinit();
@@ -74,7 +74,7 @@ class ClusterFinderGEM
   const std::vector<Digit>& getUsedDigits() const { return mUsedDigits; }
 
  private:
-  // GG Original
+  // GG Original commented
   /*
   static constexpr double SDistancePrecision = 1.e-3;                   ///< precision used to check overlaps and so on (cm)
   static constexpr double SLowestPadCharge = 4.f * 0.22875f;            ///< minimum charge of a pad
@@ -83,13 +83,13 @@ class ClusterFinderGEM
   static constexpr int SNFitClustersMax = 3;                            ///< maximum number of clusters fitted at the same time
   static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1;        ///< maximum number of fit parameters
   static constexpr double SLowestCoupling = 1.e-2;                      ///< minimum coupling between clusters of pixels and pads
+  */
   static constexpr float SDefaultClusterResolution = 0.2f;              ///< default cluster resolution (cm)
   static constexpr float SBadClusterResolution = 10.f;                  ///< bad (e.g. mono-cathode) cluster resolution (cm)
-  */
   void initPreCluster(gsl::span<const Digit>& digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF);
-  void simplifyPreCluster(std::vector<int>& removedDigits);
   void processPreCluster();
   /*   
+  void simplifyPreCluster(std::vector<int>& removedDigits);
   void buildPixArray();
   void ProjectPadOverPixels(const PadOriginal& pad, TH2D& hCharges, TH2I& hEntries) const;
 
@@ -134,14 +134,14 @@ class ClusterFinderGEM
   MathiesonOriginal* mMathieson = nullptr;          ///< pointer to the Mathieson function currently used
   */
   std::unique_ptr<ClusterOriginal> mPreCluster; ///< precluster currently processed
-  // GG Inv std::vector<PadOriginal> mPixels;             ///< list of pixels for the current precluster
+  // GG Inv std::vector<PadOriginal> mPixels;   ///< list of pixels for the current precluster
 
   const mapping::Segmentation* mSegmentation = nullptr; ///< pointer to the DE segmentation for the current precluster
   std::vector<ClusterStruct> mClusters{}; ///< list of reconstructed clusters
   std::vector<Digit> mUsedDigits{};       ///< list of digits used in reconstructed clusters
 
   PreClusterFinder mPreClusterFinder{}; ///< preclusterizer
-  // GG
+  // GG Added to process GEM and use Dump Files
   int nPads;
   double *xyDxy;
   Mask_t *cathode;
