@@ -44,6 +44,11 @@ struct gpuState {
     }
   }
 
+  size_t getArrayLength()
+  {
+    return static_cast<size_t>(GB * PARTITION_SIZE_GB / sizeof(T));
+  }
+
   std::vector<T*> getBuffersPointers()
   {
     return addresses;

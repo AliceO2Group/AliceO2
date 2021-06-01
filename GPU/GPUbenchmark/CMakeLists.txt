@@ -12,7 +12,7 @@ set(HDRS_INSTALL ../Shared/Kernels.h)
 
 if(CUDA_ENABLED)
   # add_subdirectory(cuda)
-  o2_add_executable(memory-benchmark-cuda
+  o2_add_executable(gpu-memory-benchmark-cuda
                   SOURCES benchmark.cxx
                           cuda/Kernels.cu
                   PUBLIC_LINK_LIBRARIES O2::GPUCommon
@@ -41,7 +41,7 @@ if(HIP_ENABLED)
   set(CMAKE_CXX_EXTENSIONS OFF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
 
-  o2_add_executable(memory-benchmark-hip
+  o2_add_executable(gpu-memory-benchmark-hip
                     SOURCES benchmark.cxx
                             hip/Kernels.hip.cxx
                     PUBLIC_LINK_LIBRARIES O2::GPUCommon
