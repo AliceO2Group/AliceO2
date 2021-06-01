@@ -49,7 +49,9 @@ struct DispatchPolicy {
   /// the action to be used for matched devices
   DispatchOp action = DispatchOp::AfterComputation;
   /// matcher on specific output to trigger sending
-  TriggerMatcher triggerMatcher = [](Output const&) { return true; };
+  TriggerMatcher triggerMatcher = defaultDispatchPolicy();
+
+  static TriggerMatcher defaultDispatchPolicy();
 
   /// Helper to create the default configuration.
   static std::vector<DispatchPolicy> createDefaultPolicies();
