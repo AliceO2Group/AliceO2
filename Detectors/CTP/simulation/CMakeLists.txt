@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(CTPSimulation
-  SOURCES src/Digitizer.cxx 
+  SOURCES src/Digitizer.cxx
   src/Digits2Raw.cxx
   PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::Framework
   O2::DataFormatsCTP
