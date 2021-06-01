@@ -44,6 +44,7 @@ namespace reducedevent
 {
 DECLARE_SOA_COLUMN(MixingHash, mixingHash, int);
 DECLARE_SOA_COLUMN(IsEventSelected, isEventSelected, int);
+DECLARE_SOA_COLUMN(IsEventMixingSelected, isEventMixingSelected, int);
 } // namespace reducedevent
 
 namespace reducedtrack
@@ -52,13 +53,14 @@ DECLARE_SOA_COLUMN(IsMuonSelected, isMuonSelected, uint8_t);
 } // namespace reducedtrack
 
 DECLARE_SOA_TABLE(EventCuts, "AOD", "EVENTCUTS", reducedevent::IsEventSelected);
+DECLARE_SOA_TABLE(EventMixingCuts, "AOD", "EVENTMIXINGCUTS", reducedevent::IsEventMixingSelected);
 DECLARE_SOA_TABLE(MixingHashes, "AOD", "MIXINGHASHES", reducedevent::MixingHash);
 DECLARE_SOA_TABLE(MuonTrackCuts, "AOD", "MUONTRACKCUTS", reducedtrack::IsMuonSelected);
 } // namespace o2::aod
 
 using MyEvents = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended>;
-using MyEventsSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::EventCuts>;
-using MyEventsHashSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::EventCuts, aod::MixingHashes>;
+using MyEventsSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::EventMixingCuts>;
+using MyEventsHashSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::EventMixingCuts, aod::MixingHashes>;
 using MyEventsVtxCov = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov>;
 using MyEventsVtxCovSelected = soa::Join<aod::ReducedEvents, aod::ReducedEventsExtended, aod::ReducedEventsVtxCov, aod::EventCuts>;
 
@@ -79,16 +81,19 @@ constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::ReducedMuon | Va
 
 struct DQEventSelection {
   Produces<aod::EventCuts> eventSel;
+  Produces<aod::EventMixingCuts> eventMixingSel;
   Produces<aod::MixingHashes> hash;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
   AnalysisCompositeCut* fEventCut;
+  AnalysisCompositeCut* fEventMixingCut;
   float* fValues;
 
   // TODO: make mixing binning configurable
   std::vector<float> fCentLimsHashing{0.0f, 10.0f, 20.0f, 30.0f, 50.0f, 70.0f, 90.0f};
 
   Configurable<std::string> fConfigEventCuts{"cfgEventCuts", "eventDimuonStandard", "Event selection"};
+  Configurable<std::string> fConfigEventMixingCuts{"cfgEventMixingCuts", "eventMuonStandard", "Event selection"};
 
   int getHash(float centrality)
   {
@@ -107,8 +112,8 @@ struct DQEventSelection {
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
-    DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars());                 // provide the list of required variables so that VarManager knows what to fill
+    DefineHistograms(fHistMan, "Event_BeforeCuts;Event_AfterCuts;EventMixing_BeforeCuts;EventMixing_AfterCuts;"); // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                              // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
 
     DefineCuts();
@@ -119,6 +124,10 @@ struct DQEventSelection {
     fEventCut = new AnalysisCompositeCut(true);
     TString eventCutStr = fConfigEventCuts.value;
     fEventCut->AddCut(dqcuts::GetAnalysisCut(eventCutStr.Data()));
+
+    fEventMixingCut = new AnalysisCompositeCut(true);
+    TString eventMixingCutStr = fConfigEventMixingCuts.value;
+    fEventMixingCut->AddCut(dqcuts::GetAnalysisCut(eventMixingCutStr.Data()));
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
@@ -135,6 +144,14 @@ struct DQEventSelection {
       eventSel(1);
     } else {
       eventSel(0);
+    }
+
+    fHistMan->FillHistClass("EventMixing_BeforeCuts", fValues);
+    if (fEventMixingCut->IsSelected(fValues)) {
+      fHistMan->FillHistClass("EventMixing_AfterCuts", fValues);
+      eventMixingSel(1);
+    } else {
+      eventMixingSel(0);
     }
     int hh = getHash(fValues[VarManager::kCentVZERO]);
     hash(hh);
@@ -205,7 +222,7 @@ struct DQEventMixing {
   uint8_t fTwoTrackFilterMask = 0;
   std::vector<TString> fCutNames;
 
-  Filter filterEventSelected = aod::reducedevent::isEventSelected == 1;
+  Filter filterEventMxingSelected = aod::reducedevent::isEventMixingSelected == 1;
   Filter filterMuonTrackSelected = aod::reducedtrack::isMuonSelected > uint8_t(0);
 
   void init(o2::framework::InitContext&)
@@ -347,8 +364,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
     adaptAnalysisTask<DQEventSelection>(cfgc),
-    adaptAnalysisTask<DQEventMixing>(cfgc),
     adaptAnalysisTask<DQMuonTrackSelection>(cfgc),
+    adaptAnalysisTask<DQEventMixing>(cfgc),
     adaptAnalysisTask<DQDileptonMuMu>(cfgc)};
 }
 
