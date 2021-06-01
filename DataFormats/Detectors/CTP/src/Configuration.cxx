@@ -15,17 +15,19 @@
 #include <iostream>
 #include <sstream>
 #include "CommonUtils/StringUtils.h"
+#include "FairLogger.h"
 
 using namespace o2::ctp;
-
+//
 void BCMask::printStream(std::ostream& stream) const
 {
   stream << "CTP BC mask:" << name << std::endl;
   /// <<  ":" << BCmask << std::endl;
 }
+//
 void CTPInput::printStream(std::ostream& stream) const
 {
-  stream << "CTP Input:" << name << " Detector:" << detName << " Level:" << level << " Hardware mask:0x" << std::hex << inputMask << std::dec << std::endl;
+  stream << "CTP Input:" << name << " Detector:" << getInputDetName() << " Level:" << level << " Hardware mask:0x" << std::hex << inputMask << std::dec << std::endl;
 }
 void CTPDescriptor::printStream(std::ostream& stream) const
 {
@@ -33,24 +35,44 @@ void CTPDescriptor::printStream(std::ostream& stream) const
   for(const auto &inp : inputNames){ stream << inp << " "; }
   stream << std::endl;
 }
+//
 void CTPDetector::printStream(std::ostream& stream) const
 {
   o2::detectors::DetID det(detID);
   stream << "CTP Detector:" << det.getName() << " HBaccepted:" << HBaccepted << std::endl;
 }
+//
+o2::detectors::DetID::mask_t CTPCluster::getClusterDetMask() const
+{
+    o2::detectors::DetID::mask_t detmask = 0;
+    for(auto const& det: detectors) {
+        detmask |= det.getMask();
+    }
+    return detmask;
+}
 void CTPCluster::printStream(std::ostream& stream) const
 {
-  stream << "CTP Cluster:" << name << " mask:0b" << std::hex << detectorsMask << " "<< std::dec;
+  stream << "CTP Cluster:" << name << " mask:0b" << std::hex << getClusterDetMask() << " "<< std::dec;
   for(const auto &det : detectors){ stream << det.getName() << " ";}
   stream << std::endl;
 }
+//
 void CTPClass::printStream(std::ostream& stream) const
 {
   stream << "CTP Class:" << name << " Hardware mask:" << classMask << " Descriptor:" << descriptor->name << " Cluster:"<< cluster->name << std::endl;
 }
 /// CTP configuration
 /// Assuming Run2 format + LTG
-int CTPConfiguration::loadConfiguration(std::string& ctpconfiguration)
+//
+bool CTPConfiguration::isDetector(const o2::detectors::DetID& det)
+{
+    if(det.getID() >= det.getNDetectors()) {
+       LOG(FATAL) << " Detector does not exist: " << det.getName() ;
+       return false;
+    }
+    return true;
+}
+int CTPConfiguration::loadConfiguration(const std::string& ctpconfiguration)
 {
   std::cout << "Loading CTP configuration." << std::endl;  
   std::istringstream iss(ctpconfiguration);
@@ -113,27 +135,24 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
     {
         if(ntokens != 4)
         {
-            std::cout << "Syntax error in INPUTS:" << line << std::endl;
+            LOG(ERROR) << "Syntax error in INPUTS:" << line;
             return level;
         }
         CTPInput inp;
         inp.name = tokens[0];
-        inp.detName = tokens[1];
+        std::string detName = tokens[1];
         inp.level = tokens[2];
-        o2::detectors::DetID det(inp.detName.c_str());
+        o2::detectors::DetID det(detName.c_str());
+        inp.detector = det;
         //std::cout << "id:" << det.getID() << " ndets:" << det.getNDetectors() << std::endl;
-        if(det.getID() >= det.getNDetectors())
-        {
-            std::cout << "INPUT line:" << line << " Detector does not exist: " << inp.detName << std::endl;
-            exit(1);
-        }
+        isDetector(det);
         try
         {
             inp.inputMask = std::stoull(tokens[3],nullptr,0);
         }
         catch(...)
         {
-            std::cout << "Syntax error in INPUTS in mask:" << line << std::endl;
+            LOG(ERROR) << "Syntax error in INPUTS in mask:" << line;
             return level;
         }
         mInputs.push_back(inp);
@@ -163,10 +182,9 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         for(auto &item: tokens)
         {
             o2::detectors::DetID det(item.c_str());
+            isDetector(det);
             cluster.detectors.push_back(det);
-            maskCluster |= det.getMask();
         }
-        cluster.detectorsMask=maskCluster;
         mClusters.push_back(cluster);
         break;
     }
@@ -176,7 +194,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         CTPClass cls;
         if(ntokens != 4)
         {
-            std::cout << "Syntax error in CLASSES:" << line << std::endl;
+            LOG(ERROR) << "Syntax error in CLASSES:" << line;
             return level;
         }
         cls.name = tokens[0];
@@ -186,7 +204,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         }
         catch(...)
         {
-            std::cout << "Syntax error in CLASSES in mask:" << line << std::endl;
+            LOG(ERROR) << "Syntax error in CLASSES in mask:" << line;
             return level;
         }
         std::string token=tokens[2];
@@ -215,7 +233,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
     }
     default:
     {
-        std::cout << "Error: Unknown level:"<< level << std::endl;
+        LOG(ERROR) << "Error: Unknown level:"<< level;
     }
   }
   return 0;

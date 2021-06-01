@@ -25,6 +25,8 @@ namespace ctp
 {
 /// Database constants
 const std::string CCDBPathCTPConfig = "CTP/Config";
+///
+bool isDetector(o2::detectors::DetID& det);
 /// CTP Config items
 struct BCMask {
   BCMask() = default;
@@ -37,9 +39,9 @@ struct CTPInput {
   CTPInput() = default;
   std::string name;
   std::string level;
-  std::string detName;
   std::uint64_t inputMask;
-  o2::detectors::DetID::ID detID;
+  o2::detectors::DetID detector;
+  std::string getInputDetName() const {return detector.getName();}
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPInput, 2);
 };
@@ -62,7 +64,7 @@ struct CTPDetector {
 struct CTPCluster {
   CTPCluster() = default;
   std::string name;
-  o2::detectors::DetID::mask_t detectorsMask;
+  o2::detectors::DetID::mask_t getClusterDetMask() const;
   std::vector<o2::detectors::DetID> detectors;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPCluster, 2)
@@ -80,7 +82,8 @@ class CTPConfiguration
 {
  public:
   CTPConfiguration() = default;
-  int loadConfiguration(std::string& ctpconfiguartion);
+  bool isDetector(const o2::detectors::DetID& det);
+  int loadConfiguration(const std::string& ctpconfiguartion);
   void addBCMask(const BCMask& bcmask);
   void addCTPInput(const CTPInput& input);
   void addCTPDescriptor(const CTPDescriptor& descriptor);

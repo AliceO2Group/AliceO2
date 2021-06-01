@@ -39,13 +39,10 @@ void Digits2Raw::init()
   if (outd.back() != '/') {
     outd += '/';
   }  
-  mLinkID = uint32_t(0);
-  mCruID = uint16_t(0);
-  mEndPointID = uint32_t(0);
   for (int ilink = 0; ilink < mNLinks; ilink++) {
     mFeeID = uint64_t(ilink);
     std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "ctp.raw");
-    mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
+    mWriter.registerLink(mFeeID, mCruID, ilink, mEndPointID, outFileLink);
   }
   mWriter.setEmptyPageCallBack(this);
 }
@@ -114,8 +111,6 @@ void Digits2Raw::emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& to
       toAdd = digits2HBTPayload(digits,NIntRecPayload);
     }
   }
-  toAdd.resize(o2::raw::RDHUtils::GBTWord);
-  std::memcpy(toAdd.data(), HBFEmpty.c_str(), o2::raw::RDHUtils::GBTWord);
 }
 std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT>> digits, uint32_t Npld) const
 {

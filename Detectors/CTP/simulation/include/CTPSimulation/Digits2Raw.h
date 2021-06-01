@@ -55,7 +55,6 @@ class Digits2Raw
   o2::raw::RawFileWriter mWriter{"CTP"};
   int mVerbosity = 0;
   bool mOutputPerLink = false;
-  uint32_t mLinkID = 0;
   uint16_t mCruID = 0;
   uint32_t mEndPointID = 0;
   uint64_t mFeeID = 0;
@@ -70,7 +69,6 @@ class Digits2Raw
   const uint32_t NClassPayload = 64+12;
   bool mZeroSuppressedClassRec = true;
   //constexpr uint32_t CTPCRULinkIDMisc = 2;
-  const std::string HBFEmpty = "EMPTY_HBF       ";
   ClassDefNV(Digits2Raw, 1);
 };
 } // namespace ctp
