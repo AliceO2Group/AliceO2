@@ -15,6 +15,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "Headers/RDHAny.h"
 #include "TRDReconstruction/CruRawReader.h"
+#include "TRDBase/FeeParam.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "TRDReconstruction/DigitsParser.h"
@@ -212,6 +213,15 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   std::array<uint32_t, 1024>::iterator currentlinkstart = mHBFPayload.begin() + cruhbfstartoffset;
   std::array<uint32_t, 1024>::iterator linkstart, linkend;
   int dataoffsetstart32 = sizeof(mCurrentHalfCRUHeader) / 4 + cruhbfstartoffset; // in uint32
+  //CHECK 1 does rdh endpoint match cru header end point.
+  if (mCRUEndpoint != mCurrentHalfCRUHeader.EndPoint) {
+    LOG(warn) << " Endpoint mismatch : CRU Half chamber header endpoint = " << mCurrentHalfCRUHeader.EndPoint << " rdh end point = " << mCRUEndpoint;
+    //TODO increment histogram bin.
+    if (mVerbose) {
+      LOG(info) << "******* LINK # " << currentlinkindex;
+    }
+  }
+
   if (mDataVerbose) {
     printHalfCRUHeader(mCurrentHalfCRUHeader);
     for (int i = 0; i < 16; ++i) {
@@ -231,17 +241,24 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   linkstart = mHBFPayload.begin() + dataoffsetstart32;
   linkend = mHBFPayload.begin() + dataoffsetstart32;
   //loop over links
-  for (currentlinkindex = 0; currentlinkindex < 15; currentlinkindex++) {
-    if (mVerbose) {
-      LOG(info) << "******* LINK # " << currentlinkindex;
-    }
+  for (currentlinkindex = 0; currentlinkindex < constants::NLINKSPERHALFCRU; currentlinkindex++) {
     currentlinksize = mCurrentHalfCRULinkLengths[currentlinkindex];
-    currentlinksize32 = currentlinksize * 8; //x8 to go from 256 bits to 32 bit units;
+    currentlinksize32 = currentlinksize * 8; //x8 to go from 256 bits to 32 bit;
     linkstart = mHBFPayload.begin() + dataoffsetstart32 + linksizeAccum32;
     linkend = linkstart + currentlinksize32;
     linksizeAccum32 += currentlinksize32;
-    int currentdetector = 1; // TODO fix this based on the above data.
-
+    int supermodule = ((TRDFeeID*)&mFEEID)->supermodule;
+    int endpoint = ((TRDFeeID*)&mFEEID)->endpoint;
+    int side = ((TRDFeeID*)&mFEEID)->side;
+    //stack layer and side map to ori
+    int stack, layer, oriside;
+    int oriindex = currentlinkindex + constants::NLINKSPERHALFCRU * endpoint; // side denotes the pci side, upper or lower for the pair of 15 fibres.
+    FeeParam::unpackORI(oriindex, side, stack, layer, oriside);
+    int currentdetector = stack + layer + oriside;
+    int ori = 1;
+    if (mVerbose) {
+      LOG(info) << "******* LINK # " << currentlinkindex << " and ORI:" << ori;
+    }
     // tracklet first then digit ??
     // tracklets end with tracklet end marker(0x10001000 0x10001000), digits end with digit endmarker (0x0 0x0)
     if (linkstart != linkend) { // if link is not empty
@@ -254,7 +271,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
       if (mVerbose) {
         LOG(info) << "mem copy with offset of : " << cruhbfstartoffset << " parsing tracklets with linkstart: " << linkstart << " ending at : " << linkend;
       }
-      trackletwordsread = mTrackletsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose); // this will read up to the tracnklet end marker.
+      trackletwordsread = mTrackletsParser.Parse(&mHBFPayload, linkstart, linkend, mFEEID, oriside, currentdetector, stack, layer, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose); // this will read up to the tracnklet end marker.
       if (mVerbose) {
         LOG(info) << "trackletwordsread:" << trackletwordsread << "  mem copy with offset of : " << cruhbfstartoffset << " parsing with linkstart: " << linkstart << " ending at : " << linkend;
       }

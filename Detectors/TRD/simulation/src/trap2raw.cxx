@@ -74,6 +74,7 @@ int main(int argc, char** argv)
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
+    add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("reject-digits", bpo::value<bool>()->default_value(false), "reject the digits in the raw stream");
     add_option("verbose,w", bpo::value<bool>()->default_value(false), "verbose");
 
@@ -95,7 +96,11 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
-  //  o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
+  std::string confDig = vm["hbfutils-config"].as<std::string>();
+  if (!confDig.empty() && confDig != "none") {
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
+  }
+  o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
   std::cout << "yay it ran" << std::endl;
   trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["verbosity"].as<int>(),

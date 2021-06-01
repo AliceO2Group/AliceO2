@@ -51,7 +51,7 @@ int TrackletsParser::Parse()
   if (mDataVerbose) {
     LOG(info) << "trackletdata to parse begin";
     std::vector<uint32_t> datacopy(mStartParse, mEndParse);
-    if (!mByteOrderFix) {
+    if (mByteOrderFix) {
       for (auto a : datacopy) {
         swapByteOrder(a);
       }
@@ -105,12 +105,12 @@ int TrackletsParser::Parse()
     if (mDataVerbose) {
       LOG(info) << "Before byteswapping " << index << " word is : " << std::hex << word << " next word is : " << nextwordcopy << " and raw nextword is :" << std::hex << (*mData)[index + 1];
     }
-    if (!mByteOrderFix) {
+    if (mByteOrderFix) {
       swapByteOrder(*word);
       swapByteOrder(nextwordcopy);
     }
     if (mDataVerbose) {
-      if (!mByteOrderFix) {
+      if (mByteOrderFix) {
         LOG(info) << "After byteswapping " << index << " word is : " << std::hex << word << " next word is : " << nextwordcopy << " and raw nextword is :" << std::hex << (*mData)[index + 1];
       } else {
         LOG(info) << "After byteswapping " << index << " word is : " << std::hex << word << " next word is : " << nextwordcopy << " and raw nextword is :" << std::hex << (*mData)[index + 1];
@@ -183,15 +183,22 @@ int TrackletsParser::Parse()
         if ((*word) & 0x80000001 && mState == StateTrackletMCMHeader) { //TrackletMCMHeader has the bits on either end always 1
           //mcmheader
           //        LOG(debug) << "changing state from padding to mcmheader as next datais 0x" << std::hex << mDataPointer[0];
+          //        int a=1;
+          //        int d=0;
+          //        while(d==0){
+          //          a=sin(rand());
+          //        }
           mTrackletMCMHeader = (TrackletMCMHeader*)&(*word);
           if (mHeaderVerbose) {
             LOG(info) << "state mcmheader and word : 0x" << std::hex << *word;
           }
           if (mHeaderVerbose) {
-            LOG(info) << "state mcmheader and word : 0x" << std::hex << *word << " sanity check : " << trackletHCHeaderSanityCheck(*mTrackletHCHeader);
+            //         LOG(info) << "state mcmheader and word : 0x" << std::hex << *word << " sanity check : " << trackletMCMHeaderSanityCheck(*mTrackletMCMHeader);
             TrackletMCMHeader a;
             a.word = *word;
+            LOG(info) << "about to try print";
             printTrackletMCMHeader(a);
+            LOG(info) << "have printed ";
           }
           headertrackletcount = getNumberofTracklets(*mTrackletMCMHeader);
           mState = StateTrackletMCMData; // afrter reading a header we should then have data for next round through the loop
@@ -209,6 +216,11 @@ int TrackletsParser::Parse()
           mTrackletMCMData = (TrackletMCMData*)&(*word);
           if (mDataVerbose) {
             LOG(info) << "TTT+TTT read a raw tracklet from the raw stream mcmheader ";
+            //>> ..      int a=1;
+            //       int d=0;
+            //       while(d==0){
+            //         a=sin(rand());
+            //       }
             LOG(info) << std::hex << *word << " TTT+TTT";
             printTrackletMCMData(*mTrackletMCMData);
             LOG(info) << "";
@@ -239,18 +251,21 @@ int TrackletsParser::Parse()
           int pos = mTrackletMCMData->pos;
           int slope = mTrackletMCMData->slope;
 
-          int layer = mTrackletHCHeader->layer;
-          int stack = mTrackletHCHeader->stack;
-          int sector = mTrackletHCHeader->supermodule;
-          int detector = layer + stack * constants::NLAYER + sector * constants::NLAYER * constants::NSTACK;
-          int hcid = detector * 2 + mTrackletHCHeader->side;
-          mTracklets.emplace_back((int)mTrackletHCHeader->format, hcid, padrow, col, pos, slope, q0, q1, q2); // our format is always 4
+          //  int layer = mTrackletHCHeader->layer; //TODO we dont know this YET! derive it from fibre ori
+          //  int stack = mTrackletHCHeader->stack;
+          //jh  int sector = mTrackletHCHeader->supermodule;
+          //  int detector = mLayer + mStack * constants::NLAYER + mSector * constants::NLAYER * constants::NSTACK;
+          int hcid = mDetector * 2 + mRobSide;
+          mTracklets.emplace_back(4, hcid, padrow, col, pos, slope, q0, q1, q2); // our format is always 4
           if (mDataVerbose) {
-            LOG(info) << "TTT Tracklet :" << mTrackletHCHeader->format << "-" << hcid << "-" << padrow << "-" << col << "-" << pos << "-" << slope << "-" << q0 << ":" << q1 << ":" << q2;
+            LOG(info) << "TTT Tracklet :" << 4 << "-" << hcid << "-" << padrow << "-" << col << "-" << pos << "-" << slope << "-" << q0 << ":" << q1 << ":" << q2;
             LOG(info) << "emplace tracklet";
           }
           mTrackletsFound++;
           mcmtrackletcount++;
+          if (mDataVerbose) {
+            LOG(info) << " mcmtracklet count:" << mcmtrackletcount << " headertrackletcount :" << headertrackletcount;
+          }
           if (mcmtrackletcount == headertrackletcount) { // headertrackletcount and mcmtrackletcount are not zero based counting
             // at the end of the tracklet output of this mcm
             // next to come can either be an mcmheaderword or a trackletendmarker.

@@ -124,6 +124,7 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
       break;
     default:
       LOG(warn) << " unknown trackletindex to getQFromRaw : " << pidindex;
+      break;
   }
   //second part of pid is in the TrackletMCMData
   qb = data->pid;
@@ -139,6 +140,7 @@ uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::Tr
       break;
     default:
       LOG(warn) << " unknown pid index of : " << pidindex;
+      break;
   }
   //PID VERSION 2
   /*
@@ -203,9 +205,11 @@ void printTrackletMCMData(o2::trd::TrackletMCMData& tracklet)
 
 void printTrackletMCMHeader(o2::trd::TrackletMCMHeader& mcmhead)
 {
+  LOG(info) << " about to print mcm raw header";
   LOGF(INFO, "MCMRawHeader: Raw:0x%08x 1:%d padrow: 0x%02x col: 0x%01x pid2 0x%02x pid1: 0x%02x pid0: 0x%02x 1:%d",
        mcmhead.word, mcmhead.onea, mcmhead.padrow, mcmhead.col,
        mcmhead.pid2, mcmhead.pid1, mcmhead.pid0, mcmhead.oneb);
+  LOG(info) << " printed mcm raw header";
 }
 
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& mcmhead)

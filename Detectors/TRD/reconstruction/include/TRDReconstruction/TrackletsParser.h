@@ -35,11 +35,15 @@ class TrackletsParser
   void setData(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data) { mData = data; }
   int Parse(); // presupposes you have set everything up already.
   int Parse(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* data, std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator start,
-            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, int detector, bool cleardigits = false, bool disablebyteswap = false, bool verbose = true, bool headerverbose = false, bool dataverbose = false) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
+            std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator end, uint32_t feeid, int robside, int detector, int stack, int layer, bool cleardigits = false, bool disablebyteswap = false, bool verbose = true, bool headerverbose = false, bool dataverbose = false) //, std::array<uint32_t, 15>& lengths) // change to calling per link.
   {
     mStartParse = start;
     mEndParse = end;
     mDetector = detector;
+    mFEEID = feeid;
+    mRobSide = robside;
+    mStack = stack;
+    mLayer = layer;
     setData(data);
     setVerbose(verbose, headerverbose, dataverbose);
     setByteSwap(disablebyteswap);
@@ -96,9 +100,6 @@ class TrackletsParser
   bool mByteOrderFix{false};           // simulated data is not byteswapped, real is, so deal with it accodringly.
   bool mReturnVector{false};           // whether weare returing a vector or the raw data buffer.
 
-  uint16_t mDetector;
-  uint16_t mMCM;
-  uint16_t mROB;
   uint16_t mEventCounter;
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator mStartParse, mEndParse; // limits of parsing, effectively the link limits to parse on.
   //uint32_t mCurrentLinkDataPosition256;                // count of data read for current link in units of 256 bits
@@ -107,7 +108,13 @@ class TrackletsParser
   uint16_t mCRUEndpoint; // the upper or lower half of the currently parsed cru 0-14 or 15-29
   uint16_t mCRUID;
   uint16_t mHCID;
+  uint16_t mDetector;
+  uint16_t mRobSide;
+  uint16_t mStack;
+  uint16_t mLayer;
   uint16_t mFEEID; // current Fee ID working on
+  uint16_t mMCM;
+  uint16_t mROB;
   //  std::array<uint32_t, 16> mAverageNumTrackletsPerTrap; TODO come back to this stat.
 };
 
