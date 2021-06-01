@@ -15,6 +15,7 @@
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include <Monitoring/Monitoring.h>
 #include <fairmq/FairMQTransportFactory.h>
 #include <cstring>
@@ -45,7 +46,8 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
     createRoute("z_source", spec3)};
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
-  InputRecord emptyRecord(schema, {[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0});
+  InputSpan span{[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0};
+  InputRecord emptyRecord(schema, span);
 
   std::vector<void*> inputs;
 
@@ -78,8 +80,8 @@ static void BM_InputRecordGenericGetters(benchmark::State& state)
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   createEmpty();
-  InputSpan span{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
-  InputRecord record{schema, std::move(span)};
+  InputSpan span2{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
+  InputRecord record{schema, span2};
 
   for (auto _ : state) {
     // Checking we can get the whole ref by name

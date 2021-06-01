@@ -10,6 +10,7 @@
 
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/InputSpan.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Logger.h"
@@ -30,7 +31,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByNameOrigin(std::string const& 
 
   auto originReceived = std::make_shared<std::vector<uint64_t>>();
 
-  auto callback = [originReceived, origin, op](CompletionPolicy::InputSet inputRefs) -> CompletionPolicy::CompletionOp {
+  auto callback = [originReceived, origin, op](InputSpan const& inputRefs) -> CompletionPolicy::CompletionOp {
     // update list of the start times of inputs with origin @origin
     for (auto& ref : inputRefs) {
       if (ref.header != nullptr) {
@@ -72,7 +73,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
   auto matcher = [name](DeviceSpec const& device) -> bool {
     return std::regex_match(device.name.begin(), device.name.end(), std::regex(name));
   };
-  auto callback = [op](CompletionPolicy::InputSet) -> CompletionPolicy::CompletionOp {
+  auto callback = [op](InputSpan const&) -> CompletionPolicy::CompletionOp {
     return op;
   };
   switch (op) {
@@ -94,7 +95,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
+  auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
     for (auto& input : inputs) {
       if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
@@ -107,7 +108,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
+  auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
     for (auto& input : inputs) {
       if (input.header != nullptr) {
         return CompletionPolicy::CompletionOp::Consume;
@@ -120,7 +121,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
 
 CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto callback = [](CompletionPolicy::InputSet inputs) -> CompletionPolicy::CompletionOp {
+  auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
     size_t present = 0;
     for (auto& input : inputs) {
       if (input.header != nullptr) {
