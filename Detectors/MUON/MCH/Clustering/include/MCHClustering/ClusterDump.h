@@ -23,41 +23,41 @@
 #include <vector>
 
 // GG
-# include <fstream>
+#include <fstream>
 
 namespace o2
 {
 namespace mch
 {
-// Utilities to dump a file    
+// Utilities to dump a file
 class ClusterDump
 {
  public:
-  ClusterDump(const char *str, int mode);
+  ClusterDump(const char* str, int mode);
   ~ClusterDump();
 
   ClusterDump(const ClusterDump&) = delete;
   ClusterDump& operator=(const ClusterDump&) = delete;
   ClusterDump(ClusterDump&&) = delete;
   ClusterDump& operator=(ClusterDump&&) = delete;
-  
+
   void flush();
-  
-  void dumpFloat32( int ifile, long size, const float_t * data);
 
-  void dumpFloat64( int ifile, long size, const double_t * data);
+  void dumpFloat32(int ifile, long size, const float_t* data);
 
-  void dumpInt32( int ifile, long size, const int32_t * data);
-  
-  void dumpUInt32( int ifile, long size, const uint32_t * data);
-  
-  void dumpInt16( int ifile, long size, const int16_t * data);
+  void dumpFloat64(int ifile, long size, const double_t* data);
+
+  void dumpInt32(int ifile, long size, const int32_t* data);
+
+  void dumpUInt32(int ifile, long size, const uint32_t* data);
+
+  void dumpInt16(int ifile, long size, const int16_t* data);
 
  private:
   std::string fileName;
   std::fstream dumpFiles[4];
   int mode; // 1 write the file else don't
- };
+};
 } // namespace mch
 } // namespace o2
 

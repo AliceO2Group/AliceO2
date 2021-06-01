@@ -90,8 +90,8 @@ class ClusterFinderGEMTask
       // uint32_t orbit = DummyOrbit; ///< LHC orbit
       // clusterize every preclusters
       uint16_t bCrossing = preClusterROF.getBCData().bc;
-      uint32_t orbit= preClusterROF.getBCData().orbit;
-      uint32_t iROF=0;
+      uint32_t orbit = preClusterROF.getBCData().orbit;
+      uint32_t iROF = 0;
       auto tStart = std::chrono::high_resolution_clock::now();
       //
       mClusterFinder.reset();
@@ -127,7 +127,7 @@ class ClusterFinderGEMTask
     }
   }
 
-  ClusterFinderGEM mClusterFinder{};             ///< clusterizer
+  ClusterFinderGEM mClusterFinder{};                  ///< clusterizer
   std::chrono::duration<double> mTimeClusterFinder{}; ///< timer
 };
 
