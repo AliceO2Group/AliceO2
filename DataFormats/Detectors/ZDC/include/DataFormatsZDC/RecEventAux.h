@@ -87,20 +87,6 @@ struct RecEventAux {
 };
 
 } // namespace zdc
-
-/// Defining RecEventAux explicitly as messageable
-///
-/// It does not fulfill is_messageable because the underlying ROOT
-/// classes of Point2D are note trivially copyable.
-namespace framework
-{
-template <typename T>
-struct is_messageable;
-template <>
-struct is_messageable<o2::zdc::RecEventAux> : std::true_type {
-};
-} // namespace framework
-
 } // namespace o2
 
 #endif

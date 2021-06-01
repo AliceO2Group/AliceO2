@@ -33,3 +33,13 @@ o2_add_executable(entropy-encoder-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/entropy-encoder-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
+
+o2_add_executable(digits-reco
+                  COMPONENT_NAME zdc
+                  SOURCES src/DigitRecoSpec.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
+
+o2_add_executable(write-reco
+                  COMPONENT_NAME zdc
+                  SOURCES src/ZDCRecoWriterDPLSpec.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)

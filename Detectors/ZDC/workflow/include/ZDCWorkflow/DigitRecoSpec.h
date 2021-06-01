@@ -17,6 +17,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "ZDCReconstruction/DigiReco.h"
 #include <TStopwatch.h>
 
 namespace o2
@@ -34,6 +35,7 @@ class DigitRecoSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
+  DigiReco mDR;
   TStopwatch mTimer;
   bool mInitialized = false;
 };

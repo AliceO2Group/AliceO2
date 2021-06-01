@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <map>
+#include <gsl/span>
 #include <TFile.h>
 #include <TTree.h>
 #include "ZDCBase/Constants.h"
@@ -37,11 +38,15 @@ class DigiReco
   {
     if (mTreeDbg) {
       mTDbg->Write();
+      mTDbg.reset();
       mDbg->Close();
+      mDbg.reset();
     }
   }
   void init();
-  int process(const std::vector<o2::zdc::OrbitData>* orbitdata, const std::vector<o2::zdc::BCData>* bcdata, const std::vector<o2::zdc::ChannelData>* chdata);
+  int process(const gsl::span<const o2::zdc::OrbitData>& orbitdata,
+              const gsl::span<const o2::zdc::BCData>& bcdata,
+              const gsl::span<const o2::zdc::ChannelData>& chdata);
   int write();
   void setVerbosity(int v)
   {
@@ -74,17 +79,17 @@ class DigiReco
   uint32_t mTDCMask[NTDCChannels] = {0};                                      /// Identify TDC channels in trigger mask
   const ZDCIntegrationParam* mIntParam = nullptr;                             /// Configuration of integration
   bool mVerbosity = DbgFull;
-  Double_t mTS[NTS];                                 /// Tapered sinc function
-  bool mTreeDbg = false;                             /// Write reconstructed data in debug output file
-  TFile* mDbg = nullptr;                             /// Debug output file
-  TTree* mTDbg = nullptr;                            /// Debug tree
-  const std::vector<o2::zdc::OrbitData>* mOrbitData; /// Reconstructed data
-  const std::vector<o2::zdc::BCData>* mBCData;       /// BC info
-  const std::vector<o2::zdc::ChannelData>* mChData;  /// Payload
-  std::vector<o2::zdc::RecEventAux> mReco;           /// Reconstructed data
-  std::map<uint32_t, int> mOrbit;                    /// Information about orbit
-  static constexpr int mNSB = TSN * NTimeBinsPerBC;  /// Total number of interpolated points per bunch crossing
-  RecEventAux mRec;                                  /// Debug reconstruction event
+  Double_t mTS[NTS];                                /// Tapered sinc function
+  bool mTreeDbg = false;                            /// Write reconstructed data in debug output file
+  std::unique_ptr<TFile> mDbg = nullptr;            /// Debug output file
+  std::unique_ptr<TTree> mTDbg = nullptr;           /// Debug tree
+  gsl::span<const o2::zdc::OrbitData> mOrbitData;   /// Reconstructed data
+  gsl::span<const o2::zdc::BCData> mBCData;         /// BC info
+  gsl::span<const o2::zdc::ChannelData> mChData;    /// Payload
+  std::vector<o2::zdc::RecEventAux> mReco;          /// Reconstructed data
+  std::map<uint32_t, int> mOrbit;                   /// Information about orbit
+  static constexpr int mNSB = TSN * NTimeBinsPerBC; /// Total number of interpolated points per bunch crossing
+  RecEventAux mRec;                                 /// Debug reconstruction event
   int mNBC = 0;
   int16_t tdc_shift[NTDCChannels] = {0}; /// TDC correction (units of 1/96 ns)
   constexpr static uint16_t mMask[NTimeBinsPerBC] = {0x0001, 0x002, 0x004, 0x008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800};

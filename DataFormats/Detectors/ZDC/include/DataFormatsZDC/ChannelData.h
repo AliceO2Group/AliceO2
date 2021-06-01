@@ -37,6 +37,7 @@ struct ChannelData {
       data[i] = int16_t(src[i]);
     }
   }
+  ChannelData(const ChannelData&) = default;
 
   void print() const;
 
