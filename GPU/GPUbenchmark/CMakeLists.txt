@@ -9,7 +9,6 @@
 # submit itself to any jurisdiction.
 
 if(CUDA_ENABLED)
-  message("Building CUDA benchmark library")
   add_subdirectory(cuda)
   o2_add_executable(memory-benchmark-cuda
                   SOURCES benchmark.cxx
@@ -18,16 +17,21 @@ if(CUDA_ENABLED)
 endif()
 
 if(HIP_ENABLED)
-  message("Building HIP benchmark library")
   add_subdirectory(hip)
   set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
+  set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
+
   set(CMAKE_CXX_EXTENSIONS OFF)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
 
   o2_add_executable(memory-benchmark-hip
                     SOURCES benchmark.cxx
                     PUBLIC_LINK_LIBRARIES O2::HIPbenchmark
-                                          hip::host 
-                                          hip::device
+                                          hip::host
                     TARGETVARNAME targetName)
+
+if(HIP_AMDGPUTARGET)
+# Need to add gpu target also to link flags due to gpu-rdc option
+target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+endif()
 endif()

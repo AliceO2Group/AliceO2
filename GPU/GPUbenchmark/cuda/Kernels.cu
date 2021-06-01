@@ -13,12 +13,22 @@
 
 #include <Kernels.h>
 #include <Common.h>
+#include <stdio.h>
 
 #define GPUCHECK(error)                                                                        \
   if (error != cudaSuccess) {                                                                  \
     printf("%serror: '%s'(%d) at %s:%d%s\n", KRED, cudaGetErrorString(error), error, __FILE__, \
            __LINE__, KNRM);                                                                    \
     failed("API returned error code.");                                                        \
+  }
+
+#define CHECK(cmd)                                                                                         \
+  {                                                                                                        \
+    cudaError_t error = cmd;                                                                               \
+    if (error != cudaSuccess) {                                                                            \
+      fprintf(stderr, "error: '%s'(%d) at %s:%d\n", cudaGetErrorString(error), error, __FILE__, __LINE__); \
+      exit(EXIT_FAILURE);                                                                                  \
+    }                                                                                                      \
   }
 
 namespace o2
@@ -28,18 +38,33 @@ namespace benchmark
 namespace gpu
 {
 // Kernels go here
-template <class buffer_type>
-GPUg() void readerKernel(
-  // buffer_type* buffer,
-  // size_t bufferSize)
-)
+/* 
+ * Square each element in the array A and write to array C.
+ */
+template <typename T>
+__global__ void
+  vector_square(T* C_d, T* A_d, size_t N)
 {
-  printf("ciao");
-  // for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < bufferSize; i += blockDim.x * gridDim.x) {
-  //   if (i == 0) {
-  //       }
-  // }
+  size_t offset = (blockIdx.x * blockDim.x + threadIdx.x);
+  size_t stride = blockDim.x * gridDim.x;
+
+  for (size_t i = offset; i < N; i += stride) {
+    C_d[i] = A_d[i] * A_d[i];
+  }
 }
+
+// template <class buffer_type>
+// GPUg() void readerKernel(
+//   // buffer_type* buffer,
+//   // size_t bufferSize)
+// )
+// {
+//   printf("ciao");
+//   // for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < bufferSize; i += blockDim.x * gridDim.x) {
+//   //   if (i == 0) {
+//   //       }
+//   // }
+// }
 } // namespace gpu
 
 void printDeviceProp(int deviceId)
@@ -209,9 +234,51 @@ void GPUbenchmark<buffer_type>::init(const int deviceId)
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::readingBenchmark()
 {
-  dim3 nBlocks(mState.nMultiprocessors);
-  dim3 nThreads(mState.nMaxThreadsPerBlock);
-  gpu::readerKernel<buffer_type><<<1, 1>>>();
+  // dim3 nBlocks(mState.nMultiprocessors);
+  // dim3 nThreads(mState.nMaxThreadsPerBlock);
+  // gpu::readerKernel<buffer_type><<<1, 1>>>();
+  float *A_d, *C_d;
+  float *A_h, *C_h;
+  size_t N = 1000000;
+  size_t Nbytes = N * sizeof(float);
+
+  cudaDeviceProp props;
+  CHECK(cudaGetDeviceProperties(&props, 0 /*deviceID*/));
+  printf("info: running on device %s\n", props.name);
+
+  printf("info: allocate host mem (%6.2f MB)\n", 2 * Nbytes / 1024.0 / 1024.0);
+  A_h = (float*)malloc(Nbytes);
+  CHECK(A_h == 0 ? cudaErrorMemoryAllocation : cudaSuccess);
+  C_h = (float*)malloc(Nbytes);
+  CHECK(C_h == 0 ? cudaErrorMemoryAllocation : cudaSuccess);
+  // Fill with Phi + i
+  for (size_t i = 0; i < N; i++) {
+    A_h[i] = 1.618f + i;
+  }
+
+  printf("info: allocate device mem (%6.2f MB)\n", 2 * Nbytes / 1024.0 / 1024.0);
+  CHECK(cudaMalloc(&A_d, Nbytes));
+  CHECK(cudaMalloc(&C_d, Nbytes));
+
+  printf("info: copy Host2Device\n");
+  CHECK(cudaMemcpy(A_d, A_h, Nbytes, cudaMemcpyHostToDevice));
+
+  const unsigned blocks = 512;
+  const unsigned threadsPerBlock = 256;
+
+  printf("info: launch 'vector_square' kernel\n");
+  gpu::vector_square<<<blocks, threadsPerBlock>>>(C_d, A_d, N);
+
+  printf("info: copy Device2Host\n");
+  CHECK(cudaMemcpy(C_h, C_d, Nbytes, cudaMemcpyDeviceToHost));
+
+  printf("info: check result\n");
+  for (size_t i = 0; i < N; i++) {
+    if (C_h[i] != A_h[i] * A_h[i]) {
+      CHECK(cudaErrorUnknown);
+    }
+  }
+  printf("PASSED!\n");
 }
 
 template <class buffer_type>
@@ -223,18 +290,18 @@ void GPUbenchmark<buffer_type>::finalize()
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::run()
 {
-  printDevices();
-  measure(&GPUbenchmark<buffer_type>::init, "Init", 0);
-  std::cout << "  ├ Allocated " << mState.allocatedMemory << "/" << mState.totalMemory
-            << " bytes (" << std::setprecision(3) << (100.f) * (mState.allocatedMemory / (float)mState.totalMemory) << "%)\n";
-  std::cout << "  └ Can do " << mState.getMaxSegments() << " of 1GB memory segments\n";
-  mState.computeBufferPointers();
+  // printDevices();
+  // measure(&GPUbenchmark<buffer_type>::init, "Init", 0);
+  // std::cout << "  ├ Allocated " << mState.allocatedMemory << "/" << mState.totalMemory
+  //           << " bytes (" << std::setprecision(3) << (100.f) * (mState.allocatedMemory / (float)mState.totalMemory) << "%)\n";
+  // std::cout << "  └ Can do " << mState.getMaxSegments() << " of 1GB memory segments\n";
+  // mState.computeBufferPointers();
 
   // for (auto& addr : mState.getBuffersPointers()) {
   //   std::cout << (void*)addr << std::endl;
   // }
   measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark");
-  GPUbenchmark<buffer_type>::finalize();
+  // GPUbenchmark<buffer_type>::finalize();
 }
 
 template class GPUbenchmark<char>;

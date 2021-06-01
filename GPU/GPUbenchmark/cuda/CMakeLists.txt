@@ -15,5 +15,3 @@ o2_add_library(CUDAbenchmark
                PUBLIC_INCLUDE_DIRECTORIES ../Shared
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                TARGETVARNAME targetName)
-
-               set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
