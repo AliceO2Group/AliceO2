@@ -105,6 +105,12 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   // CTF Dictionary
   static std::string getCTFDictFileName();
 
+  // The alignment object path in CCDB
+  static std::string getAlignmentPath(o2::detectors::DetID d)
+  {
+    return o2::utils::Str::concat_string(d.getName(), "/", ALIGNPATH);
+  }
+
  private:
   // helper method to build filenames
   static std::string buildFileName(const std::string_view prefix, const std::string_view delimiter, const std::string_view defPrefix, const std::string_view defName,
@@ -125,6 +131,7 @@ class NameConf : public o2::conf::ConfigurableParamHelper<NameConf>
   static constexpr std::string_view ALPIDECLUSDICTFILENAME = "dictionary";
   static constexpr std::string_view MATBUDLUT = "matbud";
   static constexpr std::string_view COLLISIONCONTEXT = "collisioncontext";
+  static constexpr std::string_view ALIGNPATH = "Align";
 
   // these are configurable paths for some commonly used files
   std::string mDirGRP = "none";    // directory for GRP file ("none" == "")
