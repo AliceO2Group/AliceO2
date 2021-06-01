@@ -56,8 +56,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
 
-  GID::mask_t alowedSourcesPV = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TOF");
-  GID::mask_t alowedSourcesVT = GID::getSourcesMask("ITS,MFT,ITS-TPC,ITS-TPC-TOF,TPC,TPC-TOF");
+  GID::mask_t allowedSourcesPV = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TOF");
+  GID::mask_t allowedSourcesVT = GID::getSourcesMask("ITS,MFT,ITS-TPC,ITS-TPC-TOF,TPC,TPC-TOF");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -69,8 +69,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto validateWithFT0 = configcontext.options().get<bool>("validate-with-ft0");
 
-  GID::mask_t srcPV = alowedSourcesPV & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
-  GID::mask_t srcVT = alowedSourcesVT & GID::getSourcesMask(configcontext.options().get<std::string>("vetex-track-matching-sources"));
+  GID::mask_t srcPV = allowedSourcesPV & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
+  GID::mask_t srcVT = allowedSourcesVT & GID::getSourcesMask(configcontext.options().get<std::string>("vetex-track-matching-sources"));
+  if (validateWithFT0) {
+    srcPV |= GID::getSourceMask(GID::FT0);
+  }
   GID::mask_t srcComb = srcPV | srcVT;
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, srcComb) ? GID::getSourceMask(GID::TOF) : dummy;
 
