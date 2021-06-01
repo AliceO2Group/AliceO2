@@ -15,6 +15,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataRef.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/Logger.h"
 #include "Framework/PartRef.h"
@@ -474,7 +475,8 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     auto nPartsGetter = [&partial](size_t idx) {
       return partial[idx].size();
     };
-    auto action = mCompletionPolicy.callback({getter, nPartsGetter, static_cast<size_t>(partial.size())});
+    InputSpan span{getter, nPartsGetter, static_cast<size_t>(partial.size())};
+    auto action = mCompletionPolicy.callback(span);
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
       case CompletionPolicy::CompletionOp::Process:
