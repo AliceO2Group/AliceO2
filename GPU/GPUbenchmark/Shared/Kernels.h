@@ -24,9 +24,6 @@
 #define FREE_MEMORY_FRACTION_TO_ALLOCATE 0.99f
 #define GB 1073741824
 
-double bytesToKB(size_t s) { return (double)s / (1024.0); }
-double bytesToGB(size_t s) { return (double)s / (1024.0 * 1024.0 * 1024.0); }
-
 namespace o2
 {
 namespace benchmark
@@ -36,7 +33,7 @@ template <class T>
 struct gpuState {
   int getMaxSegments()
   {
-    return bytesToGB(allocatedMemory);
+    return (double)allocatedMemory / (1024.0 * 1024.0 * 1024.0);
   }
 
   void computeBufferPointers()

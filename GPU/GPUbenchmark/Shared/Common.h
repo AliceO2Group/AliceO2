@@ -11,8 +11,8 @@
 /// \file Common.h
 /// \author: mconcas@cern.ch
 
-#ifndef GPUBENCHMARK_COMMON_H
-#define GPUBENCHMARK_COMMON_H
+#ifndef GPU_BENCHMARK_COMMON_H
+#define GPU_BENCHMARK_COMMON_H
 #if defined(__HIPCC__)
 #include "hip/hip_runtime.h"
 #endif
@@ -35,4 +35,5 @@
   printf("\n");                           \
   printf("error: TEST FAILED\n%s", KNRM); \
   exit(EXIT_FAILURE);
+
 #endif

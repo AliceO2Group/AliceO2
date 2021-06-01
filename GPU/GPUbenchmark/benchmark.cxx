@@ -12,7 +12,7 @@
 /// \author: mconcas@cern.ch
 
 #include <iostream>
-#include <Kernels.h>
+#include "Shared/Kernels.h"
 
 int main()
 {

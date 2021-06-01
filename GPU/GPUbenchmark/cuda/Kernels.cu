@@ -11,9 +11,12 @@
 /// \file Kernels.cu
 /// \author: mconcas@cern.ch
 
-#include <Kernels.h>
-#include <Common.h>
+#include "../Shared/Kernels.h"
+#include "../Shared/Common.h"
 #include <stdio.h>
+
+double bytesToKB(size_t s) { return (double)s / (1024.0); }
+double bytesToGB(size_t s) { return (double)s / (1024.0 * 1024.0 * 1024.0); }
 
 #define GPUCHECK(error)                                                                        \
   if (error != cudaSuccess) {                                                                  \
