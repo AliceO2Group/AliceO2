@@ -91,6 +91,7 @@ class DataDecoder
   };
 
   struct SampaTimeFrameStart {
+    SampaTimeFrameStart() = default;
     SampaTimeFrameStart(uint32_t orbit, uint32_t bunchCrossing) : mOrbit(orbit), mBunchCrossing(bunchCrossing) {}
 
     uint32_t mOrbit{0};
@@ -120,14 +121,20 @@ class DataDecoder
   DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose);
 
   void reset();
-  void setFirstTForbit(uint32_t orbit) { mFirstTForbit = orbit; }
   void decodeBuffer(gsl::span<const std::byte> buf);
 
+  void setFirstOrbitInRun(uint32_t orbit) { mFirstOrbitInRun = orbit; }
+  std::optional<uint32_t> getFirstOrbitInRun() { return mFirstOrbitInRun; }
+  void setFirstOrbitInTF(uint32_t orbit);
+  std::optional<uint32_t> getFirstOrbitInTF() { return mFirstOrbitInTF; }
+
+  static uint32_t getSampaBcOffset() { return sSampaTimeOffset; }
+
   static int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2);
-  static void computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug);
+  static void computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug);
   void computeDigitsTime()
   {
-    computeDigitsTime_(mDigits, mSampaTimeFrameStarts, mDebug);
+    computeDigitsTime_(mDigits, mSampaTimeFrameStart, mDebug);
   }
 
   const RawDigitVector& getDigits() const { return mDigits; }
@@ -147,19 +154,21 @@ class DataDecoder
 
   o2::mch::raw::PageDecoder mDecoder; ///< CRU page decoder
 
-  RawDigitVector mDigits; ///< vector of decoded digits
-
+  RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
-  SampaTimeFrameStarts mSampaTimeFrameStarts;           ///< time stamps of the TimeFrames in the processed buffer
+
+  std::optional<uint32_t> mFirstOrbitInRun{0}; ///< first orbit in the processed run
+  std::optional<uint32_t> mFirstOrbitInTF{0};  ///< first orbit in the processed time frame
+  SampaTimeFrameStart mSampaTimeFrameStart;    ///< SAMPA bunch-crossing counter at the beiginning of the TF
+
+  static constexpr uint32_t sSampaTimeOffset = 339986; ///< SAMPA BC counter value at the beginning of the first orbit in the run
 
   SampaChannelHandler mChannelHandler;                  ///< optional user function to be called for each decoded SAMPA hit
   std::function<void(o2::header::RDHAny*)> mRdhHandler; ///< optional user function to be called for each RDH
 
   bool mDebug{false};
   bool mDs2manu{false};
-  uint32_t mFirstTForbit{0};
   uint32_t mOrbit{0};
-  uint32_t mOrbitId{0};
 };
 
 bool operator<(const DataDecoder::RawDigit& d1, const DataDecoder::RawDigit& d2);
