@@ -65,6 +65,7 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
+                       src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
                        src/LifetimeHelpers.cxx

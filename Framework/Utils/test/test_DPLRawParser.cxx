@@ -14,6 +14,7 @@
 #include <boost/test/unit_test.hpp>
 #include "DPLUtils/DPLRawParser.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/WorkflowSpec.h" // o2::framework::select
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
@@ -33,14 +34,17 @@ struct DataSet {
   // not nice with the double vector but for quick unit test ok
   using Messages = std::vector<std::vector<std::unique_ptr<std::vector<char>>>>;
   DataSet(std::vector<InputRoute>&& s, Messages&& m, std::vector<int>&& v)
-    : schema{std::move(s)}, messages{std::move(m)}, record{schema, {[this](size_t i, size_t part) {
-                                                                      BOOST_REQUIRE(i < this->messages.size());
-                                                                      BOOST_REQUIRE(part < this->messages[i].size() / 2);
-                                                                      auto header = static_cast<char const*>(this->messages[i].at(2 * part)->data());
-                                                                      auto payload = static_cast<char const*>(this->messages[i].at(2 * part + 1)->data());
-                                                                      return DataRef{nullptr, header, payload};
-                                                                    },
-                                                                    [this](size_t i) { return i < this->messages.size() ? messages[i].size() / 2 : 0; }, this->messages.size()}},
+    : schema{std::move(s)},
+      messages{std::move(m)},
+      span{[this](size_t i, size_t part) {
+             BOOST_REQUIRE(i < this->messages.size());
+             BOOST_REQUIRE(part < this->messages[i].size() / 2);
+             auto header = static_cast<char const*>(this->messages[i].at(2 * part)->data());
+             auto payload = static_cast<char const*>(this->messages[i].at(2 * part + 1)->data());
+             return DataRef{nullptr, header, payload};
+           },
+           [this](size_t i) { return i < this->messages.size() ? messages[i].size() / 2 : 0; }, this->messages.size()},
+      record{schema, span},
       values{std::move(v)}
   {
     BOOST_REQUIRE(messages.size() == schema.size());
@@ -48,6 +52,7 @@ struct DataSet {
 
   std::vector<InputRoute> schema;
   Messages messages;
+  InputSpan span;
   InputRecord record;
   std::vector<int> values;
 };
