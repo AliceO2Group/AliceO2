@@ -89,7 +89,6 @@ struct DQEventSelection {
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
   AnalysisCompositeCut* fEventCut;
-
   float* fValues;
 
   // TODO: make mixing binning configurable
@@ -316,6 +315,7 @@ struct DQEventMixing {
       }
     }
     histNames += "PairsMuonMEPM;PairsMuonMEPP;PairsMuonMEMM;";
+    histNames += "PairsEleMuMEPM;PairsEleMuMEPP;PairsEleMuMEMM;";
 
     DefineHistograms(fHistMan, histNames.Data());    // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
@@ -411,7 +411,7 @@ struct DQEventMixing {
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
           }
-          VarManager::FillPair(muon1, muon2, fValues);
+          VarManager::FillPair(muon1, muon2, fValues, VarManager::kJpsiToMuMu);
           if (muon1.sign() * muon2.sign() < 0) {
             fHistMan->FillHistClass("PairsMuonMEPM", fValues);
           } else {
@@ -423,8 +423,33 @@ struct DQEventMixing {
           }
         } // end for (muon2)
       }   // end for (muon1)
-    }     // end for (event combinations)
-  }       // end process()
+
+      for (auto& track1 : tracks1) {
+        for (auto& muon2 : muons2) {
+          twoTrackFilter = track1.isBarrelSelected() & muon2.isMuonSelected();
+
+          if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
+            continue;
+          }
+          VarManager::FillPair(track1, muon2, fValues, VarManager::kElectronMuon);
+
+          for (int i = 0; i < fCutNames.size(); ++i) {
+            if (twoTrackFilter & (uint8_t(1) << i)) {
+              if (track1.sign() * muon2.sign() < 0) {
+                fHistMan->FillHistClass(Form("PairsEleMuMEPM", fCutNames[i].Data()), fValues);
+              } else {
+                if (track1.sign() > 0) {
+                  fHistMan->FillHistClass(Form("PairsEleMuMEPP", fCutNames[i].Data()), fValues);
+                } else {
+                  fHistMan->FillHistClass(Form("PairsEleMuMEMM", fCutNames[i].Data()), fValues);
+                }
+              }
+            } // end if (filter bits)
+          }   // end for (cuts)
+        }     // end for (muon2)
+      }       // end for (track1)
+    }         // end for (event combinations)
+  }           // end process()
 };
 
 struct DQTableReader {
@@ -465,6 +490,7 @@ struct DQTableReader {
       }
     }
     histNames += "PairsMuonSEPM;PairsMuonSEPP;PairsMuonSEMM;";
+    histNames += "PairsEleMuSEPM;PairsEleMuSEPP;PairsEleMuSEMM;";
 
     DefineHistograms(fHistMan, histNames.Data());    // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
@@ -519,7 +545,7 @@ struct DQTableReader {
       //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons and the last 8 for dimuons.
       // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.)
       dileptonFilterMap = uint16_t(twoTrackFilter) << 8;
-      VarManager::FillPair(muon1, muon2, fValues);
+      VarManager::FillPair(muon1, muon2, fValues, VarManager::kJpsiToMuMu);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], muon1.sign() + muon2.sign(), dileptonFilterMap);
       if (muon1.sign() * muon2.sign() < 0) {
         fHistMan->FillHistClass("PairsMuonSEPM", fValues);
@@ -531,6 +557,28 @@ struct DQTableReader {
         }
       }
     } // end loop over muon track pairs
+
+    for (auto& [trackBarrel, trackMuon] : combinations(tracks, muons)) {
+      twoTrackFilter = trackBarrel.isBarrelSelected() & trackMuon.isMuonSelected();
+      if (!twoTrackFilter) { // the muons must have at least one filter bit in common to continue
+        continue;
+      }
+      // NOTE: The dimuons in this task ae pushed in the same table as the dielectrons.
+      //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons and the last 8 for dimuons.
+      // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.)
+      dileptonFilterMap = uint16_t(twoTrackFilter) << 8;
+      VarManager::FillPair(trackBarrel, trackMuon, fValues, VarManager::kElectronMuon);
+      dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], trackBarrel.sign() + trackMuon.sign(), dileptonFilterMap);
+      if (trackBarrel.sign() * trackMuon.sign() < 0) {
+        fHistMan->FillHistClass("PairsEleMuSEPM", fValues);
+      } else {
+        if (trackBarrel.sign() > 0) {
+          fHistMan->FillHistClass("PairsEleMuSEPP", fValues);
+        } else {
+          fHistMan->FillHistClass("PairsEleMuSEMM", fValues);
+        }
+      }
+    }
   }
 };
 
@@ -639,7 +687,7 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
 
     // NOTE: The level of detail for histogramming can be controlled via configurables
     if (classStr.Contains("Event")) {
-      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "event", "trigger,cent");
+      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "event", "trigger,cent,muon");
     }
 
     if (classStr.Contains("Track")) {
@@ -652,7 +700,15 @@ void DefineHistograms(HistogramManager* histMan, TString histClasses)
     }
 
     if (classStr.Contains("Pairs")) {
-      dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair", "vertexing-barrel");
+      if (classStr.Contains("Barrel")) {
+        dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair_barrel", "vertexing-barrel");
+      }
+      if (classStr.Contains("Muon")) {
+        dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair_dimuon");
+      }
+      if (classStr.Contains("EleMu")) {
+        dqhistograms::DefineHistograms(histMan, objArray->At(iclass)->GetName(), "pair_electronmuon");
+      }
     }
 
     if (classStr.Contains("DileptonsSelected")) {
