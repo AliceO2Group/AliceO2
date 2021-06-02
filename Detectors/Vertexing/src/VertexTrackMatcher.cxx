@@ -66,8 +66,10 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
   auto v2tfitIDs = recoData.getPrimaryVertexContributors();
   auto v2tfitRefs = recoData.getPrimaryVertexContributorsRefs();
 
-  int nv = vertices.size();
-  TmpMap tmpMap(nv);
+  int nv = vertices.size(), nv1 = nv + 1;
+  TmpMap tmpMap(nv1);
+  auto& orphans = tmpMap.back(); // in the last element we store unassigned track indices
+
   // register vertex contributors
   std::unordered_map<GIndex, bool> vcont;
   std::vector<VtxTBracket> vtxOrdBrack; // vertex indices and brackets sorted in tmin
@@ -122,7 +124,9 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
         tmpMap[v].emplace_back(tro.origID).setAmbiguous();
       }
     }
-    if (!vtxList.empty()) {
+    if (vtxList.empty()) {
+      orphans.emplace_back(tro.origID); // register unassigned track
+    } else {
       nAssigned++;
     }
   }
@@ -131,13 +135,14 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
   trackIndex.clear();
   vtxRefs.clear();
 
-  for (int iv = 0; iv < nv; iv++) {
+  for (int iv = 0; iv < nv1; iv++) {
     auto& trvec = tmpMap[iv];
     // sort entries in each vertex track indices list according to the source
     std::sort(trvec.begin(), trvec.end(), [](VTIndex a, VTIndex b) { return a.getSource() < b.getSource(); });
 
     auto entry0 = trackIndex.size();   // start of entries for this vertex
     auto& vr = vtxRefs.emplace_back();
+    vr.setVtxID(iv < nv ? iv : -1); // flag table for unassigned tracks by VtxID = -1
     int oldSrc = -1;
     for (const auto gid0 : trvec) {
       int src = gid0.getSource();
@@ -151,7 +156,7 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       vr.setFirstEntryOfSource(oldSrc, trackIndex.size());
     }
     vr.setEnd(trackIndex.size());
-    LOG(INFO) << "Vertxex " << iv << " Tracks " << vr;
+    LOG(INFO) << vr;
   }
   LOG(INFO) << "Assigned " << nAssigned << " (" << nAmbiguous << " ambigously) out of " << mTBrackets.size() << " non-contributor tracks + " << vcont.size() << " contributors";
 }
