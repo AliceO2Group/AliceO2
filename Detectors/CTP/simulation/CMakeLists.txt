@@ -16,5 +16,4 @@ o2_add_library(CTPSimulation
   O2::DetectorsRaw
   O2::Headers)
 o2_target_root_dictionary(CTPSimulation HEADERS
-  include/CTPSimulation/Digitizer.h
-  include/CTPSimulation/Digits2Raw.h)
+  include/CTPSimulation/Digitizer.h)

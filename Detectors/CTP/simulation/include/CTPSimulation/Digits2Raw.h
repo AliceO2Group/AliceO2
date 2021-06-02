@@ -69,7 +69,6 @@ class Digits2Raw
   const uint32_t NClassPayload = 64 + 12;
   bool mZeroSuppressedClassRec = true;
   //constexpr uint32_t CTPCRULinkIDMisc = 2;
-  ClassDefNV(Digits2Raw, 1);
 };
 } // namespace ctp
 } // namespace o2
