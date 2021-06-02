@@ -17,8 +17,6 @@
 
 using namespace o2::ctp;
 
-//ClassImp(Digits2Raw);
-
 void Digits2Raw::init()
 {
   // CTP Configuration

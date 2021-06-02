@@ -14,5 +14,4 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ctp::Digitizer + ;
-#pragma link C++ class o2::ctp::Digits2Raw + ;
 #endif
