@@ -92,6 +92,7 @@ class VtxTrackRef;
 class V0;
 class Cascade;
 class TrackCosmics;
+class IRFrame;
 } // namespace o2::dataformats
 
 namespace o2
@@ -134,6 +135,8 @@ struct DataRequest {
   void requestPrimaryVertertices(bool mc);
   void requestPrimaryVerterticesTMP(bool mc);
   void requestSecondaryVertertices(bool mc);
+
+  void requestIRFramesITS();
 };
 
 // Helper class to requested data.
@@ -159,6 +162,7 @@ struct RecoContainer {
     INDICES,
     MCLABELS,      // track labels
     MCLABELSEXTRA, // additonal labels, like TOF clusters matching label (not sure TOF really needs it)
+    VARIA,         // misc data, which does not fit to other categories
     NCOMMONSLOTS
   };
 
@@ -233,6 +237,8 @@ struct RecoContainer {
   void addPVertices(o2::framework::ProcessingContext& pc, bool mc);
   void addPVerticesTMP(o2::framework::ProcessingContext& pc, bool mc);
   void addSVertices(o2::framework::ProcessingContext& pc, bool);
+
+  void addIRFramesITS(o2::framework::ProcessingContext& pc);
 
   // custom getters
 
@@ -412,6 +418,9 @@ struct RecoContainer {
   auto getCosmicTrackMCLabel(int i) const { return cosmPool.get_as<o2::MCCompLabel>(COSM_TRACKS_MC, i); }
   auto getCosmicTracks() const { return cosmPool.getSpan<o2::dataformats::TrackCosmics>(COSM_TRACKS); }
   auto getCosmicTrackMCLabels() const { return cosmPool.getSpan<o2::MCCompLabel>(COSM_TRACKS_MC); }
+
+  // IRFrames where ITS was reconstructed and tracks were seen (e.g. sync.w-flow mult. selection)
+  auto getIRFramesITS() const { return getSpan<o2::dataformats::IRFrame>(GTrackID::ITS, VARIA); }
 };
 
 } // namespace globaltracking
