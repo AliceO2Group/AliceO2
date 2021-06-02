@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HfCandidateCreatorXicc.cxx
+/// \file HFCandidateCreatorXicc.cxx
 /// \brief Reconstruction of Xiccplusplus candidates
 /// \note Extended from HFCandidateCreator2Prong, HFCandidateCreator3Prong, HFCandidateCreatorX
 ///
