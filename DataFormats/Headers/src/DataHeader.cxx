@@ -108,7 +108,7 @@ void o2::header::hexDump(const char* desc, const void* voidaddr, size_t len, siz
   size_t i;
   unsigned char buff[17]; // stores the ASCII data
   memset(&buff[0], '\0', 17);
-  const byte* addr = reinterpret_cast<const byte*>(voidaddr);
+  const std::byte* addr = reinterpret_cast<const std::byte*>(voidaddr);
 
   // Output description if given.
   if (desc != nullptr) {
@@ -143,13 +143,13 @@ void o2::header::hexDump(const char* desc, const void* voidaddr, size_t len, siz
     }
 
     // Now the hex code for the specific character.
-    printf(" %02x", addr[i]);
+    printf(" %02x", (char)addr[i]);
 
     // And store a printable ASCII character for later.
-    if ((addr[i] < 0x20) || (addr[i] > 0x7e)) {
+    if (((char)addr[i] < 0x20) || ((char)addr[i] > 0x7e)) {
       buff[i % 16] = '.';
     } else {
-      buff[i % 16] = addr[i];
+      buff[i % 16] = (char)addr[i];
     }
     buff[(i % 16) + 1] = '\0';
     fflush(stdout);

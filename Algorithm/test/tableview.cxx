@@ -78,8 +78,8 @@ BOOST_AUTO_TEST_CASE(test_tableview_reverse)
   dh2.subSpecification = 0xdeadbeef;
   dh2.payloadSize = 0;
 
-  heartbeatview.addRow(dh1, tf1.buffer.get(), tf1.size());
-  heartbeatview.addRow(dh2, tf2.buffer.get(), tf2.size());
+  heartbeatview.addRow(dh1, (std::byte*)tf1.buffer.get(), tf1.size());
+  heartbeatview.addRow(dh2, (std::byte*)tf2.buffer.get(), tf2.size());
 
   std::cout << "slots: " << heartbeatview.getNRows()
             << " columns: " << heartbeatview.getNColumns()
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(test_tableview_formaterror)
   dh.subSpecification = 0;
   dh.payloadSize = 0;
 
-  heartbeatview.addRow(dh, tf1.buffer.get(), tf1.size());
+  heartbeatview.addRow(dh, (std::byte*)tf1.buffer.get(), tf1.size());
 
   BOOST_CHECK(heartbeatview.getNRows() == 0);
   BOOST_CHECK(heartbeatview.getNColumns() == 0);

@@ -135,7 +135,7 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
     for (int i = 0; i < size; i += 16) {
       gFrame.setFrameNumber(iFrame);
       gFrame.setPacketNumber(iFrame / 508);
-      gFrame.readFromMemory(gsl::span<const o2::byte>(data + i, 16));
+      gFrame.readFromMemory(gsl::span<const std::byte>((std::byte*)data + i, 16));
 
       // extract the half words from the 4 32-bit words
       gFrame.getFrameHalfWords();

@@ -141,7 +141,7 @@ header::Stack Dispatcher::extractAdditionalHeaders(const char* inputHeaderStack)
 {
   header::Stack headerStack;
 
-  const auto* first = header::BaseHeader::get(reinterpret_cast<const byte*>(inputHeaderStack));
+  const auto* first = header::BaseHeader::get(reinterpret_cast<const std::byte*>(inputHeaderStack));
   for (const auto* current = first; current != nullptr; current = current->next()) {
     if (current->description != header::DataHeader::sHeaderType &&
         current->description != DataProcessingHeader::sHeaderType) {
