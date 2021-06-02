@@ -168,6 +168,9 @@ struct DQMuonTrackSelection {
   float* fValues;
 
   Configurable<float> fConfigMuonPtLow{"cfgMuonLowPt", 1.0f, "Low pt cut for muons"};
+    Configurable<std::string> fConfigMuonCuts{"cfgMuonCuts", "muonQualityCuts", "muon cut"};
+    
+    Filter muonFilter = aod::reducedmuon::pt >= fConfigMuonPtLow;
 
   void init(o2::framework::InitContext&)
   {
@@ -187,14 +190,13 @@ struct DQMuonTrackSelection {
   void DefineCuts()
   {
     fTrackCut = new AnalysisCompositeCut(true);
-    AnalysisCut kineMuonCut;
-    kineMuonCut.AddCut(VarManager::kPt, fConfigMuonPtLow, 100.0);
-    fTrackCut->AddCut(&kineMuonCut);
+    TString muonCutStr = fConfigMuonCuts.value;
+    fTrackCut->AddCut(dqcuts::GetCompositeCut(muonCutStr.Data()));
 
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvents::iterator const& event, MyMuonTracks const& muons)
+  void process(MyEvents::iterator const& event, soa::Filtered<MyMuonTracks> const& muons)
   {
     VarManager::ResetValues(0, VarManager::kNMuonTrackVariables, fValues);
     VarManager::FillEvent<gkEventFillMap>(event, fValues);
