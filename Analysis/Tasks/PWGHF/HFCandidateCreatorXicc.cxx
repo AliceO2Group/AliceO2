@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HFCandidateCreatorXicc.cxx
+/// \file HfCandidateCreatorXicc.cxx
 /// \brief Reconstruction of Xiccplusplus candidates
 /// \note Extended from HFCandidateCreator2Prong, HFCandidateCreator3Prong, HFCandidateCreatorX
 ///
@@ -39,7 +39,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 /// Reconstruction of xicc candidates
-struct HFCandidateCreatorXicc {
+struct HfCandidateCreatorXicc {
   Produces<aod::HfCandXiccBase> rowCandidateBase;
 
   Configurable<double> magneticField{"d_bz", 5., "magnetic field"};
@@ -56,7 +56,7 @@ struct HFCandidateCreatorXicc {
 
   double massPi = RecoDecay::getMassPDG(kPiPlus);
   double massK = RecoDecay::getMassPDG(kKPlus);
-  double massXic = RecoDecay::getMassPDG(4232);
+  double massXic = RecoDecay::getMassPDG(int(pdg::Code::kXiCPlus));
   double massXicc{0.};
 
   Configurable<int> d_selectionFlagXic{"d_selectionFlagXic", 1, "Selection Flag for Xic"};
@@ -185,13 +185,13 @@ struct HFCandidateCreatorXicc {
 };      //end of struct
 
 /// Extends the base table with expression columns.
-struct HFCandidateCreatorXiccExpressions {
+struct HfCandidateCreatorXiccExpressions {
   Spawns<aod::HfCandXiccExt> rowCandidateXicc;
   void init(InitContext const&) {}
 };
 
 /// Performs MC matching.
-struct HFCandidateCreatorXiccMC {
+struct HfCandidateCreatorXiccMc {
   Produces<aod::HfCandXiccMCRec> rowMCMatchRec;
   Produces<aod::HfCandXiccMCGen> rowMCMatchGen;
 
@@ -239,13 +239,13 @@ struct HFCandidateCreatorXiccMC {
       flag = 0;
       origin = 0;
       // Xicc → Xic + π+
-      if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kXiCCPlusPlus, array{4232, +kPiPlus}, true)) {
+      if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kXiCCPlusPlus, array{int(pdg::Code::kXiCPlus), +kPiPlus}, true)) {
         // Match Xic -> pKπ
         std::vector<int> arrDaughter;
-        RecoDecay::getDaughters(particlesMC, particle, &arrDaughter, array{4232}, 1);
+        RecoDecay::getDaughters(particlesMC, particle, &arrDaughter, array{int(pdg::Code::kXiCPlus)}, 1);
         auto XicCandMC = particlesMC.iteratorAt(arrDaughter[0]);
         //Printf("Checking Ξc± → p± K∓ π±");
-        if (RecoDecay::isMatchedMCGen(particlesMC, XicCandMC, 4232, array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
+        if (RecoDecay::isMatchedMCGen(particlesMC, XicCandMC, int(pdg::Code::kXiCPlus), array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
           flag = sign * (1 << DecayType::XiccToXicPi);
         }
       }
@@ -261,11 +261,11 @@ struct HFCandidateCreatorXiccMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<HFCandidateCreatorXicc>(cfgc, TaskName{"hf-cand-creator-xicc"}),
-    adaptAnalysisTask<HFCandidateCreatorXiccExpressions>(cfgc, TaskName{"hf-cand-creator-xicc-expressions"})};
+    adaptAnalysisTask<HfCandidateCreatorXicc>(cfgc),
+    adaptAnalysisTask<HfCandidateCreatorXiccExpressions>(cfgc)};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<HFCandidateCreatorXiccMC>(cfgc, TaskName{"hf-cand-creator-xicc-mc"}));
+    workflow.push_back(adaptAnalysisTask<HfCandidateCreatorXiccMc>(cfgc));
   }
   return workflow;
 }

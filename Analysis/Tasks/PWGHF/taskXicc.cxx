@@ -36,7 +36,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 /// Ξcc±± analysis task
-struct TaskXicc {
+struct HfTaskXicc {
   HistogramRegistry registry{
     "registry",
     {{"hptcand", "#Xi^{++}_{cc}-candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -100,7 +100,7 @@ struct TaskXicc {
 };
 
 /// Fills MC histograms.
-struct TaskXiccMC {
+struct HfTaskXiccMc {
   HistogramRegistry registry{
     "registry",
     {{"hPtRecSig", "#Xi^{++}_{cc} candidates (rec. matched);#it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
@@ -222,10 +222,10 @@ struct TaskXiccMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<TaskXicc>(cfgc, TaskName{"hf-task-xicc"})};
+    adaptAnalysisTask<HfTaskXicc>(cfgc)};
   const bool doMC = cfgc.options().get<bool>("doMC");
   if (doMC) {
-    workflow.push_back(adaptAnalysisTask<TaskXiccMC>(cfgc, TaskName{"hf-task-xicc-mc"}));
+    workflow.push_back(adaptAnalysisTask<HfTaskXiccMc>(cfgc));
   }
   return workflow;
 }
