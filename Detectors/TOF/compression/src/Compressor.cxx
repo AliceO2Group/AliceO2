@@ -111,6 +111,16 @@ bool Compressor<RDH, verbose>::processHBF()
   mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
 
+  /** check that we got the first RDH open **/
+  if (rdh->stop || rdh->pageCnt != 0) {
+    std::cout << colorRed
+              << "[FATAL] this does not look like the first RDH in the HBF"
+              << colorReset
+              << std::endl;
+    o2::raw::RDHUtils::printRDH(*rdh);
+    return true;
+  }
+
   /** loop until RDH close **/
   while (!rdh->stop) {
 
@@ -120,6 +130,16 @@ bool Compressor<RDH, verbose>::processHBF()
                 << colorReset
                 << std::endl;
       o2::raw::RDHUtils::printRDH(*rdh);
+    }
+
+    /** do some minimal RDH sanity checks **/
+    if (rdh->feeId != mDecoderRDH->feeId ||
+        rdh->orbit != mDecoderRDH->orbit) {
+      std::cout << colorRed
+                << "[FATAL] something does not match between this and first RDH"
+                << colorReset
+                << std::endl;
+      return true;
     }
 
     auto headerSize = rdh->headerSize;
@@ -149,6 +169,16 @@ bool Compressor<RDH, verbose>::processHBF()
               << colorReset
               << std::endl;
     o2::raw::RDHUtils::printRDH(*rdh);
+  }
+
+  /** do some minimal RDH sanity checks **/
+  if (rdh->feeId != mDecoderRDH->feeId ||
+      rdh->orbit != mDecoderRDH->orbit) {
+    std::cout << colorRed
+              << "[FATAL] something does not match between this and first RDH"
+              << colorReset
+              << std::endl;
+    return true;
   }
 
   /** copy RDH open to encoder buffer **/
