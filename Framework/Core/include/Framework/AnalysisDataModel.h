@@ -25,43 +25,43 @@ DECLARE_SOA_STORE();
 
 namespace bc
 {
-DECLARE_SOA_COLUMN(RunNumber, runNumber, int);          //!
-DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);       //! Bunch crossing number
-DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t); //!
+DECLARE_SOA_COLUMN(RunNumber, runNumber, int);          //! Run number
+DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);       //! Bunch crossing number (globally unique in this run)
+DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t); //! CTP trigger mask
 } // namespace bc
 
-DECLARE_SOA_TABLE(BCs, "AOD", "BC", o2::soa::Index<>, //!
+DECLARE_SOA_TABLE(BCs, "AOD", "BC", o2::soa::Index<>, //! Root of data model for tables pointing to a bunch crossing
                   bc::RunNumber, bc::GlobalBC,
                   bc::TriggerMask);
 using BC = BCs::iterator;
 
 namespace timestamp
 {
-DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t); //!
+DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t); //! Timestamp of a BC in ms (epoch style)
 } // namespace timestamp
 
-DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", //!
+DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", //! Table which holds the timestamp of a BC
                   timestamp::Timestamp);
 
 using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
 
 namespace collision
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                                  //!
-DECLARE_SOA_COLUMN(PosX, posX, float);                             //! Vertex position
-DECLARE_SOA_COLUMN(PosY, posY, float);                             //!
-DECLARE_SOA_COLUMN(PosZ, posZ, float);                             //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                                  //! Most probably BC to where this collision has occured
+DECLARE_SOA_COLUMN(PosX, posX, float);                             //! X Vertex position in cm
+DECLARE_SOA_COLUMN(PosY, posY, float);                             //! Y Vertex position in cm
+DECLARE_SOA_COLUMN(PosZ, posZ, float);                             //! Z Vertex position in cm
 DECLARE_SOA_COLUMN(CovXX, covXX, float);                           //! Vertex covariance matrix
-DECLARE_SOA_COLUMN(CovXY, covXY, float);                           //!
-DECLARE_SOA_COLUMN(CovXZ, covXZ, float);                           //!
-DECLARE_SOA_COLUMN(CovYY, covYY, float);                           //!
-DECLARE_SOA_COLUMN(CovYZ, covYZ, float);                           //!
-DECLARE_SOA_COLUMN(CovZZ, covZZ, float);                           //!
-DECLARE_SOA_COLUMN(Flags, flags, uint16_t);                        //! Run2, see CollisionFlagsRun2 | Run 3, see Vertex::Flags
-DECLARE_SOA_COLUMN(Chi2, chi2, float);                             //!
-DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);              //! Number of tracks at vertex
-DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //! in ns
-DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);     //!
+DECLARE_SOA_COLUMN(CovXY, covXY, float);                           //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovXZ, covXZ, float);                           //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovYY, covYY, float);                           //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovYZ, covYZ, float);                           //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(CovZZ, covZZ, float);                           //! Vertex covariance matrix
+DECLARE_SOA_COLUMN(Flags, flags, uint16_t);                        //! Run 2: see CollisionFlagsRun2 | Run 3: see Vertex::Flags
+DECLARE_SOA_COLUMN(Chi2, chi2, float);                             //! Chi2 of vertex fit
+DECLARE_SOA_COLUMN(NumContrib, numContrib, uint16_t);              //! Number of tracks used for the vertex
+DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);           //! Collision time in ns relative to BC stored in bc()
+DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float);     //! Resolution of collision time
 DECLARE_SOA_COLUMN(CollisionTimeMask, collisionTimeMask, uint8_t); //! Nature of CollisionTimeRes, MSB 0 = exact range / 1 = Gaussian uncertainty
 } // namespace collision
 
@@ -77,25 +77,25 @@ using Collision = Collisions::iterator;
 // NOTE Relation between Collisions and BC table
 // (important for pp in case of ambigous assignment)
 // A collision entry points to the entry in the BC table based on the calculated BC from the collision time
-// To study other compatible triggers with the collision time, use this helper (not yet implemented :)):
-// auto compatibleBCs = getCompatibleBCs(collision, BCs, /* sigma */ 3);
+// To study other compatible triggers with the collision time, check the tutorial: compatibleBCs.cxx
 
 namespace track
 {
 // TRACKPAR TABLE definition
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);      //!
-DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);   //! TODO change to TrackTypeEnum when enums are supported
+DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision to which this track belongs
+// TODO change to TrackTypeEnum when enums are supported
+DECLARE_SOA_COLUMN(TrackType, trackType, uint8_t);   //! Type of track. See enum TrackTypeEnum
 DECLARE_SOA_COLUMN(X, x, float);                     //!
 DECLARE_SOA_COLUMN(Alpha, alpha, float);             //!
 DECLARE_SOA_COLUMN(Y, y, float);                     //!
 DECLARE_SOA_COLUMN(Z, z, float);                     //!
 DECLARE_SOA_COLUMN(Snp, snp, float);                 //!
 DECLARE_SOA_COLUMN(Tgl, tgl, float);                 //!
-DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);     //! (sign of charge)/Pt [c/GeV]
-DECLARE_SOA_EXPRESSION_COLUMN(RawPhi, phiraw, float, //!
+DECLARE_SOA_COLUMN(Signed1Pt, signed1Pt, float);     //! (sign of charge)/Pt in c/GeV. Use pt() and sign() instead
+DECLARE_SOA_EXPRESSION_COLUMN(RawPhi, phiraw, float, //! Raw Phi (not folded onto [0, 2pi)). Use phi() instead
                               nasin(aod::track::snp) + aod::track::alpha);
 // FIXME: make expression column when conditional nodes are supported in Gandiva
-DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, //!
+DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, //! Phi of the track, in radians within [0, 2pi)
                            [](float phi) -> float {
                              constexpr float twopi = 2.0f * static_cast<float>(M_PI);
                              if (phi < 0)
@@ -104,14 +104,14 @@ DECLARE_SOA_DYNAMIC_COLUMN(NormalizedPhi, phi, //!
                                phi -= twopi;
                              return phi;
                            });
-DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudo rapidity
+DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //! Pseudorapidity
                               -1.f * nlog(ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))));
-DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //!
+DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //! Transverse momentum of the track in GeV/c
                               nabs(1.f / aod::track::signed1Pt));
 
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //! Charge: positive: 1, negative: -1
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Momentum in x-direction [GeV/c]
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Momentum in x-direction in GeV/c
                            [](float signed1Pt, float snp, float alpha) -> float {
                              auto pt = 1.f / std::abs(signed1Pt);
                              float cs, sn;
@@ -119,7 +119,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //! Momentum in x-direction [GeV/c]
                              auto r = std::sqrt((1.f - snp) * (1.f + snp));
                              return pt * (r * cs - snp * sn);
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //! Momentum in y-direction [GeV/c]
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //! Momentum in y-direction in GeV/c
                            [](float signed1Pt, float snp, float alpha) -> float {
                              auto pt = 1.f / std::abs(signed1Pt);
                              float cs, sn;
@@ -127,31 +127,31 @@ DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //! Momentum in y-direction [GeV/c]
                              auto r = std::sqrt((1.f - snp) * (1.f + snp));
                              return pt * (snp * cs + r * sn);
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction [GeV/c]
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //! Momentum in z-direction in GeV/c
                            [](float signed1Pt, float tgl) -> float {
                              auto pt = 1.f / std::abs(signed1Pt);
                              return pt * tgl;
                            });
 
-DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Absolute momentum [Gev/c]
+DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //! Momentum in Gev/c
                               0.5f * (ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl)) + 1.f / ntan(0.25f * static_cast<float>(M_PI) - 0.5f * natan(aod::track::tgl))) / nabs(aod::track::signed1Pt));
 
 // TRACKPARCOV TABLE definition
-DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);        //!
-DECLARE_SOA_COLUMN(SigmaZ, sigmaZ, float);        //!
-DECLARE_SOA_COLUMN(SigmaSnp, sigmaSnp, float);    //!
-DECLARE_SOA_COLUMN(SigmaTgl, sigmaTgl, float);    //!
-DECLARE_SOA_COLUMN(Sigma1Pt, sigma1Pt, float);    //!
-DECLARE_SOA_COLUMN(RhoZY, rhoZY, int8_t);         //!
-DECLARE_SOA_COLUMN(RhoSnpY, rhoSnpY, int8_t);     //!
-DECLARE_SOA_COLUMN(RhoSnpZ, rhoSnpZ, int8_t);     //!
-DECLARE_SOA_COLUMN(RhoTglY, rhoTglY, int8_t);     //!
-DECLARE_SOA_COLUMN(RhoTglZ, rhoTglZ, int8_t);     //!
-DECLARE_SOA_COLUMN(RhoTglSnp, rhoTglSnp, int8_t); //!
-DECLARE_SOA_COLUMN(Rho1PtY, rho1PtY, int8_t);     //!
-DECLARE_SOA_COLUMN(Rho1PtZ, rho1PtZ, int8_t);     //!
-DECLARE_SOA_COLUMN(Rho1PtSnp, rho1PtSnp, int8_t); //!
-DECLARE_SOA_COLUMN(Rho1PtTgl, rho1PtTgl, int8_t); //!
+DECLARE_SOA_COLUMN(SigmaY, sigmaY, float);        //! Covariance matrix
+DECLARE_SOA_COLUMN(SigmaZ, sigmaZ, float);        //! Covariance matrix
+DECLARE_SOA_COLUMN(SigmaSnp, sigmaSnp, float);    //! Covariance matrix
+DECLARE_SOA_COLUMN(SigmaTgl, sigmaTgl, float);    //! Covariance matrix
+DECLARE_SOA_COLUMN(Sigma1Pt, sigma1Pt, float);    //! Covariance matrix
+DECLARE_SOA_COLUMN(RhoZY, rhoZY, int8_t);         //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoSnpY, rhoSnpY, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoSnpZ, rhoSnpZ, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoTglY, rhoTglY, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoTglZ, rhoTglZ, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(RhoTglSnp, rhoTglSnp, int8_t); //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(Rho1PtY, rho1PtY, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(Rho1PtZ, rho1PtZ, int8_t);     //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(Rho1PtSnp, rho1PtSnp, int8_t); //! Covariance matrix in compressed form
+DECLARE_SOA_COLUMN(Rho1PtTgl, rho1PtTgl, int8_t); //! Covariance matrix in compressed form
 
 DECLARE_SOA_EXPRESSION_COLUMN(CYY, cYY, float, //!
                               aod::track::sigmaY* aod::track::sigmaY);
@@ -185,20 +185,20 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, //!
                               aod::track::sigma1Pt* aod::track::sigma1Pt);
 
 // TRACKEXTRA TABLE definition
-DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float);                                      //!
-DECLARE_SOA_COLUMN(Flags, flags, uint32_t);                                                   //!
-DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);                                    //!
-DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);                                //!
-DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);             //!
-DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t); //!
-DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);                                    //!
-DECLARE_SOA_COLUMN(TRDPattern, trdPattern, uint8_t);                                          //!
-DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);                                            //!
-DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);                                            //!
-DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);                                                  //!
-DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);                                                  //!
-DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);                                              //!
-DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);                                              //!
+DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float);                                      //! Momentum at inner wall of the TPC
+DECLARE_SOA_COLUMN(Flags, flags, uint32_t);                                                   //! Track flags. Run 2: see TrackFlagsRun2Enum | Run 3: TODO
+DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);                                    //! ITS cluster map, one bit per a layer, starting from the innermost
+DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);                                //! Findable TPC clusters for this track geometry
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);             //! TPC Clusters: Findable - Found
+DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t); //! TPC Clusters: Findable - crossed rows
+DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);                                    //! Number of shared TPC clusters
+DECLARE_SOA_COLUMN(TRDPattern, trdPattern, uint8_t);                                          //! Contributor to the track on TRD layer in bits 0-5, starting from the innermost
+DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);                                            //! Chi2 / cluster for the ITS track segment
+DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);                                            //! Chi2 / cluster for the TPC track segment
+DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);                                                  //! Chi2 for the TRD track segment
+DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);                                                  //! Chi2 for the TOF track segment
+DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);                                              //! dE/dx signal in the TPC
+DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);                                              //! dE/dx signal in the TRD
 DECLARE_SOA_COLUMN(TOFSignal, tofSignal, float);                                              //! TOF signal matched to the track
 DECLARE_SOA_COLUMN(Length, length, float);                                                    //! Track length
 DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                              //! TOF expected momentum obtained in tracking, used to compute the expected times
@@ -206,13 +206,13 @@ DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                        
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                                      //!
 DECLARE_SOA_DYNAMIC_COLUMN(HasTOF, hasTOF,                                                    //! Flag to check if track has a TOF measurement
                            [](float tofSignal) -> bool { return tofSignal > 0.f; });
-DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //!
+DECLARE_SOA_DYNAMIC_COLUMN(PIDForTracking, pidForTracking, //! PID hypothesis used during tracking. See the constants in the class PID in PID.h
                            [](uint32_t flags) -> uint32_t { return flags >> 28; });
-DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //!
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t { return (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound; });
-DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, //!
+DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, //! Number of crossed TPC Rows
                            [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return (int16_t)tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
-DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //!
+DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
                            [](uint8_t itsClusterMap) -> uint8_t {
                              uint8_t itsNcls = 0;
                              constexpr uint8_t bit = 1;
@@ -222,7 +222,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //!
                              }
                              return itsNcls;
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //!
+DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of ITS clusters in the Inner Barrel
                            [](uint8_t itsClusterMap) -> uint8_t {
                              uint8_t itsNclsInnerBarrel = 0;
                              constexpr uint8_t bit = 1;
@@ -233,20 +233,20 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //!
                              return itsNclsInnerBarrel;
                            });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //!
+DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //! Ratio of crossed rows over findable clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusCrossedRows) -> float {
                              int16_t tpcNClsCrossedRows = (int16_t)tpcNClsFindable - tpcNClsFindableMinusCrossedRows;
                              return (float)tpcNClsCrossedRows / (float)tpcNClsFindable;
                            });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //!
+DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fraction of shared TPC clusters
                            [](uint8_t tpcNClsShared, uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> float {
                              int16_t tpcNClsFound = (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound;
                              return (float)tpcNClsShared / (float)tpcNClsFound;
                            });
 } // namespace track
 
-DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //!
+DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk version of the Track table
                        o2::soa::Index<>, track::CollisionId, track::TrackType,
                        track::X, track::Alpha,
                        track::Y, track::Z, track::Snp, track::Tgl,
@@ -257,18 +257,18 @@ DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //!
                        track::Pz<track::Signed1Pt, track::Tgl>,
                        track::Sign<track::Signed1Pt>);
 
-DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //!
+DECLARE_SOA_EXTENDED_TABLE(Tracks, StoredTracks, "TRACK", //! Basic track properties
                            aod::track::Pt,
                            aod::track::P,
                            aod::track::Eta,
                            aod::track::RawPhi);
 
-DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV",
+DECLARE_SOA_TABLE_FULL(StoredTracksCov, "TracksCov", "AOD", "TRACKCOV", //! On disk version of the TracksCov table
                        track::SigmaY, track::SigmaZ, track::SigmaSnp, track::SigmaTgl, track::Sigma1Pt,
                        track::RhoZY, track::RhoSnpY, track::RhoSnpZ, track::RhoTglY, track::RhoTglZ,
                        track::RhoTglSnp, track::Rho1PtY, track::Rho1PtZ, track::Rho1PtSnp, track::Rho1PtTgl);
 
-DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //!
+DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //! Track covariance matrix
                            aod::track::CYY,
                            aod::track::CZY,
                            aod::track::CZZ,
@@ -285,7 +285,7 @@ DECLARE_SOA_EXTENDED_TABLE(TracksCov, StoredTracksCov, "TRACKCOV", //!
                            aod::track::C1PtTgl,
                            aod::track::C1Pt21Pt2);
 
-DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA", //!
+DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                   track::TPCInnerParam, track::Flags, track::ITSClusterMap,
                   track::TPCNClsFindable, track::TPCNClsFindableMinusFound, track::TPCNClsFindableMinusCrossedRows,
                   track::TPCNClsShared, track::TRDPattern, track::ITSChi2NCl,
@@ -461,39 +461,39 @@ using FwdTrackCovFwd = FwdTracksCov::iterator;
 using FullFwdTracks = soa::Join<FwdTracks, FwdTracksCov>;
 using FullFwdTrack = FullFwdTracks::iterator;
 
-namespace unassignedtracks
+namespace ambiguoustracks
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
-DECLARE_SOA_INDEX_COLUMN(Track, track);         //!
-} // namespace unassignedtracks
+DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision index
+DECLARE_SOA_INDEX_COLUMN(Track, track);         //! Track index
+} // namespace ambiguoustracks
 
-DECLARE_SOA_TABLE(UnassignedTracks, "AOD", "UNASSIGNEDTRACK", //!
-                  unassignedtracks::CollisionId, unassignedtracks::TrackId);
+DECLARE_SOA_TABLE(AmbiguousTracks, "AOD", "AMBIGUOUSTRACK", //! Table for tracks which are not uniquely associated with a collision
+                  ambiguoustracks::CollisionId, ambiguoustracks::TrackId);
 
-using UnassignedTrack = UnassignedTracks::iterator;
+using AmbiguousTrack = AmbiguousTracks::iterator;
 
-namespace unassignedmfttracks
+namespace ambiguousmfttracks
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
-DECLARE_SOA_INDEX_COLUMN(MFTTrack, mfttrack);   //!
-} // namespace unassignedmfttracks
+DECLARE_SOA_INDEX_COLUMN(Collision, collision); //! Collision index
+DECLARE_SOA_INDEX_COLUMN(MFTTrack, mfttrack);   //! MFTTrack index
+} // namespace ambiguousmfttracks
 
-DECLARE_SOA_TABLE(UnassignedMFTTracks, "AOD", "UNASSIGNEDMFTTR", //!
-                  unassignedmfttracks::CollisionId, unassignedmfttracks::MFTTrackId);
+DECLARE_SOA_TABLE(AmbiguousMFTTracks, "AOD", "UNASSIGNEDMFTTR", //! Table for MFT tracks which are not uniquely associated with a collision
+                  ambiguousmfttracks::CollisionId, ambiguousmfttracks::MFTTrackId);
 
-using UnassignedMFTTrack = UnassignedMFTTracks::iterator;
+using AmbiguousMFTTrack = AmbiguousMFTTracks::iterator;
 
 // HMPID information
 namespace hmpid
 {
-DECLARE_SOA_INDEX_COLUMN(Track, track);                  //!
-DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);     //!
-DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float); //!
-DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, short); //!
-DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);         //!
+DECLARE_SOA_INDEX_COLUMN(Track, track);                  //! Track index
+DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);     //! Signal of the HMPID
+DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float); //! Distance between the matched HMPID signal and the propagated track
+DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, short); //! Number of detected photons in HMPID
+DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);         //! Collected charge in the HMPID
 } // namespace hmpid
 
-DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID", //!
+DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID", //! HMPID information
                   o2::soa::Index<>,
                   hmpid::TrackId,
                   hmpid::HMPIDSignal,
@@ -504,7 +504,7 @@ using HMPID = HMPIDs::iterator;
 
 namespace calo
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                    //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                    //! BC index
 DECLARE_SOA_COLUMN(CellNumber, cellNumber, int16_t); //!
 DECLARE_SOA_COLUMN(Amplitude, amplitude, float);     //!
 DECLARE_SOA_COLUMN(Time, time, float);               //!
@@ -519,7 +519,7 @@ using Calo = Calos::iterator;
 
 namespace calotrigger
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
 DECLARE_SOA_COLUMN(FastOrAbsId, fastOrAbsId, int32_t); //!
 DECLARE_SOA_COLUMN(L0Amplitude, l0Amplitude, float);   //!
 DECLARE_SOA_COLUMN(L0Time, l0Time, float);             //!
@@ -536,6 +536,7 @@ DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER", //!
                   calotrigger::TriggerBits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
+// -BEGIN- DEPRECATED. WILL BE REMOVED SOON
 namespace muon
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                                          //!
@@ -636,10 +637,11 @@ DECLARE_SOA_TABLE(MuonClusters, "AOD", "MUONCLUSTER", //!
                   muoncluster::Charge, muoncluster::Chi2);
 
 using MuonCluster = MuonClusters::iterator;
+// -END- DEPRECATED. WILL BE REMOVED SOON
 
 namespace zdc
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
 DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);              //!
 DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);              //!
 DECLARE_SOA_COLUMN(EnergyCommonZNA, energyCommonZNA, float);    //!
@@ -658,7 +660,7 @@ DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);                    //!
 } // namespace zdc
 
-DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", //!
+DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", //! ZDC information
                   o2::soa::Index<>, zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
                   zdc::EnergyCommonZNA, zdc::EnergyCommonZNC, zdc::EnergyCommonZPA, zdc::EnergyCommonZPC,
                   zdc::EnergySectorZNA, zdc::EnergySectorZNC, zdc::EnergySectorZPA, zdc::EnergySectorZPC,
@@ -667,9 +669,9 @@ using Zdc = Zdcs::iterator;
 
 namespace fv0a
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //!
-DECLARE_SOA_COLUMN(Amplitude, amplitude, float[48]);   //!
-DECLARE_SOA_COLUMN(Time, time, float);                 //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
+DECLARE_SOA_COLUMN(Amplitude, amplitude, float[48]);   //! Amplitudes per cell
+DECLARE_SOA_COLUMN(Time, time, float);                 //! Time in ns
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint8_t); //!
 } // namespace fv0a
 
@@ -680,18 +682,18 @@ using FV0A = FV0As::iterator;
 // V0C table for Run2 only
 namespace fv0c
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                    //!
-DECLARE_SOA_COLUMN(Amplitude, amplitude, float[32]); //!
-DECLARE_SOA_COLUMN(Time, time, float);               //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                    //! BC index
+DECLARE_SOA_COLUMN(Amplitude, amplitude, float[32]); //! Amplitudes per cell
+DECLARE_SOA_COLUMN(Time, time, float);               //! Time in ns
 } // namespace fv0c
 
-DECLARE_SOA_TABLE(FV0Cs, "AOD", "FV0C", //!
+DECLARE_SOA_TABLE(FV0Cs, "AOD", "FV0C", //! Only for RUN 2 converted data: V0C table
                   o2::soa::Index<>, fv0c::BCId, fv0c::Amplitude, fv0c::Time);
 using FV0C = FV0Cs::iterator;
 
 namespace ft0
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                       //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                       //! BC index
 DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[96]);  //!
 DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[112]); //!
 DECLARE_SOA_COLUMN(TimeA, timeA, float);                //!
@@ -707,7 +709,7 @@ using FT0 = FT0s::iterator;
 
 namespace fdd
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //! BC index
 DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, float[4]);  //!
 DECLARE_SOA_COLUMN(AmplitudeC, amplitudeC, float[4]);  //!
 DECLARE_SOA_COLUMN(TimeA, timeA, float);               //!
@@ -724,15 +726,15 @@ using FDD = FDDs::iterator;
 
 namespace v0
 {
-DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos"); //!
-DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //!
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN_FULL(PosTrack, posTrack, int, Tracks, "_Pos"); //! Positive track
+DECLARE_SOA_INDEX_COLUMN_FULL(NegTrack, negTrack, int, Tracks, "_Neg"); //! Negative track
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);                         //! Collision index
 } // namespace v0
 
-DECLARE_SOA_TABLE(StoredV0s, "AOD", "V0", //!
+DECLARE_SOA_TABLE(StoredV0s, "AOD", "V0", //! On disk V0 table
                   o2::soa::Index<>,
                   v0::PosTrackId, v0::NegTrackId);
-DECLARE_SOA_TABLE(TransientV0s, "AOD", "V0INDEX", //!
+DECLARE_SOA_TABLE(TransientV0s, "AOD", "V0INDEX", //! In-memory V0 table
                   v0::CollisionId);
 
 using V0s = soa::Join<TransientV0s, StoredV0s>;
@@ -740,14 +742,14 @@ using V0 = V0s::iterator;
 
 namespace cascade
 {
-DECLARE_SOA_INDEX_COLUMN(V0, v0);                                   //!
-DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, ""); //!
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);                     //!
+DECLARE_SOA_INDEX_COLUMN(V0, v0);                                   //! V0 index
+DECLARE_SOA_INDEX_COLUMN_FULL(Bachelor, bachelor, int, Tracks, ""); //! Bachelor track index
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);                     //! Collision index
 } // namespace cascade
 
-DECLARE_SOA_TABLE(StoredCascades, "AOD", "CASCADE", //!
+DECLARE_SOA_TABLE(StoredCascades, "AOD", "CASCADE", //! On disk cascade table
                   o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
-DECLARE_SOA_TABLE(TransientCascades, "AOD", "CASCADEINDEX", //!
+DECLARE_SOA_TABLE(TransientCascades, "AOD", "CASCADEINDEX", //! In-memory cascade table
                   cascade::CollisionId);
 
 using Cascades = soa::Join<TransientCascades, StoredCascades>;
@@ -756,20 +758,20 @@ using Cascade = Cascades::iterator;
 // ---- Run 2 tables ----
 namespace run2
 {
-DECLARE_SOA_COLUMN(EventCuts, eventCuts, uint32_t);                   //!
-DECLARE_SOA_COLUMN(TriggerMaskNext50, triggerMaskNext50, uint64_t);   //!
-DECLARE_SOA_COLUMN(L0TriggerInputMask, l0TriggerInputMask, uint32_t); //!
-DECLARE_SOA_COLUMN(SPDClustersL0, spdClustersL0, uint16_t);           //!
-DECLARE_SOA_COLUMN(SPDClustersL1, spdClustersL1, uint16_t);           //!
-DECLARE_SOA_COLUMN(SPDFiredChipsL0, spdFiredChipsL0, uint16_t);       //!
-DECLARE_SOA_COLUMN(SPDFiredChipsL1, spdFiredChipsL1, uint16_t);       //!
-DECLARE_SOA_COLUMN(SPDFiredFastOrL0, spdFiredFastOrL0, uint16_t);     //!
-DECLARE_SOA_COLUMN(SPDFiredFastOrL1, spdFiredFastOrL1, uint16_t);     //!
-DECLARE_SOA_COLUMN(V0TriggerChargeA, v0TriggerChargeA, uint16_t);     //!
-DECLARE_SOA_COLUMN(V0TriggerChargeC, v0TriggerChargeC, uint16_t);     //!
+DECLARE_SOA_COLUMN(EventCuts, eventCuts, uint32_t);                   //! Event selection flags. Check enum Run2EventSelectionCut
+DECLARE_SOA_COLUMN(TriggerMaskNext50, triggerMaskNext50, uint64_t);   //! 50 further trigger classes after bc.triggerMask()
+DECLARE_SOA_COLUMN(L0TriggerInputMask, l0TriggerInputMask, uint32_t); //! CTP L0 trigger input mask
+DECLARE_SOA_COLUMN(SPDClustersL0, spdClustersL0, uint16_t);           //! Number of clusters in the first layer of the SPD
+DECLARE_SOA_COLUMN(SPDClustersL1, spdClustersL1, uint16_t);           //! Number of clusters in the second layer of the SPD
+DECLARE_SOA_COLUMN(SPDFiredChipsL0, spdFiredChipsL0, uint16_t);       //! Fired chips in the first layer of the SPD (offline)
+DECLARE_SOA_COLUMN(SPDFiredChipsL1, spdFiredChipsL1, uint16_t);       //! Fired chips in the second layer of the SPD (offline)
+DECLARE_SOA_COLUMN(SPDFiredFastOrL0, spdFiredFastOrL0, uint16_t);     //! Fired FASTOR signals in the first layer of the SPD (online)
+DECLARE_SOA_COLUMN(SPDFiredFastOrL1, spdFiredFastOrL1, uint16_t);     //! Fired FASTOR signals in the first layer of the SPD (online)
+DECLARE_SOA_COLUMN(V0TriggerChargeA, v0TriggerChargeA, uint16_t);     //! V0A trigger charge
+DECLARE_SOA_COLUMN(V0TriggerChargeC, v0TriggerChargeC, uint16_t);     //! V0C trigger charge
 } // namespace run2
 
-DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", run2::EventCuts, //!
+DECLARE_SOA_TABLE(Run2BCInfos, "AOD", "RUN2BCINFO", run2::EventCuts, //! Legacy information for Run 2 event selection
                   run2::TriggerMaskNext50, run2::L0TriggerInputMask,
                   run2::SPDClustersL0, run2::SPDClustersL1,
                   run2::SPDFiredChipsL0, run2::SPDFiredChipsL1,
@@ -780,17 +782,18 @@ using Run2BCInfo = Run2BCInfos::iterator;
 // ---- MC tables ----
 namespace mccollision
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                            //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc); //! BC index
+// TODO enum to be added to O2
 DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //!
-DECLARE_SOA_COLUMN(PosX, posX, float);                       //!
-DECLARE_SOA_COLUMN(PosY, posY, float);                       //!
-DECLARE_SOA_COLUMN(PosZ, posZ, float);                       //!
-DECLARE_SOA_COLUMN(T, t, float);                             //!
-DECLARE_SOA_COLUMN(Weight, weight, float);                   //!
-DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float); //!
+DECLARE_SOA_COLUMN(PosX, posX, float);                       //! X vertex position in cm
+DECLARE_SOA_COLUMN(PosY, posY, float);                       //! Y vertex position in cm
+DECLARE_SOA_COLUMN(PosZ, posZ, float);                       //! Z vertex position in cm
+DECLARE_SOA_COLUMN(T, t, float);                             //! Collision time
+DECLARE_SOA_COLUMN(Weight, weight, float);                   //! MC weight
+DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float); //! Impact parameter for A-A
 } // namespace mccollision
 
-DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", //!
+DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", //! MC collision table
                   o2::soa::Index<>, mccollision::BCId,
                   mccollision::GeneratorsID,
                   mccollision::PosX, mccollision::PosY, mccollision::PosZ,
@@ -800,34 +803,34 @@ using McCollision = McCollisions::iterator;
 
 namespace mcparticle
 {
-DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision); //!
-DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);          //!
-DECLARE_SOA_COLUMN(StatusCode, statusCode, int);    //!
-DECLARE_SOA_COLUMN(Flags, flags, uint8_t);          //!
-DECLARE_SOA_COLUMN(Mother0, mother0, int);          //!
-DECLARE_SOA_COLUMN(Mother1, mother1, int);          //!
-DECLARE_SOA_COLUMN(Daughter0, daughter0, int);      //!
-DECLARE_SOA_COLUMN(Daughter1, daughter1, int);      //!
-DECLARE_SOA_COLUMN(Weight, weight, float);          //!
-DECLARE_SOA_COLUMN(Px, px, float);                  //!
-DECLARE_SOA_COLUMN(Py, py, float);                  //!
-DECLARE_SOA_COLUMN(Pz, pz, float);                  //!
-DECLARE_SOA_COLUMN(E, e, float);                    //!
-DECLARE_SOA_COLUMN(Vx, vx, float);                  //!
-DECLARE_SOA_COLUMN(Vy, vy, float);                  //!
-DECLARE_SOA_COLUMN(Vz, vz, float);                  //!
-DECLARE_SOA_COLUMN(Vt, vt, float);                  //!
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi,                //!
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision); //! MC collision of this particle
+DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);          //! PDG code
+DECLARE_SOA_COLUMN(StatusCode, statusCode, int);    //! Status code directly from the generator
+DECLARE_SOA_COLUMN(Flags, flags, uint8_t);          //! ALICE specific flags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
+DECLARE_SOA_COLUMN(Mother0, mother0, int);          //! Track index of the first mother
+DECLARE_SOA_COLUMN(Mother1, mother1, int);          //! Track index of the second mother
+DECLARE_SOA_COLUMN(Daughter0, daughter0, int);      //! Track index of the first daugther
+DECLARE_SOA_COLUMN(Daughter1, daughter1, int);      //! Track index of the second daugther
+DECLARE_SOA_COLUMN(Weight, weight, float);          //! MC weight
+DECLARE_SOA_COLUMN(Px, px, float);                  //! Momentum in x in GeV/c
+DECLARE_SOA_COLUMN(Py, py, float);                  //! Momentum in y in GeV/c
+DECLARE_SOA_COLUMN(Pz, pz, float);                  //! Momentum in z in GeV/c
+DECLARE_SOA_COLUMN(E, e, float);                    //! Energy
+DECLARE_SOA_COLUMN(Vx, vx, float);                  //! X production vertex in cm
+DECLARE_SOA_COLUMN(Vy, vy, float);                  //! Y production vertex in cm
+DECLARE_SOA_COLUMN(Vz, vz, float);                  //! Z production vertex in cm
+DECLARE_SOA_COLUMN(Vt, vt, float);                  //! Production time
+DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi,                //! Phi
                            [](float px, float py) -> float { return static_cast<float>(M_PI) + std::atan2(-py, -px); });
-DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //!
+DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //! Pseudorapidity
                            [](float px, float py, float pz) -> float { return 0.5f * std::log((std::sqrt(px * px + py * py + pz * pz) + pz) / (std::sqrt(px * px + py * py + pz * pz) - pz)); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //!
+DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //! Transverse momentum in GeV/c
                            [](float px, float py) -> float { return std::sqrt(px * px + py * py); });
-DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //!
+DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //! Particle produced by the generator or by the transport code
                            [](uint8_t flags) -> bool { return (flags & 0x1) == 0x0; });
 } // namespace mcparticle
 
-DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE", //!
+DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE", //! MC particle table
                   o2::soa::Index<>, mcparticle::McCollisionId,
                   mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
                   mcparticle::Mother0, mcparticle::Mother1,
@@ -842,39 +845,31 @@ using McParticle = McParticles::iterator;
 
 namespace mctracklabel
 {
-DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //!
-DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //!
-/// Bit mask to indicate detector mismatches (bit ON means mismatch)
-/// Bit 0-6: mismatch at ITS layer
-/// Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64
-/// Bit 10: TRD, bit 11: TOF, bit 15: indicates negative label
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 0-6: mismatch at ITS layer. Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64. Bit 10: TRD, bit 11: TOF, bit 15: indicates negative label
 } // namespace mctracklabel
 
-DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL", //!
+DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL", //! Table joined to the track table containing the MC index
                   mctracklabel::McParticleId, mctracklabel::McMask);
 using McTrackLabel = McTrackLabels::iterator;
 
 namespace mccalolabel
 {
-DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //!
-DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //!
-/// Bit mask to indicate detector mismatches (bit ON means mismatch)
-/// Bit 15: indicates negative label
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 15: indicates negative label
 } // namespace mccalolabel
 
-DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL", //!
+DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL", //! Table joined to the calo table containing the MC index
                   mccalolabel::McParticleId, mccalolabel::McMask);
 using McCaloLabel = McCaloLabels::iterator;
 
 namespace mccollisionlabel
 {
-DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision); //!
-DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);       //!
-/// Bit mask to indicate collision mismatches (bit ON means mismatch)
-/// Bit 15: indicates negative label
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision); //! MC collision
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);       //! Bit mask to indicate collision mismatches (bit ON means mismatch). Bit 15: indicates negative label
 } // namespace mccollisionlabel
 
-DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL", //!
+DECLARE_SOA_TABLE(McCollisionLabels, "AOD", "MCCOLLISLABEL", //! Table joined to the collision table containing the MC index
                   mccollisionlabel::McCollisionId, mccollisionlabel::McMask);
 using McCollisionLabel = McCollisionLabels::iterator;
 
