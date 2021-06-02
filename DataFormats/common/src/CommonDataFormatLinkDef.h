@@ -48,6 +48,10 @@
 #pragma link C++ class o2::InteractionTimeRecord + ;
 #pragma link C++ class o2::BunchFilling + ;
 
+#pragma link C++ class o2::math_utils::detail::Bracket < o2::InteractionRecord> + ;
+#pragma link C++ class o2::dataformats::IRFrame + ;
+#pragma link C++ class std::vector < o2::dataformats::IRFrame> + ;
+
 #pragma link C++ class o2::dataformats::FlatHisto1D < float> + ;
 #pragma link C++ class o2::dataformats::FlatHisto1D < double> + ;
 #pragma link C++ class o2::dataformats::FlatHisto1D_f + ;
