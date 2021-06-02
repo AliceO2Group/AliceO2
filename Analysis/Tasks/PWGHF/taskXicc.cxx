@@ -75,7 +75,7 @@ struct HfTaskXicc {
       if (!(candidate.hfflag() & 1 << DecayType::XiccToXicPi)) {
         continue;
       }
-      if (cutYCandMax >= 0. && std::std::abs(YXicc(candidate)) > cutYCandMax) {
+      if (cutYCandMax >= 0. && std::abs(YXicc(candidate)) > cutYCandMax) {
         continue;
       }
       registry.fill(HIST("hmass"), InvMassXiccToXicPi(candidate), candidate.pt()); //FIXME need to consider the two mass hp
