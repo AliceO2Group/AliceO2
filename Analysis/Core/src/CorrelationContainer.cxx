@@ -26,7 +26,7 @@
 #include "TCanvas.h"
 #include "TF1.h"
 #include "THn.h"
-#include "Framework/HistogramRegistry.h"
+#include "Framework/HistogramSpec.h"
 
 using namespace o2::framework;
 
