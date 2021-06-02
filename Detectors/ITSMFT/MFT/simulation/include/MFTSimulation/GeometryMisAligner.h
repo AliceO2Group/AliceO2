@@ -41,7 +41,7 @@ class GeometryMisAligner : public TObject
   GeometryMisAligner(Double_t cartMisAligM, Double_t cartMisAligW, Double_t angMisAligM, Double_t angMisAligW);
   GeometryMisAligner(Double_t cartMisAligW, Double_t angMisAligW);
   GeometryMisAligner();
-  ~GeometryMisAligner() override;
+  ~GeometryMisAligner() = default;
 
   /// Not implemented
   GeometryMisAligner(const GeometryMisAligner& right);

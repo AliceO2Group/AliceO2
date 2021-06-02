@@ -170,12 +170,6 @@ GeometryMisAligner::GeometryMisAligner()
   }
 }
 
-//______________________________________________________________________________
-GeometryMisAligner::~GeometryMisAligner()
-{
-  /// Destructor
-}
-
 //_________________________________________________________________________
 void GeometryMisAligner::SetXYAngMisAligFactor(Double_t factor)
 {
@@ -187,8 +181,9 @@ void GeometryMisAligner::SetXYAngMisAligFactor(Double_t factor)
     fLadderMisAlig[3][1] = fLadderMisAlig[5][1] * factor; // added to keep
     fLadderMisAlig[4][0] = fLadderMisAlig[5][0] * factor; // backward
     fLadderMisAlig[4][1] = fLadderMisAlig[5][1] * factor; // compatibility
-  } else
+  } else {
     LOG(ERROR) << "Invalid XY angular misalign factor, " << factor;
+  }
 }
 
 //_________________________________________________________________________
@@ -199,8 +194,9 @@ void GeometryMisAligner::SetZCartMisAligFactor(Double_t factor)
     fZCartMisAligFactor = factor;
     fLadderMisAlig[2][0] = fLadderMisAlig[0][0];
     fLadderMisAlig[2][1] = fLadderMisAlig[0][1] * factor;
-  } else
+  } else {
     LOG(ERROR) << "Invalid Z cartesian misalign factor, " << factor;
+  }
 }
 
 //_________________________________________________________________________
