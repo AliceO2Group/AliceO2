@@ -22,10 +22,11 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-
+#include "CommonDataFormat/IRFrame.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -177,11 +178,16 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
 
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+
   std::uint32_t roFrame = 0;
   ROframe event(0, 7);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
+
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
+  int nBCPerTF = continuous ? alpParams.roFrameLengthInBC : alpParams.roFrameLengthTrig;
 
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
@@ -207,87 +213,80 @@ void TrackerDPL::run(ProcessingContext& pc)
   };
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-  if (continuous) {
-    for (auto& rof : rofs) {
-      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
-      // prepare in advance output ROFRecords, even if this ROF to be rejected
-      int first = allTracks.size();
+  for (auto& rof : rofs) {
+    int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
+    // prepare in advance output ROFRecords, even if this ROF to be rejected
+    int first = allTracks.size();
 
-      if (nclUsed) {
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+    if (nclUsed) {
+      LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
 
-        // for vertices output
-        auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-        vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-        vtxROF.setNEntries(0);
+      // for vertices output
+      auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+      vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+      vtxROF.setNEntries(0);
 
-        if (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0) { // cut was requested
-          auto mult = multEst.process(rof.getROFData(compClusters));
-          if (mult < multEstConf.cutMultClusLow || mult > multEstConf.cutMultClusHigh) {
-            LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
-                      << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
-            rof.setFirstEntry(first);
-            rof.setNEntries(0);
-            continue;
-          }
-        }
-
-        std::vector<Vertex> vtxVecLoc;
-        if (mRunVertexer) {
-          mVertexer->clustersToVertices(event);
-          vtxVecLoc = mVertexer->exportVertices();
-        }
-
-        if (mRunVertexer && (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0)) { // cut was requested
-          std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
-          vtxVecSel.swap(vtxVecLoc);
-          for (const auto& vtx : vtxVecSel) {
-            if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-              LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
-                        << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
-              continue; // skip vertex of unwanted multiplicity
-            }
-            vtxVecLoc.push_back(vtx);
-          }
-          if (vtxVecLoc.empty()) { // reject ROF
-            rof.setFirstEntry(first);
-            rof.setNEntries(0);
-            continue;
-          }
-        }
-
-        if (mRunVertexer) {
-          event.addPrimaryVertices(vtxVecLoc);
-        } else {
-          event.addPrimaryVertex(0.f, 0.f, 0.f);
-        }
-        mTracker->setROFrame(roFrame);
-        mTracker->clustersToTracks(event);
-        tracks.swap(mTracker->getTracks());
-        LOG(INFO) << "Found tracks: " << tracks.size();
-        int number = tracks.size();
-        trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
-        int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
-        rof.setFirstEntry(first);
-        rof.setNEntries(number);
-        copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
-        std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-        trackLabels.clear();
-        vtxROF.setNEntries(vtxVecLoc.size());
-        for (const auto& vtx : vtxVecLoc) {
-          vertices.push_back(vtx);
+      if (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0) { // cut was requested
+        auto mult = multEst.process(rof.getROFData(compClusters));
+        if (mult < multEstConf.cutMultClusLow || mult > multEstConf.cutMultClusHigh) {
+          LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
+                    << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
+          rof.setFirstEntry(first);
+          rof.setNEntries(0);
+          continue;
         }
       }
-      roFrame++;
+
+      std::vector<Vertex> vtxVecLoc;
+      if (mRunVertexer) {
+        mVertexer->clustersToVertices(event);
+        vtxVecLoc = mVertexer->exportVertices();
+      }
+
+      if (mRunVertexer && (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0)) { // cut was requested
+        std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
+        vtxVecSel.swap(vtxVecLoc);
+        for (const auto& vtx : vtxVecSel) {
+          if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
+            LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
+                      << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+            continue; // skip vertex of unwanted multiplicity
+          }
+          vtxVecLoc.push_back(vtx);
+        }
+        if (vtxVecLoc.empty()) { // reject ROF
+          rof.setFirstEntry(first);
+          rof.setNEntries(0);
+          continue;
+        }
+      }
+
+      if (mRunVertexer) {
+        event.addPrimaryVertices(vtxVecLoc);
+      } else {
+        event.addPrimaryVertex(0.f, 0.f, 0.f);
+      }
+      mTracker->setROFrame(roFrame);
+      mTracker->clustersToTracks(event);
+      tracks.swap(mTracker->getTracks());
+      LOG(INFO) << "Found tracks: " << tracks.size();
+      int number = tracks.size();
+      trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+      int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
+      rof.setFirstEntry(first);
+      rof.setNEntries(number);
+      copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
+      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+      trackLabels.clear();
+      vtxROF.setNEntries(vtxVecLoc.size());
+      for (const auto& vtx : vtxVecLoc) {
+        vertices.push_back(vtx);
+      }
+      if (number) {
+        irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+      }
     }
-  } else {
-    ioutils::loadEventData(event, compClusters, pattIt, mDict, labels);
-    // RS: FIXME: this part seems to be not functional !!!
-    event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
-    mTracker->clustersToTracks(event);
-    tracks.swap(mTracker->getTracks());
-    copyTracks(tracks, allTracks, allClusIdx);
-    allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+    roFrame++;
   }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
@@ -317,6 +316,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "IRFRAMES", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
