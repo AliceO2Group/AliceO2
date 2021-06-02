@@ -311,11 +311,11 @@ struct DQEventMixing {
       for (int icut = 0; icut < objArray->GetEntries(); ++icut) {
         fCutNames.push_back(objArray->At(icut)->GetName());
         histNames += Form("PairsBarrelMEPM_%s;PairsBarrelMEPP_%s;PairsBarrelMEMM_%s;", fCutNames[icut].Data(), fCutNames[icut].Data(), fCutNames[icut].Data());
+        histNames += Form("PairsEleMuMEPM_%s;PairsEleMuMEPP_%s;PairsEleMuMEMM_%s;", fCutNames[icut].Data(), fCutNames[icut].Data(), fCutNames[icut].Data());
         fTwoTrackFilterMask |= (uint8_t(1) << icut);
       }
     }
     histNames += "PairsMuonMEPM;PairsMuonMEPP;PairsMuonMEMM;";
-    histNames += "PairsEleMuMEPM;PairsEleMuMEPP;PairsEleMuMEMM;";
 
     DefineHistograms(fHistMan, histNames.Data());    // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
@@ -426,7 +426,7 @@ struct DQEventMixing {
 
       for (auto& track1 : tracks1) {
         for (auto& muon2 : muons2) {
-          twoTrackFilter = track1.isBarrelSelected() & muon2.isMuonSelected();
+            twoTrackFilter = track1.isBarrelSelected() & muon2.isMuonSelected() & fTwoTrackFilterMask;
 
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
@@ -436,12 +436,12 @@ struct DQEventMixing {
           for (int i = 0; i < fCutNames.size(); ++i) {
             if (twoTrackFilter & (uint8_t(1) << i)) {
               if (track1.sign() * muon2.sign() < 0) {
-                fHistMan->FillHistClass(Form("PairsEleMuMEPM", fCutNames[i].Data()), fValues);
+                fHistMan->FillHistClass(Form("PairsEleMuMEPM_%s", fCutNames[i].Data()), fValues);
               } else {
                 if (track1.sign() > 0) {
-                  fHistMan->FillHistClass(Form("PairsEleMuMEPP", fCutNames[i].Data()), fValues);
+                  fHistMan->FillHistClass(Form("PairsEleMuMEPP_%s", fCutNames[i].Data()), fValues);
                 } else {
-                  fHistMan->FillHistClass(Form("PairsEleMuMEMM", fCutNames[i].Data()), fValues);
+                  fHistMan->FillHistClass(Form("PairsEleMuMEMM_%s", fCutNames[i].Data()), fValues);
                 }
               }
             } // end if (filter bits)
@@ -486,11 +486,11 @@ struct DQTableReader {
       for (int icut = 0; icut < objArray->GetEntries(); ++icut) {
         fCutNames.push_back(objArray->At(icut)->GetName());
         histNames += Form("PairsBarrelSEPM_%s;PairsBarrelSEPP_%s;PairsBarrelSEMM_%s;", fCutNames[icut].Data(), fCutNames[icut].Data(), fCutNames[icut].Data());
+        histNames += Form("PairsEleMuSEPM_%s;PairsEleMuSEPP_%s;PairsEleMuSEMM_%s;", fCutNames[icut].Data(), fCutNames[icut].Data(), fCutNames[icut].Data());
         fTwoTrackFilterMask |= (uint8_t(1) << icut);
       }
     }
     histNames += "PairsMuonSEPM;PairsMuonSEPP;PairsMuonSEMM;";
-    histNames += "PairsEleMuSEPM;PairsEleMuSEPP;PairsEleMuSEMM;";
 
     DefineHistograms(fHistMan, histNames.Data());    // define all histograms
     VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
@@ -510,13 +510,13 @@ struct DQTableReader {
 
     // Run the same event pairing for barrel tracks
     uint8_t twoTrackFilter = 0;
-    uint16_t dileptonFilterMap = 0;
+    uint32_t dileptonFilterMap = 0;
     for (auto& [t1, t2] : combinations(tracks, tracks)) {
       twoTrackFilter = t1.isBarrelSelected() & t2.isBarrelSelected() & fTwoTrackFilterMask;
       if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
         continue;
       }
-      dileptonFilterMap = uint16_t(twoTrackFilter);
+      dileptonFilterMap = uint32_t(twoTrackFilter);
       VarManager::FillPair(t1, t2, fValues);
       VarManager::FillPairVertexing(event, t1, t2, fValues);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], t1.sign() + t2.sign(), dileptonFilterMap);
@@ -541,10 +541,10 @@ struct DQTableReader {
       if (!twoTrackFilter) { // the muons must have at least one filter bit in common to continue
         continue;
       }
-      // NOTE: The dimuons in this task ae pushed in the same table as the dielectrons.
-      //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons and the last 8 for dimuons.
+      // NOTE: The dimuons and electron-muon pairs in this task are pushed in the same table as the dielectrons.
+      //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons, the next 8 for dimuons and the rest for electron-muon
       // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.)
-      dileptonFilterMap = uint16_t(twoTrackFilter) << 8;
+      dileptonFilterMap = uint32_t(twoTrackFilter) << 8;
       VarManager::FillPair(muon1, muon2, fValues, VarManager::kJpsiToMuMu);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], muon1.sign() + muon2.sign(), dileptonFilterMap);
       if (muon1.sign() * muon2.sign() < 0) {
@@ -559,26 +559,29 @@ struct DQTableReader {
     } // end loop over muon track pairs
 
     for (auto& [trackBarrel, trackMuon] : combinations(tracks, muons)) {
-      twoTrackFilter = trackBarrel.isBarrelSelected() & trackMuon.isMuonSelected();
-      if (!twoTrackFilter) { // the muons must have at least one filter bit in common to continue
+      twoTrackFilter = trackBarrel.isBarrelSelected() & trackMuon.isMuonSelected() & fTwoTrackFilterMask;
+      if (!twoTrackFilter) { // the muon and barrel track must have at least one filter bit in common to continue
         continue;
       }
-      // NOTE: The dimuons in this task ae pushed in the same table as the dielectrons.
-      //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons and the last 8 for dimuons.
-      // TBD:  Other implementations may be possible, for example add a column to the dilepton table to specify the pair type (dielectron, dimuon, electron-muon, etc.)
-      dileptonFilterMap = uint16_t(twoTrackFilter) << 8;
+        // NOTE: The dimuons and electron-muon pairs in this task are pushed in the same table as the dielectrons.
+        //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons, the next 8 for dimuons and the rest for electron-muon
+      dileptonFilterMap = uint32_t(twoTrackFilter) << 16;
       VarManager::FillPair(trackBarrel, trackMuon, fValues, VarManager::kElectronMuon);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], trackBarrel.sign() + trackMuon.sign(), dileptonFilterMap);
-      if (trackBarrel.sign() * trackMuon.sign() < 0) {
-        fHistMan->FillHistClass("PairsEleMuSEPM", fValues);
-      } else {
-        if (trackBarrel.sign() > 0) {
-          fHistMan->FillHistClass("PairsEleMuSEPP", fValues);
-        } else {
-          fHistMan->FillHistClass("PairsEleMuSEMM", fValues);
-        }
-      }
-    }
+        for (int i = 0; i < fCutNames.size(); ++i) {
+          if (twoTrackFilter & (uint8_t(1) << i)) {
+              if (trackBarrel.sign() * trackMuon.sign() < 0) {
+                  fHistMan->FillHistClass(Form("PairsEleMuSEPM_%s", fCutNames[i].Data()), fValues);
+              } else {
+                if (trackBarrel.sign() > 0) {
+                    fHistMan->FillHistClass(Form("PairsEleMuSEPP_%s", fCutNames[i].Data()), fValues);
+                } else {
+                    fHistMan->FillHistClass(Form("PairsEleMuSEMM_%s", fCutNames[i].Data()), fValues);
+                }
+              }
+          } // end if (filter bits)
+        } // end for (cuts)
+    } // end loop over electron-muon pairs
   }
 };
 
