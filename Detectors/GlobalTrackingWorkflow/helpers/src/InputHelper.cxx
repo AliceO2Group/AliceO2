@@ -14,6 +14,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
+#include "ITSWorkflow/IRFrameReaderSpec.h"
 #include "MFTWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
@@ -119,5 +120,15 @@ int InputHelper::addInputSpecsCosmics(const o2::framework::ConfigContext& config
     return 0;
   }
   specs.emplace_back(o2::globaltracking::getTrackCosmicsReaderSpec(mc));
+  return 0;
+}
+
+// attach vector of ITS reconstructed IRFrames
+int InputHelper::addInputSpecsIRFramesITS(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs)
+{
+  if (configcontext.options().get<bool>("disable-root-input")) {
+    return 0;
+  }
+  specs.emplace_back(o2::its::getIRFrameReaderSpec());
   return 0;
 }

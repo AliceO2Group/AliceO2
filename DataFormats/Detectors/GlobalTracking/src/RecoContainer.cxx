@@ -16,6 +16,7 @@
 #include <chrono>
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "CommonDataFormat/TimeStamp.h"
+#include "CommonDataFormat/IRFrame.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
@@ -41,6 +42,12 @@ void DataRequest::addInput(const InputSpec&& isp)
   if (std::find(inputs.begin(), inputs.end(), isp) == inputs.end()) {
     inputs.emplace_back(isp);
   }
+}
+
+void DataRequest::requestIRFramesITS()
+{
+  addInput({"IRFramesITS", "ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+  requestMap["IRFramesITS"] = false;
 }
 
 void DataRequest::requestITSTracks(bool mc)
@@ -359,6 +366,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addSVertices(pc, req->second);
   }
+
+  req = reqMap.find("IRFramesITS");
+  if (req != reqMap.end()) {
+    addIRFramesITS(pc);
+  }
 }
 
 //____________________________________________________________
@@ -417,6 +429,12 @@ void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR"), MCLABELS);
   }
+}
+
+//____________________________________________________________
+void RecoContainer::addIRFramesITS(ProcessingContext& pc)
+{
+  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("IRFramesITS"), VARIA);
 }
 
 //____________________________________________________________
