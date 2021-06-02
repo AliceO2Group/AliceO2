@@ -157,15 +157,15 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 
   auto task2 = adaptAnalysisTask<BTask>(*cfgc, TaskName{"test2"});
   BOOST_CHECK_EQUAL(task2.inputs.size(), 9);
-  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "CaloTriggers");
-  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "Calos");
-  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Collisions");
-  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "Tracks");
-  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "TracksCov");
-  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "TracksCovExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "TracksExtra");
-  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "AmbiguousTracks");
+  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "CaloTriggers");
+  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Calos");
+  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "Collisions");
+  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "TracksCov");
+  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "TracksCovExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "TracksExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "TracksExtra");
+  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "AmbiguousTracks");
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
   BOOST_CHECK_EQUAL(task3.inputs.size(), 3);
