@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <memory>
 #include <string>
+extern template class std::unordered_map<std::string, u_int32_t>;
 
 namespace o2::framework
 {
@@ -121,36 +122,17 @@ struct Array2D {
 
 static constexpr const char* const labels_rows_str = "labels_rows";
 static constexpr const char* const labels_cols_str = "labels_cols";
-
 using labelmap_t = std::unordered_map<std::string, uint32_t>;
 struct LabelMap {
-  LabelMap()
-    : rowmap{},
-      colmap{},
-      labels_rows{},
-      labels_cols{}
-  {
-  }
-  LabelMap(uint32_t rows, uint32_t cols, std::vector<std::string> labels_rows_, std::vector<std::string> labels_cols_)
-    : rowmap{populate(rows, labels_rows_)},
-      colmap{populate(cols, labels_cols_)},
-      labels_rows{labels_rows_},
-      labels_cols{labels_cols_}
-  {
-  }
+  LabelMap();
+  LabelMap(uint32_t rows, uint32_t cols, std::vector<std::string> labels_rows_, std::vector<std::string> labels_cols_);
 
-  LabelMap(uint32_t size, std::vector<std::string> labels)
-    : rowmap{},
-      colmap{populate(size, labels)},
-      labels_rows{},
-      labels_cols{labels}
-  {
-  }
+  LabelMap(uint32_t size, std::vector<std::string> labels);
 
-  LabelMap(LabelMap const& other) = default;
-  LabelMap(LabelMap&& other) = default;
-  LabelMap& operator=(LabelMap const& other) = default;
-  LabelMap& operator=(LabelMap&& other) = default;
+  LabelMap(LabelMap const& other);
+  LabelMap(LabelMap&& other);
+  LabelMap& operator=(LabelMap const& other);
+  LabelMap& operator=(LabelMap&& other);
 
   labelmap_t rowmap;
   labelmap_t colmap;
