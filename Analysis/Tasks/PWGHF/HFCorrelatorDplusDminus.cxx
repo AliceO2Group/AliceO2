@@ -300,7 +300,7 @@ struct HfCorrelatorDplusDminusMCGen {
      {"hPhiMCGen", "Dplus,Dminus particles - MC gen;particle #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
      {"hYMCGen", "Dplus,Dminus candidates - MC gen;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hcountDplusDminusPerEvent", "Dplus,Dminus particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}},
-     {"hDDbarVsEtaCut", "Dplus,Dminus pairs vs #eta cut of D mesons;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}},     
+     {"hDDbarVsEtaCut", "Dplus,Dminus pairs vs #eta cut of D mesons;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}},
      {"hDDbarVsDaughterEtaCut", "Dplus,Dminus pairs vs #eta cut on D daughters;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}}};
 
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
@@ -360,9 +360,9 @@ struct HfCorrelatorDplusDminusMCGen {
 
         //fill pairs vs etaCut plot
         bool rightDecayChannels = kFALSE;
-        if((std::abs(particle1.flagMCMatchGen()) == 1 << DecayType::DPlusToPiKPi) && (std::abs(particle2.flagMCMatchGen()) == 1 << DecayType::DPlusToPiKPi)) {
+        if ((std::abs(particle1.flagMCMatchGen()) == 1 << DecayType::DPlusToPiKPi) && (std::abs(particle2.flagMCMatchGen()) == 1 << DecayType::DPlusToPiKPi)) {
           rightDecayChannels = kTRUE;
-        }          
+        }
         do {
           ptCut = 0.;
           etaCut += incrementEtaCut;
@@ -372,17 +372,17 @@ struct HfCorrelatorDplusDminusMCGen {
             }
             if (rightDecayChannels) { //fill with D and Dbar daughter particls acceptance checks
               double etaCandidate1Daughter1 = particlesMC.iteratorAt(particle1.daughter0()).eta();
-              double etaCandidate1Daughter2 = particlesMC.iteratorAt(particle1.daughter0()+1).eta();
-              double etaCandidate1Daughter3 = particlesMC.iteratorAt(particle1.daughter0()+2).eta();
+              double etaCandidate1Daughter2 = particlesMC.iteratorAt(particle1.daughter0() + 1).eta();
+              double etaCandidate1Daughter3 = particlesMC.iteratorAt(particle1.daughter0() + 2).eta();
               double etaCandidate2Daughter1 = particlesMC.iteratorAt(particle2.daughter0()).eta();
-              double etaCandidate2Daughter2 = particlesMC.iteratorAt(particle2.daughter0()+1).eta();
-              double etaCandidate2Daughter3 = particlesMC.iteratorAt(particle2.daughter0()+2).eta();
+              double etaCandidate2Daughter2 = particlesMC.iteratorAt(particle2.daughter0() + 1).eta();
+              double etaCandidate2Daughter3 = particlesMC.iteratorAt(particle2.daughter0() + 2).eta();
               if (std::abs(etaCandidate1Daughter1) < etaCut && std::abs(etaCandidate1Daughter2) < etaCut && std::abs(etaCandidate1Daughter3) < etaCut &&
                   std::abs(etaCandidate2Daughter1) < etaCut && std::abs(etaCandidate2Daughter2) < etaCut && std::abs(etaCandidate2Daughter3) < etaCut &&
                   particle1.pt() > ptCut && particle2.pt() > ptCut) {
                 registry.fill(HIST("hDDbarVsDaughterEtaCut"), etaCut - epsilon, ptCut + epsilon);
-              }                            
-            }            
+              }
+            }
             ptCut += incrementPtThreshold;
           } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
         } while (etaCut < maxEtaCut - epsilon);
