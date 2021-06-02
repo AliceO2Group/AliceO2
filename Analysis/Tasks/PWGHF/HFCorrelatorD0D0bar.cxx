@@ -301,7 +301,8 @@ struct HfCorrelatorD0D0barMCGen {
      {"hPhiMCGen", "D0,D0bar particles - MC gen;particle #it{#varphi};entries", {HistType::kTH1F, {{32, 0., 2. * o2::constants::math::PI}}}},
      {"hYMCGen", "D0,D0bar candidates - MC gen;candidate #it{#y};entries", {HistType::kTH1F, {{100, -5., 5.}}}},
      {"hcountD0D0barPerEvent", "D0,D0bar particles - MC gen;Number per event;entries", {HistType::kTH1F, {{20, 0., 20.}}}},
-     {"hDDbarVsEtaCut", "D0,D0bar pairs vs #eta cut;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}}};
+     {"hDDbarVsEtaCut", "D0,D0bar pairs vs #eta cut of D mesons;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}},     
+     {"hDDbarVsDaughterEtaCut", "D0,D0bar pairs vs #eta cut on D daughters;#eta_{max};entries", {HistType::kTH2F, {{(int)(maxEtaCut / incrementEtaCut), 0., maxEtaCut}, {(int)(ptThresholdForMaxEtaCut / incrementPtThreshold), 0., ptThresholdForMaxEtaCut}}}}}};
 
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
@@ -357,12 +358,30 @@ struct HfCorrelatorD0D0barMCGen {
                          particle2.pt());
         double etaCut = 0.;
         double ptCut = 0.;
-        do { //fill pairs vs etaCut plot
+
+        //fill pairs vs etaCut plot
+        bool rightDecayChannels = kFALSE;
+        if((std::abs(particle1.flagMCMatchGen()) == 1 << DecayType::D0ToPiK) && (std::abs(particle2.flagMCMatchGen()) == 1 << DecayType::D0ToPiK)) {
+          rightDecayChannels = kTRUE;
+        }        
+        do {
           ptCut = 0.;
           etaCut += incrementEtaCut;
           do { //fill pairs vs etaCut plot
-            if (std::abs(particle1.eta()) < etaCut && std::abs(particle2.eta()) < etaCut && particle1.pt() > ptCut && particle2.pt() > ptCut)
+            if (std::abs(particle1.eta()) < etaCut && std::abs(particle2.eta()) < etaCut && particle1.pt() > ptCut && particle2.pt() > ptCut) { //fill with D and Dbar acceptance checks
               registry.fill(HIST("hDDbarVsEtaCut"), etaCut - epsilon, ptCut + epsilon);
+            }
+            if (rightDecayChannels) { //fill with D and Dbar daughter particls acceptance checks
+              double etaCandidate1Daughter1 = particlesMC.iteratorAt(particle1.daughter0()).eta();
+              double etaCandidate1Daughter2 = particlesMC.iteratorAt(particle1.daughter1()).eta();
+              double etaCandidate2Daughter1 = particlesMC.iteratorAt(particle2.daughter0()).eta();
+              double etaCandidate2Daughter2 = particlesMC.iteratorAt(particle2.daughter1()).eta();
+              if (std::abs(etaCandidate1Daughter1) < etaCut && std::abs(etaCandidate1Daughter2) < etaCut &&
+                  std::abs(etaCandidate2Daughter1) < etaCut && std::abs(etaCandidate2Daughter2) < etaCut &&
+                  particle1.pt() > ptCut && particle2.pt() > ptCut) {
+                registry.fill(HIST("hDDbarVsDaughterEtaCut"), etaCut - epsilon, ptCut + epsilon);
+              }                            
+            }
             ptCut += incrementPtThreshold;
           } while (ptCut < ptThresholdForMaxEtaCut - epsilon);
         } while (etaCut < maxEtaCut - epsilon);
@@ -692,7 +711,7 @@ struct HfCorrelatorCCbarMCGen {
       if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
-      registry.fill(HIST("hPtcandMCGen"), particle1.pt());
+      registry.fill(HIST("hPtCandMCGen"), particle1.pt());
       registry.fill(HIST("hEtaMCGen"), particle1.eta());
       registry.fill(HIST("hPhiMCGen"), particle1.phi());
       registry.fill(HIST("hYMCGen"), yC);
@@ -706,13 +725,13 @@ struct HfCorrelatorCCbarMCGen {
       registry.fill(HIST("hcountCtriggersMCGen"), 0, particle1.pt()); //to count trigger c quark (for normalisation)
 
       for (auto& particle2 : particlesMC) {
+        if (particle2.pdgCode() != PDG_t::kCharmBar) { //check that inner particle is a cbar
+          continue;
+        }
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle2.px(), particle2.py(), particle2.pz()}, RecoDecay::getMassPDG(particle2.pdgCode()))) > cutYCandMax) {
           continue;
         }
         if (cutPtCandMin >= 0. && particle2.pt() < cutPtCandMin) {
-          continue;
-        }
-        if (particle2.pdgCode() != PDG_t::kCharmBar) { //check that inner particle is a cbar
           continue;
         }
         //check whether mothers of quark cbar (from associated loop) are still '-4' particles - in that case the cbar quark comes from its own fragmentation, skip it
@@ -777,7 +796,7 @@ struct HfCorrelatorCCbarMCGenLS {
       if (cutPtCandMin >= 0. && particle1.pt() < cutPtCandMin) {
         continue;
       }
-      registry.fill(HIST("hPtcandMCGen"), particle1.pt());
+      registry.fill(HIST("hPtCandMCGen"), particle1.pt());
       registry.fill(HIST("hEtaMCGen"), particle1.eta());
       registry.fill(HIST("hPhiMCGen"), particle1.phi());
       registry.fill(HIST("hYMCGen"), yC);
