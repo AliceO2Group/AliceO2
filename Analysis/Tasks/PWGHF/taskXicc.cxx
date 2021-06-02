@@ -75,7 +75,7 @@ struct HfTaskXicc {
       if (!(candidate.hfflag() & 1 << DecayType::XiccToXicPi)) {
         continue;
       }
-      if (cutYCandMax >= 0. && std::abs(YXicc(candidate)) > cutYCandMax) {
+      if (cutYCandMax >= 0. && std::std::abs(YXicc(candidate)) > cutYCandMax) {
         continue;
       }
       registry.fill(HIST("hmass"), InvMassXiccToXicPi(candidate), candidate.pt()); //FIXME need to consider the two mass hp
@@ -84,11 +84,11 @@ struct HfTaskXicc {
       registry.fill(HIST("hptprong1"), candidate.ptProng1());
       registry.fill(HIST("hDecLength"), candidate.decayLength(), candidate.pt());
       registry.fill(HIST("hChi2PCA"), candidate.chi2PCA(), candidate.pt());
-      registry.fill(HIST("hd0Prong0"), abs(candidate.impactParameter0()), candidate.pt());
-      registry.fill(HIST("hd0Prong1"), abs(candidate.impactParameter1()), candidate.pt());
+      registry.fill(HIST("hd0Prong0"), std::abs(candidate.impactParameter0()), candidate.pt());
+      registry.fill(HIST("hd0Prong1"), std::abs(candidate.impactParameter1()), candidate.pt());
       registry.fill(HIST("hCt"), CtXicc(candidate), candidate.pt());
       registry.fill(HIST("hCPA"), candidate.cpa(), candidate.pt());
-      registry.fill(HIST("habsCPA"), abs(candidate.cpa()), candidate.pt());
+      registry.fill(HIST("habsCPA"), std::abs(candidate.cpa()), candidate.pt());
       registry.fill(HIST("hEta"), candidate.eta(), candidate.pt());
       registry.fill(HIST("hY"), YXicc(candidate), candidate.pt());
       registry.fill(HIST("hselectionstatus"), candidate.isSelXiccToPKPiPi(), candidate.pt());
@@ -176,11 +176,11 @@ struct HfTaskXiccMc {
         registry.fill(HIST("hDecLengthSig"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hChi2PCASig"), candidate.chi2PCA(), candidate.pt());
         registry.fill(HIST("hCPASig"), candidate.cpa(), candidate.pt());
-        registry.fill(HIST("hd0Prong0Sig"), abs(candidate.impactParameter0()), candidate.pt());
-        registry.fill(HIST("hd0Prong1Sig"), abs(candidate.impactParameter1()), candidate.pt());
+        registry.fill(HIST("hd0Prong0Sig"), std::abs(candidate.impactParameter0()), candidate.pt());
+        registry.fill(HIST("hd0Prong1Sig"), std::abs(candidate.impactParameter1()), candidate.pt());
         registry.fill(HIST("hCtSig"), CtXicc(candidate), candidate.pt());
         registry.fill(HIST("hCPASig"), candidate.cpa(), candidate.pt());
-        registry.fill(HIST("habsCPASig"), abs(candidate.cpa()), candidate.pt());
+        registry.fill(HIST("habsCPASig"), std::abs(candidate.cpa()), candidate.pt());
         registry.fill(HIST("hEtaSig"), candidate.eta(), candidate.pt());
         registry.fill(HIST("hYSig"), YXicc(candidate), candidate.pt());
         registry.fill(HIST("hImpParErr0Sig"), candidate.errorImpactParameter0(), candidate.pt());
@@ -193,9 +193,9 @@ struct HfTaskXiccMc {
         registry.fill(HIST("hDecLengthBg"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hChi2PCABg"), candidate.chi2PCA(), candidate.pt());
         registry.fill(HIST("hCPABg"), candidate.cpa(), candidate.pt());
-        registry.fill(HIST("habsCPABg"), abs(candidate.cpa()), candidate.pt());
-        registry.fill(HIST("hd0Prong0Bg"), abs(candidate.impactParameter0()), candidate.pt());
-        registry.fill(HIST("hd0Prong1Bg"), abs(candidate.impactParameter1()), candidate.pt());
+        registry.fill(HIST("habsCPABg"), std::abs(candidate.cpa()), candidate.pt());
+        registry.fill(HIST("hd0Prong0Bg"), std::abs(candidate.impactParameter0()), candidate.pt());
+        registry.fill(HIST("hd0Prong1Bg"), std::abs(candidate.impactParameter1()), candidate.pt());
         registry.fill(HIST("hCtBg"), CtXicc(candidate), candidate.pt());
         registry.fill(HIST("hCPABg"), candidate.cpa(), candidate.pt());
         registry.fill(HIST("hEtaBg"), candidate.eta(), candidate.pt());
