@@ -45,7 +45,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
       continue;
     }
     out << "   "
-        << fmt::format("<decltask name=\"{}\">\n", spec.name);
+        << fmt::format("<decltask name=\"{}\">\n", spec.id);
     out << "       "
         << R"(<exe reachable="true">)";
     out << replaceFirstOccurrence(commandInfo.command, "--dds", "--dump") << " | ";
@@ -90,7 +90,7 @@ void dumpDeviceSpec2DDS(std::ostream& out,
   }
   out << "   <declcollection name=\"DPL\">\n       <tasks>\n";
   for (size_t di = 0; di < specs.size(); ++di) {
-    out << fmt::format("          <name>{}</name>\n", specs[di].name);
+    out << fmt::format("          <name>{}</name>\n", specs[di].id);
   }
   out << "       </tasks>\n   </declcollection>\n";
   out << "</topology>\n";

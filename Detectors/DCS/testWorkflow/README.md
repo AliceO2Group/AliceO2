@@ -7,24 +7,24 @@
 Local example workflow with local CCDB (running on port 6464) :
 
 ```shell
-o2-dcs-random-data-workflow --max-timeframes=10 | 
+o2-dcs-random-data-workflow --max-timeframes=10 |
 o2-calibration-ccdb-populator-workflow --ccdb-path http://localhost:6464
 ```
 
 # Simulation of detector specific data points
 
-In order to test the processing of their datapoints, subsystems can, for instance, setup a basic workflow chain consisting of a simulator, a processor and a ccdb populator. 
+In order to test the processing of their datapoints, subsystems can, for instance, setup a basic workflow chain consisting of a simulator, a processor and a ccdb populator.
 
 ```console
-det-dcs-simulator | det-processor | o2-calibration-ccdb-populator-workflow 
+det-dcs-simulator | det-processor | o2-calibration-ccdb-populator-workflow
 ```
 
 The simulator must create a message containing a vector of DataPointCompositeObject for the detector. The processor then does "something" with those data points, and creates a set of object pairs (clbInfo,clbPayload) that are transmitted to the ccdb populator to be uploaded to the CCDB.
 
-The ccdb populator is an existing workflow that can be reused by any susbsystem. The processor is of course detector specific and must be written accordingly. 
+The ccdb populator is an existing workflow that can be reused by any susbsystem. The processor is of course detector specific and must be written accordingly.
 The simulator is also detector specific in the sense that each detector has a different set of datapoints to be simulated. It can be written from scratch if so desired, but it can also be written with the help of `getDCSRandomGeneratorSpec` function (defined in the `Detectors/DCS/testWorkflow/include/DCStestWorkflow/DCSRandomDataGeneratorSpec.h` include file) for cases where random generation of data points is sufficient.
 
-It then boils down to : 
+It then boils down to :
 
 ```
 #include "DCStestWorkflow/DCSRandomDataGeneratorSpec.h"
@@ -64,3 +64,19 @@ o2-dcs-proxy --dcs-proxy '--channel-config "name=dcs-proxy,type=pull,method=conn
 
 
 
+# dcs-config proxy
+
+This is a proxy to import the detector configuration files from DCS server into the DPL. A simple test is
+
+```
+DET="TOF"
+CHANFROM='"type=sub,method=connect,address=tcp://127.0.0.1:5556,rateLogging=1,transport=zeromq"'
+CHANACK='"type=push,method=connect,address=tcp://127.0.0.1:5557,rateLogging=1,transport=zeromq"'
+o2-dcs-config-proxy --subscribe-to $CHANFROM --acknowlege-to $CHANACK | o2-dcs-config-consumer-test-workflow --detector $DET
+```
+
+to receive from the `CHANFROM` DCS channel the configuration file name (starting with detector name) and the file itself and inject them as DPL messages with specs
+`<DET>/DCS_CONFIG_NAME/0` and `<DET>/DCS_CONFIG_FILE/0` respectively.
+The `o2-dcs-config-consumer-test-workflow` is a dummy processing device which just consumes such messages for the detector `<DET>`.
+
+If the `CHANACK` string is not empty, then the acknowledgment string `OK` will be sent to this channel on every reception of the DCS message.

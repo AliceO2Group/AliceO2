@@ -50,4 +50,30 @@ enum ForwardTrackTypeEnum : uint8_t {
 };
 } // namespace o2::aod::fwdtrack
 
+namespace o2::aod::run2
+{
+enum Run2EventSelectionCut {
+  kINELgtZERO = 0,
+  kPileupInMultBins,
+  kConsistencySPDandTrackVertices,
+  kTrackletsVsClusters,
+  kNonZeroNContribs,
+  kIncompleteDAQ,
+  kPileUpMV,
+  kTPCPileUp,
+  kTimeRangeCut,
+  kEMCALEDCut,
+  kAliEventCutsAccepted,
+  kIsPileupFromSPD,
+  kIsV0PFPileup,
+  kIsTPCHVdip,
+  kIsTPCLaserWarmUp,
+  kTRDHCO, // Offline TRD cosmic trigger decision
+  kTRDHJT, // Offline TRD jet trigger decision
+  kTRDHSE, // Offline TRD single electron trigger decision
+  kTRDHQU, // Offline TRD quarkonium trigger decision
+  kTRDHEE  // Offline TRD single-electron-in-EMCAL-acceptance trigger decision
+};
+} // namespace o2::aod::run2
+
 #endif // O2_FRAMEWORK_DATATYPES_H_

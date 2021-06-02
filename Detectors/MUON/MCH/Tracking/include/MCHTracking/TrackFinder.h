@@ -49,12 +49,6 @@ class TrackFinder
 
   const std::list<Track>& findTracks(const std::unordered_map<int, std::list<Cluster>>& clusters);
 
-  /// set the flag to try to find more track candidates starting from 1 cluster in each of station (1..) 4 and 5
-  void findMoreTrackCandidates(bool moreCandidates) { mMoreCandidates = moreCandidates; }
-
-  /// set the flag to refine the tracks in the end using cluster resolution
-  void refineTracks(bool refine) { mRefineTracks = refine; }
-
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
 
@@ -118,34 +112,17 @@ class TrackFinder
   /// return the chamber to which this plane belong to
   int getChamberId(int plane) { return (plane < 8) ? plane / 2 : 4 + (plane - 8) / 4; }
 
-  /// return the chamber resolution square in x direction
-  static constexpr double chamberResolutionX2() { return SChamberResolutionX * SChamberResolutionX; }
-  /// return the chamber resolution square in y direction
-  static constexpr double chamberResolutionY2() { return SChamberResolutionY * SChamberResolutionY; }
-
-  /// chamber resolution in x direction used as cluster resolution during tracking
-  static constexpr double SChamberResolutionX = 0.2;
-  /// chamber resolution in y direction used as cluster resolution during tracking
-  static constexpr double SChamberResolutionY = 0.2;
-  /// sigma cut to select clusters (local chi2) and tracks (global chi2) during tracking
-  static constexpr double SSigmaCutForTracking = 5.;
-  /// sigma cut to select clusters (local chi2) and tracks (global chi2) during improvement
-  static constexpr double SSigmaCutForImprovement = 4.;
   ///< maximum distance to the track to search for compatible cluster(s) in non bending direction
   static constexpr double SMaxNonBendingDistanceToTrack = 1.;
   ///< maximum distance to the track to search for compatible cluster(s) in bending direction
   static constexpr double SMaxBendingDistanceToTrack = 1.;
-  static constexpr double SNonBendingVertexDispersion = 70.; ///< vertex dispersion (cm) in non bending plane
-  static constexpr double SBendingVertexDispersion = 70.;    ///< vertex dispersion (cm) in bending plane
-  static constexpr double SMinBendingMomentum = 0.8;         ///< minimum value (GeV/c) of momentum in bending plane
+  static constexpr double SMinBendingMomentum = 0.8; ///< minimum value (GeV/c) of momentum in bending plane
   /// z position of the chambers
   static constexpr double SDefaultChamberZ[10] = {-526.16, -545.24, -676.4, -695.4, -967.5,
                                                   -998.5, -1276.5, -1307.5, -1406.6, -1437.6};
   /// default chamber thickness in X0 for reconstruction
   static constexpr double SChamberThicknessInX0[10] = {0.065, 0.065, 0.075, 0.075, 0.035,
                                                        0.035, 0.035, 0.035, 0.035, 0.035};
-  /// if true, at least one cluster in the station is requested to validate the track
-  static constexpr bool SRequestStation[5] = {true, true, true, true, true};
   static constexpr int SNDE[10] = {4, 4, 4, 4, 18, 18, 26, 26, 26, 26}; ///< number of DE per chamber
 
   TrackFitter mTrackFitter{}; /// track fitter
@@ -154,10 +131,13 @@ class TrackFinder
 
   std::list<Track> mTracks{}; ///< list of reconstructed tracks
 
-  double mMaxMCSAngle2[10]{}; ///< maximum angle dispersion due to MCS
+  double mChamberResolutionX2 = 0.;      ///< chamber resolution square (cm^2) in x direction
+  double mChamberResolutionY2 = 0.;      ///< chamber resolution square (cm^2) in y direction
+  double mBendingVertexDispersion2 = 0.; ///< vertex dispersion square (cm^2) in y direction
+  double mMaxChi2ForTracking = 0.;       ///< maximum chi2 to accept a cluster candidate during tracking
+  double mMaxChi2ForImprovement = 0.;    ///< maximum chi2 to accept a cluster candidate during improvement
 
-  bool mMoreCandidates = false; ///< find more track candidates starting from 1 cluster in each of station (1..) 4 and 5
-  bool mRefineTracks = true;    ///< refine the tracks in the end using cluster resolution
+  double mMaxMCSAngle2[10]{}; ///< maximum angle dispersion due to MCS
 
   int mDebugLevel = 0; ///< debug level defining the verbosity
 

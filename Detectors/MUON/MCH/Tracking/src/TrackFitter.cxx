@@ -143,7 +143,7 @@ void TrackFitter::initTrack(const Cluster& cl1, const Cluster& cl2, TrackParam& 
   // Inverse bending momentum (vertex resolution + bending slope resolution + 10% error on dipole parameters+field)
   if (TrackExtrap::isFieldON()) {
     lastParamCov(4, 4) =
-      ((SBendingVertexDispersion * SBendingVertexDispersion +
+      ((mBendingVertexDispersion2 +
         (cl1.getZ() * cl1.getZ() * lastParamCov(2, 2) + cl2.getZ() * cl2.getZ() * 1000. * cl1Ey2) / dZ / dZ) /
          bendingImpact / bendingImpact +
        0.1 * 0.1) *
