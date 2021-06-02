@@ -132,7 +132,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
       /// INPUTS: name det level indexCTP<0:45>
       {
         if (ntokens != 4) {
-          LOG(ERROR) << "Syntax error in INPUTS:" << line;
+          LOG(ERROR) << "INPUTS syntax error in, wrong number of items, expected 4:" << line;
           return level;
         }
         CTPInput inp;
@@ -146,7 +146,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         try {
           inp.inputMask = std::stoull(tokens[3], nullptr, 0);
         } catch (...) {
-          LOG(ERROR) << "Syntax error in INPUTS in mask:" << line;
+          LOG(ERROR) << "INPUTS syntax error in mask:" << line;
           return level;
         }
         mInputs.push_back(inp);
@@ -185,14 +185,14 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
       {
         CTPClass cls;
         if (ntokens != 4) {
-          LOG(ERROR) << "Syntax error in CLASSES:" << line;
+          LOG(ERROR) << "CLASSES syntax error, wrong number of items, expected 4:" << line;
           return level;
         }
         cls.name = tokens[0];
         try {
           cls.classMask = std::stoull(tokens[1]);
         } catch (...) {
-          LOG(ERROR) << "Syntax error in CLASSES in mask:" << line;
+          LOG(ERROR) << "CLASSES syntax error in mask:" << line;
           return level;
         }
         std::string token = tokens[2];
@@ -201,6 +201,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           cls.descriptor = &*it;
         } else {
           ///Internal error
+          LOG(ERROR) << "CLASSES syntax error, descriptor not found:" << token;
         }
         ///
         token = tokens[3];
@@ -208,13 +209,14 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         if (it2 != mClusters.end()) {
           cls.cluster = &*it2;
         } else {
-          ///INternal error
+          ///Internal error
+          LOG(ERROR) << "CLASSES syntax error, cluster not found:" << token;
         }
         mCTPClasses.push_back(cls);
         break;
       }
     default: {
-      LOG(ERROR) << "Error: Unknown level:" << level;
+      LOG(ERROR) << "Unknown level:" << level;
     }
   }
   return 0;
