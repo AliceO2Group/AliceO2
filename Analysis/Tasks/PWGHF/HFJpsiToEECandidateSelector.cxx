@@ -20,11 +20,32 @@
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 #include "AnalysisCore/TrackSelectorPID.h"
+#include "ALICE3Analysis/RICH.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_jpsi_toee;
+
+namespace o2::aod
+{
+
+namespace indices
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);
+DECLARE_SOA_INDEX_COLUMN(RICH, rich);
+} // namespace indices
+
+DECLARE_SOA_INDEX_TABLE_USER(RICHTracksIndex, Tracks, "RICHTRK", indices::TrackId, indices::RICHId);
+} // namespace o2::aod
+
+struct RICHindexbuilder {
+  Builds<o2::aod::RICHTracksIndex> ind;
+  void init(o2::framework::InitContext&)
+  {
+  }
+};
+
 
 /// Struct for applying J/ψ → e+ e− selection cuts
 struct HFJpsiToEECandidateSelector {
@@ -36,6 +57,15 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
+  
+  Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
+  Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 5., "Upper bound of track pT for TOF PID"};
+  Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
+
+  Configurable<double> d_pidRICHMinpT{"d_pidRICHMinpT", 0.15, "Lower bound of track pT for RICH PID"};
+  Configurable<double> d_pidRICHMaxpT{"d_pidRICHMaxpT", 10., "Upper bound of track pT for RICH PID"};
+  Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3., "Nsigma cut on RICH only"};
+  Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
   //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
@@ -97,18 +127,28 @@ struct HFJpsiToEECandidateSelector {
 
     return true;
   }
+  template <typename T>
+  bool validRICHPID(const T& track)
+  {
+    if (TMath::Abs(track.pt()) < d_pidRICHMinpT || TMath::Abs(track.pt()) >= d_pidRICHMaxpT) {
+      return false;
+    }
+    return true;
+  }
 
-  void process(aod::HfCandProng2 const& candidates, aod::BigTracksPID const&)
+
+  using Trks = soa::Join<aod::BigTracksPID, aod::RICHTracksIndex>;
+  void process(aod::HfCandProng2 const& candidates, const Trks& tracks,aod::RICHs const&)
   {
     TrackSelectorPID selectorElectron(kElectron);
-    selectorElectron.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
-    selectorElectron.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
-
+    selectorElectron.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
+    selectorElectron.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
+    selectorElectron.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
     // looping over 2-prong candidates
     for (auto& candidate : candidates) {
 
-      auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
-      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
+      auto trackPos = candidate.index0_as<Trks>(); // positive daughter
+      auto trackNeg = candidate.index1_as<Trks>(); // negative daughter
 
       if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
         hfSelJpsiToEECandidate(0);
@@ -132,11 +172,33 @@ struct HFJpsiToEECandidateSelector {
       }
 
       // track-level PID selection
-      if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-          selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+      if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
         hfSelJpsiToEECandidate(0);
-        continue;
+	continue;
       }
+ 
+      bool pidrichPos = validRICHPID(trackPos);
+      bool pidrichNeg = validRICHPID(trackNeg);
+      if (pidrichPos && pidrichNeg) {
+ //         LOGF(info, "both good rich tracks");
+        }
+
+ //       LOGF(info, "cut %f, val pos %f, val neg %f", d_nSigmaRICH, trackPos.rich().richNsigmaEl(), trackNeg.rich().richNsigmaEl());
+       if (pidrichPos && pidrichNeg) {
+          bool selpidrichPos = abs(trackPos.rich().richNsigmaEl()) < d_nSigmaRICH;
+          bool selpidrichNeg = abs(trackNeg.rich().richNsigmaEl()) < d_nSigmaRICH;
+//          LOGF(info, "pos %d, neg %d", selpidrichPos, selpidrichNeg);
+          bool selpidrich = selpidrichPos && selpidrichNeg;
+          if (selpidrich) {
+//            LOGF(info, "both sel rich tracks");
+          }
+          if (!selpidrich) {
+            hfSelJpsiToEECandidate(0);
+//            LOGF(info, "not selectedtracks");
+            continue;
+          }
+        }
 
       hfSelJpsiToEECandidate(1);
     }
@@ -145,6 +207,6 @@ struct HFJpsiToEECandidateSelector {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
+  return WorkflowSpec{adaptAnalysisTask<RICHindexbuilder>(cfgc),
     adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
 }
