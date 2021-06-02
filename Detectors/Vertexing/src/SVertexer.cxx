@@ -156,7 +156,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   };
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
-  int nv = vtxRefs.size();
+  int nv = vtxRefs.size() - 1; // The last entry is for unassigned tracks, ignore them
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();
