@@ -13,9 +13,12 @@
 
 #include <string>
 #include <variant>
-#include <deque>
 #include <optional>
 
+#include "Framework/StringHelpers.h"
+#include "Framework/Configurable.h"
+
+#include "Framework/StepTHn.h"
 #include <TH1.h>
 #include <TH2.h>
 #include <TH3.h>
@@ -24,14 +27,6 @@
 #include <TProfile.h>
 #include <TProfile2D.h>
 #include <TProfile3D.h>
-#include <TList.h>
-#include <TDataMember.h>
-#include <TDataType.h>
-
-#include "Framework/StepTHn.h"
-#include "Framework/Configurable.h"
-#include "Framework/StringHelpers.h"
-#include "Framework/RuntimeError.h"
 
 namespace o2::framework
 {
@@ -80,8 +75,8 @@ using HistPtr = std::variant<std::shared_ptr<THn>, std::shared_ptr<THnSparse>, s
  * Specification of an Axis.
  */
 //**************************************************************************************************
-// Flag to mark variable bin size in configurable bin edges
-constexpr int VARIABLE_WIDTH = 0;
+// flag to mark variable bin size in configurable bin edges
+constexpr double VARIABLE_WIDTH = 0.;
 
 struct AxisSpec {
   AxisSpec(std::vector<double> binEdges_, std::optional<std::string> title_ = std::nullopt, std::optional<std::string> name_ = std::nullopt)
@@ -200,6 +195,83 @@ struct HistogramSpec {
   HistogramConfigSpec config{};
   bool callSumw2{}; // wether or not hist needs heavy error structure produced by Sumw2()
 };
+
+//**************************************************************************************************
+/**
+ * Static helper class to generate histograms from the specifications.
+ * Also provides functions to obtain pointer to the created histogram casted to the correct alternative of the std::variant HistPtr that is used in HistogramRegistry.
+ */
+//**************************************************************************************************
+struct HistFactory {
+
+  // create histogram of type T with the axes defined in HistogramSpec
+  template <typename T>
+  static std::unique_ptr<T> createHist(const HistogramSpec& histSpec);
+
+  // create histogram and return it casted to the correct alternative held in HistPtr variant
+  template <typename T>
+  static HistPtr createHistVariant(const HistogramSpec& histSpec);
+
+  // runtime version of the above
+  static HistPtr createHistVariant(const HistogramSpec& histSpec);
+
+  // helper function to get the axis via index for any type of root histogram
+  template <typename T>
+  static TAxis* getAxis(const int i, T* hist);
+
+ private:
+  static const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistogramCreationCallbacks;
+
+  // helper function to generate the actual histograms
+  template <typename T>
+  static T* generateHist(const std::string& name, const std::string& title, const std::size_t nDim,
+                         const int nBins[], const double lowerBounds[], const double upperBounds[], const int nSteps = 1);
+
+  // helper function to cast the actual histogram type (e.g. TH2F) to the correct interface type (e.g. TH2) that is stored in the HistPtr variant
+  template <typename T>
+  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
+
+  template <typename T, typename Next, typename... Rest>
+  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
+
+  static std::optional<HistPtr> castToVariant(std::shared_ptr<TObject> obj);
+};
+
+#define DECLAREEXT(HType) \
+  extern template std::unique_ptr<HType> HistFactory::createHist<HType>(const HistogramSpec& histSpec);
+DECLAREEXT(TH1D);
+DECLAREEXT(TH1F);
+DECLAREEXT(TH1I);
+DECLAREEXT(TH1C);
+DECLAREEXT(TH1S);
+DECLAREEXT(TH2D);
+DECLAREEXT(TH2F);
+DECLAREEXT(TH2I);
+DECLAREEXT(TH2C);
+DECLAREEXT(TH2S);
+DECLAREEXT(TH3D);
+DECLAREEXT(TH3F);
+DECLAREEXT(TH3I);
+DECLAREEXT(TH3C);
+DECLAREEXT(TH3S);
+DECLAREEXT(THnD);
+DECLAREEXT(THnF);
+DECLAREEXT(THnI);
+DECLAREEXT(THnC);
+DECLAREEXT(THnS);
+DECLAREEXT(THnL);
+DECLAREEXT(THnSparseD);
+DECLAREEXT(THnSparseF);
+DECLAREEXT(THnSparseI);
+DECLAREEXT(THnSparseC);
+DECLAREEXT(THnSparseS);
+DECLAREEXT(THnSparseL);
+DECLAREEXT(TProfile);
+DECLAREEXT(TProfile2D);
+DECLAREEXT(TProfile3D);
+DECLAREEXT(StepTHnF);
+DECLAREEXT(StepTHnD)
+#undef DECLAREEXT
 
 } // namespace o2::framework
 #endif // FRAMEWORK_HISTOGRAMSPEC_H_

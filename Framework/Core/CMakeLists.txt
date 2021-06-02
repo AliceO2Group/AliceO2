@@ -106,6 +106,7 @@ o2_add_library(Framework
                        src/WSDriverClient.cxx
                        src/runDataProcessing.cxx
                        src/ExternalFairMQDeviceProxy.cxx
+                       src/HistogramSpec.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
                        src/Base64.cxx
