@@ -17,6 +17,7 @@
 #include "DataFormatsFT0/MCLabel.h"
 #include "MathUtils/RandomRing.h"
 #include "FT0Simulation/Detector.h"
+#include "FT0Base/Geometry.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "FT0Simulation/DigitizationConstants.h"
@@ -38,6 +39,7 @@ class Digitizer
  private:
   using DP = DigitizationConstants;
   typedef math_utils::RandomRing</*float_v::size()*/ 4 * DP::NOISE_RANDOM_RING_SIZE> NoiseRandomRingType;
+  static constexpr int NCHANNELS = o2::ft0::Geometry::Nchannels;
 
  public:
   Digitizer(Int_t mode = 0) : mMode(mode), mRndGaus(NoiseRandomRingType::RandomType::Gaus), mNumNoiseSamples(), mNoiseSamples(), mSincTable(), mSignalTable(), mSignalCache() { initParameters(); }
@@ -141,7 +143,7 @@ class Digitizer
 
   o2::InteractionRecord firstBCinDeque = 0;
   std::deque<BCCache> mCache;
-  std::array<GoodInteractionTimeRecord, 208> mDeadTimes;
+  std::array<GoodInteractionTimeRecord, NCHANNELS> mDeadTimes;
 
   o2::ft0::Geometry mGeometry;
 

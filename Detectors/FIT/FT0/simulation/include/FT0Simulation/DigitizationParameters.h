@@ -20,7 +20,8 @@ struct DigitizationParameters
   : o2::conf::ConfigurableParamHelper<DigitizationParameters> {
   float mBunchWidth = 25;                                    //ns
   float mChannelWidthInverse = 0.076804916;                  // channel width in ps inverse
-  float mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
+  //  float mMCPs = (Geometry::NCellsA + Geometry::NCellsC) * 4; //number of MCPs
+  float mMCPs = Geometry::Nchannels;                         //number of MCPs
   float mCFD_trsh = 3.;                                      // [mV]
   float mAmp_trsh = 100;                                     // [ph.e]
   float mAmpRecordLow = -4;                                  // integrate charge from

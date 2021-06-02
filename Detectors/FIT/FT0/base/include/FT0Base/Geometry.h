@@ -37,7 +37,8 @@ class Geometry
   ///
   TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
 
-  static constexpr int Nchannels = 208;                     // number od channels
+  //  static constexpr int Nchannels = 208;                     // number od channels
+  static constexpr int Nchannels = 229;                     // number od channels
   static constexpr int NCellsA = 24;                        // number of radiatiors on A side
   static constexpr int NCellsC = 28;                        // number of radiatiors on C side
   static constexpr float ZdetA = 335.5;                     // number of radiatiors on A side
