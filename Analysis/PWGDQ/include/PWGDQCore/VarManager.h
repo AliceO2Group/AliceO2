@@ -698,12 +698,12 @@ void VarManager::FillPairVertexing(C const& collision, T const& t1, T const& t2,
   // get uncertainty of the decay length
   //double phi, theta;
   //getPointDirection(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex, phi, theta);
-  double phi = std::atan2(secondaryVertex[1] - collision.posY(), secondaryVertex[1] - collision.posX());
+  double phi = std::atan2(secondaryVertex[1] - collision.posY(), secondaryVertex[0] - collision.posX());
   double theta = std::atan2(secondaryVertex[2] - collision.posZ(),
                             std::sqrt((secondaryVertex[0] - collision.posX()) * (secondaryVertex[0] - collision.posX()) +
                                       (secondaryVertex[1] - collision.posY()) * (secondaryVertex[1] - collision.posY())));
 
-  values[kVertexingLxyErr] = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
+  values[kVertexingLxyzErr] = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
   values[kVertexingLxyErr] = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
   values[kVertexingLxy] = (collision.posX() - secondaryVertex[0]) * (collision.posX() - secondaryVertex[0]) +
