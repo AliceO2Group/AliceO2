@@ -426,7 +426,7 @@ struct DQEventMixing {
 
       for (auto& track1 : tracks1) {
         for (auto& muon2 : muons2) {
-            twoTrackFilter = track1.isBarrelSelected() & muon2.isMuonSelected() & fTwoTrackFilterMask;
+          twoTrackFilter = track1.isBarrelSelected() & muon2.isMuonSelected() & fTwoTrackFilterMask;
 
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
@@ -563,25 +563,25 @@ struct DQTableReader {
       if (!twoTrackFilter) { // the muon and barrel track must have at least one filter bit in common to continue
         continue;
       }
-        // NOTE: The dimuons and electron-muon pairs in this task are pushed in the same table as the dielectrons.
-        //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons, the next 8 for dimuons and the rest for electron-muon
+      // NOTE: The dimuons and electron-muon pairs in this task are pushed in the same table as the dielectrons.
+      //       In order to discriminate them, the dileptonFilterMap uses the first 8 bits for dielectrons, the next 8 for dimuons and the rest for electron-muon
       dileptonFilterMap = uint32_t(twoTrackFilter) << 16;
       VarManager::FillPair(trackBarrel, trackMuon, fValues, VarManager::kElectronMuon);
       dileptonList(event, fValues[VarManager::kMass], fValues[VarManager::kPt], fValues[VarManager::kEta], fValues[VarManager::kPhi], trackBarrel.sign() + trackMuon.sign(), dileptonFilterMap);
-        for (int i = 0; i < fCutNames.size(); ++i) {
-          if (twoTrackFilter & (uint8_t(1) << i)) {
-              if (trackBarrel.sign() * trackMuon.sign() < 0) {
-                  fHistMan->FillHistClass(Form("PairsEleMuSEPM_%s", fCutNames[i].Data()), fValues);
-              } else {
-                if (trackBarrel.sign() > 0) {
-                    fHistMan->FillHistClass(Form("PairsEleMuSEPP_%s", fCutNames[i].Data()), fValues);
-                } else {
-                    fHistMan->FillHistClass(Form("PairsEleMuSEMM_%s", fCutNames[i].Data()), fValues);
-                }
-              }
-          } // end if (filter bits)
-        } // end for (cuts)
-    } // end loop over electron-muon pairs
+      for (int i = 0; i < fCutNames.size(); ++i) {
+        if (twoTrackFilter & (uint8_t(1) << i)) {
+          if (trackBarrel.sign() * trackMuon.sign() < 0) {
+            fHistMan->FillHistClass(Form("PairsEleMuSEPM_%s", fCutNames[i].Data()), fValues);
+          } else {
+            if (trackBarrel.sign() > 0) {
+              fHistMan->FillHistClass(Form("PairsEleMuSEPP_%s", fCutNames[i].Data()), fValues);
+            } else {
+              fHistMan->FillHistClass(Form("PairsEleMuSEMM_%s", fCutNames[i].Data()), fValues);
+            }
+          }
+        } // end if (filter bits)
+      }   // end for (cuts)
+    }     // end loop over electron-muon pairs
   }
 };
 

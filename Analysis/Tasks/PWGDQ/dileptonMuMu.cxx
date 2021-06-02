@@ -168,9 +168,9 @@ struct DQMuonTrackSelection {
   float* fValues;
 
   Configurable<float> fConfigMuonPtLow{"cfgMuonLowPt", 1.0f, "Low pt cut for muons"};
-    Configurable<std::string> fConfigMuonCuts{"cfgMuonCuts", "muonQualityCuts", "muon cut"};
-    
-    Filter muonFilter = aod::reducedmuon::pt >= fConfigMuonPtLow;
+  Configurable<std::string> fConfigMuonCuts{"cfgMuonCuts", "muonQualityCuts", "muon cut"};
+
+  Filter muonFilter = aod::reducedmuon::pt >= fConfigMuonPtLow;
 
   void init(o2::framework::InitContext&)
   {
