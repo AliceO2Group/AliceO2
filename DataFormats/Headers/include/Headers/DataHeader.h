@@ -39,6 +39,7 @@
 #include <stdexcept>
 #include <climits>
 #include <limits>
+#include <cerrno>
 
 namespace o2::header
 {
