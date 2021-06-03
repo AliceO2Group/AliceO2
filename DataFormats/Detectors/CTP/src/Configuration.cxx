@@ -40,24 +40,13 @@ void CTPDescriptor::printStream(std::ostream& stream) const
 //
 void CTPDetector::printStream(std::ostream& stream) const
 {
-  o2::detectors::DetID det(detID);
-  stream << "CTP Detector:" << det.getName() << " HBaccepted:" << HBaccepted << std::endl;
+  stream << "CTP Detector:" << getName() << " HBaccepted:" << HBaccepted << std::endl;
 }
-//
-o2::detectors::DetID::mask_t CTPCluster::getClusterDetMask() const
-{
-  o2::detectors::DetID::mask_t detmask = 0;
-  for (auto const& det : detectors) {
-    detmask |= det.getMask();
-  }
-  return detmask;
-}
+
 void CTPCluster::printStream(std::ostream& stream) const
 {
-  stream << "CTP Cluster:" << name << " mask:0b" << std::hex << getClusterDetMask() << " " << std::dec;
-  for (const auto& det : detectors) {
-    stream << det.getName() << " ";
-  }
+  stream << "CTP Cluster:" << name << getClusterDetNames();
+  stream << " mask:0b" << std::hex << maskCluster << " " << std::dec;
   stream << std::endl;
 }
 //
@@ -171,13 +160,13 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         CTPCluster cluster;
         cluster.name = tokens[0];
         tokens.erase(tokens.begin());
-        o2::detectors::DetID::mask_t maskCluster;
+        o2::detectors::DetID::mask_t mask;
         for (auto& item : tokens) {
           o2::detectors::DetID det(item.c_str());
           isDetector(det);
-          cluster.detectors.push_back(det);
+          mask |= det.getMask();
         }
-        mClusters.push_back(cluster);
+        cluster.maskCluster = mask;
         break;
       }
     case 7:
