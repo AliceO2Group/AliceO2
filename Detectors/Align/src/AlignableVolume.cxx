@@ -827,7 +827,7 @@ void AlignableVolume::updateL2GRecoMatrices(const TClonesArray* algArr, const TG
   const detectors::AlignParam* par = nullptr;
   for (int i = 0; i < nalg; i++) {
     par = (detectors::AlignParam*)algArr->At(i);
-    if (!strcmp(par->getSymName(), getSymName())) {
+    if (!strcmp(par->getSymName().c_str(), getSymName())) {
       break;
     }
     par = nullptr;

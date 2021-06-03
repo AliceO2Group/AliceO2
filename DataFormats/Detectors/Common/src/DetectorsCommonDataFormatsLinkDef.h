@@ -14,8 +14,10 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::detectors::DetID + ;
 #pragma link C++ class o2::detectors::AlignParam + ;
+#pragma link C++ class std::vector < o2::detectors::AlignParam> + ;
+
+#pragma link C++ class o2::detectors::DetID + ;
 #pragma link C++ class o2::detectors::MatrixCache < o2::math_utils::Transform3D> + ;
 #pragma link C++ class o2::detectors::MatrixCache < o2::math_utils::Rotation2Df_t> + ;
 #pragma link C++ class o2::detectors::DetMatrixCache + ;
