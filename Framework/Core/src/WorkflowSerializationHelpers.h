@@ -21,7 +21,8 @@ namespace o2::framework
 {
 
 struct WorkflowSerializationHelpers {
-  static void import(std::istream& s,
+  ///@return false if the previous workflow failed to generate a valid config, true otherwise
+  static bool import(std::istream& s,
                      std::vector<DataProcessorSpec>& workflow,
                      std::vector<DataProcessorInfo>& metadata,
                      CommandInfo& command);

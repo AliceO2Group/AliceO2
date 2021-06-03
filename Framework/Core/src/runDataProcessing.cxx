@@ -900,7 +900,6 @@ void spawnDevice(DeviceRef ref,
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
 
-
 struct LogProcessingState {
   bool didProcessLog = false;
   bool didProcessControl = true;
@@ -1044,27 +1043,31 @@ bool processSigChild(DeviceInfos& infos)
   return hasError;
 }
 
-void doDPLException(RuntimeErrorRef& e)
+void doDPLException(RuntimeErrorRef& e, char const* processName)
 {
   auto& err = o2::framework::error_from_ref(e);
   if (err.maxBacktrace != 0) {
-    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
-               << "\n Reason: " << err.what
-               << "\n Backtrace follow: \n";
+    LOGP(ERROR,
+         "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
+         "\n Reason: "
+         "\n Backtrace follow: \n",
+         processName, err.what);
     backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
   } else {
-    LOG(ERROR) << "Unhandled o2::framework::runtime_error reached the top of main, device shutting down."
-               << "\n Reason: " << err.what
-               << "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.";
+    LOGP(ERROR,
+         "Unhandled o2::framework::runtime_error reached the top of main of {}, device shutting down."
+         "\n Reason: "
+         "\n Recompile with DPL_ENABLE_BACKTRACE=1 to get more information.",
+         processName, err.what);
   }
 }
 
-void doUnknownException(std::string const& s)
+void doUnknownException(std::string const& s, char const* processName)
 {
   if (s.empty()) {
-    LOG(ERROR) << "Unknown error while setting up workflow.";
+    LOGP(ERROR, "unknown error while setting up workflow in {}.", processName);
   } else {
-    LOG(ERROR) << "error while setting up workflow: " << s;
+    LOGP(ERROR, "error while setting up workflow in {}: {}", processName, s);
   }
 }
 
@@ -1483,17 +1486,17 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
           // This should expand nodes so that we can build a consistent DAG.
         } catch (std::runtime_error& e) {
-          std::cerr << "Invalid workflow: " << e.what() << std::endl;
+          LOGP(ERROR, "invalid workflow in {}: {}", driverInfo.argv[0], e.what());
           return 1;
         } catch (o2::framework::RuntimeErrorRef ref) {
           auto& err = o2::framework::error_from_ref(ref);
 #ifdef DPL_ENABLE_BACKTRACE
           backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
 #endif
-          std::cerr << "Invalid workflow: " << err.what << std::endl;
+          LOGP(ERROR, "invalid workflow in {}: {}", driverInfo.argv[0], err.what);
           return 1;
         } catch (...) {
-          std::cerr << "Unknown error while materialising workflow";
+          LOGP(ERROR, "invalid workflow in {}: Unknown error while materialising workflow", driverInfo.argv[0]);
           return 1;
         }
         break;
@@ -1580,7 +1583,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                               driverInfo.uniqueWorkflowId);
         } catch (o2::framework::RuntimeErrorRef& ref) {
           auto& err = o2::framework::error_from_ref(ref);
-          LOG(ERROR) << "Unable to merge configurations: " << err.what;
+          LOGP(ERROR, "unable to merge configurations in {}: {}", driverInfo.argv[0], err.what);
 #ifdef DPL_ENABLE_BACKTRACE
           std::cerr << "\nStacktrace follows:\n\n";
           backtrace_symbols_fd(err.backtrace, err.maxBacktrace, STDERR_FILENO);
@@ -2211,7 +2214,10 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 
   if (isatty(STDIN_FILENO) == false && isInputConfig()) {
     std::vector<DataProcessorSpec> importedWorkflow;
-    WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos, commandInfo);
+    bool previousWorked = WorkflowSerializationHelpers::import(std::cin, importedWorkflow, dataProcessorInfos, commandInfo);
+    if (previousWorked == false) {
+      exit(1);
+    }
 
     size_t workflowHashB = 0;
     for (auto& dp : importedWorkflow) {
@@ -2341,7 +2347,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
         .run(),
       varmap);
   } catch (std::exception const& e) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    LOGP(ERROR, "error parsing options of {}: {}", argv[0], e.what());
     exit(1);
   }
   conflicting_options(varmap, "dds", "o2-control");
@@ -2416,8 +2422,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                          frameworkId);
 }
 
-void doBoostException(boost::exception& e)
+void doBoostException(boost::exception& e, char const* processName)
 {
-  LOG(ERROR) << "error while setting up workflow: \n"
-             << boost::current_exception_diagnostic_information(true);
+  LOGP(ERROR, "error while setting up workflow in {}: {}",
+       processName, boost::current_exception_diagnostic_information(true));
 }
