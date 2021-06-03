@@ -2152,30 +2152,31 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   bpo::options_description executorOptions("Executor options");
   const char* helpDescription = "print help: short, full, executor, or processor name";
   executorOptions.add_options()                                                                                                                //
-    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                                            //                                                                                                       //
-    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                    //                                                                                                         //
-    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                            //                                                                                                           //
-    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                      //                                                                                                             //
-    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //                                                                                                               //
-    ("no-batch", bpo::value<bool>()->zero_tokens()->default_value(false), "force gui processing mode")                                         //                                                                                                            //
-    ("no-cleanup", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                  //                                                                                                               //
-    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //                                                                                                                 //
-    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //                                                                                                                   //
-    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                             //                                                                                                                     //
-    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                     //                                                                                                                       //
-    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),                                    //                                                                                                                       //
-     "what to do when processing is finished: quit, wait")                                                                                     //                                                                                                                      //
-    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),                                      //                                                                                                                          //
-     "what to do when a device has an error: quit, wait")                                                                                      //                                                                                                                            //
-    ("min-failure-level", bpo::value<LogParsingHelpers::LogLevel>(&minFailureLevel)->default_value(LogParsingHelpers::LogLevel::Fatal),        //                                                                                                                          //
-     "minimum message level which will be considered as fatal and exit with 1")                                                                //                                                                                                                            //
-    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                                            //                                                                                                                              //
-    ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                //                                                                                                                                //
-    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                             //                                                                                                                                  //
-    ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                   //                                                                                                                                    //
-    ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                         //                                                                                                                                      //
-    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                                             //                                                                                                                                        //
-    ("no-IPC", bpo::value<bool>()->zero_tokens()->default_value(false), "disable IPC topology optimization")                                   //                                                                                                                                        //
+    ("help,h", bpo::value<std::string>()->implicit_value("short"), helpDescription)                                                            //
+    ("quiet,q", bpo::value<bool>()->zero_tokens()->default_value(false), "quiet operation")                                                    //
+    ("stop,s", bpo::value<bool>()->zero_tokens()->default_value(false), "stop before device start")                                            //
+    ("single-step", bpo::value<bool>()->zero_tokens()->default_value(false), "start in single step mode")                                      //
+    ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //
+    ("no-batch", bpo::value<bool>()->zero_tokens()->default_value(false), "force gui processing mode")                                         //
+    ("no-cleanup", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                  //
+    ("no-catchall", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                 //
+    ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //
+    ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //
+    ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                             //
+    ("port-range,pr", bpo::value<unsigned short>()->default_value(1000), "ports in range")                                                     //
+    ("completion-policy,c", bpo::value<TerminationPolicy>(&policy)->default_value(TerminationPolicy::QUIT),                                    //
+     "what to do when processing is finished: quit, wait")                                                                                     //
+    ("error-policy", bpo::value<TerminationPolicy>(&errorPolicy)->default_value(TerminationPolicy::QUIT),                                      //
+     "what to do when a device has an error: quit, wait")                                                                                      //
+    ("min-failure-level", bpo::value<LogParsingHelpers::LogLevel>(&minFailureLevel)->default_value(LogParsingHelpers::LogLevel::Fatal),        //
+     "minimum message level which will be considered as fatal and exit with 1")                                                                //
+    ("graphviz,g", bpo::value<bool>()->zero_tokens()->default_value(false), "produce graph output")                                            //
+    ("timeout,t", bpo::value<uint64_t>()->default_value(0), "forced exit timeout (in seconds)")                                                //
+    ("dds,D", bpo::value<bool>()->zero_tokens()->default_value(false), "create DDS configuration")                                             //
+    ("dump-workflow,dump", bpo::value<bool>()->zero_tokens()->default_value(false), "dump workflow as JSON")                                   //
+    ("dump-workflow-file", bpo::value<std::string>()->default_value("-"), "file to which do the dump")                                         //
+    ("run", bpo::value<bool>()->zero_tokens()->default_value(false), "run workflow merged so far")                                             //
+    ("no-IPC", bpo::value<bool>()->zero_tokens()->default_value(false), "disable IPC topology optimization")                                   //
     ("o2-control,o2", bpo::value<std::string>()->default_value(""), "dump O2 Control workflow configuration under the specified name")         //
     ("resources-monitoring", bpo::value<unsigned short>()->default_value(0), "enable cpu/memory monitoring for provided interval in seconds"); //
   // some of the options must be forwarded by default to the device

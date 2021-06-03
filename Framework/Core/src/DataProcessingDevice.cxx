@@ -1150,9 +1150,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
     uint64_t tStart = uv_hrtime();
     preUpdateStats(action, record, tStart);
-    try {
-      if (context.deviceContext->state->quitRequested == false) {
 
+    static bool noCatch = mServiceRegistry.get<RawDeviceProxy>().device().fOptions["no-catchall"].as<bool>();
+    //static bool noCatch = true;
+
+    auto runNoCatch = [&context, &processContext]() {
+      if (context.deviceContext->state->quitRequested == false) {
         if (*context.statefulProcess) {
           ZoneScopedN("statefull process");
           (*context.statefulProcess)(processContext);
@@ -1167,16 +1170,23 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           context.registry->postProcessingCallbacks(processContext);
         }
       }
-    } catch (std::exception& ex) {
-      ZoneScopedN("error handling");
-      /// Convert a standatd exception to a RuntimeErrorRef
-      /// Notice how this will lose the backtrace information
-      /// and report the exception coming from here.
-      auto e = runtime_error(ex.what());
-      (*context.errorHandling)(e, record);
-    } catch (o2::framework::RuntimeErrorRef e) {
-      ZoneScopedN("error handling");
-      (*context.errorHandling)(e, record);
+    };
+
+    if (noCatch) {
+      runNoCatch();
+    } else {
+      try {
+      } catch (std::exception& ex) {
+        ZoneScopedN("error handling");
+        /// Convert a standatd exception to a RuntimeErrorRef
+        /// Notice how this will lose the backtrace information
+        /// and report the exception coming from here.
+        auto e = runtime_error(ex.what());
+        (*context.errorHandling)(e, record);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        (*context.errorHandling)(e, record);
+      }
     }
 
     postUpdateStats(action, record, tStart);
