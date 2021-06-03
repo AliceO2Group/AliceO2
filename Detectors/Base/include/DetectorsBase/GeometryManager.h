@@ -48,7 +48,7 @@ class GeometryManager : public TObject
 {
  public:
   ///< load geometry from file
-  static void loadGeometry(std::string_view geomFilePath = "");
+  static void loadGeometry(std::string_view geomFilePath = "", bool applyMisalignment = true);
   static bool isGeometryLoaded() { return gGeoManager != nullptr; }
 
   ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
@@ -72,7 +72,8 @@ class GeometryManager : public TObject
   ~GeometryManager() override = default;
 
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
-  static bool applyAlignment(TObjArray& alObjArray, bool ovlpcheck = false, double ovlToler = 1e-3);
+  static bool applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars, bool ovlpcheck = false, double ovlToler = 1e-3);
+  static bool applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars, bool ovlpcheck = false, double ovlToler = 1e-3);
 
   struct MatBudgetExt {
     double meanRho = 0.;  // mean density: sum(x_i*rho_i)/sum(x_i) [g/cm3]
