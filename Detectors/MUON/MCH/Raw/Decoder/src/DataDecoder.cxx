@@ -115,8 +115,8 @@ bool DataDecoder::RawDigit::operator==(const DataDecoder::RawDigit& other) const
   return digit == other.digit && info == other.info;
 }
 
-DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose)
-  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose)
+DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, uint32_t sampaBcOffset, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose)
+  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mSampaTimeOffset(sampaBcOffset), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose)
 {
   init();
 }
@@ -140,14 +140,18 @@ void DataDecoder::setFirstOrbitInTF(uint32_t orbit)
     LOG(ERROR) << "[setFirstOrbitInTF] first orbit in run not set!";
     return;
   }
+  if (orbit < mFirstOrbitInRun) {
+    LOG(ERROR) << "[setFirstOrbitInTF] first TF orbit smaller than first orbit in run!";
+    return;
+  }
 
   // the SAMPA BC value at the beginning of the TF is computed by counting the number of orbits
   // since the beginning of the run, and then multiplying this number by the number of BC in one orbit.
   // We then take the first 20 bits of the result to emulate the internal SAMPA BC counter.
-  mFirstOrbitInTF = orbit;
-  uint32_t nOrbitsInRun = mFirstOrbitInTF.value() - mFirstOrbitInRun.value();
-  uint32_t bc = (nOrbitsInRun * BCINORBIT + DataDecoder::sSampaTimeOffset) & TWENTYBITSATONE;
-  mSampaTimeFrameStart = SampaTimeFrameStart(mFirstOrbitInTF.value(), bc);
+  uint64_t nOrbitsInRun = orbit - mFirstOrbitInRun.value();
+  uint64_t bc = (nOrbitsInRun * BCINORBIT + mSampaTimeOffset);
+  uint32_t bc20bits = bc & TWENTYBITSATONE;
+  mSampaTimeFrameStart = SampaTimeFrameStart(orbit, bc20bits);
 }
 
 void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
@@ -382,11 +386,10 @@ void DataDecoder::computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart
   for (size_t di = 0; di < digits.size(); di++) {
     Digit& d = digits[di].digit;
     SampaInfo& info = digits[di].info;
-    SampaTimeFrameStart& tfStart = sampaTimeFrameStart;
 
     int32_t tfTime = 0;
-    uint32_t bc = tfStart.mBunchCrossing;
-    uint32_t orbit = tfStart.mOrbit;
+    uint32_t bc = sampaTimeFrameStart.mBunchCrossing;
+    uint32_t orbit = sampaTimeFrameStart.mOrbit;
     tfTime = DataDecoder::digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
     if (debug) {
       std::cout << "\n[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
@@ -459,7 +462,6 @@ void DataDecoder::init()
 //_________________________________________________________________________________________________
 void DataDecoder::reset()
 {
-  mFirstOrbitInTF.reset();
   mDigits.clear();
   mOrbits.clear();
 }
