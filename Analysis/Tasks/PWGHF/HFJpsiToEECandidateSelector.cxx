@@ -85,21 +85,6 @@ struct HFJpsiToEECandidateSelector {
        cutVarLabels},
       "Jpsi candidate selection per pT bin"};
 
-  /*
-  /// Selection on goodness of daughter tracks
-  /// \note should be applied at candidate selection
-  /// \param track is daughter track
-  /// \return true if track is good
-  template <typename T>
-  bool daughterSelection(const T& track)
-  {
-    if (track.tpcNClsFound() == 0) {
-      return false; //is it clusters findable or found - need to check
-    }
-    return true;
-  }
-  */
-
   /// Conjugate-independent topological cuts
   /// \param candidate is candidate
   /// \param trackPositron is the track with the positron hypothesis
@@ -172,15 +157,6 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      /*
-      // daughter track validity selection
-      if (!daughterSelection(trackPos) || !daughterSelection(trackNeg)) {
-        hfSelJpsiToEECandidate(0);
-        continue;
-      }
-      */
-
-      // implement filter bit 4 cut - should be done before this task at the
       // track selection level need to add special cuts (additional cuts on
       // decay length and d0 norm)
 
