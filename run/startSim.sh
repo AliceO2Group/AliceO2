@@ -10,7 +10,7 @@ killall -9 o2-sim-hit-merger-runner
 topologyfile=${O2_ROOT}/share/config/o2simtopology.json
 
 # we have one primary distributor 
-xterm -geometry 80x25+0+0 -e "o2-sim-primary-server-device-runner --control static --id primary-server --mq-config ${topologyfile} -n 20 -m PIPE TOF TRD TPC PHS EMC FIT MCH -g pythia8 -e TGeant3 | tee serverlog;bash" &
+xterm -geometry 80x25+0+0 -e "o2-sim-primary-server-device-runner --control static --id primary-server --mq-config ${topologyfile} -n 20 -m PIPE TOF TRD TPC PHS EMC FIT MCH -g pythia8pp -e TGeant3 | tee serverlog;bash" &
 
 for i in `seq 1 ${NSIMWORKERS}`; do
   xterm -geometry 80x25+500+0 -e "o2-sim-device-runner --control static --id worker${i} --config-key worker --mq-config ${topologyfile} --severity info  | tee simlog${i};bash" &

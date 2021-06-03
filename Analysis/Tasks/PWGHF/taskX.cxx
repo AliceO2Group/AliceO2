@@ -26,7 +26,7 @@ using namespace o2::aod::hf_cand_prong2;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Fill MC histograms."}};
+  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, true, {"Fill MC histograms."}};
   workflowOptions.push_back(optionDoMC);
 }
 

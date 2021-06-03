@@ -31,7 +31,6 @@
 #include <gsl/span>
 #include "DetectorsRaw/RDHUtils.h"
 
-#include "MemoryResources/Types.h"
 #include "TPCBase/CRU.h"
 #include "Headers/RAWDataHeader.h"
 #include "Headers/RDHAny.h"
@@ -239,7 +238,7 @@ class GBTFrame
   void getAdcValues(ADCRawData& rawData);
 
   /// read from memory
-  void readFromMemory(gsl::span<const o2::byte> data);
+  void readFromMemory(gsl::span<const std::byte> data);
 
   /// read from istream
   void streamFrom(std::istream& input);
@@ -610,7 +609,7 @@ class RawReaderCRU
 
   /// Process data from memory for a single link
   /// The data must be collected before, merged over 8k packets
-  int processMemory(const std::vector<o2::byte>& data, ADCRawData& rawData);
+  int processMemory(const std::vector<std::byte>& data, ADCRawData& rawData);
 
   /// process links
   void processLinks(const uint32_t linkMask = 0);
@@ -798,7 +797,7 @@ class RawReaderCRU
   std::ifstream mFileHandle; ///< file handle for input file
 
   /// collect raw GBT data
-  void collectGBTData(std::vector<o2::byte>& data);
+  void collectGBTData(std::vector<std::byte>& data);
 
   /// fill adc data to output map
   void fillADCdataMap(const ADCRawData& rawData);
@@ -915,7 +914,7 @@ inline void GBTFrame::getAdcValues(ADCRawData& rawData)
   // std::cout << std::endl;
 }
 
-inline void GBTFrame::readFromMemory(gsl::span<const o2::byte> data)
+inline void GBTFrame::readFromMemory(gsl::span<const std::byte> data)
 {
   assert(sizeof(mData) == data.size_bytes());
   memcpy(mData.data(), data.data(), data.size_bytes());

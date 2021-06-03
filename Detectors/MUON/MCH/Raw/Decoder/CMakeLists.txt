@@ -9,9 +9,9 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHRawDecoder
-        SOURCES src/PageDecoder.cxx src/DataDecoder.cxx src/RDHManip.cxx src/OrbitInfo.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHBase O2::MCHMappingInterface O2::MCHMappingImpl4 O2::MCHRawElecMap 
-                              O2::DetectorsRaw
+        SOURCES src/PageDecoder.cxx src/DataDecoder.cxx src/ROFFinder.cxx src/RDHManip.cxx src/OrbitInfo.cxx
+        PUBLIC_LINK_LIBRARIES O2::MCHRawCommon O2::MCHBase O2::MCHMappingInterface O2::MCHMappingImpl4 O2::MCHRawElecMap
+                              O2::DetectorsRaw O2::DataFormatsMCH
         PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
 if(BUILD_TESTING)
@@ -37,6 +37,12 @@ if(BUILD_TESTING)
 
         o2_add_test(digits-time-computation
                 SOURCES src/testDigitsTimeComputation.cxx
+                COMPONENT_NAME mchraw
+                LABELS "muon;mch;raw"
+                PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder Boost::boost)
+
+        o2_add_test(rof-finder
+                SOURCES src/testROFFinder.cxx
                 COMPONENT_NAME mchraw
                 LABELS "muon;mch;raw"
                 PUBLIC_LINK_LIBRARIES O2::MCHRawDecoder Boost::boost)

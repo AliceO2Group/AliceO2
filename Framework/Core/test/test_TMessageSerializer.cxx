@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(TestTMessageSerializer_InvalidBuffer)
   // FIXME: at the moment, TMessage fails directly with a segfault, which it shouldn't do
   /*
   try {
-    auto out = TMessageSerializer::deserialize((o2::byte*)buffer, strlen(buffer));
+    auto out = TMessageSerializer::deserialize((std::byte*)buffer, strlen(buffer));
     BOOST_ERROR("here we should never get, the function call must fail with exception");
   } catch (std::exception& e) {
     std::string expected("");
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(TestTMessageSerializer_InvalidBuffer)
   // test deserialization of invalid target class and check the exception
   struct Dummy {
   };
-  BOOST_CHECK_EXCEPTION(TMessageSerializer::deserialize<Dummy>((o2::byte*)buffer, strlen(buffer)),
+  BOOST_CHECK_EXCEPTION(TMessageSerializer::deserialize<Dummy>((std::byte*)buffer, strlen(buffer)),
                         RuntimeErrorRef,
                         [](RuntimeErrorRef const& ref) {
                           auto& err = error_from_ref(ref);

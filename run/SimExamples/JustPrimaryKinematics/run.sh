@@ -6,7 +6,7 @@
 # tight geometry cuts so that Geant will not do work.
 
 # first stage --> produce events using Pythia8 (no transport)
-o2-sim -n 10 -g pythia8 -m CAVE --configFile only_primarykine.ini
+o2-sim -n 10 -g pythia8pp -m CAVE --configFile only_primarykine.ini
 
 # second stage --> read back events from O2 kine (no transport)
 o2-sim -n 10 -g extkinO2 --extKinFile o2sim_Kine.root -m CAVE --configFile only_primarykine.ini -o o2sim2

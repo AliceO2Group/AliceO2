@@ -153,8 +153,8 @@ class O2PrimaryServerDevice final : public FairMQDevice
       }
       std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(-1));
       while (mState != O2PrimaryServerState::Stopped) {
-        LOG(INFO) << "READY TO RECEIVE INFO REQUEST";
-        if (channel.Receive(request) > 0) {
+        int timeout = 100; // 100ms --> so as not to block and allow for proper termination of this thread
+        if (channel.Receive(request, timeout) > 0) {
           LOG(INFO) << "INFO REQUEST RECEIVED";
           if (*(int*)(request->GetData()) == (int)O2PrimaryServerInfoRequest::Status) {
             LOG(INFO) << "Received status request";
@@ -172,6 +172,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
           }
         }
       }
+      mInfoThreadStopped = true;
     };
     threads.push_back(std::thread(lambda));
     threads.back().detach();
@@ -360,7 +361,11 @@ class O2PrimaryServerDevice final : public FairMQDevice
       timer.Stop();
       auto time = timer.CpuTime();
       LOG(INFO) << "COND-RUN TOOK " << time << " s";
-      // return mState.load() != O2PrimaryServerState::Stopped; // will be taken down by external driver
+    }
+    // wait for info thread
+    while (!mInfoThreadStopped) {
+      LOG(INFO) << "Waiting info thread";
+      sleep(1);
     }
   }
 
@@ -553,6 +558,7 @@ class O2PrimaryServerDevice final : public FairMQDevice
 
   std::atomic<O2PrimaryServerState> mState{O2PrimaryServerState::Initializing};
   std::atomic<int> mWaitingControlInput{0};
+  std::atomic<bool> mInfoThreadStopped{false};
 
   bool mAsService = false;
 };

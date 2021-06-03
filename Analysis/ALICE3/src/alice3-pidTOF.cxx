@@ -230,7 +230,7 @@ struct ALICE3pidTOFTaskQA {
     int mult = 0;
     for (auto t : tracks) {
       //
-      if (t.tofSignal() < 0) { // Skipping tracks without TOF
+      if (!t.hasTOF()) { // Skipping tracks without TOF
         continue;
       }
       mult++;
@@ -245,7 +245,7 @@ struct ALICE3pidTOFTaskQA {
     histos.fill(HIST("event/colltimereso"), mult, collision.collisionTimeRes() * 1000.f);
     for (auto t : tracks) {
       //
-      if (t.tofSignal() < 0) { // Skipping tracks without TOF
+      if (!t.hasTOF()) { // Skipping tracks without TOF
         continue;
       }
       if (!t.isGlobalTrack()) {
