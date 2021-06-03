@@ -170,7 +170,7 @@ struct HfTaskCorrelationDDbar {
 
 /// D-Dbar correlation pair filling task, from pair tables - for MC reco-level analysis (candidates matched to true signal only, but also bkg sources are studied)
 /// Works on both USL and LS analyses pair tables
-struct HfTaskCorrelationDDbarMCRec {
+struct HfTaskCorrelationDDbarMcRec {
 
   HistogramRegistry registry{
     "registry",
@@ -325,7 +325,7 @@ struct HfTaskCorrelationDDbarMCRec {
 
 /// D-Dbar correlation pair filling task, from pair tables - for MC gen-level analysis (no filter/selection, only true signal) - Ok for both USL and LS analyses
 /// Works on both USL and LS analyses pair tables (and if tables are filled with quark pairs as well)
-struct HfTaskCorrelationDDbarMCGen {
+struct HfTaskCorrelationDDbarMcGen {
 
   HistogramRegistry registry{
     "registry",
@@ -381,11 +381,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool doMCGen = cfgc.options().get<bool>("doMCGen");
   const bool doMCRec = cfgc.options().get<bool>("doMCRec");
   if (doMCGen) { //MC-Gen analysis
-    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbarMCGen>(cfgc, TaskName{"hf-task-correlation-ddbar-mc-gen"}));
+    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbarMcGen>(cfgc));
   } else if (doMCRec) { //MC-Rec analysis
-    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbarMCRec>(cfgc, TaskName{"hf-task-correlation-ddbar-mc-rec"}));
+    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbarMcRec>(cfgc));
   } else { //data analysis
-    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbar>(cfgc, TaskName{"hf-task-correlation-ddbar"}));
+    workflow.push_back(adaptAnalysisTask<HfTaskCorrelationDDbar>(cfgc));
   }
   return workflow;
 }

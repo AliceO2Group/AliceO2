@@ -168,7 +168,7 @@ struct HfCorrelatorD0D0bar {
 };
 
 /// D0-D0bar correlation pair builder - for MC reco-level analysis (candidates matched to true signal only, but also the various bkg sources are studied)
-struct HfCorrelatorD0D0barMCRec {
+struct HfCorrelatorD0D0barMcRec {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
   Produces<aod::DDbarRecoInfo> entryD0D0barRecoInfo;
@@ -289,7 +289,7 @@ struct HfCorrelatorD0D0barMCRec {
 };
 
 /// D0-D0bar correlation pair builder - for MC gen-level analysis (no filter/selection, only true signal)
-struct HfCorrelatorD0D0barMCGen {
+struct HfCorrelatorD0D0barMcGen {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
 
@@ -394,7 +394,7 @@ struct HfCorrelatorD0D0barMCGen {
 /// D0-D0bar correlation pair builder - LIKE SIGN - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 /// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled,
 ///       since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
-struct HfCorrelatorD0D0barLS {
+struct HfCorrelatorD0D0barLs {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
   Produces<aod::DDbarRecoInfo> entryD0D0barRecoInfo;
@@ -492,7 +492,7 @@ struct HfCorrelatorD0D0barLS {
 /// D0-D0bar correlation pair builder - LIKE SIGN - for MC reco analysis (data-like but matching to true DO and D0bar)
 /// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled,
 ///       since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
-struct HfCorrelatorD0D0barMCRecLS {
+struct HfCorrelatorD0D0barMcRecLs {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
   Produces<aod::DDbarRecoInfo> entryD0D0barRecoInfo;
@@ -590,7 +590,7 @@ struct HfCorrelatorD0D0barMCRecLS {
 /// D0-D0bar correlation pair builder - for MC gen-level analysis, like sign particles
 /// NOTE: At the moment, both dPhi-symmetrical correlation pairs (part1-part2 and part2-part1) are filled,
 ///       since we bin in pT and selecting as trigger the largest pT particle would bias the distributions w.r.t. the ULS case.
-struct HfCorrelatorD0D0barMCGenLS {
+struct HfCorrelatorD0D0barMcGenLs {
 
   Produces<aod::DDbarPair> entryD0D0barPair;
 
@@ -665,7 +665,7 @@ struct HfCorrelatorD0D0barMCGenLS {
 };
 
 /// c-cbar correlator table builder - for MC gen-level analysis
-struct HfCorrelatorCCbarMCGen {
+struct HfCorrelatorCCbarMcGen {
 
   Produces<aod::DDbarPair> entryccbarPair;
 
@@ -750,7 +750,7 @@ struct HfCorrelatorCCbarMCGen {
 };
 
 /// c-cbar correlator table builder - for MC gen-level analysis - Like Sign
-struct HfCorrelatorCCbarMCGenLS {
+struct HfCorrelatorCCbarMcGenLs {
 
   Produces<aod::DDbarPair> entryccbarPair;
 
@@ -845,23 +845,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const bool doLikeSign = cfgc.options().get<bool>("doLikeSign");
   if (!doLikeSign) { //unlike-sign analyses
     if (doMCGen) {   //MC-Gen analysis
-      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barMCGen>(cfgc, TaskName{"hf-correlator-d0d0bar-mc-gen"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barMcGen>(cfgc));
     } else if (doMCRec) { //MC-Reco analysis
-      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barMCRec>(cfgc, TaskName{"hf-correlator-d0d0bar-mc-rec"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barMcRec>(cfgc));
     } else if (doMCccbar) { //MC-Reco analysis
-      workflow.push_back(adaptAnalysisTask<HfCorrelatorCCbarMCGen>(cfgc, TaskName{"hf-correlator-ccbar-mc-gen"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorCCbarMcGen>(cfgc));
     } else { //data analysis
-      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0bar>(cfgc, TaskName{"hf-correlator-d0d0bar"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0bar>(cfgc));
     }
   } else {         //like-sign analyses
     if (doMCGen) { //MC-Gen analysis
-      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barMCGenLS>(cfgc, TaskName{"hf-correlator-d0d0bar-mc-gen-ls"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barMcGenLs>(cfgc));
     } else if (doMCRec) { //MC-Reco analysis
-      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barMCRecLS>(cfgc, TaskName{"hf-correlator-d0d0bar-mc-rec-ls"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barMcRecLs>(cfgc));
     } else if (doMCccbar) { //MC-Reco analysis
-      workflow.push_back(adaptAnalysisTask<HfCorrelatorCCbarMCGenLS>(cfgc, TaskName{"hf-correlator-ccbar-mc-gen-ls"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorCCbarMcGenLs>(cfgc));
     } else { //data analysis
-      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barLS>(cfgc, TaskName{"hf-correlator-d0d0bar-ls"}));
+      workflow.push_back(adaptAnalysisTask<HfCorrelatorD0D0barLs>(cfgc));
     }
   }
 
