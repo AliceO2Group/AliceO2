@@ -117,6 +117,92 @@ auto SetIntRecord(T& digit, IR&& ir) -> std::enable_if_t<IsFV0<T>::value>
 {
   digit.ir = std::forward<IR>(ir);
 }
+
+template <typename T>
+auto GetIntRecord(const T& digit) -> std::enable_if_t<!IsFV0<T>::value, o2::InteractionRecord>
+{
+  return digit.mIntRecord;
+}
+template <typename T>
+auto GetIntRecord(const T& digit) -> std::enable_if_t<IsFV0<T>::value, o2::InteractionRecord>
+{
+  return digit.ir;
+}
+//Temporary, PM module convertation
+//FT0
+template <typename ChannelDataType, typename PMDataType>
+auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().QTCAmpl), int16_t>::value>
+{
+  pmData.word = uint64_t(chData.ChainQTC) << PMDataType::BitFlagPos;
+  pmData.channelID = channelID;
+  pmData.time = chData.CFDTime;
+  pmData.charge = chData.QTCAmpl;
+}
+//FV0
+template <typename ChannelDataType, typename PMDataType>
+auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().chargeAdc), Short_t>::value>
+{
+  pmData.channelID = channelID;
+  pmData.time = chData.time;
+  pmData.charge = chData.chargeAdc;
+}
+//FDD
+template <typename ChannelDataType, typename PMDataType>
+auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().mChargeADC), int16_t>::value>
+{
+  pmData.word = uint64_t(chData.mFEEBits) << PMDataType::BitFlagPos;
+  pmData.channelID = channelID;
+  pmData.time = chData.mTime;
+  pmData.charge = chData.mChargeADC;
+}
+//Temporary, TCM module convertation
+//FT0 and FDD
+template <typename DigitType, typename TCMDataType>
+auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::enable_if_t<!IsFV0<DigitType>::value>
+{
+  tcmData.orA = digit.mTriggers.getOrA();
+  tcmData.orC = digit.mTriggers.getOrC();
+  tcmData.sCen = digit.mTriggers.getVertex();
+  tcmData.cen = digit.mTriggers.getCen();
+  tcmData.vertex = digit.mTriggers.getSCen();
+  tcmData.laser = 0;
+  //tcmData.laser = digit.mTriggers.getLaserBit(); //Turned off for FDD
+  tcmData.nChanA = digit.mTriggers.nChanA;
+  tcmData.nChanC = digit.mTriggers.nChanC;
+  if (digit.mTriggers.amplA > 131071) {
+    tcmData.amplA = 131071; //2^17
+  } else {
+    tcmData.amplA = digit.mTriggers.amplA;
+  }
+  if (digit.mTriggers.amplC > 131071) {
+    tcmData.amplC = 131071; //2^17
+  } else {
+    tcmData.amplC = digit.mTriggers.amplC;
+  }
+  tcmData.timeA = digit.mTriggers.timeA;
+  tcmData.timeC = digit.mTriggers.timeC;
+}
+//FV0
+template <typename DigitType, typename TCMDataType>
+auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::enable_if_t<IsFV0<DigitType>::value>
+{
+  tcmData.orA = bool(digit.mTriggers.triggerSignals & (1 << 0));
+  tcmData.orC = bool(digit.mTriggers.triggerSignals & (1 << 1));
+  tcmData.sCen = bool(digit.mTriggers.triggerSignals & (1 << 2));
+  tcmData.cen = bool(digit.mTriggers.triggerSignals & (1 << 3));
+  tcmData.vertex = bool(digit.mTriggers.triggerSignals & (1 << 4));
+  tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
+  tcmData.nChanA = digit.mTriggers.nChanA;
+  //tcmData.nChanC = digit.mTriggers.nChanC;
+  tcmData.nChanC = 0;
+  tcmData.amplA = digit.mTriggers.amplA;
+  //tcmdata.amplC = digit.mTriggers.amplA;
+  tcmData.amplC = 0;
+  //tcmData.timeA = digit.mTriggers.timeA
+  //tcmData.timeC = digit.mTriggers.timeC;
+  tcmData.timeA = 0;
+  tcmData.timeC = 0;
+}
 //Dividing to sub-digit structures with InteractionRecord(single one, e.g. for TCM extended mode) and without
 template <typename T>
 using GetVecSubDigit = typename boost::mpl::remove_if<T, boost::mpl::lambda<HasIntRecord<boost::mpl::_1>>::type>::type;
@@ -173,6 +259,9 @@ class DigitBlockBase //:public DigitBlock
   DigitBlockBase(o2::InteractionRecord intRec)
   {
     DigitBlockHelper::SetIntRecord(mDigit, intRec);
+  }
+  DigitBlockBase(const DigitType& digit) : mDigit(digit)
+  {
   }
   DigitBlockBase() = default;
   DigitBlockBase(const DigitBlockBase& other) = default;
@@ -236,7 +325,51 @@ class DigitBlockBase //:public DigitBlock
   {
     std::get<0>(tupleVecSingleSubDigits).push_back(std::move(mSingleSubDigit));
   }
+  // 1-Dim SubDigit
+  template <typename DigitBlockType, typename DigitT, typename SubDigitT>
+  static auto makeDigitBlock(const std::vector<DigitT>& vecDigits, const std::vector<SubDigitT>& vecSubDigits) -> std::enable_if_t<DigitBlockHelper::GetDigitRefsN<DigitT>::value == 1 && DigitBlockHelper::IsSpecOfType<DigitBlockBase, typename DigitBlockType::DigitBlockBase_t>::value, std::vector<DigitBlockType>>
+  {
+    std::vector<DigitBlockType> vecResult;
+    vecResult.reserve(vecDigits.size());
+    for (const auto& digit : vecDigits) {
+      auto itBegin = vecSubDigits.begin();
+      std::advance(itBegin, digit.ref.getFirstEntry());
+      auto itLast = itBegin;
+      std::advance(itLast, digit.ref.getEntries());
+      vecResult.push_back({digit});
+      std::copy(itBegin, itLast, std::back_inserter(vecResult.back().mSubDigit));
+    }
+    return vecResult;
+  }
 
+  // Multi-Dim SubDigits
+  template <typename DigitBlockType, typename DigitT, typename... SubDigitT>
+  static auto makeDigitBlock(const std::vector<DigitT>& vecDigits, const std::vector<SubDigitT>&... vecSubDigits) -> std::enable_if_t<(DigitBlockHelper::GetDigitRefsN<DigitT>::value > 1) && (DigitBlockHelper::IsSpecOfType<DigitBlockBase, typename DigitBlockType::DigitBlockBase_t>::value), std::vector<DigitBlockType>>
+  {
+    std::vector<DigitBlockType> vecResult;
+    vecResult.reserve(vecDigits.size());
+    for (const auto& digit : vecDigits) {
+      vecResult.push_back({digit});
+      auto& refTuple = vecResult.back().mSubDigit;
+      fillSubDigitTuple<sizeof...(SubDigitT)>(digit, std::tie(vecSubDigits...), refTuple);
+    }
+    return vecResult;
+  }
+
+  template <std::size_t N, typename DigitT, typename... T /*typename T, typename U*/>
+  void fillSubDigitTuple(const DigitT& digit, const std::tuple<T...> /*const T*/& tupleSrc, std::tuple<T...> /*U*/& tupleDest)
+  {
+    const auto& vecSrc = std::get<N>(tupleSrc);
+    auto& vecDest = std::get<N>(tupleSrc);
+    auto itBegin = vecSrc.begin();
+    std::advance(itBegin, digit.ref[N - 1].getFirstEntry());
+    auto itLast = itBegin;
+    std::advance(itLast, digit.ref[N - 1].getEntries());
+    std::copy(itBegin, itLast, std::back_inserter(vecDest));
+    if constexpr (N > 1) {
+      fillSubDigitTuple<N - 1>(digit, tupleSrc, tupleDest);
+    }
+  }
   void print() const
   {
     mDigit.printLog();

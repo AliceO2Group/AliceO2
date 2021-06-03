@@ -95,6 +95,7 @@ struct Triggers {
 struct DetTrigInput {
   static constexpr char sChannelNameDPL[] = "TRIGGERINPUT";
   static constexpr char sDigitName[] = "DetTrigInput";
+  static constexpr char sDigitBranchName[] = "FT0TRIGGERINPUT";
   o2::InteractionRecord mIntRecord; // bc/orbit of the intpur
   std::bitset<5> mInputs;           // pattern of inputs.
   DetTrigInput() = default;
@@ -113,6 +114,7 @@ struct DetTrigInput {
 struct Digit {
   static constexpr char sChannelNameDPL[] = "DIGITSBC";
   static constexpr char sDigitName[] = "Digit";
+  static constexpr char sDigitBranchName[] = "FT0DIGITSBC";
   o2::dataformats::RangeReference<int, int> ref;
   Triggers mTriggers;               // pattern of triggers  in this BC
   uint8_t mEventStatus;             //Status of event from FT0, such as Pileup , etc
@@ -160,6 +162,7 @@ struct Digit {
 struct TriggersExt {
   static constexpr char sChannelNameDPL[] = "DIGITSTRGEXT";
   static constexpr char sDigitName[] = "TriggersExt";
+  static constexpr char sDigitBranchName[] = "FT0DIGITSTRGEXT";
   TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
   TriggersExt() = default;
   o2::InteractionRecord mIntRecord;

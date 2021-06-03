@@ -84,6 +84,12 @@ class RawReaderBase
       auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
       digitIter->second.template processDigits<DataBlockType>(dataBlock, std::forward<T>(feeParameters)...);
     }
+    //Test
+    /*    for(const auto &entry: mMapDigits) {
+      auto test = entry.second.template decomposeDigits<DataBlockType>();
+    }
+*/
+    //
     vecDataBlocks.clear();
   }
   //pop digits
