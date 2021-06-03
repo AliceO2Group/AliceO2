@@ -359,9 +359,9 @@ struct HfCorrelatorDplusDminusMcGen {
         double ptCut = 0.;
 
         //fill pairs vs etaCut plot
-        bool rightDecayChannels = kFALSE;
+        bool rightDecayChannels = false;
         if ((std::abs(particle1.flagMCMatchGen()) == 1 << DecayType::DPlusToPiKPi) && (std::abs(particle2.flagMCMatchGen()) == 1 << DecayType::DPlusToPiKPi)) {
-          rightDecayChannels = kTRUE;
+          rightDecayChannels = true;
         }
         do {
           ptCut = 0.;

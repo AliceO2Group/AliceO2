@@ -360,9 +360,9 @@ struct HfCorrelatorD0D0barMcGen {
         double ptCut = 0.;
 
         //fill pairs vs etaCut plot
-        bool rightDecayChannels = kFALSE;
+        bool rightDecayChannels = false;
         if ((std::abs(particle1.flagMCMatchGen()) == 1 << DecayType::D0ToPiK) && (std::abs(particle2.flagMCMatchGen()) == 1 << DecayType::D0ToPiK)) {
-          rightDecayChannels = kTRUE;
+          rightDecayChannels = true;
         }
         do {
           ptCut = 0.;
