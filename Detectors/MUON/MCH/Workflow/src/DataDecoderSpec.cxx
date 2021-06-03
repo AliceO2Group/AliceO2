@@ -35,6 +35,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "CommonConstants/LHCConstants.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include "DataFormatsMCH/Digit.h"
 #include "MCHRawCommon/DataFormats.h"
@@ -72,14 +73,14 @@ class DataDecoderTask
     RdhHandler rdhHandler;
 
     auto ds2manu = ic.options().get<bool>("ds2manu");
+    auto sampaBcOffset = ic.options().get<bool>("sampa-bc-offset");
     mDebug = ic.options().get<bool>("debug");
     mCheckROFs = ic.options().get<bool>("check-rofs");
     mDummyROFs = ic.options().get<bool>("dummy-rofs");
-    mNHBPerTF = ic.options().get<int>("nhb-per-tf");
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
 
-    mDecoder = new DataDecoder(channelHandler, rdhHandler, mapCRUfile, mapFECfile, ds2manu, mDebug);
+    mDecoder = new DataDecoder(channelHandler, rdhHandler, sampaBcOffset, mapCRUfile, mapFECfile, ds2manu, mDebug);
   }
 
   //_________________________________________________________________________________________________
@@ -90,14 +91,14 @@ class DataDecoderTask
     mFirstTForbit = dh->firstTForbit;
 
     if (!mDecoder->getFirstOrbitInRun()) {
-      uint32_t firstRunOrbit = mFirstTForbit - dh->tfCounter * mNHBPerTF;
+      uint32_t firstRunOrbit = mFirstTForbit - dh->tfCounter * o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
       mDecoder->setFirstOrbitInRun(firstRunOrbit);
     }
     mDecoder->setFirstOrbitInTF(mFirstTForbit);
 
     if (mDebug) {
       std::cout << "[DataDecoderSpec::run] first run orbit is " << mDecoder->getFirstOrbitInRun().value() << std::endl;
-      std::cout << "[DataDecoderSpec::run] first TF orbit is " << mDecoder->getFirstOrbitInTF().value() << std::endl;
+      std::cout << "[DataDecoderSpec::run] first TF orbit is " << mFirstTForbit << std::endl;
     }
 
     // get the input buffer
@@ -240,7 +241,6 @@ class DataDecoderTask
   bool mDebug = {false};             /// flag to enable verbose output
   bool mCheckROFs = {false};         /// flag to enable consistency checks on the output ROFs
   bool mDummyROFs = {false};         /// flag to disable the ROFs finding
-  int mNHBPerTF{0};                  /// number of orbits in each TF
   uint32_t mFirstTForbit{0};         /// first orbit of the time frame being processed
   DataDecoder* mDecoder = {nullptr}; /// pointer to the data decoder instance
 };
@@ -260,7 +260,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
             {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
-            {"nhb-per-tf", VariantType::Int, 128, {"number of orbits in each TF"}},
+            {"sampa-bc-offset", VariantType::Int, 339986, {"SAMPA bunch-crossing counter at the beginning of the run"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
             {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}}}};
 }
