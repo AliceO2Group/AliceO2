@@ -58,7 +58,7 @@ struct CTPDescriptor {
 struct CTPDetector {
   CTPDetector() = default;
   o2::detectors::DetID::ID detID;
-  const char* getName()const { return o2::detectors::DetID::getName(detID); }
+  const char* getName() const { return o2::detectors::DetID::getName(detID); }
   uint32_t HBaccepted; /// Number of HB frames in TF to be accepted
   void printStream(std::ostream& strem) const;
 };
@@ -66,7 +66,7 @@ struct CTPCluster {
   CTPCluster() = default;
   std::string name;
   o2::detectors::DetID::mask_t maskCluster;
-  std::string getClusterDetNames() const { return o2::detectors::DetID::getNames(maskCluster,' '); }
+  std::string getClusterDetNames() const { return o2::detectors::DetID::getNames(maskCluster, ' '); }
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPCluster, 2)
 };

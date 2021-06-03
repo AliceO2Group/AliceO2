@@ -38,7 +38,7 @@ class Digits2Raw
   void setCCDBServer(const std::string& server) { mCCDBServer = server; }
   void setVerbosity(int v) { mVerbosity = v; }
   void setFilePerLink(bool v) { mOutputPerLink = v; }
-  void setOutDir(std::string& outdir){ mOutDir = outdir; }
+  void setOutDir(std::string& outdir) { mOutDir = outdir; }
   bool getFilePerLink() const { return mOutputPerLink; }
   o2::raw::RawFileWriter& getWriter() { return mWriter; }
   void setOutDir(const std::string& outDir) { mOutDir = outDir; }
