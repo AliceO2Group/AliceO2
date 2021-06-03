@@ -32,4 +32,7 @@
 
 #pragma link C++ class o2::ctf::CTFCoderBase + ;
 
+#pragma link C++ class o2::base::Aligner + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::base::Aligner> + ;
+
 #endif
