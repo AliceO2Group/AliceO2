@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/DataProcessorSpec.h"
+#include "TRDWorkflowIO/TRDCalibReaderSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
 
 using namespace o2::framework;

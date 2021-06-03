@@ -11,6 +11,7 @@
 o2_add_library(TRDWorkflowIO
                SOURCES src/TRDDigitReaderSpec.cxx
                        src/TRDTrackletReaderSpec.cxx
+                       src/TRDCalibReaderSpec.cxx
                        src/TRDDigitWriterSpec.cxx
                        src/TRDTrackletWriterSpec.cxx
                        src/TRDTrapRawWriterSpec.cxx
