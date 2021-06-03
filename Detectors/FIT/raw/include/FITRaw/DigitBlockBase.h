@@ -236,9 +236,7 @@ struct GetSubDigitField<T, std::enable_if_t<(boost::mpl::size<T>::value > 1)>> {
   struct MakeTuple<std::tuple<Args...>, LastArg> {
     typedef std::tuple<Args..., LastArg> type;
   };
-  //boost::mpl::vector<...> to std::tuple<std::vector<...>,...>
   typedef typename boost::mpl::fold<T, std::tuple<>, MakeTuple<boost::mpl::_1, std::vector<boost::mpl::_2>>>::type vector_type;
-  //boost::mpl::vector<...> to std::tuple<...>
   typedef typename boost::mpl::fold<T, std::tuple<>, MakeTuple<boost::mpl::_1, boost::mpl::_2>>::type type;
   constexpr static bool sIsEmpty = false;
   constexpr static bool sIsTuple = true;
@@ -356,8 +354,8 @@ class DigitBlockBase //:public DigitBlock
     return vecResult;
   }
 
-  template <std::size_t N, typename DigitT, typename... T /*typename T, typename U*/>
-  void fillSubDigitTuple(const DigitT& digit, const std::tuple<T...> /*const T*/& tupleSrc, std::tuple<T...> /*U*/& tupleDest)
+  template <std::size_t N, typename DigitT, typename... T>
+  void fillSubDigitTuple(const DigitT& digit, const std::tuple<T...>& tupleSrc, std::tuple<T...>& tupleDest)
   {
     const auto& vecSrc = std::get<N>(tupleSrc);
     auto& vecDest = std::get<N>(tupleSrc);
