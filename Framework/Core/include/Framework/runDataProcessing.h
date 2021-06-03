@@ -120,9 +120,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
 
-void doBoostException(boost::exception& e);
-void doDPLException(o2::framework::RuntimeErrorRef& ref);
-void doUnknownException(std::string const& s);
+void doBoostException(boost::exception& e, const char*);
+void doDPLException(o2::framework::RuntimeErrorRef& ref, char const*);
+void doUnknownException(std::string const& s, char const*);
 void doDefaultWorkflowTerminationHook();
 
 template <typename T>
@@ -185,13 +185,13 @@ int main(int argc, char** argv)
     channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, resourcePolicies, workflowOptions, configContext);
   } catch (boost::exception& e) {
-    doBoostException(e);
+    doBoostException(e, argv[0]);
   } catch (std::exception const& error) {
-    doUnknownException(error.what());
+    doUnknownException(error.what(), argv[0]);
   } catch (o2::framework::RuntimeErrorRef& ref) {
-    doDPLException(ref);
+    doDPLException(ref, argv[0]);
   } catch (...) {
-    doUnknownException("");
+    doUnknownException("", argv[0]);
   }
 
   char* idstring = nullptr;
