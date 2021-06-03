@@ -18,7 +18,6 @@
 #include "Framework/TableConsumer.h"
 #include "Framework/Traits.h"
 #include "Framework/RuntimeError.h"
-#include "MemoryResources/Types.h"
 #include "Headers/DataHeader.h"
 
 #include "CommonUtils/BoostSerializer.h"

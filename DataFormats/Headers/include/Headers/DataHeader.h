@@ -30,17 +30,15 @@
 #ifndef ALICEO2_BASE_DATA_HEADER_
 #define ALICEO2_BASE_DATA_HEADER_
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <cassert>
 #include <cstring>   //needed for memcmp
-#include <algorithm> // std::min
-#include <stdexcept>
 #include <string>
+#include <stdexcept>
 #include <climits>
 #include <limits>
-// FIXME: for o2::byte. Use std::byte as soon as we move to C++17..
-#include "MemoryResources/Types.h"
 #include <cerrno>
 
 namespace o2::header
@@ -241,7 +239,7 @@ struct Descriptor {
   {
     static_assert(L <= N + 1, "initializer string must not exceed descriptor size");
     unsigned i = 0;
-    for (; in[i] && i < std::min(N, L); ++i) {
+    for (; in[i] && i < (N < L ? N : L); ++i) {
       str[i] = in[i];
     }
   }
@@ -392,7 +390,7 @@ struct BaseHeader {
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(const o2::byte* b, size_t /*len*/ = 0)
+  inline static const BaseHeader* get(const std::byte* b, size_t /*len*/ = 0)
   {
     return (b != nullptr && *(reinterpret_cast<const uint32_t*>(b)) == sMagicString)
              ? reinterpret_cast<const BaseHeader*>(b)
@@ -402,27 +400,27 @@ struct BaseHeader {
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static BaseHeader* get(o2::byte* b, size_t /*len*/ = 0)
+  inline static BaseHeader* get(std::byte* b, size_t /*len*/ = 0)
   {
     return (b != nullptr && *(reinterpret_cast<uint32_t*>(b)) == sMagicString) ? reinterpret_cast<BaseHeader*>(b)
                                                                                : nullptr;
   }
 
   constexpr uint32_t size() const noexcept { return headerSize; }
-  inline const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
+  inline const std::byte* data() const noexcept { return reinterpret_cast<const std::byte*>(this); }
 
   /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept
   {
     // BaseHeader::get checks that next header starts with the BaseHeader information at the
     // offset given by the size of the current header.
-    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<const o2::byte*>(this) + headerSize) : nullptr;
+    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<const std::byte*>(this) + headerSize) : nullptr;
   }
 
   /// get the next header if any (non-const version)
   inline BaseHeader* next() noexcept
   {
-    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<o2::byte*>(this) + headerSize) : nullptr;
+    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<std::byte*>(this) + headerSize) : nullptr;
   }
 
   /// check if the header matches expected version
@@ -441,7 +439,7 @@ struct BaseHeader {
 /// use like this:
 /// HeaderType* h = get<HeaderType*>(buffer)
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
-auto get(const o2::byte* buffer, size_t /*len*/ = 0)
+auto get(const std::byte* buffer, size_t /*len*/ = 0)
 {
   using HeaderConstPtrType = const typename std::remove_pointer<HeaderType>::type*;
   using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
@@ -482,7 +480,7 @@ auto get(const o2::byte* buffer, size_t /*len*/ = 0)
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
 auto get(const void* buffer, size_t len = 0)
 {
-  return get<HeaderType>(reinterpret_cast<const byte*>(buffer), len);
+  return get<HeaderType>(reinterpret_cast<const std::byte*>(buffer), len);
 }
 
 //__________________________________________________________________________________________________

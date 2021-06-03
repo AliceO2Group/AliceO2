@@ -35,7 +35,7 @@ int main()
     }
   };
   std::vector<EventFT0_t> vecTotalEvents, vecTotalEvents2;
-  gSystem->Exec("$O2_ROOT/bin/o2-sim -n 10 -m FT0 -g pythia8");
+  gSystem->Exec("$O2_ROOT/bin/o2-sim -n 10 -m FT0 -g pythia8pp");
   gSystem->Exec("$O2_ROOT/bin/o2-sim-digitizer-workflow -b");
   TFile flIn("ft0digits.root");
   std::unique_ptr<TTree> treeInput((TTree*)flIn.Get("o2sim"));

@@ -440,7 +440,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
           // TODO: we need to make a copy of the messages, maybe we can implement functionality in
           // the RawDeviceService to forward messages, but this also needs to take into account that
           // other consumers might exist
-          size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<o2::byte const*>(part.header));
+          size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<std::byte const*>(part.header));
           auto* dh = o2::header::get<DataHeader*>(part.header);
           if (!dh) {
             std::stringstream errorMessage;
@@ -510,7 +510,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
           // TODO: we need to make a copy of the messages, maybe we can implement functionality in
           // the RawDeviceService to forward messages, but this also needs to take into account that
           // other consumers might exist
-          size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<o2::byte const*>(part.header));
+          size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<std::byte const*>(part.header));
           auto* dh = o2::header::get<DataHeader*>(part.header);
           if (!dh) {
             std::stringstream errorMessage;

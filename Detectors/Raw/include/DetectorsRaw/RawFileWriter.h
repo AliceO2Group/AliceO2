@@ -115,9 +115,10 @@ class RawFileWriter
     std::string describe() const;
 
    protected:
+    void addDataInternal(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0, bool checkEmpty = true);
     void openHBFPage(const RDHAny& rdh, uint32_t trigger = 0);
     void addHBFPage(bool stop = false);
-    void closeHBFPage() { addHBFPage(true); }
+    void closeHBFPage();
     void flushSuperPage(bool keepLastPage = false);
     void fillEmptyHBHs(const IR& ir, bool dataAdded);
     void addPreformattedCRUPage(const gsl::span<char> data);
