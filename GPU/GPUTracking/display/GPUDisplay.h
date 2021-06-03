@@ -272,6 +272,7 @@ class GPUDisplay
   const GPUSettingsDisplay& mConfig;
   GPUSettingsDisplayLight mCfgL;
   GPUSettingsDisplayHeavy mCfgH;
+  GPUSettingsDisplayRenderer mCfgR;
   GPUQA* mQA;
   qSem mSemLockDisplay;
 
@@ -285,36 +286,21 @@ class GPUDisplay
   vecpod<GLuint> mMainBufferStack{0};
 
   int mNDrawCalls = 0;
-  bool mUseGLIndirectDraw = true;
+
   bool mUseMultiVBO = false;
 
   std::array<float, 3> mDrawColor = {};
-  bool mInvertColors = false;
   const int mDrawQualityRenderToTexture = 1;
-  int mDrawQualityMSAA = 0;
-  int mDrawQualityDownsampleFSAA = 0;
-  bool mDrawQualityVSync = false;
-  bool mMaximized = true;
-  bool mFullScreen = false;
 
   int mTestSetting = 0;
 
-  bool mCamLookOrigin = false;
-  bool mCamYUp = false;
-  int mCameraMode = 0;
-  bool mOpenGLCore = false;
   float mFOV = 45.f;
 
   float mAngleRollOrigin = -1e9;
   float mMaxClusterZ = -1;
 
-  int screenshot_scale = 1;
-
   int mScreenwidth = GPUDisplayBackend::INIT_WIDTH, mScreenheight = GPUDisplayBackend::INIT_HEIGHT;
   int mRenderwidth = GPUDisplayBackend::INIT_WIDTH, mRenderheight = GPUDisplayBackend::INIT_HEIGHT;
-
-  bool mSeparateGlobalTracks = 0;
-  bool mPropagateLoopers = 0;
 
   hmm_mat4 mViewMatrix, mModelMatrix;
   float* const mViewMatrixP = &mViewMatrix.Elements[0][0];
@@ -323,21 +309,8 @@ class GPUDisplay
   float mRPhiTheta[3];
   float mQuat[4];
 
-  int mProjectXY = 0;
-
-  int mMarkClusters = 0;
-  int mHideRejectedClusters = 1;
-  int mHideUnmatchedClusters = 0;
-  int mHideRejectedTracks = 1;
-  int mMarkAdjacentClusters = 0;
-  int mMarkFakeClusters = 0;
-  int mTrackFilter = 0;
-
   vecpod<std::array<int, 37>> mCollisionClusters;
   int mNCollissions = 1;
-
-  float mXadd = 0;
-  float mZadd = 0;
 
   std::unique_ptr<float4[]> mGlobalPosPtr;
   std::unique_ptr<float4[]> mGlobalPosPtrTRD;
