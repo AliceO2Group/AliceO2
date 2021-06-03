@@ -426,7 +426,7 @@ struct DQEventMixing {
 
       for (auto& track1 : tracks1) {
         for (auto& muon2 : muons2) {
-          twoTrackFilter = track1.isBarrelSelected() & muon2.isMuonSelected() & fTwoTrackFilterMask;
+          twoTrackFilter = (track1.isBarrelSelected() & fTwoTrackFilterMask) && muon2.isMuonSelected();
 
           if (!twoTrackFilter) { // the tracks must have at least one filter bit in common to continue
             continue;
@@ -559,7 +559,7 @@ struct DQTableReader {
     } // end loop over muon track pairs
 
     for (auto& [trackBarrel, trackMuon] : combinations(tracks, muons)) {
-      twoTrackFilter = trackBarrel.isBarrelSelected() & trackMuon.isMuonSelected() & fTwoTrackFilterMask;
+      twoTrackFilter = (trackBarrel.isBarrelSelected() & fTwoTrackFilterMask) && trackMuon.isMuonSelected();
       if (!twoTrackFilter) { // the muon and barrel track must have at least one filter bit in common to continue
         continue;
       }
