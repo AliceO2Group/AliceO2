@@ -27,9 +27,11 @@ using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_jpsi_toee;
 
-namespace o2::aod {
+namespace o2::aod
+{
 
-namespace indices {
+namespace indices
+{
 DECLARE_SOA_INDEX_COLUMN(Track, track);
 DECLARE_SOA_INDEX_COLUMN(RICH, rich);
 } // namespace indices
@@ -40,7 +42,7 @@ DECLARE_SOA_INDEX_TABLE_USER(RICHTracksIndex, Tracks, "RICHTRK",
 
 struct RICHindexbuilder {
   Builds<o2::aod::RICHTracksIndex> ind;
-  void init(o2::framework::InitContext &) {}
+  void init(o2::framework::InitContext&) {}
 };
 
 /// Struct for applying J/ψ → e+ e− selection cuts
@@ -71,19 +73,19 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3.,
                                     "Nsigma cut on RICH only"};
   Configurable<double> d_nSigmaTOFCombined{
-      "d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
+    "d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
   // Configurable<double>
   // d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC
   // findable clusters for good PID"};
   // topological cuts
   Configurable<std::vector<double>> pTBins{
-      "pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v},
-      "pT bin limits"};
+    "pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v},
+    "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{
-      "Jpsi_to_ee_cuts",
-      {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels,
-       cutVarLabels},
-      "Jpsi candidate selection per pT bin"};
+    "Jpsi_to_ee_cuts",
+    {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels,
+     cutVarLabels},
+    "Jpsi candidate selection per pT bin"};
 
   /// Conjugate-independent topological cuts
   /// \param candidate is candidate
@@ -91,8 +93,9 @@ struct HFJpsiToEECandidateSelector {
   /// \param trackElectron is the track with the electron hypothesis
   /// \return true if candidate passes all cuts
   template <typename T1, typename T2>
-  bool selectionTopol(const T1 &candidate, const T2 &trackPositron,
-                      const T2 &trackElectron) {
+  bool selectionTopol(const T1& candidate, const T2& trackPositron,
+                      const T2& trackElectron)
+  {
     auto candpT = candidate.pt();
     auto pTBin = findBin(pTBins, candpT);
     if (pTBin == -1) {
@@ -131,7 +134,9 @@ struct HFJpsiToEECandidateSelector {
 
     return true;
   }
-  template <typename T> bool validRICHPID(const T &track) {
+  template <typename T>
+  bool validRICHPID(const T& track)
+  {
     if (track.pt() < d_pidRICHMinpT || track.pt() >= d_pidRICHMaxpT) {
       return false;
     }
@@ -139,15 +144,16 @@ struct HFJpsiToEECandidateSelector {
   }
 
   using Trks = soa::Join<aod::BigTracksPID, aod::RICHTracksIndex>;
-  void process(aod::HfCandProng2 const &candidates, const Trks &tracks,
-               aod::RICHs const &) {
+  void process(aod::HfCandProng2 const& candidates, const Trks& tracks,
+               aod::RICHs const&)
+  {
     TrackSelectorPID selectorElectron(kElectron);
     selectorElectron.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
     selectorElectron.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
     selectorElectron.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined,
                                               d_nSigmaTOFCombined);
     // looping over 2-prong candidates
-    for (auto &candidate : candidates) {
+    for (auto& candidate : candidates) {
 
       auto trackPos = candidate.index0_as<Trks>(); // positive daughter
       auto trackNeg = candidate.index1_as<Trks>(); // negative daughter
@@ -167,9 +173,9 @@ struct HFJpsiToEECandidateSelector {
 
       // track-level PID selection
       if (selectorElectron.getStatusTrackPIDTOF(trackPos) ==
-              TrackSelectorPID::Status::PIDRejected ||
+            TrackSelectorPID::Status::PIDRejected ||
           selectorElectron.getStatusTrackPIDTOF(trackNeg) ==
-              TrackSelectorPID::Status::PIDRejected) {
+            TrackSelectorPID::Status::PIDRejected) {
         hfSelJpsiToEECandidate(0);
         continue;
       }
@@ -202,8 +208,9 @@ struct HFJpsiToEECandidateSelector {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const &cfgc) {
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
+{
   return WorkflowSpec{adaptAnalysisTask<RICHindexbuilder>(cfgc),
                       adaptAnalysisTask<HFJpsiToEECandidateSelector>(
-                          cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
+                        cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
 }
