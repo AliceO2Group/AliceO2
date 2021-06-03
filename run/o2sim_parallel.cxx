@@ -69,7 +69,7 @@ void remove_tmp_files()
   // remove all (known) socket files in /tmp
   // using the naming convention /tmp/o2sim-.*PID
   std::stringstream command;
-  command << "rm /tmp/o2sim-* " << getpid() << " 2>/dev/null";
+  command << "rm /tmp/o2sim-*-" << getpid() << " 2>/dev/null";
   auto rc = system(command.str().c_str()); // a solution based on std::filesystem may be preferred but is longer
 }
 
