@@ -30,6 +30,7 @@
 #include "GPUCommonRtypes.h"
 #include "GPUCommonBitSet.h"
 #include "MathUtils/Utils.h"
+#include "DetectorsCommonDataFormats/UpgradesStatus.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include "Headers/DataHeader.h"
 #include <array>
@@ -142,6 +143,15 @@ class DetID
   }
 
 #endif // GPUCA_GPUCODE_DEVICE
+
+  static bool upgradesEnabled()
+  {
+#ifdef ENABLE_UPGRADES
+    return true;
+#else
+    return false;
+#endif
+  }
 
  private:
   // are 2 strings equal ? (trick from Giulio)
