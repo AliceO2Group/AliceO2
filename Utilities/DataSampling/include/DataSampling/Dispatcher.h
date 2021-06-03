@@ -66,8 +66,6 @@ class Dispatcher : public framework::Task
   header::Stack extractAdditionalHeaders(const char* inputHeaderStack) const;
   void reportStats(monitoring::Monitoring& monitoring) const;
   void send(framework::DataAllocator& dataAllocator, const framework::DataRef& inputData, framework::Output&& output) const;
-  void sendFairMQ(FairMQDevice* device, const framework::DataRef& inputData, const std::string& fairMQChannel,
-                  header::Stack&& stack) const;
 
   std::string mName;
   std::string mReconfigurationSource;
