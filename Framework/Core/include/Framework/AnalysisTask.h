@@ -370,7 +370,6 @@ struct AnalysisDataProcessorBuilder {
       {
         ++position;
         ++mGroupingElement;
-        (changeShifts<A>(), ...);
         return *this;
       }
 
@@ -410,7 +409,12 @@ struct AnalysisDataProcessorBuilder {
           } else {
             pos = position;
           }
-          pos += shifts[index];
+          if (unassignedGroups[index] > 0) {
+            if ((idValues[index])[pos + shifts[index]] < 0) {
+              ++shifts[index];
+            }
+            pos += shifts[index];
+          }
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
 
