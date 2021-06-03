@@ -73,6 +73,7 @@ void CcdbApi::init(std::string const& host)
 
   // find out if we can can in principle connect to Alien
   mHaveAlienToken = checkAlienToken();
+  LOG(INFO) << "WITH ALIEN TOKEN?: " << mHaveAlienToken;
 }
 
 /**
@@ -468,6 +469,12 @@ void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info 
 
 bool CcdbApi::checkAlienToken() const
 {
+#ifdef __APPLE__
+  // not checking for token on Mac because
+  // a) we have seen problems where system call below hangs in some cases
+  // b) not the production plattform where the token would be beneficial
+  return false;
+#endif
   // a somewhat weird construction to programmatically find out if we
   // have a GRID token; Can be replaced with something more elegant once
   // alien-token-info does not ask for passwords interactively
@@ -475,6 +482,9 @@ bool CcdbApi::checkAlienToken() const
     return true;
   }
   auto returncode = system("alien-token-info > /dev/null 2> /dev/null");
+  if (returncode == -1) {
+    LOG(ERROR) << "system(\"alien-token-info\") call failed with internal fork/wait error";
+  }
   return returncode == 0;
 }
 
