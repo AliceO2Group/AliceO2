@@ -92,7 +92,7 @@ struct DetTrigInput {
 struct BCData {
   static constexpr char sChannelNameDPL[] = "DIGITSBC";
   static constexpr char sDigitName[] = "BCData";
-  static constexpr char sDigitBranchName[] = "FV0DIGITSBC";
+  static constexpr char sDigitBranchName[] = "FV0DigitBC";
   /// we are going to refer to at most 48 channels, so 6 bits for the number of channels and 26 for the reference
   o2::dataformats::RangeRefComp<6> ref;
   o2::InteractionRecord ir; //FV0 is detected by using this field!!!

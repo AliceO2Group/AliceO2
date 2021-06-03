@@ -69,7 +69,7 @@ int main()
 
   std::cout << "\nTOTAL EVENTS: " << vecTotalEvents.size() << std::endl;
   std::cout << "Simulation completed!" << std::endl;
-  gSystem->Exec("$O2_ROOT/bin/o2-fv0-digi2raw --file-per-link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\"");
+  gSystem->Exec("$O2_ROOT/bin/o2-fv0-digi2raw -v 1 --file-per-link --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\"");
   gSystem->Exec("$O2_ROOT/bin/o2-raw-file-reader-workflow -b --input-conf FV0raw.cfg --configKeyValues \"HBFUtils.nHBFPerTF=128;HBFUtils.orbitFirst=0\"|$O2_ROOT/bin/o2-fv0-flp-dpl-workflow -b");
   TFile flIn2("o2_fv0digits.root");
   std::unique_ptr<TTree> treeInput2((TTree*)flIn2.Get("o2sim"));

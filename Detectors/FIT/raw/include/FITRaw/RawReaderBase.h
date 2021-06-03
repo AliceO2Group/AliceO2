@@ -64,7 +64,7 @@ class RawReaderBase
       refDataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += refDataBlock.mSize;
       if (!refDataBlock.isCorrect()) {
-        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size" << refDataBlock.mSize;
+        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size: " << refDataBlock.mSize;
         refDataBlock.print();
         vecDataBlocks.pop_back();
         return srcPos;
@@ -84,12 +84,6 @@ class RawReaderBase
       auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
       digitIter->second.template processDigits<DataBlockType>(dataBlock, std::forward<T>(feeParameters)...);
     }
-    //Test
-    /*    for(const auto &entry: mMapDigits) {
-      auto test = entry.second.template decomposeDigits<DataBlockType>();
-    }
-*/
-    //
     vecDataBlocks.clear();
   }
   //pop digits

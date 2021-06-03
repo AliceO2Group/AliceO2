@@ -137,7 +137,7 @@ struct DataBlockWrapper {
       memcpy(serializedBytes.data() + std::get<kSRCBYTEPOS>(sByteLookupTable[iStep]) + destPos, srcAddress + std::get<kDESTBYTEPOS>(sByteLookupTable[iStep]), std::get<kNBYTES>(sByteLookupTable[iStep]));
       countBytes += std::get<kSRCBYTEPOS>(sByteLookupTable[iStep]);
     }
-    destPos += mNwords * SIZE_WORD;
+    destPos += nWords * SIZE_WORD;
   }
 
   void deserialize(const gsl::span<const uint8_t> inputBytes, size_t nWords, size_t& srcPos)

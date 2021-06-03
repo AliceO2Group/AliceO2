@@ -21,7 +21,6 @@
 #include "FITRaw/DataBlockFIT.h"
 #include "FITRaw/DigitBlockFIT.h"
 #include <Framework/Logger.h>
-//#include <CommonDataFormat/InteractionRecord.h>
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
@@ -79,7 +78,7 @@ class RawWriterFIT
       auto outputFilename = makeFilename(rdh);
       mWriter.registerLink(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), outputFilename);
       LOG(INFO) << "Registering link | "
-                << "LinkID: " << RDHUtils::getLinkID(rdh) << " | EndPointID: " << RDHUtils::getEndPointID(rdh) << " | Output filename: " << outputFilename;
+                << "LinkID: " << static_cast<uint16_t>(RDHUtils::getLinkID(rdh)) << " | EndPointID: " << static_cast<uint16_t>(RDHUtils::getEndPointID(rdh)) << " | Output filename: " << outputFilename;
     }
     //Processing digits into raw data
     TFile* inputFile = TFile::Open(filenameDigits.c_str());

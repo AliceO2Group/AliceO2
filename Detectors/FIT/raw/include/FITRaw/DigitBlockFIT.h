@@ -107,6 +107,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
         std::size_t nElements = mapTopoCounter.find(pairInserted.first->first)->second;
         std::size_t nWords = nElements / 2 + nElements % 2;
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].nGBTWords = nWords;
+        refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mNelements = 1;
       }
       //Data preparation
       auto& refPos = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements;
@@ -126,19 +127,14 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].startDescriptor = 0xf;
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].nGBTWords =
       dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::MaxNwords;
-    //    DataBlockType::DataBlockWrapper<typename DataBlockType::RawDataTCM>::Data_t::MaxNelements;
+    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mNelements = 1;
     auto& refTCMdata = dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0];
+    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mNelements = 1;
+
     //Data preparation
     DigitBlockHelper::ConvertDigit2TCMData(DigitBlockBase_t::mDigit, refTCMdata);
     return {LookupTable_t::Instance().getTopoTCM(), dataBlockTCM};
   }
-  /*
-  //Decompose and serialize
-  template <class DataBlockPMtype,class DataBlockTCMtype>
-  auto decomposeDigits() const -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockPMtype>::value  
-  && DigitBlockHelper::IsSpecOfType<DataBlockTCM, DataBlockTCMtype>::value
-                                                                                       ,std::map<typename LookupTable_t::Topo_t, gsl::span<char> >>
-  */
   //Process DigitBlocks from TTree
   template <typename DigitBlockProcType>
   static void processDigitBlocks(TTree* inputTree, DigitBlockProcType& digitBlockProc)
@@ -178,6 +174,10 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
       }
       LOG(INFO) << "______________________________________";
     }
+  }
+  void print() const
+  {
+    DigitBlockBase_t::print();
   }
 };
 
@@ -272,6 +272,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
         std::size_t nElements = mapTopoCounter.find(pairInserted.first->first)->second;
         std::size_t nWords = nElements / 2 + nElements % 2;
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].nGBTWords = nWords;
+        refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mNelements = 1;
       }
       //Data preparation
       auto& refPos = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements;
@@ -291,14 +292,18 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].startDescriptor = 0xf;
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].nGBTWords = dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::MaxNwords +
                                                                                                  dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::MaxNwords;
+
+    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mNelements = 1;
     auto& refTCMdata = dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0];
     //Data preparation
     DigitBlockHelper::ConvertDigit2TCMData(DigitBlockBase_t::mDigit, refTCMdata);
-
+    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mNelements = 1;
+    //Extended mode
     static_assert(std::decay<decltype(dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[0])>::type::MaxNelements == std::tuple_size<decltype(DigitBlockBase_t::mSingleSubDigit.mTriggerWords)>::value);
     for (int i = 0; i < std::decay<decltype(dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[0])>::type::MaxNelements; i++) {
       dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[i].triggerWord = DigitBlockBase_t::mSingleSubDigit.mTriggerWords[i];
     }
+    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mNelements = 1;
     return {LookupTable_t::Instance().getTopoTCM(), dataBlockTCM};
   }
   template <typename DetTrigInput>
@@ -328,6 +333,10 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
       trgExt.printLog();
     }
     LOG(INFO) << "______________________________________";
+  }
+  void print() const
+  {
+    DigitBlockBase_t::print();
   }
 };
 
