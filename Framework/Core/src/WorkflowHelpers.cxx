@@ -129,7 +129,7 @@ std::vector<TopoIndexInfo>
   return S;
 }
 
-void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
+void addMissingOutputsToSource(std::vector<OutputSpec> const& providedOutputs,
                                std::vector<InputSpec> requestedInputs,
                                DataProcessorSpec& publisher)
 {
@@ -154,8 +154,13 @@ void addMissingOutputsToReader(std::vector<OutputSpec> const& providedOutputs,
       continue;
     }
 
-    auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
-    publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+    try {
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(requested);
+      publisher.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec});
+    } catch (...) {
+      auto concreteType = DataSpecUtils::asConcreteDataTypeMatcher(requested);
+      publisher.outputs.emplace_back(OutputSpec{concreteType});
+    }
   }
 }
 
@@ -206,7 +211,7 @@ void addMissingOutputsToBuilder(std::vector<InputSpec>&& requestedIDXs,
   }
 }
 
-void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
+void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx, bool fixDangling)
 {
   auto fakeCallback = AlgorithmSpec{[](InitContext& ic) {
     LOG(INFO) << "This is not a real device, merely a placeholder for external inputs";
@@ -271,6 +276,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
      ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
     readerServices};
 
+  std::vector<InputSpec> requestedRemaining;
+  std::vector<OutputSpec> providedRemaining;
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
   std::vector<InputSpec> requestedDYNs;
@@ -348,6 +355,10 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           requestedIDXs.emplace_back(input);
         }
       }
+      // We can fix dangling inputs only for Timeframe no need for the rest.
+      if (fixDangling && input.lifetime == Lifetime::Timeframe) {
+        requestedRemaining.emplace_back(input);
+      }
     }
 
     std::stable_sort(timer.outputs.begin(), timer.outputs.end(), [](OutputSpec const& a, OutputSpec const& b) { return *DataSpecUtils::getOptionalSubSpec(a) < *DataSpecUtils::getOptionalSubSpec(b); });
@@ -370,6 +381,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       if (output.lifetime == Lifetime::Condition) {
         providedCCDBs.push_back(output);
       }
+      providedRemaining.emplace_back(output);
     }
   }
   auto sortingEquals = [](InputSpec const& a, InputSpec const& b) { return DataSpecUtils::describe(a) == DataSpecUtils::describe(b); };
@@ -395,11 +407,20 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     readers::AODReaderHelpers::indexBuilderCallback(requestedIDXs),
     {}};
 
+  DataProcessorSpec dummySource{
+    "internal-dpl-dummy-source",
+    {},
+    {},
+    AlgorithmSpec{[](ProcessingContext&) { LOG(FATAL) << "Unmatched inputs in final configuration."; }},
+    {}};
+
   addMissingOutputsToSpawner(std::move(requestedDYNs), requestedAODs, aodSpawner);
   addMissingOutputsToBuilder(std::move(requestedIDXs), requestedAODs, indexBuilder);
 
-  addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
-  addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
+  addMissingOutputsToSource(providedAODs, requestedAODs, aodReader);
+  addMissingOutputsToSource(providedCCDBs, requestedCCDBs, ccdbBackend);
+
+  addMissingOutputsToSource(providedRemaining, requestedRemaining, dummySource);
 
   std::vector<DataProcessorSpec> extraSpecs;
 
@@ -411,6 +432,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
   if (qaStore.outputs.empty() == false) {
     extraSpecs.push_back(qaStore);
+  }
+  if (dummySource.outputs.empty() == false) {
+    extraSpecs.push_back(dummySource);
   }
 
   if (aodSpawner.outputs.empty() == false) {

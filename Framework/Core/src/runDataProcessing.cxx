@@ -1591,6 +1591,19 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           return 1;
         }
       } break;
+      case DriverState::VERIFY_SCHEDULE: {
+        for (auto& device : runningWorkflow.devices) {
+          if (device.name == "internal-dpl-dummy-source") {
+            std::string s = "Some inputs are not available and therefore the topology cannot be executed";
+            for (auto& output : device.outputs) {
+              s += fmt::format("\n- {}", output.matcher);
+            }
+            LOG(ERROR) << s;
+            driverInfo.states.clear();
+            driverInfo.states.push_back(DriverState::QUIT_REQUESTED);
+          }
+        }
+      } break;
       case DriverState::SCHEDULE: {
         // FIXME: for the moment modifying the topology means we rebuild completely
         //        all the devices and we restart them. This is also what DDS does at
@@ -1664,6 +1677,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
           driverInfo.states.push_back(DriverState::SCHEDULE);
+          driverInfo.states.push_back(DriverState::VERIFY_SCHEDULE);
           driverInfo.states.push_back(DriverState::MERGE_CONFIGS);
         } else if (runningWorkflow.devices.empty() && driverInfo.batch == true) {
           LOG(INFO) << "No device resulting from the workflow. Quitting.";
@@ -2239,7 +2253,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
 
   // We insert the hash for the internal devices.
-  WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext);
+  WorkflowHelpers::injectServiceDevices(physicalWorkflow, configContext, true);
   for (auto& dp : physicalWorkflow) {
     if (dp.name.rfind("internal-") == 0) {
       rankIndex.insert(std::make_pair(dp.name, hash_fn("internal")));

@@ -451,6 +451,39 @@ BOOST_AUTO_TEST_CASE(TestExternalInput)
                                   availableForwardsInfo);
 }
 
+// This is to test a workflow where the input is not of type Timeframe and
+// therefore requires a dangling channel. The system however
+// injects a dummy source to make sure the topology is correctly terminated.
+// The topology is
+//
+//         TST/A     TST/B
+// (dummy) ----> (A) ---->
+//
+BOOST_AUTO_TEST_CASE(TestExternalInputFixed)
+{
+  WorkflowSpec workflow{
+    {"A",
+     Inputs{
+       InputSpec{"external", "TST", "A", 0, Lifetime::Timer}},
+     Outputs{
+       OutputSpec{"TST", "B"}}}};
+  BOOST_REQUIRE(WorkflowHelpers::verifyWorkflow(workflow) == WorkflowParsingState::Valid);
+  std::vector<DeviceConnectionEdge> logicalEdges;
+  std::vector<OutputSpec> outputs;
+  std::vector<LogicalForwardInfo> availableForwardsInfo;
+
+  BOOST_CHECK_EQUAL(workflow.size(), 1);
+
+  auto context = makeEmptyConfigContext();
+  WorkflowHelpers::injectServiceDevices(workflow, *context, true);
+  // The added devices are the one which should connect to
+  // the condition DB and the sink for the dangling outputs.
+  BOOST_CHECK_EQUAL(workflow.size(), 4);
+  WorkflowHelpers::constructGraph(workflow, logicalEdges,
+                                  outputs,
+                                  availableForwardsInfo);
+}
+
 BOOST_AUTO_TEST_CASE(DetermineDanglingOutputs)
 {
   WorkflowSpec workflow0{

@@ -175,7 +175,8 @@ struct WorkflowHelpers {
   // dangling inputs are satisfied.
   // @a workflow the workflow to decorate
   // @a ctx the context for the configuration phase
-  static void injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx);
+  // @a fixDangling whether dangling inputs should be associated to a dummy device
+  static void injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx, bool fixDangling = false);
 
   static void constructGraph(const WorkflowSpec& workflow,
                              std::vector<DeviceConnectionEdge>& logicalEdges,

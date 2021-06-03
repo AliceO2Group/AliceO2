@@ -63,6 +63,7 @@ class ConfigContext;
 enum struct DriverState {
   INIT = 0,
   SCHEDULE,
+  VERIFY_SCHEDULE,
   RUNNING,
   REDEPLOY_GUI,
   QUIT_REQUESTED,
