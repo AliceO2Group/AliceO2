@@ -114,7 +114,13 @@ struct TaskJpsiMC {
   {
     registry.add("hmassSig", "2-prong candidates (rec matched);inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hmassBkg", "2-prong candidates (rec unmatched);inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-  }
+    registry.add("hChi2PCASig", "3-prong candidates (rec. matched);chi2 PCA (cm);entries", {HistType::kTH2F, {{500, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hChi2PCABg", "3-prong candidates (rec. unmatched);chi2 PCA (cm);entries", {HistType::kTH2F, {{500, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hCtSig", "3-prong candidates (rec. matched);proper lifetime X(3872) * #it{c} (cm);entries", {HistType::kTH2F, {{100, 0., 0.1}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hCtBg", "3-prong candidates (rec. unmatched);proper lifetime X(3872) * #it{c} (cm);entries", {HistType::kTH2F, {{100, 0., 0.1}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hYSig", "3-prong candidates (rec. matched);candidate rapidity;entries", {HistType::kTH2F, {{100, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hYBg", "3-prong candidates (rec. unmatched);candidate rapidity;entries", {HistType::kTH2F, {{100, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+}
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
@@ -139,11 +145,17 @@ struct TaskJpsiMC {
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
         registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
+        registry.fill(HIST("hChi2PCASig"), candidate.chi2PCA(), candidate.pt());
+        registry.fill(HIST("hCtSig"), CtJpsi(candidate), candidate.pt());
+        registry.fill(HIST("hYSig"), YJpsi(candidate), candidate.pt());
       } else {
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
         registry.fill(HIST("hmassBkg"), InvMassJpsiToEE(candidate), candidate.pt());
+        registry.fill(HIST("hChi2PCABg"), candidate.chi2PCA(), candidate.pt());
+        registry.fill(HIST("hCtBg"), CtJpsi(candidate), candidate.pt());
+        registry.fill(HIST("hYBg"), YJpsi(candidate), candidate.pt());
       }
     }
     // MC gen.
