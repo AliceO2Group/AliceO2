@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_BC_REC_DATA_H
-#define _ZDC_BC_REC_DATA_H
+#ifndef O2_ZDC_BC_REC_DATA_H
+#define O2_ZDC_BC_REC_DATA_H
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
