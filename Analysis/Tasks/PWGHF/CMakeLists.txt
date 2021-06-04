@@ -132,4 +132,3 @@ o2_add_dpl_workflow(hf-task-lc-tok0sp
                     SOURCES taskLcK0sP.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils
                     COMPONENT_NAME Analysis)
-

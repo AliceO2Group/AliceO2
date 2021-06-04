@@ -251,6 +251,38 @@ class TrackSelectorPID
     }
   }
 
+  // MID
+
+  /// Checks if track is compatible with muon hypothesis in the MID detector.
+  /// \param track  track
+  /// \return true if track has been identified as muon by the MID detector
+  template <typename T>
+  bool isSelectedTrackPIDMID(const T& track)
+  {
+    if (mPdg != kMuonMinus) {
+      return false;
+    }
+    return track.mid().midIsMuon() == 1; // FIXME: change to return track.midIsMuon() once the column is bool.
+  }
+
+  /// Returns status of MID PID selection for a given track.
+  /// \param track  track
+  /// \return MID selection status (see TrackSelectorPID::Status)
+  template <typename T>
+  int getStatusTrackPIDMID(const T& track)
+  {
+    if (mPdg != kMuonMinus) {
+      return Status::PIDRejected;
+    }
+    if (isSelectedTrackPIDMID(track)) {
+      return Status::PIDAccepted; // accepted
+    } else {
+      return Status::PIDRejected; // rejected
+    }
+  }
+
+  // Combined selection
+
   /// Returns status of combined PID selection for a given track.
   /// \param track  track
   /// \return combined-selection status (see TrackSelectorPID::Status)

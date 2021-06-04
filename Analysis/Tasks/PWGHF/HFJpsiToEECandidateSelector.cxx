@@ -21,6 +21,7 @@
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
 #include "AnalysisCore/TrackSelectorPID.h"
 #include "ALICE3Analysis/RICH.h"
+#include "ALICE3Analysis/MID.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -30,18 +31,36 @@ using namespace o2::analysis::hf_cuts_jpsi_toee;
 namespace o2::aod
 {
 
-namespace indices
+namespace indices_rich
 {
 DECLARE_SOA_INDEX_COLUMN(Track, track);
 DECLARE_SOA_INDEX_COLUMN(RICH, rich);
-} // namespace indices
+} // namespace indices_rich
 
 DECLARE_SOA_INDEX_TABLE_USER(RICHTracksIndex, Tracks, "RICHTRK",
-                             indices::TrackId, indices::RICHId);
+                             indices_rich::TrackId, indices_rich::RICHId);
 } // namespace o2::aod
 
 struct RICHindexbuilder {
   Builds<o2::aod::RICHTracksIndex> ind;
+  void init(o2::framework::InitContext&) {}
+};
+
+namespace o2::aod
+{
+
+namespace indices_mid
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);
+DECLARE_SOA_INDEX_COLUMN(MID, mid);
+} // namespace indices_mid
+
+DECLARE_SOA_INDEX_TABLE_USER(MIDTracksIndex, Tracks, "MIDTRK",
+                             indices_mid::TrackId, indices_mid::MIDId);
+} // namespace o2::aod
+
+struct MidIndexBuilder {
+  Builds<o2::aod::MIDTracksIndex> ind;
   void init(o2::framework::InitContext&) {}
 };
 
@@ -65,6 +84,7 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_pidRICHMaxpT{"d_pidRICHMaxpT", 10., "Upper bound of track pT for RICH PID"};
   Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3., "Nsigma cut on RICH only"};
   Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
+
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Jpsi_to_ee_cuts", {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Jpsi candidate selection per pT bin"};
@@ -109,7 +129,7 @@ struct HFJpsiToEECandidateSelector {
     }
 
     // cut on chi2 point of closest approach
-    if (std::abs(candidate.chi2PCA()) > cuts->get(pTBin, "chi2PCA")){
+    if (std::abs(candidate.chi2PCA()) > cuts->get(pTBin, "chi2PCA")) {
       return false;
     }
     return true;
@@ -124,9 +144,9 @@ struct HFJpsiToEECandidateSelector {
     return true;
   }
 
-  using Trks = soa::Join<aod::BigTracksPID, aod::RICHTracksIndex>;
+  using Trks = soa::Join<aod::BigTracksPID, aod::RICHTracksIndex, aod::MIDTracksIndex>;
 
-  void process(aod::HfCandProng2 const& candidates, const Trks& tracks, aod::RICHs const&)
+  void process(aod::HfCandProng2 const& candidates, Trks const&, aod::RICHs const&, aod::MIDs const&)
   {
     TrackSelectorPID selectorElectron(kElectron);
     selectorElectron.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
@@ -134,6 +154,9 @@ struct HFJpsiToEECandidateSelector {
     selectorElectron.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
     selectorElectron.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
     selectorElectron.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
+
+    TrackSelectorPID selectorMuon(kMuonMinus);
+
     // looping over 2-prong candidates
     for (auto& candidate : candidates) {
 
@@ -191,6 +214,13 @@ struct HFJpsiToEECandidateSelector {
         }
       }
 
+      // track-level muon PID selection
+      if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+        hfSelJpsiToEECandidate(0);
+        continue;
+      }
+
       hfSelJpsiToEECandidate(1);
     }
   }
@@ -198,6 +228,8 @@ struct HFJpsiToEECandidateSelector {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<RICHindexbuilder>(cfgc),
-                      adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
+  return WorkflowSpec{
+    adaptAnalysisTask<RICHindexbuilder>(cfgc),
+    adaptAnalysisTask<MidIndexBuilder>(cfgc),
+    adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
 }
