@@ -35,7 +35,7 @@ int main()
     }
   };
   std::vector<EventFDD_t> vecTotalEvents, vecTotalEvents2;
-  gSystem->Exec("$O2_ROOT/bin/o2-sim -n 10 -m FDD -g pythia8");
+  gSystem->Exec("$O2_ROOT/bin/o2-sim -n 10 -m FDD -g pythia8pp");
   gSystem->Exec("$O2_ROOT/bin/o2-sim-digitizer-workflow -b");
   TFile flIn("fdddigits.root");
   std::unique_ptr<TTree> treeInput((TTree*)flIn.Get("o2sim"));
@@ -96,7 +96,28 @@ int main()
   if (vecTotalEvents == vecTotalEvents2) {
     std::cout << "TEST IS OK!\n";
   } else {
-    std::cout << "ERROR!\n";
+    std::cout << "\nDIFFERENCE BETWEEN SRC AND DEST\n";
+    std::cout << "\n===============================\n";
+    for (int iEntry = 0; iEntry < std::max(vecTotalEvents.size(), vecTotalEvents2.size()); iEntry++) {
+      if (iEntry < vecTotalEvents.size() && iEntry < vecTotalEvents2.size()) {
+        if (vecTotalEvents[iEntry] == vecTotalEvents2[iEntry])
+          continue;
+      }
+      std::cout << "\nEntryID: " << iEntry;
+      std::cout << "\n------------------------------SOURCE------------------------------\n";
+      if (iEntry < vecTotalEvents.size()) {
+        vecTotalEvents[iEntry].print();
+      } else {
+        std::cout << "\nEMPTY!\n";
+      }
+      std::cout << "\n------------------------------DESTINATION------------------------------\n";
+      if (iEntry < vecTotalEvents2.size()) {
+        vecTotalEvents2[iEntry].print();
+      } else {
+        std::cout << "\nEMPTY!\n";
+      }
+    }
+    std::cout << "\nERROR!\n";
   }
   return 0;
 }

@@ -114,6 +114,7 @@ struct Digit {
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
   o2::InteractionRecord getIntRecord() const { return mIntRecord; };
+  void setIntRecord(const o2::InteractionRecord& intRec) { mIntRecord = intRec; }
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const
   {
     return ref.getEntries() ? gsl::span<const ChannelData>(&tfdata[ref.getFirstEntry()], ref.getEntries()) : gsl::span<const ChannelData>();

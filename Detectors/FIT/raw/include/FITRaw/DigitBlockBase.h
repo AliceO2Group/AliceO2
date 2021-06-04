@@ -87,6 +87,7 @@ struct GetDigitRefsN<T, std::enable_if_t<HasArrayRef<T>::value && (std::tuple_si
   constexpr static std::size_t value = std::tuple_size<decltype(std::declval<T>().ref)>::value;
 };
 //Temporary for FV0
+/*
 template <typename T, typename = void>
 struct IsFV0;
 template <typename T>
@@ -95,6 +96,7 @@ struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().mIntRec
 template <typename T>
 struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ir), o2::InteractionRecord>::value>> : std::true_type {
 };
+*/
 //Check if InteractionRecord field exists
 template <typename T, typename = void>
 struct HasIntRecord : std::false_type {
@@ -107,6 +109,7 @@ template <typename T>
 struct HasIntRecord<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ir), o2::InteractionRecord>::value>> : std::true_type {
 };
 //Temporary because of different InteractionRecord field names
+/*
 template <typename T, typename IR>
 auto SetIntRecord(T& digit, IR&& ir) -> std::enable_if_t<!IsFV0<T>::value>
 {
@@ -128,6 +131,8 @@ auto GetIntRecord(const T& digit) -> std::enable_if_t<IsFV0<T>::value, o2::Inter
 {
   return digit.ir;
 }
+*/
+/*
 //Temporary, PM module convertation
 //FT0
 template <typename ChannelDataType, typename PMDataType>
@@ -203,6 +208,7 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::
   tcmData.timeA = 0;
   tcmData.timeC = 0;
 }
+*/
 //Dividing to sub-digit structures with InteractionRecord(single one, e.g. for TCM extended mode) and without
 template <typename T>
 using GetVecSubDigit = typename boost::mpl::remove_if<T, boost::mpl::lambda<HasIntRecord<boost::mpl::_1>>::type>::type;
@@ -256,7 +262,7 @@ class DigitBlockBase //:public DigitBlock
  public:
   DigitBlockBase(o2::InteractionRecord intRec)
   {
-    DigitBlockHelper::SetIntRecord(mDigit, intRec);
+    mDigit.setIntRecord(intRec);
   }
   DigitBlockBase(const DigitType& digit) : mDigit(digit)
   {
@@ -335,6 +341,7 @@ class DigitBlockBase //:public DigitBlock
       auto itLast = itBegin;
       std::advance(itLast, digit.ref.getEntries());
       vecResult.push_back({digit});
+      vecResult.back().mSubDigit.reserve(digit.ref.getEntries());
       std::copy(itBegin, itLast, std::back_inserter(vecResult.back().mSubDigit));
     }
     return vecResult;
@@ -363,6 +370,7 @@ class DigitBlockBase //:public DigitBlock
     std::advance(itBegin, digit.ref[N - 1].getFirstEntry());
     auto itLast = itBegin;
     std::advance(itLast, digit.ref[N - 1].getEntries());
+    vecDest.reserve(digit.ref[N - 1].getEntries());
     std::copy(itBegin, itLast, std::back_inserter(vecDest));
     if constexpr (N > 1) {
       fillSubDigitTuple<N - 1>(digit, tupleSrc, tupleDest);

@@ -32,6 +32,106 @@ namespace o2
 {
 namespace fit
 {
+//Temporary helper
+namespace DigitBlockFIThelper
+{
+template <typename T, typename = void>
+struct IsFV0;
+//FV0 Digit recognition
+template <typename T>
+struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().mIntRecord), o2::InteractionRecord>::value>> : std::false_type {
+};
+template <typename T>
+struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ir), o2::InteractionRecord>::value>> : std::true_type {
+};
+//Temporary, PM module convertation
+//FT0
+template <typename ChannelDataType, typename PMDataType>
+auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().QTCAmpl), int16_t>::value>
+{
+  pmData.word = uint64_t(chData.ChainQTC) << PMDataType::BitFlagPos;
+  pmData.channelID = channelID;
+  pmData.time = chData.CFDTime;
+  pmData.charge = chData.QTCAmpl;
+}
+//FV0
+template <typename ChannelDataType, typename PMDataType>
+auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().chargeAdc), Short_t>::value>
+{
+  pmData.channelID = channelID;
+  pmData.time = chData.time;
+  pmData.charge = chData.chargeAdc;
+}
+//FDD
+template <typename ChannelDataType, typename PMDataType>
+auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().mChargeADC), int16_t>::value>
+{
+  pmData.word = uint64_t(chData.mFEEBits) << PMDataType::BitFlagPos;
+  pmData.channelID = channelID;
+  pmData.time = chData.mTime;
+  pmData.charge = chData.mChargeADC;
+}
+//Temporary, TCM module convertation
+//FT0 and FDD
+template <typename DigitType, typename TCMDataType>
+auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::enable_if_t<!IsFV0<DigitType>::value>
+{
+  tcmData.orA = digit.mTriggers.getOrA();
+  tcmData.orC = digit.mTriggers.getOrC();
+  tcmData.sCen = digit.mTriggers.getVertex();
+  tcmData.cen = digit.mTriggers.getCen();
+  tcmData.vertex = digit.mTriggers.getSCen();
+  tcmData.laser = 0;
+  //tcmData.laser = digit.mTriggers.getLaserBit(); //Turned off for FDD
+  tcmData.nChanA = digit.mTriggers.nChanA;
+  tcmData.nChanC = digit.mTriggers.nChanC;
+  if (digit.mTriggers.amplA > 131071) {
+    tcmData.amplA = 131071; //2^17
+  } else {
+    tcmData.amplA = digit.mTriggers.amplA;
+  }
+  if (digit.mTriggers.amplC > 131071) {
+    tcmData.amplC = 131071; //2^17
+  } else {
+    tcmData.amplC = digit.mTriggers.amplC;
+  }
+  tcmData.timeA = digit.mTriggers.timeA;
+  tcmData.timeC = digit.mTriggers.timeC;
+}
+//FV0
+template <typename DigitType, typename TCMDataType>
+auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::enable_if_t<IsFV0<DigitType>::value>
+{
+  tcmData.orA = bool(digit.mTriggers.triggerSignals & (1 << 0));
+  tcmData.orC = bool(digit.mTriggers.triggerSignals & (1 << 1));
+  tcmData.sCen = bool(digit.mTriggers.triggerSignals & (1 << 2));
+  tcmData.cen = bool(digit.mTriggers.triggerSignals & (1 << 3));
+  tcmData.vertex = bool(digit.mTriggers.triggerSignals & (1 << 4));
+  tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
+  tcmData.nChanA = digit.mTriggers.nChanA;
+  //tcmData.nChanC = digit.mTriggers.nChanC;
+  tcmData.nChanC = 0;
+  tcmData.amplA = digit.mTriggers.amplA;
+  //tcmdata.amplC = digit.mTriggers.amplA;
+  tcmData.amplC = 0;
+  //tcmData.timeA = digit.mTriggers.timeA
+  //tcmData.timeC = digit.mTriggers.timeC;
+  tcmData.timeA = 0;
+  tcmData.timeC = 0;
+}
+
+template <typename T>
+auto GetIntRecord(const T& digit) -> std::enable_if_t<!IsFV0<T>::value, o2::InteractionRecord>
+{
+  return digit.mIntRecord;
+}
+template <typename T>
+auto GetIntRecord(const T& digit) -> std::enable_if_t<IsFV0<T>::value, o2::InteractionRecord>
+{
+  return digit.ir;
+}
+} // namespace DigitBlockFIThelper
+
 //Normal data taking mode
 template <typename LookupTableType, typename DigitType, typename ChannelDataType>
 class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
@@ -50,7 +150,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
   //Filling data from PM
   //Temporary for FT0 and FDD
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value && !DigitBlockHelper::IsFV0<DigitType>::value //Will compile only for FT0 and FDD
+  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value && !DigitBlockFIThelper::IsFV0<DigitType>::value //Will compile only for FT0 and FDD
                                                                                        >
   {
     for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements; iEventData++) {
@@ -63,7 +163,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
   //
   //Temporary for FV0
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value && DigitBlockHelper::IsFV0<DigitType>::value //Will compile only for FV0
+  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value && DigitBlockFIThelper::IsFV0<DigitType>::value //Will compile only for FV0
                                                                                        >
   {
     for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements; iEventData++) {
@@ -102,7 +202,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
       auto& refDataBlock = pairInserted.first->second;
       if (pairInserted.second) {
         //Header preparation
-        refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].setIntRec(DigitBlockHelper::GetIntRecord(DigitBlockBase_t::mDigit));
+        refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].startDescriptor = 0xf;
         std::size_t nElements = mapTopoCounter.find(pairInserted.first->first)->second;
         std::size_t nWords = nElements / 2 + nElements % 2;
@@ -113,7 +213,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
       auto& refPos = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements;
       auto& refData = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[refPos];
       refPos++;
-      DigitBlockHelper::ConvertChData2EventData(entry.second.get(), refData, LookupTable_t::Instance().getLocalChannelID(entry.first));
+      DigitBlockFIThelper::ConvertChData2EventData(entry.second.get(), refData, LookupTable_t::Instance().getLocalChannelID(entry.first));
     }
     return mapResult;
   }
@@ -123,7 +223,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
   {
     DataBlockType dataBlockTCM{};
     //Header preparation
-    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].setIntRec(DigitBlockHelper::GetIntRecord(DigitBlockBase_t::mDigit));
+    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].startDescriptor = 0xf;
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mData[0].nGBTWords =
       dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::MaxNwords;
@@ -132,7 +232,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mNelements = 1;
 
     //Data preparation
-    DigitBlockHelper::ConvertDigit2TCMData(DigitBlockBase_t::mDigit, refTCMdata);
+    DigitBlockFIThelper::ConvertDigit2TCMData(DigitBlockBase_t::mDigit, refTCMdata);
     return {LookupTable_t::Instance().getTopoTCM(), dataBlockTCM};
   }
   //Process DigitBlocks from TTree
@@ -199,7 +299,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
   //Filling data from PM
   //Temporary for FT0 and FDD
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value && !DigitBlockHelper::IsFV0<DigitType>::value //Will compile only for FT0 and FDD
+  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value && !DigitBlockFIThelper::IsFV0<DigitType>::value //Will compile only for FT0 and FDD
                                                                                        >
   {
     for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements; iEventData++) {
@@ -212,7 +312,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
   //
   //Temporary for FV0
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value && DigitBlockHelper::IsFV0<DigitType>::value //Will compile only for FV0
+  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockPM, DataBlockType>::value && DigitBlockFIThelper::IsFV0<DigitType>::value //Will compile only for FV0
                                                                                        >
   {
     for (int iEventData = 0; iEventData < dataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements; iEventData++) {
@@ -225,7 +325,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
   //Filling data from TCM (extended mode)
   //Temporary for FT0 and FDD
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value && !DigitBlockHelper::IsFV0<DigitType>::value>
+  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value && !DigitBlockFIThelper::IsFV0<DigitType>::value>
   {
     dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0].fillTrigger(DigitBlockBase_t::mDigit.mTriggers);
     DigitBlockBase_t::mSingleSubDigit.mIntRecord = DigitBlockBase_t::mDigit.mIntRecord;
@@ -236,7 +336,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
 
   //Temporary for FV0
   template <class DataBlockType>
-  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value && DigitBlockHelper::IsFV0<DigitType>::value> //Will compile only for FV0
+  auto processDigits(DataBlockType& dataBlock, int linkID, int ep) -> std::enable_if_t<DigitBlockHelper::IsSpecOfType<DataBlockTCMext, DataBlockType>::value && DigitBlockFIThelper::IsFV0<DigitType>::value> //Will compile only for FV0
   {
     dataBlock.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0].fillTrigger(DigitBlockBase_t::mDigit.mTriggers);
     DigitBlockBase_t::mSingleSubDigit.mIntRecord = DigitBlockBase_t::mDigit.ir;
@@ -267,7 +367,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
       auto& refDataBlock = pairInserted.first->second;
       if (pairInserted.second) {
         //Header preparation
-        refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].setIntRec(DigitBlockHelper::GetIntRecord(DigitBlockBase_t::mDigit));
+        refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
         refDataBlock.DataBlockWrapper<typename DataBlockType::RawHeaderPM>::mData[0].startDescriptor = 0xf;
         std::size_t nElements = mapTopoCounter.find(pairInserted.first->first)->second;
         std::size_t nWords = nElements / 2 + nElements % 2;
@@ -278,7 +378,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
       auto& refPos = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mNelements;
       auto& refData = refDataBlock.DataBlockWrapper<typename DataBlockType::RawDataPM>::mData[refPos];
       refPos++;
-      DigitBlockHelper::ConvertChData2EventData(entry.second.get(), refData, LookupTable_t::Instance().getLocalChannelID(entry.first));
+      DigitBlockFIThelper::ConvertChData2EventData(entry.second.get(), refData, LookupTable_t::Instance().getLocalChannelID(entry.first));
     }
     return mapResult;
   }
@@ -288,7 +388,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
   {
     DataBlockType dataBlockTCM{};
     //Header preparation
-    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].setIntRec(DigitBlockHelper::GetIntRecord(DigitBlockBase_t::mDigit));
+    dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].setIntRec(DigitBlockFIThelper::GetIntRecord(DigitBlockBase_t::mDigit));
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].startDescriptor = 0xf;
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCMext>::mData[0].nGBTWords = dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::MaxNwords +
                                                                                                  dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::MaxNwords;
@@ -296,7 +396,7 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawHeaderTCM>::mNelements = 1;
     auto& refTCMdata = dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mData[0];
     //Data preparation
-    DigitBlockHelper::ConvertDigit2TCMData(DigitBlockBase_t::mDigit, refTCMdata);
+    DigitBlockFIThelper::ConvertDigit2TCMData(DigitBlockBase_t::mDigit, refTCMdata);
     dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCM>::mNelements = 1;
     //Extended mode
     static_assert(std::decay<decltype(dataBlockTCM.DataBlockWrapper<typename DataBlockType::RawDataTCMext>::mData[0])>::type::MaxNelements == std::tuple_size<decltype(DigitBlockBase_t::mSingleSubDigit.mTriggerWords)>::value);
@@ -339,7 +439,6 @@ class DigitBlockFIText : public DigitBlockBase<DigitType, ChannelDataType, Trigg
     DigitBlockBase_t::print();
   }
 };
-
 } // namespace fit
 } // namespace o2
 #endif

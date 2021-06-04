@@ -109,6 +109,7 @@ struct BCData {
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   const o2::InteractionRecord& getIntRecord() const { return ir; };
   Triggers getTriggers() const { return mTriggers; }
+  void setIntRecord(const o2::InteractionRecord& intRec) { ir = intRec; }
   void setTriggers(Triggers triggers) { mTriggers = triggers; };
   void print() const;
   bool operator==(const BCData& other) const
