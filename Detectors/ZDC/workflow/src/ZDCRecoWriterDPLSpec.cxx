@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   FT0DigitWriterSpec.cxx
+/// @file   ZDCRecoWriterDPLSpec.cxx
 
 #include <vector>
 
