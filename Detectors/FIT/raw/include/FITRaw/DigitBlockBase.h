@@ -86,17 +86,6 @@ template <typename T>
 struct GetDigitRefsN<T, std::enable_if_t<HasArrayRef<T>::value && (std::tuple_size<decltype(std::declval<T>().ref)>::value > 1)>> {
   constexpr static std::size_t value = std::tuple_size<decltype(std::declval<T>().ref)>::value;
 };
-//Temporary for FV0
-/*
-template <typename T, typename = void>
-struct IsFV0;
-template <typename T>
-struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().mIntRecord), o2::InteractionRecord>::value>> : std::false_type {
-};
-template <typename T>
-struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ir), o2::InteractionRecord>::value>> : std::true_type {
-};
-*/
 //Check if InteractionRecord field exists
 template <typename T, typename = void>
 struct HasIntRecord : std::false_type {
@@ -108,107 +97,6 @@ struct HasIntRecord<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().
 template <typename T>
 struct HasIntRecord<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ir), o2::InteractionRecord>::value>> : std::true_type {
 };
-//Temporary because of different InteractionRecord field names
-/*
-template <typename T, typename IR>
-auto SetIntRecord(T& digit, IR&& ir) -> std::enable_if_t<!IsFV0<T>::value>
-{
-  digit.mIntRecord = std::forward<IR>(ir);
-}
-template <typename T, typename IR>
-auto SetIntRecord(T& digit, IR&& ir) -> std::enable_if_t<IsFV0<T>::value>
-{
-  digit.ir = std::forward<IR>(ir);
-}
-
-template <typename T>
-auto GetIntRecord(const T& digit) -> std::enable_if_t<!IsFV0<T>::value, o2::InteractionRecord>
-{
-  return digit.mIntRecord;
-}
-template <typename T>
-auto GetIntRecord(const T& digit) -> std::enable_if_t<IsFV0<T>::value, o2::InteractionRecord>
-{
-  return digit.ir;
-}
-*/
-/*
-//Temporary, PM module convertation
-//FT0
-template <typename ChannelDataType, typename PMDataType>
-auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().QTCAmpl), int16_t>::value>
-{
-  pmData.word = uint64_t(chData.ChainQTC) << PMDataType::BitFlagPos;
-  pmData.channelID = channelID;
-  pmData.time = chData.CFDTime;
-  pmData.charge = chData.QTCAmpl;
-}
-//FV0
-template <typename ChannelDataType, typename PMDataType>
-auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().chargeAdc), Short_t>::value>
-{
-  pmData.channelID = channelID;
-  pmData.time = chData.time;
-  pmData.charge = chData.chargeAdc;
-}
-//FDD
-template <typename ChannelDataType, typename PMDataType>
-auto ConvertChData2EventData(const ChannelDataType& chData, PMDataType& pmData, int channelID) -> std::enable_if_t<std::is_same<decltype(std::declval<ChannelDataType>().mChargeADC), int16_t>::value>
-{
-  pmData.word = uint64_t(chData.mFEEBits) << PMDataType::BitFlagPos;
-  pmData.channelID = channelID;
-  pmData.time = chData.mTime;
-  pmData.charge = chData.mChargeADC;
-}
-//Temporary, TCM module convertation
-//FT0 and FDD
-template <typename DigitType, typename TCMDataType>
-auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::enable_if_t<!IsFV0<DigitType>::value>
-{
-  tcmData.orA = digit.mTriggers.getOrA();
-  tcmData.orC = digit.mTriggers.getOrC();
-  tcmData.sCen = digit.mTriggers.getVertex();
-  tcmData.cen = digit.mTriggers.getCen();
-  tcmData.vertex = digit.mTriggers.getSCen();
-  tcmData.laser = 0;
-  //tcmData.laser = digit.mTriggers.getLaserBit(); //Turned off for FDD
-  tcmData.nChanA = digit.mTriggers.nChanA;
-  tcmData.nChanC = digit.mTriggers.nChanC;
-  if (digit.mTriggers.amplA > 131071) {
-    tcmData.amplA = 131071; //2^17
-  } else {
-    tcmData.amplA = digit.mTriggers.amplA;
-  }
-  if (digit.mTriggers.amplC > 131071) {
-    tcmData.amplC = 131071; //2^17
-  } else {
-    tcmData.amplC = digit.mTriggers.amplC;
-  }
-  tcmData.timeA = digit.mTriggers.timeA;
-  tcmData.timeC = digit.mTriggers.timeC;
-}
-//FV0
-template <typename DigitType, typename TCMDataType>
-auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::enable_if_t<IsFV0<DigitType>::value>
-{
-  tcmData.orA = bool(digit.mTriggers.triggerSignals & (1 << 0));
-  tcmData.orC = bool(digit.mTriggers.triggerSignals & (1 << 1));
-  tcmData.sCen = bool(digit.mTriggers.triggerSignals & (1 << 2));
-  tcmData.cen = bool(digit.mTriggers.triggerSignals & (1 << 3));
-  tcmData.vertex = bool(digit.mTriggers.triggerSignals & (1 << 4));
-  tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
-  tcmData.nChanA = digit.mTriggers.nChanA;
-  //tcmData.nChanC = digit.mTriggers.nChanC;
-  tcmData.nChanC = 0;
-  tcmData.amplA = digit.mTriggers.amplA;
-  //tcmdata.amplC = digit.mTriggers.amplA;
-  tcmData.amplC = 0;
-  //tcmData.timeA = digit.mTriggers.timeA
-  //tcmData.timeC = digit.mTriggers.timeC;
-  tcmData.timeA = 0;
-  tcmData.timeC = 0;
-}
-*/
 //Dividing to sub-digit structures with InteractionRecord(single one, e.g. for TCM extended mode) and without
 template <typename T>
 using GetVecSubDigit = typename boost::mpl::remove_if<T, boost::mpl::lambda<HasIntRecord<boost::mpl::_1>>::type>::type;
