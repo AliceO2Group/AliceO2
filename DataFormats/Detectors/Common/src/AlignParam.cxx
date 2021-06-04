@@ -26,7 +26,7 @@ AlignParam::AlignParam(const char* symname, int algID,       // volume symbolic 
                        double x, double y, double z,         // delta translation
                        double psi, double theta, double phi, // delta rotation
                        bool global)                          // global (preferable) or local delta definition
-  : TNamed(symname, "")
+  : mSymName(symname), mAlignableID(algID)
 {
   /// standard constructor with 3 translation + 3 rotation parameters
   /// If the user explicitly sets the global variable to false then the
@@ -34,12 +34,10 @@ AlignParam::AlignParam(const char* symname, int algID,       // volume symbolic 
   /// This requires to have a gGeoMenager active instance, otherwise the
   /// constructor will fail (no object created)
 
-  setAlignableID(algID);
-
   if (global) {
-    setTranslation(x, y, z);
-    setRotation(psi, theta, phi);
+    setGlobalParams(x, y, z, psi, theta, phi);
   } else {
+    setLocalParams(x, y, z, psi, theta, phi);
   }
 }
 
@@ -58,21 +56,7 @@ void AlignParam::setMatrixRotation(double psi, double theta, double phi, TGeoHMa
 {
   /// apply rotation to matrix
   double rot[9] = {};
-  Double_t sinpsi = std::sin(psi);
-  Double_t cospsi = std::cos(psi);
-  Double_t sinthe = std::sin(theta);
-  Double_t costhe = std::cos(theta);
-  Double_t sinphi = std::sin(phi);
-  Double_t cosphi = std::cos(phi);
-  rot[0] = costhe * cosphi;
-  rot[1] = -costhe * sinphi;
-  rot[2] = sinthe;
-  rot[3] = sinpsi * sinthe * cosphi + cospsi * sinphi;
-  rot[4] = -sinpsi * sinthe * sinphi + cospsi * cosphi;
-  rot[5] = -costhe * sinpsi;
-  rot[6] = -cospsi * sinthe * cosphi + sinpsi * sinphi;
-  rot[7] = cospsi * sinthe * sinphi + sinpsi * cosphi;
-  rot[8] = costhe * cospsi;
+  anglesToMatrix(psi, theta, phi, rot);
   dest.SetRotation(rot);
 }
 
@@ -112,7 +96,7 @@ bool AlignParam::setRotation(const TGeoMatrix& m)
 }
 
 //_____________________________________________________________________________
-bool AlignParam::matrixToAngles(const double* rot, double& psi, double& theta, double& phi)
+bool AlignParam::matrixToAngles(const double* rot, double& psi, double& theta, double& phi) const
 {
   /// Calculates the Euler angles in "x y z" notation
   /// using the rotation matrix
@@ -130,6 +114,30 @@ bool AlignParam::matrixToAngles(const double* rot, double& psi, double& theta, d
 }
 
 //_____________________________________________________________________________
+void AlignParam::anglesToMatrix(double psi, double theta, double phi, double* rot) const
+{
+  // Calculates the rotation matrix using the
+  // Euler angles in "x y z" notation
+  //
+  double sinpsi = std::sin(psi);
+  double cospsi = std::cos(psi);
+  double sinthe = std::sin(theta);
+  double costhe = std::cos(theta);
+  double sinphi = std::sin(phi);
+  double cosphi = std::cos(phi);
+
+  rot[0] = costhe * cosphi;
+  rot[1] = -costhe * sinphi;
+  rot[2] = sinthe;
+  rot[3] = sinpsi * sinthe * cosphi + cospsi * sinphi;
+  rot[4] = -sinpsi * sinthe * sinphi + cospsi * cosphi;
+  rot[5] = -costhe * sinpsi;
+  rot[6] = -cospsi * sinthe * cosphi + sinpsi * sinphi;
+  rot[7] = cospsi * sinthe * sinphi + sinpsi * cosphi;
+  rot[8] = costhe * cospsi;
+}
+
+//_____________________________________________________________________________
 bool AlignParam::setLocalParams(double x, double y, double z, double psi, double theta, double phi)
 {
   /// Set the global delta transformation by passing the parameters
@@ -138,10 +146,9 @@ bool AlignParam::setLocalParams(double x, double y, double z, double psi, double
   /// returns false and the object parameters are not set.
 
   TGeoHMatrix m;
-  Double_t tr[3] = {x, y, z};
+  double tr[3] = {x, y, z};
   m.SetTranslation(tr);
   setMatrixRotation(psi, theta, phi, m);
-
   return setLocalParams(m);
 }
 
@@ -158,7 +165,7 @@ bool AlignParam::setLocalParams(const TGeoMatrix& m)
     return false;
   }
 
-  const char* symname = getSymName();
+  const char* symname = getSymName().c_str();
   TGeoHMatrix gprime, gprimeinv;
   TGeoPhysicalNode* pn = nullptr;
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
@@ -190,7 +197,7 @@ bool AlignParam::setLocalParams(const TGeoMatrix& m)
   m1.Multiply(&gprimeinv);
   m1.MultiplyLeft(&gprime);
 
-  setParams(m1);
+  setGlobalParams(m1);
   return true;
 }
 
@@ -206,7 +213,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
     return false;
   }
 
-  const char* symname = getSymName();
+  const char* symname = getSymName().c_str();
   TGeoPhysicalNode* node;
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
   if (pne) {
@@ -236,7 +243,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
 }
 
 //_____________________________________________________________________________
-bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
+bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler) const
 {
   /// Apply the current alignment object to the TGeo geometry
   /// This method returns FALSE if the symname of the object was not
@@ -252,7 +259,7 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
     return false;
   }
 
-  const char* symname = getSymName();
+  const char* symname = getSymName().c_str();
   const char* path;
   TGeoPhysicalNode* node;
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
@@ -279,7 +286,7 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
     return false;
   }
 
-  //  Double_t threshold = 0.001;
+  //  double threshold = 0.001;
 
   TGeoHMatrix gprime = *node->GetMatrix();
   TGeoHMatrix align = createMatrix();
@@ -310,22 +317,6 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler)
 }
 
 //_____________________________________________________________________________
-int AlignParam::Compare(const TObject* obj) const
-{
-  /// Compare the levels of two alignment objects
-  /// Used in the sorting during the application of alignment
-  /// objects to the geometry
-
-  int level = getLevel();
-  int level2 = ((AlignParam*)obj)->getLevel();
-  if (level == level2) {
-    return 0;
-  } else {
-    return ((level > level2) ? 1 : -1);
-  }
-}
-
-//_____________________________________________________________________________
 int AlignParam::getLevel() const
 {
   /// Return the geometry level of the alignable volume to which
@@ -336,7 +327,7 @@ int AlignParam::getLevel() const
     LOG(ERROR) << "gGeoManager doesn't exist or it is still open: unable to return meaningful level value.";
     return -1;
   }
-  const char* symname = getSymName();
+  const char* symname = getSymName().c_str();
   const char* path;
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
   if (pne) {
@@ -351,9 +342,107 @@ int AlignParam::getLevel() const
 }
 
 //_____________________________________________________________________________
-void AlignParam::Print(const Option_t*) const
+void AlignParam::print() const
 {
   // print parameters
-  printf("%s : %6d | X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName(), getAlignableID(), getX(),
+  printf("%s : %6d | X: %+e Y: %+e Z: %+e | pitch: %+e roll: %+e yaw: %e\n", getSymName().c_str(), getAlignableID(), getX(),
          getY(), getZ(), getPsi(), getTheta(), getPhi());
+}
+
+//_____________________________________________________________________________
+void AlignParam::setGlobalParams(double x, double y, double z, double psi, double theta, double phi)
+{
+  /// set parameters of global delta
+  setTranslation(x, y, z);
+  setRotation(psi, theta, phi);
+}
+
+//_____________________________________________________________________________
+void AlignParam::setRotation(double psi, double theta, double phi)
+{
+  /// set global delta rotations angles in radian
+  mPsi = psi;
+  mTheta = theta;
+  mPhi = phi;
+}
+
+//_____________________________________________________________________________
+void AlignParam::setTranslation(double x, double y, double z)
+{
+  /// set global delta displacements in cm
+  mX = x;
+  mY = y;
+  mZ = z;
+}
+
+//_____________________________________________________________________________
+void AlignParam::setGlobalParams(const TGeoMatrix& m)
+{
+  /// set params from the matrix of global delta
+  setTranslation(m);
+  setRotation(m);
+}
+
+//___________________________________________________
+void AlignParam::setMatrixTranslation(double x, double y, double z, TGeoHMatrix& dest) const
+{
+  /// apply translation to matrix
+  double tra[3] = {x, y, z};
+  dest.SetTranslation(tra);
+}
+
+//_____________________________________________________________________________
+bool AlignParam::setLocalTranslation(double x, double y, double z)
+{
+  /// Set the global delta transformation by passing the three shifts giving
+  /// the translation in the local reference system of the alignable
+  /// volume (known by TGeo geometry).
+  /// In case that the TGeo was not initialized or not closed,
+  /// returns false and the object parameters are not set.
+
+  TGeoHMatrix m;
+  double tr[3] = {x, y, z};
+  m.SetTranslation(tr);
+
+  return setLocalParams(m);
+}
+
+//_____________________________________________________________________________
+bool AlignParam::setLocalTranslation(const TGeoMatrix& m)
+{
+  /// Set the global delta transformation by passing the matrix of
+  /// the local delta transformation and taking its translational part
+  /// In case that the TGeo was not initialized or not closed,
+  /// returns false and the object parameters are not set.
+
+  TGeoHMatrix mtr;
+  mtr.SetTranslation(m.GetTranslation());
+  return setLocalParams(mtr);
+}
+
+//_____________________________________________________________________________
+bool AlignParam::setLocalRotation(double psi, double theta, double phi)
+{
+  /// Set the global delta transformation by passing the three angles giving
+  /// the rotation in the local reference system of the alignable
+  /// volume (known by TGeo geometry).
+  /// In case that the TGeo was not initialized or not closed,
+  /// returns false and the object parameters are not set.
+
+  TGeoHMatrix m;
+  setMatrixRotation(psi, theta, phi, m);
+  return setLocalParams(m);
+}
+
+//_____________________________________________________________________________
+bool AlignParam::setLocalRotation(const TGeoMatrix& m)
+{
+  /// Set the global delta transformation by passing the matrix of
+  /// the local delta transformation and taking its rotational part
+  /// In case that the TGeo was not initialized or not closed,
+  /// returns false and the object parameters are not set.
+
+  TGeoHMatrix rotm;
+  rotm.SetRotation(m.GetRotationMatrix());
+  return setLocalParams(rotm);
 }
