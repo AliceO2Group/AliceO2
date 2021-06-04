@@ -50,7 +50,8 @@ class DigiReco
   {
     mTreeDbg = state;
   }
-  void eor(){
+  void eor()
+  {
     if (mTreeDbg) {
       LOG(INFO) << "ZDC DigiReco: closing debug output";
       mTDbg->Write();
