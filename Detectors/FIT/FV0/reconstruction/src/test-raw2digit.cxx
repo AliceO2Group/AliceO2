@@ -103,8 +103,9 @@ int main()
     std::cout << "\n===============================\n";
     for (int iEntry = 0; iEntry < std::max(vecTotalEvents.size(), vecTotalEvents2.size()); iEntry++) {
       if (iEntry < vecTotalEvents.size() && iEntry < vecTotalEvents2.size()) {
-        if (vecTotalEvents[iEntry] == vecTotalEvents2[iEntry])
+        if (vecTotalEvents[iEntry] == vecTotalEvents2[iEntry]) {
           continue;
+        }
       }
       std::cout << "\nEntryID: " << iEntry;
       std::cout << "\n------------------------------SOURCE------------------------------\n";
