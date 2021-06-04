@@ -15,6 +15,7 @@ o2_add_library(CommonUtils
                        src/StringUtils.cxx
                        src/ConfigurableParamHelper.cxx src/ConfigurableParam.cxx src/RootSerializableKeyValueStore.cxx
                        src/KeyValParam.cxx
+                       src/FileSystemUtils.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Hist ROOT::Tree Boost::iostreams O2::CommonDataFormat O2::Headers
                                      FairLogger::FairLogger)
 
@@ -33,7 +34,8 @@ o2_target_root_dictionary(CommonUtils
                                   include/CommonUtils/ConfigurableParamHelper.h
                                   include/CommonUtils/ConfigurationMacroHelper.h
                                   include/CommonUtils/RootSerializableKeyValueStore.h
-                                  include/CommonUtils/KeyValParam.h)
+                                  include/CommonUtils/KeyValParam.h
+        )
 
 o2_add_test(TreeStream
             COMPONENT_NAME CommonUtils

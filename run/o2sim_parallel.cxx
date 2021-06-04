@@ -37,8 +37,10 @@
 #include "O2Version.h"
 #include <cstdio>
 #include <unordered_map>
+#include <filesystem>
 
 #include "SimPublishChannelHelper.h"
+#include <CommonUtils/FileSystemUtils.h>
 
 std::string getServerLogName()
 {
@@ -68,9 +70,13 @@ void remove_tmp_files()
 {
   // remove all (known) socket files in /tmp
   // using the naming convention /tmp/o2sim-.*PID
-  std::stringstream command;
-  command << "rm /tmp/o2sim-*-" << getpid() << " 2>/dev/null";
-  auto rc = system(command.str().c_str()); // a solution based on std::filesystem may be preferred but is longer
+  std::stringstream searchstr;
+  searchstr << "o2sim-.*-" << getpid() << "$";
+  auto filenames = o2::utils::listFiles("/tmp/", searchstr.str());
+  // remove those files
+  for (auto& fn : filenames) {
+    std::filesystem::remove(std::filesystem::path(fn));
+  }
 }
 
 void cleanup()

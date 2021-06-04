@@ -14,6 +14,7 @@ add_library(allsim INTERFACE)
 
 target_link_libraries(allsim
                       INTERFACE O2::SimConfig
+                                O2::CommonUtils
                                 O2::Steer
                                 O2::SimSetup
                                 O2::SimulationDataFormat
