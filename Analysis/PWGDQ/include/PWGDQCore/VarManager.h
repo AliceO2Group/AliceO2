@@ -646,8 +646,7 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidate
   double cosTheta = 0;
   if (t1.sign() > 0) {
     cosTheta = zaxis.Dot(v1_CM);
-  }
-  else {
+  } else {
     cosTheta = zaxis.Dot(v2_CM);
   }
   values[kCosThetaHE] = cosTheta;
