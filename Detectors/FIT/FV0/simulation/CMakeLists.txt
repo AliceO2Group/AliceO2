@@ -39,4 +39,4 @@ o2_add_executable(digi2raw
                               O2::FV0Raw)
 
 o2_data_file(COPY data  DESTINATION Detectors/FV0/simulation)
- 
+
