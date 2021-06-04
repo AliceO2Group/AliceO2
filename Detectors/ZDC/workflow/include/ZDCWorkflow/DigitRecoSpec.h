@@ -15,6 +15,7 @@
 #ifndef O2_ZDC_DIGITRECO_SPEC
 #define O2_ZDC_DIGITRECO_SPEC
 
+#include "FairLogger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "ZDCReconstruction/DigiReco.h"

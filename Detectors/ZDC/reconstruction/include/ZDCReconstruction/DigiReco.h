@@ -12,6 +12,7 @@
 #include <gsl/span>
 #include <TFile.h>
 #include <TTree.h>
+#include "FairLogger.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
@@ -34,15 +35,7 @@ class DigiReco
 {
  public:
   DigiReco() = default;
-  ~DigiReco()
-  {
-    if (mTreeDbg) {
-      mTDbg->Write();
-      mTDbg.reset();
-      mDbg->Close();
-      mDbg.reset();
-    }
-  }
+  ~DigiReco() = default;
   void init();
   int process(const gsl::span<const o2::zdc::OrbitData>& orbitdata,
               const gsl::span<const o2::zdc::BCData>& bcdata,
@@ -56,6 +49,15 @@ class DigiReco
   void setDebugOutput(bool state = true)
   {
     mTreeDbg = state;
+  }
+  void eor(){
+    if (mTreeDbg) {
+      LOG(INFO) << "ZDC DigiReco: closing debug output";
+      mTDbg->Write();
+      mTDbg.reset();
+      mDbg->Close();
+      mDbg.reset();
+    }
   }
 
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
