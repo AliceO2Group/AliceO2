@@ -48,17 +48,17 @@ struct TaskJpsi {
 
   void init(o2::framework::InitContext&)
   {
-    registry.add("hmass", "2-prong candidates;inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hdeclength", "2-prong candidates;decay length (cm);entries", {HistType::kTH2F, {{200, 0., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hdeclengthxy", "2-prong candidates;decay length xy (cm);entries", {HistType::kTH2F, {{200, 0., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hd0Prong0", "2-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{100, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hd0Prong1", "2-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{100, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hd0d0", "2-prong candidates;product of DCAxy to prim. vertex (cm^{2});entries", {HistType::kTH2F, {{500, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hCPA", "2-prong candidates;cosine of pointing angle;entries", {HistType::kTH2F, {{110, -1.1, 1.1}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hmass", "2-prong candidates;inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{200, 2., 4.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hdeclength", "2-prong candidates;decay length (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hdeclengthxy", "2-prong candidates;decay length xy (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0Prong0", "2-prong candidates;prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0Prong1", "2-prong candidates;prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0d0", "2-prong candidates;product of DCAxy to prim. vertex (cm^{2});entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hCPA", "2-prong candidates;cosine of pointing angle;entries", {HistType::kTH2F, {{1000, 0.5, 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hEta", "2-prong candidates;candidate #it{#eta};entries", {HistType::kTH2F, {{100, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hImpParErr", "2-prong candidates;impact parameter error (cm);entries", {HistType::kTH2F, {{100, -1., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hDecLenErr", "2-prong candidates;decay length error (cm);entries", {HistType::kTH2F, {{100, 0., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH2F, {{100, 0., 1.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hImpParErr", "2-prong candidates;impact parameter error (cm);entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDecLenErr", "2-prong candidates;decay length error (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
@@ -112,12 +112,22 @@ struct TaskJpsiMC {
 
   void init(o2::framework::InitContext&)
   {
-    registry.add("hmassSig", "2-prong candidates (rec matched);inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hmassBkg", "2-prong candidates (rec unmatched);inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{500, 0., 5.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hChi2PCASig", "3-prong candidates (rec. matched);chi2 PCA (cm);entries", {HistType::kTH2F, {{500, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hChi2PCABg", "3-prong candidates (rec. unmatched);chi2 PCA (cm);entries", {HistType::kTH2F, {{500, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hCtSig", "3-prong candidates (rec. matched);proper lifetime X(3872) * #it{c} (cm);entries", {HistType::kTH2F, {{100, 0., 0.1}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hCtBg", "3-prong candidates (rec. unmatched);proper lifetime X(3872) * #it{c} (cm);entries", {HistType::kTH2F, {{100, 0., 0.1}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hmassSig", "2-prong candidates (rec matched);inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{200, 2., 4.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hmassBg", "2-prong candidates (rec unmatched);inv. mass (e^{#plus} e^{#minus}) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{200, 2., 4.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hdeclengthSig", "2-prong candidates (rec matched);decay length (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hdeclengthBg", "2-prong candidates (rec unmatched);decay length (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hdeclengthxySig", "2-prong candidates (rec matched);decay length xy (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hdeclengthxyBg", "2-prong candidates (rec unmatched);decay length xy (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0Prong0Sig", "2-prong candidates (rec matched);prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0Prong0Bg", "2-prong candidates (rec unmatched);prong 0 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0Prong1Sig", "2-prong candidates (rec matched);prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0Prong1Bg", "2-prong candidates (rec unmatched);prong 1 DCAxy to prim. vertex (cm);entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0d0Sig", "2-prong candidates (rec matched);product of DCAxy to prim. vertex (cm^{2});entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hd0d0Bg", "2-prong candidates (rec unmatched);product of DCAxy to prim. vertex (cm^{2});entries", {HistType::kTH2F, {{400, -0.002, 0.002}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hChi2PCASig", "3-prong candidates (rec. matched);chi2 PCA (cm);entries", {HistType::kTH2F, {{1000, 0., 0.0001}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hChi2PCABg", "3-prong candidates (rec. unmatched);chi2 PCA (cm);entries", {HistType::kTH2F, {{1000, 0., 0.0001}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hCtSig", "3-prong candidates (rec. matched);proper lifetime X(3872) * #it{c} (cm);entries", {HistType::kTH2F, {{400, 0., 0.001}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hCtBg", "3-prong candidates (rec. unmatched);proper lifetime X(3872) * #it{c} (cm);entries", {HistType::kTH2F, {{400, 0., 0.001}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hYSig", "3-prong candidates (rec. matched);candidate rapidity;entries", {HistType::kTH2F, {{100, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hYBg", "3-prong candidates (rec. unmatched);candidate rapidity;entries", {HistType::kTH2F, {{100, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
@@ -145,14 +155,25 @@ struct TaskJpsiMC {
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
         registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
+	registry.fill(HIST("hdeclengthSig"), candidate.decayLength(), candidate.pt());
+        registry.fill(HIST("hdeclengthxySig"), candidate.decayLengthXY(), candidate.pt());
+        registry.fill(HIST("hd0Prong0Sig"), candidate.impactParameter0(), candidate.pt());
+        registry.fill(HIST("hd0Prong1Sig"), candidate.impactParameter1(), candidate.pt());
+        registry.fill(HIST("hd0d0Sig"), candidate.impactParameterProduct(), candidate.pt());
         registry.fill(HIST("hChi2PCASig"), candidate.chi2PCA(), candidate.pt());
         registry.fill(HIST("hCtSig"), CtJpsi(candidate), candidate.pt());
         registry.fill(HIST("hYSig"), YJpsi(candidate), candidate.pt());
+        
       } else {
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
-        registry.fill(HIST("hmassBkg"), InvMassJpsiToEE(candidate), candidate.pt());
+        registry.fill(HIST("hmassBg"), InvMassJpsiToEE(candidate), candidate.pt());
+	registry.fill(HIST("hdeclengthBg"), candidate.decayLength(), candidate.pt());
+        registry.fill(HIST("hdeclengthxyBg"), candidate.decayLengthXY(), candidate.pt());
+        registry.fill(HIST("hd0Prong0Bg"), candidate.impactParameter0(), candidate.pt());
+        registry.fill(HIST("hd0Prong1Bg"), candidate.impactParameter1(), candidate.pt());
+        registry.fill(HIST("hd0d0Bg"), candidate.impactParameterProduct(), candidate.pt());
         registry.fill(HIST("hChi2PCABg"), candidate.chi2PCA(), candidate.pt());
         registry.fill(HIST("hCtBg"), CtJpsi(candidate), candidate.pt());
         registry.fill(HIST("hYBg"), YJpsi(candidate), candidate.pt());
