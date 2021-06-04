@@ -32,6 +32,10 @@ struct ZDCEnergy {
   ZDCEnergy() = default;
   ZDCEnergy(uint8_t ch, float energy)
   {
+    set(ch, energy);
+  }
+  inline void set(uint8_t ch, float energy)
+  {
     float escaled = (energy + EnergyOffset) / EnergyUnit;
     value = 0;
     if (escaled > 0) {
@@ -48,7 +52,7 @@ struct ZDCEnergy {
   }
   float energy() const
   {
-    return (float(value & EnergyMask) - EnergyOffset) * EnergyUnit;
+    return float(value & EnergyMask) * EnergyUnit - EnergyOffset;
   }
   uint8_t ch() const
   {
