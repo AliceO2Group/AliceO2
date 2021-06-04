@@ -19,6 +19,8 @@
 #include <TObject.h>
 #include <TString.h>
 #include <Math/Vector4D.h>
+#include "Math/Vector3D.h"
+#include "Math/GenVector/Boost.h"
 #include <TRandom.h>
 
 #include <vector>
@@ -203,6 +205,7 @@ class VarManager : public TObject
     kVertexingLxyzErr,
     kVertexingProcCode,
     kVertexingChi2PCA,
+    kCosThetaHE,
     kNPairVariables,
 
     // Candidate-track correlation variables
@@ -640,6 +643,19 @@ void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values, PairCandida
   values[kEta] = v12.Eta();
   values[kPhi] = v12.Phi();
   values[kRap] = -v12.Rapidity();
+  // CosTheta Helicity calculation
+  ROOT::Math::Boost boostv12{v12.BoostToCM()};
+  ROOT::Math::XYZVectorF v1_CM{(boostv12(v1).Vect()).Unit()};
+  ROOT::Math::XYZVectorF v2_CM{(boostv12(v2).Vect()).Unit()};
+  ROOT::Math::XYZVectorF zaxis{(v12.Vect()).Unit()};
+
+  double cosTheta = 0;
+  if (t1.sign() > 0) {
+    cosTheta = zaxis.Dot(v1_CM);
+  } else {
+    cosTheta = zaxis.Dot(v2_CM);
+  }
+  values[kCosThetaHE] = cosTheta;
 }
 
 template <typename C, typename T>
