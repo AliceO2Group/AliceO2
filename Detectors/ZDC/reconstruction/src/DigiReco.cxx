@@ -21,6 +21,7 @@ using O2_ZDC_DIGIRECO_FLT = float;
 
 void DigiReco::init()
 {
+  LOG(INFO) << "Initialization of ZDC reconstruction";
   // Load configuration parameters
   auto& sopt = ZDCSimParam::Instance();
   mIsContinuous = sopt.continuous;
@@ -48,9 +49,9 @@ void DigiReco::init()
 
   if (mTreeDbg) {
     // Open debug file
-    mDbg = std::make_unique<TFile>("ZDCReco.root", "recreate");
+    mDbg = std::make_unique<TFile>("ZDCRecoDbg.root", "recreate");
     mTDbg = std::make_unique<TTree>("zdcr", "ZDCReco");
-    mTDbg->Branch("zdcr", "RecEvent", &mRec);
+    mTDbg->Branch("zdcr", "RecEventAux", &mRec);
   }
   // Update reconstruction parameters
   //auto& ropt=RecoParamZDC::Instance();

@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   ZDCRecoWriterDPLSpec.h
+/// @file   ZDCRecoWriterSpec.h
 
 #ifndef O2_ZDCRECOTWRITERDPLSPEC_H
 #define O2_ZDCRECOTWRITERDPLSPEC_H

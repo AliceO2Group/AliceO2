@@ -15,6 +15,7 @@ o2_add_library(ZDCWorkflow
                        src/ZDCDataReaderDPLSpec.cxx
 		       src/ZDCDigitWriterDPLSpec.cxx
 		       src/ZDCRecoWriterDPLSpec.cxx
+		       src/RecoWorkflow.cxx
 		       src/DigitRecoSpec.cxx
 		       src/DigitReaderSpec.cxx
 	       PUBLIC_LINK_LIBRARIES O2::Framework
@@ -42,7 +43,7 @@ o2_add_executable(digits-read
 
 o2_add_executable(digits-reco
                   COMPONENT_NAME zdc
-                  SOURCES src/DigitRecoSpec.cxx
+                  SOURCES src/zdc-reco-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
 
 o2_add_executable(write-reco

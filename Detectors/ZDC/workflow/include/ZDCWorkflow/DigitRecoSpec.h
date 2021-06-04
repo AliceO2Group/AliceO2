@@ -41,7 +41,7 @@ class DigitRecoSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-//framework::DataProcessorSpec getDigitRecoSpec();
+framework::DataProcessorSpec getDigitRecoSpec();
 
 } // namespace zdc
 } // namespace o2

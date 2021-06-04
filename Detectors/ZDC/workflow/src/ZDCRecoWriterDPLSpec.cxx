@@ -25,7 +25,8 @@ namespace zdc
 
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-DataProcessorSpec getZDCRecoWriterDPLSpec(bool mctruth, bool simVersion)
+// Unused arguments: bool mctruth, bool simVersion
+DataProcessorSpec getZDCRecoWriterDPLSpec()
 {
   std::string writerName = "ZDCRecoWriter";
   std::string fnameDef = "zdcreco.root";

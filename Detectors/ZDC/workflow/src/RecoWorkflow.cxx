@@ -10,11 +10,10 @@
 
 /// @file   RecoWorkflow.cxx
 
-#include "FT0Workflow/RecoWorkflow.h"
-#include "FT0Workflow/DigitReaderSpec.h"
-#include "FT0Workflow/RecPointWriterSpec.h"
-#include "FT0Workflow/ReconstructionSpec.h"
-#include "FT0Workflow/FT0DataReaderDPLSpec.h"
+#include "ZDCWorkflow/RecoWorkflow.h"
+#include "ZDCWorkflow/DigitReaderSpec.h"
+#include "ZDCWorkflow/ZDCRecoWriterDPLSpec.h"
+#include "ZDCWorkflow/DigitRecoSpec.h"
 
 namespace o2
 {
@@ -27,10 +26,14 @@ framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool di
   if (!disableRootInp) {
     specs.emplace_back(o2::zdc::getDigitReaderSpec(useMC));
   }
-  specs.emplace_back(o2::zdc::getReconstructionSpec(useMC));
+  specs.emplace_back(o2::zdc::getDigitRecoSpec());
   if (!disableRootOut) {
-    specs.emplace_back(o2::zdc::getRecPointWriterSpec(useMC));
+    specs.emplace_back(o2::zdc::getZDCRecoWriterDPLSpec());
   }
+//   specs.emplace_back(o2::zdc::getReconstructionSpec(useMC));
+//   if (!disableRootOut) {
+//     specs.emplace_back(o2::zdc::getRecPointWriterSpec(useMC));
+//   }
   return specs;
 }
 
