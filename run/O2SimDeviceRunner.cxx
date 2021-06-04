@@ -34,20 +34,27 @@ namespace bpo = boost::program_options;
 
 std::vector<int> gChildProcesses; // global vector of child pids
 int gMasterProcess = -1;
+int gDriverProcess = -1;
 
 void sigaction_handler(int signal, siginfo_t* signal_info, void*)
 {
   auto pid = getpid();
-  LOG(INFO) << pid << " caught signal from source " << signal_info->si_pid;
+  LOG(INFO) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
   auto groupid = getpgrp();
   if (pid == gMasterProcess) {
     killpg(pid, signal); // master kills whole process group
   } else {
-    // forward to master
-    kill(groupid, signal);
+    if (signal_info->si_pid != gDriverProcess) {
+      // forward to master if coming internally
+      kill(groupid, signal);
+    }
   }
-  _exit(1); // we treat signal interruption as an error
-            // because only ordinary termination is good in the context of the distributed system
+  if (signal_info->si_pid == gDriverProcess) {
+    _exit(0); // external requests are not treated as error
+  }
+  // we treat internal signal interruption as an error
+  // because only ordinary termination is good in the context of the distributed system
+  _exit(128 + signal);
 }
 
 void addCustomOptions(bpo::options_description& options)
@@ -343,6 +350,7 @@ int main(int argc, char* argv[])
     LOG(INFO) << "Running with " << nworkers << " sim workers ";
 
     gMasterProcess = getpid();
+    gDriverProcess = getppid();
     // then we fork and create a device in each fork
     for (auto i = 0u; i < nworkers; ++i) {
       // we use the current process as one of the workers as it has nothing else to do
