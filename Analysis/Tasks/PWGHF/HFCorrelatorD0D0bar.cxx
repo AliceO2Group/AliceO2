@@ -220,7 +220,7 @@ struct HfCorrelatorD0D0barMcRec {
         if (candidate1.isSelD0() >= selectionFlagD0 && candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) { //only reco and matched as D0
           registry.fill(HIST("hMassD0MCRec"), InvMassD0(candidate1), candidate1.pt());
         }
-        if (candidate1.isSelD0bar() >= selectionFlagD0bar && candidate1.flagMCMatchRec() == -1 << DecayType::D0ToPiK) { //only reco and matched as D0bar
+        if (candidate1.isSelD0bar() >= selectionFlagD0bar && candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) { //only reco and matched as D0bar
           registry.fill(HIST("hMassD0barMCRec"), InvMassD0bar(candidate1), candidate1.pt());
         }
         registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
@@ -245,7 +245,7 @@ struct HfCorrelatorD0D0barMcRec {
         if (candidate2.isSelD0bar() < selectionFlagD0bar) { //discard candidates not selected as D0bar in inner loop
           continue;
         }
-        flagD0barSignal = candidate2.flagMCMatchRec() == -1 << DecayType::D0ToPiK; //flagD0barSignal 'true' if candidate2 matched to D0 (particle)
+        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0barSignal 'true' if candidate2 matched to D0 (particle)
         if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
           continue;
         }
@@ -560,7 +560,7 @@ struct HfCorrelatorD0D0barMcRecLs {
             continue;
           }
           bool conditionLSForD0 = (candidate1.isSelD0() >= selectionFlagD0bar && candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) && (candidate2.isSelD0() >= selectionFlagD0bar && candidate2.flagMCMatchRec() == 1 << DecayType::D0ToPiK);
-          bool conditionLSForD0bar = (candidate1.isSelD0bar() >= selectionFlagD0bar && candidate1.flagMCMatchRec() == -1 << DecayType::D0ToPiK) && (candidate2.isSelD0bar() >= selectionFlagD0bar && candidate2.flagMCMatchRec() == -1 << DecayType::D0ToPiK);
+          bool conditionLSForD0bar = (candidate1.isSelD0bar() >= selectionFlagD0bar && candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) && (candidate2.isSelD0bar() >= selectionFlagD0bar && candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK));
           if (conditionLSForD0 || conditionLSForD0bar) { //LS pair (of D0 or of D0bar) + pt2<pt1
             if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
               continue;

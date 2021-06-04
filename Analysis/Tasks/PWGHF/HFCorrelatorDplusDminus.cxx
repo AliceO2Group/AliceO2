@@ -578,7 +578,7 @@ struct HfCorrelatorDplusDminusMcRecLs {
         if (innerSecondTrack.sign() == 1) {
           innerParticleSign = -1; //Dminus (second daughter track is positive)
         }
-        if (!std::abs(candidate2.flagMCMatchRec()) == 1 << DecayType::DPlusToPiKPi) { //reject fake candidates
+        if (std::abs(candidate2.flagMCMatchRec()) != 1 << DecayType::DPlusToPiKPi) { //reject fake candidates
           continue;
         }
         if (outerParticleSign == innerParticleSign) { //LS pair (of Dplus or Dminus) + pt2<pt1
