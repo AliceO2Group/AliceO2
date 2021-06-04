@@ -69,7 +69,7 @@ void remove_tmp_files()
   // remove all (known) socket files in /tmp
   // using the naming convention /tmp/o2sim-.*PID
   std::stringstream command;
-  command << "rm /tmp/o2sim-*" << getpid();
+  command << "rm /tmp/o2sim-*-" << getpid() << " 2>/dev/null";
   auto rc = system(command.str().c_str()); // a solution based on std::filesystem may be preferred but is longer
 }
 
@@ -167,7 +167,7 @@ void sighandler(int signal)
     cleanup();
     // forward signal to all children
     for (auto& pid : gChildProcesses) {
-      kill(pid, signal);
+      killpg(pid, signal);
     }
     exit(0);
   }
@@ -446,6 +446,7 @@ int main(int argc, char* argv[])
     return r;
   } else {
     gChildProcesses.push_back(pid);
+    setpgid(pid, pid);
     close(pipe_serverdriver_fd[1]);
     std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << getServerLogName() << "\n";
 
@@ -487,6 +488,7 @@ int main(int argc, char* argv[])
       return 0;
     } else {
       gChildProcesses.push_back(pid);
+      setpgid(pid, pid); // the worker processes will form their own group
       std::cout << "Spawning sim worker " << id << " on PID " << pid
                 << "; Redirect output to " << workerlogss.str() << "\n";
     }
@@ -514,6 +516,7 @@ int main(int argc, char* argv[])
     return 0;
   } else {
     std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << getMergerLogName() << "\n";
+    setpgid(pid, pid);
     gChildProcesses.push_back(pid);
     close(pipe_mergerdriver_fd[1]);
 
@@ -529,7 +532,7 @@ int main(int argc, char* argv[])
         if (!conf.asService()) {
           LOG(INFO) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
           for (auto p : gChildProcesses) {
-            kill(p, SIGTERM);
+            killpg(p, SIGTERM);
           }
         } else {
           LOG(INFO) << "SIMULATION DONE. STAYING AS DAEMON.";
@@ -546,19 +549,19 @@ int main(int argc, char* argv[])
   int status, cpid;
   // wait just blocks and waits until any child returns; but we make sure to wait until merger is here
   while ((cpid = wait(&status)) != mergerpid) {
-    if (WIFSIGNALED(status)) {
+    if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
       LOG(INFO) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
                 << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
-    }
-    // we bring down all processes if one of them aborts
-    if (WTERMSIG(status) == SIGABRT) {
-      LOG(INFO) << "Problem detected ";
+
+      // we bring down all processes if one of them had problems or got a termination signal
+      // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
+      LOG(INFO) << "Problem detected (or child received termination signal) ... shutting down whole system ";
       for (auto p : gChildProcesses) {
         LOG(INFO) << "KILLING " << p;
-        kill(p, SIGTERM);
+        killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
       }
       cleanup();
-      LOG(FATAL) << "ABORTING DUE TO ABORT IN COMPONENT";
+      LOG(ERROR) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
     }
   }
   // This marks the actual end of the computation (since results are available)
@@ -569,7 +572,7 @@ int main(int argc, char* argv[])
   for (auto p : gChildProcesses) {
     if (p != mergerpid) {
       LOG(INFO) << "SHUTTING DOWN CHILD PROCESS " << p;
-      kill(p, SIGTERM);
+      killpg(p, SIGTERM);
     }
   }
 
