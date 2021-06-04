@@ -155,7 +155,7 @@ struct TaskJpsiMC {
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
         registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
-	registry.fill(HIST("hdeclengthSig"), candidate.decayLength(), candidate.pt());
+        registry.fill(HIST("hdeclengthSig"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxySig"), candidate.decayLengthXY(), candidate.pt());
         registry.fill(HIST("hd0Prong0Sig"), candidate.impactParameter0(), candidate.pt());
         registry.fill(HIST("hd0Prong1Sig"), candidate.impactParameter1(), candidate.pt());
@@ -163,13 +163,13 @@ struct TaskJpsiMC {
         registry.fill(HIST("hChi2PCASig"), candidate.chi2PCA(), candidate.pt());
         registry.fill(HIST("hCtSig"), CtJpsi(candidate), candidate.pt());
         registry.fill(HIST("hYSig"), YJpsi(candidate), candidate.pt());
-        
+
       } else {
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
         registry.fill(HIST("hmassBg"), InvMassJpsiToEE(candidate), candidate.pt());
-	registry.fill(HIST("hdeclengthBg"), candidate.decayLength(), candidate.pt());
+        registry.fill(HIST("hdeclengthBg"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxyBg"), candidate.decayLengthXY(), candidate.pt());
         registry.fill(HIST("hd0Prong0Bg"), candidate.impactParameter0(), candidate.pt());
         registry.fill(HIST("hd0Prong1Bg"), candidate.impactParameter1(), candidate.pt());
