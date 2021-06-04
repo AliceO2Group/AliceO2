@@ -13,6 +13,11 @@ o2_add_dpl_workflow(table-maker
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(table-maker-inpbpb
+                    SOURCES tableMaker_PbPb.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(table-reader
                     SOURCES tableReader.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
@@ -30,11 +35,6 @@ o2_add_dpl_workflow(dilepton-mumu
 
 o2_add_dpl_workflow(dq-filter-pp
                     SOURCES filterPP.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
-                    COMPONENT_NAME Analysis)                    
-
-o2_add_dpl_workflow(table-maker-muon-pp
-                    SOURCES tableMakerMuon_pp.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::DetectorsBase O2::AnalysisCore O2::PWGDQCore
                     COMPONENT_NAME Analysis)
 

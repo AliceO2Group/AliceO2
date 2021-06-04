@@ -77,6 +77,7 @@ class VarManager : public TObject
     // TODO: need to agree on a scheme to incorporate all various hypotheses (e.g. e - mu, jpsi - K+, Jpsi - pipi,...)
     kJpsiToEE = 0, // J/psi        -> e+ e-
     kJpsiToMuMu,   // J/psi        -> mu+ mu-
+    kElectronMuon, // Electron - muon correlations
     kNMaxCandidateTypes
   };
 
@@ -278,8 +279,8 @@ class VarManager : public TObject
   static void FillEvent(T const& event, float* values = nullptr);
   template <uint32_t fillMap, typename T>
   static void FillTrack(T const& track, float* values = nullptr);
-  template <typename T>
-  static void FillPair(T const& t1, T const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
+  template <typename T1, typename T2>
+  static void FillPair(T1 const& t1, T2 const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
   template <typename C, typename T>
   static void FillPairVertexing(C const& collision, T const& t1, T const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
   template <typename T1, typename T2>
@@ -612,8 +613,8 @@ void VarManager::FillTrack(T const& track, float* values)
   FillTrackDerived(values);
 }
 
-template <typename T>
-void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidateType pairType)
+template <typename T1, typename T2>
+void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values, PairCandidateType pairType)
 {
   if (!values) {
     values = fgValues;
@@ -623,6 +624,11 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidate
   float m2 = fgkElectronMass;
   if (pairType == kJpsiToMuMu) {
     m1 = fgkMuonMass;
+    m2 = fgkMuonMass;
+  }
+
+  if (pairType == kElectronMuon) {
+    m1 = fgkElectronMass;
     m2 = fgkMuonMass;
   }
 
