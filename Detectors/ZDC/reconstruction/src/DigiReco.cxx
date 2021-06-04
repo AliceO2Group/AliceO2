@@ -49,6 +49,7 @@ void DigiReco::init()
 
   if (mTreeDbg) {
     // Open debug file
+    LOG(INFO) << "ZDC DigiReco: opening debug output";
     mDbg = std::make_unique<TFile>("ZDCRecoDbg.root", "recreate");
     mTDbg = std::make_unique<TTree>("zdcr", "ZDCReco");
     mTDbg->Branch("zdcr", "RecEventAux", &mRec);
@@ -376,11 +377,13 @@ int DigiReco::reconstruct(int ibeg, int iend)
       }
     }
 
-    printf("%d FIRED: ", ibun);
-    for (int ich = 0; ich < NChannels; ich++) {
-      printf("%d", fired[ich]);
-    }
-    printf("\n");
+    printf("%d FIRED ", ibun);
+    printf("ZNA:%d%d%d%d%d%d ZPA:%d%d%d%d%d%d ZEM:%d%d ZNC:%d%d%d%d%d%d ZPC:%d%d%d%d%d%d\n",
+           fired[IdZNAC], fired[IdZNA1], fired[IdZNA2], fired[IdZNA3], fired[IdZNA4], fired[IdZNASum],
+           fired[IdZPAC], fired[IdZPA1], fired[IdZPA2], fired[IdZPA3], fired[IdZPA4], fired[IdZPASum],
+           fired[IdZEM1], fired[IdZEM2],
+           fired[IdZNCC], fired[IdZNC1], fired[IdZNC2], fired[IdZNC3], fired[IdZNC4], fired[IdZNCSum],
+           fired[IdZPCC], fired[IdZPC1], fired[IdZPC2], fired[IdZPC3], fired[IdZPC4], fired[IdZPCSum]);
     for (int ich = 0; ich < NChannels; ich++) {
       // Check if the corresponding TDC is fired
       if (fired[ich]) {
@@ -394,7 +397,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
             // TODO: manage signal positioned across boundary
             sum += (pbun[ich] - float(mChData[ref].data[is]));
           }
-          printf("CH %d %s: %f\n", ich, ChannelNames[ich].data(), sum);
+          printf("CH %2d %s: %f\n", ich, ChannelNames[ich].data(), sum);
           rec.ezdc[ich] = sum;
         }
       }
@@ -409,23 +412,10 @@ int DigiReco::reconstruct(int ibeg, int iend)
 
 void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 {
-  LOG(INFO) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+  LOG(DEBUG) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
 
   // Get reconstruction parameters
   auto& ropt = RecoParamZDC::Instance();
-
-  //     int chEnt = bcd.ref.getFirstEntry();
-  //     for (int ic = 0; ic < bcd.ref.getEntries(); ic++) {
-  //       const auto& chd = zdcChData[chEnt++];
-  //       chd.print();
-  //       auto bc=bcd.ir.bc;
-  //       auto orbit=bcd.ir.orbit;
-  //       for(int is=0; is<o2::zdc::NTimeBinsPerBC; is++){
-  // 	auto myval = chd.data[is];
-  // 	int ip=gr[chd.id]->GetN();
-  // 	gr[chd.id]->SetPoint(ip,3564.*orbit+bc+is/12.,myval);
-  //       }
-  //     }
 
   int nbun = iend - ibeg + 1;
   int maxs2 = NTimeBinsPerBC * nbun - 1;
@@ -461,8 +451,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
         // Fired bit is assigned to the second sample, i.e. to the one that can identify the
         // signal peak position
         mReco[b2].fired[itdc] |= mMask[s2];
-        //LOG(INFO) << itdc << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << " " << b2 - ibeg << "." << s2 << "=" << NTimeBinsPerBC * (b2 - ibeg) + s2;
-        LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2;
+        LOG(DEBUG) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2;
       }
     }
     if (is2 >= shift) {

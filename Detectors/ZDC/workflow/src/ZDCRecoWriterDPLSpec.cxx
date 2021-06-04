@@ -14,6 +14,8 @@
 
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsZDC/BCRecData.h"
+#include "DataFormatsZDC/ZDCEnergy.h"
+#include "DataFormatsZDC/ZDCTDCData.h"
 
 #include "ZDCWorkflow/ZDCRecoWriterDPLSpec.h"
 using namespace o2::framework;
@@ -37,8 +39,8 @@ DataProcessorSpec getZDCRecoWriterDPLSpec()
                                 fnameDef.data(),
                                 "o2rec",
                                 BranchDefinition<std::vector<o2::zdc::BCRecData>>{InputSpec{"bcrec", "ZDC", "BCREC"}, "ZDCRecBC"},
-                                BranchDefinition<std::vector<o2::zdc::BCRecData>>{InputSpec{"energy", "ZDC", "ENERGY"}, "ZDCRecE"},
-                                BranchDefinition<std::vector<o2::zdc::BCRecData>>{InputSpec{"tdcdata", "ZDC", "TDCDATA"}, "ZDCRecTDC"})();
+                                BranchDefinition<std::vector<o2::zdc::ZDCEnergy>>{InputSpec{"energy", "ZDC", "ENERGY"}, "ZDCRecE"},
+                                BranchDefinition<std::vector<o2::zdc::ZDCTDCData>>{InputSpec{"tdcdata", "ZDC", "TDCDATA"}, "ZDCRecTDC"})();
 }
 
 } // namespace zdc

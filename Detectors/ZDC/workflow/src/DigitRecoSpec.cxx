@@ -53,7 +53,6 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     mInitialized = true;
     // Initialization from CCDB
     std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
-
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
     mgr.setURL(ccdbHost);
     long timeStamp = 0;
@@ -97,10 +96,6 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       zdc_ip->end_int[ich] = end;
     }
     mDR.setIntegrationParam(zdc_ip);
-
-    
-    
-    
     mDR.init();
   }
   auto cput = mTimer.CpuTime();
@@ -113,8 +108,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   const std::vector<o2::zdc::RecEventAux>& recAux = mDR.getReco();
 
   RecEvent recEvent;
-
-  LOG(INFO) << "BC in recAux " << recAux.size();
+  LOG(INFO) << "BC processed during reconstruction " << recAux.size();
   for (auto reca : recAux) {
     int32_t ne = reca.ezdc.size();
     int32_t nt = 0;
@@ -140,7 +134,6 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       printf("Orbit %9u bc %4u ntdc %2d ne %2d\n", reca.ir.orbit, reca.ir.bc, nt, ne);
     }
   }
-
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, recEvent.mEnergy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);
@@ -150,6 +143,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
 
 void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
 {
+  mDR.eor();
   LOGF(INFO, "ZDC Reconstruction total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
