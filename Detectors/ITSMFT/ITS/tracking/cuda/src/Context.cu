@@ -66,7 +66,7 @@ inline int getCudaCores(const int major, const int minor)
   return nGpuArchCoresPerSM[index - 1].Cores;
 }
 
-inline int getMaxThreadsPerSM(const int major, const int minor)
+inline int getMaxThreadsPerSM()
 {
   return 8;
 }
@@ -118,7 +118,7 @@ Context::Context(bool dumpDevices)
     mDeviceProperties[iDevice].registersPerBlock = deviceProperties.regsPerBlock;
     mDeviceProperties[iDevice].warpSize = deviceProperties.warpSize;
     mDeviceProperties[iDevice].maxThreadsPerBlock = deviceProperties.maxThreadsPerBlock;
-    mDeviceProperties[iDevice].maxBlocksPerSM = getMaxThreadsPerSM(major, minor);
+    mDeviceProperties[iDevice].maxBlocksPerSM = getMaxThreadsPerSM();
     mDeviceProperties[iDevice].maxThreadsDim = dim3{static_cast<unsigned int>(deviceProperties.maxThreadsDim[0]),
                                                     static_cast<unsigned int>(deviceProperties.maxThreadsDim[1]),
                                                     static_cast<unsigned int>(deviceProperties.maxThreadsDim[2])};
