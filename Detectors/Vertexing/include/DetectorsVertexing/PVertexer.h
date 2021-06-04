@@ -115,6 +115,7 @@ class PVertexer
   void initMeanVertexConstraint();
   void applyConstraint(VertexSeed& vtxSeed) const;
   bool upscaleSigma(VertexSeed& vtxSeed) const;
+  bool relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const;
 
   template <typename TR>
   void createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTrackID> gids);
@@ -216,8 +217,7 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
   for (uint32_t i = 0; i < ntGlo; i++) {
     int id = sortedTrackID[i];
     o2::track::TrackParCov trc = tracks[id];
-    if (!trc.propagateToDCA(mMeanVertex, mBz, &dca, mPVParams->dcaTolerance) ||
-        dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) > mPVParams->pullIniCut) {
+    if (!relateTrackToMeanVertex(trc, vtxErr2)) {
       continue;
     }
     auto& tvf = mTracksPool.emplace_back(trc, tracks[id].getTimeMUS(), id, gids[id], mPVParams->addTimeSigma2, mPVParams->addZSigma2);
