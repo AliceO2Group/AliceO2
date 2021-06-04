@@ -548,6 +548,7 @@ int main(int argc, char* argv[])
 
   int status, cpid;
   // wait just blocks and waits until any child returns; but we make sure to wait until merger is here
+  bool errored = false;
   while ((cpid = wait(&status)) != mergerpid) {
     if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
       LOG(INFO) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
@@ -557,22 +558,24 @@ int main(int argc, char* argv[])
       // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
       LOG(INFO) << "Problem detected (or child received termination signal) ... shutting down whole system ";
       for (auto p : gChildProcesses) {
-        LOG(INFO) << "KILLING " << p;
+        LOG(INFO) << "TERMINATING " << p;
         killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
       }
-      cleanup();
       LOG(ERROR) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+      errored = true;
     }
   }
   // This marks the actual end of the computation (since results are available)
   LOG(INFO) << "Merger process " << mergerpid << " returned";
   LOG(INFO) << "Simulation process took " << timer.RealTime() << " s";
 
-  // make sure the rest shuts down
-  for (auto p : gChildProcesses) {
-    if (p != mergerpid) {
-      LOG(INFO) << "SHUTTING DOWN CHILD PROCESS " << p;
-      killpg(p, SIGTERM);
+  if (!errored) {
+    // ordinary shutdown of the rest
+    for (auto p : gChildProcesses) {
+      if (p != mergerpid) {
+        LOG(INFO) << "SHUTTING DOWN CHILD PROCESS " << p;
+        killpg(p, SIGTERM);
+      }
     }
   }
 
@@ -581,7 +584,7 @@ int main(int argc, char* argv[])
 
   // do a quick check to see if simulation produced something reasonable
   // (mainly useful for continuous integration / automated testing suite)
-  auto returncode = checkresult();
+  auto returncode = errored ? 1 : checkresult();
   if (returncode == 0) {
     // Extract a single file for MCEventHeaders
     // This file will be small and can quickly unblock start of signal transport (in embedding).
