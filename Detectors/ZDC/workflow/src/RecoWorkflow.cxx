@@ -30,10 +30,10 @@ framework::WorkflowSpec getRecoWorkflow(bool useMC, bool disableRootInp, bool di
   if (!disableRootOut) {
     specs.emplace_back(o2::zdc::getZDCRecoWriterDPLSpec());
   }
-//   specs.emplace_back(o2::zdc::getReconstructionSpec(useMC));
-//   if (!disableRootOut) {
-//     specs.emplace_back(o2::zdc::getRecPointWriterSpec(useMC));
-//   }
+  //   specs.emplace_back(o2::zdc::getReconstructionSpec(useMC));
+  //   if (!disableRootOut) {
+  //     specs.emplace_back(o2::zdc::getRecPointWriterSpec(useMC));
+  //   }
   return specs;
 }
 

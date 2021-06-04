@@ -79,13 +79,13 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     mDR.setIntegrationParam(integrationParam);
     mDR.setDebugOutput();
     // TDC
-    auto *zdc_tdcp = new o2::zdc::ZDCTDCParam();
+    auto* zdc_tdcp = new o2::zdc::ZDCTDCParam();
     for (Int_t itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
       zdc_tdcp->setShift(itdc, 14.5);
     }
     mDR.setTDCParam(zdc_tdcp);
 
-    auto *zdc_ip = new o2::zdc::ZDCIntegrationParam();
+    auto* zdc_ip = new o2::zdc::ZDCIntegrationParam();
     int beg = 6;
     int end = 8;
     int beg_ped = -1;
