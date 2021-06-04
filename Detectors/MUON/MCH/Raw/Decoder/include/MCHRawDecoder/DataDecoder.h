@@ -155,8 +155,8 @@ class DataDecoder
   RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
 
-  std::optional<uint32_t> mFirstOrbitInRun{0}; ///< first orbit in the processed run
-  SampaTimeFrameStart mSampaTimeFrameStart;    ///< SAMPA bunch-crossing counter at the beiginning of the TF
+  std::optional<uint32_t> mFirstOrbitInRun; ///< first orbit in the processed run
+  SampaTimeFrameStart mSampaTimeFrameStart; ///< SAMPA bunch-crossing counter at the beiginning of the TF
 
   uint32_t mSampaTimeOffset{339986}; ///< SAMPA BC counter value at the beginning of the first orbit in the run
 

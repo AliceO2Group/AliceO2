@@ -73,7 +73,7 @@ class DataDecoderTask
     RdhHandler rdhHandler;
 
     auto ds2manu = ic.options().get<bool>("ds2manu");
-    auto sampaBcOffset = ic.options().get<bool>("sampa-bc-offset");
+    auto sampaBcOffset = ic.options().get<int>("sampa-bc-offset");
     mDebug = ic.options().get<bool>("debug");
     mCheckROFs = ic.options().get<bool>("check-rofs");
     mDummyROFs = ic.options().get<bool>("dummy-rofs");
