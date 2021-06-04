@@ -82,7 +82,7 @@ class SVertexer
 
  private:
   bool checkV0(TrackCand& seed0, TrackCand& seed1, int iP, int iN, int ithread);
-  int checkCascades(float r2v0, float p2v0, int avoidTrackID, int posneg, int ithread);
+  int checkCascades(float r2v0, std::array<float, 3> pV0, float p2v0, int avoidTrackID, int posneg, int ithread);
   void setupThreads();
   void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
   void updateTimeDependentParams();
