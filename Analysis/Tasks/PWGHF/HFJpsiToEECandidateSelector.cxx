@@ -132,6 +132,10 @@ struct HFJpsiToEECandidateSelector {
       return false;
     }
 
+    // cut on chi2 point of closest approach
+    if (std::abs(candidate.chi2PCA()) > cuts->get(pTBin, "chi2PCA")){
+      return false;
+    }
     return true;
   }
   template <typename T>

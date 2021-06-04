@@ -335,7 +335,7 @@ static const std::vector<std::string> cutVarLabels = {"m", "pT p", "pT K", "pT P
 namespace hf_cuts_jpsi_toee
 {
 static constexpr int npTBins = 9;
-static constexpr int nCutVars = 4;
+static constexpr int nCutVars = 5;
 // default values for the pT bin edges (can be used to configure histogram axis)
 // offset by 1 from the bin numbers in cuts array
 constexpr double pTBins[npTBins + 1] = {
@@ -353,15 +353,15 @@ constexpr double pTBins[npTBins + 1] = {
 auto pTBins_v = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
-constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.2, 0.4, 1},  /* 0   < pT < 0.5 */
-                                            {0.5, 0.2, 0.4, 1},  /* 0.5 < pT < 1   */
-                                            {0.5, 0.2, 0.4, 1},  /* 1   < pT < 2   */
-                                            {0.5, 0.2, 0.4, 1},  /* 2   < pT < 3   */
-                                            {0.5, 0.2, 0.4, 1},  /* 3   < pT < 4   */
-                                            {0.5, 0.2, 0.4, 1},  /* 4   < pT < 5   */
-                                            {0.5, 0.2, 0.4, 1},  /* 5   < pT < 7   */
-                                            {0.5, 0.2, 0.4, 1},  /* 7   < pT < 10  */
-                                            {0.5, 0.2, 0.4, 1}}; /* 10  < pT < 15  */
+constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.2, 0.4, 1, 1.},  /* 0   < pT < 0.5 */
+                                            {0.5, 0.2, 0.4, 1, 1.},  /* 0.5 < pT < 1   */
+                                            {0.5, 0.2, 0.4, 1, 1.},  /* 1   < pT < 2   */
+                                            {0.5, 0.2, 0.4, 1, 1.},  /* 2   < pT < 3   */
+                                            {0.5, 0.2, 0.4, 1, 1.},  /* 3   < pT < 4   */
+                                            {0.5, 0.2, 0.4, 1, 1.},  /* 4   < pT < 5   */
+                                            {0.5, 0.2, 0.4, 1, 1.},  /* 5   < pT < 7   */
+                                            {0.5, 0.2, 0.4, 1, 1.},  /* 7   < pT < 10  */
+                                            {0.5, 0.2, 0.4, 1, 1.}}; /* 10  < pT < 15  */
 
 // row labels
 static const std::vector<std::string> pTBinLabels = {
@@ -376,13 +376,13 @@ static const std::vector<std::string> pTBinLabels = {
   "pT bin 8"};
 
 // column labels
-static const std::vector<std::string> cutVarLabels = {"m", "DCA_xy", "DCA_z", "pT El"};
+static const std::vector<std::string> cutVarLabels = {"m", "DCA_xy", "DCA_z", "pT El", "chi2PCA"};
 } // namespace hf_cuts_jpsi_toee
 
 namespace hf_cuts_x_tojpsipipi
 {
 static constexpr int npTBins = 9;
-static constexpr int nCutVars = 6;
+static constexpr int nCutVars = 7;
 // default values for the pT bin edges (can be used to configure histogram axis)
 // offset by 1 from the bin numbers in cuts array
 constexpr double pTBins[npTBins + 1] = {
@@ -400,16 +400,16 @@ constexpr double pTBins[npTBins + 1] = {
 auto pTBins_v = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
-//                                            m   CPA  d0Jpsi  d0Pi pTJpsi pTPi
-constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.80, 0.001, 0.001, 3.0, 0.15},  /* 0<pt<0.5 */
-                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15},  /* 0.5<pt<1 */
-                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15},  /* 1<pt<2   */
-                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15},  /* 2<pt<3   */
-                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15},  /* 3<pt<4   */
-                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15},  /* 4<pt<5   */
-                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15},  /* 5<pt<7   */
-                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15},  /* 7<pt<10  */
-                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15}}; /* 10<pt<15 */
+//                                            m   CPA  d0Jpsi  d0Pi pTJpsi pTPi chi2PCA
+constexpr double cuts[npTBins][nCutVars] = {{0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.},  /* 0<pt<0.5 */
+                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.},  /* 0.5<pt<1 */
+                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.},  /* 1<pt<2   */
+                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.},  /* 2<pt<3   */
+                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.},  /* 3<pt<4   */
+                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.},  /* 4<pt<5   */
+                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.},  /* 5<pt<7   */
+                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.},  /* 7<pt<10  */
+                                            {0.5, 0.80, 0.001, 0.001, 3.0, 0.15, 1.}}; /* 10<pt<15 */
 // row labels
 static const std::vector<std::string> pTBinLabels = {
   "pT bin 0",
@@ -422,7 +422,7 @@ static const std::vector<std::string> pTBinLabels = {
   "pT bin 7",
   "pT bin 8"};
 // column labels
-static const std::vector<std::string> cutVarLabels = {"m", "CPA", "d0 Jpsi", "d0 Pi", "pT Jpsi", "pT Pi"};
+static const std::vector<std::string> cutVarLabels = {"m", "CPA", "d0 Jpsi", "d0 Pi", "pT Jpsi", "pT Pi", "chi2PCA"};
 } // namespace hf_cuts_x_tojpsipipi
 } // namespace o2::analysis
 
