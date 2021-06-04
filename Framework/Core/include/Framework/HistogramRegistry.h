@@ -33,7 +33,6 @@ class TList;
 
 namespace o2::framework
 {
-
 //**************************************************************************************************
 /**
  * Static helper class to fill existing root histograms of any type.
@@ -179,28 +178,40 @@ struct HistFiller {
 
 //**************************************************************************************************
 /**
- * Histogram name object for runtime use that provides the associated hash and a first guess for the index in the registry.
- */
-//**************************************************************************************************
-struct HistName {
-  constexpr HistName(char const* const name)
-    : str(name),
-      hash(compile_time_hash(str)),
-      idx(hash & 0x1FF)
-  {
-  }
-  char const* const str{};
-  const uint32_t hash{};
-  const uint32_t idx{};
-};
-
-//**************************************************************************************************
-/**
- * HistogramRegistry that can be used to store and fill histograms of any type.
+ * HistogramRegistry for storing and filling histograms of any type.
  */
 //**************************************************************************************************
 class HistogramRegistry
 {
+  //**************************************************************************************************
+  /**
+   * HistogramName object providing the associated hash and a first guess for the index in the registry.
+   */
+  //**************************************************************************************************
+  struct HistName {
+    // ctor for histogram names that are already hashed at compile time via HIST("myHistName")
+    template <char... chars>
+    constexpr HistName(const ConstStr<chars...>& hashedHistName)
+      : str(hashedHistName.str),
+        hash(hashedHistName.hash),
+        idx(hash & REGISTRY_BITMASK)
+    {
+    }
+    char const* const str{};
+    const uint32_t hash{};
+    const uint32_t idx{};
+
+   protected:
+    friend class HistogramRegistry;
+    // ctor that does the hashing at runtime (for internal use only)
+    constexpr HistName(char const* const name)
+      : str(name),
+        hash(compile_time_hash(name)),
+        idx(hash & REGISTRY_BITMASK)
+    {
+    }
+  };
+
  public:
   HistogramRegistry(char const* const name, std::vector<HistogramSpec> histSpecs = {}, OutputObjHandlingPolicy policy = OutputObjHandlingPolicy::AnalysisObject, bool sortHistos = true, bool createRegistryDir = false)
     : mName(name), mPolicy(policy), mRegistryKey(), mRegistryValue(), mSortHistos(sortHistos), mCreateRegistryDir(createRegistryDir)
@@ -224,26 +235,21 @@ class HistogramRegistry
   // we cannot automatically infer type here so it has to be explicitly specified
   // -> get<TH1>(), get<TH2>(), get<TH3>(), get<THn>(), get<THnSparse>(), get<TProfile>(), get<TProfile2D>(), get<TProfile3D>()
   /// @return the histogram registered with name @a name
-  template <typename T, typename H>
-  std::shared_ptr<T>& get(const H& histName)
+  template <typename T>
+  std::shared_ptr<T>& get(const HistName& histName)
   {
-    //static_assert(is_const_str<H>::value, R"(Please use compile-time hashed strings for HistogramRegistry access: "histName" -> HIST("histName")!)");
-    if constexpr (is_const_str<H>::value) {
-      if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(histName)])) {
-        return *histPtr;
-      } else {
-        throw runtime_error_f(R"(Histogram type specified in get<>(HIST("%s")) does not match the actual type of the histogram!)", histName.str);
-      }
+    if (auto histPtr = std::get_if<std::shared_ptr<T>>(&mRegistryValue[getHistIndex(histName)])) {
+      return *histPtr;
     } else {
-      throw runtime_error_f(R"(Please use compile-time hashed strings for HistogramRegistry access: "histName" -> HIST("histName")!)");
+      throw runtime_error_f(R"(Histogram type specified in get<>(HIST("%s")) does not match the actual type of the histogram!)", histName.str);
     }
   }
 
   /// @return the histogram registered with name @a name
-  template <typename T, typename H>
-  auto& operator()(const H& name)
+  template <typename T>
+  auto& operator()(const HistName& histName)
   {
-    return get<T>(name);
+    return get<T>(histName);
   }
 
   /// @return the associated OutputSpec
@@ -273,27 +279,17 @@ class HistogramRegistry
   TList* operator*();
 
   // fill hist with values
-  template <typename... Ts, typename H>
-  void fill(const H& histName, Ts&&... positionAndWeight)
+  template <typename... Ts>
+  void fill(const HistName& histName, Ts&&... positionAndWeight)
   {
-    //static_assert(is_const_str<H>::value, R"(Please use compile-time hashed strings for HistogramRegistry filling: "histName" -> HIST("histName")!)");
-    if constexpr (is_const_str<H>::value) {
-      std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(histName)]);
-    } else {
-      LOGF(FATAL, R"(Please use compile-time hashed strings for HistogramRegistry filling: "histName" -> HIST("histName")!)");
-    }
+    std::visit([&positionAndWeight...](auto&& hist) { HistFiller::fillHistAny(hist, std::forward<Ts>(positionAndWeight)...); }, mRegistryValue[getHistIndex(histName)]);
   }
 
   // fill hist with content of (filtered) table columns
-  template <typename... Cs, typename T, typename H>
-  void fill(const H& histName, const T& table, const o2::framework::expressions::Filter& filter)
+  template <typename... Cs, typename T>
+  void fill(const HistName& histName, const T& table, const o2::framework::expressions::Filter& filter)
   {
-    //static_assert(is_const_str<H>::value, R"(Please use compile-time hashed strings for HistogramRegistry filling: "histName" -> HIST("histName")!)");
-    if constexpr (is_const_str<H>::value) {
-      std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAny<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(histName)]);
-    } else {
-      LOGF(FATAL, R"(Please use compile-time hashed strings for HistogramRegistry filling: "histName" -> HIST("histName")!)");
-    }
+    std::visit([&table, &filter](auto&& hist) { HistFiller::fillHistAny<Cs...>(hist, table, filter); }, mRegistryValue[getHistIndex(histName)]);
   }
 
   // get rough estimate for size of histogram stored in registry
@@ -351,7 +347,7 @@ class HistogramRegistry
 
   constexpr uint32_t imask(uint32_t i) const
   {
-    return i & MASK;
+    return i & REGISTRY_BITMASK;
   }
 
   // helper function to create resp. find the subList defined by path
@@ -370,10 +366,10 @@ class HistogramRegistry
   uint32_t mTaskHash{};
   std::vector<std::string> mRegisteredNames{};
 
-  // The maximum number of histograms in buffer is currently set to 512
+  // the maximum number of histograms in buffer is currently set to 512
   // which seems to be both reasonably large and allowing for very fast lookup
-  static constexpr uint32_t MASK{0x1FF};
-  static constexpr uint32_t MAX_REGISTRY_SIZE{MASK + 1};
+  static constexpr uint32_t REGISTRY_BITMASK{0x1FF};
+  static constexpr uint32_t MAX_REGISTRY_SIZE{REGISTRY_BITMASK + 1};
   std::array<uint32_t, MAX_REGISTRY_SIZE> mRegistryKey{};
   std::array<HistPtr, MAX_REGISTRY_SIZE> mRegistryValue{};
 };
