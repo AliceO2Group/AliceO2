@@ -717,6 +717,11 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
 void Detector::MisalignGeometry() const
 {
   // Function to misalign the MFT geometry
+  const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080";
+  long tmin = 0;
+  long tmax = -1;
+  const std::string& objectPath = "";
+  const std::string& fileName = "MFTAlignment.root";
 
   // Initialize the misaligner
   o2::mft::GeometryMisAligner aGMA;
@@ -733,15 +738,7 @@ void Detector::MisalignGeometry() const
   aGMA.SetSensorCartMisAlig(0., 0., 0., 0., 0., 0.); // Sensors translated on X, Y, Z axis
   aGMA.SetSensorAngMisAlig(0., 0., 0., 0., 0., 0.);  // Sensors rotated on Z, X, Y axis
 
-  aGMA.MisAlign(false); // Misalign the geometry ('option'=verbose)
-
-  // lock the geometry, or unlock with 'false'
-  //gGeoManager->RefreshPhysicalNodes();
-
-  // store the misaligned geometry in a root file
-  gGeoManager->Export("o2sim_geometry_misaligned.root");
-
-  //gGeoManager->RefreshPhysicalNodes(false);
+  aGMA.MisAlign(false, ccdbHost, tmin, tmax, objectPath, fileName); // Misalign the geometry
 }
 
 //_____________________________________________________________________________
