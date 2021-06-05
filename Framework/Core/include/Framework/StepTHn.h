@@ -34,7 +34,8 @@ class StepTHn : public TNamed
   ~StepTHn() override;
 
   template <typename... Ts>
-  void Fill(Int_t istep, const Ts&... valuesAndWeight);
+  void Fill(int iStep, const Ts&... valuesAndWeight);
+  void Fill(int iStep, int nParams, double positionAndWeight[]);
 
   THnBase* getTHn(Int_t step, Bool_t sparse = kFALSE)
   {
@@ -112,85 +113,11 @@ typedef StepTHnT<TArrayF> StepTHnF;
 typedef StepTHnT<TArrayD> StepTHnD;
 
 template <typename... Ts>
-void StepTHn::Fill(Int_t istep, const Ts&... valuesAndWeight)
+void StepTHn::Fill(int iStep, const Ts&... valuesAndWeight)
 {
-  if (istep >= mNSteps) {
-    LOGF(FATAL, "Selected step for filling is not in range of StepTHn.");
-  }
-
-  constexpr int nParams = sizeof...(Ts);
-  // TODO Find a way to avoid the array
-  double tempArray[nParams] = {static_cast<double>(valuesAndWeight)...};
-
-  double weight = 1.0;
-  if (nParams == mNVars + 1) {
-    weight = tempArray[mNVars];
-  } else if (nParams != mNVars) {
-    LOGF(FATAL, "Fill called with invalid number of parameters (%d vs %d)", mNVars, nParams);
-  }
-
-  // fill axis cache
-  if (!mAxisCache) {
-    mAxisCache = new TAxis*[mNVars];
-    mNbinsCache = new Int_t[mNVars];
-    for (Int_t i = 0; i < mNVars; i++) {
-      mAxisCache[i] = mPrototype->GetAxis(i);
-      mNbinsCache[i] = mAxisCache[i]->GetNbins();
-    }
-
-    mLastVars = new Double_t[mNVars];
-    mLastBins = new Int_t[mNVars];
-
-    // initial values to prevent checking for 0 below
-    for (Int_t i = 0; i < mNVars; i++) {
-      mLastVars[i] = tempArray[i];
-      mLastBins[i] = mAxisCache[i]->FindBin(mLastVars[i]);
-    }
-  }
-
-  // calculate global bin index
-  Long64_t bin = 0;
-  for (Int_t i = 0; i < mNVars; i++) {
-    bin *= mNbinsCache[i];
-
-    Int_t tmpBin = 0;
-    if (mLastVars[i] == tempArray[i]) {
-      tmpBin = mLastBins[i];
-    } else {
-      tmpBin = mAxisCache[i]->FindBin(tempArray[i]);
-      mLastBins[i] = tmpBin;
-      mLastVars[i] = tempArray[i];
-    }
-    //Printf("%d", tmpBin);
-
-    // under/overflow not supported
-    if (tmpBin < 1 || tmpBin > mNbinsCache[i]) {
-      return;
-    }
-
-    // bins start from 0 here
-    bin += tmpBin - 1;
-    //     Printf("%lld", bin);
-  }
-
-  if (!mValues[istep]) {
-    mValues[istep] = createArray();
-    LOGF(info, "Created values container for step %d", istep);
-  }
-
-  if (weight != 1.) {
-    // initialize with already filled entries (which have been filled with weight == 1), in this case mSumw2 := mValues
-    if (!mSumw2[istep]) {
-      mSumw2[istep] = createArray();
-      LOGF(info, "Created sumw2 container for step %d", istep);
-    }
-  }
-
-  // TODO probably slow; add StepTHnT::add ?
-  mValues[istep]->SetAt(mValues[istep]->GetAt(bin) + weight, bin);
-  if (mSumw2[istep]) {
-    mSumw2[istep]->SetAt(mSumw2[istep]->GetAt(bin) + weight, bin);
-  }
+  constexpr int nArgs = sizeof...(Ts);
+  double tempArray[] = {static_cast<double>(valuesAndWeight)...};
+  Fill(iStep, nArgs, tempArray);
 }
 
 #endif
