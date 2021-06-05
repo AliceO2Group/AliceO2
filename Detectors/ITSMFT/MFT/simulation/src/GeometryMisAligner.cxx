@@ -58,7 +58,10 @@
 
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsBase/GeometryManager.h"
 
+#include "CCDB/CcdbApi.h"
 #include <TClonesArray.h>
 #include <TGeoMatrix.h>
 #include <TMatrixDSym.h>
@@ -66,12 +69,12 @@
 #include <TRandom.h>
 #include <Riostream.h>
 #include <vector>
-
+#include <TFile.h>
 #include <TGeoManager.h>
 #include <TGeoMatrix.h>
 #include <TGeoOverlap.h>
 #include <TGeoPhysicalNode.h>
-
+#include <fmt/format.h>
 #include "Framework/Logger.h"
 
 using namespace o2::mft;
@@ -80,8 +83,7 @@ using namespace o2::detectors;
 ClassImp(o2::mft::GeometryMisAligner);
 
 //______________________________________________________________________________
-GeometryMisAligner::GeometryMisAligner(Double_t cartXMisAligM, Double_t cartXMisAligW, Double_t cartYMisAligM, Double_t cartYMisAligW, Double_t angMisAligM, Double_t angMisAligW)
-  : TObject(),
+GeometryMisAligner::GeometryMisAligner(Double_t cartXMisAligM, Double_t cartXMisAligW, Double_t cartYMisAligM, Double_t cartYMisAligW, Double_t angMisAligM, Double_t angMisAligW) :
     fUseUni(kFALSE),
     fUseGaus(kTRUE),
     fXYAngMisAligFactor(0.0),
@@ -105,8 +107,7 @@ GeometryMisAligner::GeometryMisAligner(Double_t cartXMisAligM, Double_t cartXMis
 }
 
 //______________________________________________________________________________
-GeometryMisAligner::GeometryMisAligner(Double_t cartMisAligM, Double_t cartMisAligW, Double_t angMisAligM, Double_t angMisAligW)
-  : TObject(),
+GeometryMisAligner::GeometryMisAligner(Double_t cartMisAligM, Double_t cartMisAligW, Double_t angMisAligM, Double_t angMisAligW) :
     fUseUni(kFALSE),
     fUseGaus(kTRUE),
     fXYAngMisAligFactor(0.0),
@@ -130,8 +131,7 @@ GeometryMisAligner::GeometryMisAligner(Double_t cartMisAligM, Double_t cartMisAl
 }
 
 //______________________________________________________________________________
-GeometryMisAligner::GeometryMisAligner(Double_t cartMisAlig, Double_t angMisAlig)
-  : TObject(),
+GeometryMisAligner::GeometryMisAligner(Double_t cartMisAlig, Double_t angMisAlig) :
     fUseUni(kTRUE),
     fUseGaus(kFALSE),
     fXYAngMisAligFactor(0.0),
@@ -152,8 +152,7 @@ GeometryMisAligner::GeometryMisAligner(Double_t cartMisAlig, Double_t angMisAlig
 }
 
 //_____________________________________________________________________________
-GeometryMisAligner::GeometryMisAligner()
-  : TObject(),
+GeometryMisAligner::GeometryMisAligner() :
     fUseUni(kTRUE),
     fUseGaus(kFALSE),
     fXYAngMisAligFactor(0.0),
@@ -405,7 +404,11 @@ bool GeometryMisAligner::matrixToAngles(const double* rot, double& psi, double& 
 }
 
 //______________________________________________________________________
-void GeometryMisAligner::MisAlign(Bool_t verbose)
+void GeometryMisAligner::MisAlign(Bool_t verbose,
+                                  const std::string& ccdbHost,
+                                  long tmin, long tmax,
+                                  const std::string& objectPath,
+                                  const std::string& fileName)
 {
   /// Takes the internal geometry module transformers, copies them to
   /// new geometry module transformers.
@@ -431,9 +434,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
 
   o2::detectors::AlignParam lAP;
 
-  std::vector<std::vector<o2::detectors::AlignParam>> lAPvec;
-  std::vector<o2::detectors::AlignParam> lAPvecDisk;   // storage for disk
-  std::vector<o2::detectors::AlignParam> lAPvecLadder; // storage for ladder
+  std::vector<o2::detectors::AlignParam> lAPvec;
 
   LOG(INFO) << " GeometryMisAligner::MisAlign ";
 
@@ -463,6 +464,8 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
 
     // Apply misalignment of the half to the ideal geometry
     lAP.applyToGeometry();
+
+    lAPvec.emplace_back(lAP);
 
     for (Int_t dk = 0; dk < nDisks; dk++) {
 
@@ -497,7 +500,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
       lAP.applyToGeometry();
 
       // Store AlignParam (misalignment parameters)
-      lAPvecDisk.push_back(lAP);
+      lAPvec.emplace_back(lAP);
 
       for (Int_t lr = 0; lr < nLadders; lr++) { //nLadders
 
@@ -509,7 +512,6 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
         TString path = "/cave_1/barrel_1/" + sname;
 
         lAP.setSymName(sname);
-
         lAP.setAlignableID(nAlignID++);
 
         LOG(DEBUG) << "LocalDeltaTransform Ladder: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], lPsi, lTheta, lPhi);
@@ -527,7 +529,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
         lAP.applyToGeometry();
 
         // Store AlignParam (misalignment parameters)
-        lAPvecLadder.push_back(lAP);
+        lAPvec.emplace_back(lAP);
 
         for (Int_t sr = 0; sr < nSensorsPerLadder; sr++) {
 
@@ -544,14 +546,30 @@ void GeometryMisAligner::MisAlign(Bool_t verbose)
           lAP.setLocalParams(localDeltaTransform);
           lAP.applyToGeometry();
 
+          lAPvec.emplace_back(lAP);
+
           nChip++;
         }
       }
     }
   }
 
-  lAPvec.push_back(lAPvecDisk);
-  lAPvec.push_back(lAPvecLadder);
+  if (!ccdbHost.empty()) {
+    std::string path = objectPath.empty() ? o2::base::NameConf::getAlignmentPath(o2::detectors::DetID::MFT) : objectPath;
+    LOGP(INFO, "Storing alignment object on {}/{}", ccdbHost, path);
+    o2::ccdb::CcdbApi api;
+    map<string, string> metadata; // can be empty
+    api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
+    // store abitrary user object in strongly typed manner
+    api.storeAsTFileAny(&lAPvec, path, metadata, tmin, tmax);
+  }
+
+  if (!fileName.empty()) {
+    LOGP(INFO, "Storing MFT alignment in local file {}", fileName);
+    TFile algFile(fileName.c_str(), "recreate");
+    algFile.WriteObjectAny(&lAPvec, "std::vector<o2::detectors::AlignParam>", "alignment");
+    algFile.Close();
+  }
 }
 
 void GeometryMisAligner::SetAlignmentResolution(const TClonesArray* misAlignArray, Int_t rChId, Double_t rChResX, Double_t rChResY, Double_t rDeResX, Double_t rDeResY)

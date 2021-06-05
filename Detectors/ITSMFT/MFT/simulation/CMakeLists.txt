@@ -11,7 +11,7 @@
 
 o2_add_library(MFTSimulation
                SOURCES src/Detector.cxx src/DigitizerTask.cxx src/GeometryMisAligner.cxx
-               PUBLIC_LINK_LIBRARIES O2::MFTBase ROOT::Physics)
+               PUBLIC_LINK_LIBRARIES O2::MFTBase O2::CCDB ROOT::Physics)
 
 o2_target_root_dictionary(MFTSimulation
                           HEADERS include/MFTSimulation/Detector.h
@@ -31,4 +31,5 @@ o2_add_executable(digi2raw
                                         O2::DetectorsRaw
                                         O2::DetectorsCommonDataFormats
                                         O2::CommonUtils
+                                        O2::CCDB
                                         Boost::program_options)

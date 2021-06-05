@@ -34,7 +34,7 @@ namespace o2
 {
 namespace mft
 {
-class GeometryMisAligner : public TObject
+class GeometryMisAligner
 {
  public:
   GeometryMisAligner(Double_t cartXMisAligM, Double_t cartXMisAligW, Double_t cartYMisAligM, Double_t cartYMisAligW, Double_t angMisAligM, Double_t angMisAligW);
@@ -56,7 +56,11 @@ class GeometryMisAligner : public TObject
   bool matrixToAngles(const double* rot, double& psi, double& theta, double& phi);
 
   // return a misaligned geometry obtained from the existing one.
-  void MisAlign(bool verbose = false);
+  void MisAlign(bool verbose = false,
+                const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080",
+                long tmin = 0, long tmax = -1,
+                const std::string& objectPath = "",
+                const std::string& fileName = "MFTAlignment.root");
 
   /// Set sensor cartesian displacement parameters different along x, y
   void SetSensorCartMisAlig(Double_t xmean, Double_t xwidth, Double_t ymean, Double_t ywidth, Double_t zmean = 0., Double_t zwidth = 0.)
@@ -239,7 +243,7 @@ class GeometryMisAligner : public TObject
   Double_t fXYAngMisAligFactor; ///< factor (<1) to apply to angular misalignment range since range of motion is restricted out of the xy plane
   Double_t fZCartMisAligFactor; ///< factor (<1) to apply to cartetian misalignment range since range of motion is restricted in z direction
 
-  ClassDefOverride(GeometryMisAligner, 4) // Geometry parametrisation
+  ClassDef(GeometryMisAligner, 0) // Geometry parametrisation
 };
 
 } // namespace mft
