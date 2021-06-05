@@ -198,29 +198,29 @@ struct HFXicToPKPiCandidateSelector {
         pidXicToPiKP = 1;
       } else {
         // track-level PID selection
-        int pidTrackPos1Proton = selectorProton.getStatusTrackPIDAll(trackPos1);
-        int pidTrackPos2Proton = selectorProton.getStatusTrackPIDAll(trackPos2);
-        int pidTrackPos1Pion = selectorPion.getStatusTrackPIDAll(trackPos1);
-        int pidTrackPos2Pion = selectorPion.getStatusTrackPIDAll(trackPos2);
-        int pidTrackNegKaon = selectorKaon.getStatusTrackPIDAll(trackNeg);
+        auto pidTrackPos1Proton = selectorProton.getStatusTrackPIDAll(trackPos1);
+        auto pidTrackPos2Proton = selectorProton.getStatusTrackPIDAll(trackPos2);
+        auto pidTrackPos1Pion = selectorPion.getStatusTrackPIDAll(trackPos1);
+        auto pidTrackPos2Pion = selectorPion.getStatusTrackPIDAll(trackPos2);
+        auto pidTrackNegKaon = selectorKaon.getStatusTrackPIDAll(trackNeg);
 
         if (pidTrackPos1Proton == TrackSelectorPID::Status::PIDAccepted &&
             pidTrackNegKaon == TrackSelectorPID::Status::PIDAccepted &&
             pidTrackPos2Pion == TrackSelectorPID::Status::PIDAccepted) {
-          pidXicToPKPi = 1; // accept LcpKpi
+          pidXicToPKPi = 1; // accept XicpKpi
         } else if (pidTrackPos1Proton == TrackSelectorPID::Status::PIDRejected ||
                    pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
                    pidTrackPos2Pion == TrackSelectorPID::Status::PIDRejected) {
-          pidXicToPKPi = 0; // exclude LcpKpi
+          pidXicToPKPi = 0; // exclude XicpKpi
         }
         if (pidTrackPos2Proton == TrackSelectorPID::Status::PIDAccepted &&
             pidTrackNegKaon == TrackSelectorPID::Status::PIDAccepted &&
             pidTrackPos1Pion == TrackSelectorPID::Status::PIDAccepted) {
-          pidXicToPiKP = 1; // accept LcpiKp
+          pidXicToPiKP = 1; // accept XicpiKp
         } else if (pidTrackPos1Pion == TrackSelectorPID::Status::PIDRejected ||
                    pidTrackNegKaon == TrackSelectorPID::Status::PIDRejected ||
                    pidTrackPos2Proton == TrackSelectorPID::Status::PIDRejected) {
-          pidXicToPiKP = 0; // exclude LcpiKp
+          pidXicToPiKP = 0; // exclude XicpiKp
         }
       }
 
