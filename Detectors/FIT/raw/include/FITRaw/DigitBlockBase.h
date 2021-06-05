@@ -250,7 +250,7 @@ class DigitBlockBase //:public DigitBlock
   }
 
   template <std::size_t N, typename DigitT, typename... T>
-  void fillSubDigitTuple(const DigitT& digit, const std::tuple<T...>& tupleSrc, std::tuple<T...>& tupleDest)
+  static void fillSubDigitTuple(const DigitT& digit, const std::tuple<T...>& tupleSrc, std::tuple<T...>& tupleDest)
   {
     const auto& vecSrc = std::get<N>(tupleSrc);
     auto& vecDest = std::get<N>(tupleSrc);
