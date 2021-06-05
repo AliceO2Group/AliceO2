@@ -12,7 +12,6 @@
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ComputingQuotaOffer.h"
-#include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DataRelayer.h"
@@ -60,6 +59,7 @@ struct DeviceContext {
   DeviceSpec const* spec = nullptr;
   DeviceState* state = nullptr;
   ComputingQuotaEvaluator* quotaEvaluator = nullptr;
+  DataProcessingStats* stats = nullptr;
 };
 
 struct DataProcessorContext {
@@ -92,8 +92,8 @@ struct TaskStreamRef {
 };
 
 struct TaskStreamInfo {
-  /// The quota offer to be used for the computation
-  ComputingQuotaOfferRef offer;
+  /// The id of this stream
+  TaskStreamRef id;
   /// The context of the DataProcessor being run by this task
   DataProcessorContext* context;
   /// Wether or not this task is running
@@ -105,7 +105,7 @@ struct TaskStreamInfo {
 class DataProcessingDevice : public FairMQDevice
 {
  public:
-  DataProcessingDevice(RunningWorkflowInfo const& runningWorkflow, RunningDeviceRef ref, ServiceRegistry&, DeviceState& state);
+  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&);
   void Init() final;
   void InitTask() final;
   void PreRun() final;
@@ -158,7 +158,7 @@ class DataProcessingDevice : public FairMQDevice
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
   std::vector<uv_work_t> mHandles;                               /// Handles to use to schedule work.
   std::vector<TaskStreamInfo> mStreams;                          /// Information about the task running in the associated mHandle.
-  ComputingQuotaEvaluator mQuotaEvaluator;                       /// The component which evaluates if the offer can be used to run a task
+  ComputingQuotaEvaluator& mQuotaEvaluator;                      /// The component which evaluates if the offer can be used to run a task
 };
 
 } // namespace o2::framework

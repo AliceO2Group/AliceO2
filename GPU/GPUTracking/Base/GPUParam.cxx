@@ -79,10 +79,10 @@ void GPUParam::SetDefaults(float solenoidBz)
     }
   }
 
-  par.DAlpha = 0.349066f;
-  par.BzkG = solenoidBz;
+  par.dAlpha = 0.349066f;
+  par.bzkG = solenoidBz;
   constexpr double kCLight = 0.000299792458f;
-  par.ConstBz = solenoidBz * kCLight;
+  par.constBz = solenoidBz * kCLight;
   par.dodEdx = 0;
 
   constexpr float plusZmin = 0.0529937;
@@ -100,44 +100,44 @@ void GPUParam::SetDefaults(float solenoidBz)
     if (tmp >= GPUCA_NSLICES / 4) {
       tmp -= GPUCA_NSLICES / 2;
     }
-    SliceParam[i].Alpha = 0.174533 + par.DAlpha * tmp;
+    SliceParam[i].Alpha = 0.174533 + par.dAlpha * tmp;
     SliceParam[i].CosAlpha = CAMath::Cos(SliceParam[i].Alpha);
     SliceParam[i].SinAlpha = CAMath::Sin(SliceParam[i].Alpha);
-    SliceParam[i].AngleMin = SliceParam[i].Alpha - par.DAlpha / 2.f;
-    SliceParam[i].AngleMax = SliceParam[i].Alpha + par.DAlpha / 2.f;
+    SliceParam[i].AngleMin = SliceParam[i].Alpha - par.dAlpha / 2.f;
+    SliceParam[i].AngleMax = SliceParam[i].Alpha + par.dAlpha / 2.f;
   }
 
-  par.AssumeConstantBz = false;
-  par.ToyMCEventsFlag = false;
-  par.ContinuousTracking = false;
+  par.assumeConstantBz = false;
+  par.toyMCEventsFlag = false;
+  par.continuousTracking = false;
   par.continuousMaxTimeBin = 0;
   par.debugLevel = 0;
   par.resetTimers = false;
   par.earlyTpcTransform = false;
 
   polynomialField.Reset(); // set very wrong initial value in order to see if the field was not properly initialised
-  GPUTPCGMPolynomialFieldManager::GetPolynomialField(par.BzkG, polynomialField);
+  GPUTPCGMPolynomialFieldManager::GetPolynomialField(par.bzkG, polynomialField);
 }
 
 void GPUParam::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
   if (g) {
-    par.AssumeConstantBz = g->constBz;
-    par.ToyMCEventsFlag = g->homemadeEvents;
-    par.ContinuousTracking = g->continuousMaxTimeBin != 0;
+    par.assumeConstantBz = g->constBz;
+    par.toyMCEventsFlag = g->homemadeEvents;
+    par.continuousTracking = g->continuousMaxTimeBin != 0;
     par.continuousMaxTimeBin = g->continuousMaxTimeBin == -1 ? GPUSettings::TPC_MAX_TF_TIME_BIN : g->continuousMaxTimeBin;
     polynomialField.Reset();
-    if (par.AssumeConstantBz) {
-      GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, par.BzkG, polynomialField);
+    if (par.assumeConstantBz) {
+      GPUTPCGMPolynomialFieldManager::GetPolynomialField(GPUTPCGMPolynomialFieldManager::kUniform, par.bzkG, polynomialField);
     } else {
-      GPUTPCGMPolynomialFieldManager::GetPolynomialField(par.BzkG, polynomialField);
+      GPUTPCGMPolynomialFieldManager::GetPolynomialField(par.bzkG, polynomialField);
     }
   }
   if (p) {
     par.debugLevel = p->debugLevel;
     par.resetTimers = p->resetTimers;
   }
-  par.earlyTpcTransform = rec.ForceEarlyTPCTransform == -1 ? (!par.ContinuousTracking) : rec.ForceEarlyTPCTransform;
+  par.earlyTpcTransform = rec.tpc.forceEarlyTransform == -1 ? (!par.continuousTracking) : rec.tpc.forceEarlyTransform;
 }
 
 void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w)
@@ -149,7 +149,7 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
   if (r) {
     rec = *r;
     if (rec.fitPropagateBzOnly == -1) {
-      rec.fitPropagateBzOnly = rec.NWays - 1;
+      rec.fitPropagateBzOnly = rec.tpc.nWays - 1;
     }
   }
   UpdateGRPSettings(g, p);
@@ -244,7 +244,7 @@ std::string GPUParamRTC::generateRTCCode(const GPUParam& param, bool useConstexp
          "#include <string>\n"
          "#endif\n"
          "namespace o2::gpu { class GPUDisplayBackend; }\n" +
-         qConfigPrintRtc(std::make_tuple(&param.rec, &param.par), useConstexpr);
+         qConfigPrintRtc(std::make_tuple(&param.rec.tpc, &param.rec.trd, &param.rec, &param.par), useConstexpr);
 }
 
 static_assert(sizeof(GPUCA_NAMESPACE::gpu::GPUParam) == sizeof(GPUCA_NAMESPACE::gpu::GPUParamRTC), "RTC param size mismatch");

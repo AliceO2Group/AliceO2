@@ -49,6 +49,7 @@ struct SimConfigData {
   long mTimestamp;                           // timestamp to anchor transport simulation to
   int mField;                                // L3 field setting in kGauss: +-2,+-5 and 0
   bool mUniformField = false;                // uniform magnetic field
+  bool mAsService = false;                   // if simulation should be run as service/deamon (does not exit after run)
 
   ClassDefNV(SimConfigData, 4);
 };
@@ -86,6 +87,7 @@ class SimConfig
 
   void resetFromConfigData(SimConfigData const& data) { mConfigData = data; }
   SimConfigData const& getConfigData() const { return mConfigData; }
+  SimConfigData& getConfigData() { return mConfigData; }
 
   // get MC engine
   std::string getMCEngine() const { return mConfigData.mMCEngine; }
@@ -111,12 +113,46 @@ class SimConfig
   int getStartSeed() const { return mConfigData.mStartSeed; }
   int getNSimWorkers() const { return mConfigData.mSimWorkers; }
   bool isFilterOutNoHitEvents() const { return mConfigData.mFilterNoHitEvents; }
+  bool asService() const { return mConfigData.mAsService; }
 
  private:
   SimConfigData mConfigData; //!
 
   ClassDefNV(SimConfig, 1);
 };
+
+// Configuration struct used for simulation reconfig (when processing
+// in batches and in "deamonized" mode. Note that in comparison to SimConfig,
+// fewer fields are offered (because many things are not easy to reconfigure).
+//! TODO: Make this a base class of SimConfigData?
+
+struct SimReconfigData {
+  std::string generator;         // chosen VMC generator
+  std::string trigger;           // chosen VMC generator trigger
+  unsigned int nEvents;          // number of events to be simulated
+  std::string extKinfileName;    // file name of external kinematics file (needed for ext kinematics generator)
+  std::string embedIntoFileName; // filename containing the reference events to be used for the embedding
+  unsigned int startEvent = 0;   // index of first event to be taken
+  float mBMax;                   // maximum for impact parameter sampling
+  std::string outputPrefix;      // prefix to be used for output files
+  std::string outputDir;         // output directory
+  std::string keyValueTokens;    // a string holding arbitrary sequence of key-value tokens (for ConfigurableParams)
+                                 // ** WE NEED TO BE CAREFUL: NOT EVERYTHING MAY BE RECONFIGURABLE VIA PARAMETER CHANGE **
+  // Foo.parameter1=x,Bar.parameter2=y,Baz.paramter3=hello
+  std::string configFile; // path to a JSON or INI config file (file extension is required to determine type).
+  // values within the config file will override values set in code by the param classes
+  // but will themselves be overridden by any values given in mKeyValueTokens.
+  unsigned int primaryChunkSize; // defining max granularity for input primaries of a sim job
+  int startSeed;                 // base for random number seeds
+  bool stop;                     // to shut down the service
+
+  ClassDefNV(SimReconfigData, 1);
+};
+
+// construct reconfig struct given a configuration string (boost program options format)
+// returns true if successful/ false otherwise
+bool parseSimReconfigFromString(std::string const& argumentstring, SimReconfigData& config);
+
 } // namespace conf
 } // namespace o2
 

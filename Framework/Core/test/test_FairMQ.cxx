@@ -71,11 +71,7 @@ auto forEach(I begin, I end, F&& function)
 {
 
   using span = gsl::span<const o2::byte>;
-#ifdef MS_GSL_V3
   using SPAN_SIZE_TYPE = span::size_type;
-#else
-  using SPAN_SIZE_TYPE = span::index_type;
-#endif
   using gsl::narrow_cast;
   for (auto it = begin; it != end; ++it) {
     o2::byte* headerBuffer{nullptr};
@@ -119,8 +115,12 @@ BOOST_AUTO_TEST_CASE(getMessage_Stack)
 
   auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
   auto factorySHM = FairMQTransportFactory::CreateTransportFactory("shmem");
+  BOOST_REQUIRE(factorySHM != nullptr);
+  BOOST_REQUIRE(factoryZMQ != nullptr);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
+  BOOST_REQUIRE(allocZMQ != nullptr);
   auto allocSHM = getTransportAllocator(factorySHM.get());
+  BOOST_REQUIRE(allocSHM != nullptr);
   {
     //check that a message is constructed properly with the default new_delete_resource
     Stack s1{DataHeader{gDataDescriptionInvalid, gDataOriginInvalid, DataHeader::SubSpecificationType{0}},
@@ -163,7 +163,9 @@ BOOST_AUTO_TEST_CASE(addDataBlockForEach_test)
   config.SetProperty<std::string>("session", std::to_string(session));
 
   auto factoryZMQ = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  BOOST_REQUIRE(factoryZMQ);
   auto allocZMQ = getTransportAllocator(factoryZMQ.get());
+  BOOST_REQUIRE(allocZMQ);
 
   {
     //simple addition of a data block from an exisiting message

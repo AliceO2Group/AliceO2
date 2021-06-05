@@ -18,6 +18,7 @@ namespace o2::framework
 std::vector<ResourcePolicy> ResourcePolicy::createDefaultPolicies()
 {
   return {
+    ResourcePolicyHelpers::sharedMemoryBoundTask("internal-dpl-aod-reader.*", 300000000),
     ResourcePolicyHelpers::trivialTask(".*")};
 }
 

@@ -551,6 +551,29 @@ struct HolderTrait<int64_t> {
   using Holder = BuilderHolder<int64_t, CachedInsertion>;
 };
 
+/// Helper function to convert a brace-initialisable struct to
+/// a tuple.
+template <class T>
+auto constexpr to_tuple(T&& object) noexcept
+{
+  using type = std::decay_t<T>;
+  if constexpr (is_braces_constructible<type, any_type, any_type, any_type, any_type>{}) {
+    auto&& [p0, p1, p2, p3] = object;
+    return std::make_tuple(p0, p1, p2, p3);
+  } else if constexpr (is_braces_constructible<type, any_type, any_type, any_type>{}) {
+    auto&& [p0, p1, p2] = object;
+    return std::make_tuple(p0, p1, p2);
+  } else if constexpr (is_braces_constructible<type, any_type, any_type>{}) {
+    auto&& [p0, p1] = object;
+    return std::make_tuple(p0, p1);
+  } else if constexpr (is_braces_constructible<type, any_type>{}) {
+    auto&& [p0] = object;
+    return std::make_tuple(p0);
+  } else {
+    return std::make_tuple();
+  }
+}
+
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
 /// to build an arrow::Table from a TDataFrame.

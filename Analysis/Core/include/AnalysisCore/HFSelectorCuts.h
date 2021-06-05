@@ -28,6 +28,7 @@ enum Code {
   kDPlus = 411,
   kLambdaCPlus = 4122,
   kXiCPlus = 4232,
+  kXiCCPlusPlus = 4422,
   kJpsi = 443
 };
 } // namespace pdg
@@ -285,7 +286,7 @@ static const std::vector<std::string> cutVarLabels = {"deltaM", "pT Pi", "pT K",
 namespace hf_cuts_xic_topkpi
 {
 static const int npTBins = 10;
-static const int nCutVars = 8;
+static const int nCutVars = 7;
 // default values for the pT bin edges (can be used to configure histogram axis)
 // offset by 1 from the bin numbers in cuts array
 constexpr double pTBins[npTBins + 1] = {
@@ -303,16 +304,16 @@ constexpr double pTBins[npTBins + 1] = {
 auto pTBins_v = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
-constexpr double cuts[npTBins][nCutVars] = {{0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 0  < pT < 1  */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 1  < pT < 2  */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 2  < pT < 3  */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 3  < pT < 4  */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 4  < pT < 5  */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 5  < pT < 6  */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 6  < pT < 8  */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 8  < pT < 12 */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95},  /* 12 < pT < 24 */
-                                            {0.400, 0.4, 0.4, 0.4, 0.05, 0.09, 0.005, 0.95}}; /* 24 < pT < 36 */
+constexpr double cuts[npTBins][nCutVars] = {{0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 0  < pT < 1  */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 1  < pT < 2  */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 2  < pT < 3  */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 3  < pT < 4  */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 4  < pT < 5  */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 5  < pT < 6  */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 6  < pT < 8  */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 8  < pT < 12 */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8},  /* 12 < pT < 24 */
+                                            {0.400, 0.4, 0.4, 0.4, 1e-5, 0.005, 0.8}}; /* 24 < pT < 36 */
 
 // row labels
 static const std::vector<std::string> pTBinLabels = {
@@ -328,8 +329,51 @@ static const std::vector<std::string> pTBinLabels = {
   "pT bin 9"};
 
 // column labels
-static const std::vector<std::string> cutVarLabels = {"m", "pT p", "pT K", "pT Pi", "DCA", "vertex sigma", "decay length", "cos pointing angle"};
+static const std::vector<std::string> cutVarLabels = {"m", "pT p", "pT K", "pT Pi", "chi2PCA", "decay length", "cos pointing angle"};
 } // namespace hf_cuts_xic_topkpi
+
+namespace hf_cuts_xicc_topkpipi
+{
+static const int npTBins = 8;
+static const int nCutVars = 8;
+// default values for the pT bin edges (can be used to configure histogram axis)
+// offset by 1 from the bin numbers in cuts array
+constexpr double pTBins[npTBins + 1] = {
+  0.,
+  1.,
+  2.,
+  3.,
+  4.,
+  5.,
+  6.,
+  8.,
+  12.};
+auto pTBins_v = std::vector<double>{pTBins, pTBins + npTBins + 1};
+
+// default values for the cuts
+constexpr double cuts[npTBins][nCutVars] = {{0.400, 0.5, 0.2, 10.0, 10.0, 1.e-3, 0.0, 0.8},  /* 0  < pT < 1  */
+                                            {0.400, 0.5, 0.2, 10.0, 10.0, 1.e-3, 0.0, 0.8},  /* 1  < pT < 2  */
+                                            {0.400, 0.5, 0.2, 10.0, 10.0, 1.e-3, 0.0, 0.8},  /* 2  < pT < 3  */
+                                            {0.400, 0.5, 0.2, 10.0, 10.0, 1.e-3, 0.0, 0.8},  /* 3  < pT < 4  */
+                                            {0.400, 0.5, 0.2, 10.0, 10.0, 1.e-3, 0.0, 0.8},  /* 4  < pT < 5  */
+                                            {0.400, 0.5, 0.2, 10.0, 10.0, 1.e-3, 0.0, 0.8},  /* 5  < pT < 6  */
+                                            {0.400, 0.5, 0.2, 10.0, 10.0, 1.e-3, 0.0, 0.8},  /* 6  < pT < 8  */
+                                            {0.400, 0.5, 0.2, 10.0, 10.0, 1.e-3, 0.0, 0.8}}; /* 8  < pT < 12 */
+
+// row labels
+static const std::vector<std::string> pTBinLabels = {
+  "pT bin 0",
+  "pT bin 1",
+  "pT bin 2",
+  "pT bin 3",
+  "pT bin 4",
+  "pT bin 5",
+  "pT bin 6",
+  "pT bin 7"};
+
+// column labels
+static const std::vector<std::string> cutVarLabels = {"m", "pT Xic", "pT Pi", "d0 Xic", "d0 Pi", "chi2PCA", "decay length", "cos pointing angle"};
+} // namespace hf_cuts_xicc_topkpipi
 
 namespace hf_cuts_jpsi_toee
 {

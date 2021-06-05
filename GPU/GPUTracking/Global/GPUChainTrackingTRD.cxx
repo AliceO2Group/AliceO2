@@ -44,7 +44,7 @@ int GPUChainTracking::RunTRDTracking()
     if (!Tracker.PreCheckTrackTRDCandidate(trk)) {
       continue;
     }
-    const GPUTRDTrackGPU& trktrd = param().rec.NWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
+    const GPUTRDTrackGPU& trktrd = param().rec.tpc.nWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
     if (!Tracker.CheckTrackTRDCandidate(trktrd)) {
       continue;
     }

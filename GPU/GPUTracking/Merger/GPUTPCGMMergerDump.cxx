@@ -141,7 +141,7 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out)
       out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
     }
   }
-  unsigned int maxId = mRec->GetParam().rec.NonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   for (unsigned int i = 0; i < maxId; i++) {
     out << "    Cluster attachment " << i << ": " << getTrackOrderReverse(mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
   }
@@ -175,7 +175,7 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out)
       out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
     }
   }
-  unsigned int maxId = mRec->GetParam().rec.NonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   for (unsigned int i = 0; i < maxId; i++) {
     out << "    Cluster attachment " << i << ": " << getTrackOrderReverse(mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
   }

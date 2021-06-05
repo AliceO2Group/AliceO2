@@ -85,11 +85,12 @@ struct HFXicToPKPiCandidateSelector {
       return false;
     }
 
-    // candidate DCA
-    /*  if (candidate.chi2PCA() > cuts->get(pTBin, "DCA")) {
+    // candidate chi2PC
+    if (candidate.chi2PCA() > cuts->get(pTBin, "chi2PCA")) {
       return false;
-      }*/
+    }
 
+    // candidate decay length
     if (candidate.decayLength() <= cuts->get(pTBin, "decay length")) {
       return false;
     }

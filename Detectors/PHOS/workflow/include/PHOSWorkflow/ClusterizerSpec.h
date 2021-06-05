@@ -62,7 +62,7 @@ class ClusterizerSpec : public framework::Task
   bool mFullCluOutput = false;      ///< Write full of reduced (no contributed digits) clusters
   o2::phos::Clusterer mClusterizer; ///< Clusterizer object
   std::vector<o2::phos::Cluster> mOutputClusters;
-  std::vector<o2::phos::FullCluster> mOutputFullClusters;
+  std::vector<o2::phos::CluElement> mOutputCluElements;
   std::vector<o2::phos::TriggerRecord> mOutputClusterTrigRecs;
   o2::dataformats::MCTruthContainer<o2::phos::MCLabel> mOutputTruthCont;
 };

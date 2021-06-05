@@ -66,7 +66,7 @@ void GPUTPCTracker::InitializeProcessor()
 
 bool GPUTPCTracker::SliceDataOnGPU()
 {
-  return (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) && mRec->GetParam().rec.mergerReadFromTrackerDirectly && (mRec->GetConstantMem().ioPtrs.clustersNative || mRec->GetConstantMem().ioPtrs.tpcZS || mRec->GetConstantMem().ioPtrs.tpcPackedDigits);
+  return (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) && (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) && mRec->GetParam().rec.tpc.mergerReadFromTrackerDirectly && (mRec->GetConstantMem().ioPtrs.clustersNative || mRec->GetConstantMem().ioPtrs.tpcZS || mRec->GetConstantMem().ioPtrs.tpcPackedDigits);
 }
 
 void* GPUTPCTracker::SetPointersDataInput(void* mem) { return mData.SetPointersInput(mem, mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging, SliceDataOnGPU()); }

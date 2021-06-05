@@ -266,19 +266,19 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     mProcessingSettings.nTPCClustererLanes = 1;
   }
 
-  if (param().rec.NonConsecutiveIDs) {
-    param().rec.DisableRefitAttachment = 0xFF;
+  if (param().rec.nonConsecutiveIDs) {
+    param().rec.tpc.disableRefitAttachment = 0xFF;
   }
-  if (!(mRecoStepsGPU & RecoStep::TPCMerging) || !param().rec.mergerReadFromTrackerDirectly) {
+  if (!(mRecoStepsGPU & RecoStep::TPCMerging) || !param().rec.tpc.mergerReadFromTrackerDirectly) {
     mProcessingSettings.fullMergerOnGPU = false;
   }
   if (mProcessingSettings.debugLevel || !mProcessingSettings.fullMergerOnGPU) {
     mProcessingSettings.delayedOutput = false;
   }
   if (!mProcessingSettings.fullMergerOnGPU && GetRecoStepsGPU() & RecoStep::TPCMerging) {
-    param().rec.loopInterpolationInExtraPass = 0;
-    if (param().rec.retryRefit == 1) {
-      param().rec.retryRefit = 2;
+    param().rec.tpc.loopInterpolationInExtraPass = 0;
+    if (param().rec.tpc.retryRefit == 1) {
+      param().rec.tpc.retryRefit = 2;
     }
   }
 
@@ -287,8 +287,8 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   if (!mProcessingSettings.trackletConstructorInPipeline) {
     mProcessingSettings.trackletSelectorInPipeline = false;
   }
-  if (!mProcessingSettings.enableRTC) {
-    mProcessingSettings.rtcConstexpr = false;
+  if (!mProcessingSettings.rtc.enable) {
+    mProcessingSettings.rtc.optConstexpr = false;
   }
 
   mMemoryScalers->factor = mProcessingSettings.memoryScalingFactor;

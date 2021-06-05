@@ -24,14 +24,16 @@ namespace o2::framework
 
 class ComputingQuotaEvaluator
 {
+ public:
   // Maximum number of offers this evaluator can hold
   static constexpr int MAX_INFLIGHT_OFFERS = 16;
-
- public:
   ComputingQuotaEvaluator(uv_loop_t*);
-  ComputingQuotaOfferRef selectOffer(ComputingQuotaRequest const& request);
+  bool selectOffer(int task, ComputingQuotaRequest const& request);
 
-  void dispose(ComputingQuotaOfferRef offer);
+  /// Consume offers for a given taskId
+  void consume(int taskId, ComputingQuotaConsumer& consumed);
+  /// Dispose offers for a given taskId
+  void dispose(int taskId);
 
   /// All the available offerts
   std::array<ComputingQuotaOffer, MAX_INFLIGHT_OFFERS> mOffers;

@@ -23,6 +23,8 @@
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsMCH/Digit.h"
+#include "DataFormatsMCH/ROFRecord.h"
+//#include "MCHRawDecoder/OrbitInfo.h"
 #include "MCHSimulation/Digitizer.h"
 #include "MCHSimulation/Detector.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
@@ -57,6 +59,8 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     context->initSimChains(o2::detectors::DetID::MCH, mSimChains);
     auto& irecords = context->getEventRecords();
+    int digitsperEvent = 0;
+    int startdigitEvent = 0;
 
     for (auto& record : irecords) {
       LOG(DEBUG) << "MCH TIME RECEIVED " << record.getTimeNS();
@@ -65,13 +69,13 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     auto& eventParts = context->getEventParts();
     std::vector<o2::mch::Digit> digitsAccum; // accumulator for digits
+    std::vector<o2::mch::ROFRecord> rofrecords;
+    //NEED TO GET TIMEFRAME TIME as start time , is this the case automatically?
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum;
-
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      //      mDigitizer.setEventTime(irecords[collID].getTimeNS());
-      mDigitizer.setEventTime(irecords[collID].bc);
+      mDigitizer.setEventTime(irecords[collID].getTimeNS()); //assume that event time is w.r.t. time frame beginning, to be verified
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
       for (auto& part : eventParts[collID]) {
@@ -80,6 +84,7 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
         // get the hits for this event and this source
         std::vector<o2::mch::Hit> hits;
+
         context->retrieveHits(mSimChains, "MCHHit", part.sourceID, part.entryID, &hits);
         LOG(DEBUG) << "For collision " << collID << " eventID " << part.entryID << " found MCH " << hits.size() << " hits ";
 
@@ -99,14 +104,24 @@ class MCHDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         LOG(DEBUG) << "labelAccum.getIndexedSize()  " << labelAccum.getIndexedSize();
         LOG(DEBUG) << "labelAccum.getNElements() " << labelAccum.getNElements();
         LOG(DEBUG) << "Have " << digits.size() << " digits ";
+        //problem for pile-up if events are not one after each other
+        digitsperEvent += digits.size();
       }
+
+      if (rofrecords.size() != 0) {
+        startdigitEvent = rofrecords.back().getLastIdx() + 1;
+      }
+      rofrecords.emplace_back(irecords[collID], startdigitEvent, digitsperEvent);
+      digitsperEvent = 0;
     }
-    mDigitizer.mergeDigits(digitsAccum, labelAccum); //print-out inside alos works fine
+
+    mDigitizer.mergeDigits(digitsAccum, labelAccum, rofrecords);
 
     LOG(DEBUG) << "Have " << labelAccum.getNElements() << " MCH labels "; //does not work out!
     pc.outputs().snapshot(Output{"MCH", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
-    if (pc.outputs().isAllowed({"MCH", "DIGITSMCTR", 0})) {
-      pc.outputs().snapshot(Output{"MCH", "DIGITSMCTR", 0, Lifetime::Timeframe}, labelAccum);
+    pc.outputs().snapshot(Output{"MCH", "DIGITROFS", 0, Lifetime::Timeframe}, rofrecords);
+    if (pc.outputs().isAllowed({"MCH", "DIGITSLABELS", 0})) {
+      pc.outputs().snapshot(Output{"MCH", "DIGITSLABELS", 0, Lifetime::Timeframe}, labelAccum);
     }
     LOG(DEBUG) << "MCH: Sending ROMode= " << mROMode << " to GRPUpdater";
     //ROMode: to be understood, check EMCal etc.
@@ -133,8 +148,9 @@ o2::framework::DataProcessorSpec getMCHDigitizerSpec(int channel, bool mctruth)
   //  options that can be used for this processor (here: input file names where to take the hits)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MCH", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("MCH", "DIGITROFS", 0, Lifetime::Timeframe);
   if (mctruth) {
-    outputs.emplace_back("MCH", "DIGITSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("MCH", "DIGITSLABELS", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back("MCH", "ROMode", 0, Lifetime::Timeframe);
 

@@ -14,6 +14,7 @@
 #include <string>
 #include <variant>
 #include <deque>
+#include <optional>
 
 #include <TH1.h>
 #include <TH2.h>

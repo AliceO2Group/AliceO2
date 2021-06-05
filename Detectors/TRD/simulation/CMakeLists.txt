@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 
-#add_compile_options(-O0 -g -fPIC) 
+#add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(TRDSimulation
                TARGETVARNAME targetName
@@ -17,8 +17,8 @@ o2_add_library(TRDSimulation
                        src/TRsim.cxx
                        src/Digitizer.cxx
                        src/TRDSimParams.cxx
-                       src/TrapConfig.cxx 
-                       src/TrapConfigHandler.cxx 
+                       src/TrapConfig.cxx
+                       src/TrapConfigHandler.cxx
                        src/TrapSimulator.cxx
                        src/Trap2CRU.cxx
                        src/PileupTool.cxx
@@ -28,7 +28,7 @@ o2_target_root_dictionary(TRDSimulation
                           HEADERS include/TRDSimulation/Detector.h
                                   include/TRDSimulation/TRsim.h
                                   include/TRDSimulation/Digitizer.h
-				                  include/TRDSimulation/TRDSimParams.h
+                                  include/TRDSimulation/TRDSimParams.h
                                   include/TRDSimulation/TrapConfig.h
                                   include/TRDSimulation/TrapConfigHandler.h
                                   include/TRDSimulation/Trap2CRU.h
@@ -49,7 +49,7 @@ o2_add_executable(trap2raw
                                         O2::DetectorsRaw
                                         O2::DetectorsCommonDataFormats
                                         O2::CommonUtils
-										O2::DataFormatsTRD
+                                        O2::DataFormatsTRD
                                         Boost::program_options)
 
 o2_add_test(PileupTool

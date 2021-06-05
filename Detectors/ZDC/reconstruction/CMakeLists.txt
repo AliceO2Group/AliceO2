@@ -10,13 +10,13 @@
 
 o2_add_library(ZDCReconstruction
                SOURCES src/CTFCoder.cxx
-		       src/CTFHelper.cxx
+               src/CTFHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::ZDCBase
                                      O2::DataFormatsZDC
                                      O2::DetectorsRaw
                                      AliceO2::InfoLogger
-				     O2::rANS
-				     ms_gsl::ms_gsl)
+                     O2::rANS
+                     Microsoft.GSL::GSL)
 
 # o2_target_root_dictionary(ZDCReconstruction
-#	                    HEADERS )
+#                       HEADERS )
