@@ -79,11 +79,11 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 5., "Upper bound of track pT for TOF PID"};
   Configurable<double> d_nSigmaTOF{"d_nSigmaTOF", 3., "Nsigma cut on TOF only"};
+  Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
   // RICH
   Configurable<double> d_pidRICHMinpT{"d_pidRICHMinpT", 0.15, "Lower bound of track pT for RICH PID"};
   Configurable<double> d_pidRICHMaxpT{"d_pidRICHMaxpT", 10., "Upper bound of track pT for RICH PID"};
   Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3., "Nsigma cut on RICH only"};
-  Configurable<double> d_nSigmaTOFCombined{"d_nSigmaTOFCombined", 5., "Nsigma cut on TOF combined with TPC"};
 
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
@@ -135,15 +135,6 @@ struct HFJpsiToEECandidateSelector {
     return true;
   }
 
-  template <typename T>
-  bool validRICHPID(const T& track)
-  {
-    if (track.pt() < d_pidRICHMinpT || track.pt() >= d_pidRICHMaxpT) {
-      return false;
-    }
-    return true;
-  }
-
   using Trks = soa::Join<aod::BigTracksPID, aod::RICHTracksIndex, aod::MIDTracksIndex>;
 
   void process(aod::HfCandProng2 const& candidates, Trks const&, aod::RICHs const&, aod::MIDs const&)
@@ -154,6 +145,8 @@ struct HFJpsiToEECandidateSelector {
     selectorElectron.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
     selectorElectron.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
     selectorElectron.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
+    selectorElectron.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
+    selectorElectron.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
 
     TrackSelectorPID selectorMuon(kMuonMinus);
 
@@ -191,30 +184,13 @@ struct HFJpsiToEECandidateSelector {
       }
 
       // track-level PID RICH selection
-      bool pidrichPos = validRICHPID(trackPos);
-      bool pidrichNeg = validRICHPID(trackNeg);
-      if (pidrichPos && pidrichNeg) {
-        //         LOGF(info, "both good rich tracks");
+      if (selectorElectron.getStatusTrackPIDRICH(trackPos) != TrackSelectorPID::Status::PIDAccepted ||
+          selectorElectron.getStatusTrackPIDRICH(trackNeg) != TrackSelectorPID::Status::PIDAccepted) {
+        hfSelJpsiToEECandidate(0);
+        continue;
       }
 
-      //       LOGF(info, "cut %f, val pos %f, val neg %f", d_nSigmaRICH,
-      //       trackPos.rich().richNsigmaEl(), trackNeg.rich().richNsigmaEl());
-      if (pidrichPos && pidrichNeg) {
-        bool selpidrichPos = abs(trackPos.rich().richNsigmaEl()) < d_nSigmaRICH;
-        bool selpidrichNeg = abs(trackNeg.rich().richNsigmaEl()) < d_nSigmaRICH;
-        //          LOGF(info, "pos %d, neg %d", selpidrichPos, selpidrichNeg);
-        bool selpidrich = selpidrichPos && selpidrichNeg;
-        if (selpidrich) {
-          //            LOGF(info, "both sel rich tracks");
-        }
-        if (!selpidrich) {
-          hfSelJpsiToEECandidate(0);
-          //            LOGF(info, "not selectedtracks");
-          continue;
-        }
-      }
-
-      // track-level muon PID selection
+      // track-level muon PID MID selection
       if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
           selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
         hfSelJpsiToEECandidate(0);
