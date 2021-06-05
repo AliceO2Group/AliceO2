@@ -9,5 +9,5 @@
 #submit itself to any jurisdiction.
 
 o2_add_library(FV0Raw
-               SOURCES src/DataBlockFV0.cxx src/DigitBlockFV0.cxx src/RawReaderFV0Base.cxx
+               SOURCES src/DataBlockFV0.cxx src/DigitBlockFV0.cxx src/RawReaderFV0Base.cxx src/RawWriterFV0.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers O2::DataFormatsFV0 O2::FITRaw)

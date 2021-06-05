@@ -55,7 +55,11 @@ struct EventHeader {
     };
   };
   InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
-
+  void setIntRec(const InteractionRecord& intRec)
+  {
+    bc = intRec.bc;
+    orbit = intRec.orbit;
+  }
   void print() const;
 };
 
