@@ -185,8 +185,8 @@ struct HfTaskXiccMc {
         LOGF(info, "Xic prong 2 pdg %d", p2xic.pdgCode());
         LOGF(info, "Pion pdg %d", daughter1.pdgCode());
 */
-        registry.fill(HIST("hPtGenSig"), particleXicc.pt());   // gen. level pT
-        registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
+        registry.fill(HIST("hPtGenSig"), particleXicc.pt()); // gen. level pT
+        registry.fill(HIST("hPtRecSig"), candidate.pt());    // rec. level pT
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
         registry.fill(HIST("hYRecSig"), YXicc(candidate));
         registry.fill(HIST("hmassSig"), InvMassXiccToXicPi(candidate), candidate.pt()); //FIXME need to consider the two mass hp
