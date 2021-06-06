@@ -28,6 +28,7 @@ using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_jpsi_toee;
 
+/*
 namespace o2::aod
 {
 
@@ -61,6 +62,28 @@ DECLARE_SOA_INDEX_TABLE_USER(MIDTracksIndex, Tracks, "MIDTRK",
 
 struct MidIndexBuilder {
   Builds<o2::aod::MIDTracksIndex> ind;
+  void init(o2::framework::InitContext&) {}
+};
+*/
+
+namespace o2::aod
+{
+
+namespace hf_track_index_alice3_pid
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track); //!
+DECLARE_SOA_INDEX_COLUMN(RICH, rich); //!
+DECLARE_SOA_INDEX_COLUMN(MID, mid); //!
+} // namespace hf_track_index_alice3_pid
+
+DECLARE_SOA_INDEX_TABLE_USER(HfTrackIndexALICE3PID, Tracks, "HFTRKIDXA3PID", //!
+                             hf_track_index_alice3_pid::TrackId,
+                             hf_track_index_alice3_pid::RICHId,
+                             hf_track_index_alice3_pid::MIDId);
+} // namespace o2::aod
+
+struct Alice3PidIndexBuilder {
+  Builds<o2::aod::HfTrackIndexALICE3PID> index;
   void init(o2::framework::InitContext&) {}
 };
 
@@ -135,9 +158,9 @@ struct HFJpsiToEECandidateSelector {
     return true;
   }
 
-  using Trks = soa::Join<aod::BigTracksPID, aod::RICHTracksIndex, aod::MIDTracksIndex>;
+  using TracksPID = soa::Join<aod::BigTracksPID, aod::HfTrackIndexALICE3PID>;
 
-  void process(aod::HfCandProng2 const& candidates, Trks const&, aod::RICHs const&, aod::MIDs const&)
+  void process(aod::HfCandProng2 const& candidates, TracksPID const&, aod::RICHs const&, aod::MIDs const&)
   {
     TrackSelectorPID selectorElectron(kElectron);
     selectorElectron.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
@@ -153,14 +176,15 @@ struct HFJpsiToEECandidateSelector {
     // looping over 2-prong candidates
     for (auto& candidate : candidates) {
 
-      auto trackPos = candidate.index0_as<Trks>(); // positive daughter
-      auto trackNeg = candidate.index1_as<Trks>(); // negative daughter
+      auto trackPos = candidate.index0_as<TracksPID>(); // positive daughter
+      auto trackNeg = candidate.index1_as<TracksPID>(); // negative daughter
 
       if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
         hfSelJpsiToEECandidate(0);
         continue;
       }
 
+      /*
       LOGF(info, "Muon selection: Start");
       // track-level muon PID MID selection
       if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
@@ -170,6 +194,7 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
       LOGF(info, "Muon selection: Selected");
+      */
 
       // track selection level need to add special cuts (additional cuts on decay length and d0 norm)
 
@@ -208,7 +233,8 @@ struct HFJpsiToEECandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<RICHindexbuilder>(cfgc),
-    adaptAnalysisTask<MidIndexBuilder>(cfgc),
+    //adaptAnalysisTask<RICHindexbuilder>(cfgc),
+    //adaptAnalysisTask<MidIndexBuilder>(cfgc),
+    adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc),
     adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
 }
