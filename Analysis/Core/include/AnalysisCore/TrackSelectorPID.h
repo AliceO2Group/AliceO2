@@ -362,12 +362,12 @@ class TrackSelectorPID
   bool isSelectedTrackPIDMID(const T& track)
   {
     if (mPdg != kMuonMinus) {
-      LOGF(info, "isSelectedTrackPIDMID: Not a muon hypothesis");
+      //LOGF(info, "isSelectedTrackPIDMID: Not a muon hypothesis");
       return false;
     }
-    LOGF(info, "isSelectedTrackPIDMID: Getting muon response");
-    LOGF(info, "isSelectedTrackPIDMID: Got: %d", track.mid().midIsMuon());
-    LOGF(info, "isSelectedTrackPIDMID: Return: %d", track.mid().midIsMuon() == 1);
+    //LOGF(info, "isSelectedTrackPIDMID: Getting muon response");
+    //LOGF(info, "isSelectedTrackPIDMID: Got: %d", track.mid().midIsMuon());
+    //LOGF(info, "isSelectedTrackPIDMID: Return: %d", track.mid().midIsMuon() == 1);
     return track.mid().midIsMuon() == 1; // FIXME: change to return track.midIsMuon() once the column is bool.
   }
 
@@ -377,16 +377,16 @@ class TrackSelectorPID
   template <typename T>
   int getStatusTrackPIDMID(const T& track)
   {
-    LOGF(info, "getStatusTrackPIDMID: Start");
+    //LOGF(info, "getStatusTrackPIDMID: Start");
     if (mPdg != kMuonMinus) {
-      LOGF(info, "getStatusTrackPIDMID: Not a muon hypothesis");
+      //LOGF(info, "getStatusTrackPIDMID: Not a muon hypothesis");
       return Status::PIDRejected;
     }
     if (isSelectedTrackPIDMID(track)) {
-      LOGF(info, "getStatusTrackPIDMID: Accepted");
+      //LOGF(info, "getStatusTrackPIDMID: Accepted");
       return Status::PIDAccepted; // accepted
     } else {
-      LOGF(info, "getStatusTrackPIDMID: Rejected");
+      //LOGF(info, "getStatusTrackPIDMID: Rejected");
       return Status::PIDRejected; // rejected
     }
   }
