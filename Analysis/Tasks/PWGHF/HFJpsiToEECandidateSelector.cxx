@@ -72,8 +72,8 @@ namespace o2::aod
 namespace hf_track_index_alice3_pid
 {
 DECLARE_SOA_INDEX_COLUMN(Track, track); //!
-DECLARE_SOA_INDEX_COLUMN(RICH, rich); //!
-DECLARE_SOA_INDEX_COLUMN(MID, mid); //!
+DECLARE_SOA_INDEX_COLUMN(RICH, rich);   //!
+DECLARE_SOA_INDEX_COLUMN(MID, mid);     //!
 } // namespace hf_track_index_alice3_pid
 
 DECLARE_SOA_INDEX_TABLE_USER(HfTrackIndexALICE3PID, Tracks, "HFTRKIDXA3PID", //!
