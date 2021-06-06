@@ -184,18 +184,6 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      /*
-      LOGF(info, "Muon selection: Start");
-      // track-level muon PID MID selection
-      if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-          selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-        LOGF(info, "Muon selection: Rejected");
-        hfSelJpsiToEECandidate(0);
-        continue;
-      }
-      LOGF(info, "Muon selection: Selected");
-      */
-
       // track selection level need to add special cuts (additional cuts on decay length and d0 norm)
 
       if (!selectionTopol(candidate, trackPos, trackNeg)) {
@@ -224,6 +212,16 @@ struct HFJpsiToEECandidateSelector {
         hfSelJpsiToEECandidate(0);
         continue;
       }
+
+      // track-level muon PID MID selection
+      //LOGF(info, "Muon selection: Start");
+      if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+        //LOGF(info, "Muon selection: Rejected");
+        hfSelJpsiToEECandidate(0);
+        continue;
+      }
+      //LOGF(info, "Muon selection: Selected");
 
       hfSelJpsiToEECandidate(1);
     }
