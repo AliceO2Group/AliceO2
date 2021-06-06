@@ -18,6 +18,7 @@
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
+#include "MFTBase/MFTBaseParam.h"
 
 #include "MFTSimulation/Detector.h"
 #include "MFTSimulation/GeometryMisAligner.h"
@@ -626,7 +627,6 @@ void Detector::addAlignableVolumes() const
   for (Int_t hf = 0; hf < nHalf; hf++) {
     addAlignableVolumesHalf(hf, path, lastUID);
   }
-  MisalignGeometry();
 }
 
 //_____________________________________________________________________________
@@ -682,8 +682,6 @@ void Detector::addAlignableVolumesLadder(Int_t hf, Int_t dk, Int_t lr,
   path = Form("%s/%s_%d_%d_%d_%d", parent.Data(), GeometryTGeo::getMFTLadderPattern(), hf, dk, lr, lr);
   TString sname = mGeometryTGeo->composeSymNameLadder(hf, dk, lr);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path;
-
   if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
@@ -706,8 +704,6 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
 
   Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, lastUID++);
 
-  LOG(DEBUG) << "Add " << sname << " <-> " << path << "  uid: " << uid;
-
   if (!gGeoManager->SetAlignableEntry(sname, path.Data(), uid)) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
@@ -717,6 +713,8 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
 void Detector::MisalignGeometry() const
 {
   // Function to misalign the MFT geometry
+  auto& mftBaseParam = MFTBaseParam::Instance();
+
   const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080";
   long tmin = 0;
   long tmax = -1;
@@ -726,19 +724,26 @@ void Detector::MisalignGeometry() const
   // Initialize the misaligner
   o2::mft::GeometryMisAligner aGMA;
 
-  aGMA.SetHalfCartMisAlig(0., 0., 0., 0., 0., 0.); // half-MFT translated on X, Y, Z axis
-  aGMA.SetHalfAngMisAlig(0., 0., 0., 0., 0., 0.);  // half-MFT  rotated on Z, X, Y axis
+  if (mftBaseParam.misalignHalf) {
+    aGMA.SetHalfCartMisAlig(0., mftBaseParam.xHalf, 0., mftBaseParam.yHalf, 0., mftBaseParam.zHalf);
+    aGMA.SetHalfAngMisAlig(0., mftBaseParam.psiHalf, 0., mftBaseParam.thetaHalf, 0., mftBaseParam.phiHalf);
+  }
 
-  aGMA.SetDiskCartMisAlig(0., 0., 0., 0., 0., 0.); // Half-disks translated on X, Y, Z axis
-  aGMA.SetDiskAngMisAlig(0., 0., 0., 0., 0., 0.);  // Half-disks rotated on Z, X, Y axis
+  if (mftBaseParam.misalignDisk) {
+    aGMA.SetDiskCartMisAlig(0., mftBaseParam.xDisk, 0., mftBaseParam.yDisk, 0., mftBaseParam.zDisk);
+    aGMA.SetDiskAngMisAlig(0., mftBaseParam.psiDisk, 0., mftBaseParam.thetaDisk, 0., mftBaseParam.phiDisk);
+  }
+  if (mftBaseParam.misalignLadder) {
+    aGMA.SetLadderCartMisAlig(0., mftBaseParam.xLadder, 0., mftBaseParam.yLadder, 0., mftBaseParam.zLadder);
+    aGMA.SetLadderAngMisAlig(0., mftBaseParam.psiLadder, 0., mftBaseParam.thetaLadder, 0., mftBaseParam.phiLadder);
+  }
+  if (mftBaseParam.misalignSensor) {
+    aGMA.SetSensorCartMisAlig(0., mftBaseParam.xSensor, 0., mftBaseParam.ySensor, 0., mftBaseParam.zSensor);
+    aGMA.SetSensorAngMisAlig(0., mftBaseParam.psiSensor, 0., mftBaseParam.thetaSensor, 0., mftBaseParam.phiSensor);
+  }
 
-  aGMA.SetLadderCartMisAlig(0., 0., 0., 0., 0., 0.); // Ladders translated on X, Y, Z axis
-  aGMA.SetLadderAngMisAlig(0., 0., 0., 0., 0., 0.);  // Ladders rotated on Z, X, Y axis
-
-  aGMA.SetSensorCartMisAlig(0., 0., 0., 0., 0., 0.); // Sensors translated on X, Y, Z axis
-  aGMA.SetSensorAngMisAlig(0., 0., 0., 0., 0., 0.);  // Sensors rotated on Z, X, Y axis
-
-  aGMA.MisAlign(false, ccdbHost, tmin, tmax, objectPath, fileName); // Misalign the geometry
+  // Misalign the geometry
+  aGMA.MisAlign(false, ccdbHost, tmin, tmax, objectPath, fileName);
 }
 
 //_____________________________________________________________________________

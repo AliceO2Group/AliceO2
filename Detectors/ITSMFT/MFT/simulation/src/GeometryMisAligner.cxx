@@ -404,11 +404,7 @@ bool GeometryMisAligner::matrixToAngles(const double* rot, double& psi, double& 
 }
 
 //______________________________________________________________________
-void GeometryMisAligner::MisAlign(Bool_t verbose,
-                                  const std::string& ccdbHost,
-                                  long tmin, long tmax,
-                                  const std::string& objectPath,
-                                  const std::string& fileName)
+void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, long tmin, long tmax, const std::string& objectPath, const std::string& fileName)
 {
   /// Takes the internal geometry module transformers, copies them to
   /// new geometry module transformers.
@@ -431,123 +427,71 @@ void GeometryMisAligner::MisAlign(Bool_t verbose,
   /// Returns the new geometry transformer.
 
   mGeometryTGeo = GeometryTGeo::Instance();
-
   o2::detectors::AlignParam lAP;
-
   std::vector<o2::detectors::AlignParam> lAPvec;
+  LOG(INFO) << "GeometryMisAligner::MisAlign ";
 
-  LOG(INFO) << " GeometryMisAligner::MisAlign ";
-
-  Int_t nAlignID = 0;
   double lPsi, lTheta, lPhi = 0.;
+  Int_t nAlignID = 0;
   Int_t nChip = 0;
   Int_t nHalf = mGeometryTGeo->getNumberOfHalfs();
 
   for (Int_t hf = 0; hf < nHalf; hf++) {
     Int_t nDisks = mGeometryTGeo->getNumberOfDisksPerHalf(hf);
-
     // New module transformation
     TGeoCombiTrans localDeltaTransform = MisAlignHalf();
-
     TString sname = mGeometryTGeo->composeSymNameHalf(hf);
-
     lAP.setSymName(sname);
     lAP.setAlignableID(nAlignID++);
     lAP.setLocalParams(localDeltaTransform);
-
     if (!matrixToAngles(localDeltaTransform.GetRotationMatrix(), lPsi, lTheta, lPhi)) {
       LOG(ERROR) << "Problem extracting angles! from Half";
     }
-    LOG(DEBUG) << "** LocalDeltaTransform Half: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], localDeltaTransform.GetRotationMatrix()[0], localDeltaTransform.GetRotationMatrix()[1], localDeltaTransform.GetRotationMatrix()[2]);
-
     lAP.setLocalParams(localDeltaTransform);
-
-    // Apply misalignment of the half to the ideal geometry
+    // Apply misalignment to the ideal geometry
     lAP.applyToGeometry();
-
     lAPvec.emplace_back(lAP);
 
     for (Int_t dk = 0; dk < nDisks; dk++) {
-
-      // New module transformation
       localDeltaTransform = MisAlignDisk();
       sname = mGeometryTGeo->composeSymNameDisk(hf, dk);
-
       lAP.setSymName(sname);
       lAP.setAlignableID(nAlignID++);
-
       if (!matrixToAngles(localDeltaTransform.GetRotationMatrix(), lPsi, lTheta, lPhi)) {
         LOG(ERROR) << "Problem extracting angles!";
       }
       LOG(DEBUG) << "**** LocalDeltaTransform Disk: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], localDeltaTransform.GetRotationMatrix()[0], localDeltaTransform.GetRotationMatrix()[1], localDeltaTransform.GetRotationMatrix()[2]);
 
-      // Set the local delta transformation to the module
       lAP.setLocalParams(localDeltaTransform);
-
-      LOG(DEBUG) << "**** AlignParam Disk: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), lAP.getX(), lAP.getY(), lAP.getZ(), lAP.getPsi(), lAP.getTheta(), lAP.getPhi());
-
       if (verbose) {
         LOG(INFO) << "-> misalign element: " << sname << ", disk: " << dk;
       }
-
       Int_t nLadders = 0;
-
       for (Int_t sensor = mGeometryTGeo->getMinSensorsPerLadder(); sensor < mGeometryTGeo->getMaxSensorsPerLadder() + 1; sensor++) {
         nLadders += mGeometryTGeo->getNumberOfLaddersPerDisk(hf, dk, sensor);
       }
-
-      // Apply misalignment to the ideal geometry
       lAP.applyToGeometry();
-
-      // Store AlignParam (misalignment parameters)
       lAPvec.emplace_back(lAP);
 
       for (Int_t lr = 0; lr < nLadders; lr++) { //nLadders
-
         localDeltaTransform = MisAlignLadder();
-
         sname = mGeometryTGeo->composeSymNameLadder(hf, dk, lr);
-
         Int_t nSensorsPerLadder = mGeometryTGeo->getNumberOfSensorsPerLadder(hf, dk, lr);
         TString path = "/cave_1/barrel_1/" + sname;
-
         lAP.setSymName(sname);
         lAP.setAlignableID(nAlignID++);
-
-        LOG(DEBUG) << "LocalDeltaTransform Ladder: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], lPsi, lTheta, lPhi);
-
-        // Set the local transformations
         lAP.setLocalParams(localDeltaTransform);
-
-        LOG(DEBUG) << "AlignParam Ladder: " << fmt::format("  {} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), lAP.getX(), lAP.getY(), lAP.getZ(), lAP.getPsi(), lAP.getTheta(), lAP.getPhi());
-
-        if (verbose) {
-          LOG(INFO) << "--> misalign element: " << sname << ", ladder: " << lr;
-        }
-
-        // Apply misaligned detection element to the geometry
         lAP.applyToGeometry();
-
-        // Store AlignParam (misalignment parameters)
         lAPvec.emplace_back(lAP);
 
         for (Int_t sr = 0; sr < nSensorsPerLadder; sr++) {
-
           localDeltaTransform = MisAlignSensor();
-
           sname = mGeometryTGeo->composeSymNameChip(hf, dk, lr, sr);
-
-          if (verbose) {
-            LOG(INFO) << "---> misalign element: " << sname << ", sensor: " << sr;
-          }
-
           lAP.setSymName(sname);
           lAP.setAlignableID(nAlignID++);
           lAP.setLocalParams(localDeltaTransform);
           lAP.applyToGeometry();
-
           lAPvec.emplace_back(lAP);
-
           nChip++;
         }
       }
@@ -558,7 +502,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose,
     std::string path = objectPath.empty() ? o2::base::NameConf::getAlignmentPath(o2::detectors::DetID::MFT) : objectPath;
     LOGP(INFO, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
-    map<string, string> metadata; // can be empty
+    std::map<std::string, std::string> metadata; // can be empty
     api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
     // store abitrary user object in strongly typed manner
     api.storeAsTFileAny(&lAPvec, path, metadata, tmin, tmax);

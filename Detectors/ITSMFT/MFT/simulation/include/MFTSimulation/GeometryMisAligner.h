@@ -56,14 +56,10 @@ class GeometryMisAligner
   bool matrixToAngles(const double* rot, double& psi, double& theta, double& phi);
 
   // return a misaligned geometry obtained from the existing one.
-  void MisAlign(bool verbose = false,
-                const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080",
-                long tmin = 0, long tmax = -1,
-                const std::string& objectPath = "",
-                const std::string& fileName = "MFTAlignment.root");
+  void MisAlign(bool verbose = false, const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080", long tmin = 0, long tmax = -1, const std::string& objectPath = "", const std::string& fileName = "MFTAlignment.root");
 
   /// Set sensor cartesian displacement parameters different along x, y
-  void SetSensorCartMisAlig(Double_t xmean, Double_t xwidth, Double_t ymean, Double_t ywidth, Double_t zmean = 0., Double_t zwidth = 0.)
+  void SetSensorCartMisAlig(Double_t xmean, Double_t xwidth, Double_t ymean, Double_t ywidth, Double_t zmean, Double_t zwidth)
   {
     fSensorMisAlig[0][0] = xmean;
     fSensorMisAlig[0][1] = xwidth;
@@ -83,7 +79,7 @@ class GeometryMisAligner
   }
 
   /// Set sensor angular displacement
-  void SetSensorAngMisAlig(Double_t zmean, Double_t zwidth, Double_t xmean = 0., Double_t xwidth = 0., Double_t ymean = 0., Double_t ywidth = 0.)
+  void SetSensorAngMisAlig(Double_t xmean, Double_t xwidth, Double_t ymean, Double_t ywidth, Double_t zmean, Double_t zwidth)
   {
     fSensorMisAlig[3][0] = xmean;
     fSensorMisAlig[3][1] = xwidth;
@@ -110,7 +106,7 @@ class GeometryMisAligner
   }
 
   /// Set sensor cartesian displacement parameters different along x, y
-  void SetLadderCartMisAlig(Double_t xmean, Double_t xwidth, Double_t ymean, Double_t ywidth, Double_t zmean = 0., Double_t zwidth = 0.)
+  void SetLadderCartMisAlig(Double_t xmean, Double_t xwidth, Double_t ymean, Double_t ywidth, Double_t zmean, Double_t zwidth)
   {
     fLadderMisAlig[0][0] = xmean;
     fLadderMisAlig[0][1] = xwidth;
@@ -130,7 +126,7 @@ class GeometryMisAligner
   }
 
   /// Set ladder angular displacement
-  void SetLadderAngMisAlig(Double_t zmean, Double_t zwidth, Double_t xmean = 0., Double_t xwidth = 0., Double_t ymean = 0., Double_t ywidth = 0.)
+  void SetLadderAngMisAlig(Double_t xmean, Double_t xwidth, Double_t ymean, Double_t ywidth, Double_t zmean, Double_t zwidth)
   {
     fLadderMisAlig[3][0] = xmean;
     fLadderMisAlig[3][1] = xwidth;
