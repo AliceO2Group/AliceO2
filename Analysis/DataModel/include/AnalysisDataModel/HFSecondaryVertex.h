@@ -650,6 +650,7 @@ DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction le
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
 DECLARE_SOA_COLUMN(OriginMCRec, originMCRec, int8_t);       // particle origin, reconstruction level
 DECLARE_SOA_COLUMN(OriginMCGen, originMCGen, int8_t);       // particle origin, generator level
+DECLARE_SOA_COLUMN(DebugMCRec, debugMCRec, int8_t);         // debug flag for mis-association reconstruction level
 // mapping of decay types
 enum DecayType { XiccToXicPi = 0 }; // move this to a dedicated cascade namespace in the future?
 
@@ -720,7 +721,8 @@ using HfCandXicc = HfCandXiccExt;
 // table with results of reconstruction level MC matching
 DECLARE_SOA_TABLE(HfCandXiccMCRec, "AOD", "HFCANDXICCMCREC", //!
                   hf_cand_xicc::FlagMCMatchRec,
-                  hf_cand_xicc::OriginMCRec);
+                  hf_cand_xicc::OriginMCRec,
+                  hf_cand_xicc::DebugMCRec);
 
 // table with results of generator level MC matching
 DECLARE_SOA_TABLE(HfCandXiccMCGen, "AOD", "HFCANDXICCMCGEN", //!

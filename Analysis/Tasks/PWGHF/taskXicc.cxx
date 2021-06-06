@@ -13,8 +13,6 @@
 /// \note Inspired from taskLc.cxx
 ///
 /// \author Gian Michele Innocenti <gian.michele.innocenti@cern.ch>, CERN
-/// \author Luigi Dello Stritto <luigi.dello.stritto@cern.ch >, SALERNO
-/// \author Mattia Faggin <mattia.faggin@cern.ch>, University and INFN PADOVA
 
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
@@ -40,9 +38,9 @@ struct HfTaskXicc {
   HistogramRegistry registry{
     "registry",
     {{"hptcand", "#Xi^{++}_{cc}-candidates;candidate #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hptprong0", "#Xi^{++}_{cc}-prong candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hptprong1", "#Xi^{++}_{cc}-prong candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
-     {"hptprong2", "#Xi^{++}_{cc}-prong candidates;prong 2 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
+     {"hptprong0", "#Xi^{++}_{cc}-candidates;prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hptprong1", "#Xi^{++}_{cc}-candidates;prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}},
+     {"hptprong2", "#Xi^{++}_{cc}-candidates;prong 2 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH1F, {{100, 0., 10.}}}}}};
 
   Configurable<int> d_selectionFlagXicc{"d_selectionFlagXicc", 1, "Selection Flag for Xicc"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
@@ -147,6 +145,14 @@ struct HfTaskXiccMc {
     registry.add("hImpParErr0Bg", "#Xi^{++}_{cc} (rec. unmatched) candidates;impact parameter error (cm);entries", {HistType::kTH2F, {{200, 0, 0.02}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hImpParErr1Sig", "#Xi^{++}_{cc} (rec. matched) candidates;impact parameter error (cm);entries", {HistType::kTH2F, {{200, 0, 0.02}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hImpParErr1Bg", "#Xi^{++}_{cc} (rec. unmatched) candidates;impact parameter error (cm);entries", {HistType::kTH2F, {{200, 0, 0.02}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
+    // resolutions
+    registry.add("hXSecVtxPosDiff", "#Xi^{++}_{cc} (rec. matched) candidates;x-axis sec. vertex pos. reco - gen (cm);entries", {HistType::kTH2F, {{400, -0.02, 0.02}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hYSecVtxPosDiff", "#Xi^{++}_{cc} (rec. matched) candidates;y-axis sec. vertex pos. reco - gen (cm);entries", {HistType::kTH2F, {{400, -0.02, 0.02}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hZSecVtxPosDiff", "#Xi^{++}_{cc} (rec. matched) candidates;z-axis sec. vertex pos. reco - gen (cm);entries", {HistType::kTH2F, {{400, -0.02, 0.02}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hPtRecGenDiff", "#Xi^{++}_{cc} (rec. matched) candidates;pt reco - gen;entries (GeV/#it{c}})", {HistType::kTH2F, {{400, -1.0, 1.0}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
+    //debug
+    registry.add("hDebugMCmatching", "#Xi^{++}_{cc} (rec. matched) candidates;debug MC matching bitmap;entries", {HistType::kTH2F, {{5, -0.5, 4.5}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
+
   }
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_xicc::isSelXiccToPKPiPi >= d_selectionFlagXicc);
@@ -166,12 +172,24 @@ struct HfTaskXiccMc {
       if (std::abs(candidate.flagMCMatchRec()) == 1 << DecayType::XiccToXicPi) {
         // Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index1_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandXiccMCGen>>(), 4422, true);
-        auto particleMother = particlesMC.iteratorAt(indexMother);
-        registry.fill(HIST("hPtGenSig"), particleMother.pt()); // gen. level pT
+        auto particleXicc = particlesMC.iteratorAt(indexMother);
+        auto particleXic = particlesMC.iteratorAt(particleXicc.daughter0());
+/*
+        auto daughter1 = particlesMC.iteratorAt(particleXicc.daughter1());
+        auto p0xic = particlesMC.iteratorAt(particleXic.daughter0());
+        auto p1xic = particlesMC.iteratorAt(particleXic.daughter0()+1);
+        auto p2xic = particlesMC.iteratorAt(particleXic.daughter1());
+        LOGF(info, "mother pdg %d", particleXicc.pdgCode());
+        LOGF(info, "Xic pdg %d", particleXic.pdgCode());
+        LOGF(info, "Xic prong 0 pdg %d", p0xic.pdgCode());
+        LOGF(info, "Xic prong 1 pdg %d", p1xic.pdgCode());
+        LOGF(info, "Xic prong 2 pdg %d", p2xic.pdgCode());
+        LOGF(info, "Pion pdg %d", daughter1.pdgCode());
+*/
+        registry.fill(HIST("hPtGenSig"), particleXicc.pt());   // gen. level pT
         registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
         registry.fill(HIST("hYRecSig"), YXicc(candidate));
-
         registry.fill(HIST("hmassSig"), InvMassXiccToXicPi(candidate), candidate.pt()); //FIXME need to consider the two mass hp
         registry.fill(HIST("hDecLengthSig"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hChi2PCASig"), candidate.chi2PCA(), candidate.pt());
@@ -185,6 +203,10 @@ struct HfTaskXiccMc {
         registry.fill(HIST("hYSig"), YXicc(candidate), candidate.pt());
         registry.fill(HIST("hImpParErr0Sig"), candidate.errorImpactParameter0(), candidate.pt());
         registry.fill(HIST("hImpParErr1Sig"), candidate.errorImpactParameter1(), candidate.pt());
+        registry.fill(HIST("hXSecVtxPosDiff"), candidate.xSecondaryVertex() - particleXic.vx(), candidate.pt());
+        registry.fill(HIST("hYSecVtxPosDiff"), candidate.ySecondaryVertex() - particleXic.vy(), candidate.pt());
+        registry.fill(HIST("hZSecVtxPosDiff"), candidate.zSecondaryVertex() - particleXic.vz(), candidate.pt());
+        registry.fill(HIST("hPtRecGenDiff"), candidate.pt() - particleXicc.pt(), candidate.pt());
       } else {
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
@@ -202,6 +224,7 @@ struct HfTaskXiccMc {
         registry.fill(HIST("hYBg"), YXicc(candidate), candidate.pt());
         registry.fill(HIST("hImpParErr0Bg"), candidate.errorImpactParameter0(), candidate.pt());
         registry.fill(HIST("hImpParErr1Bg"), candidate.errorImpactParameter1(), candidate.pt());
+        registry.fill(HIST("hDebugMCmatching"), candidate.debugMCRec(), candidate.pt());
       }
     } // end of loop over reconstructed candidates
     // MC gen.

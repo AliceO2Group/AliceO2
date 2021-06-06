@@ -204,33 +204,38 @@ struct HfCandidateCreatorXiccMc {
     int8_t sign = 0;
     int8_t flag = 0;
     int8_t origin = 0;
+    int8_t debug = 0;
 
     // Match reconstructed candidates.
     for (auto& candidate : candidates) {
       //Printf("New rec. candidate");
       flag = 0;
       origin = 0;
-
+      debug = 0;
       auto xicCand = candidate.index0();
       auto arrayDaughters = array{xicCand.index0_as<aod::BigTracksMC>(),
                                   xicCand.index1_as<aod::BigTracksMC>(),
                                   xicCand.index2_as<aod::BigTracksMC>(),
                                   candidate.index1_as<aod::BigTracksMC>()};
-
+      auto arrayDaughtersXic = array{xicCand.index0_as<aod::BigTracksMC>(),
+                                     xicCand.index1_as<aod::BigTracksMC>(),
+                                     xicCand.index2_as<aod::BigTracksMC>()};
       // Ξcc±± → p± K∓ π± π±
       //Printf("Checking Ξcc±± → p± K∓ π± π±");
-      indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kXiCCPlusPlus, array{+kProton, -kKPlus, +kPiPlus, +kPiPlus}, true, &sign, 3);
+      indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kXiCCPlusPlus, array{+kProton, -kKPlus, +kPiPlus, +kPiPlus}, true, &sign, 2);
       if (indexRec > -1) {
-        flag = 1 << DecayType::XiccToXicPi;
+        // Ξc± → p± K∓ π±
+        //Printf("Checking Ξc± → p± K∓ π±");
+	indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersXic, pdg::Code::kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 1);
+        if (indexRec > -1) { 
+          flag = 1 << DecayType::XiccToXicPi;
+	}
+	else {
+	  debug = 1;
+	  LOGF(info, "WARNING: Ξc±± in decays in the expected final state but the condition on the intermediate state is not fulfilled");
+	}
       }
-
-      // Check whether the particle is non-prompt (from a b quark).
-      if (flag != 0) {
-        auto particle = particlesMC.iteratorAt(indexRec);
-        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? OriginType::NonPrompt : OriginType::Prompt);
-      }
-
-      rowMCMatchRec(flag, origin);
+      rowMCMatchRec(flag, origin, debug);
     }
 
     // Match generated particles.
@@ -241,17 +246,11 @@ struct HfCandidateCreatorXiccMc {
       // Xicc → Xic + π+
       if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kXiCCPlusPlus, array{int(pdg::Code::kXiCPlus), +kPiPlus}, true)) {
         // Match Xic -> pKπ
-        std::vector<int> arrDaughter;
-        RecoDecay::getDaughters(particlesMC, particle, &arrDaughter, array{int(pdg::Code::kXiCPlus)}, 1);
-        auto XicCandMC = particlesMC.iteratorAt(arrDaughter[0]);
+        auto XicCandMC = particlesMC.iteratorAt(particle.daughter0());
         //Printf("Checking Ξc± → p± K∓ π±");
         if (RecoDecay::isMatchedMCGen(particlesMC, XicCandMC, int(pdg::Code::kXiCPlus), array{+kProton, -kKPlus, +kPiPlus}, true, &sign)) {
           flag = sign * (1 << DecayType::XiccToXicPi);
         }
-      }
-      // Check whether the particle is non-prompt (from a b quark).
-      if (flag != 0) {
-        origin = (RecoDecay::getMother(particlesMC, particle, kBottom, true) > -1 ? OriginType::NonPrompt : OriginType::Prompt);
       }
       rowMCMatchGen(flag, origin);
     }
