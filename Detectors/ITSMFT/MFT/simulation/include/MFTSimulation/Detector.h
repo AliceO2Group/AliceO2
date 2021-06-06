@@ -118,7 +118,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param lastUID on output, UID of the last volume
   void addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms, TString& parent, Int_t& lastUID) const;
 
-  void MisalignGeometry() const; // adding 'overide' will be inherited from FairApplication
+  void MisalignGeometry() const;
 
   Int_t isVersion() const { return mVersion; }
   /// Creating materials for the detector
