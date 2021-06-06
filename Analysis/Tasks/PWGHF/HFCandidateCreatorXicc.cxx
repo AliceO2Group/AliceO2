@@ -226,14 +226,13 @@ struct HfCandidateCreatorXiccMc {
       if (indexRec > -1) {
         // Ξc± → p± K∓ π±
         //Printf("Checking Ξc± → p± K∓ π±");
-	indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersXic, pdg::Code::kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 1);
-        if (indexRec > -1) { 
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughtersXic, pdg::Code::kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign, 1);
+        if (indexRec > -1) {
           flag = 1 << DecayType::XiccToXicPi;
-	}
-	else {
-	  debug = 1;
-	  LOGF(info, "WARNING: Ξc±± in decays in the expected final state but the condition on the intermediate state is not fulfilled");
-	}
+        } else {
+          debug = 1;
+          LOGF(info, "WARNING: Ξc±± in decays in the expected final state but the condition on the intermediate state is not fulfilled");
+        }
       }
       rowMCMatchRec(flag, origin, debug);
     }

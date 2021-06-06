@@ -152,7 +152,6 @@ struct HfTaskXiccMc {
     registry.add("hPtRecGenDiff", "#Xi^{++}_{cc} (rec. matched) candidates;pt reco - gen;entries (GeV/#it{c}})", {HistType::kTH2F, {{400, -1.0, 1.0}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
     //debug
     registry.add("hDebugMCmatching", "#Xi^{++}_{cc} (rec. matched) candidates;debug MC matching bitmap;entries", {HistType::kTH2F, {{5, -0.5, 4.5}, {vbins, "#it{p}_{T} (GeV/#it{c})"}}});
-
   }
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_xicc::isSelXiccToPKPiPi >= d_selectionFlagXicc);
@@ -174,7 +173,7 @@ struct HfTaskXiccMc {
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index1_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandXiccMCGen>>(), 4422, true);
         auto particleXicc = particlesMC.iteratorAt(indexMother);
         auto particleXic = particlesMC.iteratorAt(particleXicc.daughter0());
-/*
+        /*
         auto daughter1 = particlesMC.iteratorAt(particleXicc.daughter1());
         auto p0xic = particlesMC.iteratorAt(particleXic.daughter0());
         auto p1xic = particlesMC.iteratorAt(particleXic.daughter0()+1);
