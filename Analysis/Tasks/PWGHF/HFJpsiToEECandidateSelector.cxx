@@ -215,8 +215,8 @@ struct HFJpsiToEECandidateSelector {
 
       // track-level muon PID MID selection
       //LOGF(info, "Muon selection: Start");
-      if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-          selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+      if (selectorMuon.getStatusTrackPIDMID(trackPos) != TrackSelectorPID::Status::PIDAccepted ||
+          selectorMuon.getStatusTrackPIDMID(trackNeg) != TrackSelectorPID::Status::PIDAccepted) {
         //LOGF(info, "Muon selection: Rejected");
         hfSelJpsiToEECandidate(0);
         continue;
