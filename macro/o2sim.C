@@ -27,6 +27,7 @@
 #include <DetectorsBase/MaterialManager.h>
 #include <CCDB/BasicCCDBManager.h>
 #include <DetectorsCommonDataFormats/NameConf.h>
+#include "DetectorsBase/Aligner.h"
 #include <unistd.h>
 #include <sstream>
 #endif
@@ -91,6 +92,7 @@ FairRunSim* o2sim_init(bool asservice)
 
   // construct geometry / including magnetic field
   build_geometry(run);
+
   // setup generator
   auto embedinto_filename = confref.getEmbedIntoFileName();
   auto primGen = new o2::eventgen::PrimaryGenerator();
@@ -108,6 +110,9 @@ FairRunSim* o2sim_init(bool asservice)
 
   // run init
   run->Init();
+  auto& aligner = o2::base::Aligner::Instance();
+  aligner.applyAlignment();
+
   std::time_t runStart = std::time(nullptr);
 
   // runtime database
