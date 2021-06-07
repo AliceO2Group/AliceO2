@@ -32,7 +32,7 @@ class MergeInterface
   // make sure that all entries are correctly deleted as well.
   virtual ~MergeInterface() = default;
 
-  /// \brief Custom merge function.
+  /// \brief Custom merge method.
   virtual void merge(MergeInterface* const other) = 0; // const argument
 
   ClassDef(MergeInterface, 0);
