@@ -60,42 +60,34 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       return;
     }
     mgr.setTimestamp(timeStamp);
-    auto* moduleConfig =
-      mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
+    auto* moduleConfig = mgr.get<o2::zdc::ModuleConfig>(o2::zdc::CCDBPathConfigModule);
     if (!moduleConfig) {
       LOG(FATAL) << "Missing configuration object";
       return;
     }
     LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
 
-    // Get Reconstruction parameters
-    auto* integrationParam =
-      mgr.get<o2::zdc::ZDCIntegrationParam>(o2::zdc::CCDBPathConfigIntegration);
+    // Integration parameters
+    auto* integrationParam = mgr.get<o2::zdc::ZDCIntegrationParam>(o2::zdc::CCDBPathConfigIntegration);
     if (!integrationParam) {
       LOG(FATAL) << "Missing ZDCIntegrationParam object";
       return;
     }
+
+    // TDC centering
+    auto* tdcParam = mgr.get<o2::zdc::ZDCTDCParam>(o2::zdc::CCDBPathTDCCalib);
+    if (!tdcParam) {
+      LOG(FATAL) << "Missing ZDCTDCParam calibration object";
+      return;
+    }
+
     mDR.setModuleConfig(moduleConfig);
     mDR.setIntegrationParam(integrationParam);
-    mDR.setDebugOutput();
-    // TDC
-    auto* zdc_tdcp = new o2::zdc::ZDCTDCParam();
-    for (Int_t itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-      zdc_tdcp->setShift(itdc, 14.5);
-    }
-    mDR.setTDCParam(zdc_tdcp);
+    mDR.setTDCParam(tdcParam);
 
-    auto* zdc_ip = new o2::zdc::ZDCIntegrationParam();
-    int beg = 6;
-    int end = 8;
-    int beg_ped = -1;
-    int end_ped = -1;
-    for (Int_t ich = 0; ich < o2::zdc::NChannels; ich++) {
-      // zdc_ip->setIntegration(ich, beg, end, beg_ped, end_ped);
-      zdc_ip->beg_int[ich] = beg;
-      zdc_ip->end_int[ich] = end;
-    }
-    mDR.setIntegrationParam(zdc_ip);
+    // TODO: conditional debug output
+    mDR.setDebugOutput();
+
     mDR.init();
   }
   auto cput = mTimer.CpuTime();

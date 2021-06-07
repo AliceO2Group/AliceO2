@@ -29,39 +29,45 @@ void CreateIntegrationParam(long tmin = 0, long tmax = -1,
 
   ZDCIntegrationParam conf;
 
+  int beg_sig = 6;
+  int end_sig = 8;
+  int beg_ped = -12;
+  int end_ped = -8;
+
   // Integration limits for all signals
   // Values should be in range -12..11
   // Channel ID, signal begin, end, pedestal begin, end
-  conf.setIntegration(IdZNAC, 5, 9, -12, -8);
-  conf.setIntegration(IdZNA1, 5, 9, -12, -8);
-  conf.setIntegration(IdZNA2, 5, 9, -12, -8);
-  conf.setIntegration(IdZNA3, 5, 9, -12, -8);
-  conf.setIntegration(IdZNA4, 5, 9, -12, -8);
-  conf.setIntegration(IdZNASum, 5, 9, -12, -8);
+
+  conf.setIntegration(IdZNAC, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNA1, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNA2, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNA3, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNA4, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNASum, beg_sig, end_sig, beg_ped, end_ped);
   //
-  conf.setIntegration(IdZPAC, 5, 9, -12, -8);
-  conf.setIntegration(IdZPA1, 5, 9, -12, -8);
-  conf.setIntegration(IdZPA2, 5, 9, -12, -8);
-  conf.setIntegration(IdZPA3, 5, 9, -12, -8);
-  conf.setIntegration(IdZPA4, 5, 9, -12, -8);
-  conf.setIntegration(IdZPASum, 5, 9, -12, -8);
+  conf.setIntegration(IdZPAC, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPA1, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPA2, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPA3, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPA4, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPASum, beg_sig, end_sig, beg_ped, end_ped);
   //
-  conf.setIntegration(IdZEM1, 5, 9, -12, -8);
-  conf.setIntegration(IdZEM2, 5, 9, -12, -8);
+  conf.setIntegration(IdZEM1, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZEM2, beg_sig, end_sig, beg_ped, end_ped);
   //
-  conf.setIntegration(IdZNCC, 5, 9, -12, -8);
-  conf.setIntegration(IdZNC1, 5, 9, -12, -8);
-  conf.setIntegration(IdZNC2, 5, 9, -12, -8);
-  conf.setIntegration(IdZNC3, 5, 9, -12, -8);
-  conf.setIntegration(IdZNC4, 5, 9, -12, -8);
-  conf.setIntegration(IdZNCSum, 5, 9, -12, -8);
+  conf.setIntegration(IdZNCC, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNC1, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNC2, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNC3, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNC4, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZNCSum, beg_sig, end_sig, beg_ped, end_ped);
   //
-  conf.setIntegration(IdZPCC, 5, 9, -12, -8);
-  conf.setIntegration(IdZPC1, 5, 9, -12, -8);
-  conf.setIntegration(IdZPC2, 5, 9, -12, -8);
-  conf.setIntegration(IdZPC3, 5, 9, -12, -8);
-  conf.setIntegration(IdZPC4, 5, 9, -12, -8);
-  conf.setIntegration(IdZPCSum, 5, 9, -12, -8);
+  conf.setIntegration(IdZPCC, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPC1, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPC2, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPC3, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPC4, beg_sig, end_sig, beg_ped, end_ped);
+  conf.setIntegration(IdZPCSum, beg_sig, end_sig, beg_ped, end_ped);
 
   conf.print();
 

@@ -104,6 +104,7 @@ void DigiReco::init()
     tdc_shift[itdc] = val;
     LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift= " << tdc_shift[itdc] << " i.s. = " << val * FTDCVal << " ns";
   }
+
   // TDC search zone
   // TODO: override with configuration object
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
@@ -149,6 +150,8 @@ void DigiReco::init()
     }
     LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
   }
+
+  // TODO: Energy calibration
 }
 
 int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata)
