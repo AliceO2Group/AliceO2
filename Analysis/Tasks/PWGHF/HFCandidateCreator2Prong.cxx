@@ -172,9 +172,18 @@ struct HFCandidateCreator2ProngMC {
       // J/ψ → e+ e−
       if (flag == 0) {
         //Printf("Checking J/ψ → e+ e−");
-        indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), pdg::Code::kJpsi, array{+kElectron, -kElectron}, true);
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kJpsi, array{+kElectron, -kElectron}, true);
         if (indexRec > -1) {
           flag = 1 << DecayType::JpsiToEE;
+        }
+      }
+
+      // J/ψ → μ+ μ−
+      if (flag == 0) {
+        //Printf("Checking J/ψ → μ+ μ−");
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kJpsi, array{+kMuonPlus, -kMuonPlus}, true);
+        if (indexRec > -1) {
+          flag = 1 << DecayType::JpsiToMuMu;
         }
       }
 
@@ -204,6 +213,14 @@ struct HFCandidateCreator2ProngMC {
         //Printf("Checking J/ψ → e+ e−");
         if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kJpsi, array{+kElectron, -kElectron}, true)) {
           flag = 1 << DecayType::JpsiToEE;
+        }
+      }
+
+      // J/ψ → μ+ μ−
+      if (flag == 0) {
+        //Printf("Checking J/ψ → μ+ μ−");
+        if (RecoDecay::isMatchedMCGen(particlesMC, particle, pdg::Code::kJpsi, array{+kMuonPlus, -kMuonPlus}, true)) {
+          flag = 1 << DecayType::JpsiToMuMu;
         }
       }
 
