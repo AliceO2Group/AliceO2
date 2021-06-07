@@ -41,7 +41,6 @@ namespace ft0
 class Digits2Raw
 {
 
-  //  static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
   static constexpr int NPMs = 20;
   static constexpr int GBTWordSize = 128; // with padding

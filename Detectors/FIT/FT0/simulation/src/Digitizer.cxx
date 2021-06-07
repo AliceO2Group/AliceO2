@@ -37,7 +37,6 @@ Float signalForm_i(Float x)
   Float const a = -0.45458;
   Float const b = -0.83344945;
   return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
-  //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
 };
 
 // integrated signal shape function
