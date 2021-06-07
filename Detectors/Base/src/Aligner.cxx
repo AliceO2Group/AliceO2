@@ -35,6 +35,10 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
   if (!gGeoManager) {
     throw std::runtime_error("Geometry is not loaded, cannot apply alignment");
   }
+  if (gGeoManager->IsLocked()) {
+    throw std::runtime_error("Geometry is locked, cannot apply alignment");
+  }
+
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
   if (timestamp == 0) {
     timestamp = getTimeStamp();
@@ -58,6 +62,7 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
       LOGP(INFO, "skipping empty alignment for {}", DetID::getName(id));
     }
   }
+  gGeoManager->RefreshPhysicalNodes(false);
 }
 
 long Aligner::getTimeStamp() const
