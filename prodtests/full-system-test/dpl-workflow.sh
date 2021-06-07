@@ -28,7 +28,7 @@ if [ $NUMAGPUIDS != 0 ]; then
 fi
 
 # Set some individual workflow arguments depending on configuration
-CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP
+CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP,FV0
 CTF_DIR=
 CTF_DICT_DIR=
 GPU_INPUT=zsraw
@@ -98,7 +98,7 @@ if [ $CTFINPUT == 1 ]; then
   if [ ! -z $CTF_DICT_DIR ] ; then CTF_DICT=" --ctf-dict ${CTF_DICT_DIR}/ctf_dictionary.root"; fi
   WORKFLOW="o2-ctf-reader-workflow --ctf-input ${CTFName}  ${CTF_DICT} --onlyDet $CTF_DETECTORS $ARGS_ALL  | "
 elif [ $EXTINPUT == 1 ]; then
-  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"FLP:FLP/DISTSUBTIMEFRAME/0;B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA;J:ZDC/RAWDATA;K:HMP/RAWDATA;L:FDD/RAWDATA;M:TRD/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=0\" | "
+  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"FLP:FLP/DISTSUBTIMEFRAME/0;B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA;J:ZDC/RAWDATA;K:HMP/RAWDATA;L:FDD/RAWDATA;M:TRD/RAWDATA;N:FV0/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=0\" | "
 else
   WORKFLOW="o2-raw-file-reader-workflow --detect-tf0 $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg | "
 fi
@@ -108,6 +108,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-itsmft-stf-decoder-workflow $ARGS_ALL --pipeline its-stf-decoder:$N_ITSDEC | "
   WORKFLOW+="o2-itsmft-stf-decoder-workflow $ARGS_ALL --runmft true | "
   WORKFLOW+="o2-ft0-flp-dpl-workflow $ARGS_ALL --disable-root-output | "
+  WORKFLOW+="o2-fv0-flp-dpl-workflow $ARGS_ALL --disable-root-output | "
   WORKFLOW+="o2-mid-raw-to-digits-workflow $ARGS_ALL | "
   WORKFLOW+="o2-tof-compressor $ARGS_ALL | "
   WORKFLOW+="o2-fdd-flp-dpl-workflow --disable-root-output $ARGS_ALL | "
@@ -140,6 +141,7 @@ if [ $CTFINPUT == 0 ]; then
 
   WORKFLOW+="o2-itsmft-entropy-encoder-workflow $ARGS_ALL --runmft true | "
   WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-fv0-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-mid-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-cpv-entropy-encoder-workflow $ARGS_ALL | "
