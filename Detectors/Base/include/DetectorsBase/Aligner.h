@@ -37,7 +37,7 @@ class Aligner : public o2::conf::ConfigurableParamHelper<Aligner>
 
  private:
   std::string mCCDB = "http://ccdb-test.cern.ch:8080"; // URL for CCDB acces
-  std::string mDetectors = "all";                      // comma-separated list of modules to align, "all" or "none"
+  std::string mDetectors = "none";                     // comma-separated list of modules to align, "all" or "none"
   long mTimeStamp = 0;                                 // assigned TimeStamp or now() if 0
 
   O2ParamDef(Aligner, "align-geom");
