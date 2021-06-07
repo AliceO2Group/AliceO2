@@ -45,7 +45,7 @@ class Geometry
   static constexpr float ChannelWidth = 13.02;              // channel width in ps
   static constexpr float ChannelWidthInverse = 0.076804916; // channel width in ps inverse
 
-private:
+ private:
   TVector3 mMCP[52];
 
   ClassDefNV(Geometry, 1);
