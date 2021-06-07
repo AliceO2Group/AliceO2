@@ -117,6 +117,8 @@ class Detector : public o2::base::DetImpl<Detector>
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
+  void exportLayout();
+
  protected:
   std::vector<Int_t> mLayerID;
   std::vector<std::vector<TString>> mLayerName;
