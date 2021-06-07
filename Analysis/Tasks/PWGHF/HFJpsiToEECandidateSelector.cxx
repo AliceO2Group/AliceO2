@@ -207,16 +207,16 @@ struct HFJpsiToEECandidateSelector {
       }
 
       // track-level PID RICH selection
-      if (selectorElectron.getStatusTrackPIDRICH(trackPos) != TrackSelectorPID::Status::PIDAccepted ||
-          selectorElectron.getStatusTrackPIDRICH(trackNeg) != TrackSelectorPID::Status::PIDAccepted) {
+      if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
         hfSelJpsiToEECandidate(0);
         continue;
       }
 
       // track-level muon PID MID selection
       //LOGF(info, "Muon selection: Start");
-      if (selectorMuon.getStatusTrackPIDMID(trackPos) != TrackSelectorPID::Status::PIDAccepted ||
-          selectorMuon.getStatusTrackPIDMID(trackNeg) != TrackSelectorPID::Status::PIDAccepted) {
+      if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
         //LOGF(info, "Muon selection: Rejected");
         hfSelJpsiToEECandidate(0);
         continue;
