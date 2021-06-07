@@ -147,12 +147,12 @@ class O2PrimaryServerDevice final : public FairMQDevice
     static std::vector<std::thread> threads;
     LOG(INFO) << "LAUNCHING STATUS THREAD";
     auto lambda = [this]() {
-      auto& channel = fChannels.at("o2sim-primserv-info").at(0);
-      if (!channel.IsValid()) {
-        LOG(ERROR) << "channel not valid";
-      }
-      std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(-1));
       while (mState != O2PrimaryServerState::Stopped) {
+        auto& channel = fChannels.at("o2sim-primserv-info").at(0);
+        if (!channel.IsValid()) {
+          LOG(ERROR) << "channel primserv-info not valid";
+        }
+        std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(-1));
         int timeout = 100; // 100ms --> so as not to block and allow for proper termination of this thread
         if (channel.Receive(request, timeout) > 0) {
           LOG(INFO) << "INFO REQUEST RECEIVED";
