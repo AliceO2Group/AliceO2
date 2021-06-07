@@ -120,6 +120,9 @@ class ExpTimes
 template <typename Coll, typename Trck, o2::track::PID::ID id>
 float ExpTimes<Coll, Trck, id>::ComputeExpectedTime(const float& tofExpMom, const float& length, const float& massZ)
 {
+  if (tofExpMom <= 0.f) {
+    return 0.f;
+  }
   const float energy = sqrt((massZ * massZ) + (tofExpMom * tofExpMom));
   return length * energy / (kCSPEED * tofExpMom);
 }
