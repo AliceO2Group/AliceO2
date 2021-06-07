@@ -35,6 +35,7 @@ NJOBS=${NJOBS:-"${NCPUS}"}
 SHMSIZE=${SHMSIZE:-8000000000} # Size of shared memory for messages (use 128 GB for 550 event full TF)
 TPCTRACKERSCRATCHMEMORY=${SHMSIZE:-4000000000} # Size of memory allocated by TPC tracker. (Use 24 GB for 550 event full TF)
 ENABLE_GPU_TEST=${ENABLE_GPU_TEST:-0} # Run the full system test also on the GPU
+GPUMEMSIZE=${GPUMEMSIZE:-6000000000} # Size of GPU memory to use in case ENABBLE_GPU_TEST=1
 NTIMEFRAMES=${NTIMEFRAMES:-1} # Number of time frames to process
 TFDELAY=${TFDELAY:-100} # Delay in seconds between publishing time frames
 NOMCLABELS="--disable-mc"
@@ -133,7 +134,6 @@ for STAGE in $STAGES; do
   if [[ "$STAGE" = "WITHGPU" ]]; then
     export CREATECTFDICT=0
     export GPUTYPE=CUDA
-    export GPUMEMSIZE=6000000000
     export HOSTMEMSIZE=1000000000
     export SYNCMODE=1
     export CTFINPUT=0
@@ -158,6 +158,7 @@ for STAGE in $STAGES; do
   export NTIMEFRAMES
   export TFDELAY
   export GLOBALDPLOPT
+  export GPUMEMSIZE
 
   taskwrapper ${logfile} "$O2_ROOT/prodtests/full-system-test/dpl-workflow.sh"
 
