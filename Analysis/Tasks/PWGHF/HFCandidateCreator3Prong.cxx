@@ -210,7 +210,7 @@ struct HFCandidateCreator3ProngMC {
       // Ξc± → p± K∓ π±
       if (flag == 0) {
         //Printf("Checking Ξc± → p± K∓ π±");
-        indexRec = RecoDecay::getMatchedMCRec(particlesMC, std::move(arrayDaughters), pdg::Code::kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
+        indexRec = RecoDecay::getMatchedMCRec(particlesMC, arrayDaughters, pdg::Code::kXiCPlus, array{+kProton, -kKPlus, +kPiPlus}, true, &sign);
         if (indexRec > -1) {
           flag = sign * (1 << DecayType::XicToPKPi);
         }
