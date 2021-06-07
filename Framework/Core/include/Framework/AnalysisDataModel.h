@@ -42,7 +42,13 @@ DECLARE_SOA_COLUMN(Timestamp, timestamp, uint64_t); //! Timestamp of a BC in ms 
 
 DECLARE_SOA_TABLE(Timestamps, "AOD", "TIMESTAMPS", //! Table which holds the timestamp of a BC
                   timestamp::Timestamp);
-
+} // namespace aod
+namespace soa
+{
+extern template struct Join<aod::BCs, aod::Timestamps>;
+}
+namespace aod
+{
 using BCsWithTimestamps = soa::Join<aod::BCs, aod::Timestamps>;
 
 namespace collision
@@ -304,6 +310,14 @@ using Track = Tracks::iterator;
 using TrackCov = TracksCov::iterator;
 using TrackExtra = TracksExtra::iterator;
 
+} // namespace aod
+namespace soa
+{
+extern template struct soa::Join<aod::Tracks, aod::TracksCov, aod::TracksExtra>;
+extern template struct soa::Join<aod::TracksExtension, aod::StoredTracks>;
+} // namespace soa
+namespace aod
+{
 using FullTracks = soa::Join<Tracks, TracksCov, TracksExtra>;
 using FullTrack = FullTracks::iterator;
 
@@ -457,7 +471,13 @@ DECLARE_SOA_EXTENDED_TABLE(FwdTracksCov, StoredFwdTracksCov, "FWDTRACKCOV", //!
 
 using FwdTrack = FwdTracks::iterator;
 using FwdTrackCovFwd = FwdTracksCov::iterator;
-
+} // namespace aod
+namespace soa
+{
+extern template struct Join<aod::FwdTracks, aod::FwdTracksCov>;
+}
+namespace aod
+{
 using FullFwdTracks = soa::Join<FwdTracks, FwdTracksCov>;
 using FullFwdTrack = FullFwdTracks::iterator;
 
@@ -737,6 +757,13 @@ DECLARE_SOA_TABLE(StoredV0s, "AOD", "V0", //! On disk V0 table
 DECLARE_SOA_TABLE(TransientV0s, "AOD", "V0INDEX", //! In-memory V0 table
                   v0::CollisionId);
 
+} // namespace aod
+namespace soa
+{
+extern template struct Join<aod::TransientV0s, aod::StoredV0s>;
+}
+namespace aod
+{
 using V0s = soa::Join<TransientV0s, StoredV0s>;
 using V0 = V0s::iterator;
 
@@ -751,6 +778,13 @@ DECLARE_SOA_TABLE(StoredCascades, "AOD", "CASCADE", //! On disk cascade table
                   o2::soa::Index<>, cascade::V0Id, cascade::BachelorId);
 DECLARE_SOA_TABLE(TransientCascades, "AOD", "CASCADEINDEX", //! In-memory cascade table
                   cascade::CollisionId);
+} // namespace aod
+namespace soa
+{
+extern template struct Join<aod::TransientCascades, aod::StoredCascades>;
+}
+namespace aod
+{
 
 using Cascades = soa::Join<TransientCascades, StoredCascades>;
 using Cascade = Cascades::iterator;
@@ -911,6 +945,14 @@ DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
 
 // Joins with collisions (only for sparse ones)
 // NOTE: index table needs to be always last argument
+} // namespace aod
+namespace soa
+{
+extern template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
+extern template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
+} // namespace soa
+namespace aod
+{
 using CollisionMatchedRun2Sparse = soa::Join<Collisions, Run2MatchedSparse>::iterator;
 using CollisionMatchedRun3Sparse = soa::Join<Collisions, Run3MatchedSparse>::iterator;
 
