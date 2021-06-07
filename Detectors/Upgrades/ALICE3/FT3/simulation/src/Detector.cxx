@@ -117,6 +117,29 @@ void Detector::buildFT3FromFile(std::string configFileName)
 }
 
 //_________________________________________________________________________________________________
+void Detector::exportLayout()
+{
+  // Export FT3 Layout description to file. One line per disk
+  // z_layer r_in r_out Layerx2X0
+
+  std::string configFileName = "FT3_layout.cfg";
+
+  LOG(INFO) << "Exporting FT3 Detector layout to " << configFileName;
+
+  std::ofstream fOut(configFileName.c_str(), std::ios::out);
+  if (!fOut) {
+    printf("Cannot open file\n");
+    return;
+  }
+  fOut << "#   z_layer   r_in   r_out   Layerx2X0" << std::endl;
+  for (auto layers_dir : mLayers) {
+    for (auto layer : layers_dir) {
+      fOut << layer.getZ() << "  " << layer.getInnerRadius() << "  " << layer.getOuterRadius() << "  " << layer.getx2X0() << std::endl;
+    }
+  }
+}
+
+//_________________________________________________________________________________________________
 void Detector::buildBasicFT3(const FT3BaseParam& param)
 {
   // Build a basic parametrized FT3 detector with nLayers equally spaced between z_first and z_first+z_length
@@ -224,6 +247,7 @@ Detector::Detector(Bool_t active)
         break;
     }
   }
+  exportLayout();
 }
 
 //_________________________________________________________________________________________________

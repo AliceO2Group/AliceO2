@@ -45,6 +45,12 @@ class FT3Layer : public TObject
   /// Default destructor
   ~FT3Layer() override;
 
+  /// getters
+  auto getInnerRadius() const { return mInnerRadius; }
+  auto getOuterRadius() const { return mOuterRadius; }
+  auto getZ() const { return mZ; }
+  auto getx2X0() const { return mx2X0; }
+
   /// Creates the actual Layer and places inside its mother volume
   /// \param motherVolume the TGeoVolume owing the volume structure
   virtual void createLayer(TGeoVolume* motherVolume);
