@@ -110,8 +110,6 @@ FairRunSim* o2sim_init(bool asservice)
 
   // run init
   run->Init();
-  auto& aligner = o2::base::Aligner::Instance();
-  aligner.applyAlignment();
 
   std::time_t runStart = std::time(nullptr);
 
@@ -132,7 +130,7 @@ FairRunSim* o2sim_init(bool asservice)
   rtdb->saveOutput();
   rtdb->print();
   o2::PDG::addParticlesToPdgDataBase(0);
-
+  o2::detectors::DetID::mask_t detMask{};
   {
     // store GRPobject
     o2::parameters::GRPObject grp;
@@ -171,10 +169,16 @@ FairRunSim* o2sim_init(bool asservice)
       grp.setFieldUniformity(field->IsUniform());
     }
     // save
+    detMask = grp.getDetsReadOut();
     std::string grpfilename = o2::base::NameConf::getGRPFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
+
+  // apply alignment for included detectors
+  auto& aligner = o2::base::Aligner::Instance();
+  aligner.applyAlignment(0, detMask);
+
   // todo: save beam information in the grp
 
   // print summary about cuts and processes used
