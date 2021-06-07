@@ -56,8 +56,9 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Index3, index3, int, Tracks, "_3");          //!
 DECLARE_SOA_INDEX_COLUMN_FULL(IndexV0, indexV0, int, aod::V0Datas, "_V0"); //!
 DECLARE_SOA_COLUMN(HFflag, hfflag, uint8_t);                               //!
 
-DECLARE_SOA_COLUMN(D0ToKPiFlag, d0ToKPiFlag, uint8_t);   //!
-DECLARE_SOA_COLUMN(JpsiToEEFlag, jpsiToEEFlag, uint8_t); //!
+DECLARE_SOA_COLUMN(D0ToKPiFlag, d0ToKPiFlag, uint8_t);       //!
+DECLARE_SOA_COLUMN(JpsiToEEFlag, jpsiToEEFlag, uint8_t);     //!
+DECLARE_SOA_COLUMN(JpsiToMuMuFlag, jpsiToMuMuFlag, uint8_t); //!
 
 DECLARE_SOA_COLUMN(DPlusPiKPiFlag, dPlusPiKPiFlag, uint8_t); //!
 DECLARE_SOA_COLUMN(LcPKPiFlag, lcPKPiFlag, uint8_t);         //!
@@ -77,7 +78,8 @@ DECLARE_SOA_TABLE(HfTrackIndexCasc, "AOD", "HFTRACKIDXCASC", //!
 
 DECLARE_SOA_TABLE(HfCutStatusProng2, "AOD", "HFCUTSTATUSP2", //!
                   hf_track_index::D0ToKPiFlag,
-                  hf_track_index::JpsiToEEFlag);
+                  hf_track_index::JpsiToEEFlag,
+                  hf_track_index::JpsiToMuMuFlag);
 
 DECLARE_SOA_TABLE(HfTrackIndexProng3, "AOD", "HFTRACKIDXP3", //!
                   hf_track_index::Index0Id,
@@ -267,7 +269,7 @@ auto CosThetaStarD0bar(const T& candidate)
   return candidate.cosThetaStar(array{RecoDecay::getMassPDG(kKPlus), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(pdg::Code::kD0), 0);
 }
 
-// J/ψ → e+ e−
+// J/ψ
 
 template <typename T>
 auto CtJpsi(const T& candidate)
@@ -287,10 +289,20 @@ auto EJpsi(const T& candidate)
   return candidate.e(RecoDecay::getMassPDG(pdg::Code::kJpsi));
 }
 
+// J/ψ → e+ e−
+
 template <typename T>
 auto InvMassJpsiToEE(const T& candidate)
 {
   return candidate.m(array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)});
+}
+
+// J/ψ → µ+ µ−
+
+template <typename T>
+auto InvMassJpsiToMuMu(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(kMuonPlus), RecoDecay::getMassPDG(kMuonMinus)});
 }
 } // namespace hf_cand_prong2
 
