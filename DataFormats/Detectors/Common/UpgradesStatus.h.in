@@ -8,12 +8,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MEMORY_RESOURCES_TYPES_
-#define O2_MEMORY_RESOURCES_TYPES_
+#ifndef O2_UPGRADES_STATUS_H
+#define O2_UPGRADES_STATUS_H
 
-namespace o2
-{
-using byte = unsigned char;
-} // namespace o2
+// cmake-generated define to make installed headers aware of what was used at build-time
+#cmakedefine ENABLE_UPGRADES
 
 #endif

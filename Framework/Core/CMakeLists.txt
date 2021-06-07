@@ -65,6 +65,7 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
+                       src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
                        src/LifetimeHelpers.cxx
@@ -106,6 +107,7 @@ o2_add_library(Framework
                        src/WSDriverClient.cxx
                        src/runDataProcessing.cxx
                        src/ExternalFairMQDeviceProxy.cxx
+                       src/HistogramSpec.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
                        src/Base64.cxx

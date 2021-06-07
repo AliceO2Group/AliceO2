@@ -93,7 +93,7 @@ template <unsigned int N>
 inline std::string bitset<N>::to_string() const
 {
   std::string retVal;
-  for (unsigned int i = 0; i < N; i++) {
+  for (unsigned int i = N; i--;) {
     retVal += std::to_string((int)((*this)[i]));
   }
   return retVal;

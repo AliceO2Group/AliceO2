@@ -16,7 +16,7 @@ for I in $(seq -w 1 $NRUNS); do
     cp secondary_and_hits.macro $DIR/.
     cd $DIR
     echo " --- starting run $I"
-    o2-sim -j $NJOBS -n $NEVENTS -e $GEANT -g pythia8 --skipModules ZDC --configKeyValues "Stack.pruneKine=false" &> o2-sim.log
+    o2-sim -j $NJOBS -n $NEVENTS -e $GEANT -g pythia8pp --skipModules ZDC --configKeyValues "Stack.pruneKine=false" &> o2-sim.log
 
     root -b -q -l "primary_and_hits.macro(\"o2sim_Kine.root\", \"barrel\")" &
     root -b -q -l "primary_and_hits.macro(\"o2sim_Kine.root\", \"muon\")" &

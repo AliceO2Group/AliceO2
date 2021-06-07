@@ -34,21 +34,27 @@ namespace bpo = boost::program_options;
 
 std::vector<int> gChildProcesses; // global vector of child pids
 int gMasterProcess = -1;
+int gDriverProcess = -1;
 
-// custom signal handler to ensure that we
-// distribute signals to all detached forks
-void sighandler(int signal)
+void sigaction_handler(int signal, siginfo_t* signal_info, void*)
 {
-  if (signal == SIGTERM || signal == SIGINT) {
-    auto pid = getpid();
-    if (pid == gMasterProcess) {
-      // the master
-      for (auto child : gChildProcesses) {
-        kill(child, signal);
-      }
+  auto pid = getpid();
+  LOG(INFO) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
+  auto groupid = getpgrp();
+  if (pid == gMasterProcess) {
+    killpg(pid, signal); // master kills whole process group
+  } else {
+    if (signal_info->si_pid != gDriverProcess) {
+      // forward to master if coming internally
+      kill(groupid, signal);
     }
-    _exit(0);
   }
+  if (signal_info->si_pid == gDriverProcess) {
+    _exit(0); // external requests are not treated as error
+  }
+  // we treat internal signal interruption as an error
+  // because only ordinary termination is good in the context of the distributed system
+  _exit(128 + signal);
 }
 
 void addCustomOptions(bpo::options_description& options)
@@ -226,14 +232,20 @@ bool waitForControlInput()
 
 int main(int argc, char* argv[])
 {
-  // enable signal handler for termination signals
-  if (signal(SIGTERM, sighandler) == SIG_IGN) {
-    signal(SIGTERM, SIG_IGN);
+  struct sigaction act;
+  memset(&act, 0, sizeof act);
+  sigemptyset(&act.sa_mask);
+  act.sa_sigaction = &sigaction_handler;
+  act.sa_flags = SA_SIGINFO; // <--- enable sigaction
+
+  std::vector<int> handledsignals = {SIGTERM, SIGINT, SIGQUIT, SIGSEGV, SIGBUS, SIGFPE}; // <--- may need to be completed
+  // remember that SIGKILL can't be handled
+  for (auto s : handledsignals) {
+    if (sigaction(s, &act, nullptr)) {
+      LOG(ERROR) << "Could not install signal handler for " << s;
+      exit(EXIT_FAILURE);
+    }
   }
-  if (signal(SIGINT, sighandler) == SIG_IGN) {
-    signal(SIGINT, SIG_IGN);
-  }
-  signal(SIGCHLD, SIG_IGN); /* Silently reap children to avoid zombies. */
 
   // extract the path to FairMQ config
   bpo::options_description desc{"Options"};
@@ -338,6 +350,7 @@ int main(int argc, char* argv[])
     LOG(INFO) << "Running with " << nworkers << " sim workers ";
 
     gMasterProcess = getpid();
+    gDriverProcess = getppid();
     // then we fork and create a device in each fork
     for (auto i = 0u; i < nworkers; ++i) {
       // we use the current process as one of the workers as it has nothing else to do

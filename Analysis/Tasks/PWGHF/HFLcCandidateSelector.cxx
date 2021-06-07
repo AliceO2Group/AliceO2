@@ -86,10 +86,10 @@ struct HFLcCandidateSelector {
       return false;
     }
 
-    //candidate DCA
-    /*  if (candidate.chi2PCA() > cuts[pTBin][5]) {
+    //candidate chi2PCA
+    if (candidate.chi2PCA() > cuts->get(pTBin, "Chi2PCA")) {
       return false;
-      }*/
+    }
 
     if (candidate.decayLength() <= cuts->get(pTBin, "decay length")) {
       return false;

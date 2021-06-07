@@ -128,7 +128,7 @@ float ExpTimes<Coll, Trck, id>::ComputeExpectedTime(const float& tofExpMom, cons
 template <typename Coll, typename Trck, o2::track::PID::ID id>
 float ExpTimes<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const
 {
-  if (trk.tofSignal() <= 0) {
+  if (!trk.hasTOF()) {
     return -999.f;
   }
   const float x[7] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id), trk.length(), trk.sigma1Pt(), trk.pt()};

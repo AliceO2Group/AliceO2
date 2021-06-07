@@ -30,6 +30,7 @@
 #include "Framework/CallbackService.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/Signpost.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
@@ -934,12 +935,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return completed;
   };
 
-  // This is needed to convert from a pair of pointers to an actual DataRef
-  // and to make sure the ownership is moved from the cache in the relayer to
-  // the execution.
-  auto fillInputs = [&relayer = context.relayer,
-                     &spec = context.deviceContext->spec,
-                     &currentSetOfInputs](TimesliceSlot slot) -> InputRecord {
+  //
+  auto getInputSpan = [&relayer = context.relayer,
+                       &currentSetOfInputs](TimesliceSlot slot) {
     currentSetOfInputs = std::move(relayer->getInputsForTimeslice(slot));
     auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
       if (currentSetOfInputs[i].size() > partindex) {
@@ -952,8 +950,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     auto nofPartsGetter = [&currentSetOfInputs](size_t i) -> size_t {
       return currentSetOfInputs[i].size();
     };
-    InputSpan span{getter, nofPartsGetter, currentSetOfInputs.size()};
-    return InputRecord{spec->inputs, std::move(span)};
+    return InputSpan{getter, nofPartsGetter, currentSetOfInputs.size()};
   };
 
   auto markInputsAsDone = [&relayer = context.relayer](TimesliceSlot slot) -> void {
@@ -1135,7 +1132,8 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     }
 
     prepareAllocatorForCurrentTimeSlice(TimesliceSlot{action.slot});
-    InputRecord record = fillInputs(action.slot);
+    InputSpan span = getInputSpan(action.slot);
+    InputRecord record{context.deviceContext->spec->inputs, span};
     ProcessingContext processContext{record, *context.registry, *context.allocator};
     {
       ZoneScopedN("service pre processing");

@@ -17,15 +17,15 @@
 #include <TGeoMatrix.h>       // for TGeoHMatrix
 #include <TGeoNode.h>         // for TGeoNode
 #include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
-#include <TObjArray.h>        // for TObjArray
-#include <TObject.h>          // for TObject
 #include <string>
 #include <cassert>
 #include <cstddef> // for NULL
+#include <numeric>
 
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsBase/Aligner.h"
 
 using namespace o2::detectors;
 using namespace o2::base;
@@ -233,21 +233,31 @@ Bool_t GeometryManager::getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& 
 }
 
 //______________________________________________________________________
-bool GeometryManager::applyAlignment(TObjArray& algParArray, bool ovlpcheck, double ovlToler)
+bool GeometryManager::applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars, bool ovlpcheck, double ovlToler)
 {
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
+  for (auto dv : algPars) {
+    if (dv && !applyAlignment(*dv)) {
+      return false;
+    }
+  }
+  return true;
+}
 
-  algParArray.Sort(); // sort to apply alignment in correct hierarchy
+//______________________________________________________________________
+bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars, bool ovlpcheck, double ovlToler)
+{
+  /// misalign geometry with alignment objects from the array, optionaly check overlaps
+  int nvols = algPars.size();
+  std::vector<int> ord(nvols);
+  std::iota(std::begin(ord), std::end(ord), 0); // sort to apply alignment in correct hierarchy
+  std::sort(std::begin(ord), std::end(ord), [&algPars](int a, int b) { return algPars[a].getLevel() > algPars[b].getLevel(); });
 
-  int nvols = algParArray.GetEntriesFast();
   bool res = true;
   for (int i = 0; i < nvols; i++) {
-    AlignParam* alg = dynamic_cast<AlignParam*>(algParArray[i]);
-    if (alg) {
-      if (!alg->applyToGeometry(ovlpcheck, ovlToler)) {
-        res = false;
-        LOG(ERROR) << "Error applying alignment object for volume" << alg->getSymName();
-      }
+    if (!algPars[ord[i]].applyToGeometry(ovlpcheck, ovlToler)) {
+      res = false;
+      LOG(ERROR) << "Error applying alignment object for volume" << algPars[ord[i]].getSymName();
     }
   }
   return res;
@@ -473,7 +483,7 @@ o2::base::MatBudget GeometryManager::meanMaterialBudget(float x0, float y0, floa
 }
 
 //_________________________________
-void GeometryManager::loadGeometry(std::string_view geomFileName)
+void GeometryManager::loadGeometry(std::string_view geomFileName, bool applyMisalignment)
 {
   ///< load geometry from file
   std::string fname = o2::base::NameConf::getGeomFileName(geomFileName);
@@ -484,5 +494,9 @@ void GeometryManager::loadGeometry(std::string_view geomFileName)
   }
   if (!flGeom.Get(std::string(o2::base::NameConf::GEOMOBJECTNAME).c_str())) {
     LOG(FATAL) << "Did not find geometry named " << o2::base::NameConf::GEOMOBJECTNAME;
+  }
+  if (applyMisalignment) {
+    auto& aligner = Aligner::Instance();
+    aligner.applyAlignment();
   }
 }

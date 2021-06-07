@@ -16,6 +16,7 @@
 #include <chrono>
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "CommonDataFormat/TimeStamp.h"
+#include "CommonDataFormat/IRFrame.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
@@ -41,6 +42,12 @@ void DataRequest::addInput(const InputSpec&& isp)
   if (std::find(inputs.begin(), inputs.end(), isp) == inputs.end()) {
     inputs.emplace_back(isp);
   }
+}
+
+void DataRequest::requestIRFramesITS()
+{
+  addInput({"IRFramesITS", "ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+  requestMap["IRFramesITS"] = false;
 }
 
 void DataRequest::requestITSTracks(bool mc)
@@ -212,8 +219,8 @@ void DataRequest::requestSecondaryVertertices(bool)
 {
   addInput({"v0s", "GLO", "V0s", 0, Lifetime::Timeframe});
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
-  addInput({"cacss", "GLO", "CASCS", 0, Lifetime::Timeframe});
-  addInput({"p2v0s", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
+  addInput({"cascs", "GLO", "CASCS", 0, Lifetime::Timeframe});
+  addInput({"p2cascs", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
@@ -359,15 +366,20 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addSVertices(pc, req->second);
   }
+
+  req = reqMap.find("IRFramesITS");
+  if (req != reqMap.end()) {
+    addIRFramesITS(pc);
+  }
 }
 
 //____________________________________________________________
 void RecoContainer::addSVertices(ProcessingContext& pc, bool)
 {
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::V0>>("V0S"), V0S);
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("PVTX_V0REFS"), PVTX_V0REFS);
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("CASCS"), CASCS);
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("PVTX_CASCREFS"), PVTX_CASCREFS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::V0>>("v0s"), V0S);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2v0s"), PVTX_V0REFS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("cascs"), CASCS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2cascs"), PVTX_CASCREFS);
   // no mc
 }
 
@@ -417,6 +429,12 @@ void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTR"), MCLABELS);
   }
+}
+
+//____________________________________________________________
+void RecoContainer::addIRFramesITS(ProcessingContext& pc)
+{
+  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("IRFramesITS"), VARIA);
 }
 
 //____________________________________________________________

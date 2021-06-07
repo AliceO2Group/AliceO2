@@ -156,7 +156,7 @@ struct pidTOFTaskQA {
     unsigned int nTracksWithTOF = 0;
     for (auto t : tracks) {
       //
-      if (t.tofSignal() < 0) { // Skipping tracks without TOF
+      if (!t.hasTOF()) { // Skipping tracks without TOF
         continue;
       }
       if (t.eta() < MinEta || t.eta() > MaxEta) {
