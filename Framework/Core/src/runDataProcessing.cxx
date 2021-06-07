@@ -2262,6 +2262,11 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   // check if DataProcessorSpec at i depends on j
   auto checkDependencies = [& workflow = physicalWorkflow](int i, int j) {
     DataProcessorSpec const& a = workflow[i];
+    // The output proxy is always last so that we
+    // can do the forwarding.
+    if (a.name == "dpl-output-proxy" && i != j) {
+      return true;
+    }
     DataProcessorSpec const& b = workflow[j];
     for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
       for (size_t oi = 0; oi < b.outputs.size(); ++oi) {
