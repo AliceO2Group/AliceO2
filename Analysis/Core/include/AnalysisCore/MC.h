@@ -62,7 +62,7 @@ bool isStable(int pdg)
 
 bool isStableCharged(int pdg)
 {
-  constexpr int kNstableCharged = 18;
+  constexpr int kNstableCharged = 9;
   int pdgStableCharged[kNstableCharged] = {
     kElectron,   // Electron
     kMuonPlus,   // Muon
@@ -91,6 +91,7 @@ bool isPhysicalPrimaryChargedRun3(T const& p)
   if (!isStableCharged(std::abs(p.pdgCode()))) {
     return false;
   };
+  return true;
 }
 
 // Ported from AliRoot AliStack::IsPhysicalPrimary
