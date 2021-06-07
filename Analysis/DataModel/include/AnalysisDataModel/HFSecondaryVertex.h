@@ -220,7 +220,7 @@ DECLARE_SOA_COLUMN(OriginMCGen, originMCGen, int8_t);       //! particle origin,
 // mapping of decay types
 enum DecayType { D0ToPiK = 0,
                  JpsiToEE,
-		 JpsiToMuMu,
+                 JpsiToMuMu,
                  N2ProngDecays }; //always keep N2ProngDecays at the end
 
 // functions for specific particles
