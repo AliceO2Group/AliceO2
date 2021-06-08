@@ -36,7 +36,7 @@ void TOFFEElightReader::loadFEElightConfig(gsl::span<const char> configBuf)
   if (configBuf.size() != sizeof(o2::tof::TOFFEElightConfig)) {
     LOG(FATAL) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
   }
-  mFEElightConfig = reinterpret_cast<TOFFEElightConfig*>(*configBuf.data());
+  mFEElightConfig = const_cast<TOFFEElightConfig*>(reinterpret_cast<const TOFFEElightConfig*>(configBuf.data()));
 }
 
 //_______________________________________________________________
@@ -52,9 +52,6 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
   int version = mFEElightConfig->mVersion;
   int runNumber = mFEElightConfig->mRunNumber;
   int runType = mFEElightConfig->mRunType;
-  LOG(INFO) << "version = " << version;
-  LOG(INFO) << "run number = " << runNumber;
-  LOG(INFO) << "run type = " << runType;
 
   mFEElightInfo.mVersion = version;
   mFEElightInfo.mRunNumber = runNumber;
