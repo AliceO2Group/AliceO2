@@ -60,12 +60,15 @@ uint64_t CruCompressorTask::buildEventOutput()
   trackletheader->eventtime = 99;
   currentpos = 1;
   //write the
-  std::vector<o2::trd::TriggerRecord> ir = mReader.getIR();
+  std::vector<o2::trd::TriggerRecord> ir;
+  std::vector<o2::trd::Tracklet64> tracklets;
+  std::vector<o2::trd::CompressedDigit> digits;
+  mReader.getParsedObjects(tracklets, digits, ir);
   trackletheader->bc = ir[0].getBCData().bc;
   trackletheader->orbit = ir[0].getBCData().orbit;
   trackletheader->padding = 0xeeee;
-  trackletheader->size = mReader.getTracklets().size() * 8; // to get to bytes.
-  for (auto tracklet : mReader.getTracklets()) {
+  trackletheader->size = mReader.sumTrackletsFound() * 8; // to get to bytes. TODO compare to getTrackletsFound
+  for (auto tracklet : mReader.getTracklets(ir[0].getBCData())) {
     //convert tracklet to 64 bit and add to blob
     mOutBuffer[currentpos++] = tracklet.getTrackletWord();
   }
@@ -77,7 +80,7 @@ uint64_t CruCompressorTask::buildEventOutput()
   digitheader->format = 2;
   digitheader->eventtime = 99;
 
-  for (auto digit : mReader.getDigits()) {
+  for (auto digit : mReader.getDigits(ir[0].getBCData())) {
     uint64_t* word;
     word = &mOutBuffer[currentpos];
     DigitMCMHeader mcmheader;

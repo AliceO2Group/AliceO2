@@ -115,7 +115,6 @@ int TrackletsParser::Parse()
       } else {
         LOG(info) << "After byteswapping " << index << " word is : " << std::hex << word << " next word is : " << nextwordcopy << " and raw nextword is :" << std::hex << (*mData)[index + 1];
       }
-      LOG(info) << "tracklet parsing " << std::hex << word << " at pos : " << mWordsRead;
     }
 
     if (*word == 0x10001000 && nextwordcopy == 0x10001000) {

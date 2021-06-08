@@ -80,7 +80,8 @@ Word 7  |              reserved 5                       |             link 14 da
     //             |---------------------------------------------------------------- 32..63 reserved1
     struct {
       uint64_t HeaderVersion : 8;  // TRD Header Version
-      uint64_t BunchCrossing : 12; // bunch crossing
+      uint64_t BunchCrossing : 12; // bunch crossing of the physics trigger.
+      //NB  The BC in the RDH is the BC sent together with the heartbeat trigger, while the BC in the HalfCRUHeader is the BC of the physics trigger where the data that follows the HalfCRUHeader belongs to. However, it is not forbidden for CTP to send the heartbeat trigger together with a physics trigger, in this case the two would match (accidentally).
       uint64_t StopBit : 4;        // 8 .. 11 stop bit  0x1 if TRD packet is last data packet of trigger, else 0x0  TODO why 4 bits if only using 1?
       uint64_t EndPoint : 4;       // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
       uint64_t EventType : 4;      // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
