@@ -30,7 +30,7 @@ o2_add_executable(raw2digits
                   COMPONENT_NAME zdc
                   SOURCES src/o2-zdc-raw2digits.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
-                  
+
 o2_add_executable(entropy-encoder-workflow
                   COMPONENT_NAME zdc
                   SOURCES src/entropy-encoder-workflow.cxx
