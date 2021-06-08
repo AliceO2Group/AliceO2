@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HFJpsiToEECandidateSelector.cxx
+/// \file HFJpsiCandidateSelector.cxx
 /// \brief J/ψ → e+ e− selection task
 ///
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
@@ -88,7 +88,7 @@ struct Alice3PidIndexBuilder {
 };
 
 /// Struct for applying J/ψ → e+ e− selection cuts
-struct HFJpsiToEECandidateSelector {
+struct HFJpsiCandidateSelector {
   Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
   Configurable<bool> isALICE3{"isALICE3", false, "Switch between ALICE 2 and ALICE 3 detector setup"};
@@ -253,5 +253,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     //adaptAnalysisTask<RICHindexbuilder>(cfgc),
     //adaptAnalysisTask<MidIndexBuilder>(cfgc),
     adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc),
-    adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
+    adaptAnalysisTask<HFJpsiCandidateSelector>(cfgc, TaskName{"hf-jpsi-candidate-selector"})};
 }
