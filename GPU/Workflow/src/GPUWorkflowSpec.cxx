@@ -271,6 +271,10 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         config.configCalib.trdGeometry = processAttributes->trdGeometry.get();
       }
 
+      if (confParam.printSettings) {
+        config.PrintParam();
+      }
+
       // Configuration is prepared, initialize the tracker.
       if (tracker->Initialize(config) != 0) {
         throw std::invalid_argument("GPU Reconstruction initialization failed");

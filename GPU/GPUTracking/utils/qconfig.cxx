@@ -31,12 +31,6 @@
 
 namespace qConfig
 {
-#define qon_mcat(a, b) a##b
-#define qon_mxcat(a, b) qon_mcat(a, b)
-#define qon_mcat3(a, b, c) a##b##c
-#define qon_mxcat3(a, b, c) qon_mcat3(a, b, c)
-#define qon_mstr(a) #a
-#define qon_mxstr(a) qon_mstr(a)
 #define QCONFIG_SETTING(name, type)                     \
   struct qon_mxcat3(q, name, _t)                        \
   {                                                     \

@@ -91,10 +91,12 @@ struct GPUO2InterfaceConfiguration {
   GPUCalibObjectsConst configCalib;
 
   GPUSettingsO2 ReadConfigurableParam();
+  void PrintParam();
 
  private:
   friend class GPUReconstruction;
   GPUSettingsO2 ReadConfigurableParam_internal();
+  void PrintParam_internal();
 };
 
 } // namespace gpu
