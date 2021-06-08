@@ -442,35 +442,22 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
     TGeoCombiTrans localDeltaTransform = MisAlignHalf();
     TString sname = mGeometryTGeo->composeSymNameHalf(hf);
     lAP.setSymName(sname);
-    lAP.setAlignableID(nAlignID++);
+    lAP.setAlignableID(-1);
     lAP.setLocalParams(localDeltaTransform);
-    if (!matrixToAngles(localDeltaTransform.GetRotationMatrix(), lPsi, lTheta, lPhi)) {
-      LOG(ERROR) << "Problem extracting angles! from Half";
-    }
-    lAP.setLocalParams(localDeltaTransform);
-    // Apply misalignment to the ideal geometry
-    lAP.applyToGeometry();
     lAPvec.emplace_back(lAP);
 
     for (Int_t dk = 0; dk < nDisks; dk++) {
       localDeltaTransform = MisAlignDisk();
       sname = mGeometryTGeo->composeSymNameDisk(hf, dk);
       lAP.setSymName(sname);
-      lAP.setAlignableID(nAlignID++);
-      if (!matrixToAngles(localDeltaTransform.GetRotationMatrix(), lPsi, lTheta, lPhi)) {
-        LOG(ERROR) << "Problem extracting angles!";
-      }
+      lAP.setAlignableID(-1);
       LOG(DEBUG) << "**** LocalDeltaTransform Disk: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], localDeltaTransform.GetRotationMatrix()[0], localDeltaTransform.GetRotationMatrix()[1], localDeltaTransform.GetRotationMatrix()[2]);
 
       lAP.setLocalParams(localDeltaTransform);
-      if (verbose) {
-        LOG(INFO) << "-> misalign element: " << sname << ", disk: " << dk;
-      }
       Int_t nLadders = 0;
       for (Int_t sensor = mGeometryTGeo->getMinSensorsPerLadder(); sensor < mGeometryTGeo->getMaxSensorsPerLadder() + 1; sensor++) {
         nLadders += mGeometryTGeo->getNumberOfLaddersPerDisk(hf, dk, sensor);
       }
-      lAP.applyToGeometry();
       lAPvec.emplace_back(lAP);
 
       for (Int_t lr = 0; lr < nLadders; lr++) { //nLadders
@@ -479,19 +466,24 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
         Int_t nSensorsPerLadder = mGeometryTGeo->getNumberOfSensorsPerLadder(hf, dk, lr);
         TString path = "/cave_1/barrel_1/" + sname;
         lAP.setSymName(sname);
-        lAP.setAlignableID(nAlignID++);
+        lAP.setAlignableID(-1);
         lAP.setLocalParams(localDeltaTransform);
-        lAP.applyToGeometry();
         lAPvec.emplace_back(lAP);
 
         for (Int_t sr = 0; sr < nSensorsPerLadder; sr++) {
           localDeltaTransform = MisAlignSensor();
           sname = mGeometryTGeo->composeSymNameChip(hf, dk, lr, sr);
+          if (!matrixToAngles(localDeltaTransform.GetRotationMatrix(), lPsi, lTheta, lPhi)) {
+            LOG(ERROR) << "Problem extracting angles from sensor";
+          }
           lAP.setSymName(sname);
-          lAP.setAlignableID(nAlignID++);
+          Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, nChip++);
+          lAP.setAlignableID(uid);
           lAP.setLocalParams(localDeltaTransform);
-          lAP.applyToGeometry();
           lAPvec.emplace_back(lAP);
+          if (verbose) {
+            LOG(INFO) << "misaligner: " << sname << ", sensor: " << nChip;
+          }
           nChip++;
         }
       }

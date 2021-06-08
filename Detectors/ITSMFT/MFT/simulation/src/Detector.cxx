@@ -710,9 +710,9 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
 }
 
 //_____________________________________________________________________________
-void Detector::MisalignGeometry() const
+void Detector::Misaligner() const
 {
-  // Function to misalign the MFT geometry
+  // produce misalignment parameters stored into local file or CCDB
   auto& mftBaseParam = MFTBaseParam::Instance();
 
   const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080";
@@ -742,7 +742,6 @@ void Detector::MisalignGeometry() const
     aGMA.SetSensorAngMisAlig(0., mftBaseParam.psiSensor, 0., mftBaseParam.thetaSensor, 0., mftBaseParam.phiSensor);
   }
 
-  // Misalign the geometry
   aGMA.MisAlign(false, ccdbHost, tmin, tmax, objectPath, fileName);
 }
 
