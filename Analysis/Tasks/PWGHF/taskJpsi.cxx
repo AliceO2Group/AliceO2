@@ -63,7 +63,7 @@ struct TaskJpsi {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate>> const& candidates)
+  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
       if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
@@ -134,7 +134,7 @@ struct TaskJpsiMC {
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi);
 
-  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiToEECandidate, aod::HfCandProng2MCRec>> const& candidates,
+  void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate, aod::HfCandProng2MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC, aod::BigTracksMC const& tracks)
   {
     // MC rec.

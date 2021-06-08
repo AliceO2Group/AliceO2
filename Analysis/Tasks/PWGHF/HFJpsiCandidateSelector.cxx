@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file HFJpsiToEECandidateSelector.cxx
+/// \file HFJpsiCandidateSelector.cxx
 /// \brief J/ψ → e+ e− selection task
 ///
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
@@ -88,16 +88,16 @@ struct Alice3PidIndexBuilder {
 };
 
 /// Struct for applying J/ψ → e+ e− selection cuts
-struct HFJpsiToEECandidateSelector {
-  Produces<aod::HFSelJpsiToEECandidate> hfSelJpsiToEECandidate;
+struct HFJpsiCandidateSelector {
+  Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
+  Configurable<bool> isALICE3{"isALICE3", false, "Switch between ALICE 2 and ALICE 3 detector setup"};
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
   // TPC
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
-  //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   // TOF
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 5., "Upper bound of track pT for TOF PID"};
@@ -107,18 +107,17 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_pidRICHMinpT{"d_pidRICHMinpT", 0.15, "Lower bound of track pT for RICH PID"};
   Configurable<double> d_pidRICHMaxpT{"d_pidRICHMaxpT", 10., "Upper bound of track pT for RICH PID"};
   Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3., "Nsigma cut on RICH only"};
-
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Jpsi_to_ee_cuts", {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Jpsi candidate selection per pT bin"};
 
   /// Conjugate-independent topological cuts
   /// \param candidate is candidate
-  /// \param trackPositron is the track with the positron hypothesis
-  /// \param trackElectron is the track with the electron hypothesis
+  /// \param trackPos is the positive track
+  /// \param trackNeg is the negative track
   /// \return true if candidate passes all cuts
   template <typename T1, typename T2>
-  bool selectionTopol(const T1& candidate, const T2& trackPositron, const T2& trackElectron)
+  bool selectionTopol(const T1& candidate, const T2& trackPos, const T2& trackNeg, int& selEE, int& selMuMu)
   {
     auto candpT = candidate.pt();
     auto pTBin = findBin(pTBins, candpT);
@@ -131,23 +130,32 @@ struct HFJpsiToEECandidateSelector {
       return false;
     }
 
-    // cut on invariant mass
+    // cut on e+ e− invariant mass
     if (std::abs(InvMassJpsiToEE(candidate) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
+      selEE = 0;
+    }
+
+    // cut on μ+ μ− invariant mass
+    if (std::abs(InvMassJpsiToMuMu(candidate) - RecoDecay::getMassPDG(pdg::Code::kJpsi)) > cuts->get(pTBin, "m")) {
+      selMuMu = 0;
+    }
+
+    if (selEE == 0 && selMuMu == 0) {
       return false;
     }
 
-    // cut on daughter pT
-    if (trackElectron.pt() < cuts->get(pTBin, "pT El") || trackPositron.pt() < cuts->get(pTBin, "pT El")) {
+    // cut on daughter pT (same cut used for both channels)
+    if (trackNeg.pt() < cuts->get(pTBin, "pT El") || trackPos.pt() < cuts->get(pTBin, "pT El")) {
       return false;
     }
 
     // cut on daughter DCA - need to add secondary vertex constraint here
-    if (std::abs(trackElectron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy") || std::abs(trackPositron.dcaPrim0()) > cuts->get(pTBin, "DCA_xy")) {
+    if (std::abs(trackNeg.dcaPrim0()) > cuts->get(pTBin, "DCA_xy") || std::abs(trackPos.dcaPrim0()) > cuts->get(pTBin, "DCA_xy")) {
       return false;
     }
 
     // cut on daughter DCA - need to add secondary vertex constraint here
-    if (std::abs(trackElectron.dcaPrim1()) > cuts->get(pTBin, "DCA_z") || std::abs(trackPositron.dcaPrim1()) > cuts->get(pTBin, "DCA_z")) {
+    if (std::abs(trackNeg.dcaPrim1()) > cuts->get(pTBin, "DCA_z") || std::abs(trackPos.dcaPrim1()) > cuts->get(pTBin, "DCA_z")) {
       return false;
     }
 
@@ -176,54 +184,65 @@ struct HFJpsiToEECandidateSelector {
     // looping over 2-prong candidates
     for (auto& candidate : candidates) {
 
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE) && !(candidate.hfflag() & 1 << DecayType::JpsiToMuMu)) {
+        hfSelJpsiCandidate(0, 0);
+        continue;
+      }
+
       auto trackPos = candidate.index0_as<TracksPID>(); // positive daughter
       auto trackNeg = candidate.index1_as<TracksPID>(); // negative daughter
 
-      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE)) {
-        hfSelJpsiToEECandidate(0);
-        continue;
-      }
+      int selectedEE = 1;
+      int selectedMuMu = 1;
 
       // track selection level need to add special cuts (additional cuts on decay length and d0 norm)
 
-      if (!selectionTopol(candidate, trackPos, trackNeg)) {
-        hfSelJpsiToEECandidate(0);
+      if (!selectionTopol(candidate, trackPos, trackNeg, selectedEE, selectedMuMu)) {
+        hfSelJpsiCandidate(0, 0);
         continue;
       }
 
-      // track-level PID TPC selection
-      // FIXME: temporarily disabled for ALICE 3 development
-      //if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-      //    selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-      //  hfSelJpsiToEECandidate(0);
-      //  continue;
-      //}
-
-      // track-level PID TOF selection
+      // track-level electron PID TOF selection
       if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
           selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-        hfSelJpsiToEECandidate(0);
+        selectedEE = 0;
+      }
+
+      if (selectedEE == 0 && selectedMuMu == 0) {
+        hfSelJpsiCandidate(0, 0);
         continue;
       }
 
-      // track-level PID RICH selection
-      if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-          selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-        hfSelJpsiToEECandidate(0);
-        continue;
+      if (isALICE3) { // ALICE 3 detectors
+        // track-level electron PID RICH selection
+        if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          selectedEE = 0;
+        }
+
+        if (selectedEE == 0 && selectedMuMu == 0) {
+          hfSelJpsiCandidate(0, 0);
+          continue;
+        }
+
+        // track-level muon PID MID selection
+        //LOGF(info, "Muon selection: Start");
+        if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          //LOGF(info, "Muon selection: Rejected");
+          selectedMuMu = 0;
+        }
+        //LOGF(info, "Muon selection: Selected");
+
+      } else { // ALICE 2 detectors
+        // track-level electron PID TPC selection
+        if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          selectedEE = 0;
+        }
       }
 
-      // track-level muon PID MID selection
-      //LOGF(info, "Muon selection: Start");
-      if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-          selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-        //LOGF(info, "Muon selection: Rejected");
-        hfSelJpsiToEECandidate(0);
-        continue;
-      }
-      //LOGF(info, "Muon selection: Selected");
-
-      hfSelJpsiToEECandidate(1);
+      hfSelJpsiCandidate(selectedEE, selectedMuMu);
     }
   }
 };
@@ -234,5 +253,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     //adaptAnalysisTask<RICHindexbuilder>(cfgc),
     //adaptAnalysisTask<MidIndexBuilder>(cfgc),
     adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc),
-    adaptAnalysisTask<HFJpsiToEECandidateSelector>(cfgc, TaskName{"hf-jpsi-toee-candidate-selector"})};
+    adaptAnalysisTask<HFJpsiCandidateSelector>(cfgc, TaskName{"hf-jpsi-candidate-selector"})};
 }

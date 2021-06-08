@@ -297,7 +297,7 @@ auto InvMassJpsiToEE(const T& candidate)
   return candidate.m(array{RecoDecay::getMassPDG(kElectron), RecoDecay::getMassPDG(kElectron)});
 }
 
-// J/ψ → µ+ µ−
+// J/ψ → μ+ μ−
 
 template <typename T>
 auto InvMassJpsiToMuMu(const T& candidate)
