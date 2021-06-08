@@ -88,6 +88,15 @@ class DataDecoder
     }
 
     bool operator==(const SampaInfo&) const;
+    bool operator<(const SampaInfo& rhs) const
+    {
+      if (id < rhs.id) {
+        return true;
+      } else if (time < rhs.time) {
+        return true;
+      }
+      return false;
+    }
   };
 
   struct SampaTimeFrameStart {
@@ -116,7 +125,10 @@ class DataDecoder
 
   using RawDigitVector = std::vector<RawDigit>;
 
-  DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, uint32_t sampaBcOffset, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose);
+  DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
+              uint32_t sampaBcOffset,
+              std::string mapCRUfile, std::string mapFECfile,
+              bool ds2manu, bool verbose, bool useDummyElecMap);
 
   void reset();
   void decodeBuffer(gsl::span<const std::byte> buf);
@@ -166,11 +178,14 @@ class DataDecoder
   bool mDebug{false};
   bool mDs2manu{false};
   uint32_t mOrbit{0};
+  bool mUseDummyElecMap{false};
 };
 
 bool operator<(const DataDecoder::RawDigit& d1, const DataDecoder::RawDigit& d2);
 
 std::ostream& operator<<(std::ostream& os, const DataDecoder::RawDigit& d);
+
+std::string asString(const DataDecoder::RawDigit& d);
 
 } // namespace raw
 } // namespace mch

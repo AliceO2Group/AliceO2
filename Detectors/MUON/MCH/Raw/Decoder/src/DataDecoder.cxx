@@ -23,6 +23,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "MCHMappingInterface/Segmentation.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {
@@ -87,11 +88,24 @@ static void patchPage(gsl::span<const std::byte> rdhBuffer, bool verbose)
 
 bool operator<(const DataDecoder::RawDigit& d1, const DataDecoder::RawDigit& d2)
 {
+  if (d1.getTime() == d2.getTime()) {
+    if (d1.getDetID() == d2.getDetID()) {
+      return d1.getPadID() < d2.getPadID();
+    }
+    return d1.getDetID() < d2.getDetID();
+  }
   return (d1.getTime() < d2.getTime());
+}
+
+std::string asString(const DataDecoder::RawDigit& d)
+{
+  return fmt::format("DE {:4d} PADID {:5d} ADC {:5d} TIME {} BX {}",
+                     d.getDetID(), d.getPadID(), d.getADC(), d.getTime(), d.getBunchCrossing());
 }
 
 std::ostream& operator<<(std::ostream& os, const DataDecoder::RawDigit& d)
 {
+  os << asString(d);
   return os;
 }
 
@@ -115,8 +129,11 @@ bool DataDecoder::RawDigit::operator==(const DataDecoder::RawDigit& other) const
   return digit == other.digit && info == other.info;
 }
 
-DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, uint32_t sampaBcOffset, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose)
-  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mSampaTimeOffset(sampaBcOffset), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose)
+DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
+                         uint32_t sampaBcOffset,
+                         std::string mapCRUfile, std::string mapFECfile,
+                         bool ds2manu, bool verbose, bool useDummyElecMap)
+  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mSampaTimeOffset(sampaBcOffset), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap)
 {
   init();
 }
@@ -235,18 +252,22 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     if (mDebug) {
       auto s = asString(dsElecId);
-      std::cout << "HeartBeat: " << s << "  ID " << sampaId.id << "  solar " << sampaId.solar << "  ds " << sampaId.ds << "  chip " << sampaId.chip
-                << "  mOrbit " << mOrbit << "  bunchCrossing " << bunchCrossing << std::endl;
+      LOGP(info, "HeartBeat: {} ID {} SOLAR {} ds {} chip {} -> bxcount {} orbit {} [ bc {} ]",
+           s, sampaId.id, csampaId.solar, csampaId.ds, csampaId.chip,
+           bunchCrossingCounter, mOrbit,
+           bunchCrossingCounter % 3564);
     }
   };
    */
 
-  auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
+  auto channelHandler = [&](DsElecId dsElecId, DualSampaChannelId channel,
+                            o2::mch::raw::SampaCluster sc) {
     if (mChannelHandler) {
       mChannelHandler(dsElecId, channel, sc);
     }
 
     if (mDs2manu) {
+      LOGP(error, "using ds2manu");
       channel = ds2manu(int(channel));
     }
 
@@ -267,6 +288,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     }
 
     if (deId < 0 || dsIddet < 0 || !isValidDeID(deId)) {
+      LOGP(error, "got invalid DsDetId from dsElecId={}", asString(dsElecId));
       return;
     }
 
@@ -285,16 +307,9 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     // skip channels not associated to any pad
     if (padId < 0) {
+      LOGP(error, "got invalid padId from dsElecId={} dualSampaId={} channel={}", asString(dsElecId), dsIddet, channel);
       return;
     }
-
-    SampaInfo sampaInfo;
-    sampaInfo.chip = channel / 32;
-    sampaInfo.ds = dsElecId.elinkId();
-    sampaInfo.solar = dsElecId.solarId();
-    sampaInfo.sampaTime = sc.sampaTime;
-    sampaInfo.bunchCrossing = sc.bunchCrossing;
-    sampaInfo.orbit = mOrbit;
 
     RawDigit digit;
     digit.digit = o2::mch::Digit(deId, padId, digitadc, 0, sc.nofSamples());
@@ -309,9 +324,9 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     if (mDebug) {
       RawDigit& lastDigit = mDigits.back();
-      std::cout << "DIGIT STORED:\n ORBIT " << mOrbit << "  ADC " << lastDigit.getADC()
-                << " DE# " << lastDigit.getDetID() << " PadId " << lastDigit.getPadID()
-                << " time " << lastDigit.getSampaTime() << std::endl;
+      LOGP(info, "DIGIT STORED: ORBIT {} ADC {} DE {} PADID {} TIME {} BXCOUNT {}",
+           mOrbit, lastDigit.getADC(), lastDigit.getDetID(), lastDigit.getPadID(),
+           lastDigit.getSampaTime(), lastDigit.getBunchCrossing());
     }
   };
 
@@ -422,10 +437,15 @@ static std::string readFileContent(std::string& filename)
 
 void DataDecoder::initElec2DetMapper(std::string filename)
 {
-  std::cout << "[initElec2DetMapper] filename=" << filename << std::endl;
   if (filename.empty()) {
-    mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
+    if (mUseDummyElecMap) {
+      LOGP(warning, "[initElec2DetMapper] Using dummy electronic mapping");
+      mElec2Det = createElec2DetMapper<ElectronicMapperDummy>();
+    } else {
+      mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
+    }
   } else {
+    LOGP(info, "[initElec2DetMapper] filename={}", filename);
     ElectronicMapperString::sFecMap = readFileContent(filename);
     mElec2Det = createElec2DetMapper<ElectronicMapperString>();
   }
@@ -433,10 +453,15 @@ void DataDecoder::initElec2DetMapper(std::string filename)
 
 void DataDecoder::initFee2SolarMapper(std::string filename)
 {
-  std::cout << "[initFee2SolarMapper] filename=" << filename << std::endl;
   if (filename.empty()) {
-    mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
+    if (mUseDummyElecMap) {
+      LOGP(warning, "[initFee2SolarMapper] Using dummy electronic mapping");
+      mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperDummy>();
+    } else {
+      mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
+    }
   } else {
+    LOGP(info, "[initFee2SolarMapper] filename={}", filename);
     ElectronicMapperString::sCruMap = readFileContent(filename);
     mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperString>();
   }

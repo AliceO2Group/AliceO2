@@ -29,7 +29,7 @@ data page that you want to decode :
 
     while(some_data_is_available) {
     // get some memory buffer from somewhere ...
-    buffer = ... 
+    buffer = ...
 
     // decode that buffer
     pageDecode(buffer);
@@ -54,9 +54,10 @@ constant bytes, i.e. the input buffer is read-only) and a
 
 ## SampaChannelHandler
 
-The `SampaChannelHandler` is  a function, that takes a dual sampa
-identifier (in electronics realm, aka solar,group,index tuple), a channel
-identifier within that dual sampa, a `SampaCluster` and returns nothing, i.e. :
+The `SampaChannelHandler` is  a function, that takes a dual sampa identifier
+(in electronics realm, aka solar,group,index tuple), a channel identifier
+within that dual sampa (in the 0..63 range), a `SampaCluster` and returns
+nothing, i.e. :
 
 > A word of caution here about the naming. A `SampaCluster` is a group of raw
 > data samples of *one* dual sampa channel, and has nothing to do with a
@@ -64,7 +65,7 @@ identifier within that dual sampa, a `SampaCluster` and returns nothing, i.e. :
 
 ```.cpp
 using SampaChannelHandler = std::function<void(DsElecId dsId,
-                                               uint8_t channel,
+                                               DualSampaChannelId channel,
                                                SampaCluster)>;
 ```
 
@@ -73,7 +74,7 @@ finds in the data.
 A very simple example would be a function to dump the SampaClusters :
 
 ```.cpp
-SampaChannelHandler handlePacket(DsElecId dsId, uint8_t channel, SampaCluster sc) {
+SampaChannelHandler handlePacket(DsElecId dsId, DualSampaChannelId channel, SampaCluster sc) {
     std::cout << fmt::format("{}-ch-{}-ts-{}-q-{}", asString(dsId), channel, sc.timestamp, sc.chargeSum));
 }
 // (note that this particular function only correctly handles the SampaCluster in ChargeSum Mode)
