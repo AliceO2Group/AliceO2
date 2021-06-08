@@ -107,6 +107,7 @@ struct HFJpsiCandidateSelector {
   Configurable<double> d_pidRICHMinpT{"d_pidRICHMinpT", 0.15, "Lower bound of track pT for RICH PID"};
   Configurable<double> d_pidRICHMaxpT{"d_pidRICHMaxpT", 10., "Upper bound of track pT for RICH PID"};
   Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3., "Nsigma cut on RICH only"};
+  Configurable<double> d_nSigmaRICHTOFCombined{"d_nSigmaRICHTOFCombined", 5., "Nsigma cut on RICH combined with TOF"};
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Jpsi_to_ee_cuts", {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Jpsi candidate selection per pT bin"};
@@ -178,6 +179,7 @@ struct HFJpsiCandidateSelector {
     selectorElectron.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
     selectorElectron.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
     selectorElectron.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
+    selectorElectron.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHTOFCombined, d_nSigmaRICHTOFCombined);
 
     TrackSelectorPID selectorMuon(kMuonMinus);
 
