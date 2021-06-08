@@ -28,19 +28,26 @@ namespace internal
 {
 
 // Decoder symbols are straightforward.
-struct DecoderSymbol {
-  DecoderSymbol() = default;
-  // Initialize a decoder symbol to start "start" and frequency "freq"
-  DecoderSymbol(uint32_t start, uint32_t freq, size_t probabilityBits)
-    : start(start), freq(freq)
-  {
-    (void)probabilityBits; // silence compiler warnings if assert not compiled.
-    assert(start <= (1 << probabilityBits));
-    assert(freq <= (1 << probabilityBits) - start);
-  };
+class DecoderSymbol
+{
+ public:
+  using count_t = uint32_t;
 
-  uint32_t start{}; // Start of range.
-  uint32_t freq{};  // Symbol frequency.
+  constexpr DecoderSymbol() noexcept {}; //NOLINT
+  // Initialize a decoder symbol to start "start" and frequency "freq"
+  constexpr DecoderSymbol(count_t cumulative, count_t frequency, size_t symbolTablePrecision)
+    : mCumulative(cumulative), mFrequency(frequency)
+  {
+    (void)symbolTablePrecision; // silence compiler warnings if assert not compiled.
+    assert(mCumulative <= pow2(symbolTablePrecision));
+    assert(mFrequency <= pow2(symbolTablePrecision) - mCumulative);
+  };
+  inline constexpr count_t getFrequency() const noexcept { return mFrequency; };
+  inline constexpr count_t getCumulative() const noexcept { return mCumulative; };
+
+ private:
+  count_t mCumulative{}; // Start of range.
+  count_t mFrequency{};  // Symbol frequency.
 };
 } // namespace internal
 } // namespace rans

@@ -43,10 +43,10 @@ BOOST_AUTO_TEST_CASE(test_empty)
   BOOST_CHECK_EQUAL(symbolTable.getNUsedAlphabetSymbols(), 1);
 
   const auto escapeSymbol = symbolTable.getEscapeSymbol();
-  BOOST_CHECK_EQUAL(escapeSymbol.freq, symbolTable[0].freq);
-  BOOST_CHECK_EQUAL(escapeSymbol.start, symbolTable[0].start);
-  BOOST_CHECK_EQUAL(escapeSymbol.freq, symbolTable.at(0).freq);
-  BOOST_CHECK_EQUAL(escapeSymbol.start, symbolTable.at(0).start);
+  BOOST_CHECK_EQUAL(escapeSymbol.getFrequency(), symbolTable[0].getFrequency());
+  BOOST_CHECK_EQUAL(escapeSymbol.getCumulative(), symbolTable[0].getCumulative());
+  BOOST_CHECK_EQUAL(escapeSymbol.getFrequency(), symbolTable.at(0).getFrequency());
+  BOOST_CHECK_EQUAL(escapeSymbol.getCumulative(), symbolTable.at(0).getCumulative());
   BOOST_CHECK_EQUAL(symbolTable.isEscapeSymbol(0), true);
 
   // out of range checks:
@@ -54,8 +54,8 @@ BOOST_AUTO_TEST_CASE(test_empty)
   for (auto symbol : outOfRangeSymbols) {
     const auto outOfRange = symbolTable[symbol];
     BOOST_CHECK_EQUAL(symbolTable.isEscapeSymbol(symbol), true);
-    BOOST_CHECK_EQUAL(outOfRange.freq, escapeSymbol.freq);
-    BOOST_CHECK_EQUAL(outOfRange.start, escapeSymbol.start);
+    BOOST_CHECK_EQUAL(outOfRange.getFrequency(), escapeSymbol.getFrequency());
+    BOOST_CHECK_EQUAL(outOfRange.getCumulative(), escapeSymbol.getCumulative());
   }
 }
 
@@ -91,25 +91,25 @@ BOOST_AUTO_TEST_CASE(test_symbolTable)
 
     const auto decodeSymbol = symbolTable[symbol];
     const auto decodeSymbolAt = symbolTable.at(i);
-    BOOST_CHECK_EQUAL(decodeSymbol.freq, decodeSymbolAt.freq);
-    BOOST_CHECK_EQUAL(decodeSymbol.start, decodeSymbolAt.start);
+    BOOST_CHECK_EQUAL(decodeSymbol.getFrequency(), decodeSymbolAt.getFrequency());
+    BOOST_CHECK_EQUAL(decodeSymbol.getCumulative(), decodeSymbolAt.getCumulative());
 
     const auto escapeSymbol = symbolTable.getEscapeSymbol();
 
     if (frequencies[i] == 0) {
       BOOST_CHECK_EQUAL(symbolTable.isEscapeSymbol(symbol), true);
-      BOOST_CHECK_EQUAL(decodeSymbol.freq, escapeSymbol.freq);
-      BOOST_CHECK_EQUAL(decodeSymbol.start, escapeSymbol.start);
+      BOOST_CHECK_EQUAL(decodeSymbol.getFrequency(), escapeSymbol.getFrequency());
+      BOOST_CHECK_EQUAL(decodeSymbol.getCumulative(), escapeSymbol.getCumulative());
     } else {
       BOOST_CHECK_EQUAL(symbolTable.isEscapeSymbol(symbol), false);
-      BOOST_CHECK_EQUAL(decodeSymbol.freq, frequencies[i]);
-      BOOST_CHECK_EQUAL(decodeSymbol.start, cumulative[i]);
+      BOOST_CHECK_EQUAL(decodeSymbol.getFrequency(), frequencies[i]);
+      BOOST_CHECK_EQUAL(decodeSymbol.getCumulative(), cumulative[i]);
     }
   }
   //escape symbol:
   BOOST_CHECK_EQUAL(symbolTable.isEscapeSymbol(0), true);
-  BOOST_CHECK_EQUAL(escapeSymbol.freq, symbolTable.at(frequencies.size() - 1).freq);
-  BOOST_CHECK_EQUAL(escapeSymbol.start, symbolTable.at(frequencies.size() - 1).start);
+  BOOST_CHECK_EQUAL(escapeSymbol.getFrequency(), symbolTable.at(frequencies.size() - 1).getFrequency());
+  BOOST_CHECK_EQUAL(escapeSymbol.getCumulative(), symbolTable.at(frequencies.size() - 1).getCumulative());
 
   // out of range checks:
   const int outOfRangeSymbols[] = {-100, 100};
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(test_symbolTable)
     const auto escapeSymbol = symbolTable.getEscapeSymbol();
     const auto outOfRange = symbolTable[symbol];
     BOOST_CHECK_EQUAL(symbolTable.isEscapeSymbol(symbol), true);
-    BOOST_CHECK_EQUAL(outOfRange.freq, escapeSymbol.freq);
-    BOOST_CHECK_EQUAL(outOfRange.start, escapeSymbol.start);
+    BOOST_CHECK_EQUAL(outOfRange.getFrequency(), escapeSymbol.getFrequency());
+    BOOST_CHECK_EQUAL(outOfRange.getCumulative(), escapeSymbol.getCumulative());
   }
 }
