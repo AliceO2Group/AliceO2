@@ -44,7 +44,7 @@ o2_add_executable(digits-read
 o2_add_executable(digits-reco
                   COMPONENT_NAME zdc
                   SOURCES src/zdc-reco-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)
+                  PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow O2::ZDCReconstruction)
 
 o2_add_executable(write-reco
                   COMPONENT_NAME zdc

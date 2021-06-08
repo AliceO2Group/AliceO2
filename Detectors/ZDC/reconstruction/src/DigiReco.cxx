@@ -54,6 +54,7 @@ void DigiReco::init()
     mTDbg = std::make_unique<TTree>("zdcr", "ZDCReco");
     mTDbg->Branch("zdcr", "RecEventAux", &mRec);
   }
+
   // Update reconstruction parameters
   //auto& ropt=RecoParamZDC::Instance();
   o2::zdc::RecoParamZDC& ropt = const_cast<o2::zdc::RecoParamZDC&>(RecoParamZDC::Instance());
@@ -241,19 +242,6 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
     }
   }
 
-  /*
-
-std::map<char,int>::iterator it;
-
-  mymap['a']=50;
-  mymap['b']=100;
-  mymap['c']=150;
-  mymap['d']=200;
-
-  it = mymap.find('b');
-  if (it != mymap.end())
-    mymap.erase (it);
-  */
   return 0;
 }
 
@@ -322,22 +310,25 @@ int DigiReco::reconstruct(int ibeg, int iend)
         pbun[ich] = std::numeric_limits<float>::infinity();
       }
     }
+
+#ifdef O2_ZDC_DEBUG
     // Debug dump of pedestal
-    if (mVerbosity >= DbgFull) {
-      for (int ich = 0; ich < NChannels; ich++) {
-        LOG(INFO) << "bunch: " << ibun << " ch: " << ich << " " << ChannelNames[ich] << " offset: " << pbun[ich];
-      }
+    for (int ich = 0; ich < NChannels; ich++) {
+      LOG(INFO) << "bunch: " << ibun << " ch: " << ich << " " << ChannelNames[ich] << " offset: " << pbun[ich];
     }
+#endif
 
     auto& rec = mReco[ibun];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-      if (mVerbosity >= DbgFull && rec.fired[itdc] != 0x0) {
+#ifdef O2_ZDC_DEBUG
+      if (rec.fired[itdc] != 0x0) {
         printf("%d %u.%u TDC %d %x", ibun, rec.ir.orbit, rec.ir.bc, itdc, rec.fired[itdc]);
         for (int isam = 0; isam < NTimeBinsPerBC; isam++) {
           printf("%d", rec.fired[itdc] & mMask[isam] ? 1 : 0);
         }
         printf("\n");
       }
+#endif
       rec.pattern[itdc] = 0;
       for (int32_t i = 0; i < rec.ntdc[itdc]; i++) {
         LOG(DEBUG) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.tdcAmp[itdc][i] << " @ " << rec.tdcVal[itdc][i];
@@ -349,14 +340,13 @@ int DigiReco::reconstruct(int ibeg, int iend)
         }
       }
     }
-    if (mVerbosity >= DbgFull) {
-      printf("%d %u.%-4u TDC PATTERN: ", ibun, mReco[ibun].ir.orbit, mReco[ibun].ir.bc);
-      for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-        printf("%d", rec.pattern[itdc]);
-      }
-      printf("\n");
+#ifdef O2_ZDC_DEBUG
+    printf("%d %u.%-4u TDC PATTERN: ", ibun, mReco[ibun].ir.orbit, mReco[ibun].ir.bc);
+    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+      printf("%d", rec.pattern[itdc]);
     }
-
+    printf("\n");
+#endif
     // Check if coincidence of common PM and sum of towers is satisfied
     bool fired[NChannels] = {0};
     // Side A
@@ -407,9 +397,9 @@ int DigiReco::reconstruct(int ibeg, int iend)
             // TODO: manage signal positioned across boundary
             sum += (pbun[ich] - float(mChData[ref].data[is]));
           }
-          if (mVerbosity >= DbgFull) {
-            printf("CH %2d %s: %f\n", ich, ChannelNames[ich].data(), sum);
-          }
+#ifdef O2_ZDC_DEBUG
+          printf("CH %2d %s: %f\n", ich, ChannelNames[ich].data(), sum);
+#endif
           rec.ezdc[ich] = sum;
         }
       }
@@ -481,7 +471,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
-  LOG(INFO) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+  LOG(DEBUG) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
   // TODO: get data from preceding time frame
   constexpr int MaxTimeBin = NTimeBinsPerBC - 1; //< number of samples per BC
   constexpr int tsnh = TSN / 2;                  // Half number of points in interpolation

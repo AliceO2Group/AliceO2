@@ -18,6 +18,9 @@
 #include <string>
 #include <type_traits>
 
+// Enable debug output in reconstruction
+//#define O2_ZDC_DEBUG
+
 namespace o2
 {
 namespace zdc
