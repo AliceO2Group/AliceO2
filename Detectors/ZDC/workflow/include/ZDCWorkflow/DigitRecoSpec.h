@@ -30,6 +30,7 @@ class DigitRecoSpec : public o2::framework::Task
 {
  public:
   DigitRecoSpec();
+  DigitRecoSpec(const bool debugOut, const std::string& ccdbURL);
   ~DigitRecoSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
@@ -37,12 +38,14 @@ class DigitRecoSpec : public o2::framework::Task
 
  private:
   DigiReco mDR;
-  TStopwatch mTimer;
+  std::string mccdbHost;
+  bool mDebugOut = false;
   bool mInitialized = false;
+  TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getDigitRecoSpec();
+framework::DataProcessorSpec getDigitRecoSpec(const bool enableDebugOut, const std::string ccdbURL);
 
 } // namespace zdc
 } // namespace o2

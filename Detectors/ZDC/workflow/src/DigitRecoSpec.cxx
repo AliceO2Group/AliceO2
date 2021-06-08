@@ -40,6 +40,19 @@ DigitRecoSpec::DigitRecoSpec()
 {
   mTimer.Stop();
   mTimer.Reset();
+  if(mccdbHost.empty()){
+    mccdbHost = "http://ccdb-test.cern.ch:8080";
+  }
+}
+
+DigitRecoSpec::DigitRecoSpec(const bool debugOut, const std::string& ccdbURL)
+  : mDebugOut(debugOut), mccdbHost(ccdbURL)
+{
+  if(mccdbHost.empty()){
+    mccdbHost = "http://ccdb-test.cern.ch:8080";
+  }
+  mTimer.Stop();
+  mTimer.Reset();
 }
 
 void DigitRecoSpec::init(o2::framework::InitContext& ic)
@@ -52,9 +65,8 @@ void DigitRecoSpec::run(ProcessingContext& pc)
   if (!mInitialized) {
     mInitialized = true;
     // Initialization from CCDB
-    std::string ccdbHost = "http://ccdb-test.cern.ch:8080";
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-    mgr.setURL(ccdbHost);
+    mgr.setURL(mccdbHost);
     long timeStamp = 0;
     if (timeStamp == mgr.getTimestamp()) {
       return;
@@ -85,8 +97,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     mDR.setIntegrationParam(integrationParam);
     mDR.setTDCParam(tdcParam);
 
-    // TODO: conditional debug output
-    mDR.setDebugOutput();
+    if(mDebugOut)mDR.setDebugOutput();
 
     mDR.init();
   }
@@ -140,7 +151,7 @@ void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getDigitRecoSpec()
+DataProcessorSpec getDigitRecoSpec(const bool enableDebugOut=false, const std::string ccdbURL="")
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
@@ -156,7 +167,7 @@ DataProcessorSpec getDigitRecoSpec()
     "zdc-digi-reco",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<DigitRecoSpec>()}};
+    AlgorithmSpec{adaptFromTask<DigitRecoSpec>(enableDebugOut, ccdbURL)}};
 }
 
 } // namespace zdc

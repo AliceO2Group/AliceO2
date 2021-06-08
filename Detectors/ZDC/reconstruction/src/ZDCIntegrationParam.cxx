@@ -15,21 +15,34 @@ using namespace o2::zdc;
 
 void ZDCIntegrationParam::setIntegration(uint32_t ich, int beg, int end, int beg_ped, int end_ped)
 {
+  int sig_l = 0;
+  int sig_h = NTimeBinsPerBC - 1;
+  int ped_l = -NTimeBinsPerBC;
+  int ped_h = NTimeBinsPerBC - 1;
+
   if (ich >= 0 && ich < NChannels) {
-    if (beg < 0 || beg >= NTimeBinsPerBC) {
-      LOG(FATAL) << "Integration start = " << beg << " for signal " << ich << " (" << ChannelNames[ich] << ") not in allowed range [0-" << NTimeBinsPerBC - 1;
+    if (beg < sig_l || beg > sig_h) {
+      LOG(FATAL) << "Integration start = " << beg << " for signal " << ich << " (" << ChannelNames[ich] << ") not in allowed range [" << sig_l << "-" << sig_h << "]";
       return;
     }
-    if (end < 0 || end >= NTimeBinsPerBC) {
-      LOG(FATAL) << "Integration end = " << end << " for signal " << ich << " (" << ChannelNames[ich] << ") not in allowed range [0-" << NTimeBinsPerBC - 1;
+    if (end < sig_l || end > sig_h) {
+      LOG(FATAL) << "Integration end = " << beg << " for signal " << ich << " (" << ChannelNames[ich] << ") not in allowed range [" << sig_l << "-" << sig_h << "]";
       return;
     }
-    if (beg_ped < 0 || beg_ped >= NTimeBinsPerBC) {
-      LOG(FATAL) << "Pedestal integration start = " << beg_ped << " for signal " << ich << " (" << ChannelNames[ich] << ") not in allowed range [0-" << NTimeBinsPerBC - 1;
+    if (end < beg) {
+      LOG(FATAL) << "Inconsistent integration range for signal " << ich << " (" << ChannelNames[ich] << "): [" << beg << "-" << end << "]";
       return;
     }
-    if (beg < 0 || beg >= NTimeBinsPerBC) {
-      LOG(FATAL) << "Pedestal integration end = " << end_ped << " for signal " << ich << " (" << ChannelNames[ich] << ") not in allowed range [0-" << NTimeBinsPerBC - 1;
+    if (beg_ped < ped_l || beg_ped > ped_h) {
+      LOG(FATAL) << "Pedestal integration start = " << beg_ped << " for signal " << ich << " (" << ChannelNames[ich] << ") not in allowed range [" << ped_l << "-" << ped_h << "]";
+      return;
+    }
+    if (end_ped < ped_l || end_ped > ped_h) {
+      LOG(FATAL) << "Pedestal integration end = " << end_ped << " for signal " << ich << " (" << ChannelNames[ich] << ") not in allowed range [" << ped_l << "-" << ped_h << "]";
+      return;
+    }
+    if (end_ped < beg_ped) {
+      LOG(FATAL) << "Inconsistent integration range for pedestal " << ich << " (" << ChannelNames[ich] << "): [" << beg_ped << "-" << end_ped << "]";
       return;
     }
     beg_int[ich] = beg;
