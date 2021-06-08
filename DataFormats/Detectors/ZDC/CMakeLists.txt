@@ -21,7 +21,7 @@ o2_target_root_dictionary(DataFormatsZDC
                HEADERS include/DataFormatsZDC/Hit.h include/DataFormatsZDC/MCLabel.h
                        include/DataFormatsZDC/BCData.h include/DataFormatsZDC/ChannelData.h
                        include/DataFormatsZDC/OrbitData.h include/DataFormatsZDC/CTF.h
-                       include/DataFormatsZDC/RecEvent.h include/DataFormatsZDC/RecEventAux.h 
+                       include/DataFormatsZDC/RecEvent.h include/DataFormatsZDC/RecEventAux.h
                        include/DataFormatsZDC/OrbitRawData.h include/DataFormatsZDC/BCRecData.h
                        include/DataFormatsZDC/ZDCEnergy.h include/DataFormatsZDC/ZDCTDCData.h
                        include/DataFormatsZDC/OrbitRecData.h include/DataFormatsZDC/RawEventData.h)
