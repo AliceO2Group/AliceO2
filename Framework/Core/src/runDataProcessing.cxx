@@ -1123,7 +1123,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
 
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec>(&spec));
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(&quotaEvaluator));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
