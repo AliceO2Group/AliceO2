@@ -571,11 +571,11 @@ bool MatchTOF::prepareTPCTracks()
     mSideTPC.push_back(trcOrig.hasASideClustersOnly() ? 1 : (trcOrig.hasCSideClustersOnly() ? -1 : 0));
     mExtraTPCFwdTime.push_back((trcOrig.getDeltaTFwd() + 5) * mTPCTBinMUS + extraErr);
 
-    o2::track::TrackLTIntegral intLT0; //mTPCTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation
     // make a copy of the TPC track that we have to propagate
-    //o2::tpc::TrackTPC* trc = new o2::tpc::TrackTPC(trcTPCOrig); // this would take the TPCout track
-    mTracksWork.emplace_back(std::make_pair(trcOrig.getOuterParam(), timeInfo));
+    mTracksWork.emplace_back(std::make_pair(trcOrig.getOuterParam(), timeInfo)); // RS Why do we creat a track copy before deciding that the track should be propagated?
     auto& trc = mTracksWork.back().first;
+
+    o2::track::TrackLTIntegral intLT0{}; // we get the integrated length from TPC-ITC outward propagation
     auto& intLT = mLTinfos.emplace_back(intLT0);
 
     if (trcOrig.getNClusters() < nclustersMin) {
@@ -588,7 +588,7 @@ bool MatchTOF::prepareTPCTracks()
       continue;
     }
 
-    //    printf("N clusters = %d\n",trcOrig.getNClusters());
+    o2::base::Propagator::Instance()->estimateLTFast(intLT, trc); // init intLT with fast estimate
 
 #ifdef _ALLOW_TOF_DEBUG_
     // propagate to matching Xref
