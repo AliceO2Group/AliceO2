@@ -185,42 +185,42 @@ enum qConfigRetVal { qcrOK = 0,
 
 // End QCONFIG_HELP
 #elif defined(QCONFIG_PRINT)
-#define AddOption(name, type, default, optname, optnameshort, ...) std::cout << "\t" << blockName << qon_mxstr(name) << ": " << qConfig::print_type(tmp.name) << "\n";
-#define AddVariable(name, type, default) std::cout << "\t" << blockName << qon_mxstr(name) << ": " << qConfig::print_type(tmp.name) << "\n";
+#define AddOption(name, type, default, optname, optnameshort, ...) std::cout << "\t" << blockName << qon_mxstr(name) << ": " << qConfig::print_type(qconfig_tmp_object.name) << "\n";
+#define AddVariable(name, type, default) std::cout << "\t" << blockName << qon_mxstr(name) << ": " << qConfig::print_type(qconfig_tmp_object.name) << "\n";
 #define AddOptionSet(name, type, value, optname, optnameshort, ...)
-#define AddOptionVec(name, type, optname, optnameshort, ...)     \
-  {                                                              \
-    std::cout << "\t" << blockName << qon_mxstr(name) << "[]: "; \
-    for (unsigned int i = 0; i < tmp.name.size(); i++) {         \
-      if (i) {                                                   \
-        std::cout << ", ";                                       \
-      }                                                          \
-      std::cout << qConfig::print_type(tmp.name[i]);             \
-    }                                                            \
-    std::cout << "\n";                                           \
+#define AddOptionVec(name, type, optname, optnameshort, ...)            \
+  {                                                                     \
+    std::cout << "\t" << blockName << qon_mxstr(name) << "[]: ";        \
+    for (unsigned int i = 0; i < qconfig_tmp_object.name.size(); i++) { \
+      if (i) {                                                          \
+        std::cout << ", ";                                              \
+      }                                                                 \
+      std::cout << qConfig::print_type(qconfig_tmp_object.name[i]);     \
+    }                                                                   \
+    std::cout << "\n";                                                  \
   }
-#define AddOptionArray(name, type, count, default, optname, optnameshort, ...)                                      \
-  {                                                                                                                 \
-    std::cout << "\t" << blockName << qon_mxstr(name) << "[" << count << "]: " << qConfig::print_type(tmp.name[0]); \
-    for (int i = 1; i < count; i++) {                                                                               \
-      std::cout << ", " << qConfig::print_type(tmp.name[i]);                                                        \
-    }                                                                                                               \
-    std::cout << "\n";                                                                                              \
+#define AddOptionArray(name, type, count, default, optname, optnameshort, ...)                                                     \
+  {                                                                                                                                \
+    std::cout << "\t" << blockName << qon_mxstr(name) << "[" << count << "]: " << qConfig::print_type(qconfig_tmp_object.name[0]); \
+    for (int i = 1; i < count; i++) {                                                                                              \
+      std::cout << ", " << qConfig::print_type(qconfig_tmp_object.name[i]);                                                        \
+    }                                                                                                                              \
+    std::cout << "\n";                                                                                                             \
   }
-#define AddSubConfig(name, instance)
+#define AddSubConfig(name, instance) qConfigPrint(qconfig_tmp_object.instance, blockName + qon_mxstr(instance.));
 #define AddHelpText(text) printf("    " text ":\n");
-#define BeginConfig(name, instance) \
-  {                                 \
-    name& tmp = instance;           \
-    blockName = "";
+#define BeginConfig(name, instance)                      \
+  void qConfigPrint(const name& qconfig_tmp_object);     \
+  bool qon_mxcat(qprint_global_, instance) = []() { qprint_global.emplace_back([]() { qConfigPrint(instance); }); return true; }(); \
+  void qConfigPrint(const name& qconfig_tmp_object)      \
+  {                                                      \
+    std::string blockName = "";
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, ...) \
+  void qConfigPrint(const name& qconfig_tmp_object, std::string blockName = "")         \
   {                                                                                     \
-    name& tmp = parent.instance;                                                        \
-    blockName = std::string("\t") + qon_mxstr(name) + ".";                              \
-    std::cout << "\t" << qon_mxstr(name) << "\n";
-#define BeginHiddenConfig(name, instance) \
-  if (0) {                                \
-    name tmp;
+    std::cout << "\n\t" << qon_mxstr(name) << ":\n";
+#define BeginHiddenConfig(name, instance) BeginSubConfig(name, instance, x, x, x, x)
+
 #define EndConfig() }
 
 // End QCONFIG_PRINT
