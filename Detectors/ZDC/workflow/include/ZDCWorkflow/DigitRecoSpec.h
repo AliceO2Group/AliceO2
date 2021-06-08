@@ -30,17 +30,18 @@ class DigitRecoSpec : public o2::framework::Task
 {
  public:
   DigitRecoSpec();
-  DigitRecoSpec(const bool debugOut, const std::string& ccdbURL);
+  DigitRecoSpec(const int verbosity, const bool debugOut, const std::string& ccdbURL);
   ~DigitRecoSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  DigiReco mDR;
-  std::string mccdbHost;
-  bool mDebugOut = false;
-  bool mInitialized = false;
+  DigiReco mDR;              // Reconstruction object
+  std::string mccdbHost;     // Alternative ccdb server
+  int mVerbosity = 0;        // Verbosity level during recostruction
+  bool mDebugOut = false;    // Save temporary reconstruction structures on root file
+  bool mInitialized = false; // Connect once to CCDB during initialization
   TStopwatch mTimer;
 };
 

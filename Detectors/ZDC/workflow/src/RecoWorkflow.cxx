@@ -20,13 +20,13 @@ namespace o2
 namespace zdc
 {
 
-framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const bool enableDebugOut, const std::string ccdbURL)
+framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const int verbosity, const bool enableDebugOut, const std::string ccdbURL)
 {
   framework::WorkflowSpec specs;
   if (!disableRootInp) {
     specs.emplace_back(o2::zdc::getDigitReaderSpec(useMC));
   }
-  specs.emplace_back(o2::zdc::getDigitRecoSpec(enableDebugOut, ccdbURL));
+  specs.emplace_back(o2::zdc::getDigitRecoSpec(verbosity, enableDebugOut, ccdbURL));
   if (!disableRootOut) {
     specs.emplace_back(o2::zdc::getZDCRecoWriterDPLSpec());
   }

@@ -45,8 +45,8 @@ DigitRecoSpec::DigitRecoSpec()
   }
 }
 
-DigitRecoSpec::DigitRecoSpec(const bool debugOut, const std::string& ccdbURL)
-  : mDebugOut(debugOut), mccdbHost(ccdbURL)
+DigitRecoSpec::DigitRecoSpec(const int verbosity, const bool debugOut, const std::string& ccdbURL)
+  : mVerbosity(verbosity), mDebugOut(debugOut), mccdbHost(ccdbURL)
 {
   if (mccdbHost.empty()) {
     mccdbHost = "http://ccdb-test.cern.ch:8080";
@@ -97,8 +97,11 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     mDR.setIntegrationParam(integrationParam);
     mDR.setTDCParam(tdcParam);
 
-    if (mDebugOut)
+    if (mDebugOut) {
       mDR.setDebugOutput();
+    }
+
+    mDR.setVerbosity(nVerbosity);
 
     mDR.init();
   }
@@ -152,7 +155,7 @@ void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getDigitRecoSpec(const bool enableDebugOut = false, const std::string ccdbURL = "")
+DataProcessorSpec getDigitRecoSpec(const int verbosity, const bool enableDebugOut = false, const std::string ccdbURL = "")
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
@@ -168,7 +171,7 @@ DataProcessorSpec getDigitRecoSpec(const bool enableDebugOut = false, const std:
     "zdc-digi-reco",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<DigitRecoSpec>(enableDebugOut, ccdbURL)}};
+    AlgorithmSpec{adaptFromTask<DigitRecoSpec>(verbosity, enableDebugOut, ccdbURL)}};
 }
 
 } // namespace zdc

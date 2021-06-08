@@ -264,7 +264,10 @@ int DigiReco::reconstruct(int ibeg, int iend)
     LOG(INFO) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
     return 0;
   }
-  LOG(INFO) << __func__ << "(" << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+
+  if (mVerbosity >= DbgFull) {
+    LOG(INFO) << __func__ << "(" << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+  }
 
   // Get reconstruction parameters
   auto& ropt = RecoParamZDC::Instance();
@@ -328,7 +331,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
 
     auto& rec = mReco[ibun];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-      if (rec.fired[itdc] != 0x0) {
+      if (mVerbosity >= DbgFull && rec.fired[itdc] != 0x0) {
         printf("%d %u.%u TDC %d %x", ibun, rec.ir.orbit, rec.ir.bc, itdc, rec.fired[itdc]);
         for (int isam = 0; isam < NTimeBinsPerBC; isam++) {
           printf("%d", rec.fired[itdc] & mMask[isam] ? 1 : 0);
@@ -337,20 +340,22 @@ int DigiReco::reconstruct(int ibeg, int iend)
       }
       rec.pattern[itdc] = 0;
       for (int32_t i = 0; i < rec.ntdc[itdc]; i++) {
-        LOG(INFO) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.tdcAmp[itdc][i] << " @ " << rec.tdcVal[itdc][i];
+        LOG(DEBUG) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.tdcAmp[itdc][i] << " @ " << rec.tdcVal[itdc][i];
         // There is a TDC value in the search zone around main-main position
         if (std::abs(rec.tdcVal[itdc][i]) < ropt.tdc_search[itdc]) {
           rec.pattern[itdc] = 1;
         } else {
-          LOG(INFO) << rec.tdcVal[itdc][i] << " " << ropt.tdc_search[itdc];
+          LOG(DEBUG) << rec.tdcVal[itdc][i] << " " << ropt.tdc_search[itdc];
         }
       }
     }
-    printf("%d %u.%-4u TDC PATTERN: ", ibun, mReco[ibun].ir.orbit, mReco[ibun].ir.bc);
-    for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-      printf("%d", rec.pattern[itdc]);
+    if (mVerbosity >= DbgFull) {
+      printf("%d %u.%-4u TDC PATTERN: ", ibun, mReco[ibun].ir.orbit, mReco[ibun].ir.bc);
+      for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+	printf("%d", rec.pattern[itdc]);
+      }
+      printf("\n");
     }
-    printf("\n");
 
     // Check if coincidence of common PM and sum of towers is satisfied
     bool fired[NChannels] = {0};
@@ -380,13 +385,15 @@ int DigiReco::reconstruct(int ibeg, int iend)
       }
     }
 
-    printf("%d FIRED ", ibun);
-    printf("ZNA:%d%d%d%d%d%d ZPA:%d%d%d%d%d%d ZEM:%d%d ZNC:%d%d%d%d%d%d ZPC:%d%d%d%d%d%d\n",
-           fired[IdZNAC], fired[IdZNA1], fired[IdZNA2], fired[IdZNA3], fired[IdZNA4], fired[IdZNASum],
-           fired[IdZPAC], fired[IdZPA1], fired[IdZPA2], fired[IdZPA3], fired[IdZPA4], fired[IdZPASum],
-           fired[IdZEM1], fired[IdZEM2],
-           fired[IdZNCC], fired[IdZNC1], fired[IdZNC2], fired[IdZNC3], fired[IdZNC4], fired[IdZNCSum],
-           fired[IdZPCC], fired[IdZPC1], fired[IdZPC2], fired[IdZPC3], fired[IdZPC4], fired[IdZPCSum]);
+    if (mVerbosity >= DbgFull) {
+      printf("%d FIRED ", ibun);
+      printf("ZNA:%d%d%d%d%d%d ZPA:%d%d%d%d%d%d ZEM:%d%d ZNC:%d%d%d%d%d%d ZPC:%d%d%d%d%d%d\n",
+             fired[IdZNAC], fired[IdZNA1], fired[IdZNA2], fired[IdZNA3], fired[IdZNA4], fired[IdZNASum],
+             fired[IdZPAC], fired[IdZPA1], fired[IdZPA2], fired[IdZPA3], fired[IdZPA4], fired[IdZPASum],
+             fired[IdZEM1], fired[IdZEM2],
+             fired[IdZNCC], fired[IdZNC1], fired[IdZNC2], fired[IdZNC3], fired[IdZNC4], fired[IdZNCSum],
+             fired[IdZPCC], fired[IdZPC1], fired[IdZPC2], fired[IdZPC3], fired[IdZPC4], fired[IdZPCSum]);
+    }
     for (int ich = 0; ich < NChannels; ich++) {
       // Check if the corresponding TDC is fired
       if (fired[ich]) {
@@ -400,7 +407,9 @@ int DigiReco::reconstruct(int ibeg, int iend)
             // TODO: manage signal positioned across boundary
             sum += (pbun[ich] - float(mChData[ref].data[is]));
           }
-          printf("CH %2d %s: %f\n", ich, ChannelNames[ich].data(), sum);
+	  if (mVerbosity >= DbgFull) {
+            printf("CH %2d %s: %f\n", ich, ChannelNames[ich].data(), sum);
+	  }
           rec.ezdc[ich] = sum;
         }
       }
@@ -750,7 +759,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
     mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp / FTDCAmp);
     ihit++;
-    LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
+    LOG(DEBUG) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp;
   } else {
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "

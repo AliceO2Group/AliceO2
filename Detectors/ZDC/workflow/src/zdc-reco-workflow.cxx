@@ -22,9 +22,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}});
   workflowOptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
   workflowOptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
+  workflowOptions.push_back(ConfigParamSpec{"verbosity", VariantType::Int, 0, {"verbosity level"}});
   workflowOptions.push_back(ConfigParamSpec{"enable-debug-output", VariantType::Bool, false, {"enable debug tree output"}});
   workflowOptions.push_back(ConfigParamSpec{"ccdb-url", VariantType::String, "http://ccdb-test.cern.ch:8080", {"url of CCDB"}});
-
   std::string keyvaluehelp("Semicolon separated key=value strings ...");
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
 }
@@ -44,9 +44,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto verbosity = configcontext.options().get<int>("verbosity");
   auto enableDebugOut = configcontext.options().get<bool>("enable-debug-output");
   auto ccdbURL = configcontext.options().get<std::string>("ccdb-url");
 
   LOG(INFO) << "WorkflowSpec getRecoWorkflow useMC " << useMC;
-  return std::move(o2::zdc::getRecoWorkflow(useMC, disableRootInp, disableRootOut, enableDebugOut, ccdbURL));
+  return std::move(o2::zdc::getRecoWorkflow(useMC, disableRootInp, disableRootOut, verbosity, enableDebugOut, ccdbURL));
 }
