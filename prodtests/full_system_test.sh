@@ -44,6 +44,8 @@ SPLITTRDDIGI=${SPLITTRDDIGI:-1}
 NHBPERTF=${NHBPERTF:-128}
 RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
+FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
+FST_MC_ENGINE=${FST_MC_ENGINE:-TGeant4}
 
 [ "$FIRSTSAMPLEDORBIT" -lt "$RUNFIRSTORBIT" ] && FIRSTSAMPLEDORBIT=$RUNFIRSTORBIT
 
@@ -72,7 +74,7 @@ ulimit -n 4096 # Make sure we can open sufficiently many files
 mkdir -p qed
 cd qed
 PbPbXSec="8."
-taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n$NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
+taskwrapper qedsim.log o2-sim --seed $O2SIMSEED -j $NJOBS -n$NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."'
 QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
 echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
 cd ..
@@ -84,7 +86,7 @@ else
   DIGITRDOPT=$DIGITRDOPTREAL
 fi
 
-taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g pythia8hi -j $NJOBS
+taskwrapper sim.log o2-sim --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS
 taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents --simPrefixQED qed/o2sim --qed-x-section-ratio ${QED2HAD} ${NOMCLABELS} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITRDOPT}
 [ $SPLITTRDDIGI == "1" ] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root ${DIGITRDOPTREAL}
 touch digiTRD.log_done
