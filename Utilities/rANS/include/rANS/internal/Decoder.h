@@ -125,7 +125,7 @@ stream_IT Decoder<state_T, stream_T>::advanceSymbol(stream_IT inputIter, const D
 
   // s, x = D(x)
   state_T newState = mState;
-  newState = symbol.freq * (newState >> mSymbolTablePrecission) + (newState & mask) - symbol.start;
+  newState = symbol.getFrequency() * (newState >> mSymbolTablePrecission) + (newState & mask) - symbol.getCumulative();
 
   // renormalize
   const auto [renormedState, newStreamPosition] = this->renorm(newState, inputIter);
