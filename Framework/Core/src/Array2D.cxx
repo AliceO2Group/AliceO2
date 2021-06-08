@@ -12,8 +12,11 @@
 #include <Framework/RuntimeError.h>
 #include <Framework/CompilerBuiltins.h>
 
+template class std::unordered_map<std::string, u_int32_t>;
+
 namespace o2::framework
 {
+
 labelmap_t LabelMap::populate(uint32_t size, std::vector<std::string> labels)
 {
   labelmap_t map;
@@ -47,5 +50,33 @@ void LabelMap::replaceLabelsCols(uint32_t size, std::vector<std::string> const& 
   colmap.clear();
   colmap = populate(labels.size(), labels);
 }
+LabelMap::LabelMap()
+  : rowmap{},
+    colmap{},
+    labels_rows{},
+    labels_cols{}
+{
+}
+
+LabelMap::LabelMap(uint32_t rows, uint32_t cols, std::vector<std::string> labels_rows_, std::vector<std::string> labels_cols_)
+  : rowmap{populate(rows, labels_rows_)},
+    colmap{populate(cols, labels_cols_)},
+    labels_rows{labels_rows_},
+    labels_cols{labels_cols_}
+{
+}
+
+LabelMap::LabelMap(uint32_t size, std::vector<std::string> labels)
+  : rowmap{},
+    colmap{populate(size, labels)},
+    labels_rows{},
+    labels_cols{labels}
+{
+}
+
+LabelMap::LabelMap(LabelMap const& other) = default;
+LabelMap::LabelMap(LabelMap&& other) = default;
+LabelMap& LabelMap::operator=(LabelMap const& other) = default;
+LabelMap& LabelMap::operator=(LabelMap&& other) = default;
 
 } // namespace o2::framework
