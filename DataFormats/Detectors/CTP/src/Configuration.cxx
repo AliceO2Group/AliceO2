@@ -82,10 +82,12 @@ int CTPConfiguration::loadConfiguration(const std::string& ctpconfiguration)
 }
 int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
 {
-  if (line.size() == 0)
+  if (line.size() == 0) {
     return 0;
-  if (line.at(0) == '#')
+  }
+  if (line.at(0) == '#') {
     return 0;
+  }
   size_t first;
   if ((first = line.find("PARTITION:")) != std::string::npos) {
     mName = o2::utils::Str::trim_copy(line.erase(first, 10));
@@ -114,8 +116,9 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
   /// Do parse levels
   std::vector<std::string> tokens = o2::utils::Str::tokenize(line, ' ');
   size_t ntokens = tokens.size();
-  if (ntokens == 0)
+  if (ntokens == 0) {
     return 0;
+  }
   switch (level) {
     case 1:
       /// INPUTS: name det level indexCTP<0:45>
@@ -274,8 +277,9 @@ uint64_t CTPConfiguration::getInputMask(const std::string& name)
 bool CTPConfiguration::isMaskInInputs(uint64_t& mask)
 {
   for (auto const& inp : mInputs) {
-    if (inp.inputMask == mask)
+    if (inp.inputMask == mask) {
       return true;
+    }
   }
   return false;
 }
