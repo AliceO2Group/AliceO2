@@ -190,15 +190,6 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      if (!isALICE3) {
-        // track-level PID TPC selection
-        if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-            selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-          hfSelJpsiToEECandidate(0);
-          continue;
-        }
-      }
-
       // track-level PID TOF selection
       if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
           selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
@@ -223,6 +214,13 @@ struct HFJpsiToEECandidateSelector {
           continue;
         }
         //LOGF(info, "Muon selection: Selected");
+      } else {
+        // track-level PID TPC selection
+        if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          hfSelJpsiToEECandidate(0);
+          continue;
+        }
       }
 
       hfSelJpsiToEECandidate(1);
