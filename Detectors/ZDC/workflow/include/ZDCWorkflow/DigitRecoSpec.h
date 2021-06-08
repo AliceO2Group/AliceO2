@@ -46,7 +46,7 @@ class DigitRecoSpec : public o2::framework::Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getDigitRecoSpec(const bool enableDebugOut, const std::string ccdbURL);
+framework::DataProcessorSpec getDigitRecoSpec(const int verbosity, const bool enableDebugOut, const std::string ccdbURL);
 
 } // namespace zdc
 } // namespace o2

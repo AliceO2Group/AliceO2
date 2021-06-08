@@ -101,7 +101,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       mDR.setDebugOutput();
     }
 
-    mDR.setVerbosity(nVerbosity);
+    mDR.setVerbosity(mVerbosity);
 
     mDR.init();
   }
@@ -155,7 +155,7 @@ void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getDigitRecoSpec(const int verbosity, const bool enableDebugOut = false, const std::string ccdbURL = "")
+framework::DataProcessorSpec getDigitRecoSpec(const bool enableDebugOut = false, const int verbosity=0, const std::string ccdbURL = "")
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
