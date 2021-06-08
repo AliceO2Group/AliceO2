@@ -155,7 +155,7 @@ void DigitRecoSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-framework::DataProcessorSpec getDigitRecoSpec(const int verbosity=0, const bool enableDebugOut = false, const std::string ccdbURL = "")
+framework::DataProcessorSpec getDigitRecoSpec(const int verbosity = 0, const bool enableDebugOut = false, const std::string ccdbURL = "")
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trig", "ZDC", "DIGITSBC", 0, Lifetime::Timeframe);
