@@ -40,10 +40,13 @@ void DataReaderTask::init(InitContext& ic)
 
 void DataReaderTask::sendData(ProcessingContext& pc)
 {
+  // mReader.getParsedObjects(mTracklets,mDigits,mTriggers);
+  mReader.getParsedObjects(mTracklets, mCompressedDigits, mTriggers);
 
   if (mVerbose) {
     LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets";
   }
+  LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets";
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRIGGERRECORD", 0, Lifetime::Timeframe}, mTriggers);
@@ -94,14 +97,14 @@ void DataReaderTask::run(ProcessingContext& pc)
           LOG(info) << "%%% finished running " << loopcounter << " %%%";
         }
         loopcounter++;
-        mTracklets.insert(std::end(mTracklets), std::begin(mReader.getTracklets()), std::end(mReader.getTracklets()));
-        mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
-        mReader.clearall();
+        //mTracklets.insert(std::end(mTracklets), std::begin(mReader.getTracklets()), std::end(mReader.getTracklets()));
+        //mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
+        //mReader.clearall();
         if (mVerbose) {
           LOG(info) << "from parsing received: " << mTracklets.size() << " tracklets and " << mCompressedDigits.size() << " compressed digits";
-          LOG(info) << "relevant vectors to read : " << mReader.getTracklets().size() << " tracklets and " << mReader.getCompressedDigits().size() << " compressed digits";
+          LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
         }
-        mTriggers = mReader.getIR();
+        //  mTriggers = mReader.getIR();
         //get the payload of trigger and digits out.
       } else { // we have compressed data coming in.
         mCompressedReader.setDataBuffer(payloadIn);
@@ -114,8 +117,9 @@ void DataReaderTask::run(ProcessingContext& pc)
         //get the payload of trigger and digits out.
       }
       /* output */
-      sendData(pc); //TODO do we ever have to not post the data. i.e. can we get here mid event? I dont think so.
+      //sendData(pc); //TODO do we ever have to not post the data. i.e. can we get here mid event? I dont think so.
     }
+    sendData(pc); //TODO do we ever have to not post the data. i.e. can we get here mid event? I dont think so.
   }
 
   auto dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;

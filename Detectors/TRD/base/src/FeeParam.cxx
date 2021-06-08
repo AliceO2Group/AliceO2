@@ -399,8 +399,9 @@ void FeeParam::unpackORI(int link, int side, int& stack, int& layer, int& halfch
     stack = 4 - link / 12;
     layer = 5 - link % 6;
     halfchamberside = (link / 6) % 2;
-    if (link > 23)
+    if (link > 23) {
       halfchamberside = 1;
+    }
   }
 }
 
