@@ -40,7 +40,7 @@ struct TOFFEEchannelConfig {
 
 struct TOFFEEtriggerConfig {
 
-  uint64_t mStatusMap = 0; // status // can it be uint32?
+  unsigned int mStatusMap = 0; // status // can it be uint32?
   TOFFEEtriggerConfig() = default;
 
   ClassDefNV(TOFFEEtriggerConfig, 1);
@@ -56,6 +56,7 @@ struct TOFFEElightConfig {
   int mVersion = 0;   // version
   int mRunNumber = 0; // run number
   int mRunType = 0;   // run type
+
   // std::array<TOFFEEchannelConfig, NCHANNELS> mChannelConfig;
   TOFFEEchannelConfig mChannelConfig[Geo::kNCrate][Geo::kNTRM][Geo::kNChain][Geo::kNTdc][Geo::kNCh];
   std::array<TOFFEEtriggerConfig, NTRIGGERMAPS> mTriggerConfig;

@@ -22,8 +22,10 @@ void TOFFEElightReader::loadFEElightConfig(const char* fileName)
   char* expandedFileName = gSystem->ExpandPathName(fileName);
   std::ifstream is;
   is.open(expandedFileName, std::ios::binary);
-  is.read(reinterpret_cast<char*>(&mFEElightConfig), sizeof(mFEElightConfig));
+  char* tempbuf = new char[sizeof(o2::tof::TOFFEElightConfig)];
+  is.read(tempbuf, sizeof(o2::tof::TOFFEElightConfig));
   is.close();
+  mFEElightConfig = reinterpret_cast<TOFFEElightConfig*>(tempbuf);
 }
 
 //_______________________________________________________________
@@ -31,11 +33,10 @@ void TOFFEElightReader::loadFEElightConfig(gsl::span<const char> configBuf)
 {
   // load FEElight config from buffer
 
-  //mFEElightConfig = reinterpret_cast<TOFFEElightConfig*>(*configBuf.data());
-  if (!configBuf.size() == sizeof(mFEElightConfig)) {
-    LOG(FATAL) << "Incoming message with TOFFEE configuration does not match expected size!";
+  if (configBuf.size() != sizeof(o2::tof::TOFFEElightConfig)) {
+    LOG(FATAL) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
   }
-  memcpy(&mFEElightConfig, configBuf.data(), sizeof(mFEElightConfig));
+  mFEElightConfig = reinterpret_cast<TOFFEElightConfig*>(*configBuf.data());
 }
 
 //_______________________________________________________________
@@ -48,6 +49,17 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
 
   mFEElightInfo.resetAll();
 
+  int version = mFEElightConfig->mVersion;
+  int runNumber = mFEElightConfig->mRunNumber;
+  int runType = mFEElightConfig->mRunType;
+  LOG(INFO) << "version = " << version;
+  LOG(INFO) << "run number = " << runNumber;
+  LOG(INFO) << "run type = " << runType;
+
+  mFEElightInfo.mVersion = version;
+  mFEElightInfo.mRunNumber = runNumber;
+  mFEElightInfo.mRunType = runType;
+
   int nEnabled = 0, index;
   TOFFEEchannelConfig* channelConfig = nullptr;
   for (int crateId = 0; crateId < Geo::kNCrate; crateId++) {
@@ -55,7 +67,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
       for (int chainId = 0; chainId < Geo::kNChain; chainId++) {
         for (int tdcId = 0; tdcId < Geo::kNTdc; tdcId++) {
           for (int channelId = 0; channelId < Geo::kNCh; channelId++) {
-            channelConfig = mFEElightConfig.getChannelConfig(crateId, trmId, chainId, tdcId, channelId);
+            channelConfig = mFEElightConfig->getChannelConfig(crateId, trmId, chainId, tdcId, channelId);
             if (verbose) {
               LOG(INFO) << "Processing electronic channel with indices: crate = " << crateId << ", trm = " << trmId << ", chain = "
                         << chainId << ", tdc = " << tdcId << ", tdcChannel = " << channelId << " -> " << channelConfig;
@@ -83,7 +95,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
 
   TOFFEEtriggerConfig* triggerConfig = nullptr;
   for (Int_t iddl = 0; iddl < TOFFEElightConfig::NTRIGGERMAPS; iddl++) {
-    triggerConfig = mFEElightConfig.getTriggerConfig(iddl);
+    triggerConfig = mFEElightConfig->getTriggerConfig(iddl);
     if (verbose) {
       LOG(INFO) << "Processing trigger config " << iddl << ": " << triggerConfig;
     }
