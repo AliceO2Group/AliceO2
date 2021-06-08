@@ -120,7 +120,7 @@ int ReadConfiguration(int argc, char** argv)
     }
     return 1;
   }
-  if (configStandalone.printSettings) {
+  if (configStandalone.printSettings > 1) {
     qConfigPrint();
   }
   if (configStandalone.proc.debugLevel < 0) {
@@ -273,6 +273,11 @@ int ReadConfiguration(int argc, char** argv)
 #endif
 
   configStandalone.proc.showOutputStat = true;
+
+  if (configStandalone.printSettings) {
+    qConfigPrint();
+  }
+
   return (0);
 }
 

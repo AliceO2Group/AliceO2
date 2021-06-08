@@ -351,7 +351,7 @@ AddOption(zsFilter, int, -1, "", 0, "Apply Zero-Suppression when loading digits 
 AddOption(zs12bit, bool, true, "", 0, "Perform 12 bit zero-suppression encoding / filter")
 AddOption(dumpEvents, bool, false, "", 0, "Dump events (after transformation such as encodeZS")
 AddOption(stripDumpedEvents, bool, false, "", 0, "Remove redundant inputs (e.g. digits and ZS) before dumping")
-AddOption(printSettings, bool, false, "", 0, "Print all settings")
+AddOption(printSettings, int, 0, "", 0, "Print all settings", def(1))
 AddOption(memoryStat, bool, false, "", 0, "Print memory statistics")
 AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")
 AddOption(testSync, bool, false, "sync", 0, "Test settings for synchronous phase")
