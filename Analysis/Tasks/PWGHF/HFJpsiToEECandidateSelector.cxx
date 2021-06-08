@@ -184,16 +184,16 @@ struct HFJpsiToEECandidateSelector {
     // looping over 2-prong candidates
     for (auto& candidate : candidates) {
 
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE) && !(candidate.hfflag() & 1 << DecayType::JpsiToMuMu)) {
+        hfSelJpsiCandidate(0, 0);
+        continue;
+      }
+
       auto trackPos = candidate.index0_as<TracksPID>(); // positive daughter
       auto trackNeg = candidate.index1_as<TracksPID>(); // negative daughter
 
       int selectedEE = 1;
       int selectedMuMu = 1;
-
-      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE) && !(candidate.hfflag() & 1 << DecayType::JpsiToMuMu)) {
-        hfSelJpsiCandidate(0, 0);
-        continue;
-      }
 
       // track selection level need to add special cuts (additional cuts on decay length and d0 norm)
 
