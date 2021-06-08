@@ -352,7 +352,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
     if (mVerbosity >= DbgFull) {
       printf("%d %u.%-4u TDC PATTERN: ", ibun, mReco[ibun].ir.orbit, mReco[ibun].ir.bc);
       for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-	printf("%d", rec.pattern[itdc]);
+        printf("%d", rec.pattern[itdc]);
       }
       printf("\n");
     }
@@ -407,9 +407,9 @@ int DigiReco::reconstruct(int ibeg, int iend)
             // TODO: manage signal positioned across boundary
             sum += (pbun[ich] - float(mChData[ref].data[is]));
           }
-	  if (mVerbosity >= DbgFull) {
+          if (mVerbosity >= DbgFull) {
             printf("CH %2d %s: %f\n", ich, ChannelNames[ich].data(), sum);
-	  }
+          }
           rec.ezdc[ich] = sum;
         }
       }
@@ -760,7 +760,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp / FTDCAmp);
     ihit++;
     LOG(DEBUG) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp;
+               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp;
   } else {
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
                << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";
