@@ -26,26 +26,6 @@ using namespace o2::mch::raw;
 
 const char* sampaClusterFormat = "{}-CH{}-{}";
 
-template <typename FORMAT>
-struct isUserLogicFormat {
-  static constexpr bool value = false;
-};
-
-template <>
-struct isUserLogicFormat<UserLogicFormat> {
-  static constexpr bool value = true;
-};
-
-template <typename CHARGESUM>
-struct isChargeSumMode {
-  static constexpr bool value = false;
-};
-
-template <>
-struct isChargeSumMode<ChargeSumMode> {
-  static constexpr bool value = true;
-};
-
 // Create a vector of SampaCluster from a string d
 // where d is of the form ts-#-bc-#-cs-#-q-# or
 // ts-#-bc-#-cs-#-q-#-#-# ...

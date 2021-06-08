@@ -20,6 +20,12 @@ o2_add_test(sampa-cluster
             LABELS "muon;mch;raw"
             PUBLIC_LINK_LIBRARIES O2::MCHRawCommon Boost::boost)
 
+o2_add_test(sampa-bx-count
+            SOURCES testSampaBunchCrossingCounter.cxx
+            COMPONENT_NAME mchraw
+            LABELS "muon;mch;raw"
+            PUBLIC_LINK_LIBRARIES O2::MCHRawCommon Boost::boost)
+
 if(benchmark_FOUND)
   o2_add_executable(sampa-header
                     COMPONENT_NAME mch
