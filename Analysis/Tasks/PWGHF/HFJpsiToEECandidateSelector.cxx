@@ -91,13 +91,13 @@ struct Alice3PidIndexBuilder {
 struct HFJpsiToEECandidateSelector {
   Produces<aod::HFSelJpsiToEECandidate> hfSelJpsiToEECandidate;
 
+  Configurable<bool> isALICE3{"isALICE3", false, "Switch between ALICE 2 and ALICE 3 detector setup"};
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
   // TPC
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 0.15, "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 10., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 3., "Nsigma cut on TPC only"};
-  //Configurable<double> d_TPCNClsFindablePIDCut{"d_TPCNClsFindablePIDCut", 70., "Lower bound of TPC findable clusters for good PID"};
   // TOF
   Configurable<double> d_pidTOFMinpT{"d_pidTOFMinpT", 0.15, "Lower bound of track pT for TOF PID"};
   Configurable<double> d_pidTOFMaxpT{"d_pidTOFMaxpT", 5., "Upper bound of track pT for TOF PID"};
@@ -107,7 +107,6 @@ struct HFJpsiToEECandidateSelector {
   Configurable<double> d_pidRICHMinpT{"d_pidRICHMinpT", 0.15, "Lower bound of track pT for RICH PID"};
   Configurable<double> d_pidRICHMaxpT{"d_pidRICHMaxpT", 10., "Upper bound of track pT for RICH PID"};
   Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3., "Nsigma cut on RICH only"};
-
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
   Configurable<LabeledArray<double>> cuts{"Jpsi_to_ee_cuts", {hf_cuts_jpsi_toee::cuts[0], npTBins, nCutVars, pTBinLabels, cutVarLabels}, "Jpsi candidate selection per pT bin"};
@@ -191,13 +190,14 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      // track-level PID TPC selection
-      // FIXME: temporarily disabled for ALICE 3 development
-      //if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-      //    selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-      //  hfSelJpsiToEECandidate(0);
-      //  continue;
-      //}
+      if (!isALICE3) {
+        // track-level PID TPC selection
+        if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          hfSelJpsiToEECandidate(0);
+          continue;
+        }
+      }
 
       // track-level PID TOF selection
       if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
@@ -206,22 +206,24 @@ struct HFJpsiToEECandidateSelector {
         continue;
       }
 
-      // track-level PID RICH selection
-      if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-          selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-        hfSelJpsiToEECandidate(0);
-        continue;
-      }
+      if (isALICE3) {
+        // track-level PID RICH selection
+        if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          hfSelJpsiToEECandidate(0);
+          continue;
+        }
 
-      // track-level muon PID MID selection
-      //LOGF(info, "Muon selection: Start");
-      if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-          selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-        //LOGF(info, "Muon selection: Rejected");
-        hfSelJpsiToEECandidate(0);
-        continue;
+        // track-level muon PID MID selection
+        //LOGF(info, "Muon selection: Start");
+        if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          //LOGF(info, "Muon selection: Rejected");
+          hfSelJpsiToEECandidate(0);
+          continue;
+        }
+        //LOGF(info, "Muon selection: Selected");
       }
-      //LOGF(info, "Muon selection: Selected");
 
       hfSelJpsiToEECandidate(1);
     }
