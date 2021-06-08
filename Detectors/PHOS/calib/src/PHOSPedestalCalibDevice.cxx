@@ -100,7 +100,6 @@ void PHOSPedestalCalibDevice::sendOutput(DataAllocator& output)
 
 void PHOSPedestalCalibDevice::calculatePedestals()
 {
-
   mPedestals.reset(new Pedestals());
 
   //Calculate mean of pedestal distributions
