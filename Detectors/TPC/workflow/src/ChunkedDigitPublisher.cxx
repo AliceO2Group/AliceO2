@@ -148,7 +148,8 @@ void publishMergedTimeframes(std::vector<int> const& lanes, std::vector<int> con
   LOG(INFO) << "Running digit publisher with OpenMP enabled";
 #pragma omp parallel for schedule(dynamic)
 #endif
-  for (auto& filename : digitfilelist) {
+  for (size_t fi = 0; fi < digitfilelist.size(); ++fi) {
+    auto& filename = digitfilelist[fi];
     LOG(DEBUG) << "MERGING CHUNKED DIGITS FROM FILE " << filename;
     auto originfile = new TFile(filename.c_str(), "OPEN");
     assert(originfile);
