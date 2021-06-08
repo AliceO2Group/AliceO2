@@ -22,10 +22,10 @@ void TOFFEElightReader::loadFEElightConfig(const char* fileName)
   char* expandedFileName = gSystem->ExpandPathName(fileName);
   std::ifstream is;
   is.open(expandedFileName, std::ios::binary);
-  char* tempbuf = new char[sizeof(o2::tof::TOFFEElightConfig)];
-  is.read(tempbuf, sizeof(o2::tof::TOFFEElightConfig));
+  mFileLoadBuff.reset(new char[sizeof(o2::tof::TOFFEElightConfig)]);
+  is.read(mFileLoadBuff.get(), sizeof(o2::tof::TOFFEElightConfig));
   is.close();
-  mFEElightConfig = reinterpret_cast<TOFFEElightConfig*>(tempbuf);
+  mFEElightConfig = reinterpret_cast<const TOFFEElightConfig*>(mFileLoadBuff.get());
 }
 
 //_______________________________________________________________
@@ -34,9 +34,9 @@ void TOFFEElightReader::loadFEElightConfig(gsl::span<const char> configBuf)
   // load FEElight config from buffer
 
   if (configBuf.size() != sizeof(o2::tof::TOFFEElightConfig)) {
-    LOG(FATAL) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
+    LOG(INFO) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
   }
-  mFEElightConfig = const_cast<TOFFEElightConfig*>(reinterpret_cast<const TOFFEElightConfig*>(configBuf.data()));
+  mFEElightConfig = reinterpret_cast<const TOFFEElightConfig*>(configBuf.data());
 }
 
 //_______________________________________________________________
@@ -58,7 +58,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
   mFEElightInfo.mRunType = runType;
 
   int nEnabled = 0, index;
-  TOFFEEchannelConfig* channelConfig = nullptr;
+  const TOFFEEchannelConfig* channelConfig = nullptr;
   for (int crateId = 0; crateId < Geo::kNCrate; crateId++) {
     for (int trmId = 0; trmId < Geo::kNTRM; trmId++) {
       for (int chainId = 0; chainId < Geo::kNChain; chainId++) {
@@ -90,7 +90,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
     }
   }
 
-  TOFFEEtriggerConfig* triggerConfig = nullptr;
+  const TOFFEEtriggerConfig* triggerConfig = nullptr;
   for (Int_t iddl = 0; iddl < TOFFEElightConfig::NTRIGGERMAPS; iddl++) {
     triggerConfig = mFEElightConfig->getTriggerConfig(iddl);
     if (verbose) {

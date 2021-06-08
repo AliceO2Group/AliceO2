@@ -15,6 +15,7 @@
 #include "TOFCalibration/TOFFEElightConfig.h"
 #include "TOFBase/Geo.h"
 #include <gsl/span>
+#include <memory>
 
 /// @brief Class to read the TOFFEElight information
 
@@ -78,12 +79,13 @@ class TOFFEElightReader
   void loadFEElightConfig(gsl::span<const char> configBuf); // load FEElight config
   int parseFEElightConfig(bool verbose = false);            // parse FEElight config
 
-  TOFFEElightConfig* getTOFFEElightConfig() { return mFEElightConfig; }
+  const TOFFEElightConfig* getTOFFEElightConfig() { return mFEElightConfig; }
   TOFFEElightInfo& getTOFFEElightInfo() { return mFEElightInfo; }
 
  private:
-  TOFFEElightConfig* mFEElightConfig = nullptr; // FEElight config
+  const TOFFEElightConfig* mFEElightConfig = nullptr; // FEElight config
   TOFFEElightInfo mFEElightInfo;     // what will go to CCDB
+  std::unique_ptr<char[]> mFileLoadBuff; // temporary buffer to be used when we load the configuration from file
 
   ClassDefNV(TOFFEElightReader, 1);
 };

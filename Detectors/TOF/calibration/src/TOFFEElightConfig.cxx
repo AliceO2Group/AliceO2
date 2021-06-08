@@ -12,7 +12,7 @@
 
 using namespace o2::tof;
 
-TOFFEEchannelConfig* TOFFEElightConfig::getChannelConfig(int icrate, int itrm, int ichain, int itdc, int ichtdc)
+const TOFFEEchannelConfig* TOFFEElightConfig::getChannelConfig(int icrate, int itrm, int ichain, int itdc, int ichtdc) const
 {
 
   // return the channel config for the given crate, trm, chain, tdc, tdcchannel

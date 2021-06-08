@@ -69,7 +69,7 @@ class TOFDCSConfigProcessor : public o2::framework::Task
   }
 
  private:
-  void sendOutput(DataAllocator& output, TFType tf)
+  void sendOutput(DataAllocator& output, long tf)
   {
     // sending output to CCDB
 

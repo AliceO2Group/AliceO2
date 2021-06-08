@@ -58,11 +58,11 @@ struct TOFFEElightConfig {
   int mRunType = 0;   // run type
 
   // std::array<TOFFEEchannelConfig, NCHANNELS> mChannelConfig;
-  TOFFEEchannelConfig mChannelConfig[Geo::kNCrate][Geo::kNTRM][Geo::kNChain][Geo::kNTdc][Geo::kNCh];
-  std::array<TOFFEEtriggerConfig, NTRIGGERMAPS> mTriggerConfig;
+  const TOFFEEchannelConfig mChannelConfig[Geo::kNCrate][Geo::kNTRM][Geo::kNChain][Geo::kNTdc][Geo::kNCh];
+  const TOFFEEtriggerConfig mTriggerConfig[NTRIGGERMAPS];
   TOFFEElightConfig() = default;
-  TOFFEEchannelConfig* getChannelConfig(int icrate, int itrm, int ichain, int itdc, int ich);
-  TOFFEEtriggerConfig* getTriggerConfig(int idx) { return idx < NTRIGGERMAPS ? &mTriggerConfig[idx] : nullptr; }
+  const TOFFEEchannelConfig* getChannelConfig(int icrate, int itrm, int ichain, int itdc, int ich) const;
+  const TOFFEEtriggerConfig* getTriggerConfig(int idx) const { return idx < NTRIGGERMAPS ? &mTriggerConfig[idx] : nullptr; }
 
   ClassDefNV(TOFFEElightConfig, 1);
 };
