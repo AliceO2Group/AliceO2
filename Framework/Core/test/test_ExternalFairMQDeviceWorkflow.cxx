@@ -98,7 +98,10 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   }
 
   Inputs sinkInputs = {InputSpec{"external", "TST", "DATA", 0, Lifetime::Timeframe}};
-  workflow.emplace_back(std::move(specifyFairMQDeviceOutputProxy("dpl-sink", sinkInputs, channelConfig.c_str())));
+  auto channelSelector = [](InputSpec const&, const std::unordered_map<std::string, std::vector<FairMQChannel>>&) -> std::string {
+    return "downstream";
+  };
+  workflow.emplace_back(std::move(specifyFairMQDeviceMultiOutputProxy("dpl-sink", sinkInputs, channelConfig.c_str(), channelSelector)));
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // a simple checker process subscribing to the output of the input proxy
