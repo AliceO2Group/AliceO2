@@ -16,8 +16,10 @@
 #define O2_MID_DECODER_H
 
 #include <cstdint>
+#if !defined(MID_RAW_VECTORS)
+#include <unordered_map>
+#endif
 #include <vector>
-#include <array>
 #include <gsl/gsl>
 #include "DataFormatsMID/ROFRecord.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -25,7 +27,8 @@
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/FEEIdConfig.h"
-#include "MIDRaw/GBTDecoder.h"
+#include "MIDRaw/LinkDecoder.h"
+#include "MIDRaw/Utils.h"
 #include "DataFormatsMID/ROBoard.h"
 
 namespace o2
@@ -43,8 +46,12 @@ class Decoder
   void process(gsl::span<const uint8_t> payload, const RDH& rdh)
   {
     /// Processes the page
-    auto feeId = mGetFEEID(rdh);
-    mGBTDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+    auto feeId = o2::raw::RDHUtils::getFEEID(rdh);
+#if defined(MID_RAW_VECTORS)
+    mLinkDecoders[feeId]->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+#else
+    mLinkDecoders.find(feeId)->second->process(payload, o2::raw::RDHUtils::getHeartBeatOrbit(rdh), mData, mROFRecords);
+#endif
   }
   /// Gets the vector of data
   const std::vector<ROBoard>& getData() const { return mData; }
@@ -55,17 +62,18 @@ class Decoder
   void clear();
 
  protected:
-  /// Gets the feeID
-  std::function<uint16_t(const o2::header::RDHAny& rdh)> mGetFEEID{[](const o2::header::RDHAny& rdh) { return o2::raw::RDHUtils::getFEEID(rdh); }};
-
-  std::array<std::unique_ptr<GBTDecoder>, crateparams::sNGBTs> mGBTDecoders{nullptr}; /// GBT decoders
+#if defined(MID_RAW_VECTORS)
+  std::vector<std::unique_ptr<LinkDecoder>> mLinkDecoders{}; /// GBT decoders
+#else
+  std::unordered_map<uint16_t, std::unique_ptr<LinkDecoder>> mLinkDecoders{}; /// GBT decoders
+#endif
 
  private:
   std::vector<ROBoard> mData{};         /// Vector of output data
   std::vector<ROFRecord> mROFRecords{}; /// List of ROF records
 };
 
-std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig);
+std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const ElectronicsDelay& electronicsDelay, const CrateMasks& crateMasks, const FEEIdConfig& feeIdConfig);
 std::unique_ptr<Decoder> createDecoder(const o2::header::RDHAny& rdh, bool isDebugMode, const char* electronicsDelayFile = "", const char* crateMasksFile = "", const char* feeIdConfigFile = "");
 
 } // namespace mid

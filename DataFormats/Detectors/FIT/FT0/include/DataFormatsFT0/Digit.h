@@ -88,10 +88,14 @@ struct Triggers {
     return std::tie(triggersignals, nChanA, nChanC, amplA, amplC, timeA, timeC) ==
            std::tie(other.triggersignals, other.nChanA, other.nChanC, other.amplA, other.amplC, other.timeA, other.timeC);
   }
+  void printLog() const;
   ClassDefNV(Triggers, 2);
 };
 
 struct DetTrigInput {
+  static constexpr char sChannelNameDPL[] = "TRIGGERINPUT";
+  static constexpr char sDigitName[] = "DetTrigInput";
+  static constexpr char sDigitBranchName[] = "FT0TRIGGERINPUT";
   o2::InteractionRecord mIntRecord; // bc/orbit of the intpur
   std::bitset<5> mInputs;           // pattern of inputs.
   DetTrigInput() = default;
@@ -108,6 +112,9 @@ struct DetTrigInput {
 };
 
 struct Digit {
+  static constexpr char sChannelNameDPL[] = "DIGITSBC";
+  static constexpr char sDigitName[] = "Digit";
+  static constexpr char sDigitBranchName[] = "FT0DIGITSBC";
   o2::dataformats::RangeReference<int, int> ref;
   Triggers mTriggers;               // pattern of triggers  in this BC
   uint8_t mEventStatus;             //Status of event from FT0, such as Pileup , etc
@@ -125,48 +132,45 @@ struct Digit {
     mTriggers = chTrig;
     mEventID = event;
   }
+  typedef DetTrigInput DetTrigInput_t;
   uint32_t getOrbit() const { return mIntRecord.orbit; }
   uint16_t getBC() const { return mIntRecord.bc; }
   Triggers getTriggers() const { return mTriggers; }
   int getEventID() const { return mEventID; }
   o2::InteractionRecord getIntRecord() const { return mIntRecord; };
+  void setIntRecord(const o2::InteractionRecord& intRec) { mIntRecord = intRec; }
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   DetTrigInput makeTrgInput() const { return DetTrigInput{mIntRecord, mTriggers.getOrA(), mTriggers.getOrC(), mTriggers.getVertex(), mTriggers.getCen(), mTriggers.getSCen()}; }
+  void fillTrgInputVec(std::vector<DetTrigInput>& vecTrgInput) const
+  {
+    vecTrgInput.emplace_back(mIntRecord, mTriggers.getOrA(), mTriggers.getOrC(), mTriggers.getVertex(), mTriggers.getCen(), mTriggers.getSCen());
+  }
   void printStream(std::ostream& stream) const;
   void setTriggers(Triggers trig) { mTriggers = trig; };
   void setEventStatus(uint8_t stat) { mEventStatus = stat; };
   void setStatusFlag(EEventStatus bit, bool value) { mEventStatus |= (value << bit); };
   bool getStatusFlag(EEventStatus bit) const { return bool(mEventStatus << bit); }
   uint8_t getEventStatusWord() const { return mEventStatus; }
-
   bool operator==(const Digit& other) const
   {
     return std::tie(ref, mTriggers, mIntRecord) == std::tie(other.ref, other.mTriggers, other.mIntRecord);
   }
+  void printLog() const;
   ClassDefNV(Digit, 6);
 };
 
 //For TCM extended mode (calibration mode), TCMdataExtended digit
 struct TriggersExt {
-  TriggersExt(uint32_t triggerWord)
-  {
-    mTriggerWord = triggerWord;
-  }
+  static constexpr char sChannelNameDPL[] = "DIGITSTRGEXT";
+  static constexpr char sDigitName[] = "TriggersExt";
+  static constexpr char sDigitBranchName[] = "FT0DIGITSTRGEXT";
+  TriggersExt(std::array<uint32_t, 20> triggerWords) : mTriggerWords(triggerWords) {}
   TriggersExt() = default;
-  uint32_t mTriggerWord;
-  ClassDefNV(TriggersExt, 1);
-};
-
-//For TCM extended mode (calibration mode)
-struct DigitExt : Digit {
-  DigitExt(int first, int ne, int firstExt, int neExt, const o2::InteractionRecord& iRec, const Triggers& chTrig, int event) : Digit(first, ne, iRec, chTrig, event)
-  {
-    refExt.setFirstEntry(firstExt);
-    refExt.setEntries(neExt);
-  }
-  DigitExt() = default;
-  o2::dataformats::RangeReference<int, int> refExt; //range reference to container with TriggerExt objects
-  ClassDefNV(DigitExt, 1);
+  o2::InteractionRecord mIntRecord;
+  void setTrgWord(uint32_t trgWord, std::size_t pos) { mTriggerWords[pos] = trgWord; }
+  std::array<uint32_t, 20> mTriggerWords;
+  void printLog() const;
+  ClassDefNV(TriggersExt, 2);
 };
 } // namespace ft0
 } // namespace o2

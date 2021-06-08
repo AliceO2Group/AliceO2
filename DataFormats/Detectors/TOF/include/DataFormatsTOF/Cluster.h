@@ -14,13 +14,15 @@
 #ifndef ALICEO2_TOF_CLUSTER_H
 #define ALICEO2_TOF_CLUSTER_H
 
+#include "GPUCommonRtypes.h"
+#include "GPUCommonMath.h"
 #include "ReconstructionDataFormats/BaseCluster.h"
-#include <boost/serialization/base_object.hpp> // for base_object
-#include <TMath.h>
-#include <cstdlib>
 #include "CommonConstants/LHCConstants.h"
+#ifndef GPUCA_GPUCODE
+#include <boost/serialization/base_object.hpp> // for base_object
+#include <cstdlib>
 #include <vector>
-#include "Rtypes.h"
+#endif
 
 namespace o2
 {
@@ -36,7 +38,7 @@ class Cluster : public o2::BaseCluster<float>
   static constexpr float PhiOutOfRange = 9999;    // used to check if phi was already calculated or not
 
   static constexpr int NPADSXSECTOR = 8736;
-  static constexpr Double_t BC_TIME_INPS_INV = 1.E-3 / o2::constants::lhc::LHCBunchSpacingNS;
+  static constexpr double BC_TIME_INPS_INV = 1.E-3 / o2::constants::lhc::LHCBunchSpacingNS;
 
  public:
   enum { kUpLeft = 0,    // 2^0, 1st bit
@@ -75,7 +77,7 @@ class Cluster : public o2::BaseCluster<float>
   float getR() // Cluster Radius (it is the same in sector and global frame)
   {
     if (mR == RadiusOutOfRange) {
-      mR = TMath::Sqrt(getX() * getX() + getY() * getY() + getZ() * getZ());
+      mR = o2::gpu::CAMath::Sqrt(getX() * getX() + getY() * getY() + getZ() * getZ());
     }
     return mR;
   }
@@ -83,7 +85,22 @@ class Cluster : public o2::BaseCluster<float>
   float getPhi() // Cluster Phi in sector frame
   {
     if (mPhi == PhiOutOfRange) {
-      mPhi = TMath::ATan2(getY(), getX());
+      mPhi = o2::gpu::CAMath::ATan2(getY(), getX());
+    }
+    return mPhi;
+  }
+  float getR() const // Cluster Radius (it is the same in sector and global frame)
+  {
+    if (mR == RadiusOutOfRange) {
+      return o2::gpu::CAMath::Sqrt(getX() * getX() + getY() * getY() + getZ() * getZ());
+    }
+    return mR;
+  }
+
+  float getPhi() const // Cluster Phi in sector frame
+  {
+    if (mPhi == PhiOutOfRange) {
+      return o2::gpu::CAMath::ATan2(getY(), getX());
     }
     return mPhi;
   }
@@ -138,7 +155,9 @@ class Cluster : public o2::BaseCluster<float>
   ClassDefNV(Cluster, 4);
 };
 
+#ifndef GPUCA_GPUCODE
 std::ostream& operator<<(std::ostream& os, Cluster& c);
+#endif
 } // namespace tof
 
 /// Defining o2::tof::Cluster explicitly as messageable

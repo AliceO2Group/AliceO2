@@ -76,9 +76,9 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   pc.finalize(pos, charge, fragment.start);
 
   tpc::ClusterNative myCluster;
-  pc.toNative(pos, charge, calib.tpcCFminSplitNum, myCluster);
+  pc.toNative(pos, charge, calib.tpc.cfMinSplitNum, myCluster);
 
-  bool aboveQTotCutoff = (myCluster.qTot > calib.tpcCFqtotCutoff);
+  bool aboveQTotCutoff = (myCluster.qTot > calib.tpc.cfQTotCutoff);
 
   if (!aboveQTotCutoff) {
     clusterPosInRow[idx] = maxClusterPerRow;
@@ -126,7 +126,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
     CPU_ONLY(
       labelAcc->collect(pos.delta(d), q));
 
-    aboveThreshold |= (uchar(q > calib.tpcCFinnerThreshold) << i);
+    aboveThreshold |= (uchar(q > calib.tpc.cfInnerThreshold) << i);
   }
 
   innerAboveThreshold[lid] = aboveThreshold;

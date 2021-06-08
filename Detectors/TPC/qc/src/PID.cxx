@@ -30,12 +30,12 @@ using namespace o2::tpc::qc;
 //______________________________________________________________________________
 void PID::initializeHistograms()
 {
-  mHist1D.emplace_back("hNClusters", "; # of clusters; counts", 160, 0, 1600); //| mHist1D[0]
-  mHist1D.emplace_back("hdEdxTot", "; dEdxTot (a.u.); counts", 200, 0, 200);   //| mHist1D[1]
-  mHist1D.emplace_back("hdEdxMax", "; dEdxMax (a.u.); counts", 200, 0, 200);   //| mHist1D[2]
-  mHist1D.emplace_back("hPhi", "; #phi (rad); counts", 180, 0., 2 * M_PI);     //| mHist1D[3]
-  mHist1D.emplace_back("hTgl", "; tan#lambda; counts", 60, -2, 2);             //| mHist1D[4]
-  mHist1D.emplace_back("hSnp", "; sin p; counts", 60, -2, 2);                  //| mHist1D[5]
+  mHist1D.emplace_back("hNClusters", "; # of clusters; counts", 160, 0, 160); //| mHist1D[0]
+  mHist1D.emplace_back("hdEdxTot", "; dEdxTot (a.u.); counts", 200, 0, 200);  //| mHist1D[1]
+  mHist1D.emplace_back("hdEdxMax", "; dEdxMax (a.u.); counts", 200, 0, 200);  //| mHist1D[2]
+  mHist1D.emplace_back("hPhi", "; #phi (rad); counts", 180, 0., 2 * M_PI);    //| mHist1D[3]
+  mHist1D.emplace_back("hTgl", "; tan#lambda; counts", 60, -2, 2);            //| mHist1D[4]
+  mHist1D.emplace_back("hSnp", "; sin p; counts", 60, -2, 2);                 //| mHist1D[5]
 
   mHist2D.emplace_back("hdEdxVsPhi", "dEdx (a.u.) vs #phi (rad); #phi (rad); dEdx (a.u.)", 180, 0., 2 * M_PI, 300, 0, 300); //| mHist2D[0]
   mHist2D.emplace_back("hdEdxVsTgl", "dEdx (a.u.) vs tan#lambda; tan#lambda; dEdx (a.u.)", 60, -2, 2, 300, 0, 300);         //| mHist2D[1]

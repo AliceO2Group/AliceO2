@@ -15,10 +15,10 @@ export DATADIST_FILE_READ_COUNT=$NTIMEFRAMES
 export TF_DIR=./raw/timeframe
 export TFRATE=$(awk "BEGIN {printf \"%.6f\",1/$TFDELAY}")
 
-ARGS_ALL="--session default --severity $SEVERITY --shm-segment-size $SHMSIZE --no-cleanup"
+ARGS_ALL="--session default --severity $SEVERITY --shm-segment-id 2 --shm-segment-size 1000000 --no-cleanup"
 
 StfBuilder --id stfb --transport shmem \
-  --dpl-channel-name dpl-chan --channel-config "name=dpl-chan,type=push,method=bind,address=ipc://@stfb-to-dpl,transport=shmem,rateLogging=1" \
+  --dpl-channel-name dpl-chan --channel-config "name=dpl-chan,type=push,method=bind,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=1" \
   --data-source-dir ${TF_DIR} \
   --data-source-rate=${TFRATE} \
   --data-source-repeat \
@@ -26,5 +26,7 @@ StfBuilder --id stfb --transport shmem \
   --data-source-headersize=1024 \
   --data-source-enable \
   --data-source-preread 5 \
+  --shm-no-cleanup on \
+  --shm-monitor false \
   --control=static \
   ${ARGS_ALL}

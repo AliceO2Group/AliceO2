@@ -7,5 +7,5 @@
 This is a top page for the HMPID detector documentation.
 
 <!-- doxy
-* \subpage refHMPworkflow
+* \subpage refHMPIDworkflow
 /doxy -->

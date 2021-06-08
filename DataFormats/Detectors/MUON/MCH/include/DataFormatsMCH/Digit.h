@@ -17,6 +17,7 @@
 #define ALICEO2_MCH_BASE_DIGIT_H_
 
 #include "Rtypes.h"
+#include <iosfwd>
 
 namespace o2
 {
@@ -30,7 +31,7 @@ class Digit
  public:
   Digit() = default;
 
-  Digit(int detid, int pad, uint32_t adc, int32_t time, uint16_t nSamples = 1);
+  Digit(int detid, int pad, uint32_t adc, int32_t time, uint16_t nSamples = 1, bool saturated = false);
   ~Digit() = default;
 
   bool operator==(const Digit&) const;
@@ -40,10 +41,10 @@ class Digit
   int32_t getTime() const { return mTFtime; }
 
   void setNofSamples(uint16_t n);
-  uint16_t nofSamples() const { return (mNofSamples & 0x7FFF); }
+  uint16_t getNofSamples() const;
 
   void setSaturated(bool sat);
-  bool isSaturated() const { return ((mNofSamples & 0x8000) > 0); }
+  bool isSaturated() const;
 
   int getDetID() const { return mDetID; }
 
@@ -56,12 +57,15 @@ class Digit
  private:
   int32_t mTFtime;      /// time since the beginning of the time frame, in bunch crossing units
   uint16_t mNofSamples; /// number of samples in the signal
+  bool mIsSaturated;    /// whether or not the digit amplitude is above saturation
   int mDetID;           /// ID of the Detection Element to which the digit corresponds to
   int mPadID;           /// PadIndex to which the digit corresponds to
   uint32_t mADC;        /// Amplitude of signal
 
-  ClassDefNV(Digit, 3);
+  ClassDefNV(Digit, 4);
 }; //class Digit
+
+std::ostream& operator<<(std::ostream& os, const Digit& d);
 
 } //namespace mch
 } //namespace o2

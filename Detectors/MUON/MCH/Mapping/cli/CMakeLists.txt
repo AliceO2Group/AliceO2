@@ -14,3 +14,16 @@ foreach(impl RANGE 3 4)
                 COMPONENT_NAME mch
                 PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl${impl} Boost::program_options)
 endforeach()
+
+foreach(impl RANGE 3 4)
+        o2_add_executable(mapping-export-to-tree${impl}
+                SOURCES export-to-tree.cxx
+                COMPONENT_NAME mch
+                PUBLIC_LINK_LIBRARIES O2::MCHMappingImpl${impl} Boost::program_options
+                ROOT::Tree
+                TARGETVARNAME targetName)
+        if(impl EQUAL 3)
+            target_compile_definitions(${targetName} PRIVATE RUN2)
+        endif()
+endforeach()
+

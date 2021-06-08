@@ -11,8 +11,9 @@
 //first version 8/2018, Sandro Wenzel
 
 #include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/StringUtils.h"
+#include "CommonUtils/KeyValParam.h"
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -34,6 +35,7 @@
 #include "TFile.h"
 #include "TEnum.h"
 #include "TEnumConstant.h"
+#include <filesystem>
 
 namespace o2
 {
@@ -43,6 +45,8 @@ std::vector<ConfigurableParam*>* ConfigurableParam::sRegisteredParamClasses = nu
 boost::property_tree::ptree* ConfigurableParam::sPtree = nullptr;
 std::map<std::string, std::pair<std::type_info const&, void*>>* ConfigurableParam::sKeyToStorageMap = nullptr;
 std::map<std::string, ConfigurableParam::EParamProvenance>* ConfigurableParam::sValueProvenanceMap = nullptr;
+std::string ConfigurableParam::sInputDir = "";
+std::string ConfigurableParam::sOutputDir = "";
 EnumRegistry* ConfigurableParam::sEnumRegistry = nullptr;
 
 bool ConfigurableParam::sIsFullyInitialized = false;
@@ -54,44 +58,6 @@ std::ostream& operator<<(std::ostream& out, ConfigurableParam const& param)
 {
   param.output(out);
   return out;
-}
-
-// ------------------------------------------------------------------
-
-// Remove leading whitespace
-std::string ltrimSpace(std::string src)
-{
-  return src.erase(0, src.find_first_not_of(' '));
-}
-
-// Remove trailing whitespace
-std::string rtrimSpace(std::string src)
-{
-  return src.erase(src.find_last_not_of(' ') + 1);
-}
-
-// Remove leading/trailing whitespace
-std::string trimSpace(std::string const& src)
-{
-  return ltrimSpace(rtrimSpace(src));
-}
-
-// Split a given string on a delim character, return vector of tokens
-// If trim is true, then also remove leading/trailing whitespace of each token.
-std::vector<std::string> splitString(const std::string& src, char delim, bool trim = false)
-{
-  std::stringstream ss(src);
-  std::string token;
-  std::vector<std::string> tokens;
-
-  while (std::getline(ss, token, delim)) {
-    token = (trim ? trimSpace(token) : token);
-    if (!token.empty()) {
-      tokens.push_back(std::move(token));
-    }
-  }
-
-  return tokens;
 }
 
 // Does the given key exist in the boost property tree?
@@ -203,17 +169,18 @@ int EnumLegalValues::getIntValue(const std::string& value) const
 
 void ConfigurableParam::writeINI(std::string const& filename, std::string const& keyOnly)
 {
+  auto outfilename = o2::utils::Str::concat_string(sOutputDir, filename);
   initPropertyTree();     // update the boost tree before writing
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
       boost::property_tree::ptree kTree;
       kTree.add_child(keyOnly, sPtree->get_child(keyOnly));
-      boost::property_tree::write_ini(filename, kTree);
+      boost::property_tree::write_ini(outfilename, kTree);
     } catch (const boost::property_tree::ptree_bad_path& err) {
       LOG(FATAL) << "non-existing key " << keyOnly << " provided to writeINI";
     }
   } else {
-    boost::property_tree::write_ini(filename, *sPtree);
+    boost::property_tree::write_ini(outfilename, *sPtree);
   }
 }
 
@@ -221,16 +188,17 @@ void ConfigurableParam::writeINI(std::string const& filename, std::string const&
 
 boost::property_tree::ptree ConfigurableParam::readConfigFile(std::string const& filepath)
 {
-  if (!boost::filesystem::exists(filepath)) {
-    LOG(FATAL) << filepath << " : config file does not exist!";
+  auto inpfilename = o2::utils::Str::concat_string(sInputDir, filepath);
+  if (!std::filesystem::exists(inpfilename)) {
+    LOG(FATAL) << inpfilename << " : config file does not exist!";
   }
 
   boost::property_tree::ptree pt;
 
-  if (boost::iends_with(filepath, ".ini")) {
-    pt = readINI(filepath);
-  } else if (boost::iends_with(filepath, ".json")) {
-    pt = readJSON(filepath);
+  if (boost::iends_with(inpfilename, ".ini")) {
+    pt = readINI(inpfilename);
+  } else if (boost::iends_with(inpfilename, ".json")) {
+    pt = readJSON(inpfilename);
   } else {
     LOG(FATAL) << "Configuration file must have either .ini or .json extension";
   }
@@ -274,16 +242,17 @@ boost::property_tree::ptree ConfigurableParam::readJSON(std::string const& filep
 void ConfigurableParam::writeJSON(std::string const& filename, std::string const& keyOnly)
 {
   initPropertyTree();     // update the boost tree before writing
+  auto outfilename = o2::utils::Str::concat_string(sOutputDir, filename);
   if (!keyOnly.empty()) { // write ini for selected key only
     try {
       boost::property_tree::ptree kTree;
       kTree.add_child(keyOnly, sPtree->get_child(keyOnly));
-      boost::property_tree::write_json(filename, kTree);
+      boost::property_tree::write_json(outfilename, kTree);
     } catch (const boost::property_tree::ptree_bad_path& err) {
       LOG(FATAL) << "non-existing key " << keyOnly << " provided to writeJSON";
     }
   } else {
-    boost::property_tree::write_json(filename, *sPtree);
+    boost::property_tree::write_json(outfilename, *sPtree);
   }
 }
 
@@ -309,6 +278,20 @@ void ConfigurableParam::printAllKeyValuePairs()
     p->printKeyValues(true);
   }
   std::cout << "----\n";
+}
+
+// ------------------------------------------------------------------
+
+ConfigurableParam::EParamProvenance ConfigurableParam::getProvenance(const std::string& key)
+{
+  if (!sIsFullyInitialized) {
+    initialize();
+  }
+  auto iter = sValueProvenanceMap->find(key);
+  if (iter == sValueProvenanceMap->end()) {
+    throw std::runtime_error(fmt::format("provenace of unknown {:s} parameter is requested", key));
+  }
+  return iter->second;
 }
 
 // ------------------------------------------------------------------
@@ -395,13 +378,15 @@ void ConfigurableParam::printAllRegisteredParamNames()
 // It can be in JSON or INI format.
 // If nonempty comma-separated paramsList is provided, only those params will
 // be updated, absence of data for any of requested params will lead to fatal
-void ConfigurableParam::updateFromFile(std::string const& configFile, std::string const& paramsList)
+// If unchangedOnly is true, then only those parameters whose provenance is kCODE will be updated
+// (to allow prefernce of run-time settings)
+void ConfigurableParam::updateFromFile(std::string const& configFile, std::string const& paramsList, bool unchangedOnly)
 {
   if (!sIsFullyInitialized) {
     initialize();
   }
 
-  auto cfgfile = trimSpace(configFile);
+  auto cfgfile = o2::utils::Str::trim_copy(configFile);
 
   if (cfgfile.length() == 0) {
     return;
@@ -410,10 +395,12 @@ void ConfigurableParam::updateFromFile(std::string const& configFile, std::strin
   boost::property_tree::ptree pt = readConfigFile(cfgfile);
 
   std::vector<std::pair<std::string, std::string>> keyValPairs;
-  auto request = splitString(paramsList, ',', true);
+  auto request = o2::utils::Str::tokenize(paramsList, ',', true);
   std::unordered_map<std::string, int> requestMap;
   for (const auto& par : request) {
-    requestMap[par] = 0;
+    if (!par.empty()) {
+      requestMap[par] = 0;
+    }
   }
 
   try {
@@ -430,8 +417,10 @@ void ConfigurableParam::updateFromFile(std::string const& configFile, std::strin
         auto name = subKey.first;
         auto value = subKey.second.get_value<std::string>();
         std::string key = mainKey + "." + name;
-        std::pair<std::string, std::string> pair = std::make_pair(key, trimSpace(value));
-        keyValPairs.push_back(pair);
+        if (!unchangedOnly || getProvenance(key) == kCODE) {
+          std::pair<std::string, std::string> pair = std::make_pair(key, o2::utils::Str::trim_copy(value));
+          keyValPairs.push_back(pair);
+        }
       }
     }
   } catch (std::exception const& error) {
@@ -463,7 +452,7 @@ void ConfigurableParam::updateFromString(std::string const& configString)
     initialize();
   }
 
-  auto cfgStr = trimSpace(configString);
+  auto cfgStr = o2::utils::Str::trim_copy(configString);
   if (cfgStr.length() == 0) {
     return;
   }
@@ -474,13 +463,13 @@ void ConfigurableParam::updateFromString(std::string const& configString)
     std::vector<std::pair<std::string, std::string>> pairs;
 
     for (auto& token : tokens) {
-      auto keyval = splitString(token, '=');
+      auto keyval = o2::utils::Str::tokenize(token, '=');
       if (keyval.size() != 2) {
         LOG(FATAL) << "Illegal command-line key/value string: " << token;
         continue;
       }
 
-      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], trimSpace(keyval[1]));
+      std::pair<std::string, std::string> pair = std::make_pair(keyval[0], o2::utils::Str::trim_copy(keyval[1]));
       pairs.push_back(pair);
     }
 
@@ -507,12 +496,20 @@ void ConfigurableParam::updateFromString(std::string const& configString)
   // ---- end of helper functions --------------------
 
   // Command-line string is a ;-separated list of key=value params
-  auto params = splitString(configString, ';', true);
+  auto params = o2::utils::Str::tokenize(configString, ';', true);
 
   // Now split each key=value string into its std::pair<key, value> parts
   auto keyValues = toKeyValPairs(params);
 
   setValues(keyValues);
+
+  const auto& kv = o2::conf::KeyValParam::Instance();
+  if (getProvenance("keyval.input_dir") != kCODE) {
+    sInputDir = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(kv.input_dir));
+  }
+  if (getProvenance("keyval.output_dir") != kCODE) {
+    sOutputDir = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(kv.output_dir));
+  }
 }
 
 // setValues takes a vector of pairs where each pair is a key and value
@@ -532,7 +529,7 @@ void ConfigurableParam::setValues(std::vector<std::pair<std::string, std::string
   // and also confirm that the value is in the list of legal values
   for (auto& keyValue : keyValues) {
     std::string key = keyValue.first;
-    std::string value = trimSpace(keyValue.second);
+    std::string value = o2::utils::Str::trim_copy(keyValue.second);
 
     if (!keyInTree(sPtree, key)) {
       LOG(FATAL) << "Inexistant ConfigurableParam key: " << key;
@@ -564,7 +561,7 @@ void ConfigurableParam::setArrayValue(const std::string& key, const std::string&
 {
   // We remove the lead/trailing square bracket
   // value.erase(0, 1).pop_back();
-  auto elems = splitString(value.substr(1, value.length() - 2), ',', true);
+  auto elems = o2::utils::Str::tokenize(value.substr(1, value.length() - 2), ',', true);
 
   // TODO:
   // 1. Should not assume each array element is a scalar/string. We may need to recurse.
@@ -606,24 +603,24 @@ bool isMemblockDifferent(void const* block1, void const* block2)
 // copies data from one place to other and returns
 // true of data was actually changed
 template <typename T>
-bool Copy(void const* addr, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus Copy(void const* addr, void* targetaddr)
 {
   if (isMemblockDifferent<T>(addr, targetaddr)) {
     std::memcpy(targetaddr, addr, sizeof(T));
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
 
-bool ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string subkey, std::type_info const& tinfo,
-                                                void* addr)
+ConfigurableParam::EParamUpdateStatus ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string subkey, std::type_info const& tinfo,
+                                                                                 void* addr)
 {
   // check if key_exists
   auto key = mainkey + "." + subkey;
   auto iter = sKeyToStorageMap->find(key);
   if (iter == sKeyToStorageMap->end()) {
     LOG(WARN) << "Cannot update parameter " << key << " not found";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
 
   // the type we need to convert to
@@ -632,7 +629,7 @@ bool ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
   // check that type matches
   if (iter->second.first != tinfo) {
     LOG(WARN) << "Types do not match; cannot update value";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
 
   auto targetaddress = iter->second.second;
@@ -743,72 +740,74 @@ bool ConfigurableParam::updateThroughStorageMap(std::string mainkey, std::string
       break;
     }
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Failed;
 }
 
 template <typename T>
-bool ConvertAndCopy(std::string const& valuestring, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus ConvertAndCopy(std::string const& valuestring, void* targetaddr)
 {
   auto addr = boost::lexical_cast<T>(valuestring);
   if (isMemblockDifferent<T>(targetaddr, (void*)&addr)) {
     std::memcpy(targetaddr, (void*)&addr, sizeof(T));
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
+
 // special version for std::string
 template <>
-bool ConvertAndCopy<std::string>(std::string const& valuestring, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus ConvertAndCopy<std::string>(std::string const& valuestring, void* targetaddr)
 {
   std::string& target = *((std::string*)targetaddr);
   if (target.compare(valuestring) != 0) {
     // the targetaddr is a std::string to which we can simply assign
     // and all the magic will happen internally
     target = valuestring;
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
 // special version for char and unsigned char since we are interested in the numeric
 // meaning of char as an 8-bit integer (boost lexical cast is assigning the string as a character i// nterpretation
 template <>
-bool ConvertAndCopy<char>(std::string const& valuestring, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus ConvertAndCopy<char>(std::string const& valuestring, void* targetaddr)
 {
   int intvalue = boost::lexical_cast<int>(valuestring);
   if (intvalue > std::numeric_limits<char>::max() || intvalue < std::numeric_limits<char>::min()) {
     LOG(ERROR) << "Cannot assign " << valuestring << " to a char variable";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
   char addr = intvalue;
   if (isMemblockDifferent<char>(targetaddr, (void*)&addr)) {
     std::memcpy(targetaddr, (void*)&addr, sizeof(char));
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
+
 template <>
-bool ConvertAndCopy<unsigned char>(std::string const& valuestring, void* targetaddr)
+ConfigurableParam::EParamUpdateStatus ConvertAndCopy<unsigned char>(std::string const& valuestring, void* targetaddr)
 {
   unsigned int intvalue = boost::lexical_cast<int>(valuestring);
   if (intvalue > std::numeric_limits<unsigned char>::max() || intvalue < std::numeric_limits<unsigned char>::min()) {
     LOG(ERROR) << "Cannot assign " << valuestring << " to an unsigned char variable";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
   unsigned char addr = intvalue;
   if (isMemblockDifferent<unsigned char>(targetaddr, (void*)&addr)) {
     std::memcpy(targetaddr, (void*)&addr, sizeof(unsigned char));
-    return true;
+    return ConfigurableParam::EParamUpdateStatus::Changed;
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Unchanged;
 }
 
-bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string const& key, std::string const& valuestring)
+ConfigurableParam::EParamUpdateStatus ConfigurableParam::updateThroughStorageMapWithConversion(std::string const& key, std::string const& valuestring)
 {
   // check if key_exists
   auto iter = sKeyToStorageMap->find(key);
   if (iter == sKeyToStorageMap->end()) {
     LOG(WARN) << "Cannot update parameter " << key << " (parameter not found) ";
-    return false;
+    return ConfigurableParam::EParamUpdateStatus::Failed;
   }
 
   auto targetaddress = iter->second.second;
@@ -930,7 +929,7 @@ bool ConfigurableParam::updateThroughStorageMapWithConversion(std::string const&
       break;
     }
   }
-  return false;
+  return ConfigurableParam::EParamUpdateStatus::Failed;
 }
 
 } // namespace conf

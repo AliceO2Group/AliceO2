@@ -32,6 +32,8 @@
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDSimulation/ColumnDataMC.h"
 #include "MIDSimulation/MCLabel.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "CommonUtils/StringUtils.h"
 
 namespace of = o2::framework;
 
@@ -46,7 +48,8 @@ class DigitsReaderDeviceDPL
   DigitsReaderDeviceDPL(bool useMC, const std::vector<header::DataDescription>& descriptions) : mUseMC(useMC), mDescriptions(descriptions) {}
   void init(o2::framework::InitContext& ic)
   {
-    auto filename = ic.options().get<std::string>("mid-digit-infile");
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                  ic.options().get<std::string>("mid-digit-infile"));
     mFile = std::make_unique<TFile>(filename.c_str());
     if (!mFile->IsOpen()) {
       LOG(ERROR) << "Cannot open the " << filename << " file !";
@@ -129,7 +132,8 @@ framework::DataProcessorSpec getDigitReaderSpec(bool useMC, const char* baseDesc
     of::Inputs{},
     outputs,
     of::AlgorithmSpec{of::adaptFromTask<o2::mid::DigitsReaderDeviceDPL>(useMC, descriptions)},
-    of::Options{{"mid-digit-infile", of::VariantType::String, "middigits.root", {"Name of the input file"}}}};
+    of::Options{{"mid-digit-infile", of::VariantType::String, "middigits.root", {"Name of the input file"}},
+                {"input-dir", of::VariantType::String, "none", {"Input directory"}}}};
 }
 } // namespace mid
 } // namespace o2

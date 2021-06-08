@@ -30,21 +30,18 @@
 #ifndef ALICEO2_BASE_DATA_HEADER_
 #define ALICEO2_BASE_DATA_HEADER_
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <cassert>
 #include <cstring>   //needed for memcmp
-#include <algorithm> // std::min
-#include <stdexcept>
 #include <string>
+#include <stdexcept>
 #include <climits>
-// FIXME: for o2::byte. Use std::byte as soon as we move to C++17..
-#include "MemoryResources/Types.h"
+#include <limits>
 #include <cerrno>
 
-namespace o2
-{
-namespace header
+namespace o2::header
 {
 
 //__________________________________________________________________________________________________
@@ -148,10 +145,6 @@ struct TraitsIntType<4> {
   using Type = uint32_t;
 };
 
-struct defaultPrinter {
-  void operator()(const char* str) const {}
-};
-
 /// compile time evaluation of a string length, which is either N - 1 or
 /// shorter if one character in the array has been set to 0.
 template <int N>
@@ -203,57 +196,13 @@ constexpr T String2(const char (&str)[N])
 }
 
 //__________________________________________________________________________________________________
-/// helper traits to efficiently compare descriptors
-/// the default implementation with memcmp is basically never used
-/// specializations handle the two relevant cases
-template <int S>
-struct DescriptorCompareTraits {
-  template <typename T, typename Length>
-  static bool compare(const T& lh, const T& rh, Length N)
-  {
-    return std::memcmp(lh.str, rh.str, N) == 0;
-  }
-  template <typename T, typename Length>
-  static bool lessThen(const T& lh, const T& rh, Length N)
-  {
-    return std::memcmp(lh.str, rh.str, N) < 0;
-  }
-};
-template <>
-struct DescriptorCompareTraits<1> {
-  template <typename T, typename Length>
-  static bool compare(const T& lh, const T& rh, Length)
-  {
-    return lh.itg[0] == rh.itg[0];
-  }
-  template <typename T, typename Length>
-  static bool lessThen(const T& lh, const T& rh, Length)
-  {
-    return lh.itg[0] < rh.itg[0];
-  }
-};
-template <>
-struct DescriptorCompareTraits<2> {
-  template <typename T, typename Length>
-  static bool compare(const T& lh, const T& rh, Length)
-  {
-    return (lh.itg[0] == rh.itg[0]) && (lh.itg[1] == rh.itg[1]);
-  }
-  template <typename T, typename Length>
-  static bool lessThen(const T& lh, const T& rh, Length)
-  {
-    return std::tie(lh.itg[0], lh.itg[1]) < std::tie(rh.itg[0], rh.itg[1]);
-  }
-};
-
-//__________________________________________________________________________________________________
 /// generic descriptor class faturing the union of a char and a uint element
 /// of the same size
 /// this is currently working only for up to 8 bytes aka uint64_t, the general
 /// solution is working also for multiples of 64 bit, but then the itg member needs
 /// to be an array for all. This has not been enabled yet, first the implications
 /// have to be studied.
-template <std::size_t N, typename PrinterPolicy = internal::defaultPrinter>
+template <std::size_t N>
 struct Descriptor {
   static_assert(internal::NumberOfActiveBits<N>::value == 1,
                 "Descriptor size is required to be a power of 2");
@@ -290,7 +239,7 @@ struct Descriptor {
   {
     static_assert(L <= N + 1, "initializer string must not exceed descriptor size");
     unsigned i = 0;
-    for (; in[i] && i < std::min(N, L); ++i) {
+    for (; in[i] && i < (N < L ? N : L); ++i) {
       str[i] = in[i];
     }
   }
@@ -325,8 +274,8 @@ struct Descriptor {
     }
   }
 
-  bool operator==(const Descriptor& other) const { return DescriptorCompareTraits<arraySize>::compare(*this, other, N); }
-  bool operator<(const Descriptor& other) const { return DescriptorCompareTraits<arraySize>::lessThen(*this, other, N); }
+  bool operator==(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) == 0; }
+  bool operator<(const Descriptor& other) const { return std::memcmp(this->str, other.str, N) < 0; }
   bool operator!=(const Descriptor& other) const { return not this->operator==(other); }
 
   // explicitly forbid comparison with e.g. const char* strings
@@ -351,13 +300,6 @@ struct Descriptor {
     std::string ret(str, len);
     return std::move(ret);
   }
-  // print function needs to be implemented for every derivation
-  void print() const
-  {
-    // eventually terminate string before printing
-    PrinterPolicy printer;
-    printer(str);
-  };
 };
 
 //__________________________________________________________________________________________________
@@ -448,7 +390,7 @@ struct BaseHeader {
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static const BaseHeader* get(const o2::byte* b, size_t /*len*/ = 0)
+  inline static const BaseHeader* get(const std::byte* b, size_t /*len*/ = 0)
   {
     return (b != nullptr && *(reinterpret_cast<const uint32_t*>(b)) == sMagicString)
              ? reinterpret_cast<const BaseHeader*>(b)
@@ -458,27 +400,27 @@ struct BaseHeader {
   /// @brief access header in buffer
   ///
   /// this is to guess if the buffer starting at b looks like a header
-  inline static BaseHeader* get(o2::byte* b, size_t /*len*/ = 0)
+  inline static BaseHeader* get(std::byte* b, size_t /*len*/ = 0)
   {
     return (b != nullptr && *(reinterpret_cast<uint32_t*>(b)) == sMagicString) ? reinterpret_cast<BaseHeader*>(b)
                                                                                : nullptr;
   }
 
   constexpr uint32_t size() const noexcept { return headerSize; }
-  inline const o2::byte* data() const noexcept { return reinterpret_cast<const o2::byte*>(this); }
+  inline const std::byte* data() const noexcept { return reinterpret_cast<const std::byte*>(this); }
 
   /// get the next header if any (const version)
   inline const BaseHeader* next() const noexcept
   {
     // BaseHeader::get checks that next header starts with the BaseHeader information at the
     // offset given by the size of the current header.
-    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<const o2::byte*>(this) + headerSize) : nullptr;
+    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<const std::byte*>(this) + headerSize) : nullptr;
   }
 
   /// get the next header if any (non-const version)
   inline BaseHeader* next() noexcept
   {
-    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<o2::byte*>(this) + headerSize) : nullptr;
+    return (flagsNextHeader) ? BaseHeader::get(reinterpret_cast<std::byte*>(this) + headerSize) : nullptr;
   }
 
   /// check if the header matches expected version
@@ -497,7 +439,7 @@ struct BaseHeader {
 /// use like this:
 /// HeaderType* h = get<HeaderType*>(buffer)
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
-auto get(const o2::byte* buffer, size_t /*len*/ = 0)
+auto get(const std::byte* buffer, size_t /*len*/ = 0)
 {
   using HeaderConstPtrType = const typename std::remove_pointer<HeaderType>::type*;
   using HeaderValueType = typename std::remove_pointer<HeaderType>::type;
@@ -538,7 +480,7 @@ auto get(const o2::byte* buffer, size_t /*len*/ = 0)
 template <typename HeaderType, typename std::enable_if_t<std::is_pointer<HeaderType>::value, int> = 0>
 auto get(const void* buffer, size_t len = 0)
 {
-  return get<HeaderType>(reinterpret_cast<const byte*>(buffer), len);
+  return get<HeaderType>(reinterpret_cast<const std::byte*>(buffer), len);
 }
 
 //__________________________________________________________________________________________________
@@ -593,20 +535,8 @@ T stoui(const std::string& str, size_t* pos = nullptr, int base = 10)
   }
 };
 
-//__________________________________________________________________________________________________
-/// this 128 bit type for a header field describing the payload data type
-struct printDataDescription {
-  void operator()(const char* str) const;
-};
-
-using DataDescription = Descriptor<gSizeDataDescriptionString, printDataDescription>;
-
-//__________________________________________________________________________________________________
-// 32bit (4 characters) for data origin, ex. the detector or subsystem name
-struct printDataOrigin {
-  void operator()(const char* str) const;
-};
-using DataOrigin = Descriptor<gSizeDataOriginString, printDataOrigin>;
+using DataOrigin = Descriptor<gSizeDataOriginString>;
+using DataDescription = Descriptor<gSizeDataDescriptionString>;
 
 //__________________________________________________________________________________________________
 /// @defgroup data_description_defines Defines for data description
@@ -635,12 +565,10 @@ constexpr o2::header::DataOrigin gDataOriginTOF{"TOF"};
 constexpr o2::header::DataOrigin gDataOriginTPC{"TPC"};
 constexpr o2::header::DataOrigin gDataOriginTRD{"TRD"};
 constexpr o2::header::DataOrigin gDataOriginZDC{"ZDC"};
-#ifdef ENABLE_UPGRADES
+
 constexpr o2::header::DataOrigin gDataOriginIT3{"IT3"};
 constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
 constexpr o2::header::DataOrigin gDataOriginFT3{"FT3"};
-
-#endif
 
 //possible data types
 constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};
@@ -789,7 +717,6 @@ struct DataHeader : public BaseHeader {
   bool operator==(const DataOrigin&) const;          //comparison
   bool operator==(const DataDescription&) const;     //comparison
   bool operator==(const SerializationMethod&) const; //comparison
-  void print() const;                                ///pretty print the contents
 
   static const DataHeader* Get(const BaseHeader* baseHeader)
   {
@@ -818,7 +745,6 @@ struct DataIdentifier {
   }
 
   bool operator==(const DataIdentifier&) const;
-  void print() const;
 };
 
 //__________________________________________________________________________________________________
@@ -843,12 +769,10 @@ template <typename T>
 struct is_descriptor : std::false_type {
 };
 
-template <std::size_t S, typename P>
-struct is_descriptor<o2::header::Descriptor<S, P>> : std::true_type {
+template <std::size_t S>
+struct is_descriptor<o2::header::Descriptor<S>> : std::true_type {
 };
 
-} //namespace header
-
-} //namespace o2
+} //namespace o2::header
 
 #endif

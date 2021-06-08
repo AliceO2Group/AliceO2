@@ -85,7 +85,11 @@ struct TPCSpectraReferenceTask {
     histos.fill(HIST(hpt[i]), track.pt());
   }
 
-  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPC, aod::TrackSelection>>;
+  using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra,
+                                                  aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                                  aod::pidTPCFullKa, aod::pidTPCFullPr, aod::pidTPCFullDe,
+                                                  aod::pidTPCFullTr, aod::pidTPCFullHe, aod::pidTPCFullAl,
+                                                  aod::TrackSelection>>;
   void process(soa::Filtered<aod::Collisions>::iterator const& collision, TrackCandidates const& tracks)
   {
     for (auto track : tracks) {

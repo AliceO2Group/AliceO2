@@ -66,7 +66,7 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
 
 #define MAKECODER(part, slot) createCoder<decltype(part)>(op, getFreq(slot), getProbBits(slot), int(slot))
   // clang-format off
-  MAKECODER(bcInc,      CTF::BLC_bcIncTrig); 
+  MAKECODER(bcInc,      CTF::BLC_bcIncTrig);
   MAKECODER(orbitInc,   CTF::BLC_orbitIncTrig);
   MAKECODER(entriesTrk, CTF::BLC_entriesTrk);
   MAKECODER(entriesDig, CTF::BLC_entriesDig);

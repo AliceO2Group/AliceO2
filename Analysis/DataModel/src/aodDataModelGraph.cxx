@@ -87,8 +87,7 @@ template <typename T>
 Style getStyleFor()
 {
   auto label = MetadataTrait<T>::metadata::tableLabel();
-  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) { return true; 
-
+  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) { return true;
 }return false; });
   if (entry != tableStyles.end()) {
     auto value = *entry;
@@ -258,9 +257,15 @@ int main(int, char**)
   displayEntity<FV0Cs>();
   displayEntity<Run2BCInfos>();
 
-  displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection, pidRespTOF, pidRespTPC>();
-  displayEntity<UnassignedTracks>();
-  displayEntity<UnassignedMFTTracks>();
+  displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection,
+                  pidTOFFullEl, pidTOFFullMu, pidTOFFullPi,
+                  pidTOFFullKa, pidTOFFullPr, pidTOFFullDe,
+                  pidTOFFullTr, pidTOFFullHe, pidTOFFullAl,
+                  pidTPCFullEl, pidTPCFullMu, pidTPCFullPi,
+                  pidTPCFullKa, pidTPCFullPr, pidTPCFullDe,
+                  pidTPCFullTr, pidTPCFullHe, pidTPCFullAl>();
+  displayEntity<AmbiguousTracks>();
+  displayEntity<AmbiguousMFTTracks>();
 
   displayEntity<McParticles>();
   displayEntity<McTrackLabels>();

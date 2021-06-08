@@ -19,8 +19,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeReader.h>
-#include <TSystem.h>
-
+#include <filesystem>
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
 #include "DataFormatsEMCAL/Digit.h"
@@ -50,8 +49,7 @@ int main(int argc, const char** argv)
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,subdet,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
-    //add_option("digitization-config,d", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "configKeyValues file from digitization");
-    add_option("digitization-config,d", bpo::value<std::string>()->default_value("none"), "configKeyValues file from digitization");
+    add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -77,9 +75,9 @@ int main(int argc, const char** argv)
     FairLogger::GetLogger()->SetLogScreenLevel("DEBUG");
   }
 
-  std::string confDig = vm["digitization-config"].as<std::string>();
+  std::string confDig = vm["hbfutils-config"].as<std::string>();
   if (!confDig.empty() && confDig != "none") {
-    o2::conf::ConfigurableParam::updateFromFile(confDig);
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
@@ -88,8 +86,8 @@ int main(int argc, const char** argv)
        filefor = vm["file-for"].as<std::string>();
 
   // if needed, create output directory
-  if (gSystem->AccessPathName(outputdir.c_str())) {
-    if (gSystem->mkdir(outputdir.c_str(), kTRUE)) {
+  if (!std::filesystem::exists(outputdir)) {
+    if (!std::filesystem::create_directories(outputdir)) {
       LOG(FATAL) << "could not create output directory " << outputdir;
     } else {
       LOG(INFO) << "created output directory " << outputdir;
@@ -122,5 +120,9 @@ int main(int argc, const char** argv)
   for (auto en : *treereader) {
     rawwriter.digitsToRaw(*digitbranch, *triggerbranch);
   }
-  rawwriter.getWriter().writeConfFile("EMC", "RAWDATA", o2::utils::concat_string(outputdir, "/EMCraw.cfg"));
+  rawwriter.getWriter().writeConfFile("EMC", "RAWDATA", o2::utils::Str::concat_string(outputdir, "/EMCraw.cfg"));
+
+  o2::raw::HBFUtils::Instance().print();
+
+  return 0;
 }

@@ -16,21 +16,25 @@ o2_add_library(
           src/DecodedDataAggregator.cxx
           src/Decoder.cxx
           src/ElectronicsDelay.cxx
+          src/ELinkDataShaper.cxx
           src/ELinkDecoder.cxx
+          src/ELinkManager.cxx
           src/Encoder.cxx
           src/FEEIdConfig.cxx
-          src/GBTDecoder.cxx
           src/GBTOutputHandler.cxx
           src/GBTUserLogicEncoder.cxx
+          src/LinkDecoder.cxx
           src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES
-    ms_gsl::ms_gsl
+    Microsoft.GSL::GSL
     O2::DataFormatsMID
     O2::Headers
     O2::DPLUtils
     O2::CommonConstants
     O2::DetectorsRaw
-    O2::MIDBase)
+    O2::MIDBase
+  TARGETVARNAME midrawtarget)
+# target_compile_definitions(${midrawtarget} PRIVATE "MID_RAW_VECTORS")
 
 add_subdirectory(exe)
 

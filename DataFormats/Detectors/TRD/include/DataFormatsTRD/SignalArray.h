@@ -15,7 +15,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 
 #include <array>
-#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace o2
@@ -26,7 +26,7 @@ namespace trd
 struct SignalArray {
   double firstTBtime;                               // first TB time
   std::array<float, constants::TIMEBINS> signals{}; // signals
-  std::unordered_map<int, int> trackIds;            // tracks Ids associated to the signal
+  std::unordered_set<int> trackIds;                 // tracks Ids associated to the signal
   std::vector<o2::MCCompLabel> labels;              // labels associated to the signal
   bool isDigit = false;                             // flag a signal converted to a digit
   bool isShared = false;                            // flag if converted digit is shared (copied)

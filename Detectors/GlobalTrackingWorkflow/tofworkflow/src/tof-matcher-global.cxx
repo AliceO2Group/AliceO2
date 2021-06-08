@@ -14,7 +14,7 @@
 /// @brief  Basic DPL workflow for TOF reconstruction starting from digits
 
 #include "DetectorsBase/Propagator.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "TOFWorkflow/TOFMatchedWriterSpec.h"
 #include "TOFWorkflow/TOFCalibWriterSpec.h"
@@ -25,6 +25,7 @@
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 // FIT
 #include "FT0Workflow/RecPointReaderSpec.h"
@@ -37,17 +38,22 @@
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "clusters,tracks", {"clusters, tracks, fit"}});
-  workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}});
-  workflowOptions.push_back(ConfigParamSpec{"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"input-type", o2::framework::VariantType::String, "clusters,tracks", {"clusters, tracks, fit"}},
+    {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}},
+    {"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}},
+    {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}},
+    {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
+    {"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}},
+    {"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
+    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -71,6 +77,7 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
   auto nLanes = cfgc.options().get<int>("tof-lanes");
@@ -148,6 +155,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     }
   }
   LOG(INFO) << "Number of active devices = " << specs.size();
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return std::move(specs);
 }

@@ -59,7 +59,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   //Get TimeStamp from TriggerRecord
   if (!mBadMap) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mBadMap = new BadChannelMap(1); // test default map
+      mBadMap = new BadChannelsMap(1); // test default map
       LOG(INFO) << "[PHOSCellConverter - run] No reading BadMap from ccdb requested, set default";
     } else {
       LOG(INFO) << "[PHOSCellConverter - run] getting BadMap object from ccdb";
@@ -67,7 +67,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       std::map<std::string, std::string> metadata; // do we want to store any meta data?
       ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
       long bcTime = -1;                            //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-      mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
+      mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelsMap>("PHOS/BadMap", metadata, bcTime);
       if (!mBadMap) {
         LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
       }
@@ -84,33 +84,38 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
     for (int i = iFirstDigit; i < iLastDigit; i++) {
       const auto& dig = digits.at(i);
 
-      //apply filter
-      if (!mBadMap->isChannelGood(dig.getAbsId())) {
-        continue;
-      }
-
-      ChannelType_t chantype;
-      if (dig.isHighGain()) {
-        chantype = ChannelType_t::HIGH_GAIN;
-      } else {
-        chantype = ChannelType_t::LOW_GAIN;
-      }
-
-      //    TODO!!! TRU copying...
-      //    if (dig.getTRU())
-      //      chantype = ChannelType_t::TRU;
-
-      mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
-      if (mPropagateMC) { //copy MC info,
-        int iLab = dig.getLabel();
-        if (iLab > -1) {
-          mOutputTruthCont.addElements(icell, truthcont->getLabels(iLab));
+      if (dig.isTRU()) {
+        ChannelType_t chantype;
+        if (dig.isHighGain()) {
+          chantype = ChannelType_t::TRU2x2;
         } else {
-          MCLabel label(0, 0, 0, true, 0);
-          label.setNoise();
-          mOutputTruthCont.addElement(icell, label);
+          chantype = ChannelType_t::TRU4x4;
         }
-        icell++;
+        mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
+      } else {
+        //apply filter
+        if (!mBadMap->isChannelGood(dig.getAbsId())) {
+          continue;
+        }
+
+        ChannelType_t chantype;
+        if (dig.isHighGain()) {
+          chantype = ChannelType_t::HIGH_GAIN;
+        } else {
+          chantype = ChannelType_t::LOW_GAIN;
+        }
+        mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
+        if (mPropagateMC) { //copy MC info,
+          int iLab = dig.getLabel();
+          if (iLab > -1) {
+            mOutputTruthCont.addElements(icell, truthcont->getLabels(iLab));
+          } else {
+            MCLabel label(0, 0, 0, true, 0);
+            label.setNoise();
+            mOutputTruthCont.addElement(icell, label);
+          }
+          icell++;
+        }
       }
     }
     mOutputCellTrigRecs.emplace_back(tr.getBCData(), indexStart, mOutputCells.size() - indexStart);

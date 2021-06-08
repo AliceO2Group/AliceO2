@@ -84,8 +84,8 @@ class PixelData
 
  private:
   void sanityCheck() const;
-  static constexpr int RowMask = 0x1ff; ///< 512 rows are supported
-  static constexpr int MaskBit = 0x200; ///< 10-th bit is used to flag masked pixel
+  static constexpr int RowMask = 0x7FFF; ///< 32768 rows are supported
+  static constexpr int MaskBit = 0x8000; ///< 16-th bit is used to flag masked pixel
   uint16_t mRow = 0;                    ///< pixel row
   uint16_t mCol = 0;                    ///< pixel column
 
@@ -135,15 +135,15 @@ class ChipPixelData
   void swap(ChipPixelData& other)
   {
     // swap content of two objects
-    mPixels.swap(other.mPixels);
-    std::swap(mROFrame, other.mROFrame);
     std::swap(mROFlags, other.mROFlags);
-    std::swap(mTrigger, other.mTrigger);
-    std::swap(mInteractionRecord, other.mInteractionRecord);
     std::swap(mChipID, other.mChipID);
-    // strictly speaking, swapping the data below is not needed
-    std::swap(mStartID, other.mStartID);
-    std::swap(mFirstUnmasked, other.mFirstUnmasked);
+    std::swap(mROFrame, other.mROFrame);
+    std::swap(mFirstUnmasked, other.mFirstUnmasked); // strictly speaking, not needed
+    std::swap(mStartID, other.mStartID);             // strictly speaking, not needed
+    std::swap(mTrigger, other.mTrigger);
+    std::swap(mErrors, other.mErrors);
+    std::swap(mInteractionRecord, other.mInteractionRecord);
+    mPixels.swap(other.mPixels);
   }
 
   void maskFiredInSample(const ChipPixelData& sample)

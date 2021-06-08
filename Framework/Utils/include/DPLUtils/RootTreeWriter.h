@@ -363,6 +363,17 @@ class RootTreeWriter
     mFile.reset(nullptr);
   }
 
+  /// autosave the tree
+  void autoSave()
+  {
+    if (mIsClosed || !mFile) {
+      return;
+    }
+    mTree->SetEntries();
+    LOG(INFO) << "Autosaving " << mTree->GetName() << " at entry " << mTree->GetEntries();
+    mTree->AutoSave("overwrite");
+  }
+
   bool isClosed() const
   {
     return mIsClosed;

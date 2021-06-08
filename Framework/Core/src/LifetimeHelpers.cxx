@@ -11,6 +11,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputSpec.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/DataDescriptorMatcher.h"
 #include "Framework/Logger.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
@@ -143,7 +144,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 /// expires via this mechanism).
 ExpirationHandler::Handler LifetimeHelpers::doNothing()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void { return; };
+  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void { return; };
 }
 
 // We simply put everything in a stringstream and read it afterwards.
@@ -188,7 +189,7 @@ ExpirationHandler::Handler
   if (matcher == nullptr) {
     throw runtime_error("InputSpec for Conditions must be fully qualified");
   }
-  return [spec, matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  return [spec, matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext&) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -265,7 +266,7 @@ ExpirationHandler::Handler
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
+  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromQARegistry: Not yet implemented");
     return;
   };
@@ -276,18 +277,19 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
+  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromObjectRegistry: Not yet implemented");
     return;
   };
 }
 
 /// Enumerate entries on every invokation.
-ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const& matcher, std::string const& sourceChannel)
+ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const& matcher, std::string const& sourceChannel,
+                                                      int64_t orbitOffset, int64_t orbitMultiplier)
 {
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
-  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  return [matcher, counter, sourceChannel, orbitOffset, orbitMultiplier](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext& variables) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -299,6 +301,10 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.subSpecification = matcher.subSpec;
     dh.payloadSize = sizeof(counter_t);
     dh.payloadSerializationMethod = gSerializationMethodNone;
+    dh.tfCounter = timestamp;
+    dh.firstTForbit = timestamp * orbitMultiplier + orbitOffset;
+    variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
+    variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
 
     DataProcessingHeader dph{timestamp, 1};
 
@@ -312,7 +318,6 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     ref.payload = std::move(payload);
     (*counter)++;
   };
-  return f;
 }
 
 /// Create a dummy message with the provided ConcreteDataMatcher
@@ -320,7 +325,7 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 {
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
-  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext& variables) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -332,7 +337,23 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     dh.subSpecification = matcher.subSpec;
     dh.payloadSize = 0;
     dh.payloadSerializationMethod = gSerializationMethodNone;
-    dh.tfCounter = timestamp;
+
+    {
+      auto pval = std::get_if<uint32_t>(&variables.get(data_matcher::FIRSTTFORBIT_POS));
+      if (pval == nullptr) {
+        dh.firstTForbit = -1;
+      } else {
+        dh.firstTForbit = *pval;
+      }
+    }
+    {
+      auto pval = std::get_if<uint32_t>(&variables.get(data_matcher::TFCOUNTER_POS));
+      if (pval == nullptr) {
+        dh.tfCounter = timestamp;
+      } else {
+        dh.tfCounter = *pval;
+      }
+    }
 
     DataProcessingHeader dph{timestamp, 1};
 

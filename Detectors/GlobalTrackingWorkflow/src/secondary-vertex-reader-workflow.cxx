@@ -11,7 +11,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/ConfigParamSpec.h"
-#include "GlobalTrackingWorkflow/SecondaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
 
 using namespace o2::framework;
 

@@ -13,9 +13,11 @@ o2_add_library(TRDReconstruction
                        src/CTFHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
+                                     O2::DataFormatsTPC
+                                     O2::ReconstructionDataFormats
                                      O2::DetectorsRaw
                                      O2::rANS
-                                     ms_gsl::ms_gsl)
+                                     Microsoft.GSL::GSL)
 
 # o2_target_root_dictionary(TRDReconstruction
 #                           HEADERS )

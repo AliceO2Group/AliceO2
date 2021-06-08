@@ -19,9 +19,8 @@
 
 // for TRD
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
-#include "TRDWorkflow/TRDTrackletWriterSpec.h"
-#include "TRDWorkflow/TRDTrapRawWriterSpec.h"
-#include "TRDWorkflow/TRDDigitReaderSpec.h"
+#include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
+#include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 
 #include "DataFormatsParameters/GRPObject.h"
 
@@ -67,6 +66,13 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowoptions)
   //  std::string trapsimconfighelp("Specify the Trap config to use from CCDB yes those long names like cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b2p-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5585");
   //  workflowoptions.push_back(ConfigParamSpec{"trapconfigname", VariantType::Int, -1, {trapsimconfighelp}});
 
+  // option allowing to set parameters
+  std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TRDSimParams.digithreads=4;...')");
+  workflowoptions.push_back(
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  workflowoptions.push_back(
+    ConfigParamSpec{"configFile", VariantType::String, "", {"configuration file for configurable parameters"}});
+
   // json output
   // run2 input
   // trap configuration
@@ -83,6 +89,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // at the end. This places the processor at the beginning of the
   // workflow in the upper left corner of the GUI.
   //
+  using namespace o2::conf;
+  ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   WorkflowSpec specs;
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootInput = configcontext.options().get<bool>("disable-root-input");

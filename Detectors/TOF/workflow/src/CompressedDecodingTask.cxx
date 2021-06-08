@@ -123,7 +123,9 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
   //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
   mInitOrbit = dh->firstTForbit;
-  mDecoder.setFirstIR({0, mInitOrbit});
+  if (!mConetMode) {
+    mDecoder.setFirstIR({0, mInitOrbit});
+  }
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
@@ -143,7 +145,9 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
     }
   }
 
-  if ((mNCrateOpenTF > 0 || mConetMode) && mNCrateOpenTF == mNCrateCloseTF) {
+  if (!mConetMode) {
+    mHasToBePosted = true;
+  } else if (mNCrateOpenTF == mNCrateCloseTF) {
     mHasToBePosted = true;
   }
 
@@ -162,6 +166,11 @@ void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
 void CompressedDecodingTask::headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit)
 {
   if (mConetMode) {
+    if (mNCrateOpenTF == 0) {
+      mInitOrbit = crateOrbit->orbitID;
+      mDecoder.setFirstIR({0, mInitOrbit});
+    }
+
     LOG(DEBUG) << "Crate found" << crateHeader->drmID;
     mNCrateOpenTF++;
   }
@@ -171,7 +180,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
                                             const Error_t* errors)
 {
   if (mConetMode) {
-    LOG(DEBUG) << "Crate closed" << crateHeader->drmID;
+    LOG(DEBUG) << "Crate closed " << crateHeader->drmID;
     mNCrateCloseTF++;
   }
 
@@ -335,8 +344,6 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   // rdh open
   if ((RDHUtils::getPageCounter(rdhr) == 0) && (RDHUtils::getTriggerType(rdhr) & o2::trigger::TF)) {
     mNCrateOpenTF++;
-    mInitOrbit = RDHUtils::getHeartBeatOrbit(rdhr); // RSTODO this may be eliminated once the framework will start to propagated the dh.firstTForbit
-    //    printf("New TF open RDH %d\n", int(rdh->feeId));
   }
 };
 

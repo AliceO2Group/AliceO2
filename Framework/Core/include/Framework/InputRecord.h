@@ -14,11 +14,9 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
-#include "Framework/InputSpan.h"
 #include "Framework/TableConsumer.h"
 #include "Framework/Traits.h"
 #include "Framework/RuntimeError.h"
-#include "MemoryResources/Types.h"
 #include "Headers/DataHeader.h"
 
 #include "CommonUtils/BoostSerializer.h"
@@ -41,6 +39,7 @@ namespace framework
 {
 
 struct InputSpec;
+struct InputSpan;
 
 /// @class InputRecord
 /// @brief The input API of the Data Processing Layer
@@ -99,7 +98,7 @@ class InputRecord
   using DataHeader = o2::header::DataHeader;
 
   InputRecord(std::vector<InputRoute> const& inputs,
-              InputSpan&& span);
+              InputSpan& span);
 
   /// A deleter type to be used with unique_ptr, which can be marked that
   /// it does not own the underlying resource and thus should not delete it.
@@ -177,30 +176,9 @@ class InputRecord
   int getPos(const char* name) const;
   int getPos(const std::string& name) const;
 
-  DataRef getByPos(int pos, int part = 0) const
-  {
-    if (pos >= mSpan.size() || pos < 0) {
-      throw runtime_error_f("Unknown message requested at position %d", pos);
-    }
-    if (part > 0 && part >= getNofParts(pos)) {
-      throw runtime_error_f("Invalid message part index at %d:%d", pos, part);
-    }
-    if (pos >= mInputsSchema.size()) {
-      throw runtime_error_f("Unknown schema at position %d", pos);
-    }
-    auto ref = mSpan.get(pos, part);
-    ref.spec = &mInputsSchema[pos].matcher;
-    return ref;
-  }
+  DataRef getByPos(int pos, int part = 0) const;
 
-  size_t getNofParts(int pos) const
-  {
-    if (pos < 0 || pos >= mSpan.size()) {
-      return 0;
-    }
-    return mSpan.getNofParts(pos);
-  }
-
+  size_t getNofParts(int pos) const;
   /// Get the object of specified type T for the binding R.
   /// If R is a string like object, we look up by name the InputSpec and
   /// return the data associated to the given label.
@@ -459,10 +437,7 @@ class InputRecord
   /// @return the total number of inputs in the InputRecord. Notice that these will include
   /// both valid and invalid inputs (i.e. inputs which have not arrived yet), depending
   /// on the CompletionPolicy you have (using the default policy all inputs will be valid).
-  size_t size() const
-  {
-    return mSpan.size();
-  }
+  size_t size() const;
 
   /// @return the total number of valid inputs in the InputRecord.
   /// Invalid inputs might happen if the CompletionPolicy allows
@@ -650,7 +625,7 @@ class InputRecord
 
  private:
   std::vector<InputRoute> const& mInputsSchema;
-  InputSpan mSpan;
+  InputSpan& mSpan;
 };
 
 } // namespace framework

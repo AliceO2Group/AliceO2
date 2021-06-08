@@ -15,8 +15,8 @@
 #define GPUO2INTERFACEQA_H
 
 // Some defines denoting that we are compiling for O2
-#ifndef HAVE_O2HEADERS
-#define HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
+#define GPUCA_HAVE_O2HEADERS
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2
@@ -46,8 +46,8 @@ struct ClusterNativeAccess;
 namespace o2::gpu
 {
 class GPUQA;
-class GPUParam;
-class GPUO2InterfaceConfiguration;
+struct GPUParam;
+struct GPUO2InterfaceConfiguration;
 class GPUO2InterfaceQA
 {
  public:

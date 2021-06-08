@@ -101,9 +101,12 @@ class GPUReconstruction
                                          TPC_DIGIT = 13,
                                          TPC_ZS = 14,
                                          CLUSTER_NATIVE_MC = 15,
-                                         TPC_DIGIT_MC = 16 };
+                                         TPC_DIGIT_MC = 16,
+                                         TRD_SPACEPOINT = 17,
+                                         TRD_TRIGGERRECORDS = 18 };
   static constexpr const char* const IOTYPENAMES[] = {"TPC HLT Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
-                                                      "TPC Raw Clusters", "TPC Native Clusters", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page", "TPC Native Clusters MC Labels", "TPC Digit MC Labeels"};
+                                                      "TPC Raw Clusters", "TPC Native Clusters", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page", "TPC Native Clusters MC Labels", "TPC Digit MC Labeels",
+                                                      "TRD Spacepoints", "TRD Triggerrecords"};
   static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT || type == TPC_DIGIT_MC) ? NSLICES : 1; }
 
   // Functionality to create an instance of GPUReconstruction for the desired device

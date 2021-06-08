@@ -20,8 +20,8 @@ o2_add_library(ZDCReconstruction
 				     O2::ZDCSimulation
                                      O2::DetectorsRaw
                                      AliceO2::InfoLogger
-				     O2::rANS
-				     ms_gsl::ms_gsl)
+                     O2::rANS
+                     Microsoft.GSL::GSL)
 
 # o2_target_root_dictionary(ZDCReconstruction
-#	                    HEADERS )
+#                       HEADERS )

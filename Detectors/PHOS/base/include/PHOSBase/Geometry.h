@@ -104,7 +104,14 @@ class Geometry
   static bool absToRelNumbering(short absId, char* relid);
   static char absIdToModule(short absId);
   static void absIdToRelPosInModule(short absId, float& x, float& z);
+  static void relPosToRelId(short module, float x, float z, char* relId);
   static bool relToAbsNumbering(const char* RelId, short& AbsId);
+
+  //Converters for TRU digits
+  static bool truAbsToRelNumbering(short truId, char* relid);
+  static short truRelToAbsNumbering(const char* relId);
+  static bool truRelId2RelId(const char* truRelId, char* relId);
+  static short relPosToTruId(char mod, float x, float z, short& ddl);
 
   //local position to absId
   static void relPosToAbsId(char module, float x, float z, short& absId);
@@ -120,7 +127,11 @@ class Geometry
 
   const std::string& GetName() const { return mGeoName; }
 
+  const TGeoHMatrix* getAlignmentMatrix(int mod) const { return &(mPHOS[mod]); }
+
  private:
+  static constexpr float CELLSTEP = 2.25;
+
   static Geometry* sGeom;           // Pointer to the unique instance of the singleton
   std::array<TGeoHMatrix, 5> mPHOS; //Rotation/shift matrices
 

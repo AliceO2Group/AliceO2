@@ -134,7 +134,7 @@ GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int& pad, const GPUTPC
   const GPUTPCGeometry& geo = clusterer.Param().tpcGeometry;
 
   int padOffset = 0;
-  for (Row r = 0; r < TPC_NUM_OF_ROWS; r++) {
+  for (Row r = 0; r < GPUCA_ROW_COUNT; r++) {
     int npads = geo.NPads(r);
     int padInRow = pad - padOffset;
     if (0 <= padInRow && padInRow < CAMath::nextMultipleOf<PadsPerCacheline, int>(npads)) {
@@ -151,8 +151,8 @@ GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int& pad, const GPUTPC
 GPUd() void GPUTPCCFCheckPadBaseline::updatePadBaseline(int pad, const GPUTPCClusterFinder& clusterer, int totalCharges, int consecCharges)
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
-  int totalChargesBaseline = clusterer.Param().rec.maxTimeBinAboveThresholdIn1000Bin * fragment.lengthWithoutOverlap() / 1000;
-  int consecChargesBaseline = clusterer.Param().rec.maxConsecTimeBinAboveThreshold;
+  int totalChargesBaseline = clusterer.Param().rec.tpc.maxTimeBinAboveThresholdIn1000Bin * fragment.lengthWithoutOverlap() / 1000;
+  int consecChargesBaseline = clusterer.Param().rec.tpc.maxConsecTimeBinAboveThreshold;
   bool hasLostBaseline = (totalChargesBaseline > 0 && totalCharges >= totalChargesBaseline) || (consecChargesBaseline > 0 && consecCharges >= consecChargesBaseline);
   clusterer.mPpadHasLostBaseline[pad] |= hasLostBaseline;
 }

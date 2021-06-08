@@ -26,8 +26,8 @@ Cluster::Cluster(std::int16_t sensid, float x, float y, float z, float sy2, floa
 {
 
   // caching R and phi
-  mR = TMath::Sqrt(x * x + y * y);
-  mPhi = TMath::ATan2(y, x);
+  mR = o2::gpu::CAMath::Sqrt(x * x + y * y);
+  mPhi = o2::gpu::CAMath::ATan2(y, x);
 }
 //______________________________________________________________________
 int Cluster::getNumOfContributingChannels() const

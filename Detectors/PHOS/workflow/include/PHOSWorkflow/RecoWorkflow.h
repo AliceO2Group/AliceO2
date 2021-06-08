@@ -41,9 +41,10 @@ enum struct OutputType { Digits,
 framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                     bool disableRootOut,
                                     bool propagateMC = true,
-                                    std::string const& cfgInput = "hits",     //
-                                    std::string const& cfgOutput = "clusters" //
-);
+                                    std::string const& cfgInput = "hits",      //
+                                    std::string const& cfgOutput = "clusters", //
+                                    bool fullCluOut = false,
+                                    int flpId = 0);
 } // namespace reco_workflow
 
 } // namespace phos

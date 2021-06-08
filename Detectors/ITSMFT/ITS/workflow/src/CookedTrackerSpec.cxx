@@ -23,12 +23,13 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
-
+#include "CommonDataFormat/IRFrame.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/Vertexer.h"
@@ -55,7 +56,7 @@ void CookedTrackerDPL::init(InitContext& ic)
   auto nthreads = ic.options().get<int>("nthreads");
   mTracker.setNumberOfThreads(nthreads);
   auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
+  const auto grp = o2::parameters::GRPObject::loadFrom(filename);
   if (grp) {
     mGRP.reset(grp);
     o2::base::Propagator::initFieldFromGRP(grp);
@@ -74,12 +75,12 @@ void CookedTrackerDPL::init(InitContext& ic)
     LOG(INFO) << "ITSCookedTracker RO: continuous=" << continuous;
     mTracker.setContinuousMode(continuous);
   } else {
-    throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
+    throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
-  if (o2::base::NameConf::pathExists(dictFile)) {
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
+  if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
@@ -125,6 +126,10 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
   auto& tracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
   auto& clusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
+  int nBCPerTF = mTracker.getContinuousMode() ? alpParams.roFrameLengthInBC : alpParams.roFrameLengthTrig;
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   for (auto& rof : rofs) {
@@ -178,6 +183,9 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
     }
     mTracker.setVertices(vtxVecLoc);
     mTracker.process(compClusters, it, mDict, tracks, clusIdx, rof);
+    if (tracks.size()) {
+      irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+    }
   }
 
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
@@ -208,6 +216,7 @@ DataProcessorSpec getCookedTrackerSpec(bool useMC)
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "IRFRAMES", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);

@@ -21,9 +21,9 @@
 #include <TLegend.h>
 
 #include "FairLogger.h"
-#include "TRDBase/Digit.h"
 #include "TRDBase/SimParam.h"
 #include "TRDBase/CommonParam.h"
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Constants.h"
 #endif
 
@@ -77,7 +77,7 @@ void CheckDigits(std::string digifile = "trddigits.root",
       hPad->Fill(pad);
       for (int tb = 0; tb < o2::trd::constants::TIMEBINS; ++tb) {
         ADC_t adc = adcs[tb];
-        if (adc == (ADC_t)SimParam::Instance()->GetADCoutRange()) {
+        if (adc == (ADC_t)SimParam::instance()->getADCoutRange()) {
           // LOG(INFO) << "Out of range ADC " << adc;
           continue;
         }

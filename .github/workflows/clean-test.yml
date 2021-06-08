@@ -8,7 +8,7 @@ on:
       checks:
         description: Checks to be cleaned
         required: true
-        default: 'build/O2/o2,build/O2/gpu,build/AliceO2/O2/o2/macOS,build/o2checkcode/o2'
+        default: 'build/O2/o2,build/AliceO2/O2/o2/macOS,build/O2/fullCI'
       owner:
         description: Organization
         required: true

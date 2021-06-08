@@ -28,6 +28,9 @@
 #include "TGeoVolume.h"
 #include "TGeoXtru.h"
 #include "TMath.h"
+#include <TGeoArb8.h> // for TGeoTrap
+#include "MFTBase/MFTBaseParam.h"
+#include "MFTBase/GeometryBuilder.h"
 
 #include "MFTBase/Constants.h"
 #include "MFTBase/HalfCone.h"
@@ -1268,6 +1271,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   Double_t r_final_z;
 
   Double_t tyMB0;
+  Double_t tyMB0_3;
   Double_t tzMB0;
 
   if (half == 0) {
@@ -1280,6 +1284,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
     r_final_z = 0;
 
     tyMB0 = -16.72;
+    tyMB0_3 = -18.0;
     tzMB0 = -(45.3 + 46.7) / 2;
   }
 
@@ -1293,6 +1298,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
     r_final_z = 180;
 
     tyMB0 = 16.72;
+    tyMB0_3 = 18.0;
     tzMB0 = -(45.3 + 46.7) / 2;
   }
 
@@ -1531,56 +1537,7 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   HalfConeVolume->AddNode(frame_back, 6, c_final);
   HalfConeVolume->AddNode(colonne_mb, 7, c_final);
 
-  //========================== Mother Boards
-  //=========================================
-
-  // =============  MotherBoard 0 and 1
-  Double_t mMB0cu[3];
-  Double_t mMB0fr4;
-  Double_t mMB0pol;
-  Double_t mMB0epo;
-  // Sizes
-  mMB0cu[0] = {13.65};
-  mMB0cu[1] = {0.00615}; // 122.5 microns * taux d'occupation 50% = 61.5 microns
-  mMB0cu[2] = {2.39};
-  mMB0fr4 = 0.1;    // 1 mm
-  mMB0pol = 0.0150; // 150 microns
-  mMB0epo = 0.0225; // 225 microns
-  // Materials
-  auto* mCu = gGeoManager->GetMedium("MFT_Cu$");
-  auto* mFR4 = gGeoManager->GetMedium("MFT_FR4$");
-  auto* mPol = gGeoManager->GetMedium("MFT_Polyimide$");
-  auto* mEpo = gGeoManager->GetMedium("MFT_Epoxy$");
-  auto* mInox = gGeoManager->GetMedium("MFT_Inox$");
-
-  auto* MotherBoard0 = new TGeoVolumeAssembly(Form("MotherBoard0_H%d", half));
-  // 4 layers
-  TGeoVolume* vMB0cu = gGeoManager->MakeBox("vMB0cu", mCu, mMB0cu[0] / 2,
-                                            mMB0cu[1] / 2, mMB0cu[2] / 2);
-  TGeoVolume* vMB0fr4 = gGeoManager->MakeBox("vMB0fr4", mFR4, mMB0cu[0] / 2,
-                                             mMB0fr4 / 2, mMB0cu[2] / 2);
-  TGeoVolume* vMB0pol = gGeoManager->MakeBox("vMB0pol", mPol, mMB0cu[0] / 2,
-                                             mMB0pol / 2, mMB0cu[2] / 2);
-  TGeoVolume* vMB0epo = gGeoManager->MakeBox("vMB0epo", mEpo, mMB0cu[0] / 2,
-                                             mMB0epo / 2, mMB0cu[2] / 2);
-  // Screws = Head + Thread
-  TGeoVolume* vMB0screwH = gGeoManager->MakeTube("vMB0screwH", mInox, 0.0,
-                                                 0.7 / 2, 0.35 / 2); // tete
-  TGeoVolume* vMB0screwT = gGeoManager->MakeTube("vMB0screwT", mInox, 0.0,
-                                                 0.4 / 2, 1.2 / 2); // filetage
-  // Insert Sertitec
-  TGeoVolume* vMB0serti = gGeoManager->MakeTube("vMB0serti", mInox, 0.16 / 2,
-                                                0.556 / 2, 0.15 / 2); // tete
-
-  vMB0cu->SetLineColor(kRed);
-  vMB0fr4->SetLineColor(kBlack);
-  vMB0pol->SetLineColor(kGreen);
-  vMB0epo->SetLineColor(kBlue);
-  vMB0screwH->SetLineColor(kOrange);
-  vMB0screwT->SetLineColor(kOrange);
-  vMB0serti->SetLineColor(kOrange);
-  // Positioning the layers
-  MotherBoard0->AddNode(vMB0cu, 1);
+  // ======================== Mother Boards and Services =======================
   Int_t signe;
   if (half == 0) {
     signe = -1;
@@ -1588,212 +1545,23 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   if (half == 1) {
     signe = +1;
   }
-  auto* t_MB0fr4 = new TGeoTranslation("translation_fr4", 0.0,
-                                       signe * (mMB0fr4 + mMB0cu[1]) / 2, 0.0);
-  t_MB0fr4->RegisterYourself();
-  MotherBoard0->AddNode(vMB0fr4, 1, t_MB0fr4);
-  auto* t_MB0pol =
-    new TGeoTranslation("translation_pol", 0.0,
-                        signe * (mMB0fr4 + (mMB0cu[1] + mMB0pol) / 2), 0.0);
-  t_MB0pol->RegisterYourself();
-  MotherBoard0->AddNode(vMB0pol, 1, t_MB0pol);
-  auto* t_MB0epo = new TGeoTranslation(
-    "translation_epo", 0.0,
-    signe * (mMB0fr4 + mMB0pol + (mMB0cu[1] + mMB0epo) / 2), 0.0);
-  t_MB0epo->RegisterYourself();
-  MotherBoard0->AddNode(vMB0epo, 1, t_MB0epo);
-  auto* r_MB0screw = new TGeoRotation("rotation_vMB0screw", 0, 90, 0);
-  auto* t_MB0screwH1 = new TGeoCombiTrans(
-    mMB0cu[0] / 2 - 1.65,
-    signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0,
-    r_MB0screw);
-  t_MB0screwH1->RegisterYourself();
-  auto* t_MB0screwT1 = new TGeoCombiTrans(
-    mMB0cu[0] / 2 - 1.65, -signe * (mMB0cu[1] + 1.2) / 2, 0.0, r_MB0screw);
-  t_MB0screwT1->RegisterYourself();
-  auto* t_MB0screwH2 = new TGeoCombiTrans(
-    -(mMB0cu[0] / 2 - 1.65),
-    signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0,
-    r_MB0screw);
-  t_MB0screwH2->RegisterYourself();
-  auto* t_MB0screwT2 = new TGeoCombiTrans(
-    -(mMB0cu[0] / 2 - 1.65), -signe * (mMB0cu[1] + 1.2) / 2, 0.0, r_MB0screw);
-  t_MB0screwT2->RegisterYourself();
-  auto* t_MB0serti1 = new TGeoCombiTrans(
-    mMB0cu[0] / 2 - 2.65,
-    signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0,
-    r_MB0screw);
-  t_MB0serti1->RegisterYourself();
-  auto* t_MB0serti2 = new TGeoCombiTrans(
-    -(mMB0cu[0] / 2 - 2.65),
-    signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0,
-    r_MB0screw);
-  t_MB0serti2->RegisterYourself();
-  MotherBoard0->AddNode(vMB0screwH, 1, t_MB0screwH1);
-  MotherBoard0->AddNode(vMB0screwT, 1, t_MB0screwT1);
-  MotherBoard0->AddNode(vMB0screwH, 1, t_MB0screwH2);
-  MotherBoard0->AddNode(vMB0screwT, 1, t_MB0screwT2);
-  MotherBoard0->AddNode(vMB0serti, 1, t_MB0serti1);
-  MotherBoard0->AddNode(vMB0serti, 1, t_MB0serti2);
-
-  // Positioning the board
-  auto* t_MB0 = new TGeoTranslation("translation_MB0", 0.0, tyMB0, tzMB0);
-  t_MB0->RegisterYourself();
-  auto* t_MB1 = new TGeoTranslation(
-    "translation_MB1", 0.0, tyMB0,
-    tzMB0 - 3.3); // 3.3 cm is the interdistance between disk 0 and 1
-  t_MB1->RegisterYourself();
-  auto* r_MB0 = new TGeoRotation("rotation_MB0", 0.0, 0.0, 0.0);
-  r_MB0->RegisterYourself();
-  auto* p_MB0 = new TGeoCombiTrans(*t_MB0, *r_MB0);
-  p_MB0->RegisterYourself();
-  auto* p_MB1 = new TGeoCombiTrans(*t_MB1, *r_MB0);
-  p_MB1->RegisterYourself();
-  // Final addition of the board
-  HalfConeVolume->AddNode(MotherBoard0, 1, p_MB0);
-  HalfConeVolume->AddNode(MotherBoard0, 1, p_MB1);
-
-  auto* MotherBoard0_1 =
-    new TGeoVolumeAssembly(Form("MotherBoard0_1_H%d", half));
-  // 4 layers
-  TGeoVolume* vMB0cu_1 =
-    gGeoManager->MakeBox("vMB0cu_1", mCu, 18.0 / 2, mMB0cu[1] / 2, 1.2 / 2);
-  TGeoVolume* vMB0fr4_1 =
-    gGeoManager->MakeBox("vMB0fr4_1", mFR4, 18.0 / 2, mMB0fr4 / 2, 1.2 / 2);
-  TGeoVolume* vMB0pol_1 =
-    gGeoManager->MakeBox("vMB0pol_1", mPol, 18.0 / 2, mMB0pol / 2, 1.2 / 2);
-  TGeoVolume* vMB0epo_1 =
-    gGeoManager->MakeBox("vMB0epo_1", mEpo, 18.0 / 2, mMB0epo / 2, 1.2 / 2);
-  vMB0cu_1->SetLineColor(kRed);
-  vMB0fr4_1->SetLineColor(kBlack);
-  vMB0pol_1->SetLineColor(kGreen);
-  vMB0epo_1->SetLineColor(kBlue);
-
-  MotherBoard0_1->AddNode(vMB0cu_1, 1);
-  MotherBoard0_1->AddNode(vMB0fr4_1, 1, t_MB0fr4);
-  MotherBoard0_1->AddNode(vMB0pol_1, 1, t_MB0pol);
-  MotherBoard0_1->AddNode(vMB0epo_1, 1, t_MB0epo);
-
-  // ================ MotherBoard 2
-  Double_t mMB2cu[4];
-  Double_t mMB2fr4;
-  Double_t mMB2pol;
-  Double_t mMB2epo;
-  // Sizes
-  mMB2cu[0] = {24.0};
-  mMB2cu[1] = {21.0};
-  mMB2cu[2] = {0.0079}; // 315 microns * taux d'occupation 25% = 79 microns
-  mMB2cu[3] = {8.5};
-  mMB2fr4 = 0.2;    // 2 mm
-  mMB2pol = 0.0175; // 175 microns
-  mMB2epo = 0.0075; // 75 microns
-  auto* MotherBoard2 = new TGeoVolumeAssembly(Form("MotherBoard2_H%d", half));
-  // 4 layers
-  TGeoVolume* vMB2cu =
-    gGeoManager->MakeTrd1("vMB2cu", mCu, mMB2cu[0] / 2, mMB2cu[1] / 2,
-                          mMB2cu[2] / 2, mMB2cu[3] / 2);
-  TGeoVolume* vMB2fr4 =
-    gGeoManager->MakeTrd1("vMB2fr4", mFR4, mMB2cu[0] / 2, mMB2cu[1] / 2,
-                          mMB2fr4 / 2, mMB2cu[3] / 2);
-  TGeoVolume* vMB2pol =
-    gGeoManager->MakeTrd1("vMB2pol", mPol, mMB2cu[0] / 2, mMB2cu[1] / 2,
-                          mMB2pol / 2, mMB2cu[3] / 2);
-  TGeoVolume* vMB2epo =
-    gGeoManager->MakeTrd1("vMB2epo", mEpo, mMB2cu[0] / 2, mMB2cu[1] / 2,
-                          mMB2epo / 2, mMB2cu[3] / 2);
-
-  vMB2cu->SetLineColor(kRed);
-  vMB2fr4->SetLineColor(kBlack);
-  vMB2pol->SetLineColor(kGreen);
-  vMB2epo->SetLineColor(kBlue);
-
-  auto* t_MB2fr4 = new TGeoTranslation("translation_fr4", 0.0,
-                                       signe * (mMB2fr4 + mMB2cu[2]) / 2, 0.0);
-  t_MB2fr4->RegisterYourself();
-  auto* t_MB2pol =
-    new TGeoTranslation("translation_pol", 0.0,
-                        signe * (mMB2fr4 + (mMB2cu[2] + mMB2pol) / 2), 0.0);
-  t_MB2pol->RegisterYourself();
-  auto* t_MB2epo = new TGeoTranslation(
-    "translation_epo", 0.0,
-    signe * (mMB2fr4 + mMB2pol + (mMB2cu[2] + mMB2epo) / 2), 0.0);
-  t_MB2epo->RegisterYourself();
-
-  MotherBoard2->AddNode(vMB2cu, 1);
-  MotherBoard2->AddNode(vMB2fr4, 1, t_MB2fr4);
-  MotherBoard2->AddNode(vMB2pol, 1, t_MB2pol);
-  MotherBoard2->AddNode(vMB2epo, 1, t_MB2epo);
-  for (Float_t i = -1; i < 3; i++) {
-    auto* t_MB2serti1 = new TGeoTranslation(
-      "translationMB2serti1", 8.5, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
-    t_MB2serti1->RegisterYourself();
-    auto* t_MB2serti2 =
-      new TGeoTranslation("translationMB2serti2", -8.5,
-                          -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
-    t_MB2serti2->RegisterYourself();
-    auto* p_MB2serti1 = new TGeoCombiTrans(*t_MB2serti1, *r_MB0screw);
-    p_MB2serti1->RegisterYourself();
-    auto* p_MB2serti2 = new TGeoCombiTrans(*t_MB2serti2, *r_MB0screw);
-    p_MB2serti2->RegisterYourself();
-    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti1);
-    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti2);
+  auto& mftBaseParam = MFTBaseParam::Instance();
+  if (mftBaseParam.buildServices) {
+    makeMotherBoards(HalfConeVolume, half, signe, tyMB0, tyMB0_3, tzMB0);
+    makeAirVentilation(HalfConeVolume, half, signe);
+    makeFlexCables(HalfConeVolume, half, signe);
+    makePowerCables(HalfConeVolume, half, signe);
+    if (!mftBaseParam.minimal && mftBaseParam.buildCone && mftBaseParam.buildReadoutCables) {
+      makeReadoutCables(HalfConeVolume, half, signe);
+    }
   }
+  // ===========================================================================
 
-  for (Float_t i = -2; i < 1; i++) {
-    auto* t_MB2serti3 = new TGeoTranslation(
-      "translationMB2serti3", 0.7, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
-    t_MB2serti3->RegisterYourself();
-    auto* t_MB2serti4 =
-      new TGeoTranslation("translationMB2serti4", -0.7,
-                          -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
-    t_MB2serti4->RegisterYourself();
-    auto* p_MB2serti3 = new TGeoCombiTrans(*t_MB2serti3, *r_MB0screw);
-    p_MB2serti3->RegisterYourself();
-    auto* p_MB2serti4 = new TGeoCombiTrans(*t_MB2serti4, *r_MB0screw);
-    p_MB2serti4->RegisterYourself();
-    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti3);
-    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti4);
-  }
+  return HalfConeVolume;
+}
 
-  for (Float_t i = -2; i < 2; i++) {
-    auto* t_MB2serti5 =
-      new TGeoTranslation("translationMB2serti5", 7.0 * i + 3.5,
-                          -signe * (mMB2cu[2] + 0.153) / 2, -2.5);
-    t_MB2serti5->RegisterYourself();
-    auto* p_MB2serti5 = new TGeoCombiTrans(*t_MB2serti5, *r_MB0screw);
-    p_MB2serti5->RegisterYourself();
-    auto* t_MB2serti6 =
-      new TGeoTranslation("translationMB2serti6", 7.0 * i + 3.5,
-                          -signe * (mMB2cu[2] + 0.153) / 2, -3.5);
-    t_MB2serti6->RegisterYourself();
-    auto* p_MB2serti6 = new TGeoCombiTrans(*t_MB2serti6, *r_MB0screw);
-    p_MB2serti6->RegisterYourself();
-    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti5);
-    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti6);
-  }
-  // Connector board of MB0 on MB2
-  auto* t_MotherBoard0_1 =
-    new TGeoTranslation("translation_MB0_1", 0.0, -signe * (-0.5), 3.5);
-  t_MotherBoard0_1->RegisterYourself();
-  auto* t_MotherBoard0_2 =
-    new TGeoTranslation("translation_MB0_2", 0.0, -signe * (-0.5), 1.5);
-  t_MotherBoard0_2->RegisterYourself();
-  MotherBoard2->AddNode(MotherBoard0_1, 1, t_MotherBoard0_1);
-  MotherBoard2->AddNode(MotherBoard0_1, 1, t_MotherBoard0_2);
-  // Positioning the board
-  auto* t_MotherBoard2 = new TGeoTranslation(
-    "translation_MB2", 0.0,
-    -signe * (-20.52 + mMB2fr4 + mMB2pol + mMB2epo + 2.2 * TMath::Sin(19.0)),
-    -62.8 + 2.2 * TMath::Cos(19.0));
-  t_MotherBoard2->RegisterYourself();
-  auto* r_MotherBoard2 =
-    new TGeoRotation("rotation_MB2", 0.0, -signe * (-19.0), 0.0);
-  r_MotherBoard2->RegisterYourself();
-  auto* p_MB2 = new TGeoCombiTrans(*t_MotherBoard2, *r_MotherBoard2);
-  p_MB2->RegisterYourself();
-  HalfConeVolume->AddNode(MotherBoard2, 1, p_MB2);
-
-  //======================== Air ventilation ==========================
+void HalfCone::makeAirVentilation(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe)
+{
   TGeoMedium* mVentilation = gGeoManager->GetMedium("MFT_Polypropylene$");
   // Bottom
   TGeoSubtraction* vent_subB1;
@@ -1990,6 +1758,1398 @@ TGeoVolumeAssembly* HalfCone::createHalfCone(Int_t half)
   auto* p_airT4 = new TGeoCombiTrans(*t_airT4, *r_airT4);
   p_airT4->RegisterYourself();
   HalfConeVolume->AddNode(vent_T4, 1, p_airT4);
-  //===================================================================
-  return HalfConeVolume;
+}
+
+void HalfCone::makeMotherBoards(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe, Double_t tyMB0, Double_t tyMB0_3, Double_t tzMB0)
+{
+  // =============  MotherBoard 0 and 1
+  Double_t mMB0cu[3];
+  Double_t mMB0fr4;
+  Double_t mMB0pol;
+  Double_t mMB0epo;
+  // Sizes
+  mMB0cu[0] = {14.00};   // 13.65 old
+  mMB0cu[1] = {0.00615}; // 122.5 microns * taux d'occupation 50% = 61.5 microns
+  mMB0cu[2] = {2.45};    // 2.39 old
+  mMB0fr4 = 0.1;         // 1 m
+  mMB0pol = 0.0150;      // 150 microns
+  mMB0epo = 0.0225;      // 225 microns
+
+  // Materials
+  auto* mCu = gGeoManager->GetMedium("MFT_Cu$");
+  auto* mFR4 = gGeoManager->GetMedium("MFT_FR4$");
+  auto* mPol = gGeoManager->GetMedium("MFT_Polyimide$");
+  auto* mEpo = gGeoManager->GetMedium("MFT_Epoxy$");
+  auto* mInox = gGeoManager->GetMedium("MFT_Inox$");
+  auto* mPolyu = gGeoManager->GetMedium("MFT_Polyurethane$");
+
+  // Mother boards connected to the first three disk
+  auto* MotherBoard0 = new TGeoVolumeAssembly(Form("MotherBoard0_H%d", half));
+  // 4 layers
+  TGeoVolume* vMB0cu = gGeoManager->MakeBox("vMB0cu", mCu, mMB0cu[0] / 2, mMB0cu[1] / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0fr4 = gGeoManager->MakeBox("vMB0fr4", mFR4, mMB0cu[0] / 2, mMB0fr4 / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0pol = gGeoManager->MakeBox("vMB0pol", mPol, mMB0cu[0] / 2, mMB0pol / 2, mMB0cu[2] / 2);
+  TGeoVolume* vMB0epo = gGeoManager->MakeBox("vMB0epo", mEpo, mMB0cu[0] / 2, mMB0epo / 2, mMB0cu[2] / 2);
+
+  // Screws = Head + Thread
+  TGeoVolume* vMB0screwH = gGeoManager->MakeTube("vMB0screwH", mInox, 0.0, 0.7 / 2, 0.35 / 2); // tete
+  TGeoVolume* vMB0screwT = gGeoManager->MakeTube("vMB0screwT", mInox, 0.0, 0.4 / 2, 0.95 / 2); // filetage
+  // Insert Sertitec
+  TGeoVolume* vMB0serti = gGeoManager->MakeTube("vMB0serti", mInox, 0.16 / 2, 0.556 / 2, 0.15 / 2); // tete
+
+  Float_t heigthConnector = 0.4;                                                                              // male + female
+  TGeoVolume* vConnector = gGeoManager->MakeBox("vConnector", mPolyu, 6.2 / 2, heigthConnector / 2, 1.4 / 2); // in liquid-crystal polymer --> polyurethane?
+  vMB0cu->SetLineColor(kGreen);
+  vMB0fr4->SetLineColor(kBlack);
+  vMB0pol->SetLineColor(kBlue);
+  vMB0epo->SetLineColor(kGreen);
+  vMB0screwH->SetLineColor(kOrange);
+  vMB0screwT->SetLineColor(kOrange);
+  vMB0serti->SetLineColor(kOrange);
+  vConnector->SetLineColor(kGray + 3);
+
+  // Positioning the layers
+  MotherBoard0->AddNode(vMB0cu, 1);
+
+  auto* t_MB0fr4 = new TGeoTranslation("translation_fr4", 0.0, signe * (mMB0fr4 + mMB0cu[1]) / 2, 0.0);
+  t_MB0fr4->RegisterYourself();
+  MotherBoard0->AddNode(vMB0fr4, 1, t_MB0fr4);
+  auto* t_MB0pol =
+    new TGeoTranslation("translation_pol", 0.0, signe * (mMB0fr4 + (mMB0cu[1] + mMB0pol) / 2), 0.0);
+  t_MB0pol->RegisterYourself();
+  MotherBoard0->AddNode(vMB0pol, 1, t_MB0pol);
+  auto* t_MB0epo = new TGeoTranslation("translation_epo", 0.0, signe * (mMB0fr4 + mMB0pol + (mMB0cu[1] + mMB0epo) / 2), 0.0);
+  t_MB0epo->RegisterYourself();
+  MotherBoard0->AddNode(vMB0epo, 1, t_MB0epo);
+  auto* r_MB0screw = new TGeoRotation("rotation_vMB0screw", 0, 90, 0);
+  auto* t_MB0screwH1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 1.65, signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0, r_MB0screw);
+  t_MB0screwH1->RegisterYourself();
+  auto* t_MB0screwT1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 1.65, -signe * (mMB0cu[1] + 0.95) / 2, 0.0, r_MB0screw);
+  t_MB0screwT1->RegisterYourself();
+  auto* t_MB0screwH2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 1.65), signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.35) / 2), 0.0, r_MB0screw);
+  t_MB0screwH2->RegisterYourself();
+  auto* t_MB0screwT2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 1.65), -signe * (mMB0cu[1] + 0.95) / 2, 0.0, r_MB0screw);
+  t_MB0screwT2->RegisterYourself();
+  auto* t_MB0serti1 = new TGeoCombiTrans(mMB0cu[0] / 2 - 2.65, signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0, r_MB0screw);
+  t_MB0serti1->RegisterYourself();
+  auto* t_MB0serti2 = new TGeoCombiTrans(-(mMB0cu[0] / 2 - 2.65), signe * (mMB0fr4 + mMB0pol + mMB0epo + (mMB0cu[1] + 0.153) / 2), 0.0, r_MB0screw);
+  t_MB0serti2->RegisterYourself();
+  auto* t_MB0Connector = new TGeoTranslation("translation_connector", 0.0, signe * (-mMB0cu[1] - 0.2), 0.0);
+  t_MB0Connector->RegisterYourself();
+
+  MotherBoard0->AddNode(vMB0screwH, 1, t_MB0screwH1);
+  MotherBoard0->AddNode(vMB0screwT, 1, t_MB0screwT1);
+  MotherBoard0->AddNode(vMB0screwH, 1, t_MB0screwH2);
+  MotherBoard0->AddNode(vMB0screwT, 1, t_MB0screwT2);
+  MotherBoard0->AddNode(vMB0serti, 1, t_MB0serti1);
+  MotherBoard0->AddNode(vMB0serti, 1, t_MB0serti2);
+  MotherBoard0->AddNode(vConnector, 1, t_MB0Connector);
+
+  // Positioning the boards on the disks
+  Float_t shift = 0.23;
+  Float_t shift3 = 0.09;
+  auto* t_disk0 = new TGeoTranslation("translation_disk0", 0.0, tyMB0 - signe * shift, tzMB0);
+  t_disk0->RegisterYourself();
+  auto* t_disk1 = new TGeoTranslation("translation_disk1", 0.0, tyMB0 - signe * shift, tzMB0 - 3.3);
+  t_disk1->RegisterYourself();
+  auto* t_disk2 = new TGeoTranslation("translation_disk2", 0.0, tyMB0_3 - signe * shift3, tzMB0 - 7.1);
+  t_disk2->RegisterYourself();
+  auto* r_MB0 = new TGeoRotation("rotation_MB0", 0.0, 0.0, 0.0);
+  r_MB0->RegisterYourself();
+  auto* p_disk0 = new TGeoCombiTrans(*t_disk0, *r_MB0);
+  p_disk0->RegisterYourself();
+  auto* p_disk1 = new TGeoCombiTrans(*t_disk1, *r_MB0);
+  p_disk1->RegisterYourself();
+  auto* p_disk2 = new TGeoCombiTrans(*t_disk2, *r_MB0);
+  p_disk2->RegisterYourself();
+  // Final addition of the boards
+  HalfConeVolume->AddNode(MotherBoard0, 1, p_disk0);
+  HalfConeVolume->AddNode(MotherBoard0, 1, p_disk1);
+  HalfConeVolume->AddNode(MotherBoard0, 1, p_disk2);
+
+  // Small boards on to the main mother board
+  auto* MotherBoard0_1 = new TGeoVolumeAssembly(Form("MotherBoard0_1_H%d", half));
+  // 4 layers
+  TGeoVolume* vMB0cu_1 =
+    gGeoManager->MakeBox("vMB0cu_1", mCu, 18.0 / 2, mMB0cu[1] / 2, 1.2 / 2);
+  TGeoVolume* vMB0fr4_1 =
+    gGeoManager->MakeBox("vMB0fr4_1", mFR4, 18.0 / 2, mMB0fr4 / 2, 1.2 / 2);
+  TGeoVolume* vMB0pol_1 =
+    gGeoManager->MakeBox("vMB0pol_1", mPol, 18.0 / 2, mMB0pol / 2, 1.2 / 2);
+  TGeoVolume* vMB0epo_1 =
+    gGeoManager->MakeBox("vMB0epo_1", mEpo, 18.0 / 2, mMB0epo / 2, 1.2 / 2);
+  vMB0cu_1->SetLineColor(kGreen);
+  vMB0fr4_1->SetLineColor(kBlack);
+  vMB0pol_1->SetLineColor(kBlue);
+  vMB0epo_1->SetLineColor(kGreen);
+  MotherBoard0_1->AddNode(vMB0cu_1, 1);
+  MotherBoard0_1->AddNode(vMB0fr4_1, 1, t_MB0fr4);
+  MotherBoard0_1->AddNode(vMB0pol_1, 1, t_MB0pol);
+  MotherBoard0_1->AddNode(vMB0epo_1, 1, t_MB0epo);
+
+  // ================ Main Mother Board
+  Double_t mMB2cu[4];
+  Double_t mMB2fr4;
+  Double_t mMB2pol;
+  Double_t mMB2epo;
+  // Sizes
+  mMB2cu[0] = {24.0};
+  mMB2cu[1] = {21.0};
+  mMB2cu[2] = {0.0079}; // 315 microns * taux d'occupation 25% = 79 microns
+  mMB2cu[3] = {8.5};
+  mMB2fr4 = 0.2;    // 2 mm
+  mMB2pol = 0.0175; // 175 microns
+  mMB2epo = 0.0075; // 75 microns
+  auto* MotherBoard2 = new TGeoVolumeAssembly(Form("MotherBoard2_H%d", half));
+  // 4 layers
+  TGeoVolume* vMB2cu =
+    gGeoManager->MakeTrd1("vMB2cu", mCu, mMB2cu[0] / 2, mMB2cu[1] / 2,
+                          mMB2cu[2] / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2fr4 =
+    gGeoManager->MakeTrd1("vMB2fr4", mFR4, mMB2cu[0] / 2, mMB2cu[1] / 2,
+                          mMB2fr4 / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2pol =
+    gGeoManager->MakeTrd1("vMB2pol", mPol, mMB2cu[0] / 2, mMB2cu[1] / 2,
+                          mMB2pol / 2, mMB2cu[3] / 2);
+  TGeoVolume* vMB2epo =
+    gGeoManager->MakeTrd1("vMB2epo", mEpo, mMB2cu[0] / 2, mMB2cu[1] / 2,
+                          mMB2epo / 2, mMB2cu[3] / 2);
+  vMB2cu->SetLineColor(kGreen);
+  vMB2fr4->SetLineColor(kBlack);
+  vMB2pol->SetLineColor(kBlue);
+  vMB2epo->SetLineColor(kGreen + 2);
+  auto* t_MB2fr4 = new TGeoTranslation("translation_fr4", 0.0,
+                                       signe * (mMB2fr4 + mMB2cu[2]) / 2, 0.0);
+  t_MB2fr4->RegisterYourself();
+  auto* t_MB2pol =
+    new TGeoTranslation("translation_pol", 0.0,
+                        signe * (mMB2fr4 + (mMB2cu[2] + mMB2pol) / 2), 0.0);
+  t_MB2pol->RegisterYourself();
+  auto* t_MB2epo = new TGeoTranslation(
+    "translation_epo", 0.0,
+    signe * (mMB2fr4 + mMB2pol + (mMB2cu[2] + mMB2epo) / 2), 0.0);
+  t_MB2epo->RegisterYourself();
+  MotherBoard2->AddNode(vMB2cu, 1);
+  MotherBoard2->AddNode(vMB2fr4, 1, t_MB2fr4);
+  MotherBoard2->AddNode(vMB2pol, 1, t_MB2pol);
+  MotherBoard2->AddNode(vMB2epo, 1, t_MB2epo);
+
+  for (Float_t i = -1; i < 3; i++) {
+    auto* t_MB2serti1 = new TGeoTranslation(
+      "translationMB2serti1", 8.5, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    t_MB2serti1->RegisterYourself();
+    auto* t_MB2serti2 =
+      new TGeoTranslation("translationMB2serti2", -8.5,
+                          -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    t_MB2serti2->RegisterYourself();
+    auto* p_MB2serti1 = new TGeoCombiTrans(*t_MB2serti1, *r_MB0screw);
+    p_MB2serti1->RegisterYourself();
+    auto* p_MB2serti2 = new TGeoCombiTrans(*t_MB2serti2, *r_MB0screw);
+    p_MB2serti2->RegisterYourself();
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti1);
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti2);
+  }
+
+  for (Float_t i = -2; i < 1; i++) {
+    auto* t_MB2serti3 = new TGeoTranslation(
+      "translationMB2serti3", 0.7, -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    t_MB2serti3->RegisterYourself();
+    auto* t_MB2serti4 =
+      new TGeoTranslation("translationMB2serti4", -0.7,
+                          -signe * (mMB2cu[2] + 0.153) / 2, 1.3 * i);
+    t_MB2serti4->RegisterYourself();
+    auto* p_MB2serti3 = new TGeoCombiTrans(*t_MB2serti3, *r_MB0screw);
+    p_MB2serti3->RegisterYourself();
+    auto* p_MB2serti4 = new TGeoCombiTrans(*t_MB2serti4, *r_MB0screw);
+    p_MB2serti4->RegisterYourself();
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti3);
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti4);
+  }
+
+  for (Float_t i = -2; i < 2; i++) {
+    auto* t_MB2serti5 =
+      new TGeoTranslation("translationMB2serti5", 7.0 * i + 3.5,
+                          -signe * (mMB2cu[2] + 0.153) / 2, -2.5);
+    t_MB2serti5->RegisterYourself();
+    auto* p_MB2serti5 = new TGeoCombiTrans(*t_MB2serti5, *r_MB0screw);
+    p_MB2serti5->RegisterYourself();
+    auto* t_MB2serti6 =
+      new TGeoTranslation("translationMB2serti6", 7.0 * i + 3.5,
+                          -signe * (mMB2cu[2] + 0.153) / 2, -3.5);
+    t_MB2serti6->RegisterYourself();
+    auto* p_MB2serti6 = new TGeoCombiTrans(*t_MB2serti6, *r_MB0screw);
+    p_MB2serti6->RegisterYourself();
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti5);
+    MotherBoard2->AddNode(vMB0serti, 1, p_MB2serti6);
+  }
+  // Two boards (from the two first disks) located on the main mother board
+  auto* t_MotherBoard0_1 =
+    new TGeoTranslation("translation_MB0_1", 0.0, -signe * (-heigthConnector - mMB2cu[2] - mMB2fr4 - mMB2pol - mMB2epo), 3.5);
+  t_MotherBoard0_1->RegisterYourself();
+  auto* t_MotherBoard0_2 =
+    new TGeoTranslation("translation_MB0_2", 0.0, -signe * (-heigthConnector - mMB2cu[2] - mMB2fr4 - mMB2pol - mMB2epo), 1.5);
+
+  t_MotherBoard0_2->RegisterYourself();
+  MotherBoard2->AddNode(MotherBoard0_1, 1, t_MotherBoard0_1);
+  MotherBoard2->AddNode(MotherBoard0_1, 2, t_MotherBoard0_2);
+
+  TGeoVolume* vConnector2 = gGeoManager->MakeBox("vConnector2", mPolyu, 12.00 / 2, heigthConnector / 2, 0.7 / 2);
+  TGeoVolume* vConnector2p = gGeoManager->MakeBox("vConnector2p", mPolyu, 6.00 / 2, heigthConnector / 2, 0.7 / 2);
+  // === Readout cables connectors  ===
+
+  TGeoVolume* vConnectorRC = gGeoManager->MakeBox("vConnectorRC-MB2", mPolyu, 6.00 / 2, heigthConnector / 2, 1.4 / 2);
+  // ==================================
+  Double_t yMB2Connector = signe * (mMB2cu[2] / 2 + mMB2fr4 + mMB2pol + mMB2epo + heigthConnector / 2);
+  auto* t_MB2Connector1 = new TGeoTranslation("translation_connector1", 0.0, yMB2Connector, 1.5);
+  t_MB2Connector1->RegisterYourself();
+  auto* t_MB2Connector2 = new TGeoTranslation("translation_connector2", 0.0, yMB2Connector, 3.5);
+  t_MB2Connector2->RegisterYourself();
+  auto* t_MB2ConnectorRC_1 = new TGeoTranslation("translation_connectorRC_1", 3.5, yMB2Connector, -0.5);
+  t_MB2ConnectorRC_1->RegisterYourself();
+  auto* t_MB2ConnectorRC_2 = new TGeoTranslation("translation_connectorRC_2", -3.5, yMB2Connector, -0.5);
+  t_MB2ConnectorRC_1->RegisterYourself();
+  auto* t_MB2ConnectorRC_3 = new TGeoTranslation("translation_connectorRC_3", 7.0, yMB2Connector, -3.5);
+  t_MB2ConnectorRC_2->RegisterYourself();
+  auto* t_MB2ConnectorRC_4 = new TGeoTranslation("translation_connectorRC_4", -7.0, yMB2Connector, -3.5);
+  t_MB2ConnectorRC_2->RegisterYourself();
+
+  yMB2Connector = signe * (-mMB2cu[2] / 2 - heigthConnector / 2);
+  auto* t_MB2ConnectorRCp_1 = new TGeoTranslation("translation_connectorRCp_1", 4.0, yMB2Connector, 0.5);
+  t_MB2ConnectorRCp_1->RegisterYourself();
+  auto* t_MB2ConnectorRCp_2 = new TGeoTranslation("translation_connectorRCp_2", -4.0, yMB2Connector, 0.5);
+  t_MB2ConnectorRCp_2->RegisterYourself();
+  auto* t_MB2ConnectorRCp_3 = new TGeoTranslation("translation_connectorRCp_3", 7.0, yMB2Connector, -3.5);
+  t_MB2ConnectorRCp_3->RegisterYourself();
+  auto* t_MB2ConnectorRCp_4 = new TGeoTranslation("translation_connectorRCp_4", -7.0, yMB2Connector, -3.5);
+  t_MB2ConnectorRCp_4->RegisterYourself();
+
+  vConnector2->SetLineColor(kGray + 3);
+  vConnectorRC->SetLineColor(kGray + 3);
+  MotherBoard2->AddNode(vConnector2, 1, t_MB2Connector1);
+  MotherBoard2->AddNode(vConnector2, 1, t_MB2Connector2);
+  MotherBoard2->AddNode(vConnectorRC, 1, t_MB2ConnectorRC_1);
+  MotherBoard2->AddNode(vConnectorRC, 1, t_MB2ConnectorRC_2);
+  MotherBoard2->AddNode(vConnectorRC, 1, t_MB2ConnectorRC_3);
+  MotherBoard2->AddNode(vConnectorRC, 1, t_MB2ConnectorRC_4);
+  MotherBoard2->AddNode(vConnectorRC, 1, t_MB2ConnectorRCp_1);
+  MotherBoard2->AddNode(vConnectorRC, 1, t_MB2ConnectorRCp_2);
+  MotherBoard2->AddNode(vConnectorRC, 1, t_MB2ConnectorRCp_3);
+  MotherBoard2->AddNode(vConnectorRC, 1, t_MB2ConnectorRCp_4);
+
+  // Positioning the main mother board
+  auto* t_MotherBoard2 = new TGeoTranslation(
+    "translation_MB2", 0.0,
+    -signe * (-20.52 + mMB2fr4 + mMB2pol + mMB2epo + 2.2 * TMath::Sin(19.0)),
+    -62.8 + 2.2 * TMath::Cos(19.0));
+  t_MotherBoard2->RegisterYourself();
+  auto* r_MotherBoard2 =
+    new TGeoRotation("rotation_MB2", 0.0, -signe * (-19.0), 0.0);
+  r_MotherBoard2->RegisterYourself();
+  auto* p_MB2 = new TGeoCombiTrans(*t_MotherBoard2, *r_MotherBoard2);
+  p_MB2->RegisterYourself();
+  HalfConeVolume->AddNode(MotherBoard2, 1, p_MB2);
+}
+
+void HalfCone::makeFlexCables(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe)
+{
+  auto* mCu = gGeoManager->GetMedium("MFT_Cu$");
+  // Flat cables between disk 0 and main board
+  Float_t width_flat = 1.0;        // 4 flexs, fully arbitrary!
+  Float_t thickness_flat = 0.0041; // 10 microns lines (228 lines, 0.0175x0.1 mm2) + 31 microns ground plane (~width 70 mm, thickness 0.0175mm)
+  Double_t theta1 = -22.70 + signe * 16.5;
+  Double_t theta2 = 22.60 + signe * 16.5;
+  TGeoVolume* vFlat0_1 = gGeoManager->MakeTubs("vFlat0_1", mCu, 15.0, 15.0 + thickness_flat, width_flat / 2., theta1, theta2);
+  TGeoVolume* vFlat0_2 = gGeoManager->MakeTubs("vFlat0_2", mCu, 15.0, 15.0 + thickness_flat, width_flat / 2., theta1, theta2);
+  TGeoVolume* vFlat0_3 = gGeoManager->MakeTubs("vFlat0_3", mCu, 15.0, 15.0 + thickness_flat, width_flat / 2., theta1, theta2);
+  TGeoVolume* vFlat0_4 = gGeoManager->MakeTubs("vFlat0_4", mCu, 15.0, 15.0 + thickness_flat, width_flat / 2., theta1, theta2);
+  auto* t_flat0_1 = new TGeoTranslation("translation_flat0_1", 4.5, signe * 5.0, -56.73);
+  t_flat0_1->RegisterYourself();
+  auto* t_flat0_2 = new TGeoTranslation("translation_flat0_2", 1.5, signe * 5.0, -56.73);
+  t_flat0_2->RegisterYourself();
+  auto* t_flat0_3 = new TGeoTranslation("translation_flat0_3", -1.5, signe * 5.0, -56.73);
+  t_flat0_3->RegisterYourself();
+  auto* t_flat0_4 = new TGeoTranslation("translation_flat0_4", -4.5, signe * 5.0, -56.73);
+  t_flat0_4->RegisterYourself();
+  auto* r_flat0 = new TGeoRotation("rotation_flat0", signe * 90.0, signe * 90.0, 0.0);
+  r_flat0->RegisterYourself();
+  auto* p_flat0_1 = new TGeoCombiTrans(*t_flat0_1, *r_flat0);
+  p_flat0_1->RegisterYourself();
+  auto* p_flat0_2 = new TGeoCombiTrans(*t_flat0_2, *r_flat0);
+  p_flat0_2->RegisterYourself();
+  auto* p_flat0_3 = new TGeoCombiTrans(*t_flat0_3, *r_flat0);
+  p_flat0_3->RegisterYourself();
+  auto* p_flat0_4 = new TGeoCombiTrans(*t_flat0_4, *r_flat0);
+  p_flat0_4->RegisterYourself();
+  HalfConeVolume->AddNode(vFlat0_1, 1, p_flat0_1);
+  HalfConeVolume->AddNode(vFlat0_2, 1, p_flat0_2);
+  HalfConeVolume->AddNode(vFlat0_3, 1, p_flat0_3);
+  HalfConeVolume->AddNode(vFlat0_4, 1, p_flat0_4);
+
+  // Flat lines between disk 1 and main board
+  theta1 = -32.0 + signe * 24.69;
+  theta2 = 32.7 + signe * 24.69;
+  TGeoVolume* vFlat1_1 = gGeoManager->MakeTubs("vFlat1_1", mCu, 6.0, 6.00 + thickness_flat, width_flat / 2., theta1, theta2);
+  TGeoVolume* vFlat1_2 = gGeoManager->MakeTubs("vFlat1_2", mCu, 6.0, 6.00 + thickness_flat, width_flat / 2., theta1, theta2);
+  TGeoVolume* vFlat1_3 = gGeoManager->MakeTubs("vFlat1_3", mCu, 6.0, 6.00 + thickness_flat, width_flat / 2., theta1, theta2);
+  TGeoVolume* vFlat1_4 = gGeoManager->MakeTubs("vFlat1_4", mCu, 6.0, 6.00 + thickness_flat, width_flat / 2., theta1, theta2);
+  auto* t_flat1_1 = new TGeoTranslation("translation_flat1_1", 3., signe * 13.4, -55.6);
+  t_flat1_1->RegisterYourself();
+  auto* t_flat1_2 = new TGeoTranslation("translation_flat1_2", 1., signe * 13.4, -55.6);
+  t_flat1_2->RegisterYourself();
+  auto* t_flat1_3 = new TGeoTranslation("translation_flat1_3", -1., signe * 13.4, -55.6);
+  t_flat1_3->RegisterYourself();
+  auto* t_flat1_4 = new TGeoTranslation("translation_flat1_4", -3., signe * 13.4, -55.6);
+  t_flat1_4->RegisterYourself();
+  auto* r_flat1 = new TGeoRotation("rotation_flat1", signe * 90.0, signe * 90.0, 0.0);
+  r_flat1->RegisterYourself();
+  auto* p_flat1_1 = new TGeoCombiTrans(*t_flat1_1, *r_flat1);
+  p_flat1_1->RegisterYourself();
+  auto* p_flat1_2 = new TGeoCombiTrans(*t_flat1_2, *r_flat1);
+  p_flat1_2->RegisterYourself();
+  auto* p_flat1_3 = new TGeoCombiTrans(*t_flat1_3, *r_flat1);
+  p_flat1_3->RegisterYourself();
+  auto* p_flat1_4 = new TGeoCombiTrans(*t_flat1_4, *r_flat1);
+  p_flat1_4->RegisterYourself();
+  HalfConeVolume->AddNode(vFlat1_1, 1, p_flat1_1);
+  HalfConeVolume->AddNode(vFlat1_2, 1, p_flat1_2);
+  HalfConeVolume->AddNode(vFlat1_3, 1, p_flat1_3);
+  HalfConeVolume->AddNode(vFlat1_4, 1, p_flat1_4);
+
+  // Flat lines between disk 2 and main board
+  width_flat = 14.0;
+  thickness_flat = 0.017; // 3 microns lines (268 lines, 0.0175x0.09 mm2), 14 microns ground plane (140 mm x 0.0175mm) including flex ~20% longer in o2!
+  TGeoVolume* vFlat2 = gGeoManager->MakeBox("vFlat2", mCu, width_flat / 2, thickness_flat / 2, 2.3 / 2);
+  auto* t_flat2 = new TGeoTranslation("translation_flat2", 0.0, -signe * 18.35, -55.45);
+  t_flat2->RegisterYourself();
+  auto* r_flat2 = new TGeoRotation("rotation_flat2", 0.0, -signe * (18.), 0.0);
+  r_flat2->RegisterYourself();
+  auto* p_flat2 = new TGeoCombiTrans(*t_flat2, *r_flat2);
+  p_flat2->RegisterYourself();
+  HalfConeVolume->AddNode(vFlat2, 1, p_flat2);
+}
+
+void HalfCone::makeReadoutCables(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe)
+{
+  auto* mCu = gGeoManager->GetMedium("MFT_Cu$");
+
+  // Connector
+  Float_t heigthConnector = 0.4; // male + female
+  auto* mPolyu = gGeoManager->GetMedium("MFT_Polyurethane$");
+  TGeoVolume* vConnectorRC = gGeoManager->MakeBox("vConnectorRC", mPolyu, 6.00 / 2, heigthConnector / 2, 1.4 / 2);
+  vConnectorRC->SetLineColor(kGray + 3);
+
+  // Fondamental numbers for the sections of Copper in the 2 types of readout cables
+  Double_t section_ROcable_48pairs = 0.26544; // in cm2
+  Double_t section_ROcable_16pairs = 0.08848; // in cm2
+
+  // Starting from the MFT backside: from the patch panel to MB2
+  Double_t mRO1[3];
+  mRO1[0] = {14.0};                                                                 //width
+  mRO1[1] = (16 * section_ROcable_48pairs + 6 * section_ROcable_16pairs) / mRO1[0]; // thickness
+  mRO1[2] = {5.0};                                                                  // length
+  TGeoVolume* vRO1 = gGeoManager->MakeBox("vRO1", mCu, mRO1[0] / 2, mRO1[1] / 2, mRO1[2] / 2);
+  auto* t_RO1 = new TGeoTranslation("translation_RO1", 0.0, -signe * 28.0, -79.45);
+  t_RO1->RegisterYourself();
+
+  Double_t mRO2[3];
+  mRO2[0] = mRO1[0];
+  mRO2[1] = (14 * section_ROcable_48pairs + 5 * section_ROcable_16pairs) / mRO2[0];
+  mRO2[2] = {3.0};
+  TGeoVolume* vRO2 = gGeoManager->MakeBox("vRO2", mCu, mRO2[0] / 2, mRO2[1] / 2, mRO2[2] / 2);
+  auto* t_RO2 = new TGeoTranslation("translation_RO2", 0.0, -signe * 28.0, -79.45 + mRO1[2] / 2 + mRO2[2] / 2);
+  t_RO2->RegisterYourself();
+
+  Double_t mRO3[3];
+  mRO3[0] = mRO1[0];
+  mRO3[1] = (12 * section_ROcable_48pairs + 4 * section_ROcable_16pairs) / mRO3[0];
+  mRO3[2] = {3.6};
+  TGeoVolume* vRO3 = gGeoManager->MakeBox("vRO3", mCu, mRO3[0] / 2, mRO3[1] / 2, mRO3[2] / 2);
+  auto* t_RO3 = new TGeoTranslation("translation_RO3", 0.0, -signe * 28.0, -79.45 + mRO1[2] / 2 + mRO2[2] + mRO3[2] / 2);
+  t_RO3->RegisterYourself();
+
+  Double_t eRO4 = 12 * section_ROcable_48pairs / mRO1[0];
+  TGeoVolume* vRO4 = gGeoManager->MakeTubs("vRO4", mCu, 6.5, 6.5 + eRO4, mRO1[0] / 2, -21.0 + signe * 26.11, 21.0 + signe * 26.11);
+  auto* t_RO4 = new TGeoTranslation("translation_RO4", 0.0, signe * 21.4, -70.9);
+  t_RO4->RegisterYourself();
+  auto* r_RO4 = new TGeoRotation("rotation_RO4", signe * 90.0, signe * 90.0, 0.0);
+  r_RO4->RegisterYourself();
+  auto* p_RO4 = new TGeoCombiTrans(*t_RO4, *r_RO4);
+  p_RO4->RegisterYourself();
+  HalfConeVolume->AddNode(vRO4, 1, p_RO4);
+
+  // RO5 = cable connected to the upper part of MB2
+  Double_t mRO5[3];
+  mRO5[0] = {4.5};
+  mRO5[1] = section_ROcable_48pairs / mRO5[0];
+  mRO5[2] = {7.071};
+  TGeoVolume* vRO5 = gGeoManager->MakeBox("vRO5", mCu, mRO5[0] / 2, mRO5[1] / 2, mRO5[2] / 2);
+  auto* t_RO5_1 = new TGeoTranslation("translation_RO5_1", 3.5, -signe * (20.83 + mRO5[2] / 2 * TMath::Sin(45.0 * TMath::Pi() / 180)), -61 - mRO5[2] / 2 * TMath::Cos(45 * TMath::Pi() / 180));
+  t_RO5_1->RegisterYourself();
+  auto* t_RO5_2 = new TGeoTranslation("translation_RO5_1", -3.5, -signe * (20.83 + mRO5[2] / 2 * TMath::Sin(45.0 * TMath::Pi() / 180)), -61 - mRO5[2] / 2 * TMath::Cos(45 * TMath::Pi() / 180));
+  t_RO5_2->RegisterYourself();
+  auto* r_RO5 = new TGeoRotation("rotation_RO5", 0.0, -signe * (45.0), 0.0);
+  r_RO5->RegisterYourself();
+  auto* p_RO5_1 = new TGeoCombiTrans(*t_RO5_1, *r_RO5);
+  p_RO5_1->RegisterYourself();
+  auto* p_RO5_2 = new TGeoCombiTrans(*t_RO5_2, *r_RO5);
+  p_RO5_2->RegisterYourself();
+
+  // ===========   TGeoTrap ---> trapezoid shapes ===============
+  Float_t length = 2.20 / 2;
+  Float_t angleZ = 69.;
+  Float_t angleXY = -signe * 50.;
+  Float_t width = 3.5;
+  Float_t thickness = (section_ROcable_48pairs / width) / TMath::Cos(angleXY * TMath::Pi() / 180); // special thickness!!
+  TGeoVolume* vRO6 = new TGeoVolume("vRO6", new TGeoTrap(length, angleZ, angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  Double_t yRO6 = -signe * (22.45 + length * 1.26 * TMath::Sin(angleZ * TMath::Pi() / 180));
+  Double_t zRO6 = -64.1 - length * 2. * TMath::Cos(angleZ * TMath::Pi() / 180);
+  auto* t_RO6 = new TGeoTranslation("translation_RO6", 5.3, yRO6, zRO6);
+  t_RO6->RegisterYourself();
+  auto* r_RO6 = new TGeoRotation("rotation_RO6", signe * 90.0, -signe * (0), 0.0);
+  r_RO6->RegisterYourself();
+  auto* p_RO6 = new TGeoCombiTrans(*t_RO6, *r_RO6);
+  p_RO6->RegisterYourself();
+
+  TGeoVolume* vRO7 = new TGeoVolume("vRO7", new TGeoTrap(length, angleZ, -angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_RO7 = new TGeoTranslation("translation_RO6", -5.3, yRO6, zRO6);
+  t_RO7->RegisterYourself();
+  auto* r_RO7 = new TGeoRotation("rotation_RO7", signe * 90.0, -signe * (0), 0.0);
+  r_RO7->RegisterYourself();
+  auto* p_RO7 = new TGeoCombiTrans(*t_RO7, *r_RO7);
+  p_RO7->RegisterYourself();
+
+  // ============= under the main mother board =============
+  Double_t mRO8[3];
+  mRO8[0] = mRO5[0];                               // width
+  mRO8[1] = 2 * section_ROcable_48pairs / mRO8[0]; // thickness, 2 cables coded in one cable
+  mRO8[2] = {6.40};                                // length
+  TGeoVolume* vRO8 = gGeoManager->MakeBox("vRO8", mCu, mRO8[0] / 2, mRO8[1] / 2, mRO8[2] / 2);
+  Double_t yRO8 = -signe * (19.1 + mRO8[2] / 2 * TMath::Sin(19.0 * TMath::Pi() / 180));
+  Double_t zRO8 = -59.95 - mRO8[2] / 2 * TMath::Cos(19.0 * TMath::Pi() / 180);
+  auto* t_RO8_1 = new TGeoTranslation("translation_RO8_1", 3.5, yRO8, zRO8);
+  t_RO8_1->RegisterYourself();
+  auto* t_RO8_2 = new TGeoTranslation("translation_RO8_1", -3.5, yRO8, zRO8);
+  t_RO8_2->RegisterYourself();
+  auto* r_RO8 = new TGeoRotation("rotation_RO8", 0.0, -signe * (19.0), 0.0);
+  r_RO8->RegisterYourself();
+  auto* p_RO8_1 = new TGeoCombiTrans(*t_RO8_1, *r_RO8);
+  p_RO8_1->RegisterYourself();
+  auto* p_RO8_2 = new TGeoCombiTrans(*t_RO8_2, *r_RO8);
+  p_RO8_2->RegisterYourself();
+
+  Double_t mRO9[3];
+  mRO9[0] = mRO5[0];                               // width
+  mRO9[1] = 2 * section_ROcable_48pairs / mRO9[0]; // thickness, 2 cables coded in one cable
+  mRO9[2] = {4.5};                                 // length
+  TGeoVolume* vRO9 = gGeoManager->MakeBox("vRO9", mCu, mRO9[0] / 2, mRO9[1] / 2, mRO9[2] / 2);
+  auto* t_RO9_1 = new TGeoTranslation("translation_RO9_1", 3.5, -signe * (23.5), -66.15);
+  t_RO9_1->RegisterYourself();
+  auto* t_RO9_2 = new TGeoTranslation("translation_RO9_2", -3.5, -signe * (23.5), -66.15);
+  t_RO9_2->RegisterYourself();
+  auto* r_RO9 = new TGeoRotation("rotation_RO9", 0.0, -signe * (90.0), 0.0);
+  r_RO9->RegisterYourself();
+  auto* p_RO9_1 = new TGeoCombiTrans(*t_RO9_1, *r_RO9);
+  p_RO9_1->RegisterYourself();
+  auto* p_RO9_2 = new TGeoCombiTrans(*t_RO9_2, *r_RO9);
+  p_RO9_2->RegisterYourself();
+
+  // ===========  For the 2 latest disks  ================
+  // =============  Disk 3  ============
+  length = 6.9 / 2;
+  angleZ = -45.;
+  angleXY = 0.;
+  thickness = 3.5;                             // inversion width/thickness! this is the width
+  width = section_ROcable_48pairs / thickness; // inversion width/thickness! this is the thickness
+  // ==== front
+  TGeoVolume* vRO_D3_1 = new TGeoVolume("vRO_D3_1", new TGeoTrap(length, angleZ + 10., angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD3_1 = new TGeoTranslation("translation_ROD3_1", 4.5, -signe * (20.9 + length * TMath::Cos(angleZ * TMath::Pi() / 180)), -67.4);
+  t_ROD3_1->RegisterYourself();
+  auto* r_ROD3_1 = new TGeoRotation("rotation_ROD3_1", signe * 180.0, signe * (90), 0.0);
+  r_ROD3_1->RegisterYourself();
+  auto* p_ROD3_1 = new TGeoCombiTrans(*t_ROD3_1, *r_ROD3_1);
+  p_ROD3_1->RegisterYourself();
+
+  TGeoVolume* vRO_D3_2 = new TGeoVolume("vRO_D3_2", new TGeoTrap(length, -angleZ - 10., angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD3_2 = new TGeoTranslation("translation_ROD3_2", -4.5, -signe * (20.9 + length * TMath::Cos(angleZ * TMath::Pi() / 180)), -67.4);
+  t_ROD3_2->RegisterYourself();
+  auto* r_ROD3_2 = new TGeoRotation("rotation_ROD3_2", signe * 180.0, signe * (90), 0.0);
+  r_ROD3_2->RegisterYourself();
+  auto* p_ROD3_2 = new TGeoCombiTrans(*t_ROD3_2, *r_ROD3_2);
+  p_ROD3_2->RegisterYourself();
+
+  // ===== rear
+  TGeoVolume* vRO_D3_3 = new TGeoVolume("vRO_D3_3", new TGeoTrap(length + 0.4, angleZ + 10., angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD3_3 = new TGeoTranslation("translation_ROD3_3", 4.5, -signe * (21.3 + length * TMath::Cos(angleZ * TMath::Pi() / 180)), -69.4);
+  t_ROD3_3->RegisterYourself();
+  auto* r_ROD3_3 = new TGeoRotation("rotation_ROD3_3", signe * 180.0, signe * (90), 0.0);
+  r_ROD3_3->RegisterYourself();
+  auto* p_ROD3_3 = new TGeoCombiTrans(*t_ROD3_3, *r_ROD3_3);
+  p_ROD3_3->RegisterYourself();
+
+  TGeoVolume* vRO_D3_4 = new TGeoVolume("vRO_D3_4", new TGeoTrap(length + 0.4, -angleZ - 10., angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD3_4 = new TGeoTranslation("translation_ROD3_4", -4.5, -signe * (21.3 + length * TMath::Cos(angleZ * TMath::Pi() / 180)), -69.4);
+  t_ROD3_4->RegisterYourself();
+  auto* r_ROD3_4 = new TGeoRotation("rotation_ROD3_4", signe * 180.0, signe * (90), 0.0);
+  r_ROD3_4->RegisterYourself();
+  auto* p_ROD3_4 = new TGeoCombiTrans(*t_ROD3_4, *r_ROD3_4);
+  p_ROD3_4->RegisterYourself();
+
+  auto* t_ConnectorRC3_1 = new TGeoTranslation("translation_RC3_1", 5.9, -signe * (20.2), -67.87 + heigthConnector / 2);
+  t_ConnectorRC3_1->RegisterYourself();
+  auto* r_ConnectorRC3_1 = new TGeoRotation("rotation_RC3_1", 0.0, 90, 0.0);
+  r_ConnectorRC3_1->RegisterYourself();
+  auto* p_ConnectorRC3_1 = new TGeoCombiTrans(*t_ConnectorRC3_1, *r_ConnectorRC3_1);
+  p_ConnectorRC3_1->RegisterYourself();
+  auto* t_ConnectorRC3_2 = new TGeoTranslation("translation_RC3_2", -5.9, -signe * (20.2), -67.87 + heigthConnector / 2);
+  t_ConnectorRC3_2->RegisterYourself();
+  auto* p_ConnectorRC3_2 = new TGeoCombiTrans(*t_ConnectorRC3_2, *r_ConnectorRC3_1);
+  p_ConnectorRC3_2->RegisterYourself();
+  auto* t_ConnectorRC3_3 = new TGeoTranslation("translation_RC3_3", 5.9, -signe * (20.2), -68.93 - heigthConnector / 2);
+  t_ConnectorRC3_3->RegisterYourself();
+  auto* p_ConnectorRC3_3 = new TGeoCombiTrans(*t_ConnectorRC3_3, *r_ConnectorRC3_1);
+  p_ConnectorRC3_3->RegisterYourself();
+  auto* t_ConnectorRC3_4 = new TGeoTranslation("translation_RC3_4", -5.9, -signe * (20.2), -68.93 - heigthConnector / 2);
+  t_ConnectorRC3_4->RegisterYourself();
+  auto* p_ConnectorRC3_4 = new TGeoCombiTrans(*t_ConnectorRC3_4, *r_ConnectorRC3_1);
+  p_ConnectorRC3_4->RegisterYourself();
+
+  // ==============  Disk 4  ================
+  length = 6.3 / 2;
+  angleZ = -20.;
+  angleXY = 0.;
+  thickness = 3.5;                             // inversion width and thickness! this is the width
+  width = section_ROcable_48pairs / thickness; // inversion width and thickness! this is the thickness
+  Float_t xD4 = 6.1;
+  Float_t yD4 = 21.6;
+  // ===== front
+  TGeoVolume* vRO_D4_1 = new TGeoVolume("vRO_D4_1", new TGeoTrap(length, angleZ, angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD4_1 = new TGeoTranslation("translation_ROD4_1", xD4, -signe * (yD4 + length * TMath::Cos(angleZ * TMath::Pi() / 180)), -75.8);
+  t_ROD4_1->RegisterYourself();
+  auto* r_ROD4_1 = new TGeoRotation("rotation_ROD4_1", signe * 180.0, signe * (90), 0.0);
+  r_ROD4_1->RegisterYourself();
+  auto* p_ROD4_1 = new TGeoCombiTrans(*t_ROD4_1, *r_ROD3_1);
+  p_ROD4_1->RegisterYourself();
+
+  TGeoVolume* vRO_D4_2 = new TGeoVolume("vRO_D4_2", new TGeoTrap(length, -angleZ, angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD4_2 = new TGeoTranslation("translation_ROD4_2", -xD4, -signe * (yD4 + length * TMath::Cos(angleZ * TMath::Pi() / 180)), -75.8);
+  t_ROD4_2->RegisterYourself();
+  auto* r_ROD4_2 = new TGeoRotation("rotation_ROD4_2", signe * 180.0, signe * (90), 0.0);
+  r_ROD4_2->RegisterYourself();
+  auto* p_ROD4_2 = new TGeoCombiTrans(*t_ROD4_2, *r_ROD4_2);
+  p_ROD4_2->RegisterYourself();
+
+  // ===== rear
+  TGeoVolume* vRO_D4_3 = new TGeoVolume("vRO_D4_3", new TGeoTrap(length, angleZ, angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD4_3 = new TGeoTranslation("translation_ROD4_3", xD4, -signe * (yD4 + length * TMath::Cos(angleZ * TMath::Pi() / 180)), -77.8);
+  t_ROD4_3->RegisterYourself();
+  auto* r_ROD4_3 = new TGeoRotation("rotation_ROD4_3", signe * 180.0, signe * (90), 0.0);
+  r_ROD4_3->RegisterYourself();
+  auto* p_ROD4_3 = new TGeoCombiTrans(*t_ROD4_3, *r_ROD3_3);
+  p_ROD4_3->RegisterYourself();
+
+  TGeoVolume* vRO_D4_4 = new TGeoVolume("vRO_D4_4", new TGeoTrap(length, -angleZ, angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD4_4 = new TGeoTranslation("translation_ROD4_4", -xD4, -signe * (yD4 + length * TMath::Cos(angleZ * TMath::Pi() / 180)), -77.8);
+  t_ROD4_4->RegisterYourself();
+  auto* r_ROD4_4 = new TGeoRotation("rotation_ROD4_4", signe * 180.0, signe * (90), 0.0);
+  r_ROD4_4->RegisterYourself();
+  auto* p_ROD4_4 = new TGeoCombiTrans(*t_ROD4_4, *r_ROD4_4);
+  p_ROD4_4->RegisterYourself();
+
+  // Middle
+  // 16 pairs cable
+  width = section_ROcable_16pairs / thickness; // inversion width and thickness! this is thickness...
+  TGeoVolume* vRO_D4_5 = new TGeoVolume("vRO_D4_5", new TGeoTrap(length, 0., 0., width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD4_5 = new TGeoTranslation("translation_ROD4_5", 0, -signe * (yD4 + length - 0.2), -75.8);
+  t_ROD4_5->RegisterYourself();
+  auto* r_ROD4_5 = new TGeoRotation("rotation_ROD4_5", signe * 180.0, signe * (90), 0.0);
+  r_ROD4_5->RegisterYourself();
+  auto* p_ROD4_5 = new TGeoCombiTrans(*t_ROD4_5, *r_ROD4_5);
+  p_ROD4_5->RegisterYourself();
+  TGeoVolume* vRO_D4_6 = new TGeoVolume("vRO_D4_6", new TGeoTrap(length, 0., 0., width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_ROD4_6 = new TGeoTranslation("translation_ROD4_6", 0, -signe * (yD4 + length - 0.2), -77.8);
+  t_ROD4_6->RegisterYourself();
+  auto* r_ROD4_6 = new TGeoRotation("rotation_ROD4_6", signe * 180.0, signe * (90), 0.0);
+  r_ROD4_6->RegisterYourself();
+  auto* p_ROD4_6 = new TGeoCombiTrans(*t_ROD4_6, *r_ROD4_6);
+  p_ROD4_6->RegisterYourself();
+
+  auto* t_ConnectorRC4_1 = new TGeoTranslation("translation_RC4_1", 7.5, -signe * (21.5), -76.26 + heigthConnector / 2);
+  t_ConnectorRC4_1->RegisterYourself();
+  auto* p_ConnectorRC4_1 = new TGeoCombiTrans(*t_ConnectorRC4_1, *r_ConnectorRC3_1);
+  p_ConnectorRC4_1->RegisterYourself();
+  auto* t_ConnectorRC4_2 = new TGeoTranslation("translation_RC4_2", -7.5, -signe * (21.5), -76.26 + heigthConnector / 2);
+  t_ConnectorRC4_2->RegisterYourself();
+  auto* p_ConnectorRC4_2 = new TGeoCombiTrans(*t_ConnectorRC4_2, *r_ConnectorRC3_1);
+  p_ConnectorRC4_2->RegisterYourself();
+  auto* t_ConnectorRC4_3 = new TGeoTranslation("translation_RC4_3", 7.5, -signe * (21.5), -77.34 - heigthConnector / 2);
+  t_ConnectorRC4_3->RegisterYourself();
+  auto* p_ConnectorRC4_3 = new TGeoCombiTrans(*t_ConnectorRC4_3, *r_ConnectorRC3_1);
+  p_ConnectorRC4_3->RegisterYourself();
+  auto* t_ConnectorRC4_4 = new TGeoTranslation("translation_RC4_4", -7.5, -signe * (21.5), -77.34 - heigthConnector / 2);
+  t_ConnectorRC4_4->RegisterYourself();
+  auto* p_ConnectorRC4_4 = new TGeoCombiTrans(*t_ConnectorRC4_4, *r_ConnectorRC3_1);
+  p_ConnectorRC4_4->RegisterYourself();
+  auto* t_ConnectorRC4_5 = new TGeoTranslation("translation_RC4_5", 0, -signe * (21.5), -76.26 + heigthConnector / 2);
+  t_ConnectorRC4_5->RegisterYourself();
+  auto* p_ConnectorRC4_5 = new TGeoCombiTrans(*t_ConnectorRC4_5, *r_ConnectorRC3_1);
+  p_ConnectorRC4_5->RegisterYourself();
+  auto* t_ConnectorRC4_6 = new TGeoTranslation("translation_RC4_6", 0, -signe * (21.5), -77.34 - heigthConnector / 2);
+  t_ConnectorRC4_6->RegisterYourself();
+  auto* p_ConnectorRC4_6 = new TGeoCombiTrans(*t_ConnectorRC4_6, *r_ConnectorRC3_1);
+  p_ConnectorRC4_6->RegisterYourself();
+
+  // ========== For the RO Supply Unit (PSU) ==========
+  length = 1.6 / 2;
+  angleZ = 70.;
+  angleXY = -signe * 25.;
+  width = 3.5;
+  thickness = section_ROcable_16pairs / width / TMath::Cos(angleZ * TMath::Pi() / 180);
+  TGeoVolume* vRO_PSU_1 = new TGeoVolume("vRO_PSU_1", new TGeoTrap(length, angleZ, angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  Double_t yPSU = -signe * (24.8 + length * 1.26 * TMath::Sin(angleZ * TMath::Pi() / 180));
+  Double_t zPSU = -71.1 - length * 2. * TMath::Cos(angleZ * TMath::Pi() / 180);
+  auto* t_RO_PSU_1 = new TGeoTranslation("translation_RO_PSU_1", 5.0, yPSU, zPSU);
+  t_RO_PSU_1->RegisterYourself();
+  auto* r_RO_PSU_1 = new TGeoRotation("rotation_RO_PSU_1", signe * 90.0, -signe * (0), 0.0);
+  r_RO_PSU_1->RegisterYourself();
+  auto* p_RO_PSU_1 = new TGeoCombiTrans(*t_RO_PSU_1, *r_RO_PSU_1);
+  p_RO_PSU_1->RegisterYourself();
+
+  TGeoVolume* vRO_PSU_2 = new TGeoVolume("vRO_PSU_2", new TGeoTrap(length, angleZ, -angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_RO_PSU_2 = new TGeoTranslation("translation_RO_PSU_2", -5.0, yPSU, zPSU);
+  t_RO_PSU_2->RegisterYourself();
+  auto* r_RO_PSU_2 = new TGeoRotation("rotation_RO_PSU_2", signe * 90.0, -signe * (0), 0.0);
+  r_RO_PSU_2->RegisterYourself();
+  auto* p_RO_PSU_2 = new TGeoCombiTrans(*t_RO_PSU_2, *r_RO_PSU_2);
+  p_RO_PSU_2->RegisterYourself();
+
+  zPSU = -72.98 - length * 2. * TMath::Cos(angleZ * TMath::Pi() / 180);
+  TGeoVolume* vRO_PSU_3 = new TGeoVolume("vRO_PSU_3", new TGeoTrap(length, -angleZ, angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_RO_PSU_3 = new TGeoTranslation("translation_RO_PSU_3", 5.0, yPSU, zPSU);
+  t_RO_PSU_3->RegisterYourself();
+  auto* r_RO_PSU_3 = new TGeoRotation("rotation_RO_PSU_3", signe * 90.0, -signe * (0), 0.0);
+  r_RO_PSU_3->RegisterYourself();
+  auto* p_RO_PSU_3 = new TGeoCombiTrans(*t_RO_PSU_3, *r_RO_PSU_3);
+  p_RO_PSU_3->RegisterYourself();
+
+  TGeoVolume* vRO_PSU_4 = new TGeoVolume("vRO_PSU_4", new TGeoTrap(length, -angleZ, -angleXY, width / 2, thickness / 2, thickness / 2, 0., width / 2, thickness / 2, thickness / 2, 0.), mCu);
+  auto* t_RO_PSU_4 = new TGeoTranslation("translation_RO_PSU_4", -5.0, yPSU, zPSU);
+  t_RO_PSU_4->RegisterYourself();
+  auto* r_RO_PSU_4 = new TGeoRotation("rotation_RO_PSU_4", signe * 90.0, -signe * (0), 0.0);
+  r_RO_PSU_4->RegisterYourself();
+  auto* p_RO_PSU_4 = new TGeoCombiTrans(*t_RO_PSU_4, *r_RO_PSU_4);
+  p_RO_PSU_4->RegisterYourself();
+
+  auto* t_ConnectorPSU_1 = new TGeoTranslation("translation_PSU_1", 6.9, -signe * (23.5), -70.44 - heigthConnector / 2);
+  t_ConnectorPSU_1->RegisterYourself();
+  auto* p_ConnectorPSU_1 = new TGeoCombiTrans(*t_ConnectorPSU_1, *r_ConnectorRC3_1);
+  p_ConnectorPSU_1->RegisterYourself();
+  auto* t_ConnectorPSU_2 = new TGeoTranslation("translation_PSU_2", -6.9, -signe * (23.5), -70.44 - heigthConnector / 2);
+  t_ConnectorPSU_2->RegisterYourself();
+  auto* p_ConnectorPSU_2 = new TGeoCombiTrans(*t_ConnectorPSU_2, *r_ConnectorRC3_1);
+  p_ConnectorPSU_2->RegisterYourself();
+  auto* t_ConnectorPSU_3 = new TGeoTranslation("translation_PSU_3", 6.9, -signe * (23.5), -74.77 + heigthConnector / 2);
+  t_ConnectorPSU_3->RegisterYourself();
+  auto* p_ConnectorPSU_3 = new TGeoCombiTrans(*t_ConnectorPSU_3, *r_ConnectorRC3_1);
+  p_ConnectorPSU_3->RegisterYourself();
+  auto* t_ConnectorPSU_4 = new TGeoTranslation("translation_PSU_4", -6.9, -signe * (23.5), -74.77 + heigthConnector / 2);
+  t_ConnectorPSU_4->RegisterYourself();
+  auto* p_ConnectorPSU_4 = new TGeoCombiTrans(*t_ConnectorPSU_4, *r_ConnectorRC3_1);
+  p_ConnectorPSU_4->RegisterYourself();
+
+  vRO1->SetLineColor(kGray + 2);
+  vRO2->SetLineColor(kGray + 2);
+  vRO3->SetLineColor(kGray + 2);
+  vRO4->SetLineColor(kGray + 2);
+  vRO5->SetLineColor(kGray + 2);
+  vRO6->SetLineColor(kGray + 2);
+  vRO7->SetLineColor(kGray + 2);
+  vRO8->SetLineColor(kGray + 2);
+  vRO9->SetLineColor(kGray + 2);
+  vRO_D3_1->SetLineColor(kGray + 2);
+  vRO_D3_2->SetLineColor(kGray + 2);
+  vRO_D3_3->SetLineColor(kGray + 2);
+  vRO_D3_4->SetLineColor(kGray + 2);
+  vRO_D4_1->SetLineColor(kGray + 2);
+  vRO_D4_2->SetLineColor(kGray + 2);
+  vRO_D4_3->SetLineColor(kGray + 2);
+  vRO_D4_4->SetLineColor(kGray + 2);
+  vRO_D4_5->SetLineColor(kGray + 2);
+  vRO_D4_6->SetLineColor(kGray + 2);
+  vRO_PSU_1->SetLineColor(kGray + 2);
+  vRO_PSU_2->SetLineColor(kGray + 2);
+  vRO_PSU_3->SetLineColor(kGray + 2);
+  vRO_PSU_4->SetLineColor(kGray + 2);
+
+  HalfConeVolume->AddNode(vRO1, 1, t_RO1);
+  HalfConeVolume->AddNode(vRO2, 1, t_RO2);
+  HalfConeVolume->AddNode(vRO3, 1, t_RO3);
+  HalfConeVolume->AddNode(vRO4, 1, p_RO4);
+  HalfConeVolume->AddNode(vRO5, 1, p_RO5_1);
+  HalfConeVolume->AddNode(vRO5, 1, p_RO5_2);
+  HalfConeVolume->AddNode(vRO6, 1, p_RO6);
+  HalfConeVolume->AddNode(vRO7, 1, p_RO7);
+  HalfConeVolume->AddNode(vRO8, 1, p_RO8_1);
+  HalfConeVolume->AddNode(vRO8, 1, p_RO8_2);
+  HalfConeVolume->AddNode(vRO9, 1, p_RO9_1);
+  HalfConeVolume->AddNode(vRO9, 1, p_RO9_2);
+  HalfConeVolume->AddNode(vRO_D3_1, 1, p_ROD3_1);
+  HalfConeVolume->AddNode(vRO_D3_2, 1, p_ROD3_2);
+  HalfConeVolume->AddNode(vRO_D3_3, 1, p_ROD3_3);
+  HalfConeVolume->AddNode(vRO_D3_4, 1, p_ROD3_4);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC3_1);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC3_2);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC3_3);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC3_4);
+
+  HalfConeVolume->AddNode(vRO_D4_1, 1, p_ROD4_1);
+  HalfConeVolume->AddNode(vRO_D4_2, 1, p_ROD4_2);
+  HalfConeVolume->AddNode(vRO_D4_3, 1, p_ROD4_3);
+  HalfConeVolume->AddNode(vRO_D4_4, 1, p_ROD4_4);
+  HalfConeVolume->AddNode(vRO_D4_5, 1, p_ROD4_5);
+  HalfConeVolume->AddNode(vRO_D4_6, 1, p_ROD4_6);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC4_1);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC4_2);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC4_3);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC4_4);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC4_5);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorRC4_6);
+
+  HalfConeVolume->AddNode(vRO_PSU_1, 1, p_RO_PSU_1);
+  HalfConeVolume->AddNode(vRO_PSU_2, 1, p_RO_PSU_2);
+  HalfConeVolume->AddNode(vRO_PSU_3, 1, p_RO_PSU_3);
+  HalfConeVolume->AddNode(vRO_PSU_4, 1, p_RO_PSU_4);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorPSU_1);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorPSU_2);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorPSU_3);
+  HalfConeVolume->AddNode(vConnectorRC, 1, p_ConnectorPSU_4);
+}
+
+void HalfCone::makePowerCables(TGeoVolumeAssembly* HalfConeVolume, Int_t half, Int_t signe)
+{
+  auto* mCu = gGeoManager->GetMedium("MFT_Cu$");
+
+  // ========= Cables for the first 3 disks ===========
+  // ==================== Bottom side ===================
+  Double_t xPC0 = 8.0;
+  Double_t yPC0 = 0.0313;
+  Double_t zPC0 = 2.0; // length
+  Int_t side;
+  if (signe == -1) {
+    side = 1; // left
+  }
+  if (signe == 1) {
+    side = 2; // right
+  }
+
+  TGeoVolume* vPCb0 = gGeoManager->MakeBox(Form("vPCb0_S%d", side), mCu, xPC0 / 2, yPC0 / 2, zPC0 / 2);
+  auto* r_PC0 = new TGeoRotation("rotation_PC0", 0., 0., 0.);
+  r_PC0->RegisterYourself();
+  Double_t XPC0 = signe * 18.5;
+  Double_t YPC0 = -4. + yPC0 / 2;
+  Double_t ZPC0 = -72.5;
+  auto* p_PC0 = new TGeoCombiTrans(XPC0, YPC0, ZPC0, r_PC0);
+
+  //===================== first cable ===============================
+  Double_t rmaxPC1 = 0.163;
+  Double_t zPC1 = 5.5;
+  TGeoVolume* vPCb1_1 = gGeoManager->MakeTube(Form("vPCb1_1_S%d", side), mCu, 0., rmaxPC1, zPC1 / 2);
+  Double_t XPC1 = XPC0 + signe * (2 * rmaxPC1 - 0.3);
+  Double_t YPC1 = YPC0;
+  Double_t ZPC1 = ZPC0 + (zPC0 + zPC1) / 2;
+  auto* p_PC1_1 = new TGeoCombiTrans(XPC1, YPC1, ZPC1, r_PC0);
+  p_PC1_1->RegisterYourself();
+  //===========
+  Double_t rPC2 = 0.95;
+  TGeoVolume* vPCb2_1 = gGeoManager->MakeTorus(Form("vPCb2_1_S%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  auto* r_PC2 = new TGeoRotation("rotation_PC2", 90., -90., -90.);
+  r_PC2->RegisterYourself();
+  Double_t XPC2 = XPC1;
+  Double_t YPC2 = YPC1 - rPC2;
+  Double_t ZPC2 = ZPC1 + zPC1 / 2;
+  auto* p_PC2_1 = new TGeoCombiTrans(XPC2, YPC2, ZPC2, r_PC2);
+  p_PC2_1->RegisterYourself();
+  //===========
+  Double_t zPC3 = 2.6;
+  TGeoVolume* vPCb3_1 = gGeoManager->MakeTube(Form("vPCb3_S%d", side), mCu, 0., rmaxPC1, zPC3 / 2);
+  auto* r_PC3 = new TGeoRotation("rotation_PC3", 0., 90., 0.);
+  r_PC3->RegisterYourself();
+  Double_t XPC3 = XPC2;
+  Double_t YPC3 = YPC2 - zPC3 / 2;
+  Double_t ZPC3 = ZPC2 + rPC2;
+  auto* p_PC3_1 = new TGeoCombiTrans(XPC3, YPC3, ZPC3, r_PC3);
+  p_PC3_1->RegisterYourself();
+  //===========
+  Double_t rPC4 = 0.95;
+  TGeoVolume* vPCb4_1 = gGeoManager->MakeTorus(Form("vPCb4_1_H%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  auto* r_PC4 = new TGeoRotation("rotation_PC4", 90., -90. - signe * 45., 90.);
+  r_PC4->RegisterYourself();
+  Double_t XPC4 = XPC3 - signe * rPC4 * TMath::Sin(45. * TMath::Pi() / 180.);
+  Double_t YPC4 = YPC3 - zPC3 / 2;
+  Double_t ZPC4 = ZPC3 + rPC4 * TMath::Cos(45. * TMath::Pi() / 180.);
+  auto* p_PC4_1 = new TGeoCombiTrans(XPC4, YPC4, ZPC4, r_PC4);
+  p_PC4_1->RegisterYourself();
+  //===========
+  Double_t zPC5 = 8.1;
+  TGeoVolume* vPCb5_1 = gGeoManager->MakeTube(Form("vPCb5_S%d", side), mCu, 0., rmaxPC1, zPC5 / 2);
+  auto* r_PC5 = new TGeoRotation("rotation_PC5", 90., -signe * 45., 0);
+  r_PC5->RegisterYourself();
+  Double_t XPC5 = XPC4 - signe * zPC5 / 2 * TMath::Sin(45. * TMath::Pi() / 180.);
+  Double_t YPC5 = YPC4 - rPC4;
+  Double_t ZPC5 = ZPC4 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.);
+  auto* p_PC5_1 = new TGeoCombiTrans(XPC5, YPC5, ZPC5, r_PC5);
+  p_PC5_1->RegisterYourself();
+  //===========
+  Double_t rPC6 = 0.95;
+  TGeoVolume* vPCb6_1 = gGeoManager->MakeTorus(Form("vPCb6_1_H%d", side), mCu, rPC2, 0.0, rmaxPC1, 45., 45.);
+  auto* r_PC6 = new TGeoRotation("rotation_PC6", 0., -signe * 90., signe * 90.);
+  r_PC6->RegisterYourself();
+  Double_t XPC6 = XPC5 - signe * (zPC5 / 2 * TMath::Sin(45 * TMath::Pi() / 180.) - rPC6 * TMath::Cos(45. * TMath::Pi() / 180.));
+  Double_t YPC6 = YPC5;
+  Double_t ZPC6 = ZPC5 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.) + rPC6 * TMath::Sin(45. * TMath::Pi() / 180.);
+  auto* p_PC6_1 = new TGeoCombiTrans(XPC6, YPC6, ZPC6, r_PC6);
+  p_PC6_1->RegisterYourself();
+  //===========
+  Double_t zPC7 = 13.0;
+  TGeoVolume* vPCb7_1 = gGeoManager->MakeTube(Form("vPCb7_1_H%d", side), mCu, 0., rmaxPC1, zPC7 / 2);
+  auto* r_PC7 = new TGeoRotation("rotation_PC7", 0., 0., 0.);
+  r_PC7->RegisterYourself();
+  Double_t XPC7 = XPC6 - signe * rPC6;
+  Double_t YPC7 = YPC6;
+  Double_t ZPC7 = ZPC6 + zPC7 / 2;
+  auto* p_PC7_1 = new TGeoCombiTrans(XPC7, YPC7, ZPC7, r_PC7);
+  p_PC7_1->RegisterYourself();
+
+  //===================== second cable ==============================
+  zPC1 = 5.5;
+  TGeoVolume* vPCb1_2 = gGeoManager->MakeTube(Form("vPCb1_2_S%d", side), mCu, 0., rmaxPC1, zPC1 / 2);
+  XPC1 = XPC0 + signe * (8 * rmaxPC1 - 0.3);
+  auto* p_PC1_2 = new TGeoCombiTrans(XPC1, YPC1, ZPC1, r_PC0);
+  p_PC1_2->RegisterYourself();
+  //===========
+  TGeoVolume* vPCb2_2 = gGeoManager->MakeTorus(Form("vPCb2_2_S%d", side), mCu, rPC2, 0.0, rmaxPC1, 0., 90.);
+  XPC2 = XPC1;
+  auto* p_PC2_2 = new TGeoCombiTrans(XPC2, YPC2, ZPC2, r_PC2);
+  p_PC2_2->RegisterYourself();
+  //===========
+  TGeoVolume* vPCb3_2 = gGeoManager->MakeTube(Form("vPCb3_2_S%d", side), mCu, 0., rmaxPC1, zPC3 / 2);
+  XPC3 = XPC2;
+  YPC3 = YPC2 - zPC3 / 2;
+  ZPC3 = ZPC2 + rPC2;
+  auto* p_PC3_2 = new TGeoCombiTrans(XPC3, YPC3, ZPC3, r_PC3);
+  p_PC3_2->RegisterYourself();
+  //===========
+  TGeoVolume* vPCb4_2 = gGeoManager->MakeTorus(Form("vPCb4_2_S%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  XPC4 = XPC3 - signe * rPC4 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC4 = YPC3 - zPC3 / 2;
+  ZPC4 = ZPC3 + rPC4 * TMath::Cos(45. * TMath::Pi() / 180.);
+  auto* p_PC4_2 = new TGeoCombiTrans(XPC4, YPC4, ZPC4, r_PC4);
+  p_PC4_2->RegisterYourself();
+  //===========
+  zPC5 = 8.1;
+  TGeoVolume* vPCb5_2 = gGeoManager->MakeTube(Form("vPCb5_2_S%d", side), mCu, 0., rmaxPC1, zPC5 / 2);
+  XPC5 = XPC4 - signe * zPC5 / 2 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC5 = YPC4 - rPC4;
+  ZPC5 = ZPC4 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.);
+  auto* p_PC5_2 = new TGeoCombiTrans(XPC5, YPC5, ZPC5, r_PC5);
+  p_PC5_2->RegisterYourself();
+  //===========
+  TGeoVolume* vPCb6_2 = gGeoManager->MakeTorus(Form("vPCb6_2_S%d", side), mCu, rPC2, 0.0, rmaxPC1, 45., 45.);
+  XPC6 = XPC5 - signe * (zPC5 / 2 * TMath::Sin(45. * TMath::Pi() / 180.) - rPC6 * TMath::Cos(45. * TMath::Pi() / 180.));
+  YPC6 = YPC5;
+  ZPC6 = ZPC5 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.) + rPC6 * TMath::Sin(45. * TMath::Pi() / 180.);
+  auto* p_PC6_2 = new TGeoCombiTrans(XPC6, YPC6, ZPC6, r_PC6);
+  p_PC6_2->RegisterYourself();
+  //===========
+  zPC7 = 9.8;
+  TGeoVolume* vPCb7_2 = gGeoManager->MakeTube(Form("vPCb7_2_S%d", side), mCu, 0., rmaxPC1, zPC7 / 2);
+  XPC7 = XPC6 - signe * rPC6;
+  YPC7 = YPC6;
+  ZPC7 = ZPC6 + zPC7 / 2;
+  auto* p_PC7_2 = new TGeoCombiTrans(XPC7, YPC7, ZPC7, r_PC7);
+  p_PC7_2->RegisterYourself();
+
+  //===================== third cable ==============================
+  zPC1 = 5.5;
+  TGeoVolume* vPCb1_3 = gGeoManager->MakeTube(Form("vPCb1_3_S%d", side), mCu, 0., rmaxPC1, zPC1 / 2);
+  XPC1 = XPC0 + signe * (14 * rmaxPC1 - 0.3);
+  auto* p_PC1_3 = new TGeoCombiTrans(XPC1, YPC1, ZPC1, r_PC0);
+  p_PC1_3->RegisterYourself();
+  //===========
+  TGeoVolume* vPCb2_3 = gGeoManager->MakeTorus(Form("vPCb2_3_S%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  XPC2 = XPC1;
+  auto* p_PC2_3 = new TGeoCombiTrans(XPC2, YPC2, ZPC2, r_PC2);
+  p_PC2_3->RegisterYourself();
+  //===========
+  zPC3 = 2.6;
+  TGeoVolume* vPCb3_3 = gGeoManager->MakeTube(Form("vPCb3_3_S%d", side), mCu, 0., rmaxPC1, zPC3 / 2);
+  XPC3 = XPC2;
+  YPC3 = YPC2 - zPC3 / 2;
+  ZPC3 = ZPC2 + rPC2;
+  auto* p_PC3_3 = new TGeoCombiTrans(XPC3, YPC3, ZPC3, r_PC3);
+  p_PC3_3->RegisterYourself();
+  //===========
+  TGeoVolume* vPCb4_3 = gGeoManager->MakeTorus(Form("vPCb4_3_S%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  XPC4 = XPC3 - signe * rPC4 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC4 = YPC3 - zPC3 / 2;
+  ZPC4 = ZPC3 + rPC4 * TMath::Cos(45. * TMath::Pi() / 180.);
+  auto* p_PC4_3 = new TGeoCombiTrans(XPC4, YPC4, ZPC4, r_PC4);
+  p_PC4_3->RegisterYourself();
+  //===========
+  zPC5 = 8.1 + 0.3;
+  TGeoVolume* vPCb5_3 = gGeoManager->MakeTube(Form("vPCb5_3_S%d", side), mCu, 0., rmaxPC1, zPC5 / 2);
+  XPC5 = XPC4 - signe * zPC5 / 2 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC5 = YPC4 - rPC4;
+  ZPC5 = ZPC4 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.);
+  auto* p_PC5_3 = new TGeoCombiTrans(XPC5, YPC5, ZPC5, r_PC5);
+  p_PC5_3->RegisterYourself();
+  //===========
+  TGeoVolume* vPCb6_3 = gGeoManager->MakeTorus(Form("vPCb6_3_S%d", side), mCu, rPC2, 0.0, rmaxPC1, 45., 45.);
+  XPC6 = XPC5 - signe * (zPC5 / 2 * TMath::Sin(45. * TMath::Pi() / 180.) - rPC6 * TMath::Cos(45. * TMath::Pi() / 180.));
+  YPC6 = YPC5;
+  ZPC6 = ZPC5 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.) + rPC6 * TMath::Sin(45. * TMath::Pi() / 180.);
+  auto* p_PC6_3 = new TGeoCombiTrans(XPC6, YPC6, ZPC6, r_PC6);
+  p_PC6_3->RegisterYourself();
+  //===========
+  zPC7 = 5.8;
+  TGeoVolume* vPCb7_3 = gGeoManager->MakeTube(Form("vPCb7_3_S%d", side), mCu, 0., rmaxPC1, zPC7 / 2);
+  XPC7 = XPC6 - signe * rPC6;
+  YPC7 = YPC6;
+  ZPC7 = ZPC6 + zPC7 / 2;
+  auto* p_PC7_3 = new TGeoCombiTrans(XPC7, YPC7, ZPC7, r_PC7);
+  p_PC7_3->RegisterYourself();
+  //==========================================================
+
+  vPCb0->SetLineColor(kBlue);
+  vPCb1_1->SetLineColor(kBlue);
+  vPCb1_2->SetLineColor(kBlue);
+  vPCb1_3->SetLineColor(kBlue);
+  vPCb2_1->SetLineColor(kBlue);
+  vPCb2_2->SetLineColor(kBlue);
+  vPCb2_3->SetLineColor(kBlue);
+  vPCb3_1->SetLineColor(kBlue);
+  vPCb3_2->SetLineColor(kBlue);
+  vPCb3_3->SetLineColor(kBlue);
+  vPCb4_1->SetLineColor(kBlue);
+  vPCb4_2->SetLineColor(kBlue);
+  vPCb4_3->SetLineColor(kBlue);
+  vPCb5_1->SetLineColor(kBlue);
+  vPCb5_2->SetLineColor(kBlue);
+  vPCb5_3->SetLineColor(kBlue);
+  vPCb6_1->SetLineColor(kBlue);
+  vPCb6_2->SetLineColor(kBlue);
+  vPCb6_3->SetLineColor(kBlue);
+  vPCb7_1->SetLineColor(kBlue);
+  vPCb7_2->SetLineColor(kBlue);
+  vPCb7_3->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPCb0, 1, p_PC0);
+  HalfConeVolume->AddNode(vPCb1_1, 1, p_PC1_1);
+  HalfConeVolume->AddNode(vPCb1_2, 1, p_PC1_2);
+  HalfConeVolume->AddNode(vPCb1_3, 1, p_PC1_3);
+  HalfConeVolume->AddNode(vPCb2_1, 1, p_PC2_1);
+  HalfConeVolume->AddNode(vPCb2_2, 1, p_PC2_2);
+  HalfConeVolume->AddNode(vPCb2_3, 1, p_PC2_3);
+  HalfConeVolume->AddNode(vPCb3_1, 1, p_PC3_1);
+  HalfConeVolume->AddNode(vPCb3_2, 1, p_PC3_2);
+  HalfConeVolume->AddNode(vPCb3_3, 1, p_PC3_3);
+  HalfConeVolume->AddNode(vPCb4_1, 1, p_PC4_1);
+  HalfConeVolume->AddNode(vPCb4_2, 1, p_PC4_2);
+  HalfConeVolume->AddNode(vPCb4_3, 1, p_PC4_3);
+  HalfConeVolume->AddNode(vPCb5_1, 1, p_PC5_1);
+  HalfConeVolume->AddNode(vPCb5_2, 1, p_PC5_2);
+  HalfConeVolume->AddNode(vPCb5_3, 1, p_PC5_3);
+  HalfConeVolume->AddNode(vPCb6_1, 1, p_PC6_1);
+  HalfConeVolume->AddNode(vPCb6_2, 1, p_PC6_2);
+  HalfConeVolume->AddNode(vPCb6_3, 1, p_PC6_3);
+  HalfConeVolume->AddNode(vPCb7_1, 1, p_PC7_1);
+  HalfConeVolume->AddNode(vPCb7_2, 1, p_PC7_2);
+  HalfConeVolume->AddNode(vPCb7_3, 1, p_PC7_3);
+
+  // ==================== Top side ===================
+  TGeoVolume* vPCt0 = gGeoManager->MakeBox(Form("vPCt0_S%d", side), mCu, xPC0 / 2, yPC0 / 2, zPC0 / 2);
+  p_PC0 = new TGeoCombiTrans(XPC0, -YPC0, ZPC0, r_PC0);
+
+  //===================== first cable ===============================
+  zPC1 = 5.5;
+  TGeoVolume* vPCt1_1 = gGeoManager->MakeTube(Form("vPCt1_1_S%d", side), mCu, 0.0, rmaxPC1, zPC1 / 2);
+  XPC1 = XPC0 + signe * (2 * rmaxPC1 - 0.3);
+  p_PC1_1 = new TGeoCombiTrans(XPC1, -YPC1, ZPC1, r_PC0);
+  p_PC1_1->RegisterYourself();
+  //==========
+  TGeoVolume* vPCt2_1 = gGeoManager->MakeTorus(Form("vPCt2_1_S%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  r_PC2 = new TGeoRotation("rotation_PC2", 90., 90., 90.);
+  r_PC2->RegisterYourself();
+  XPC2 = XPC1;
+  YPC2 = YPC1 - rPC2;
+  ZPC2 = ZPC1 + zPC1 / 2;
+  p_PC2_1 = new TGeoCombiTrans(XPC2, -YPC2, ZPC2, r_PC2);
+  p_PC2_1->RegisterYourself();
+  //===========
+  zPC3 = 2.6;
+  TGeoVolume* vPCt3_1 = gGeoManager->MakeTube(Form("vPCt3_S%d", side), mCu, 0., rmaxPC1, zPC3 / 2);
+  r_PC3->RegisterYourself();
+  XPC3 = XPC2;
+  YPC3 = YPC2 - zPC3 / 2;
+  ZPC3 = ZPC2 + rPC2;
+  p_PC3_1 = new TGeoCombiTrans(XPC3, -YPC3, ZPC3, r_PC3);
+  p_PC3_1->RegisterYourself();
+  //===========
+  rPC4 = 0.95;
+  TGeoVolume* vPCt4_1 = gGeoManager->MakeTorus(Form("vPCt4_1_H%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  r_PC4 = new TGeoRotation("rotation_PC4", 90., 90. - signe * 45., 180. + 90.);
+  r_PC4->RegisterYourself();
+  XPC4 = XPC3 - signe * rPC4 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC4 = YPC3 - zPC3 / 2;
+  ZPC4 = ZPC3 + rPC4 * TMath::Cos(45. * TMath::Pi() / 180.);
+  p_PC4_1 = new TGeoCombiTrans(XPC4, -YPC4, ZPC4, r_PC4);
+  p_PC4_1->RegisterYourself();
+  //===========
+  zPC5 = 8.1;
+  TGeoVolume* vPCt5_1 = gGeoManager->MakeTube(Form("vPCt5_S%d", side), mCu, 0.0, rmaxPC1, zPC5 / 2);
+  r_PC5 = new TGeoRotation("rotation_PC5", 90., 180.0 - signe * 45., 180);
+  r_PC5->RegisterYourself();
+  XPC5 = XPC4 - signe * zPC5 / 2 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC5 = YPC4 - rPC4;
+  ZPC5 = ZPC4 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.);
+  p_PC5_1 = new TGeoCombiTrans(XPC5, -YPC5, ZPC5, r_PC5);
+  p_PC5_1->RegisterYourself();
+  //===========
+  rPC6 = 0.95;
+  TGeoVolume* vPCt6_1 = gGeoManager->MakeTorus(Form("vPCt6_1_H%d", side), mCu, rPC2, 0.0, rmaxPC1, 45., 45.);
+  XPC6 = XPC5 - signe * (zPC5 / 2 * TMath::Sin(45.0 * TMath::Pi() / 180.) - rPC6 * TMath::Cos(45 * TMath::Pi() / 180.));
+  YPC6 = YPC5;
+  ZPC6 = ZPC5 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.) + rPC6 * TMath::Sin(45 * TMath::Pi() / 180.);
+  p_PC6_1 = new TGeoCombiTrans(XPC6, -YPC6, ZPC6, r_PC6);
+  p_PC6_1->RegisterYourself();
+  //===========
+  zPC7 = 13.0;
+  TGeoVolume* vPCt7_1 = gGeoManager->MakeTube(Form("vPCt7_1_H%d", side), mCu, 0., rmaxPC1, zPC7 / 2);
+  XPC7 = XPC6 - signe * rPC6;
+  YPC7 = YPC6;
+  ZPC7 = ZPC6 + zPC7 / 2;
+  p_PC7_1 = new TGeoCombiTrans(XPC7, -YPC7, ZPC7, r_PC7);
+  p_PC7_1->RegisterYourself();
+
+  //===================== second cable ==============================
+  zPC1 = 5.5;
+  TGeoVolume* vPCt1_2 = gGeoManager->MakeTube(Form("vPCt1_2_S%d", side), mCu, 0., rmaxPC1, zPC1 / 2);
+  XPC1 = XPC0 + signe * (8 * rmaxPC1 - 0.3);
+  p_PC1_2 = new TGeoCombiTrans(XPC1, -YPC1, ZPC1, r_PC0);
+  p_PC1_2->RegisterYourself();
+  //===========
+  TGeoVolume* vPCt2_2 = gGeoManager->MakeTorus(Form("TorusPCt2_2_S%d", side), mCu, rPC2, 0.0, rmaxPC1, 0., 90.);
+  XPC2 = XPC1;
+  p_PC2_2 = new TGeoCombiTrans(XPC2, -YPC2, ZPC2, r_PC2);
+  p_PC2_2->RegisterYourself();
+  //===========
+  TGeoVolume* vPCt3_2 = gGeoManager->MakeTube(Form("vPCt3_2_S%d", side), mCu, 0., rmaxPC1, zPC3 / 2);
+  XPC3 = XPC2;
+  p_PC3_2 = new TGeoCombiTrans(XPC3, -YPC3, ZPC3, r_PC3);
+  p_PC3_2->RegisterYourself();
+  //===========
+  TGeoVolume* vPCt4_2 = gGeoManager->MakeTorus(Form("TorusPCt4_2_S%d", side), mCu, rPC2, 0.0, rmaxPC1, 0., 90.);
+  XPC4 = XPC3 - signe * rPC4 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC4 = YPC3 - zPC3 / 2;
+  ZPC4 = ZPC3 + rPC4 * TMath::Cos(45 * TMath::Pi() / 180.);
+  p_PC4_2 = new TGeoCombiTrans(XPC4, -YPC4, ZPC4, r_PC4);
+  p_PC4_2->RegisterYourself();
+  //===========
+  zPC5 = 8.1;
+  TGeoVolume* vPCt5_2 = gGeoManager->MakeTube(Form("vPCt5_2_S%d", side), mCu, 0., rmaxPC1, zPC5 / 2);
+  XPC5 = XPC4 - signe * zPC5 / 2 * TMath::Sin(45.0 * TMath::Pi() / 180.);
+  YPC5 = YPC4 - rPC4;
+  ZPC5 = ZPC4 + zPC5 / 2 * TMath::Cos(45.0 * TMath::Pi() / 180.);
+  p_PC5_2 = new TGeoCombiTrans(XPC5, -YPC5, ZPC5, r_PC5);
+  p_PC5_2->RegisterYourself();
+  //===========
+  TGeoVolume* vPCt6_2 = gGeoManager->MakeTorus(Form("TorusPCt6_2_S%d", side), mCu, rPC2, 0.0, rmaxPC1, 45., 45.);
+  XPC6 = XPC5 - signe * (zPC5 / 2 * TMath::Sin(45.0 * TMath::Pi() / 180.) - rPC6 * TMath::Cos(45. * TMath::Pi() / 180.));
+  YPC6 = YPC5;
+  ZPC6 = ZPC5 + zPC5 / 2 * TMath::Cos(45. * TMath::Pi() / 180.) + rPC6 * TMath::Sin(45. * TMath::Pi() / 180.);
+  p_PC6_2 = new TGeoCombiTrans(XPC6, -YPC6, ZPC6, r_PC6);
+  p_PC6_2->RegisterYourself();
+  //===========
+  zPC7 = 9.8;
+  TGeoVolume* vPCt7_2 = gGeoManager->MakeTube(Form("vPCt7_2_S%d", side), mCu, 0.0, rmaxPC1, zPC7 / 2);
+  XPC7 = XPC6 - signe * rPC6;
+  YPC7 = YPC6;
+  ZPC7 = ZPC6 + zPC7 / 2;
+  p_PC7_2 = new TGeoCombiTrans(XPC7, -YPC7, ZPC7, r_PC7);
+  p_PC7_2->RegisterYourself();
+
+  //===================== third cable ==============================
+  zPC1 = 5.5;
+  TGeoVolume* vPCt1_3 = gGeoManager->MakeTube(Form("vPCt1_3_S%d", side), mCu, 0., rmaxPC1, zPC1 / 2);
+  XPC1 = XPC0 + signe * (14 * rmaxPC1 - 0.3);
+  p_PC1_3 = new TGeoCombiTrans(XPC1, -YPC1, ZPC1, r_PC0);
+  p_PC1_3->RegisterYourself();
+  //===========
+  zPC3 = 2.6;
+  TGeoVolume* vPCt2_3 = gGeoManager->MakeTorus(Form("TorusPCt2_3_S%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  XPC2 = XPC1;
+  p_PC2_3 = new TGeoCombiTrans(XPC2, -YPC2, ZPC2, r_PC2);
+  p_PC2_3->RegisterYourself();
+  //===========
+  TGeoVolume* vPCt3_3 = gGeoManager->MakeTube(Form("vPCt3_3_S%d", side), mCu, 0., rmaxPC1, zPC3 / 2);
+  XPC3 = XPC2;
+  YPC3 = YPC2 - zPC3 / 2;
+  ZPC3 = ZPC2 + rPC2;
+  p_PC3_3 = new TGeoCombiTrans(XPC3, -YPC3, ZPC3, r_PC3);
+  p_PC3_3->RegisterYourself();
+  //===========
+  TGeoVolume* vPCt4_3 = gGeoManager->MakeTorus(Form("TorusPCt4_3_S%d", side), mCu, rPC2, 0., rmaxPC1, 0., 90.);
+  XPC4 = XPC3 - signe * rPC4 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC4 = YPC3 - zPC3 / 2;
+  ZPC4 = ZPC3 + rPC4 * TMath::Cos(45.0 * TMath::Pi() / 180.);
+  p_PC4_3 = new TGeoCombiTrans(XPC4, -YPC4, ZPC4, r_PC4);
+  p_PC4_3->RegisterYourself();
+  //===========
+  zPC5 = 8.1 + 0.3;
+  TGeoVolume* vPCt5_3 = gGeoManager->MakeTube(Form("vPCt5_3_S%d", side), mCu, 0., rmaxPC1, zPC5 / 2);
+  XPC5 = XPC4 - signe * zPC5 / 2 * TMath::Sin(45. * TMath::Pi() / 180.);
+  YPC5 = YPC4 - rPC4;
+  ZPC5 = ZPC4 + zPC5 / 2 * TMath::Cos(45 * TMath::Pi() / 180.);
+  p_PC5_3 = new TGeoCombiTrans(XPC5, -YPC5, ZPC5, r_PC5);
+  p_PC5_3->RegisterYourself();
+  //===========
+  TGeoVolume* vPCt6_3 = gGeoManager->MakeTorus(Form("TorusPCt6_3_S%d", side), mCu, rPC2, 0., rmaxPC1, 45., 45.);
+  XPC6 = XPC5 - signe * (zPC5 / 2 * TMath::Sin(45.0 * TMath::Pi() / 180.) - rPC6 * TMath::Cos(45. * TMath::Pi() / 180.));
+  YPC6 = YPC5;
+  ZPC6 = ZPC5 + zPC5 / 2 * TMath::Cos(45.0 * TMath::Pi() / 180.) + rPC6 * TMath::Sin(45. * TMath::Pi() / 180.);
+  p_PC6_3 = new TGeoCombiTrans(XPC6, -YPC6, ZPC6, r_PC6);
+  p_PC6_3->RegisterYourself();
+  //===========
+  zPC7 = 5.8;
+  TGeoVolume* vPCt7_3 = gGeoManager->MakeTube(Form("vPCt7_3_S%d", side), mCu, 0., rmaxPC1, zPC7 / 2);
+  XPC7 = XPC6 - signe * rPC6;
+  YPC7 = YPC6;
+  ZPC7 = ZPC6 + zPC7 / 2;
+  p_PC7_3 = new TGeoCombiTrans(XPC7, -YPC7, ZPC7, r_PC7);
+  p_PC7_3->RegisterYourself();
+  //==========================================================
+
+  vPCt0->SetLineColor(kBlue);
+  vPCt1_1->SetLineColor(kBlue);
+  vPCt2_1->SetLineColor(kBlue);
+  vPCt3_1->SetLineColor(kBlue);
+  vPCt4_1->SetLineColor(kBlue);
+  vPCt5_1->SetLineColor(kBlue);
+  vPCt6_1->SetLineColor(kBlue);
+  vPCt7_1->SetLineColor(kBlue);
+  vPCt1_2->SetLineColor(kBlue);
+  vPCt2_2->SetLineColor(kBlue);
+  vPCt3_2->SetLineColor(kBlue);
+  vPCt4_2->SetLineColor(kBlue);
+  vPCt5_2->SetLineColor(kBlue);
+  vPCt6_2->SetLineColor(kBlue);
+  vPCt7_2->SetLineColor(kBlue);
+  vPCt1_3->SetLineColor(kBlue);
+  vPCt2_3->SetLineColor(kBlue);
+  vPCt3_3->SetLineColor(kBlue);
+  vPCt4_3->SetLineColor(kBlue);
+  vPCt5_3->SetLineColor(kBlue);
+  vPCt6_3->SetLineColor(kBlue);
+  vPCt7_3->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPCt0, 1, p_PC0);
+  HalfConeVolume->AddNode(vPCt1_1, 1, p_PC1_1);
+  HalfConeVolume->AddNode(vPCt2_1, 1, p_PC2_1);
+  HalfConeVolume->AddNode(vPCt3_1, 1, p_PC3_1);
+  HalfConeVolume->AddNode(vPCt4_1, 1, p_PC4_1);
+  HalfConeVolume->AddNode(vPCt5_1, 1, p_PC5_1);
+  HalfConeVolume->AddNode(vPCt6_1, 1, p_PC6_1);
+  HalfConeVolume->AddNode(vPCt7_1, 1, p_PC7_1);
+  HalfConeVolume->AddNode(vPCt1_2, 1, p_PC1_2);
+  HalfConeVolume->AddNode(vPCt2_2, 1, p_PC2_2);
+  HalfConeVolume->AddNode(vPCt3_2, 1, p_PC3_2);
+  HalfConeVolume->AddNode(vPCt4_2, 1, p_PC4_2);
+  HalfConeVolume->AddNode(vPCt5_2, 1, p_PC5_2);
+  HalfConeVolume->AddNode(vPCt6_2, 1, p_PC6_2);
+  HalfConeVolume->AddNode(vPCt7_2, 1, p_PC7_2);
+  HalfConeVolume->AddNode(vPCt1_3, 1, p_PC1_3);
+  HalfConeVolume->AddNode(vPCt2_3, 1, p_PC2_3);
+  HalfConeVolume->AddNode(vPCt3_3, 1, p_PC3_3);
+  HalfConeVolume->AddNode(vPCt4_3, 1, p_PC4_3);
+  HalfConeVolume->AddNode(vPCt5_3, 1, p_PC5_3);
+  HalfConeVolume->AddNode(vPCt6_3, 1, p_PC6_3);
+  HalfConeVolume->AddNode(vPCt7_3, 1, p_PC7_3);
+
+  // ==================================================
+  // ========= Cables for the 2 latest disks ==========
+  // ==================================================
+  // PSU --> DISK3
+  // one diagonal
+  Double_t xPC_0 = 1.0;    // width
+  Double_t yPC_0 = 0.0836; // thickness
+  Double_t zPC_0 = 5.0;    // length
+  TGeoVolume* vPC_0 = gGeoManager->MakeBox(Form("vPC_0_S%d", side), mCu, xPC_0 / 2, yPC_0 / 2, zPC_0 / 2);
+  auto* r_PC_0 = new TGeoRotation("rotation_PC_0", -45., 0., 0.);
+  r_PC_0->RegisterYourself();
+  Double_t XPC_0 = signe * 19.7;
+  Double_t YPC_0 = signe * 20.0;
+  Double_t ZPC_0 = -71.0;
+  auto* p_PC_0 = new TGeoCombiTrans(XPC_0, YPC_0, ZPC_0, r_PC_0);
+  //===========
+  Double_t xPC_1 = 4.8; // length
+  Double_t yPC_1 = yPC_0;
+  Double_t zPC_1 = xPC_0;
+  TGeoVolume* vPC_1 = gGeoManager->MakeBox(Form("vPC_1_S%d", side), mCu, xPC_1 / 2, yPC_1 / 2, zPC_1 / 2);
+  auto* r_PC_1 = new TGeoRotation("rotation_PC_1", 45., 90., 0.);
+  r_PC_1->RegisterYourself();
+  Double_t XPC_1 = XPC_0 - signe * xPC_1 / 2 * TMath::Cos(45. * TMath::Pi() / 180.);
+  Double_t YPC_1 = YPC_0 - signe * xPC_1 / 2 * TMath::Sin(45. * TMath::Pi() / 180.);
+  Double_t ZPC_1 = ZPC_0 + (zPC_0 + yPC_1) / 2;
+  auto* p_PC_1 = new TGeoCombiTrans(XPC_1, YPC_1, ZPC_1, r_PC_1);
+  //===========
+  vPC_0->SetLineColor(kBlue);
+  vPC_1->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_0, 1, p_PC_0);
+  HalfConeVolume->AddNode(vPC_1, 1, p_PC_1);
+
+  // other diagonal
+  TGeoVolume* vPC_P0 = gGeoManager->MakeBox(Form("vPC_P0_S%d", side), mCu, xPC_0 / 2, yPC_0 / 2, zPC_0 / 2);
+  auto* r_PC_P0 = new TGeoRotation("rotation_PC_P0", 45., 0., 0.);
+  r_PC_P0->RegisterYourself();
+  Double_t XPC_P0 = -signe * 19.7;
+  Double_t YPC_P0 = signe * 20.0;
+  Double_t ZPC_P0 = -71.0;
+  auto* p_PC_P0 = new TGeoCombiTrans(XPC_P0, YPC_P0, ZPC_P0, r_PC_P0);
+  //===========
+  Double_t xPC_P1 = xPC_0;
+  Double_t yPC_P1 = yPC_0;
+  Double_t zPC_P1 = 4.8;
+  TGeoVolume* vPC_P1 = gGeoManager->MakeBox(Form("vPC_P1_S%d", side), mCu, xPC_P1 / 2, yPC_P1 / 2, zPC_P1 / 2);
+  auto* r_PC_P1 = new TGeoRotation("rotation_PC_P1", 45., 90., 0.);
+  r_PC_P1->RegisterYourself();
+  Double_t XPC_P1 = XPC_P0 + signe * zPC_P1 / 2 * TMath::Cos(45 * TMath::Pi() / 180);
+  Double_t YPC_P1 = YPC_P0 - signe * zPC_P1 / 2 * TMath::Sin(45 * TMath::Pi() / 180);
+  Double_t ZPC_P1 = ZPC_P0 + (zPC_0 + yPC_P1) / 2;
+  auto* p_PC_P1 = new TGeoCombiTrans(XPC_P1, YPC_P1, ZPC_P1, r_PC_P1);
+  //===========
+  vPC_P0->SetLineColor(kBlue);
+  vPC_P1->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_P0, 1, p_PC_P0);
+  HalfConeVolume->AddNode(vPC_P1, 1, p_PC_P1);
+
+  // PSU --> DISK4
+  // one diagonal
+  TGeoVolume* vPC_2 = gGeoManager->MakeBox(Form("vPC_2_S%d", side), mCu, xPC_0 / 2, yPC_0 / 2, zPC_0 / 2);
+  auto* r_PC_2 = new TGeoRotation("rotation_PC_2", -39., 0., 0.);
+  r_PC_2->RegisterYourself();
+  Double_t XPC_2 = signe * 17.2;
+  Double_t YPC_2 = signe * 22.0;
+  Double_t ZPC_2 = -74.0;
+  auto* p_PC_2 = new TGeoCombiTrans(XPC_2, YPC_2, ZPC_2, r_PC_2);
+  //===========
+  Double_t xPC_3 = 4.8; // length
+  Double_t yPC_3 = yPC_0;
+  Double_t zPC_3 = xPC_0;
+  TGeoVolume* vPC_3 = gGeoManager->MakeBox(Form("vPC_3_S%d", side), mCu, xPC_3 / 2, yPC_3 / 2, zPC_3 / 2);
+  auto* r_PC_3 = new TGeoRotation("rotation_PC_3", 90. - 39., 90., 0.);
+  r_PC_3->RegisterYourself();
+  Double_t XPC_3 = XPC_2 - signe * xPC_3 / 2 * TMath::Cos((90. - 39.) * TMath::Pi() / 180.);
+  Double_t YPC_3 = YPC_2 - signe * xPC_3 / 2 * TMath::Sin((90. - 39.) * TMath::Pi() / 180.);
+  Double_t ZPC_3 = ZPC_2 - (zPC_0 + yPC_3) / 2;
+  auto* p_PC_3 = new TGeoCombiTrans(XPC_3, YPC_3, ZPC_3, r_PC_3);
+  //===========
+  vPC_2->SetLineColor(kBlue);
+  vPC_3->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_2, 1, p_PC_2);
+  HalfConeVolume->AddNode(vPC_3, 1, p_PC_3);
+
+  // other diagonal
+  TGeoVolume* vPC_P2 = gGeoManager->MakeBox(Form("vPC_P2_S%d", side), mCu, xPC_0 / 2, yPC_0 / 2, zPC_0 / 2);
+  auto* r_PC_P2 = new TGeoRotation("rotation_PC_P2", 39., 0., 0.);
+  r_PC_P2->RegisterYourself();
+  Double_t XPC_P2 = -signe * 17.2;
+  Double_t YPC_P2 = signe * 22.0;
+  Double_t ZPC_P2 = -74.0;
+  auto* p_PC_P2 = new TGeoCombiTrans(XPC_P2, YPC_P2, ZPC_P2, r_PC_P2);
+  //===========
+  Double_t xPC_P3 = xPC_0;
+  Double_t yPC_P3 = yPC_0;
+  Double_t zPC_P3 = 4.8;
+  TGeoVolume* vPC_P3 = gGeoManager->MakeBox(Form("vPC_P3_S%d", side), mCu, xPC_P1 / 2, yPC_P1 / 2, zPC_P1 / 2);
+  auto* r_PC_P3 = new TGeoRotation("rotation_PC_P3", 39., 90., 0.);
+  r_PC_P3->RegisterYourself();
+  Double_t XPC_P3 = XPC_P2 + signe * zPC_P3 / 2 * TMath::Cos((90. - 39.) * TMath::Pi() / 180.);
+  Double_t YPC_P3 = YPC_P2 - signe * zPC_P3 / 2 * TMath::Sin((90. - 39.) * TMath::Pi() / 180.);
+  Double_t ZPC_P3 = ZPC_P2 - (zPC_0 + yPC_P3) / 2;
+  auto* p_PC_P3 = new TGeoCombiTrans(XPC_P3, YPC_P3, ZPC_P3, r_PC_P3);
+  //===========
+  vPC_P2->SetLineColor(kBlue);
+  vPC_P3->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_P2, 1, p_PC_P2);
+  HalfConeVolume->AddNode(vPC_P3, 1, p_PC_P3);
+
+  // Cables for PSU from the patch panel
+  // b :bottom
+  Double_t xPC_PSUb0 = 2.5;    // width
+  Double_t yPC_PSUb0 = 0.0418; // thickness
+  Double_t zPC_PSUb0 = 0.8;    // length
+  // on the PSU connectors
+  TGeoVolume* vPC_PSUb0 = gGeoManager->MakeBox(Form("vPC_PSUb0_S%d", side), mCu, xPC_PSUb0 / 2, yPC_PSUb0 / 2, zPC_PSUb0 / 2);
+  auto* r_PC_PSU = new TGeoRotation("rotation_PC_PSU", -signe * 52., 0., 0.);
+  r_PC_PSU->RegisterYourself();
+  Double_t XPC_PSUb0 = -signe * 22.4;
+  Double_t YPC_PSUb0 = -16.4;
+  Double_t ZPC_PSUb0 = -72.5 + signe * 1.;
+  auto* p_PC_PSU = new TGeoCombiTrans(XPC_PSUb0, YPC_PSUb0, ZPC_PSUb0, r_PC_PSU);
+  vPC_PSUb0->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_PSUb0, 1, p_PC_PSU);
+  //===========
+  Double_t xPC_PSUb1 = 2.1;   // length
+  Double_t yPC_PSUb1 = 0.274; // square side
+  Double_t zPC_PSUb1 = yPC_PSUb1;
+  TGeoVolume* vPC_PSUb1 = gGeoManager->MakeBox(Form("vPC_PSUb1_S%d", side), mCu, xPC_PSUb1 / 2, yPC_PSUb1 / 2, zPC_PSUb1 / 2);
+  r_PC_PSU = new TGeoRotation("rotation_PC_PSU", 90. - signe * 52., 90., 0.);
+  r_PC_PSU->RegisterYourself();
+  Double_t XPC_PSUb1 = XPC_PSUb0 - signe * xPC_PSUb1 / 2 * TMath::Cos((90. - 52.) * TMath::Pi() / 180.);
+  Double_t YPC_PSUb1 = YPC_PSUb0 - xPC_PSUb1 / 2 * TMath::Sin((90. - 52.) * TMath::Pi() / 180.);
+  Double_t ZPC_PSUb1 = ZPC_PSUb0 - zPC_PSUb0 / 2 - yPC_PSUb1 / 2;
+  p_PC_PSU = new TGeoCombiTrans(XPC_PSUb1, YPC_PSUb1, ZPC_PSUb1, r_PC_PSU);
+  vPC_PSUb1->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_PSUb1, 1, p_PC_PSU);
+  //===========
+  Double_t xPC_PSUb2 = yPC_PSUb1;
+  Double_t yPC_PSUb2 = yPC_PSUb1;
+  Double_t zPC_PSUb2 = 11.; // length
+  TGeoVolume* vPC_PSUb2 = gGeoManager->MakeBox(Form("vPC_PSUb0_S%d", side), mCu, xPC_PSUb2 / 2, yPC_PSUb2 / 2, zPC_PSUb2 / 2);
+  r_PC_PSU = new TGeoRotation("rotation_PC_PSU", -signe * 52., 0., 0.);
+  r_PC_PSU->RegisterYourself();
+  Double_t XPC_PSUb2 = -signe * 24.2;
+  Double_t YPC_PSUb2 = -17.8;
+  Double_t ZPC_PSUb2 = ZPC_PSUb0 - zPC_PSUb0 / 2 - zPC_PSUb2 / 2;
+  p_PC_PSU = new TGeoCombiTrans(XPC_PSUb2, YPC_PSUb2, ZPC_PSUb2, r_PC_PSU);
+  vPC_PSUb2->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_PSUb2, 1, p_PC_PSU);
+
+  // t : top
+  TGeoVolume* vPC_PSUt0 = gGeoManager->MakeBox(Form("vPC_PSUt0_S%d", side), mCu, xPC_PSUb0 / 2, yPC_PSUb0 / 2, zPC_PSUb0 / 2);
+  r_PC_PSU = new TGeoRotation("rotation_PC_PSU", signe * 52., 0., 0.);
+  r_PC_PSU->RegisterYourself();
+  Double_t XPC_PSUt0 = -signe * 22.4;
+  Double_t YPC_PSUt0 = 16.4;
+  Double_t ZPC_PSUt0 = -72.5 - signe * 1.;
+  p_PC_PSU = new TGeoCombiTrans(XPC_PSUt0, YPC_PSUt0, ZPC_PSUt0, r_PC_PSU);
+  vPC_PSUt0->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_PSUt0, 1, p_PC_PSU);
+  //===========
+  TGeoVolume* vPC_PSUt1 = gGeoManager->MakeBox(Form("vPC_PSUt1_S%d", side), mCu, xPC_PSUb1 / 2, yPC_PSUb1 / 2, zPC_PSUb1 / 2);
+  r_PC_PSU = new TGeoRotation("rotation_PC_PSU", -(90.0 - signe * 52.0), 90., 0.);
+  r_PC_PSU->RegisterYourself();
+  Double_t XPC_PSUt1 = XPC_PSUt0 - signe * xPC_PSUb1 / 2 * TMath::Cos((90. - 52.) * TMath::Pi() / 180);
+  Double_t YPC_PSUt1 = YPC_PSUt0 + xPC_PSUb1 / 2 * TMath::Sin((90. - 52.) * TMath::Pi() / 180.);
+  Double_t ZPC_PSUt1 = ZPC_PSUt0 - zPC_PSUb0 / 2 - yPC_PSUb1 / 2;
+  p_PC_PSU = new TGeoCombiTrans(XPC_PSUt1, YPC_PSUt1, ZPC_PSUt1, r_PC_PSU);
+  vPC_PSUt1->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_PSUt1, 1, p_PC_PSU);
+  //===========
+  TGeoVolume* vPC_PSUt2 = gGeoManager->MakeBox(Form("vPC_PSUt0_S%d", side), mCu, xPC_PSUb2 / 2, yPC_PSUb2 / 2, zPC_PSUb2 / 2);
+  r_PC_PSU = new TGeoRotation("rotation_PC_PSU", signe * 52., 0., 0.);
+  r_PC_PSU->RegisterYourself();
+  Double_t XPC_PSUt2 = XPC_PSUb2;
+  Double_t YPC_PSUt2 = -YPC_PSUb2;
+  Double_t ZPC_PSUt2 = ZPC_PSUt0 - zPC_PSUb0 / 2 - zPC_PSUb2 / 2;
+  p_PC_PSU = new TGeoCombiTrans(XPC_PSUt2, YPC_PSUt2, ZPC_PSUt2, r_PC_PSU);
+  vPC_PSUt2->SetLineColor(kBlue);
+  HalfConeVolume->AddNode(vPC_PSUt2, 1, p_PC_PSU);
 }

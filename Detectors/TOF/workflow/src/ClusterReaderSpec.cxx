@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "TOFWorkflowUtils/ClusterReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -28,7 +29,8 @@ namespace tof
 void ClusterReader::init(InitContext& ic)
 {
   LOG(INFO) << "Init Cluster reader!";
-  mFileName = ic.options().get<std::string>("tof-cluster-infile");
+  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>("tof-cluster-infile"));
   connectTree(mFileName);
 }
 
@@ -78,7 +80,8 @@ DataProcessorSpec getClusterReaderSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<ClusterReader>(useMC)},
     Options{
-      {"tof-cluster-infile", VariantType::String, "tofclusters.root", {"Name of the input file"}}}};
+      {"tof-cluster-infile", VariantType::String, "tofclusters.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace tof

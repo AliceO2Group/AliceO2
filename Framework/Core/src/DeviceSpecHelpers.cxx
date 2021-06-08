@@ -51,14 +51,20 @@ namespace o2::framework
 
 namespace detail
 {
-void timer_callback(uv_timer_t*)
+void timer_callback(uv_timer_t* handle)
 {
   // We simply wake up the event loop. Nothing to be done here.
+  DeviceState* state = (DeviceState*)handle->data;
+  state->loopReason |= DeviceState::TIMER_EXPIRED;
+  state->loopReason |= DeviceState::DATA_INCOMING;
 }
 
-void signal_callback(uv_signal_t*, int)
+void signal_callback(uv_signal_t* handle, int)
 {
   // We simply wake up the event loop. Nothing to be done here.
+  DeviceState* state = (DeviceState*)handle->data;
+  state->loopReason |= DeviceState::SIGNAL_ARRIVED;
+  state->loopReason |= DeviceState::DATA_INCOMING;
 }
 } // namespace detail
 
@@ -77,6 +83,7 @@ struct ExpirationHandlerHelpers {
       // timeslot creation and record expiration still happens
       // in a synchronous way.
       uv_timer_t* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
+      timer->data = &state;
       uv_timer_init(state.loop, timer);
       uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
       state.activeTimers.push_back(timer);
@@ -99,6 +106,7 @@ struct ExpirationHandlerHelpers {
       // in a synchronous way.
       uv_signal_t* sh = (uv_signal_t*)(malloc(sizeof(uv_signal_t)));
       uv_signal_init(state.loop, sh);
+      sh->data = &state;
       uv_signal_start(sh, detail::signal_callback, SIGUSR1);
       state.activeSignals.push_back(sh);
 
@@ -177,7 +185,10 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Timers must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) { return LifetimeHelpers::enumerate(matcher, sourceChannel); };
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      // Timers do not have any orbit associated to them
+      return LifetimeHelpers::enumerate(matcher, sourceChannel, 0, 0);
+    };
   }
 
   static RouteConfigurator::ExpirationConfigurator expiringEnumerationConfigurator(InputSpec const& spec, std::string const& sourceChannel)
@@ -187,8 +198,10 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
-      return LifetimeHelpers::enumerate(matcher, sourceChannel);
+    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      size_t orbitOffset = config.get<int64_t>("orbit-offset-enumeration");
+      size_t orbitMultiplier = config.get<int64_t>("orbit-multiplier-enumeration");
+      return LifetimeHelpers::enumerate(matcher, sourceChannel, orbitOffset, orbitMultiplier);
     };
   }
 
@@ -222,17 +235,17 @@ struct ExpirationHandlerHelpers {
   {
     try {
       ConcreteDataMatcher concrete = DataSpecUtils::asConcreteDataMatcher(spec);
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
     } catch (...) {
       ConcreteDataTypeMatcher dataType = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       ConcreteDataMatcher concrete{dataType.origin, dataType.description, 0xdeadbeef};
-      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const&) {
+      return [concrete, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
         return LifetimeHelpers::dummy(concrete, sourceChannel);
       };
+      // We copy the matcher to avoid lifetime issues.
     }
-    // We copy the matcher to avoid lifetime issues.
   }
 };
 
@@ -327,6 +340,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     device.inputTimesliceId = edge.producerTimeIndex;
     device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
+    device.labels = processor.labels;
     devices.push_back(device);
     return devices.size() - 1;
   };
@@ -538,6 +552,7 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
     device.inputTimesliceId = edge.timeIndex;
     device.maxInputTimeslices = processor.maxInputTimeslices;
     device.resource = {acceptedOffer};
+    device.labels = processor.labels;
 
     // FIXME: maybe I should use an std::map in the end
     //        but this is really not performance critical
@@ -724,6 +739,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::vector<ChannelConfigurationPolicy> const& channelPolicies,
                                                        std::vector<CompletionPolicy> const& completionPolicies,
                                                        std::vector<DispatchPolicy> const& dispatchPolicies,
+                                                       std::vector<ResourcePolicy> const& resourcePolicies,
                                                        std::vector<DeviceSpec>& devices,
                                                        ResourceManager& resourceManager,
                                                        std::string const& uniqueWorkflowId,
@@ -802,6 +818,17 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
         device.dispatchPolicy = policy;
         break;
       }
+    }
+    bool hasPolicy = false;
+    for (auto& policy : resourcePolicies) {
+      if (policy.matcher(device) == true) {
+        device.resourcePolicy = policy;
+        hasPolicy = true;
+        break;
+      }
+    }
+    if (hasPolicy == false) {
+      throw runtime_error_f("Unable to find a resource policy for %s", device.id.c_str());
     }
   }
 
@@ -1106,6 +1133,19 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       haveSessionArg = haveSessionArg || varmap.count("session") != 0;
       useDefaultWS = useDefaultWS && ((varmap.count("driver-client-backend") == 0) || varmap["driver-client-backend"].as<std::string>() == "ws://");
 
+      auto processRawChannelConfig = [&tmpArgs](const std::string& conf) {
+        std::stringstream ss(conf);
+        std::string token;
+        while (std::getline(ss, token, ';')) { // split to tokens, trim spaces and add each non-empty one with channel-config options
+          token.erase(token.begin(), std::find_if(token.begin(), token.end(), [](int ch) { return !std::isspace(ch); }));
+          token.erase(std::find_if(token.rbegin(), token.rend(), [](int ch) { return !std::isspace(ch); }).base(), token.end());
+          if (!token.empty()) {
+            tmpArgs.emplace_back("--channel-config");
+            tmpArgs.emplace_back(token);
+          }
+        }
+      };
+
       for (const auto varit : varmap) {
         // find the option belonging to key, add if the option has been parsed
         // and is not defaulted
@@ -1121,10 +1161,14 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
             assert(semantic->min_tokens() <= 1);
             //assert(semantic->max_tokens() && semantic->min_tokens());
             if (semantic->min_tokens() > 0) {
-              tmpArgs.emplace_back("--");
-              tmpArgs.back() += varit.first;
-              // add the token
-              tmpArgs.emplace_back(varit.second.as<std::string>());
+              if (varit.first == "channel-config") {
+                processRawChannelConfig(varit.second.as<std::string>());
+              } else {
+                tmpArgs.emplace_back("--");
+                tmpArgs.back() += varit.first;
+                // add the token
+                tmpArgs.emplace_back(varit.second.as<std::string>());
+              }
               optarg = tmpArgs.back().c_str();
             } else if (semantic->min_tokens() == 0 && varit.second.as<bool>()) {
               tmpArgs.emplace_back("--");
@@ -1224,7 +1268,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("configuration,cfg", bpo::value<std::string>(), "configuration connection string")                                                       //
     ("driver-client-backend", bpo::value<std::string>(), "driver connection string")                                                          //
     ("monitoring-backend", bpo::value<std::string>(), "monitoring connection string")                                                         //
-    ("infologger-mode", bpo::value<std::string>(), "INFOLOGGER_MODE override")                                                                //
+    ("infologger-mode", bpo::value<std::string>(), "O2_INFOLOGGER_MODE override")                                                             //
     ("infologger-severity", bpo::value<std::string>(), "minimun FairLogger severity which goes to info logger")                               //
     ("child-driver", bpo::value<std::string>(), "external driver to start childs with (e.g. valgrind)");                                      //
 

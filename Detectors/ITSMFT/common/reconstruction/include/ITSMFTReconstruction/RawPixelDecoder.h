@@ -54,7 +54,7 @@ class RawPixelDecoder final : public PixelReader
   void init() final {}
   bool getNextChipData(ChipPixelData& chipData) final;
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;
-
+  void ensureChipOrdering() {}
   void startNewTF(o2::framework::InputRecord& inputs);
 
   int decodeNextTrigger() final;
@@ -85,7 +85,7 @@ class RawPixelDecoder final : public PixelReader
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
 
-  void printReport(bool decstat = false, bool skipEmpty = true) const;
+  void printReport(bool decstat = true, bool skipNoErr = true) const;
 
   void clearStat();
 
@@ -114,6 +114,7 @@ class RawPixelDecoder final : public PixelReader
   std::unordered_map<uint32_t, LinkEntry> mSubsSpec2LinkID; // link subspec to link entry in the pool mapping
   std::vector<RUDecodeData> mRUDecodeVec;                   // set of active RUs
   std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
+  std::vector<ChipPixelData*> mOrderedChipsPtr;             // special ordering helper used for the MFT (its chipID is not contiguous in RU)
   std::string mSelfName;                        // self name
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
   header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick

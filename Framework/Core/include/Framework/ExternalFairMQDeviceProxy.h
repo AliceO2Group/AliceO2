@@ -24,6 +24,7 @@ namespace o2::framework
 /// messages of the specified OutputSpec
 using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
 using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
+using ChannelSelector = std::function<std::string(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)>;
 
 struct InputChannelSpec;
 struct OutputChannelSpec;
@@ -64,6 +65,9 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs = {{header
 /// The default connection method for the custom source
 static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);
 
+/// Default way to select an output channel for multi-output proxy.
+std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels);
+
 /// Create a DataProcessorSpec which can be used to inject
 /// messages in the DPL.
 /// @param label is the label of the DataProcessorSpec associated and name of the input channel.
@@ -103,7 +107,8 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
 ///        name tag is not yet in the configuration
 DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* label,
                                                       Inputs const& inputSpecs,
-                                                      const char* defaultChannelConfig);
+                                                      const char* defaultChannelConfig,
+                                                      ChannelSelector channelSelector = defaultOutputProxyChannelSelector);
 
 } // namespace o2
 

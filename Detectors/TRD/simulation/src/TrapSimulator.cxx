@@ -28,7 +28,7 @@
 #include "fairlogger/Logger.h"
 
 //to pull in the digitzer incomnig data.
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "TRDSimulation/Digitizer.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
@@ -107,6 +107,7 @@ void TrapSimulator::reset()
   //clear the adc data
   std::fill(mADCR.begin(), mADCR.end(), 0);
   std::fill(mADCF.begin(), mADCF.end(), 0);
+  std::fill(mADCDigitIndices.begin(), mADCDigitIndices.end(), -1);
 
   for (auto filterreg : mInternalFilterRegisters) {
     filterreg.ClearReg();
@@ -988,7 +989,7 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
   }
 
   // Produce ADC mask : nncc cccm mmmm mmmm mmmm mmmm mmmm 1100
-  // 				n : unused , c : ADC count, m : selected ADCs
+  // n : unused , c : ADC count, m : selected ADCs
   if (rawVer >= 3 &&
       (mTrapConfig->getTrapReg(TrapConfig::kC15CPUA, mDetector, mRobPos, mMcmPos) & (1 << 13))) { // check for zs flag in TRAP configuration
     int nActiveADC = 0;                                                                           // number numberOverFlowWordsWritten activated ADC bits in a word
@@ -2069,7 +2070,8 @@ void TrapSimulator::fitTracklet()
         }
         bool printoutadcs = false;
         for (int i = 0; i < 21; i++) {
-          if (adchitbp & (1U << i)) {
+          // FIXME it can happen that there is a hit found in a channel where there is no digit provided as input. Is this expected?
+          if ((adchitbp & (1U << i)) && (mADCDigitIndices[i] >= 0)) {
             mTrackletDigitCount.back() += 1;
             mTrackletDigitIndices.push_back(mADCDigitIndices[i]);
           }

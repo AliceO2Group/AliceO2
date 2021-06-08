@@ -13,6 +13,7 @@
 /// @brief  detector ids, masks, names class implementation
 
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "CommonUtils/StringUtils.h"
 #include <cassert>
 #include <string>
 #include "FairLogger.h"
@@ -22,11 +23,10 @@ using namespace o2::detectors;
 ClassImp(o2::detectors::DetID);
 
 constexpr const char* DetID::sDetNames[DetID::nDetectors + 1];
-constexpr std::array<DetID::mask_t, DetID::nDetectors> DetID::sMasks;
 
 // redundant declarations
 constexpr DetID::ID DetID::ITS, DetID::TPC, DetID::TRD, DetID::TOF, DetID::PHS, DetID::CPV, DetID::EMC,
-  DetID::HMP, DetID::MFT, DetID::MCH, DetID::MID, DetID::ZDC, DetID::FT0, DetID::FV0, DetID::FDD, DetID::ACO, DetID::First, DetID::Last;
+  DetID::HMP, DetID::MFT, DetID::MCH, DetID::MID, DetID::ZDC, DetID::FT0, DetID::FV0, DetID::FDD, DetID::ACO, DetID::CTP, DetID::First, DetID::Last;
 
 #ifdef ENABLE_UPGRADES
 constexpr DetID::ID DetID::IT3;
@@ -45,22 +45,18 @@ DetID::mask_t DetID::getMask(const std::string_view detList)
     return mask;
   }
   if (ss.find(ALL) != std::string::npos) {
-    mask.set();
+    mask = FullMask;
     return mask;
   }
   std::replace(ss.begin(), ss.end(), ' ', ',');
-  std::stringstream sss(ss);
-  while (getline(sss, sname, ',')) {
-    for (auto id = DetID::First; id <= DetID::Last; id++) {
-      if (sname == getName(id)) {
-        mask.set(id);
-        sname = "";
-        break;
-      }
+  std::replace(ss.begin(), ss.end(), ';', ',');
+  auto dv = o2::utils::Str::tokenize(ss, ',');
+  for (auto& dname : dv) {
+    auto id = nameToID(dname.c_str());
+    if (id < 0) {
+      throw std::runtime_error(fmt::format("Wrong entry {:s} in detectors list {:s}", dname, detList));
     }
-    if (!sname.empty()) {
-      throw std::runtime_error(fmt::format("Wrong entry {:s} in detectors list {:s}", sname, detList));
-    }
+    mask |= 0x1u << id;
   }
   return mask;
 }

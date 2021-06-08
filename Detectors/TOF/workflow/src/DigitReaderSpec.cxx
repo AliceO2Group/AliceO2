@@ -19,6 +19,7 @@
 #include "Framework/Logger.h"
 #include "TOFWorkflowUtils/DigitReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::tof;
@@ -31,7 +32,8 @@ namespace tof
 void DigitReader::init(InitContext& ic)
 {
   LOG(INFO) << "Init Digit reader!";
-  auto filename = ic.options().get<std::string>("tof-digit-infile");
+  auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                ic.options().get<std::string>("tof-digit-infile"));
   mFile = std::make_unique<TFile>(filename.c_str(), "OLD");
   if (!mFile->IsOpen()) {
     LOG(ERROR) << "Cannot open the " << filename.c_str() << " file !";
@@ -103,7 +105,8 @@ DataProcessorSpec getDigitReaderSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<DigitReader>(useMC)},
     Options{
-      {"tof-digit-infile", VariantType::String, "tofdigits.root", {"Name of the input file"}}}};
+      {"tof-digit-infile", VariantType::String, "tofdigits.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace tof

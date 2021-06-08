@@ -59,6 +59,10 @@ class CTFCoderBase
   template <typename S>
   void createCoder(OpType op, const o2::rans::FrequencyTable& freq, uint8_t probabilityBits, int slot)
   {
+    if (!freq.size()) {
+      LOG(WARNING) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
+    }
+
     switch (op) {
       case OpType::Encoder:
         mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(freq, probabilityBits));
@@ -77,7 +81,7 @@ class CTFCoderBase
   }
 
  protected:
-  std::string getPrefix() const { return o2::utils::concat_string(mDet.getName(), "_CTF: "); }
+  std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
 
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;

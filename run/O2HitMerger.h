@@ -62,6 +62,9 @@
 #include <vector>
 #include <csignal>
 #include <mutex>
+#include <filesystem>
+
+#include "SimPublishChannelHelper.h"
 
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
@@ -98,6 +101,8 @@ class O2HitMerger : public FairMQDevice
   O2HitMerger()
   {
     mTimer.Start();
+    mInitialOutputDir = std::filesystem::current_path().string();
+    mCurrentOutputDir = mInitialOutputDir;
   }
 
   /// Default destructor
@@ -114,23 +119,30 @@ class O2HitMerger : public FairMQDevice
   /// Overloads the InitTask() method of FairMQDevice
   void InitTask() final
   {
-    signal(SIGSEGV, sighandler);
+    LOG(INFO) << "INIT HIT MERGER";
+    // signal(SIGSEGV, sighandler);
     ROOT::EnableThreadSafety();
 
     std::string outfilename("o2sim_merged_hits.root"); // default name
     // query the sim config ... which is used to extract the filenames
-    if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("primary-get").at(0))) {
+    if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("o2sim-primserv-info").at(0))) {
       outfilename = o2::base::NameConf::getMCKinematicsFileName(o2::conf::SimConfig::Instance().getOutPrefix().c_str());
       mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
     }
+    mAsService = o2::conf::SimConfig::Instance().asService();
+
     mOutFileName = outfilename.c_str();
     mOutFile = new TFile(outfilename.c_str(), "RECREATE");
     mOutTree = new TTree("o2sim", "o2sim");
     mOutTree->SetDirectory(mOutFile);
 
-    initDetInstances();
-    // has to be after init of Detectors
-    o2::utils::ShmManager::Instance().attachToGlobalSegment();
+    // detectors init only once
+    if (mDetectorInstances.size() == 0) {
+      initDetInstances();
+      // has to be after init of Detectors
+      o2::utils::ShmManager::Instance().attachToGlobalSegment();
+      initHitFiles(o2::conf::SimConfig::Instance().getOutPrefix());
+    }
 
     // init pipe
     auto pipeenv = getenv("ALICE_O2SIMMERGERTODRIVER_PIPE");
@@ -142,11 +154,76 @@ class O2HitMerger : public FairMQDevice
     }
 
     // if no data to expect we shut down the device NOW since it would otherwise hang
-    // (because we use OnData and would never receive anything)
     if (mNExpectedEvents == 0) {
-      LOG(INFO) << "NOT EXPECTING ANY DATA; SHUTTING DOWN";
-      raise(SIGINT);
+      if (mAsService) {
+        waitForControlInput();
+      } else {
+        LOG(INFO) << "NOT EXPECTING ANY DATA; SHUTTING DOWN";
+        raise(SIGINT);
+      }
     }
+  }
+
+  bool setWorkingDirectory(std::string const& dir)
+  {
+    namespace fs = std::filesystem;
+
+    // sets the output directory where simulation files are produced
+    // and creates it when it doesn't exist already
+
+    // 2 possibilities:
+    // a) dir is relative dir. Then we interpret it as relative to the initial
+    //    base directory
+    // b) or dir is itself absolut.
+    try {
+      fs::current_path(fs::path(mInitialOutputDir)); // <--- to make sure relative start is always the same
+      if (!dir.empty()) {
+        auto absolutePath = fs::absolute(fs::path(dir));
+        if (!fs::exists(absolutePath)) {
+          if (!fs::create_directory(absolutePath)) {
+            LOG(ERROR) << "Could not create directory " << absolutePath.string();
+            return false;
+          }
+        }
+        // set the current path
+        fs::current_path(absolutePath.string().c_str());
+        mCurrentOutputDir = fs::current_path().string();
+      }
+      LOG(INFO) << "FINAL PATH " << mCurrentOutputDir;
+    } catch (std::exception e) {
+      LOG(ERROR) << " could not change path to " << dir;
+    }
+    return true;
+  }
+
+  // function for intermediate/on-the-fly reinitializations
+  bool ReInit(o2::conf::SimReconfigData const& reconfig)
+  {
+    if (reconfig.stop) {
+      return false;
+    }
+    if (!setWorkingDirectory(reconfig.outputDir)) {
+      return false;
+    }
+
+    std::string outfilename("o2sim_merged_hits.root"); // default name
+    outfilename = o2::base::NameConf::getMCKinematicsFileName(reconfig.outputPrefix);
+    mNExpectedEvents = reconfig.nEvents;
+    mOutFileName = outfilename.c_str();
+    mOutFile = new TFile(outfilename.c_str(), "RECREATE");
+    mOutTree = new TTree("o2sim", "o2sim");
+    mOutTree->SetDirectory(mOutFile);
+
+    // reinit detectorInstance files (also make sure they are closed before continuing)
+    initHitFiles(reconfig.outputPrefix);
+
+    // clear "counter" datastructures
+    mPartsCheckSum.clear();
+    mEventToTTreeMap.clear();
+    mEventToTMemFileMap.clear();
+    mEntries = 0;
+    mEventChecksum = 0;
+    return true;
   }
 
   template <typename T, typename V>
@@ -238,6 +315,35 @@ class O2HitMerger : public FairMQDevice
     fillBranch(info.eventID, "MCEventHeader.", headerptr);
   }
 
+  bool waitForControlInput()
+  {
+    o2::simpubsub::publishMessage(fChannels["merger-notifications"].at(0), o2::simpubsub::simStatusString("MERGER", "STATUS", "AWAITING INPUT"));
+
+    auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+    auto channel = FairMQChannel{"o2sim-control", "sub", factory};
+    auto controlsocketname = getenv("ALICE_O2SIMCONTROL");
+    LOG(INFO) << "SOCKETNAME " << controlsocketname;
+    channel.Connect(std::string(controlsocketname));
+    channel.Validate();
+    std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
+
+    LOG(INFO) << "WAITING FOR INPUT";
+    if (channel.Receive(reply) > 0) {
+      auto data = reply->GetData();
+      auto size = reply->GetSize();
+
+      std::string command(reinterpret_cast<char const*>(data), size);
+      LOG(INFO) << "message: " << command;
+
+      o2::conf::SimReconfigData reconfig;
+      o2::conf::parseSimReconfigFromString(command, reconfig);
+      return ReInit(reconfig);
+    } else {
+      LOG(INFO) << "NOTHING RECEIVED";
+    }
+    return true;
+  }
+
   bool ConditionalRun() override
   {
     auto& channel = fChannels.at("simdata").at(0);
@@ -247,7 +353,14 @@ class O2HitMerger : public FairMQDevice
       LOG(ERROR) << "Some error occurred on socket during receive on sim data";
       return true; // keep going
     }
-    return handleSimData(request, 0);
+    auto more = handleSimData(request, 0);
+    if (!more && mAsService) {
+      LOG(INFO) << " CONTROL ";
+      // if we are done treating data we may go back to init phase
+      // for the next batch
+      return waitForControlInput();
+    }
+    return more;
   }
 
   bool handleSimData(FairMQParts& data, int /*index*/)
@@ -305,7 +418,7 @@ class O2HitMerger : public FairMQDevice
     }
     if (!expectmore) {
       // somehow FairMQ has difficulties shutting down; helping manually
-      raise(SIGINT);
+      // raise(SIGINT);
     }
     return expectmore;
   }
@@ -512,14 +625,15 @@ class O2HitMerger : public FairMQDevice
     delete targetdata;
   }
 
-  void initHitTreeAndOutFile(int detID)
+  void initHitTreeAndOutFile(std::string prefix, int detID)
   {
     using o2::detectors::DetID;
     if (mDetectorOutFiles[detID]) {
-      LOG(WARN) << "Hit outfile for detID " << DetID::getName(detID) << " already initialized";
-      return;
+      LOG(WARN) << "Hit outfile for detID " << DetID::getName(detID) << " already initialized --> Reopening";
+      mDetectorOutFiles[detID]->Close();
+      delete mDetectorOutFiles[detID];
     }
-    std::string name(o2::base::NameConf::getHitsFileName(detID, o2::conf::SimConfig::Instance().getOutPrefix().c_str()));
+    std::string name(o2::base::NameConf::getHitsFileName(detID, prefix));
     mDetectorOutFiles[detID] = new TFile(name.c_str(), "RECREATE");
     mDetectorToTTreeMap[detID] = new TTree("o2sim", "o2sim");
     mDetectorToTTreeMap[detID]->SetDirectory(mDetectorOutFiles[detID]);
@@ -652,13 +766,43 @@ class O2HitMerger : public FairMQDevice
   int mNExpectedEvents = 0; //! number of events that we expect to receive
   TStopwatch mTimer;
 
+  bool mAsService = false; //! if run in deamonized mode
+
   int mPipeToDriver = -1;
 
-  std::vector<std::unique_ptr<o2::base::Detector>> mDetectorInstances;
+  std::vector<std::unique_ptr<o2::base::Detector>> mDetectorInstances; //!
+
+  // output folder configuration
+  std::string mInitialOutputDir; // initial output folder of the process (initialized during construction)
+  std::string mCurrentOutputDir; // current output folder asked
+
+  // channel to PUB status messages to outside subscribers
+  FairMQChannel mPubChannel;
 
   // init detector instances
   void initDetInstances();
+  void initHitFiles(std::string prefix);
 };
+
+void O2HitMerger::initHitFiles(std::string prefix)
+{
+  using o2::detectors::DetID;
+
+  // a little helper lambda
+  auto isActivated = [](std::string s) -> bool {
+    // access user configuration for list of wanted modules
+    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    auto active = std::find(modulelist.begin(), modulelist.end(), s) != modulelist.end();
+    return active; };
+
+  for (int i = DetID::First; i <= DetID::Last; ++i) {
+    if (!isActivated(DetID::getName(i))) {
+      continue;
+    }
+    // init the detector specific output files
+    initHitTreeAndOutFile(prefix, i);
+  }
+}
 
 // init detector instances used to write hit data to a TTree
 void O2HitMerger::initDetInstances()
@@ -755,8 +899,6 @@ void O2HitMerger::initDetInstances()
       counter++;
     }
 #endif
-    // init the detector specific output files
-    initHitTreeAndOutFile(i);
   }
   if (counter != DetID::nDetectors) {
     LOG(WARNING) << " O2HitMerger: Some Detectors are potentially missing in this initialization ";

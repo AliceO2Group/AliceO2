@@ -10,29 +10,50 @@
 
 #include "Framework/HistogramRegistry.h"
 #include <regex>
+#include <TList.h>
 
 namespace o2::framework
 {
 
-// define histogram callbacks for runtime histogram creation
-#define CALLB(HType)                                            \
-  {                                                             \
-    k##HType,                                                   \
-      [](HistogramSpec const& histSpec) {                       \
-        return HistFactory::createHistVariant<HType>(histSpec); \
-      }                                                         \
+constexpr HistogramRegistry::HistName::HistName(char const* const name)
+  : str(name),
+    hash(compile_time_hash(name)),
+    idx(hash & REGISTRY_BITMASK)
+{
+}
+
+HistogramRegistry::HistogramRegistry(char const* const name, std::vector<HistogramSpec> histSpecs, OutputObjHandlingPolicy policy, bool sortHistos, bool createRegistryDir)
+  : mName(name), mPolicy(policy), mRegistryKey(), mRegistryValue(), mSortHistos(sortHistos), mCreateRegistryDir(createRegistryDir)
+{
+  mRegistryKey.fill(0u);
+  for (auto& histSpec : histSpecs) {
+    insert(histSpec);
   }
+}
 
-const std::map<HistType, std::function<HistPtr(const HistogramSpec&)>> HistFactory::HistogramCreationCallbacks{
-  CALLB(TH1D), CALLB(TH1F), CALLB(TH1I), CALLB(TH1C), CALLB(TH1S),
-  CALLB(TH2D), CALLB(TH2F), CALLB(TH2I), CALLB(TH2C), CALLB(TH2S),
-  CALLB(TH3D), CALLB(TH3F), CALLB(TH3I), CALLB(TH3C), CALLB(TH3S),
-  CALLB(THnD), CALLB(THnF), CALLB(THnI), CALLB(THnC), CALLB(THnS), CALLB(THnL),
-  CALLB(THnSparseD), CALLB(THnSparseF), CALLB(THnSparseI), CALLB(THnSparseC), CALLB(THnSparseS), CALLB(THnSparseL),
-  CALLB(TProfile), CALLB(TProfile2D), CALLB(TProfile3D),
-  CALLB(StepTHnF), CALLB(StepTHnD)};
+// return the OutputSpec associated to the HistogramRegistry
+OutputSpec const HistogramRegistry::spec()
+{
+  header::DataDescription desc{};
+  auto lhash = compile_time_hash(mName.data());
+  std::memset(desc.str, '_', 16);
+  std::stringstream s;
+  s << std::hex << lhash;
+  s << std::hex << mTaskHash;
+  s << std::hex << reinterpret_cast<uint64_t>(this);
+  std::memcpy(desc.str, s.str().data(), 12);
+  return OutputSpec{OutputLabel{mName}, "ATSK", desc, 0};
+}
 
-#undef CALLB
+OutputRef HistogramRegistry::ref()
+{
+  return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash}}};
+}
+
+void HistogramRegistry::setHash(uint32_t hash)
+{
+  mTaskHash = hash;
+}
 
 // create histogram from specification and insert it into the registry
 void HistogramRegistry::insert(const HistogramSpec& histSpec)
@@ -193,8 +214,19 @@ void HistogramRegistry::print(bool showAxisDetails)
         } else if constexpr (std::is_base_of_v<TH1, T>) {
           nDim = hist->GetDimension();
         }
+        TAxis* axis{nullptr};
         for (int d = 0; d < nDim; ++d) {
-          TAxis* axis = HistFactory::getAxis(d, hist);
+          if constexpr (std::is_base_of_v<THnBase, T> || std::is_base_of_v<StepTHn, T>) {
+            axis = hist->GetAxis(d);
+          } else {
+            if (d == 0) {
+              axis = hist->GetXaxis();
+            } else if (d == 1) {
+              axis = hist->GetYaxis();
+            } else if (d == 2) {
+              axis = hist->GetZaxis();
+            }
+          }
           LOGF(INFO, "- Axis %d: %-20s (%d bins)", d, axis->GetTitle(), axis->GetNbins());
         }
       }

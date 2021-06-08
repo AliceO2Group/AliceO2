@@ -11,7 +11,7 @@ Local example workflow with local CCDB (running on port 8080) :
 This will read the list of DPs to be associated to TOF from CCDB (remove
 `--use-ccdb-to-configure` if you don't want this, but use hardcoded
 aliases. You can specify the path of CCDB also with `--ccdb-path`.
-YOu can also specify to run in verbose mode (`--use-verbose-mode`)
+You can also specify to run in verbose mode (`--use-verbose-mode`)
 
 ```shell
 o2-calibration-tof-dcs-sim-workflow --max-timeframes 3 --delta-fraction 0.5 -b |
@@ -24,6 +24,23 @@ To populate locally a DCS entry for the configuration, run the:
 
 macro.
 
+Detailed explanation of the command above:
+
+1. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/testWorkflow/tof-dcs-sim-workflow.cxx --> executable to generate the TOF DCS DPs
+
+1. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/DCS/testWorkflow/src/DCSRandomDataGeneratorSpec.cxx --> data processor executed by the "tof-dcs-sim-workflow.cxx" above (see 1); it is defined with the list of aliases and the name of the detector; it will take care of generating randomly the data points, and send them wither as a Full Buffer Image (FBI, see code, for the full list of data points), or as a "delta" (containing only the values of the DPs that changed)
+
+1. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/testWorkflow/tof-dcs-data-workflow.cxx --> executable to trigger the DCS processing;
+
+1. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/testWorkflow/TOFDCSDataProcessorSpec.h --> data processor executed by the above "tof-dcs-data-workflow.cxx" (see 3); its input is the block of DCS data subscribed by TOF, the output is the CCDB payload and information. In between, "TOFDCSProcessor.cxx" is used (see 5).
+
+1. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/src/TOFDCSProcessor.cxx --> this is the core of the processing, which is detector dependent; it iw what will run at every new "packet" of data, and it will create the object to be sent to the CCDB;
+
+1. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/Calibration/workflow/ccdb-populator-workflow.cxx --> executable (service in common to everything that populates the CCDB) that fills the CCDB from the payload and info created in 5.
+
+When all is tested locally, the central simulation in DCS can be done, and the procedure can be tested centrally with the "dcs-proxy" (not for development, see https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/DCS/testWorkflow/src/dcs-proxy.cxx).
+
+The definition per detector of the DPs that it has to subscribe to should be stored in CCDB, see e.g. https://github.com/AliceO2Group/AliceO2/blob/dev/Detectors/TOF/calibration/macros/makeTOFCCDBEntryForDCS.C.
 
 ## LHC phase:
 
@@ -90,6 +107,12 @@ o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-nor
 
 # Term.3: will produce TFs [16:23], [40:47], [64:71] ...
 o2-calibration-data-generator-workflow --lanes 8 --max-timeframes 5000 --gen-norm 3 --gen-slot 2
+```
+
+* To run the calibration with cosmics:
+
+```shell
+o2-tof-cluscal-reader-workflow -b   | o2-calibration-tof-calib-workflow -b --cosmics --do-channel-offset --min-entries 50 --update-interval 10000
 ```
 
 ## TimeSlewing:

@@ -32,7 +32,7 @@ EntropyEncoderSpec::EntropyEncoderSpec()
 
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("tof-ctf-dictionary");
+  std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
   }
@@ -74,7 +74,7 @@ DataProcessorSpec getEntropyEncoderSpec()
     inputs,
     Outputs{{o2::header::gDataOriginTOF, "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"tof-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF encoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}}}};
 }
 
 } // namespace tof

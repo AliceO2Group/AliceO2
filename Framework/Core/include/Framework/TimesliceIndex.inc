@@ -122,7 +122,7 @@ inline uint32_t TimesliceIndex::getFirstTFOrbitForSlot(TimesliceSlot slot) const
 {
   assert(mVariables.size() > slot.index);
   // firstTForbit is always at register 15
-  auto pval = std::get_if<uint32_t>(&mVariables[slot.index].get(15));
+  auto pval = std::get_if<uint32_t>(&mVariables[slot.index].get(data_matcher::FIRSTTFORBIT_POS));
   if (pval == nullptr) {
     return -1;
   }
@@ -132,7 +132,7 @@ inline uint32_t TimesliceIndex::getFirstTFOrbitForSlot(TimesliceSlot slot) const
 inline uint32_t TimesliceIndex::getFirstTFCounterForSlot(TimesliceSlot slot) const
 {
   assert(mVariables.size() > slot.index);
-  // firstTForbit is always at register 15
+  // tfCounter is always at register 14
   auto pval = std::get_if<uint32_t>(&mVariables[slot.index].get(14));
   if (pval == nullptr) {
     return -1;

@@ -13,7 +13,7 @@
 /// \author Torsten Alt (Torsten.Alt@cern.ch)
 
 #include <fmt/format.h>
-
+#include <filesystem>
 #include "TSystem.h"
 #include "TObjArray.h"
 
@@ -52,11 +52,13 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& 
 
   for (auto& ev : mEventInformation) {
     const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit);
+    const long hbDiff = long(heartbeatOrbit) - long(ev.HeartbeatOrbits.front());
     if (hbMatch) {
       mLastEvent = &ev;
       return ev;
-    } else if (std::abs(long(ev.HeartbeatOrbits.back()) - long(heartbeatOrbit)) < 54) {
+    } else if ((hbDiff >= 0) && (hbDiff < 256)) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
+      std::sort(ev.HeartbeatOrbits.begin(), ev.HeartbeatOrbits.end());
       mLastEvent = &ev;
       return ev;
     }
@@ -489,7 +491,7 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
   return 0;
 }
 
-int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& rawData)
+int RawReaderCRU::processMemory(const std::vector<std::byte>& data, ADCRawData& rawData)
 {
   GBTFrame gFrame;
 
@@ -505,7 +507,7 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
     // reinterpret_cast<const uint32_t*>(data.data() + iFrame * 16), so it could be accessed the
     // same way as the mData array.
     // however, this was ~5% slower in execution time. I suspect due to cache misses
-    gFrame.readFromMemory(gsl::span<const o2::byte>(data.data() + iFrame * 16, 16));
+    gFrame.readFromMemory(gsl::span<const std::byte>(data.data() + iFrame * 16, 16));
 
     // extract the half words from the 4 32-bit words
     gFrame.getFrameHalfWords();
@@ -700,7 +702,7 @@ void RawReaderCRU::processDataMemory()
   //dataSize = 4000 * 16;
   //}
 
-  std::vector<o2::byte> data;
+  std::vector<std::byte> data;
   data.reserve(dataSize);
   collectGBTData(data);
 
@@ -716,7 +718,7 @@ void RawReaderCRU::processDataMemory()
   }
 }
 
-void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
+void RawReaderCRU::collectGBTData(std::vector<std::byte>& data)
 {
   const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(mEventNumber, mCRU);
   auto& file = getFileHandle();
@@ -730,7 +732,7 @@ void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
 
     const auto payloadStart = packet.getPayloadOffset();
     const auto payloadSize = size_t(packet.getPayloadSize());
-    data.insert(data.end(), payloadSize, 0);
+    data.insert(data.end(), payloadSize, (std::byte)0);
     // jump to the start position of the packet
     file.seekg(payloadStart, std::ios::beg);
 
@@ -1176,8 +1178,12 @@ void RawReaderCRUManager::writeGBTDataPerLink(std::string_view outputDirectory, 
 
 void RawReaderCRUManager::writeGBTDataPerLink(const std::string_view inputFileNames, std::string_view outputDirectory, int maxEvents)
 {
-  if (gSystem->AccessPathName(outputDirectory.data())) {
-    gSystem->mkdir(outputDirectory.data(), kTRUE);
+  if (!std::filesystem::exists(outputDirectory)) {
+    if (!std::filesystem::create_directories(outputDirectory)) {
+      LOG(FATAL) << "could not create output directory " << outputDirectory;
+    } else {
+      LOG(INFO) << "created output directory " << outputDirectory;
+    }
   }
 
   RawReaderCRUManager manager;

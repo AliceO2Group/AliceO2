@@ -33,7 +33,7 @@ class GBTOutputHandler
 {
  public:
   /// Sets the FEE Id
-  void setFeeId(uint16_t feeId) { mFeeId = feeId; }
+  void setGBTUniqueId(uint16_t feeId) { mFeeId = feeId; }
 
   void set(uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
 

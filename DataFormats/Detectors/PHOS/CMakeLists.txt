@@ -9,18 +9,23 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsPHOS
-               SOURCES src/PHOSBlockHeader.cxx 
-                       src/Cell.cxx 
-                       src/Digit.cxx 
-                       src/Cluster.cxx 
-                       src/MCLabel.cxx 
+               SOURCES src/PHOSBlockHeader.cxx
+                       src/Cell.cxx
+                       src/Digit.cxx
+                       src/Cluster.cxx
+                       src/MCLabel.cxx
                        src/TriggerRecord.cxx
-		       src/CTF.cxx
-                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
-                                     O2::Headers 
-                                     O2::MathUtils 
-                                     O2::DetectorsBase 
-                                     O2::PHOSBase 
+                       src/CTF.cxx
+                       src/BadChannelsMap.cxx
+                       src/CalibParams.cxx
+                       src/Pedestals.cxx
+                       src/TriggerMap.cxx
+                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+                                     O2::Headers
+                                     O2::CCDB
+                                     O2::MathUtils
+                                     O2::DetectorsBase
+                                     O2::PHOSBase
                                      O2::SimulationDataFormat
                                      Boost::serialization)
 
@@ -31,8 +36,11 @@ o2_target_root_dictionary(DataFormatsPHOS
                                   include/DataFormatsPHOS/Cluster.h
                                   include/DataFormatsPHOS/MCLabel.h
                                   include/DataFormatsPHOS/TriggerRecord.h
-				  include/DataFormatsPHOS/CTF.h
-				  )
+                                  include/DataFormatsPHOS/CTF.h
+                                  include/DataFormatsPHOS/BadChannelsMap.h
+                                  include/DataFormatsPHOS/CalibParams.h
+                                  include/DataFormatsPHOS/Pedestals.h
+                                  include/DataFormatsPHOS/TriggerMap.h)
 o2_add_test(Cell
             SOURCES test/testCell.cxx
             COMPONENT_NAME DataFormats-PHOS

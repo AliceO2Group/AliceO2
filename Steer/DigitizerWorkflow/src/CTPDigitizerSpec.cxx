@@ -50,21 +50,15 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
     auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
 
-    // if there is nothing to do ... return
-    if ((ft0inputs.size() == 0) && (fv0inputs.size() == 0)) {
-      return;
-    }
     std::vector<o2::ctp::CTPInputDigit> finputs;
     TStopwatch timer;
     timer.Start();
     LOG(INFO) << "CALLING CTP DIGITIZATION";
     for (const auto& inp : ft0inputs) {
-      CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0);
-      finputs.emplace_back(finpdigit);
+      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
     }
     for (const auto& inp : fv0inputs) {
-      CTPInputDigit finpdigit(inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0);
-      finputs.emplace_back(finpdigit);
+      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
     }
     gsl::span<CTPInputDigit> ginputs(finputs);
     auto digits = mDigitizer.process(ginputs);

@@ -22,12 +22,12 @@
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
+using namespace o2::aod::hf_cand_prong2;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Fill MC histograms."}};
+  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, true, {"Fill MC histograms."}};
   workflowOptions.push_back(optionDoMC);
 }
 
@@ -45,12 +45,13 @@ struct TaskBplus {
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
+
   Partition<aod::BigTracks> positiveTracks = aod::track::signed1Pt >= 0.f;
 
   void process(aod::Collision const&, aod::BigTracks const&, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << D0ToPiK)) {
+      if (!(candidate.hfflag() & 1 << DecayType::D0ToPiK)) {
         continue;
       }
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {

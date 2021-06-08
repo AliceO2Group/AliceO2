@@ -13,11 +13,7 @@
 #include <vector>
 #include <string>
 
-namespace o2
-{
-namespace framework
-{
-namespace gui
+namespace o2::framework::gui
 {
 
 /// State for the Device specific inspector
@@ -37,8 +33,7 @@ struct WorkspaceGUIState {
   bool leftPaneVisible;
   bool rightPaneVisible;
   bool bottomPaneVisible;
+  double startTime;
 };
 
-} // namespace gui
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::gui

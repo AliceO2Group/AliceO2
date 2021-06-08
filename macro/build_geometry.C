@@ -43,6 +43,7 @@
 #include "FairRunSim.h"
 #include <FairLogger.h>
 #include <algorithm>
+#include "DetectorsCommonDataFormats/UpgradesStatus.h"
 #endif
 
 #ifdef ENABLE_UPGRADES

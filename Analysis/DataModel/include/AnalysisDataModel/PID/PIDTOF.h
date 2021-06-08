@@ -107,19 +107,22 @@ class ExpTimes
   static float ComputeExpectedTime(const float& tofExpMom, const float& length, const float& massZ);
 
   /// Gets the expected signal of the track of interest under the PID assumption
-  float GetExpectedSignal(const Coll& col, const Trck& trk) const { return ComputeExpectedTime(trk.tofExpMom() / kCSPEED, trk.length(), o2::track::PID::getMass2Z(id)); }
+  static float GetExpectedSignal(const Coll& col, const Trck& trk) { return ComputeExpectedTime(trk.tofExpMom() / kCSPEED, trk.length(), o2::track::PID::getMass2Z(id)); }
 
   /// Gets the expected resolution of the measurement
   float GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const;
 
   /// Gets the number of sigmas with respect the expected time
-  float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return (trk.tofSignal() - col.collisionTime() * 1000.f - GetExpectedSignal(col, trk)) / GetExpectedSigma(response, col, trk); }
+  float GetSeparation(const DetectorResponse& response, const Coll& col, const Trck& trk) const { return trk.tofSignal() > 0.f ? (trk.tofSignal() - col.collisionTime() * 1000.f - GetExpectedSignal(col, trk)) / GetExpectedSigma(response, col, trk) : -999.f; }
 };
 
 //_________________________________________________________________________
 template <typename Coll, typename Trck, o2::track::PID::ID id>
 float ExpTimes<Coll, Trck, id>::ComputeExpectedTime(const float& tofExpMom, const float& length, const float& massZ)
 {
+  if (tofExpMom <= 0.f) {
+    return 0.f;
+  }
   const float energy = sqrt((massZ * massZ) + (tofExpMom * tofExpMom));
   return length * energy / (kCSPEED * tofExpMom);
 }
@@ -128,10 +131,10 @@ float ExpTimes<Coll, Trck, id>::ComputeExpectedTime(const float& tofExpMom, cons
 template <typename Coll, typename Trck, o2::track::PID::ID id>
 float ExpTimes<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const
 {
-  if (trk.tofSignal() <= 0) {
+  if (!trk.hasTOF()) {
     return -999.f;
   }
-  const float x[4] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id)};
+  const float x[7] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id), trk.length(), trk.sigma1Pt(), trk.pt()};
   return response(response.kSigma, x);
   // return response(response.kSigma, const Coll& col, const Trck& trk, id);
 }

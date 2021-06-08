@@ -17,6 +17,7 @@
 #include "TList.h"
 #include "TDirectory.h"
 #include "TObjString.h"
+#include <TGrid.h>
 
 // AOD merger with correct index rewriting
 // No need to know the datamodel because the branch names follow a canonical standard (identified by fIndex)
@@ -71,11 +72,19 @@ int main(int argc, char* argv[])
   std::ifstream in;
   in.open(inputCollection);
   TString line;
+  bool connectedToAliEn = false;
+  int mergedDFs = 0;
   while (in.good()) {
     in >> line;
 
     if (line.Length() == 0) {
       continue;
+    }
+
+    if (line.BeginsWith("alien:") && !connectedToAliEn) {
+      printf("Connecting to AliEn...");
+      TGrid::Connect("alien:");
+      connectedToAliEn = true; // Only try once
     }
 
     printf("Processing input file: %s\n", line.Data());
@@ -92,6 +101,7 @@ int main(int argc, char* argv[])
       auto dfName = ((TObjString*)key1)->GetString().Data();
 
       printf("  Processing folder %s\n", dfName);
+      ++mergedDFs;
       auto folder = (TDirectoryFile*)inputFile->Get(dfName);
       auto treeList = folder->GetListOfKeys();
 
@@ -103,7 +113,7 @@ int main(int argc, char* argv[])
 
         if (trees.count(treeName) == 0) {
           // clone tree
-          // NOTE Basket size etc. are copied in CloneTree() ?
+          // NOTE Basket size etc. are copied in CloneTree()
           if (!outputDir) {
             outputDir = outputFile->mkdir(dfName);
             currentDirSize = 0;
@@ -148,7 +158,12 @@ int main(int argc, char* argv[])
             inputTree->GetEntry(i);
             // shift index columns by offset
             for (const auto& idx : indexList) {
-              *(idx.first) += idx.second;
+              // if negative, the index is unassigned. In this case, the different unassigned blocks have to get unique negative IDs
+              if (*(idx.first) < 0) {
+                *(idx.first) = -mergedDFs;
+              } else {
+                *(idx.first) += idx.second;
+              }
             }
             int nbytes = outputTree->Fill();
             if (nbytes > 0) {
@@ -179,7 +194,7 @@ int main(int argc, char* argv[])
       if (currentDirSize > maxDirSize) {
         printf("Maximum size reached: %ld. Closing folder.\n", currentDirSize);
         for (auto const& tree : trees) {
-          //Printf("Writing %s", tree.first.c_str());
+          //printf("Writing %s\n", tree.first.c_str());
           outputDir->cd();
           tree.second->Write();
           delete tree.second;
@@ -187,6 +202,7 @@ int main(int argc, char* argv[])
         outputDir = nullptr;
         trees.clear();
         offsets.clear();
+        mergedDFs = 0;
       }
     }
     inputFile->Close();

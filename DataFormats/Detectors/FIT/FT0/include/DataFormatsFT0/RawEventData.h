@@ -38,8 +38,8 @@ constexpr size_t sizeWord = 16;
 struct EventHeader {
   static constexpr size_t PayloadSize = 16;       //should be equal to 10
   static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
-  static constexpr int MinNelements = 1;
-  static constexpr int MaxNelements = 1;
+  static constexpr size_t MinNelements = 1;
+  static constexpr size_t MaxNelements = 1;
   union {
     uint64_t word[2] = {};
     struct {
@@ -55,15 +55,19 @@ struct EventHeader {
     };
   };
   InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
-
+  void setIntRec(const InteractionRecord& intRec)
+  {
+    bc = intRec.bc;
+    orbit = intRec.orbit;
+  }
   void print() const;
 };
 
 struct EventData {
   static constexpr size_t PayloadSize = 5;
   static constexpr size_t PayloadPerGBTword = 10;
-  static constexpr int MinNelements = 1; //additional static field
-  static constexpr int MaxNelements = 12;
+  static constexpr size_t MinNelements = 1; //additional static field
+  static constexpr size_t MaxNelements = 12;
   //
   static constexpr int BitFlagPos = 25; // position of first bit flag(numberADC)
 
@@ -115,8 +119,8 @@ struct EventData {
 struct TCMdata {
   static constexpr size_t PayloadSize = 16;       //should be equal to 10
   static constexpr size_t PayloadPerGBTword = 16; //should be equal to 10
-  static constexpr int MinNelements = 1;
-  static constexpr int MaxNelements = 1;
+  static constexpr size_t MinNelements = 1;
+  static constexpr size_t MaxNelements = 1;
   uint64_t orA : 1,     // 0 bit (0 byte)
     orC : 1,            //1 bit
     sCen : 1,           //2 bit
@@ -163,8 +167,8 @@ struct TCMdata {
 struct TCMdataExtended {
   static constexpr size_t PayloadSize = 4;
   static constexpr size_t PayloadPerGBTword = 10;
-  static constexpr int MinNelements = 0;
-  static constexpr int MaxNelements = 20;
+  static constexpr size_t MinNelements = 0;
+  static constexpr size_t MaxNelements = 20;
   union {
     uint32_t word[1] = {};
     uint32_t triggerWord;
@@ -259,6 +263,7 @@ class DataPageWriter
       str.write(reinterpret_cast<const char*>(&mRDH), sizeof(mRDH));
       str.write(mPages[page].data(), mPages[page].size());
       mRDH.pageCnt++;
+      LOG(INFO) << " header " << mRDH.linkID << " end " << mRDH.endPointID;
     }
     if (!mPages.empty()) {
       mRDH.memorySize = mRDH.headerSize;

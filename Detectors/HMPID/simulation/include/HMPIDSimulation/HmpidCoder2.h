@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <vector>
+#include <memory>
 
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -32,8 +33,7 @@
 
 #include "FairLogger.h"
 #include "HMPIDBase/Geo.h"
-#include "HMPIDBase/Digit.h"
-#include "HMPIDBase/Trigger.h"
+#include "DataFormatsHMP/Digit.h"
 
 // ---- RDH 6  standard dimension -------
 #define RAWBLOCKDIMENSION_W 2048
@@ -72,11 +72,11 @@ class HmpidCoder2
   uint32_t* mPadMap;
   int mEventSizePerEquipment[Geo::MAXEQUIPMENTS];
   int mEventPadsPerEquipment[Geo::MAXEQUIPMENTS];
-  int mPailoadBufferDimPerEquipment;
+  int mPayloadBufferDimPerEquipment;
   long mPadsCoded;
   bool mSkipEmptyEvents;
-  std::unique_ptr<uint32_t> mUPayloadBufferPtr;
-  std::unique_ptr<uint32_t> mUPadMap;
+  std::unique_ptr<uint32_t[]> mUPayloadBufferPtr;
+  std::unique_ptr<uint32_t[]> mUPadMap;
 
   LinkSubSpec_t mTheRFWLinks[Geo::MAXEQUIPMENTS];
 
@@ -114,8 +114,7 @@ class HmpidCoder2
   void openOutputStream(const std::string& outputFileName, const std::string& fileFor);
   void closeOutputStream();
 
-  void codeEventChunkDigits(std::vector<Digit>& digits);
-  void codeEventChunkDigits(std::vector<Digit>& digits, Trigger ir);
+  void codeEventChunkDigits(std::vector<o2::hmpid::Digit>& digits, InteractionRecord ir);
   void dumpResults(const std::string& outputFileName);
 
  private:

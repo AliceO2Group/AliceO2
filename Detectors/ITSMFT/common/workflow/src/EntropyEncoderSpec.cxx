@@ -35,7 +35,7 @@ EntropyEncoderSpec::EntropyEncoderSpec(o2::header::DataOrigin orig)
 
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>((mOrigin == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary");
+  std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
   }
@@ -72,14 +72,12 @@ DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig)
   inputs.emplace_back("patterns", orig, "PATTERNS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ROframes", orig, "CLUSTERSROF", 0, Lifetime::Timeframe);
 
-  std::string dictOptName = (orig == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary";
-
   return DataProcessorSpec{
     orig == o2::header::gDataOriginITS ? "its-entropy-encoder" : "mft-entropy-encoder",
     inputs,
     Outputs{{orig, "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>(orig)},
-    Options{{dictOptName, VariantType::String, "ctf_dictionary.root", {"File of CTF encoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}}}};
 }
 
 } // namespace itsmft

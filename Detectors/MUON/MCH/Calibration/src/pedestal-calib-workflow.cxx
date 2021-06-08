@@ -12,6 +12,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
@@ -27,6 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   workflowOptions.push_back(ConfigParamSpec{"input-spec", VariantType::String, "digits:MCH/PDIGITS", {"selection string input specs"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 // ------------------------------------------------------------------
@@ -35,6 +37,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   const std::string inputSpec = configcontext.options().get<std::string>("input-spec");
   WorkflowSpec specs;
   specs.emplace_back(getMCHPedestalCalibSpec(inputSpec));

@@ -20,5 +20,9 @@
 #pragma link C++ class o2::mch::DsChannelGroup + ;
 #pragma link C++ class o2::mch::Digit + ;
 #pragma link C++ class std::vector < o2::mch::Digit> + ;
+#pragma link C++ struct o2::mch::CTFHeader + ;
+#pragma link C++ struct o2::mch::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::mch::CTFHeader, 9, uint32_t> + ;
+#pragma link C++ class std::vector < o2::mch::ROFRecord> + ;
 
 #endif

@@ -42,6 +42,14 @@ void Digitizer::init()
       // }
     }
   }
+  if (!mTrigUtils) {
+    if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
+      mTrigUtils.reset(new TriggerMap(0)); // test default calibration
+      LOG(INFO) << "[PHOSDigitizer] No reading trigger map from ccdb requested, set default";
+    } else {
+      LOG(ERROR) << "[PHOSDigitizer] can not get trigger map object from ccdb yet";
+    }
+  }
 }
 
 //_______________________________________________________________________
@@ -86,21 +94,25 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     if (o2::phos::PHOSSimParams::Instance().mApplyNonLinearity) {
       energy = nonLinearity(energy);
     }
-    energy = uncalibrate(energy, absId);
     float time = h.GetTime() + dt * 1.e-9;
     if (o2::phos::PHOSSimParams::Instance().mApplyTimeResolution) {
       time = uncalibrateT(timeResolution(time, energy), absId);
     }
+    energy = uncalibrate(energy, absId);
     if (mArrayD[i].getAmplitude() > 0) {
       //update energy and time
-      mArrayD[i].addEnergyTime(energy, time);
-      //if overflow occured?
       if (mArrayD[i].isHighGain()) {
+        mArrayD[i].addEnergyTime(energy, time);
+        //if overflow occured?
         if (mArrayD[i].getAmplitude() > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //10bit ADC
           float hglgratio = mCalibParams->getHGLGRatio(absId);
           mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() / hglgratio);
           mArrayD[i].setHighGain(false);
         }
+      } else { //digit already in LG
+        float hglgratio = mCalibParams->getHGLGRatio(absId);
+        energy /= hglgratio;
+        mArrayD[i].addEnergyTime(energy, time);
       }
     } else {
       mArrayD[i].setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); //10bit ADC
@@ -145,6 +157,90 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
       mArrayD[i].setLabel(-1);
     }
   }
+  //Calculate trigger tiles 2*2 and 4*4
+  bool mL0Fired = false;
+  const int nDDL = 14;
+  const int nxTRU = 8;
+  const int nzTRU = 28;
+  float sum2x2[nxTRU][nzTRU];
+  float time2x2[nxTRU][nzTRU];
+  float tt = 0;
+  for (char iTRU = 0; iTRU < nDDL; iTRU++) {
+    for (char ix = 0; ix < nxTRU; ix++) {
+      for (char iz = 0; iz < nzTRU; iz++) {
+        char truRelId[3] = {iTRU, ix, iz};
+        short tileId = Geometry::truRelToAbsNumbering(truRelId);
+        if (!mTrigUtils->isGood2x2(tileId)) {
+          continue;
+        }
+        char relId[3];
+        Geometry::truRelId2RelId(truRelId, relId);
+        short i1, i2, i3, i4;
+        Geometry::relToAbsNumbering(relId, i1);
+        relId[1] = relId[1] + 1;
+        Geometry::relToAbsNumbering(relId, i2);
+        relId[2] = relId[2] + 1;
+        Geometry::relToAbsNumbering(relId, i4);
+        relId[1] = relId[1] - 1;
+        Geometry::relToAbsNumbering(relId, i3);
+        sum2x2[ix][iz] = mArrayD[i1 - OFFSET].getAmplitude() + mArrayD[i2 - OFFSET].getAmplitude() +
+                         mArrayD[i3 - OFFSET].getAmplitude() + mArrayD[i4 - OFFSET].getAmplitude();
+        float ampMax = mArrayD[i1 - OFFSET].getAmplitude();
+        tt = mArrayD[i1 - OFFSET].getTime();
+        if (mArrayD[i2 - OFFSET].getAmplitude() > ampMax) {
+          ampMax = mArrayD[i2 - OFFSET].getAmplitude();
+          tt = mArrayD[i2 - OFFSET].getTime();
+        }
+        if (mArrayD[i3 - OFFSET].getAmplitude() > ampMax) {
+          ampMax = mArrayD[i3 - OFFSET].getAmplitude();
+          tt = mArrayD[i3 - OFFSET].getTime();
+        }
+        if (mArrayD[i4 - OFFSET].getAmplitude() > ampMax) {
+          tt = mArrayD[i4 - OFFSET].getTime();
+        }
+        time2x2[ix][iz] = tt;
+        if (mTrig2x2) {
+          if (sum2x2[ix][iz] > PHOSSimParams::Instance().mTrig2x2MinThreshold) { //do not test (slow) probability function with soft tiles
+            mL0Fired |= mTrigUtils->isFiredMC2x2(sum2x2[ix][iz], iTRU, short(ix), short(iz));
+            //add TRU digit. Note that only tiles with E>mTrigMinThreshold added!
+            digitsOut.emplace_back(tileId, sum2x2[ix][iz], tt, true, -1);
+          }
+        }
+      }
+    }
+
+    if (mTrig4x4) {
+      for (char ix = 0; ix < nxTRU - 1; ix++) {
+        for (char iz = 0; iz < nzTRU - 1; iz++) {
+          char truRelId[3] = {iTRU, ix, iz};
+          short tileId = Geometry::truRelToAbsNumbering(truRelId);
+          if (!mTrigUtils->isGood4x4(tileId)) {
+            continue;
+          }
+          float sum4x4 = sum2x2[ix][iz] + sum2x2[ix][iz + 1] + sum2x2[ix + 1][iz] + sum2x2[ix + 1][iz + 1];
+          if (sum4x4 > PHOSSimParams::Instance().mTrig4x4MinThreshold) { //do not test (slow) probability function with soft tiles
+            mL0Fired |= mTrigUtils->isFiredMC4x4(sum4x4, iTRU, short(ix), short(iz));
+            //Add TRU digit short cell, float amplitude, float time, int label
+            tt = time2x2[ix][iz];
+            float ampMax = sum2x2[ix][iz];
+            if (sum2x2[ix][iz + 1] > ampMax) {
+              ampMax = sum2x2[ix][iz + 1];
+              tt = sum2x2[ix][iz + 1];
+            }
+            if (sum2x2[ix + 1][iz] > ampMax) {
+              ampMax = sum2x2[ix + 1][iz];
+              tt = sum2x2[ix + 1][iz];
+            }
+            if (sum2x2[ix + 1][iz + 1] > ampMax) {
+              tt = sum2x2[ix][iz + 1];
+            }
+            digitsOut.emplace_back(tileId, sum4x4, tt, false, -1);
+          }
+        }
+      }
+    }
+  }
+
   for (int i = 0; i < NCHANNELS; i++) {
     if (mArrayD[i].getAmplitude() > PHOSSimParams::Instance().mZSthreshold) {
       digitsOut.push_back(mArrayD[i]);

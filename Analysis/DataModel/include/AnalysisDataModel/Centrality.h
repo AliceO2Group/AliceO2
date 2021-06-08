@@ -16,9 +16,9 @@ namespace o2::aod
 {
 namespace cent
 {
-DECLARE_SOA_COLUMN(CentV0M, centV0M, float);
+DECLARE_SOA_COLUMN(CentV0M, centV0M, float); //!
 } // namespace cent
-DECLARE_SOA_TABLE(Cents, "AOD", "CENT", cent::CentV0M);
+DECLARE_SOA_TABLE(Cents, "AOD", "CENT", cent::CentV0M); //!
 using Cent = Cents::iterator;
 } // namespace o2::aod
 

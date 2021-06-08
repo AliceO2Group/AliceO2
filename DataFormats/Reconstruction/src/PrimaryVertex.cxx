@@ -22,11 +22,11 @@ namespace dataformats
 
 std::string PrimaryVertex::asString() const
 {
-  auto str = o2::utils::concat_string(VertexBase::asString(),
-                                      fmt::format("Chi2={:.2f} NCont={:d}: T={:.3f}+-{:.3f} IR=", mChi2, mNContributors, mTimeStamp.getTimeStamp(), mTimeStamp.getTimeStampError()),
-                                      mIRMin.asString());
+  auto str = o2::utils::Str::concat_string(VertexBase::asString(),
+                                           fmt::format("Chi2={:.2f} NCont={:d}: T={:.3f}+-{:.3f} IR=", mChi2, mNContributors, mTimeStamp.getTimeStamp(), mTimeStamp.getTimeStampError()),
+                                           mIRMin.asString());
   if (!hasUniqueIR()) {
-    str = o2::utils::concat_string(str, " : ", mIRMax.asString());
+    str = o2::utils::Str::concat_string(str, " : ", mIRMax.asString());
   }
   return str;
 }

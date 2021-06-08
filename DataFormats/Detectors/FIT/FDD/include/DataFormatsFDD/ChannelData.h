@@ -11,9 +11,10 @@
 #ifndef _FDD_CHANNEL_DATA_H_
 #define _FDD_CHANNEL_DATA_H_
 
+#include <Framework/Logger.h>
 #include <array>
 #include <Rtypes.h>
-
+#include <tuple>
 /// \file ChannelData.h
 /// \brief Container class to store values of single FDD channel
 /// \author micha.broz@cern.ch
@@ -24,7 +25,9 @@ namespace fdd
 {
 
 struct ChannelData {
-
+  static constexpr char sChannelNameDPL[] = "DIGITSCH";
+  static constexpr char sDigitName[] = "ChannelData";
+  static constexpr char sDigitBranchName[] = "FDDDigitCh";
   uint8_t mPMNumber = -1;     // PhotoMultiplier number (0 to 16)
   int16_t mTime = -1024;      // Time of Flight
   int16_t mChargeADC = -1024; // ADC sample
@@ -41,9 +44,16 @@ struct ChannelData {
 
   ChannelData() = default;
   ChannelData(uint8_t channel, int time, int adc, uint8_t bits) : mPMNumber(channel), mTime(time), mChargeADC(adc), mFEEBits(bits) {}
-
+  uint8_t getChannelID() const { return mPMNumber; }
   void print() const;
-
+  bool operator==(ChannelData const& other) const
+  {
+    return std::tie(mPMNumber, mTime, mChargeADC) == std::tie(other.mPMNumber, other.mTime, other.mChargeADC);
+  }
+  void printLog() const
+  {
+    LOG(INFO) << "ChId: " << static_cast<uint16_t>(mPMNumber) << " |  FEE bits:" << static_cast<uint16_t>(mFEEBits) << " | Time: " << mTime << " | Charge: " << mChargeADC;
+  }
   ClassDefNV(ChannelData, 3);
 };
 } // namespace fdd

@@ -92,28 +92,36 @@ class RawReaderFT0 : public RawReaderFT0BaseNorm
 };
 
 //Extended TCM mode (additional raw data struct)
+template <bool useTrgInput = false>
 class RawReaderFT0ext : public RawReaderFT0BaseExt
 {
  public:
   RawReaderFT0ext(bool dumpData) : mDumpData(dumpData) {}
   RawReaderFT0ext(const RawReaderFT0ext&) = default;
-
+  static constexpr bool sUseTrgInput = useTrgInput;
   RawReaderFT0ext() = default;
   ~RawReaderFT0ext() = default;
   void clear()
   {
-    mVecDigitsExt.clear();
+    mVecDigits.clear();
     mVecChannelData.clear();
     mVecTrgExt.clear();
+    if constexpr (sUseTrgInput) {
+      mVecTriggerInput.clear();
+    }
   }
   void accumulateDigits()
   {
-    getDigits(mVecDigitsExt, mVecChannelData, mVecTrgExt);
-    LOG(INFO) << "Number of Digits: " << mVecDigitsExt.size();
+    if constexpr (sUseTrgInput) {
+      getDigits(mVecDigits, mVecChannelData, mVecTrgExt, mVecTriggerInput);
+    } else {
+      getDigits(mVecDigits, mVecChannelData, mVecTrgExt);
+    }
+    LOG(INFO) << "Number of Digits: " << mVecDigits.size();
     LOG(INFO) << "Number of ChannelData: " << mVecChannelData.size();
     LOG(INFO) << "Number of TriggerExt: " << mVecTrgExt.size();
     if (mDumpData) {
-      DigitBlockFT0ext::print(mVecDigitsExt, mVecChannelData, mVecTrgExt);
+      DigitBlockFT0ext::print(mVecDigits, mVecChannelData, mVecTrgExt);
     }
   }
   static void prepareOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec)
@@ -121,17 +129,24 @@ class RawReaderFT0ext : public RawReaderFT0BaseExt
     outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe);
     outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe);
     outputSpec.emplace_back(o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0, o2::framework::Lifetime::Timeframe);
+    if constexpr (sUseTrgInput) {
+      outputSpec.emplace_back(o2::header::gDataOriginFT0, "TRIGGERINPUT", 0, o2::framework::Lifetime::Timeframe);
+    }
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc)
   {
-    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigitsExt);
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSBC", 0, o2::framework::Lifetime::Timeframe}, mVecDigits);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mVecChannelData);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "DIGITSTRGEXT", 0, o2::framework::Lifetime::Timeframe}, mVecTrgExt);
+    if constexpr (sUseTrgInput) {
+      pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginFT0, "TRIGGERINPUT", 0, o2::framework::Lifetime::Timeframe}, mVecTriggerInput);
+    }
   }
   bool mDumpData;
-  std::vector<DigitExt> mVecDigitsExt;
+  std::vector<Digit> mVecDigits;
   std::vector<ChannelData> mVecChannelData;
   std::vector<TriggersExt> mVecTrgExt;
+  std::vector<DetTrigInput> mVecTriggerInput;
 };
 
 } // namespace ft0

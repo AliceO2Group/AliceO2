@@ -111,7 +111,8 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "${command}" > ${SCRIPTNAME}
+  echo "${command};" > ${SCRIPTNAME}
+  echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
   chmod +x ${SCRIPTNAME}
 
   # this gives some possibility to customize the wrapper
@@ -178,12 +179,13 @@ taskwrapper() {
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
              -e \"Fatal in\"                        \
+             -e \"libc++abi.*terminating\"          \
              -e \"There was a crash.\""
       
-    grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
+    grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
     eval ${grepcommand}
     
-    grepcommand="grep -h --count ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} 2>/dev/null"
+    grepcommand="grep -a -h --count ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} 2>/dev/null"
     # using eval here since otherwise the pattern is translated to a
     # a weirdly quoted stringlist
     RC=$(eval ${grepcommand})
@@ -194,7 +196,7 @@ taskwrapper() {
     if [ "$RC" != "" -a "$RC" != "0" ]; then
       echo "Detected critical problem in logfile $logfile"
       if [ "${JOBUTILS_PRINT_ON_ERROR}" ]; then
-        grepcommand="grep -H -A 2 -B 2 ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES}"
+        grepcommand="grep -a -H -A 2 -B 2 ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES}"
         eval ${grepcommand}
       fi
 
@@ -371,9 +373,9 @@ taskwrapper() {
 
   # wait for PID and fetch return code
   # ?? should directly exit here?
-  wait $PID
-  # return code
-  RC=$?
+  wait $PID || QUERY_RC_FROM_LOG="ON"
+  # query return code from log (seems to be safer as sometimes the wait issues "PID" not a child of this shell)
+  RC=$(grep -a "TASK-EXIT-CODE:" ${logfile} | awk '//{print $2}')
   RC_ACUM=$((RC_ACUM+RC))
   if [ "${RC}" -eq "0" ]; then
     if [ ! "${JOBUTILS_JOB_SKIPCREATEDONE}" ]; then

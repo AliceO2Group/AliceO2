@@ -14,26 +14,22 @@
 
 // O2 inlcudes
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/HistogramRegistry.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "AnalysisCore/trackUtilities.h"
 #include "AnalysisCore/MC.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
-namespace o2fw = o2::framework;
-
-namespace o2exp = o2::framework::expressions;
-namespace o2df = o2::dataformats;
+using namespace o2::framework;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  std::vector<o2fw::ConfigParamSpec> options{
-    {"eff-el", o2fw::VariantType::Int, 0, {"Efficiency for the Electron PDG code"}},
-    {"eff-mu", o2fw::VariantType::Int, 0, {"Efficiency for the Muon PDG code"}},
-    {"eff-pi", o2fw::VariantType::Int, 1, {"Efficiency for the Pion PDG code"}},
-    {"eff-ka", o2fw::VariantType::Int, 0, {"Efficiency for the Kaon PDG code"}},
-    {"eff-pr", o2fw::VariantType::Int, 0, {"Efficiency for the Proton PDG code"}}};
+  std::vector<ConfigParamSpec> options{
+    {"eff-el", VariantType::Int, 0, {"Efficiency for the Electron PDG code"}},
+    {"eff-mu", VariantType::Int, 0, {"Efficiency for the Muon PDG code"}},
+    {"eff-pi", VariantType::Int, 1, {"Efficiency for the Pion PDG code"}},
+    {"eff-ka", VariantType::Int, 0, {"Efficiency for the Kaon PDG code"}},
+    {"eff-pr", VariantType::Int, 0, {"Efficiency for the Proton PDG code"}}};
   std::swap(workflowOptions, options);
 }
 
@@ -65,84 +61,80 @@ void makelogaxis(T h)
 
 /// Task to QA the efficiency of a particular particle defined by particlePDG
 template <o2::track::pid_constants::ID particle>
-struct QATrackingEfficiencyPt {
+struct QaTrackingEfficiency {
   static constexpr PDG_t PDGs[5] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton};
   static_assert(particle < 5 && "Maximum of particles reached");
   static constexpr int particlePDG = PDGs[particle];
-  o2fw::Configurable<float> etaMin{"eta-min", -3.f, "Lower limit in eta"};
-  o2fw::Configurable<float> etaMax{"eta-max", 3.f, "Upper limit in eta"};
-  o2fw::Configurable<float> phiMin{"phi-min", 0.f, "Lower limit in phi"};
-  o2fw::Configurable<float> phiMax{"phi-max", 2.f * M_PI, "Upper limit in phi"};
-  o2fw::Configurable<float> ptMin{"pt-min", 0.f, "Lower limit in pT"};
-  o2fw::Configurable<float> ptMax{"pt-max", 5.f, "Upper limit in pT"};
-  o2fw::Configurable<int> ptBins{"pt-bins", 500, "Number of pT bins"};
-  o2fw::Configurable<int> logPt{"log-pt", 0, "Flag to use a logarithmic pT axis"};
-  o2fw::Configurable<int> etaBins{"eta-bins", 500, "Number of eta bins"};
-  o2fw::Configurable<int> phiBins{"phi-bins", 500, "Number of phi bins"};
-  o2fw::Configurable<int> selPrim{"sel-prim", 1, "1 select primaries, 0 select all particles"};
-  o2fw::Configurable<int> makeEff{"make-eff", 0, "Flag to produce the efficiency with TEfficiency"};
+  // Particle selection
+  Configurable<float> etaMin{"eta-min", -3.f, "Lower limit in eta"};
+  Configurable<float> etaMax{"eta-max", 3.f, "Upper limit in eta"};
+  Configurable<float> phiMin{"phi-min", 0.f, "Lower limit in phi"};
+  Configurable<float> phiMax{"phi-max", 6.284f, "Upper limit in phi"};
+  Configurable<float> ptMin{"pt-min", 0.f, "Lower limit in pT"};
+  Configurable<float> ptMax{"pt-max", 5.f, "Upper limit in pT"};
+  // Event selection
+  Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the vertex"};
+  Configurable<float> vertexZMin{"vertex-z-min", -10.f, "Minimum position of the generated vertez in Z (cm)"};
+  Configurable<float> vertexZMax{"vertex-z-max", 10.f, "Maximum position of the generated vertez in Z (cm)"};
+  // Histogram configuration
+  Configurable<int> ptBins{"pt-bins", 500, "Number of pT bins"};
+  Configurable<int> logPt{"log-pt", 0, "Flag to use a logarithmic pT axis"};
+  Configurable<int> etaBins{"eta-bins", 500, "Number of eta bins"};
+  Configurable<int> phiBins{"phi-bins", 500, "Number of phi bins"};
+  Configurable<int> selPrim{"sel-prim", 1, "1 select primaries, 0 select all particles"};
+  // Task configuration
+  Configurable<int> makeEff{"make-eff", 0, "Flag to produce the efficiency with TEfficiency"};
 
-  o2fw::OutputObj<TList> list{"Efficiency"};
-  o2fw::HistogramRegistry histos{"Histos", {}, o2fw::OutputObjHandlingPolicy::AnalysisObject};
+  OutputObj<TList> list{"Efficiency"};
+  HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::AnalysisObject};
 
-  void init(o2fw::InitContext&)
+  void init(InitContext&)
   {
-    const TString tagPt = Form("%s #eta [%.2f,%.2f] #varphi [%.2f,%.2f] Prim %i",
+    const TString tagPt = Form("%s #it{#eta} [%.2f,%.2f] #it{#varphi} [%.2f,%.2f] Prim %i",
                                o2::track::pid_constants::sNames[particle],
                                etaMin.value, etaMax.value,
                                phiMin.value, phiMax.value,
                                selPrim.value);
     const TString xPt = "#it{p}_{T} (GeV/#it{c})";
-    o2fw::AxisSpec axisPt{ptBins.value, ptMin.value, ptMax.value};
+    AxisSpec axisPt{ptBins, ptMin, ptMax};
 
-    const TString tagEta = Form("%s #it{p}_{T} [%.2f,%.2f] #varphi [%.2f,%.2f] Prim %i",
+    const TString tagEta = Form("%s #it{p}_{T} [%.2f,%.2f] #it{#varphi} [%.2f,%.2f] Prim %i",
                                 o2::track::pid_constants::sNames[particle],
                                 ptMin.value, ptMax.value,
                                 phiMin.value, phiMax.value,
                                 selPrim.value);
-    const TString xEta = "#eta";
-    o2fw::AxisSpec axisEta{etaBins.value, etaMin.value, etaMax.value};
+    const TString xEta = "#it{#eta}";
+    AxisSpec axisEta{etaBins, etaMin, etaMax};
 
-    const TString tagPhi = Form("%s #eta [%.2f,%.2f] #it{p}_{T} [%.2f,%.2f] Prim %i",
+    const TString tagPhi = Form("%s #it{#eta} [%.2f,%.2f] #it{p}_{T} [%.2f,%.2f] Prim %i",
                                 o2::track::pid_constants::sNames[particle],
                                 etaMin.value, etaMax.value,
                                 ptMin.value, ptMax.value,
                                 selPrim.value);
-    const TString xPhi = "#varphi (rad)";
-    o2fw::AxisSpec axisPhi{phiBins.value, phiMin.value, phiMax.value};
+    const TString xPhi = "#it{#varphi} (rad)";
+    AxisSpec axisPhi{phiBins, phiMin, phiMax};
 
-    histos.add("pt/num", "Numerator " + tagPt + ";" + xPt,
-               o2fw::kTH1D, {axisPt});
-    histos.add("pt/den", "Denominator " + tagPt + ";" + xPt,
-               o2fw::kTH1D, {axisPt});
-    if (logPt.value) {
+    histos.add("pt/num", "Numerator " + tagPt + ";" + xPt, kTH1D, {axisPt});
+    histos.add("pt/den", "Denominator " + tagPt + ";" + xPt, kTH1D, {axisPt});
+    if (logPt) {
       makelogaxis(histos.get<TH1>(HIST("pt/num")));
       makelogaxis(histos.get<TH1>(HIST("pt/den")));
     }
 
-    histos.add("eta/num", "Numerator " + tagEta + ";" + xEta,
-               o2fw::kTH1D, {axisEta});
-    histos.add("eta/den", "Denominator " + tagEta + ";" + xEta,
-               o2fw::kTH1D, {axisEta});
+    histos.add("eta/num", "Numerator " + tagEta + ";" + xEta, kTH1D, {axisEta});
+    histos.add("eta/den", "Denominator " + tagEta + ";" + xEta, kTH1D, {axisEta});
 
-    histos.add("phi/num", "Numerator " + tagPhi + ";" + xPhi,
-               o2fw::kTH1D, {axisPhi});
-    histos.add("phi/den", "Denominator " + tagPhi + ";" + xPhi,
-               o2fw::kTH1D, {axisPhi});
+    histos.add("phi/num", "Numerator " + tagPhi + ";" + xPhi, kTH1D, {axisPhi});
+    histos.add("phi/den", "Denominator " + tagPhi + ";" + xPhi, kTH1D, {axisPhi});
 
     list.setObject(new TList);
-    if (makeEff.value) {
+    if (makeEff) {
       auto makeEfficiency = [&](TString effname, TString efftitle, auto templateHisto) {
         TAxis* axis = histos.get<TH1>(templateHisto)->GetXaxis();
         if (axis->IsVariableBinSize()) {
-          list->Add(new TEfficiency(effname, efftitle,
-                                    axis->GetNbins(),
-                                    axis->GetXbins()->GetArray()));
+          list->Add(new TEfficiency(effname, efftitle, axis->GetNbins(), axis->GetXbins()->GetArray()));
         } else {
-          list->Add(new TEfficiency(effname, efftitle,
-                                    axis->GetNbins(),
-                                    axis->GetXmin(),
-                                    axis->GetXmax()));
+          list->Add(new TEfficiency(effname, efftitle, axis->GetNbins(), axis->GetXmin(), axis->GetXmax()));
         }
       };
       makeEfficiency("efficiencyVsPt", "Efficiency " + tagPt + ";" + xPt + ";Efficiency", HIST("pt/num"));
@@ -151,20 +143,39 @@ struct QATrackingEfficiencyPt {
     }
   }
 
-  void process(const o2::soa::Join<o2::aod::Tracks, o2::aod::McTrackLabels>& tracks,
+  void process(const o2::soa::Join<o2::aod::Collisions, o2::aod::McCollisionLabels>& collisions,
+               const o2::soa::Join<o2::aod::Tracks, o2::aod::McTrackLabels>& tracks,
+               const o2::aod::McCollisions& mcCollisions,
                const o2::aod::McParticles& mcParticles)
   {
+    std::vector<int64_t> recoEvt(collisions.size());
+    int nevts = 0;
+    for (const auto& collision : collisions) {
+      if (collision.numContrib() < nMinNumberOfContributors) {
+        continue;
+      }
+      const auto mcCollision = collision.mcCollision();
+      if ((mcCollision.posZ() < vertexZMin || mcCollision.posZ() > vertexZMax)) {
+        continue;
+      }
+      recoEvt[nevts++] = mcCollision.globalIndex();
+    }
+    recoEvt.resize(nevts);
+
     std::vector<int64_t> recoTracks(tracks.size());
     int ntrks = 0;
     for (const auto& track : tracks) {
       const auto mcParticle = track.mcParticle();
-      if ((mcParticle.eta() < etaMin.value || mcParticle.eta() > etaMax.value)) { // Check eta
+      if ((mcParticle.pt() < ptMin || mcParticle.pt() > ptMax)) { // Check pt
         continue;
       }
-      if ((mcParticle.phi() < phiMin.value || mcParticle.phi() > phiMax.value)) { // Check phi
+      if ((mcParticle.eta() < etaMin || mcParticle.eta() > etaMax)) { // Check eta
         continue;
       }
-      if ((selPrim.value == 1) && (!MC::isPhysicalPrimary(mcParticles, mcParticle))) { // Requiring is physical primary
+      if ((mcParticle.phi() < phiMin || mcParticle.phi() > phiMax)) { // Check phi
+        continue;
+      }
+      if ((selPrim == 1) && (!MC::isPhysicalPrimary(mcParticles, mcParticle))) { // Requiring is physical primary
         continue;
       }
       if (abs(mcParticle.pdgCode()) == particlePDG) { // Checking PDG code
@@ -176,17 +187,21 @@ struct QATrackingEfficiencyPt {
     }
 
     for (const auto& mcParticle : mcParticles) {
-      if ((mcParticle.eta() < etaMin.value || mcParticle.eta() > etaMax.value)) { // Check eta
+      const auto evtReconstructed = std::find(recoEvt.begin(), recoEvt.end(), mcParticle.mcCollision().globalIndex()) != recoEvt.end();
+      if (!evtReconstructed) {
         continue;
       }
-      if ((mcParticle.phi() < phiMin.value || mcParticle.phi() > phiMax.value)) { // Check phi
+      if ((mcParticle.eta() < etaMin || mcParticle.eta() > etaMax)) { // Check eta
         continue;
       }
-      if ((selPrim.value == 1) && (!MC::isPhysicalPrimary(mcParticles, mcParticle))) { // Requiring is physical primary
+      if ((mcParticle.phi() < phiMin || mcParticle.phi() > phiMax)) { // Check phi
+        continue;
+      }
+      if ((selPrim == 1) && (!MC::isPhysicalPrimary(mcParticles, mcParticle))) { // Requiring is physical primary
         continue;
       }
       if (abs(mcParticle.pdgCode()) == particlePDG) { // Checking PDG code
-        if (makeEff.value) {
+        if (makeEff) {
           const auto particleReconstructed = std::find(recoTracks.begin(), recoTracks.end(), mcParticle.globalIndex()) != recoTracks.end();
           static_cast<TEfficiency*>(list->At(0))->Fill(particleReconstructed, mcParticle.pt());
           static_cast<TEfficiency*>(list->At(1))->Fill(particleReconstructed, mcParticle.eta());
@@ -200,23 +215,23 @@ struct QATrackingEfficiencyPt {
   }
 };
 
-o2fw::WorkflowSpec defineDataProcessing(o2fw::ConfigContext const& cfgc)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  o2fw::WorkflowSpec w;
+  WorkflowSpec w;
   if (cfgc.options().get<int>("eff-el")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Electron>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-electron"}));
+    w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Electron>>(cfgc, TaskName{"qa-tracking-efficiency-electron"}));
   }
   if (cfgc.options().get<int>("eff-mu")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Muon>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-muon"}));
+    w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Muon>>(cfgc, TaskName{"qa-tracking-efficiency-muon"}));
   }
   if (cfgc.options().get<int>("eff-pi")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Pion>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-pion"}));
+    w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Pion>>(cfgc, TaskName{"qa-tracking-efficiency-pion"}));
   }
   if (cfgc.options().get<int>("eff-ka")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Kaon>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-kaon"}));
+    w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Kaon>>(cfgc, TaskName{"qa-tracking-efficiency-kaon"}));
   }
   if (cfgc.options().get<int>("eff-pr")) {
-    w.push_back(o2fw::adaptAnalysisTask<QATrackingEfficiencyPt<o2::track::PID::Proton>>(cfgc, o2fw::TaskName{"qa-tracking-efficiency-proton"}));
+    w.push_back(adaptAnalysisTask<QaTrackingEfficiency<o2::track::PID::Proton>>(cfgc, TaskName{"qa-tracking-efficiency-proton"}));
   }
   return w;
 }

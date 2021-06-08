@@ -18,26 +18,21 @@ o2_add_library(G4Setup
                PUBLIC_LINK_LIBRARIES MC::Geant4VMC MC::Geant4 FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6
 )
 
-if (FlukaVMC_FOUND)
-  message(STATUS "BUILDING WITH FLUKA")
-  o2_add_library(FLUKASetup
-                 SOURCES src/FlukaConfig.cxx
-       	         PUBLIC_LINK_LIBRARIES MC::FlukaVMC FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6
-	        )
-else()
-  message(STATUS "BUILDING WITHOUT FLUKA")
-endif (FlukaVMC_FOUND)
-	      
+o2_add_library(FLUKASetup
+               SOURCES src/FlukaConfig.cxx
+               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6 O2::SimSetup
+	      )
+
 o2_add_library(SimSetup
-               SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx
+               SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx src/FlukaParam.cxx
 	       PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase
               )
 
 o2_target_root_dictionary(SimSetup
                           HEADERS include/SimSetup/SimSetup.h
                                   include/SimSetup/GlobalProcessCutSimParam.h
+				  include/SimSetup/FlukaParam.h
                           LINKDEF src/GConfLinkDef.h)
-
 o2_add_test_root_macro(DecayConfig.C
                        PUBLIC_LINK_LIBRARIES O2::SimSetup
                        LABELS simsetup)
@@ -61,3 +56,4 @@ o2_add_test_root_macro(g4Config.C
                        LABELS simsetup)
 
 o2_data_file(COPY data  DESTINATION Detectors/gconfig/)
+install(FILES src/FlukaRuntimeConfig.macro DESTINATION share/Detectors/gconfig/)

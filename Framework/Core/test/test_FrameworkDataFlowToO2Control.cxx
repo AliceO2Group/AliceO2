@@ -51,7 +51,7 @@ WorkflowSpec defineDataProcessing()
             ConfigParamSpec{"b-param", VariantType::String, "", {"a parameter which will be escaped"}},
             ConfigParamSpec{"c-param", VariantType::String, "foo;bar", {"another parameter which will be escaped"}},
             ConfigParamSpec{"channel-config", VariantType::String, // raw output channel
-                            "name=outta_dpl,type=pull,method=connect,address=ipc:///tmp/pipe-outta-dpl,transport=shmem,rateLogging=10",
+                            "name=outta_dpl,type=push,method=bind,address=ipc:///tmp/pipe-outta-dpl,transport=shmem,rateLogging=10",
                             {"Out-of-band channel config"}}}}};
 }
 
@@ -74,13 +74,15 @@ defaults:
   fmq_rate_logging: 0
   shm_segment_size: 10000000000
   shm_throw_bad_alloc: false
+  session_id: default
+  resources_monitoring: 15
 roles:
   - name: "A"
     connect:
     - name: into_dpl
       type: pull
       transport: shmem
-      target: "{{ path_to_into_dpl }}"
+      target: "::into_dpl-{{ it }}"
       rateLogging: "{{ fmq_rate_logging }}"
     task:
       load: testwf-A
@@ -109,11 +111,13 @@ roles:
       transport: shmem
       target: "{{ Parent().Path }}.C:from_C_to_D"
       rateLogging: "{{ fmq_rate_logging }}"
+    bind:
     - name: outta_dpl
-      type: pull
+      type: push
       transport: shmem
-      target: "{{ path_to_outta_dpl }}"
+      addressing: ipc
       rateLogging: "{{ fmq_rate_logging }}"
+      global: "outta_dpl-{{ it }}"
     task:
       load: testwf-D
 )EXPECTED";
@@ -122,11 +126,15 @@ const std::vector expectedTasks{
   R"EXPECTED(name: A
 defaults:
   log_task_output: none
+  _module_cmdline: >-
+    source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
+    {{ dpl_command }} | bcsadc/foo
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | bcsadc/foo"
 control:
   mode: "fairmq"
 wants:
-  cpu: 0.15
-  memory: 128
+  cpu: 0.01
+  memory: 1
 bind:
   - name: from_A_to_C
     type: push
@@ -137,15 +145,13 @@ command:
   shell: true
   log: "{{ log_task_output }}"
   user: "{{ user }}"
-  value: >-
-    source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
-    {{ dpl_command }} | bcsadc/foo
+  value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
     - "-b"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
-    - "'default'"
+    - "'{{ session_id }}'"
     - "--infologger-severity"
     - "'{{ infologger_severity }}'"
     - "--infologger-mode"
@@ -156,6 +162,8 @@ command:
     - "'{{ shm_segment_size }}'"
     - "--shm-throw-bad-alloc"
     - "'{{ shm_throw_bad_alloc }}'"
+    - "--resources-monitoring"
+    - "'{{ resources_monitoring }}'"
     - "--id"
     - "'A'"
     - "--shm-monitor"
@@ -180,11 +188,15 @@ command:
   R"EXPECTED(name: B
 defaults:
   log_task_output: none
+  _module_cmdline: >-
+    source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
+    {{ dpl_command }} | foo
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
-  cpu: 0.15
-  memory: 128
+  cpu: 0.01
+  memory: 1
 bind:
   - name: from_B_to_C
     type: push
@@ -195,15 +207,13 @@ command:
   shell: true
   log: "{{ log_task_output }}"
   user: "{{ user }}"
-  value: >-
-    source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
-    {{ dpl_command }} | foo
+  value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
     - "-b"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
-    - "'default'"
+    - "'{{ session_id }}'"
     - "--infologger-severity"
     - "'{{ infologger_severity }}'"
     - "--infologger-mode"
@@ -214,6 +224,8 @@ command:
     - "'{{ shm_segment_size }}'"
     - "--shm-throw-bad-alloc"
     - "'{{ shm_throw_bad_alloc }}'"
+    - "--resources-monitoring"
+    - "'{{ resources_monitoring }}'"
     - "--id"
     - "'B'"
     - "--shm-monitor"
@@ -238,11 +250,15 @@ command:
   R"EXPECTED(name: C
 defaults:
   log_task_output: none
+  _module_cmdline: >-
+    source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
+    {{ dpl_command }} | foo
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
-  cpu: 0.15
-  memory: 128
+  cpu: 0.01
+  memory: 1
 bind:
   - name: from_C_to_D
     type: push
@@ -253,15 +269,13 @@ command:
   shell: true
   log: "{{ log_task_output }}"
   user: "{{ user }}"
-  value: >-
-    source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
-    {{ dpl_command }} | foo
+  value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
     - "-b"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
-    - "'default'"
+    - "'{{ session_id }}'"
     - "--infologger-severity"
     - "'{{ infologger_severity }}'"
     - "--infologger-mode"
@@ -272,6 +286,8 @@ command:
     - "'{{ shm_segment_size }}'"
     - "--shm-throw-bad-alloc"
     - "'{{ shm_throw_bad_alloc }}'"
+    - "--resources-monitoring"
+    - "'{{ resources_monitoring }}'"
     - "--id"
     - "'C'"
     - "--shm-monitor"
@@ -296,25 +312,33 @@ command:
   R"EXPECTED(name: D
 defaults:
   log_task_output: none
+  _module_cmdline: >-
+    source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
+    {{ dpl_command }} | foo
+  _plain_cmdline: "source /etc/profile.d/o2.sh && {{ dpl_command }} | foo"
 control:
   mode: "fairmq"
 wants:
-  cpu: 0.15
-  memory: 128
+  cpu: 0.01
+  memory: 1
 bind:
+  - name: outta_dpl
+    type: push
+    transport: shmem
+    addressing: ipc
+    rateLogging: "{{ fmq_rate_logging }}"
+    global: "outta_dpl-{{ it }}"
 command:
   shell: true
   log: "{{ log_task_output }}"
   user: "{{ user }}"
-  value: >-
-    source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
-    {{ dpl_command }} | foo
+  value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
     - "-b"
     - "--monitoring-backend"
     - "'{{ monitoring_dpl_url }}'"
     - "--session"
-    - "'default'"
+    - "'{{ session_id }}'"
     - "--infologger-severity"
     - "'{{ infologger_severity }}'"
     - "--infologger-mode"
@@ -325,6 +349,8 @@ command:
     - "'{{ shm_segment_size }}'"
     - "--shm-throw-bad-alloc"
     - "'{{ shm_throw_bad_alloc }}'"
+    - "--resources-monitoring"
+    - "'{{ resources_monitoring }}'"
     - "--id"
     - "'D'"
     - "--shm-monitor"

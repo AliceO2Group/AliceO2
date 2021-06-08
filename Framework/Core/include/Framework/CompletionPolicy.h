@@ -11,7 +11,6 @@
 #define FRAMEWORK_COMPLETIONPOLICY_H
 
 #include "Framework/DataRef.h"
-#include "Framework/InputSpan.h"
 
 #include <functional>
 #include <string>
@@ -24,6 +23,7 @@ namespace framework
 
 struct DeviceSpec;
 struct InputRecord;
+struct InputSpan;
 
 /// Policy to describe what to do for a matching DeviceSpec
 /// whenever a new message arrives. The InputRecord being passed to
@@ -50,8 +50,7 @@ struct CompletionPolicy {
 
   using Matcher = std::function<bool(DeviceSpec const& device)>;
   using InputSetElement = DataRef;
-  using InputSet = InputSpan const&;
-  using Callback = std::function<CompletionOp(InputSet)>;
+  using Callback = std::function<CompletionOp(InputSpan const&)>;
 
   /// Name of the policy itself.
   std::string name = "";
