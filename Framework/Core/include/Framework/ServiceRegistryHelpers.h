@@ -41,7 +41,7 @@ struct ServiceRegistryHelpers {
     // We need type elision as we do not want to know all the services in
     // advance
     static_assert(std::is_const_v<I> == false,
-                  "Service interface must be not const");
+                  "Service interface must not be const if service object is not const");
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
     constexpr auto typeHash = TypeIdHelpers::uniqueId<I>();
