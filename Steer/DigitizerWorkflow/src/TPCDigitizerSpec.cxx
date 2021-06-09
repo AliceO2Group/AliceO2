@@ -21,6 +21,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/DeviceSpec.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
@@ -38,7 +39,6 @@
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsBase/Detector.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "TPCSimulation/SAMPAProcessing.h"
 #include "SimConfig/DigiParams.h"
 #include <filesystem>
 
@@ -368,8 +368,12 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       mDigitCounter += mDigits.size();
     };
 
-    static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-    mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(irecords[0].getTimeNS() / 1000.f));
+    if (isContinuous) {
+      auto& hbfu = o2::raw::HBFUtils::Instance();
+      double time = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).bc2ns() / 1000.;
+      mDigitizer.setOutputDigitTimeOffset(time);
+      mDigitizer.setStartTime(irecords[0].getTimeNS() / 1000.f);
+    }
 
     TStopwatch timer;
     timer.Start();
@@ -377,11 +381,11 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      const float eventTime = irecords[collID].getTimeNS() / 1000.f;
+      const double eventTime = irecords[collID].getTimeNS() / 1000.f;
       LOG(INFO) << "TPC: Event time " << eventTime << " us";
       mDigitizer.setEventTime(eventTime);
       if (!isContinuous) {
-        mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(eventTime));
+        mDigitizer.setStartTime(eventTime);
       }
       size_t startSize = mDigitCounter; // digitsAccum->size();
 

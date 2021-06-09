@@ -65,7 +65,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
   signalArray.resize(nShapedPoints);
 
   /// Reserve space in the digit container for the current event
-  mDigitContainer.reserve(sampaProcessing.getTimeBinFromTime(mEventTime));
+  mDigitContainer.reserve(sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset));
 
   /// obtain max drift_time + hitTime which can be processed
   float maxEleTime = (int(mDigitContainer.size()) - nShapedPoints) * eleParam.ZbinWidth;
@@ -105,7 +105,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
           LOG(WARNING) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
           continue;
         }
-        const float absoluteTime = eleTime + mEventTime; /// in us
+        const float absoluteTime = eleTime + (mEventTime - mOutputDigitTimeOffset); /// in us
 
         /// Attachment
         if (electronTransport.isElectronAttachment(driftTime)) {
@@ -161,7 +161,7 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
                       bool finalFlush)
 {
   static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-  mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime), mIsContinuous, finalFlush);
+  mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset), mIsContinuous, finalFlush);
 }
 
 void Digitizer::setUseSCDistortions(SC::SCDistortionType distortionType, const TH3* hisInitialSCDensity)
@@ -193,4 +193,11 @@ void Digitizer::setUseSCDistortions(TFile& finp)
   mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::C);
   mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::A);
   mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::C);
+}
+
+void Digitizer::setStartTime(double time)
+{
+  static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
+  sampaProcessing.updateParameters();
+  mDigitContainer.setStartTime(sampaProcessing.getTimeBinFromTime(time - mOutputDigitTimeOffset));
 }
