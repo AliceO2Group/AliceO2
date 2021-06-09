@@ -15,6 +15,7 @@
 #ifndef ALICEO2_CTP_DIGITS2RAW_H_
 #define ALICEO2_CTP_DIGITS2RAW_H_
 
+#include <vector>
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "DataFormatsCTP/Digits.h"
@@ -31,7 +32,6 @@ namespace ctp
 class Digits2Raw
 {
  public:
-  static constexpr uint32_t NGBT = 80;
   Digits2Raw() = default;
   ~Digits2Raw() = default;
   void init();
@@ -46,13 +46,12 @@ class Digits2Raw
   void emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& toAdd) const;
   std::vector<char> digits2HBTPayload(const gsl::span<std::bitset<NGBT>> digits, uint32_t Npld) const;
   bool makeGBTWord(const std::bitset<NGBT>& pld, std::bitset<NGBT>& gbtword, uint32_t& size_gbt, uint32_t Npld) const;
-  int digit2GBTdigit(std::bitset<NGBT>& gbtdigit, const CTPDigit& digit);
-
+  int digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR,std::bitset<NGBT>& gbtdigitTR, const CTPDigit& digit);
+  std::vector<std::bitset<NGBT>> addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS);
  private:
   // CTP configuration
   std::string mCCDBServer = "http://ccdb-test.cern.ch:8080";
   CTPConfiguration* mCTPConfiguration = nullptr;
-  //std::vector<CTPInput> *mInputs = nullptr;
   // Raw Writer
   o2::raw::RawFileWriter mWriter{"CTP"};
   int mVerbosity = 0;
@@ -67,6 +66,7 @@ class Digits2Raw
   const uint32_t CRULinkIDIntRec = 0;
   const uint32_t NIntRecPayload = 48 + 12;
   bool mZeroSuppressedIntRec = false;
+  //
   const uint32_t CRULinkIDClassRec = 1;
   const uint32_t NClassPayload = 64 + 12;
   bool mZeroSuppressedClassRec = true;

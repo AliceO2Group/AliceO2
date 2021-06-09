@@ -17,6 +17,13 @@
 
 using namespace o2::ctp;
 
+/// CTP digits (see Digits.h) are inputs from trigger detectors.
+/// GBT digit is temporary item: 80 bits long = 12 bits of BCid and payload (see digit2GBTdigit)
+/// CTP digit -> GBTdigit CTPInt Record, GBTdigit TrigClass Record
+/// GBT didit X -> CRU  raw data
+/// X= CTPInt Record to link 0
+/// X= TrigClass Record to link 1 
+
 void Digits2Raw::init()
 {
   // CTP Configuration
@@ -35,6 +42,7 @@ void Digits2Raw::init()
   if (outd.back() != '/') {
     outd += '/';
   }
+  LOG(INFO) << "Raw outpud dir:" << mOutDir;
   for (int ilink = 0; ilink < mNLinks; ilink++) {
     mFeeID = uint64_t(ilink);
     std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "ctp_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "ctp.raw");
@@ -61,32 +69,50 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     LOG(FATAL) << "Branch CTPDigits is missing";
     return;
   }
+  o2::InteractionRecord intRec={0,0};
   // Get first orbit
-  digiTree->GetEntry(0);
-  uint32_t orbit0;
-  if (CTPDigits.size() > 0) {
-    orbit0 = CTPDigits[0].intRecord.orbit;
-  } else {
-    LOG(FATAL) << "Branch CTPDigits there but no entries";
-    return;
-  }
+  uint32_t orbit0 = 0;
+  bool firstorbit=1;
   // Add all CTPdigits for given orbit
-  for (int ient = 1; ient < digiTree->GetEntries(); ient++) {
+  LOG(INFO) << "Number of entries: " << digiTree->GetEntries();
+  for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
     int nbc = CTPDigits.size();
     LOG(INFO) << "Entry " << ient << " : " << nbc << " BCs stored";
-    std::vector<std::bitset<NGBT>> hbf;
+    std::vector<std::bitset<NGBT>> hbfIR;
+    std::vector<std::bitset<NGBT>> hbfTC;
     for (auto const& ctpdig : CTPDigits) {
-      if (orbit0 == ctpdig.intRecord.orbit) {
-        std::bitset<NGBT> gbtdig;
-        digit2GBTdigit(gbtdig, ctpdig);
-        hbf.push_back(gbtdig);
+      if ((orbit0 == ctpdig.intRecord.orbit) || firstorbit){
+        if(firstorbit == true) {
+          firstorbit = false;
+          orbit0 = ctpdig.intRecord.orbit;
+          LOG(INFO) << "First orbit:" << orbit0;
+        }
+        std::bitset<NGBT> gbtdigIR;
+        std::bitset<NGBT> gbtdigTC;
+        digit2GBTdigit(gbtdigIR, gbtdigTC, ctpdig);
+        hbfIR.push_back(gbtdigIR);
+        hbfTC.push_back(gbtdigTC);
       } else {
         std::vector<char> buffer;
-        buffer = digits2HBTPayload(hbf, NIntRecPayload);
-        std::string PLTrailer;
-        std::memcpy(buffer.data() + buffer.size() - o2::raw::RDHUtils::GBTWord, PLTrailer.c_str(), o2::raw::RDHUtils::GBTWord);
+        //std::string PLTrailer;
+        //std::memcpy(buffer.data() + buffer.size() - o2::raw::RDHUtils::GBTWord, PLTrailer.c_str(), o2::raw::RDHUtils::GBTWord);
+        //addData for IR
+        intRec.orbit = orbit0;
+        if(mZeroSuppressedIntRec == true) {
+          buffer = digits2HBTPayload(hbfIR, NIntRecPayload);
+        } else {
+          std::vector<std::bitset<NGBT>> hbfIRnonZS = addEmptyBC(hbfIRnonZS);
+          buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
+        }
+        mWriter.addData(CRULinkIDIntRec,mCruID,CRULinkIDIntRec,mEndPointID,intRec,buffer);
+        // add data for Trigger Class Record
+        buffer.clear();
+        mWriter.addData(CRULinkIDClassRec,mCruID,CRULinkIDClassRec,mEndPointID,intRec,buffer);
+        //
         orbit0 = ctpdig.intRecord.orbit;
+        hbfIR.clear();
+        hbfTC.clear();
       }
     }
   }
@@ -95,7 +121,7 @@ void Digits2Raw::emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& to
 {
   // TriClassRecord data zero suppressed
   // CTP INteraction Data
-  if (mActiveLink == CRULinkIDIntRec) {
+  if (o2::raw::RDHUtils::getCRUID(rdh) == CRULinkIDIntRec) {
     if (mZeroSuppressedIntRec == false) {
       toAdd.clear();
       std::vector<std::bitset<NGBT>> digits;
@@ -112,6 +138,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT
   std::vector<char> toAdd;
   uint32_t size_gbt = 0;
   std::bitset<NGBT> gbtword;
+  // if not zero suppressed add (bcid,0)
   for (auto const& dig : digits) {
     if (makeGBTWord(dig, gbtword, size_gbt, Npld) == true) {
       for (uint32_t i = 0; i < NGBT; i += 8) {
@@ -148,11 +175,14 @@ bool Digits2Raw::makeGBTWord(const std::bitset<NGBT>& pld, std::bitset<NGBT>& gb
   }
   return valid;
 }
-int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigit, const CTPDigit& digit)
+int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>& gbtdigitTR, const CTPDigit& digit)
 {
   uint64_t gbtmask = 0;
   uint64_t digmask = (digit.CTPInputMask).to_ullong();
   // Also CTP Detector Input configuration shoiuld be employed
+  //
+  // CTP Interaction record (CTP inputs)
+  //
   uint64_t allT0s = (CTP_INPUTMASK_FT0.second).to_ullong() >> CTP_INPUTMASK_FT0.first;
   if (digmask & allT0s) {
     // assuming T0A - 1st bit
@@ -175,7 +205,31 @@ int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigit, const CTPDigit& digi
       gbtmask |= mCTPConfiguration->getInputMask("V0B");
     }
   }
-  gbtdigit = gbtmask >> 12;
-  gbtdigit |= digit.intRecord.bc;
+  gbtdigitIR = gbtmask >> 12;
+  gbtdigitIR |= digit.intRecord.bc;
+  //
+  // Trig Classes
+  //
+  gbtdigitTR=0;
+  for(auto const& tcl: mCTPConfiguration->getCTPClasses()) {
+    if( tcl.descriptor->getInputsMask() & gbtmask ) {
+      gbtdigitTR |= (1<< tcl.classMask);
+    }
+  }
   return 0;
+}
+std::vector<std::bitset<NGBT>> Digits2Raw::addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS)
+{
+  std::vector<std::bitset<NGBT>> hbfIRnonZS;
+  uint32_t bcnonzero=0;
+  for(auto const& item: hbfIRZS) {
+    uint32_t bcnonzeroNext = (item.to_ulong()) & 0xfff;
+    for(int i = (bcnonzero+1) ; i < bcnonzeroNext; i ++) {
+      std::bitset<NGBT> bs = i;
+      hbfIRnonZS.push_back(bs);
+      bcnonzero = bcnonzeroNext;
+    }
+    hbfIRnonZS.push_back(item);
+  }
+  return hbfIRnonZS;
 }

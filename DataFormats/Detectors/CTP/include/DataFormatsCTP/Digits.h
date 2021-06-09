@@ -37,6 +37,8 @@ static constexpr std::uint32_t CTP_MAXL0PERDET = 5; /// Max number of LM/L0input
 static constexpr std::pair<uint32_t, std::bitset<CTP_MAXL0PERDET>> CTP_INPUTMASK_FV0(0, 0x1f);
 static constexpr std::pair<uint32_t, std::bitset<CTP_MAXL0PERDET>> CTP_INPUTMASK_FT0(5, 0x1f);
 ///
+static constexpr uint32_t NGBT = 80;
+///
 struct CTPDigit {
   o2::InteractionRecord intRecord;
   std::bitset<CTP_NINPUTS> CTPInputMask;

@@ -48,7 +48,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
         }
         default:
           // Error
-          LOG(ERROR) << "CTP Digitizer: unknown detector:" << inp->detector;
+          LOG(FATAL) << "CTP Digitizer: unknown detector:" << inp->detector;
           break;
       }
     }

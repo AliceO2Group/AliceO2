@@ -29,11 +29,20 @@ void CTPInput::printStream(std::ostream& stream) const
 {
   stream << "CTP Input:" << name << " Detector:" << getInputDetName() << " Level:" << level << " Hardware mask:0x" << std::hex << inputMask << std::dec << std::endl;
 }
+//
+std::uint64_t CTPDescriptor::getInputsMask() const 
+{
+  uint64_t mask = 0;
+  for(const auto& inp : inputs) {
+      mask |= inp->inputMask;
+  }
+  return mask;
+} 
 void CTPDescriptor::printStream(std::ostream& stream) const
 {
   stream << "CTP Descriptor:" << name << " Inputs:";
-  for (const auto& inp : inputNames) {
-    stream << inp << " ";
+  for (const auto& inp : inputs) {
+    stream << inp->name << " ";
   }
   stream << std::endl;
 }
@@ -124,7 +133,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
       /// INPUTS: name det level indexCTP<0:45>
       {
         if (ntokens != 4) {
-          LOG(ERROR) << "INPUTS syntax error in, wrong number of items, expected 4:" << line;
+          LOG(FATAL) << "INPUTS syntax error in, wrong number of items, expected 4:" << line;
           return level;
         }
         CTPInput inp;
@@ -138,7 +147,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         try {
           inp.inputMask = std::stoull(tokens[3], nullptr, 0);
         } catch (...) {
-          LOG(ERROR) << "INPUTS syntax error in mask:" << line;
+          LOG(FATAL) << "INPUTS syntax error in mask:" << line;
           return level;
         }
         mInputs.push_back(inp);
@@ -151,9 +160,15 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         desc.name = tokens[0];
         tokens.erase(tokens.begin());
         for (auto& item : tokens) {
-          desc.inputNames.push_back(item);
+          //CTPInput *inp = const_cast<CTPInput*> (isInputInConfig(item));
+          CTPInput *inp = isInputInConfig(item);
+          if(inp == nullptr) {
+              LOG(FATAL) << "DESCRIPTOR:" << tokens[0] << ": input not in INPUTD:" << item;
+          } else {
+              desc.inputs.push_back(inp);
+          }
         }
-        /// Create inputs and mask
+        // Create inputs and mask
         mDescriptors.push_back(desc);
         break;
       }
@@ -170,6 +185,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           mask |= det.getMask();
         }
         cluster.maskCluster = mask;
+        mClusters.push_back(cluster);
         break;
       }
     case 7:
@@ -177,14 +193,14 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
       {
         CTPClass cls;
         if (ntokens != 4) {
-          LOG(ERROR) << "CLASSES syntax error, wrong number of items, expected 4:" << line;
+          LOG(FATAL) << "CLASSES syntax error, wrong number of items, expected 4:" << line;
           return level;
         }
         cls.name = tokens[0];
         try {
           cls.classMask = std::stoull(tokens[1]);
         } catch (...) {
-          LOG(ERROR) << "CLASSES syntax error in mask:" << line;
+          LOG(FATAL) << "CLASSES syntax error in mask:" << line;
           return level;
         }
         std::string token = tokens[2];
@@ -193,7 +209,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           cls.descriptor = &*it;
         } else {
           ///Internal error
-          LOG(ERROR) << "CLASSES syntax error, descriptor not found:" << token;
+          LOG(FATAL) << "CLASSES syntax error, descriptor not found:" << token;
         }
         ///
         token = tokens[3];
@@ -202,13 +218,13 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           cls.cluster = &*it2;
         } else {
           ///Internal error
-          LOG(ERROR) << "CLASSES syntax error, cluster not found:" << token;
+          LOG(FATAL) << "CLASSES syntax error, cluster not found:" << token;
         }
         mCTPClasses.push_back(cls);
         break;
       }
     default: {
-      LOG(ERROR) << "Unknown level:" << level;
+      LOG(FATAL) << "CTP Config parser Unknown level:" << level;
     }
   }
   return 0;
@@ -274,7 +290,7 @@ uint64_t CTPConfiguration::getInputMask(const std::string& name)
   }
   return 0;
 }
-bool CTPConfiguration::isMaskInInputs(uint64_t& mask)
+bool CTPConfiguration::isMaskInInputs(const uint64_t& mask) const
 {
   for (auto const& inp : mInputs) {
     if (inp.inputMask == mask) {
@@ -282,4 +298,22 @@ bool CTPConfiguration::isMaskInInputs(uint64_t& mask)
     }
   }
   return false;
+}
+CTPInput* CTPConfiguration::isInputInConfig(const std::string inpname)
+{
+  for (auto & inp : mInputs) {
+    if (inp.name == inpname) {
+      return &inp;
+    }
+  }
+  return nullptr;
+}
+uint64_t CTPConfiguration::getDecrtiptorInputsMask(const std::string& name) const
+{
+  for (auto const& desc : mDescriptors) {
+      if (desc.name == name) {
+          return desc.getInputsMask();
+      }
+  }
+  return 0xffffffff;
 }

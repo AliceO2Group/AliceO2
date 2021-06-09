@@ -115,6 +115,7 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
     }
   }
   m2r.setOutDir(outDirName);
+  m2r.init();
   m2r.processDigits(inpName);
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //

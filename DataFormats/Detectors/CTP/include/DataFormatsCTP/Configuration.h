@@ -48,9 +48,8 @@ struct CTPInput {
 struct CTPDescriptor {
   CTPDescriptor() = default;
   std::string name;
-  std::uint64_t inputsMask;
-  std::vector<std::string> inputNames;
-  std::vector<CTPInput> inputs;
+  std::vector<CTPInput*> inputs;
+  std::uint64_t getInputsMask() const;
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPDescriptor, 2)
 };
@@ -93,8 +92,11 @@ class CTPConfiguration
   void addCTPClass(const CTPClass& ctpclass);
   void printStream(std::ostream& stream) const;
   std::vector<CTPInput>& getCTPInputs() { return mInputs; }
+  std::vector<CTPClass>& getCTPClasses() { return mCTPClasses; }
   uint64_t getInputMask(const std::string& name);
-  bool isMaskInInputs(uint64_t& mask);
+  bool isMaskInInputs(const uint64_t& mask) const;
+  CTPInput* isInputInConfig(const std::string inpname);
+  uint64_t getDecrtiptorInputsMask(const std::string& name) const;
 
  private:
   std::string mName;

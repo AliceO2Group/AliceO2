@@ -42,7 +42,7 @@ void CreateCTPConfig(long tmin = 0, long tmax = -1, std::string ccdbHost = "http
   cfgstr += "DT0A T0A \n";
   cfgstr += "DT0B T0B \n";
   cfgstr += "DINT4 V0A V0B T0A T0B \n";
-  cfgstr += "CLUSTERS:\n";
+  cfgstr += "CLUSTERS: ALL\n";
   cfgstr += "ALL FV0 FT0 TPC \n";
   cfgstr += "CLASSES:\n";
   cfgstr += "CMB1 0 DV0AND ALL \n";
