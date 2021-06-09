@@ -34,7 +34,7 @@ void TOFFEElightReader::loadFEElightConfig(gsl::span<const char> configBuf)
   // load FEElight config from buffer
 
   if (configBuf.size() != sizeof(o2::tof::TOFFEElightConfig)) {
-    LOG(INFO) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
+    LOG(FATAL) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
   }
   mFEElightConfig = reinterpret_cast<const TOFFEElightConfig*>(configBuf.data());
 }
@@ -60,7 +60,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
   int nEnabled = 0, index;
   const TOFFEEchannelConfig* channelConfig = nullptr;
   for (int crateId = 0; crateId < Geo::kNCrate; crateId++) {
-    for (int trmId = 0; trmId < Geo::kNTRM; trmId++) {
+    for (int trmId = 0; trmId < Geo::kNTRM - 2; trmId++) { // in O2, the number of TRMs is 12, but in the FEE world it is 10
       for (int chainId = 0; chainId < Geo::kNChain; chainId++) {
         for (int tdcId = 0; tdcId < Geo::kNTdc; tdcId++) {
           for (int channelId = 0; channelId < Geo::kNCh; channelId++) {
@@ -74,7 +74,7 @@ int TOFFEElightReader::parseFEElightConfig(bool verbose)
                 continue;
               }
               // get index DO from crate, trm, chain, tdc, tdcchannel
-              index = Geo::getCHFromECH(Geo::getECHFromIndexes(crateId, trmId, chainId, tdcId, channelId));
+              index = Geo::getCHFromECH(Geo::getECHFromIndexes(crateId, trmId + 3, chainId, tdcId, channelId)); // in O2, the TRM index is shifted by 3 because it corresponds to the VME slot
               if (index == -1) {
                 continue;
               }
