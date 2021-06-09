@@ -31,7 +31,7 @@ DECLARE_SOA_TABLE(NucleiFilters, "AOD", "Nuclei Filters", //!
                   filtering::H2, filtering::H3, filtering::He3, filtering::He4);
 
 constexpr std::array<char[32], 2> AvailableFilters{"NucleiFilters", "DiffractionFilters"};
-constexpr std::array<char[16], 2> FilterDescriptions{"Nuclei Filters", "Diffraction Filters"};
+constexpr std::array<char[16], 2> FilterDescriptions{"Nuclei Filters", "DiffFilters"};
 
 using NucleiFilter = NucleiFilters::iterator;
 
