@@ -196,23 +196,23 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
       config.configReconstruction.tpc.nWaysOuter = true;
       config.configInterface.outputToExternalBuffers = true;
-
-      // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
-      config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
-                                      GPUDataTypes::RecoStep::TPCSliceTracking,
-                                      GPUDataTypes::RecoStep::TPCMerging,
-                                      GPUDataTypes::RecoStep::TPCCompression);
-
-      config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, !confParam.synchronousProcessing);
       if (confParam.synchronousProcessing) {
         config.configReconstruction.useMatLUT = false;
       }
 
-      // Alternative steps: TRDTracking | ITSTracking
+      // Configure the "GPU workflow" i.e. which steps we run on the GPU (or CPU)
+      if (specconfig.outputTracks || specconfig.outputCompClusters || specconfig.outputCompClustersFlat) {
+        config.configWorkflow.steps.set(GPUDataTypes::RecoStep::TPCConversion,
+                                        GPUDataTypes::RecoStep::TPCSliceTracking,
+                                        GPUDataTypes::RecoStep::TPCMerging);
+        config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
+        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, !confParam.synchronousProcessing);
+      }
+      if (specconfig.outputCompClusters || specconfig.outputCompClustersFlat) {
+        config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, true);
+        config.configWorkflow.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
+      }
       config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCClusters);
-      // Alternative inputs: GPUDataTypes::InOutType::TRDTracklets
-      config.configWorkflow.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks, GPUDataTypes::InOutType::TPCCompressedClusters);
-      // Alternative outputs: GPUDataTypes::InOutType::TPCSectorTracks, GPUDataTypes::InOutType::TRDTracks
       if (specconfig.caClusterer) { // Override some settings if we have raw data as input
         config.configWorkflow.inputs.set(GPUDataTypes::InOutType::TPCRaw);
         config.configWorkflow.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, true);
@@ -231,7 +231,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       if (specconfig.outputSharedClusterMap) {
         config.configProcessing.outputSharedClusterMap = true;
       }
-      config.configProcessing.createO2Output = 2; // Skip GPU-formatted output if QA is not requested
+      config.configProcessing.createO2Output = specconfig.outputTracks ? 2 : 0; // Skip GPU-formatted output if QA is not requested
 
       // Create and forward data objects for TPC transformation, material LUT, ...
       if (confParam.transformationFile.size()) {
