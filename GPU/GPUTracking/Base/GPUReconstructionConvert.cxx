@@ -240,13 +240,11 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
     std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)> singleBuffer;
 #ifdef GPUCA_O2_LIB
     int rawlnk = rdh_utils::UserLogicLinkID;
-    int bcShiftInFirstHBF = ir ? ir->bc : 0;
-    int orbitShift = ir ? ir->orbit : 0;
 #else
     int rawlnk = 15;
-    int bcShiftInFirstHBF = 0;
-    int orbitShift = 0;
 #endif
+    int bcShiftInFirstHBF = ir ? ir->bc : 0;
+    int orbitShift = ir ? ir->orbit : 0;
     int rawcru = 0;
     int rawendpoint = 0;
     (void)(rawcru + rawendpoint); // avoid compiler warning
@@ -360,7 +358,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
 #endif
           {
             o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
-            o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, hbf);
+            o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, hbf + orbitShift);
             o2::raw::RDHUtils::setHeartBeatBC(*rdh, bcShiftInFirstHBF);
             o2::raw::RDHUtils::setMemorySize(*rdh, TPCZSHDR::TPC_ZS_PAGE_SIZE);
             o2::raw::RDHUtils::setVersion(*rdh, o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>());
