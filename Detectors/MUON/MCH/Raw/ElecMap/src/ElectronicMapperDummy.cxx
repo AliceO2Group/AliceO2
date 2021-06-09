@@ -20,6 +20,8 @@
 namespace
 {
 
+constexpr int firstSolarId{360}; // so at least we get some overlap with real solarIds
+
 // build the map to go from electronic ds id to detector ds id
 std::map<uint32_t, uint32_t> buildDsElecId2DsDetIdMap()
 {
@@ -28,7 +30,7 @@ std::map<uint32_t, uint32_t> buildDsElecId2DsDetIdMap()
   auto dslist = createDualSampaMapper();
 
   uint16_t n{0};
-  uint16_t solarId{0};
+  uint16_t solarId{firstSolarId};
   uint8_t groupId{0};
   uint8_t index{0};
 
@@ -66,25 +68,27 @@ std::map<uint32_t, uint16_t> buildFeeLinkId2SolarIdMap()
   std::map<uint32_t, uint16_t> c2s;
 
   uint16_t n{0};
-  uint16_t solarId{0};
+  uint16_t solarId{firstSolarId};
 
   auto dslist = createDualSampaMapper();
+
+  std::set<uint16_t> solarIds;
 
   for (auto deId : o2::mch::raw::deIdsForAllMCH) {
     // assign a tuple (fee,link) to each solarId
     for (auto dsId : dslist(deId)) {
       if (n % 40 == 0) {
         solarId++;
-        auto feeId = solarId / 12;
-        auto linkId = solarId - feeId * 12;
-        c2s[encode(o2::mch::raw::FeeLinkId(feeId, linkId))] = solarId;
+        solarIds.insert(solarId);
       }
       n++;
-    };
-  };
-  auto feeId = solarId / 12;
-  auto linkId = solarId - feeId * 12;
-  c2s[encode(o2::mch::raw::FeeLinkId(feeId, linkId))] = solarId;
+    }
+  }
+  for (auto solarId : solarIds) {
+    auto feeId = solarId / 12;
+    auto linkId = solarId - feeId * 12;
+    c2s[encode(o2::mch::raw::FeeLinkId(feeId, linkId))] = solarId;
+  }
   return c2s;
 }
 } // namespace
@@ -123,4 +127,29 @@ std::function<std::optional<FeeLinkId>(uint16_t)>
   static auto s2f = impl::inverseMap(buildFeeLinkId2SolarIdMap());
   return impl::mapperSolar2FeeLink<ElectronicMapperDummy>(s2f);
 }
+
+template <>
+std::set<uint16_t> getSolarUIDs<ElectronicMapperDummy>(int deid)
+{
+  return impl::getSolarUIDs<ElectronicMapperDummy>(deid);
+}
+
+template <>
+std::set<uint16_t> getSolarUIDs<ElectronicMapperDummy>()
+{
+  return impl::getSolarUIDs<ElectronicMapperDummy>();
+}
+
+template <>
+std::vector<std::string> solar2FeeLinkConsistencyCheck<ElectronicMapperDummy>()
+{
+  return impl::solar2FeeLinkConsistencyCheck<ElectronicMapperDummy>();
+}
+
+template <>
+std::set<DsElecId> getAllDs<ElectronicMapperDummy>()
+{
+  return impl::getAllDs<ElectronicMapperDummy>();
+}
+
 } // namespace o2::mch::raw

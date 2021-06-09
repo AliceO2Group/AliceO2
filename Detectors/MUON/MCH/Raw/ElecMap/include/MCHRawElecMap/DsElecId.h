@@ -51,13 +51,25 @@ class DsElecId
     return mSolarId;
   }
 
-  bool operator==(const DsElecId& rhs)
+  bool operator<(const DsElecId& rhs) const
+  {
+    if (mSolarId < rhs.mSolarId) {
+      return true;
+    } else if (mElinkIndexInGroup < rhs.mElinkIndexInGroup) {
+      return true;
+    } else if (mElinkGroupId < rhs.mElinkGroupId) {
+      return true;
+    }
+    return false;
+  }
+
+  bool operator==(const DsElecId& rhs) const
   {
     return mSolarId == rhs.mSolarId &&
            mElinkIndexInGroup == rhs.mElinkIndexInGroup &&
            mElinkGroupId == rhs.mElinkGroupId;
   }
-  bool operator!=(const DsElecId& rhs)
+  bool operator!=(const DsElecId& rhs) const
   {
     return !(*this == rhs);
   }
