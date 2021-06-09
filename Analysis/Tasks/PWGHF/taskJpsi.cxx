@@ -87,7 +87,7 @@ struct TaskJpsi {
         continue;
       }
 
-      if (d_modeJpsiToMuMu) {
+      if (!d_modeJpsiToMuMu) {
         registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate), candidate.pt());
       } else {
         registry.fill(HIST("hmass"), InvMassJpsiToMuMu(candidate), candidate.pt());
@@ -189,12 +189,11 @@ struct TaskJpsiMC {
         registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
-        if (d_modeJpsiToMuMu) {
-          registry.fill(HIST("hmassSig"), InvMassJpsiToMuMu(candidate), candidate.pt());
-        } else {
+        if (!d_modeJpsiToMuMu) {
           registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
+        } else {
+          registry.fill(HIST("hmassSig"), InvMassJpsiTMuMu(candidate), candidate.pt());
         }
-        registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
         registry.fill(HIST("hdeclengthSig"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxySig"), candidate.decayLengthXY(), candidate.pt());
         registry.fill(HIST("hd0Prong0Sig"), candidate.impactParameter0(), candidate.pt());
@@ -209,10 +208,10 @@ struct TaskJpsiMC {
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
-        if (d_modeJpsiToMuMu) {
-          registry.fill(HIST("hmassBg"), InvMassJpsiToMuMu(candidate), candidate.pt());
-        } else {
+        if (!d_modeJpsiToMuMu) {
           registry.fill(HIST("hmassBg"), InvMassJpsiToEE(candidate), candidate.pt());
+        } else {
+          registry.fill(HIST("hmassBg"), InvMassJpsiToMuMu(candidate), candidate.pt());
         }
         registry.fill(HIST("hdeclengthBg"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxyBg"), candidate.decayLengthXY(), candidate.pt());
