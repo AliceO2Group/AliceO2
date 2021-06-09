@@ -36,6 +36,7 @@
 // from TOF
 #include "DataFormatsTOF/Cluster.h"
 #include "GlobalTracking/MatchTOF.h"
+#include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
 
 // from FIT
 #include "DataFormatsFT0/RecPoints.h"
@@ -70,7 +71,7 @@ class TOFMatcherSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC = true;
   bool mUseFIT = false;
-  MatchTOF mMatcher;                         ///< Cluster finder
+  MatchTOF mMatcher; ///< Cluster finder
   TStopwatch mTimer;
 };
 
@@ -124,7 +125,7 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
   }
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
-    
+
   mTimer.Stop();
 }
 
@@ -150,7 +151,7 @@ DataProcessorSpec getTOFMatcherSpec(GTrackID::mask_t src, bool useMC, bool useFI
   if (useFIT) {
     inputs.emplace_back("fitrecpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   }
-  
+
   outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
   if (useMC) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe);

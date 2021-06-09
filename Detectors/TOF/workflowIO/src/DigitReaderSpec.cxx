@@ -17,7 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
-#include "TOFWorkflowUtils/DigitReaderSpec.h"
+#include "TOFWorkflowIO/DigitReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 

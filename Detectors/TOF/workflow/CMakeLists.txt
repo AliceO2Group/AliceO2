@@ -9,20 +9,13 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(TOFWorkflowUtils
-               SOURCES src/DigitReaderSpec.cxx
-                       src/ClusterReaderSpec.cxx
-                       src/TOFClusterizerSpec.cxx
-                       src/TOFClusterWriterSpec.cxx
-                       src/TOFDigitWriterSpec.cxx
-                       src/TOFRawWriterSpec.cxx
+               SOURCES src/TOFClusterizerSpec.cxx
                        src/CompressedDecodingTask.cxx
                        src/CompressedInspectorTask.cxx
                        src/CompressedAnalysisTask.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
-                       src/TOFCalClusInfoWriterSpec.cxx
-                       src/CalibClusReaderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction)
+               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::TOFBase O2::DataFormatsTOF O2::TOFReconstruction O2::TOFWorkflowIO)
 
 o2_add_executable(entropy-encoder-workflow
                   SOURCES src/entropy-encoder-workflow.cxx

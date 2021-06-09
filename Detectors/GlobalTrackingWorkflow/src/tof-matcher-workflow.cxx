@@ -13,11 +13,11 @@
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
-#include "TOFWorkflowUtils/ClusterReaderSpec.h"
-#include "TOFWorkflow/TOFMatchedReaderSpec.h"
-#include "TOFWorkflow/TOFMatcherSpec.cxx"
-#include "TOFWorkflow/TOFMatchedWriterSpec.h"
-#include "TOFWorkflow/TOFCalibWriterSpec.h"
+#include "TOFWorkflowIO/ClusterReaderSpec.h"
+#include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
+#include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
+#include "TOFWorkflowIO/TOFMatchedWriterSpec.h"
+#include "TOFWorkflowIO/TOFCalibWriterSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
@@ -80,11 +80,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     writecalib = 1;
   }
 
-  if(!writecalib){
+  if (!writecalib) {
     useFIT = false;
   }
 
-  LOG(INFO) << "TOF RECO WORKFLOW configuration";
+  LOG(INFO) << "TOF MATCHER WORKFLOW configuration";
   LOG(INFO) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
   LOG(INFO) << "TOF output = " << outputType;
   LOG(INFO) << "TOF disable-mc = " << configcontext.options().get<std::string>("disable-mc");
@@ -95,14 +95,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t dummy;
+  GID::mask_t nonemask = GID::getSourcesMask(GID::NONE);
+
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, nonemask, nonemask, src, useMC, dummy); // only tracks needed
+
+  if (!disableRootIn) { // input data loaded from root files
+    LOG(INFO) << "Insert TOF Cluster Reader";
+    specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
+  }
+
   specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT));
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, dummy); // clusters MC is not needed
-
   if (!disableRootOut) {
-    //specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_toftpc.root", writeTOFTPC));
-    specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_toftpc.root", writeTOFTPC));
-    specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_toftpc.root", writeTOFTPC));
+    if (writematching) {
+      specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_toftpc.root", writeTOFTPC));
+    }
+    if (writecalib) {
+      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_toftpc.root", writeTOFTPC));
+    }
   }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit

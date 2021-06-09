@@ -19,7 +19,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
-#include "TOFWorkflow/CalibInfoReaderSpec.h"
+#include "TOFWorkflowIO/CalibInfoReaderSpec.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;

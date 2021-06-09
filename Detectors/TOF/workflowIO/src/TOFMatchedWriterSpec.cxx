@@ -10,7 +10,7 @@
 
 /// @file   TOFMatchedWriterSpec.cxx
 
-#include "TOFWorkflow/TOFMatchedWriterSpec.h"
+#include "TOFWorkflowIO/TOFMatchedWriterSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"

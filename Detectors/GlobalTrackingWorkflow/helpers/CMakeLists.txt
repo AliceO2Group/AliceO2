@@ -17,7 +17,8 @@ o2_add_library(GlobalTrackingWorkflowHelpers
                                       O2::ITSMFTWorkflow
                                       O2::MFTWorkflow
                                       O2::TPCWorkflow
-                                      O2::TOFWorkflow
+                                      O2::GlobalTrackingWorkflowReaders
+                                      O2::TOFWorkflowIO
                                       O2::FT0Workflow
                                       O2::ITSMFTWorkflow
                                       O2::TRDWorkflowIO

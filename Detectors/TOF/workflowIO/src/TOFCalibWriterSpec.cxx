@@ -10,7 +10,7 @@
 
 /// @file   TOFCalibWriterSpec.cxx
 
-#include "TOFWorkflow/TOFCalibWriterSpec.h"
+#include "TOFWorkflowIO/TOFCalibWriterSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
