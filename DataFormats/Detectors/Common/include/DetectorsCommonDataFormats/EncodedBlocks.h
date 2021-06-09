@@ -19,6 +19,7 @@
 #include <type_traits>
 #include <Rtypes.h>
 #include "rANS/rans.h"
+#include "rANS/utils.h"
 #include "TTree.h"
 #include "CommonUtils/StringUtils.h"
 #include "Framework/Logger.h"
@@ -741,7 +742,7 @@ void EncodedBlocks<H, N, W>::decode(D_IT dest,                    // iterator to
         // to D-word array
         literals = std::vector<dest_t>{reinterpret_cast<const dest_t*>(block.getLiterals()), reinterpret_cast<const dest_t*>(block.getLiterals()) + md.nLiterals};
       }
-      decoder->process(dest, block.getData() + block.getNData(), md.messageLength, literals);
+      decoder->process(block.getData() + block.getNData(), dest, md.messageLength, literals);
     } else { // data was stored as is
       using destPtr_t = typename std::iterator_traits<D_IT>::pointer;
       destPtr_t srcBegin = reinterpret_cast<destPtr_t>(block.payload);
@@ -833,7 +834,8 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // directly encode source message into block buffer.
     auto blIn = bl->getCreateData();
     auto frSize = bl->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
-    const auto encodedMessageEnd = encoder->process(blIn, blIn + frSize, srcBegin, srcEnd, literals);
+    const auto encodedMessageEnd = encoder->process(srcBegin, srcEnd, blIn, literals);
+    rans::utils::checkBounds(encodedMessageEnd, blIn + frSize);
     dataSize = encodedMessageEnd - bl->getData();
     bl->setNData(dataSize);
     bl->realignBlock();
@@ -846,7 +848,7 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
       expandStorage(literalSize);
       bl->storeLiterals(literalSize, reinterpret_cast<const stream_t*>(literals.data()));
     }
-    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), static_cast<uint8_t>(encoder->getProbabilityBits()), opt,
+    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), static_cast<uint8_t>(encoder->getSymbolTablePrecision()), opt,
                      encoder->getMinSymbol(), encoder->getMaxSymbol(), dictSize, dataSize, literalSize};
 
   } else { // store original data w/o EEncoding

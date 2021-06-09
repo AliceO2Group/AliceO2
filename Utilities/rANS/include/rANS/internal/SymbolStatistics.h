@@ -29,7 +29,7 @@
 #include "rANS/internal/helper.h"
 #include "rANS/FrequencyTable.h"
 
-#include "rANS/utils/CombinedIterator.h"
+#include "rANS/utils/iterators.h"
 
 namespace o2
 {
