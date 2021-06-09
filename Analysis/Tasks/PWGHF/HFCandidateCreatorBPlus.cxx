@@ -151,13 +151,13 @@ struct HFCandidateCreatorBPlus {
 
         if (candidate.index0Id() == track.globalIndex() || candidate.index1Id() == track.globalIndex())
           continue; //daughter track id and bachelor track id not the same
-          
+
         //Select D0pi- and D0(bar)pi+ pairs only
         bool cond = ((candidate.isSelD0() >= d_selectionFlagD0 && track.sign() < 0) || (candidate.isSelD0bar() >= d_selectionFlagD0bar && track.sign() > 0));
         //if(cond) Printf("D0: %d, D0bar%d, sign: %d", candidate.isSelD0(), candidate.isSelD0bar(), track.sign());
 
         if (!cond) {
-           continue;
+          continue;
         }
 
         auto bachTrack = getTrackParCov(track);
