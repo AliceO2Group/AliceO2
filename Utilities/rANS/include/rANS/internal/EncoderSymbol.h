@@ -33,7 +33,9 @@ namespace internal
 template <typename T>
 
 struct EncoderSymbol {
-  EncoderSymbol(uint32_t start, uint32_t freq, uint32_t scale_bits)
+  EncoderSymbol() = default;
+
+  EncoderSymbol(uint32_t start, uint32_t freq, size_t scale_bits)
   {
     //		RansAssert(scale_bits <= 16);
     assert(start <= (1u << scale_bits));
@@ -120,11 +122,11 @@ struct EncoderSymbol {
     }
   };
 
-  T rcp_freq;         // Fixed-point reciprocal frequency
-  uint32_t freq;      // (Exclusive) upper bound of pre-normalization interval
-  uint32_t bias;      // Bias
-  uint32_t cmpl_freq; // Complement of frequency: (1 << scale_bits) - freq
-  uint32_t rcp_shift; // Reciprocal shift
+  T rcp_freq{};         // Fixed-point reciprocal frequency
+  uint32_t freq{};      // (Exclusive) upper bound of pre-normalization interval
+  uint32_t bias{};      // Bias
+  uint32_t cmpl_freq{}; // Complement of frequency: (1 << scale_bits) - freq
+  uint32_t rcp_shift{}; // Reciprocal shift
 };
 
 } // namespace internal

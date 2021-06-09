@@ -71,7 +71,7 @@ esse, quam nihil molestiae consequatur, vel illum, qui dolorem eum fugiat,
 quo voluptas nulla pariatur?)";
 };
 
-typedef boost::mpl::vector<Fixture<uint32_t, uint8_t, 14>, Fixture<uint64_t, uint32_t, 18>, FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint64_t, uint32_t, 18>> Fixtures;
+typedef boost::mpl::vector<Fixture<uint32_t, uint8_t, 16>, Fixture<uint64_t, uint32_t, 18>, FixtureFull<uint32_t, uint8_t, 16>, FixtureFull<uint64_t, uint32_t, 16>> Fixtures;
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
 {
@@ -105,7 +105,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
                             decoderBuffer.size() * sizeof(typename T::source_t)) == 0);
 }
 
-typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint64_t, uint32_t, 14>> LiteralFixtures;
+typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 16>, FixtureFull<uint64_t, uint32_t, 16>> LiteralFixtures;
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_literals, T, LiteralFixtures, T)
 {
@@ -145,7 +145,7 @@ BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_literals, T, LiteralFixtures,
                             decoderBuffer.size() * sizeof(typename T::source_t)) == 0);
 }
 
-typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint64_t, uint32_t, 14>> DedupFixtures;
+typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 16>, FixtureFull<uint64_t, uint32_t, 16>> DedupFixtures;
 
 BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_dedup, T, DedupFixtures, T)
 {

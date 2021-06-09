@@ -17,6 +17,8 @@
 #define RANS_INTERNAL_DECODERSYMBOL_H
 
 #include <cstdint>
+#include <cstring>
+#include <cassert>
 
 namespace o2
 {
@@ -27,8 +29,9 @@ namespace internal
 
 // Decoder symbols are straightforward.
 struct DecoderSymbol {
+  DecoderSymbol() = default;
   // Initialize a decoder symbol to start "start" and frequency "freq"
-  DecoderSymbol(uint32_t start, uint32_t freq, uint32_t probabilityBits)
+  DecoderSymbol(uint32_t start, uint32_t freq, size_t probabilityBits)
     : start(start), freq(freq)
   {
     (void)probabilityBits; // silence compiler warnings if assert not compiled.
@@ -36,8 +39,8 @@ struct DecoderSymbol {
     assert(freq <= (1 << probabilityBits) - start);
   };
 
-  uint32_t start; // Start of range.
-  uint32_t freq;  // Symbol frequency.
+  uint32_t start{}; // Start of range.
+  uint32_t freq{};  // Symbol frequency.
 };
 } // namespace internal
 } // namespace rans
