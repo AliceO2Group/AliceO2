@@ -64,16 +64,11 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin(symbolSt
   mSymbols.reserve(symbolStats.getNUsedAlphabetSymbols());
 
   mEscapeSymbol = [&]() -> std::unique_ptr<T> {
-    const auto it = symbolStats.getEscapeSymbol();
-    if (it != symbolStats.end()) {
-      const auto [symFrequency, symCumulated] = *(it);
-      return std::make_unique<T>(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());
-    } else {
-      return nullptr;
-    }
+    const auto [symFrequency, symCumulated] = symbolStats.getEscapeSymbol();
+    return std::make_unique<T>(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());
   }();
 
-  for (auto it = symbolStats.begin(); it != symbolStats.getEscapeSymbol(); ++it) {
+  for (auto it = symbolStats.begin(); it != --symbolStats.end(); ++it) {
     const auto [symFrequency, symCumulated] = *it;
     if (symFrequency) {
       mSymbols.emplace_back(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());

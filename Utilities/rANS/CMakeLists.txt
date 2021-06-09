@@ -13,24 +13,31 @@ o2_add_library(rANS
                        src/FrequencyTable.cxx
                PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
 
-
-o2_add_test(EncodeDecode
-            NAME EncodeDecode
-            SOURCES test/test_ransEncodeDecode.cxx
+o2_add_test(CombinedIterator
+            NAME CombinedIterator
+            SOURCES test/test_ransCombinedIterator.cxx
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
-            
+
 o2_add_test(FrequencyTable
             NAME FrequencyTable
             SOURCES test/test_ransFrequencyTable.cxx
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
-            
-o2_add_test(CombinedIterator
-            NAME CombinedIterator
-            SOURCES test/test_ransCombinedIterator.cxx
+
+o2_add_test(SymbolStatistics
+            NAME SymbolStatistics
+            SOURCES test/test_ransSymbolStatistics.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
+
+
+o2_add_test(EncodeDecode
+            NAME EncodeDecode
+            SOURCES test/test_ransEncodeDecode.cxx
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
