@@ -21,14 +21,23 @@ constexpr bool is_type_complete_v = false;
 template <typename T>
 constexpr bool is_type_complete_v<T, std::void_t<decltype(sizeof(T))>> = true;
 
-/// Helper which will invoke lambda if the type T is actually available.
+/// Helper which will invoke @a onDefined if the type T is actually available
+/// or @a onUndefined if the type T is a forward declaration.
 /// Can be used to check for existence or not of a given type.
-template <typename T, typename TLambda>
-void call_if_defined(TLambda&& lambda)
+template <typename T, typename TDefined, typename TUndefined>
+void call_if_defined_full(TDefined&& onDefined, TUndefined&& onUndefined)
 {
   if constexpr (is_type_complete_v<T>) {
-    lambda(static_cast<T*>(nullptr));
+    onDefined(static_cast<T*>(nullptr));
+  } else {
+    onUndefined();
   }
+}
+
+template <typename T, typename TDefined>
+void call_if_defined(TDefined&& onDefined)
+{
+  call_if_defined_full<T>(onDefined, []() -> void {});
 }
 
 } // namespace o2::framework
