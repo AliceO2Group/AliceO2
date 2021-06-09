@@ -8,14 +8,14 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_library(rANS  
+o2_add_library(rANS
                SOURCES src/SymbolStatistics.cxx
                        src/FrequencyTable.cxx
                PUBLIC_LINK_LIBRARIES FairLogger::FairLogger)
 
-o2_add_test(CombinedIterator
-            NAME CombinedIterator
-            SOURCES test/test_ransCombinedIterator.cxx
+o2_add_test(Iterators
+            NAME Iterators
+            SOURCES test/test_ransIterators.cxx
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
@@ -40,7 +40,7 @@ o2_add_test(SymbolTable
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
-            
+
 o2_add_test(ReverseSymbolLookupTable
             NAME ReverseSymbolLookupTable
             SOURCES test/test_ransReverseSymbolLookupTable.cxx
@@ -54,7 +54,7 @@ o2_add_test(EncodeDecode
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
-            
+
 if (TARGET benchmark::benchmark)
 o2_add_executable(CombinedIterator
                     SOURCES benchmarks/bench_ransCombinedIterator.cxx
@@ -62,7 +62,7 @@ o2_add_executable(CombinedIterator
               IS_BENCHMARK
                     PUBLIC_LINK_LIBRARIES O2::rANS benchmark::benchmark)
 endif()
-            
+
 o2_add_executable(rans-encode-decode-8
                   TARGETVARNAME targetName
                   SOURCES run/bin-encode-decode.cxx

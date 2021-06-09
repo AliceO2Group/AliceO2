@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   test_ransCombinedIterator.cxx
+/// @file   test_ransIterators.cxx
 /// @author michael.lettrich@cern.ch
 /// @since  2020-10-28
 /// @brief
@@ -122,7 +122,7 @@ BOOST_FIXTURE_TEST_CASE(test_CombinedOutputIteratorBase, test_CombninedIteratorF
   BOOST_CHECK_EQUAL(bOut[0], 0);
   BOOST_CHECK_EQUAL(aOut[1], a[1]);
   BOOST_CHECK_EQUAL(bOut[1], b[1]);
-}
+};
 
 BOOST_FIXTURE_TEST_CASE(test_CombinedInputIteratorReadArray, test_CombninedIteratorFixture)
 {
@@ -130,7 +130,7 @@ BOOST_FIXTURE_TEST_CASE(test_CombinedInputIteratorReadArray, test_CombninedItera
   const o2::rans::utils::CombinedInputIterator begin(a.begin(), b.begin(), f);
   const o2::rans::utils::CombinedInputIterator end(a.end(), b.end(), f);
   BOOST_CHECK_EQUAL_COLLECTIONS(begin, end, aAndB.begin(), aAndB.end());
-}
+};
 
 BOOST_FIXTURE_TEST_CASE(test_CombinedOutputIteratorWriteArray, test_CombninedIteratorFixture)
 {
@@ -144,4 +144,11 @@ BOOST_FIXTURE_TEST_CASE(test_CombinedOutputIteratorWriteArray, test_CombninedIte
 
   BOOST_CHECK_EQUAL_COLLECTIONS(aRes.begin(), aRes.end(), a.begin(), a.end());
   BOOST_CHECK_EQUAL_COLLECTIONS(bRes.begin(), bRes.end(), b.begin(), b.end());
-}
+};
+
+BOOST_AUTO_TEST_CASE(test_Functions)
+{
+  std::vector<size_t> A(2);
+  BOOST_CHECK_THROW(o2::rans::utils::checkBounds(std::end(A), std::begin(A)), std::runtime_error);
+  BOOST_CHECK_NO_THROW(o2::rans::utils::checkBounds(std::begin(A), std::end(A)));
+};
