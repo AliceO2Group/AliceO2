@@ -46,8 +46,8 @@ void DataReaderTask::sendData(ProcessingContext& pc)
   if (mVerbose) {
     LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets";
   }
-  LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets";
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
+  LOG(info) << "Sending data onwards with " << mCompressedDigits.size() << " Digits and " << mTracklets.size() << " Tracklets";
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mCompressedDigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRIGGERRECORD", 0, Lifetime::Timeframe}, mTriggers);
   //    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD,"STATS",0,Lifetime::Timerframe},mStats);
@@ -97,8 +97,8 @@ void DataReaderTask::run(ProcessingContext& pc)
           LOG(info) << "%%% finished running " << loopcounter << " %%%";
         }
         loopcounter++;
-        //mTracklets.insert(std::end(mTracklets), std::begin(mReader.getTracklets()), std::end(mReader.getTracklets()));
-        //mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
+        // mTracklets.insert(std::end(mTracklets), std::begin(mReader.getTracklets()), std::end(mReader.getTracklets()));
+        // mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
         //mReader.clearall();
         if (mVerbose) {
           LOG(info) << "from parsing received: " << mTracklets.size() << " tracklets and " << mCompressedDigits.size() << " compressed digits";

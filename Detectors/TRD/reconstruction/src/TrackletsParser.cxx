@@ -42,10 +42,10 @@ int TrackletsParser::Parse()
     LOG(info) << "Tracklet Parser parse of data sitting at :" << std::hex << (void*)mData << " starting at pos " << mStartParse;
     if (mByteOrderFix) {
 
-      LOG(info) << " we will not be byte swapping";
+      LOG(info) << " we will be byte swapping";
     } else {
 
-      LOG(info) << " we will be byte swapping";
+      LOG(info) << " we will *not* be byte swapping";
     }
   }
   if (mDataVerbose) {
@@ -66,8 +66,8 @@ int TrackletsParser::Parse()
       LOG(info) << std::hex << "0x" << datacopy[i] << " " << std::hex << "0x" << datacopy[i + 1] << " " << std::hex << "0x" << datacopy[i + 2] << " " << std::hex << "0x" << datacopy[i + 3] << " " << std::hex << "0x" << datacopy[i + 4] << " " << std::hex << "0x" << datacopy[i + 5] << " " << std::hex << "0x" << datacopy[i + 6] << " " << std::hex << "0x" << datacopy[i + 7];
     }
     LOG(info) << "trackletdata to parse end";
-    if (datacopy.size() > 1024) {
-      LOG(fatal) << "something very wrong with tracklet parsing >1024";
+    if (datacopy.size() > 4096) {
+      LOG(fatal) << "something very wrong with tracklet parsing >4096";
     }
   }
 

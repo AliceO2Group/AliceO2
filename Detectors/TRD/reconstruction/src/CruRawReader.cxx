@@ -95,17 +95,6 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     mCRUID = o2::raw::RDHUtils::getCRUID(rdh);
     auto packetCount = o2::raw::RDHUtils::getPacketCounter(rdh);
     o2::InteractionRecord a = o2::raw::RDHUtils::getTriggerIR(rdh);
-    //check this triggerrecord is the same as the last loop.
-    //  if (mVerbose) {
-    //    if (mIR != a) {
-    //     LOG(warn) << "Interaction records are not consistant across rdh in the data readout loop";
-    //      o2::raw::RDHUtils::printRDH(rdh);
-    //        LOG(warn) << "current IR " << a;
-    //     LOG(warn) << "previous IR " << mIR;
-    //      LOG(warn) << "end Interaction records are not consistant across rdh in the data readout loop";
-    //    }
-    //getCompressedDigits().size()
-    //}
     mIR = a;
     //mDataPointer += headerSize/4;
     mDataEndPointer = (const uint32_t*)((char*)rdh + offsetToNext);
@@ -136,7 +125,7 @@ bool CruRawReader::processHBFs(int datasizealreadyread, bool verbose)
     } else {
       LOG(warn) << "next rdh exceeds the bounds of the cru payload buffer";
       if (mVerbose) {
-        LOG(info) << "rdh position is out of bounds of the buffer";
+        LOG(info) << "rdh position  is out of bounds of the buffer";
         o2::raw::RDHUtils::printRDH(rdh);
       }
       return false; //-1;
@@ -328,12 +317,17 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   //as this is for a single cru half chamber header all the tracklets and digits are for the same trigger defined by the bc and orbit in the rdh which we hold in mIR
   mIR.bc = mCurrentHalfCRUHeader.BunchCrossing; // correct mIR to have the physics trigger bunchcrossing *NOT* the heartbeat trigger bunch crossing.
 
-  LOG(info) << "adding tracklets from trackletparser with a size of:" << mTrackletsParser.getTracklets().size();
-  mEventRecords.addTracklets(mIR, std::begin(mTrackletsParser.getTracklets()), std::end(mTrackletsParser.getTracklets()));
+  std::vector<Tracklet64> ta;
+  ta = mTrackletsParser.getTracklets();
+
+  //LOG(info) << "adding tracklets from trackletparser with a size of:" << mTrackletsParser.getTracklets().size();
+  //mEventRecords.addTracklets(mIR, mTrackletsParser.getTrackletsbegin(), mTrackletsParser.getTrackletsend());
+  //mEventRecords.addTracklets(mIR, std::begin(mTrackletsParser.getTracklets()), std::end(mTrackletsParser.getTracklets()));
+  mEventRecords.addTracklets(mIR, mTrackletsParser.getTracklets());
   if (mVerbose) {
     LOG(info) << "inserting tracklets from parser of size : " << mTrackletsParser.getTracklets().size() << " mEventRecordsTracklets is now :" << mEventRecords.sumTracklets();
   }
-  LOG(info) << "adding tracklets from trackletparser with a size of:" << mTrackletsParser.getTracklets().size();
+  //LOG(info) << "added tracklets from trackletparser with a size of:" << mTrackletsParser.getTracklets().size();
   mTrackletsParser.clear();
   mEventRecords.addCompressedDigits(mIR, std::begin(mDigitsParser.getDigits()), std::end(mDigitsParser.getDigits()));
   if (mVerbose) {

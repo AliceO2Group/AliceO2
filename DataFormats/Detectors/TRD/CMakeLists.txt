@@ -17,6 +17,7 @@ o2_add_library(DataFormatsTRD
                        src/CompressedDigit.cxx
                        src/CTF.cxx
                        src/Digit.cxx
+                       src/EventRecord.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::SimulationDataFormat)
 
 o2_target_root_dictionary(DataFormatsTRD

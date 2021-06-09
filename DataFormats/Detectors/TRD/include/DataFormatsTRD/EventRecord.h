@@ -16,11 +16,14 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "FairLogger.h"
+#include "DataFormatsTRD/Tracklet64.h"
+
 namespace o2::trd
 {
 class Digit;
 class Tracklet64;
 class CompressedDigit;
+class TriggerRecord;
 
 /// \class EventRecord
 /// \brief Stores a TRD event
@@ -32,7 +35,12 @@ class EventRecord
 
  public:
   EventRecord() = default;
-  EventRecord(const BCData& bunchcrossing) : mBCData(bunchcrossing) {}
+  EventRecord(const BCData& bunchcrossing) : mBCData(bunchcrossing)
+  {
+    mTracklets.reserve(30);
+    mDigits.reserve(20);
+    mCompressedDigits.reserve(30);
+  }
   ~EventRecord() = default;
 
   void setBCData(const BCData& data) { mBCData = data; }
@@ -41,19 +49,19 @@ class EventRecord
   BCData& getBCData() { return mBCData; }
 
   //Digit information
-  std::vector<Digit>& getDigits() { return mDigits; }
-  std::vector<CompressedDigit>& getCompressedDigits() { return mCompressedDigits; }
-  void addDigits(Digit& digit) { mDigits.push_back(digit); }
-  void addCompressedDigits(CompressedDigit& digit) { mCompressedDigits.push_back(digit); }
-  void addDigits(std::vector<Digit>::iterator& start, std::vector<Digit>::iterator& end) { mDigits.insert(mDigits.end(), start, end); }
-  void addCompressedDigits(std::vector<CompressedDigit>::iterator& start, std::vector<CompressedDigit>::iterator& end) { mCompressedDigits.insert(mCompressedDigits.end(), start, end); }
+  std::vector<Digit>& getDigits();
+  std::vector<CompressedDigit>& getCompressedDigits();
+  void addDigits(Digit& digit);
+  void addCompressedDigits(CompressedDigit& digit);
+  void addDigits(std::vector<Digit>::iterator& start, std::vector<Digit>::iterator& end);
+  void addCompressedDigits(std::vector<CompressedDigit>::iterator& start, std::vector<CompressedDigit>::iterator& end);
 
   //tracklet information
-  std::vector<Tracklet64>& getTracklets() { return mTracklets; }
-  void addTracklet(Tracklet64& tracklet) { mTracklets.push_back(tracklet); }
-  void addTracklets(std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end) { mTracklets.insert(mTracklets.end(), start, end); }
-
-  void printStream(std::ostream& stream) const;
+  std::vector<Tracklet64>& getTracklets();
+  void addTracklet(Tracklet64& tracklet);
+  void addTracklets(std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end);
+  void addTracklets(std::vector<Tracklet64>& tracklets);
+  //void printStream(std::ostream& stream) const;
 
   bool operator==(const EventRecord& o) const
   {
@@ -67,206 +75,38 @@ class EventRecord
   }
 
  private:
-  BCData mBCData;                                 /// orbit and Bunch crossing data of the trigger
-  std::vector<Digit> mDigits;                     /// Index of the underlying digit data, indexes into the vector/array/span
-  std::vector<Tracklet64> mTracklets;             /// Index of the underlying tracklet data, indexes into the vector/array/span
-  std::vector<CompressedDigit> mCompressedDigits; /// Index of the underlying digit data, indexes into the vector/array/span
+  BCData mBCData;                                   /// orbit and Bunch crossing data of the physics trigger
+  std::vector<Digit> mDigits{};                     /// digit data, for this event
+  std::vector<Tracklet64> mTracklets{};             /// tracklet data, for this event
+  std::vector<CompressedDigit> mCompressedDigits{}; /// compressed digit data,for this event
 
   ClassDefNV(EventRecord, 1);
 };
 
 class EventStorage
 {
+  //
+ public:
+  EventStorage() = default;
+  ~EventStorage() = default;
   //storage of eventrecords
   //a vector of eventrecords and the associated funationality to go with it.
- public:
   void clear() { mEventRecords.clear(); }
-  void addDigits(InteractionRecord& ir, Digit& digit)
-  {
-    bool added = false;
-    for (auto eventrecord : mEventRecords) {
-      if (ir == eventrecord.getBCData()) {
-        //TODO replace this with a hash/map not a vector
-        eventrecord.addDigits(digit);
-        added = true;
-      }
-    }
-    if (!added) {
-      // unseen ir so add it
-      mEventRecords.push_back(ir);
-      mEventRecords.end()->addDigits(digit);
-    }
-  }
-  void addCompressedDigits(InteractionRecord& ir, CompressedDigit& digit)
-  {
-    bool added = false;
-    for (auto eventrecord : mEventRecords) {
-      if (ir == eventrecord.getBCData()) {
-        //TODO replace this with a hash/map not a vector
-        eventrecord.addCompressedDigits(digit);
-        added = true;
-      }
-    }
-    if (!added) {
-      // unseen ir so add it
-      mEventRecords.push_back(ir);
-      mEventRecords.end()->addCompressedDigits(digit);
-    }
-  }
-  void addDigits(InteractionRecord& ir, std::vector<Digit>::iterator start, std::vector<Digit>::iterator end)
-  {
-    bool added = false;
-    for (auto eventrecord : mEventRecords) {
-      if (ir == eventrecord.getBCData()) {
-        //TODO replace this with a hash/map not a vector
-        eventrecord.addDigits(start, end);
-        added = true;
-      }
-    }
-    if (!added) {
-      // unseen ir so add it
-      mEventRecords.push_back(ir);
-      mEventRecords.end()->addDigits(start, end);
-    }
-  }
-  void addCompressedDigits(InteractionRecord& ir, std::vector<CompressedDigit>::iterator start, std::vector<CompressedDigit>::iterator end)
-  {
-    bool added = false;
-    for (auto eventrecord : mEventRecords) {
-      if (ir == eventrecord.getBCData()) {
-        //TODO replace this with a hash/map not a vector
-        eventrecord.addCompressedDigits(start, end);
-        added = true;
-      }
-    }
-    if (!added) {
-      // unseen ir so add it
-      mEventRecords.push_back(ir);
-      mEventRecords.end()->addCompressedDigits(start, end);
-    }
-  }
-  void addTracklet(InteractionRecord& ir, Tracklet64& tracklet)
-  {
-    bool added = false;
-    for (auto eventrecord : mEventRecords) {
-      if (ir == eventrecord.getBCData()) {
-        //TODO replace this with a hash/map not a vector
-        eventrecord.addTracklet(tracklet);
-        added = true;
-      }
-    }
-    if (!added) {
-      // unseen ir so add it
-      mEventRecords.push_back(ir);
-      mEventRecords.end()->addTracklet(tracklet);
-    }
-  }
-  void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator start, std::vector<Tracklet64>::iterator end)
-  {
-    bool added = false;
-    for (auto eventrecord : mEventRecords) {
-      if (ir == eventrecord.getBCData()) {
-        //TODO replace this with a hash/map not a vector
-        eventrecord.addTracklets(start, end); //mTracklets.insert(mTracklets.end(),start,end);
-        added = true;
-      }
-    }
-    if (!added) {
-      // unseen ir so add it
-      mEventRecords.push_back(ir);
-      mEventRecords.end()->addTracklets(start, end);
-    }
-  }
-  void unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits)
-  {
-    int digitcount = 0;
-    int trackletcount = 0;
-    for (auto event : mEventRecords) {
-      tracklets.insert(std::end(tracklets), std::begin(event.getTracklets()), std::end(event.getTracklets()));
-      digits.insert(std::end(digits), std::begin(event.getDigits()), std::end(event.getDigits()));
-      triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());
-      digitcount += event.getDigits().size();
-      trackletcount += event.getTracklets().size();
-    }
-  }
-  void unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<CompressedDigit>& digits)
-  {
-    int digitcount = 0;
-    int trackletcount = 0;
-    for (auto event : mEventRecords) {
-      tracklets.insert(std::end(tracklets), std::begin(event.getTracklets()), std::end(event.getTracklets()));
-      digits.insert(std::end(digits), std::begin(event.getCompressedDigits()), std::end(event.getCompressedDigits()));
-      triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());
-      digitcount += event.getDigits().size();
-      trackletcount += event.getTracklets().size();
-    }
-  }
-  int sumTracklets()
-  {
-    int sum = 0;
-    for (auto event : mEventRecords) {
-      sum += event.getTracklets().size();
-    }
-    return sum;
-  }
-  int sumDigits()
-  {
-    int sum = 0;
-    for (auto event : mEventRecords) {
-      sum += event.getDigits().size();
-    }
-    return sum;
-  }
-  std::vector<Tracklet64>& getTracklets(InteractionRecord& ir)
-  {
-    bool found = false;
-    for (auto event : mEventRecords) {
-      if (ir == event.getBCData()) {
-        found = true;
-        return event.getTracklets();
-      }
-    }
-    LOG(warn) << "attempted to get tracklets from IR: " << ir << " total tracklets of:" << sumTracklets();
-    printIR();
-    return mDummyTracklets;
-  }
-  std::vector<Digit>& getDigits(InteractionRecord& ir)
-  {
-    bool found = false;
-    for (auto event : mEventRecords) {
-      if (ir == event.getBCData()) {
-        found = true;
-        return event.getDigits();
-      }
-    }
-    LOG(fatal) << "attempted to get digits from IR: " << ir << " total digits of:" << sumDigits();
-    printIR();
-    return mDummyDigits;
-  }
-
-  std::vector<CompressedDigit>& getCompressedDigits(InteractionRecord& ir)
-  {
-    bool found = false;
-    for (auto event : mEventRecords) {
-      if (ir == event.getBCData()) {
-        found = true;
-        return event.getCompressedDigits();
-      }
-    }
-    LOG(fatal) << "attempted to get digits from IR: " << ir << " total digits of:" << sumDigits();
-    printIR();
-    return mDummyCompressedDigits;
-  }
-
-  void printIR()
-  {
-    std::string records;
-    int count = 0;
-    for (auto event : mEventRecords) {
-      LOG(info) << "[" << count << "]" << event.getBCData() << " ";
-      count++;
-    }
-  }
+  void addDigits(InteractionRecord& ir, Digit& digit);
+  void addCompressedDigits(InteractionRecord& ir, CompressedDigit& digit);
+  void addDigits(InteractionRecord& ir, std::vector<Digit>::iterator start, std::vector<Digit>::iterator end);
+  void addCompressedDigits(InteractionRecord& ir, std::vector<CompressedDigit>::iterator start, std::vector<CompressedDigit>::iterator end);
+  void addTracklet(InteractionRecord& ir, Tracklet64& tracklet);
+  void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& tracklets);
+  void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end);
+  void unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits);
+  void unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<CompressedDigit>& digits);
+  int sumTracklets();
+  int sumDigits();
+  std::vector<Tracklet64>& getTracklets(InteractionRecord& ir);
+  std::vector<Digit>& getDigits(InteractionRecord& ir);
+  std::vector<CompressedDigit>& getCompressedDigits(InteractionRecord& ir);
+  void printIR();
 
  private:
   std::vector<EventRecord> mEventRecords;
