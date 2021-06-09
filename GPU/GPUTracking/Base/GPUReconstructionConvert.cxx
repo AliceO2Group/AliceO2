@@ -222,7 +222,7 @@ static inline auto ZSEncoderGetCharge(const o2::tpc::Digit a) { return a.getChar
 template <class T, class S>
 void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, bool zs12bit, bool verify, float threshold, bool padding)
 {
-  // Pass in either outBuffer / outSizes, to fill standalone output buffers, or raw / ir to use RawFileWriter
+  // Pass in either outBuffer / outSizes, to fill standalone output buffers, or raw to use RawFileWriter
   // ir is the interaction record for time bin 0
   if (((outBuffer == nullptr) ^ (outSizes == nullptr)) || ((raw != nullptr) && (ir == nullptr)) || !((outBuffer == nullptr) ^ (raw == nullptr)) || (raw && verify) || (threshold > 0.f && verify)) {
     throw std::runtime_error("Invalid parameters");
