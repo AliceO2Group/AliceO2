@@ -22,7 +22,7 @@ using namespace o2::ctp;
 /// CTP digit -> GBTdigit CTPInt Record, GBTdigit TrigClass Record
 /// GBT didit X -> CRU  raw data
 /// X= CTPInt Record to link 0
-/// X= TrigClass Record to link 1 
+/// X= TrigClass Record to link 1
 
 void Digits2Raw::init()
 {
@@ -69,10 +69,10 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     LOG(FATAL) << "Branch CTPDigits is missing";
     return;
   }
-  o2::InteractionRecord intRec={0,0};
+  o2::InteractionRecord intRec = {0, 0};
   // Get first orbit
   uint32_t orbit0 = 0;
-  bool firstorbit=1;
+  bool firstorbit = 1;
   // Add all CTPdigits for given orbit
   LOG(INFO) << "Number of entries: " << digiTree->GetEntries();
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
@@ -82,8 +82,8 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
     std::vector<std::bitset<NGBT>> hbfIR;
     std::vector<std::bitset<NGBT>> hbfTC;
     for (auto const& ctpdig : CTPDigits) {
-      if ((orbit0 == ctpdig.intRecord.orbit) || firstorbit){
-        if(firstorbit == true) {
+      if ((orbit0 == ctpdig.intRecord.orbit) || firstorbit) {
+        if (firstorbit == true) {
           firstorbit = false;
           orbit0 = ctpdig.intRecord.orbit;
           LOG(INFO) << "First orbit:" << orbit0;
@@ -99,16 +99,16 @@ void Digits2Raw::processDigits(const std::string& fileDigitsName)
         //std::memcpy(buffer.data() + buffer.size() - o2::raw::RDHUtils::GBTWord, PLTrailer.c_str(), o2::raw::RDHUtils::GBTWord);
         //addData for IR
         intRec.orbit = orbit0;
-        if(mZeroSuppressedIntRec == true) {
+        if (mZeroSuppressedIntRec == true) {
           buffer = digits2HBTPayload(hbfIR, NIntRecPayload);
         } else {
           std::vector<std::bitset<NGBT>> hbfIRnonZS = addEmptyBC(hbfIRnonZS);
           buffer = digits2HBTPayload(hbfIRnonZS, NIntRecPayload);
         }
-        mWriter.addData(CRULinkIDIntRec,mCruID,CRULinkIDIntRec,mEndPointID,intRec,buffer);
+        mWriter.addData(CRULinkIDIntRec, mCruID, CRULinkIDIntRec, mEndPointID, intRec, buffer);
         // add data for Trigger Class Record
         buffer.clear();
-        mWriter.addData(CRULinkIDClassRec,mCruID,CRULinkIDClassRec,mEndPointID,intRec,buffer);
+        mWriter.addData(CRULinkIDClassRec, mCruID, CRULinkIDClassRec, mEndPointID, intRec, buffer);
         //
         orbit0 = ctpdig.intRecord.orbit;
         hbfIR.clear();
@@ -210,10 +210,10 @@ int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>&
   //
   // Trig Classes
   //
-  gbtdigitTR=0;
-  for(auto const& tcl: mCTPConfiguration->getCTPClasses()) {
-    if( tcl.descriptor->getInputsMask() & gbtmask ) {
-      gbtdigitTR |= (1<< tcl.classMask);
+  gbtdigitTR = 0;
+  for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
+    if (tcl.descriptor->getInputsMask() & gbtmask) {
+      gbtdigitTR |= (1 << tcl.classMask);
     }
   }
   return 0;
@@ -221,10 +221,10 @@ int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>&
 std::vector<std::bitset<NGBT>> Digits2Raw::addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS)
 {
   std::vector<std::bitset<NGBT>> hbfIRnonZS;
-  uint32_t bcnonzero=0;
-  for(auto const& item: hbfIRZS) {
+  uint32_t bcnonzero = 0;
+  for (auto const& item : hbfIRZS) {
     uint32_t bcnonzeroNext = (item.to_ulong()) & 0xfff;
-    for(int i = (bcnonzero+1) ; i < bcnonzeroNext; i ++) {
+    for (int i = (bcnonzero + 1); i < bcnonzeroNext; i++) {
       std::bitset<NGBT> bs = i;
       hbfIRnonZS.push_back(bs);
       bcnonzero = bcnonzeroNext;

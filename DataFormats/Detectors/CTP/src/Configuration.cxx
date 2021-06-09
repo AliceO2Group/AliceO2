@@ -30,14 +30,14 @@ void CTPInput::printStream(std::ostream& stream) const
   stream << "CTP Input:" << name << " Detector:" << getInputDetName() << " Level:" << level << " Hardware mask:0x" << std::hex << inputMask << std::dec << std::endl;
 }
 //
-std::uint64_t CTPDescriptor::getInputsMask() const 
+std::uint64_t CTPDescriptor::getInputsMask() const
 {
   uint64_t mask = 0;
-  for(const auto& inp : inputs) {
-      mask |= inp->inputMask;
+  for (const auto& inp : inputs) {
+    mask |= inp->inputMask;
   }
   return mask;
-} 
+}
 void CTPDescriptor::printStream(std::ostream& stream) const
 {
   stream << "CTP Descriptor:" << name << " Inputs:";
@@ -161,11 +161,11 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         tokens.erase(tokens.begin());
         for (auto& item : tokens) {
           //CTPInput *inp = const_cast<CTPInput*> (isInputInConfig(item));
-          CTPInput *inp = isInputInConfig(item);
-          if(inp == nullptr) {
-              LOG(FATAL) << "DESCRIPTOR:" << tokens[0] << ": input not in INPUTD:" << item;
+          CTPInput* inp = isInputInConfig(item);
+          if (inp == nullptr) {
+            LOG(FATAL) << "DESCRIPTOR:" << tokens[0] << ": input not in INPUTD:" << item;
           } else {
-              desc.inputs.push_back(inp);
+            desc.inputs.push_back(inp);
           }
         }
         // Create inputs and mask
@@ -301,7 +301,7 @@ bool CTPConfiguration::isMaskInInputs(const uint64_t& mask) const
 }
 CTPInput* CTPConfiguration::isInputInConfig(const std::string inpname)
 {
-  for (auto & inp : mInputs) {
+  for (auto& inp : mInputs) {
     if (inp.name == inpname) {
       return &inp;
     }
@@ -311,9 +311,9 @@ CTPInput* CTPConfiguration::isInputInConfig(const std::string inpname)
 uint64_t CTPConfiguration::getDecrtiptorInputsMask(const std::string& name) const
 {
   for (auto const& desc : mDescriptors) {
-      if (desc.name == name) {
-          return desc.getInputsMask();
-      }
+    if (desc.name == name) {
+      return desc.getInputsMask();
+    }
   }
   return 0xffffffff;
 }
