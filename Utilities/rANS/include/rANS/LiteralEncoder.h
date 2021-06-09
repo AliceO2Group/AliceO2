@@ -62,7 +62,8 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
     return outputBegin;
   }
 
-  ransCoder_t rans0, rans1;
+  ransCoder_t rans0{this->mSymbolTablePrecission};
+  ransCoder_t rans1{this->mSymbolTablePrecission};
 
   stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
@@ -75,7 +76,7 @@ stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(source_IT inputBe
     if (this->mSymbolTable.isEscapeSymbol(symbol)) {
       literals.push_back(symbol);
     }
-    return coder.putSymbol(outputIter, encoderSymbol, this->mSymbolTablePrecission);
+    return coder.putSymbol(outputIter, encoderSymbol);
   };
 
   // odd number of bytes?
