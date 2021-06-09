@@ -257,6 +257,12 @@ GPUdi() T asin(T x)
 };
 
 template <class T>
+GPUdi() T acos(T x)
+{
+  return o2::gpu::GPUCommonMath::ACos(x);
+};
+
+template <class T>
 GPUdi() T atan(T x)
 {
   return o2::gpu::GPUCommonMath::ATan(x);
@@ -335,6 +341,11 @@ template <>
 GPUdi() double asin(double x)
 {
   return std::asin(x);
+};
+template <>
+GPUdi() double acos(double x)
+{
+  return std::acos(x);
 };
 template <>
 GPUdi() double cos(double x)
