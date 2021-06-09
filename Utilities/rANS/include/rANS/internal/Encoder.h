@@ -36,7 +36,7 @@ namespace internal
 template <typename state_T, typename stream_T>
 class Encoder
 {
-  __extension__ typedef unsigned __int128 uint128;
+  __extension__ using uint128_t = unsigned __int128;
 
   // the Coder works either with a 64Bit state and 32 bit streaming or
   //a 32 Bit state and 8 Bit streaming We need to make sure it gets initialized with
@@ -104,10 +104,10 @@ template <typename stream_IT>
 stream_IT Encoder<state_T, stream_T>::putSymbol(stream_IT outputIter, const EncoderSymbol<state_T>& symbol)
 {
 
-  assert(symbol.freq != 0); // can't encode symbol with freq=0
+  assert(symbol.getFrequency() != 0); // can't encode symbol with freq=0
 
   // renormalize
-  const auto [newState, streamPosition] = renorm(mState, outputIter, symbol.freq);
+  const auto [newState, streamPosition] = renorm(mState, outputIter, symbol.getFrequency());
 
   // x = C(s,x)
   state_T quotient = 0;
@@ -115,13 +115,13 @@ stream_IT Encoder<state_T, stream_T>::putSymbol(stream_IT outputIter, const Enco
   if constexpr (needs64Bit<state_T>()) {
     // This code needs support for 64-bit long multiplies with 128-bit result
     // (or more precisely, the top 64 bits of a 128-bit result).
-    quotient = static_cast<state_T>((static_cast<uint128>(newState) * symbol.rcp_freq) >> 64);
+    quotient = static_cast<state_T>((static_cast<uint128_t>(newState) * symbol.getReciprocalFrequency()) >> 64);
   } else {
-    quotient = static_cast<state_T>((static_cast<uint64_t>(newState) * symbol.rcp_freq) >> 32);
+    quotient = static_cast<state_T>((static_cast<uint64_t>(newState) * symbol.getReciprocalFrequency()) >> 32);
   }
-  quotient = quotient >> symbol.rcp_shift;
+  quotient = quotient >> symbol.getReciprocalShift();
 
-  mState = newState + symbol.bias + quotient * symbol.cmpl_freq;
+  mState = newState + symbol.getBias() + quotient * symbol.getFrequencyComplement();
   return streamPosition;
 };
 

@@ -33,9 +33,10 @@ class DecoderSymbol
  public:
   using count_t = uint32_t;
 
+  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   constexpr DecoderSymbol() noexcept {}; //NOLINT
   // Initialize a decoder symbol to start "start" and frequency "freq"
-  constexpr DecoderSymbol(count_t cumulative, count_t frequency, size_t symbolTablePrecision)
+  constexpr DecoderSymbol(count_t frequency, count_t cumulative, size_t symbolTablePrecision)
     : mCumulative(cumulative), mFrequency(frequency)
   {
     (void)symbolTablePrecision; // silence compiler warnings if assert not compiled.
