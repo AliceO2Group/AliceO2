@@ -64,7 +64,8 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::process(source_IT inputBeg
     return outputBegin;
   }
 
-  ransCoder_t rans0, rans1;
+  ransCoder_t rans0{this->mSymbolTablePrecission};
+  ransCoder_t rans1{this->mSymbolTablePrecission};
 
   stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
@@ -74,7 +75,7 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::process(source_IT inputBeg
   auto encode = [this](source_IT symbolIter, stream_IT outputIter, ransCoder_t& coder) {
     const source_T symbol = *symbolIter;
     const auto& encoderSymbol = (this->mSymbolTable)[symbol];
-    return coder.putSymbol(outputIter, encoderSymbol, this->mSymbolTablePrecission);
+    return coder.putSymbol(outputIter, encoderSymbol);
   };
 
   // odd number of bytes?

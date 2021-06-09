@@ -65,7 +65,7 @@ stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(source_IT inputBegi
     LOG(warning) << "passed empty message to encoder, skip encoding";
     return outputBegin;
   }
-  ransCoder_t rans;
+  ransCoder_t rans{this->mSymbolTablePrecission};
 
   stream_IT outputIter = outputBegin;
   source_IT inputIT = inputEnd;
@@ -95,7 +95,7 @@ stream_IT DedupEncoder<coder_T, stream_T, source_T>::process(source_IT inputBegi
       duplicates.emplace(pos, numDuplicates);
     }
 
-    return std::pair(++dedupIT, coder.putSymbol(outputIter, encoderSymbol, this->mSymbolTablePrecission));
+    return std::pair(++dedupIT, coder.putSymbol(outputIter, encoderSymbol));
   };
 
   while (inputIT != inputBegin) { // NB: working in reverse!
