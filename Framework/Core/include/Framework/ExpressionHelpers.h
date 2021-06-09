@@ -122,4 +122,21 @@ struct NodeRecord {
 };
 } // namespace o2::framework::expressions
 
+namespace o2::framework
+{
+template <typename R, typename T, typename... As>
+struct ProcessConfigurable : Configurable<bool, ConfigParamKind::kProcessFlag> {
+  ProcessConfigurable(R (T::*process_)(As...), std::string const& name_, bool&& value_, std::string const& help_)
+    : process{process_},
+      Configurable<bool, ConfigParamKind::kProcessFlag>(name_, std::forward<bool>(value_), help_)
+  {
+  }
+  R(T::*process)
+  (As...);
+};
+
+#define PCONF(_Var_, _Name_, _Help_, _Function_, _Default_) \
+  decltype(ProcessConfigurable{_Function_, _Name_, _Default_, _Help_}) _Var_ = ProcessConfigurable{_Function_, _Name_, _Default_, _Help_};
+} // namespace o2::framework
+
 #endif // O2_FRAMEWORK_EXPRESSIONS_HELPERS_H_

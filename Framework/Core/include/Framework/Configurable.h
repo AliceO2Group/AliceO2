@@ -90,5 +90,6 @@ std::ostream& operator<<(std::ostream& os, Configurable<T, K, IP> const& c)
   os << c.value;
   return os;
 }
+
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_CONFIGURABLE_H_
