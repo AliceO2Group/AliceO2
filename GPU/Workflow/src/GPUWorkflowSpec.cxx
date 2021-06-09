@@ -40,6 +40,7 @@
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "TPCBase/RDHUtils.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -112,11 +113,11 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     std::vector<int> clusterOutputIds;
     unsigned long outputBufferSize = 0;
     unsigned long tpcSectorMask = 0;
-    unsigned int nHBFPerTF;
     int verbosity = 0;
     bool readyToQuit = false;
     bool allocateOutputOnTheFly = false;
     bool suppressOutput = false;
+    o2::gpu::GPUSettingsTF tfSettings;
   };
 
   auto processAttributes = std::make_shared<ProcessAttributes>();
@@ -141,7 +142,14 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
       config.configGRP.solenoidBz = 5.00668f * grp->getL3Current() / 30000.;
       config.configGRP.continuousMaxTimeBin = grp->isDetContinuousReadOut(o2::detectors::DetID::TPC) ? -1 : 0; // Number of timebins in timeframe if continuous, 0 otherwise
-      processAttributes->nHBFPerTF = grp->getNHBFPerTF();
+      processAttributes->tfSettings.hasNHBFPerTF = 1;
+      processAttributes->tfSettings.nHBFPerTF = grp->getNHBFPerTF();
+      processAttributes->tfSettings.hasRunStartOrbit = 1;
+      processAttributes->tfSettings.runStartOrbit = grp->getFirstOrbit();
+      processAttributes->tfSettings.hasSimStartOrbit = 1;
+      auto& hbfu = o2::raw::HBFUtils::Instance();
+      processAttributes->tfSettings.simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
+
       LOG(INFO) << "Initializing run paramerers from GRP bz=" << config.configGRP.solenoidBz << " cont=" << grp->isDetContinuousReadOut(o2::detectors::DetID::TPC);
 
       confParam = config.ReadConfigurableParam();
@@ -160,7 +168,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       if (config.configGRP.continuousMaxTimeBin == -1) {
-        config.configGRP.continuousMaxTimeBin = (processAttributes->nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
+        config.configGRP.continuousMaxTimeBin = (processAttributes->tfSettings.nHBFPerTF * o2::constants::lhc::LHCMaxBunches + 2 * o2::tpc::constants::LHCBCPERTIMEBIN - 2) / o2::tpc::constants::LHCBCPERTIMEBIN;
       }
       if (config.configProcessing.deviceNum == -2) {
         int myId = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
@@ -340,7 +348,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
       std::array<unsigned int, NEndpoints * NSectors> tpcZSonTheFlySizes;
       gsl::span<const ZeroSuppressedContainer8kb> inputZS;
-      o2::gpu::GPUSettingsTF tfSettings;
 
       bool getWorkflowTPCInput_clusters = false, getWorkflowTPCInput_mc = false, getWorkflowTPCInput_digits = false;
 
@@ -622,11 +629,9 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
-      tfSettings.tfStartOrbit = dh->firstTForbit;
-      tfSettings.hasTfStartOrbit = 1;
-      tfSettings.nHBFPerTF = processAttributes->nHBFPerTF;
-      tfSettings.hasNHBFPerTF = 1;
-      ptrs.settingsTF = &tfSettings;
+      processAttributes->tfSettings.tfStartOrbit = dh->firstTForbit;
+      processAttributes->tfSettings.hasTfStartOrbit = 1;
+      ptrs.settingsTF = &processAttributes->tfSettings;
 
       if (processAttributes->tpcSectorMask != 0xFFFFFFFFF) {
         // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
