@@ -222,8 +222,8 @@ struct TaskBplusMC {
         registry.fill(HIST("hYGenProng0"), yProngs[0], particle.pt());
         registry.fill(HIST("hYGenProng1"), yProngs[1], particle.pt());
 
-        if (cutYCandMax >= 0. && (std::abs(yProngs[0]) > cutYCandMax || std::abs(yProngs[1]) > cutYCandMax))
-          continue;
+      //  if (cutYCandMax >= 0. && (std::abs(yProngs[0]) > cutYCandMax || std::abs(yProngs[1]) > cutYCandMax))
+      //    continue;
 
         registry.fill(HIST("hPtGen"), particle.pt());
         registry.fill(HIST("hEtaGen"), particle.eta(), particle.pt());
