@@ -11,17 +11,19 @@
 #ifndef O2_MCH_RAW_ELECMAP_MAPPER_H
 #define O2_MCH_RAW_ELECMAP_MAPPER_H
 
-#include <functional>
-#include <optional>
-#include <set>
-#include <stdexcept>
-#include <cstdint>
 #include "MCHRawElecMap/DsDetId.h"
 #include "MCHRawElecMap/DsElecId.h"
 #include "MCHRawElecMap/FeeLinkId.h"
-#include <fmt/format.h>
 #include <array>
+#include <cstdint>
+#include <fmt/format.h>
+#include <functional>
 #include <gsl/span>
+#include <optional>
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace o2::mch::raw
 {
@@ -30,7 +32,7 @@ extern std::array<int, 156> deIdsForAllMCH;
 
 /**@name Mapper templates.
 
-  Those creator functions return functions that can do the mapping to/from 
+  Those creator functions return functions that can do the mapping to/from
   DsElecId to DsDetId and to/from FeeLinkId to solarId.
     */
 ///@{
@@ -58,6 +60,14 @@ template <typename T>
 Solar2FeeLinkMapper createSolar2FeeLinkMapper();
 ///@}
 
+/// List of Solar Unique Ids for a given detection element id
+template <typename T>
+std::set<uint16_t> getSolarUIDs(int deid);
+
+/// List of Solar Unique Ids for all MCH
+template <typename T>
+std::set<uint16_t> getSolarUIDs();
+
 /**@name Actual mapper types.
     */
 ///@{
@@ -72,6 +82,11 @@ struct ElectronicMapperString {
 };
 ///@}
 
+/** Return the full set of Dual Sampa Electronic Id of MCH,
+  * for a given electronic mapping */
+template <typename T>
+std::set<DsElecId> getAllDs();
+
 extern std::array<int, 9> deIdsOfCH5R;
 extern std::array<int, 9> deIdsOfCH5L;
 extern std::array<int, 9> deIdsOfCH6R;
@@ -84,6 +99,12 @@ extern std::array<int, 13> deIdsOfCH9R;
 extern std::array<int, 13> deIdsOfCH9L;
 extern std::array<int, 13> deIdsOfCH10R;
 extern std::array<int, 13> deIdsOfCH10L;
+
+// test whether all solars have a corresponding FeeLinkId
+// and the reverse as well.
+// @returns vector of error messages. If empty the check is ok
+template <typename T>
+std::vector<std::string> solar2FeeLinkConsistencyCheck();
 
 } // namespace o2::mch::raw
 

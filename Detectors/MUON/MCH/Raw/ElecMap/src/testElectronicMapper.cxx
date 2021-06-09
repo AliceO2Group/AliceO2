@@ -31,10 +31,7 @@ typedef boost::mpl::list<o2::mch::raw::ElectronicMapperDummy,
 typedef boost::mpl::list<o2::mch::raw::ElectronicMapperGenerated>
   realTypes;
 
-BOOST_AUTO_TEST_SUITE(o2_mch_raw)
-
-BOOST_AUTO_TEST_SUITE(electronicmapperdummy)
-
+// // Used to generate dslist.cxx
 // BOOST_AUTO_TEST_CASE(dumpseg)
 // {
 //   std::map<int, std::vector<int>> dsids;
@@ -101,35 +98,6 @@ std::set<int> nofDualSampasFromMapper(gsl::span<int> deids)
   }
   return ds;
 }
-template <typename T>
-std::set<uint16_t> getSolarUIDs(int deid)
-{
-  auto d2e = o2::mch::raw::createDet2ElecMapper<T>();
-  std::set<uint16_t> solarsForDE;
-  for (auto dsid : dslist(deid)) {
-    DsDetId id{static_cast<uint16_t>(deid), static_cast<uint16_t>(dsid)};
-    auto dsel = d2e(id);
-    if (dsel.has_value()) {
-      solarsForDE.insert(dsel->solarId());
-    }
-  }
-  return solarsForDE;
-}
-
-template <typename T>
-std::set<uint16_t> getSolarUIDs()
-{
-  std::set<uint16_t> solarUIDs;
-
-  for (auto deid : deIdsForAllMCH) {
-    std::set<uint16_t> solarsForDE = getSolarUIDs<T>(deid);
-    for (auto s : solarsForDE) {
-      solarUIDs.insert(s);
-    }
-  }
-  return solarUIDs;
-}
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH5R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH5R);
@@ -217,6 +185,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH10L, T, testTypes)
   BOOST_CHECK(std::equal(expected.begin(), expected.end(), check.begin()));
 }
 
+// this check depends on the installation status at Pt2, i.e.
+// not yet fullly installed chambers have an expected number of solarIds
+// set to zero
 BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolarsPerDetectionElement, T, realTypes)
 {
   // Chamber 1
@@ -408,20 +379,69 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolarsPerDetectionElement, T, realTyp
   BOOST_CHECK_EQUAL(getSolarUIDs<T>(1019).size(), 0);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetAFeeLink, T, realTypes)
+template <typename T>
+int expectedNumberOfSolars();
+
+template <>
+int expectedNumberOfSolars<ElectronicMapperDummy>()
 {
-  std::set<uint16_t> solarIds = getSolarUIDs<T>();
-  auto solar2feeLink = o2::mch::raw::createSolar2FeeLinkMapper<T>();
-  int nbad{0};
-  for (auto s : solarIds) {
-    auto p = solar2feeLink(s);
-    if (!p.has_value()) {
-      ++nbad;
-      std::cout << "Got no feelinkId for solarId " << s << "\n";
+  return 421;
+}
+template <>
+int expectedNumberOfSolars<ElectronicMapperGenerated>()
+{
+  return 362;
+}
+
+template <typename T>
+int expectedNumberOfDs();
+
+template <>
+int expectedNumberOfDs<ElectronicMapperDummy>()
+{
+  return 16828;
+}
+
+template <>
+int expectedNumberOfDs<ElectronicMapperGenerated>()
+{
+  return 8112;
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(AllSolarsMustGetAFeeLinkAndTheReverse, T, testTypes)
+{
+  auto errors = solar2FeeLinkConsistencyCheck<T>();
+  BOOST_CHECK_EQUAL(errors.size(), 0);
+  if (!errors.empty()) {
+    for (auto msg : errors) {
+      std::cout << "ERROR: " << msg << "\n";
     }
   }
-  BOOST_CHECK_EQUAL(nbad, 0);
-  BOOST_CHECK_EQUAL(solarIds.size(), 362); // must be updated when adding more chambers
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfSolars, T, testTypes)
+{
+  std::set<uint16_t> solarIds = getSolarUIDs<T>();
+  BOOST_CHECK_EQUAL(solarIds.size(), expectedNumberOfSolars<T>()); // must be updated when adding more chambers
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfDsElecId, T, testTypes)
+{
+  std::set<DsElecId> dsElecIds = getAllDs<T>();
+  BOOST_CHECK_EQUAL(dsElecIds.size(), expectedNumberOfDs<T>()); // must be updated when adding more chambers
+}
+
+// Spot check (on a few selected ones, e.g. the ones used in some unit tests)
+// solars actually have an associated FeeLinkId.
+BOOST_AUTO_TEST_CASE_TEMPLATE(CheckAFewSolarIdThatMustHaveAFeeLinkd, T, testTypes)
+{
+  auto solarIds = {361, 448, 728};
+  for (auto solarId : solarIds) {
+    BOOST_TEST_INFO(fmt::format("solarId={}", solarId));
+    auto s2f = o2::mch::raw::createSolar2FeeLinkMapper<T>();
+    auto f = s2f(solarId);
+    BOOST_CHECK_EQUAL(f.has_value(), true);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(SpotCheck)
@@ -431,6 +451,3 @@ BOOST_AUTO_TEST_CASE(SpotCheck)
   auto s = f2s(id);
   BOOST_CHECK_EQUAL(s.has_value(), true);
 }
-
-BOOST_AUTO_TEST_SUITE_END()
-BOOST_AUTO_TEST_SUITE_END()
