@@ -71,13 +71,13 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin{symbolSt
 
   mEscapeSymbol = [&]() -> std::unique_ptr<T> {
     const auto [symFrequency, symCumulated] = symbolStats.getEscapeSymbol();
-    return std::make_unique<T>(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());
+    return std::make_unique<T>(symFrequency, symCumulated, symbolStats.getSymbolTablePrecision());
   }();
 
   for (auto it = symbolStats.begin(); it != --symbolStats.end(); ++it) {
     const auto [symFrequency, symCumulated] = *it;
     if (symFrequency) {
-      mSymbols.emplace_back(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());
+      mSymbols.emplace_back(symFrequency, symCumulated, symbolStats.getSymbolTablePrecision());
       mIndex.emplace_back(&mSymbols.back());
     } else {
       mIndex.emplace_back(mEscapeSymbol.get());
