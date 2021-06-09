@@ -13,7 +13,6 @@
 #include <fmt/format.h>
 #include <cmath>
 
-#include "TString.h"
 #include "TAxis.h"
 #include "TH1.h"
 #include "TH2.h"
@@ -68,6 +67,13 @@ std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
   return padCoords;
 }
 
+std::string painter::getROCTitle(const int rocNumber)
+{
+  const std::string_view type = (rocNumber < 36) ? "IROC" : "OROC";
+  const std::string_view side = ((rocNumber % 36) < 18) ? "A" : "C";
+  return fmt::format("{} {}{:02}", type, side, rocNumber % 18);
+}
+
 template <class T>
 TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float xMax1D, TCanvas* outputCanvas)
 {
@@ -77,9 +83,10 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   static const Mapper& mapper = Mapper::instance();
 
   // ===| name and title |======================================================
-  const auto title = calDet.getName().c_str();
+  std::string title = calDet.getName();
   std::string name = calDet.getName();
   std::replace(name.begin(), name.end(), ' ', '_');
+  std::replace(title.begin(), title.end(), '_', ' ');
 
   // ===| define histograms |===================================================
   // TODO: auto scaling of ranges based on mean and variance?
@@ -89,16 +96,16 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   const int bufferSize = TH1::GetDefaultBufferSize();
   TH1::SetDefaultBufferSize(Sector::MAXSECTOR * mapper.getPadsInSector());
 
-  auto hAside1D = new TH1F(Form("h_Aside_1D_%s", name.c_str()), Form("%s (A-Side)", title),
+  auto hAside1D = new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{} (A-Side)", title).data(),
                            nbins1D, xMin1D, xMax1D); //TODO: modify ranges
 
-  auto hCside1D = new TH1F(Form("h_Cside_1D_%s", name.c_str()), Form("%s (C-Side)", title),
+  auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{} (C-Side)", title).data(),
                            nbins1D, xMin1D, xMax1D); //TODO: modify ranges
 
-  auto hAside2D = new TH2F(Form("h_Aside_2D_%s", name.c_str()), Form("%s (A-Side);x (cm);y (cm)", title),
+  auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);x (cm);y (cm)", title).data(),
                            300, -300, 300, 300, -300, 300);
 
-  auto hCside2D = new TH2F(Form("h_Cside_2D_%s", name.c_str()), Form("%s (C-Side);x (cm);y (cm)", title),
+  auto hCside2D = new TH2F(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{} (C-Side);x (cm);y (cm)", title).data(),
                            300, -300, 300, 300, -300, 300);
 
   for (ROC roc; !roc.looped(); ++roc) {
@@ -135,7 +142,7 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   // ===| Draw histograms |=====================================================
   auto c = outputCanvas;
   if (!c) {
-    c = new TCanvas(Form("c_%s", name.c_str()), title, 1000, 1000);
+    c = new TCanvas(fmt::format("c_{}", name).data(), title.data(), 1000, 1000);
   }
   c->Clear();
   c->Divide(2, 2);
@@ -166,12 +173,11 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
 template <class T>
 TCanvas* painter::draw(const CalArray<T>& calArray)
 {
-  const auto title = calArray.getName().c_str();
-  std::string name = calArray.getName();
-  std::replace(name.begin(), name.end(), ' ', '_');
-  auto c = new TCanvas(Form("c_%s", name.c_str()), title);
-
   auto hist = getHistogram2D(calArray);
+  std::string name = hist->GetName();
+  name[0] = 'c';
+  auto c = new TCanvas(fmt::format("c_{}", name).data(), hist->GetTitle());
+
   hist->Draw("colz");
 
   return c;
@@ -229,13 +235,14 @@ void painter::fillHistogram2D(TH2& h2D, const CalArray<T>& calArray)
 template <class T>
 TH2* painter::getHistogram2D(const CalDet<T>& calDet, Side side)
 {
-  const auto title = calDet.getName().c_str();
+  std::string title = calDet.getName();
   std::string name = calDet.getName();
   std::replace(name.begin(), name.end(), ' ', '_');
+  std::replace(title.begin(), title.end(), '_', ' ');
   const char side_name = (side == Side::A) ? 'A' : 'C';
 
-  auto h2D = new TH2F(Form("h_%cside_2D_%s", side_name, name.c_str()),
-                      Form("%s (%c-Side);x (cm);y (cm)", title, side_name),
+  auto h2D = new TH2F(fmt::format("h_{}side_2D_{}", side_name, name).data(),
+                      fmt::format("{} ({}-Side);x (cm);y (cm)", title, side_name).data(),
                       300, -300, 300, 300, -300, 300);
 
   fillHistogram2D(*h2D, calDet, side);
@@ -257,11 +264,17 @@ TH2* painter::getHistogram2D(const CalArray<T>& calArray)
   const int npads = mapper.getNumberOfPadsInRow(padSubset, position, nrows - 1) + 6;
 
   // ===| create histogram |====================================================
-  const auto title = calArray.getName().c_str();
+  std::string title = calArray.getName();
   std::string name = calArray.getName();
+  std::replace(title.begin(), title.end(), '_', ' ');
   std::replace(name.begin(), name.end(), ' ', '_');
-  auto hist = new TH2F(Form("h_%s", name.c_str()),
-                       Form("%s;pad row;pad", title),
+
+  if (padSubset == PadSubset::ROC) {
+    title += fmt::format(" ({})", getROCTitle(position));
+  }
+
+  auto hist = new TH2F(fmt::format("h_{}", name).data(),
+                       fmt::format("{};pad row;pad", title).data(),
                        nrows, 0., nrows,
                        npads, -npads / 2, npads / 2);
 
@@ -346,7 +359,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
     }
 
     // ===| 1D histogram |===
-    auto h1D = new TH1F(fmt::format("h_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d};ADC value", calName, iroc).data(), nbins1D, xMin1D, xMax1D);
+    auto h1D = new TH1F(fmt::format("h_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d} ({});ADC value", calName, iroc, getROCTitle(iroc)).data(), nbins1D, xMin1D, xMax1D);
     for (const auto& val : roc.getData()) {
       h1D->Fill(val);
     }
