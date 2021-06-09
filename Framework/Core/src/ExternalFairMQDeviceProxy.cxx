@@ -553,17 +553,64 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
     // check that the input spec bindings have corresponding output channels
     // FairMQDevice calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
-    auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device, channelSelector]() {
-      LOG(INFO) << "checking channel configuration";
+    // also we keep a list of all channels so we can send EOS on them
+    auto channelNames = std::make_shared<std::vector<std::string>>();
+    auto channelConfigurationInitializer = [inputSpecs = std::move(inputSpecs), device, channelSelector, channelNames]() {
       for (auto const& spec : inputSpecs) {
         auto channel = channelSelector(spec, device->fChannels);
         if (device->fChannels.count(channel) == 0) {
           throw std::runtime_error("no corresponding output channel found for input '" + channel + "'");
         }
+
+        channelNames->emplace_back(std::move(channel));
       }
     };
-    callbacks.set(CallbackService::Id::Start, channelConfigurationChecker);
-    return adaptStateless([channelSelector](RawDeviceService& rds, InputRecord& inputs) {
+    callbacks.set(CallbackService::Id::Start, channelConfigurationInitializer);
+
+    auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
+    auto forwardEos = [device, lastDataProcessingHeader, channelNames](EndOfStreamContext&) {
+      // DPL implements an internal end of stream signal, which is propagated through
+      // all downstream channels if a source is dry, make it available to other external
+      // devices via a message of type {DPL/EOS/0}
+      for (auto& channelInfo : device->fChannels) {
+        // FIXME: in this function the channel name is hardcoded to 'downstream'
+        // have to check if this simply should be combined with the function below
+        // supporting multiple outputs
+        auto& channelName = channelInfo.first;
+        auto checkChannel = [channelNames = std::move(*channelNames)](std::string const& name) -> bool {
+          for (auto const& n : channelNames) {
+            if (n == name) {
+              return true;
+            }
+          }
+          return false;
+        };
+        if (!checkChannel(channelName)) {
+          continue;
+        }
+        DataHeader dh;
+        dh.dataOrigin = "DPL";
+        dh.dataDescription = "EOS";
+        dh.subSpecification = 0;
+        dh.payloadSize = 0;
+        dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
+        dh.tfCounter = 0;
+        dh.firstTForbit = 0;
+        SourceInfoHeader sih;
+        sih.state = InputChannelState::Completed;
+        // allocate the header message using the underlying transport of the channel
+        auto channelAlloc = o2::pmr::getTransportAllocator(channelInfo.second[0].Transport());
+        auto headerMessage = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, *lastDataProcessingHeader, sih});
+        FairMQParts out;
+        out.AddPart(std::move(headerMessage));
+        // add empty payload message
+        out.AddPart(std::move(device->NewMessageFor(channelName, 0, 0)));
+        sendOnChannel(*device, out, channelName);
+      }
+    };
+    callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
+
+    return adaptStateless([channelSelector, lastDataProcessingHeader](RawDeviceService& rds, InputRecord& inputs) {
       std::unordered_map<std::string, FairMQParts> outputs;
       auto& device = *rds.device();
       for (size_t ii = 0; ii != inputs.size(); ++ii) {
@@ -596,6 +643,15 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
           memcpy(payloadMessage->GetData(), part.payload, payloadMsgSize);
           outputs[channel].AddPart(std::move(headerMessage));
           outputs[channel].AddPart(std::move(payloadMessage));
+
+          // keep a copy of the last DataProcessingHeader for sending the EOS
+          const auto* dph = o2::header::get<DataProcessingHeader*>(part.header);
+          if (dph) {
+            // FIXME: should we implement an assignment operator for DataProcessingHeader?
+            lastDataProcessingHeader->startTime = dph->startTime;
+            lastDataProcessingHeader->duration = dph->duration;
+            lastDataProcessingHeader->creation = dph->creation;
+          }
         }
       }
       for (auto& [channelName, channelParts] : outputs) {
