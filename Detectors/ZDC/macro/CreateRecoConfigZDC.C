@@ -12,7 +12,7 @@
 
 #include "FairLogger.h"
 #include "CCDB/CcdbApi.h"
-#include "ZDCReconstruction/ZDCIntegrationParam.h"
+#include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCBase/Constants.h"
 #include <string>
 #include <TFile.h>
@@ -23,10 +23,13 @@
 using namespace o2::zdc;
 using namespace std;
 
-void CreateIntegrationParam(long tmin = 0, long tmax = -1,
+void CreateRecoConfigZDC(long tmin = 0, long tmax = -1,
                             std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
 {
 
+  // Offline trigger
+  // TDC
+  // Charge integration
   ZDCIntegrationParam conf;
 
   int beg_sig = 6;
@@ -75,7 +78,7 @@ void CreateIntegrationParam(long tmin = 0, long tmax = -1,
   map<string, string> metadata; // can be empty
   api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
   // store abitrary user object in strongly typed manner
-  api.storeAsTFileAny(&conf, CCDBPathConfigIntegration, metadata, tmin, tmax);
+  api.storeAsTFileAny(&conf, CCDBPathRecoConfigZDC, metadata, tmin, tmax);
 
   // return conf;
 }

@@ -17,7 +17,7 @@
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 #include "ZDCReconstruction/ZDCTDCParam.h"
-#include "ZDCReconstruction/ZDCIntegrationParam.h"
+#include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
@@ -80,7 +80,7 @@ class DigiReco
   int mNBCAHead = 0;                                                          /// when storing triggered BC, store also mNBCAHead BCs
   const ZDCTDCParam* mTDCParam = nullptr;                                     /// TDC calibration object
   uint32_t mTDCMask[NTDCChannels] = {0};                                      /// Identify TDC channels in trigger mask
-  const ZDCIntegrationParam* mIntParam = nullptr;                             /// Configuration of integration
+  const RecoConfigZDC* mRecoConfigZDC = nullptr;                              /// CCDB configuration parameters
   bool mVerbosity = DbgFull;
   Double_t mTS[NTS];                                /// Tapered sinc function
   bool mTreeDbg = false;                            /// Write reconstructed data in debug output file

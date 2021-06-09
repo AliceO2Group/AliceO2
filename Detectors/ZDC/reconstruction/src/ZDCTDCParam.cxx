@@ -22,20 +22,6 @@ void ZDCTDCParam::setShift(uint32_t ich, float val)
   }
 }
 
-void ZDCTDCParam::print()
-{
-  LOG(INFO) << "TDCZNAC shift " << tdc_shift[TDCZNAC] << " ns";
-  LOG(INFO) << "TDCZNAS shift " << tdc_shift[TDCZNAS] << " ns";
-  LOG(INFO) << "TDCZPAC shift " << tdc_shift[TDCZPAC] << " ns";
-  LOG(INFO) << "TDCZPAS shift " << tdc_shift[TDCZPAS] << " ns";
-  LOG(INFO) << "TDCZEM1 shift " << tdc_shift[TDCZEM1] << " ns";
-  LOG(INFO) << "TDCZEM2 shift " << tdc_shift[TDCZEM2] << " ns";
-  LOG(INFO) << "TDCZNCC shift " << tdc_shift[TDCZNCC] << " ns";
-  LOG(INFO) << "TDCZNCS shift " << tdc_shift[TDCZNCS] << " ns";
-  LOG(INFO) << "TDCZPCC shift " << tdc_shift[TDCZPCC] << " ns";
-  LOG(INFO) << "TDCZPCS shift " << tdc_shift[TDCZPCS] << " ns";
-}
-
 float ZDCTDCParam::getShift(uint32_t ich) const
 {
   if (ich >= 0 && ich < NTDCChannels) {
@@ -43,5 +29,12 @@ float ZDCTDCParam::getShift(uint32_t ich) const
   } else {
     LOG(FATAL) << __func__ << " channel " << ich << " not in allowed range";
     return 0;
+  }
+}
+
+void ZDCTDCParam::print()
+{
+  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift = " << tdc_shift[itdc] << " ns";
   }
 }

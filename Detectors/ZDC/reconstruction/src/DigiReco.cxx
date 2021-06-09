@@ -107,8 +107,15 @@ void DigiReco::init()
   }
 
   // TDC search zone
-  // TODO: override with configuration object
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    // If the reconstruction parameters were not manually set
+    if (ropt.tdc_search[ich] <= 0) {
+      if (!mRecoConfigZDC) {
+        LOG(FATAL) << "Search zone for TDC " << itdc << " missing configuration object and no manual override";
+      } else {
+        ropt.tdc_search[itdc] = mRecoConfigZDC->tdc_search[itdc];
+      }
+    }
     LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * FTDCVal << " ns";
   }
 
@@ -133,20 +140,20 @@ void DigiReco::init()
   // Integration ranges
   for (int ich = 0; ich < NChannels; ich++) {
     // If the reconstruction parameters were not manually set
-    if (ropt.beg_int[ich] <= DummyIntRange || ropt.end_int[ich] <= DummyIntRange) {
-      if (!mIntParam) {
-        LOG(ERROR) << "Integration for signal " << ich << " missing configuration object and no manual override";
+    if (ropt.beg_int[ich] == DummyIntRange || ropt.end_int[ich] == DummyIntRange) {
+      if (!mRecoConfigZDC) {
+        LOG(FATAL) << "Integration for signal " << ich << " missing configuration object and no manual override";
       } else {
-        ropt.beg_int[ich] = mIntParam->beg_int[ich];
-        ropt.end_int[ich] = mIntParam->end_int[ich];
+        ropt.beg_int[ich] = mRecoConfigZDC->beg_int[ich];
+        ropt.end_int[ich] = mRecoConfigZDC->end_int[ich];
       }
     }
-    if (ropt.beg_ped_int[ich] <= DummyIntRange || ropt.end_ped_int[ich] <= DummyIntRange) {
-      if (!mIntParam) {
+    if (ropt.beg_ped_int[ich] == DummyIntRange || ropt.end_ped_int[ich] == DummyIntRange) {
+      if (!mRecoConfigZDC) {
         LOG(ERROR) << "Integration for pedestal " << ich << " missing configuration object and no manual override";
       } else {
-        ropt.beg_ped_int[ich] = mIntParam->beg_ped_int[ich];
-        ropt.end_ped_int[ich] = mIntParam->end_ped_int[ich];
+        ropt.beg_ped_int[ich] = mRecoConfigZDC->beg_ped_int[ich];
+        ropt.end_ped_int[ich] = mRecoConfigZDC->end_ped_int[ich];
       }
     }
     LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
@@ -331,13 +338,18 @@ int DigiReco::reconstruct(int ibeg, int iend)
 #endif
       rec.pattern[itdc] = 0;
       for (int32_t i = 0; i < rec.ntdc[itdc]; i++) {
-        LOG(DEBUG) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.tdcAmp[itdc][i] << " @ " << rec.tdcVal[itdc][i];
+#ifdef O2_ZDC_DEBUG
+        LOG(INFO) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.tdcAmp[itdc][i] << " @ " << rec.tdcVal[itdc][i];
+#endif
         // There is a TDC value in the search zone around main-main position
         if (std::abs(rec.tdcVal[itdc][i]) < ropt.tdc_search[itdc]) {
           rec.pattern[itdc] = 1;
-        } else {
-          LOG(DEBUG) << rec.tdcVal[itdc][i] << " " << ropt.tdc_search[itdc];
         }
+#ifdef O2_ZDC_DEBUG
+        else {
+          LOG(INFO) << rec.tdcVal[itdc][i] << " " << ropt.tdc_search[itdc];
+        }
+#endif
       }
     }
 #ifdef O2_ZDC_DEBUG
@@ -410,12 +422,14 @@ int DigiReco::reconstruct(int ibeg, int iend)
       mTDbg->Fill();
     }
   } // Loop on bunches
+  return 0;
 }
 
 void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 {
-  LOG(DEBUG) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
-
+#ifdef O2_ZDC_DEBUG
+  LOG(INFO) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+#endif
   // Get reconstruction parameters
   auto& ropt = RecoParamZDC::Instance();
 
@@ -453,7 +467,9 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
         // Fired bit is assigned to the second sample, i.e. to the one that can identify the
         // signal peak position
         mReco[b2].fired[itdc] |= mMask[s2];
-        LOG(DEBUG) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2;
+#ifdef O2_ZDC_DEBUG
+        LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " Fired @ " << mReco[b2].ir.orbit << "." << mReco[b2].ir.bc << ".s" << s2;
+#endif
       }
     }
     if (is2 >= shift) {
@@ -471,7 +487,9 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
-  LOG(DEBUG) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+#ifdef O2_ZDC_DEBUG
+  LOG(INFO) << __func__ << "(itdc=" << itdc << "[" << ChannelNames[TDCSignal[itdc]] << "] ," << ibeg << "," << iend << "): " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc << " - " << mReco[iend].ir.orbit << "." << mReco[iend].ir.bc;
+#endif
   // TODO: get data from preceding time frame
   constexpr int MaxTimeBin = NTimeBinsPerBC - 1; //< number of samples per BC
   constexpr int tsnh = TSN / 2;                  // Half number of points in interpolation
@@ -749,8 +767,10 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
     mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp / FTDCAmp);
     ihit++;
-    LOG(DEBUG) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-               << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp;
+#ifdef O2_ZDC_DEBUG
+    LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
+              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp;
+#endif
   } else {
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
                << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";

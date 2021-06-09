@@ -8,25 +8,34 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ZDC_INTEGRATIONPARAM_H
-#define O2_ZDC_INTEGRATIONPARAM_H
+#ifndef O2_ZDC_RECOCONFIGZDC_H
+#define O2_ZDC_RECOCONFIGZDC_H
 
-#include "ZDCBase/Constants.h"
-#include <Rtypes.h>
 #include <array>
+#include <Rtypes.h>
+#include "ZDCBase/Constants.h"
 
-/// \file ZDCIntegrationParam.h
-/// \brief Parameters to configure integration
+/// \file RecoConfigZDC.h
+/// \brief ZDC reconstruction parameters
 /// \author P. Cortese
 
 namespace o2
 {
 namespace zdc
 {
-// parameters of ZDC reconstruction
+struct RecoConfigZDC {
+  // Trigger
+  Int_t tsh[NTDCChannels] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4};               // Trigger shift
+  Int_t tth[NTDCChannels] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};               // Trigger threshold
+  std::array<bool, NTDCChannels> bitset = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Set bits in coincidence
+  void setBit(uint32_t ibit, bool val = true);
 
-struct ZDCIntegrationParam {
- public:
+  // TDC
+  int tdc_search[NTDCChannels] = {250, 250, 250, 250, 250, 250, 250, 250, 250, 250}; // Search zone for a TDC signal ideally 2.5 ns (units of ~10 ps)
+  void setSearch(uint32_t ich, int val);
+  int getSearch(uint32_t ich) const;
+
+  // Charge integration
   // Beginning and end of integration range: signal
   Int_t beg_int[NChannels] = {DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange};
   Int_t end_int[NChannels] = {DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange};
@@ -34,9 +43,10 @@ struct ZDCIntegrationParam {
   Int_t beg_ped_int[NChannels] = {DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange};
   Int_t end_ped_int[NChannels] = {DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange, DummyIntRange};
   void setIntegration(uint32_t ich, int beg, int end, int beg_ped, int end_ped);
+
   void print();
 
-  ClassDefNV(ZDCIntegrationParam, 1);
+  ClassDefNV(RecoConfigZDC, 1);
 };
 } // namespace zdc
 } // namespace o2
