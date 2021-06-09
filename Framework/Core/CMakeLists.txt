@@ -153,6 +153,7 @@ foreach(t
         ConfigurationOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
+        CheckTypes
         CompletionPolicy
         ComputingResourceHelpers
         ConfigParamStore
