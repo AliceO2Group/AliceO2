@@ -116,7 +116,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       }
       LOG(INFO) << "Imposing hadronic interaction rate " << intRate << "Hz";
       mgr.getInteractionSampler().setInteractionRate(intRate);
-
+      o2::raw::HBFUtils::Instance().print();
+      o2::raw::HBFUtils::Instance().checkConsistency();
       mgr.getInteractionSampler().setFirstIR({0, o2::raw::HBFUtils::Instance().orbitFirstSampled});
       mgr.getDigitizationContext().setFirstOrbitForSampling(o2::raw::HBFUtils::Instance().orbitFirstSampled);
 
