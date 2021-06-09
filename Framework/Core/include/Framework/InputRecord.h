@@ -194,13 +194,14 @@ class InputRecord
   decltype(auto) get(R binding, int part = 0) const
   {
     DataRef ref{nullptr, nullptr};
+    using decayed = std::decay_t<R>;
     // Get the actual dataref
-    if constexpr (std::is_same_v<std::decay_t<R>, char const*> ||
-                  std::is_same_v<std::decay_t<R>, char*> ||
-                  std::is_same_v<std::decay_t<R>, std::string>) {
+    if constexpr (std::is_same_v<decayed, char const*> ||
+                  std::is_same_v<decayed, char*> ||
+                  std::is_same_v<decayed, std::string>) {
       try {
         int pos = -1;
-        if constexpr (std::is_same_v<std::decay_t<R>, std::string>) {
+        if constexpr (std::is_same_v<decayed, std::string>) {
           pos = getPos(binding.c_str());
         } else {
           pos = getPos(binding);
@@ -210,13 +211,13 @@ class InputRecord
         }
         ref = this->getByPos(pos, part);
       } catch (const std::exception& e) {
-        if constexpr (std::is_same_v<std::decay_t<R>, std::string>) {
+        if constexpr (std::is_same_v<decayed, std::string>) {
           throw runtime_error_f("Unknown argument requested %s - %s", binding.c_str(), e.what());
         } else {
           throw runtime_error_f("Unknown argument requested %s - %s", binding, e.what());
         }
       }
-    } else if constexpr (std::is_same_v<std::decay_t<R>, DataRef>) {
+    } else if constexpr (std::is_same_v<decayed, DataRef>) {
       ref = binding;
     } else {
       static_assert(always_static_assert_v<R>, "Unknown binding type");
