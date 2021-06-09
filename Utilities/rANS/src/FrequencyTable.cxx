@@ -20,25 +20,25 @@ namespace o2
 namespace rans
 {
 
-void FrequencyTable::resizeFrequencyTable(value_t min, value_t max)
+void FrequencyTable::resizeFrequencyTable(symbol_t min, symbol_t max)
 {
   LOG(trace) << "start resizing frequency table";
   internal::RANSTimer t;
   t.start();
   // calculate new dimensions
-  const value_t newMin = std::min(mMin, min);
-  const value_t newMax = std::max(mMax, max);
+  const symbol_t newMin = std::min(mMin, min);
+  const symbol_t newMax = std::max(mMax, max);
   const size_t newSize = newMax - newMin + 1;
 
-  // empty - init;
-  if (mMin == 0 && mMax == 0) {
+  // empty - init and prevent special treatment of corner cases when resizing.
+  if (mFrequencyTable.empty()) {
     mFrequencyTable.resize(newSize, 0);
   }
 
   // if the new size is bigger than the old one we need to resize the frequency table
-  if ((newSize) > mFrequencyTable.size()) {
+  if (newSize > mFrequencyTable.size()) {
     const size_t offset = newMin < mMin ? std::abs(min - mMin) : 0;
-    std::vector<uint32_t> tmpFrequencyTable;
+    std::vector<count_t> tmpFrequencyTable;
     tmpFrequencyTable.reserve(newSize);
     // insert initial offset if applicable
     tmpFrequencyTable.insert(std::begin(tmpFrequencyTable), offset, 0);
@@ -60,18 +60,6 @@ void FrequencyTable::resizeFrequencyTable(value_t min, value_t max)
   LOG(trace) << "done resizing frequency table";
 }
 
-size_t FrequencyTable::getUsedAlphabetSize() const
-{
-  size_t nUsedAlphabetSymbols = 0;
-
-  for (auto freq : *this) {
-    if (freq > 0) {
-      nUsedAlphabetSymbols++;
-    }
-  }
-  return nUsedAlphabetSymbols;
-}
-
 std::ostream& operator<<(std::ostream& out, const FrequencyTable& fTable)
 {
   double entropy = 0;
@@ -85,11 +73,11 @@ std::ostream& operator<<(std::ostream& out, const FrequencyTable& fTable)
   out << "FrequencyTable: {"
       << "numSymbols: " << fTable.getNumSamples() << ", "
       << "alphabetRange: " << fTable.getAlphabetRangeBits() << ", "
-      << "alphabetSize: " << fTable.getUsedAlphabetSize() << ", "
+      << "alphabetSize: " << fTable.getNUsedAlphabetSymbols() << ", "
       << "minSymbol: " << fTable.getMinSymbol() << ", "
       << "maxSymbol: " << fTable.getMaxSymbol() << ", "
       << "sizeFrequencyTableB: " << fTable.size() << ", "
-      << "sizeFrequencyTableB: " << fTable.size() * sizeof(typename o2::rans::FrequencyTable::value_t) << ", "
+      << "sizeFrequencyTableB: " << fTable.size() * sizeof(typename o2::rans::FrequencyTable::symbol_t) << ", "
       << "entropy: " << entropy << "}";
 
   return out;

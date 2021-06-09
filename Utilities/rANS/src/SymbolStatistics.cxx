@@ -25,7 +25,7 @@ namespace rans
 namespace internal
 {
 
-SymbolStatistics::SymbolStatistics(const FrequencyTable& frequencyTable, size_t scaleBits) : SymbolStatistics(frequencyTable.begin(), frequencyTable.end(), frequencyTable.getMinSymbol(), frequencyTable.getMaxSymbol(), scaleBits, frequencyTable.getUsedAlphabetSize()){};
+SymbolStatistics::SymbolStatistics(const FrequencyTable& frequencyTable, size_t scaleBits) : SymbolStatistics(frequencyTable.begin(), frequencyTable.end(), frequencyTable.getMinSymbol(), frequencyTable.getMaxSymbol(), scaleBits, frequencyTable.getNUsedAlphabetSymbols()){};
 
 void SymbolStatistics::rescale()
 {
@@ -42,7 +42,7 @@ void SymbolStatistics::rescale()
     return;
   }
 
-  const size_t newCumulatedFrequency = bitsToRange(mScaleBits);
+  const size_t newCumulatedFrequency = pow2(mScaleBits);
   assert(newCumulatedFrequency >= this->getNUsedAlphabetSymbols() + 1);
 
   size_t cumulatedFrequencies = mCumulativeFrequencyTable.back();
