@@ -30,8 +30,8 @@ DECLARE_SOA_COLUMN(DG, hasDG, bool); //! Double Gap events, DG
 DECLARE_SOA_TABLE(NucleiFilters, "AOD", "Nuclei Filters", //!
                   filtering::H2, filtering::H3, filtering::He3, filtering::He4);
 
-constexpr std::array<char[32], 1> AvailableFilters{"NucleiFilters"};
-constexpr std::array<char[16], 1> FilterDescriptions{"Nuclei Filters"};
+constexpr std::array<char[32], 2> AvailableFilters{"NucleiFilters", "DiffractionFilters"};
+constexpr std::array<char[16], 2> FilterDescriptions{"Nuclei Filters", "Diffraction Filters"};
 
 using NucleiFilter = NucleiFilters::iterator;
 
