@@ -102,7 +102,7 @@ Decoder<coder_T, stream_T, source_T>::Decoder(const FrequencyTable& frequencies,
   t.stop();
   LOG(debug1) << "Decoder SymbolTable inclusive time (ms): " << t.getDurationMS();
   t.start();
-  mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(mProbabilityBits, stats);
+  mReverseLUT = std::make_unique<reverseSymbolLookupTable_t>(stats);
   t.stop();
   LOG(debug1) << "ReverseSymbolLookupTable inclusive time (ms): " << t.getDurationMS();
 };

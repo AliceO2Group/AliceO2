@@ -40,6 +40,13 @@ o2_add_test(SymbolTable
             PUBLIC_LINK_LIBRARIES O2::rANS
             COMPONENT_NAME rANS
             LABELS utils)
+            
+o2_add_test(ReverseSymbolLookupTable
+            NAME ReverseSymbolLookupTable
+            SOURCES test/test_ransReverseSymbolLookupTable.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            LABELS utils)
 
 o2_add_test(EncodeDecode
             NAME EncodeDecode
