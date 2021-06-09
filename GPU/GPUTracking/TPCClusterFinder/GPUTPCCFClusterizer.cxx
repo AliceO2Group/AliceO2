@@ -81,12 +81,12 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
 
   bool aboveQTotCutoff = (myCluster.qTot > calib.tpc.cfQTotCutoff);
 
-  if (!aboveQTotCutoff) {
+  if (clusterPosInRow && !aboveQTotCutoff) {
     clusterPosInRow[idx] = maxClusterPerRow;
     return;
   }
 
-  uint rowIndex;
+  uint rowIndex = 0;
   if (clusterByRow != nullptr) {
     rowIndex = sortIntoBuckets(
       clusterer,
@@ -98,7 +98,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
     if (clusterPosInRow != nullptr) {
       clusterPosInRow[idx] = rowIndex;
     }
-  } else {
+  } else if (clusterPosInRow) {
     rowIndex = clusterPosInRow[idx];
   }
 
