@@ -14,7 +14,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TOFWorkflowUtils/ClusterReaderSpec.h"
+#include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
