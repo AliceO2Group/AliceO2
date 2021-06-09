@@ -38,7 +38,7 @@ class ReverseSymbolLookupTable
   {
     LOG(trace) << "start building reverse symbol lookup table";
 
-    mLut.resize(bitsToRange(probabilityBits));
+    mLut.resize(pow2(probabilityBits));
     // go over all symbols
     for (auto symbolIT = std::begin(stats); symbolIT != std::end(stats); ++symbolIT) {
       auto symbol = stats.getMinSymbol() + std::distance(std::begin(stats), symbolIT);
