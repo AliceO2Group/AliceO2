@@ -68,7 +68,7 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, so
   source_IT it = outputBegin;
 
   auto decode = [&, this](ransDecoder_t& decoder) {
-    const auto cumul = decoder.get(this->mSymbolTablePrecission);
+    const auto cumul = decoder.get();
     const auto streamSymbol = (this->mReverseLUT)[cumul];
     source_T symbol = streamSymbol;
     if (this->mSymbolTable.isEscapeSymbol(streamSymbol)) {
@@ -76,13 +76,14 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, so
       literals.pop_back();
     }
 
-    return std::make_tuple(symbol, decoder.advanceSymbol(inputIter, (this->mSymbolTable)[streamSymbol], this->mSymbolTablePrecission));
+    return std::make_tuple(symbol, decoder.advanceSymbol(inputIter, (this->mSymbolTable)[streamSymbol]));
   };
 
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder_t rans0, rans1;
+  ransDecoder_t rans0{this->mSymbolTablePrecission};
+  ransDecoder_t rans1{this->mSymbolTablePrecission};
   inputIter = rans0.init(inputIter);
   inputIter = rans1.init(inputIter);
 

@@ -71,24 +71,26 @@ void Decoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, source_IT
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder_t rans0, rans1;
+  ransDecoder_t rans0{this->mSymbolTablePrecission};
+  ransDecoder_t rans1{this->mSymbolTablePrecission};
+
   inputIter = rans0.init(inputIter);
   inputIter = rans1.init(inputIter);
 
   for (size_t i = 0; i < (messageLength & ~1); i += 2) {
-    const int64_t s0 = this->mReverseLUT[rans0.get(this->mSymbolTablePrecission)];
-    const int64_t s1 = this->mReverseLUT[rans1.get(this->mSymbolTablePrecission)];
+    const int64_t s0 = this->mReverseLUT[rans0.get()];
+    const int64_t s1 = this->mReverseLUT[rans1.get()];
     *it++ = s0;
     *it++ = s1;
-    inputIter = rans0.advanceSymbol(inputIter, this->mSymbolTable[s0], this->mSymbolTablePrecission);
-    inputIter = rans1.advanceSymbol(inputIter, this->mSymbolTable[s1], this->mSymbolTablePrecission);
+    inputIter = rans0.advanceSymbol(inputIter, this->mSymbolTable[s0]);
+    inputIter = rans1.advanceSymbol(inputIter, this->mSymbolTable[s1]);
   }
 
   // last byte, if message length was odd
   if (messageLength & 1) {
-    const int64_t s0 = this->mReverseLUT[rans0.get(this->mSymbolTablePrecission)];
+    const int64_t s0 = this->mReverseLUT[rans0.get()];
     *it = s0;
-    inputIter = rans0.advanceSymbol(inputIter, this->mSymbolTable[s0], this->mSymbolTablePrecission);
+    inputIter = rans0.advanceSymbol(inputIter, this->mSymbolTable[s0]);
   }
   t.stop();
   LOG(debug1) << "Decoder::" << __func__ << " { DecodedSymbols: " << messageLength << ","

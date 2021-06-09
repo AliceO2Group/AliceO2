@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <type_traits>
 #include <iostream>
+#include <iomanip>
 #include <string>
 
 #include <fairlogger/Logger.h>
@@ -71,11 +72,11 @@ void DedupDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, sour
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder_t rans;
+  ransDecoder_t rans{this->mSymbolTablePrecission};
   inputIter = rans.init(inputIter);
 
   for (size_t i = 0; i < (messageLength); i++) {
-    const auto s = (this->mReverseLUT)[rans.get(this->mSymbolTablePrecission)];
+    const auto s = (this->mReverseLUT)[rans.get()];
 
     // deduplication
     auto duplicatesIter = duplicates.find(i);
@@ -87,7 +88,7 @@ void DedupDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, sour
       }
     }
     *it++ = s;
-    inputIter = rans.advanceSymbol(inputIter, (this->mSymbolTable)[s], this->mSymbolTablePrecission);
+    inputIter = rans.advanceSymbol(inputIter, (this->mSymbolTable)[s]);
   }
 
   t.stop();
