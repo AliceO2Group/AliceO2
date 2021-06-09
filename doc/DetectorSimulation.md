@@ -86,7 +86,7 @@ Important parameters influencing the transport simulation are:
 
 | Main parameter key | Description |
 | --- | --- |
-| G4 | Parameters influencing the Geant4 engine, such as the physics list. Example "G4.physicslist=kFTFP_BERT_optical_biasing" |
+| G4 | Parameters influencing the Geant4 engine, such as the physics list. Example "G4.physicsmode=kFTFP_BERT_optical_biasing" |
 | Stack | Parameters influencing the particle stack. Example include whether the stack does kinematics pruning or whether it keeps secondaries at all. |
 | SimCutParams | Parameters allowing to set some sime geometry stepping cuts in R, Z, etc. |
 | Diamond | Parameter allowing to set the interaction vertex location and the spread/width. Is used in all event generators. |
