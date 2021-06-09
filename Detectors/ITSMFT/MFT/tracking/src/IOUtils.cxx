@@ -42,6 +42,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
   int clusterId{0};
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
+  o2::itsmft::ClusterPattern patt(pattIt);
   for (auto& c : clusters_in_frame) {
     auto sensorID = c.getSensorID();
     int layer = geom->getLayer(sensorID);
@@ -54,7 +55,6 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
-        o2::itsmft::ClusterPattern patt(pattIt);
         locXYZ = dict.getClusterCoordinates(c, patt);
       }
     } else {
