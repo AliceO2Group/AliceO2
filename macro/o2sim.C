@@ -113,7 +113,7 @@ FairRunSim* o2sim_init(bool asservice)
     auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
     for (const auto& md : modulelist) {
       int id = o2::detectors::DetID::nameToID(md.c_str());
-      if (id>=o2::detectors::DetID::First) {
+      if (id >= o2::detectors::DetID::First) {
         detMask |= o2::detectors::DetID::getMask(id);
       }
     }
@@ -121,7 +121,7 @@ FairRunSim* o2sim_init(bool asservice)
     // don't include detectors which are not activated
     auto& aligner = o2::base::Aligner::Instance();
     if (aligner.getDetectorsMask().any()) {
-      aligner.setValue(fmt::format("{}.mDetectors",aligner.getName()), o2::detectors::DetID::getNames(detMask,','));
+      aligner.setValue(fmt::format("{}.mDetectors", aligner.getName()), o2::detectors::DetID::getNames(detMask, ','));
     }
   }
 
