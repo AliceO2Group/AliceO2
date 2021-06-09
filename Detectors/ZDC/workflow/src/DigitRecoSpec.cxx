@@ -26,7 +26,7 @@
 #include "FairLogger.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
-#include "ZDCReconstruction/ZDCIntegrationParam.h"
+#include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCReconstruction/ZDCTDCParam.h"
 
 using namespace o2::framework;
@@ -79,10 +79,10 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     }
     LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
 
-    // Integration parameters
-    auto* integrationParam = mgr.get<o2::zdc::ZDCIntegrationParam>(o2::zdc::CCDBPathConfigIntegration);
-    if (!integrationParam) {
-      LOG(FATAL) << "Missing ZDCIntegrationParam object";
+    // Configuration parameters for ZDC reconstruction
+    auto* recoConfigZDC = mgr.get<o2::zdc::RecoConfigZDC>(o2::zdc::CCDBPathRecoConfigZDC);
+    if (!recoConfigZDC) {
+      LOG(FATAL) << "Missing RecoConfigZDC object";
       return;
     }
 
@@ -94,7 +94,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     }
 
     mDR.setModuleConfig(moduleConfig);
-    mDR.setIntegrationParam(integrationParam);
+    mDR.setRecoConfigZDC(recoConfigZDC);
     mDR.setTDCParam(tdcParam);
 
     if (mDebugOut) {
@@ -116,6 +116,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
 
   RecEvent recEvent;
   LOG(INFO) << "BC processed during reconstruction " << recAux.size();
+  int32_t nte=0, ntt=0;
   for (auto reca : recAux) {
     int32_t ne = reca.ezdc.size();
     int32_t nt = 0;
@@ -137,10 +138,15 @@ void DigitRecoSpec::run(ProcessingContext& pc)
         recEvent.addEnergy(it->first, it->second);
       }
     }
-    if (nt > 0 || ne > 0) {
+    nte+=ne;
+    ntt+=nt;
+    if (mVerbosity > 0 && (nt > 0 || ne > 0)) {
       printf("Orbit %9u bc %4u ntdc %2d ne %2d\n", reca.ir.orbit, reca.ir.bc, nt, ne);
     }
   }
+  LOG(INFO) << "Reconstructed " << ntt << " signal TDCs and " << nte << " energies";
+  // TODO: rate information for all channels
+  // TODO: summary of reconstruction to be collected by DQM?
   pc.outputs().snapshot(Output{"ZDC", "BCREC", 0, Lifetime::Timeframe}, recEvent.mRecBC);
   pc.outputs().snapshot(Output{"ZDC", "ENERGY", 0, Lifetime::Timeframe}, recEvent.mEnergy);
   pc.outputs().snapshot(Output{"ZDC", "TDCDATA", 0, Lifetime::Timeframe}, recEvent.mTDCData);

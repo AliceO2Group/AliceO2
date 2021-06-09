@@ -9,11 +9,37 @@
 // or submit itself to any jurisdiction.
 
 #include "FairLogger.h"
-#include "ZDCReconstruction/ZDCIntegrationParam.h"
+#include "ZDCReconstruction/RecoConfigZDC.h"
 
 using namespace o2::zdc;
 
-void ZDCIntegrationParam::setIntegration(uint32_t ich, int beg, int end, int beg_ped, int end_ped)
+void RecoConfigZDC::setSearch(uint32_t ich, int val)
+{
+  if (ich >= 0 && ich < NTDCChannels) {
+    tdc_search[ich] = val;
+  } else {
+    LOG(FATAL) << __func__ << " channel " << ich << " not in allowed range";
+  }
+}
+
+void RecoConfigZDC::print()
+{
+  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << tdc_search[itdc] << " = " tdc_search[itdc] * FTDCVal << " ns";
+  }
+}
+
+int RecoConfigZDC::getSearch(uint32_t ich) const
+{
+  if (ich >= 0 && ich < NTDCChannels) {
+    return tdc_search[ich];
+  } else {
+    LOG(FATAL) << __func__ << " channel " << ich << " not in allowed range";
+    return -1;
+  }
+}
+
+void RecoConfigZDC::setIntegration(uint32_t ich, int beg, int end, int beg_ped, int end_ped)
 {
   int sig_l = 0;
   int sig_h = NTimeBinsPerBC - 1;
@@ -54,7 +80,7 @@ void ZDCIntegrationParam::setIntegration(uint32_t ich, int beg, int end, int beg
   }
 }
 
-void ZDCIntegrationParam::print()
+void RecoConfigZDC::print()
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {
     LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << beg_int[ich] << ":" << end_int[ich] << "] pedestal=[" << beg_ped_int[ich] << ":" << end_ped_int[ich] << "]";

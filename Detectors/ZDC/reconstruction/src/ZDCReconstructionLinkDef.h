@@ -14,7 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::zdc::ZDCIntegrationParam + ;
+#pragma link C++ class o2::zdc::RecoConfigZDC + ;
 #pragma link C++ class o2::zdc::ZDCTDCParam + ;
 
 #endif

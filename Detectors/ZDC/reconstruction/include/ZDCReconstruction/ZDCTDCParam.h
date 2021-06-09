@@ -16,22 +16,19 @@
 #include <array>
 
 /// \file ZDCTDCParam.h
-/// \brief Parameters to correct TDCs
+/// \brief Parameters to correct TDCs (produced by QA)
 /// \author P. Cortese
 
 namespace o2
 {
 namespace zdc
 {
-// parameters of ZDC reconstruction
-
 struct ZDCTDCParam {
   //std::array<float, NTDCChannels> tdcShift{}
   float tdc_shift[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Correction of TDC position (ns)
   void setShift(uint32_t ich, float val);
   float getShift(uint32_t ich) const;
   void print();
-
   ClassDefNV(ZDCTDCParam, 1);
 };
 } // namespace zdc
