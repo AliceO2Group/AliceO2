@@ -67,7 +67,7 @@ struct HFCandidateCreatorBPlus {
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", 1., "max. cand. pseudorapidity"};
   Configurable<double> cutYCandMax{"cutYCandMax", 1., "max. cand. rapidity"};
-  Configurable<double> cutEtaTrkMax{"cutEtaTrkMax", 1., "max. bach track. pseudorapidity"};
+  Configurable<double> cutEtaTrkMax{"cutEtaTrkMax", 1.44, "max. bach track. pseudorapidity"};
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
 
   void process(aod::Collision const& collisions,
@@ -149,13 +149,16 @@ struct HFCandidateCreatorBPlus {
           continue;
         }
 
-        if (candidate.isSelD0() >= d_selectionFlagD0 && track.signed1Pt() > 0)
-          continue; //to select D0pi- pair
-
-        if (candidate.isSelD0bar() >= d_selectionFlagD0bar && track.signed1Pt() < 0)
-          continue; //to select D0(bar)pi+ pair
         if (candidate.index0Id() == track.globalIndex() || candidate.index1Id() == track.globalIndex())
           continue; //daughter track id and bachelor track id not the same
+          
+        //Select D0pi- and D0(bar)pi+ pairs only
+        bool cond = ((candidate.isSelD0() >= d_selectionFlagD0 && track.sign() < 0) || (candidate.isSelD0bar() >= d_selectionFlagD0bar && track.sign() > 0));
+        //if(cond) Printf("D0: %d, D0bar%d, sign: %d", candidate.isSelD0(), candidate.isSelD0bar(), track.sign());
+
+        if (!cond) {
+           continue;
+        }
 
         auto bachTrack = getTrackParCov(track);
         std::array<float, 3> pvecD0 = {0., 0., 0.};
