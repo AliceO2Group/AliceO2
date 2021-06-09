@@ -67,15 +67,18 @@ struct TaskJpsi {
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate>> const& candidates)
   {
     int decaymode = DecayType::JpsiToEE;
-    if (d_modeJpsiToMuMu) decaymode = DecayType::JpsiToMuMu;
+    if (d_modeJpsiToMuMu)
+      decaymode = DecayType::JpsiToMuMu;
 
     for (auto& candidate : candidates) {
-      if(d_selectionFlagJpsi > 0) {
-        if(!d_modeJpsiToMuMu) {
-	  if (candidate.isSelJpsiToEE() <= 0) continue;
-	} else {
-	  if (candidate.isSelJpsiToMuMu() <= 0) continue;
-	}
+      if (d_selectionFlagJpsi > 0) {
+        if (!d_modeJpsiToMuMu) {
+          if (candidate.isSelJpsiToEE() <= 0)
+            continue;
+        } else {
+          if (candidate.isSelJpsiToMuMu() <= 0)
+            continue;
+        }
       }
       if (!(candidate.hfflag() & 1 << decaymode)) {
         continue;
@@ -84,8 +87,11 @@ struct TaskJpsi {
         continue;
       }
 
-      if (d_modeJpsiToMuMu) { registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate), candidate.pt());}
-      else {registry.fill(HIST("hmass"), InvMassJpsiToMuMu(candidate), candidate.pt());}
+      if (d_modeJpsiToMuMu) {
+        registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate), candidate.pt());
+      } else {
+        registry.fill(HIST("hmass"), InvMassJpsiToMuMu(candidate), candidate.pt());
+      }
       registry.fill(HIST("hptcand"), candidate.pt());
       registry.fill(HIST("hptprong0"), candidate.ptProng0());
       registry.fill(HIST("hptprong1"), candidate.ptProng1());
@@ -155,15 +161,18 @@ struct TaskJpsiMC {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
     int decaymode = DecayType::JpsiToEE;
-    if (d_modeJpsiToMuMu) decaymode = DecayType::JpsiToMuMu;
+    if (d_modeJpsiToMuMu)
+      decaymode = DecayType::JpsiToMuMu;
 
     for (auto& candidate : candidates) {
-      if(d_selectionFlagJpsi > 0) {
-        if(!d_modeJpsiToMuMu) {
-	  if (candidate.isSelJpsiToEE() <= 0) continue;
-	} else {
-	  if (candidate.isSelJpsiToMuMu() <= 0) continue;
-	}
+      if (d_selectionFlagJpsi > 0) {
+        if (!d_modeJpsiToMuMu) {
+          if (candidate.isSelJpsiToEE() <= 0)
+            continue;
+        } else {
+          if (candidate.isSelJpsiToMuMu() <= 0)
+            continue;
+        }
       }
 
       if (!(candidate.hfflag() & 1 << decaymode)) {
@@ -180,8 +189,11 @@ struct TaskJpsiMC {
         registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
-        if (d_modeJpsiToMuMu) { registry.fill(HIST("hmassSig"), InvMassJpsiToMuMu(candidate), candidate.pt());}
-        else {registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());}
+        if (d_modeJpsiToMuMu) {
+          registry.fill(HIST("hmassSig"), InvMassJpsiToMuMu(candidate), candidate.pt());
+        } else {
+          registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
+        }
         registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
         registry.fill(HIST("hdeclengthSig"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxySig"), candidate.decayLengthXY(), candidate.pt());
@@ -197,8 +209,11 @@ struct TaskJpsiMC {
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
-        if (d_modeJpsiToMuMu) { registry.fill(HIST("hmassBg"), InvMassJpsiToMuMu(candidate), candidate.pt());}
-        else {registry.fill(HIST("hmassBg"), InvMassJpsiToEE(candidate), candidate.pt());}
+        if (d_modeJpsiToMuMu) {
+          registry.fill(HIST("hmassBg"), InvMassJpsiToMuMu(candidate), candidate.pt());
+        } else {
+          registry.fill(HIST("hmassBg"), InvMassJpsiToEE(candidate), candidate.pt());
+        }
         registry.fill(HIST("hdeclengthBg"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxyBg"), candidate.decayLengthXY(), candidate.pt());
         registry.fill(HIST("hd0Prong0Bg"), candidate.impactParameter0(), candidate.pt());
@@ -218,7 +233,7 @@ struct TaskJpsiMC {
         }
         registry.fill(HIST("hPtGen"), particle.pt());
         registry.fill(HIST("hEtaGen"), particle.eta());
-	registry.fill(HIST("hYGen"), RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())), particle.pt());
+        registry.fill(HIST("hYGen"), RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())), particle.pt());
       }
     }
   }
