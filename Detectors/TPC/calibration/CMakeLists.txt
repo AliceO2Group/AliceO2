@@ -21,6 +21,8 @@ o2_add_library(TPCCalibration
                        src/DigitDump.cxx
                        src/DigitDumpParam.cxx
                        src/CalibPadGainTracks.cxx
+                       src/CalibLaserTracks.cxx
+                       src/LaserTracksCalibrator.cxx
                        src/IDCAverageGroup.cxx
                        src/IDCGroup.cxx
                        src/IDCGroupHelperRegion.cxx
@@ -29,7 +31,7 @@ o2_add_library(TPCCalibration
                        src/IDCFourierTransform.cxx
                        src/RobustAverage.cxx
                        src/IDCCCDBHelper.cxx
-               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
+               PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase O2::DetectorsCalibration
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL)
 
@@ -44,6 +46,8 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/DigitDumpParam.h
                                   include/TPCCalibration/CalibPadGainTracks.h
                                   include/TPCCalibration/FastHisto.h
+                                  include/TPCCalibration/CalibLaserTracks.h
+                                  include/TPCCalibration/LaserTracksCalibrator.h
                                   include/TPCCalibration/IDCAverageGroup.h
                                   include/TPCCalibration/IDCGroup.h
                                   include/TPCCalibration/IDCGroupHelperRegion.h
