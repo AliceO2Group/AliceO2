@@ -37,16 +37,13 @@ class Geometry
   ///
   TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
 
-  static constexpr int Nchannels = 208;                     // number od channels
+  static constexpr int Nchannels = 229;                     // number od channels
   static constexpr int NCellsA = 24;                        // number of radiatiors on A side
   static constexpr int NCellsC = 28;                        // number of radiatiors on C side
   static constexpr float ZdetA = 335.5;                     // number of radiatiors on A side
   static constexpr float ZdetC = 82;                        // number of radiatiors on C side
   static constexpr float ChannelWidth = 13.02;              // channel width in ps
   static constexpr float ChannelWidthInverse = 0.076804916; // channel width in ps inverse
-                                                            // static constexpr float MV_2_Nchannels = 2.2857143;          //amplitude channel 7 mV ->16channels
-                                                            //  static constexpr float MV_2_NchannelsInverse = 0.437499997; //inverse amplitude channel 7 mV ->16channels
-                                                            //  static constexpr int mTime_trg_gate = 192;                  // #channels
 
  private:
   TVector3 mMCP[52];
