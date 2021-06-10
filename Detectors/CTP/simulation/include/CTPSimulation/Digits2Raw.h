@@ -24,7 +24,6 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/HBFUtils.h"
 
-
 namespace o2
 {
 namespace ctp
