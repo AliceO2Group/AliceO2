@@ -1176,6 +1176,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       runNoCatch();
     } else {
       try {
+        runNoCatch();
       } catch (std::exception& ex) {
         ZoneScopedN("error handling");
         /// Convert a standatd exception to a RuntimeErrorRef
