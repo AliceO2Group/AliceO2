@@ -69,7 +69,7 @@ struct TaskJpsi {
     int decayMode = d_modeJpsiToMuMu ? DecayType::JpsiToMuMu : DecayType::JpsiToEE;
 
     for (auto& candidate : candidates) {
- 
+
       if (!(candidate.hfflag() & 1 << decayMode)) {
         continue;
       }
@@ -162,7 +162,7 @@ struct TaskJpsiMC {
     int decayMode = d_modeJpsiToMuMu ? DecayType::JpsiToMuMu : DecayType::JpsiToEE;
 
     for (auto& candidate : candidates) {
- 
+
       if (!(candidate.hfflag() & 1 << decayMode)) {
         continue;
       }
