@@ -84,6 +84,11 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                        monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
                        assert(registry.get<DeviceSpec const>().name.empty() == false);
                        monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().name);
+                       try {
+                         auto run = registry.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+                         monitoring->setRunNumber(stoul(run));
+                       } catch (...) {
+                       }
                        return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
                      },
                      noConfiguration(),
