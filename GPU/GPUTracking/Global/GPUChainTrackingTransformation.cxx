@@ -40,7 +40,7 @@ int GPUChainTracking::ConvertNativeToClusterData()
   GPUTPCConvert& convert = processors()->tpcConverter;
   GPUTPCConvert& convertShadow = doGPU ? processorsShadow()->tpcConverter : convert;
 
-  SetupGPUProcessor(&convert, true);
+  bool transferClusters = false;
   if (doGPU) {
     if (!(mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCClusterFinding)) {
       mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mIOPtrs.clustersNative->nClustersTotal;
@@ -52,14 +52,19 @@ int GPUChainTracking::ConvertNativeToClusterData()
       mInputsHost->mPclusterNativeAccess->setOffsetPtrs();
       GPUMemCpy(RecoStep::TPCConversion, mInputsShadow->mPclusterNativeBuffer, mIOPtrs.clustersNative->clustersLinear, sizeof(mIOPtrs.clustersNative->clustersLinear[0]) * mIOPtrs.clustersNative->nClustersTotal, 0, true);
       TransferMemoryResourceLinkToGPU(RecoStep::TPCConversion, mInputsHost->mResourceClusterNativeAccess, 0);
+      transferClusters = true;
     }
   }
   if (!param().par.earlyTpcTransform) {
     if (GetProcessingSettings().debugLevel >= 3) {
       GPUInfo("Early transform inactive, skipping TPC Early transformation kernel, transformed on the fly during slice data creation / refit");
     }
+    if (transferClusters) {
+      SynchronizeStream(0); // TODO: Synchronize implicitly with next step
+    }
     return 0;
   }
+  SetupGPUProcessor(&convert, true);
   for (unsigned int i = 0; i < NSLICES; i++) {
     convert.mMemory->clusters[i] = convertShadow.mClusters + mIOPtrs.clustersNative->clusterOffset[i][0];
   }
