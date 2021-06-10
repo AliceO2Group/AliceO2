@@ -18,8 +18,7 @@
 
 using namespace o2::trd;
 
-//ClassImp(o2::trd::RecoParam);
-
+// error parameterizations taken from http://cds.cern.ch/record/2724259 Appendix A
 void RecoParam::setBfield(float bz)
 {
   if (std::fabs(std::fabs(bz) - 2) < 0.1) {

@@ -18,27 +18,27 @@
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
-//ClassImp(o2::trd::AngularResidHistos);
-
-void AngularResidHistos::addEntry(float deltaAlpha, float impactAngle, int chamberId)
+bool AngularResidHistos::addEntry(float deltaAlpha, float impactAngle, int chamberId)
 {
+  // add entry for given angular residual
+  // returns 0 in case of success (impact angle is in valid range)
   int chamberOffset = chamberId * NBINSANGLEDIFF;
   if (std::fabs(impactAngle) >= MAXIMPACTANGLE) {
-    // make over-/undeflow bin entry
-    mHistogramEntries[chamberOffset + NBINSANGLEDIFF] += deltaAlpha;
-    ++mNEntriesPerBin[chamberOffset + NBINSANGLEDIFF];
+    LOG(DEBUG) << "Under-/overflow entry detected for impact angle " << impactAngle;
+    return 1;
   } else {
     int iBin = (impactAngle + MAXIMPACTANGLE) * INVBINWIDTH;
     mHistogramEntries[chamberOffset + iBin] += deltaAlpha;
     ++mNEntriesPerBin[chamberOffset + iBin];
     ++mNEntriesTotal;
   }
+  return 0;
 }
 
 void AngularResidHistos::fill(const gsl::span<const AngularResidHistos> input)
 {
   for (const auto& data : input) {
-    for (int i = 0; i < MAXCHAMBER * (NBINSANGLEDIFF + 1); ++i) {
+    for (int i = 0; i < MAXCHAMBER * NBINSANGLEDIFF; ++i) {
       mHistogramEntries[i] += data.getHistogramEntry(i);
       mNEntriesPerBin[i] += data.getBinCount(i);
       mNEntriesTotal += data.getBinCount(i);
@@ -48,7 +48,7 @@ void AngularResidHistos::fill(const gsl::span<const AngularResidHistos> input)
 
 void AngularResidHistos::merge(const AngularResidHistos* prev)
 {
-  for (int i = 0; i < MAXCHAMBER * (NBINSANGLEDIFF + 1); ++i) {
+  for (int i = 0; i < MAXCHAMBER * NBINSANGLEDIFF; ++i) {
     mHistogramEntries[i] += prev->getHistogramEntry(i);
     mNEntriesPerBin[i] += prev->getBinCount(i);
     mNEntriesTotal += prev->getBinCount(i);
@@ -57,8 +57,8 @@ void AngularResidHistos::merge(const AngularResidHistos* prev)
 
 void AngularResidHistos::print()
 {
-  LOG(INFO) << "There are " << mNEntriesTotal << " entries in the container (excluding under-/overflow bin)";
-  for (int i = 0; i < MAXCHAMBER * (NBINSANGLEDIFF + 1); ++i) {
+  LOG(INFO) << "There are " << mNEntriesTotal << " entries in the container";
+  for (int i = 0; i < MAXCHAMBER * NBINSANGLEDIFF; ++i) {
     if (mNEntriesPerBin[i] != 0) {
       LOGF(INFO, "Global bin %i has %i entries. Average angular residual: %f", i, mNEntriesPerBin[i], mHistogramEntries[i]);
     }

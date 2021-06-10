@@ -37,6 +37,9 @@ class RecoParam
   void recalcTrkltCov(const float tilt, const float snp, const float rowSize, std::array<float, 3>& cov) const;
 
   /// Get tracklet r-phi resolution for given phi angle
+  /// Resolution depends on the track angle sin(phi) = snp and is approximated by the formula
+  /// sigma_y(snp) = sqrt(a^2 + c^2 * (snp - b^2)^2)
+  /// more details are given in http://cds.cern.ch/record/2724259 in section 5.3.3
   /// \param phi angle of related track
   /// \return sigma_y^2 of tracklet
   float getRPhiRes(float snp) const { return (mA2 + mC2 * (snp - mB) * (snp - mB)); }
