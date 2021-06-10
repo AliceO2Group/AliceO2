@@ -22,6 +22,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
+#include "GPUCommonMath.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <string>
 #endif
@@ -78,6 +79,13 @@ class bitset
   GPUd() constexpr bool operator[](unsigned int i) const { return (v >> i) & 1u; }
 
   GPUd() constexpr unsigned int to_ulong() const { return v; }
+
+  GPUd() constexpr unsigned int count() const
+  {
+    // count number of non-0 bits in 32bit word
+    return GPUCommonMath::Popcount(v);
+  }
+
 #ifndef GPUCA_GPUCODE_DEVICE
   std::string to_string() const;
 #endif
