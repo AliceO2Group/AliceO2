@@ -11,59 +11,48 @@
 #ifndef O2_MCH_RAW_PAYLOAD_PAGINATOR_H
 #define O2_MCH_RAW_PAYLOAD_PAGINATOR_H
 
+#include <string>
+#include <gsl/span>
+#include <functional>
+#include <optional>
+#include <set>
+#include <iostream>
+
 namespace o2::raw
 {
 class RawFileWriter;
 }
 
-#include <string>
-#include <gsl/span>
-#include <set>
-#include "MCHRawElecMap/Mapper.h"
-#include <vector>
-
 namespace o2::mch::raw
 {
 
-/// @brief Converts (DataBlockHeader,payload) pairs into RAW data (RDH,payload)
-///
-/// \nosubgrouping
-class PayloadPaginator
-{
- public:
-  /// @param fw a RawFileWriter instance, that should be
-  /// properly configured (once) _before_ calling the () operator
-  /// @param outputFileName the name of the single output file
-  /// used to store the produced RAW data
-  /// @param solar2feelink a mapper that converts a solarId value into
-  /// a FeeLinkId object
-  /// @param userLogic whether or not the format to emulate is UL
-  /// @param chargeSumMode whether or not the format to emulate is in chargeSumMode
-  PayloadPaginator(o2::raw::RawFileWriter& fw,
-                   const std::string outputFileName,
-                   Solar2FeeLinkMapper solar2feelink,
-                   bool userLogic,
-                   bool chargeSumMode);
-
-  /// Convert the buffer to raw data
-  ///
-  /// @param buffer a buffer of (DataBlockHeader,payload) MCH raw data
-  /// (e.g. produced by a PayloadEncoder)
-  void operator()(gsl::span<const std::byte> buffer);
-
- private:
-  o2::raw::RawFileWriter& mRawFileWriter;
-  Solar2FeeLinkMapper mSolar2FeeLink;
-  std::string mOutputFileName;
-  std::set<FeeLinkId> mFeeLinkIds{};
-  uint16_t mExtraFeeIdMask{0};
+// helper struct with the smallest information to uniquely identify
+// one data link
+struct LinkInfo {
+  uint16_t feeId;
+  uint16_t cruId;
+  uint8_t linkId;
+  uint8_t endPoint;
 };
 
-/// helper function to wrap usage of PayloadPaginator class to
-/// directly get memory representation of the buffer
-/// (still creates a file as it's using RawFileWriter internally,
-/// but that file is temporary)
-std::vector<std::byte> paginate(gsl::span<const std::byte> buffer, bool userLogic, bool chargeSumMode,
-                                const std::string& tmpfilename);
+bool operator<(const LinkInfo&, const LinkInfo&);
+std::ostream& operator<<(std::ostream& os, const LinkInfo& li);
+
+using Solar2LinkInfo = std::function<std::optional<LinkInfo>(uint16_t)>;
+
+/** Creates a function that is able to convert a solarId into a LinkInfo */
+template <typename ELECMAP, typename FORMAT, typename CHARGESUM, int VERSION>
+Solar2LinkInfo createSolar2LinkInfo();
+
+void registerLinks(o2::raw::RawFileWriter& rawFileWriter,
+                   std::string outputBase,
+                   const std::set<LinkInfo>& links,
+                   bool filePerLink);
+
+void paginate(o2::raw::RawFileWriter& rawFileWriter,
+              gsl::span<const std::byte> buffer,
+              const std::set<LinkInfo>& links,
+              Solar2LinkInfo solar2LinkInfo);
+
 } // namespace o2::mch::raw
 #endif

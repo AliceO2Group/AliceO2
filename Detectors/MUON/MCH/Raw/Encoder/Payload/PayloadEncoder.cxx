@@ -10,6 +10,7 @@
 
 #include "BareElinkEncoder.h"
 #include "BareElinkEncoderMerger.h"
+#include "MCHRawCommon/DataFormats.h"
 #include "PayloadEncoderImpl.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
 #include "UserLogicElinkEncoder.h"
@@ -20,9 +21,7 @@ namespace o2::mch::raw
 {
 namespace impl
 {
-// cannot partially specialize a function, so create a struct (which can
-// be specialized) and use it within the function below.
-template <typename FORMAT, typename CHARGESUM, bool forceNoPhase, int VERSION>
+template <typename FORMAT, typename CHARGESUM, int VERSION, bool forceNoPhase>
 struct PayloadEncoderCreator {
   static std::unique_ptr<PayloadEncoder> _(Solar2FeeLinkMapper solar2feelink)
   {
@@ -32,31 +31,38 @@ struct PayloadEncoderCreator {
 };
 } // namespace impl
 
-template <typename FORMAT, typename CHARGESUM, bool forceNoPhase, int VERSION>
+template <typename FORMAT, typename CHARGESUM, int VERSION, bool forceNoPhase = true>
 std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper solar2feelink)
 {
-  return impl::PayloadEncoderCreator<FORMAT, CHARGESUM, forceNoPhase, VERSION>::_(solar2feelink);
+  return impl::PayloadEncoderCreator<FORMAT, CHARGESUM, VERSION, forceNoPhase>::_(solar2feelink);
 }
-std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper);
 
-// define only the specializations we use
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<BareFormat, SampleMode, true, 0>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<BareFormat, SampleMode, false, 0>(Solar2FeeLinkMapper);
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<BareFormat, ChargeSumMode, true, 0>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<BareFormat, ChargeSumMode, false, 0>(Solar2FeeLinkMapper);
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, SampleMode, true, 0>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, SampleMode, false, 0>(Solar2FeeLinkMapper);
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, ChargeSumMode, true, 0>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, ChargeSumMode, false, 0>(Solar2FeeLinkMapper);
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, SampleMode, true, 1>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, SampleMode, false, 1>(Solar2FeeLinkMapper);
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, ChargeSumMode, true, 1>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, ChargeSumMode, false, 1>(Solar2FeeLinkMapper);
-
+std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper solar2feelink,
+                                                     bool userLogic, int version, bool chargeSumMode)
+{
+  if (version != 0 && version != 1) {
+    throw std::invalid_argument("Only version 0 or 1 are supported");
+  }
+  if (userLogic) {
+    if (version == 0) {
+      if (chargeSumMode) {
+        return createPayloadEncoder<UserLogicFormat, ChargeSumMode, 0>(solar2feelink);
+      } else {
+        return createPayloadEncoder<UserLogicFormat, SampleMode, 0>(solar2feelink);
+      }
+    } else {
+      if (chargeSumMode) {
+        return createPayloadEncoder<UserLogicFormat, ChargeSumMode, 1>(solar2feelink);
+      } else {
+        return createPayloadEncoder<UserLogicFormat, SampleMode, 1>(solar2feelink);
+      }
+    }
+  } else {
+    if (chargeSumMode) {
+      return createPayloadEncoder<BareFormat, ChargeSumMode, 0>(solar2feelink);
+    } else {
+      return createPayloadEncoder<BareFormat, SampleMode, 0>(solar2feelink);
+    }
+  }
+}
 } // namespace o2::mch::raw

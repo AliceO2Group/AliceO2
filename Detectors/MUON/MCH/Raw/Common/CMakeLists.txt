@@ -9,7 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHRawCommon
-               SOURCES src/DataFormats.cxx
+               SOURCES src/CoDecParam.cxx
+                       src/DataFormats.cxx
                        src/SampaBunchCrossingCounter.cxx
                        src/SampaCluster.cxx
                        src/SampaHeader.cxx
@@ -18,6 +19,8 @@ o2_add_library(MCHRawCommon
                                      O2::DetectorsRaw
                PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
+o2_target_root_dictionary(MCHRawCommon
+                          HEADERS include/MCHRawCommon/CoDecParam.h)
 if(BUILD_TESTING)
         add_subdirectory(test)
 endif()
