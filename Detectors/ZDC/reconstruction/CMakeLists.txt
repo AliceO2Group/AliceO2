@@ -14,14 +14,19 @@ o2_add_library(ZDCReconstruction
                        src/DigiReco.cxx
                        src/RecoParamZDC.cxx
                        src/ZDCTDCParam.cxx
+#                      src/ZDCEnergyParam.cxx
                        src/RecoConfigZDC.cxx
                PUBLIC_LINK_LIBRARIES O2::ZDCBase
                                      O2::DataFormatsZDC
                                      O2::ZDCSimulation
                                      O2::DetectorsRaw
                                      AliceO2::InfoLogger
-                     O2::rANS
-                     Microsoft.GSL::GSL)
+                                     O2::rANS
+                                     Microsoft.GSL::GSL)
 
-# o2_target_root_dictionary(ZDCReconstruction
-#                       HEADERS )
+o2_target_root_dictionary(ZDCReconstruction
+                          HEADERS include/ZDCReconstruction/RecoConfigZDC.h
+                                  include/ZDCReconstruction/RecoParamZDC.h
+                                  include/ZDCReconstruction/ZDCTDCParam.h
+#                                 include/ZDCReconstruction/ZDCEnergyParam.h
+                                  )
