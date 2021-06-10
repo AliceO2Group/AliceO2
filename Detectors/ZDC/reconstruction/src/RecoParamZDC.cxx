@@ -11,11 +11,9 @@
 #include "FairLogger.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 
-using namespace o2::zdc;
+O2ParamImpl(o2::zdc::RecoParamZDC);
 
-O2ParamImpl(RecoParamZDC);
-
-void RecoParamZDC::setBit(uint32_t ibit, bool val)
+void o2::zdc::RecoParamZDC::setBit(uint32_t ibit, bool val)
 {
   if (ibit >= 0 && ibit < NTDCChannels) {
     bitset[ibit] = val;
