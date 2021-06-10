@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <fmt/printf.h>
 #include <vector>
+#include "Framework/Logger.h"
 
 namespace o2::mch::raw
 {
@@ -33,6 +34,8 @@ class ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>
   explicit ElinkEncoder(uint8_t elinkId, int phase = 0);
 
   void addChannelData(uint8_t chId, const std::vector<SampaCluster>& data);
+
+  void addHeartbeat(uint20_t bunchCrossing);
 
   size_t moveToBuffer(std::vector<uint64_t>& buffer, uint16_t gbtId);
 
@@ -74,6 +77,20 @@ void ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::addChannelData(uint8_t c
 }
 
 template <typename CHARGESUM, int VERSION>
+void ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::addHeartbeat(uint20_t bunchCrossing)
+{
+  if (!mHasSync) {
+    impl::appendSync(mBuffer);
+    mHasSync = true;
+  }
+  for (auto chipAddress : std::array<uint8_t, 2>{0, 1}) {
+    SampaHeader sh = sampaHeartbeat(chipAddress, bunchCrossing);
+    impl::addPadding(mBuffer);
+    impl::append(mBuffer, sh.uint64());
+  }
+}
+
+template <typename CHARGESUM, int VERSION>
 void ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::clear()
 {
   mBuffer.clear();
@@ -88,6 +105,7 @@ size_t ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::moveToBuffer(std::vect
   }
 
   ULHeaderWord<VERSION> header{0};
+
   header.linkID = gbtId;
   header.dsID = mElinkId;
   header.incomplete = 0; // FIXME: what to do with incomplete ?

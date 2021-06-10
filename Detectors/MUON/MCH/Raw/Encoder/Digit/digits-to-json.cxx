@@ -9,7 +9,10 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsMCH/Digit.h"
+#include "MCHRawEncoderDigit/Digit2ElecMapper.h"
+#include "DigitTreeReader.h"
 #include "MCHRawElecMap/Mapper.h"
+#include <TFile.h>
 #include <boost/program_options.hpp>
 #include <fmt/format.h>
 #include <iostream>
@@ -18,8 +21,6 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 #include <string>
-#include "DigitEncoder.h"
-#include "DigitReader.h"
 
 namespace po = boost::program_options;
 using namespace o2::mch::raw;
@@ -98,19 +99,27 @@ int main(int argc, char* argv[])
   rapidjson::OStreamWrapper osw(std::cout);
   rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
 
-  o2::InteractionRecord ir;
+  TFile fin(input.c_str());
+  if (!fin.IsOpen()) {
+    return 3;
+  }
+  TTree* tree = static_cast<TTree*>(fin.Get("o2sim"));
+  if (!tree) {
+    return 4;
+  }
+  o2::mch::ROFRecord rof;
   std::vector<o2::mch::Digit> digits;
-  DigitReader dr(input.c_str());
+  DigitTreeReader dr(tree);
 
-  while (dr.nextDigits(ir, digits)) {
+  while (dr.nextDigits(rof, digits)) {
     writer.StartObject();
     writer.Key("orbit");
-    writer.Int(ir.orbit);
+    writer.Int(rof.getBCData().orbit);
     writer.Key("bc");
-    writer.Int(ir.bc);
+    writer.Int(rof.getBCData().bc);
     writer.Key("digits");
     outputToJson(digits, det2elec, writer);
     writer.EndObject();
-    return 0;
   }
+  return 0;
 }

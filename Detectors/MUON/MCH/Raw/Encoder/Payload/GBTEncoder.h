@@ -57,6 +57,12 @@ class GBTEncoder
   /// \param data vector of SampaCluster objects
   void addChannelData(uint8_t elinkGroupId, uint8_t elinkIndexInGroup, uint8_t chId, const std::vector<SampaCluster>& data);
 
+  /// add a Heartbeat (HB) packet for a given dual sampa
+  /// \param elinkGroupId 0..7
+  /// \param elinkIndexInGroup 0..4
+  /// \param bunchcrossing local (to sampa) bunch crossing
+  void addHeartbeat(uint8_t elinkGroupId, uint8_t elinkIndexInGroup, uint20_t bunchCrossing);
+
   /// reset local bunch-crossing counter.
   ///
   /// (the one that is used in the sampa headers)
@@ -128,6 +134,15 @@ void GBTEncoder<FORMAT, CHARGESUM, VERSION>::addChannelData(uint8_t elinkGroupId
   impl::assertIsInRange("elinkGroupId", elinkGroupId, 0, 7);
   impl::assertIsInRange("elinkIndexInGroup", elinkIndexInGroup, 0, 4);
   mElinks.at(elinkGroupId * 5 + elinkIndexInGroup).addChannelData(chId, data);
+}
+
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void GBTEncoder<FORMAT, CHARGESUM, VERSION>::addHeartbeat(uint8_t elinkGroupId, uint8_t elinkIndexInGroup, uint20_t bunchCrossing)
+{
+
+  impl::assertIsInRange("elinkGroupId", elinkGroupId, 0, 7);
+  impl::assertIsInRange("elinkIndexInGroup", elinkIndexInGroup, 0, 4);
+  mElinks.at(elinkGroupId * 5 + elinkIndexInGroup).addHeartbeat(bunchCrossing);
 }
 
 template <typename FORMAT, typename CHARGESUM, int VERSION>

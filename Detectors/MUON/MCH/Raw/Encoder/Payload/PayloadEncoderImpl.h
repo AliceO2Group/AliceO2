@@ -13,11 +13,13 @@
 
 #include "Assertions.h"
 #include "GBTEncoder.h"
+#include "MCHRawCommon/SampaBunchCrossingCounter.h"
+#include "MCHRawElecMap/Mapper.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
-#include "MCHRawElecMap/Mapper.h"
 #include "MakeArray.h"
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <fmt/format.h>
 #include <functional>
@@ -27,9 +29,11 @@
 #include <memory>
 #include <optional>
 #include <set>
-#include <vector>
-#include <cassert>
 #include <stdexcept>
+#include <vector>
+#include "DetectorsRaw/HBFUtils.h"
+#include "NofBits.h"
+#include "Framework/Logger.h"
 
 namespace o2::mch::raw
 {
@@ -44,21 +48,27 @@ class PayloadEncoderImpl : public PayloadEncoder
  public:
   PayloadEncoderImpl(Solar2FeeLinkMapper solar2feelink);
 
-  void addChannelData(DsElecId dsId, uint8_t chId, const std::vector<SampaCluster>& data) override;
+  void addChannelData(DsElecId dsId, DualSampaChannelId dsChId,
+                      const std::vector<SampaCluster>& data) override;
 
   void startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing) override;
 
   size_t moveToBuffer(std::vector<std::byte>& buffer) override;
 
+  void addHeartbeatHeaders(const std::set<DsElecId>& dsids) override;
+
+  using ElementaryEncoder = GBTEncoder<FORMAT, CHARGESUM, VERSION>;
+
  private:
   void closeHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing);
   void gbts2buffer(uint32_t orbit, uint16_t bunchCrossing);
+  std::unique_ptr<ElementaryEncoder>& assertGBT(uint16_t solarId);
 
  private:
   uint32_t mOrbit;
   uint16_t mBunchCrossing;
   std::vector<std::byte> mBuffer;
-  std::map<uint16_t, std::unique_ptr<GBTEncoder<FORMAT, CHARGESUM, VERSION>>> mGBTs;
+  std::map<uint16_t, std::unique_ptr<ElementaryEncoder>> mGBTs;
   bool mFirstHBFrame;
   Solar2FeeLinkMapper mSolar2FeeLink;
 };
@@ -75,19 +85,28 @@ PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::PayloadEncoderImpl(Solar2FeeLink
 }
 
 template <typename FORMAT, typename CHARGESUM, int VERSION>
-void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::addChannelData(DsElecId dsId, uint8_t chId, const std::vector<SampaCluster>& data)
+std::unique_ptr<typename PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::ElementaryEncoder>&
+  PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::assertGBT(uint16_t solarId)
 {
-  auto solarId = dsId.solarId();
   auto gbt = mGBTs.find(solarId);
   if (gbt == mGBTs.end()) {
     auto f = mSolar2FeeLink(solarId);
     if (!f.has_value()) {
       throw std::invalid_argument(fmt::format("Could not get fee,link for solarId={}\n", solarId));
     }
-    mGBTs.emplace(solarId, std::make_unique<GBTEncoder<FORMAT, CHARGESUM, VERSION>>(f->linkId()));
+    mGBTs.emplace(solarId, std::make_unique<ElementaryEncoder>(f->linkId()));
     gbt = mGBTs.find(solarId);
   }
-  gbt->second->addChannelData(dsId.elinkGroupId(), dsId.elinkIndexInGroup(), chId, data);
+  return gbt->second;
+}
+
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::addChannelData(DsElecId dsId, DualSampaChannelId dsChId, const std::vector<SampaCluster>& data)
+{
+  auto solarId = dsId.solarId();
+  auto& gbt = assertGBT(solarId);
+  impl::assertNofBits("dualSampaChannelId", dsChId, 6);
+  gbt->addChannelData(dsId.elinkGroupId(), dsId.elinkIndexInGroup(), dsChId, data);
 }
 
 template <typename FORMAT, typename CHARGESUM, int VERSION>
@@ -140,5 +159,24 @@ void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::startHeartbeatFrame(uint32_
   mBunchCrossing = bunchCrossing;
 }
 
+/** addHeartbeatHeaders generate one hearbeat header for each dual sampa
+  * present in the mDsElecIds set. Might be called e.g. at the beginning
+  * of each time frame
+  */
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::addHeartbeatHeaders(const std::set<DsElecId>& dsids)
+{
+  if (dsids.empty()) {
+    return;
+  }
+  // get first orbit of the run
+  auto firstIR = o2::raw::HBFUtils::Instance().getFirstIR();
+  auto sampaBXCount = sampaBunchCrossingCounter(firstIR.orbit, firstIR.bc, firstIR.orbit);
+  for (auto dsElecId : dsids) {
+    auto solarId = dsElecId.solarId();
+    auto& gbt = assertGBT(solarId);
+    gbt->addHeartbeat(dsElecId.elinkGroupId(), dsElecId.elinkIndexInGroup(), sampaBXCount);
+  }
+}
 } // namespace o2::mch::raw
 #endif

@@ -10,25 +10,28 @@
 
 o2_add_library(MCHRawEncoderDigit
         SOURCES
-        DigitEncoder.cxx
-        DigitReader.cxx
+        Digit2ElecMapper.cxx
+        DigitPayloadEncoder.cxx
+        DigitRawEncoder.cxx
+        DigitTreeReader.cxx
         PUBLIC_LINK_LIBRARIES
+        O2::DataFormatsParameters
         O2::MCHRawEncoderPayload)
 
-o2_add_executable(digit2json
-        SOURCES digit2json.cxx
+o2_add_executable(digits-to-json
+        SOURCES digits-to-json.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
         Boost::program_options
         O2::MCHMappingImpl4
         O2::MCHRawElecMap
-        O2::MCHSimulation
         O2::MCHRawEncoderDigit
+        O2::MCHSimulation
         O2::Steer
         fmt::fmt)
 
-o2_add_executable(digit2raw
-        SOURCES digit2raw.cxx
+o2_add_executable(digits-to-raw
+        SOURCES digits-to-raw.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
         Boost::program_options
@@ -40,3 +43,9 @@ o2_add_executable(digit2raw
         O2::MCHSimulation
         O2::Steer
         fmt::fmt)
+
+o2_add_test(digit-tree-reader
+            SOURCES testDigitTreeReader.cxx
+            COMPONENT_NAME mch
+            LABELS muon mch
+            PUBLIC_LINK_LIBRARIES O2::MCHRawEncoderDigit)

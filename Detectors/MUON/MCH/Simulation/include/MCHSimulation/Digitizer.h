@@ -71,7 +71,7 @@ class Digitizer
   int mSrcID = 0;
 
   bool mContinuous = false;
-  bool mNoise = true;
+  bool mNoise = false;
 
   //time difference allowed for pileup (in ns (assuming that event time is in ns))
   int mDeltat = 4;
