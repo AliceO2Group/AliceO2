@@ -74,11 +74,11 @@ struct TaskJpsi {
         continue;
       }
       if (d_selectionFlagJpsi > 0) {
-        if (!d_modeJpsiToMuMu) {
-          if (candidate.isSelJpsiToEE() <= 0)
+        if (d_modeJpsiToMuMu) {
+          if (candidate.isSelJpsiToMuMu() <= 0)
             continue;
         } else {
-          if (candidate.isSelJpsiToMuMu() <= 0)
+          if (candidate.isSelJpsiToEE() <= 0)
             continue;
         }
       }
@@ -167,11 +167,11 @@ struct TaskJpsiMC {
         continue;
       }
       if (d_selectionFlagJpsi > 0) {
-        if (!d_modeJpsiToMuMu) {
-          if (candidate.isSelJpsiToEE() <= 0)
+        if (d_modeJpsiToMuMu) {
+          if (candidate.isSelJpsiToMuMu() <= 0)
             continue;
         } else {
-          if (candidate.isSelJpsiToMuMu() <= 0)
+          if (candidate.isSelJpsiToEE() <= 0)
             continue;
         }
       }
