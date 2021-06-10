@@ -81,7 +81,8 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::
   tcmData.sCen = digit.mTriggers.getVertex();
   tcmData.cen = digit.mTriggers.getCen();
   tcmData.vertex = digit.mTriggers.getSCen();
-  tcmData.laser = 0;
+  tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
+  tcmData.dataIsValid = bool(digit.mTriggers.triggerSignals & (1 << 6));
   //tcmData.laser = digit.mTriggers.getLaserBit(); //Turned off for FDD
   tcmData.nChanA = digit.mTriggers.nChanA;
   tcmData.nChanC = digit.mTriggers.nChanC;
@@ -108,6 +109,7 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::
   tcmData.cen = bool(digit.mTriggers.triggerSignals & (1 << 3));
   tcmData.vertex = bool(digit.mTriggers.triggerSignals & (1 << 4));
   tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
+  tcmData.dataIsValid = bool(digit.mTriggers.triggerSignals & (1 << 6));
   tcmData.nChanA = digit.mTriggers.nChanA;
   //tcmData.nChanC = digit.mTriggers.nChanC;
   tcmData.nChanC = 0;
@@ -131,8 +133,9 @@ auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData) -> std::
                        ((bool)tcmData.orC << TriggerType::bitC) |
                        ((bool)tcmData.vertex << TriggerType::bitVertex) |
                        ((bool)tcmData.cen << TriggerType::bitCen) |
-                       ((bool)tcmData.sCen << TriggerType::bitSCen); /* |
-                       ((bool)tcmData.laser << TriggerType::bitLaser);*/
+                       ((bool)tcmData.sCen << TriggerType::bitSCen) |
+                       ((bool)tcmData.laser << 5) |
+                       ((bool)tcmData.dataIsValid << 6);
   trg.nChanA = (int8_t)tcmData.nChanA;
   trg.nChanC = (int8_t)tcmData.nChanC;
   trg.amplA = (int32_t)tcmData.amplA;
@@ -161,7 +164,8 @@ auto ConvertTCMData2Digit(DigitType& digit, const TCMDataType& tcmData) -> std::
                        ((bool)tcmData.sCen << 2) |
                        ((bool)tcmData.cen << 3) |
                        ((bool)tcmData.vertex << 4) |
-                       ((bool)tcmData.laser << 5);
+                       ((bool)tcmData.laser << 5) |
+                       ((bool)tcmData.dataIsValid << 6);
   trg.nChanA = (int8_t)tcmData.nChanA;
   //trg.nChanC = (int8_t)tcmData.nChanC;
   trg.amplA = (int32_t)tcmData.amplA;

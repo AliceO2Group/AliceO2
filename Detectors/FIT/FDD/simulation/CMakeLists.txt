@@ -22,7 +22,7 @@ o2_target_root_dictionary(FDDSimulation
                           HEADERS include/FDDSimulation/Detector.h
     			          include/FDDSimulation/Digitizer.h
     				  include/FDDSimulation/DigitizationParameters.h
-				  include/FDDSimulation/Digits2Raw.h)
+    				  include/FDDSimulation/Digits2Raw.h)
 
 o2_add_executable(digit2raw
         COMPONENT_NAME fdd

@@ -16,6 +16,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "FT0Calibration/FT0DummyCalibrationObject.h" //delete this when example not needed anymore
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <vector>
 
 namespace o2::fit
