@@ -52,7 +52,7 @@ void TRDCalibReader::run(ProcessingContext& pc)
   assert(currEntry < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(currEntry);
   if (mAngResids.size() > 0) {
-    LOG(INFO) << "Pushing angular residual histograms filled with " << mAngResids.at(0).getNEntries() << " entries at tree entry" << currEntry;
+    LOG(INFO) << "Pushing angular residual histograms filled with " << mAngResids.at(0).getNEntries() << " entries at tree entry " << currEntry;
   } else {
     LOG(WARNING) << "No TRD calibration data available in the tree";
   }

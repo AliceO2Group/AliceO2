@@ -30,7 +30,7 @@ class AngularResidHistos
   AngularResidHistos() = default;
   AngularResidHistos(const AngularResidHistos&) = default;
   ~AngularResidHistos() = default;
-  void addEntry(float deltaAlpha, float impactAngle, int chamberId);
+  bool addEntry(float deltaAlpha, float impactAngle, int chamberId);
   float getHistogramEntry(int index) const { return mHistogramEntries[index]; }
   int getBinCount(int index) const { return mNEntriesPerBin[index]; }
   size_t getNEntries() const { return mNEntriesTotal; }
@@ -42,10 +42,9 @@ class AngularResidHistos
  private:
   // TODO use NCHAMBER instead of MAXCHAMBER and indirection array?
   static constexpr float INVBINWIDTH = constants::NBINSANGLEDIFF / (2.f * constants::MAXIMPACTANGLE);
-  // the additional bin is for storing under-/overflow entries. Is it needed?
-  std::array<float, constants::MAXCHAMBER*(constants::NBINSANGLEDIFF + 1)> mHistogramEntries{}; ///< sum of angular deviation (tracklet to track) for given track angle
-  std::array<int, constants::MAXCHAMBER*(constants::NBINSANGLEDIFF + 1)> mNEntriesPerBin{};     ///< number of entries per bin (needed for calculation of mean)
-  size_t mNEntriesTotal{0};                                                                     ///< total number of accumulated angular deviations
+  std::array<float, constants::MAXCHAMBER * constants::NBINSANGLEDIFF> mHistogramEntries{}; ///< sum of angular deviation (tracklet to track) for given track angle
+  std::array<int, constants::MAXCHAMBER * constants::NBINSANGLEDIFF> mNEntriesPerBin{};     ///< number of entries per bin (needed for calculation of mean)
+  size_t mNEntriesTotal{0};                                                                 ///< total number of accumulated angular deviations
 
   ClassDefNV(AngularResidHistos, 1);
 };

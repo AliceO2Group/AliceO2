@@ -111,7 +111,10 @@ void TrackBasedCalib::calculateAngResHistos(const o2::globaltracking::RecoContai
       float trkAngle = o2::math_utils::asin(trkWork.getSnp()) * TMath::RadToDeg();
       float trkltAngle = o2::math_utils::atan(mTrackletsCalib[trkWork.getTrackletIndex(iLayer)].getDy() / Geometry::cdrHght()) * TMath::RadToDeg();
       float angleDeviation = trkltAngle - trkAngle;
-      mAngResHistos.addEntry(angleDeviation, trkAngle, mTrackletsRaw[trkWork.getTrackletIndex(iLayer)].getDetector());
+      if (mAngResHistos.addEntry(angleDeviation, trkAngle, mTrackletsRaw[trkWork.getTrackletIndex(iLayer)].getDetector())) {
+        // track impact angle out of histogram range
+        continue;
+      }
       ++nAngularResidualsCollected;
     }
 
