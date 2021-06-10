@@ -17,9 +17,6 @@
 
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
-//#include <utility>
-//#include <cstring>
-//#include "Rtypes.h"
 
 namespace o2
 {
