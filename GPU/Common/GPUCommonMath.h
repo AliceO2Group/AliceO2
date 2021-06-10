@@ -288,13 +288,9 @@ GPUdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
   // use builtin if available
   return CHOICE(__builtin_popcount(x), __popc(x), __builtin_popcount(x));
 #else
-  unsigned int retVal = 0;
-  for (int i = 0; i < 32; i++) {
-    if (x & (1 << i)) {
-      retVal++;
-    }
-  }
-  return retVal;
+  x = x - ((x >> 1) & 0x55555555);
+  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+  return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 #endif
 }
 
