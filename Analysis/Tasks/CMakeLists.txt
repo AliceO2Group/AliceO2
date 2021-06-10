@@ -11,6 +11,7 @@
 add_subdirectory(PWGCF)
 add_subdirectory(PWGDQ)
 add_subdirectory(PWGHF)
+add_subdirectory(PWGGA)
 add_subdirectory(PWGJE)
 add_subdirectory(PWGLF)
 add_subdirectory(PWGUD)
