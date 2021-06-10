@@ -86,10 +86,10 @@ struct TaskJpsi {
         continue;
       }
 
-      if (!d_modeJpsiToMuMu) {
-        registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate), candidate.pt());
-      } else {
+      if (d_modeJpsiToMuMu) {
         registry.fill(HIST("hmass"), InvMassJpsiToMuMu(candidate), candidate.pt());
+      } else {
+        registry.fill(HIST("hmass"), InvMassJpsiToEE(candidate), candidate.pt());
       }
       registry.fill(HIST("hptcand"), candidate.pt());
       registry.fill(HIST("hptprong0"), candidate.ptProng0());
