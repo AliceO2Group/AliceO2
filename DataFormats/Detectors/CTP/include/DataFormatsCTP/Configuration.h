@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 #include <bitset>
+#include <map>
 namespace o2
 {
 namespace ctp
@@ -40,8 +41,8 @@ struct CTPInput {
   std::string name;
   std::string level;
   std::uint64_t inputMask;
-  o2::detectors::DetID detector;
-  std::string getInputDetName() const { return detector.getName(); }
+  o2::detectors::DetID::ID detID;
+  std::string getInputDetName() const { return o2::detectors::DetID::getName(detID); }
   void printStream(std::ostream& strem) const;
   ClassDefNV(CTPInput, 2);
 };
@@ -97,7 +98,7 @@ class CTPConfiguration
   bool isMaskInInputs(const uint64_t& mask) const;
   CTPInput* isInputInConfig(const std::string inpname);
   uint64_t getDecrtiptorInputsMask(const std::string& name) const;
-
+  std::map<o2::detectors::DetID::ID , std::vector<CTPInput> > getDet2InputMap();
  private:
   std::string mName;
   std::string mVersion;

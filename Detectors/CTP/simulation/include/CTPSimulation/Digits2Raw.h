@@ -23,7 +23,7 @@
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "CCDB/BasicCCDBManager.h"
+
 
 namespace o2
 {
@@ -35,7 +35,6 @@ class Digits2Raw
   Digits2Raw() = default;
   ~Digits2Raw() = default;
   void init();
-  void setCCDBServer(const std::string& server) { mCCDBServer = server; }
   void setVerbosity(int v) { mVerbosity = v; }
   void setFilePerLink(bool v) { mOutputPerLink = v; }
   void setOutDir(std::string& outdir) { mOutDir = outdir; }
@@ -50,9 +49,7 @@ class Digits2Raw
   std::vector<std::bitset<NGBT>> addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS);
 
  private:
-  // CTP configuration
-  std::string mCCDBServer = "http://ccdb-test.cern.ch:8080";
-  CTPConfiguration* mCTPConfiguration = nullptr;
+
   // Raw Writer
   o2::raw::RawFileWriter mWriter{"CTP"};
   int mVerbosity = 0;

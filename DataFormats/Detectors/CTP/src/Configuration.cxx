@@ -141,9 +141,9 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
         std::string detName = tokens[1];
         inp.level = tokens[2];
         o2::detectors::DetID det(detName.c_str());
-        inp.detector = det;
-        //std::cout << "id:" << det.getID() << " ndets:" << det.getNDetectors() << std::endl;
         isDetector(det);
+        inp.detID = det.getID();
+        //std::cout << "id:" << det.getID() << " ndets:" << det.getNDetectors() << std::endl;
         try {
           inp.inputMask = std::stoull(tokens[3], nullptr, 0);
         } catch (...) {
@@ -317,3 +317,12 @@ uint64_t CTPConfiguration::getDecrtiptorInputsMask(const std::string& name) cons
   }
   return 0xffffffff;
 }
+std::map<o2::detectors::DetID::ID , std::vector<CTPInput> > CTPConfiguration::getDet2InputMap()
+{
+  std::map<o2::detectors::DetID::ID , std::vector<CTPInput> > det2inp;
+  for(auto const& inp: mInputs) {
+    det2inp[inp.detID].push_back(inp);
+  }
+  return det2inp;
+}
+

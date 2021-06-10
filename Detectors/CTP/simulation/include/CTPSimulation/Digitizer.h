@@ -17,7 +17,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/Configuration.h"
-
+#include "CCDB/BasicCCDBManager.h"
 #include <gsl/span>
 
 namespace o2
@@ -29,10 +29,14 @@ class Digitizer
  public:
   Digitizer() = default;
   ~Digitizer() = default;
+  void setCCDBServer(const std::string& server) { mCCDBServer = server; }
   std::vector<CTPDigit> process(const gsl::span<o2::ctp::CTPInputDigit> detinputs);
-  void calculateClassMask(std::vector<const CTPInputDigit*> inputs, std::bitset<CTP_NCLASSES>& classmask);
+  void calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, std::bitset<CTP_NCLASSES>& classmask);
   void init();
  private:
+  // CTP configuration
+  std::string mCCDBServer = "http://ccdb-test.cern.ch:8080";
+  CTPConfiguration* mCTPConfiguration = nullptr;
   ClassDefNV(Digitizer, 2);
 };
 } // namespace ctp

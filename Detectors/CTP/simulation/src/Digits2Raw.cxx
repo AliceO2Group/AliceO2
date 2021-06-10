@@ -26,15 +26,7 @@ using namespace o2::ctp;
 
 void Digits2Raw::init()
 {
-  // CTP Configuration
-  if (mCCDBServer.empty()) {
-    LOG(FATAL) << "CTP digitizer: CCDB server is not set";
-  } else {
-    LOG(INFO) << "CTP digitizer:: CCDB server:" << mCCDBServer;
-  }
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCCDBServer);
-  mCTPConfiguration = mgr.get<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig);
+
   //
   // Register links
   //
@@ -177,45 +169,18 @@ bool Digits2Raw::makeGBTWord(const std::bitset<NGBT>& pld, std::bitset<NGBT>& gb
 }
 int Digits2Raw::digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>& gbtdigitTR, const CTPDigit& digit)
 {
-  uint64_t gbtmask = 0;
-  uint64_t digmask = (digit.CTPInputMask).to_ullong();
-  // Also CTP Detector Input configuration shoiuld be employed
   //
   // CTP Interaction record (CTP inputs)
   //
-  uint64_t allT0s = (CTP_INPUTMASK_FT0.second).to_ullong() >> CTP_INPUTMASK_FT0.first;
-  if (digmask & allT0s) {
-    // assuming T0A - 1st bit
-    if (digmask & (1ull >> CTP_INPUTMASK_FT0.first)) {
-      gbtmask |= mCTPConfiguration->getInputMask("T0A");
-    }
-    // assuming T0B - 2nd bit
-    if (digmask & (2ull >> CTP_INPUTMASK_FT0.first)) {
-      gbtmask |= mCTPConfiguration->getInputMask("T0B");
-    }
-  }
-  uint64_t allV0s = (CTP_INPUTMASK_FV0.second).to_ullong() >> CTP_INPUTMASK_FV0.first;
-  if (digmask & allV0s) {
-    // assuming V0A - 1st bit
-    if (digmask & (1ull >> CTP_INPUTMASK_FV0.first)) {
-      gbtmask |= mCTPConfiguration->getInputMask("V0A");
-    }
-    // assuming V0B - 2nd bit
-    if (digmask & (2ull >> CTP_INPUTMASK_FV0.first)) {
-      gbtmask |= mCTPConfiguration->getInputMask("V0B");
-    }
-  }
-  gbtdigitIR = gbtmask >> 12;
+  gbtdigitIR = 0;
+  gbtdigitIR = (digit.CTPInputMask).to_ullong() >> 12;
   gbtdigitIR |= digit.intRecord.bc;
   //
   // Trig Classes
   //
   gbtdigitTR = 0;
-  for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
-    if (tcl.descriptor->getInputsMask() & gbtmask) {
-      gbtdigitTR |= (1 << tcl.classMask);
-    }
-  }
+  gbtdigitIR = (digit.CTPClassMask).to_ullong() >> 12;
+  gbtdigitIR |= digit.intRecord.bc;
   return 0;
 }
 std::vector<std::bitset<NGBT>> Digits2Raw::addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS)
