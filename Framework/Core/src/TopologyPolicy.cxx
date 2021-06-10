@@ -66,7 +66,7 @@ TopologyPolicy::DependencyChecker TopologyPolicyHelpers::alwaysDependent()
 std::vector<TopologyPolicy> TopologyPolicy::createDefaultPolicies()
 {
   return {
-    {TopologyPolicyHelpers::matchByName("output-proxy"), TopologyPolicyHelpers::alwaysDependent()},
+    {TopologyPolicyHelpers::matchByName("dpl-output-proxy"), TopologyPolicyHelpers::alwaysDependent()},
     {TopologyPolicyHelpers::matchAll(), TopologyPolicyHelpers::dataDependency()}};
 }
 
