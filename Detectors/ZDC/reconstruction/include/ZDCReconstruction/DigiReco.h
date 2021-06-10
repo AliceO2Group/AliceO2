@@ -65,8 +65,8 @@ class DigiReco
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
   void setTDCParam(const ZDCTDCParam* param) { mTDCParam = param; };
   const ZDCTDCParam* getTDCParam() { return mTDCParam; };
-  void setIntegrationParam(const ZDCIntegrationParam* param) { mIntParam = param; };
-  const ZDCIntegrationParam* getIntegrationParam() { return mIntParam; };
+  void setRecoConfigZDC(const RecoConfigZDC* cfg) { mRecoConfigZDC = cfg; };
+  const RecoConfigZDC* getRecoConfigZDC() { return mRecoConfigZDC; };
 
   const std::vector<o2::zdc::RecEventAux>& getReco() { return mReco; }
 
