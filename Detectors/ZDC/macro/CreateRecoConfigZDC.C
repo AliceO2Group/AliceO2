@@ -24,14 +24,38 @@ using namespace o2::zdc;
 using namespace std;
 
 void CreateRecoConfigZDC(long tmin = 0, long tmax = -1,
-                            std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+                         std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
 {
 
-  // Offline trigger
-  // TDC
-  // Charge integration
-  ZDCIntegrationParam conf;
+  RecoConfigZDC conf;
 
+  // Offline trigger
+  // Set trigger bitsincoincidence to ignore dead channels
+  // conf.setBit(IdZNAC);
+  // conf.setBit(IdZNASum);
+  // conf.setBit(IdZPAC);
+  // conf.setBit(IdZPASum);
+  // conf.setBit(IdZEM1);
+  // conf.setBit(IdZEM2);
+  // conf.setBit(IdZNCC);
+  // conf.setBit(IdZNCSum);
+  // conf.setBit(IdZPCC);
+  // conf.setBit(IdZPCSum);
+
+  // TDC
+  int def_search = 250; // Unit of ~10 ps
+  conf.setSearch(TDCZNAC, def_search);
+  conf.setSearch(TDCZNAS, def_search);
+  conf.setSearch(TDCZPAC, def_search);
+  conf.setSearch(TDCZPAS, def_search);
+  conf.setSearch(TDCZEM1, def_search);
+  conf.setSearch(TDCZEM2, def_search);
+  conf.setSearch(TDCZNCC, def_search);
+  conf.setSearch(TDCZNCS, def_search);
+  conf.setSearch(TDCZPCC, def_search);
+  conf.setSearch(TDCZPCS, def_search);
+
+  // Charge integration
   int beg_sig = 6;
   int end_sig = 8;
   int beg_ped = -12;

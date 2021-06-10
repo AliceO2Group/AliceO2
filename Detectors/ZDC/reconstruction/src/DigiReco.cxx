@@ -109,7 +109,7 @@ void DigiReco::init()
   // TDC search zone
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
     // If the reconstruction parameters were not manually set
-    if (ropt.tdc_search[ich] <= 0) {
+    if (ropt.tdc_search[itdc] <= 0) {
       if (!mRecoConfigZDC) {
         LOG(FATAL) << "Search zone for TDC " << itdc << " missing configuration object and no manual override";
       } else {

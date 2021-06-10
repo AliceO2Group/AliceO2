@@ -22,13 +22,6 @@ void RecoConfigZDC::setSearch(uint32_t ich, int val)
   }
 }
 
-void RecoConfigZDC::print()
-{
-  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << tdc_search[itdc] << " = " tdc_search[itdc] * FTDCVal << " ns";
-  }
-}
-
 int RecoConfigZDC::getSearch(uint32_t ich) const
 {
   if (ich >= 0 && ich < NTDCChannels) {
@@ -82,6 +75,9 @@ void RecoConfigZDC::setIntegration(uint32_t ich, int beg, int end, int beg_ped, 
 
 void RecoConfigZDC::print()
 {
+  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << tdc_search[itdc] << " = " << tdc_search[itdc] * FTDCVal << " ns";
+  }
   for (Int_t ich = 0; ich < NChannels; ich++) {
     LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << beg_int[ich] << ":" << end_int[ich] << "] pedestal=[" << beg_ped_int[ich] << ":" << end_ped_int[ich] << "]";
   }

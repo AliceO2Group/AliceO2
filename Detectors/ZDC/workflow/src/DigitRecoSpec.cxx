@@ -23,6 +23,7 @@
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
+#include "ZDCBase/ModuleConfig.h"
 #include "FairLogger.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
@@ -78,6 +79,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       return;
     }
     LOG(INFO) << "Loaded module configuration for timestamp " << timeStamp;
+    moduleConfig->print();
 
     // Configuration parameters for ZDC reconstruction
     auto* recoConfigZDC = mgr.get<o2::zdc::RecoConfigZDC>(o2::zdc::CCDBPathRecoConfigZDC);
@@ -85,6 +87,8 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       LOG(FATAL) << "Missing RecoConfigZDC object";
       return;
     }
+    LOG(INFO) << "Loaded RecoConfigZDC for timestamp " << timeStamp;
+    recoConfigZDC->print();
 
     // TDC centering
     auto* tdcParam = mgr.get<o2::zdc::ZDCTDCParam>(o2::zdc::CCDBPathTDCCalib);
@@ -92,6 +96,8 @@ void DigitRecoSpec::run(ProcessingContext& pc)
       LOG(FATAL) << "Missing ZDCTDCParam calibration object";
       return;
     }
+    LOG(INFO) << "Loaded TDC centering ZDCTDCParam for timestamp " << timeStamp;
+    tdcParam->print();
 
     mDR.setModuleConfig(moduleConfig);
     mDR.setRecoConfigZDC(recoConfigZDC);
