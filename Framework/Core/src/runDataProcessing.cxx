@@ -45,6 +45,7 @@
 #include "Framework/DriverControl.h"
 #include "Framework/CommandInfo.h"
 #include "Framework/RunningWorkflowInfo.h"
+#include "Framework/TopologyPolicy.h"
 #include "DriverServerContext.h"
 #include "ControlServiceHelpers.h"
 #include "HTTPParser.h"
@@ -2259,22 +2260,24 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                      [](OutputSpec const& a, OutputSpec const& b) { return DataSpecUtils::describe(a) < DataSpecUtils::describe(b); });
   }
 
-  // check if DataProcessorSpec at i depends on j
-  auto checkDependencies = [& workflow = physicalWorkflow](int i, int j) {
-    DataProcessorSpec const& a = workflow[i];
-    DataProcessorSpec const& b = workflow[j];
-    for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
-      for (size_t oi = 0; oi < b.outputs.size(); ++oi) {
-        try {
-          if (DataSpecUtils::match(a.inputs[ii], b.outputs[oi])) {
-            return true;
-          }
-        } catch (...) {
-          continue;
-        }
+  std::vector<TopologyPolicy> topologyPolicies = TopologyPolicy::createDefaultPolicies();
+  std::vector<TopologyPolicy::DependencyChecker> dependencyCheckers;
+  dependencyCheckers.reserve(physicalWorkflow.size());
+
+  for (auto& spec : physicalWorkflow) {
+    for (auto& policy : topologyPolicies) {
+      if (policy.matcher(spec)) {
+        dependencyCheckers.push_back(policy.checkDependency);
+        break;
       }
     }
-    return false;
+  }
+  assert(dependencyCheckers.size() == physicalWorkflow.size());
+  // check if DataProcessorSpec at i depends on j
+  auto checkDependencies = [&workflow = physicalWorkflow,
+                            &dependencyCheckers](int i, int j) {
+    TopologyPolicy::DependencyChecker& checker = dependencyCheckers[i];
+    return checker(workflow[i], workflow[j]);
   };
 
   // Create a list of all the edges, so that we can do a topological sort
