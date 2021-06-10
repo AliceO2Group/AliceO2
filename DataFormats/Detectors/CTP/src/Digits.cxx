@@ -19,5 +19,5 @@ using namespace o2::ctp;
 void CTPDigit::printStream(std::ostream& stream) const
 {
   stream << "CTP Digit:  BC " << intRecord.bc << " orbit " << intRecord.orbit << std::endl;
-  stream << "Input Mask: " << CTPInputMask << " Class Mask:  " << CTPClassMask << std::endl;
+  stream << "Input Mask: " << CTPInputMask << std::endl;
 }
