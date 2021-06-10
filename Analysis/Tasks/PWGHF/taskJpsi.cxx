@@ -66,11 +66,13 @@ struct TaskJpsi {
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate>> const& candidates)
   {
-    int decaymode = DecayType::JpsiToEE;
-    if (d_modeJpsiToMuMu)
-      decaymode = DecayType::JpsiToMuMu;
+    int decayMode = d_modeJpsiToMuMu ? DecayType::JpsiToMuMu : DecayType::JpsiToEE;
 
     for (auto& candidate : candidates) {
+ 
+      if (!(candidate.hfflag() & 1 << decayMode)) {
+        continue;
+      }
       if (d_selectionFlagJpsi > 0) {
         if (!d_modeJpsiToMuMu) {
           if (candidate.isSelJpsiToEE() <= 0)
@@ -79,9 +81,6 @@ struct TaskJpsi {
           if (candidate.isSelJpsiToMuMu() <= 0)
             continue;
         }
-      }
-      if (!(candidate.hfflag() & 1 << decaymode)) {
-        continue;
       }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
         continue;
@@ -160,11 +159,13 @@ struct TaskJpsiMC {
   {
     // MC rec.
     //Printf("MC Candidates: %d", candidates.size());
-    int decaymode = DecayType::JpsiToEE;
-    if (d_modeJpsiToMuMu)
-      decaymode = DecayType::JpsiToMuMu;
+    int decayMode = d_modeJpsiToMuMu ? DecayType::JpsiToMuMu : DecayType::JpsiToEE;
 
     for (auto& candidate : candidates) {
+ 
+      if (!(candidate.hfflag() & 1 << decayMode)) {
+        continue;
+      }
       if (d_selectionFlagJpsi > 0) {
         if (!d_modeJpsiToMuMu) {
           if (candidate.isSelJpsiToEE() <= 0)
@@ -175,13 +176,10 @@ struct TaskJpsiMC {
         }
       }
 
-      if (!(candidate.hfflag() & 1 << decaymode)) {
-        continue;
-      }
       if (cutYCandMax >= 0. && std::abs(YJpsi(candidate)) > cutYCandMax) {
         continue;
       }
-      if (candidate.flagMCMatchRec() == 1 << decaymode) {
+      if (candidate.flagMCMatchRec() == 1 << decayMode) {
         //Get the corresponding MC particle.
         auto indexMother = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle_as<soa::Join<aod::McParticles, aod::HfCandProng2MCGen>>(), 443, true);
         auto particleMother = particlesMC.iteratorAt(indexMother);
@@ -189,10 +187,10 @@ struct TaskJpsiMC {
         registry.fill(HIST("hPtRecSig"), candidate.pt());      // rec. level pT
         registry.fill(HIST("hCPARecSig"), candidate.cpa());
         registry.fill(HIST("hEtaRecSig"), candidate.eta());
-        if (!d_modeJpsiToMuMu) {
-          registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
-        } else {
+        if (d_modeJpsiToMuMu) {
           registry.fill(HIST("hmassSig"), InvMassJpsiToMuMu(candidate), candidate.pt());
+        } else {
+          registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
         }
         registry.fill(HIST("hdeclengthSig"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxySig"), candidate.decayLengthXY(), candidate.pt());
@@ -208,10 +206,10 @@ struct TaskJpsiMC {
         registry.fill(HIST("hPtRecBg"), candidate.pt());
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
-        if (!d_modeJpsiToMuMu) {
-          registry.fill(HIST("hmassBg"), InvMassJpsiToEE(candidate), candidate.pt());
+        if (d_modeJpsiToMuMu) {
+          registry.fill(HIST("hmassSig"), InvMassJpsiToMuMu(candidate), candidate.pt());
         } else {
-          registry.fill(HIST("hmassBg"), InvMassJpsiToMuMu(candidate), candidate.pt());
+          registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
         }
         registry.fill(HIST("hdeclengthBg"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxyBg"), candidate.decayLengthXY(), candidate.pt());
@@ -226,7 +224,7 @@ struct TaskJpsiMC {
     // MC gen.
     //Printf("MC Particles: %d", particlesMC.size());
     for (auto& particle : particlesMC) {
-      if (particle.flagMCMatchGen() == 1 << decaymode) {
+      if (particle.flagMCMatchGen() == 1 << decayMode) {
         if (cutYCandMax >= 0. && std::abs(RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode()))) > cutYCandMax) {
           continue;
         }
