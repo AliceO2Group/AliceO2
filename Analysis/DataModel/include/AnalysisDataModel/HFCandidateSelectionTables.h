@@ -39,9 +39,11 @@ DECLARE_SOA_TABLE(HFSelLcCandidate, "AOD", "HFSELLCCAND", //!
 namespace hf_selcandidate_jpsi
 {
 DECLARE_SOA_COLUMN(IsSelJpsiToEE, isSelJpsiToEE, int); //!
+DECLARE_SOA_COLUMN(IsSelJpsiToMuMu, isSelJpsiToMuMu, int); //!
 } // namespace hf_selcandidate_jpsi
-DECLARE_SOA_TABLE(HFSelJpsiToEECandidate, "AOD", "HFSELJPSICAND", //!
-                  hf_selcandidate_jpsi::IsSelJpsiToEE);
+DECLARE_SOA_TABLE(HFSelJpsiCandidate, "AOD", "HFSELJPSICAND", //!
+                  hf_selcandidate_jpsi::IsSelJpsiToEE,
+                  hf_selcandidate_jpsi::IsSelJpsiToMuMu);
 
 namespace hf_selcandidate_lc_k0sp
 {

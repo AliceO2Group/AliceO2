@@ -10,7 +10,7 @@
 
 /// \file HFXToJpsiPiPiCandidateSelector.cxx
 /// \brief X(3872) selection task.
-/// \note Adapted from HFJpsiToEECandidateSelector.cxx
+/// \note Adapted from HFJpsiCandidateSelector.cxx
 /// \author Rik Spijkers <r.spijkers@students.uu.nl>, Utrecht University
 
 #include "Framework/runDataProcessing.h"

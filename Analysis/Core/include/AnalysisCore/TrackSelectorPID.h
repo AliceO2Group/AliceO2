@@ -251,9 +251,151 @@ class TrackSelectorPID
     }
   }
 
-  /// Returns status of combined PID selection for a given track.
+  // RICH
+
+  /// Set pT range where RICH PID is applicable.
+  void setRangePtRICH(float ptMin, float ptMax)
+  {
+    mPtRICHMin = ptMin;
+    mPtRICHMax = ptMax;
+  }
+
+  /// Set RICH nσ range in which a track should be accepted.
+  void setRangeNSigmaRICH(float nsMin, float nsMax)
+  {
+    mNSigmaRICHMin = nsMin;
+    mNSigmaRICHMax = nsMax;
+  }
+
+  /// Set RICH nσ range in which a track should be conditionally accepted if combined with TOF.
+  void setRangeNSigmaRICHCondTOF(float nsMin, float nsMax)
+  {
+    mNSigmaRICHMinCondTOF = nsMin;
+    mNSigmaRICHMaxCondTOF = nsMax;
+  }
+
+  /// Checks if track is OK for RICH PID.
   /// \param track  track
-  /// \return combined-selection status (see TrackSelectorPID::Status)
+  /// \return true if track is OK for RICH PID
+  template <typename T>
+  bool isValidTrackPIDRICH(const T& track)
+  {
+    auto pt = track.pt();
+    return mPtRICHMin <= pt && pt <= mPtRICHMax;
+  }
+
+  /// Checks if track is compatible with given particle species hypothesis within given RICH nσ range.
+  /// \param track  track
+  /// \param conditionalTOF  variable to store the result of selection with looser cuts for conditional accepting of track if combined with TOF
+  /// \return true if track satisfies RICH PID hypothesis for given RICH nσ range
+  template <typename T>
+  bool isSelectedTrackPIDRICH(const T& track, bool& conditionalTOF)
+  {
+    // Accept if selection is disabled via large values.
+    if (mNSigmaRICHMin < -999. && mNSigmaRICHMax > 999.) {
+      return true;
+    }
+
+    // Get nσ for a given particle hypothesis.
+    double nSigma = 100.;
+    switch (mPdg) {
+      case kElectron: {
+        nSigma = track.rich().richNsigmaEl();
+        break;
+      }
+      case kMuonMinus: {
+        nSigma = track.rich().richNsigmaMu();
+        break;
+      }
+      case kPiPlus: {
+        nSigma = track.rich().richNsigmaPi();
+        break;
+      }
+      case kKPlus: {
+        nSigma = track.rich().richNsigmaKa();
+        break;
+      }
+      case kProton: {
+        nSigma = track.rich().richNsigmaPr();
+        break;
+      }
+      default: {
+        LOGF(error, "ERROR: RICH PID not implemented for PDG %d", mPdg);
+        assert(false);
+      }
+    }
+
+    if (mNSigmaRICHMinCondTOF < -999. && mNSigmaRICHMaxCondTOF > 999.) {
+      conditionalTOF = true;
+    } else {
+      conditionalTOF = mNSigmaRICHMinCondTOF <= nSigma && nSigma <= mNSigmaRICHMaxCondTOF;
+    }
+    return mNSigmaRICHMin <= nSigma && nSigma <= mNSigmaRICHMax;
+  }
+
+  /// Returns status of RICH PID selection for a given track.
+  /// \param track  track
+  /// \return RICH selection status (see TrackSelectorPID::Status)
+  template <typename T>
+  int getStatusTrackPIDRICH(const T& track)
+  {
+    if (isValidTrackPIDRICH(track)) {
+      bool condTOF = false;
+      if (isSelectedTrackPIDRICH(track, condTOF)) {
+        return Status::PIDAccepted; // accepted
+      } else if (condTOF) {
+        return Status::PIDConditional; // potential to be accepted if combined with TOF
+      } else {
+        return Status::PIDRejected; // rejected
+      }
+    } else {
+      return Status::PIDNotApplicable; // PID not applicable
+    }
+  }
+
+  // MID
+
+  /// Checks if track is compatible with muon hypothesis in the MID detector.
+  /// \param track  track
+  /// \return true if track has been identified as muon by the MID detector
+  template <typename T>
+  bool isSelectedTrackPIDMID(const T& track)
+  {
+    if (mPdg != kMuonMinus) {
+      //LOGF(info, "isSelectedTrackPIDMID: Not a muon hypothesis");
+      return false;
+    }
+    //LOGF(info, "isSelectedTrackPIDMID: Getting muon response");
+    //LOGF(info, "isSelectedTrackPIDMID: Got: %d", track.mid().midIsMuon());
+    //LOGF(info, "isSelectedTrackPIDMID: Return: %d", track.mid().midIsMuon() == 1);
+    return track.mid().midIsMuon() == 1; // FIXME: change to return track.midIsMuon() once the column is bool.
+  }
+
+  /// Returns status of MID PID selection for a given track.
+  /// \param track  track
+  /// \return MID selection status (see TrackSelectorPID::Status)
+  template <typename T>
+  int getStatusTrackPIDMID(const T& track)
+  {
+    //LOGF(info, "getStatusTrackPIDMID: Start");
+    if (mPdg != kMuonMinus) {
+      //LOGF(info, "getStatusTrackPIDMID: Not a muon hypothesis");
+      return Status::PIDRejected;
+    }
+    if (isSelectedTrackPIDMID(track)) {
+      //LOGF(info, "getStatusTrackPIDMID: Accepted");
+      return Status::PIDAccepted; // accepted
+    } else {
+      //LOGF(info, "getStatusTrackPIDMID: Rejected");
+      return Status::PIDRejected; // rejected
+    }
+  }
+
+  // Combined selection (TPC + TOF)
+
+  /// Returns status of combined PID (TPC + TOF) selection for a given track.
+  /// \param track  track
+  /// \return status of combined PID (TPC + TOF) (see TrackSelectorPID::Status)
   template <typename T>
   int getStatusTrackPIDAll(const T& track)
   {
@@ -290,6 +432,14 @@ class TrackSelectorPID
   float mNSigmaTOFMax = 3.;            ///< maximum number of TOF σ
   float mNSigmaTOFMinCondTPC = -1000.; ///< minimum number of TOF σ if combined with TPC
   float mNSigmaTOFMaxCondTPC = 1000.;  ///< maximum number of TOF σ if combined with TPC
+
+  // RICH
+  float mPtRICHMin = 0.;                ///< minimum pT for RICH PID [GeV/c]
+  float mPtRICHMax = 100.;              ///< maximum pT for RICH PID [GeV/c]
+  float mNSigmaRICHMin = -3.;           ///< minimum number of RICH σ
+  float mNSigmaRICHMax = 3.;            ///< maximum number of RICH σ
+  float mNSigmaRICHMinCondTOF = -1000.; ///< minimum number of RICH σ if combined with TOF
+  float mNSigmaRICHMaxCondTOF = 1000.;  ///< maximum number of RICH σ if combined with TOF
 };
 
 #endif // O2_ANALYSIS_TRACKSELECTORPID_H_
