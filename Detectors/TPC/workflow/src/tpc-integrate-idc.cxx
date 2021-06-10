@@ -65,6 +65,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   o2::conf::ConfigurableParam::writeINI("o2tpcintegrateidc_configuration.ini");
 
   const auto& hbfu = o2::raw::HBFUtils::Instance();
+  LOGP(info, "Setting {} orbits per TF", hbfu.getNOrbitsPerTF());
   o2::tpc::IDCSim::setNOrbitsPerTF(hbfu.getNOrbitsPerTF());
 
   const auto nOrbits = config.options().get<int>("nOrbits");

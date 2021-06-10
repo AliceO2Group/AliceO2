@@ -11,6 +11,7 @@
 
 #include "TPCCalibration/RobustAverage.h"
 #include "Framework/Logger.h"
+#include <numeric>
 
 float o2::tpc::RobustAverage::getFilteredAverage(const float sigma)
 {
@@ -20,34 +21,28 @@ float o2::tpc::RobustAverage::getFilteredAverage(const float sigma)
 
   const float mean = getMean();
   const float stdev = getStdDev(mean);
-  filterOutliers(mean, stdev, sigma);
-
-  if (mValues.empty()) {
-    return 0;
-  }
-
-  return getMean();
+  return getFilteredMean(mean, stdev, sigma);
 }
 
-float o2::tpc::RobustAverage::getStdDev(const float mean) const
+float o2::tpc::RobustAverage::getStdDev(const float mean)
 {
-  std::vector<float> diff(mValues.size());
-  std::transform(mValues.begin(), mValues.end(), diff.begin(), [mean](const float val) { return val - mean; });
-  const float sqsum = std::inner_product(diff.begin(), diff.end(), diff.begin(), decltype(diff)::value_type(0));
-  const float stdev = std::sqrt(sqsum / diff.size());
+  const auto size = mValues.size();
+  mTmpValues.resize(size);
+  std::transform(mValues.begin(), mValues.end(), mTmpValues.begin(), [mean](const float val) { return val - mean; });
+  const float sqsum = std::inner_product(mTmpValues.begin(), mTmpValues.end(), mTmpValues.begin(), decltype(mTmpValues)::value_type(0));
+  const float stdev = std::sqrt(sqsum / size);
   return stdev;
 }
 
-void o2::tpc::RobustAverage::filterOutliers(const float mean, const float stdev, const float sigma)
+float o2::tpc::RobustAverage::getFilteredMean(const float mean, const float stdev, const float sigma)
 {
   std::sort(mValues.begin(), mValues.end());
   const float sigmastddev = sigma * stdev;
   const float minVal = mean - sigmastddev;
   const float maxVal = mean + sigmastddev;
   const auto upper = std::upper_bound(mValues.begin(), mValues.end(), maxVal);
-  mValues.erase(upper, mValues.end());
   const auto lower = std::lower_bound(mValues.begin(), mValues.end(), minVal);
-  mValues.erase(mValues.begin(), lower);
+  return getMean(lower, upper);
 }
 
 void o2::tpc::RobustAverage::print() const
@@ -56,4 +51,9 @@ void o2::tpc::RobustAverage::print() const
   for (auto val : mValues) {
     LOGP(info, "{}", val);
   }
+}
+
+float o2::tpc::RobustAverage::getMean(std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end) const
+{
+  return std::accumulate(begin, end, decltype(mValues)::value_type(0)) / std::distance(begin, end);
 }

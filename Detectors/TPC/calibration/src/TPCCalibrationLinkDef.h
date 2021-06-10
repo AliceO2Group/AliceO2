@@ -60,7 +60,13 @@
 #pragma link C++ struct o2::tpc::FourierCoeff +;
 #pragma link C++ struct o2::tpc::ParameterIDCGroupCCDB +;
 #pragma link C++ class o2::tpc::RobustAverage +;
-#pragma link C++ class o2::tpc::IDCFourierTransform +;
+#pragma link C++ struct o2::tpc::IDCFTType +;
+#pragma link C++ class o2::tpc::IDCFTType::IDCFourierTransformBaseEPN +;
+#pragma link C++ class o2::tpc::IDCFTType::IDCFourierTransformBaseAggregator +;
+#pragma link C++ class o2::tpc::IDCFourierTransformBase<o2::tpc::IDCFTType::IDCFourierTransformBaseEPN> +;
+#pragma link C++ class o2::tpc::IDCFourierTransformBase<o2::tpc::IDCFTType::IDCFourierTransformBaseAggregator> +;
+#pragma link C++ class o2::tpc::IDCFourierTransform<o2::tpc::IDCFTType::IDCFourierTransformBaseEPN> +;
+#pragma link C++ class o2::tpc::IDCFourierTransform<o2::tpc::IDCFTType::IDCFourierTransformBaseAggregator> +;
 #pragma link C++ class o2::tpc::IDCCCDBHelper<float> +;
 #pragma link C++ class o2::tpc::IDCCCDBHelper<short> +;
 #pragma link C++ class o2::tpc::IDCCCDBHelper<char> +;
@@ -69,5 +75,6 @@
 #pragma link C++ class o2::tpc::dEdxHistos + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::tpc::dEdxHistos> + ;
 #pragma link C++ class o2::tpc::CalibMIP + ;
+#pragma link C++ enum o2::tpc::AveragingMethod;
 
 #endif
