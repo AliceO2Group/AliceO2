@@ -173,7 +173,7 @@ taskwrapper() {
     # - segmentation violation
     # - there was a crash
     # - bus error (often occuring with shared mem)
-    pattern="-e \"xception\"                        \
+    pattern="-e \"\<[Ee]xception\"                  \
              -e \"segmentation violation\"          \
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
