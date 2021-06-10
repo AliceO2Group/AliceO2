@@ -16,8 +16,6 @@
 #define ALICEO2_FDD_RAWEVENTDATA_H_
 
 #include "FDDBase/Constants.h"
-#include "DataFormatsFDD/Digit.h"
-#include "DataFormatsFDD/ChannelData.h"
 #include "Headers/RAWDataHeader.h"
 #include "DataFormatsFDD/LookUpTable.h"
 #include <CommonDataFormat/InteractionRecord.h>
@@ -128,20 +126,6 @@ struct TCMdata {
         reservedField2 : 46;
     };
   };
-  void fillTrigger(Triggers& trg)
-  {
-    trg.triggersignals = ((bool)orA << Triggers::bitA) |
-                         ((bool)orC << Triggers::bitC) |
-                         ((bool)vertex << Triggers::bitVertex) |
-                         ((bool)cen << Triggers::bitCen) |
-                         ((bool)sCen << Triggers::bitSCen);
-    trg.nChanA = (int8_t)nChanA;
-    trg.nChanC = (int8_t)nChanC;
-    trg.amplA = (int32_t)amplA;
-    trg.amplC = (int32_t)amplC;
-    trg.timeA = (int16_t)timeA;
-    trg.timeC = (int16_t)timeC;
-  }
   void print() const;
 };
 

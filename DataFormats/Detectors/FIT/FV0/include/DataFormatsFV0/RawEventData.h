@@ -16,8 +16,6 @@
 #define ALICEO2_FV0_RAWEVENTDATA_H_
 
 #include "FV0Base/Constants.h"
-#include "DataFormatsFV0/ChannelData.h"
-#include "DataFormatsFV0/BCData.h"
 #include "Headers/RAWDataHeader.h"
 #include "DataFormatsFV0/LookUpTable.h"
 #include <CommonDataFormat/InteractionRecord.h>
@@ -29,86 +27,6 @@ namespace o2
 {
 namespace fv0
 {
-/*
-struct EventHeader {
-  static constexpr size_t PayloadSize = 16;
-  union {
-    uint64_t word[2] = {};
-    struct {
-      uint64_t bc : 12;
-      uint64_t orbit : 32;
-      uint64_t reservedField1 : 20;
-      uint64_t reservedField2 : 8;
-      uint64_t nGBTWords : 4;
-      uint64_t startDescriptor : 4;
-      uint64_t reservedField3 : 48;
-    };
-  };
-  void print() const;
-};
-
-struct EventData {
-  union {
-    uint64_t word = {0};
-    struct {
-      int64_t time : 12;
-      int64_t charge : 13;
-      uint64_t numberADC : 1,
-        isDoubleEvent : 1,
-        is1TimeLostEvent : 1,
-        is2TimeLostEvent : 1,
-        isADCinGate : 1,
-        isTimeInfoLate : 1,
-        isAmpHigh : 1,
-        isEventInTVDC : 1,
-        isTimeInfoLost : 1,
-        reservedField : 2,
-        channelID : 4;
-    };
-  };
-  uint64_t word_zeros = 0x0;
-  static const size_t PayloadSizeSecondWord = 11;
-  static const size_t PayloadSizeFirstWord = 5;
-  void generateFlags()
-  {
-    numberADC = std::rand() % 2;
-    isDoubleEvent = 0;
-    is1TimeLostEvent = 0;
-    is2TimeLostEvent = 1;
-    isADCinGate = 0;
-    isTimeInfoLate = 0;
-    isAmpHigh = 0;
-    isEventInTVDC = 1;
-    isTimeInfoLost = 0;
-  }
-};
-
-struct TCMdata {
-  static constexpr size_t PayloadSize = 16;
-  union {
-    uint64_t word[2] = {0};
-    struct {
-      uint64_t orC : 1,
-        orA : 1,
-        sCen : 1,
-        cen : 1,
-        vertex : 1,
-        nChanA : 7,
-        nChanC : 7;
-      int64_t amplA : 18,
-        amplC : 18,
-        reservedField1 : 1, //56B,  PayloadSize1stWord 6
-        timeA : 9,
-        timeC : 9,
-        reservedField2 : 46;
-    };
-  };
-};
-*/
-
-//constexpr int Nchannels_FT0 = 208;
-//constexpr int Nchannels_PM = 12;
-//constexpr int NPMs = 20;
 constexpr size_t sizeWord = 16;
 
 struct EventHeader {
@@ -180,14 +98,6 @@ struct EventData {
     return uint8_t(word >> BitFlagPos);
   }
   void print() const;
-
-  //temporary, this method should be in ChannelData struct, TODO
-  /*
-  void fillChannelData(ChannelData& channelData) const
-  {
-    channelData.ChainQTC = getFlagWord();
-  }
-  */
   uint64_t word_zeros = 0x0;                      //to remove
   static const size_t PayloadSizeSecondWord = 11; //to remove
   static const size_t PayloadSizeFirstWord = 5;   //to remove
@@ -223,32 +133,6 @@ struct TCMdata {
 
   void print() const;
 
-  //temporary, this method should be in Triggers struct, TODO
-  void fillTrigger(Triggers& trg)
-  {
-    //Taken from FT0
-    /*
-    trg.triggersignals = ((bool)orA << Triggers::bitA) |
-                         ((bool)orC << Triggers::bitC) |
-                         ((bool)vertex << Triggers::bitVertex) |
-                         ((bool)cen << Triggers::bitCen) |
-                         ((bool)sCen << Triggers::bitSCen) |
-                         ((bool)laser << Triggers::bitLaser);
-    */
-    //Temporary
-    trg.triggerSignals = ((bool)orA << 0) |
-                         ((bool)orC << 1) |
-                         ((bool)sCen << 2) |
-                         ((bool)cen << 3) |
-                         ((bool)vertex << 4) |
-                         ((bool)laser << 5);
-    trg.nChanA = (int8_t)nChanA;
-    //trg.nChanC = (int8_t)nChanC;
-    trg.amplA = (int32_t)amplA;
-    //trg.amplC = (int32_t)amplC;
-    //trg.timeA = (int16_t)timeA;
-    //trg.timeC = (int16_t)timeC;
-  }
 } __attribute__((__packed__));
 
 struct TCMdataExtended {

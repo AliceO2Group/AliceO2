@@ -17,6 +17,7 @@
 #include "FT0Calibration/FT0CalibrationInfoObject.h"
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "DataFormatsFT0/RawEventData.h"
+#include "DataFormatsFT0/ChannelData.h"
 #include "Rtypes.h"
 #include <boost/histogram.hpp>
 

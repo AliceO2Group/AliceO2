@@ -15,8 +15,8 @@
 #ifndef ALICEO2_FIT_RAWEVENTDATA_H_
 #define ALICEO2_FIT_RAWEVENTDATA_H_
 
-#include "DataFormatsFT0/Digit.h"
-#include "DataFormatsFT0/ChannelData.h"
+//#include "DataFormatsFT0/Digit.h"
+//#include "DataFormatsFT0/ChannelData.h"
 
 #include "Headers/RAWDataHeader.h"
 #include "DataFormatsFT0/LookUpTable.h"
@@ -104,13 +104,6 @@ struct EventData {
     return uint8_t(word >> BitFlagPos);
   }
   void print() const;
-
-  //temporary, this method should be in ChannelData struct, TODO
-  void fillChannelData(ChannelData& channelData) const
-  {
-    channelData.ChainQTC = getFlagWord();
-  }
-
   uint64_t word_zeros = 0x0;                      //to remove
   static const size_t PayloadSizeSecondWord = 11; //to remove
   static const size_t PayloadSizeFirstWord = 5;   //to remove
@@ -145,23 +138,6 @@ struct TCMdata {
     reservedField8 : 48; //80 bit
 
   void print() const;
-
-  //temporary, this method should be in Triggers struct, TODO
-  void fillTrigger(Triggers& trg)
-  {
-    trg.triggersignals = ((bool)orA << Triggers::bitA) |
-                         ((bool)orC << Triggers::bitC) |
-                         ((bool)vertex << Triggers::bitVertex) |
-                         ((bool)cen << Triggers::bitCen) |
-                         ((bool)sCen << Triggers::bitSCen) |
-                         ((bool)laser << Triggers::bitLaser);
-    trg.nChanA = (int8_t)nChanA;
-    trg.nChanC = (int8_t)nChanC;
-    trg.amplA = (int32_t)amplA;
-    trg.amplC = (int32_t)amplC;
-    trg.timeA = (int16_t)timeA;
-    trg.timeC = (int16_t)timeC;
-  }
 } __attribute__((__packed__));
 
 struct TCMdataExtended {
