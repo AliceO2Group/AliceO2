@@ -66,7 +66,7 @@ struct HfTagSelCollisions {
 
   Produces<aod::HFSelCollision> rowSelectedCollision;
 
-  Configurable<bool> doValPlots{"doValPlots", true, "fill histograms"};
+  Configurable<bool> fillHistograms{"fillHistograms", true, "fill histograms"};
   Configurable<std::string> triggerClassName{"triggerClassName", "kINT7", "trigger class"};
   int triggerClass = std::distance(aliasLabels, std::find(aliasLabels, aliasLabels + kNaliases, triggerClassName.value.data()));
 
@@ -87,13 +87,13 @@ struct HfTagSelCollisions {
   {
     int statusCollision = 0;
 
-    if (doValPlots) {
+    if (fillHistograms) {
       registry.get<TH1>(HIST("hEvents"))->Fill(1);
     }
 
     if (!collision.alias()[triggerClass]) {
       statusCollision |= BIT(0);
-      if (doValPlots) {
+      if (fillHistograms) {
         registry.get<TH1>(HIST("hEvents"))->Fill(3);
       }
     }
@@ -101,7 +101,7 @@ struct HfTagSelCollisions {
     //TODO: add more event selection criteria
 
     // selected events
-    if (doValPlots && statusCollision == 0) {
+    if (fillHistograms && statusCollision == 0) {
       registry.get<TH1>(HIST("hEvents"))->Fill(2);
     }
 
@@ -110,11 +110,11 @@ struct HfTagSelCollisions {
   };
 
   // no event selection in case of no event-selection task attached
-  void processNoEvSel(aod::Collision const& collision)
+  void processNoEvSel(aod::Collision const&)
   {
     int statusCollision = 0;
 
-    if (doValPlots) {
+    if (fillHistograms) {
       registry.get<TH1>(HIST("hEvents"))->Fill(1);
       registry.get<TH1>(HIST("hEvents"))->Fill(2);
     }
@@ -125,7 +125,7 @@ struct HfTagSelCollisions {
 };
 
 /// Track selection
-struct HfTagSelTrack {
+struct HfTagSelTracks {
 
   // enum for candidate type
   enum CandidateType {
@@ -135,7 +135,7 @@ struct HfTagSelTrack {
 
   Produces<aod::HFSelTrack> rowSelectedTrack;
 
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
+  Configurable<bool> fillHistograms{"fillHistograms", true, "fill histograms"};
   Configurable<double> d_bz{"d_bz", 5., "bz field"};
   // quality cut
   Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
@@ -234,7 +234,7 @@ struct HfTagSelTrack {
       int status_prong = 7; // selection flag , 3 bits on
 
       auto trackPt = track.pt();
-      if (b_dovalplots.value) {
+      if (fillHistograms.value) {
         registry.get<TH1>(HIST("hpt_nocuts"))->Fill(trackPt);
       }
 
@@ -302,7 +302,7 @@ struct HfTagSelTrack {
       MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "status_prong = " << status_prong; printf("\n"));
 
       // fill histograms
-      if (b_dovalplots) {
+      if (fillHistograms) {
         if (status_prong & (1 << 0)) {
           registry.get<TH1>(HIST("hpt_cuts_2prong"))->Fill(trackPt);
           registry.get<TH1>(HIST("hdcatoprimxy_cuts_2prong"))->Fill(dca[0]);
@@ -337,7 +337,7 @@ struct HfTrackIndexSkimsCreator {
   Produces<aod::HfCutStatusProng3> rowProng3CutStatus;
 
   //Configurable<int> nCollsMax{"nCollsMax", -1, "Max collisions per file"}; //can be added to run over limited collisions per file - for tesing purposes
-  Configurable<bool> b_dovalplots{"b_dovalplots", true, "fill histograms"};
+  Configurable<bool> fillHistograms{"fillHistograms", true, "fill histograms"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
   // vertexing parameters
   Configurable<double> d_bz{"d_bz", 5., "magnetic field kG"};
@@ -653,7 +653,7 @@ struct HfTrackIndexSkimsCreator {
               }
 
               // fill histograms
-              if (b_dovalplots) {
+              if (fillHistograms) {
 
                 registry.get<TH1>(HIST("hvtx2_x"))->Fill(secondaryVertex2[0]);
                 registry.get<TH1>(HIST("hvtx2_y"))->Fill(secondaryVertex2[1]);
@@ -821,7 +821,7 @@ struct HfTrackIndexSkimsCreator {
             }
 
             // fill histograms
-            if (b_dovalplots) {
+            if (fillHistograms) {
 
               registry.get<TH1>(HIST("hvtx3_x"))->Fill(secondaryVertex3[0]);
               registry.get<TH1>(HIST("hvtx3_y"))->Fill(secondaryVertex3[1]);
@@ -994,7 +994,7 @@ struct HfTrackIndexSkimsCreator {
             }
 
             // fill histograms
-            if (b_dovalplots) {
+            if (fillHistograms) {
 
               registry.get<TH1>(HIST("hvtx3_x"))->Fill(secondaryVertex3[0]);
               registry.get<TH1>(HIST("hvtx3_y"))->Fill(secondaryVertex3[1]);
@@ -1331,7 +1331,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     workflow.push_back(adaptAnalysisTask<HfTagSelCollisions>(cfgc, Processes{&HfTagSelCollisions::processNoEvSel}));
   }
 
-  workflow.push_back(adaptAnalysisTask<HfTagSelTrack>(cfgc));
+  workflow.push_back(adaptAnalysisTask<HfTagSelTracks>(cfgc));
   workflow.push_back(adaptAnalysisTask<HfTrackIndexSkimsCreator>(cfgc));
 
   const bool doLcK0Sp = cfgc.options().get<bool>("do-LcK0Sp");
