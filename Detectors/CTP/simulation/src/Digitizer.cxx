@@ -23,8 +23,8 @@ ClassImp(Digitizer);
 // Trigger detector config needed here.
 std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit> detinputs)
 {
-  std::map<o2::detectors::DetID::ID , std::vector<CTPInput> > det2ctpinp = mCTPConfiguration->getDet2InputMap();
-  std::map<std::string , uint64_t> detInputName2Mask = {{"V0A", 1},{"V0B", 2},{"T0A",1},{"T0A",2}}; // To be taken from det database
+  std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> det2ctpinp = mCTPConfiguration->getDet2InputMap();
+  std::map<std::string, uint64_t> detInputName2Mask = {{"V0A", 1}, {"V0B", 2}, {"T0A", 1}, {"T0A", 2}}; // To be taken from det database
   std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> predigits;
   for (auto const& inp : detinputs) {
     predigits[inp.intRecord].push_back(&inp);
@@ -38,14 +38,14 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
       switch (inp->detector) {
         case o2::detectors::DetID::FT0: {
           // see dummy database above
-          for(auto const& ctpinp: det2ctpinp[o2::detectors::DetID::FT0]) {
+          for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::FT0]) {
             uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             inpmaskcoll |= std::bitset<CTP_NINPUTS>(mask);
           }
           break;
         }
         case o2::detectors::DetID::FV0: {
-          for(auto const& ctpinp: det2ctpinp[o2::detectors::DetID::FV0]) {
+          for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::FV0]) {
             uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             inpmaskcoll |= std::bitset<CTP_NINPUTS>(mask);
           }
@@ -63,9 +63,9 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
   }
   return std::move(digits);
 }
-void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask , std::bitset<CTP_NCLASSES>& classmask)
+void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, std::bitset<CTP_NCLASSES>& classmask)
 {
-    classmask=0;
+  classmask = 0;
   for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
     if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
       classmask |= (1 << tcl.classMask);
@@ -74,7 +74,7 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask , s
 }
 void Digitizer::init()
 {
-    // CTP Configuration
+  // CTP Configuration
   if (mCCDBServer.empty()) {
     LOG(FATAL) << "CTP digitizer: CCDB server is not set";
   } else {
@@ -84,5 +84,4 @@ void Digitizer::init()
   mgr.setURL(mCCDBServer);
   mCTPConfiguration = mgr.get<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig);
   LOG(INFO) << " @@@ CTP Digitizer:: CCDB connected " << std::endl;
-  
 }

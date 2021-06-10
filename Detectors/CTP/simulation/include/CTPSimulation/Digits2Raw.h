@@ -49,7 +49,6 @@ class Digits2Raw
   std::vector<std::bitset<NGBT>> addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS);
 
  private:
-
   // Raw Writer
   o2::raw::RawFileWriter mWriter{"CTP"};
   int mVerbosity = 0;

@@ -317,12 +317,11 @@ uint64_t CTPConfiguration::getDecrtiptorInputsMask(const std::string& name) cons
   }
   return 0xffffffff;
 }
-std::map<o2::detectors::DetID::ID , std::vector<CTPInput> > CTPConfiguration::getDet2InputMap()
+std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> CTPConfiguration::getDet2InputMap()
 {
-  std::map<o2::detectors::DetID::ID , std::vector<CTPInput> > det2inp;
-  for(auto const& inp: mInputs) {
+  std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> det2inp;
+  for (auto const& inp : mInputs) {
     det2inp[inp.detID].push_back(inp);
   }
   return det2inp;
 }
-
