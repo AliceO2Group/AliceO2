@@ -122,7 +122,7 @@ void DigitRecoSpec::run(ProcessingContext& pc)
 
   RecEvent recEvent;
   LOG(INFO) << "BC processed during reconstruction " << recAux.size();
-  int32_t nte=0, ntt=0;
+  int32_t nte = 0, ntt = 0;
   for (auto reca : recAux) {
     int32_t ne = reca.ezdc.size();
     int32_t nt = 0;
@@ -144,8 +144,8 @@ void DigitRecoSpec::run(ProcessingContext& pc)
         recEvent.addEnergy(it->first, it->second);
       }
     }
-    nte+=ne;
-    ntt+=nt;
+    nte += ne;
+    ntt += nt;
     if (mVerbosity > 0 && (nt > 0 || ne > 0)) {
       printf("Orbit %9u bc %4u ntdc %2d ne %2d\n", reca.ir.orbit, reca.ir.bc, nt, ne);
     }
