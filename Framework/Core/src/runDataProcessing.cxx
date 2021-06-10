@@ -2160,7 +2160,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     ("batch,b", bpo::value<bool>()->zero_tokens()->default_value(isatty(fileno(stdout)) == 0), "batch processing mode")                        //
     ("no-batch", bpo::value<bool>()->zero_tokens()->default_value(false), "force gui processing mode")                                         //
     ("no-cleanup", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                  //
-    ("no-catchall", bpo::value<bool>()->zero_tokens()->default_value(false), "do not cleanup the shm segment")                                 //
+    ("no-catchall", bpo::value<bool>()->zero_tokens()->default_value(false), "do not catch exceptions")                                        //
     ("hostname", bpo::value<std::string>()->default_value("localhost"), "hostname to deploy")                                                  //
     ("resources", bpo::value<std::string>()->default_value(""), "resources allocated for the workflow")                                        //
     ("start-port,p", bpo::value<unsigned short>()->default_value(22000), "start port to allocate")                                             //
