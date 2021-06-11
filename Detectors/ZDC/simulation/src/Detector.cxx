@@ -810,9 +810,9 @@ void Detector::createAsideBeamLine()
   zA += 2. * conpar[0];
 
   // Upper section : one single phi segment of a tube
-  //  5 parameters for tubs: inner radius = 0.,
-  //	outer radius = 7. cm, half length = 50 cm
-  //	phi1 = 0., phi2 = 180.
+  // 5 parameters for tubs: inner radius = 0.,
+  // outer radius = 7. cm, half length = 50 cm
+  // phi1 = 0., phi2 = 180.
   tubspar[0] = 0.0 / 2.;
   tubspar[1] = 14.0 / 2.;
   tubspar[2] = 100.0 / 2.;
