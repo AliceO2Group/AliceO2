@@ -14,6 +14,7 @@
 #include "CommonUtils/TreeStreamRedirector.h"
 
 #include "TFile.h"
+#include "TKey.h"
 #include "TPCBase/Painter.h"
 #include "TH2Poly.h"
 #include "TCanvas.h"
