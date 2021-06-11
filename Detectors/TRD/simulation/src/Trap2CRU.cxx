@@ -278,6 +278,7 @@ void Trap2CRU::readTrapData()
     for (auto tracklettrigger : mTrackletTriggerRecords) {
       convertTrapData(tracklettrigger, triggercount); // tracklettrigger assumed to be authoritive, TODO check for blanks digits range
       triggercount++;
+      mEventDigitCount++;
     }
   }
   LOG(info) << " Total digits : " << totaldigits;
@@ -599,7 +600,7 @@ int Trap2CRU::writeHCHeader(const int eventcount, const uint32_t linkid)
 
 void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, const int& triggercount)
 {
-  LOG(info) << "starting :" << __func__; //<<
+  //LOG(info) << "starting :" << __func__; //<<
   //build a HalfCRUHeader for this event/cru/endpoint
   //loop over cru's
   //  loop over all half chambers, thankfully they data is sorted.
@@ -625,7 +626,7 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
   int64_t enddigitindex = triggerrecord.getFirstDigit() + triggerrecord.getNumberOfDigits();
   //  int64_t enddigitindex = mDigitTriggerRecords[triggercount].getFirstDigit() + mDigitTriggerRecords[triggercount].getNumberOfDigits();
 
-  LOG(info) << " --------- " << starttrackletindex << "::" << endtrackletindex << "::" << startdigitindex << "::" << enddigitindex << " current tracklet::digit" << mCurrentTracklet << "::" << mCurrentDigit;
+  //LOG(info) << " --------- " << starttrackletindex << "::" << endtrackletindex << "::" << startdigitindex << "::" << enddigitindex << " current tracklet::digit" << mCurrentTracklet << "::" << mCurrentDigit;
   //  LOG(info) << " --------- " << starttrackletindex<<"::"<<endtrackletindex<<"::"<<startdigitindext<<"::"<<enddigitindext << " current tracklet::digit" << mCurrentTracklet<<"::"<<mCurrentDigit;
   for (int halfcru = 0; halfcru < o2::trd::constants::NHALFCRU; halfcru++) {
     // LOG(info) << "+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+  ======   start of halfcru : " << halfcru;
@@ -696,9 +697,8 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
       //LOG(info) << "Checking digit : " << linkid << " mCurrentDigit" << mCurrentDigit << " digit size:" << mDigits.size();
       //LOG(info) << "Is curernt digit on this link: " << isDigitOnLink(linkid, mCurrentDigit);
       //LOG(info) << "calc linkid : " << mDigits[mDigitsIndex[mCurrentDigit]].getDetector() * 2 + mDigits[mDigitsIndex[mCurrentDigit]].getROB() % 2 << " actual link=" << linkid;
-
       if (mCurrentDigit < mDigits.size()) {
-        while (isDigitOnLink(linkid, mCurrentDigit) && mCurrentDigit < enddigitindex) {
+        while (isDigitOnLink(linkid, mCurrentDigit) && mCurrentDigit < enddigitindex && mEventDigitCount % mDigitRate == 0) {
           if (mVerbosity) {
             LOG(info) << "at top of digit while loop calc linkid :" << linkid << " : " << mDigits[mDigitsIndex[mCurrentDigit]].getDetector() * 2 + mDigits[mDigitsIndex[mCurrentDigit]].getROB() % 2 << " actual link=" << linkid;
           }
@@ -737,7 +737,8 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
           // mcm digits are full, now write it out.
           char* preptr;
           preptr = mRawDataPtr;
-          int digitwordswritten = buildDigitRawData(startmCurrentDigit, mCurrentDigit, currentMCM, currentROB, triggercount);
+          int digitwordswritten = 0;
+          digitwordswritten = buildDigitRawData(startmCurrentDigit, mCurrentDigit, currentMCM, currentROB, triggercount);
           //due to not being zero suppressed, digits returned from buildDigitRawData should *always* be 21.
           ///rawwords += digits * 10 + 1; //10 for the tiembins and 1 for the header.
           linkwordswritten += digitwordswritten;
@@ -749,9 +750,9 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
       }
       //       LOG(info) << "we have a rawwords written for digits of: " << rawwords - rawwordsbefore << " calced at : " << ((float)rawwords - (float)rawwordsbefore - 1.0) / 10.0;
       int counter = 0;
-      if (trackletcounter > 0 && adccounter == 0) { //}&& triggerrecord.getNumberOfTracklets()!=0) {
-        LOG(fatal) << " we have tracklets but no digits, this is not possible";
-      }
+      //if (trackletcounter > 0 && adccounter == 0 && mEventDigitCount%mDigitRate==0) { //}&& triggerrecord.getNumberOfTracklets()!=0) {
+      //  LOG(fatal) << " we have tracklets but no digits, this is not possible";
+      //}
       if (adccounter > 0 || trackletcounter > 0) {
         //write the tracklet end marker so long as we have any data (digits or tracklets).
         int digitendmarkerwritten = writeDigitEndMarker();
@@ -829,10 +830,10 @@ void Trap2CRU::convertTrapData(o2::trd::TriggerRecord const& triggerrecord, cons
     memcpy(feeidpayload.data(), &rawdatavector[0], halfcruwordswritten * 4);
     assert(halfcruwordswritten % 8 == 0);
     mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, triggerrecord.getBCData(), feeidpayload, false, triggercount);
-    //if (mVerbosity) {
-    LOG(info) << "written file for trigger : " << triggercount << " feeid of 0x" << std::hex << mFeeID << " cruid : " << mCruID << " and linkid: " << mLinkID << " and EndPoint: " << mEndPointID << " orbit :0x" << std::hex << triggerrecord.getBCData().orbit << " bc:0x" << std::hex << triggerrecord.getBCData().bc << " and payload size of : " << halfcruwordswritten << " with  a half cru of: ";
-    //}
-    printHalfCRUHeader(halfcruheader);
+    if (mVerbosity) {
+      LOG(info) << "written file for trigger : " << triggercount << " feeid of 0x" << std::hex << mFeeID << " cruid : " << mCruID << " and linkid: " << mLinkID << " and EndPoint: " << mEndPointID << " orbit :0x" << std::hex << triggerrecord.getBCData().orbit << " bc:0x" << std::hex << triggerrecord.getBCData().bc << " and payload size of : " << halfcruwordswritten << " with  a half cru of: ";
+      printHalfCRUHeader(halfcruheader);
+    }
     //for (int a = 0; a < halfcruwordswritten; ++a) {
     //  LOG(info) << std::hex << " 0x" << (unsigned int)feeidpayload[a * 4] << " 0x" << (unsigned int)feeidpayload[a * 4 + 1] << " 0x" << (unsigned int)feeidpayload[a * 4 + 2] << " 0x" << (unsigned int)feeidpayload[a * 4 + 3];
     //}
