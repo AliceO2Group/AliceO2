@@ -191,9 +191,11 @@ std::vector<std::string> DataSampling::MachinesForPolicy(configuration::Configur
   std::vector<std::string> machines;
   auto policiesTree = config->getRecursive("dataSamplingPolicies");
   for (auto&& policyConfig : policiesTree) {
-    if (policyConfig.second.get<std::string>("id") == policyName && policyConfig.second.count("machines") > 0) {
-      for (const auto& machine : policyConfig.second.get_child("machines")) {
-        machines.emplace_back(machine.second.get<std::string>(""));
+    if (policyConfig.second.get<std::string>("id") == policyName) {
+      if (policyConfig.second.count("machines") > 0) {
+        for (const auto& machine : policyConfig.second.get_child("machines")) {
+          machines.emplace_back(machine.second.get<std::string>(""));
+        }
       }
       return machines;
     }
