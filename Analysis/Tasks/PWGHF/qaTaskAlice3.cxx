@@ -67,7 +67,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "TEfficiency.h"
 #include "TList.h"
 
-
 /// Task to QA the efficiency of a particular particle defined by particlePDG
 template <o2::track::pid_constants::ID particle>
 struct QaTrackingRejection {
@@ -134,7 +133,7 @@ struct QaTrackingRejection {
     histos.add("trackingRICHselProton/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
     histos.add("trackingMIDselMuon/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
   }
-  
+
   using TracksPID = soa::Join<aod::BigTracksPID, aod::HfTrackIndexALICE3PID>;
 
   void process(const o2::soa::Join<o2::aod::Collisions, o2::aod::McCollisionLabels>& collisions,
@@ -267,10 +266,10 @@ struct QaTrackingRejection {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec w; 
+  WorkflowSpec w;
   w.push_back(adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc));
   if (cfgc.options().get<int>("rej-el")) {
-  w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Electron>>(cfgc, TaskName{"qa-tracking-rejection-electron"}));
+    w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Electron>>(cfgc, TaskName{"qa-tracking-rejection-electron"}));
   }
   if (cfgc.options().get<int>("rej-ka")) {
     w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Kaon>>(cfgc, TaskName{"qa-tracking-rejection-kaon"}));
@@ -279,10 +278,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Proton>>(cfgc, TaskName{"qa-tracking-rejection-proton"}));
   }
   if (cfgc.options().get<int>("rej-mu")) {
-  w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Muon>>(cfgc, TaskName{"qa-tracking-rejection-mu"}));
+    w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Muon>>(cfgc, TaskName{"qa-tracking-rejection-mu"}));
   }
   if (cfgc.options().get<int>("rej-pi")) {
-  w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Pion>>(cfgc, TaskName{"qa-tracking-rejection-pion"}));
+    w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Pion>>(cfgc, TaskName{"qa-tracking-rejection-pion"}));
   }
   return w;
 }
