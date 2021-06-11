@@ -336,17 +336,24 @@ class O2PrimaryServerDevice final : public FairMQDevice
       PrimaryChunkRequest requestpayload;
       std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(requestpayload));
       auto bytes = channel.Receive(request);
-
-      auto& r = *((PrimaryChunkRequest*)(request->GetData()));
-      LOG(INFO) << "PARTICLE REQUEST IN STATE " << PrimStateToString[(int)mState.load()] << " from " << r.workerid << ":" << r.requestid;
+      if (bytes < 0) {
+        LOG(ERROR) << "Some error/interrupt occurred on socket during receive";
+        // This may likely be due to an external signal which disrupts the polling
+        LOG(INFO) << "Get current state : " << GetCurrentStateName();
+        LOG(INFO) << "New state pending : " << NewStatePending();
+        if (NewStatePending()) { // new state is typically pending if (term) signal was received
+          WaitForNextState();
+          // ask ourselves for termination of this loop
+          stateTransition(O2PrimaryServerState::Stopped, "CONDRUN");
+        }
+        continue;
+      }
 
       TStopwatch timer;
       timer.Start();
+      auto& r = *((PrimaryChunkRequest*)(request->GetData()));
+      LOG(INFO) << "PARTICLE REQUEST IN STATE " << PrimStateToString[(int)mState.load()] << " from " << r.workerid << ":" << r.requestid;
 
-      if (bytes < 0) {
-        LOG(ERROR) << "Some error occurred on socket during receive";
-        // return true; // keep going
-      }
       auto prestate = mState.load();
       auto more = HandleRequest(request, 0, channel);
       if (!more) {
