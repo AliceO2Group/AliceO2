@@ -382,7 +382,7 @@ class EncodedBlocks
   void copyToFlat(void* base) { fillFlatCopy(create(base, estimateSize())); }
 
   /// attach to tree
-  void appendToTree(TTree& tree, const std::string& name) const;
+  size_t appendToTree(TTree& tree, const std::string& name) const;
 
   /// read from tree to non-flat object
   void readFromTree(TTree& tree, const std::string& name, int ev = 0);
@@ -446,7 +446,7 @@ class EncodedBlocks
 
   /// add and fill single branch
   template <typename D>
-  static void fillTreeBranch(TTree& tree, const std::string& brname, D& dt, int compLevel, int splitLevel = 99);
+  static size_t fillTreeBranch(TTree& tree, const std::string& brname, D& dt, int compLevel, int splitLevel = 99);
 
   /// read single branch
   template <typename D>
@@ -485,14 +485,16 @@ void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::strin
 ///_____________________________________________________________________________
 /// attach to tree
 template <typename H, int N, typename W>
-void EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name) const
+size_t EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name) const
 {
-  fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), const_cast<base&>(*this), WrappersCompressionLevel, WrappersSplitLevel);
+  long s = 0;
+  s += fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), const_cast<base&>(*this), WrappersCompressionLevel, WrappersSplitLevel);
   for (int i = 0; i < N; i++) {
     int compression = mMetadata[i].opt == Metadata::OptStore::ROOTCompression ? 1 : 0;
-    fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), const_cast<Block<W>&>(mBlocks[i]), compression);
+    s += fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), const_cast<Block<W>&>(mBlocks[i]), compression);
   }
   tree.SetEntries(tree.GetEntries() + 1);
+  return s;
 }
 
 ///_____________________________________________________________________________
@@ -513,11 +515,14 @@ inline void EncodedBlocks<H, N, W>::readTreeBranch(TTree& tree, const std::strin
 /// add and fill single branch
 template <typename H, int N, typename W>
 template <typename D>
-inline void EncodedBlocks<H, N, W>::fillTreeBranch(TTree& tree, const std::string& brname, D& dt, int compLevel, int splitLevel)
+inline size_t EncodedBlocks<H, N, W>::fillTreeBranch(TTree& tree, const std::string& brname, D& dt, int compLevel, int splitLevel)
 {
-  auto* br = tree.Branch(brname.c_str(), &dt, 512, splitLevel);
-  br->SetCompressionLevel(compLevel);
-  br->Fill();
+  auto* br = tree.GetBranch(brname.c_str());
+  if (!br) {
+    br = tree.Branch(brname.c_str(), &dt, 512, splitLevel);
+    br->SetCompressionLevel(compLevel);
+  }
+  return br->Fill();
 }
 
 ///_____________________________________________________________________________
