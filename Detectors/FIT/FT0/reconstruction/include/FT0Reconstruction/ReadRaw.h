@@ -30,6 +30,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/LookUpTable.h"
 #include "DataFormatsFT0/RawEventData.h"
+#include "FT0Base/Geometry.h"
 #include "Headers/RAWDataHeader.h"
 #include "TBranch.h"
 #include "TTree.h"
@@ -40,10 +41,10 @@ namespace ft0
 {
 class ReadRaw
 {
-  static constexpr int Nchannels_FT0 = 208;
+  static constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
   static constexpr int Nchannels_PM = 12;
   static constexpr int NPMs = 20;
-  static constexpr int LinkTCM = 19;
+  //  static constexpr int LinkTCM = 19;
   static constexpr float MV_2_Nchannels = 2.2857143;     //7 mV ->16channels
   static constexpr float CFD_NS_2_Nchannels = 76.804916; //1000.(ps)/13.02(channel);
   //static constexpr int GBTWORDSIZE = 80;            //real size
@@ -69,6 +70,7 @@ class ReadRaw
   char* mBuffer = nullptr;
   std::vector<char> mBufferLocal;
   long mSize;
+  int mLinkTCM;
   std::map<o2::InteractionRecord, o2::ft0::DigitsTemp> mDigitAccum; // digit accumulator
   template <typename T>
   TBranch* getOrMakeBranch(TTree& tree, std::string brname, T* ptr)
@@ -81,7 +83,7 @@ class ReadRaw
     return tree.Branch(brname.c_str(), ptr);
   }
 
-  ClassDefNV(ReadRaw, 1);
+  ClassDefNV(ReadRaw, 2);
 };
 
 } // namespace ft0

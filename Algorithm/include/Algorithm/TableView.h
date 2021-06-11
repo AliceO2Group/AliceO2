@@ -79,7 +79,7 @@ class TableView
 
   /// descriptor pointing to payload of one frame
   struct FrameData {
-    const byte* buffer = nullptr;
+    const std::byte* buffer = nullptr;
     size_t size = 0;
   };
 
@@ -94,7 +94,7 @@ class TableView
    * @param seqSize    Length of sequence
    * @return number of inserted elements
    */
-  size_t addRow(RowDescType rowData, byte* seqData, size_t seqSize)
+  size_t addRow(RowDescType rowData, std::byte* seqData, size_t seqSize)
   {
     unsigned nFrames = mFrames.size();
     unsigned currentRow = mRowData.size();
@@ -118,7 +118,7 @@ class TableView
 
         // insert frame descriptor under key composed from header and row
         auto result = mFrames.emplace(FrameIndex{*entry.header, currentRow},
-                                      FrameData{entry.payload, entry.length});
+                                      FrameData{(std::byte*)entry.payload, entry.length});
         return result.second;
       });
     auto insertedFrames = mFrames.size() - nFrames;

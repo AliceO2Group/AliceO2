@@ -21,6 +21,11 @@ Digit::Digit(short absId, float amplitude, float time, int label)
   : DigitBase(time), mAmplitude(amplitude), mTime(time), mAbsId(absId), mLabel(label)
 {
 }
+Digit::Digit(short truId, float amplitude, float time, bool isTrigger2x2, int /*dummy*/)
+  : DigitBase(time), mAmplitude(amplitude), mTime(time), mAbsId(truId + NREADOUTCHANNELS), mLabel(-1)
+{
+  setHighGain(isTrigger2x2);
+}
 Digit::Digit(const Hit& hit, int label) : mAbsId(hit.GetDetectorID()), mAmplitude(hit.GetEnergyLoss()), mTime(hit.GetTime()), mLabel(label)
 {
 }
@@ -57,6 +62,15 @@ Digit& Digit::operator+=(const Digit& other)
   mAmplitude += other.mAmplitude;
 
   return *this;
+}
+void Digit::addEnergyTime(float energy, float time)
+{
+  // Adds the amplitude of digits
+  // TODO: What about time? Should we assign time of more energetic digit? More complicated treatment?
+  if (mAmplitude < energy) {
+    mTime = time;
+  }
+  mAmplitude += energy;
 }
 
 void Digit::PrintStream(std::ostream& stream) const

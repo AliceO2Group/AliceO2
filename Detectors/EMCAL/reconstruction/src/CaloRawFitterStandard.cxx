@@ -49,7 +49,7 @@ double CaloRawFitterStandard::rawResponseFunction(double* x, double* par)
   return signal;
 }
 
-CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchlist,
+CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunchlist,
                                                std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2)
 {
 
@@ -64,11 +64,11 @@ CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchli
 
   if (bunchIndex >= 0 && ampEstimate >= mAmpCut) {
     time = timeEstimate;
-    int timebinOffset = bunchlist.at(bunchIndex).getStartTime() - (bunchlist.at(bunchIndex).getBunchLength() - 1);
+    int timebinOffset = bunchlist[bunchIndex].getStartTime() - (bunchlist[bunchIndex].getBunchLength() - 1);
     amp = ampEstimate;
 
     if (nsamples > 1 && maxADC < constants::OVERFLOWCUT) {
-      std::tie(amp, time, chi2, fitDone) = fitRaw(first, last);
+      std::tie(amp, time, chi2) = fitRaw(first, last);
       time += timebinOffset;
       timeEstimate += timebinOffset;
       ndf = nsamples - 2;
@@ -95,19 +95,17 @@ CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchli
 
     return CaloFitResults(maxADC, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
   }
-  return CaloFitResults(-1, -1);
+  throw RawFitterError_t::FIT_ERROR;
 }
 
-std::tuple<float, float, float, bool> CaloRawFitterStandard::fitRaw(int firstTimeBin, int lastTimeBin) const
+std::tuple<float, float, float> CaloRawFitterStandard::fitRaw(int firstTimeBin, int lastTimeBin) const
 {
 
   float amp(0), time(0), chi2(0);
-  bool fitDone(false);
 
   int nsamples = lastTimeBin - firstTimeBin + 1;
-  fitDone = kFALSE;
   if (nsamples < 3) {
-    return std::make_tuple(amp, time, chi2, fitDone);
+    throw RawFitterError_t::FIT_ERROR;
   }
 
   TGraph gSig(nsamples);
@@ -134,10 +132,9 @@ std::tuple<float, float, float, bool> CaloRawFitterStandard::fitRaw(int firstTim
     amp = signalF.GetParameter(0);
     time = signalF.GetParameter(1);
     chi2 = signalF.GetChisquare();
-    fitDone = kTRUE;
   } else {
-    fitDone = kFALSE;
+    throw RawFitterError_t::FIT_ERROR;
   }
 
-  return std::make_tuple(amp, time, chi2, fitDone);
+  return std::make_tuple(amp, time, chi2);
 }

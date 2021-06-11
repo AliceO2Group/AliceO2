@@ -8,9 +8,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/DataTakingContext.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/ControlService.h"
+#include "Framework/Configurable.h"
+#include "Framework/RunningWorkflowInfo.h"
 #include <FairMQDevice.h>
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -21,14 +25,13 @@
 using namespace o2::framework;
 using namespace AliceO2::InfoLogger;
 
-void customize(std::vector<ConfigParamSpec>& options)
-{
-  options.push_back(ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}});
-  options.push_back(ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}});
-  options.push_back(ConfigParamSpec{"aDouble", VariantType::Double, 3., {"a double option"}});
-  options.push_back(ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}});
-  options.push_back(ConfigParamSpec{"aBool", VariantType::Bool, true, {"a boolean option"}});
-}
+struct WorkflowOptions {
+  Configurable<int> anInt{"anInt", 1, ""};
+  Configurable<float> aFloat{"aFloat", 2.0f, {"a float option"}};
+  Configurable<double> aDouble{"aDouble", 3., {"a double option"}};
+  Configurable<std::string> aString{"aString", "foobar", {"a string option"}};
+  Configurable<bool> aBool{"aBool", true, {"a boolean option"}};
+};
 
 // This completion policy will only be applied to the device called `D` and
 // will process an InputRecord which had any of its constituent updated.
@@ -41,10 +44,11 @@ void customize(std::vector<CompletionPolicy>& policies)
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
-  return AlgorithmSpec{adaptStateful([what, minDelay]() {
+  return AlgorithmSpec{adaptStateful([what, minDelay](RunningWorkflowInfo const& runningWorkflow) {
     srand(getpid());
-    return adaptStateless([what, minDelay](DataAllocator& outputs) {
-      std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
+    LOG(INFO) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
+    return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
+      device.device()->WaitFor(std::chrono::seconds(rand() % 2));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
   })};
@@ -59,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      {OutputSpec{{"a1"}, "TST", "A1"},
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device) {
+       [](DataAllocator& outputs, InfoLogger& logger, RawDeviceService& device, DataTakingContext& context) {
          device.device()->WaitFor(std::chrono::seconds(rand() % 2));
          auto& aData = outputs.make<int>(OutputRef{"a1"}, 1);
          auto& bData = outputs.make<int>(OutputRef{"a2"}, 1);

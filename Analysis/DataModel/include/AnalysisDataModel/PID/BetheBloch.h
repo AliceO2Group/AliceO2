@@ -20,6 +20,7 @@
 
 #include "TPCSimulation/Detector.h"
 #include "AnalysisDataModel/PID/ParamBase.h"
+#include "ReconstructionDataFormats/PID.h"
 
 namespace o2::pid::tpc
 {
@@ -35,6 +36,17 @@ class BetheBloch : public Parametrization
   }
   ClassDef(BetheBloch, 1);
 };
+
+float BetheBlochParam(const float& momentum, const float& mass, const float& charge, const Parameters& parameters)
+{
+  return parameters[5] * o2::tpc::Detector::BetheBlochAleph(momentum / mass, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4]) * pow(charge, parameters[6]);
+}
+
+template <o2::track::PID::ID id, typename T>
+float BetheBlochParamTrack(const T& track, const Parameters& parameters)
+{
+  return BetheBlochParam(track.tpcInnerParam(), o2::track::pid_constants::sMasses[id], (float)o2::track::pid_constants::sCharges[id], parameters);
+}
 
 } // namespace o2::pid::tpc
 

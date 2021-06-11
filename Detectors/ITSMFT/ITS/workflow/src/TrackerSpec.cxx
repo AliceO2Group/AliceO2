@@ -22,10 +22,11 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-
+#include "CommonDataFormat/IRFrame.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
 #include "ITStracking/TrackingConfigParam.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -44,8 +45,9 @@ namespace its
 {
 using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
 
-TrackerDPL::TrackerDPL(bool isMC, bool async, o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC}, mAsyncMode{async}, mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
+TrackerDPL::TrackerDPL(bool isMC, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType) : mIsMC{isMC}, mMode{trModeS}, mRecChain{o2::gpu::GPUReconstruction::CreateInstance(dType, true)}
 {
+  std::transform(mMode.begin(), mMode.end(), mMode.begin(), [](unsigned char c) { return std::tolower(c); });
 }
 
 void TrackerDPL::init(InitContext& ic)
@@ -53,7 +55,7 @@ void TrackerDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = parameters::GRPObject::loadFrom(filename.c_str());
+  const auto grp = parameters::GRPObject::loadFrom(filename);
   if (grp) {
     mGRP.reset(grp);
     base::Propagator::initFieldFromGRP(grp);
@@ -64,33 +66,78 @@ void TrackerDPL::init(InitContext& ic)
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                    o2::math_utils::TransformType::T2G));
 
+    std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
+    std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
+    if (o2::utils::Str::pathExists(matLUTFile)) {
+      auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
+      o2::base::Propagator::Instance()->setMatLUT(lut);
+      LOG(INFO) << "Loaded material LUT from " << matLUTFile;
+    } else {
+      LOG(INFO) << "Material LUT " << matLUTFile << " file is absent, only TGeo can be used";
+    }
+
     auto* chainITS = mRecChain->AddChain<o2::gpu::GPUChainITS>();
     mRecChain->Init();
     mVertexer = std::make_unique<Vertexer>(chainITS->GetITSVertexerTraits());
     mTracker = std::make_unique<Tracker>(chainITS->GetITSTrackerTraits());
-    if (mAsyncMode) {
-      std::vector<TrackingParameters> trackParams(3);
+
+    std::vector<TrackingParameters> trackParams;
+    std::vector<MemoryParameters> memParams;
+
+    mRunVertexer = true;
+    if (mMode == "async") {
+
+      trackParams.resize(3);
+      memParams.resize(3);
       trackParams[0].TrackletMaxDeltaPhi = 0.05f;
       trackParams[1].TrackletMaxDeltaPhi = 0.1f;
       trackParams[2].MinTrackLength = 4;
       trackParams[2].TrackletMaxDeltaPhi = 0.3;
-      std::vector<MemoryParameters> memParams(3);
-      mTracker->setParameters(memParams, trackParams);
       LOG(INFO) << "Initializing tracker in async. phase reconstruction with " << trackParams.size() << " passes";
+
+    } else if (mMode == "sync") {
+
+      trackParams.resize(1);
+      memParams.resize(1);
+      LOG(INFO) << "Initializing tracker in sync. phase reconstruction with " << trackParams.size() << " passes";
+
+    } else if (mMode == "cosmics") {
+
+      mRunVertexer = false;
+      trackParams.resize(1);
+      memParams.resize(1);
+      trackParams[0].MinTrackLength = 4;
+      trackParams[0].TrackletMaxDeltaPhi = o2::its::constants::math::Pi * 0.5f;
+      for (int iLayer = 0; iLayer < o2::its::constants::its2::TrackletsPerRoad; iLayer++) {
+        trackParams[0].TrackletMaxDeltaZ[iLayer] = o2::its::constants::its2::LayersZCoordinate()[iLayer + 1];
+        memParams[0].TrackletsMemoryCoefficients[iLayer] = 0.5f;
+        // trackParams[0].TrackletMaxDeltaZ[iLayer] = 10.f;
+      }
+      for (int iLayer = 0; iLayer < o2::its::constants::its2::CellsPerRoad; iLayer++) {
+        trackParams[0].CellMaxDCA[iLayer] = 10000.f;    //cm
+        trackParams[0].CellMaxDeltaZ[iLayer] = 10000.f; //cm
+        memParams[0].CellsMemoryCoefficients[iLayer] = 0.001f;
+      }
+      LOG(INFO) << "Initializing tracker in reconstruction for cosmics with " << trackParams.size() << " passes";
+
+    } else {
+      throw std::runtime_error(fmt::format("Unsupported ITS tracking mode {:s} ", mMode));
     }
+    mTracker->setParameters(memParams, trackParams);
+
     mVertexer->getGlobalConfiguration();
     mTracker->getGlobalConfiguration();
-    LOG(INFO) << Form("%ssing lookup table for material budget approximation", (mTracker->isMatLUT() ? "U" : "Not u"));
+    LOG(INFO) << Form("Using %s for material budget approximation", (mTracker->isMatLUT() ? "lookup table" : "TGeometry"));
 
     double origD[3] = {0., 0., 0.};
     mTracker->setBz(field->getBz(origD));
   } else {
-    throw std::runtime_error(o2::utils::concat_string("Cannot retrieve GRP from the ", filename));
+    throw std::runtime_error(o2::utils::Str::concat_string("Cannot retrieve GRP from the ", filename));
   }
 
   std::string dictPath = ic.options().get<std::string>("its-dictionary-path");
-  std::string dictFile = o2::base::NameConf::getDictionaryFileName(o2::detectors::DetID::ITS, dictPath, ".bin");
-  if (o2::base::NameConf::pathExists(dictFile)) {
+  std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS, dictPath, "bin");
+  if (o2::utils::Str::pathExists(dictFile)) {
     mDict.readBinaryFile(dictFile);
     LOG(INFO) << "Tracker running with a provided dictionary: " << dictFile;
   } else {
@@ -131,11 +178,16 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
 
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+
   std::uint32_t roFrame = 0;
   ROframe event(0, 7);
 
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
+
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
+  int nBCPerTF = continuous ? alpParams.roFrameLengthInBC : alpParams.roFrameLengthTrig;
 
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
@@ -161,80 +213,80 @@ void TrackerDPL::run(ProcessingContext& pc)
   };
 
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
-  if (continuous) {
-    for (auto& rof : rofs) {
-      int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
-      // prepare in advance output ROFRecords, even if this ROF to be rejected
-      int first = allTracks.size();
+  for (auto& rof : rofs) {
+    int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
+    // prepare in advance output ROFRecords, even if this ROF to be rejected
+    int first = allTracks.size();
 
-      if (nclUsed) {
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+    if (nclUsed) {
+      LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
 
-        // for vertices output
-        auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-        vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-        vtxROF.setNEntries(0);
+      // for vertices output
+      auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+      vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+      vtxROF.setNEntries(0);
 
-        if (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0) { // cut was requested
-          auto mult = multEst.process(rof.getROFData(compClusters));
-          if (mult < multEstConf.cutMultClusLow || mult > multEstConf.cutMultClusHigh) {
-            LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
-                      << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
-            rof.setFirstEntry(first);
-            rof.setNEntries(0);
-            continue;
-          }
-        }
-
-        mVertexer->clustersToVertices(event);
-        auto vtxVecLoc = mVertexer->exportVertices();
-
-        if (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0) { // cut was requested
-          std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
-          vtxVecSel.swap(vtxVecLoc);
-          for (const auto& vtx : vtxVecSel) {
-            if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-              LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
-                        << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
-              continue; // skip vertex of unwanted multiplicity
-            }
-            vtxVecLoc.push_back(vtx);
-          }
-          if (vtxVecLoc.empty()) { // reject ROF
-            rof.setFirstEntry(first);
-            rof.setNEntries(0);
-            continue;
-          }
-        }
-
-        event.addPrimaryVertices(vtxVecLoc);
-        mTracker->setROFrame(roFrame);
-        mTracker->clustersToTracks(event);
-        tracks.swap(mTracker->getTracks());
-        LOG(INFO) << "Found tracks: " << tracks.size();
-        int number = tracks.size();
-        trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
-        int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
-        rof.setFirstEntry(first);
-        rof.setNEntries(number);
-        copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
-        std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-        trackLabels.clear();
-        vtxROF.setNEntries(vtxVecLoc.size());
-        for (const auto& vtx : vtxVecLoc) {
-          vertices.push_back(vtx);
+      if (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0) { // cut was requested
+        auto mult = multEst.process(rof.getROFData(compClusters));
+        if (mult < multEstConf.cutMultClusLow || mult > multEstConf.cutMultClusHigh) {
+          LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
+                    << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
+          rof.setFirstEntry(first);
+          rof.setNEntries(0);
+          continue;
         }
       }
-      roFrame++;
+
+      std::vector<Vertex> vtxVecLoc;
+      if (mRunVertexer) {
+        mVertexer->clustersToVertices(event);
+        vtxVecLoc = mVertexer->exportVertices();
+      }
+
+      if (mRunVertexer && (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0)) { // cut was requested
+        std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
+        vtxVecSel.swap(vtxVecLoc);
+        for (const auto& vtx : vtxVecSel) {
+          if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
+            LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
+                      << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
+            continue; // skip vertex of unwanted multiplicity
+          }
+          vtxVecLoc.push_back(vtx);
+        }
+        if (vtxVecLoc.empty()) { // reject ROF
+          rof.setFirstEntry(first);
+          rof.setNEntries(0);
+          continue;
+        }
+      }
+
+      if (mRunVertexer) {
+        event.addPrimaryVertices(vtxVecLoc);
+      } else {
+        event.addPrimaryVertex(0.f, 0.f, 0.f);
+      }
+      mTracker->setROFrame(roFrame);
+      mTracker->clustersToTracks(event);
+      tracks.swap(mTracker->getTracks());
+      LOG(INFO) << "Found tracks: " << tracks.size();
+      int number = tracks.size();
+      trackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+      int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
+      rof.setFirstEntry(first);
+      rof.setNEntries(number);
+      copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
+      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+      trackLabels.clear();
+      vtxROF.setNEntries(vtxVecLoc.size());
+      for (const auto& vtx : vtxVecLoc) {
+        vertices.push_back(vtx);
+      }
+      if (number) {
+        irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+      }
     }
-  } else {
-    ioutils::loadEventData(event, compClusters, pattIt, mDict, labels);
-    // RS: FIXME: this part seems to be not functional !!!
-    event.addPrimaryVertex(0.f, 0.f, 0.f); //FIXME :  run an actual vertex finder !
-    mTracker->clustersToTracks(event);
-    tracks.swap(mTracker->getTracks());
-    copyTracks(tracks, allTracks, allClusIdx);
-    allTrackLabels.swap(mTracker->getTrackLabels()); /// FIXME: assignment ctor is not optimal.
+    roFrame++;
   }
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
@@ -251,7 +303,7 @@ void TrackerDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTrackerSpec(bool useMC, bool async, o2::gpu::GPUDataTypes::DeviceType dType)
+DataProcessorSpec getTrackerSpec(bool useMC, const std::string& trModeS, o2::gpu::GPUDataTypes::DeviceType dType)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
@@ -264,6 +316,7 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool async, o2::gpu::GPUDataTypes::
   outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
   outputs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "IRFRAMES", 0, Lifetime::Timeframe);
 
   if (useMC) {
     inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
@@ -277,10 +330,11 @@ DataProcessorSpec getTrackerSpec(bool useMC, bool async, o2::gpu::GPUDataTypes::
     "its-tracker",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, async, dType)},
+    AlgorithmSpec{adaptFromTask<TrackerDPL>(useMC, trModeS, dType)},
     Options{
       {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
-      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}}}};
+      {"its-dictionary-path", VariantType::String, "", {"Path of the cluster-topology dictionary file"}},
+      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
 }
 
 } // namespace its

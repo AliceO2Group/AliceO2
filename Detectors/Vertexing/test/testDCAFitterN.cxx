@@ -30,7 +30,7 @@ namespace vertexing
 using Vec3D = ROOT::Math::SVector<double, 3>;
 
 template <class FITTER>
-float checkResults(o2::utils::TreeStreamRedirector& outs, std::string& treeName, const FITTER& fitter,
+float checkResults(o2::utils::TreeStreamRedirector& outs, std::string& treeName, FITTER& fitter,
                    Vec3D& vgen, TLorentzVector& genPar, const std::vector<double>& dtMass)
 {
   int nCand = fitter.getNCandidates();
@@ -160,6 +160,7 @@ BOOST_AUTO_TEST_CASE(DCAFitterNProngs)
     ft.setPropagateToPCA(true);  // After finding the vertex, propagate tracks to the DCA. This is default anyway
     ft.setMaxR(200);             // do not consider V0 seeds with 2D circles crossing above this R. This is default anyway
     ft.setMaxDZIni(4);           // do not consider V0 seeds with tracks Z-distance exceeding this. This is default anyway
+    ft.setMaxDXYIni(4);          // do not consider V0 seeds with tracks XY-distance exceeding this. This is default anyway
     ft.setMinParamChange(1e-3);  // stop iterations if max correction is below this value. This is default anyway
     ft.setMinRelChi2Change(0.9); // stop iterations if chi2 improves by less that this factor
 

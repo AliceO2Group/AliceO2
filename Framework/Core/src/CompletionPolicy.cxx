@@ -24,6 +24,7 @@ std::vector<CompletionPolicy>
 {
   return {
     CompletionPolicyHelpers::defineByNameOrigin("internal-dpl-aod-writer", "TFN", CompletionOp::Consume),
+    CompletionPolicyHelpers::defineByName("internal-dpl-injected-dummy-sink", CompletionOp::Discard),
     CompletionPolicyHelpers::consumeWhenAll()};
 }
 

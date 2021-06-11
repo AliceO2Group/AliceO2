@@ -14,6 +14,13 @@
 #define O2_FT0DIGITWRITER_H
 
 #include "Framework/DataProcessorSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "Framework/InputSpec.h"
+#include "DataFormatsFT0/Digit.h"
+#include "DataFormatsFT0/MCLabel.h"
+#include "SimulationDataFormat/IOMCTruthContainerView.h"
+#include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "SimulationDataFormat/MCCompLabel.h"
 
 using namespace o2::framework;
 
@@ -23,7 +30,7 @@ namespace ft0
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getFT0DigitWriterSpec();
+framework::DataProcessorSpec getFT0DigitWriterSpec(bool mctruth = true, bool trigInp = true);
 
 } // namespace ft0
 } // namespace o2

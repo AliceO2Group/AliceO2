@@ -20,14 +20,17 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 #ifndef GPUCA_GPUCODE_DEVICE
-GPUd() void GPUdEdx::clear() { new (this) GPUdEdx; }
+GPUd() void GPUdEdx::clear()
+{
+  new (this) GPUdEdx;
+}
 #endif
 
 GPUd() void GPUdEdx::computedEdx(GPUdEdxInfo& GPUrestrict() output, const GPUParam& GPUrestrict() param)
 {
   checkSubThresh(255);
-  const int truncLow = param.rec.dEdxTruncLow;
-  const int truncHigh = param.rec.dEdxTruncHigh;
+  const int truncLow = param.rec.tpc.dEdxTruncLow;
+  const int truncHigh = param.rec.tpc.dEdxTruncHigh;
   const int countIROC = mNClsROC[0];
   const int countOROC1 = mNClsROC[1];
   const int countOROC2 = mNClsROC[2];

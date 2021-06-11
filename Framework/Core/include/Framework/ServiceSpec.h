@@ -37,6 +37,10 @@ class DanglingContext;
 
 /// A callback to create a given Service.
 using ServiceInit = std::function<ServiceHandle(ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&)>;
+/// A callback invoked whenever we start running, before the user callback.
+using ServiceStartCallback = std::function<void(ServiceRegistry&, void*)>;
+/// A callback invoked whenever we stop running, before we exit.
+using ServiceExitCallback = std::function<void(ServiceRegistry&, void*)>;
 
 /// A callback to configure a given Service. Notice that the
 /// service itself is type erased and it's responsibility of
@@ -129,6 +133,11 @@ struct ServiceSpec {
   /// dispatched.
   ServicePostDispatching postDispatching = nullptr;
 
+  /// Callback invoked on Start
+  ServiceStartCallback start = nullptr;
+  /// Callback invoked on exit
+  ServiceExitCallback exit = nullptr;
+
   /// Kind of service being specified.
   ServiceKind kind;
 };
@@ -156,6 +165,20 @@ struct ServiceEOSHandle {
 struct ServiceDispatchingHandle {
   ServicePostDispatching callback;
   void* service;
+};
+
+struct ServiceStartHandle {
+  ServiceStartCallback callback;
+  void* service;
+};
+
+struct ServiceExitHandle {
+  ServiceExitCallback callback;
+  void* service;
+};
+
+struct ServicePlugin {
+  virtual ServiceSpec* create() = 0;
 };
 
 } // namespace o2::framework

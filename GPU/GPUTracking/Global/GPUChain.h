@@ -56,9 +56,10 @@ class GPUChain
   virtual void ReadSettings(const char* dir = "") {}
 
   const GPUParam& GetParam() const { return mRec->mHostConstantMem->param; }
-  const GPUSettingsEvent& GetEventSettings() const { return mRec->mEventSettings; }
+  const GPUSettingsGRP& GetGRPSettings() const { return mRec->mGRPSettings; }
   const GPUSettingsDeviceBackend& GetDeviceBackendSettings() const { return mRec->mDeviceBackendSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mRec->mProcessingSettings; }
+  const GPUCalibObjectsConst& calib() const { return processors()->calibObjects; }
   GPUReconstruction* rec() { return mRec; }
   const GPUReconstruction* rec() const { return mRec; }
 
@@ -82,6 +83,13 @@ class GPUChain
   inline GPUSettingsProcessing& ProcessingSettings() { return mRec->mProcessingSettings; }
   inline void SynchronizeStream(int stream) { mRec->SynchronizeStream(stream); }
   inline void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) { mRec->SynchronizeEvents(evList, nEvents); }
+  inline void SynchronizeEventAndRelease(deviceEvent* ev, bool doGPU = true)
+  {
+    if (doGPU) {
+      SynchronizeEvents(ev);
+      ReleaseEvent(ev);
+    }
+  }
   template <class T>
   inline void CondWaitEvent(T& cond, deviceEvent* ev)
   {
@@ -94,7 +102,12 @@ class GPUChain
   inline void RecordMarker(deviceEvent* ev, int stream) { mRec->RecordMarker(ev, stream); }
   virtual inline std::unique_ptr<GPUReconstruction::GPUThreadContext> GetThreadContext() { return mRec->GetThreadContext(); }
   inline void SynchronizeGPU() { mRec->SynchronizeGPU(); }
-  inline void ReleaseEvent(deviceEvent* ev) { mRec->ReleaseEvent(ev); }
+  inline void ReleaseEvent(deviceEvent* ev, bool doGPU = true)
+  {
+    if (doGPU) {
+      mRec->ReleaseEvent(ev);
+    }
+  }
   inline void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) { mRec->StreamWaitForEvents(stream, evList, nEvents); }
   template <class T>
   void RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int count);
@@ -127,9 +140,9 @@ class GPUChain
     mRec->AllocateIOMemoryHelper<T>(n, ptr, u);
   }
   template <class T, class S>
-  inline void DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
+  inline unsigned int DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
   {
-    mRec->DumpData<T>(fp, entries, num, type);
+    return mRec->DumpData<T>(fp, entries, num, type);
   }
   template <class T, class S>
   inline size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs = nullptr)

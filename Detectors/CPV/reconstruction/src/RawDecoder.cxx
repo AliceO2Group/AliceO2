@@ -18,7 +18,6 @@
 using namespace o2::cpv;
 
 RawDecoder::RawDecoder(RawReaderMemory& reader) : mRawReader(reader),
-                                                  mRCUTrailer(),
                                                   mChannelsInitialized(false)
 {
 }
@@ -26,146 +25,142 @@ RawDecoder::RawDecoder(RawReaderMemory& reader) : mRawReader(reader),
 RawErrorType_t RawDecoder::decode()
 {
 
-  auto& header = mRawReader.getRawHeader();
-  short ddl = o2::raw::RDHUtils::getFEEID(header);
+  auto& rdh = mRawReader.getRawHeader();
+  short linkID = o2::raw::RDHUtils::getLinkID(rdh);
   mDigits.clear();
+  mBCRecords.clear();
 
-  auto payloadwords = mRawReader.getPayload();
-  if (payloadwords.size() == 0) {
-    mErrors.emplace_back(ddl, 0, 0, 0, kNO_PAYLOAD); //add error
-    LOG(ERROR) << "Empty payload for DDL=" << ddl;
-    return kNO_PAYLOAD;
+  auto payloadWords = mRawReader.getPayload();
+  if (payloadWords.size() == 0) {
+    return kOK_NO_PAYLOAD;
   }
 
-  // if(readRCUTrailer()!=kOK){
-  //   LOG(ERROR) << "can not read RCU trailer for DDL " << ddl ;
-  //   return kRCU_TRAILER_ERROR;
-  // }
-
   return readChannels();
-}
-
-RawErrorType_t RawDecoder::readRCUTrailer()
-{
-  gsl::span<const char> payload(reinterpret_cast<const char*>(mRawReader.getPayload().data()), mRawReader.getPayload().size() * sizeof(uint32_t));
-  mRCUTrailer.constructFromRawPayload(payload);
-  return kOK;
 }
 
 RawErrorType_t RawDecoder::readChannels()
 {
   mChannelsInitialized = false;
-  auto& header = mRawReader.getRawHeader();
-  short ddl = o2::raw::RDHUtils::getFEEID(header); //Current fee/ddl
 
-  auto& payloadwords = mRawReader.getPayload();
-  //start reading from the end
-  auto currentWord = payloadwords.rbegin();
-  while (currentWord != payloadwords.rend()) {
-    SegMarkerWord sw = {*currentWord++};                          //first get value, then increment
-    if (sw.marker != 2736) {                                      //error
-      mErrors.emplace_back(ddl, 17, 2, 0, kSEGMENT_HEADER_ERROR); //add error for non-existing row
-      //try adding this as padWord
-      addDigit(sw.mDataWord, ddl);
-      continue;
-    }
-    short nSegWords = sw.nwords;
-    short currentRow = sw.row;
-    short nEoE = 0;
-    while (nSegWords > 0 && currentWord != payloadwords.rend()) {
-      EoEWord ew = {*currentWord++};
-      nSegWords--;
-      if (ew.checkbit != 1) { //error
-        LOG(ERROR) << " error EoE, ddl" << ddl << " row " << currentRow;
-        mErrors.emplace_back(ddl, currentRow, 11, 0, kEOE_HEADER_ERROR); //add error
-        //try adding this as padWord
-        addDigit(ew.mDataWord, ddl);
-        continue;
+  auto& payloadWords = mRawReader.getPayload();
+  uint32_t wordCountFromLastHeader = 1; //header word is included
+  int nDigitsAddedFromLastHeader = 0;
+  bool isHeaderExpected = true;    //true if we expect to read header, false otherwise
+  bool skipUntilNextHeader = true; //true if something wrong with data format, try to read next header
+  uint16_t currentBC;
+  uint32_t currentOrbit = mRawReader.getCurrentHBFOrbit();
+  auto b = payloadWords.cbegin();
+  auto e = payloadWords.cend();
+  while (b != e) { //payload must start with cpvheader folowed by cpvwords and finished with cpvtrailer
+    CpvHeader header(b, e);
+    if (header.isOK()) {
+      if (!isHeaderExpected) { //actually, header was not expected
+        LOG(ERROR) << "RawDecoder::readChannels() : "
+                   << "header was not expected";
+        removeLastNDigits(nDigitsAddedFromLastHeader); //remove previously added digits as they are bad
+        mErrors.emplace_back(5, 0, 0, 0, kNO_CPVTRAILER);
       }
-      nEoE++;
-      short nEoEwords = ew.nword;
-      short currentDilogic = ew.dilogic;
-      if (ew.row != currentRow) {
-        LOG(ERROR) << "Row in EoE=" << ew.row << " != expected row " << currentRow;
-        mErrors.emplace_back(ddl, currentRow, currentDilogic, 0, kEOE_HEADER_ERROR); //add error
-        //try adding this as padWord
-        addDigit(ew.mDataWord, ddl);
-        continue;
+      skipUntilNextHeader = false;
+      currentBC = header.bc();
+      wordCountFromLastHeader = 0;
+      nDigitsAddedFromLastHeader = 0;
+      if (currentOrbit != header.orbit()) { //bad cpvheader
+        LOG(ERROR) << "RawDecoder::readChannels() : "
+                   << "currentOrbit != header.orbit()";
+        mErrors.emplace_back(5, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
+        skipUntilNextHeader = true;
       }
-      if (currentDilogic < 0 || currentDilogic > 10) {
-        LOG(ERROR) << "wrong Dilogic in EoE=" << currentDilogic;
-        mErrors.emplace_back(ddl, currentRow, currentDilogic, 0, kEOE_HEADER_ERROR); //add error
-        //try adding this as padWord
-        addDigit(ew.mDataWord, ddl);
-        continue;
+    } else {
+      if (skipUntilNextHeader) {
+        b += 16;
+        continue; //continue while'ing until it's not header
       }
-      while (nEoEwords > 0 && currentWord != payloadwords.rend()) {
-        PadWord pad = {*currentWord++};
-        nEoEwords--;
-        nSegWords--;
-        if (pad.zero != 0) {
-          LOG(ERROR) << "bad pad, word=" << pad.mDataWord;
-          mErrors.emplace_back(ddl, currentRow, currentDilogic, 49, kPADERROR); //add error and skip word
-          continue;
-        }
-        //check paw/pad indexes
-        if (pad.row != currentRow || pad.dilogic != currentDilogic) {
-          LOG(ERROR) << "RawPad " << pad.row << " != currentRow=" << currentRow << "dilogicPad=" << pad.dilogic << "!= currentDilogic=" << currentDilogic;
-          mErrors.emplace_back(ddl, short(pad.row), short(pad.dilogic), short(pad.address), kPadAddress); //add error and skip word
-          //do not skip, try adding using info from pad
-        }
-        addDigit(pad.mDataWord, ddl);
-      }                                           //pads in EoE
-      if (nEoE % 10 == 0) {                       // kNDilogic = 10;   ///< Number of dilogic per row
-        if (currentWord != payloadwords.rend()) { //Read row HEader
-          RowMarkerWord rw = {*currentWord++};
-          nSegWords--;
-          currentRow--;
-          if (rw.marker != 13992) {
-            LOG(ERROR) << "Error in row marker:" << rw.marker << "row header word=" << rw.mDataWord;
-            mErrors.emplace_back(ddl, currentRow, 11, 0, kPadAddress); //add error and skip word
-            //try adding digit assuming this is pad word
-            addDigit(rw.mDataWord, ddl);
+      CpvWord word(b, e);
+      if (word.isOK()) {
+        wordCountFromLastHeader++;
+        for (int i = 0; i < 3; i++) {
+          PadWord pw = {word.cpvPadWord(i)};
+          if (pw.zero == 0) {
+            addDigit(pw.mDataWord, word.ccId(), currentBC);
+            nDigitsAddedFromLastHeader++;
           }
         }
+      } else { //this may be trailer
+        CpvTrailer trailer(b, e);
+        if (trailer.isOK()) {
+          int diffInCount = wordCountFromLastHeader - trailer.wordCounter();
+          if (diffInCount > 1 ||
+              diffInCount < -1) {
+            //some words lost?
+            LOG(ERROR) << "RawDecoder::readChannels() : "
+                       << "Read " << wordCountFromLastHeader << " words, expected " << trailer.wordCounter();
+            mErrors.emplace_back(5, 0, 0, 0, kCPVTRAILER_INVALID);
+            //throw all previous data and go to next header
+            removeLastNDigits(nDigitsAddedFromLastHeader);
+            skipUntilNextHeader = true;
+          }
+          if (trailer.bc() != currentBC) {
+            //trailer does not fit header
+            LOG(ERROR) << "RawDecoder::readChannels() : "
+                       << "CPVHeader BC is " << currentBC << " but CPVTrailer BC is " << trailer.bc();
+            mErrors.emplace_back(5, 0, 0, 0, kCPVTRAILER_INVALID);
+            removeLastNDigits(nDigitsAddedFromLastHeader);
+            skipUntilNextHeader = true;
+          }
+          isHeaderExpected = true;
+        } else {
+          wordCountFromLastHeader++;
+          //error
+          LOG(ERROR) << "RawDecoder::readChannels() : "
+                     << "Read unknown word";
+          mErrors.emplace_back(5, 0, 0, 0, kUNKNOWN_WORD); //add error for non-existing row
+          //what to do?
+        }
       }
-    } // in Segment
+    }
+    b += 16;
   }
   mChannelsInitialized = true;
   return kOK;
 }
 
-const RCUTrailer& RawDecoder::getRCUTrailer() const
+void RawDecoder::addDigit(uint32_t w, short ccId, uint16_t bc)
 {
-  if (!mRCUTrailer.isInitialized()) {
-    LOG(ERROR) << "RCU trailer not initialized";
+  //new bc -> add bc reference
+  if (mBCRecords.empty() || (mBCRecords.back().bc != bc)) {
+    mBCRecords.push_back(BCRecord(bc, mDigits.size(), mDigits.size()));
+  } else {
+    mBCRecords.back().lastDigit++;
   }
-  return mRCUTrailer;
-}
 
-const std::vector<uint32_t>& RawDecoder::getDigits() const
-{
-  if (!mChannelsInitialized) {
-    LOG(ERROR) << "Channels not initialized";
-  }
-  return mDigits;
-}
-
-void RawDecoder::addDigit(uint32_t w, short ddl)
-{
-
+  //add digit
   PadWord pad = {w};
-  if (pad.zero != 0) {
-    return;
-  }
-  short rowPad = pad.row;
-  short dilogicPad = pad.dilogic;
-  short hw = pad.address;
   unsigned short absId;
-  o2::cpv::Geometry::hwaddressToAbsId(ddl, rowPad, dilogicPad, hw, absId);
+  o2::cpv::Geometry::hwaddressToAbsId(ccId, pad.dil, pad.gas, pad.address, absId);
 
   AddressCharge ac = {0};
   ac.Address = absId;
   ac.Charge = pad.charge;
   mDigits.push_back(ac.mDataWord);
+}
+
+void RawDecoder::removeLastNDigits(int n)
+{
+  if (n < 0) {
+    return;
+  }
+  int nRemoved = 0;
+  while (nRemoved < n) {
+    if (mDigits.size() > 0) { // still has digits to remove
+      mDigits.pop_back();
+      if (mBCRecords.back().lastDigit == mBCRecords.back().firstDigit) {
+        mBCRecords.pop_back();
+      } else {
+        mBCRecords.back().lastDigit--;
+      }
+      nRemoved++;
+    } else { // has nothing to remove already
+      break;
+    }
+  }
 }

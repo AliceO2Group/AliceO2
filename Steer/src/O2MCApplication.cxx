@@ -18,6 +18,7 @@
 #include <sstream>
 #include <SimConfig/SimConfig.h>
 #include <DetectorsBase/Detector.h>
+#include "DetectorsBase/Aligner.h"
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
 #include <SimulationDataFormat/MCEventHeader.h>
@@ -54,14 +55,27 @@ void O2MCApplicationBase::Stepping()
     // we can kill tracks here based on our
     // custom detector specificities
 
+    // Note that this is done in addition to the generic
+    // R + Z-cut mechanism at VMC level.
+
     float x, y, z;
     fMC->TrackPosition(x, y, z);
 
-    if (z > mCutParams.ZmaxA) {
-      fMC->StopTrack();
-      return;
-    }
-    if (-z > mCutParams.ZmaxC) {
+    // this function is implementing a basic z-dependent R cut
+    // can be generalized later on
+    auto outOfR = [x, y, this](float z) {
+      // for the moment for cases when we have ZDC enabled
+      if (std::abs(z) > mCutParams.tunnelZ) {
+        if ((x * x + y * y) > mCutParams.maxRTrackingZDC * mCutParams.maxRTrackingZDC) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    if (z > mCutParams.ZmaxA ||
+        -z > mCutParams.ZmaxC ||
+        outOfR(z)) {
       fMC->StopTrack();
       return;
     }
@@ -123,7 +137,9 @@ bool O2MCApplicationBase::MisalignGeometry()
     }
   }
 
-  auto b = FairMCApplication::MisalignGeometry();
+  // RS We want to store ideal geometry to be able to apply different alignments on the fly
+  // auto b = FairMCApplication::MisalignGeometry();
+
   // we use this moment to stream our geometry (before other
   // VMC engine dependent modifications are done)
 
@@ -131,8 +147,12 @@ bool O2MCApplicationBase::MisalignGeometry()
   auto geomfile = o2::base::NameConf::getGeomFileName(confref.getOutPrefix());
   gGeoManager->Export(geomfile.c_str());
 
+  // apply alignment for included detectors AFTER exporting ideal geometry
+  auto& aligner = o2::base::Aligner::Instance();
+  aligner.applyAlignment(0);
+
   // return original return value of misalignment procedure
-  return b;
+  return true;
 }
 
 void O2MCApplicationBase::finishEventCommon()

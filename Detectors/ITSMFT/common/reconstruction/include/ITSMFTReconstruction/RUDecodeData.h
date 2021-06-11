@@ -18,6 +18,7 @@
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/PayLoadCont.h"
 #include "ITSMFTReconstruction/AlpideCoder.h"
+#include "DataFormatsITSMFT/GBTCalibData.h"
 
 namespace o2
 {
@@ -43,6 +44,8 @@ struct RUDecodeData {
   int nCables = 0;         // total number of cables decoded for single trigger
   int nChipsFired = 0;     // number of chips with data or with errors
   int lastChipChecked = 0; // last chips checked among nChipsFired
+  GBTCalibData calibData{}; // calibration info from GBT calibration word
+
   const RUInfo* ruInfo = nullptr;
 
   RUDecodeData()
@@ -57,7 +60,7 @@ struct RUDecodeData {
   int decodeROF(const Mapping& mp);
   void fillChipStatistics(int icab, const ChipPixelData* chipData);
 
-  ClassDefNV(RUDecodeData, 1);
+  ClassDefNV(RUDecodeData, 2);
 };
 
 ///_________________________________________________________________

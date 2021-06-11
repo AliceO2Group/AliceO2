@@ -15,6 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::trd::TriggerRecord + ;
+#pragma link C++ class o2::trd::TrackTriggerRecord + ;
 #pragma link C++ class o2::trd::LinkRecord + ;
 #pragma link C++ struct o2::trd::HalfCRUHeader + ;
 #pragma link C++ struct o2::trd::TrackletHCHeader + ;
@@ -22,9 +23,20 @@
 #pragma link C++ struct o2::trd::TrackletMCMData + ;
 #pragma link C++ class o2::trd::Tracklet64 + ;
 #pragma link C++ class o2::trd::CalibratedTracklet + ;
+#pragma link C++ class o2::trd::Hit + ;
+#pragma link C++ class o2::trd::Digit + ;
+#pragma link C++ class o2::trd::AngularResidHistos + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet64> + ;
 #pragma link C++ class std::vector < o2::trd::CalibratedTracklet> + ;
+#pragma link C++ class std::vector < o2::trd::TrackTriggerRecord> + ;
 #pragma link C++ class std::vector < o2::trd::TriggerRecord > +;
 #pragma link C++ class std::vector < o2::trd::LinkRecord > +;
+#pragma link C++ class std::vector < o2::trd::Hit > +;
+#pragma link C++ class std::vector < o2::trd::Digit> + ;
+#pragma link C++ class std::vector < o2::trd::AngularResidHistos> + ;
+
+#pragma link C++ struct o2::trd::CTFHeader + ;
+#pragma link C++ struct o2::trd::CTF + ;
+#pragma link C++ class o2::ctf::EncodedBlocks < o2::trd::CTFHeader, 15, uint32_t> + ;
 
 #endif

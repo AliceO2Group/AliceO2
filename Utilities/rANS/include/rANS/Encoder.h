@@ -53,7 +53,7 @@ class Encoder
   Encoder(encoderSymbolTable_t&& e, size_t probabilityBits);
   Encoder(const FrequencyTable& frequencies, size_t probabilityBits);
 
-  template <typename stream_IT, typename source_IT>
+  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
   const stream_IT process(const stream_IT outputBegin, const stream_IT outputEnd,
                           const source_IT inputBegin, const source_IT inputEnd) const;
 
@@ -113,7 +113,7 @@ Encoder<coder_T, stream_T, source_T>::Encoder(const FrequencyTable& frequencies,
 }
 
 template <typename coder_T, typename stream_T, typename source_T>
-template <typename stream_IT, typename source_IT>
+template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool>>
 const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd) const
 {
   using namespace internal;
@@ -154,7 +154,7 @@ const stream_IT Encoder<coder_T, stream_T, source_T>::Encoder::process(const str
     assert(outputIter < outputEnd);
   }
 
-  while (inputIT > inputBegin) { // NB: working in reverse!
+  while (inputIT != inputBegin) { // NB: working in reverse!
     std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans1);
     std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans0);
     assert(outputIter < outputEnd);

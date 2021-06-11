@@ -16,6 +16,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataOutputDirector.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/TableBuilder.h"
@@ -47,6 +48,8 @@
 #include <string>
 #include <thread>
 
+template class std::vector<o2::framework::OutputObjectInfo>;
+template class std::vector<o2::framework::OutputTaskInfo>;
 using namespace o2::framework::data_matcher;
 
 namespace o2
@@ -73,7 +76,7 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
                                                                                        {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
 
 // =============================================================================
-DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const& objmap, outputTasks const& tskmap)
+DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputObjectInfo> const& objmap, std::vector<OutputTaskInfo> const& tskmap)
 {
   auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
@@ -191,18 +194,18 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const
       obj.obj = tm.ReadObjectAny(obj.kind);
       TNamed* named = static_cast<TNamed*>(obj.obj);
       obj.name = named->GetName();
-      auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.first == hash; });
+      auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.id == hash; });
       if (hpos == tskmap.end()) {
         LOG(ERROR) << "No task found for hash " << hash;
         return;
       }
-      auto taskname = hpos->second;
-      auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.first == hash; });
+      auto taskname = hpos->name;
+      auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.id == hash; });
       if (opos == objmap.end()) {
         LOG(ERROR) << "No object list found for task " << taskname << " (hash=" << hash << ")";
         return;
       }
-      auto objects = opos->second;
+      auto objects = opos->bindings;
       if (std::find(objects.begin(), objects.end(), obj.name) == objects.end()) {
         LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
         return;
@@ -307,8 +310,8 @@ DataProcessorSpec
 
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
-        if (!ref.spec || !ref.payload) {
-          LOGP(WARNING, "The input \"{}\" is not valid and will be skipped!", ref.spec->binding);
+        if (!ref.spec) {
+          LOGP(DEBUG, "The input \"{}\" is not valid and will be skipped!", ref.spec->binding);
           continue;
         }
 
@@ -320,53 +323,54 @@ DataProcessorSpec
 
         // does this need to be saved?
         auto dh = DataRefUtils::getHeader<header::DataHeader*>(ref);
+        auto tableName = std::string(dh->dataDescription.str);
         auto ds = dod->getDataOutputDescriptors(*dh);
-        if (ds.size() > 0) {
+        if (ds.size() <= 0) {
+          continue;
+        }
 
-          // get TF number fro startTime
-          auto it = tfNumbers.find(startTime);
-          if (it != tfNumbers.end()) {
-            tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
-          } else {
-            LOGP(FATAL, "No time frame number found for output with start time {}", startTime);
-            throw std::runtime_error("Processing is stopped!");
-          }
+        // get TF number fro startTime
+        auto it = tfNumbers.find(startTime);
+        if (it != tfNumbers.end()) {
+          tfNumber = (it->second / dod->getNumberTimeFramesToMerge()) * dod->getNumberTimeFramesToMerge();
+        } else {
+          LOGP(FATAL, "No time frame number found for output with start time {}", startTime);
+          throw std::runtime_error("Processing is stopped!");
+        }
 
-          // get the TableConsumer and corresponding arrow table
-          auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
-          auto table = s->asArrowTable();
-          if (!table->Validate().ok()) {
-            LOGP(WARNING, "The table \"{}\" is not valid and will not be saved!", dh->description.str);
-            continue;
-          } else if (table->num_rows() <= 0) {
-            LOGP(WARNING, "The table \"{}\" is empty but will be saved anyway!", dh->description.str);
-          }
+        // get the TableConsumer and corresponding arrow table
+        auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
+        auto table = s->asArrowTable();
+        if (!table->Validate().ok()) {
+          LOGP(WARNING, "The table \"{}\" is not valid and will not be saved!", tableName);
+          continue;
+        } else if (table->schema()->fields().empty() == true) {
+          LOGP(DEBUG, "The table \"{}\" is empty but will be saved anyway!", tableName);
+        }
 
-          // loop over all DataOutputDescriptors
-          // a table can be saved in multiple ways
-          // e.g. different selections of columns to different files
-          for (auto d : ds) {
+        // loop over all DataOutputDescriptors
+        // a table can be saved in multiple ways
+        // e.g. different selections of columns to different files
+        for (auto d : ds) {
+          auto fileAndFolder = dod->getFileFolder(d, tfNumber);
+          auto treename = fileAndFolder.folderName + d->treename;
+          TableToTree ta2tr(table,
+                            fileAndFolder.file,
+                            treename.c_str());
 
-            auto fileAndFolder = dod->getFileFolder(d, tfNumber);
-            auto treename = fileAndFolder.folderName + d->treename;
-            TableToTree ta2tr(table,
-                              fileAndFolder.file,
-                              treename.c_str());
-
-            if (d->colnames.size() > 0) {
-              for (auto cn : d->colnames) {
-                auto idx = table->schema()->GetFieldIndex(cn);
-                auto col = table->column(idx);
-                auto field = table->schema()->field(idx);
-                if (idx != -1) {
-                  ta2tr.addBranch(col, field);
-                }
+          if (d->colnames.size() > 0) {
+            for (auto cn : d->colnames) {
+              auto idx = table->schema()->GetFieldIndex(cn);
+              auto col = table->column(idx);
+              auto field = table->schema()->field(idx);
+              if (idx != -1) {
+                ta2tr.addBranch(col, field);
               }
-            } else {
-              ta2tr.addAllBranches();
             }
-            ta2tr.process();
+          } else {
+            ta2tr.addAllBranches();
           }
+          ta2tr.process();
         }
       }
     });
@@ -450,7 +454,7 @@ DataProcessorSpec
                std::back_inserter(unmatched), noTimeframe);
 
   DataProcessorSpec spec{
-    "internal-dpl-global-binary-file-sink",
+    "internal-dpl-injected-global-binary-file-sink",
     validBinaryInputs,
     Outputs{},
     AlgorithmSpec(writerFunction),

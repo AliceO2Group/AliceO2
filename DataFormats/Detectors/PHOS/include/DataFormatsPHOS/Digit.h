@@ -38,6 +38,10 @@ class Digit : public DigitBase
   /// particle in case of MC \return constructed Digit
   Digit(short cell, float amplitude, float time, int label);
 
+  /// \brief Contructor for TRU Digits
+  /// \param cell truId of a tile, amplitude energy deposited in a tile, time, triggerType 2x2 or 4x4, dummy label
+  Digit(short cell, float amplitude, float time, bool isTrigger2x2, int label);
+
   /// \brief Digit constructor from Hit
   /// \param PHOS Hit
   /// \return constructed Digit
@@ -92,9 +96,17 @@ class Digit : public DigitBase
   /// \return digit with sum of energies and longer list of primaries
   Digit& operator+=(const Digit& other); //
 
+  void addEnergyTime(float energy, float time);
+
+  // true if tru and not readount digit
+  bool isTRU() const { return mAbsId >= NREADOUTCHANNELS; }
+
   /// \brief Absolute sell id
   short getAbsId() const { return mAbsId; }
   void setAbsId(short cellId) { mAbsId = cellId; }
+
+  short getTRUId() const { return mAbsId - NREADOUTCHANNELS; }
+  void setTRUId(short cellId) { mAbsId = cellId + NREADOUTCHANNELS; }
 
   /// \brief Energy deposited in a cell
   float getAmplitude() const { return mAmplitude; }
@@ -108,14 +120,26 @@ class Digit : public DigitBase
   bool isHighGain() const { return mIsHighGain; }
   void setHighGain(Bool_t isHG) { mIsHighGain = isHG; }
 
+  bool is2x2Tile() { return isTRU() && isHighGain(); }
+
   /// \brief index of entry in MCLabels array
   /// \return ndex of entry in MCLabels array
   int getLabel() const { return mLabel; }
+  void setLabel(int l) { mLabel = l; }
+
+  void reset()
+  {
+    mIsHighGain = true;
+    mAbsId = 0;
+    mLabel = -1;
+    mAmplitude = 0;
+    mTime = 0;
+  }
 
   void PrintStream(std::ostream& stream) const;
 
  private:
-  // friend class boost::serialization::access;
+  static constexpr short NREADOUTCHANNELS = 14337; ///< Number of channels starting from 1
 
   bool mIsHighGain = true; ///< High Gain or Low Gain channel (for calibration)
   short mAbsId = 0;        ///< cell index (absolute cell ID)

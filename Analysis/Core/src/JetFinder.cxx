@@ -12,7 +12,7 @@
 //
 // Author: Jochen Klein, Nima Zardoshti
 #include "AnalysisCore/JetFinder.h"
-#include "Framework/AnalysisTask.h"
+#include "Framework/Logger.h"
 
 /// Sets the jet finding parameters
 void JetFinder::setParams()

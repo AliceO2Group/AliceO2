@@ -22,11 +22,13 @@ o2_add_library(
     O2::ITSMFTWorkflow
     O2::ITStracking
     O2::ITSWorkflow
+    O2::MFTWorkflow
     O2::SimulationDataFormat
     O2::Steer
     O2::TOFWorkflow
     O2::TPCWorkflow
     O2::CCDB
+    O2::MathUtils
 )
 
 o2_add_executable(
@@ -49,7 +51,6 @@ o2_add_executable(
     O2::ITSReconstruction
     O2::FT0Reconstruction
     O2::TPCFastTransformation
-    O2::GPUTracking
     O2::TPCBase
     O2::TPCReconstruction
     O2::TOFBase
@@ -59,6 +60,3 @@ o2_add_executable(
     O2::AnalysisDataModel
     O2::Steer
 )
-
-
-

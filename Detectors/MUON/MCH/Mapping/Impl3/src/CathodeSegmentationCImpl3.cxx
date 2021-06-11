@@ -89,7 +89,7 @@ void mchCathodeSegmentationForOneDetectionElementOfEachSegmentationType(MchDetec
 O2MCHMAPPINGIMPL3_EXPORT
 int mchCathodeSegmentationIsPadValid(MchCathodeSegmentationHandle segHandle, int catPadIndex)
 {
-  return catPadIndex != segHandle->impl->InvalidCatPadIndex;
+  return segHandle->impl->isValid(catPadIndex);
 }
 
 O2MCHMAPPINGIMPL3_EXPORT

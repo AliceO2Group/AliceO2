@@ -69,7 +69,7 @@ class DetectorResponse
   /// Getter for the value of the parametrization
   /// \param ptype parametrization type
   /// \param x array with parameters
-  virtual pidvar_t operator()(const Param_t ptype, const pidvar_t* x) const { return mParam[ptype]->operator()(x); }
+  pidvar_t operator()(const Param_t ptype, const pidvar_t* x) const { return mParam[ptype]->operator()(x); }
 
  private:
   /// Parametrizations for the expected signal and sigma
@@ -86,7 +86,6 @@ inline void DetectorResponse::LoadParamFromFile(const TString fname, const TStri
   f.GetObject(pname, mParam[ptype]);
   f.Close();
   mParam[ptype]->Print();
-  mParam[ptype]->PrintParametrization();
 }
 
 inline void DetectorResponse::SetParameters(const DetectorResponse::Param_t ptype, std::vector<pidvar_t> p)

@@ -354,24 +354,50 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     ok = false;
     nErrors++;
   }
-
+  auto ir = RDHUtils::getTriggerIR(rdh);
   auto pageCnt = RDHUtils::getPageCounter(rdh);
+
   if (pageCnt == 0) {
-    if (cruDetector) {
-      auto triggerType = RDHUtils::getTriggerType(rdh);
-      newTF = (triggerType & o2::trigger::TF);
-      newHB = (triggerType & (o2::trigger::ORBIT | o2::trigger::HB)) == (o2::trigger::ORBIT | o2::trigger::HB);
+    auto triggerType = RDHUtils::getTriggerType(rdh);
+    if (!nCRUPages) { // 1st page, expect SOX
       if (triggerType & o2::trigger::SOC) {
         continuousRO = true;
+        irOfSOX = ir;
       } else if (triggerType & o2::trigger::SOT) {
         continuousRO = false;
+        irOfSOX = ir;
+      } else {
+        if (reader->mCheckErrors & (0x1 << ErrNoSOX)) {
+          LOG(ERROR) << ErrNames[ErrNoSOX];
+          ok = false;
+          nErrors++;
+        }
+      }
+      if (!irOfSOX.isDummy() && reader->getTFAutodetect() == FirstTFDetection::Pending) {
+        reader->imposeFirstTF(irOfSOX.orbit);
+      }
+    }
+    auto newTFCalc = blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(ir);
+    if (cruDetector) {
+      newTF = (triggerType & o2::trigger::TF);
+      newHB = (triggerType & (o2::trigger::ORBIT | o2::trigger::HB)) == (o2::trigger::ORBIT | o2::trigger::HB);
+      if (newTFCalc != newTF && (reader->mCheckErrors & (0x1 << ErrMismatchTF))) {
+        LOG(ERROR) << ErrNames[ErrMismatchTF];
+        ok = false;
+        nErrors++;
+      }
+      if (reader->mPreferCalculatedTFStart) {
+        newTF = newTFCalc;
+        if (newTF) {
+          newHB = true;
+        }
       }
     } else {
       newHB = true; // in RORC detectors treat each trigger as a HBF
-      if (blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(RDHUtils::getTriggerIR(rdh))) {
+      if (newTFCalc) {
         newTF = true;
+        // continuousRO = false;
       }
-      continuousRO = false;
     }
   } else if (reader->mCheckErrors & (0x1 << ErrWrongPageCounterIncrement)) {
     // check increasing pageCnt
@@ -456,7 +482,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     if (newTF) {
       if (reader->getTFAutodetect() == FirstTFDetection::Pending) { // impose first TF
         if (cruDetector) {
-          reader->imposeFirstTF(hbIR.orbit, hbIR.bc);
+          reader->imposeFirstTF(hbIR.orbit);
           bl.tfID = HBU.getTF(hbIR); // update
         } else {
           throw std::runtime_error("HBFUtil first orbit/bc autodetection cannot be done with first link from CRORC detector");
@@ -687,7 +713,7 @@ bool RawFileReader::init()
     }
   }
   std::sort(mOrderedIDs.begin(), mOrderedIDs.end(),
-            [& links = mLinksData](int a, int b) { return links[a].spec < links[b].spec; });
+            [&links = mLinksData](int a, int b) { return links[a].spec < links[b].spec; });
 
   size_t maxSP = 0, maxTF = 0;
 
@@ -875,14 +901,13 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
   return entries;
 }
 
-void RawFileReader::imposeFirstTF(uint32_t orbit, uint16_t bc)
+void RawFileReader::imposeFirstTF(uint32_t orbit)
 {
   if (mFirstTFAutodetect != FirstTFDetection::Pending) {
     throw std::runtime_error("reader was not expecting imposing first TF");
   }
   auto& hbu = o2::raw::HBFUtils::Instance();
   o2::raw::HBFUtils::setValue("HBFUtils", "orbitFirst", orbit);
-  o2::raw::HBFUtils::setValue("HBFUtils", "bcFirst", bc);
   LOG(INFO) << "Imposed data-driven TF start";
   mFirstTFAutodetect = FirstTFDetection::Done;
   hbu.printKeyValues();

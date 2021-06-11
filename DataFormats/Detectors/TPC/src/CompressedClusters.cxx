@@ -60,7 +60,7 @@ void CompressedClustersROOT::Streamer(TBuffer& R__b)
   // the custom streamer for CompressedClustersROOT
   if (R__b.IsReading()) {
     R__b.ReadClassBuffer(CompressedClustersROOT::Class(), this);
-    gsl::span flatdata{this->flatdata, this->flatdataSize};
+    gsl::span flatdata{this->flatdata, static_cast<std::size_t>(this->flatdataSize)};
     CompressedClustersHelpers::restoreFrom(flatdata, *this);
   } else {
     std::vector<char> flatdata;

@@ -30,7 +30,6 @@
 
 #include <Monitoring/Monitoring.h>
 
-#include <ROOT/RDataFrame.hxx>
 #include <TGrid.h>
 #include <TFile.h>
 #include <TTreeCache.h>
@@ -61,11 +60,20 @@ auto setEOSCallback(InitContext& ic)
                                            });
 }
 
+template <typename... Ts>
+static inline auto doExtractTypedOriginal(framework::pack<Ts...>, ProcessingContext& pc)
+{
+  if constexpr (sizeof...(Ts) == 1) {
+    return pc.inputs().get<TableConsumer>(aod::MetadataTrait<framework::pack_element_t<0, framework::pack<Ts...>>>::metadata::tableLabel())->asArrowTable();
+  } else {
+    return std::vector{pc.inputs().get<TableConsumer>(aod::MetadataTrait<Ts>::metadata::tableLabel())->asArrowTable()...};
+  }
+}
+
 template <typename O>
 static inline auto extractTypedOriginal(ProcessingContext& pc)
 {
-  ///FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
-  return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
+  return O{doExtractTypedOriginal(soa::make_originals_from_type<O>(), pc)};
 }
 
 template <typename... Os>
@@ -77,7 +85,6 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
 AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -126,6 +133,8 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCSparseMetadata{}));
         } else if (description == header::DataDescription{"MA_RN3_BC_EX"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCExclusiveMetadata{}));
+        } else if (description == header::DataDescription{"MA_RN2_BC_SP"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::Run2MatchedToBCSparseMetadata{}));
         } else {
           throw std::runtime_error("Not an index table");
         }
@@ -137,7 +146,6 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -158,15 +166,19 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
           auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          return o2::framework::spawner(expressions{}, original_table.get());
+          return o2::framework::spawner(expressions{}, original_table.get(), input.binding.c_str());
         };
 
-        if (description == header::DataDescription{"TRACK:PAR"}) {
+        if (description == header::DataDescription{"TRACK"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
-        } else if (description == header::DataDescription{"TRACK:PARCOV"}) {
+        } else if (description == header::DataDescription{"TRACKCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
-        } else if (description == header::DataDescription{"MUON"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
+        } else if (description == header::DataDescription{"MFTTRACK"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::MFTTracksExtensionMetadata{}));
+        } else if (description == header::DataDescription{"FWDTRACK"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksExtensionMetadata{}));
+        } else if (description == header::DataDescription{"FWDTRACKCOV"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksCovExtensionMetadata{}));
         } else {
           throw runtime_error("Not an extended table");
         }

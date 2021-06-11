@@ -43,11 +43,14 @@
 #include "FairRunSim.h"
 #include <FairLogger.h>
 #include <algorithm>
+#include "DetectorsCommonDataFormats/UpgradesStatus.h"
 #endif
 
 #ifdef ENABLE_UPGRADES
 #include <ITS3Simulation/Detector.h>
 #include <TRKSimulation/Detector.h>
+#include <FT3Simulation/Detector.h>
+#include <Alice3DetectorsPassive/Pipe.h>
 #endif
 
 void finalize_geometry(FairRunSim* run);
@@ -88,7 +91,7 @@ void build_geometry(FairRunSim* run = nullptr)
   run->SetMaterials("media.geo"); // Materials
 
   // we need a field to properly init the media
-  auto field = o2::field::MagneticField::createNominalField(confref.getConfigData().mField);
+  auto field = o2::field::MagneticField::createNominalField(confref.getConfigData().mField, confref.getConfigData().mUniformField);
   run->SetField(field);
 
   // Create geometry
@@ -127,8 +130,8 @@ void build_geometry(FairRunSim* run = nullptr)
   // beam pipe
   if (isActivated("PIPE")) {
 #ifdef ENABLE_UPGRADES
-    if (isActivated("IT3") || isActivated("TRK")) {
-      run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe", 1.6f, 0.05));
+    if (isActivated("IT3")) {
+      run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe", 1.6f, 0.05f));
     } else {
       run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe"));
     }
@@ -136,6 +139,13 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::passive::Pipe("PIPE", "Beam pipe"));
 #endif
   }
+
+#ifdef ENABLE_UPGRADES
+  // upgraded beampipe at the interaction point (IP)
+  if (isActivated("A3IP")) {
+    run->AddModule(new o2::passive::Alice3Pipe("A3IP", "Alice 3 beam pipe", !isActivated("TRK"), 0.48f, 0.015f, 44.4f, 3.7f, 0.05f, 44.4f));
+  }
+#endif
 
   // the absorber
   if (isActivated("ABSO")) {
@@ -184,6 +194,12 @@ void build_geometry(FairRunSim* run = nullptr)
     // ALICE 3 TRK
     auto trk = new o2::trk::Detector(true);
     run->AddModule(trk);
+  }
+
+  if (isActivated("FT3")) {
+    // ALICE 3 FT3
+    auto ft3 = new o2::ft3::Detector(true);
+    run->AddModule(ft3);
   }
 #endif
 

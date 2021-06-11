@@ -10,8 +10,19 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "CCDBPopulatorSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
+
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  // option allowing to set parameters
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
+  std::swap(workflowOptions, options);
+}
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
@@ -29,6 +40,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   specs.emplace_back(getCCDBPopulatorDeviceSpec());
   return specs;
 }

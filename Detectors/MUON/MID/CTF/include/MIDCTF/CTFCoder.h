@@ -73,7 +73,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>& rofData, cons
   CTFHelper helper(rofData, colData);
 
   // book output size with some margin
-  auto szIni = sizeof(CTFHeader) + helper.getSize() / 4; // will be autoexpanded if needed
+  auto szIni = sizeof(CTFHeader) + helper.getSize() * 2. / 3; // will be autoexpanded if needed
   buff.resize(szIni);
 
   auto ec = CTF::create(buff);

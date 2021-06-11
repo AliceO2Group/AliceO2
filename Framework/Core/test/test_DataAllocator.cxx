@@ -35,7 +35,7 @@ using namespace o2::framework;
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 // this function is only used to do the static checks for API return types
@@ -199,7 +199,7 @@ DataProcessorSpec getSinkSpec()
       DumpStackFctType dumpStack = [&](const o2::header::BaseHeader* h) {
         o2::header::hexDump("", h, h->size());
         if (h->flagsNextHeader) {
-          auto next = reinterpret_cast<const o2::byte*>(h) + h->size();
+          auto next = reinterpret_cast<const std::byte*>(h) + h->size();
           dumpStack(reinterpret_cast<const o2::header::BaseHeader*>(next));
         }
       };

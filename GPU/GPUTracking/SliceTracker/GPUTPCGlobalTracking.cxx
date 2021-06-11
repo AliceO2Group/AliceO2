@@ -23,7 +23,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
 
-GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, const GPUTPCTracker& GPUrestrict() sliceSource, int iTrack, int rowIndex, float angle, int direction)
+GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, const GPUTPCTracker& GPUrestrict() sliceSource, int iTrack, int rowIndex, float angle, int direction)
 {
   /*for (int j = 0;j < Tracks()[j].NHits();j++)
   {
@@ -50,7 +50,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   GPUTPCTrackLinearisation t0(tParam);
   do {
     rowIndex += direction;
-    if (!tParam.TransportToX(tracker.Row(rowIndex).X(), t0, tracker.Param().par.ConstBz, GPUCA_MAX_SIN_PHI)) {
+    if (!tParam.TransportToX(tracker.Row(rowIndex).X(), t0, tracker.Param().par.constBz, GPUCA_MAX_SIN_PHI)) {
       return (0); // Reuse t0 linearization until we are in the next sector
     }
     // GPUInfo("Transported X %f Y %f Z %f SinPhi %f DzDs %f QPt %f SignCosPhi %f (MaxY %f)", tParam.X(), tParam.Y(), tParam.Z(), tParam.SinPhi(), tParam.DzDs(), tParam.QPt(), tParam.SignCosPhi(), Row(rowIndex).MaxY());
@@ -86,7 +86,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
         if (rowHit != CALINK_INVAL) {
           // GPUInfo("New track: entry %d, row %d, hitindex %d", i, rowIndex, mTrackletRowHits[rowIndex * tracker.CommonMemory()->nTracklets]);
           tracker.TrackHits()[hitId + i].Set(rowIndex, rowHit);
-          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), Param().par.ConstBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
+          // if (i == 0) tParam.TransportToX(Row(rowIndex).X(), Param().par.constBz(), GPUCA_MAX_SIN_PHI); //Use transport with new linearisation, we have changed the track in between - NOT needed, fitting will always start at outer end of global track!
           i++;
         }
         rowIndex++;
@@ -113,7 +113,7 @@ GPUd() int GPUTPCGlobalTracking::PerformGlobalTrackingRun(GPUTPCTracker& tracker
   return (nHits >= GPUCA_GLOBAL_TRACKING_MIN_HITS);
 }
 
-GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThreads, int iBlock, int iThread, const GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, GPUTPCTracker& GPUrestrict() sliceTarget, bool right)
+GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThreads, int iBlock, int iThread, const GPUTPCTracker& tracker, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, GPUTPCTracker& GPUrestrict() sliceTarget, bool right)
 {
   for (int i = iBlock * nThreads + iThread; i < tracker.CommonMemory()->nLocalTracks; i += nThreads * nBlocks) {
     {
@@ -128,11 +128,11 @@ GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThread
         }
         if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER) {
           // GPUInfo("Track %d, lower row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-          PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, -tracker.Param().par.DAlpha, -1);
+          PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, -tracker.Param().par.dAlpha, -1);
         }
         if (right && Y > row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER) {
           // GPUInfo("Track %d, lower row %d, right border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-          PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, tracker.Param().par.DAlpha, -1);
+          PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, tracker.Param().par.dAlpha, -1);
         }
       }
     }
@@ -149,11 +149,11 @@ GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThread
         }
         if (!right && Y < -row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER) {
           // GPUInfo("Track %d, upper row %d, left border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, -row.MaxY());
-          PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, -tracker.Param().par.DAlpha, 1);
+          PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, -tracker.Param().par.dAlpha, 1);
         }
         if (right && Y > row.MaxY() * GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER) {
           // GPUInfo("Track %d, upper row %d, right border (%f of %f)", i, mTrackHits[tmpHit].RowIndex(), Y, row.MaxY());
-          PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, tracker.Param().par.DAlpha, 1);
+          PerformGlobalTrackingRun(sliceTarget, smem, tracker, i, rowIndex, tracker.Param().par.dAlpha, 1);
         }
       }
     }
@@ -161,7 +161,7 @@ GPUd() void GPUTPCGlobalTracking::PerformGlobalTracking(int nBlocks, int nThread
 }
 
 template <>
-GPUdii() void GPUTPCGlobalTracking::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, processorType& GPUrestrict() tracker)
+GPUdii() void GPUTPCGlobalTracking::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() tracker)
 {
   CA_SHARED_CACHE(&smem.mRows[0], tracker.SliceDataRows(), GPUCA_ROW_COUNT * sizeof(MEM_PLAIN(GPUTPCRow)));
   GPUbarrier();
@@ -204,7 +204,7 @@ GPUd() void GPUTPCGlobalTracking::GlobalTrackingSliceLeftRight(unsigned int iSli
 #endif // !__OPENCL__ || __OPENCLCPP__
 
 template <>
-GPUdii() void GPUTPCGlobalTrackingCopyNumbers::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & GPUrestrict() smem, processorType& GPUrestrict() tracker, int n)
+GPUdii() void GPUTPCGlobalTrackingCopyNumbers::Thread<0>(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() MEM_LOCAL(GPUSharedMemory) & smem, processorType& GPUrestrict() tracker, int n)
 {
   for (int i = get_global_id(0); i < n; i += get_global_size(0)) {
     GPUconstantref() MEM_GLOBAL(GPUTPCTracker) & GPUrestrict() trk = (&tracker)[i];

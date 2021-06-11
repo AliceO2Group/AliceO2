@@ -41,6 +41,13 @@ struct DataRelayerStats {
   uint64_t relayedMessages = 0;         /// How many messages have been successfully relayed
 };
 
+enum struct CacheEntryStatus : int {
+  EMPTY,
+  PENDING,
+  RUNNING,
+  DONE
+};
+
 class DataRelayer
 {
  public:
@@ -71,9 +78,10 @@ class DataRelayer
   /// This invokes the appropriate `InputRoute::danglingChecker` on every
   /// entry in the cache and if it returns true, it creates a new
   /// cache entry by invoking the associated `InputRoute::expirationHandler`.
+  /// @a createNew true if the dangling inputs are allowed to create new slots.
   /// @return true if there were expirations, false if not.
   ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
-                                      ServiceRegistry& context);
+                                      ServiceRegistry& context, bool createNew);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack
@@ -106,6 +114,14 @@ class DataRelayer
   /// Notice how this avoids exposing the timesliceIndex directly
   /// so that we can mutex on it.
   TimesliceId getTimesliceForSlot(TimesliceSlot slot);
+
+  /// Mark a given slot as done so that the GUI
+  /// can reflect that.
+  void updateCacheStatus(TimesliceSlot slot, CacheEntryStatus oldStatus, CacheEntryStatus newStatus);
+  /// Get the firstTFOrbit associate to a given slot.
+  uint32_t getFirstTFOrbitForSlot(TimesliceSlot slot);
+  /// Get the firstTFCounter associate to a given slot.
+  uint32_t getFirstTFCounterForSlot(TimesliceSlot slot);
   /// Remove all pending messages
   void clear();
 
@@ -126,7 +142,7 @@ class DataRelayer
   std::vector<size_t> mDistinctRoutesIndex;
   std::vector<data_matcher::DataDescriptorMatcher> mInputMatchers;
   std::vector<data_matcher::VariableContext> mVariableContextes;
-  std::vector<int> mCachedStateMetrics;
+  std::vector<CacheEntryStatus> mCachedStateMetrics;
 
   static std::vector<std::string> sMetricsNames;
   static std::vector<std::string> sVariablesMetricsNames;

@@ -194,6 +194,16 @@ class MCTrackT
   }
   bool getToBeDone() const { return ((PropEncoding)mProp).toBeDone; }
 
+  void setInhibited(bool f)
+  {
+    auto prop = ((PropEncoding)mProp);
+    prop.inhibited = f;
+    mProp = prop.i;
+  }
+  bool getInhibited() const { return ((PropEncoding)mProp).inhibited; }
+
+  bool isTransported() const { return getToBeDone() && !getInhibited(); };
+
   /// get the string representation of the production process
   const char* getProdProcessAsString() const;
 
@@ -226,12 +236,15 @@ class MCTrackT
     struct {
       int storage : 1;  // encoding whether to store this track to the output
       int process : 6;  // encoding process that created this track (enough to store TMCProcess from ROOT)
-      int hitmask : 24; // encoding hits per detector
+      int hitmask : 21; // encoding hits per detector
+      int reserved1 : 1; // bit reserved for possible future purposes
+      int reserved2 : 1; // bit reserved for possible future purposes
+      int inhibited : 1; // whether tracking of this was inhibited
       int toBeDone : 1; // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
     };
   };
 
-  ClassDefNV(MCTrackT, 3);
+  ClassDefNV(MCTrackT, 4);
 };
 
 template <typename T>
@@ -316,8 +329,15 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
 {
   // our convention is to communicate the process as (part) of the unique ID
   setProcess(part.GetUniqueID());
+  // extract storage flag
+  setStore(part.TestBit(ParticleStatus::kKeep));
   // extract toBeDone flag
   setToBeDone(part.TestBit(ParticleStatus::kToBeDone));
+  // extract inhibited flag
+  if (part.TestBit(ParticleStatus::kInhibited)) {
+    setToBeDone(true); // if inhibited, it had to be done: restore flag
+    setInhibited(true);
+  }
 }
 
 template <typename T>

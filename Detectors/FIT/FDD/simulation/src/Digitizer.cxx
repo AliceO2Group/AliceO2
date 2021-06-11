@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <Vc/Vc>
 
 using namespace o2::math_utils;
 using namespace o2::fdd;
@@ -32,18 +33,19 @@ Digitizer::BCCache::BCCache()
 void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
                         std::vector<o2::fdd::Digit>& digitsBC,
                         std::vector<o2::fdd::ChannelData>& digitsCh,
+                        std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
   // loop over all hits and produce digits
   //LOG(INFO) << "Processing IR = " << mIntRecord << " | NHits = " << hits.size();
 
-  flush(digitsBC, digitsCh, labels); // flush cached signal which cannot be affect by new event
+  flush(digitsBC, digitsCh, digitsTrig, labels); // flush cached signal which cannot be affect by new event
 
   auto sorted_hits{hits};
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fdd::Hit const& a, o2::fdd::Hit const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
-  LOG(INFO) << "Pulse";
+  //LOG(INFO) << "Pulse";
   //Conversion of hits to the analogue pulse shape
   for (auto& hit : sorted_hits) {
     if (hit.GetTime() > 20e3) {
@@ -137,7 +139,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
         q += Vc::float_v::Size;
         Vc::prefetchForOneRead(q);
         workVc.load(p);
-        workVc += mRndGainVar.getNextValueVc() * charge * pmtVc;
+        workVc += mRndGainVar.getNextValueVc<Vc::float_v>() * charge * pmtVc;
         workVc.store(p);
         p += Vc::float_v::Size;
         Vc::prefetchForOneRead(p);
@@ -155,6 +157,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
 //_____________________________________________________________________________
 void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
                       std::vector<o2::fdd::ChannelData>& digitsCh,
+                      std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                       o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
 
@@ -175,7 +178,7 @@ void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
 
   for (int ibc = 0; ibc < nCached; ibc++) { // digitize BCs which might not be affected by future events
     auto& bc = mCache[ibc];
-    storeBC(bc, digitsBC, digitsCh, labels);
+    storeBC(bc, digitsBC, digitsCh, digitsTrig, labels);
   }
   // clean cache for BCs which are not needed anymore
   //LOG(INFO) << "Cleaning cache";
@@ -184,21 +187,29 @@ void Digitizer::flush(std::vector<o2::fdd::Digit>& digitsBC,
 //_____________________________________________________________________________
 void Digitizer::storeBC(const BCCache& bc,
                         std::vector<o2::fdd::Digit>& digitsBC, std::vector<o2::fdd::ChannelData>& digitsCh,
+                        std::vector<o2::fdd::DetTrigInput>& digitsTrig,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
   //LOG(INFO) << "Storing BC " << bc;
 
-  int first = digitsCh.size();
+  int first = digitsCh.size(), nStored = 0;
   for (int ic = 0; ic < Nchannels; ic++) {
-    digitsCh.emplace_back(ic, simulateTimeCFD(bc.pulse[ic]), integrateCharge(bc.pulse[ic]), 0);
+    float chargeADC = integrateCharge(bc.pulse[ic]);
+    if (chargeADC != 0) {
+      digitsCh.emplace_back(ic, int(simulateTimeCFD(bc.pulse[ic])), int(chargeADC), std::rand() % (1 << 8));
+      nStored++;
+    }
   }
   //bc.print();
 
-  int nBC = digitsBC.size();
-  digitsBC.emplace_back(first, 16, bc, mTriggers);
+  if (nStored != 0) {
+    int nBC = digitsBC.size();
+    digitsBC.emplace_back(first, nStored, bc, mTriggers);
+    digitsTrig.emplace_back(bc, 0, 0, 0, 0, 0);
 
-  for (const auto& lbl : bc.labels) {
-    labels.addElement(nBC, lbl);
+    for (const auto& lbl : bc.labels) {
+      labels.addElement(nBC, lbl);
+    }
   }
 }
 
@@ -210,7 +221,10 @@ float Digitizer::integrateCharge(const ChannelBCDataF& pulse)
     //pulse[iBin] /= ChargePerADC;
     chargeADC += pulse[iBin];
   }
-  //saturation if(chargeADC > )chargeADC = ;
+  //saturation
+  if (chargeADC > 4095) {
+    chargeADC = 4095;
+  }
 
   //LOG(INFO) <<" Charge " << chargeADC;
   return std::lround(chargeADC);
@@ -237,7 +251,8 @@ float Digitizer::simulateTimeCFD(const ChannelBCDataF& pulse)
     }
   }
   //LOG(INFO) <<" Time " << timeCFD;
-  return timeCFD;
+  timeCFD *= TimePerTDC; //ns -> counts
+  return std::lround(timeCFD);
 }
 //_____________________________________________________________________________
 o2::fdd::Digitizer::BCCache& Digitizer::setBCCache(const o2::InteractionRecord& ir)

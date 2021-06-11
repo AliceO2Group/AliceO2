@@ -17,15 +17,14 @@
 #include <vector>
 #include <functional>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A callback function to retrieve the FairMQChannel name to be used for sending
 /// messages of the specified OutputSpec
 using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
 using InjectorFunction = std::function<void(FairMQDevice& device, FairMQParts& inputs, ChannelRetriever)>;
+using ChannelSelector = std::function<std::string(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels)>;
 
 struct InputChannelSpec;
 struct OutputChannelSpec;
@@ -66,6 +65,9 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& specs = {{header
 /// The default connection method for the custom source
 static auto gDefaultConverter = incrementalConverter(OutputSpec{"TST", "TEST", 0}, 0, 1);
 
+/// Default way to select an output channel for multi-output proxy.
+std::string defaultOutputProxyChannelSelector(InputSpec const& input, const std::unordered_map<std::string, std::vector<FairMQChannel>>& channels);
+
 /// Create a DataProcessorSpec which can be used to inject
 /// messages in the DPL.
 /// @param label is the label of the DataProcessorSpec associated and name of the input channel.
@@ -82,6 +84,9 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
                                                    const char* defaultChannelConfig,
                                                    InjectorFunction converter);
 
+DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
+                                                 Inputs const& inputSpecs,
+                                                 const char* defaultChannelConfig);
 /// Create a DataProcessorSpec for a DPL processor with an out-of-band channel to relay DPL
 /// workflow data to an external FairMQDevice channel.
 ///
@@ -100,11 +105,11 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
 ///        by command line option '--channel-config'
 ///        notice that the name of the device will be added as the name of the channel if the
 ///        name tag is not yet in the configuration
-DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
-                                                 Inputs const& inputSpecs,
-                                                 const char* defaultChannelConfig);
+DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* label,
+                                                      Inputs const& inputSpecs,
+                                                      const char* defaultChannelConfig,
+                                                      ChannelSelector channelSelector = defaultOutputProxyChannelSelector);
 
-} // namespace framework
 } // namespace o2
 
 #endif // FRAMEWORK_RAWDEVICESOURCE_H

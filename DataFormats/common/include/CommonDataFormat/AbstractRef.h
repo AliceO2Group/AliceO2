@@ -15,7 +15,9 @@
 #ifndef ALICEO2_ABSTRACT_REF_H
 #define ALICEO2_ABSTRACT_REF_H
 
-#include <Rtypes.h>
+#include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
+#include "GPUCommonTypeTraits.h"
 
 namespace o2
 {
@@ -28,6 +30,7 @@ class AbstractRef
   template <int NBIT>
   static constexpr auto MVAR()
   {
+    static_assert(NBIT <= 64, "> 64 bits not supported");
     typename std::conditional<(NBIT > 32), uint64_t, typename std::conditional<(NBIT > 16), uint32_t, typename std::conditional<(NBIT > 8), uint16_t, uint8_t>::type>::type>::type tp = 0;
     return tp;
   }
@@ -46,34 +49,38 @@ class AbstractRef
   static constexpr int NBitsSource() { return NBSrc; }
   static constexpr int NBitsFlags() { return NBFlg; }
 
-  AbstractRef() = default;
+  GPUdDefault() AbstractRef() = default;
 
-  AbstractRef(Idx_t idx) { setIndex(idx); }
+  GPUdi() AbstractRef(Idx_t idx, Src_t src) { set(idx, src); }
 
-  AbstractRef(Idx_t idx, Src_t src) { set(idx, src); }
+  GPUdDefault() AbstractRef(const AbstractRef& src) = default;
+  //
+  GPUdi() Idx_t getIndex() const { return static_cast<Idx_t>(mRef & IdxMask); }
+  GPUdi() void setIndex(Idx_t idx) { mRef = (mRef & (BaseMask & ~IdxMask)) | (IdxMask & idx); }
 
   //
-  Idx_t getIndex() const { return static_cast<Idx_t>(mRef & IdxMask); }
-  void setIndex(Idx_t idx) { mRef = (mRef & (BaseMask & ~IdxMask)) | (IdxMask & idx); }
+  GPUdi() Src_t getSource() const { return static_cast<Idx_t>((mRef >> NBIdx) & SrcMask); }
+  GPUdi() void setSource(Src_t src) { mRef = (mRef & (BaseMask & ~(SrcMask << NBIdx))) | ((SrcMask & src) << NBIdx); }
 
   //
-  Src_t getSource() const { return static_cast<Idx_t>((mRef >> NBIdx) & SrcMask); }
-  void setSource(Src_t src) { mRef = (mRef & (BaseMask & ~(SrcMask << NBIdx))) | ((SrcMask & src) << NBIdx); }
+  GPUdi() Flg_t getFlags() const { return static_cast<Flg_t>((mRef >> (NBIdx + NBSrc)) & FlgMask); }
+  GPUdi() void setFlags(Flg_t f) { mRef = (mRef & (BaseMask & ~(FlgMask << (NBIdx + NBSrc)))) | ((FlgMask & f) << NBIdx); }
+  GPUdi() bool testBit(int i) const { return (mRef >> (NBIdx + NBSrc)) & ((0x1U << i) & FlgMask); }
+  GPUdi() void setBit(int i) { mRef = (mRef & (BaseMask & ~(0x1U << (i + NBIdx + NBSrc)))) | (((0x1U << i) & FlgMask) << (NBIdx + NBSrc)); }
+  GPUdi() void resetBit(int i) { mRef = (mRef & (BaseMask & ~(0x1U << (i + NBIdx + NBSrc)))); }
+  GPUdi() void set(Idx_t idx, Src_t src) { mRef = (mRef & ((Base_t)FlgMask << (NBIdx + NBSrc))) | ((SrcMask & Src_t(src)) << NBIdx) | (IdxMask & Idx_t(idx)); }
 
-  //
-  Flg_t getFlags() const { return static_cast<Flg_t>((mRef >> (NBIdx + NBSrc)) & FlgMask); }
-  void setFlags(Flg_t f) { mRef = (mRef & (BaseMask & ~(FlgMask << (NBIdx + NBSrc)))) | ((FlgMask & f) << NBIdx); }
-  bool testBit(int i) const { return (mRef >> (NBIdx + NBSrc)) & ((0x1U << i) & FlgMask); }
-  void setBit(int i) { mRef = (mRef & (BaseMask & ~(0x1U << (i + NBIdx + NBSrc)))) | (((0x1U << i) & FlgMask) << (NBIdx + NBSrc)); }
-  void resetBit(int i) { mRef = (mRef & (BaseMask & ~(0x1U << (i + NBIdx + NBSrc)))); }
-  void set(Idx_t idx, Src_t src) { mRef = (mRef & (BaseMask & ~((SrcMask << NBIdx) | (BaseMask & ~IdxMask)))) | ((SrcMask & Src_t(src)) << NBIdx) | (IdxMask & Idx_t(idx)); }
+  GPUdi() Base_t getRaw() const { return mRef; }
+  GPUdi() void setRaw(Base_t v) { mRef = v; }
+  GPUdi() Base_t getRawWOFlags() const { return mRef & (IdxMask | (SrcMask << NBIdx)); }
+  GPUdi() bool isIndexSet() const { return getIndex() != IdxMask; }
+  GPUdi() bool isSourceSet() const { return getSource() != SrcMask; }
 
-  Base_t getRaw() const { return mRef; }
-
-  operator Base_t() const { return mRef; }
+  GPUdi() bool operator==(const AbstractRef& o) const { return getRawWOFlags() == o.getRawWOFlags(); }
+  GPUdi() bool operator!=(const AbstractRef& o) const { return !operator==(o); }
 
  protected:
-  Base_t mRef = 0; // packed reference
+  Base_t mRef = IdxMask | (SrcMask << NBIdx); // packed reference, dummy by default
 
   ClassDefNV(AbstractRef, 1);
 };

@@ -36,15 +36,17 @@ using namespace compressed;
 class CompressedDecodingTask : public DecoderBase, public Task
 {
  public:
-  CompressedDecodingTask(bool conet = false)
+  CompressedDecodingTask(bool conet, o2::header::DataDescription dataDesc)
   {
     mConetMode = conet;
+    mDataDesc = dataDesc;
     setDecoderCONET(conet);
   }
 
   ~CompressedDecodingTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void decodeTF(ProcessingContext& pc);
   void endOfStream(EndOfStreamContext& ec) final;
   void postData(ProcessingContext& pc);
 
@@ -60,12 +62,14 @@ class CompressedDecodingTask : public DecoderBase, public Task
 
   o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;
+  o2::header::DataDescription mDataDesc;
   int mNTF = 0;
   int mNCrateOpenTF = 0;
   int mNCrateCloseTF = 0;
   bool mHasToBePosted = false;
   bool mConetMode = false;
   uint32_t mInitOrbit = 0;
+  uint32_t mCurrentOrbit = 0;
   bool mRowFilter = false;
   bool mMaskNoise = false;
   int mNoiseRate = 1000;

@@ -78,7 +78,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     {OutputSpec{{"summary"}, "TPC", "SUMMARY"}},
     AlgorithmSpec{[](ProcessingContext& ctx) {
       auto& tpcSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
-      tpcSummary.at(0).inputCount = ctx.inputs().size();
+      tpcSummary[0].inputCount = ctx.inputs().size();
     }},
     {ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}},
   };
@@ -91,7 +91,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const&)
     },
     AlgorithmSpec{[](ProcessingContext& ctx) {
       auto& itsSummary = ctx.outputs().make<Summary>(OutputRef{"summary"}, 1);
-      itsSummary.at(0).inputCount = ctx.inputs().size();
+      itsSummary[0].inputCount = ctx.inputs().size();
     }},
     {ConfigParamSpec{"some-cut", VariantType::Float, 1.0f, {"some cut"}}},
   };

@@ -15,7 +15,7 @@ o2-mid-rawdump filename [filename_2 filename_3 ...]
 The output is a file containing a list with:
 -   the interaction record
 
--   the list of decoded [LocalBoardRO](../include/MIDRaw/LocalBoardRO.h)
+-   the list of decoded [ROBoard](../include/DataFormatsMID/ROBoard.h)
 For a list of the other available options:
 ```bash
 o2-mid-rawdump --help

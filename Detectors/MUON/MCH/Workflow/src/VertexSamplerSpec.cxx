@@ -31,6 +31,7 @@
 #include "Framework/Logger.h"
 
 #include "MathUtils/Cartesian.h"
+#include "DataFormatsMCH/ROFRecord.h"
 
 namespace o2
 {
@@ -70,24 +71,31 @@ class VertexSamplerSpec
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
-    /// send the vertex of the current event if an input file is provided
-    /// or the default vertex (0.,0.,0.) otherwise
+    /// send the vertex of each event in the current TF if an input file is provided
+    /// or the default vertex (0,0,0) for all events otherwise
 
-    // read the corresponding vertex or set it to (0,0,0)
-    math_utils::Point3D<double> vertex(0., 0., 0.);
+    // get the track ROFs for each event in the TF
+    auto rofs = pc.inputs().get<gsl::span<ROFRecord>>("rofs");
+
+    // create the output message to hold vertices
+    auto& vertices = pc.outputs().make<std::vector<math_utils::Point3D<double>>>(OutputRef{"vertices"});
+
+    // read the vertex of each event or set it to (0,0,0)
     if (mInputFile.is_open()) {
       int event(-1);
-      mInputFile.read(reinterpret_cast<char*>(&event), sizeof(int));
-      if (mInputFile.fail()) {
-        throw out_of_range("missing vertex");
-      }
       VertexStruct vtx{};
-      mInputFile.read(reinterpret_cast<char*>(&vtx), sizeof(VertexStruct));
-      vertex.SetCoordinates(vtx.x, vtx.y, vtx.z);
+      vertices.reserve(rofs.size());
+      for (const auto& rof : rofs) {
+        mInputFile.read(reinterpret_cast<char*>(&event), sizeof(int));
+        if (mInputFile.fail() || event != rof.getBCData().orbit) {
+          throw out_of_range(std::string("missing vertex for event ") + rof.getBCData().orbit);
+        }
+        mInputFile.read(reinterpret_cast<char*>(&vtx), sizeof(VertexStruct));
+        vertices.emplace_back(vtx.x, vtx.y, vtx.z);
+      }
+    } else {
+      vertices.resize(rofs.size(), math_utils::Point3D<double>(0., 0., 0.));
     }
-
-    // create the output message
-    pc.outputs().snapshot(Output{"MCH", "VERTEX", 0, Lifetime::Timeframe}, vertex);
   }
 
  private:
@@ -105,10 +113,11 @@ o2::framework::DataProcessorSpec getVertexSamplerSpec()
 {
   return DataProcessorSpec{
     "VertexSampler",
-    // the input message is just used to synchronize the sending of the vertex with the track reconstruction
-    Inputs{InputSpec{"tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},
+    Inputs{InputSpec{"rofs", "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
+           // track and cluster messages are there just to keep things synchronized
+           InputSpec{"tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},
            InputSpec{"clusters", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
-    Outputs{OutputSpec{"MCH", "VERTEX", 0, Lifetime::Timeframe}},
+    Outputs{OutputSpec{{"vertices"}, "MCH", "VERTICES", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<VertexSamplerSpec>()},
     Options{{"infile", VariantType::String, "", {"input filename"}}}};
 }

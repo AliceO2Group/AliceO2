@@ -31,7 +31,7 @@ EntropyDecoderSpec::EntropyDecoderSpec()
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("fdd-ctf-dictionary");
+  std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
   }
@@ -64,15 +64,15 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyDecoderSpec()
 {
   std::vector<OutputSpec> outputs{
-    OutputSpec{{"digits"}, "FDD", "FDDDigit", 0, Lifetime::Timeframe},
-    OutputSpec{{"channels"}, "FDD", "FDDDigitCh", 0, Lifetime::Timeframe}};
+    OutputSpec{{"digits"}, "FDD", "DIGITSBC", 0, Lifetime::Timeframe},
+    OutputSpec{{"channels"}, "FDD", "DIGITSCH", 0, Lifetime::Timeframe}};
 
   return DataProcessorSpec{
     "fdd-entropy-decoder",
     Inputs{InputSpec{"ctf", "FDD", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
-    Options{{"fdd-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF decoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 
 } // namespace fdd

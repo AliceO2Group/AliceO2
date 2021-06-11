@@ -20,16 +20,17 @@ namespace o2::aod
 {
 namespace emcalcluster
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-DECLARE_SOA_COLUMN(Energy, energy, float);
-DECLARE_SOA_COLUMN(Eta, eta, float);
-DECLARE_SOA_COLUMN(Phi, phi, float);
-DECLARE_SOA_COLUMN(M02, m02, float);
+DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
+DECLARE_SOA_COLUMN(Energy, energy, float);      //!
+DECLARE_SOA_COLUMN(Eta, eta, float);            //!
+DECLARE_SOA_COLUMN(Phi, phi, float);            //!
+DECLARE_SOA_COLUMN(M02, m02, float);            //!
 } // namespace emcalcluster
 
-DECLARE_SOA_TABLE(EMCALClusters, "AOD", "EMCALCLUSTERS",
-                  o2::soa::Index<>, emcalcluster::CollisionId, emcalcluster::Energy,
-                  emcalcluster::Eta, emcalcluster::Phi, emcalcluster::M02);
+DECLARE_SOA_TABLE(EMCALClusters, "AOD", "EMCALCLUSTERS", //!
+                  o2::soa::Index<>, emcalcluster::CollisionId,
+                  emcalcluster::Energy, emcalcluster::Eta, emcalcluster::Phi,
+                  emcalcluster::M02);
 
 using EMCALCluster = EMCALClusters::iterator;
 

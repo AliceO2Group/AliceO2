@@ -16,6 +16,9 @@
 
 #pragma link C++ class o2::base::Detector + ;
 #pragma link C++ class o2::base::Propagator + ;
+#pragma link C++ class o2::base::PropagatorF + ;
+#pragma link C++ class o2::base::PropagatorImpl < double> + ;
+#pragma link C++ class o2::base::PropagatorImpl < float> + ;
 
 #pragma link C++ class o2::base::GeometryManager + ;
 #pragma link C++ class o2::base::GeometryManager::MatBudgetExt + ;
@@ -27,8 +30,9 @@
 #pragma link C++ class o2::base::MatLayerCyl + ;
 #pragma link C++ class o2::base::MatLayerCylSet + ;
 
-#pragma link C++ class o2::base::DCAFitter + ;
-
 #pragma link C++ class o2::ctf::CTFCoderBase + ;
+
+#pragma link C++ class o2::base::Aligner + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::base::Aligner> + ;
 
 #endif

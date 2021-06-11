@@ -38,6 +38,7 @@ class GPUTPCTrackletSelector : public GPUKernelTemplate
     int mItr0;          // index of the first track in the block
     int mNThreadsTotal; // total n threads
     int mNTracklets;    // n of tracklets
+    int mReserved;      // for alignment reasons
 #if GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0
     GPUTPCHitId mHits[GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE][GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCTrackletSelector)];
 #endif // GPUCA_TRACKLET_SELECTOR_HITS_REG_SIZE != 0

@@ -16,15 +16,14 @@ o2_add_library(PHOSSimulation
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                                      O2::DataFormatsPHOS
                                      O2::PHOSBase
-                                     O2::PHOSCalib
                                      O2::SimConfig
-                                     O2::SimulationDataFormat 
-                                     O2::Headers 
+                                     O2::SimulationDataFormat
+                                     O2::Headers
                                      O2::DetectorsRaw)
 
 o2_target_root_dictionary(PHOSSimulation
-                          HEADERS include/PHOSSimulation/Detector.h 
-                                  include/PHOSSimulation/GeometryParams.h 
+                          HEADERS include/PHOSSimulation/Detector.h
+                                  include/PHOSSimulation/GeometryParams.h
                                   include/PHOSSimulation/Digitizer.h
                                   include/PHOSSimulation/RawWriter.h)
 o2_add_executable(digi2raw

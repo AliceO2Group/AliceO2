@@ -12,6 +12,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataProcessorInfo.h"
+#include "Framework/CommandInfo.h"
 
 #include <iosfwd>
 #include <vector>
@@ -20,12 +21,15 @@ namespace o2::framework
 {
 
 struct WorkflowSerializationHelpers {
-  static void import(std::istream& s,
+  ///@return false if the previous workflow failed to generate a valid config, true otherwise
+  static bool import(std::istream& s,
                      std::vector<DataProcessorSpec>& workflow,
-                     std::vector<DataProcessorInfo>& metadata);
+                     std::vector<DataProcessorInfo>& metadata,
+                     CommandInfo& command);
   static void dump(std::ostream& o,
                    std::vector<DataProcessorSpec> const& workflow,
-                   std::vector<DataProcessorInfo> const& metadata);
+                   std::vector<DataProcessorInfo> const& metadata,
+                   CommandInfo const& commandInfo);
 };
 
 } // namespace o2::framework

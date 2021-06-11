@@ -27,5 +27,8 @@
 #include <thrust/device_ptr.h>
 #pragma GCC diagnostic pop
 #include <sm_20_atomic_functions.h>
+#include <cuda_fp16.h>
+#include <type_traits>
+#include <string>
 
 #endif

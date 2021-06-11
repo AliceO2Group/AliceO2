@@ -51,6 +51,11 @@ struct InputSpec {
             ConcreteDataTypeMatcher const& dataType,
             enum Lifetime lifetime_ = Lifetime::Timeframe,
             std::vector<ConfigParamSpec> const& metadata_ = {});
+  /// Create an InputSpec which does not check for the description and the subSpec.
+  InputSpec(std::string binding_,
+            header::DataOrigin const& dataType,
+            enum Lifetime lifetime_ = Lifetime::Timeframe,
+            std::vector<ConfigParamSpec> const& metadata_ = {});
   InputSpec(std::string binding,
             data_matcher::DataDescriptorMatcher&& matcher,
             std::vector<ConfigParamSpec> const& metadata_ = {});

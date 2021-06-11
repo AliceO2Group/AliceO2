@@ -17,7 +17,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -27,6 +27,7 @@
 #include <stdexcept> // exeptions, runtime_error
 #include "../include/DataCompression/dc_primitives.h"
 #include "../include/DataCompression/HuffmanCodec.h"
+#include "CommonUtils/StringUtils.h"
 #include "DataGenerator.h"
 #include "Fifo.h"
 
@@ -213,14 +214,13 @@ BOOST_AUTO_TEST_CASE(test_HuffmanCodec_configuration)
 
   // check writing and reading of the huffman configuration
   std::stringstream filename;
-  filename << boost::filesystem::temp_directory_path().string() << "/" << boost::filesystem::unique_path().string()
-           << "_testHuffmanCodec.zlib";
+  filename << o2::utils::Str::create_unique_path(std::filesystem::temp_directory_path().native()) << "_testHuffmanCodec.zlib";
 
   auto nNodes = codec.writeConfiguration(filename.str().c_str(), "zlib");
   BOOST_CHECK(nNodes > 0);
   auto result = codec.loadConfiguration(filename.str().c_str(), "zlib");
   BOOST_CHECK(result == 0);
-  boost::filesystem::remove(filename.str());
+  std::filesystem::remove(filename.str());
 
   checkRandom(codec, dg);
 }

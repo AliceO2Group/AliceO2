@@ -41,7 +41,13 @@ class InteractionSampler
     mMuBC = -1.; // invalidate
   }
   float getInteractionRate() const { return mIntRate; }
-  void setFirstIR(const o2::InteractionRecord& ir) { mFirstIR.InteractionRecord::operator=(ir); }
+  void setFirstIR(const o2::InteractionRecord& ir)
+  {
+    mFirstIR.InteractionRecord::operator=(ir);
+    if (mFirstIR.orbit == 0 && mFirstIR.bc < 4) {
+      mFirstIR.bc = 4;
+    }
+  }
   const o2::InteractionRecord& getFirstIR() const { return mFirstIR; }
 
   void setMuPerBC(float mu)
@@ -68,7 +74,7 @@ class InteractionSampler
   o2::math_utils::RandomRing<1000> mCollTimeGenerator; // generator of number of interactions in BC
 
   o2::InteractionTimeRecord mIR{{0, 0}, 0.};
-  o2::InteractionTimeRecord mFirstIR{{0, 0}, 0.};
+  o2::InteractionTimeRecord mFirstIR{{4, 0}, 0.};
   int mIntBCCache = 0;         ///< N interactions left for current BC
 
   float mIntRate = -1.;        ///< total interaction rate in Hz

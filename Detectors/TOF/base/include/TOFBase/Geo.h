@@ -13,7 +13,7 @@
 
 #include "Rtypes.h"
 #include "CommonConstants/LHCConstants.h"
-#include "DetectorsRaw/HBFUtils.h"
+//#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {
@@ -279,9 +279,9 @@ class Geo
   static Int_t getECHFromCH(int chan) { return CHAN_TO_ELCHAN[chan]; }
   static Int_t getCHFromECH(int echan) { return ELCHAN_TO_CHAN[echan]; }
 
- private:
   static void Init();
 
+ private:
   static Int_t getSector(const Float_t* pos);
   static Int_t getPlate(const Float_t* pos);
   static Int_t getPadZ(const Float_t* pos);

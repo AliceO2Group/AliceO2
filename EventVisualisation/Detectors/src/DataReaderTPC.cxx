@@ -25,7 +25,7 @@ namespace o2
 namespace event_visualisation
 {
 
-DataReaderTPC::DataReaderTPC() = default;
+DataReaderTPC::DataReaderTPC(DataInterpreter* interpreter) : DataReader(interpreter) {}
 
 void DataReaderTPC::open()
 {

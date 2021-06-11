@@ -25,6 +25,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "Framework/InputRecordWalker.h"
 
 using namespace o2::framework;
 
@@ -99,7 +100,8 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, *alldigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, *row);
 
-  std::vector<uint32_t>& patterns = mDecoder.getPatterns();
+  std::vector<uint8_t>& patterns = mDecoder.getPatterns();
+
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "PATTERNS", 0, Lifetime::Timeframe}, patterns);
 
   std::vector<uint64_t>& errors = mDecoder.getErrors();
@@ -107,18 +109,6 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
 
   DigitHeader& digitH = mDecoder.getDigitHeader();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe}, digitH);
-
-  // RS this is a hack to be removed once we have correct propagation of the firstTForbit by the framework
-  auto setFirstTFOrbit = [&](const Output& spec, uint32_t orb) {
-    auto* hd = pc.outputs().findMessageHeader(spec);
-    if (!hd) {
-      throw std::runtime_error(o2::utils::concat_string("failed to find output message header for ", spec.origin.str, "/", spec.description.str, "/", std::to_string(spec.subSpec)));
-    }
-    hd->firstTForbit = orb;
-  };
-
-  setFirstTFOrbit(Output{o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe}, mInitOrbit);
-  setFirstTFOrbit(Output{o2::header::gDataOriginTOF, "READOUTWINDOW", 0, Lifetime::Timeframe}, mInitOrbit);
 
   mDecoder.clear();
 
@@ -131,13 +121,50 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
-  if (pc.inputs().getNofParts(0) && !mConetMode) {
-    //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
-    const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
-    mInitOrbit = dh->firstTForbit;
+  //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
+  const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
+  mInitOrbit = dh->firstTForbit;
+  if (!mConetMode) {
+    mDecoder.setFirstIR({0, mInitOrbit});
   }
 
-  mDecoder.setFirstIR({0, mInitOrbit});
+  decodeTF(pc);
+
+  if (!mConetMode) {
+    mHasToBePosted = true;
+  } else if (mNCrateOpenTF == mNCrateCloseTF) {
+    mHasToBePosted = true;
+  }
+
+  if (mHasToBePosted) {
+    postData(pc);
+  }
+  mTimer.Stop();
+}
+
+void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
+{
+  LOGF(INFO, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
+       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+}
+
+void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
+{
+  auto& inputs = pc.inputs();
+
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  {
+    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TOF", mDataDesc, 0xDEADBEEF}}};
+    for (const auto& ref : InputRecordWalker(inputs, dummy)) {
+      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (dh->payloadSize == 0) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        return;
+      }
+    }
+  }
 
   /** loop over inputs routes **/
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
@@ -156,30 +183,17 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
       DecoderBase::run();
     }
   }
-
-  if ((mNCrateOpenTF > 0 || mConetMode) && mNCrateOpenTF == mNCrateCloseTF) {
-    mHasToBePosted = true;
-  }
-
-  if (mHasToBePosted) {
-    postData(pc);
-  }
-  mTimer.Stop();
-}
-
-void CompressedDecodingTask::endOfStream(EndOfStreamContext& ec)
-{
-  LOGF(INFO, "TOF CompressedDecoding total timing: Cpu: %.3e Real: %.3e s in %d slots",
-       mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
 void CompressedDecodingTask::headerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit)
 {
   if (mConetMode) {
+    if (mNCrateOpenTF == 0) {
+      mInitOrbit = crateOrbit->orbitID;
+      mDecoder.setFirstIR({0, mInitOrbit});
+    }
+
     LOG(DEBUG) << "Crate found" << crateHeader->drmID;
-
-    mInitOrbit = crateOrbit->orbitID;
-
     mNCrateOpenTF++;
   }
 }
@@ -188,22 +202,29 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
                                             const Error_t* errors)
 {
   if (mConetMode) {
-    LOG(DEBUG) << "Crate closed" << crateHeader->drmID;
+    LOG(DEBUG) << "Crate closed " << crateHeader->drmID;
     mNCrateCloseTF++;
   }
 
-  mDecoder.addCrateHeaderData(crateOrbit->orbitID, crateHeader->drmID, crateHeader->bunchID, crateTrailer->eventCounter);
+  if (mCurrentOrbit > 0) {
+    mDecoder.addCrateHeaderData(mCurrentOrbit, crateHeader->drmID, crateHeader->bunchID, crateTrailer->eventCounter);
+  } else {
+    mDecoder.addCrateHeaderData(crateOrbit->orbitID, crateHeader->drmID, crateHeader->bunchID, crateTrailer->eventCounter);
+  }
 
   // Diagnostics used to fill digit patterns
   auto numberOfDiagnostics = crateTrailer->numberOfDiagnostics;
   auto numberOfErrors = crateTrailer->numberOfErrors;
   for (int i = 0; i < numberOfDiagnostics; i++) {
     const uint32_t* val = reinterpret_cast<const uint32_t*>(&(diagnostics[i]));
-    mDecoder.addPattern(*val, crateHeader->drmID, crateOrbit->orbitID, crateHeader->bunchID);
+    if (mCurrentOrbit > 0) {
+      mDecoder.addPattern(*val, crateHeader->drmID, mCurrentOrbit, crateHeader->bunchID); // take orbit from crateHeader instead of crateOrbit (it can be wrong, check also for digits!)
+    } else {
+      mDecoder.addPattern(*val, crateHeader->drmID, crateOrbit->orbitID, crateHeader->bunchID);
+    }
 
     /*
     int islot = (*val & 15);
-    printf("DRM = %d (orbit = %d) slot = %d: \n", crateHeader->drmID, crateOrbit->orbitID, islot);
     if (islot == 1) {
       if (o2::tof::diagnostic::DRM_HEADER_MISSING & *val) {
         printf("DRM_HEADER_MISSING\n");
@@ -323,6 +344,7 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
     printf("------\n");
     */
   }
+
   for (int i = 0; i < numberOfErrors; i++) {
     const uint32_t* val = reinterpret_cast<const uint32_t*>(&(errors[i]));
     mDecoder.addError(*val, crateHeader->drmID);
@@ -331,20 +353,19 @@ void CompressedDecodingTask::trailerHandler(const CrateHeader_t* crateHeader, co
 
 void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
 {
+  const auto& rdhr = *rdh;
+  // set first orbtìt here (to be check in future), please not remove this!!!
+  mCurrentOrbit = RDHUtils::getHeartBeatOrbit(rdhr);
 
   // rdh close
-  const auto& rdhr = *rdh;
   if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {
     mNCrateCloseTF++;
-    //    printf("New TF close RDH %d\n", int(rdh->feeId));
     return;
   }
 
   // rdh open
   if ((RDHUtils::getPageCounter(rdhr) == 0) && (RDHUtils::getTriggerType(rdhr) & o2::trigger::TF)) {
     mNCrateOpenTF++;
-    mInitOrbit = RDHUtils::getHeartBeatOrbit(rdhr); // RSTODO this may be eliminated once the framework will start to propagated the dh.firstTForbit
-    //    printf("New TF open RDH %d\n", int(rdh->feeId));
   }
 };
 
@@ -353,12 +374,22 @@ void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, cons
 {
   for (int i = 0; i < frameHeader->numberOfHits; ++i) {
     auto packedHit = packedHits + i;
-    mDecoder.InsertDigit(crateHeader->drmID, frameHeader->trmID, packedHit->tdcID, packedHit->chain, packedHit->channel, crateOrbit->orbitID, crateHeader->bunchID, frameHeader->frameID << 13, packedHit->time, packedHit->tot);
+    if (mCurrentOrbit > 0) {
+      mDecoder.InsertDigit(crateHeader->drmID, frameHeader->trmID, packedHit->tdcID, packedHit->chain, packedHit->channel, mCurrentOrbit, crateHeader->bunchID, frameHeader->frameID << 13, packedHit->time, packedHit->tot);
+    } else {
+      mDecoder.InsertDigit(crateHeader->drmID, frameHeader->trmID, packedHit->tdcID, packedHit->chain, packedHit->channel, crateOrbit->orbitID, crateHeader->bunchID, frameHeader->frameID << 13, packedHit->time, packedHit->tot);
+    }
   }
 };
 
 DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet)
 {
+  std::vector<InputSpec> inputs;
+  //  inputs.emplace_back(std::string("x:TOF/" + inputDesc).c_str(), 0, Lifetime::Optional);
+  o2::header::DataDescription dataDesc;
+  dataDesc.runtimeInit(inputDesc.c_str());
+  inputs.emplace_back("x", ConcreteDataTypeMatcher{o2::header::gDataOriginTOF, dataDesc}, Lifetime::Optional);
+
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
@@ -368,9 +399,10 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
 
   return DataProcessorSpec{
     "tof-compressed-decoder",
-    select(std::string("x:TOF/" + inputDesc).c_str()),
+    inputs,
+    //    select(std::string("x:TOF/" + inputDesc).c_str()),
     outputs,
-    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet)},
+    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc)},
     Options{
       {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
       {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},

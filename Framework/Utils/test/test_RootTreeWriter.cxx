@@ -21,6 +21,7 @@
 #include <fairmq/FairMQTransportFactory.h>
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/DataRef.h"
 #include "Framework/DataRefUtils.h"
 #include "DPLUtils/RootTreeWriter.h"
@@ -218,10 +219,10 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   auto getter = [&store](size_t i) -> DataRef {
     return DataRef{nullptr, static_cast<char const*>(store[2 * i]->GetData()), static_cast<char const*>(store[2 * i + 1]->GetData())};
   };
-
+  InputSpan span{getter, store.size() / 2};
   InputRecord inputs{
     schema,
-    InputSpan{getter, store.size() / 2}};
+    span};
 
   writer(inputs);
   writer.close();
@@ -307,5 +308,22 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriterSpec_store_types)
   // vector of non-messageable type with ROOT dictionary
   // pointer type used as store type
   static_assert(std::is_same<Trait<std::vector<Polymorphic>>::store_type, std::vector<Polymorphic>*>::value == true);
+}
+
+BOOST_AUTO_TEST_CASE(TestCanAssign)
+{
+  using Callback = std::function<bool(int, float)>;
+  auto matching = [](int, float) -> bool {
+    return true;
+  };
+  auto otherReturn = [](int, float) -> int {
+    return 0;
+  };
+  auto otherParam = [](int, int) -> bool {
+    return true;
+  };
+  BOOST_REQUIRE((can_assign<decltype(matching), Callback>::value == true));
+  BOOST_REQUIRE((can_assign<decltype(otherReturn), Callback>::value == false));
+  BOOST_REQUIRE((can_assign<decltype(otherParam), Callback>::value == false));
 }
 } // namespace o2::test

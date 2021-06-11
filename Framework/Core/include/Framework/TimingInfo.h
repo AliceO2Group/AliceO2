@@ -8,15 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef FRAMEWORK_TIMINGINFO_H
-#define FRAMEWORK_TIMINGINFO_H
+#ifndef O2_FRAMEWORK_TIMINGINFO_H_
+#define O2_FRAMEWORK_TIMINGINFO_H_
 
 #include <cstddef>
+#include <cstdint>
 
 /// This class holds the information about timing
 /// of the messages being processed.
 struct TimingInfo {
   size_t timeslice; /// the timeslice associated to current processing
+  uint32_t firstTFOrbit = -1; /// the orbit the TF begins
+  uint32_t tfCounter = -1;    // the counter associated to a TF
 };
 
-#endif // Timing information for the current computation
+#endif // O2_FRAMEWORK_TIMINGINFO_H_

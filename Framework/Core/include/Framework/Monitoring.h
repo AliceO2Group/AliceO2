@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_MONITORING_H_
 
 #include "Framework/ServiceHandle.h"
+#include "Framework/ServiceRegistry.h"
 
 #include <Monitoring/Monitoring.h>
 

@@ -15,8 +15,8 @@
 #define GPUO2INTERFACE_H
 
 // Some defines denoting that we are compiling for O2
-#ifndef HAVE_O2HEADERS
-#define HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
+#define GPUCA_HAVE_O2HEADERS
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2
@@ -26,12 +26,15 @@
 #endif
 
 #include <memory>
+#include <vector>
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
 namespace o2::tpc
 {
 struct ClusterNativeAccess;
 struct ClusterNative;
+template <class T>
+class CalDet;
 } // namespace o2::tpc
 
 namespace o2::gpu
@@ -40,13 +43,13 @@ class GPUReconstruction;
 class GPUChainTracking;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
-struct GPUOutputControl;
+struct GPUTrackingOutputs;
 
-class GPUTPCO2Interface
+class GPUO2Interface
 {
  public:
-  GPUTPCO2Interface();
-  ~GPUTPCO2Interface();
+  GPUO2Interface();
+  ~GPUO2Interface();
 
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
@@ -57,25 +60,26 @@ class GPUTPCO2Interface
   bool GetParamContinuous() { return (mContinuous); }
   void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
 
+  static std::unique_ptr<TPCPadGainCalib> getPadGainCalibDefault();
+  static std::unique_ptr<TPCPadGainCalib> getPadGainCalib(const o2::tpc::CalDet<float>& in);
+  static std::unique_ptr<TPCdEdxCalibrationSplines> getdEdxCalibrationSplinesDefault();
+
   int registerMemoryForGPU(const void* ptr, size_t size);
   int unregisterMemoryForGPU(const void* ptr);
 
   const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
  private:
-  GPUTPCO2Interface(const GPUTPCO2Interface&);
-  GPUTPCO2Interface& operator=(const GPUTPCO2Interface&);
+  GPUO2Interface(const GPUO2Interface&);
+  GPUO2Interface& operator=(const GPUO2Interface&);
 
   bool mInitialized = false;
   bool mContinuous = false;
 
-  std::unique_ptr<GPUReconstruction> mRec;
-  GPUChainTracking* mChain = nullptr;
-  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
-  std::unique_ptr<GPUOutputControl> mOutputCompressedClusters;
-  std::unique_ptr<GPUOutputControl> mOutputClustersNative;
-  std::unique_ptr<GPUOutputControl> mOutputTPCTracks;
-  std::unique_ptr<GPUOutputControl> mOutputTPCClusterLabels;
+  std::unique_ptr<GPUReconstruction> mRec;              //!
+  GPUChainTracking* mChain = nullptr;                   //!
+  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig; //!
+  std::unique_ptr<GPUTrackingOutputs> mOutputRegions;   //!
 };
 } // namespace o2::gpu
 

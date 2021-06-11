@@ -63,11 +63,7 @@ struct GPUTPCCFChainContext {
 
     if (tpcZS) {
       tpcMaxTimeBin = 0;
-      CfFragment f = fragmentMax;
-      while (!f.isEnd()) {
-        f = f.next();
-      }
-      nFragments = f.index;
+      nFragments = fragmentMax.count();
       if (fragmentData.size() < nFragments) {
         fragmentData.resize(nFragments);
       }

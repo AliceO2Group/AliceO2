@@ -21,7 +21,7 @@
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateMapper.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -30,7 +30,7 @@ namespace mid
 class DecodedDataAggregator
 {
  public:
-  void process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords);
+  void process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords);
 
   /// Gets the vector of data
   const std::vector<ColumnData>& getData() { return mData; }
@@ -39,7 +39,7 @@ class DecodedDataAggregator
   const std::vector<ROFRecord>& getROFRecords() { return mROFRecords; }
 
  private:
-  void addData(const LocalBoardRO& col, size_t firstEntry);
+  void addData(const ROBoard& col, size_t firstEntry);
   ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry);
 
   std::map<uint64_t, std::vector<size_t>> mOrderIndexes; /// Map for time ordering the entries

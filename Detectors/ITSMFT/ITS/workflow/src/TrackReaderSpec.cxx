@@ -15,6 +15,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::its;
@@ -31,7 +32,8 @@ TrackReader::TrackReader(bool useMC)
 
 void TrackReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("its-tracks-infile");
+  mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                 ic.options().get<std::string>("its-tracks-infile"));
   connectTree(mInputFileName);
 }
 
@@ -107,7 +109,8 @@ DataProcessorSpec getITSTrackReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<TrackReader>(useMC)},
     Options{
-      {"its-tracks-infile", VariantType::String, "o2trac_its.root", {"Name of the input track file"}}}};
+      {"its-tracks-infile", VariantType::String, "o2trac_its.root", {"Name of the input track file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace its

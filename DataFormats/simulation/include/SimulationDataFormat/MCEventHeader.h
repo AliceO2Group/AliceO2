@@ -85,6 +85,9 @@ class MCEventHeader : public FairMCEventHeader
 
   MCEventStats& getMCEventStats() { return mEventStats; }
 
+  /// create a standalone ROOT file/tree with only the MCHeader branch
+  static void extractFileFromKinematics(std::string_view kinefilename, std::string_view targetfilename);
+
  protected:
   std::string mEmbeddingFileName;
   Int_t mEmbeddingEventIndex = 0;
@@ -94,7 +97,7 @@ class MCEventHeader : public FairMCEventHeader
   MCEventStats mEventStats{};
   o2::utils::RootSerializableKeyValueStore mEventInfo;
 
-  ClassDefOverride(MCEventHeader, 2);
+  ClassDefOverride(MCEventHeader, 3);
 
 }; /** class MCEventHeader **/
 

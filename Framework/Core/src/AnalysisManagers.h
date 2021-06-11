@@ -18,6 +18,7 @@
 #include "Framework/HistogramRegistry.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/ConfigurableHelpers.h"
 #include "Framework/InitContext.h"
 #include "Framework/RootConfigParamHelpers.h"
 #include "../src/ExpressionHelpers.h"
@@ -241,7 +242,7 @@ struct OutputManager<Spawns<T>> {
       original_table = makeEmptyTable<base_table_t>();
     }
 
-    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), original_table.get()));
+    what.extension = std::make_shared<typename Spawns<T>::extension_t>(o2::framework::spawner(what.pack(), original_table.get(), aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel()));
     what.table = std::make_shared<typename T::table_t>(soa::ArrowHelpers::joinTables({what.extension->asArrowTable(), original_table}));
     return true;
   }
@@ -259,11 +260,20 @@ struct OutputManager<Spawns<T>> {
 };
 
 /// Builds specialization
+template <typename... Os>
+static inline auto extractOriginalsVector(framework::pack<Os...>, ProcessingContext& pc)
+{
+  return std::vector{extractOriginal<Os>(pc)...};
+}
+
 template <typename O>
 static inline auto extractTypedOriginal(ProcessingContext& pc)
 {
-  ///FIXME: this should be done in invokeProcess() as some of the originals may be compound tables
-  return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
+  if constexpr (soa::is_type_with_originals_v<O>) {
+    return O{extractOriginalsVector(soa::originals_pack_t<O>{}, pc)};
+  } else {
+    return O{pc.inputs().get<TableConsumer>(aod::MetadataTrait<O>::metadata::tableLabel())->asArrowTable()};
+  }
 }
 
 template <typename... Os>
@@ -284,7 +294,7 @@ struct OutputManager<Builds<T, P>> {
   {
     return what.build(what.pack(),
                       extractTypedOriginal<typename Builds<T, P>::Key>(pc),
-                      extractOriginalsTuple(what.sources_pack(), pc));
+                      extractOriginalsTuple(what.originals_pack(), pc));
   }
 
   static bool finalize(ProcessingContext& pc, Builds<T, P>& what)
@@ -355,20 +365,14 @@ struct OptionManager {
   }
 };
 
-template <typename T, typename IP>
-struct OptionManager<Configurable<T, IP>> {
-  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T, IP>& what)
+template <typename T, ConfigParamKind K, typename IP>
+struct OptionManager<Configurable<T, K, IP>> {
+  static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T, K, IP>& what)
   {
-    if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
-      options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<std::decay_t<T>>, what.value, {what.help}});
-    } else {
-      auto specs = RootConfigParamHelpers::asConfigParamSpecs<T>(what.name, what.value);
-      options.insert(options.end(), specs.begin(), specs.end());
-    }
-    return true;
+    return ConfigurableHelpers::appendOption(options, what);
   }
 
-  static bool prepare(InitContext& context, Configurable<T, IP>& what)
+  static bool prepare(InitContext& context, Configurable<T, K, IP>& what)
   {
     if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
       what.value = context.options().get<T>(what.name.c_str());

@@ -12,7 +12,7 @@ set(PKGNAME ${CMAKE_FIND_PACKAGE_NAME})
 string(TOUPPER ${PKGNAME} PKGENVNAME)
 
 find_library(${PKGNAME}_LIBRARY_SHARED
-             NAMES libpythia6.so libpythia6.dylib
+             NAMES libpythia6.so libpythia6.dylib libPythia6.so libPythia6.dylib
              PATHS $ENV{${PKGENVNAME}_ROOT}/lib)
 
 if(${PKGNAME}_LIBRARY_SHARED)

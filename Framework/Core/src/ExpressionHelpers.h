@@ -19,13 +19,16 @@ namespace o2::framework::expressions
 {
 /// a map between BasicOp and gandiva node definitions
 /// note that logical 'and' and 'or' are created separately
-static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
+static std::array<std::string, BasicOp::BitwiseNot + 1> basicOperationsMap = {
   "and",
   "or",
   "add",
   "subtract",
   "divide",
   "multiply",
+  "bitwise_and",
+  "bitwise_or",
+  "bitwise_xor",
   "less_than",
   "less_than_or_equal_to",
   "greater_than",
@@ -43,16 +46,19 @@ static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "asinf",
   "acosf",
   "atanf",
-  "absf"};
+  "absf",
+  "bitwise_not"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
   using datum_t = std::variant<std::monostate, size_t, LiteralNode::var_t, std::string>;
   datum_t datum = std::monostate{};
+  size_t hash = 0;
   atype::type type = atype::NA;
+
   explicit DatumSpec(size_t index, atype::type type_) : datum{index}, type{type_} {}
   explicit DatumSpec(LiteralNode::var_t literal, atype::type type_) : datum{literal}, type{type_} {}
-  explicit DatumSpec(std::string binding, atype::type type_) : datum{binding}, type{type_} {}
+  explicit DatumSpec(std::string binding, size_t hash_, atype::type type_) : datum{binding}, hash{hash_}, type{type_} {}
   DatumSpec() = default;
   DatumSpec(DatumSpec const&) = default;
   DatumSpec(DatumSpec&&) = default;

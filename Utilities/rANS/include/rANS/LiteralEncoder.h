@@ -41,13 +41,13 @@ class LiteralEncoder : public Encoder<coder_T, stream_T, source_T>
   using Encoder<coder_T, stream_T, source_T>::Encoder;
 
  public:
-  template <typename stream_IT, typename source_IT>
+  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
   const stream_IT process(const stream_IT outputBegin, const stream_IT outputEnd,
                           const source_IT inputBegin, source_IT inputEnd, std::vector<source_T>& literals) const;
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-template <typename stream_IT, typename source_IT>
+template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool>>
 const stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(const stream_IT outputBegin, const stream_IT outputEnd, const source_IT inputBegin, const source_IT inputEnd, std::vector<source_T>& literals) const
 {
   using namespace internal;
@@ -92,7 +92,7 @@ const stream_IT LiteralEncoder<coder_T, stream_T, source_T>::process(const strea
     assert(outputIter < outputEnd);
   }
 
-  while (inputIT > inputBegin) { // NB: working in reverse!
+  while (inputIT != inputBegin) { // NB: working in reverse!
     std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans1);
     std::tie(inputIT, outputIter) = encode(--inputIT, outputIter, rans0);
     assert(outputIter < outputEnd);

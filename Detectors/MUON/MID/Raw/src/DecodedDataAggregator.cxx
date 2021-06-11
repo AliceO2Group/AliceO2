@@ -37,13 +37,13 @@ ColumnData& DecodedDataAggregator::FindColumnData(uint8_t deId, uint8_t columnId
   return mData.back();
 }
 
-void DecodedDataAggregator::addData(const LocalBoardRO& loc, size_t firstEntry)
+void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry)
 {
   /// Converts the local board data to ColumnData
   uint8_t uniqueLocId = loc.boardId;
-  uint8_t crateId = crateparams::getCrateId(uniqueLocId);
+  uint8_t crateId = raw::getCrateId(uniqueLocId);
   bool isRightSide = crateparams::isRightSide(crateId);
-  uint16_t deBoardId = mCrateMapper.roLocalBoardToDE(crateId, crateparams::getLocId(loc.boardId));
+  uint16_t deBoardId = mCrateMapper.roLocalBoardToDE(crateId, raw::getLocId(loc.boardId));
   auto rpcLineId = mCrateMapper.getRPCLine(deBoardId);
   auto columnId = mCrateMapper.getColumnId(deBoardId);
   auto lineId = mCrateMapper.getLineId(deBoardId);
@@ -58,7 +58,7 @@ void DecodedDataAggregator::addData(const LocalBoardRO& loc, size_t firstEntry)
   }
 }
 
-void DecodedDataAggregator::process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords)
+void DecodedDataAggregator::process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords)
 {
   /// Aggregates the decoded raw data
 

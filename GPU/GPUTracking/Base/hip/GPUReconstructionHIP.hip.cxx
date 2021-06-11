@@ -16,12 +16,7 @@
 #define GPUCA_UNROLL(CUDA, HIP) GPUCA_M_UNROLL_##HIP
 #define GPUdic(CUDA, HIP) GPUCA_GPUdic_select_##HIP()
 
-#include <hip/hip_runtime.h>
-#ifdef __CUDACC__
-#define hipExtLaunchKernelGGL(...)
-#else
-#include <hip/hip_ext.h>
-#endif
+#include "GPUReconstructionHIPIncludes.h"
 
 #include "GPUDef.h"
 
@@ -46,6 +41,7 @@
 
 #include "GPUReconstructionHIP.h"
 #include "GPUReconstructionHIPInternals.h"
+#include "HIPThrustHelpers.h"
 #include "GPUReconstructionIncludes.h"
 
 #ifdef GPUCA_HAS_GLOBAL_SYMBOL_CONSTANT_MEM
@@ -56,7 +52,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 __global__ void dummyInitKernel(void*) {}
 
-#if defined(HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
+#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_NO_ITS_TRAITS)
 #include "ITStrackingHIP/VertexerTraitsHIP.h"
 #else
 namespace o2::its
@@ -306,6 +302,9 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
       GPUInfo("\tmultiProcessorCount = %d", hipDeviceProp.multiProcessorCount);
       GPUInfo(" ");
     }
+    if (hipDeviceProp.warpSize != GPUCA_WARP_SIZE) {
+      throw std::runtime_error("Invalid warp size on GPU");
+    }
     mBlockCount = hipDeviceProp.multiProcessorCount;
     mMaxThreads = std::max<int>(mMaxThreads, hipDeviceProp.maxThreadsPerBlock * mBlockCount);
     mWarpSize = 64;
@@ -542,7 +541,7 @@ bool GPUReconstructionHIPBackend::IsEventDone(deviceEvent* evList, int nEvents)
   return (true);
 }
 
-int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
+int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream, bool force)
 {
   // Wait for HIP-Kernel to finish and check for HIP errors afterwards, in case of debugmode
   hipError_t cuErr;
@@ -551,7 +550,7 @@ int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream)
     GPUError("HIP Error %s while running kernel (%s) (Stream %d)", hipGetErrorString(cuErr), state, stream);
     return (1);
   }
-  if (mProcessingSettings.debugLevel <= 0) {
+  if (!force && mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
   if (GPUFailedMsgI(hipDeviceSynchronize())) {

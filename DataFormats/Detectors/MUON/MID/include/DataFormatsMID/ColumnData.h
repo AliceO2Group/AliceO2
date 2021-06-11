@@ -26,9 +26,9 @@ namespace mid
 {
 /// Column data structure for MID
 struct ColumnData {
-  uint8_t deId = 0;                 ///< Index of the detection element
-  uint8_t columnId = 0;             ///< Column in DE
-  std::array<uint16_t, 5> patterns; ///< Strip patterns
+  uint8_t deId = 0;                   ///< Index of the detection element
+  uint8_t columnId = 0;               ///< Column in DE
+  std::array<uint16_t, 5> patterns{}; ///< Strip patterns
 
   /// Sets the bending plane pattern
   void setBendPattern(uint16_t pattern, int line) { patterns[line] = pattern; }
@@ -51,6 +51,8 @@ struct ColumnData {
   bool isBPStripFired(int istrip, int line) const { return patterns[line] & (1 << istrip); }
 
   bool isStripFired(int istrip, int cathode, int line) const;
+
+  bool operator==(const ColumnData& right) const;
 };
 
 ColumnData operator|(const ColumnData& col1, const ColumnData& col2);

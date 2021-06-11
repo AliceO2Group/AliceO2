@@ -65,9 +65,11 @@ class TrackTPC : public o2::track::TrackParCov
 
   GPUd() float getChi2() const { return mChi2; }
   GPUd() const o2::track::TrackParCov& getOuterParam() const { return mOuterParam; }
+  GPUd() const o2::track::TrackParCov& getParamOut() const { return mOuterParam; } // to have method with same name as other tracks
   GPUd() void setTime0(float v) { mTime0 = v; }
   GPUd() void setChi2(float v) { mChi2 = v; }
   GPUd() void setOuterParam(o2::track::TrackParCov&& v) { mOuterParam = v; }
+  GPUd() void setParamOut(o2::track::TrackParCov&& v) { mOuterParam = v; } // to have method with same name as other tracks
   GPUd() const ClusRef& getClusterRef() const { return mClustersReference; }
   GPUd() void shiftFirstClusterRef(int dif) { mClustersReference.setFirstEntry(dif + mClustersReference.getFirstEntry()); }
   GPUd() int getNClusters() const { return mClustersReference.getEntries(); }
@@ -125,11 +127,9 @@ class TrackTPC : public o2::track::TrackParCov
   GPUd() void setdEdx(const dEdxInfo& v) { mdEdx = v; }
 
  private:
-  float mTime0 = 0.f;                 ///< Reference Z of the track assumed for the vertex, scaled with pseudo
-                                      ///< VDrift and reference timeframe length, unless it was moved to be on the
-                                      ///< side of TPC compatible with edge clusters sides.
-  float mDeltaTFwd = 0;               ///< max possible increment to track time
-  float mDeltaTBwd = 0;               ///< max possible decrement to track time
+  float mTime0 = 0.f;                 ///< Assumed time of the vertex that created the track in TPC time bins, 0 for triggered data
+  float mDeltaTFwd = 0;               ///< max possible increment to mTime0
+  float mDeltaTBwd = 0;               ///< max possible decrement to mTime0
   short mFlags = 0;                   ///< various flags, see Flags enum
   float mChi2 = 0.f;                  // Chi2 of the track
   o2::track::TrackParCov mOuterParam; // Track parameters at outer end of TPC.

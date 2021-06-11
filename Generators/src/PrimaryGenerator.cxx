@@ -193,8 +193,8 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
     return; // must be the o2 stack
   }
   stack->PushTrack(doTracking, mother1, pdgid, px, py, pz,
-                   e, vx, vy, vz, tof, polx, poly, polz, proc, ntr,
-                   weight, status, mother2, daughter1, daughter2);
+                   e, vx, vy, vz, tof, polx, poly, polz, TMCProcess::kPPrimary, ntr,
+                   weight, status, mother2, daughter1, daughter2, proc);
 
   fNTracks++;
 }

@@ -22,7 +22,7 @@
 #include <TGeoShape.h>
 #include <TMath.h>
 
-#include <FairMQLogger.h>
+#include "Framework/Logger.h"
 
 #include "MCHTracking/TrackParam.h"
 

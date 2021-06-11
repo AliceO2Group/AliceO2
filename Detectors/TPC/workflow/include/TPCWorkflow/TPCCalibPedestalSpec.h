@@ -17,15 +17,16 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <fmt/format.h>
 
 #include "Framework/Task.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DataProcessorSpec.h"
 
+#include "CommonUtils/MemFileHelper.h"
 #include "Headers/DataHeader.h"
-#include "CCDB/CcdbApi.h"
-#include "DetectorsCalibration/Utils.h"
 
 #include "TPCBase/CDBInterface.h"
 #include "TPCCalibration/CalibPedestal.h"
@@ -33,28 +34,36 @@
 #include "TPCWorkflow/CalibProcessingHelper.h"
 
 using namespace o2::framework;
+using o2::header::gDataOriginTPC;
 using namespace o2::tpc;
-using clbUtils = o2::calibration::Utils;
 
 namespace o2
 {
-namespace calibration
+namespace tpc
 {
 
 class TPCCalibPedestalDevice : public o2::framework::Task
 {
  public:
-  TPCCalibPedestalDevice(bool skipCalib) : mSkipCalib(skipCalib) {}
+  TPCCalibPedestalDevice(uint32_t lane, const std::vector<int>& sectors, uint32_t publishAfterTFs) : mLane{lane}, mSectors(sectors), mPublishAfter(publishAfterTFs) {}
 
   void init(o2::framework::InitContext& ic) final
   {
     // set up ADC value filling
+    // TODO: clean up to not go via RawReaderCRUManager
     mCalibPedestal.init(); // initialize configuration via configKeyValues
     mRawReader.createReader("");
+
     mRawReader.setADCDataCallback([this](const PadROCPos& padROCPos, const CRU& cru, const gsl::span<const uint32_t> data) -> int {
       const int timeBins = mCalibPedestal.update(padROCPos, cru, data);
       mCalibPedestal.setNumberOfProcessedTimeBins(std::max(mCalibPedestal.getNumberOfProcessedTimeBins(), size_t(timeBins)));
       return timeBins;
+    });
+
+    mRawReader.setLinkZSCallback([this](int cru, int rowInSector, int padInRow, int timeBin, float adcValue) -> bool {
+      CRU cruID(cru);
+      mCalibPedestal.updateROC(cruID.roc(), rowInSector - (rowInSector > 62) * 63, padInRow, timeBin, adcValue);
+      return true;
     });
 
     mMaxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));
@@ -74,14 +83,23 @@ class TPCCalibPedestalDevice : public o2::framework::Task
     }
 
     auto& reader = mRawReader.getReaders()[0];
-    calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec);
+    calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, mSectors);
 
     mCalibPedestal.incrementNEvents();
-    LOGP(info, "Number of processed events: {} ({})", mCalibPedestal.getNumberOfProcessedEvents(), mMaxEvents);
+    const auto nTFs = mCalibPedestal.getNumberOfProcessedEvents();
+    LOGP(info, "Number of processed TFs: {} ({})", nTFs, mMaxEvents);
 
-    if ((mCalibPedestal.getNumberOfProcessedEvents() >= mMaxEvents) && !mCalibDumped) {
-      LOGP(info, "Maximm number of events reached ({}), no more processing will be done", mMaxEvents);
+    if ((mPublishAfter && (nTFs % mPublishAfter) == 0)) {
+      LOGP(info, "Publishing after {} TFs", nTFs);
+      mCalibPedestal.analyse();
+      dumpCalibData();
+      sendOutput(pc.outputs());
+    }
+
+    if (mMaxEvents && (nTFs >= mMaxEvents) && !mCalibDumped) {
+      LOGP(info, "Maximm number of TFs reached ({}), no more processing will be done", mMaxEvents);
       mReadyToQuit = true;
+      mCalibPedestal.analyse();
       dumpCalibData();
       if (mForceQuit) {
         pc.services().get<ControlService>().endOfStream();
@@ -95,52 +113,40 @@ class TPCCalibPedestalDevice : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
     LOGP(info, "endOfStream");
+    mCalibPedestal.analyse();
     dumpCalibData();
-    if (!mSkipCalib) {
-      sendOutput(ec.outputs());
-    }
+    sendOutput(ec.outputs());
     ec.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
  private:
   CalibPedestal mCalibPedestal;
   rawreader::RawReaderCRUManager mRawReader;
-  uint32_t mMaxEvents{100};
-  bool mReadyToQuit{false};
-  bool mCalibDumped{false};
-  bool mUseOldSubspec{false};
-  bool mForceQuit{false};
-  bool mDirectFileDump{false};
-  bool mSkipCalib{false};
+  uint32_t mMaxEvents{0};      ///< maximum number of events to process
+  uint32_t mPublishAfter{0};   ///< number of events after which to dump the calibration
+  uint32_t mLane{0};           ///< lane number of processor
+  std::vector<int> mSectors{}; ///< sectors to process in this instance
+  bool mReadyToQuit{false};    ///< if processor is ready to quit
+  bool mCalibDumped{false};    ///< if calibration object already dumped
+  bool mUseOldSubspec{false};  ///< use the old subspec definition
+  bool mForceQuit{false};      ///< for quit after processing finished
+  bool mDirectFileDump{false}; ///< directly dump the calibration data to file
 
   //____________________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
-    CDBStorage::MetaData_t md;
-
-    // perhaps should be changed to time of the run
-    const auto now = std::chrono::system_clock::now();
-    long timeStart = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
-    long timeEnd = 99999999999999;
 
     std::array<const CalDet<float>*, 2> data = {&mCalibPedestal.getPedestal(), &mCalibPedestal.getNoise()};
     std::array<CDBType, 2> dataType = {CDBType::CalPedestal, CDBType::CalNoise};
 
     for (size_t i = 0; i < data.size(); ++i) {
       auto cal = data[i];
-      o2::ccdb::CcdbObjectInfo w;
-      auto image = o2::ccdb::CcdbApi::createObjectImage(cal, &w);
+      auto image = o2::utils::MemFileHelper::createFileImage(cal, typeid(*cal), cal->getName(), "data");
+      int type = int(dataType[i]);
 
-      w.setPath(CDBTypeMap.at(dataType[i]));
-      w.setStartValidityTimestamp(timeStart);
-      w.setEndValidityTimestamp(timeEnd);
-
-      LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
-                << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
-
-      header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)i};
-      output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-      output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, subSpec}, w);
+      header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)((mLane << 4) + i)};
+      output.snapshot(Output{gDataOriginTPC, "CLBPART", subSpec}, *image.get());
+      output.snapshot(Output{gDataOriginTPC, "CLBPARTINFO", subSpec}, type);
     }
   }
 
@@ -149,35 +155,26 @@ class TPCCalibPedestalDevice : public o2::framework::Task
   {
     if (mDirectFileDump && !mCalibDumped) {
       LOGP(info, "Dumping output");
-      mCalibPedestal.analyse();
-      mCalibPedestal.dumpToFile("pedestals.root");
+      mCalibPedestal.dumpToFile(fmt::format("pedestals_{:02}.root", mLane));
       mCalibDumped = true;
     }
   }
 };
 
-} // namespace calibration
-
-namespace framework
+DataProcessorSpec getTPCCalibPedestalSpec(const std::string inputSpec, uint32_t ilane = 0, std::vector<int> sectors = {}, uint32_t publishAfterTFs = 0)
 {
+  std::vector<o2::framework::OutputSpec> outputs;
+  outputs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPART"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{gDataOriginTPC, "CLBPARTINFO"});
 
-DataProcessorSpec getTPCCalibPedestalSpec(const std::string inputSpec, bool skipCalib)
-{
-  using device = o2::calibration::TPCCalibPedestalDevice;
-
-  std::vector<OutputSpec> outputs;
-  if (!skipCalib) {
-    outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-    outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
-  }
-
+  const auto id = fmt::format("calib-tpc-pedestal-{:02}", ilane);
   return DataProcessorSpec{
-    "calib-tpc-pedestal",
+    id.data(),
     select(inputSpec.data()),
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(skipCalib)},
+    AlgorithmSpec{adaptFromTask<TPCCalibPedestalDevice>(ilane, sectors, publishAfterTFs)},
     Options{
-      {"max-events", VariantType::Int, 100, {"maximum number of events to process"}},
+      {"max-events", VariantType::Int, 0, {"maximum number of events to process"}},
       {"use-old-subspec", VariantType::Bool, false, {"use old subsecifiation definition"}},
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
       {"direct-file-dump", VariantType::Bool, false, {"directly dump calibration to file"}},
@@ -185,7 +182,7 @@ DataProcessorSpec getTPCCalibPedestalSpec(const std::string inputSpec, bool skip
   };  // end DataProcessorSpec
 }
 
-} // namespace framework
+} // namespace tpc
 } // namespace o2
 
 #endif

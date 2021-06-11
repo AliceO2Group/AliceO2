@@ -26,6 +26,8 @@
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "CPVCalib/CalibParams.h"
+#include "CPVCalib/Pedestals.h"
+#include "CPVCalib/BadChannelMap.h"
 
 namespace o2
 {
@@ -33,10 +35,11 @@ namespace o2
 namespace cpv
 {
 
-static constexpr short kNDDL = 4;      ///< Total number of DDLs
+static constexpr short kNcc = 24;      ///< Total number of column controllers
 static constexpr short kNPAD = 48;     ///< Nuber of pads per dilogic
-static constexpr short kNDilogic = 10; ///< Number of dilogic per row
-static constexpr short kNRow = 16;     ///< number of rows per dddl
+static constexpr short kNDilogic = 4;  ///< Number of dilogics
+static constexpr short kNGasiplex = 5; ///< Number of dilogic per row
+static constexpr short kNRow = 48;     ///< number of rows 16*3 mod
 
 struct padCharge {
   short charge;
@@ -66,20 +69,22 @@ class RawWriter
 
   void init();
   void digitsToRaw(gsl::span<o2::cpv::Digit> digits, gsl::span<o2::cpv::TriggerRecord> triggers);
-  bool processTrigger(const gsl::span<o2::cpv::Digit> digitsbranch, const o2::cpv::TriggerRecord& trg);
+  bool processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const gsl::span<o2::cpv::TriggerRecord> trgs);
 
   int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
                       const char* ptr, int maxSize, int splitID,
                       std::vector<char>& trailer, std::vector<char>& header) const;
 
  private:
-  std::vector<padCharge> mPadCharge[kNDDL][kNRow][kNDilogic]; ///< list of signals per event
-  FileFor_t mFileFor = FileFor_t::kFullDet;                   ///< Granularity of the output files
-  std::string mOutputLocation = "./";                         ///< Rawfile name
-  std::unique_ptr<CalibParams> mCalibParams;                  ///< CPV calibration
-  std::vector<uint32_t> mPayload;                             ///< Payload to be written
-  gsl::span<o2::cpv::Digit> mDigits;                          ///< Digits input vector - must be in digitized format including the time response
-  std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;         ///< Raw writer
+  std::vector<padCharge> mPadCharge[kNcc][kNDilogic][kNGasiplex]; ///< list of signals per event
+  FileFor_t mFileFor = FileFor_t::kFullDet;                       ///< Granularity of the output files
+  std::string mOutputLocation = "./";                             ///< Rawfile name
+  std::unique_ptr<CalibParams> mCalibParams;                      ///< CPV calibration
+  std::unique_ptr<Pedestals> mPedestals;                          ///< CPV pedestals
+  std::unique_ptr<BadChannelMap> mBadMap;                         ///< CPV bad channel map
+  std::vector<char> mPayload;                                     ///< Payload to be written
+  gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format including the time response
+  std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer
 
   ClassDefNV(RawWriter, 1);
 };

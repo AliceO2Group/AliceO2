@@ -86,7 +86,7 @@ additional_commands = {
         }
     },
     "o2_add_test_wrapper": {
-        "flags": ["DONT_FAIL_ON_TIMEOUT", "NON_FATAL"],
+        "flags": ["DONT_FAIL_ON_TIMEOUT"],
         "kwargs": {
             "COMMAND": '*',
             "NO_BOOST_TEST": '*',
@@ -104,7 +104,6 @@ additional_commands = {
         "kwargs": {
             "INSTALL": '*',
             "NO_BOOST_TEST": '*',
-            "NON_FATAL": '*',
             "COMPONENT_NAME": '*',
             "MAX_ATTEMPTS": '*',
             "TIMEOUT": '*',
@@ -117,7 +116,7 @@ additional_commands = {
         }
     },
     "o2_add_test_root_macro": {
-        "flags": ["NON_FATAL", "LOAD_ONLY"],
+        "flags": ["LOAD_ONLY"],
         "kwargs": {
             "ENVIRONMENT": '*',
             "PUBLIC_LINK_LIBRARIES": '*',

@@ -15,17 +15,18 @@
 #define O2_S_VERTEXER_H
 
 #include "gsl/span"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/V0.h"
+#include "ReconstructionDataFormats/Cascade.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
-#include "DataFormatsTPC/TrackTPC.h"
-#include "DataFormatsITS/TrackITS.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
-#include "DetectorsVertexing/V0Hypothesis.h"
+#include "DetectorsVertexing/SVertexHypothesis.h"
+#include <numeric>
+#include <algorithm>
 
 namespace o2
 {
@@ -41,78 +42,160 @@ class SVertexer
   using VRef = o2::dataformats::VtxTrackRef;
   using PVertex = const o2::dataformats::PrimaryVertex;
   using V0 = o2::dataformats::V0;
-  using TrackTPCITS = o2::dataformats::TrackTPCITS;
-  using TrackITS = o2::its::TrackITS;
-  using TrackTPC = o2::tpc::TrackTPC;
+  using Cascade = o2::dataformats::Cascade;
   using RRef = o2::dataformats::RangeReference<int, int>;
+  using VBracket = o2::math_utils::Bracket<int>;
 
-  // struct to access tracks and extra info from different sources
-  struct TrackAccessor {
-    static constexpr std::array<size_t, GIndex::NSources> sizes{sizeof(TrackTPCITS), sizeof(TrackITS), sizeof(TrackTPC)};
-    std::array<const char*, GIndex::NSources> startOfSource{};
-    std::array<std::vector<char>, GIndex::NSources> charges;
+  enum HypV0 { Photon,
+               K0,
+               Lambda,
+               AntiLambda,
+               HyperTriton,
+               AntiHyperTriton,
+               NHypV0 };
 
-    TrackAccessor(const gsl::span<const TrackTPCITS>& tpcits, const gsl::span<const TrackITS>& its, const gsl::span<const TrackTPC>& tpc)
-    {
-      if (tpcits.size()) {
-        startOfSource[GIndex::TPCITS] = reinterpret_cast<const char*>(tpcits.data());
-        auto& ch = charges[GIndex::TPCITS];
-        ch.resize(tpcits.size());
-        for (uint32_t ic = 0; ic < tpcits.size(); ic++) {
-          ch[ic] = tpcits[ic].getCharge();
-        }
-      }
-      if (its.size()) {
-        startOfSource[GIndex::ITS] = reinterpret_cast<const char*>(its.data());
-        auto& ch = charges[GIndex::ITS];
-        ch.resize(its.size());
-        for (uint32_t ic = 0; ic < its.size(); ic++) {
-          ch[ic] = its[ic].getCharge();
-        }
-      }
-      if (tpc.size()) {
-        startOfSource[GIndex::TPC] = reinterpret_cast<const char*>(tpc.data());
-        auto& ch = charges[GIndex::TPC];
-        ch.resize(tpc.size());
-        for (uint32_t ic = 0; ic < tpc.size(); ic++) {
-          ch[ic] = tpc[ic].getCharge();
-        }
-      }
-    }
-    char getCharge(GIndex id) const { return getCharge(id.getSource(), id.getIndex()); }
-    char getCharge(int src, int idx) const { return charges[src][idx]; }
-    const o2::track::TrackParCov& getTrack(GIndex id) const { return getTrack(id.getSource(), id.getIndex()); }
-    const o2::track::TrackParCov& getTrack(int src, int idx) const { return *reinterpret_cast<const o2::track::TrackParCov*>(startOfSource[src] + sizes[src] * idx); }
+  enum HypCascade {
+    XiMinus,
+    OmegaMinus,
+    NHypCascade
   };
 
+  static constexpr int POS = 0, NEG = 1;
+  struct TrackCand : o2::track::TrackParCov {
+    GIndex gid;
+    VBracket vBracket;
+  };
+
+  SVertexer(bool enabCascades = true) : mEnableCascades(enabCascades) {}
+
+  void setEnableCascades(bool v) { mEnableCascades = v; }
   void init();
-  void process(const gsl::span<const PVertex>& vertices,   // primary vertices
-               const gsl::span<const GIndex>& trackIndex,  // Global ID's for associated tracks
-               const gsl::span<const VRef>& vtxRefs,       // references from vertex to these track IDs
-               const gsl::span<const TrackTPCITS>& tpcits, // global tracks
-               const gsl::span<const TrackITS>& its,       // ITS tracks
-               const gsl::span<const TrackTPC>& tpc,       // TPC tracks
-               std::vector<V0>& v0s,                       // found V0s
-               std::vector<RRef>& vtx2V0refs               // references from PVertex to V0
-  );
+  void process(const o2::globaltracking::RecoContainer& recoTracks); // accessor to various tracks
 
   auto& getMeanVertex() const { return mMeanVertex; }
   void setMeanVertex(const o2d::VertexBase& v) { mMeanVertex = v; }
+  void setNThreads(int n);
+  int getNThreads() const { return mNThreads; }
+
+  template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
+  void extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs);
 
  private:
+  bool checkV0(TrackCand& seed0, TrackCand& seed1, int iP, int iN, int ithread);
+  int checkCascades(float r2v0, std::array<float, 3> pV0, float p2v0, int avoidTrackID, int posneg, int ithread);
+  void setupThreads();
+  void buildT2V(const o2::globaltracking::RecoContainer& recoTracks);
+  void updateTimeDependentParams();
+
   uint64_t getPairIdx(GIndex id1, GIndex id2) const
   {
     return (uint64_t(id1) << 32) | id2;
   }
+
+  gsl::span<const PVertex> mPVertices;
+  std::vector<std::vector<V0>> mV0sTmp;
+  std::vector<std::vector<Cascade>> mCascadesTmp;
+  std::array<std::vector<TrackCand>, 2> mTracksPool{}; // pools of positive and negative seeds sorted in min VtxID
+  std::array<std::vector<int>, 2> mVtxFirstTrack{};    // 1st pos. and neg. track of the pools for each vertex
   o2d::VertexBase mMeanVertex{{0., 0., 0.}, {0.1 * 0.1, 0., 0.1 * 0.1, 0., 0., 6. * 6.}};
   const SVertexerParams* mSVParams = nullptr;
-  std::array<V0Hypothesis, SVertexerParams::NPIDV0> mV0Hyps;
-  DCAFitterN<2> mFitter2Prong;
+  std::array<SVertexHypothesis, NHypV0> mV0Hyps;
+  std::array<SVertexHypothesis, NHypCascade> mCascHyps;
 
+  std::vector<DCAFitterN<2>> mFitterV0;
+  std::vector<DCAFitterN<2>> mFitterCasc;
+  int mNThreads = 1;
   float mMinR2ToMeanVertex = 0;
   float mMaxDCAXY2ToMeanVertex = 0;
-  float mMinCosPointingAngle = 0;
+  float mMaxDCAXY2ToMeanVertexV0Casc = 0;
+  float mMinR2DiffV0Casc = 0;
+  float mMaxR2ToMeanVertexCascV0 = 0;
+
+  bool mEnableCascades = true;
 };
+
+// input containers can be std::vectors or pmr vectors
+template <typename V0CONT, typename V0REFCONT, typename CASCCONT, typename CASCREFCONT>
+void SVertexer::extractSecondaryVertices(V0CONT& v0s, V0REFCONT& vtx2V0Refs, CASCCONT& cascades, CASCREFCONT& vtx2CascRefs)
+{
+  v0s.clear();
+  vtx2V0Refs.clear();
+  vtx2V0Refs.resize(mPVertices.size());
+  cascades.clear();
+  vtx2CascRefs.clear();
+  vtx2CascRefs.resize(mPVertices.size());
+
+  auto& tmpV0s = mV0sTmp[0];
+  auto& tmpCascs = mCascadesTmp[0];
+  int nv0 = tmpV0s.size(), nCasc = tmpCascs.size();
+  std::vector<int> v0SortID(nv0), v0NewInd(nv0), cascSortID(nCasc);
+  std::iota(v0SortID.begin(), v0SortID.end(), 0);
+  std::sort(v0SortID.begin(), v0SortID.end(), [&](int i, int j) { return tmpV0s[i].getVertexID() < tmpV0s[j].getVertexID(); });
+  std::iota(cascSortID.begin(), cascSortID.end(), 0);
+  std::sort(cascSortID.begin(), cascSortID.end(), [&](int i, int j) { return tmpCascs[i].getVertexID() < tmpCascs[j].getVertexID(); });
+
+  // relate V0s to primary vertices
+  int pvID = -1, nForPV = 0;
+  for (int iv = 0; iv < nv0; iv++) {
+    const auto& v0 = tmpV0s[v0SortID[iv]];
+    if (pvID < v0.getVertexID()) {
+      if (pvID > -1) {
+        vtx2V0Refs[pvID].setEntries(nForPV);
+      }
+      pvID = v0.getVertexID();
+      vtx2V0Refs[pvID].setFirstEntry(v0s.size());
+      nForPV = 0;
+    }
+    v0NewInd[v0SortID[iv]] = v0s.size(); // memorise updated v0 id to fix its reference in the cascade
+    v0s.push_back(v0);
+    nForPV++;
+  }
+  if (pvID != -1) { // finalize
+    vtx2V0Refs[pvID].setEntries(nForPV);
+    // fill empty slots
+    int ent = v0s.size();
+    for (int ip = vtx2V0Refs.size(); ip--;) {
+      if (vtx2V0Refs[ip].getEntries()) {
+        ent = vtx2V0Refs[ip].getFirstEntry();
+      } else {
+        vtx2V0Refs[ip].setFirstEntry(ent);
+      }
+    }
+  }
+  // update V0s references in cascades
+  for (auto& casc : tmpCascs) {
+    casc.setV0ID(v0NewInd[casc.getV0ID()]);
+  }
+
+  // relate Cascades to primary vertices
+  pvID = -1;
+  nForPV = 0;
+  for (int iv = 0; iv < nCasc; iv++) {
+    const auto& casc = tmpCascs[cascSortID[iv]];
+    if (pvID < casc.getVertexID()) {
+      if (pvID > -1) {
+        vtx2CascRefs[pvID].setEntries(nForPV);
+      }
+      pvID = casc.getVertexID();
+      vtx2CascRefs[pvID].setFirstEntry(cascades.size());
+      nForPV = 0;
+    }
+    cascades.push_back(casc);
+    nForPV++;
+  }
+  if (pvID != -1) { // finalize
+    vtx2CascRefs[pvID].setEntries(nForPV);
+    // fill empty slots
+    int ent = cascades.size();
+    for (int ip = vtx2CascRefs.size(); ip--;) {
+      if (vtx2CascRefs[ip].getEntries()) {
+        ent = vtx2CascRefs[ip].getFirstEntry();
+      } else {
+        vtx2CascRefs[ip].setFirstEntry(ent);
+      }
+    }
+  }
+}
 
 } // namespace vertexing
 } // namespace o2

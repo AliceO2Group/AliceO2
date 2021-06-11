@@ -16,7 +16,6 @@
 
 #pragma link C++ class o2::trd::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::trd::Detector> + ;
-#pragma link C++ class o2::trd::HitType + ;
 #pragma link C++ class o2::trd::TRsim + ;
 #pragma link C++ class o2::trd::Digitizer + ;
 #pragma link C++ class o2::trd::TrapConfigHandler + ;
@@ -27,9 +26,9 @@
 #pragma link C++ class o2::trd::TrapSimulator + ;
 // dictionaries for the internal classes of TrapSimulator are needed for the debug output
 #pragma link C++ class o2::trd::TrapSimulator::TrackletDetail + ;
-#pragma link C++ class o2::trd::TrapSimulator::Hit + ;
 #pragma link C++ class o2::trd::TrapSimulator::FitReg + ;
 #pragma link C++ class o2::trd::TrapSimulator::FilterReg + ;
+#pragma link C++ class o2::trd::TrapSimulator::Hit + ;
 #pragma link C++ class o2::trd::Trap2CRU + ;
 
 #pragma link C++ class o2::trd::TRDSimParams + ;

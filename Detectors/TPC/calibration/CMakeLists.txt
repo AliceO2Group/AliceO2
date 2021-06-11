@@ -11,6 +11,7 @@
 add_subdirectory(SpacePoints)
 
 o2_add_library(TPCCalibration
+               TARGETVARNAME targetName
                SOURCES src/CalibRawBase.cxx
                        src/CalibPedestal.cxx
                        src/CalibPulser.cxx
@@ -20,9 +21,17 @@ o2_add_library(TPCCalibration
                        src/DigitDump.cxx
                        src/DigitDumpParam.cxx
                        src/CalibPadGainTracks.cxx
+                       src/IDCAverageGroup.cxx
+                       src/IDCGroup.cxx
+                       src/IDCGroupHelperRegion.cxx
+                       src/IDCGroupingParameter.cxx
+                       src/IDCFactorization.cxx
+                       src/IDCFourierTransform.cxx
+                       src/RobustAverage.cxx
+                       src/IDCCCDBHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
-                                     ms_gsl::ms_gsl)
+                                     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(TPCCalibration
                           HEADERS include/TPCCalibration/CalibRawBase.h
@@ -34,7 +43,17 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/DigitDump.h
                                   include/TPCCalibration/DigitDumpParam.h
                                   include/TPCCalibration/CalibPadGainTracks.h
-                                  include/TPCCalibration/FastHisto.h)
+                                  include/TPCCalibration/FastHisto.h
+                                  include/TPCCalibration/IDCAverageGroup.h
+                                  include/TPCCalibration/IDCGroup.h
+                                  include/TPCCalibration/IDCGroupHelperRegion.h
+                                  include/TPCCalibration/IDCGroupHelperSector.h
+                                  include/TPCCalibration/IDCFactorization.h
+                                  include/TPCCalibration/IDCGroupingParameter.h
+                                  include/TPCCalibration/IDCContainer.h
+                                  include/TPCCalibration/RobustAverage.h
+                                  include/TPCCalibration/IDCFourierTransform.h
+                                  include/TPCCalibration/IDCCCDBHelper.h)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase
@@ -67,3 +86,16 @@ o2_add_test_root_macro(macro/extractGainMap.C
 o2_add_test_root_macro(macro/preparePedestalFiles.C
                        PUBLIC_LINK_LIBRARIES O2::TPCCalibration
                        LABELS tpc)
+
+o2_add_test(IDCFourierTransform
+            COMPONENT_NAME calibration
+            PUBLIC_LINK_LIBRARIES O2::TPCCalibration
+            SOURCES test/testO2TPCIDCFourierTransform.cxx
+            ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
+            LABELS tpc
+            CONFIGURATIONS RelWithDebInfo Release MinRelSize)
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

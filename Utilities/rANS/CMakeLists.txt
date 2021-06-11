@@ -35,11 +35,13 @@ o2_add_test(CombinedIterator
             COMPONENT_NAME rANS
             LABELS utils)
             
+if (TARGET benchmark::benchmark)
 o2_add_executable(CombinedIterator
                     SOURCES benchmarks/bench_ransCombinedIterator.cxx
                     COMPONENT_NAME rANS
               IS_BENCHMARK
                     PUBLIC_LINK_LIBRARIES O2::rANS benchmark::benchmark)
+endif()
             
 o2_add_executable(rans-encode-decode-8
                   TARGETVARNAME targetName

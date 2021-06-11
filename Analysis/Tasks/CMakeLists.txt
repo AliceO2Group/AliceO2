@@ -14,8 +14,9 @@ add_subdirectory(PWGHF)
 add_subdirectory(PWGJE)
 add_subdirectory(PWGLF)
 add_subdirectory(PWGUD)
-add_subdirectory(ALICE3)
-
+add_subdirectory(Utils)
+add_subdirectory(SkimmingTutorials)
+add_subdirectory(PID)
 
 o2_add_dpl_workflow(trackextension
                     SOURCES trackextension.cxx
@@ -30,17 +31,6 @@ o2_add_dpl_workflow(trackselection
 o2_add_dpl_workflow(trackqa
                     SOURCES trackqa.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
-
-o2_add_dpl_workflow(pid-tof
-                    SOURCES pidTOF.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(pid-tpc
-                    SOURCES pidTPC.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(validation

@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_EMCAL_DIGITIZER_H
-#define ALICEO2_EMCAL_DIGITIZER_H
+#ifndef ALICEO2_EMCAL_FEEDIGITIZER_H
+#define ALICEO2_EMCAL_FEEDIGITIZER_H
 
 #include <memory>
 #include <unordered_map>
@@ -21,11 +21,10 @@
 #include "TRandom3.h"
 
 #include "DataFormatsEMCAL/Digit.h"
-#include "EMCALBase/Geometry.h"
-#include "EMCALBase/GeometryBase.h"
 #include "EMCALBase/Hit.h"
 #include "EMCALSimulation/SimParam.h"
 #include "EMCALSimulation/LabeledDigit.h"
+#include "EMCALSimulation/DigitsWriteoutBuffer.h"
 
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -38,6 +37,8 @@ namespace emcal
 /// \brief EMCAL FEE digitizer
 /// \ingroup EMCALsimulation
 /// \author Anders Knospe, University of Houston
+/// \author Hadi Hassan, ORNL
+/// @TODO adapt it to digitize TRU digits
 class Digitizer : public TObject
 {
  public:
@@ -52,16 +53,13 @@ class Digitizer : public TObject
   void finish();
 
   /// Steer conversion of hits to digits
-  void process(const std::vector<Hit>& hits);
+  void process(const std::vector<LabeledDigit>& labeledDigit);
 
   void setEventTime(double t);
   double getTriggerTime() const { return mTriggerTime; }
   double getEventTime() const { return mEventTime; }
-  bool isLive(double t) const { return (t < mLiveTime); }
+  bool isLive(double t) const { return (t - mTriggerTime < mLiveTime); }
   bool isLive() const { return (mEventTime < mLiveTime); }
-
-  void setContinuous(bool v) { mContinuous = v; }
-  bool isContinuous() const { return mContinuous; }
 
   bool isEmpty() const { return mEmpty; }
 
@@ -77,31 +75,19 @@ class Digitizer : public TObject
   void setCoeffToNanoSecond(double cf) { mCoeffToNanoSecond = cf; }
   double getCoeffToNanoSecond() const { return mCoeffToNanoSecond; }
 
-  void setCurrSrcID(int v);
-  int getCurrSrcID() const { return mCurrSrcID; }
-
-  void setCurrEvID(int v);
-  int getCurrEvID() const { return mCurrEvID; }
-
-  void setGeometry(const o2::emcal::Geometry* gm) { mGeometry = gm; }
-
-  void hitToDigits(const Hit& hit);
+  void sampleSDigit(const Digit& sdigit);
 
   static double rawResponseFunction(double* x, double* par);
   /// raw pointers used here to allow interface with TF1
 
  private:
-  const Geometry* mGeometry = nullptr;     ///< EMCAL geometry
   double mTriggerTime = -1e20;             ///< global trigger time
   double mEventTime = 0;                   ///< global event time
   short mEventTimeOffset = 0;              ///< event time difference from trigger time (in number of bins)
   short mPhase = 0;                        ///< event phase
   double mCoeffToNanoSecond = 1.0;         ///< coefficient to convert event time (Fair) to ns
-  bool mContinuous = false;                ///< flag for continuous simulation
   UInt_t mROFrameMin = 0;                  ///< lowest RO frame of current digits
   UInt_t mROFrameMax = 0;                  ///< highest RO frame of current digits
-  int mCurrSrcID = 0;                      ///< current MC source from the manager
-  int mCurrEvID = 0;                       ///< current event ID from the manager
   bool mSmearEnergy = true;                ///< do time and energy smearing
   bool mSimulateTimeResponse = true;       ///< simulate time response
   bool mRemoveDigitsBelowThreshold = true; ///< remove digits below threshold
@@ -109,12 +95,12 @@ class Digitizer : public TObject
   const SimParam* mSimParam = nullptr;     ///< SimParam object
   bool mEmpty = true;                      ///< Digitizer contains no digits/labels
 
-  std::vector<Digit> mTempDigitVector;                          ///< temporary digit storage
-  std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits;   ///< used to sort digits and labels by tower
+  std::vector<Digit> mTempDigitVector;                        ///< temporary digit storage
+  std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
 
-  TRandom3* mRandomGenerator = nullptr;                       // random number generator
-  std::vector<int> mTimeBinOffset;                            // offset of first time bin
-  std::vector<std::vector<double>> mAmplitudeInTimeBins;      // amplitude of signal for each time bin
+  TRandom3* mRandomGenerator = nullptr;                  // random number generator
+  std::vector<int> mTimeBinOffset;                       // offset of first time bin
+  std::vector<std::vector<double>> mAmplitudeInTimeBins; // amplitude of signal for each time bin
 
   float mLiveTime = 1500;  // EMCal live time (ns)
   float mBusyTime = 35000; // EMCal busy time (ns)
@@ -125,4 +111,4 @@ class Digitizer : public TObject
 } // namespace emcal
 } // namespace o2
 
-#endif /* ALICEO2_EMCAL_DIGITIZER_H */
+#endif /* ALICEO2_EMCAL_FEEDIGITIZER_H */

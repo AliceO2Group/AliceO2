@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(TestServiceRegistry)
   ConcreteC const serviceC;
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceA>(&serviceA));
   registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceB>(&serviceB));
-  registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceC>(&serviceC));
+  registry.registerService(ServiceRegistryHelpers::handleForService<InterfaceC const>(&serviceC));
   BOOST_CHECK(registry.get<InterfaceA>().method() == true);
   BOOST_CHECK(registry.get<InterfaceB>().method() == false);
   BOOST_CHECK(registry.get<InterfaceC const>().method() == false);

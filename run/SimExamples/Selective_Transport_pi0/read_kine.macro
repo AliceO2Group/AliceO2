@@ -1,0 +1,38 @@
+void
+read_kine(const char *fname1, int iev1 = 0)
+{
+
+  auto fin1 = TFile::Open(fname1);
+  auto tin1 = (TTree*)fin1->Get("o2sim");
+  auto tracks1 = new vector<o2::MCTrack>;
+  tin1->SetBranchAddress("MCTrack", &tracks1);
+
+  tin1->GetEntry(iev1);
+  
+  std::cout << "itrk" << " "
+	    << "st1" << " "
+	    << "st2" << "\t"
+	    << "pdg" << "\t"
+	    << "M1" << "\t"
+	    << "M2" << "\t"
+	    << "D1" << "\t"
+	    << "D2" << "\t"
+	    << std::endl;
+  
+  for (int itr = 0; itr < tracks1->size(); ++itr) {
+    
+    auto& t1 = tracks1->at(itr);
+    
+    std::cout << itr << " "
+	      << t1.isPrimary() << t1.getToBeDone() << t1.getInhibited() << " "
+	      << t1.isPrimary() << t1.getToBeDone() << t1.getInhibited() << "\t"
+	      << t1.GetPdgCode() << "\t"
+	      << t1.getMotherTrackId() << "\t"
+	      << t1.getSecondMotherTrackId() << "\t"
+	      << t1.getFirstDaughterTrackId() << "\t"
+	      << t1.getLastDaughterTrackId() << "\t"
+	      << std::endl;
+    
+  }
+  
+}

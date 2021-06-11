@@ -47,7 +47,9 @@ struct CommonServices {
     return [](InitContext&, void* service) -> void* { return service; };
   }
 
+  static ServiceSpec driverClientSpec();
   static ServiceSpec monitoringSpec();
+  static ServiceSpec datatakingContextSpec();
   static ServiceSpec infologgerContextSpec();
   static ServiceSpec infologgerSpec();
   static ServiceSpec configurationSpec();

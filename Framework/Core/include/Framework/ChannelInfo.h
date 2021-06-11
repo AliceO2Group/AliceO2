@@ -12,6 +12,8 @@
 
 #include <string>
 
+class FairMQChannel;
+
 namespace o2::framework
 {
 
@@ -31,6 +33,8 @@ enum struct InputChannelState {
 /// updated by Control or by the by the incoming flow of messages.
 struct InputChannelInfo {
   InputChannelState state = InputChannelState::Running;
+  uint32_t hasPendingEvents = 0;
+  FairMQChannel* channel = nullptr;
 };
 
 } // namespace o2::framework

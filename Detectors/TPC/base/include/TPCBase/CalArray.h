@@ -11,7 +11,6 @@
 #ifndef ALICEO2_TPC_CALARRAY_H_
 #define ALICEO2_TPC_CALARRAY_H_
 
-#include <Vc/Vc>
 #include <memory>
 #include <vector>
 #include <string>
@@ -253,7 +252,7 @@ inline const CalArray<T>& CalArray<T>::operator/=(const CalArray<T>& other)
       mData[i] /= other.getValue(i);
     } else {
       mData[i] = 0;
-      LOG(ERROR) << "Division by 0 detected! Value was set to 0.";
+      LOG(DEBUG) << "Division by 0 detected! Value was set to 0.";
     }
   }
   return *this;

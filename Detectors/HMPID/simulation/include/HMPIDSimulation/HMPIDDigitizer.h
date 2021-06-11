@@ -11,7 +11,8 @@
 #ifndef DETECTORS_HMPID_SIMULATION_INCLUDE_HMPIDSIMULATION_HMPIDDIGITIZER_H_
 #define DETECTORS_HMPID_SIMULATION_INCLUDE_HMPIDSIMULATION_HMPIDDIGITIZER_H_
 
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDSimulation/Detector.h" // for the hit
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -44,10 +45,12 @@ class HMPIDDigitizer
       // for the first trigger no busy check necessary
       mCurrentTriggerTime = timeNS;
       mReadoutCounter++;
+      mBc = o2::InteractionRecord::ns2bc(mCurrentTriggerTime, mOrbit);
       return true;
     } else {
       if ((timeNS - mCurrentTriggerTime) > BUSYTIME) {
         mCurrentTriggerTime = timeNS;
+        mBc = o2::InteractionRecord::ns2bc(mCurrentTriggerTime, mOrbit);
         mReadoutCounter++;
         return true;
       } else {
@@ -55,6 +58,9 @@ class HMPIDDigitizer
       }
     }
   }
+
+  uint32_t getOrbit() { return mOrbit; };
+  uint16_t getBc() { return mBc; };
 
   void setEventID(int eventID) { mEventID = eventID; }
   void setSrcID(int sID) { mSrcID = sID; }
@@ -83,6 +89,9 @@ class HMPIDDigitizer
                                                      // (using noise and other tables for pad)
 
   double mCurrentTriggerTime = 0.;
+  uint32_t mOrbit = 0;
+  uint16_t mBc = 0;
+
   int mEventID = 0;
   int mSrcID = 0;
 

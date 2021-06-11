@@ -106,7 +106,7 @@ bool DataInputDescriptor::setFile(int counter)
 
   // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
-    std::regex TFRegex = std::regex("TF_[0-9]+");
+    std::regex TFRegex = std::regex("DF_[0-9]+");
     TList* keyList = mcurrentFile->GetListOfKeys();
 
     // extract TF numbers and sort accordingly
@@ -119,7 +119,7 @@ bool DataInputDescriptor::setFile(int counter)
     std::sort(mfilenames[counter]->listOfTimeFrameNumbers.begin(), mfilenames[counter]->listOfTimeFrameNumbers.end());
 
     for (auto folderNumber : mfilenames[counter]->listOfTimeFrameNumbers) {
-      auto folderName = "TF_" + std::to_string(folderNumber);
+      auto folderName = "DF_" + std::to_string(folderNumber);
       mfilenames[counter]->listOfTimeFrameKeys.emplace_back(folderName);
     }
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();
@@ -162,6 +162,11 @@ FileAndFolder DataInputDescriptor::getFileFolder(int counter, int numTF)
   fileAndFolder.folderName = (mfilenames[counter]->listOfTimeFrameKeys)[numTF];
 
   return fileAndFolder;
+}
+
+int DataInputDescriptor::getTimeFramesInFile(int counter)
+{
+  return mfilenames.at(counter)->numberOfTimeFrames;
 }
 
 void DataInputDescriptor::closeInputFile()
@@ -524,6 +529,17 @@ FileAndFolder DataInputDirector::getFileFolder(header::DataHeader dh, int counte
   }
 
   return didesc->getFileFolder(counter, numTF);
+}
+
+int DataInputDirector::getTimeFramesInFile(header::DataHeader dh, int counter)
+{
+  auto didesc = getDataInputDescriptor(dh);
+  // if NOT match then use defaultDataInputDescriptor
+  if (!didesc) {
+    didesc = mdefaultDataInputDescriptor;
+  }
+
+  return didesc->getTimeFramesInFile(counter);
 }
 
 uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counter, int numTF)

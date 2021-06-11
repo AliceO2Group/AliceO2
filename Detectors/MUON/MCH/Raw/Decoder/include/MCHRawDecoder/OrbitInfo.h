@@ -42,6 +42,7 @@ class OrbitInfo
 
   friend bool operator==(const OrbitInfo& o1, const OrbitInfo& o2);
   friend bool operator!=(const OrbitInfo& o1, const OrbitInfo& o2);
+  friend bool operator<(const OrbitInfo& o1, const OrbitInfo& o2);
 
  private:
   uint64_t mOrbitInfo = {0};
@@ -51,6 +52,7 @@ class OrbitInfo
 
 bool operator==(const OrbitInfo& o1, const OrbitInfo& o2);
 bool operator!=(const OrbitInfo& o1, const OrbitInfo& o2);
+bool operator<(const OrbitInfo& o1, const OrbitInfo& o2);
 
 } //namespace mch
 } //namespace o2

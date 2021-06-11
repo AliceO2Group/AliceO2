@@ -20,10 +20,11 @@
 #pragma link C++ class o2::phos::MCLabel + ;
 #pragma link C++ class o2::phos::TriggerRecord + ;
 
-#pragma link C++ class std::vector < o2::phos::Cell > +;
-#pragma link C++ class std::vector < o2::phos::Digit > +;
-#pragma link C++ class std::vector < o2::phos::Cluster > +;
-#pragma link C++ class std::vector < o2::phos::TriggerRecord > +;
+#pragma link C++ class std::vector < o2::phos::Cell> + ;
+#pragma link C++ class std::vector < o2::phos::Digit> + ;
+#pragma link C++ class std::vector < o2::phos::Cluster> + ;
+#pragma link C++ class std::vector < o2::phos::CluElement> + ;
+#pragma link C++ class std::vector < o2::phos::TriggerRecord> + ;
 #include "SimulationDataFormat/MCTruthContainer.h"
 #pragma link C++ class o2::dataformats::MCTruthContainer < o2::phos::MCLabel> + ;
 // For channel type in digits and cells
@@ -32,5 +33,10 @@
 #pragma link C++ struct o2::phos::CTFHeader + ;
 #pragma link C++ struct o2::phos::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::phos::CTFHeader, 7, uint32_t> + ;
+
+#pragma link C++ class o2::phos::BadChannelsMap + ;
+#pragma link C++ class o2::phos::CalibParams + ;
+#pragma link C++ class o2::phos::Pedestals + ;
+#pragma link C++ class o2::phos::TriggerMap + ;
 
 #endif

@@ -12,5 +12,6 @@ o2_add_library(EventVisualisationDataConverter
                SOURCES src/VisualisationEvent.cxx 
                        src/VisualisationTrack.cxx
                        src/VisualisationCluster.cxx
+               PUBLIC_LINK_LIBRARIES RapidJSON::RapidJSON
 
 )

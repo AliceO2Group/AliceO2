@@ -57,7 +57,7 @@ class ZeroSuppressionDeviceDPL
     for (auto& rof : inROFRecords) {
       mConverter.process(patterns.subspan(rof.firstEntry, rof.nEntries));
       if (!mConverter.getData().empty()) {
-        std::vector<LocalBoardRO> decodedData;
+        std::vector<ROBoard> decodedData;
         for (auto& item : mConverter.getData()) {
           decodedData.insert(decodedData.end(), item.second.begin(), item.second.end());
         }

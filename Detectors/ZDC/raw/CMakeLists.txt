@@ -9,7 +9,9 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(ZDCRaw
-               SOURCES src/DumpRaw.cxx src/raw-parser.cxx
+               SOURCES src/DumpRaw.cxx
+	               src/raw-parser.cxx
+		       src/RawReaderZDC.cxx
                PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ZDCBase O2::ZDCSimulation
 	       			     O2::DataFormatsZDC O2::CCDB O2::SimConfig O2::DPLUtils
 				     O2::DetectorsRaw O2::Headers)
@@ -28,4 +30,3 @@ o2_add_executable(raw-parser
                                         O2::DetectorsRaw
                                         O2::DetectorsCommonDataFormats
                                         O2::CommonUtils)
-

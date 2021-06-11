@@ -9,14 +9,15 @@
 // or submit itself to any jurisdiction.
 
 #include "FairRunSim.h"
-#include "TFluka.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
 #include <iostream>
 #include "FairLogger.h"
 #include "FairModule.h"
 #include "Generators/DecayerPythia8.h"
+#include "SimSetup/FlukaParam.h"
 #include "../commonConfig.C"
+#include "CommonUtils/ConfigurationMacroHelper.h"
 
 // these are used in commonConfig.C
 using o2::eventgen::DecayerPythia8;
@@ -38,12 +39,11 @@ void linkFlukaFiles()
   gSystem->Exec("ln -s $FLUKADATA/cohff.bin .");
   gSystem->Exec("ln -s $FLUKADATA/fluodt.dat  .");
   gSystem->Exec("ln -s $FLUKADATA/random.dat  .");
-  // Copy the random seed
-  gSystem->Exec("cp $FLUKADATA/random.dat old.seed");
+  gSystem->Exec("ln -s $FLUKADATA/dnr.dat  .");
+  gSystem->Exec("ln -s $FLUKADATA/nunstab.data .");
   // Give some meaningfull name to the output
   gSystem->Exec("ln -s fluka.out fort.11");
   gSystem->Exec("ln -s fluka.err fort.15");
-  gSystem->Exec("ln -fs $ALICE_ROOT/TFluka/macro/FlukaConfig.C Config.C");
   gSystem->Exec("ln -fs $O2_ROOT/share/Detectors/gconfig/data/coreFlukaVmc.inp .");
 }
 
@@ -51,14 +51,19 @@ void Config()
 {
   linkFlukaFiles();
   FairRunSim* run = FairRunSim::Instance();
-  TString* gModel = run->GetGeoModel();
-  TFluka* fluka = new TFluka("C++ Interface to Fluka", 0);
-  stackSetup(fluka, run);
-
-  // setup decayer
-  decayerSetup(fluka);
-
-  // ******* FLUKA  specific configuration for simulated Runs  *******
+  // try to see if Fluka is available in the runtime
+  auto status = gSystem->Load("libflukavmc");
+  if (status == 0 || status == 1) {
+    // we load Fluka as a real plugin via a ROOT Macro
+    auto fluka = o2::conf::GetFromMacro<TVirtualMC*>("$O2_ROOT/share/Detectors/gconfig/FlukaRuntimeConfig.macro", "FlukaRuntimeConfig()", "TVirtualMC*", "foo");
+    stackSetup(fluka, run);
+    decayerSetup(fluka);
+  } else {
+    LOG(ERROR) << "FLUKA is not available in the runtime environment";
+    LOG(ERROR) << "Please compile and load by including FLUKA_VMC/latest in the alienv package list";
+    LOG(FATAL) << "Quitting here due to FLUKA_VMC not being available";
+  }
+  return;
 }
 
 void FlukaConfig()

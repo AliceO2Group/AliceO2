@@ -43,7 +43,7 @@ class GPUTRDGeometry : public AliTRDgeometry
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#elif defined(HAVE_O2HEADERS) //&& defined(GPUCA_GPUCODE)
+#elif defined(GPUCA_HAVE_O2HEADERS) //&& defined(GPUCA_GPUCODE)
 
 class TObjArray;
 #include "GPUDef.h"
@@ -174,6 +174,6 @@ class GPUTRDGeometry
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 
-#endif // !GPUCA_ALIROOT_LIB && !defined(HAVE_O2HEADERS)
+#endif // !GPUCA_ALIROOT_LIB && !defined(GPUCA_HAVE_O2HEADERS)
 
 #endif // GPUTRDGEOMETRY_H

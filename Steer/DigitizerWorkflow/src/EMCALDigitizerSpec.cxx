@@ -41,7 +41,9 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
   // to be adapted with run numbers at a later stage
   auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
   // init digitizer
-  mDigitizer.setGeometry(geom);
+
+  mSumDigitizer.setGeometry(geom);
+
   mDigitizer.init();
 
   mFinished = false;
@@ -79,7 +81,10 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
   for (int collID = 0; collID < timesview.size(); ++collID) {
-    if (!mDigitizer.isEmpty() && (o2::emcal::SimParam::Instance().isDisablePileup() || !mDigitizer.isLive(timesview[collID].getTimeNS()))) {
+
+    mDigitizer.setEventTime(timesview[collID].getTimeNS());
+
+    if (!mDigitizer.isEmpty() && (o2::emcal::SimParam::Instance().isDisablePileup() || !mDigitizer.isLive())) {
       // copy digits into accumulator
       mDigits.clear();
       mLabels.clear();
@@ -93,8 +98,6 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
       mLabels.clear();
     }
 
-    mDigitizer.setEventTime(timesview[collID].getTimeNS());
-
     if (!mDigitizer.isLive()) {
       continue;
     }
@@ -107,8 +110,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     // for each collision, loop over the constituents event and source IDs
     // (background signal merging is basically taking place here)
     for (auto& part : eventParts[collID]) {
-      mDigitizer.setCurrEvID(part.entryID);
-      mDigitizer.setCurrSrcID(part.sourceID);
+
+      mSumDigitizer.setCurrEvID(part.entryID);
+      mSumDigitizer.setCurrSrcID(part.sourceID);
 
       // get the hits for this event and this source
       mHits.clear();
@@ -116,8 +120,10 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
       LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
+      std::vector<o2::emcal::LabeledDigit> summedDigits = mSumDigitizer.process(mHits);
+
       // call actual digitization procedure
-      mDigitizer.process(mHits);
+      mDigitizer.process(summedDigits);
     }
   }
 

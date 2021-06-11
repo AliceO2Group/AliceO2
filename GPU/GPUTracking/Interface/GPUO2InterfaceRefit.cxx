@@ -16,11 +16,12 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "GPUParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "GPUTrackingRefit.h"
 
 using namespace o2::gpu;
 using namespace o2::tpc;
 
-void GPUTPCO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, unsigned char* shmap)
+void GPUO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl, const gsl::span<const TrackTPC> trks, const TPCClRefElem* trackRef, unsigned char* shmap)
 {
   if (!cl || !shmap) {
     throw std::runtime_error("Must provide clusters access and preallocated recepient for shared map");
@@ -37,7 +38,7 @@ void GPUTPCO2InterfaceRefit::fillSharedClustersMap(const ClusterNativeAccess* cl
   }
 }
 
-GPUTPCO2InterfaceRefit::GPUTPCO2InterfaceRefit(const ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mRefit(), mParam(new GPUParam)
+GPUO2InterfaceRefit::GPUO2InterfaceRefit(const ClusterNativeAccess* cl, const TPCFastTransform* trans, float bz, const TPCClRefElem* trackRef, const unsigned char* sharedmap, const std::vector<TrackTPC>* trks, o2::base::Propagator* p) : mParam(new GPUParam)
 {
   if (sharedmap == nullptr && trks == nullptr) {
     throw std::runtime_error("Must provide either shared cluster map or vector of tpc tracks to build the map");
@@ -48,16 +49,22 @@ GPUTPCO2InterfaceRefit::GPUTPCO2InterfaceRefit(const ClusterNativeAccess* cl, co
     fillSharedClustersMap(cl, *trks, trackRef, mSharedMap.data());
   }
 
+  mRefit = std::make_unique<GPUTrackingRefit>();
   mParam->SetDefaults(bz);
-  mRefit.SetGPUParam(mParam.get());
-  mRefit.SetClusterStateArray(sharedmap);
-  mRefit.SetPropagator(p);
-  mRefit.SetClusterNative(cl);
-  mRefit.SetTrackHitReferences(trackRef);
-  mRefit.SetFastTransform(trans);
+  mRefit->SetGPUParam(mParam.get());
+  mRefit->SetClusterStateArray(sharedmap);
+  mRefit->SetPropagator(p);
+  mRefit->SetClusterNative(cl);
+  mRefit->SetTrackHitReferences(trackRef);
+  mRefit->SetFastTransform(trans);
 }
 
-void GPUTPCO2InterfaceRefit::setGPUTrackFitInProjections(bool v) { mParam->rec.fitInProjections = v; }
-void GPUTPCO2InterfaceRefit::setTrackReferenceX(float v) { mParam->rec.TrackReferenceX = v; }
+int GPUO2InterfaceRefit::RefitTrackAsGPU(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, outward, resetCov); }
+int GPUO2InterfaceRefit::RefitTrackAsTrackParCov(o2::tpc::TrackTPC& trk, bool outward, bool resetCov) { return mRefit->RefitTrackAsTrackParCov(trk, outward, resetCov); }
+int GPUO2InterfaceRefit::RefitTrackAsGPU(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2, bool outward, bool resetCov) { return mRefit->RefitTrackAsGPU(trk, clusRef, time0, chi2, outward, resetCov); }
+int GPUO2InterfaceRefit::RefitTrackAsTrackParCov(o2::track::TrackParCov& trk, const o2::tpc::TrackTPCClusRef& clusRef, float time0, float* chi2, bool outward, bool resetCov) { return mRefit->RefitTrackAsTrackParCov(trk, clusRef, time0, chi2, outward, resetCov); }
+void GPUO2InterfaceRefit::setIgnoreErrorsAtTrackEnds(bool v) { mRefit->mIgnoreErrorsOnTrackEnds = v; }
+void GPUO2InterfaceRefit::setGPUTrackFitInProjections(bool v) { mParam->rec.fitInProjections = v; }
+void GPUO2InterfaceRefit::setTrackReferenceX(float v) { mParam->rec.tpc.trackReferenceX = v; }
 
-GPUTPCO2InterfaceRefit::~GPUTPCO2InterfaceRefit() = default;
+GPUO2InterfaceRefit::~GPUO2InterfaceRefit() = default;

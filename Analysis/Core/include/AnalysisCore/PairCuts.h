@@ -13,9 +13,6 @@
 
 #include <cmath>
 
-#include <TH2F.h>
-#include <TH3F.h>
-
 #include "Framework/Logger.h"
 #include "Framework/HistogramRegistry.h"
 
@@ -42,7 +39,7 @@ class PairCuts
   {
     LOGF(info, "Enabled pair cut for %d with value %f", static_cast<int>(particle), cut);
     mCuts[particle] = cut;
-    if (histogramRegistry != nullptr && histogramRegistry->contains("ControlConvResonances") == false) {
+    if (histogramRegistry != nullptr && histogramRegistry->contains(HIST("ControlConvResonances")) == false) {
       histogramRegistry->add("ControlConvResonances", "", {HistType::kTH2F, {{6, -0.5, 5.5, "id"}, {500, -0.5, 0.5, "delta mass"}}});
     }
   }
@@ -53,7 +50,7 @@ class PairCuts
     mTwoTrackDistance = distance;
     mTwoTrackRadius = radius;
 
-    if (histogramRegistry != nullptr && histogramRegistry->contains("TwoTrackDistancePt_0") == false) {
+    if (histogramRegistry != nullptr && histogramRegistry->contains(HIST("TwoTrackDistancePt_0")) == false) {
       histogramRegistry->add("TwoTrackDistancePt_0", "", {HistType::kTH3F, {{100, -0.15, 0.15, "#Delta#eta"}, {100, -0.05, 0.05, "#Delta#varphi^{*}_{min}"}, {20, 0, 10, "#Delta p_{T}"}}});
       histogramRegistry->addClone("TwoTrackDistancePt_0", "TwoTrackDistancePt_1");
     }
@@ -89,7 +86,7 @@ template <typename T>
 bool PairCuts::conversionCuts(T const& track1, T const& track2)
 {
   // skip if like sign
-  if (track1.charge() * track2.charge() > 0) {
+  if (track1.sign() * track2.sign() > 0) {
     return false;
   }
 
@@ -121,20 +118,20 @@ bool PairCuts::twoTrackCut(T const& track1, T const& track2, int bSign)
   auto deta = track1.eta() - track2.eta();
 
   // optimization
-  if (TMath::Abs(deta) < mTwoTrackDistance * 2.5 * 3) {
+  if (std::fabs(deta) < mTwoTrackDistance * 2.5 * 3) {
     // check first boundaries to see if is worth to loop and find the minimum
     float dphistar1 = getDPhiStar(track1, track2, mTwoTrackRadius, bSign);
     float dphistar2 = getDPhiStar(track1, track2, 2.5, bSign);
 
     const float kLimit = mTwoTrackDistance * 3;
 
-    if (TMath::Abs(dphistar1) < kLimit || TMath::Abs(dphistar2) < kLimit || dphistar1 * dphistar2 < 0) {
+    if (std::fabs(dphistar1) < kLimit || std::fabs(dphistar2) < kLimit || dphistar1 * dphistar2 < 0) {
       float dphistarminabs = 1e5;
       float dphistarmin = 1e5;
       for (Double_t rad = mTwoTrackRadius; rad < 2.51; rad += 0.01) {
         float dphistar = getDPhiStar(track1, track2, rad, bSign);
 
-        float dphistarabs = TMath::Abs(dphistar);
+        float dphistarabs = std::fabs(dphistar);
 
         if (dphistarabs < dphistarminabs) {
           dphistarmin = dphistar;
@@ -143,16 +140,16 @@ bool PairCuts::twoTrackCut(T const& track1, T const& track2, int bSign)
       }
 
       if (histogramRegistry != nullptr) {
-        histogramRegistry->fill(HIST("TwoTrackDistancePt_0"), deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
+        histogramRegistry->fill(HIST("TwoTrackDistancePt_0"), deta, dphistarmin, std::fabs(track1.pt() - track2.pt()));
       }
 
-      if (dphistarminabs < mTwoTrackDistance && TMath::Abs(deta) < mTwoTrackDistance) {
-        //LOGF(debug, "Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi2(), track1.pt(), track1.charge(), track2.phi2(), track2.pt(), track2.charge(), bSign);
+      if (dphistarminabs < mTwoTrackDistance && std::fabs(deta) < mTwoTrackDistance) {
+        //LOGF(debug, "Removed track pair %ld %ld with %f %f %f %f %d %f %f %d %d", track1.index(), track2.index(), deta, dphistarminabs, track1.phi2(), track1.pt(), track1.sign(), track2.phi2(), track2.pt(), track2.sign(), bSign);
         return true;
       }
 
       if (histogramRegistry != nullptr) {
-        histogramRegistry->fill(HIST("TwoTrackDistancePt_1"), deta, dphistarmin, TMath::Abs(track1.pt() - track2.pt()));
+        histogramRegistry->fill(HIST("TwoTrackDistancePt_1"), deta, dphistarmin, std::fabs(track1.pt() - track2.pt()));
       }
     }
   }
@@ -205,7 +202,7 @@ bool PairCuts::conversionCut(T const& track1, T const& track2, Particle conv, do
 
   auto massC = getInvMassSquaredFast(track1, massD1, track2, massD2);
 
-  if (TMath::Abs(massC - massM * massM) > cut * 5) {
+  if (std::fabs(massC - massM * massM) > cut * 5) {
     return false;
   }
 
@@ -236,20 +233,20 @@ double PairCuts::getInvMassSquared(T const& track1, double m0_1, T const& track2
   float tantheta1 = 1e10;
 
   if (track1.eta() < -1e-10 || track1.eta() > 1e-10) {
-    float expTmp = TMath::Exp(-track1.eta());
+    float expTmp = std::exp(-track1.eta());
     tantheta1 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
   }
 
   float tantheta2 = 1e10;
   if (track2.eta() < -1e-10 || track2.eta() > 1e-10) {
-    float expTmp = TMath::Exp(-track2.eta());
+    float expTmp = std::exp(-track2.eta());
     tantheta2 = 2.0 * expTmp / (1.0 - expTmp * expTmp);
   }
 
   float e1squ = m0_1 * m0_1 + track1.pt() * track1.pt() * (1.0 + 1.0 / tantheta1 / tantheta1);
   float e2squ = m0_2 * m0_2 + track2.pt() * track2.pt() * (1.0 + 1.0 / tantheta2 / tantheta2);
 
-  float mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (track1.pt() * track2.pt() * (TMath::Cos(track1.phi() - track2.phi()) + 1.0 / tantheta1 / tantheta2)));
+  float mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (std::sqrt(e1squ * e2squ) - (track1.pt() * track2.pt() * (std::cos(track1.phi() - track2.phi()) + 1.0 / tantheta1 / tantheta2)));
 
   // LOGF(debug, "%f %f %f %f %f %f %f %f %f", pt1, eta1, phi1, pt2, eta2, phi2, m0_1, m0_2, mass2);
 
@@ -285,7 +282,7 @@ double PairCuts::getInvMassSquaredFast(T const& track1, double m0_1, T const& tr
   float e2squ = m0_2 * m0_2 + pt2 * pt2 * (1.0 + 1.0 / tantheta2 / tantheta2);
 
   // fold onto 0...pi
-  float deltaPhi = TMath::Abs(phi1 - phi2);
+  float deltaPhi = std::fabs(phi1 - phi2);
   while (deltaPhi > M_PI * 2) {
     deltaPhi -= M_PI * 2;
   }
@@ -297,12 +294,12 @@ double PairCuts::getInvMassSquaredFast(T const& track1, double m0_1, T const& tr
   if (deltaPhi < M_PI / 3) {
     cosDeltaPhi = 1.0 - deltaPhi * deltaPhi / 2 + deltaPhi * deltaPhi * deltaPhi * deltaPhi / 24;
   } else if (deltaPhi < 2 * M_PI / 3) {
-    cosDeltaPhi = -(deltaPhi - M_PI / 2) + 1.0 / 6 * TMath::Power((deltaPhi - M_PI / 2), 3);
+    cosDeltaPhi = -(deltaPhi - M_PI / 2) + 1.0 / 6 * std::pow((deltaPhi - M_PI / 2), 3);
   } else {
-    cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - M_PI) * (deltaPhi - M_PI) - 1.0 / 24.0 * TMath::Power(deltaPhi - M_PI, 4);
+    cosDeltaPhi = -1.0 + 1.0 / 2.0 * (deltaPhi - M_PI) * (deltaPhi - M_PI) - 1.0 / 24.0 * std::pow(deltaPhi - M_PI, 4);
   }
 
-  double mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (TMath::Sqrt(e1squ * e2squ) - (pt1 * pt2 * (cosDeltaPhi + 1.0 / tantheta1 / tantheta2)));
+  double mass2 = m0_1 * m0_1 + m0_2 * m0_2 + 2 * (std::sqrt(e1squ * e2squ) - (pt1 * pt2 * (cosDeltaPhi + 1.0 / tantheta1 / tantheta2)));
 
   //LOGF(debug, "%f %f %f %f %f %f %f %f %f", pt1, eta1, phi1, pt2, eta2, phi2, m0_1, m0_2, mass2);
 
@@ -318,13 +315,13 @@ float PairCuts::getDPhiStar(T const& track1, T const& track2, float radius, floa
 
   auto phi1 = track1.phi();
   auto pt1 = track1.pt();
-  auto charge1 = track1.charge();
+  auto charge1 = track1.sign();
 
   auto phi2 = track2.phi();
   auto pt2 = track2.pt();
-  auto charge2 = track2.charge();
+  auto charge2 = track2.sign();
 
-  float dphistar = phi1 - phi2 - charge1 * bSign * TMath::ASin(0.075 * radius / pt1) + charge2 * bSign * TMath::ASin(0.075 * radius / pt2);
+  float dphistar = phi1 - phi2 - charge1 * bSign * std::asin(0.075 * radius / pt1) + charge2 * bSign * std::asin(0.075 * radius / pt2);
 
   if (dphistar > M_PI) {
     dphistar = M_PI * 2 - dphistar;

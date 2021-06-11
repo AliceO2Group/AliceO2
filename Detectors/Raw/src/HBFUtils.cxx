@@ -26,7 +26,7 @@ uint32_t HBFUtils::getHBF(const IR& rec) const
   auto diff = rec.differenceInBC(getFirstIR());
   if (diff < 0) {
     LOG(ERROR) << "IR " << rec.bc << '/' << rec.orbit << " is ahead of the reference IR "
-               << bcFirst << '/' << orbitFirst;
+               << "0/" << orbitFirst;
     throw std::runtime_error("Requested IR is ahead of the reference IR");
   }
   return diff / o2::constants::lhc::LHCMaxBunches;
@@ -39,11 +39,21 @@ int HBFUtils::fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& t
   // BCs between interaction records "fromIR" and "toIR" (inclusive).
   dst.clear();
   int hb0 = getHBF(fromIR), hb1 = getHBF(toIR);
-  if (fromIR.bc != bcFirst) { // unless we are just starting the HBF of fromIR, it was already counted
+  if (fromIR.bc != 0) { // unless we are just starting the HBF of fromIR, it was already counted
     hb0++;
   }
   for (int ihb = hb0; ihb <= hb1; ihb++) {
     dst.emplace_back(getIRHBF(ihb));
   }
   return dst.size();
+}
+
+//_________________________________________________
+void HBFUtils::checkConsistency() const
+{
+  if (orbitFirstSampled < orbitFirst) {
+    auto s = fmt::format("1st sampled orbit ({}) < 1st orbit of run ({})", orbitFirstSampled, orbitFirst);
+    LOG(ERROR) << s;
+    throw std::runtime_error(s);
+  }
 }

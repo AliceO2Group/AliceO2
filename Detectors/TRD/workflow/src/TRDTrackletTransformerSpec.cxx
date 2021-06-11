@@ -48,8 +48,7 @@ void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
   LOG(info) << tracklets.size() << " tracklets found!";
 
   for (const auto& tracklet : tracklets) {
-    CalibratedTracklet calibratedTracklet = mTransformer.transformTracklet(tracklet);
-    calibratedTracklets.push_back(calibratedTracklet);
+    calibratedTracklets.push_back(mTransformer.transformTracklet(tracklet));
   }
 
   pc.outputs().snapshot(Output{"TRD", "CTRACKLETS", 0, Lifetime::Timeframe}, calibratedTracklets);

@@ -15,8 +15,8 @@
 #define GPUO2INTERFACEQA_H
 
 // Some defines denoting that we are compiling for O2
-#ifndef HAVE_O2HEADERS
-#define HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
+#define GPUCA_HAVE_O2HEADERS
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2
@@ -46,11 +46,12 @@ struct ClusterNativeAccess;
 namespace o2::gpu
 {
 class GPUQA;
-class GPUSettingsQA;
+struct GPUParam;
+struct GPUO2InterfaceConfiguration;
 class GPUO2InterfaceQA
 {
  public:
-  GPUO2InterfaceQA(const GPUSettingsQA* config = nullptr);
+  GPUO2InterfaceQA(const GPUO2InterfaceConfiguration* config = nullptr);
   ~GPUO2InterfaceQA();
 
   int initializeForProcessing(int tasks); // only needed for processing, not for postprocessing
@@ -67,6 +68,7 @@ class GPUO2InterfaceQA
 
  private:
   std::unique_ptr<GPUQA> mQA;
+  std::unique_ptr<GPUParam> mParam;
 };
 } // namespace o2::gpu
 

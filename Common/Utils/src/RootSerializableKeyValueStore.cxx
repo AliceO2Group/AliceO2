@@ -18,6 +18,6 @@ void RootSerializableKeyValueStore::print() const
   for (auto& p : mStore) {
     const auto& key = p.first;
     const auto info = p.second;
-    std::cout << "key: " << key << " of-type: " << info->typeinfo_name << "\n";
+    std::cout << "key: " << key << " of-type: " << info.typeinfo_name << "\n";
   }
 }

@@ -13,18 +13,20 @@ o2_add_library(CommonDataFormat
                        src/BunchFilling.cxx
                        src/FlatHisto1D.cxx
                        src/FlatHisto2D.cxx
+                       src/AbstractRefAccessor.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::GPUCommon
-                                     ROOT::Core FairRoot::Base ms_gsl::ms_gsl)
+                                     ROOT::Core FairRoot::Base O2::MathUtils Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(CommonDataFormat
                           HEADERS include/CommonDataFormat/TimeStamp.h
                                   include/CommonDataFormat/EvIndex.h
                                   include/CommonDataFormat/RangeReference.h
                                   include/CommonDataFormat/InteractionRecord.h
+                                  include/CommonDataFormat/IRFrame.h
                                   include/CommonDataFormat/BunchFilling.h
                                   include/CommonDataFormat/AbstractRef.h
                                   include/CommonDataFormat/FlatHisto1D.h
-                                  include/CommonDataFormat/FlatHisto2D.h)                                
+                                  include/CommonDataFormat/FlatHisto2D.h)
 
 o2_add_test(TimeStamp
             SOURCES test/testTimeStamp.cxx
@@ -38,5 +40,10 @@ o2_add_test(RangeRef
 
 o2_add_test(FlatHisto
             SOURCES test/testFlatHisto.cxx
+            COMPONENT_NAME CommonDataFormat
+            PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
+
+o2_add_test(AbstractRefAccessor
+            SOURCES test/testAbstractRefAccessor.cxx
             COMPONENT_NAME CommonDataFormat
             PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)

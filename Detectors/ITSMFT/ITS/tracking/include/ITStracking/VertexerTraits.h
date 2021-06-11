@@ -24,9 +24,6 @@
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/IndexTableUtils.h"
-#ifdef _ALLOW_DEBUG_TREES_ITS_
-#include "ITStracking/StandaloneDebugger.h"
-#endif
 #include "ITStracking/Tracklet.h"
 
 #include "GPUCommonMath.h"
@@ -43,7 +40,7 @@ class TreeStreamRedirector;
 
 namespace its
 {
-
+class StandaloneDebugger;
 class ROframe;
 
 using constants::its::LayersNumberVertexer;

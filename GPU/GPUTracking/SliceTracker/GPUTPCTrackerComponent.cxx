@@ -369,28 +369,28 @@ int GPUTPCTrackerComponent::ConfigureSlices()
 {
   // Initialize the tracker slices
   GPUSettingsRec rec;
-  GPUSettingsEvent ev;
+  GPUSettingsGRP grp;
   GPUSettingsProcessing devProc;
 
-  ev.solenoidBz = fSolenoidBz;
-  ev.continuousMaxTimeBin = 0; // triggered events
+  grp.solenoidBz = fSolenoidBz;
+  grp.continuousMaxTimeBin = 0; // triggered events
   if (mNeighboursSearchArea > 0) {
-    rec.NeighboursSearchArea = mNeighboursSearchArea;
+    rec.tpc.neighboursSearchArea = mNeighboursSearchArea;
   }
   if (fClusterErrorCorrectionY > 1.e-4) {
-    rec.ClusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
+    rec.tpc.clusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
   }
   if (fClusterErrorCorrectionZ > 1.e-4) {
-    rec.ClusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
+    rec.tpc.clusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
   }
-  rec.MinNTrackClusters = fMinNTrackClusters;
+  rec.tpc.minNTrackClusters = fMinNTrackClusters;
   rec.SetMinTrackPt(fMinTrackPt);
-  rec.SearchWindowDZDR = fSearchWindowDZDR;
+  rec.tpc.searchWindowDZDR = fSearchWindowDZDR;
   devProc.nDeviceHelperThreads = fGPUHelperThreads;
-  rec.GlobalTracking = fGlobalTracking;
+  rec.tpc.globalTracking = fGlobalTracking;
   devProc.stuckProtection = fGPUStuckProtection;
-  rec.NonConsecutiveIDs = true;
-  rec.mergerReadFromTrackerDirectly = false;
+  rec.nonConsecutiveIDs = true;
+  rec.tpc.mergerReadFromTrackerDirectly = false;
   devProc.ompThreads = 1;
   devProc.ompKernels = false;
 
@@ -399,7 +399,7 @@ int GPUTPCTrackerComponent::ConfigureSlices()
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters);
   steps.outputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
 
-  fRec->SetSettings(&ev, &rec, &devProc, &steps);
+  fRec->SetSettings(&grp, &rec, &devProc, &steps);
   fChain->LoadClusterErrors();
   return fRec->Init();
 }
@@ -670,7 +670,7 @@ void* GPUTPCTrackerComponent::TrackerDoEvent(void* par)
   int ret = 0;
   size = 0;
 
-  if (fRec->OutputControl().EndOfSpace) {
+  if (fRec->OutputControl().size == 1) {
     HLTWarning("Output buffer size exceeded buffer size %d, tracks are not stored", maxBufferSize);
     ret = -ENOSPC;
   } else {

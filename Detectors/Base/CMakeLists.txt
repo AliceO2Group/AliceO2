@@ -16,9 +16,9 @@ o2_add_library(DetectorsBase
                        src/MatLayerCyl.cxx
                        src/MatLayerCylSet.cxx
                        src/Ray.cxx
-                       src/DCAFitter.cxx
                        src/BaseDPLDigitizer.cxx
                        src/CTFCoderBase.cxx
+                       src/Aligner.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -30,13 +30,13 @@ o2_add_library(DetectorsBase
                                      FairMQ::FairMQ
                                      O2::DataFormatsParameters
                                      O2::SimConfig
+                                     O2::CCDB
                                      ROOT::VMC
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger # Must not link to avoid cyclic dependency
                              )
 
 o2_target_root_dictionary(DetectorsBase
                           HEADERS include/DetectorsBase/Detector.h
-                                  include/DetectorsBase/DCAFitter.h
                                   include/DetectorsBase/GeometryManager.h
                                   include/DetectorsBase/MaterialManager.h
                                   include/DetectorsBase/Propagator.h
@@ -44,7 +44,8 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/MatCell.h
                                   include/DetectorsBase/MatLayerCyl.h
                                   include/DetectorsBase/MatLayerCylSet.h
-                                  include/DetectorsBase/CTFCoderBase.h)
+                                  include/DetectorsBase/CTFCoderBase.h
+                                  include/DetectorsBase/Aligner.h)
 
 if(BUILD_SIMULATION)
   o2_add_test(
@@ -56,15 +57,6 @@ if(BUILD_SIMULATION)
     ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
-
-o2_add_test(
-  DCAFitter
-  SOURCES test/testDCAFitter.cxx
-  COMPONENT_NAME DetectorsBase
-  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
-  LABELS detectorsbase
-  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-  VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 
 o2_add_test_root_macro(test/buildMatBudLUT.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase

@@ -252,11 +252,14 @@ int GPUReconstructionOCL::InitDevice_Runtime()
 
     for (int i = 0; i < mNStreams; i++) {
 #ifdef CL_VERSION_2_0
-      cl_queue_properties prop = 0;
-      if (mProcessingSettings.deviceTimers) {
-        prop |= CL_QUEUE_PROFILING_ENABLE;
-      }
+      cl_queue_properties prop = mProcessingSettings.deviceTimers ? CL_QUEUE_PROFILING_ENABLE : 0;
       mInternals->command_queue[i] = clCreateCommandQueueWithProperties(mInternals->context, mInternals->device, &prop, &ocl_error);
+      if (mProcessingSettings.deviceTimers && ocl_error == CL_INVALID_QUEUE_PROPERTIES) {
+        GPUError("GPU device timers not supported by OpenCL platform, disabling");
+        mProcessingSettings.deviceTimers = 0;
+        prop = 0;
+        mInternals->command_queue[i] = clCreateCommandQueueWithProperties(mInternals->context, mInternals->device, &prop, &ocl_error);
+      }
 #else
       mInternals->command_queue[i] = clCreateCommandQueue(mInternals->context, mInternals->device, 0, &ocl_error);
 #endif
@@ -462,10 +465,10 @@ bool GPUReconstructionOCL::IsEventDone(deviceEvent* evList, int nEvents)
   return true;
 }
 
-int GPUReconstructionOCL::GPUDebug(const char* state, int stream)
+int GPUReconstructionOCL::GPUDebug(const char* state, int stream, bool force)
 {
   // Wait for OPENCL-Kernel to finish and check for OPENCL errors afterwards, in case of debugmode
-  if (mProcessingSettings.debugLevel <= 0) {
+  if (!force && mProcessingSettings.debugLevel <= 0) {
     return (0);
   }
   for (int i = 0; i < mNStreams; i++) {

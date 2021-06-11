@@ -8,6 +8,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
+add_subdirectory(FemtoDream)
+
 o2_add_library(PWGCFCore
                SOURCES  AnalysisConfigurableCuts.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
@@ -23,11 +25,6 @@ o2_add_dpl_workflow(dptdptcorrelations
 
 o2_add_dpl_workflow(correlations
                     SOURCES correlations.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(correlations-mixed
-                    SOURCES correlationsMixed.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 

@@ -16,6 +16,7 @@
 #include "FairGenerator.h"
 #include "TParticle.h"
 #include "Generators/Trigger.h"
+#include <functional>
 #include <vector>
 
 namespace o2
@@ -90,6 +91,9 @@ class Generator : public FairGenerator
   /** notification methods **/
   virtual void notifyEmbedding(const o2::dataformats::MCEventHeader* eventHeader){};
 
+  void setTriggerOkHook(std::function<void(std::vector<TParticle> const& p, int eventCount)> f) { mTriggerOkHook = f; }
+  void setTriggerFalseHook(std::function<void(std::vector<TParticle> const& p, int eventCount)> f) { mTriggerFalseHook = f; }
+
  protected:
   /** copy constructor **/
   Generator(const Generator&);
@@ -112,6 +116,12 @@ class Generator : public FairGenerator
   ETriggerMode_t mTriggerMode = kTriggerOFF;
   std::vector<Trigger> mTriggers;         //!
   std::vector<DeepTrigger> mDeepTriggers; //!
+
+  // we allow to register callbacks so as to take specific user actions when
+  // a trigger was ok nor not
+  std::function<void(std::vector<TParticle> const& p, int eventCount)> mTriggerOkHook = [](std::vector<TParticle> const& p, int eventCount) {};
+  std::function<void(std::vector<TParticle> const& p, int eventCount)> mTriggerFalseHook = [](std::vector<TParticle> const& p, int eventCount) {};
+  int mReadEventCounter = 0; // counting the number of times
 
   /** conversion data members **/
   double mMomentumUnit = 1.;        // [GeV/c]

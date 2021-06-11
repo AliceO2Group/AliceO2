@@ -14,12 +14,15 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class o2::globaltracking::MatchTPCITS + ;
 #pragma link C++ class o2::globaltracking::MatchTOF + ;
 #pragma link C++ class o2::globaltracking::TrackLocTPC + ;
 #pragma link C++ class o2::globaltracking::TrackLocITS + ;
 #pragma link C++ class o2::globaltracking::MatchTPCITSParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::MatchTPCITSParams> + ;
+
+#pragma link C++ class o2::globaltracking::MatchCosmics + ;
+#pragma link C++ class o2::globaltracking::MatchCosmicsParams + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::globaltracking::MatchCosmicsParams> + ;
 
 #pragma link C++ class o2::globaltracking::ABDebugLink + ;
 #pragma link C++ class o2::globaltracking::ABDebugTrack + ;

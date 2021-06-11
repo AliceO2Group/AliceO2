@@ -14,21 +14,34 @@
 /// \author Philippe Pillot, Subatech
 /// \author Andrea Ferrero, CEA
 
-#include "Framework/CallbackService.h"
-#include "Framework/ControlService.h"
-#include "Framework/Task.h"
 #include "Framework/runDataProcessing.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "DigitSamplerSpec.h"
 
-using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext&)
+// we need to add workflow options before including Framework/runDataProcessing
+void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  WorkflowSpec specs;
+  std::vector<ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
-  DataProcessorSpec producer = o2::mch::getDigitSamplerSpec();
-  specs.push_back(producer);
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
 
-  return specs;
+  std::swap(workflowOptions, options);
+}
+
+#include "Framework/runDataProcessing.h"
+
+WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
+{
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+
+  WorkflowSpec wf{o2::mch::getDigitSamplerSpec()};
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
+
+  return std::move(wf);
 }

@@ -13,6 +13,7 @@
 /// @brief  detector ids, masks, names class implementation
 
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "CommonUtils/StringUtils.h"
 #include <cassert>
 #include <string>
 #include "FairLogger.h"
@@ -22,15 +23,15 @@ using namespace o2::detectors;
 ClassImp(o2::detectors::DetID);
 
 constexpr const char* DetID::sDetNames[DetID::nDetectors + 1];
-constexpr std::array<DetID::mask_t, DetID::nDetectors> DetID::sMasks;
 
 // redundant declarations
 constexpr DetID::ID DetID::ITS, DetID::TPC, DetID::TRD, DetID::TOF, DetID::PHS, DetID::CPV, DetID::EMC,
-  DetID::HMP, DetID::MFT, DetID::MCH, DetID::MID, DetID::ZDC, DetID::FT0, DetID::FV0, DetID::FDD, DetID::ACO, DetID::First, DetID::Last;
+  DetID::HMP, DetID::MFT, DetID::MCH, DetID::MID, DetID::ZDC, DetID::FT0, DetID::FV0, DetID::FDD, DetID::ACO, DetID::CTP, DetID::First, DetID::Last;
 
 #ifdef ENABLE_UPGRADES
 constexpr DetID::ID DetID::IT3;
 constexpr DetID::ID DetID::TRK;
+constexpr DetID::ID DetID::FT3;
 #endif
 
 constexpr int DetID::nDetectors;
@@ -39,23 +40,23 @@ constexpr int DetID::nDetectors;
 DetID::mask_t DetID::getMask(const std::string_view detList)
 {
   DetID::mask_t mask;
-  std::string ss(detList);
-  auto pos = ss.find(NONE);
-  if (pos != std::string::npos) {
-    ss.replace(pos, NONE.size(), "");
-  } else {
-    for (auto id = DetID::First; id <= DetID::Last; id++) {
-      auto pos = ss.find(DetID::getName(id));
-      if (pos != std::string::npos) {
-        mask.set(id);
-        ss.replace(pos, strlen(DetID::getName(id)), "");
-      }
-    }
+  std::string ss(detList), sname{};
+  if (ss.find(NONE) != std::string::npos) {
+    return mask;
   }
-  // make sure that no names are left in the input strings
-  if (std::count_if(ss.begin(), ss.end(), [](unsigned char c) { return std::isalnum(c); })) {
-    LOG(ERROR) << "Ill-formed detectors list " << std::string(detList);
-    throw std::runtime_error("Ill-formed detectors list");
+  if (ss.find(ALL) != std::string::npos) {
+    mask = FullMask;
+    return mask;
+  }
+  std::replace(ss.begin(), ss.end(), ' ', ',');
+  std::replace(ss.begin(), ss.end(), ';', ',');
+  auto dv = o2::utils::Str::tokenize(ss, ',');
+  for (auto& dname : dv) {
+    auto id = nameToID(dname.c_str());
+    if (id < 0) {
+      throw std::runtime_error(fmt::format("Wrong entry {:s} in detectors list {:s}", dname, detList));
+    }
+    mask |= 0x1u << id;
   }
   return mask;
 }
@@ -68,14 +69,14 @@ DetID::DetID(const char* name) : mID(nameToID(name, First))
 }
 
 //_______________________________
-std::string DetID::getNames(DetID::mask_t mask)
+std::string DetID::getNames(DetID::mask_t mask, char delimiter)
 {
   // construct from the name
   std::string ns;
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (mask[id]) {
       if (!ns.empty()) {
-        ns += ',';
+        ns += delimiter;
       }
       ns += getName(id);
     }

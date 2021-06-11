@@ -18,11 +18,11 @@
 namespace o2::mch::raw
 {
 
-template <typename CHARGESUM>
-struct ElinkEncoderMerger<UserLogicFormat, CHARGESUM> {
+template <typename CHARGESUM, int VERSION>
+struct ElinkEncoderMerger<UserLogicFormat, CHARGESUM, VERSION> {
 
   void operator()(uint16_t gbtId,
-                  gsl::span<ElinkEncoder<UserLogicFormat, CHARGESUM>> elinks,
+                  gsl::span<ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>> elinks,
                   std::vector<uint64_t>& b64)
   {
     for (auto& elink : elinks) {

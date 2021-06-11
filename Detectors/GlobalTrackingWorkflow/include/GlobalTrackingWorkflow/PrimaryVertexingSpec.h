@@ -13,36 +13,17 @@
 
 /// @file PrimaryVertexingSpec.h
 
-#include "DetectorsVertexing/PVertexer.h"
-#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/Task.h"
-#include "TStopwatch.h"
+#include "Framework/DataProcessorSpec.h"
 
 namespace o2
 {
 namespace vertexing
 {
 
-using namespace o2::framework;
-
-class PrimaryVertexingSpec : public Task
-{
- public:
-  PrimaryVertexingSpec(bool validateWithFT0, bool useMC) : mUseMC(useMC), mValidateWithFT0(validateWithFT0) {}
-  ~PrimaryVertexingSpec() override = default;
-  void init(InitContext& ic) final;
-  void run(ProcessingContext& pc) final;
-  void endOfStream(EndOfStreamContext& ec) final;
-
- private:
-  o2::vertexing::PVertexer mVertexer;
-  bool mUseMC{false};           ///< MC flag
-  bool mValidateWithFT0{false}; ///< require vertex validation with FT0
-  TStopwatch mTimer;
-};
-
 /// create a processor spec
-DataProcessorSpec getPrimaryVertexingSpec(bool validateWithFT0, bool useMC);
+o2::framework::DataProcessorSpec getPrimaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool validateWithFT0, bool useMC);
 
 } // namespace vertexing
 } // namespace o2

@@ -70,6 +70,7 @@ class RawFileWriter
   struct PayloadCache {
     bool preformatted = false;
     uint32_t trigger = 0;
+    uint32_t detField = 0;
     std::vector<char> payload;
     ClassDefNV(PayloadCache, 1);
   };
@@ -85,7 +86,7 @@ class RawFileWriter
     uint8_t packetCounter = 0;                            // running counter
     uint16_t pageCnt = 0;                                 // running counter
     LinkSubSpec_t subspec = 0;                            // subspec according to DataDistribution
-    int counter = 0;                                      //RSREM
+    bool discardData = false;                             // discard data if true (e.g. desired max IR reached)
     //
     size_t nTFWritten = 0;    // number of TFs written
     size_t nRDHWritten = 0;   // number of RDHs written
@@ -106,7 +107,7 @@ class RawFileWriter
     LinkData& operator=(const LinkData& src); // due to the mutex...
     void close(const IR& ir);
     void print() const;
-    void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0);
+    void addData(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0);
     RDHAny* getLastRDH() { return lastRDHoffset < 0 ? nullptr : reinterpret_cast<RDHAny*>(&buffer[lastRDHoffset]); }
     int getCurrentPageSize() const { return lastRDHoffset < 0 ? -1 : int(buffer.size()) - lastRDHoffset; }
     // check if we are at the beginning of new page
@@ -114,13 +115,14 @@ class RawFileWriter
     std::string describe() const;
 
    protected:
+    void addDataInternal(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0, bool checkEmpty = true);
     void openHBFPage(const RDHAny& rdh, uint32_t trigger = 0);
     void addHBFPage(bool stop = false);
-    void closeHBFPage() { addHBFPage(true); }
+    void closeHBFPage();
     void flushSuperPage(bool keepLastPage = false);
     void fillEmptyHBHs(const IR& ir, bool dataAdded);
     void addPreformattedCRUPage(const gsl::span<char> data);
-    void cacheData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger = 0);
+    void cacheData(const IR& ir, const gsl::span<char> data, bool preformatted, uint32_t trigger = 0, uint32_t detField = 0);
 
     /// expand buffer by positive increment and return old size
     size_t expandBufferBy(size_t by)
@@ -131,20 +133,7 @@ class RawFileWriter
     }
 
     /// append to the end of the buffer and return the point where appended to
-    size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true)
-    {
-      if (!sz) {
-        return buffer.size();
-      }
-      nBytesWritten += sz;
-      // do we have a space one this superpage?
-      if ((writer->mSuperPageSize - int(buffer.size())) < 0) { // need to flush
-        flushSuperPage(keepLastOnFlash);
-      }
-      auto offs = expandBufferBy(sz);
-      memmove(&buffer[offs], ptr, sz);
-      return offs;
-    }
+    size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true);
 
     /// add RDH to buffer. In case this requires flushing of the superpage, do not keep the previous page
     size_t pushBack(const RDHAny& rdh)
@@ -155,6 +144,26 @@ class RawFileWriter
 
   };
   //=====================================================================================
+  // If addData was called with given IR for at least 1 link, then it should be called for all links, even it with empty payload
+  // This structure will check if detector has dared to do this
+  struct DetLazinessCheck {
+    IR ir{};
+    bool preformatted = false;
+    uint32_t trigger = 0;
+    uint32_t detField = 0;
+    size_t irSeen = 0;
+    size_t completeCount = 0;
+    std::unordered_map<LinkSubSpec_t, bool> linksDone; // links for which addData was called
+    void acknowledge(LinkSubSpec_t s, const IR& _ir, bool _preformatted, uint32_t _trigger, uint32_t _detField);
+    void completeLinks(RawFileWriter* wr, const IR& _ir);
+    void clear()
+    {
+      linksDone.clear();
+      ir.clear();
+    }
+  };
+
+  //=====================================================================================
 
   RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid, bool cru = true) : mOrigin(origin)
   {
@@ -164,6 +173,7 @@ class RawFileWriter
   }
   ~RawFileWriter();
   void useCaching();
+  void doLazinessCheck(bool v) { mDoLazinessCheck = v; }
   void writeConfFile(std::string_view origin = "FLP", std::string_view description = "RAWDATA", std::string_view cfgname = "raw.cfg", bool fullPath = true) const;
   void close();
 
@@ -195,7 +205,7 @@ class RawFileWriter
   }
 
   void addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t endpoint, const IR& ir,
-               const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0);
+               const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0);
 
   template <typename H>
   void addData(const H& rdh, const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0)
@@ -411,6 +421,9 @@ class RawFileWriter
   TStopwatch mTimer;
   RoMode_t mROMode = NotSet;
   IR mFirstIRAdded; // 1st IR seen
+  DetLazinessCheck mDetLazyCheck{};
+  bool mDoLazinessCheck = true;
+
   ClassDefNV(RawFileWriter, 1);
 }; // namespace raw
 

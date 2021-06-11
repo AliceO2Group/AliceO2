@@ -58,9 +58,6 @@ void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out = std::cout
 template <typename FORMAT>
 void dumpWord(std::ostream& out, uint64_t w);
 
-template <typename FORMAT>
-void dumpWordInfo(std::ostream& out, uint64_t w, const char* spacer = "");
-
 template <>
 void dumpWord<o2::mch::raw::BareFormat>(std::ostream& out, uint64_t w)
 {
@@ -80,8 +77,11 @@ void dumpWord<o2::mch::raw::UserLogicFormat>(std::ostream& out, uint64_t w)
   out << fmt::format("{:016X} ", w);
 }
 
+template <typename FORMAT, int VERSION = 0>
+void dumpWordInfo(std::ostream& out, uint64_t w, const char* spacer = "");
+
 template <>
-void dumpWordInfo<o2::mch::raw::BareFormat>(std::ostream& out, uint64_t w, const char* /*spacer*/)
+void dumpWordInfo<o2::mch::raw::BareFormat, 0>(std::ostream& out, uint64_t w, const char* /*spacer*/)
 {
   static constexpr uint64_t FIFTYBITSATONE = (static_cast<uint64_t>(1) << 50) - 1;
   SampaHeader h(w & FIFTYBITSATONE);
@@ -95,9 +95,8 @@ void dumpWordInfo<o2::mch::raw::BareFormat>(std::ostream& out, uint64_t w, const
   }
 }
 
-template <>
-void dumpWordInfo<o2::mch::raw::UserLogicFormat>(std::ostream& out, uint64_t w,
-                                                 const char* spacer)
+template <int VERSION>
+void dumpUserLogicWordInfo(std::ostream& out, uint64_t w, const char* spacer)
 {
   if (o2::mch::raw::isSampaSync(w)) {
     out << "SYNC ";
@@ -106,10 +105,13 @@ void dumpWordInfo<o2::mch::raw::UserLogicFormat>(std::ostream& out, uint64_t w,
     if (!o2::mch::raw::isSampaSync(w)) {
       out << spacer;
     }
-    out << fmt::format("GBT(0.11) {:2d} ELINKID(0..39) {:2d} ERR {:1d}",
-                       (w >> 59) & 0x1F,
-                       (w >> 53) & 0x3F,
-                       (w >> 50) & 0x7);
+    ULHeaderWord<VERSION> header{w};
+    int gbt = header.linkID;
+    int elinkid = header.dsID;
+    int error = header.error;
+    bool incomplete = header.incomplete > 0;
+    out << fmt::format("GBT(0.11) {:2d} ELINKID(0..39) {:2d} ERR {:1d} INCOMPLETE {}",
+                       gbt, elinkid, error, incomplete);
     if (!o2::mch::raw::isSampaSync(w)) {
       out << fmt::format("{:4d} {:4d} {:4d} {:4d} {:4d} ",
                          (w & 0x3FF0000000000) >> 40,
@@ -119,9 +121,23 @@ void dumpWordInfo<o2::mch::raw::UserLogicFormat>(std::ostream& out, uint64_t w,
                          (w & 0x3FF));
     }
   }
-} // namespace o2::mch::raw::impl
+}
 
-template <typename FORMAT>
+template <>
+void dumpWordInfo<o2::mch::raw::UserLogicFormat, 0>(std::ostream& out, uint64_t w,
+                                                    const char* spacer)
+{
+  dumpUserLogicWordInfo<0>(out, w, spacer);
+}
+
+template <>
+void dumpWordInfo<o2::mch::raw::UserLogicFormat, 1>(std::ostream& out, uint64_t w,
+                                                    const char* spacer)
+{
+  dumpUserLogicWordInfo<1>(out, w, spacer);
+}
+
+template <typename FORMAT, int VERSION>
 void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out, size_t maxbytes)
 {
   int i{0};
@@ -197,22 +213,21 @@ void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out, size_t max
     }
 
     if (inRDH <= 0) {
-      dumpWordInfo<FORMAT>(out, w, spacer);
+      dumpWordInfo<FORMAT, VERSION>(out, w, spacer);
     }
     i += 8;
   }
   out << "\n";
-} // namespace o2::mch::raw::impl
+}
 
-template <typename FORMAT>
+template <typename FORMAT, int VERSION>
 void dumpBuffer(const std::vector<uint64_t>& buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max())
 {
   std::vector<std::byte> b8;
   for (auto w : buffer) {
     append(b8, w);
   }
-  dumpBuffer<FORMAT>(b8, out, maxbytes);
+  dumpBuffer<FORMAT, VERSION>(b8, out, maxbytes);
 }
-
 } // namespace o2::mch::raw::impl
 #endif

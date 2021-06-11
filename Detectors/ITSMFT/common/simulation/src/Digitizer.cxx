@@ -16,6 +16,7 @@
 #include "ITSMFTSimulation/Digitizer.h"
 #include "MathUtils/Cartesian.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include <TRandom.h>
 #include <climits>
@@ -44,6 +45,7 @@ void Digitizer::init()
     mParams.setAlpSimResponse(mAlpSimResp.get());
   }
   mParams.print();
+  mIRFirstSampledTF = o2::raw::HBFUtils::Instance().getFirstSampledTFIR();
 }
 
 //_______________________________________________________________________
@@ -92,7 +94,7 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
   // RO frame corresponding to provided time
   mCollisionTimeWrtROF = mEventTime.timeInBCNS; // in triggered mode the ROF starts at BC (is there a delay?)
   if (mParams.isContinuous()) {
-    auto nbc = mEventTime.toLong();
+    auto nbc = mEventTime.differenceInBC(mIRFirstSampledTF);
     if (mCollisionTimeWrtROF < 0 && nbc > 0) {
       nbc--;
     }
@@ -114,7 +116,7 @@ void Digitizer::setEventTime(const o2::InteractionTimeRecord& irt)
 }
 
 //_______________________________________________________________________
-void Digitizer::fillOutputContainer(UInt_t frameLast)
+void Digitizer::fillOutputContainer(uint32_t frameLast)
 {
   // fill output with digits from min.cached up to requested frame, generating the noise beforehand
   if (frameLast > mROFrameMax) {
@@ -164,7 +166,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
     // finalize ROF record
     rcROF.setNEntries(mDigits->size() - rcROF.getFirstEntry()); // number of digits
     if (isContinuous()) {
-      rcROF.getBCData().setFromLong(mROFrameMin * mParams.getROFrameLengthInBC());
+      rcROF.getBCData().setFromLong(mIRFirstSampledTF.toLong() + mROFrameMin * mParams.getROFrameLengthInBC());
     } else {
       rcROF.getBCData() = mEventTime; // RSTODO do we need to add trigger delay?
     }
@@ -179,7 +181,7 @@ void Digitizer::fillOutputContainer(UInt_t frameLast)
 }
 
 //_______________________________________________________________________
-void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, int srcID)
+void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID)
 {
   // convert single hit to digits
   float timeInROF = hit.GetTime() * sec2ns;
@@ -203,9 +205,9 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
   // frame of the hit signal start wrt event ROFrame
   int roFrameRel = int(timeInROF * mParams.getROFrameLengthInv());
   // frame of the hit signal end  wrt event ROFrame: in the triggered mode we read just 1 frame
-  UInt_t roFrameRelMax = mParams.isContinuous() ? (timeInROF + tTot) * mParams.getROFrameLengthInv() : roFrameRel;
+  uint32_t roFrameRelMax = mParams.isContinuous() ? (timeInROF + tTot) * mParams.getROFrameLengthInv() : roFrameRel;
   int nFrames = roFrameRelMax + 1 - roFrameRel;
-  UInt_t roFrameMax = mNewROFrame + roFrameRelMax;
+  uint32_t roFrameMax = mNewROFrame + roFrameRelMax;
   if (roFrameMax > maxFr) {
     maxFr = roFrameMax; // if signal extends beyond current maxFrame, increase the latter
   }
@@ -325,7 +327,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
   auto& chip = mChips[hit.GetDetectorID()];
   auto roFrameAbs = mNewROFrame + roFrameRel;
   for (int irow = rowSpan; irow--;) {
-    UShort_t rowIS = irow + rowS;
+    uint16_t rowIS = irow + rowS;
     for (int icol = colSpan; icol--;) {
       float nEleResp = respMatrix[irow][icol];
       if (!nEleResp) {
@@ -336,7 +338,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
       if (nEle < mParams.getMinChargeToAccount()) {
         continue;
       }
-      UShort_t colIS = icol + colS;
+      uint16_t colIS = icol + colS;
       //
       registerDigits(chip, roFrameAbs, timeInROF, nFrames, rowIS, colIS, nEle, lbl);
     }
@@ -344,8 +346,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, 
 }
 
 //________________________________________________________________________________
-void Digitizer::registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float tInROF, int nROF,
-                               UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl)
+void Digitizer::registerDigits(ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
+                               uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl)
 {
   // Register digits for given pixel, accounting for the possible signal contribution to
   // multiple ROFrame. The signal starts at time tInROF wrt the start of provided roFrame
@@ -353,7 +355,7 @@ void Digitizer::registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float 
 
   float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start
   for (int i = 0; i < nROF; i++) {
-    UInt_t roFr = roFrame + i;
+    uint32_t roFr = roFrame + i;
     int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength());
     tStrobe += mParams.getROFrameLength(); // for the next ROF
 

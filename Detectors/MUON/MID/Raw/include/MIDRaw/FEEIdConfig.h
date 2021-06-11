@@ -30,36 +30,36 @@ class FEEIdConfig
   FEEIdConfig(const char* filename);
   ~FEEIdConfig() = default;
 
-  uint16_t getFeeId(uint32_t uniqueId) const;
+  uint16_t getGBTUniqueId(uint32_t linkUniqueId) const;
 
-  /// Gets the FEE ID from the physical ID of the link
-  uint16_t getFeeId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return getFeeId(getGBTId(linkId, endPointId, cruId)); }
+  inline const std::vector<uint16_t>& getGBTUniqueIdsInLink(uint16_t feeId) const { return mGBTUniqueIdsInLink.find(feeId)->second; }
+
+  /// Gets the GBT unique ID from the physical ID of the link
+  uint16_t getGBTUniqueId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return getGBTUniqueId(getLinkUniqueId(linkId, endPointId, cruId)); }
 
   /// Gets a uniqueID from the combination of linkId, endPointId and cruId;
-  inline uint32_t getGBTId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return (linkId + 1) << ((endPointId == 1) ? 8U : 0U) | (cruId << 16U); }
+  inline uint32_t getLinkUniqueId(uint8_t linkId, uint8_t endPointId, uint16_t cruId) const { return (linkId + 1) << ((endPointId == 1) ? 8U : 0U) | (cruId << 16U); }
 
   /// Gets the CRU ID
-  inline uint16_t getCRUId(uint32_t gbtId) const { return gbtId >> 16; }
+  inline uint16_t getCRUId(uint32_t linkUniqueId) const { return linkUniqueId >> 16; }
   /// Gets the end point id
-  inline uint8_t getEndPointId(uint32_t gbtId) const { return (gbtId & 0xFF00) ? 1 : 0; }
+  inline uint8_t getEndPointId(uint32_t linkUniqueId) const { return (linkUniqueId & 0xFF00) ? 1 : 0; }
   /// Gets the Link ID
-  inline uint8_t getLinkId(uint32_t gbtId) const { return ((gbtId >> (8U * getEndPointId(gbtId))) & 0xFF) - 1; }
+  inline uint8_t getLinkId(uint32_t linkUniqueId) const { return ((linkUniqueId >> (8U * getEndPointId(linkUniqueId))) & 0xFF) - 1; }
 
-  std::vector<uint16_t> getConfiguredFeeIds() const;
-  std::vector<uint32_t> getConfiguredGBTIds() const;
+  std::vector<uint16_t> getConfiguredGBTUniqueIDs() const;
+  std::vector<uint32_t> getConfiguredLinkUniqueIDs() const;
+  std::vector<uint16_t> getConfiguredFEEIDs() const;
 
   void write(const char* filename) const;
 
  private:
   bool load(const char* filename);
 
-  std::unordered_map<uint32_t, uint16_t> mGBTIdToFeeId; /// Correspondence between GBT Id and FeeId
+  std::unordered_map<uint32_t, uint16_t> mLinkUniqueIdToGBTUniqueId{};       /// Correspondence between link unique ID and GBT unique Id
+  std::unordered_map<uint16_t, uint16_t> mGBTUniqueIdToFeeId{};              /// Correspondence between GBT unique ID and FEE ID
+  std::unordered_map<uint16_t, std::vector<uint16_t>> mGBTUniqueIdsInLink{}; /// Input GBT links in output link
 };
-namespace raw
-{
-static constexpr uint8_t sUserLogicLinkID = 15;
-}
-
 } // namespace mid
 } // namespace o2
 

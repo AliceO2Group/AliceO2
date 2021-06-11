@@ -7,12 +7,13 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DEVICESPEC_H
-#define FRAMEWORK_DEVICESPEC_H
+#ifndef O2_FRAMEWORK_DEVICESPEC_H_
+#define O2_FRAMEWORK_DEVICESPEC_H_
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ComputingResource.h"
 #include "Framework/DataProcessorSpec.h"
+#include "Framework/DataProcessorLabel.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/ChannelInfo.h"
 #include "Framework/DeviceControl.h"
@@ -23,6 +24,7 @@
 #include "Framework/OutputRoute.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
+#include "Framework/ResourcePolicy.h"
 #include "Framework/ServiceSpec.h"
 
 #include <vector>
@@ -30,15 +32,15 @@
 #include <map>
 #include <utility>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// Concrete description of the device which will actually run
 /// a DataProcessor.
 struct DeviceSpec {
+  /// The name of the associated DataProcessorSpec
   std::string name;
+  /// The id of the device, including time-pipelining and suffix
   std::string id;
   std::string channelPrefix;
   std::vector<InputChannelSpec> inputChannels;
@@ -61,10 +63,13 @@ struct DeviceSpec {
   /// The completion policy to use for this device.
   CompletionPolicy completionPolicy;
   DispatchPolicy dispatchPolicy;
+  /// Policy on when the available resources are enough to run
+  /// a computation.
+  ResourcePolicy resourcePolicy;
   ComputingResource resource;
   unsigned short resourceMonitoringInterval;
+  std::vector<DataProcessorLabel> labels;
 };
 
-} // namespace framework
-} // namespace o2
-#endif
+} // namespace o2::framework
+#endif // O2_FRAMEWORK_DEVICESPEC_H_

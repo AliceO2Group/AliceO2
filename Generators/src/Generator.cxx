@@ -32,7 +32,6 @@ Generator::Generator() : FairGenerator("ALICEo2", "ALICEo2 Generator"),
                          mBoost(0.)
 {
   /** default constructor **/
-
 }
 
 /*****************************************************************/
@@ -41,7 +40,6 @@ Generator::Generator(const Char_t* name, const Char_t* title) : FairGenerator(na
                                                                 mBoost(0.)
 {
   /** constructor **/
-
 }
 
 /*****************************************************************/
@@ -64,6 +62,7 @@ Bool_t
 
   /** endless generate-and-trigger loop **/
   while (true) {
+    mReadEventCounter++;
 
     /** clear particle vector **/
     mParticles.clear();
@@ -80,7 +79,10 @@ Bool_t
 
     /** trigger event **/
     if (triggerEvent()) {
+      mTriggerOkHook(mParticles, mReadEventCounter);
       break;
+    } else {
+      mTriggerFalseHook(mParticles, mReadEventCounter);
     }
   }
 
@@ -131,7 +133,8 @@ Bool_t
                         particle.GetStatusCode() == 1,
                         particle.Energy() * mEnergyUnit,
                         particle.T() * mTimeUnit,
-                        particle.GetWeight());
+                        particle.GetWeight(),
+                        (TMCProcess)particle.GetUniqueID());
   }
 
   /** success **/

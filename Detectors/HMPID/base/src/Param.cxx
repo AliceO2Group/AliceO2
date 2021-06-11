@@ -89,7 +89,7 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
     }
   }
 */
-  mRefIdx = MeanIdxRad(); //initialization of the running ref. index of freon
+  mRefIdx = meanIdxRad(); //initialization of the running ref. index of freon
 
   float dead = 2.6; // cm of the dead zones between PCs-> See 2CRC2099P1
 
@@ -141,8 +141,8 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
   fgkMaxPcY[4] = fgAllY;
   fgkMaxPcY[5] = fgkMaxPcY[4];
 
-  mX = 0.5 * SizeAllX();
-  mY = 0.5 * SizeAllY();
+  mX = 0.5 * sizeAllX();
+  mY = 0.5 * sizeAllY();
 
   for (Int_t ich = kMinCh; ich <= kMaxCh; ich++) {
     for (Int_t padx = 0; padx < 160; padx++) {
@@ -158,25 +158,25 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
       if (!pne) {
         //AliErrorClass(Form("The symbolic volume %s does not correspond to any physical entry!",Form("HMPID_%i",i)));
         mM[i] = new TGeoHMatrix;
-        IdealPosition(i, mM[i]);
+        idealPosition(i, mM[i]);
       } else {
         TGeoPhysicalNode* pnode = pne->GetPhysicalNode();
         if (pnode) {
           mM[i] = new TGeoHMatrix(*(pnode->GetMatrix()));
         } else {
           mM[i] = new TGeoHMatrix;
-          IdealPosition(i, mM[i]);
+          idealPosition(i, mM[i]);
         }
       }
     } else {
       mM[i] = new TGeoHMatrix;
-      IdealPosition(i, mM[i]);
+      idealPosition(i, mM[i]);
     }
   }
   fgInstance = this;
 } //ctor
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Param::Print(Option_t* opt) const
+void Param::print(Option_t* opt) const
 {
   // print some usefull (hopefully) info on some internal guts of HMPID parametrisation
 
@@ -185,7 +185,7 @@ void Param::Print(Option_t* opt) const
   }
 } //Print()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Param::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
+void Param::idealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
 {
   // Construct ideal position matrix for a given chamber
   // Arguments: iCh- chamber ID; pMatrix- pointer to precreated unity matrix where to store the results
@@ -275,7 +275,7 @@ void Param::IdealPosition(Int_t iCh, TGeoHMatrix* pMatrix)
   return iCnt;
 }*/
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-double Param::Sigma2(double trkTheta, double trkPhi, double ckovTh, double ckovPh)
+double Param::sigma2(double trkTheta, double trkPhi, double ckovTh, double ckovPh)
 {
   // Analithical calculation of total error (as a sum of localization, geometrical and chromatic errors)
   // on Cerenkov angle for a given Cerenkov photon
@@ -286,7 +286,7 @@ double Param::Sigma2(double trkTheta, double trkPhi, double ckovTh, double ckovP
   //   Returns: absolute error on Cerenkov angle, [radians]
 
   TVector3 v(-999, -999, -999);
-  double trkBeta = 1. / (TMath::Cos(ckovTh) * GetRefIdx());
+  double trkBeta = 1. / (TMath::Cos(ckovTh) * getRefIdx());
 
   if (trkBeta > 1) {
     trkBeta = 1; //protection against bad measured thetaCer
@@ -295,14 +295,14 @@ double Param::Sigma2(double trkTheta, double trkPhi, double ckovTh, double ckovP
     trkBeta = 0.0001; //
   }
 
-  v.SetX(SigLoc(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
-  v.SetY(SigGeom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
-  v.SetZ(SigCrom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
+  v.SetX(sigLoc(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
+  v.SetY(sigGeom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
+  v.SetZ(sigCrom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
 
   return v.Mag2();
 }
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-double Param::SigLoc(double trkTheta, double trkPhi, double thetaC, double phiC, double betaM)
+double Param::sigLoc(double trkTheta, double trkPhi, double thetaC, double phiC, double betaM)
 {
   // Analitical calculation of localization error (due to finite segmentation of PC) on Cerenkov angle for a given
   // Cerenkov photon
@@ -323,14 +323,14 @@ double Param::SigLoc(double trkTheta, double trkPhi, double thetaC, double phiC,
   double tantheta = TMath::Tan(thetaC);
 
   double alpha = cost - tantheta * cosfd * sint;                               // formula (11)
-  double k = 1. - GetRefIdx() * GetRefIdx() + alpha * alpha / (betaM * betaM); // formula (after 8 in the text)
+  double k = 1. - getRefIdx() * getRefIdx() + alpha * alpha / (betaM * betaM); // formula (after 8 in the text)
   if (k < 0) {
     return 1e10;
   }
   double mu = sint * sinf + tantheta * (cost * cosfd * sinf + sinfd * cosf); // formula (10)
   double e = sint * cosf + tantheta * (cost * cosfd * cosf - sinfd * sinf);  // formula (9)
 
-  double kk = betaM * TMath::Sqrt(k) / (GapThick() * alpha); // formula (6) and (7)
+  double kk = betaM * TMath::Sqrt(k) / (gapThick() * alpha); // formula (6) and (7)
   // formula (6)
   double dtdxc = kk * (k * (cosfd * cosf - cost * sinfd * sinf) - (alpha * mu / (betaM * betaM)) * sint * sinfd);
   // formula (7)            pag.4
@@ -340,7 +340,7 @@ double Param::SigLoc(double trkTheta, double trkPhi, double thetaC, double phiC,
   return TMath::Sqrt(errX * errX * dtdxc * dtdxc + errY * errY * dtdyc * dtdyc);
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-double Param::SigCrom(double trkTheta, double trkPhi, double thetaC, double phiC, double betaM)
+double Param::sigCrom(double trkTheta, double trkPhi, double thetaC, double phiC, double betaM)
 {
   // Analitical calculation of chromatic error (due to lack of knowledge of Cerenkov photon energy)
   // on Cerenkov angle for a given Cerenkov photon
@@ -358,7 +358,7 @@ double Param::SigCrom(double trkTheta, double trkPhi, double thetaC, double phiC
   double tantheta = TMath::Tan(thetaC);
 
   double alpha = cost - tantheta * cosfd * sint;                         // formula (11)
-  double dtdn = cost * GetRefIdx() * betaM * betaM / (alpha * tantheta); // formula (12)
+  double dtdn = cost * getRefIdx() * betaM * betaM / (alpha * tantheta); // formula (12)
 
   //  double f = 0.00928*(7.75-5.635)/TMath::Sqrt(12.);
   double f = 0.0172 * (7.75 - 5.635) / TMath::Sqrt(24.);
@@ -366,7 +366,7 @@ double Param::SigCrom(double trkTheta, double trkPhi, double thetaC, double phiC
   return f * dtdn;
 } //SigCrom()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-double Param::SigGeom(double trkTheta, double trkPhi, double thetaC, double phiC, double betaM)
+double Param::sigGeom(double trkTheta, double trkPhi, double thetaC, double phiC, double betaM)
 {
   // Analitical calculation of geometric error (due to lack of knowledge of creation point in radiator)
   // on Cerenkov angle for a given Cerenkov photon
@@ -387,25 +387,25 @@ double Param::SigGeom(double trkTheta, double trkPhi, double thetaC, double phiC
 
   double alpha = cost - tantheta * cosfd * sint; // formula (11)
 
-  double k = 1. - GetRefIdx() * GetRefIdx() + alpha * alpha / (betaM * betaM); // formula (after 8 in the text)
+  double k = 1. - getRefIdx() * getRefIdx() + alpha * alpha / (betaM * betaM); // formula (after 8 in the text)
   if (k < 0) {
     return 1e10;
   }
 
-  double eTr = 0.5 * RadThick() * betaM * TMath::Sqrt(k) / (GapThick() * alpha); // formula (14)
+  double eTr = 0.5 * radThick() * betaM * TMath::Sqrt(k) / (gapThick() * alpha); // formula (14)
   double lambda = (1. - sint * sinf) * (1. + sint * sinf);                       // formula (15)
 
   double c1 = 1. / (1. + eTr * k / (alpha * alpha * costheta * costheta));                     // formula (13.a)
-  double c2 = betaM * TMath::Power(k, 1.5) * tantheta * lambda / (GapThick() * alpha * alpha); // formula (13.b)
+  double c2 = betaM * TMath::Power(k, 1.5) * tantheta * lambda / (gapThick() * alpha * alpha); // formula (13.b)
   double c3 = (1. + eTr * k * betaM * betaM) / ((1 + eTr) * alpha * alpha);                    // formula (13.c)
-  double c4 = TMath::Sqrt(k) * tantheta * (1 - lambda) / (GapThick() * betaM);                 // formula (13.d)
+  double c4 = TMath::Sqrt(k) * tantheta * (1 - lambda) / (gapThick() * betaM);                 // formula (13.d)
   double dtdT = c1 * (c2 + c3 * c4);
-  double trErr = RadThick() / (TMath::Sqrt(12.) * cost);
+  double trErr = radThick() / (TMath::Sqrt(12.) * cost);
 
   return trErr * dtdT;
 } //SigGeom()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-double Param::SigmaCorrFact(Int_t iPart, double occupancy)
+double Param::sigmaCorrFact(Int_t iPart, double occupancy)
 {
   double corr = 1.0;
 
@@ -430,7 +430,7 @@ double Param::SigmaCorrFact(Int_t iPart, double occupancy)
   return corr;
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Param* Param::Instance()
+Param* Param::instance()
 {
   // Return pointer to the AliHMPIDParam singleton.
   // Arguments: none
@@ -442,7 +442,7 @@ Param* Param::Instance()
 } //Instance()
 
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Param* Param::InstanceNoGeo()
+Param* Param::instanceNoGeo()
 {
   // Return pointer to the AliHMPIDParam singleton without the geometry.root.
   // Arguments: none
@@ -453,7 +453,7 @@ Param* Param::InstanceNoGeo()
   return fgInstance;
 } //Instance()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-bool Param::IsInDead(float x, float y)
+bool Param::isInDead(float x, float y)
 {
   // Check is the current point is outside of sensitive area or in dead zones
   // Arguments: x,y -position
@@ -467,7 +467,7 @@ bool Param::IsInDead(float x, float y)
   return kTRUE;
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-bool Param::IsDeadPad(Int_t padx, Int_t pady, Int_t ch)
+bool Param::isDeadPad(Int_t padx, Int_t pady, Int_t ch)
 {
   // Check is the current pad is active or not
   // Arguments: padx,pady pad integer coord
@@ -480,7 +480,7 @@ bool Param::IsDeadPad(Int_t padx, Int_t pady, Int_t ch)
   return kTRUE;
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Param::Lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
+void Param::lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
 {
   // Check the pad of given position
   // Arguments: x,y- position [cm] in LORS; pc,px,py- pad where to store the result
@@ -488,32 +488,32 @@ void Param::Lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
   pc = px = py = -1;
   if (x > fgkMinPcX[0] && x < fgkMaxPcX[0]) {
     pc = 0;
-    px = Int_t(x / SizePadX());
+    px = Int_t(x / sizePadX());
   } //PC 0 or 2 or 4
   else if (x > fgkMinPcX[1] && x < fgkMaxPcX[1]) {
     pc = 1;
-    px = Int_t((x - fgkMinPcX[1]) / SizePadX());
+    px = Int_t((x - fgkMinPcX[1]) / sizePadX());
   } //PC 1 or 3 or 5
   else {
     return;
   }
   if (y > fgkMinPcY[0] && y < fgkMaxPcY[0]) {
-    py = Int_t(y / SizePadY());
+    py = Int_t(y / sizePadY());
   } //PC 0 or 1
   else if (y > fgkMinPcY[2] && y < fgkMaxPcY[2]) {
     pc += 2;
-    py = Int_t((y - fgkMinPcY[2]) / SizePadY());
+    py = Int_t((y - fgkMinPcY[2]) / sizePadY());
   } //PC 2 or 3
   else if (y > fgkMinPcY[4] && y < fgkMaxPcY[4]) {
     pc += 4;
-    py = Int_t((y - fgkMinPcY[4]) / SizePadY());
+    py = Int_t((y - fgkMinPcY[4]) / sizePadY());
   } //PC 4 or 5
   else {
     return;
   }
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Int_t Param::InHVSector(float y)
+Int_t Param::inHVSector(float y)
 {
   //Calculate the HV sector corresponding to the cluster position
   //Arguments: y
@@ -521,7 +521,7 @@ Int_t Param::InHVSector(float y)
 
   Int_t hvsec = -1;
   Int_t pc, px, py;
-  Lors2Pad(1., y, pc, px, py);
+  lors2Pad(1., y, pc, px, py);
   if (py == -1) {
     return hvsec;
   }
@@ -531,25 +531,25 @@ Int_t Param::InHVSector(float y)
   return hvsec;
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-double Param::FindTemp(double tLow, double tHigh, double y)
+double Param::findTemp(double tLow, double tHigh, double y)
 {
   //  Model for gradient in temperature
-  double yRad = HinRad(y); //height in a given radiator
+  double yRad = hinRad(y); //height in a given radiator
   if (tHigh < tLow) {
     tHigh = tLow; //if Tout < Tin consider just Tin as reference...
   }
   if (yRad < 0) {
     yRad = 0; //protection against fake y values
   }
-  if (yRad > SizePcY()) {
-    yRad = SizePcY(); //protection against fake y values
+  if (yRad > sizePcY()) {
+    yRad = sizePcY(); //protection against fake y values
   }
 
-  double gradT = (tHigh - tLow) / SizePcY(); // linear gradient
+  double gradT = (tHigh - tLow) / sizePcY(); // linear gradient
   return gradT * yRad + tLow;
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Param::SetChStatus(Int_t ch, bool status)
+void Param::setChStatus(Int_t ch, bool status)
 {
   //Set a chamber on or off depending on the status
   //Arguments: ch=chamber,status=kTRUE = active, kFALSE=off
@@ -561,7 +561,7 @@ void Param::SetChStatus(Int_t ch, bool status)
   }
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Param::SetSectStatus(Int_t ch, Int_t sect, bool status)
+void Param::setSectStatus(Int_t ch, Int_t sect, bool status)
 {
   //Set a given sector sect for a chamber ch on or off depending on the status
   //Sector=0,5 (6 sectors)
@@ -579,7 +579,7 @@ void Param::SetSectStatus(Int_t ch, Int_t sect, bool status)
   }
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Param::SetPcStatus(Int_t ch, Int_t pc, bool status)
+void Param::setPcStatus(Int_t ch, Int_t pc, bool status)
 {
   //Set a given PC pc for a chamber ch on or off depending on the status
   //Arguments: ch=chamber,pc=PC,status: kTRUE = active, kFALSE=off
@@ -599,7 +599,7 @@ void Param::SetPcStatus(Int_t ch, Int_t pc, bool status)
   }
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Param::PrintChStatus(Int_t ch)
+void Param::printChStatus(Int_t ch)
 {
   //Print the map status of a chamber on or off depending on the status
   //Arguments: ch=chamber
@@ -621,14 +621,14 @@ void Param::PrintChStatus(Int_t ch)
   printf("\n");
 }
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-void Param::SetGeomAccept()
+void Param::setGeomAccept()
 {
   //Set the real acceptance of the modules, due to ineficciency or hardware problems (up tp 1/6/2010)
   //Arguments: none
   //Returns: none
-  SetSectStatus(0, 3, kFALSE);
-  SetSectStatus(4, 0, kFALSE);
-  SetSectStatus(5, 1, kFALSE);
-  SetSectStatus(6, 2, kFALSE);
-  SetSectStatus(6, 3, kFALSE);
+  setSectStatus(0, 3, kFALSE);
+  setSectStatus(4, 0, kFALSE);
+  setSectStatus(5, 1, kFALSE);
+  setSectStatus(6, 2, kFALSE);
+  setSectStatus(6, 3, kFALSE);
 }

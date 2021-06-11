@@ -34,10 +34,10 @@ std::pair<uint32_t, uint16_t> getDate(const std::string& refDate)
     std::tm t{};
     std::istringstream ss(refDate);
     ss >> std::get_time(&t, "%Y-%b-%d %H:%M:%S");
-    if (ss.fail()) { // let's see if it was passed as a TDatime
+    if (ss.fail()) { // let's see if it was passed as a TDatime, as SQL string
       std::tm tt{};
       std::istringstream sss(refDate);
-      sss >> std::get_time(&tt, "%a %b %d %H:%M:%S %Y");
+      sss >> std::get_time(&tt, "%Y-%m-%d %H:%M:%S");
       if (sss.fail()) {
         LOG(ERROR) << "We cannot parse the date";
       }

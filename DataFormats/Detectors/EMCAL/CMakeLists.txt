@@ -18,6 +18,7 @@ o2_add_library(DataFormatsEMCAL
                        src/Digit.cxx
                        src/EventHandler.cxx
                        src/CTF.cxx
+                       src/ErrorTypeFEE.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
                                      O2::Headers 
                                      O2::MathUtils 
@@ -35,7 +36,8 @@ o2_target_root_dictionary(DataFormatsEMCAL
                                   include/DataFormatsEMCAL/AnalysisCluster.h
                                   include/DataFormatsEMCAL/EventHandler.h
                                   include/DataFormatsEMCAL/MCLabel.h
-                                  include/DataFormatsEMCAL/CTF.h)
+                                  include/DataFormatsEMCAL/CTF.h
+                                  include/DataFormatsEMCAL/ErrorTypeFEE.h)
 
 o2_add_test(Cell
             SOURCES test/testCell.cxx

@@ -27,7 +27,7 @@ void CTFCoder::appendToTree(TTree& tree, CTF& ec)
 
 ///___________________________________________________________________________________
 // extract and decode data from the tree
-void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint32_t>& pattVec)
+void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ReadoutWindowData>& rofRecVec, std::vector<Digit>& cdigVec, std::vector<uint8_t>& pattVec)
 {
   assert(entry >= 0 && entry < tree.GetEntries());
   CTF ec;
@@ -39,7 +39,7 @@ void CTFCoder::readFromTree(TTree& tree, int entry, std::vector<ReadoutWindowDat
 void CTFCoder::compress(CompressedInfos& cc,
                         const gsl::span<const ReadoutWindowData>& rofRecVec,
                         const gsl::span<const Digit>& cdigVec,
-                        const gsl::span<const uint32_t>& pattVec)
+                        const gsl::span<const uint8_t>& pattVec)
 {
   // store in the header the orbit of 1st ROF
   cc.clear();
@@ -49,7 +49,7 @@ void CTFCoder::compress(CompressedInfos& cc,
   const auto& rofRec0 = rofRecVec[0];
   int nrof = rofRecVec.size();
 
-  LOGF(INFO, "TOF compress %d ReadoutWindow with %ld digits", nrof, cdigVec.size());
+  LOGF(DEBUG, "TOF compress %d ReadoutWindow with %ld digits", nrof, cdigVec.size());
 
   cc.header.nROFs = nrof;
   cc.header.firstOrbit = rofRec0.getBCData().orbit;
@@ -68,7 +68,7 @@ void CTFCoder::compress(CompressedInfos& cc,
   cc.stripID.resize(cc.header.nDigits);
   cc.chanInStrip.resize(cc.header.nDigits);
   cc.tot.resize(cc.header.nDigits);
-  cc.pattMap.resize(cc.header.nPatternBytes);
+  cc.pattMap.resize(pattVec.size());
 
   uint16_t prevBC = cc.header.firstBC;
   uint32_t prevOrbit = cc.header.firstOrbit;
@@ -79,7 +79,7 @@ void CTFCoder::compress(CompressedInfos& cc,
     const auto& rofRec = rofRecVec[irof];
 
     const auto& intRec = rofRec.getBCData();
-    int rofInBC = intRec.toLong();
+    int64_t rofInBC = intRec.toLong();
     // define interaction record
     if (intRec.orbit == prevOrbit) {
       cc.orbitIncROF[irof] = 0;
@@ -150,7 +150,6 @@ void CTFCoder::compress(CompressedInfos& cc,
       LOGF(DEBUG, "%d) TF=%d, TDC=%d, STRIP=%d, CH=%d, TOT=%d", idig, cc.timeFrameInc[idig], cc.timeTDCInc[idig], cc.stripID[idig], cc.chanInStrip[idig], cc.tot[idig]);
     }
   }
-  // store explicit patters as they are
   memcpy(cc.pattMap.data(), pattVec.data(), cc.header.nPatternBytes); // RSTODO: do we need this?
 }
 
@@ -218,7 +217,7 @@ size_t CTFCoder::estimateCompressedSize(const CompressedInfos& cc)
   sz += ESTSIZE(cc.tot,          CTF::BLCtot);
   sz += ESTSIZE(cc.pattMap,      CTF::BLCpattMap);
   // clang-format on
-
-  LOG(INFO) << "Estimated output size is " << sz << " bytes";
+  sz *= 2. / 3; // if needed, will be autoexpanded
+  LOG(DEBUG) << "Estimated output size is " << sz << " bytes";
   return sz;
 }

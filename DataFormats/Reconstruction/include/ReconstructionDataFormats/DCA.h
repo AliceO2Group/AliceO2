@@ -55,6 +55,7 @@ class DCA
 
   GPUd() auto getY() const { return mY; }
   GPUd() auto getZ() const { return mZ; }
+  GPUd() auto getR2() const { return mY * mY + mZ * mZ; }
   GPUd() auto getSigmaY2() const { return mCov[0]; }
   GPUd() auto getSigmaYZ() const { return mCov[1]; }
   GPUd() auto getSigmaZ2() const { return mCov[2]; }

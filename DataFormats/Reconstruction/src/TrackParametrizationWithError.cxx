@@ -30,7 +30,9 @@
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <iostream>
+#ifndef GPUCA_STANDALONE
 #include "Math/SMatrix.h"
+#endif
 #endif
 
 #ifndef GPUCA_ALIGPUCODE
@@ -82,7 +84,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   }
   this->setX(xk);
   double dy2dx = (f1 + f2) / (r1 + r2);
-  value_t dP[kNParams] = {0.f};
+  params_t dP{0.f};
   dP[kY] = dx * dy2dx;
   dP[kSnp] = x2r;
   if (gpu::CAMath::Abs(x2r) < 0.05f) {
@@ -97,7 +99,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
     //    mP1 += rot/crv*mP3;
     //
     value_t rot = gpu::CAMath::ASin(r1 * f2 - r2 * f1); // more economic version from Yura.
-    if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) { // special cases of large rotations or large abs angles
+    if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) {     // special cases of large rotations or large abs angles
       if (f2 > 0.f) {
         rot = constants::math::PI - rot; //
       } else {
@@ -260,9 +262,18 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
 //______________________________________________________________
 template <typename value_T>
 GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
-                                                                             const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha)
+                                                                             const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha, const PID pid)
 {
   // construct track param and covariance from kinematics and lab errors
+  set(xyz, pxpypz, cv, charge, sectorAlpha, pid);
+}
+
+//______________________________________________________________
+template <typename value_T>
+GPUd() void TrackParametrizationWithError<value_T>::set(const dim3_t& xyz, const dim3_t& pxpypz,
+                                                        const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int charge, bool sectorAlpha, const PID pid)
+{
+  // set track param and covariance from kinematics and lab errors
 
   // Alpha of the frame is defined as:
   // sectorAlpha == false : -> angle of pt direction
@@ -284,6 +295,15 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
   //
   value_t sn, cs;
   math_utils::detail::sincos(alp, sn, cs);
+  // protection against cosp<0
+  if (cs * pxpypz[0] + sn * pxpypz[1] < 0) {
+    LOG(WARNING) << "alpha from phiPos() will invalidate this track parameters, overriding to alpha from phi()";
+    alp = gpu::CAMath::ATan2(pxpypz[1], pxpypz[0]);
+    if (sectorAlpha) {
+      alp = math_utils::detail::angle2Alpha<value_t>(alp);
+    }
+    math_utils::detail::sincos(alp, sn, cs);
+  }
   // protection:  avoid alpha being too close to 0 or +-pi/2
   if (gpu::CAMath::Abs(sn) < 2.f * kSafe) {
     if (alp > 0) {
@@ -318,6 +338,7 @@ GPUd() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(con
   this->setTgl(mom[2] * ptI); // tg(lambda)
   this->setAbsCharge(gpu::CAMath::Abs(charge));
   this->setQ2Pt(charge ? ptI * charge : ptI);
+  this->setPID(pid);
   //
   if (gpu::CAMath::Abs(1.f - this->getSnp()) < kSafe) {
     this->setSnp(1.f - kSafe); // Protection
@@ -565,7 +586,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
 
   // Calculate the track parameters
   t = 1.f / gpu::CAMath::Sqrt(vecLab[3] * vecLab[3] + vecLab[4] * vecLab[4]);
-  this->setX(x);
+  this->setX(xk);
   this->setY(y);
   this->setZ(z);
   this->setSnp(vecLab[4] * t);
@@ -670,7 +691,7 @@ GPUd() void TrackParametrizationWithError<value_T>::resetCovariance(value_t s2)
 
 //______________________________________________
 template <typename value_T>
-GPUd() typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getPredictedChi2(const dim2_t& p, const dim3_t& cov) const
+GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value_t* p, const value_t* cov) const -> value_t
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
   auto sdd = static_cast<double>(getSigmaY2()) + static_cast<double>(cov[0]);
@@ -688,7 +709,7 @@ GPUd() typename TrackParametrizationWithError<value_T>::value_t TrackParametriza
   return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
 }
 
-#ifndef GPUCA_GPUCODE // Disable function relying on ROOT SMatrix on GPU
+#if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // Disable function relying on ROOT SMatrix on GPU
 
 //______________________________________________
 template <typename value_T>
@@ -714,7 +735,7 @@ void TrackParametrizationWithError<value_T>::buildCombinedCovMatrix(const TrackP
 
 //______________________________________________
 template <typename value_T>
-typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs) const
+auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs) const -> value_t
 {
   MatrixDSym5 cov; // perform matrix operations in double!
   return getPredictedChi2(rhs, cov);
@@ -722,7 +743,7 @@ typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWit
 
 //______________________________________________
 template <typename value_T>
-typename TrackParametrizationWithError<value_T>::value_t TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs, MatrixDSym5& covToSet) const
+auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs, MatrixDSym5& covToSet) const -> value_t
 {
   // get chi2 wrt other track, which must be defined at the same parameters X,alpha
   // Supplied non-initialized covToSet matrix is filled by inverse combined matrix for further use
@@ -839,7 +860,7 @@ bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWi
 
 //______________________________________________
 template <typename value_T>
-GPUd() bool TrackParametrizationWithError<value_T>::update(const dim2_t& p, const dim3_t& cov)
+GPUd() bool TrackParametrizationWithError<value_T>::update(const value_t* p, const value_t* cov)
 {
   // Update the track parameters with the space point "p" having
   // the covariance matrix "cov"
@@ -876,8 +897,8 @@ GPUd() bool TrackParametrizationWithError<value_T>::update(const dim2_t& p, cons
     return false;
   }
 
-  value_t dP[kNParams] = {value_t(k00 * dy + k01 * dz), value_t(k10 * dy + k11 * dz), dsnp, value_t(k30 * dy + k31 * dz),
-                          value_t(k40 * dy + k41 * dz)};
+  const params_t dP{value_t(k00 * dy + k01 * dz), value_t(k10 * dy + k11 * dz), dsnp, value_t(k30 * dy + k31 * dz),
+                    value_t(k40 * dy + k41 * dz)};
   this->updateParams(dP);
 
   double c01 = cm10, c02 = cm20, c03 = cm30, c04 = cm40;

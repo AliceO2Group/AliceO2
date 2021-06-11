@@ -26,26 +26,6 @@ using namespace o2::mch::raw;
 
 const char* sampaClusterFormat = "{}-CH{}-{}";
 
-template <typename FORMAT>
-struct isUserLogicFormat {
-  static constexpr bool value = false;
-};
-
-template <>
-struct isUserLogicFormat<UserLogicFormat> {
-  static constexpr bool value = true;
-};
-
-template <typename CHARGESUM>
-struct isChargeSumMode {
-  static constexpr bool value = false;
-};
-
-template <>
-struct isChargeSumMode<ChargeSumMode> {
-  static constexpr bool value = true;
-};
-
 // Create a vector of SampaCluster from a string d
 // where d is of the form ts-#-bc-#-cs-#-q-# or
 // ts-#-bc-#-cs-#-q-#-#-# ...
@@ -112,7 +92,7 @@ std::vector<std::byte> createBuffer(gsl::span<std::string> data,
 
   const o2::raw::HBFUtils& hbfutils = o2::raw::HBFUtils::Instance();
   o2::conf::ConfigurableParam::setValue<uint32_t>("HBFUtils", "orbitFirst", orbit);
-  o2::conf::ConfigurableParam::setValue<uint16_t>("HBFUtils", "bcFirst", bc);
+  o2::conf::ConfigurableParam::setValue<uint32_t>("HBFUtils", "orbitFirstSampled", orbit);
   std::vector<std::byte> out = o2::mch::raw::paginate(buffer,
                                                       isUserLogicFormat<FORMAT>::value,
                                                       isChargeSumMode<CHARGESUM>::value,

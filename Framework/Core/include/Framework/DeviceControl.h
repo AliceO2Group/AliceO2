@@ -7,17 +7,18 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DEVICECONTROL_H
-#define FRAMEWORK_DEVICECONTROL_H
+#ifndef O2_FRAMEWORK_DEVICECONTROL_H_
+#define O2_FRAMEWORK_DEVICECONTROL_H_
+
+#include "Framework/LogParsingHelpers.h"
 
 #include <map>
 #include <string>
-#include "Framework/LogParsingHelpers.h"
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+struct DeviceController;
 
 constexpr int MAX_USER_FILTER_SIZE = 256;
 
@@ -42,9 +43,10 @@ struct DeviceControl {
   char logStopTrigger[MAX_USER_FILTER_SIZE] = {0};
   /// Where the GUI should store the options it wants.
   std::map<std::string, std::string> options;
+  /// Handler used to communicate with the device (if available)
+  DeviceController* controller = nullptr;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_DEVICECONTROL_H
+#endif // O2_FRAMEWORK_DEVICECONTROL_H_

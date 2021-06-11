@@ -17,7 +17,7 @@ o2_add_library(SimulationDataFormat
                        src/StackParam.cxx
                        src/MCEventHeader.cxx
                        src/CustomStreamers.cxx
-               PUBLIC_LINK_LIBRARIES ms_gsl::ms_gsl
+               PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
                                      O2::DetectorsCommonDataFormats
                                      O2::GPUCommon O2::DetectorsBase
                                      O2::SimConfig)
@@ -29,6 +29,7 @@ o2_target_root_dictionary(
           include/SimulationDataFormat/MCTrack.h
           include/SimulationDataFormat/BaseHits.h
           include/SimulationDataFormat/MCTruthContainer.h
+          include/SimulationDataFormat/ConstMCTruthContainer.h
           include/SimulationDataFormat/MCCompLabel.h
           include/SimulationDataFormat/MCEventLabel.h
           include/SimulationDataFormat/TrackReference.h

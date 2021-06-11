@@ -107,7 +107,7 @@ void fillCollisionAndTrackTable()
   auto t = (TTree*)f.Get("o2sim");
 
   // fetch the tracks (these names are not following any convention!!)
-  auto tpctracks = fetchTracks<o2::tpc::TrackTPC>("tpctracks.root", "events", "Tracks");
+  auto tpctracks = fetchTracks<o2::tpc::TrackTPC>("tpctracks.root", "tpcrec", "TPCTracks");
   auto itstracks = fetchTracks<o2::its::TrackITS>("o2trac_its.root", "o2sim", "ITSTrack");
   auto itstpctracks = fetchTracks<o2::dataformats::TrackTPCITS>("o2match_itstpc.root", "matchTPCITS", "TPCITS");
   LOG(INFO) << "FOUND " << tpctracks->size() << " TPC tracks";
@@ -152,7 +152,7 @@ void fillCollisionAndTrackTable()
         // TODO: figure out BC + CollisionTimeMask
         collCursor(0, BCid, v.getX(), v.getY(), v.getZ(),
                    cov[0], cov[1], cov[2], cov[3], cov[4], cov[6],
-                   v.getChi2(), v.getNContributors(), ts.getTimeStamp(), ts.getTimeStampError(), 1);
+                   v.getFlags(), v.getChi2(), v.getNContributors(), ts.getTimeStamp(), ts.getTimeStampError(), 1);
 
         // get the track for each vertex and fill the tracks table
         // now go over tracks via the indices
@@ -169,7 +169,7 @@ void fillCollisionAndTrackTable()
             track = &((*tpctracks)[trackindex.getIndex()]);
           } else if (source == o2::dataformats::VtxTrackIndex::Source::ITS) {
             track = &((*itstracks)[trackindex.getIndex()]);
-          } else if (source == o2::dataformats::VtxTrackIndex::Source::TPCITS) {
+          } else if (source == o2::dataformats::VtxTrackIndex::Source::ITSTPC) {
             track = &((*itstpctracks)[trackindex.getIndex()]);
           } else {
             LOG(WARNING) << "Unsupported track source";

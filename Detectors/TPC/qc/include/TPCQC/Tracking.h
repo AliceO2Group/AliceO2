@@ -32,6 +32,7 @@ class MCCompLabel;
 namespace gpu
 {
 class GPUO2InterfaceQA;
+struct GPUO2InterfaceConfiguration;
 } // namespace gpu
 namespace tpc
 {
@@ -78,6 +79,7 @@ class Tracking
   void getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3) const;
 
  private:
+  std::unique_ptr<o2::gpu::GPUO2InterfaceConfiguration> mQAConfig; //!
   std::unique_ptr<o2::gpu::GPUO2InterfaceQA> mQA; //!
   outputModes mOutputMode;
 

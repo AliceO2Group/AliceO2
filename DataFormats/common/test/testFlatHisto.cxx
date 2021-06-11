@@ -17,6 +17,8 @@
 #include <TFile.h>
 #include <TRandom.h>
 #include <TFitResult.h>
+#include <TH1F.h>
+#include <TH2F.h>
 
 namespace o2
 {
@@ -33,23 +35,23 @@ BOOST_AUTO_TEST_CASE(FlatHisto)
   for (int i = 0; i < 10000000; i++) {
     auto x = gRandom->Gaus(10, 40), y = gRandom->Gaus(10, 10);
     h2.fill(x, y);
-    h2ref.Fill(x, y);
+    h2ref->Fill(x, y);
   }
   auto th1f = h1.createTH1F();
-  auto res = th1f.Fit("gaus", "S");
+  auto res = th1f->Fit("gaus", "S");
   BOOST_CHECK_CLOSE(res->GetParams()[1], 10, 0.2);
 
-  printf("%e %e\n", h2.getSum(), h2ref.Integral());
-  BOOST_CHECK(h2.getSum() == h2ref.Integral());
+  printf("%e %e\n", h2.getSum(), h2ref->Integral());
+  BOOST_CHECK(h2.getSum() == h2ref->Integral());
 
   o2::dataformats::FlatHisto1D_f h1v(h1);
 
   BOOST_CHECK_CLOSE(h1.getBinStart(0), -100, 1e-5);
   BOOST_CHECK_CLOSE(h1.getBinEnd(h1.getNBins() - 1), 100, 1e-5);
 
-  BOOST_CHECK_CLOSE(h2.getBinStartX(0), -100, 1e-5);
-  BOOST_CHECK_CLOSE(h2.getBinEndY(h2.getNBinsY() - 1), 45, 1e-5);
-  BOOST_CHECK_CLOSE(h2.getBinStartY(h2.getNBinsY() - 1), 45 - h2.getBinSizeY(), 1e-5);
+  BOOST_CHECK_CLOSE(h2.getBinXStart(0), -100, 1e-5);
+  BOOST_CHECK_CLOSE(h2.getBinYEnd(h2.getNBinsY() - 1), 45, 1e-5);
+  BOOST_CHECK_CLOSE(h2.getBinYStart(h2.getNBinsY() - 1), 45 - h2.getBinSizeY(), 1e-5);
 
   BOOST_CHECK(h1.canFill() && h1v.canFill());
   BOOST_CHECK(h1.getSum() == h1v.getSum());

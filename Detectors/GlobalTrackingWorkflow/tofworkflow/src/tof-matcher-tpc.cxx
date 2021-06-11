@@ -14,9 +14,9 @@
 /// @brief  Basic DPL workflow for TOF reconstruction starting from digits
 
 #include "DetectorsBase/Propagator.h"
-#include "TOFWorkflowUtils/ClusterReaderSpec.h"
-#include "TOFWorkflow/TOFMatchedWriterSpec.h"
-#include "TOFWorkflow/TOFCalibWriterSpec.h"
+#include "TOFWorkflowIO/ClusterReaderSpec.h"
+#include "TOFWorkflowIO/TOFMatchedWriterSpec.h"
+#include "TOFWorkflowIO/TOFCalibWriterSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TOFWorkflow/RecoWorkflowWithTPCSpec.h"
@@ -24,7 +24,10 @@
 #include "FairLogger.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
-#include "TPCWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/TrackReaderSpec.h"
+#include "TPCReaderWorkflow/ClusterReaderSpec.h"
+#include "TPCWorkflow/ClusterSharingMapSpec.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 
 // GRP
 #include "DataFormatsParameters/GRPObject.h"
@@ -40,17 +43,23 @@
 // including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{"input-type", o2::framework::VariantType::String, "clusters,tracks", {"clusters, tracks, fit"}});
-  workflowOptions.push_back(ConfigParamSpec{"output-type", o2::framework::VariantType::String, "matching-info", {"matching-info, calib-info"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}});
-  workflowOptions.push_back(ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}});
-  workflowOptions.push_back(ConfigParamSpec{"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}});
-  workflowOptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}});
-  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"output-type", o2::framework::VariantType::String, "matching-info", {"matching-info, calib-info"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information, TBI"}},
+    {"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}},
+    {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}},
+    {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
+    {"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}},
+    {"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}},
+    {"tpc-refit", o2::framework::VariantType::Bool, false, {"refit matched TPC tracks"}},
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
+    {"cosmics", o2::framework::VariantType::Bool, false, {"reco for cosmics"}},
+    {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -74,23 +83,10 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
-  if (!cfgc.helpOnCommandLine()) {
-    std::string inputGRP = o2::base::NameConf::getGRPFileName();
-    o2::base::Propagator::initFieldFromGRP(inputGRP);
-    const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-    if (!grp) {
-      LOG(ERROR) << "This workflow needs a valid GRP file to start";
-      return specs;
-    }
-    o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-    //  o2::conf::ConfigurableParam::writeINI("o2tofrecoflow_configuration.ini");
-  }
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
-  // auto tofSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tof-sectors"));
-  // std::vector<int> laneConfiguration = tofSectors;
   auto nLanes = cfgc.options().get<int>("tof-lanes");
-  auto inputType = cfgc.options().get<std::string>("input-type");
   auto outputType = cfgc.options().get<std::string>("output-type");
 
   bool writematching = 0;
@@ -103,35 +99,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     writecalib = 1;
   }
 
-  bool clusterinput = 0;
-  bool trackinput = 0;
-  bool fitinput = 0;
-
-  if (inputType.rfind("clusters") < inputType.size()) {
-    clusterinput = 1;
-  }
-  if (inputType.rfind("tracks") < inputType.size()) {
-    trackinput = 1;
-  }
   auto useMC = !cfgc.options().get<bool>("disable-mc");
   auto useCCDB = cfgc.options().get<bool>("use-ccdb");
   auto useFIT = cfgc.options().get<bool>("use-fit");
+  auto doTPCRefit = cfgc.options().get<bool>("tpc-refit");
   bool disableRootInput = cfgc.options().get<bool>("disable-root-input");
   bool disableRootOutput = cfgc.options().get<bool>("disable-root-output");
-
-  if (inputType.rfind("fit") < inputType.size()) {
-    fitinput = 1;
-    useFIT = 1;
-  }
+  auto isCosmics = cfgc.options().get<bool>("cosmics");
 
   LOG(INFO) << "TOF RECO WORKFLOW configuration";
-  LOG(INFO) << "TOF input = " << cfgc.options().get<std::string>("input-type");
   LOG(INFO) << "TOF output = " << cfgc.options().get<std::string>("output-type");
   LOG(INFO) << "TOF sectors = " << cfgc.options().get<std::string>("tof-sectors");
   LOG(INFO) << "TOF disable-mc = " << cfgc.options().get<std::string>("disable-mc");
   LOG(INFO) << "TOF lanes = " << cfgc.options().get<std::string>("tof-lanes");
   LOG(INFO) << "TOF use-ccdb = " << cfgc.options().get<std::string>("use-ccdb");
   LOG(INFO) << "TOF use-fit = " << cfgc.options().get<std::string>("use-fit");
+  LOG(INFO) << "TOF tpc-refit = " << cfgc.options().get<bool>("tpc-refit");
   LOG(INFO) << "TOF disable-root-input = " << disableRootInput;
   LOG(INFO) << "TOF disable-root-output = " << disableRootOutput;
 
@@ -140,33 +123,43 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // writecalib = false;
   // LOG(INFO) << "TOF CalibInfo disabled (forced)";
 
-  if (clusterinput) {
+  if (!disableRootInput) { // input data loaded from root files
     LOG(INFO) << "Insert TOF Cluster Reader";
     specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
-  }
-  if (trackinput) {
+
     LOG(INFO) << "Insert TPC Track Reader";
     specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
-  }
 
-  if (fitinput) {
-    LOG(INFO) << "Insert FIT RecPoint Reader";
-    specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
+    if (doTPCRefit) {
+      LOG(INFO) << "Insert TPC Cluster Reader";
+      specs.emplace_back(o2::tpc::getClusterReaderSpec(false));
+      specs.emplace_back(o2::tpc::getClusterSharingMapSpec());
+    }
+
+    if (useFIT) {
+      LOG(INFO) << "Insert FIT RecPoint Reader";
+      specs.emplace_back(o2::ft0::getRecPointReaderSpec(useMC));
+    }
   }
 
   LOG(INFO) << "Insert TOF Matching";
-  specs.emplace_back(o2::tof::getTOFRecoWorkflowWithTPCSpec(useMC, useFIT));
+  specs.emplace_back(o2::tof::getTOFRecoWorkflowWithTPCSpec(useMC, useFIT, doTPCRefit, isCosmics));
 
-  if (writematching && !disableRootOutput) {
-    LOG(INFO) << "Insert TOF Matched Info Writer";
-    specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_toftpc.root"));
-  }
-  if (writecalib) {
-    LOG(INFO) << "Insert TOF Calib Info Writer";
-    specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_toftpc.root"));
+  if (!disableRootOutput) {
+    if (writematching) {
+      LOG(INFO) << "Insert TOF Matched Info Writer";
+      specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_toftpc.root", true));
+    }
+    if (writecalib) {
+      LOG(INFO) << "Insert TOF Calib Info Writer";
+      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_toftpc.root", true));
+    }
   }
 
   LOG(INFO) << "Number of active devices = " << specs.size();
+
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
 
   return std::move(specs);
 }

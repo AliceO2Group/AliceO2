@@ -80,6 +80,16 @@ export O2DPLDEBUG='xterm -hold -e sudo gdb attach $O2DEBUGGEDPID &'
 Be sure to use single quotes to avoid direct expansion of O2DEBUGGEDPID variable.
 The `&` character add the end is needed to start gdb in a separate process.
 
+### Dumping stacktraces on a signal
+
+If you are on linux you can get stacktraces on a various signals via the:
+
+```
+--stacktrace-on-signal "<signal> [<signal>..]"
+```
+
+option, where `<signal>` can be: all, segv, bus, ill, abrt, fpe and sys.
+
 
 ### Debug GUI
 
@@ -348,18 +358,17 @@ timePipeline(DataProcessorSpec{
 ```
 
 which will result in two devices, one for even time periods, the other one for
-odd timeperiods.
+odd timeperiods. This can also be achieved on the command line via the `--pipeline <processor name>:<N>` option, e.g. `--pipeline processor:2` in this case.
 
+You can get programmatically the number of time pipelined devices you belong and the rank by looking it up in the `DeviceSpec`, e.g.:
 
-### Disabling monitoring
-
-Sometimes (e.g. when running a child inside valgrind) it might be useful to disable metrics which might pollute STDOUT. In order to disable monitoring you can use the `no-op://` backend:
-
-```bash
-some-workflow --monitoring-backend=no-op://
+```cpp
+ctx.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
+ctx.services().get<const o2::framework::DeviceSpec>().maxInputTimeslices;
 ```
 
-notice that the GUI will not function properly if you do so.
+Where ctx is either the ProcessingContext or the InitContext.
+
 
 ### Vectorised input
 
@@ -415,3 +424,44 @@ undefined. Thus to read an option without default value do e.g.
     vopt1 = ic.options().get<std::string>("opt1");
   }
 ```
+
+## Monitoring
+
+By default DPL exposes the following metrics to the back-end specified with:
+`--monitoring-backend`:
+
+* `malformed_inputs`: number of messages which did not match the O2 DataModel
+* `dropped_computations`: number of messages which DPL could not process
+* `dropped_incoming_messages`: number of messages which DPL could 
+                             not accept in its own queue.
+* `relayed_messages`: number of messages received by DPL.
+
+* `errors`: number of errors recorded inside DPL (not in the actual processing).
+* `exceptions`: number of exceptions raised by the DPL.
+* `inputs/relayed/pending`: number of entries in the DPL queue which are waiting for extra data.
+* `inputs/relayed/incomplete` : 1 if the device is waiting for extra data.
+* `inputs/relayed/total`: how many inputs the processor has.
+* `elapsed_time_ms`:
+* `last_processed_input_size_byte`: how many bytes were processed on last iteration by a given device
+* `total_processed_input_size_byte`: how many bytes were processed in total since the beginning a given device
+* `last_processing_rate_mb_s`: at what rate the last message was processed
+* `min_input_latency_ms`: the shortest it took for any message to be processed by this dataprocessor (since created)
+* `max_input_latency_ms`: the maximum it took for any message to be processed by this dataprocessor (since created)
+* `input_rate_mb_s`: 
+
+Moreover if you specify `--resources-monitoring <poll-interval>` the 
+process monitoring metrics described at:
+
+<https://github.com/AliceO2Group/Monitoring/#process-monitoring>
+
+will be pushed every `<poll-interval>` seconds to the same backend and dumped in the `performanceMetrics.json` file on exit.
+
+### Disabling monitoring
+
+Sometimes (e.g. when running a child inside valgrind) it might be useful to disable metrics which might pollute STDOUT. In order to disable monitoring you can use the `no-op://` backend:
+
+```bash
+some-workflow --monitoring-backend=no-op://
+```
+
+notice that the GUI will not function properly if you do so.

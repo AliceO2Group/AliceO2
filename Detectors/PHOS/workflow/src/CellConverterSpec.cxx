@@ -49,14 +49,17 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   if (mPropagateMC) {
     truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
     mOutputTruthCont.clear();
-    mOutputTruthMap.clear();
   }
-  LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords" << truthcont->getNElements() << " MC labels";
+  if (mPropagateMC) {
+    LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords" << truthcont->getNElements() << " MC labels";
+  } else {
+    LOG(INFO) << "[PHOSCellConverter - run]  Received " << digits.size() << " digits and " << digitsTR.size() << " TriggerRecords";
+  }
 
   //Get TimeStamp from TriggerRecord
   if (!mBadMap) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mBadMap = new BadChannelMap(1); // test default map
+      mBadMap = new BadChannelsMap(1); // test default map
       LOG(INFO) << "[PHOSCellConverter - run] No reading BadMap from ccdb requested, set default";
     } else {
       LOG(INFO) << "[PHOSCellConverter - run] getting BadMap object from ccdb";
@@ -64,7 +67,7 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
       std::map<std::string, std::string> metadata; // do we want to store any meta data?
       ccdb.init("http://ccdb-test.cern.ch:8080");  // or http://localhost:8080 for a local installation
       long bcTime = -1;                            //TODO!!! Convert BC time to time o2::InteractionRecord bcTime = digitsTR.front().getBCData() ;
-      mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelMap>("PHOS/BadMap", metadata, bcTime);
+      mBadMap = ccdb.retrieveFromTFileAny<o2::phos::BadChannelsMap>("PHOS/BadMap", metadata, bcTime);
       if (!mBadMap) {
         LOG(FATAL) << "[PHOSCellConverter - run] can not get Bad Map";
       }
@@ -72,43 +75,50 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   }
   //TODO!!! Should we check if BadMap should be updated/validity range still valid???
   mOutputCells.reserve(digits.size()); // most of digits will be copied
+  int icell = 0;
   int labelIndex = 0;
   for (const auto& tr : digitsTR) {
     int iFirstDigit = tr.getFirstEntry();
     int iLastDigit = iFirstDigit + tr.getNumberOfObjects();
     int indexStart = mOutputCells.size();
-    int icell = 0;
     for (int i = iFirstDigit; i < iLastDigit; i++) {
       const auto& dig = digits.at(i);
 
-      //apply filter
-      if (!mBadMap->isChannelGood(dig.getAbsId())) {
-        continue;
-      }
-
-      ChannelType_t chantype;
-      if (dig.isHighGain()) {
-        chantype = ChannelType_t::HIGH_GAIN;
+      if (dig.isTRU()) {
+        ChannelType_t chantype;
+        if (dig.isHighGain()) {
+          chantype = ChannelType_t::TRU2x2;
+        } else {
+          chantype = ChannelType_t::TRU4x4;
+        }
+        mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
       } else {
-        chantype = ChannelType_t::LOW_GAIN;
-      }
+        //apply filter
+        if (!mBadMap->isChannelGood(dig.getAbsId())) {
+          continue;
+        }
 
-      //    TODO!!! TRU copying...
-      //    if (dig.getTRU())
-      //      chantype = ChannelType_t::TRU;
-
-      mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
-      if (mPropagateMC) { //copy MC info,
-        int iLab = dig.getLabel();
-        if (iLab > -1) {
-          mOutputTruthCont.addElements(labelIndex, truthcont->getLabels(iLab));
-          mOutputTruthMap.emplace_back(icell); //Relate cell index and label index
-          labelIndex++;
+        ChannelType_t chantype;
+        if (dig.isHighGain()) {
+          chantype = ChannelType_t::HIGH_GAIN;
+        } else {
+          chantype = ChannelType_t::LOW_GAIN;
+        }
+        mOutputCells.emplace_back(dig.getAbsId(), dig.getAmplitude(), dig.getTime(), chantype);
+        if (mPropagateMC) { //copy MC info,
+          int iLab = dig.getLabel();
+          if (iLab > -1) {
+            mOutputTruthCont.addElements(icell, truthcont->getLabels(iLab));
+          } else {
+            MCLabel label(0, 0, 0, true, 0);
+            label.setNoise();
+            mOutputTruthCont.addElement(icell, label);
+          }
+          icell++;
         }
       }
-      icell++;
     }
-    mOutputCellTrigRecs.emplace_back(tr.getBCData(), indexStart, mOutputCells.size());
+    mOutputCellTrigRecs.emplace_back(tr.getBCData(), indexStart, mOutputCells.size() - indexStart);
   }
   LOG(INFO) << "[PHOSCellConverter - run] Writing " << mOutputCells.size() << " cells, " << mOutputCellTrigRecs.size() << " Trig Records " << mOutputTruthCont.getNElements() << " PHOS labels ";
   ;
@@ -116,7 +126,6 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputCellTrigRecs);
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthCont);
-    ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe}, mOutputTruthMap);
   }
 }
 
@@ -131,7 +140,6 @@ o2::framework::DataProcessorSpec o2::phos::reco_workflow::getCellConverterSpec(b
   if (propagateMC) {
     inputs.emplace_back("digitsmctr", "PHS", "DIGITSMCTR", 0, o2::framework::Lifetime::Timeframe);
     outputs.emplace_back("PHS", "CELLSMCTR", 0, o2::framework::Lifetime::Timeframe);
-    outputs.emplace_back("PHS", "CELLSMCMAP", 0, o2::framework::Lifetime::Timeframe);
   }
   return o2::framework::DataProcessorSpec{"PHOSCellConverterSpec",
                                           inputs,

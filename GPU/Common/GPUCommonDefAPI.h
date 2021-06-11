@@ -171,7 +171,7 @@
   #define GPUshared() __shared__
   #define GPUglobal()
   #define GPUconstant() __constant__
-  #define GPUconstexpr() __constant__
+  #define GPUconstexpr() constexpr __constant__
   #define GPUprivate()
   #define GPUgeneric()
   #define GPUbarrier() __syncthreads()
@@ -228,5 +228,5 @@
   #define get_group_id(dim) iBlock
 #endif
 
-  // clang-format on
+    // clang-format on
 #endif

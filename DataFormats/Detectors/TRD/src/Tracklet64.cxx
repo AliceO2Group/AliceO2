@@ -8,8 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <iostream>
 #include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/Constants.h"
+
+#include "fairlogger/Logger.h"
+#include <iostream>
 
 namespace o2
 {
@@ -17,6 +20,9 @@ namespace o2
 namespace trd
 {
 
+using namespace constants;
+
+#ifndef GPUCA_GPUCODE_DEVICE
 void Tracklet64::printStream(std::ostream& stream) const
 {
   stream << "Tracklet64 : 0x" << std::hex << getTrackletWord();
@@ -31,6 +37,7 @@ std::ostream& operator<<(std::ostream& stream, const Tracklet64& trg)
   trg.printStream(stream);
   return stream;
 }
+#endif // GPUCA_GPUCODE_DEVICE
 
 } // namespace trd
 } // namespace o2

@@ -10,10 +10,10 @@
 //
 // Contact: iarsene@cern.ch, i.c.arsene@fys.uio.no
 //
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoAHelpers.h"
+#include "Framework/DataTypes.h"
 #include "AnalysisDataModel/Multiplicity.h"
 #include "AnalysisDataModel/EventSelection.h"
 #include "AnalysisDataModel/Centrality.h"
@@ -23,6 +23,8 @@
 #include "PWGDQCore/HistogramManager.h"
 #include "PWGDQCore/AnalysisCut.h"
 #include "PWGDQCore/AnalysisCompositeCut.h"
+#include "PWGDQCore/HistogramsLibrary.h"
+#include "PWGDQCore/CutsLibrary.h"
 #include "AnalysisDataModel/PID/PIDResponse.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 #include <iostream>
@@ -32,23 +34,43 @@ using std::endl;
 
 using namespace o2;
 using namespace o2::framework;
-//using namespace o2::framework::expressions;
+using namespace o2::framework::expressions;
 using namespace o2::aod;
 
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  ConfigParamSpec optionDataType{"isPbPb", VariantType::Bool, false, {"Data type"}};
+  workflowOptions.push_back(optionDataType);
+}
+
+#include "Framework/runDataProcessing.h"
+
+using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection,
+                                 aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                 aod::pidTPCFullKa, aod::pidTPCFullPr,
+                                 aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
+                                 aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta>;
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>;
-using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta>;
+using MyEventsNoCent = soa::Join<aod::Collisions, aod::EvSels>;
+//using MyMuons = aod::Muons;
+using MyMuons = soa::Join<aod::FwdTracks, aod::FwdTracksCov>;
 
 // HACK: In order to be able to deduce which kind of aod object is transmitted to the templated VarManager::Fill functions
 //         a constexpr static bit map must be defined and sent as template argument
-//        The user has to include in this bit map all the tables needed in analysis, as defined in VarManager::ObjTypes
+//        The user has to include in this bit map all the tables used in analysis, as defined in VarManager::ObjTypes
 //        Additionally, one should make sure that the requested tables are actually provided in the process() function,
 //       otherwise a compile time error will be thrown.
 //        This is a temporary fix until the arrow/ROOT issues are solved, at which point it will be possible
 //           to automatically detect the object types transmitted to the VarManager
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision | VarManager::ObjTypes::CollisionCent;
+constexpr static uint32_t gkEventFillMapNoCent = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackDCA | VarManager::ObjTypes::TrackSelection | VarManager::ObjTypes::TrackCov | VarManager::ObjTypes::TrackPID;
+constexpr static uint32_t gkMuonFillMap = VarManager::ObjTypes::Muon | VarManager::ObjTypes::MuonCov;
 
+template <uint32_t eventFillMap, typename T>
 struct TableMaker {
+
+  using MyEvent = typename T::iterator;
 
   Produces<ReducedEvents> event;
   Produces<ReducedEventsExtended> eventExtended;
@@ -58,27 +80,30 @@ struct TableMaker {
   Produces<ReducedTracksBarrelCov> trackBarrelCov;
   Produces<ReducedTracksBarrelPID> trackBarrelPID;
   Produces<ReducedMuons> muonBasic;
-  Produces<ReducedMuonsExtended> muonExtended;
+  Produces<ReducedMuonsExtra> muonExtra;
+  Produces<ReducedMuonsCov> muonCov; // TODO: use with fwdtracks
 
   float* fValues;
 
   OutputObj<THashList> fOutputList{"output"};
+  OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
   HistogramManager* fHistMan;
 
-  // TODO: Filters should be used to make lowest level selection. The additional more restrictive cuts should be defined via the AnalysisCuts
-  // TODO: Multiple event selections can be applied and decisions stored in the reducedevent::tag
+  Configurable<std::string> fConfigEventCuts{"cfgEventCuts", "eventStandard", "Event selection"};
+  Configurable<std::string> fConfigTrackCuts{"cfgBarrelTrackCuts", "jpsiPID1", "barrel track cut"};
+  Configurable<std::string> fConfigMuonCuts{"cfgMuonCuts", "muonQualityCuts", "muon cut"};
+  Configurable<float> fConfigBarrelTrackPtLow{"cfgBarrelLowPt", 1.0f, "Low pt cut for tracks in the barrel"};
+  Configurable<float> fConfigMuonPtLow{"cfgMuonLowPt", 1.0f, "Low pt cut for muons"};
+
+  // TODO: Enable multiple event and track selections in parallel, and decisions stored in the respective bit fields
   AnalysisCompositeCut* fEventCut;
-  // TODO: Multiple track selections can be applied and decisions stored in the reducedtrack::filteringFlags
-  //  Cuts should be defined using Configurables (prepare cut libraries, as discussed in O2 DQ meetings)
   AnalysisCompositeCut* fTrackCut;
+  AnalysisCompositeCut* fMuonCut;
 
-  // Partition will select fast a group of tracks with basic requirements
-  //   If some of the cuts cannot be included in the Partition expression, add them via AnalysisCut(s)
-  Partition<MyBarrelTracks> barrelSelectedTracks = o2::aod::track::pt >= 1.0f && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal >= 70.0f && o2::aod::track::tpcSignal <= 100.0f && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
+  // TODO: filter on TPC dedx used temporarily until electron PID will be improved
+  Filter barrelSelectedTracks = aod::track::trackType == uint8_t(aod::track::Run2Track) && o2::aod::track::pt >= fConfigBarrelTrackPtLow && nabs(o2::aod::track::eta) <= 0.9f && o2::aod::track::tpcSignal >= 70.0f && o2::aod::track::tpcSignal <= 100.0f && o2::aod::track::tpcChi2NCl < 4.0f && o2::aod::track::itsChi2NCl < 36.0f;
 
-  // TODO a few of the important muon variables in the central data model are dynamic columns so not usable in expressions (e.g. eta, phi)
-  //        Update the data model to have them as expression columns
-  Partition<aod::Muons> muonSelectedTracks = o2::aod::muon::pt >= 1.0f;
+  Filter muonFilter = o2::aod::fwdtrack::pt >= fConfigMuonPtLow;
 
   void init(o2::framework::InitContext&)
   {
@@ -88,8 +113,8 @@ struct TableMaker {
     fHistMan->SetUseDefaultVariableNames(kTRUE);
     fHistMan->SetDefaultVarNames(VarManager::fgVariableNames, VarManager::fgVariableUnits);
 
-    DefineHistograms("Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts"); // define all histograms
-    VarManager::SetUseVars(fHistMan->GetUsedVars()); // provide the list of required variables so that VarManager knows what to fill
+    DefineHistograms("Event_BeforeCuts;Event_AfterCuts;TrackBarrel_BeforeCuts;TrackBarrel_AfterCuts;Muons_BeforeCuts;Muons_AfterCuts;"); // define all histograms
+    VarManager::SetUseVars(fHistMan->GetUsedVars());                                                                                     // provide the list of required variables so that VarManager knows what to fill
     fOutputList.setObject(fHistMan->GetMainHistogramList());
     DefineCuts();
   }
@@ -97,46 +122,38 @@ struct TableMaker {
   void DefineCuts()
   {
     fEventCut = new AnalysisCompositeCut(true);
-    AnalysisCut* eventVarCut = new AnalysisCut();
-    eventVarCut->AddCut(VarManager::kVtxZ, -10.0, 10.0);
-    eventVarCut->AddCut(VarManager::kIsINT7, 0.5, 1.5); // require kINT7
-    fEventCut->AddCut(eventVarCut);
+    TString eventCutStr = fConfigEventCuts.value;
+    fEventCut->AddCut(dqcuts::GetAnalysisCut(eventCutStr.Data()));
 
+    // NOTE: for now, the model of this task is that just one track cut is applied; multiple parallel cuts should be enabled in the future
     fTrackCut = new AnalysisCompositeCut(true);
-    AnalysisCut* trackVarCut = new AnalysisCut();
-    //trackVarCut->AddCut(VarManager::kPt, 1.0, 1000.0);
-    //trackVarCut->AddCut(VarManager::kEta, -0.9, 0.9);
-    //trackVarCut->AddCut(VarManager::kTPCsignal, 70.0, 100.0);
-    trackVarCut->AddCut(VarManager::kIsITSrefit, 0.5, 1.5);
-    trackVarCut->AddCut(VarManager::kIsTPCrefit, 0.5, 1.5);
-    //trackVarCut->AddCut(VarManager::kTPCchi2, 0.0, 4.0);
-    //trackVarCut->AddCut(VarManager::kITSchi2, 0.1, 36.0);
-    trackVarCut->AddCut(VarManager::kTPCncls, 100.0, 161.);
+    TString trackCutStr = fConfigTrackCuts.value;
+    fTrackCut->AddCut(dqcuts::GetCompositeCut(trackCutStr.Data()));
 
-    AnalysisCut* pidCut1 = new AnalysisCut();
-    TF1* cutLow1 = new TF1("cutLow1", "pol1", 0., 10.);
-    cutLow1->SetParameters(130., -40.0);
-    pidCut1->AddCut(VarManager::kTPCsignal, cutLow1, 100.0, false, VarManager::kPin, 0.5, 3.0);
+    // NOTE: Additional cuts may still be added, e.g. for local tests. Example below
+    // AnalysisCut myLocalCut;
+    // myLocalCut.AddCut(VarManager::kITSncls, 4.0, 7.0);
+    // fTrackCut.AddCut(&myLocalCut);
 
-    fTrackCut->AddCut(trackVarCut);
-    fTrackCut->AddCut(pidCut1);
-
+    fMuonCut = new AnalysisCompositeCut(true);
+    TString muonCutStr = fConfigMuonCuts.value;
+    fMuonCut->AddCut(dqcuts::GetCompositeCut(muonCutStr.Data()));
     VarManager::SetUseVars(AnalysisCut::fgUsedVars); // provide the list of required variables so that VarManager knows what to fill
   }
 
-  void process(MyEvents::iterator const& collision, aod::MuonClusters const& clustersMuon, aod::Muons const& tracksMuon, aod::BCs const& bcs, MyBarrelTracks const& tracksBarrel)
+  void process(MyEvent const& collision, soa::Filtered<MyMuons> const& tracksMuon, aod::BCs const& bcs, soa::Filtered<MyBarrelTracks> const& tracksBarrel)
   {
-    uint64_t tag = 0;
     uint32_t triggerAliases = 0;
     for (int i = 0; i < kNaliases; i++) {
       if (collision.alias()[i] > 0) {
         triggerAliases |= (uint32_t(1) << i);
       }
     }
+    uint64_t tag = 0; // TODO: add here available computed event cuts (e.g. run2bcinfo().eventCuts()) or other event wise decisions
 
     VarManager::ResetValues(0, VarManager::kNEventWiseVariables, fValues);
-    VarManager::FillEvent<gkEventFillMap>(collision, fValues); // extract event information and place it in the fgValues array
-    fHistMan->FillHistClass("Event_BeforeCuts", fValues);      // automatically fill all the histograms in the class Event
+    VarManager::FillEvent<eventFillMap>(collision, fValues); // extract event information and place it in the fValues array
+    fHistMan->FillHistClass("Event_BeforeCuts", fValues);    // automatically fill all the histograms in the class Event
 
     if (!fEventCut->IsSelected(fValues)) {
       return;
@@ -145,16 +162,16 @@ struct TableMaker {
     fHistMan->FillHistClass("Event_AfterCuts", fValues);
 
     event(tag, collision.bc().runNumber(), collision.posX(), collision.posY(), collision.posZ(), collision.numContrib());
-    eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), triggerAliases, collision.centV0M());
+    eventExtended(collision.bc().globalBC(), collision.bc().triggerMask(), 0, triggerAliases, fValues[VarManager::kCentVZERO]);
     eventVtxCov(collision.covXX(), collision.covXY(), collision.covXZ(), collision.covYY(), collision.covYZ(), collision.covZZ(), collision.chi2());
 
     uint64_t trackFilteringTag = 0;
-    trackBasic.reserve(barrelSelectedTracks.size());
-    trackBarrel.reserve(barrelSelectedTracks.size());
-    trackBarrelCov.reserve(barrelSelectedTracks.size());
-    trackBarrelPID.reserve(barrelSelectedTracks.size());
+    trackBasic.reserve(tracksBarrel.size());
+    trackBarrel.reserve(tracksBarrel.size());
+    trackBarrelCov.reserve(tracksBarrel.size());
+    trackBarrelPID.reserve(tracksBarrel.size());
 
-    for (auto& track : barrelSelectedTracks) {
+    for (auto& track : tracksBarrel) {
       VarManager::FillTrack<gkTrackFillMap>(track, fValues);
       fHistMan->FillHistClass("TrackBarrel_BeforeCuts", fValues);
       if (!fTrackCut->IsSelected(fValues)) {
@@ -162,91 +179,90 @@ struct TableMaker {
       }
       fHistMan->FillHistClass("TrackBarrel_AfterCuts", fValues);
 
+      etaH->Fill(track.eta());
       if (track.isGlobalTrack()) {
         trackFilteringTag |= (uint64_t(1) << 0);
       }
       if (track.isGlobalTrackSDD()) {
         trackFilteringTag |= (uint64_t(1) << 1);
       }
-      trackBasic(event.lastIndex(), track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.charge());
+      trackBasic(event.lastIndex(), track.globalIndex(), trackFilteringTag, track.pt(), track.eta(), track.phi(), track.sign());
       trackBarrel(track.tpcInnerParam(), track.flags(), track.itsClusterMap(), track.itsChi2NCl(),
                   track.tpcNClsFindable(), track.tpcNClsFindableMinusFound(), track.tpcNClsFindableMinusCrossedRows(),
                   track.tpcNClsShared(), track.tpcChi2NCl(),
-                  track.trdChi2(), track.tofChi2(),
+                  track.trdChi2(), track.trdPattern(), track.tofChi2(),
                   track.length(), track.dcaXY(), track.dcaZ());
-      trackBarrelCov(track.cYY(), track.cZZ(), track.cSnpSnp(), track.cTglTgl(), track.c1Pt21Pt2());
+      trackBarrelCov(track.x(), track.alpha(), track.y(), track.z(), track.snp(), track.tgl(), track.signed1Pt(),
+                     track.cYY(), track.cZY(), track.cZZ(), track.cSnpY(), track.cSnpZ(),
+                     track.cSnpSnp(), track.cTglY(), track.cTglZ(), track.cTglSnp(), track.cTglTgl(),
+                     track.c1PtY(), track.c1PtZ(), track.c1PtSnp(), track.c1PtTgl(), track.c1Pt21Pt2());
       trackBarrelPID(track.tpcSignal(),
                      track.tpcNSigmaEl(), track.tpcNSigmaMu(),
                      track.tpcNSigmaPi(), track.tpcNSigmaKa(), track.tpcNSigmaPr(),
-                     track.tpcNSigmaDe(), track.tpcNSigmaTr(), track.tpcNSigmaHe(), track.tpcNSigmaAl(),
-                     track.tofSignal(), track.beta(),
+                     track.beta(),
                      track.tofNSigmaEl(), track.tofNSigmaMu(),
                      track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(),
-                     track.tofNSigmaDe(), track.tofNSigmaTr(), track.tofNSigmaHe(), track.tofNSigmaAl(),
                      track.trdSignal());
     }
 
-    muonBasic.reserve(muonSelectedTracks.size());
-    muonExtended.reserve(muonSelectedTracks.size());
-    for (auto& muon : muonSelectedTracks) {
-      // TODO: add proper information for muon tracks
-      if (muon.bcId() != collision.bcId()) {
+    // build the muon tables
+    muonBasic.reserve(tracksMuon.size());
+    muonExtra.reserve(tracksMuon.size());
+    muonCov.reserve(tracksMuon.size());
+    for (auto& muon : tracksMuon) {
+      VarManager::FillTrack<gkMuonFillMap>(muon, fValues);
+      fHistMan->FillHistClass("Muons_BeforeCuts", fValues);
+      if (!fMuonCut->IsSelected(fValues)) {
         continue;
       }
-      // TODO: the trackFilteringTag will not be needed to encode whether the track is a muon since there is a dedicated table for muons
-      trackFilteringTag |= (uint64_t(1) << 0); // this is a MUON arm track
-      muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.charge());
-      muonExtended(muon.inverseBendingMomentum(), muon.thetaX(), muon.thetaY(), muon.zMu(), muon.bendingCoor(), muon.nonBendingCoor(), muon.chi2(), muon.chi2MatchTrigger());
+      fHistMan->FillHistClass("Muons_AfterCuts", fValues);
+
+      muonBasic(event.lastIndex(), trackFilteringTag, muon.pt(), muon.eta(), muon.phi(), muon.sign());
+      muonExtra(muon.nClusters(), muon.pDca(), muon.rAtAbsorberEnd(),
+                   muon.chi2(), muon.chi2MatchMCHMID(), muon.chi2MatchMCHMFT(),
+                   muon.matchScoreMCHMFT(), muon.matchMFTTrackID(), muon.matchMCHTrackID());
+      muonCov(muon.x(), muon.y(), muon.z(), muon.phi(), muon.tgl(), muon.signed1Pt(),
+              muon.cXX(), muon.cXY(), muon.cYY(), muon.cPhiX(), muon.cPhiY(), muon.cPhiPhi(),
+              muon.cTglX(), muon.cTglY(), muon.cTglPhi(), muon.cTglTgl(), muon.c1PtX(), muon.c1PtY(),
+              muon.c1PtPhi(), muon.c1PtTgl(), muon.c1Pt21Pt2());
     }
   }
 
   void DefineHistograms(TString histClasses)
   {
-    const int kNRuns = 2;
-    int runs[kNRuns] = {244918, 244919};
-    TString runsStr;
-    for (int i = 0; i < kNRuns; i++) {
-      runsStr += Form("%d;", runs[i]);
-    }
-    VarManager::SetRunNumbers(kNRuns, runs);
+    std::unique_ptr<TObjArray> objArray(histClasses.Tokenize(";"));
+    for (Int_t iclass = 0; iclass < objArray->GetEntries(); ++iclass) {
+      TString classStr = objArray->At(iclass)->GetName();
+      fHistMan->AddHistClass(classStr.Data());
 
-    std::unique_ptr<TObjArray> arr(histClasses.Tokenize(";"));
-    for (Int_t iclass = 0; iclass < arr->GetEntries(); ++iclass) {
-      TString classStr = arr->At(iclass)->GetName();
-
+      // NOTE: The level of detail for histogramming can be controlled via configurables
       if (classStr.Contains("Event")) {
-        fHistMan->AddHistClass(classStr.Data());
-        fHistMan->AddHistogram(classStr.Data(), "VtxZ", "Vtx Z", false, 60, -15.0, 15.0, VarManager::kVtxZ); // TH1F histogram
-        fHistMan->AddHistogram(classStr.Data(), "VtxZ_Run", "Vtx Z", true,
-                               kNRuns, 0.5, 0.5 + kNRuns, VarManager::kRunId, 60, -15.0, 15.0, VarManager::kVtxZ, 10, 0., 0., VarManager::kNothing, runsStr.Data());
-        fHistMan->AddHistogram(classStr.Data(), "CentVZERO", "Centrality VZERO", false, 100, 0.0, 100.0, VarManager::kCentVZERO); // TH1F histogram
+        dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "event", "triggerall,cent");
       }
 
       if (classStr.Contains("Track")) {
-        fHistMan->AddHistClass(classStr.Data());
-        fHistMan->AddHistogram(classStr.Data(), "Pt", "p_{T} distribution", false, 200, 0.0, 20.0, VarManager::kPt);                                                // TH1F histogram
-        fHistMan->AddHistogram(classStr.Data(), "Eta", "#eta distribution", false, 500, -5.0, 5.0, VarManager::kEta);                                               // TH1F histogram
-        fHistMan->AddHistogram(classStr.Data(), "Phi_Eta", "#phi vs #eta distribution", false, 200, -5.0, 5.0, VarManager::kEta, 200, -6.3, 6.3, VarManager::kPhi); // TH2F histogram
-
-        if (classStr.Contains("Barrel")) {
-          fHistMan->AddHistogram(classStr.Data(), "TPCncls", "Number of cluster in TPC", false, 160, -0.5, 159.5, VarManager::kTPCncls); // TH1F histogram
-          fHistMan->AddHistogram(classStr.Data(), "TPCncls_Run", "Number of cluster in TPC", true, kNRuns, 0.5, 0.5 + kNRuns, VarManager::kRunId,
-                                 10, -0.5, 159.5, VarManager::kTPCncls, 10, 0., 1., VarManager::kNothing, runsStr.Data());           // TH1F histogram
-          fHistMan->AddHistogram(classStr.Data(), "ITSncls", "Number of cluster in ITS", false, 8, -0.5, 7.5, VarManager::kITSncls); // TH1F histogram
-          //for TPC PID
-          fHistMan->AddHistogram(classStr.Data(), "TPCdedx_pIN", "TPC dE/dx vs pIN", false, 200, 0.0, 20.0, VarManager::kPin, 200, 0.0, 200., VarManager::kTPCsignal); // TH2F histogram
-          fHistMan->AddHistogram(classStr.Data(), "DCAxy", "DCAxy", false, 100, -3.0, 3.0, VarManager::kTrackDCAxy);                                                   // TH1F histogram
-          fHistMan->AddHistogram(classStr.Data(), "DCAz", "DCAz", false, 100, -5.0, 5.0, VarManager::kTrackDCAz);                                                      // TH1F histogram
-          fHistMan->AddHistogram(classStr.Data(), "IsGlobalTrack", "IsGlobalTrack", false, 2, -0.5, 1.5, VarManager::kIsGlobalTrack);                                  // TH1F histogram
-          fHistMan->AddHistogram(classStr.Data(), "IsGlobalTrackSDD", "IsGlobalTrackSDD", false, 2, -0.5, 1.5, VarManager::kIsGlobalTrackSDD);                         // TH1F histogram
-        }
+        dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "dca,its,tpcpid,tofpid");
       }
-    } // end loop over histogram classes
+      if (classStr.Contains("Muons")) {
+        dqhistograms::DefineHistograms(fHistMan, objArray->At(iclass)->GetName(), "track", "muon");
+      }
+      //NOTE: More histograms, beyond those defined in the HistogramsLibrary can be added here for local tests. See below
+      //if (classStr.Contains("Track")) {
+      //  fHistMan->AddHistogram(objArray->At(iclass)->GetName(), "TPCncls_VtxZ", "Average number of TPC clusters vs vtxZ", true, 30,-15.0,+15.0,VarManager::kVtxZ,160, -0.5, 159.5, VarManager::kTPCncls);       // makes a TProfile histogram with <tpcNcls> vs vtxZ
+      //}
+    }
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
-    adaptAnalysisTask<TableMaker>("table-maker")};
+  WorkflowSpec workflow;
+  const bool isPbPb = cfgc.options().get<bool>("isPbPb");
+  if (isPbPb) {
+    workflow.push_back(adaptAnalysisTask<TableMaker<gkEventFillMap, MyEvents>>(cfgc, TaskName{"dq-table-maker-pbpb"}));
+  } else {
+    workflow.push_back(adaptAnalysisTask<TableMaker<gkEventFillMapNoCent, MyEventsNoCent>>(cfgc, TaskName{"dq-table-maker-pp"}));
+  }
+
+  return workflow;
 }

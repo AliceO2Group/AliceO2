@@ -56,6 +56,9 @@ class Digit
 
   uint64_t getBC() const { return mIR.toLong(); }
   void setBC(uint64_t bc) { mIR.setFromLong(bc); }
+  void setIR(const InteractionRecord& ir) { mIR = ir; }
+
+  auto getIR() const { return mIR; }
 
   Int_t getLabel() const { return mLabel; }
   void setLabel(Int_t label) { mLabel = label; }

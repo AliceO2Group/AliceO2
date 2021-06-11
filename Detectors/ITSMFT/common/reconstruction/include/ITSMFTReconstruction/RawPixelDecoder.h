@@ -54,7 +54,7 @@ class RawPixelDecoder final : public PixelReader
   void init() final {}
   bool getNextChipData(ChipPixelData& chipData) final;
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;
-
+  void ensureChipOrdering() {}
   void startNewTF(o2::framework::InputRecord& inputs);
 
   int decodeNextTrigger() final;
@@ -62,6 +62,9 @@ class RawPixelDecoder final : public PixelReader
 
   template <class DigitContainer, class ROFContainer>
   int fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs);
+
+  template <class CalibContainer>
+  void fillCalibData(CalibContainer& calib);
 
   const RUDecodeData* getRUDecode(int ruSW) const { return mRUEntry[ruSW] < 0 ? nullptr : &mRUDecodeVec[mRUEntry[ruSW]]; }
   const GBTLink* getGBTLink(int i) const { return i < 0 ? nullptr : &mGBTLinks[i]; }
@@ -76,10 +79,13 @@ class RawPixelDecoder final : public PixelReader
   void setNThreads(int n);
   int getNThreads() const { return mNThreads; }
 
+  void setFillCalibData(bool v) { mFillCalibData = v; }
+  bool getFillCalibData() const { return mFillCalibData; }
+
   void setVerbosity(int v);
   int getVerbosity() const { return mVerbosity; }
 
-  void printReport(bool decstat = false, bool skipEmpty = true) const;
+  void printReport(bool decstat = true, bool skipNoErr = true) const;
 
   void clearStat();
 
@@ -108,12 +114,14 @@ class RawPixelDecoder final : public PixelReader
   std::unordered_map<uint32_t, LinkEntry> mSubsSpec2LinkID; // link subspec to link entry in the pool mapping
   std::vector<RUDecodeData> mRUDecodeVec;                   // set of active RUs
   std::array<short, Mapping::getNRUs()> mRUEntry;           // entry of the RU with given SW ID in the mRUDecodeVec
+  std::vector<ChipPixelData*> mOrderedChipsPtr;             // special ordering helper used for the MFT (its chipID is not contiguous in RU)
   std::string mSelfName;                        // self name
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid; // alternative user-provided data origin to pick
   header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   uint16_t mCurRUDecodeID = NORUDECODED;        // index of currently processed RUDecode container
   int mLastReadChipID = -1;                     // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                 // chip mapping
+  bool mFillCalibData = false;                  // request to fill calib data from GBT
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
   GBTLink::Format mFormat = GBTLink::NewFormat; // ITS Data Format (old: 1 ROF per CRU page)
@@ -127,8 +135,6 @@ class RawPixelDecoder final : public PixelReader
   TStopwatch mTimerTFStart;
   TStopwatch mTimerDecode;
   TStopwatch mTimerFetchData;
-
-  ClassDefOverride(RawPixelDecoder, 1);
 };
 
 ///______________________________________________________________
@@ -154,6 +160,21 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
   rofs.emplace_back(mInteractionRecord, mROFCounter, ref, nFilled);
   mTimerFetchData.Stop();
   return nFilled;
+}
+
+///______________________________________________________________
+/// Fill decoded digits to global vector
+template <class Mapping>
+template <class CalibContainer>
+void RawPixelDecoder<Mapping>::fillCalibData(CalibContainer& calib)
+{
+  if (!mInteractionRecord.isDummy()) {
+    auto curSize = calib.size();
+    calib.resize(curSize + Mapping::getNRUs());
+    for (unsigned int iru = 0; iru < mRUDecodeVec.size(); iru++) {
+      calib[curSize + mRUDecodeVec[iru].ruSWID] = mRUDecodeVec[iru].calibData;
+    }
+  }
 }
 
 using RawDecoderITS = RawPixelDecoder<ChipMappingITS>;

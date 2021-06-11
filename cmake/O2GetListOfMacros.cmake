@@ -18,5 +18,9 @@ function(o2_get_list_of_macros dir varname)
   file(GLOB_RECURSE listOfMacros RELATIVE ${CMAKE_SOURCE_DIR} ${dir}/*.C)
   # Case sensitive filtering of .C files (to avoid .c files on Mac)
   list(FILTER listOfMacros INCLUDE REGEX "^.*\\.C$")
+  # Remove macros that were copied to the build directory, to deal with
+  # the (non-recommended-but-can-happen) case where the build directory
+  # is a subdirectory of the source dir
+  list(FILTER listOfMacros EXCLUDE REGEX "/stage/${CMAKE_INSTALL_DATADIR}")
   set(${varname} ${listOfMacros} PARENT_SCOPE)
 endfunction()

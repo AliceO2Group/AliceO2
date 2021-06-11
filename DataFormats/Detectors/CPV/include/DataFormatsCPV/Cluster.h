@@ -41,7 +41,7 @@ class Cluster
 
  public:
   Cluster() = default;
-  Cluster(char mult, char mod, char exMax, float x, float z, float e) : mMulDigit(mult), mModule(mod), mNExMax(exMax), mLocalPosX(x), mLocalPosZ(z), mEnergy(e) {}
+  Cluster(unsigned char mult, char mod, char exMax, float x, float z, float e) : mMulDigit(mult), mModule(mod), mNExMax(exMax), mLocalPosX(x), mLocalPosZ(z), mEnergy(e) {}
   Cluster(const Cluster& clu) = default;
 
   ~Cluster() = default;
@@ -85,7 +85,7 @@ class Cluster
   uint8_t getPackedClusterStatus() const
   {
     CluStatus s = {0};
-    s.multiplicity = mMulDigit;
+    s.multiplicity = std::min(mMulDigit, static_cast<unsigned char>(31)); //5 bits available
     s.module = mModule;
     s.unfolded = mNExMax > 1;
     return s.mBits;
@@ -107,12 +107,12 @@ class Cluster
   }
 
  protected:
-  char mMulDigit = 0;    ///< Digit nultiplicity
-  char mModule = 0;      ///< Module number
-  char mNExMax = -1;     ///< number of (Ex-)maxima before unfolding
-  float mLocalPosX = 0.; ///< Center of gravity position in local module coordunates (phi direction)
-  float mLocalPosZ = 0.; ///< Center of gravity position in local module coordunates (z direction)
-  float mEnergy = 0.;    ///< full energy of a cluster
+  unsigned char mMulDigit = 0; ///< Digit nultiplicity
+  char mModule = 0;            ///< Module number
+  char mNExMax = -1;           ///< number of (Ex-)maxima before unfolding
+  float mLocalPosX = 0.;       ///< Center of gravity position in local module coordunates (phi direction)
+  float mLocalPosZ = 0.;       ///< Center of gravity position in local module coordunates (z direction)
+  float mEnergy = 0.;          ///< full energy of a cluster
 
   ClassDefNV(Cluster, 1);
 };

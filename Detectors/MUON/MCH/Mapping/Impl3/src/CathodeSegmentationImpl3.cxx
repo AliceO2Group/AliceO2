@@ -13,6 +13,7 @@
 
 #include "CathodeSegmentationImpl3.h"
 #include "boost/format.hpp"
+#include <boost/geometry.hpp>
 #include "GenDetElemId2SegType.h"
 #include "PadGroup.h"
 #include "PadSize.h"
@@ -158,6 +159,11 @@ std::vector<int> CathodeSegmentation::getNeighbouringCatPadIndexs(int catPadInde
   auto pads = getCatPadIndexs(x - dx - offset, y - dy - offset, x + dx + offset, y + dy + offset);
   pads.erase(std::remove(begin(pads), end(pads), catPadIndex), end(pads));
   return pads;
+}
+
+bool CathodeSegmentation::isValid(int catPadIndex) const
+{
+  return catPadIndex >= 0 && catPadIndex < static_cast<int>(mCatPadIndex2PadGroupIndex.size());
 }
 
 double CathodeSegmentation::squaredDistance(int catPadIndex, double x, double y) const

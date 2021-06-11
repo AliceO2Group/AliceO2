@@ -40,6 +40,9 @@ using namespace o2::base;
 using namespace o2::track;
 using namespace std;
 
+// This is actually defined in the TPC DataFormats, but for whatever reason ROOT Cling doesn't pick it up from there.
+using TPCClRefElem = uint32_t;
+
 int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc-native-clusters.root")
 {
   GeometryManager::loadGeometry();
@@ -81,7 +84,7 @@ int runTPCRefit(TString trackFile = "tpctracks.root", TString clusterFile = "tpc
       std::cout << "Error reading clusters (code " << retVal << ")\n";
       return 1;
     }
-    GPUTPCO2InterfaceRefit refit(&clusterIndex, trans.get(), bz, trackHitRefs->data(), nullptr, tracks, prop);
+    GPUO2InterfaceRefit refit(&clusterIndex, trans.get(), bz, trackHitRefs->data(), nullptr, tracks, prop);
     //refit.setGPUTrackFitInProjections(false); // Enable full 3D fit without assuming y and Z are uncorrelated
     for (unsigned int i = 0; i < tracks->size(); i++) {
       TrackTPC trk = (*tracks)[i];

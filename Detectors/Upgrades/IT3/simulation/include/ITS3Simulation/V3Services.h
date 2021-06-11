@@ -49,6 +49,10 @@ class V3Services : public V11Geometry
   /// Default destructor
   ~V3Services() override;
 
+  /// Creates the supports for IB Layers (cylinder and foam wedges)
+  /// \param mgr The GeoManager (used only to get the proper material)
+  TGeoVolume* createInnerBarrelSupports(const TGeoManager* mgr = gGeoManager);
+
   /// Creates the Inner Barrel End Wheels on Side A
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoVolume* createIBEndWheelsSideA(const TGeoManager* mgr = gGeoManager);
@@ -92,6 +96,14 @@ class V3Services : public V11Geometry
   void createOBConeSideC(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
  private:
+  /// Creates a single Foam Wedge (with carbon fleece and glue attached)
+  /// \param rIn  the inner radius
+  /// \param rOut  the outer radius
+  /// \param zlen  the half length along Z
+  /// \param phi  the angular aperture
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoVolume* createFoamWedge(const Double_t rIn, const Double_t rOut, const Double_t zLen, const Double_t phi, const TGeoManager* mgr = gGeoManager);
+
   /// Creates a single Inner Barrel End Wheel on Side A
   /// \param iLay  the layer number
   /// \param endWheel  the End Wheel volume assembly

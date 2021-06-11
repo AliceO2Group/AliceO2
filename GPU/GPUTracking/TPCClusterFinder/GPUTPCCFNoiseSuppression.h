@@ -28,19 +28,18 @@ struct ChargePos;
 
 class GPUTPCCFNoiseSuppression : public GPUKernelTemplate
 {
-
  public:
   enum K : int {
     noiseSuppression = 0,
     updatePeaks = 1,
   };
-
+  static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFNoiseSuppression);
   struct GPUSharedMemory {
     ChargePos posBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     PackedCharge buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_NOISE_N];
   };
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {

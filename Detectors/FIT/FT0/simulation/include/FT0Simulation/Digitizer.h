@@ -17,6 +17,7 @@
 #include "DataFormatsFT0/MCLabel.h"
 #include "MathUtils/RandomRing.h"
 #include "FT0Simulation/Detector.h"
+#include "FT0Base/Geometry.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "FT0Simulation/DigitizationConstants.h"
@@ -37,10 +38,11 @@ class Digitizer
 {
  private:
   using DP = DigitizationConstants;
-  typedef math_utils::RandomRing<float_v::size() * DP::NOISE_RANDOM_RING_SIZE> NoiseRandomRingType;
+  typedef math_utils::RandomRing</*float_v::size()*/ 4 * DP::NOISE_RANDOM_RING_SIZE> NoiseRandomRingType;
+  static constexpr int NCHANNELS = o2::ft0::Geometry::Nchannels;
 
  public:
-  Digitizer(const DigitizationParameters& params, Int_t mode = 0) : mMode(mode), mParameters(params), mRndGaus(NoiseRandomRingType::RandomType::Gaus), mNumNoiseSamples(), mNoiseSamples(), mSincTable(), mSignalTable(), mSignalCache() { initParameters(); }
+  Digitizer(Int_t mode = 0) : mMode(mode), mRndGaus(NoiseRandomRingType::RandomType::Gaus), mNumNoiseSamples(), mNoiseSamples(), mSincTable(), mSignalTable(), mSignalCache() { initParameters(); }
   ~Digitizer() = default;
 
   void process(const std::vector<o2::ft0::HitType>* hits, std::vector<o2::ft0::Digit>& digitsBC,
@@ -100,7 +102,7 @@ class Digitizer
     if (x <= 0.0f) {
       return 0.0f;
     }
-    float const y = x / mParameters.bunchWidth * DP::SIGNAL_TABLE_SIZE;
+    float const y = x / DigitizationParameters::Instance().mBunchWidth * DP::SIGNAL_TABLE_SIZE;
     int const index = std::floor(y);
     if (index + 1 >= DP::SIGNAL_TABLE_SIZE) {
       return mSignalTable.back();
@@ -109,13 +111,15 @@ class Digitizer
     return mSignalTable[index] + rem * (mSignalTable[index + 1] - mSignalTable[index]);
   }
 
-  inline Vc::float_v signalFormVc(Vc::float_v x) const
+  template <typename VcType>
+  inline VcType signalFormVc(VcType x) const
   { // table lookup for the signal shape (SIMD version)
-    auto const y = x / mParameters.bunchWidth * DP::SIGNAL_TABLE_SIZE;
-    Vc::float_v::IndexType const index = Vc::floor(y);
+    // implemented as template function, so that we don't need to include <Vc/Vc> here
+    auto const y = x / DigitizationParameters::Instance().mBunchWidth * DP::SIGNAL_TABLE_SIZE;
+    typename VcType::IndexType const index = floor(y);
     auto const rem = y - index;
-    Vc::float_v val(0);
-    for (size_t i = 0; i < float_v::size(); ++i) {
+    VcType val(0);
+    for (size_t i = 0; i < VcType::size(); ++i) {
       if (y[i] < 0.0f) {
         continue;
       }
@@ -139,9 +143,9 @@ class Digitizer
 
   o2::InteractionRecord firstBCinDeque = 0;
   std::deque<BCCache> mCache;
-  std::array<GoodInteractionTimeRecord, 208> mDeadTimes;
+  std::array<GoodInteractionTimeRecord, NCHANNELS> mDeadTimes;
 
-  DigitizationParameters mParameters;
+  o2::ft0::Geometry mGeometry;
 
   NoiseRandomRingType mRndGaus;
   int mNumNoiseSamples; // number of noise samples in one BC
@@ -156,43 +160,9 @@ class Digitizer
                std::vector<o2::ft0::DetTrigInput>& digitsTrig,
                o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& labels);
 
-  ClassDefNV(Digitizer, 1);
+  ClassDefNV(Digitizer, 2);
 };
 
-// signal shape function
-template <typename Float>
-Float signalForm_i(Float x)
-{
-  using namespace std;
-  Float const a = -0.45458;
-  Float const b = -0.83344945;
-  return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
-  //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
-};
-
-// integrated signal shape function
-inline float signalForm_integral(float x)
-{
-  using namespace std;
-  double const a = -0.45458;
-  double const b = -0.83344945;
-  if (x < 0) {
-    x = 0;
-  }
-  return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
-};
-
-// SIMD version of the integrated signal shape function
-inline Vc::float_v signalForm_integralVc(Vc::float_v x)
-{
-  auto const mask = (x >= 0.0f);
-  Vc::float_v arg(0);
-  arg.assign(x, mask); // branchless if
-  Vc::float_v const a(-0.45458f);
-  Vc::float_v const b(-0.83344945f);
-  Vc::float_v result = -(Vc::exp(b * arg) / b - Vc::exp(a * arg) / a) / 7.8446501f;
-  return result;
-};
 } // namespace ft0
 } // namespace o2
 

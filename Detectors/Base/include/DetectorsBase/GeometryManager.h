@@ -22,7 +22,7 @@
 #include <TObject.h> // for TObject
 #include <string_view>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "FairLogger.h" // for LOG
+#include "GPUCommonLogger.h" // for LOG
 #include "MathUtils/Cartesian.h"
 #include "DetectorsBase/MatCell.h"
 #include <mutex>
@@ -48,7 +48,7 @@ class GeometryManager : public TObject
 {
  public:
   ///< load geometry from file
-  static void loadGeometry(std::string_view geomFilePath = "");
+  static void loadGeometry(std::string_view geomFilePath = "", bool applyMisalignment = true);
   static bool isGeometryLoaded() { return gGeoManager != nullptr; }
 
   ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
@@ -57,6 +57,7 @@ class GeometryManager : public TObject
   ///< performed before alignment.
   static Bool_t getOriginalMatrix(o2::detectors::DetID detid, int sensid, TGeoHMatrix& m);
   static Bool_t getOriginalMatrix(const char* symname, TGeoHMatrix& m);
+  static TGeoHMatrix* getMatrix(const char* symname);
   static const char* getSymbolicName(o2::detectors::DetID detid, int sensid);
   static TGeoPNEntry* getPNEntry(o2::detectors::DetID detid, Int_t sensid);
   static TGeoHMatrix* getMatrix(o2::detectors::DetID detid, Int_t sensid);
@@ -71,7 +72,8 @@ class GeometryManager : public TObject
   ~GeometryManager() override = default;
 
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
-  static bool applyAlignment(TObjArray& alObjArray, bool ovlpcheck = false, double ovlToler = 1e-3);
+  static bool applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars, bool ovlpcheck = false, double ovlToler = 1e-3);
+  static bool applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars, bool ovlpcheck = false, double ovlToler = 1e-3);
 
   struct MatBudgetExt {
     double meanRho = 0.;  // mean density: sum(x_i*rho_i)/sum(x_i) [g/cm3]
@@ -114,7 +116,7 @@ class GeometryManager : public TObject
  private:
   /// Default constructor
   GeometryManager() = default;
-
+  static TGeoHMatrix* getMatrix(TGeoPNEntry* pne);
   static void accountMaterial(const TGeoMaterial* material, MatBudgetExt& bd);
   static void accountMaterial(const TGeoMaterial* material, o2::base::MatBudget& bd)
   {

@@ -148,13 +148,13 @@ MagneticField::MagneticField(const MagFieldParam& param)
   CreateField();
 }
 
-MagneticField* MagneticField::createNominalField(int fld)
+MagneticField* MagneticField::createNominalField(int fld, bool uniform)
 {
   float fldCoeff;
   o2::field::MagFieldParam::BMap_t fldType;
   switch (std::abs(fld)) {
     case 5:
-      fldType = o2::field::MagFieldParam::k5kG;
+      fldType = uniform ? o2::field::MagFieldParam::k5kGUniform : o2::field::MagFieldParam::k5kG;
       fldCoeff = fld > 0 ? 1. : -1;
       break;
     case 0:

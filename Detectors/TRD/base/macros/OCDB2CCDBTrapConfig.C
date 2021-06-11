@@ -201,7 +201,7 @@ void OCDB2CCDBTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/
 
   /*
 AliTRDCalTrapConfig has a print command that outputs the list of trapconfigs stored.
-AliTRDCalTrapConfig->Print() .... and you get the stuff below via AliInfo, but I can seem to get it right to parse this so 
+AliTRDCalTrapConfig->Print() .... and you get the stuff below via AliInfo, but I can seem to get it right to parse this so
 its all going here unfortunately ....
 
 */
@@ -289,38 +289,38 @@ its all going here unfortunately ....
 
   /*
 THESE ARE THE ONES NOT CURRENTLY INCLUDED.
-trd_ddchamberStatus        
-trd_gaschromatographXe  
-trd_gasOverpressure  
+trd_ddchamberStatus
+trd_gaschromatographXe
+trd_gasOverpressure
 trd_hvDriftImon
-MonitoringData  
-PIDLQ    
-trd_envTemp              
-trd_gasCO2              
+MonitoringData
+PIDLQ
+trd_envTemp
+trd_gasCO2
 trd_hvDriftUmon
-PIDLQ1D  
-trd_gaschromatographCO2  
-trd_gasH2O              
-trd_hvAnodeImon     
+PIDLQ1D
+trd_gaschromatographCO2
+trd_gasH2O
+trd_hvAnodeImon
 TrkAttach
-PIDNN    
-PHQ      PIDThresholds  
+PIDNN
+PHQ      PIDThresholds
 
 This pulls stuff from DCS I should hopefully not need this stuff for simulation.
-DCS                            
+DCS
 AliTRDSensorArray descends from AliTRDDCSSensorArray
-trd_gaschromatographN2   
-trd_gasO2               
-trd_goofieHv         
-trd_goofiePressure  
+trd_gaschromatographN2
+trd_gasO2
+trd_goofieHv
+trd_goofiePressure
 trd_hvAnodeUmon
-trd_goofieN2        
-trd_goofieTemp      
-trd_goofieCO2        
-trd_goofiePeakArea  
-trd_goofieVelocity  
-trd_goofieGain       
-trd_goofiePeakPos   
+trd_goofieN2
+trd_goofieTemp
+trd_goofieCO2
+trd_goofiePeakArea
+trd_goofieVelocity
+trd_goofieGain
+trd_goofiePeakPos
 */
   return;
 }

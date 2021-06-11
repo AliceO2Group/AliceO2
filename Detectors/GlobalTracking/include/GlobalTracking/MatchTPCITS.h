@@ -30,6 +30,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "MathUtils/Primitive2D.h"
 #include "CommonDataFormat/EvIndex.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -48,11 +49,17 @@
 #include "GPUO2InterfaceRefit.h"
 #include "GlobalTracking/MatchTPCITSParams.h"
 #include "CommonDataFormat/FlatHisto2D.h"
+#include "DataFormatsITSMFT/TopologyDictionary.h"
 
 class TTree;
 
 namespace o2
 {
+
+namespace globaltracking
+{
+class RecoContainer;
+}
 
 namespace dataformats
 {
@@ -103,24 +110,33 @@ enum TrackRejFlag : int {
 ///< TPC track parameters propagated to reference X, with time bracket and index of
 ///< original track in the currently loaded TPC reco output
 struct TrackLocTPC : public o2::track::TrackParCov {
-  o2::math_utils::Bracketf_t timeBins; ///< bracketing time-bins
-  int sourceID = 0;                    ///< track origin id
-  float zMin = 0;                      // min possible Z of this track
-  float zMax = 0;                      // max possible Z of this track
+  enum Constraint_t : uint8_t { Constrained,
+                                ASide,
+                                CSide };
+  o2::math_utils::Bracketf_t tBracket;  ///< bracketing time in \mus
+  float time0 = 0.f;                    ///< nominal time in \mus since start of TF (time0 for bare TPC tracks, constrained time for TRD/TOF constrained ones)
+  float timeErr = 0.f;                  ///< time sigma (makes sense for constrained tracks only)
+  int sourceID = 0;                     ///< TPC track origin in
+  o2::dataformats::GlobalTrackID gid{}; // global track source ID (TPC track may be part of it)
   int matchID = MinusOne;              ///< entry (non if MinusOne) of its matchTPC struct in the mMatchesTPC
-  TrackLocTPC(const o2::track::TrackParCov& src, int tid) : o2::track::TrackParCov(src), sourceID(tid) {}
-  TrackLocTPC() = default;
+  Constraint_t constraint{Constrained};
+
+  float getCorrectedTime(float dt) const // return time0 corrected for extra drift (to match certain Z)
+  {
+    return constraint == Constrained ? time0 : (constraint == ASide ? time0 + dt : time0 - dt);
+  }
+
   ClassDefNV(TrackLocTPC, 1);
 };
 
 ///< ITS track outward parameters propagated to reference X, with time bracket and index of
 ///< original track in the currently loaded ITS reco output
 struct TrackLocITS : public o2::track::TrackParCov {
+  o2::math_utils::Bracketf_t tBracket; ///< bracketing time in \mus
   int sourceID = 0;       ///< track origin id
   int roFrame = MinusOne; ///< ITS readout frame assigned to this track
   int matchID = MinusOne; ///< entry (non if MinusOne) of its matchCand struct in the mMatchesITS
-  TrackLocITS(const o2::track::TrackParCov& src, int tid) : o2::track::TrackParCov(src), sourceID(tid) {}
-  TrackLocITS() = default;
+
   ClassDefNV(TrackLocITS, 1);
 };
 
@@ -243,12 +259,12 @@ struct ABClusterLink {
 };
 
 struct InteractionCandidate : public o2::InteractionRecord {
-  o2::math_utils::Bracket<float> timeBins; // interaction time (int TPC time bins)
+  o2::math_utils::Bracketf_t tBracket;     // interaction time
   int rofITS;                              // corresponding ITS ROF entry (in the ROFRecord vectors)
   uint32_t flag;                           // origin, etc.
   void* clRefPtr = nullptr;                // pointer on cluster references container (if any)
   InteractionCandidate() = default;
-  InteractionCandidate(const o2::InteractionRecord& ir, float t, float dt, int rof, uint32_t f = 0) : o2::InteractionRecord(ir), timeBins(t - dt, t + dt), rofITS(rof), flag(f) {}
+  InteractionCandidate(const o2::InteractionRecord& ir, float t, float dt, int rof, uint32_t f = 0) : o2::InteractionRecord(ir), tBracket(t - dt, t + dt), rofITS(rof), flag(f) {}
 };
 
 struct ITSChipClustersRefs {
@@ -285,8 +301,6 @@ class MatchTPCITS
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
   ~MatchTPCITS();
 
-  static constexpr float XTPCInnerRef = 83.0;                            ///< reference radius at which TPC provides the tracks
-  static constexpr float XTPCOuterRef = 255.0;                           ///< reference radius to propagate outer TPC track
   static constexpr float XMatchingRef = 70.0;                            ///< reference radius to propage tracks for matching
   static constexpr float YMaxAtXMatchingRef = XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
 
@@ -295,7 +309,7 @@ class MatchTPCITS
   static constexpr int MaxSeedsPerLayer = 50;                  // TODO
   static constexpr int NITSLayers = o2::its::RecoGeomHelper::getNLayers();
   ///< perform matching for provided input
-  void run();
+  void run(const o2::globaltracking::RecoContainer& inp);
 
   // RSTODO
   void runAfterBurner();
@@ -316,21 +330,18 @@ class MatchTPCITS
   void buildBestLinksList(int ilink);
   bool isBetter(float chi2A, float chi2B) { return chi2A < chi2B; } // RS TODO
   void dumpABTracksDebugTree(const ABTrackLinksList& llist);
-  int prepareInteractionTimes();
   void destroyLastABTrackLinksList();
   void refitABTrack(int ibest) const;
-
+  void setSkipTPCOnly(bool v) { mSkipTPCOnly = v; }
   void setCosmics(bool v) { mCosmics = v; }
   bool isCosmics() const { return mCosmics; }
 
   ///< perform all initializations
   void init();
+  void end();
 
   ///< clear results of previous event reco
   void clear();
-
-  ///< set InteractionRecods for the beginning of the TF
-  void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; }
 
   ///< set Bunch filling and init helpers for validation by BCs
   void setBunchFilling(const o2::BunchFilling& bf);
@@ -348,6 +359,7 @@ class MatchTPCITS
   void setITSROFrameLengthInBC(int nbc);
 
   // ==================== >> DPL-driven input >> =======================
+  void setITSDictionary(const o2::itsmft::TopologyDictionary* d) { mITSDict = d; }
 
   ///< set flag to use MC truth
   void setMCTruthOn(bool v)
@@ -364,88 +376,13 @@ class MatchTPCITS
   ///< get histo for tgl differences for VDrift calibration
   auto getHistoDTgl() { return mHistoDTgl.get(); }
 
-  ///< set input ITS tracks
-  void setITSTracksInp(const gsl::span<const o2::its::TrackITS> inp)
-  {
-    mITSTracksArray = inp;
-  }
-
-  ///< set input ITS tracks cluster indices
-  void setITSTrackClusIdxInp(const gsl::span<const int> inp)
-  {
-    mITSTrackClusIdx = inp;
-  }
-
-  ///< set input ITS tracks ROF records
-  void setITSTrackROFRecInp(const gsl::span<const o2::itsmft::ROFRecord> inp)
-  {
-    mITSTrackROFRec = inp;
-  }
-
-  ///< set input ITS clusters
-  void setITSClustersInp(const gsl::span<const ITSCluster> inp)
-  {
-    mITSClustersArray = inp;
-  }
-
-  ///< set input ITS clusters ROF records
-  void setITSClusterROFRecInp(const gsl::span<const o2::itsmft::ROFRecord> inp)
-  {
-    mITSClusterROFRec = inp;
-  }
-
-  ///< set input TPC tracks
-  void setTPCTracksInp(const gsl::span<const o2::tpc::TrackTPC> inp)
-  {
-    mTPCTracksArray = inp;
-  }
-
-  ///< set input TPC tracks cluster indices
-  void setTPCTrackClusIdxInp(const gsl::span<const o2::tpc::TPCClRefElem> inp)
-  {
-    mTPCTrackClusIdx = inp;
-  }
-
-  ///< set input TPC clusters
-  void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp)
-  {
-    mTPCClusterIdxStruct = inp;
-  }
-
-  ///< set input ITS track MC labels
-  void setITSTrkLabelsInp(const MCLabSpan& lbl)
-  {
-    mITSTrkLabels = lbl;
-  }
-
-  ///< set input ITS clusters MC labels
-  void setITSClsLabelsInp(const MCLabContCl* lbl)
-  {
-    mITSClsLabels = lbl;
-  }
-
-  ///< set input TPC track MC labels
-  void setTPCTrkLabelsInp(const MCLabSpan& lbl)
-  {
-    mTPCTrkLabels = lbl;
-  }
-
-  ///< set input FIT info
-  void setFITInfoInp(const gsl::span<const o2::ft0::RecPoints> inp)
-  {
-    mFITInfo = inp;
-  }
-
-  // ===================== << DPL-driven input << ========================
-
   ///< print settings
   void print() const;
   void printCandidatesTPC() const;
   void printCandidatesITS() const;
 
   std::vector<o2::dataformats::TrackTPCITS>& getMatchedTracks() { return mMatchedTracks; }
-  MCLabContTr& getMatchedITSLabels() { return mOutITSLabels; }
-  MCLabContTr& getMatchedTPCLabels() { return mOutTPCLabels; }
+  MCLabContTr& getMatchLabels() { return mOutLabels; }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
@@ -491,11 +428,12 @@ class MatchTPCITS
                             std::array<int, MaxLadderCand>& lad2Check) const;
   int findLaddersToCheckBOff(int ilr, int lad0, const o2::math_utils::IntervalXYf_t& trcLinPar, float errYFrac,
                              std::array<int, MatchTPCITS::MaxLadderCand>& lad2Check) const;
-
+  bool prepareTPCData();
+  bool prepareITSData();
+  bool prepareFITData();
+  int prepareInteractionTimes();
   int prepareTPCTracksAfterBurner();
-  bool prepareTPCTracks();
-  bool prepareITSTracks();
-  bool prepareFITInfo();
+  void addTPCSeed(const o2::track::TrackParCov& _tr, float t0, float terr, o2::dataformats::GlobalTrackID srcGID, int tpcID);
 
   int preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& clRefs,
                             float trackY, float trackZ, float tolerY, float tolerZ, const o2::MCCompLabel& lblTrc) const;
@@ -534,46 +472,29 @@ class MatchTPCITS
   ///< get number of matching records for ITS track
   int getNMatchRecordsITS(const TrackLocITS& tITS) const;
 
-  ///< convert TPC timebins bracket to IR bracket
-  BracketIR tpcTimeBin2IRBracket(const BracketF tbrange);
+  ///< convert time bracket to IR bracket
+  BracketIR tBracket2IRBracket(const BracketF tbrange);
 
-  ///< convert TPC time bin to ITS ROFrame units
-  int tpcTimeBin2ITSROFrame(float tbin) const
+  ///< convert time bin to ITS ROFrame units
+  int time2ITSROFrame(float t) const
   {
     if (mITSTriggered) {
-      return mITSROFofTPCBin[int(tbin > 0 ? tbin : 0)];
+      LOG(ERROR) << "FIXME";
+      //return mITSROForTime[int(t > 0 ? t : 0)];
     }
-    int rof = tbin > 0 ? tbin * mTPCBin2ITSROFrame : 0;
+    int rof = t > 0 ? t * mITSROFrameLengthMUSInv : 0;
     // the rof is estimated continuous counter but the actual bins might have gaps (e.g. HB rejects etc)-> use mapping
-    return rof < mITSTrackROFContMapping.size() ? mITSTrackROFContMapping[rof] : mITSTrackROFContMapping.back();
-  }
-
-  ///< convert ITS ROFrame to TPC time bin units // TOREMOVE
-  float itsROFrame2TPCTimeBin(int rof) const { return rof * mITSROFrame2TPCBin; }
-
-  ///< convert time in microseconds to TPC time bin units
-  float time2TPCTimeBin(float tms) const
-  {
-    return tms * mTPCTBinMUSInv;
+    return rof < int(mITSTrackROFContMapping.size()) ? mITSTrackROFContMapping[rof] : mITSTrackROFContMapping.back();
   }
 
   ///< convert TPC time bin to microseconds
-  float tpcTimeBin2MUS(float tbn) const
-  {
-    return tbn * mTPCTBinMUS;
-  }
+  float tpcTimeBin2Z(float tbn) const { return tbn * mTPCBin2Z; }
+
+  ///< convert TPC time bin to microseconds
+  float tpcTimeBin2MUS(float tbn) const { return tbn * mTPCTBinMUS; }
 
   ///< convert TPC time bin to nanoseconds
-  float tpcTimeBin2NS(float tbn) const
-  {
-    return tbn * mTPCTBinNS;
-  }
-
-  ///< convert Interaction Record for TPC time bin units
-  float intRecord2TPCTimeBin(const o2::InteractionRecord& bc) const
-  {
-    return time2TPCTimeBin(bc.differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3);
-  }
+  float tpcTimeBin2NS(float tbn) const { return tbn * mTPCTBinNS; }
 
   ///< convert Z interval to TPC time-bins
   float z2TPCBin(float z) const { return z * mZ2TPCBin; }
@@ -587,20 +508,6 @@ class MatchTPCITS
     return delta > toler ? rejFlag : (delta < -toler ? -rejFlag : Accept);
   }
 
-  ///< correct TPC time0 (int TPC time-bins)
-  float getTPCTrackCorrectedTimeBin(const o2::tpc::TrackTPC& trc, float delta) const
-  {
-    float timeTB = trc.getTime0();
-    if (trc.hasASideClustersOnly()) {
-      timeTB += delta;
-    } else if (trc.hasCSideClustersOnly()) {
-      timeTB -= delta;
-    } else {
-      // TODO : special treatment of tracks crossing the CE
-    }
-    return timeTB;
-  }
-
   //================================================================
 
   bool mInitDone = false;  ///< flag init already done
@@ -608,7 +515,7 @@ class MatchTPCITS
   bool mCosmics = false;   ///< flag cosmics mode
   bool mMCTruthON = false; ///< flag availability of MC truth
   float mBz = 0;           ///< nominal Bz
-
+  int mTFCount = 0;        ///< internal TF counter for debugger
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
@@ -617,6 +524,7 @@ class MatchTPCITS
 
   MatCorrType mUseMatCorrFlag = MatCorrType::USEMatCorrTGeo;
 
+  bool mSkipTPCOnly = false;  ///< for test only: don't use TPC only tracks, use only external ones
   bool mITSTriggered = false; ///< ITS readout is triggered
   bool mUseFT0 = false;       ///< FT0 information is available
 
@@ -628,9 +536,10 @@ class MatchTPCITS
   ///< safety margin in TPC time bins when estimating TPC track tMin and tMax from
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
   float mTPCTimeEdgeTSafeMargin = 0.f;
-
+  float mTPCExtConstrainedNSigmaInv = 0.f; // inverse for NSigmas for TPC time-interval from external constraint time sigma
   int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
+  float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
   float mTPCVDrift0 = -1.;          ///< TPC nominal drift speed in cm/microseconds
   float mTPCVDrift0Inv = -1.;       ///< inverse TPC nominal drift speed in cm/microseconds
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
@@ -651,14 +560,13 @@ class MatchTPCITS
   std::unique_ptr<o2::dataformats::FlatHisto2D_f> mHistoDTgl; ///< histo for VDrift calibration data
 
   std::unique_ptr<TPCTransform> mTPCTransform;         ///< TPC cluster transformation
-  std::unique_ptr<o2::gpu::GPUParam> mTPCClusterParam; ///< TPC clusters error param
-  std::unique_ptr<o2::gpu::GPUTPCO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
-  std::vector<unsigned char> mTPCRefitterShMap;
+  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   o2::BunchFilling mBunchFilling;
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchAbove; // closest filled bunch from above
   std::array<int16_t, o2::constants::lhc::LHCMaxBunches> mClosestBunchBelow; // closest filled bunch from below
 
+  const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;       ///< input TPC tracks span
@@ -666,9 +574,13 @@ class MatchTPCITS
   gsl::span<const o2::itsmft::ROFRecord> mITSTrackROFRec;   ///< input ITS tracks ROFRecord span
   gsl::span<const o2::its::TrackITS> mITSTracksArray;       ///< input ITS tracks span
   gsl::span<const int> mITSTrackClusIdx;                    ///< input ITS track cluster indices span
-  gsl::span<const ITSCluster> mITSClustersArray;            ///< input ITS clusters span
+  std::vector<ITSCluster> mITSClustersArray;                ///< ITS clusters created in loadInput
   gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec; ///< input ITS clusters ROFRecord span
   gsl::span<const o2::ft0::RecPoints> mFITInfo;             ///< optional input FIT info span
+
+  gsl::span<const unsigned char> mTPCRefitterShMap; ///< externally set TPC clusters sharing map
+
+  const o2::itsmft::TopologyDictionary* mITSDict{nullptr}; // cluster patterns dictionary
 
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
 
@@ -685,8 +597,8 @@ class MatchTPCITS
   ///< container for reference to MatchRecord involving particular ITS track
   std::vector<MatchRecord> mMatchRecordsITS;
 
-  std::vector<int> mITSROFofTPCBin;    ///< aux structure for mapping of TPC time-bins on ITS ROFs
-  std::vector<BracketF> mITSROFTimes;  ///< min/max times of ITS ROFs in TPC time-bins
+  ////  std::vector<int> mITSROFofTPCBin;    ///< aux structure for mapping of TPC time-bins on ITS ROFs
+  std::vector<BracketF> mITSROFTimes;  ///< min/max times of ITS ROFs in \mus
   std::vector<TrackLocTPC> mTPCWork;   ///< TPC track params prepared for matching
   std::vector<TrackLocITS> mITSWork;   ///< ITS track params prepared for matching
   MCLabContTr mTPCLblWork;             ///< TPC track labels
@@ -713,18 +625,17 @@ class MatchTPCITS
   ///< indices of 1st entries with time-bin above the value
   std::vector<int> mTPCABTimeBinStart;
 
-  ///< indices of 1st entries with time-bin above the value
-  std::array<std::vector<int>, o2::constants::math::NSectors> mTPCTimeBinStart;
-  ///< indices of 1st entries of ITS tracks with givem ROframe
-  std::array<std::vector<int>, o2::constants::math::NSectors> mITSTimeBinStart;
+  ///< indices of 1st TPC tracks with time above the ITS ROF time
+  std::array<std::vector<int>, o2::constants::math::NSectors> mTPCTimeStart;
+  ///< indices of 1st entries of ITS tracks starting at given ROframe
+  std::array<std::vector<int>, o2::constants::math::NSectors> mITSTimeStart;
 
   /// mapping for tracks' continuos ROF cycle to actual continuous readout ROFs with eventual gaps
   std::vector<int> mITSTrackROFContMapping;
 
   ///< outputs tracks container
   std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
-  MCLabContTr mOutITSLabels; ///< ITS label of matched track
-  MCLabContTr mOutTPCLabels; ///< TPC label of matched track
+  MCLabContTr mOutLabels; ///< Labels: = TPC labels with flag isFake set in case of fake matching
 
   o2::its::RecoGeomHelper mRGHelper; ///< helper for cluster and geometry access
   float mITSFiducialZCut = 9999.;    ///< eliminate TPC seeds outside of this range
@@ -754,7 +665,6 @@ class MatchTPCITS
   static constexpr std::string_view TimerName[] = {"Total", "PrepareITS", "PrepareTPC", "DoMatching", "SelectBest", "Refit", "IO", "Debug"};
   TStopwatch mTimer[NStopWatches];
 
-  ClassDefNV(MatchTPCITS, 1);
 };
 
 //______________________________________________
@@ -774,113 +684,6 @@ inline bool MatchTPCITS::isDisabledITS(const TrackLocITS& t) const { return t.ma
 
 //______________________________________________
 inline bool MatchTPCITS::isDisabledTPC(const TrackLocTPC& t) const { return t.matchID < 0; }
-
-//______________________________________________
-inline void MatchTPCITS::removeTPCfromITS(int tpcID, int itsID)
-{
-  ///< remove reference to tpcID track from itsID track matches
-  auto& tITS = mITSWork[itsID];
-  if (isValidatedITS(tITS)) {
-    return;
-  }
-  int topID = MinusOne, next = tITS.matchID; // ITS MatchRecord
-  while (next > MinusOne) {
-    auto& rcITS = mMatchRecordsITS[next];
-    if (rcITS.partnerID == tpcID) {
-      if (topID < 0) {
-        tITS.matchID = rcITS.nextRecID;
-      } else {
-        mMatchRecordsITS[topID].nextRecID = rcITS.nextRecID;
-      }
-      return;
-    }
-    topID = next;
-    next = rcITS.nextRecID;
-  }
-}
-
-//______________________________________________
-inline void MatchTPCITS::removeITSfromTPC(int itsID, int tpcID)
-{
-  ///< remove reference to itsID track from matches of tpcID track
-  auto& tTPC = mTPCWork[tpcID];
-  if (isValidatedTPC(tTPC)) {
-    return;
-  }
-  int topID = MinusOne, next = tTPC.matchID;
-  while (next > MinusOne) {
-    auto& rcTPC = mMatchRecordsTPC[next];
-    if (rcTPC.partnerID == itsID) {
-      if (topID < 0) {
-        tTPC.matchID = rcTPC.nextRecID;
-      } else {
-        mMatchRecordsTPC[topID].nextRecID = rcTPC.nextRecID;
-      }
-      return;
-    }
-    topID = next;
-    next = rcTPC.nextRecID;
-  }
-}
-
-//______________________________________________
-inline void MatchTPCITS::flagUsedITSClusters(const o2::its::TrackITS& track, int rofOffset)
-{
-  // flag clusters used by this track
-  int clEntry = track.getFirstClusterEntry();
-  for (int icl = track.getNumberOfClusters(); icl--;) {
-    mABClusterLinkIndex[rofOffset + mITSTrackClusIdx[clEntry++]] = MinusTen;
-  }
-}
-//__________________________________________________________
-inline int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRange& clRange, const ITSChipClustersRefs& clRefs,
-                                              float trackY, float trackZ, float tolerY, float tolerZ,
-                                              const o2::MCCompLabel& lblTrc) const // TODO lbl is not needed
-{
-  clVecOut.clear();
-  int icID = clRange.getFirstEntry();
-  for (int icl = clRange.getEntries(); icl--;) { // note: clusters within a chip are sorted in Z
-    int clID = clRefs.clusterID[icID++];         // so, we go in clusterID increasing direction
-    const auto& cls = mITSClustersArray[clID];
-    float dz = trackZ - cls.getZ();
-    auto label = mITSClsLabels->getLabels(clID)[0]; // tmp
-    //    if (!(label == lblTrc)) {
-    //      continue; // tmp
-    //    }
-    LOG(DEBUG) << "cl" << icl << '/' << clID << " " << label
-               << " dZ: " << dz << " [" << tolerZ << "| dY: " << trackY - cls.getY() << " [" << tolerY << "]";
-    if (dz > tolerZ) {
-      float clsZ = cls.getZ();
-      LOG(DEBUG) << "Skip the rest since " << trackZ << " > " << clsZ << "\n";
-      break;
-    } else if (dz < -tolerZ) {
-      LOG(DEBUG) << "Skip cluster dz=" << dz << " Ztr=" << trackZ << " zCl=" << cls.getZ();
-      continue;
-    }
-    if (fabs(trackY - cls.getY()) > tolerY) {
-      LOG(DEBUG) << "Skip cluster dy= " << trackY - cls.getY() << " Ytr=" << trackY << " yCl=" << cls.getY();
-      continue;
-    }
-    clVecOut.push_back(clID);
-  }
-  return clVecOut.size();
-}
-
-//______________________________________________
-inline void MatchTPCITS::cleanAfterBurnerClusRefCache(int currentIC, int& startIC)
-{
-  // check if some of cached cluster reference from tables startIC to currentIC can be released,
-  // they will be necessarily in front slots of the mITSChipClustersRefs
-  while (startIC < currentIC && mInteractions[currentIC].timeBins.getMin() - mInteractions[startIC].timeBins.getMax() > MinTBToCleanCache) {
-    LOG(INFO) << "CAN REMOVE CACHE FOR " << startIC << " curent IC=" << currentIC;
-    while (mInteractions[startIC].clRefPtr == &mITSChipClustersRefs.front()) {
-      LOG(INFO) << "Reset cache pointer" << mInteractions[startIC].clRefPtr << " for IC=" << startIC;
-      mInteractions[startIC++].clRefPtr = nullptr;
-    }
-    LOG(INFO) << "Reset cache slot " << &mITSChipClustersRefs.front();
-    mITSChipClustersRefs.pop_front();
-  }
-}
 
 //______________________________________________
 inline void MatchTPCITS::destroyLastABTrackLinksList()

@@ -15,7 +15,6 @@
 
 #include "ITSMFTSimulation/ChipDigitsContainer.h"
 #include "ITSMFTSimulation/DigiParams.h"
-#include "ITSMFTBase/SegmentationAlpide.h"
 #include <TRandom.h>
 
 using namespace o2::itsmft;
@@ -24,7 +23,7 @@ using Segmentation = o2::itsmft::SegmentationAlpide;
 ClassImp(o2::itsmft::ChipDigitsContainer);
 
 //______________________________________________________________________
-void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params)
+void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params, int maxRows, int maxCols)
 {
   UInt_t row = 0;
   UInt_t col = 0;
@@ -37,8 +36,8 @@ void ChipDigitsContainer::addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmf
   for (UInt_t rof = rofMin; rof <= rofMax; rof++) {
     nhits = gRandom->Poisson(mean);
     for (Int_t i = 0; i < nhits; ++i) {
-      row = gRandom->Integer(Segmentation::NRows);
-      col = gRandom->Integer(Segmentation::NCols);
+      row = gRandom->Integer(maxRows);
+      col = gRandom->Integer(maxCols);
       // RS TODO: why the noise was added with 0 charge? It should be above the threshold!
       auto key = getOrderingKey(rof, row, col);
       if (!findDigit(key)) {

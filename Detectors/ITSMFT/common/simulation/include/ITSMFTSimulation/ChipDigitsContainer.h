@@ -17,6 +17,7 @@
 #define ALICEO2_ITSMFT_CHIPDIGITSCONTAINER_
 
 #include "SimulationDataFormat/MCCompLabel.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSMFTSimulation/PreDigit.h"
 #include <map>
 #include <vector>
@@ -47,7 +48,7 @@ class ChipDigitsContainer
 
   o2::itsmft::PreDigit* findDigit(ULong64_t key);
   void addDigit(ULong64_t key, UInt_t roframe, UShort_t row, UShort_t col, int charge, o2::MCCompLabel lbl);
-  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params);
+  void addNoise(UInt_t rofMin, UInt_t rofMax, const o2::itsmft::DigiParams* params, int maxRows = o2::itsmft::SegmentationAlpide::NRows, int maxCols = o2::itsmft::SegmentationAlpide::NCols);
 
   /// Get global ordering key made of readout frame, column and row
   static ULong64_t getOrderingKey(UInt_t roframe, UShort_t row, UShort_t col)

@@ -14,7 +14,6 @@
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
 #include "DataSampling/Dispatcher.h"
-#include "Framework/RawDeviceService.h"
 #include "DataSampling/DataSamplingPolicy.h"
 #include "DataSampling/DataSamplingHeader.h"
 #include "Framework/DataProcessingHeader.h"
@@ -22,11 +21,10 @@
 #include "Framework/Logger.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/InputRecordWalker.h"
-
 #include "Framework/Monitoring.h"
+
 #include <Configuration/ConfigurationInterface.h>
 #include <Configuration/ConfigurationFactory.h>
-#include <fairmq/FairMQDevice.h>
 
 using namespace o2::configuration;
 using namespace o2::monitoring;
@@ -92,14 +90,9 @@ void Dispatcher::run(ProcessingContext& ctx)
           std::move(extractAdditionalHeaders(input.header)),
           std::move(prepareDataSamplingHeader(*policy.get(), ctx.services().get<const DeviceSpec>()))};
 
-        if (!policy->getFairMQOutputChannel().empty()) {
-          sendFairMQ(ctx.services().get<RawDeviceService>().device(), input, policy->getFairMQOutputChannelName(),
-                     std::move(headerStack));
-        } else {
-          Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
-          output.metaHeader = std::move(header::Stack{std::move(output.metaHeader), std::move(headerStack)});
-          send(ctx.outputs(), input, std::move(output));
-        }
+        Output output = policy->prepareOutput(inputMatcher, input.spec->lifetime);
+        output.metaHeader = std::move(header::Stack{std::move(output.metaHeader), std::move(headerStack)});
+        send(ctx.outputs(), input, std::move(output));
       }
     }
   }
@@ -141,7 +134,7 @@ header::Stack Dispatcher::extractAdditionalHeaders(const char* inputHeaderStack)
 {
   header::Stack headerStack;
 
-  const auto* first = header::BaseHeader::get(reinterpret_cast<const byte*>(inputHeaderStack));
+  const auto* first = header::BaseHeader::get(reinterpret_cast<const std::byte*>(inputHeaderStack));
   for (const auto* current = first; current != nullptr; current = current->next()) {
     if (current->description != header::DataHeader::sHeaderType &&
         current->description != DataProcessingHeader::sHeaderType) {
@@ -156,35 +149,6 @@ void Dispatcher::send(DataAllocator& dataAllocator, const DataRef& inputData, Ou
 {
   const auto* inputHeader = header::get<header::DataHeader*>(inputData.header);
   dataAllocator.snapshot(output, inputData.payload, inputHeader->payloadSize, inputHeader->payloadSerializationMethod);
-}
-
-// ideally this should be in a separate proxy device or use Lifetime::External
-void Dispatcher::sendFairMQ(FairMQDevice* device, const DataRef& inputData, const std::string& fairMQChannel,
-                            header::Stack&& stack) const
-{
-  const auto* dh = header::get<header::DataHeader*>(inputData.header);
-  assert(dh);
-  const auto* dph = header::get<DataProcessingHeader*>(inputData.header);
-  assert(dph);
-
-  header::DataHeader dhout{dh->dataDescription, dh->dataOrigin, dh->subSpecification, dh->payloadSize};
-  dhout.payloadSerializationMethod = dh->payloadSerializationMethod;
-  DataProcessingHeader dphout{dph->startTime, dph->duration};
-  o2::header::Stack headerStack{dhout, dphout, stack};
-
-  auto channelAlloc = o2::pmr::getTransportAllocator(device->Transport());
-  FairMQMessagePtr msgHeaderStack = o2::pmr::getMessage(std::move(headerStack), channelAlloc);
-
-  char* payloadCopy = new char[dh->payloadSize];
-  memcpy(payloadCopy, inputData.payload, dh->payloadSize);
-  auto cleanupFcn = [](void* data, void*) { delete[] reinterpret_cast<char*>(data); };
-  FairMQMessagePtr msgPayload(device->NewMessage(payloadCopy, dh->payloadSize, cleanupFcn, payloadCopy));
-
-  FairMQParts message;
-  message.AddPart(move(msgHeaderStack));
-  message.AddPart(move(msgPayload));
-
-  int64_t bytesSent = device->Send(message, fairMQChannel);
 }
 
 void Dispatcher::registerPolicy(std::unique_ptr<DataSamplingPolicy>&& policy)
@@ -245,20 +209,9 @@ Outputs Dispatcher::getOutputSpecs()
 }
 framework::Options Dispatcher::getOptions()
 {
-  o2::framework::Options options;
-  for (const auto& policy : mPolicies) {
-    if (!policy->getFairMQOutputChannel().empty()) {
-      if (!options.empty()) {
-        throw std::runtime_error("Maximum one policy with raw FairMQ channel is allowed, more have been declared.");
-      }
-      options.push_back({"channel-config", VariantType::String, policy->getFairMQOutputChannel().c_str(), {"Out-of-band channel config"}});
-      LOG(DEBUG) << " - registering output FairMQ channel '" << policy->getFairMQOutputChannel() << "'";
-    }
-  }
-  options.push_back({"period-timer-stats", framework::VariantType::Int, 10 * 1000000, {"Dispatcher's stats timer period"}});
-
-  return options;
+  return {{"period-timer-stats", framework::VariantType::Int, 10 * 1000000, {"Dispatcher's stats timer period"}}};
 }
+
 size_t Dispatcher::numberOfPolicies()
 {
   return mPolicies.size();

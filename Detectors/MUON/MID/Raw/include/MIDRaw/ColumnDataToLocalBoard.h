@@ -22,7 +22,7 @@
 #include "DataFormatsMID/ColumnData.h"
 #include "MIDBase/Mapping.h"
 #include "MIDRaw/CrateMapper.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -33,17 +33,17 @@ class ColumnDataToLocalBoard
  public:
   void process(gsl::span<const ColumnData> data);
   /// Gets the output data per GBT link
-  const std::unordered_map<uint16_t, std::vector<LocalBoardRO>> getData() { return mGBTMap; }
+  const std::unordered_map<uint16_t, std::vector<ROBoard>> getData() { return mGBTMap; }
   /// Sets debug mode
   void setDebugMode(bool debugMode = true) { mDebugMode = debugMode; }
 
  private:
-  bool keepBoard(const LocalBoardRO& loc) const;
-  std::unordered_map<uint8_t, LocalBoardRO> mLocalBoardsMap{};       /// Map of data per board
-  std::unordered_map<uint16_t, std::vector<LocalBoardRO>> mGBTMap{}; /// Map of data per GBT link
-  CrateMapper mCrateMapper{};                                        /// Crate mapper
-  Mapping mMapping{};                                                /// Segmentation
-  bool mDebugMode{false};                                            /// Debug mode (no zero suppression)
+  bool keepBoard(const ROBoard& loc) const;
+  std::unordered_map<uint8_t, ROBoard> mLocalBoardsMap{};       /// Map of data per board
+  std::unordered_map<uint16_t, std::vector<ROBoard>> mGBTMap{}; /// Map of data per GBT link
+  CrateMapper mCrateMapper{};                                   /// Crate mapper
+  Mapping mMapping{};                                           /// Segmentation
+  bool mDebugMode{false};                                       /// Debug mode (no zero suppression)
 };
 
 } // namespace mid

@@ -23,6 +23,7 @@ o2_add_library(
           src/LaserTrack.cxx
           src/TPCSectorHeader.cxx
           src/ClusterNativeHelper.cxx
+          src/WorkflowHelper.cxx
           src/CompressedClusters.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                         O2::SimulationDataFormat
@@ -45,6 +46,7 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/dEdxInfo.h
           include/DataFormatsTPC/CompressedClusters.h
           include/DataFormatsTPC/CTF.h
+          include/DataFormatsTPC/IDC.h
           include/DataFormatsTPC/ZeroSuppression.h
           include/DataFormatsTPC/ZeroSuppressionLinkBased.h)
 

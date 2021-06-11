@@ -263,6 +263,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
           printCalibrationWord(gbtC);
         }
         dataOffset += GBTPaddedWordLength;
+        ruPtr->calibData = {gbtC->calibCounter, gbtC->calibUserField};
       }
     }
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);

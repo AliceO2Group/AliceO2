@@ -29,6 +29,7 @@
 #include <fstream>
 #include <iostream>
 #include "TestParameters.h"
+#include <fmt/format.h>
 
 using namespace o2::mch::mapping;
 namespace bdata = boost::unit_test::data;
@@ -297,6 +298,20 @@ BOOST_AUTO_TEST_CASE(ThrowsIfDualSampaChannelIsNotBetween0And63)
 {
   BOOST_CHECK_THROW(seg.findPadByFEE(102, -1), std::out_of_range);
   BOOST_CHECK_THROW(seg.findPadByFEE(102, 64), std::out_of_range);
+}
+
+BOOST_AUTO_TEST_CASE(ReturnsFalseIfCatPadIdIsOutOfRange)
+{
+  forOneDetectionElementOfEachSegmentationType([](int detElemId) {
+    for (auto plane : {true, false}) {
+      CathodeSegmentation seg{detElemId, plane};
+      BOOST_TEST_INFO_SCOPE(fmt::format("DeId {} Bending {}", detElemId, plane));
+      BOOST_CHECK_EQUAL(seg.isValid(0), true);
+      BOOST_CHECK_EQUAL(seg.isValid(seg.nofPads() - 1), true);
+      BOOST_CHECK_EQUAL(seg.isValid(-1), false);
+      BOOST_CHECK_EQUAL(seg.isValid(seg.nofPads()), false);
+    }
+  });
 }
 
 BOOST_AUTO_TEST_CASE(ReturnsTrueIfPadIsConnected)

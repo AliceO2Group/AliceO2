@@ -35,7 +35,7 @@ RDH + Event header + event data, 2 channels per 1 GBT word;
 if no data for this PM - only headers.
 
 Trigger mode : detector sends data to FLP at each trigger;
-Continueous mode  :   for only bunches with data at least in 1 channel.  
+Continueous mode  :   for only bunches with data at least in 1 channel.
 */
 
 #include "Headers/RAWDataHeader.h"
@@ -75,40 +75,36 @@ Digits2Raw::Digits2Raw(const std::string& fileRaw, const std::string& fileDigits
 void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDigitsName)
 {
   LOG(INFO) << "**********Digits2Raw::convertDigits" << std::endl;
+  mWriter.setCarryOverCallBack(this);
 
-  /*
-  std::string inputDir;
-  const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env) {
-    inputDir = aliceO2env;
-  }
-  inputDir += "/share/Detectors/FT0/files/";
-
-  std::string lutPath = inputDir + "FT0ChannelsTable.txt";
-  lutPath = gSystem->ExpandPathName(lutPath.data()); // Expand $(ALICE_ROOT) into real system path
-
-  std::ifstream infile;
-  infile.open(lutPath.c_str());
-  if (!infile.is_open()) {
-    LOG(ERROR) << "!!!! no LUT";
-  }
-  */
   o2::ft0::LookUpTable lut{o2::ft0::LookUpTable::readTable()};
-  LOG(INFO) << " ##### LookUp set ";
-
+  mLinkTCM = lut.getLink(lut.getTCMchannel());
+  LOG(INFO) << " ##### LookUp set, TCM " << mLinkTCM;
   std::string outd = outDir;
   if (outd.back() != '/') {
     outd += '/';
   }
   using namespace o2::raw;
-  for (int ilink = 0; ilink < NPMs; ++ilink) {
-    mLinkID = uint32_t(ilink);
-    mFeeID = uint64_t(ilink);
-    mCruID = uint16_t(0);
-    mEndPointID = uint32_t(0);
-    std::string outFileLink = mOutputPerLink ? o2::utils::concat_string(outDir, "ft0_link", std::to_string(ilink), ".raw") : o2::utils::concat_string(outDir, "ft0.raw");
+  for (int ilink = 0; ilink < NPMs - 1; ++ilink) {
+    if (ilink < 8) {
+      mLinkID = uint32_t(ilink);
+      mCruID = uint16_t(0);
+      mEndPointID = uint32_t(0);
+      mFeeID = uint64_t(ilink);
+    } else {
+      mLinkID = uint32_t(ilink) - 8;
+      mCruID = uint16_t(0);
+      mEndPointID = uint32_t(1);
+      mFeeID = uint64_t(ilink);
+    }
+    std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outDir, "ft0_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outDir, "ft0.raw");
     mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
+    LOG(INFO) << " registered links " << mLinkID << " endpoint " << mEndPointID;
   }
+  //TCM
+  std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outDir, "ft0_link", std::to_string(NPMs - 1), ".raw") : o2::utils::Str::concat_string(outDir, "ft0.raw");
+  mWriter.registerLink(mLinkTCM + 8, mCruID, mLinkTCM, 0, outFileLink);
+  LOG(INFO) << " registered link  TCM " << mLinkTCM;
 
   TFile* fdig = TFile::Open(fileDigitsName.data());
   assert(fdig != nullptr);
@@ -130,7 +126,7 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
     digTree->GetEntry(ient);
 
     int nbc = digitsBC.size();
-    LOG(DEBUG) << "Entry " << ient << " : " << nbc << " BCs stored";
+    LOG(INFO) << "Entry " << ient << " : " << nbc << " BCs stored";
     for (int ibc = 0; ibc < nbc; ibc++) {
       auto& bcd = digitsBC[ibc];
       intRecord = bcd.getIntRecord();
@@ -150,14 +146,16 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
 
   // check empty event
   int oldlink = -1;
+  int oldendpoint = -1;
   int nchannels = 0;
   int nch = pmchannels.size();
   for (int ich = 0; ich < nch; ich++) {
     int nlink = lut.getLink(pmchannels[ich].ChId);
-    if (nlink != oldlink) {
+    int ep = lut.getEP(pmchannels[ich].ChId);
+    if (nlink != oldlink || ep != oldendpoint) {
       if (oldlink >= 0) {
         uint nGBTWords = uint((nchannels + 1) / 2);
-        LOG(DEBUG) << " oldlink " << oldlink << " nGBTWords " << nGBTWords;
+        LOG(DEBUG) << " oldlink " << oldlink << " old EP " << oldendpoint << " nGBTWords " << nGBTWords << " new link " << nlink << " ep  " << ep;
         if ((nchannels % 2) == 1) {
           mRawEventData.mEventData[nchannels] = {};
         }
@@ -165,12 +163,18 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
         auto data = mRawEventData.to_vector(false);
         mLinkID = uint32_t(oldlink);
         mFeeID = uint64_t(oldlink);
+        mEndPointID = uint32_t(oldendpoint);
+        if (mEndPointID == 1) {
+          mFeeID += 8;
+        }
+        LOG(DEBUG) << " new link start " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
         mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
       }
       oldlink = nlink;
+      oldendpoint = ep;
       mRawEventData.mEventHeader = makeGBTHeader(nlink, intRecord);
       nchannels = 0;
-      LOG(DEBUG) << " switch to new link " << nlink;
+      LOG(DEBUG) << " switch to new link " << nlink << " EP " << ep;
     }
     auto& newData = mRawEventData.mEventData[nchannels];
     bool isAside = (pmchannels[ich].ChId < 96);
@@ -178,7 +182,8 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
     newData.time = pmchannels[ich].CFDTime;
     newData.generateFlags();
     newData.channelID = lut.getMCP(pmchannels[ich].ChId);
-    LOG(DEBUG) << "packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC) << " size " << sizeof(newData);
+    LOG(DEBUG) << " ID " << int(pmchannels[ich].ChId) << " packed GBT " << nlink << " channelID   " << (int)newData.channelID << " charge " << newData.charge << " time " << newData.time << " chain " << int(newData.numberADC)
+               << " size " << sizeof(newData) << " mEndPointID " << ep;
     nchannels++;
   }
   // fill mEventData[nchannels] with 0s to flag that this is a dummy data
@@ -190,10 +195,14 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   auto datalast = mRawEventData.to_vector(false);
   mLinkID = uint32_t(oldlink);
   mFeeID = uint64_t(oldlink);
+  mEndPointID = uint32_t(oldendpoint);
+  if (mEndPointID == 1) {
+    mFeeID += 8;
+  }
   mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, datalast);
-  LOG(DEBUG) << " last " << oldlink;
+  LOG(DEBUG) << " last " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
   //TCM
-  mRawEventData.mEventHeader = makeGBTHeader(LinkTCM, intRecord); //TCM
+  mRawEventData.mEventHeader = makeGBTHeader(mLinkTCM, intRecord); //TCM
   mRawEventData.mEventHeader.nGBTWords = 1;
   auto& tcmdata = mRawEventData.mTCMdata;
   mTriggers = bcdigits.getTriggers();
@@ -233,9 +242,11 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
              << " size " << sizeof(tcmdata);
 
   auto data = mRawEventData.to_vector(1);
-  mLinkID = uint32_t(LinkTCM);
-  mFeeID = uint64_t(LinkTCM);
+  mLinkID = uint32_t(mLinkTCM);
+  mFeeID = uint64_t(mLinkTCM) + 8;
+  mEndPointID = 0;
   mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, intRecord, data);
+  LOG(DEBUG) << " TCM " << mFeeID << " " << mCruID << " " << mLinkID << " " << mEndPointID;
 }
 
 //_____________________________________________________________________________________
@@ -251,4 +262,12 @@ EventHeader Digits2Raw::makeGBTHeader(int link, o2::InteractionRecord const& mIn
     LOG(INFO) << " makeGBTHeader " << link << " orbit " << mEventHeader.orbit << " BC " << mEventHeader.bc;
   }
   return mEventHeader;
+}
+
+//_____________________________________________________________________________________
+int Digits2Raw::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                                const char* ptr, int maxSize, int splitID,
+                                std::vector<char>& trailer, std::vector<char>& header) const
+{
+  return 0; // do not split, always start new CRU page
 }

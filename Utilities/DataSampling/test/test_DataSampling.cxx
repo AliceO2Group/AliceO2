@@ -16,9 +16,6 @@
 #include "DataSampling/DataSampling.h"
 #include "DataSampling/Dispatcher.h"
 #include "DataSampling/DataSamplingPolicy.h"
-#include "Framework/DataProcessingHeader.h"
-#include "Framework/ExternalFairMQDeviceProxy.h"
-#include "DataSampling/DataSamplingReadoutAdapter.h"
 #include "Framework/DataSpecUtils.h"
 
 #include "Headers/DataHeader.h"
@@ -171,37 +168,6 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
   BOOST_CHECK_EQUAL(disp->maxInputTimeslices, 3);
 }
 
-BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
-{
-  WorkflowSpec workflow{
-    specifyExternalFairMQDeviceProxy(
-      "readout-proxy",
-      Outputs{{"TPC", "RAWDATA"}},
-      "fake-channel-config",
-      dataSamplingReadoutAdapter({"TPC", "RAWDATA"}))};
-
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
-  DataSampling::GenerateInfrastructure(workflow, "json:/" + configFilePath);
-
-  auto disp = std::find_if(workflow.begin(), workflow.end(),
-                           [](const DataProcessorSpec& d) {
-                             return d.name.find("Dispatcher") != std::string::npos;
-                           });
-  BOOST_REQUIRE(disp != workflow.end());
-
-  auto input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
-                            [](const InputSpec& in) {
-                              return DataSpecUtils::match(in, ConcreteDataMatcher{DataOrigin("TPC"), DataDescription("RAWDATA"), 0}) && in.lifetime == Lifetime::Timeframe;
-                            });
-  BOOST_CHECK(input != disp->inputs.end());
-
-  auto channelConfig = std::find_if(disp->options.begin(), disp->options.end(),
-                                    [](const ConfigParamSpec& opt) {
-                                      return opt.name == "channel-config";
-                                    });
-  BOOST_REQUIRE(channelConfig != disp->options.end());
-}
-
 BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)
 {
   std::string configFilePath = "json:/" + std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
@@ -299,5 +265,26 @@ BOOST_AUTO_TEST_CASE(DataSamplingOverlappingInputs)
     BOOST_CHECK_EQUAL(inputs[1], (InputSpec{"sfsd", "TST", "BBBB"}));
     BOOST_CHECK_EQUAL(inputs[2], (InputSpec{"asdf", {"TST", "CCCC"}}));
     BOOST_CHECK_EQUAL(inputs[3], (InputSpec{"timer-stats", "DS", "TIMER-dispatcher", 0, Lifetime::Timer}));
+  }
+
+  {
+    // two policies with one common concrete data spec
+    Dispatcher dispatcher("dispatcher", "");
+    auto policy1 = std::make_unique<DataSamplingPolicy>("policy1");
+    policy1->registerPath({"random", "TST", "AAAA", 0}, {{"erwv"}, "DS", "XYZ", 0});
+
+    auto policy2 = std::make_unique<DataSamplingPolicy>("policy2");
+    policy2->registerPath({"random0", "TST", "AAAA", 0}, {{"fdsf"}, "DS", "BBBB", 0});
+    policy2->registerPath({"random1", "TST", "AAAA", 1}, {{"fdsf"}, "DS", "BBBB", 1});
+
+    dispatcher.registerPolicy(std::move(policy1));
+    dispatcher.registerPolicy(std::move(policy2));
+
+    auto inputs = dispatcher.getInputSpecs();
+
+    BOOST_REQUIRE_EQUAL(inputs.size(), 3);
+    BOOST_CHECK_EQUAL(inputs[0], (InputSpec{"random0", "TST", "AAAA", 0}));
+    BOOST_CHECK_EQUAL(inputs[1], (InputSpec{"random1", "TST", "AAAA", 1}));
+    BOOST_CHECK_EQUAL(inputs[2], (InputSpec{"timer-stats", "DS", "TIMER-dispatcher", 0, Lifetime::Timer}));
   }
 }

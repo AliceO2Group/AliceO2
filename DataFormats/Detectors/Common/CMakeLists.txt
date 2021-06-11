@@ -17,6 +17,7 @@ o2_add_library(DetectorsCommonDataFormats
                ROOT::Core
                ROOT::Geom
                O2::GPUCommon
+               O2::GPUUtils
                O2::MathUtils
                O2::FrameworkLogger
                O2::Headers
@@ -32,6 +33,12 @@ o2_target_root_dictionary(
           include/DetectorsCommonDataFormats/EncodedBlocks.h
           include/DetectorsCommonDataFormats/CTFHeader.h
           include/DetectorsCommonDataFormats/DetMatrixCache.h)
+
+configure_file(UpgradesStatus.h.in
+               ${CMAKE_CURRENT_BINARY_DIR}/include/DetectorsCommonDataFormats/UpgradesStatus.h)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/include/DetectorsCommonDataFormats/UpgradesStatus.h
+        DESTINATION include/DetectorsCommonDataFormats)
 
 o2_add_test(DetID
             SOURCES test/testDetID.cxx

@@ -14,6 +14,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "Framework/InputRecordWalker.h"
 #include "CommonUtils/StringUtils.h"
 
 #ifdef WITH_OPENMP
@@ -33,13 +34,13 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
   mTimerTFStart.Stop();
   mTimerDecode.Stop();
   mTimerFetchData.Stop();
-  mSelfName = o2::utils::concat_string(Mapping::getName(), "Decoder");
+  mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "Decoder");
 }
 
 ///______________________________________________________________
 ///
 template <class Mapping>
-void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipEmpty) const
+void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipNoErr) const
 {
   LOGF(INFO, "%s Decoded %zu hits in %zu non-empty chips in %u ROFs with %d threads", mSelfName, mNPixelsFired, mNChipsFired, mROFCounter, mNThreads);
   double cpu = 0, real = 0;
@@ -59,11 +60,10 @@ void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipEmpty) const
        mDecodeNextAuto ? "AutoDecode" : "ExternalCall");
 
   if (decstat) {
-    LOG(INFO) << "GBT Links decoding statistics";
+    LOG(INFO) << "GBT Links decoding statistics" << (skipNoErr ? " (only links with errors are reported)" : "");
     for (auto& lnk : mGBTLinks) {
-      LOG(INFO) << lnk.describe();
-      lnk.statistics.print(skipEmpty);
-      lnk.chipStat.print(skipEmpty);
+      lnk.statistics.print(skipNoErr);
+      lnk.chipStat.print(skipNoErr);
     }
   }
 }
@@ -113,8 +113,9 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     }
 
   } while (mNLinksDone < mGBTLinks.size());
+
+  ensureChipOrdering();
   mTimerDecode.Stop();
-  // LOG(INFO) << "Chips Fired: " << mNChipsFiredROF << " NPixels: " << mNPixelsFiredROF << " at IR " << mInteractionRecord << " of HBF " << mInteractionRecordHB;
   return nLinksWithData;
 }
 
@@ -171,6 +172,21 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
   auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
   auto datadesc = (mUserDataDescription == o2::header::gDataDescriptionInvalid) ? o2::header::gDataDescriptionRawData : mUserDataDescription;
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{origin, datadesc}, Lifetime::Timeframe}};
+
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  {
+    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{origin, datadesc, 0xDEADBEEF}}};
+    for (const auto& ref : InputRecordWalker(inputs, dummy)) {
+      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (dh->payloadSize == 0) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        return;
+      }
+    }
+  }
+
   DPLRawParser parser(inputs, filter);
   uint32_t currSSpec = 0xffffffff; // dummy starting subspec
   int linksAdded = 0;
@@ -279,6 +295,61 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
       chipData.swap(ruchip);
       return true;
     }
+  }
+  // will need to decode new trigger
+  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+    return false;
+  }
+  return getNextChipData(chipData); // is it ok to use recursion here?
+}
+
+///______________________________________________________________________
+template <>
+void RawPixelDecoder<ChipMappingMFT>::ensureChipOrdering()
+{
+  // define looping order, if mCurRUDecodeID < mRUDecodeVec.size(), this means that decodeNextTrigger() was called before
+  if (mCurRUDecodeID < mRUDecodeVec.size()) { // define sort order
+    for (; mCurRUDecodeID < mRUDecodeVec.size(); mCurRUDecodeID++) {
+      auto& ru = mRUDecodeVec[mCurRUDecodeID];
+      while (ru.lastChipChecked < ru.nChipsFired) {
+        mOrderedChipsPtr.push_back(&ru.chipsData[ru.lastChipChecked++]);
+      }
+    }
+    // sort in decreasing order
+    std::sort(mOrderedChipsPtr.begin(), mOrderedChipsPtr.end(), [](const ChipPixelData* a, const ChipPixelData* b) { return a->getChipID() > b->getChipID(); });
+  }
+}
+
+///______________________________________________________________________
+template <>
+ChipPixelData* RawPixelDecoder<ChipMappingMFT>::getNextChipData(std::vector<ChipPixelData>& chipDataVec)
+{
+  if (!mOrderedChipsPtr.empty()) {
+    auto chipData = *mOrderedChipsPtr.back();
+    assert(mLastReadChipID < chipData.getChipID());
+    mLastReadChipID = chipData.getChipID();
+    chipDataVec[mLastReadChipID].swap(chipData);
+    mOrderedChipsPtr.pop_back();
+    return &chipDataVec[mLastReadChipID];
+  }
+  // will need to decode new trigger
+  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+    return nullptr;
+  }
+  return getNextChipData(chipDataVec);
+}
+
+///______________________________________________________________________
+template <>
+bool RawPixelDecoder<ChipMappingMFT>::getNextChipData(ChipPixelData& chipData)
+{
+  if (!mOrderedChipsPtr.empty()) {
+    auto ruChip = *mOrderedChipsPtr.back();
+    assert(mLastReadChipID < ruChip.getChipID());
+    mLastReadChipID = ruChip.getChipID();
+    ruChip.swap(chipData);
+    mOrderedChipsPtr.pop_back();
+    return true;
   }
   // will need to decode new trigger
   if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode

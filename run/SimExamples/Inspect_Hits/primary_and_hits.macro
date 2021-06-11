@@ -1,0 +1,48 @@
+#include "left_trace.macro"
+
+void
+primary_and_hits(const char *fname, std::string where = "barrel")
+{
+
+  if (where.compare("golden") == 0) leftTrace_selected = leftTrace_golden;
+  if (where.compare("barrel") == 0) leftTrace_selected = leftTrace_barrel;
+  if (where.compare("muon") == 0)   leftTrace_selected = leftTrace_muon;
+  if (where.compare("any") == 0)    leftTrace_selected = leftTrace_any;
+
+  auto fin = TFile::Open(fname);
+  auto tin = (TTree*)fin->Get("o2sim");
+  auto tracks = new vector<o2::MCTrack>;
+  tin->SetBranchAddress("MCTrack", &tracks);
+  auto nev = tin->GetEntries();
+
+  std::map<int, TH2F*> hEtaPtGen, hEtaPtHit;
+
+  for (int iev = 0; iev < nev; ++iev) {
+    tin->GetEntry(iev);
+    for (int itr = 0; itr < tracks->size(); ++itr) {
+      auto& t = tracks->at(itr);
+      if (!t.isPrimary()) continue;
+      if (!t.isTransported()) continue;
+      auto pdg = std::abs(t.GetPdgCode());
+      if (hEtaPtGen.count(pdg) == 0) {
+	hEtaPtGen[pdg] = new TH2F(Form("hEtaPtGen_%d", pdg), "", 500, -25, 25., 100, 0., 1.);
+	hEtaPtHit[pdg] = new TH2F(Form("hEtaPtHit_%d", pdg), "", 500, -25, 25., 100, 0., 1.);
+      }
+      
+      hEtaPtGen[pdg]->Fill(t.GetEta(), t.GetPt());
+
+      if (!leftTrace(t, tracks)) continue;
+
+      hEtaPtHit[pdg]->Fill(t.GetEta(), t.GetPt());
+
+    }
+  }
+
+  std::string foutname = "primary_and_hits." + where + ".root";
+  auto fout = TFile::Open(foutname.c_str(), "RECREATE");
+  for (auto& h : hEtaPtGen) h.second->Write();
+  for (auto& h : hEtaPtHit) h.second->Write();
+  fout->Close();
+  fin->Close();
+  
+}

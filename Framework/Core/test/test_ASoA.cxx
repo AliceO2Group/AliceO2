@@ -49,9 +49,9 @@ DECLARE_SOA_TABLE(Infos, "TST", "INFOS", test::Color, test::SomeBool);
 namespace test
 {
 DECLARE_SOA_COLUMN(N, n, int);
-DECLARE_SOA_INDEX_COLUMN_FULL(Info, info, int, Infos, "fInfosID");
-DECLARE_SOA_INDEX_COLUMN_FULL(PointA, pointA, int, Points, "fPointAID");
-DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "fPointBID");
+DECLARE_SOA_INDEX_COLUMN(Info, info);
+DECLARE_SOA_INDEX_COLUMN_FULL(PointA, pointA, int, Points, "_A");
+DECLARE_SOA_INDEX_COLUMN_FULL(PointB, pointB, int, Points, "_B");
 DECLARE_SOA_COLUMN_FULL(Thickness, thickness, int, "thickness");
 } // namespace test
 

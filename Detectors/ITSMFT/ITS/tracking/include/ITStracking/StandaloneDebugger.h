@@ -19,9 +19,12 @@
 #include <iterator>
 
 // Tracker
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
+#include "ITStracking/ROframe.h"
+#endif
+
 #include "DataFormatsITS/TrackITS.h"
 #include "ITStracking/PrimaryVertexContext.h"
-#include "ITStracking/ROframe.h"
 
 namespace o2
 {
@@ -40,6 +43,7 @@ class ClusterLines;
 
 using constants::its::UnusedIndex;
 
+#if !defined(__CUDACC__) && !defined(__HIPCC__)
 template <int numClusters = TrackITSExt::MaxClusters>
 struct FakeTrackInfo {
  public:
@@ -123,6 +127,7 @@ struct FakeTrackInfo {
   int nFakeClusters = 0;
   ClassDefNV(FakeTrackInfo, 1);
 }; // namespace its
+#endif
 
 class StandaloneDebugger
 {

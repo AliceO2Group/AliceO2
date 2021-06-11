@@ -49,6 +49,7 @@ using Segmentation = o2::itsmft::SegmentationAlpide;
 ClassImp(o2::its::GeometryTGeo);
 
 std::unique_ptr<o2::its::GeometryTGeo> GeometryTGeo::sInstance;
+o2::its::GeometryTGeo::~GeometryTGeo() = default;
 
 std::string GeometryTGeo::sVolumeName = "ITSV";               ///< Mother volume name
 std::string GeometryTGeo::sLayerName = "ITSULayer";           ///< Layer name
@@ -106,14 +107,18 @@ int GeometryTGeo::getChipIndex(int lay, int sta, int substa, int chipInSStave) c
 //__________________________________________________________________________
 int GeometryTGeo::getChipIndex(int lay, int sta, int substa, int md, int chipInMod) const
 {
-  int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInMod;
-  if (mNumberOfHalfStaves[lay] && substa > 0) {
-    n += mNumberOfChipsPerHalfStave[lay] * substa;
+  if (mNumberOfHalfStaves[lay] == 0) {
+    return getChipIndex(lay, md, chipInMod);
+  } else {
+    int n = getFirstChipIndex(lay) + mNumberOfChipsPerStave[lay] * sta + chipInMod;
+    if (mNumberOfHalfStaves[lay] && substa > 0) {
+      n += mNumberOfChipsPerHalfStave[lay] * substa;
+    }
+    if (mNumberOfModules[lay] && md > 0) {
+      n += mNumberOfChipsPerModule[lay] * md;
+    }
+    return n;
   }
-  if (mNumberOfModules[lay] && md > 0) {
-    n += mNumberOfChipsPerModule[lay] * md;
-  }
-  return n;
 }
 
 //__________________________________________________________________________

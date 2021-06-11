@@ -7,26 +7,40 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef o2_framework_CommonDataProcessors_H_INCLUDED
-#define o2_framework_CommonDataProcessors_H_INCLUDED
+#ifndef O2_FRAMEWORK_COMMONDATAPROCESSORS_H_
+#define O2_FRAMEWORK_COMMONDATAPROCESSORS_H_
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/InputSpec.h"
-#include "Framework/DataOutputDirector.h"
-#include "TTree.h"
 
 #include <vector>
+#include <string>
 
 namespace o2::framework
 {
-using outputTasks = std::vector<std::pair<uint32_t, std::string>>;
-using outputObjects = std::vector<std::pair<uint32_t, std::vector<std::string>>>;
 
+class DataOutputDirector;
+
+struct OutputTaskInfo {
+  uint32_t id;
+  std::string name;
+};
+
+struct OutputObjectInfo {
+  uint32_t id;
+  std::vector<std::string> bindings;
+};
+} // namespace o2::framework
+extern template class std::vector<o2::framework::OutputObjectInfo>;
+extern template class std::vector<o2::framework::OutputTaskInfo>;
+namespace o2::framework
+{
 /// Helpers to create a few general data processors
 struct CommonDataProcessors {
   /// Match all inputs of kind ATSK and write them to a ROOT file,
   /// one root file per originating task.
-  static DataProcessorSpec getOutputObjHistSink(outputObjects const& objmap, const outputTasks& tskmap);
+  static DataProcessorSpec getOutputObjHistSink(std::vector<OutputObjectInfo> const& objmap,
+                                                std::vector<OutputTaskInfo> const& tskmap);
   /// Given the list of @a danglingInputs @return a DataProcessor which does
   /// a binary dump for all the dangling inputs matching the Timeframe
   /// lifetime. @a unmatched will be filled with all the InputSpecs which are

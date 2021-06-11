@@ -93,8 +93,12 @@ class PadRegionInfo
   /// Return the row offset in the sector
   /// \return row offset in the sector
   unsigned char getGlobalRowOffset() const { return mGlobalRowOffset; }
-  //   const unsigned char  getRowOffset()        const { return mRowOffset;        }
-  //   const float          getXhelper()         const { return mXhelper;         }
+
+  /// Local row offset for geometry calculations
+  unsigned char getRowOffset() const { return mRowOffset; }
+
+  /// Helper variable for geometry calculations
+  float getXhelper() const { return mXhelper; }
 
   /// Return the number of pads for the row in `padPos` (row in the sector)
   /// \param padPos pad position in the sector

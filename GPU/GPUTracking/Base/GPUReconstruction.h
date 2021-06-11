@@ -48,6 +48,7 @@ namespace gpu
 class GPUChain;
 struct GPUMemorySizeScalers;
 struct GPUReconstructionPipelineContext;
+class GPUROOTDumpCore;
 
 class GPUReconstruction
 {
@@ -98,10 +99,16 @@ class GPUReconstruction
                                          TRD_TRACKLET_MC = 11,
                                          TPC_COMPRESSED_CL = 12,
                                          TPC_DIGIT = 13,
-                                         TPC_ZS = 14 };
-  static constexpr const char* const IOTYPENAMES[] = {"TPC Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
-                                                      "Raw Clusters", "ClusterNative", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page"};
-  static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT) ? NSLICES : 1; }
+                                         TPC_ZS = 14,
+                                         CLUSTER_NATIVE_MC = 15,
+                                         TPC_DIGIT_MC = 16,
+                                         TRD_SPACEPOINT = 17,
+                                         TRD_TRIGGERRECORDS = 18,
+                                         TF_SETTINGS = 19 };
+  static constexpr const char* const IOTYPENAMES[] = {"TPC HLT Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
+                                                      "TPC Raw Clusters", "TPC Native Clusters", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page", "TPC Native Clusters MC Labels", "TPC Digit MC Labeels",
+                                                      "TRD Spacepoints", "TRD Triggerrecords", "TF Settings"};
+  static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT || type == TPC_DIGIT_MC) ? NSLICES : 1; }
 
   // Functionality to create an instance of GPUReconstruction for the desired device
   static GPUReconstruction* CreateInstance(const GPUSettingsDeviceBackend& cfg);
@@ -199,8 +206,8 @@ class GPUReconstruction
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ReturnVolatileDeviceMemory();
-  void PushNonPersistentMemory();
-  void PopNonPersistentMemory(RecoStep step);
+  void PushNonPersistentMemory(unsigned long tag);
+  void PopNonPersistentMemory(RecoStep step, unsigned long tag);
   void BlockStackedMemory(GPUReconstruction* rec);
   void UnblockStackedMemory();
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
@@ -221,20 +228,21 @@ class GPUReconstruction
   bool IsGPU() const { return GetDeviceType() != DeviceType::INVALID_DEVICE && GetDeviceType() != DeviceType::CPU; }
   const GPUParam& GetParam() const { return mHostConstantMem->param; }
   const GPUConstantMem& GetConstantMem() const { return *mHostConstantMem; }
-  const GPUSettingsEvent& GetEventSettings() const { return mEventSettings; }
+  const GPUSettingsGRP& GetGRPSettings() const { return mGRPSettings; }
   const GPUSettingsDeviceBackend& GetDeviceBackendSettings() { return mDeviceBackendSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mProcessingSettings; }
   bool IsInitialized() const { return mInitialized; }
   void SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow = nullptr);
-  void SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec = nullptr, const GPUSettingsProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
+  void SetSettings(const GPUSettingsGRP* grp, const GPUSettingsRec* rec = nullptr, const GPUSettingsProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
   void SetResetTimers(bool reset) { mProcessingSettings.resetTimers = reset; } // May update also after Init()
   void SetDebugLevelTmp(int level) { mProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
-  void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsProcessing* p = nullptr);
+  void UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   void SetInputControl(void* ptr, size_t size);
   GPUOutputControl& OutputControl() { return mOutputControl; }
   int GetMaxThreads() const { return mMaxThreads; }
+  int SetNOMPThreads(int n);
   int NStreams() const { return mNStreams; }
   const void* DeviceMemoryBase() const { return mDeviceMemoryBase; }
 
@@ -284,12 +292,12 @@ class GPUReconstruction
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
-  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend);
+  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend, const char* device);
   size_t AllocateRegisteredPermanentMemory();
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file
   template <class T, class S>
-  void DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type);
+  unsigned int DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type);
   template <class T, class S>
   size_t ReadData(FILE* fp, const T** entries, S* num, std::unique_ptr<T[]>* mem, InOutPointerType type, T** nonConstPtrs = nullptr);
   template <class T>
@@ -319,12 +327,12 @@ class GPUReconstruction
   GPUConstantMem* mDeviceConstantMem = nullptr;
 
   // Settings
-  GPUSettingsEvent mEventSettings;                       // Event Parameters
-  GPUSettingsDeviceBackend mDeviceBackendSettings;       // Processing Parameters (at constructor level)
-  GPUSettingsProcessing mProcessingSettings;             // Processing Parameters (at init level)
-  GPUOutputControl mOutputControl;                       // Controls the output of the individual components
-  GPUOutputControl mInputControl;                        // Prefefined input memory location for reading standalone dumps
-  std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers;  // Scalers how much memory will be needed
+  GPUSettingsGRP mGRPSettings;                          // Global Run Parameters
+  GPUSettingsDeviceBackend mDeviceBackendSettings;      // Processing Parameters (at constructor level)
+  GPUSettingsProcessing mProcessingSettings;            // Processing Parameters (at init level)
+  GPUOutputControl mOutputControl;                      // Controls the output of the individual components
+  GPUOutputControl mInputControl;                       // Prefefined input memory location for reading standalone dumps
+  std::unique_ptr<GPUMemorySizeScalers> mMemoryScalers; // Scalers how much memory will be needed
 
   RecoStepField mRecoSteps = RecoStep::AllRecoSteps;
   RecoStepField mRecoStepsGPU = RecoStep::AllRecoSteps;
@@ -359,11 +367,13 @@ class GPUReconstruction
   unsigned int mNEventsProcessed = 0;
   double mStatKernelTime = 0.;
   double mStatWallTime = 0.;
+  std::shared_ptr<GPUROOTDumpCore> mROOTDump;
 
-  int mMaxThreads = 0; // Maximum number of threads that may be running, on CPU or GPU
-  int mThreadId = -1;  // Thread ID that is valid for the local CUDA context
-  int mGPUStuck = 0;   // Marks that the GPU is stuck, skip future events
-  int mNStreams = 1;   // Number of parallel GPU streams
+  int mMaxThreads = 0;    // Maximum number of threads that may be running, on CPU or GPU
+  int mThreadId = -1;     // Thread ID that is valid for the local CUDA context
+  int mGPUStuck = 0;      // Marks that the GPU is stuck, skip future events
+  int mNStreams = 1;      // Number of parallel GPU streams
+  int mMaxOMPThreads = 0; // Maximum number of OMP threads
 
   // Management for GPUProcessors
   struct ProcessorData {
@@ -381,7 +391,7 @@ class GPUReconstruction
     std::vector<unsigned short> res;
   };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
-  std::vector<std::tuple<void*, void*, size_t>> mNonPersistentMemoryStack;
+  std::vector<std::tuple<void*, void*, size_t, unsigned long>> mNonPersistentMemoryStack;
   std::vector<GPUMemoryResource*> mNonPersistentIndividualAllocations;
 
   std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;
@@ -419,10 +429,11 @@ inline T* GPUReconstruction::AllocateIOMemoryHelper(size_t n, const T*& ptr, std
     return nullptr;
   }
   T* retVal;
-  if (mInputControl.OutputType == GPUOutputControl::UseExternalBuffer) {
+  if (mInputControl.useExternal()) {
     u.reset(nullptr);
-    GPUProcessor::computePointerWithAlignment(mInputControl.OutputPtr, retVal, n);
-    if ((size_t)((char*)mInputControl.OutputPtr - (char*)mInputControl.OutputBase) > mInputControl.OutputMaxSize) {
+    mInputControl.checkCurrent();
+    GPUProcessor::computePointerWithAlignment(mInputControl.ptrCurrent, retVal, n);
+    if ((size_t)((char*)mInputControl.ptrCurrent - (char*)mInputControl.ptrBase) > mInputControl.size) {
       throw std::bad_alloc();
     }
   } else {
@@ -491,9 +502,9 @@ inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
   if (allocate) {
     proc->SetMaxData(mHostConstantMem->ioPtrs);
   }
-  if (proc->mDeviceProcessor) {
-    std::memcpy((void*)proc->mDeviceProcessor, (const void*)proc, sizeof(*proc));
-    proc->mDeviceProcessor->InitGPUProcessor((GPUReconstruction*)this, GPUProcessor::PROCESSOR_TYPE_DEVICE);
+  if (proc->mGPUProcessorType != GPUProcessor::PROCESSOR_TYPE_DEVICE && proc->mLinkedProcessor) {
+    std::memcpy((void*)proc->mLinkedProcessor, (const void*)proc, sizeof(*proc));
+    proc->mLinkedProcessor->InitGPUProcessor((GPUReconstruction*)this, GPUProcessor::PROCESSOR_TYPE_DEVICE, proc);
   }
   if (allocate) {
     AllocateRegisteredMemory(proc, true);
@@ -503,7 +514,7 @@ inline void GPUReconstruction::SetupGPUProcessor(T* proc, bool allocate)
 }
 
 template <class T, class S>
-inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
+inline unsigned int GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const S* num, InOutPointerType type)
 {
   int count = getNIOTypeMultiplicity(type);
   unsigned int numTotal = 0;
@@ -511,7 +522,7 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
     numTotal += num[i];
   }
   if (numTotal == 0) {
-    return;
+    return 0;
   }
   fwrite(&type, sizeof(type), 1, fp);
   for (int i = 0; i < count; i++) {
@@ -520,6 +531,10 @@ inline void GPUReconstruction::DumpData(FILE* fp, const T* const* entries, const
       fwrite(entries[i], sizeof(*entries[i]), num[i], fp);
     }
   }
+  if (mProcessingSettings.debugLevel >= 2) {
+    GPUInfo("Dumped %lld %s", (long long int)numTotal, IOTYPENAMES[type]);
+  }
+  return numTotal;
 }
 
 template <class T, class S>

@@ -84,18 +84,16 @@ class GPUMemoryResource
   GPUMemoryResource(const GPUMemoryResource&) CON_DEFAULT;
 #endif
 
-#ifndef __OPENCL__
   void* SetPointers(void* ptr)
   {
     return (mProcessor->*mSetPointers)(ptr);
   }
-  void* SetDevicePointers(void* ptr) { return (mProcessor->mDeviceProcessor->*mSetPointers)(ptr); }
+  void* SetDevicePointers(void* ptr) { return (mProcessor->mLinkedProcessor->*mSetPointers)(ptr); }
   void* Ptr() { return mPtr; }
   void* PtrDevice() { return mPtrDevice; }
   size_t Size() const { return mSize; }
   const char* Name() const { return mName; }
   MemoryType Type() const { return mType; }
-#endif
 
  private:
   GPUProcessor* mProcessor;

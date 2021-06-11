@@ -90,7 +90,8 @@ class Stack : public FairGenericStack
 
   void PushTrack(Int_t toBeDone, Int_t parentID, Int_t pdgCode, Double_t px, Double_t py, Double_t pz, Double_t e,
                  Double_t vx, Double_t vy, Double_t vz, Double_t time, Double_t polx, Double_t poly, Double_t polz,
-                 TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId, Int_t daughter1Id, Int_t daughter2Id);
+                 TMCProcess proc, Int_t& ntr, Double_t weight, Int_t is, Int_t secondParentId, Int_t daughter1Id, Int_t daughter2Id,
+                 TMCProcess proc2);
 
   // similar function taking a particle
   void PushTrack(Int_t toBeDone, TParticle&);
@@ -310,6 +311,8 @@ class Stack : public FairGenericStack
   /// \param iDet    Detector unique identifier
   /// \param iTrack  Track number
   void addHit(int iDet, Int_t iTrack);
+
+  void handleTransportPrimary(TParticle& p);
 
   ClassDefOverride(Stack, 1);
 };

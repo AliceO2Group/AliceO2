@@ -233,6 +233,7 @@ void Tracker::findTracks(const ROframe& event)
   mTracks.reserve(mTracks.capacity() + mPrimaryVertexContext->getRoads().size());
   std::vector<TrackITSExt> tracks;
   tracks.reserve(mPrimaryVertexContext->getRoads().size());
+
 #ifdef CA_DEBUG
   std::vector<int> roadCounters(mTrkParams[0].NLayers - 3, 0);
   std::vector<int> fitCounters(mTrkParams[0].NLayers - 3, 0);
@@ -275,6 +276,7 @@ void Tracker::findTracks(const ROframe& event)
         clusters[iC] = mPrimaryVertexContext->getClusters()[iC][clusters[iC]].clusterId;
       }
     }
+
     /// Track seed preparation. Clusters are numbered progressively from the outermost to the innermost.
     const auto& cluster1_glo = event.getClustersOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
     const auto& cluster2_glo = event.getClustersOnLayer(lastCellLevel + 1).at(clusters[lastCellLevel + 1]);
@@ -409,6 +411,7 @@ void Tracker::findTracks(const ROframe& event)
 
 bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step, const float chi2cut)
 {
+  auto propInstance = o2::base::Propagator::Instance();
   track.setChi2(0);
   for (int iLayer{start}; iLayer != end; iLayer += step) {
     if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
@@ -420,38 +423,16 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
       return false;
     }
 
-    if (!track.propagateTo(trackingHit.xTrackingFrame, getBz())) {
+    if (!propInstance->propagateToX(track, trackingHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
       return false;
     }
+
     auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
     if (predChi2 > chi2cut) {
       return false;
     }
     track.setChi2(track.getChi2() + predChi2);
     if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
-      return false;
-    }
-
-    float xx0 = ((iLayer > 2) ? 0.008f : 0.003f); // Rough layer thickness
-    float radiationLength = 9.36f;                // Radiation length of Si [cm]
-    float density = 2.33f;                        // Density of Si [g/cm^3]
-    float distance = xx0;                         // Default thickness
-
-    if (mMatLayerCylSet) {
-      if ((iLayer + step) != end) {
-        const auto cl_0 = mPrimaryVertexContext->getClusters()[iLayer][track.getClusterIndex(iLayer)];
-        const auto cl_1 = mPrimaryVertexContext->getClusters()[iLayer + step][track.getClusterIndex(iLayer + step)];
-
-        auto matbud = mMatLayerCylSet->getMatBudget(cl_0.xCoordinate, cl_0.yCoordinate, cl_0.zCoordinate, cl_1.xCoordinate, cl_1.yCoordinate, cl_1.zCoordinate);
-        xx0 = matbud.meanX2X0;
-        density = matbud.meanRho;
-        distance = matbud.length;
-      }
-    }
-    // The correctForMaterial should be called with anglecorr==true if the material budget is the "mean budget in vertical direction" and with false if the the estimated budget already accounts for the track inclination.
-    // Here using !mMatLayerCylSet as its presence triggers update of parameters
-
-    if (!track.correctForMaterial(xx0, ((start < end) ? -1. : 1.) * distance * density, !mMatLayerCylSet)) { // ~0.14 GeV: mass of charged pion is used by default
       return false;
     }
   }
@@ -535,13 +516,12 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
         count = 1;
 
         const int cl1index{mPrimaryVertexContext->getClusters()[iCell + 1][currentCell.getSecondClusterIndex()].clusterId};
-        auto& cl1labs{event.getClusterLabels(iCell + 1, cl1index)};
-        const int secondMonteCarlo{cl1labs.getTrackID()};
+        const auto& cl1labs{event.getClusterLabels(iCell + 1, cl1index)};
 
-        if (secondMonteCarlo == maxOccurrencesValue) {
+        if (cl1labs == maxOccurrencesValue) {
           ++count;
         } else {
-          maxOccurrencesValue = secondMonteCarlo;
+          maxOccurrencesValue = cl1labs;
           count = 1;
           isFakeRoad = true;
         }
@@ -550,10 +530,9 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
       }
 
       const int cl2index{mPrimaryVertexContext->getClusters()[iCell + 2][currentCell.getThirdClusterIndex()].clusterId};
-      auto& cl2labs{event.getClusterLabels(iCell + 2, cl2index)};
-      const int currentMonteCarlo = {cl2labs.getTrackID()};
+      const auto& cl2labs{event.getClusterLabels(iCell + 2, cl2index)};
 
-      if (currentMonteCarlo == maxOccurrencesValue) {
+      if (cl2labs == maxOccurrencesValue) {
         ++count;
       } else {
         --count;
@@ -561,12 +540,12 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
       }
 
       if (count == 0) {
-        maxOccurrencesValue = currentMonteCarlo;
+        maxOccurrencesValue = cl2labs;
         count = 1;
       }
     }
 
-    mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue, isFakeRoad);
+    mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue.getRawValue(), isFakeRoad);
   }
 }
 
@@ -668,9 +647,8 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
 void Tracker::getGlobalConfiguration()
 {
   auto& tc = o2::its::TrackerParamConfig::Instance();
-
-  if (tc.useMatBudLUT) {
-    initMatBudLUTFromFile();
+  if (tc.useMatCorrTGeo) {
+    setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrTGeo);
   }
 }
 

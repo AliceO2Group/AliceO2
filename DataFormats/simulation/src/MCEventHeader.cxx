@@ -12,6 +12,8 @@
 
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "FairRootManager.h"
+#include <TFile.h>
+#include <TTree.h>
 
 namespace o2
 {
@@ -30,6 +32,32 @@ void MCEventHeader::Reset()
   clearInfo();
   mEmbeddingFileName.clear();
   mEmbeddingEventIndex = 0;
+}
+
+void MCEventHeader::extractFileFromKinematics(std::string_view kinefilename, std::string_view targetfilename)
+{
+  auto oldfile = TFile::Open(kinefilename.data());
+  auto kinetree = (TTree*)oldfile->Get("o2sim");
+  // deactivate all branches
+  kinetree->SetBranchStatus("*", 0);
+  // activate the header branch
+  kinetree->SetBranchStatus("MCEventHeader*", 1);
+  // create a new file + a clone of old tree header. Do not copy events
+  auto newfile = TFile::Open(targetfilename.data(), "RECREATE");
+  auto newtree = kinetree->CloneTree(0);
+  // here we copy the branches
+  newtree->CopyEntries(kinetree, kinetree->GetEntries());
+  newtree->SetEntries(kinetree->GetEntries());
+  // flush to disk
+  newtree->Write();
+  newfile->Close();
+  delete newfile;
+
+  // clean
+  if (oldfile) {
+    oldfile->Close();
+    delete oldfile;
+  }
 }
 
 /*****************************************************************/

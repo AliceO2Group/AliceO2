@@ -34,12 +34,13 @@
 #ifdef GPUCA_NOCOMPAT
 #include "GPUTPCGMMergerGPU.h"
 #endif
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"
 #include "GPUTPCCompressionKernels.h"
 #include "GPUTPCClusterFinderKernels.h"
 #include "GPUTrackingRefitKernel.h"
+#include "GPUTPCGMO2Output.h"
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -85,7 +86,7 @@ class GPUReconstructionKernels : public T
 };
 
 #ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
-// Hide the body for all files but GPUReconstructionCPU.cxx, otherwise we get weird symbol clashes when the compiler inlines
+// Hide the function bodies for all files but GPUReconstructionCPU.cxx, otherwise we get symbol clashes when the compiler inlines
 template <>
 class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstructionCPUBackend
 {
@@ -136,7 +137,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   template <class T, int I>
   constexpr static const char* GetKernelName();
 
-  virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1);
+  virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false);
   int registerMemoryForGPU(const void* ptr, size_t size) override { return 0; }
   int unregisterMemoryForGPU(const void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
@@ -280,7 +281,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   }
   if (mProcessingSettings.debugLevel >= 1) {
     t = &getKernelTimer<S, I, J>(myStep, !IsGPU() || cpuFallback ? getOMPThreadNum() : x.stream);
-    if (!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
+    if ((!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) && (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0)) {
       t->Start();
     }
   }
@@ -299,10 +300,10 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
   }
   if (mProcessingSettings.debugLevel >= 1) {
     if (t) {
-      if (!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback) {
-        t->Stop();
-      } else {
+      if (!(!mProcessingSettings.deviceTimers || !IsGPU() || cpuFallback)) {
         t->AddTime(setup.t);
+      } else if (mNestedLoopOmpFactor < 2 || getOMPThreadNum() == 0) {
+        t->Stop();
       }
     }
     if (CheckErrorCodes(cpuFallback)) {
@@ -351,7 +352,7 @@ HighResTimer& GPUReconstructionCPU::getTimer(const char* name, int num)
   static int id = getNextTimerId();
   timerMeta* timer = getTimerById(id);
   if (timer == nullptr) {
-    int max = std::max({getOMPMaxThreads(), mProcessingSettings.nDeviceHelperThreads + 1, mProcessingSettings.nStreams});
+    int max = std::max<int>({getOMPMaxThreads(), mProcessingSettings.nDeviceHelperThreads + 1, mProcessingSettings.nStreams});
     timer = insertTimer(id, name, J, max, 1, RecoStep::NoRecoStep);
   }
   if (num == -1) {

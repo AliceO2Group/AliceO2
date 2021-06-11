@@ -67,13 +67,13 @@ struct CompressedInfos {
   std::vector<uint16_t> stripID;      /// increment of stripID wrt that of prev. strip
   std::vector<uint8_t> chanInStrip;   /// channel in strip 0-95 (ordered in time)
   std::vector<uint16_t> tot;          /// Time-Over-Threshold in TOF channel (about 48.8 ps)
-  std::vector<uint32_t> pattMap;      /// explict patterns container
+  std::vector<uint8_t> pattMap;       /// explict patterns container
 
   CompressedInfos() = default;
 
   void clear();
 
-  ClassDefNV(CompressedInfos, 2);
+  ClassDefNV(CompressedInfos, 3);
 };
 
 /// wrapper for the Entropy-encoded clusters of the TF

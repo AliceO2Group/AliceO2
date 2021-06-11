@@ -21,7 +21,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/ElectronicsDelay.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -30,7 +30,7 @@ namespace mid
 class GBTUserLogicEncoder
 {
  public:
-  void process(gsl::span<const LocalBoardRO> data, const InteractionRecord& ir);
+  void process(gsl::span<const ROBoard> data, const InteractionRecord& ir);
   void processTrigger(const InteractionRecord& ir, uint8_t triggerWord);
 
   void flush(std::vector<char>& buffer, const InteractionRecord& ir);
@@ -41,8 +41,7 @@ class GBTUserLogicEncoder
   /// Sets the mask
   void setMask(uint8_t mask) { mMask = mask; }
 
-  /// Sets the feeID
-  void setFeeId(uint16_t feeId) { mFeeId = feeId; }
+  void setGBTUniqueId(uint16_t gbtUniqueId);
 
   /// Sets the delay in the electronics
   void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
@@ -51,10 +50,11 @@ class GBTUserLogicEncoder
   void addRegionalBoards(uint8_t activeBoards, InteractionRecord ir);
   void addShort(std::vector<char>& buffer, uint16_t shortWord) const;
 
-  std::map<InteractionRecord, std::vector<LocalBoardRO>> mBoards{}; /// Vector with boards
-  uint16_t mFeeId{0};                                               /// FEE ID
-  uint8_t mMask{0xFF};                                              /// GBT mask
-  ElectronicsDelay mElectronicsDelay;                               /// Delays in the electronics
+  std::map<InteractionRecord, std::vector<ROBoard>> mBoards{}; /// Vector with boards
+  uint8_t mCrateId{0};                                         /// Crate ID
+  uint8_t mOffset{0};                                          /// GBT ID offset
+  uint8_t mMask{0xFF};                                         /// GBT mask
+  ElectronicsDelay mElectronicsDelay;                          /// Delays in the electronics
 };
 } // namespace mid
 } // namespace o2

@@ -77,7 +77,7 @@ int zvtxbins = 40;
 float zvtxlow = -10.0, zvtxup = 10.0;
 int phibins = 72;
 float philow = 0.0;
-float phiup = TMath::TwoPi();
+float phiup = M_PI * 2;
 float phibinshift = 0.5;
 float etabinwidth = (etaup - etalow) / float(etabins);
 float phibinwidth = (phiup - philow) / float(phibins);
@@ -235,10 +235,10 @@ inline void AcceptTrack(aod::TrackData const& track, bool& asone, bool& astwo)
   /* TODO: incorporate a mask in the scanned tracks table for the rejecting track reason */
   if (matchTrackType(track)) {
     if (ptlow < track.pt() and track.pt() < ptup and etalow < track.eta() and track.eta() < etaup) {
-      if (((track.charge() > 0) and (trackonecharge > 0)) or ((track.charge() < 0) and (trackonecharge < 0))) {
+      if (((track.sign() > 0) and (trackonecharge > 0)) or ((track.sign() < 0) and (trackonecharge < 0))) {
         asone = true;
       }
-      if (((track.charge() > 0) and (tracktwocharge > 0)) or ((track.charge() < 0) and (tracktwocharge < 0))) {
+      if (((track.sign() > 0) and (tracktwocharge > 0)) or ((track.sign() < 0) and (tracktwocharge < 0))) {
         astwo = true;
       }
     }
@@ -251,7 +251,7 @@ inline void AcceptTrack(aod::TrackData const& track, bool& asone, bool& astwo)
 inline float GetShiftedPhi(float phi)
 {
   if (not(phi < phiup)) {
-    return phi - TMath::TwoPi();
+    return phi - M_PI * 2;
   } else {
     return phi;
   }
@@ -412,7 +412,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
         fhPhiB->Fill(track.phi());
         fhEtaVsPhiB->Fill(track.phi(), track.eta());
         fhPtVsEtaB->Fill(track.eta(), track.pt());
-        if (track.charge() > 0) {
+        if (track.sign() > 0) {
           fhPtPosB->Fill(track.pt());
         } else {
           fhPtNegB->Fill(track.pt());
@@ -429,7 +429,7 @@ struct DptDptCorrelationsFilterAnalysisTask {
           fhPhiA->Fill(track.phi());
           fhEtaVsPhiA->Fill(track.phi(), track.eta());
           fhPtVsEtaA->Fill(track.eta(), track.pt());
-          if (track.charge() > 0) {
+          if (track.sign() > 0) {
             fhPtPosA->Fill(track.pt());
           } else {
             fhPtNegA->Fill(track.pt());
@@ -506,7 +506,7 @@ struct DptDptCorrelationsTask {
     zvtxup = cfgBinning->mZVtxmax;
     phibins = cfgBinning->mPhibins;
     philow = 0.0f;
-    phiup = TMath::TwoPi();
+    phiup = M_PI * 2;
     phibinshift = cfgBinning->mPhibinshift;
     processpairs = cfgProcessPairs.value;
     /* update the potential binning change */
@@ -841,13 +841,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int nranges = tokens->GetEntries();
 
   WorkflowSpec workflow{
-    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>("DptDptCorrelationsFilterAnalysisTask"),
-    adaptAnalysisTask<TracksAndEventClassificationQA>("TracksAndEventClassificationQA")};
+    adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc),
+    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc)};
   for (int i = 0; i < nranges; ++i) {
     float cmmin = 0.0f;
     float cmmax = 0.0f;
     sscanf(tokens->At(i)->GetName(), "%f-%f", &cmmin, &cmmax);
-    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName()), cmmin, cmmax));
+    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName())}, cmmin, cmmax));
   }
   delete tokens;
   return workflow;

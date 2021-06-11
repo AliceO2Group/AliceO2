@@ -29,8 +29,10 @@ using DataT = double;                       // using float actually takes alot l
 static constexpr DataT TOLERANCE = 3;       // relative tolerance for 3D (maximum large error is at phi=90 since there the potential is 0!)
 static constexpr DataT TOLERANCE2D = 8.5;   // relative tolerance for 2D TODO check why the difference between numerical and analyticial is larger than for 3D!
 static constexpr DataT ABSTOLERANCE = 0.01; // absolute tolerance is taken at small values near 0
-static constexpr int NR = 129;              // grid in r
-static constexpr int NZ = 129;              // grid in z
+static constexpr int NR = 65;               // grid in r
+static constexpr int NZ = 65;               // grid in z
+static constexpr int NR2D = 129;            // grid in r
+static constexpr int NZ2D = 129;            // grid in z
 static constexpr int NPHI = 180;            // grid in phi
 
 /// Get phi vertex position for index in phi direction
@@ -233,7 +235,7 @@ BOOST_AUTO_TEST_CASE(PoissonSolver3D2D_test)
 BOOST_AUTO_TEST_CASE(PoissonSolver2D_test)
 {
   const int Nphi = 1;
-  poissonSolver2D<DataT, NZ, NR, Nphi>();
+  poissonSolver2D<DataT, NZ2D, NR2D, Nphi>();
 }
 
 } // namespace tpc

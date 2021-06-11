@@ -105,7 +105,7 @@ class Channel
   /// \throw HadrwareAddressError in case the hardware address is not initialized
   int getBranchIndex() const;
 
-  /// \brief Provide the front-end card index for the current hardware address
+  /// \brief Provide the front-end card index (0-9) in branch for the current hardware address
   /// \return Front-end card index for the current hardware address
   /// \throw HadrwareAddressError in case the hardware address is not initialized
   int getFECIndex() const;

@@ -54,7 +54,7 @@ void Clusterer::calibrateStrip()
     double calib = mCalibApi->getTimeCalibration(dig->getChannel(), dig->getTOT() * Geo::TOTBIN_NS);
     //printf("channel %d) isProblematic = %d, fractionUnderPeak = %f\n",dig->getChannel(),mCalibApi->isProblematic(dig->getChannel()),mCalibApi->getFractionUnderPeak(dig->getChannel())); // toberem
     dig->setIsProblematic(mCalibApi->isProblematic(dig->getChannel()));
-    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
+    dig->setCalibratedTime(dig->getTDC() * Geo::TDCBIN + dig->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3 - Geo::LATENCYWINDOW * 1E3 - calib); //TODO:  to be checked that "-" is correct, and we did not need "+" instead :-)
     //printf("calibration correction = %f\n",calib); // toberem
   }
 }
@@ -100,7 +100,7 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
       // check if the TOF time are close enough to be merged; if not, it means that nothing else will contribute to the cluster (since digits are ordered in time)
       double timeDigNext = digNext->getCalibratedTime(); // in ps
       LOG(DEBUG) << "Time difference = " << timeDigNext - timeDig;
-      if (timeDigNext - timeDig > 5000 /*in ps*/) { // to be change to 500 ps
+      if (timeDigNext - timeDig > mDeltaTforClustering /*in ps*/) { // to be change to 500 ps
         break;
       }
       digNext->getPhiAndEtaIndex(iphi2, ieta2);
@@ -108,7 +108,7 @@ void Clusterer::processStrip(std::vector<Cluster>& clusters, MCLabelContainer co
       // check if the fired pad are close in space
       LOG(DEBUG) << "phi difference = " << iphi - iphi2;
       LOG(DEBUG) << "eta difference = " << ieta - ieta2;
-      if ((TMath::Abs(iphi - iphi2) > 1) || (TMath::Abs(ieta - ieta2) > 1)) {
+      if ((std::abs(iphi - iphi2) > 1) || (std::abs(ieta - ieta2) > 1)) {
         continue;
       }
 
@@ -181,6 +181,10 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
 
   c.setDigitInfo(0, mContributingDigit[0]->getChannel(), mContributingDigit[0]->getCalibratedTime(), mContributingDigit[0]->getTOT() * Geo::TOTBIN_NS);
 
+  int ch1 = mContributingDigit[0]->getChannel();
+  short tot1 = mContributingDigit[0]->getTOT() < 20000 ? mContributingDigit[0]->getTOT() : 20000;
+  double dtime = c.getTimeRaw();
+
   int chan1, chan2;
   int phi1, phi2;
   int eta1, eta2;
@@ -228,6 +232,13 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
     if (isOk) {
       c.setDigitInfo(c.getNumOfContributingChannels(), mContributingDigit[idig]->getChannel(), mContributingDigit[idig]->getCalibratedTime(), mContributingDigit[idig]->getTOT() * Geo::TOTBIN_NS);
       c.addBitInContributingChannels(mask);
+
+      if (mCalibFromCluster && c.getNumOfContributingChannels() == 2) { // fill info for calibration
+        int8_t dch = int8_t(mContributingDigit[idig]->getChannel() - ch1);
+        short tot2 = mContributingDigit[idig]->getTOT() < 20000 ? mContributingDigit[idig]->getTOT() : 20000;
+        dtime -= mContributingDigit[idig]->getTDC() * Geo::TDCBIN + mContributingDigit[idig]->getBC() * o2::constants::lhc::LHCBunchSpacingNS * 1E3;
+        addCalibFromCluster(ch1, dch, float(dtime), tot1, tot2);
+      }
     }
   }
 
@@ -260,8 +271,8 @@ void Clusterer::buildCluster(Cluster& c, MCLabelContainer const* digitMCTruth)
   Geo::rotateToSector(pos, c.getSector());
   c.setXYZ(pos[2], pos[0], pos[1]); // storing coordinates in sector frame: note that the rotation above puts z in pos[1], the radial coordinate in pos[2], and the tangent coordinate in pos[0] (this is to match the TOF residual system, where we don't use the radial component), so we swap their positions.
 
-  c.setR(TMath::Sqrt(pos[0] * pos[0] + pos[1] * pos[1])); // it is the R in the sector frame
-  c.setPhi(TMath::ATan2(pos[1], pos[0]));
+  c.setR(std::sqrt(pos[0] * pos[0] + pos[1] * pos[1])); // it is the R in the sector frame
+  c.setPhi(std::atan2(pos[1], pos[0]));
 
   float errY2 = Geo::XPAD * Geo::XPAD * inv12;
   float errZ2 = Geo::ZPAD * Geo::ZPAD * inv12;
@@ -281,4 +292,9 @@ void Clusterer::setFirstOrbit(uint64_t orb)
 {
   mFirstOrbit = orb;
   mBCOffset = orb * o2::constants::lhc::LHCMaxBunches;
+}
+//_____________________________________________________________________
+void Clusterer::addCalibFromCluster(int ch1, int8_t dch, float dtime, short tot1, short tot2)
+{
+  mCalibInfosFromCluster.emplace_back(ch1, dch, dtime, tot1, tot2);
 }

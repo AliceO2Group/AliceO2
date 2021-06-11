@@ -13,7 +13,7 @@ o2_add_library(MIDCTF
                PUBLIC_LINK_LIBRARIES O2::DataFormatsMID
                                      O2::DetectorsBase
                                      O2::CommonDataFormat
-				     O2::DetectorsCommonDataFormats
+                                     O2::DetectorsCommonDataFormats
                                      O2::rANS
-                                     ms_gsl::ms_gsl)
+                                     Microsoft.GSL::GSL)
 

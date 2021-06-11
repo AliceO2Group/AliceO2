@@ -22,8 +22,8 @@
 #define GPUO2INTERFACECONFIGURABLEPARAM_H
 
 // Some defines denoting that we are compiling for O2
-#ifndef HAVE_O2HEADERS
-#define HAVE_O2HEADERS
+#ifndef GPUCA_HAVE_O2HEADERS
+#define GPUCA_HAVE_O2HEADERS
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
 #define GPUCA_TPC_GEOMETRY_O2
@@ -50,9 +50,9 @@
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {default};
 #define AddSubConfig(name, instance)
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr)                                                     \
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix)                                           \
   struct GPUCA_M_CAT(GPUConfigurableParam, name) : public o2::conf::ConfigurableParamHelper<GPUCA_M_CAT(GPUConfigurableParam, name)> { \
-    O2ParamDef(GPUCA_M_CAT(GPUConfigurableParam, name), GPUCA_M_STR(GPUCA_M_CAT(GPU_, instance))) public:
+    O2ParamDef(GPUCA_M_CAT(GPUConfigurableParam, name), GPUCA_M_STR(GPUCA_M_CAT(GPU_, o2prefix))) public:
 #define BeginHiddenConfig(name, instance) struct GPUCA_M_CAT(GPUConfigurableParam, name) {
 #define EndConfig() \
   }                 \

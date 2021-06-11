@@ -10,6 +10,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
+#include "Framework/Logger.h"
 
 #include <memory>
 
@@ -17,7 +18,7 @@ using namespace o2::framework;
 
 #define ASSERT_ERROR(condition)                                                                      \
   if ((condition) == false) {                                                                        \
-    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed at )" << __FILE__ << ":" << __LINE__; \
+    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed at )" << __FILE__ << ":" << __LINE__; \
   }
 
 // This is how you can define your processing in a declarative way

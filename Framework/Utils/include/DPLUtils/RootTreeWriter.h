@@ -40,6 +40,39 @@ namespace o2
 namespace framework
 {
 
+/// Helper to get the corresponding std::function type for a callable object
+/// the default is void
+template <typename T>
+struct get_function {
+  using type = void;
+};
+
+/// the matching specialization builds the function type from the return type
+/// and types in the argument pack
+template <typename Ret, typename Class, typename... Args>
+struct get_function<Ret (Class::*)(Args...) const> {
+  using type = std::function<Ret(Args...)>;
+};
+
+/// check if a lambda can be assigned to concrete std::function
+/// default is false
+template <typename From, typename To, typename _ = void>
+struct can_assign : public std::false_type {
+};
+
+/// specialize for callable types, i.e. having operator(), the 'From' type can be
+/// assigned if its corresponding function type is the same as 'To' type
+/// a direct comparison is not possible because lambdas are their own type
+template <typename From, typename To>
+struct can_assign<
+  From, To,
+  std::conditional_t<
+    false,
+    class_member_checker<
+      decltype(&From::operator())>,
+    void>> : public std::is_same<typename get_function<decltype(&From::operator())>::type, To> {
+};
+
 /// @class RootTreeWriter
 /// @brief A generic writer interface for ROOT TTree objects.
 ///
@@ -330,6 +363,17 @@ class RootTreeWriter
     mFile.reset(nullptr);
   }
 
+  /// autosave the tree
+  void autoSave()
+  {
+    if (mIsClosed || !mFile) {
+      return;
+    }
+    mTree->SetEntries();
+    LOG(INFO) << "Autosaving " << mTree->GetName() << " at entry " << mTree->GetEntries();
+    mTree->AutoSave("overwrite");
+  }
+
   bool isClosed() const
   {
     return mIsClosed;
@@ -347,14 +391,20 @@ class RootTreeWriter
   /// The function needs to be used with care. The user should ensure that "branch" is no longer used
   /// after a call to this function.
   template <typename T>
-  static TBranch* remapBranch(TBranch& branch, T* newdata)
+  static TBranch* remapBranch(TBranch& branchRef, T** newdata)
   {
-    auto name = branch.GetName();
-    auto branchleaves = branch.GetListOfLeaves();
-    auto tree = branch.GetTree();
-    branch.DropBaskets("all");
-    branch.DeleteBaskets("all");
-    tree->GetListOfBranches()->Remove(&branch);
+    auto tree = branchRef.GetTree();
+    auto name = branchRef.GetName();
+    auto branch = tree->GetBranch(name); // the input branch might actually no belong to the tree but to TreeWriter cache
+    assert(branch);
+    if (branch->GetEntries()) { // if it has entries, then it was already remapped/filled at prevous event
+      branch->SetAddress(newdata);
+      return branch;
+    }
+    auto branchleaves = branch->GetListOfLeaves();
+    branch->DropBaskets("all");
+    branch->DeleteBaskets("all");
+    tree->GetListOfBranches()->Remove(branch);
     for (auto entry : *branchleaves) {
       tree->GetListOfLeaves()->Remove(entry);
     }

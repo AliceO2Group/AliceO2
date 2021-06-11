@@ -17,7 +17,7 @@ o2_add_library(TPCQC
                        src/Tracks.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBase
                                      O2::DataFormatsTPC
-                                     O2::GPUTracking)
+                                     O2::GPUO2Interface)
 
 
 o2_target_root_dictionary(TPCQC
@@ -58,16 +58,16 @@ o2_add_test_root_macro(macro/runPID.C
                        PUBLIC_LINK_LIBRARIES O2::TPCQC
                                              O2::DataFormatsTPC
                                              O2::TPCBase
-                                             LABELS tpc)
+                                             LABELS tpc COMPILE_ONLY)
 
 o2_add_test_root_macro(macro/runClusters.C
                        PUBLIC_LINK_LIBRARIES O2::TPCQC
                                              O2::DataFormatsTPC
                                              O2::TPCBase
-                                             LABELS tpc)
+                                             LABELS tpc COMPILE_ONLY)
 
 o2_add_test_root_macro(macro/runTracks.C
                        PUBLIC_LINK_LIBRARIES O2::TPCQC
                                              O2::DataFormatsTPC
                                              O2::TPCBase
-                                             LABELS tpc)
+                                             LABELS tpc COMPILE_ONLY)

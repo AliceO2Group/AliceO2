@@ -116,6 +116,12 @@ const CalPad& CDBInterface::getGainMap()
 }
 
 //______________________________________________________________________________
+const CalPad& CDBInterface::getCalPad(const std::string_view path)
+{
+  return getObjectFromCDB<CalPad>(path.data());
+}
+
+//______________________________________________________________________________
 const ParameterDetector& CDBInterface::getParameterDetector()
 {
   if (mUseDefaults) {

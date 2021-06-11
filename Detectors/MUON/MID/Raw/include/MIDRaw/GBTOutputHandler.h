@@ -23,7 +23,7 @@
 #include "MIDRaw/CrateParameters.h"
 #include "MIDRaw/ElectronicsDelay.h"
 #include "MIDRaw/ELinkDecoder.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -33,9 +33,9 @@ class GBTOutputHandler
 {
  public:
   /// Sets the FEE Id
-  void setFeeId(uint16_t feeId) { mFeeId = feeId; }
+  void setGBTUniqueId(uint16_t feeId) { mFeeId = feeId; }
 
-  void set(uint32_t orbit, std::vector<LocalBoardRO>& data, std::vector<ROFRecord>& rofs);
+  void set(uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs);
 
   void onDoneLoc(size_t ilink, const ELinkDecoder& decoder);
   void onDoneLocDebug(size_t ilink, const ELinkDecoder& decoder);
@@ -46,7 +46,7 @@ class GBTOutputHandler
   void setElectronicsDelay(const ElectronicsDelay& electronicsDelay) { mElectronicsDelay = electronicsDelay; }
 
  private:
-  std::vector<LocalBoardRO>* mData{nullptr};    ///! Vector of output data. Not owner
+  std::vector<ROBoard>* mData{nullptr};         ///! Vector of output data. Not owner
   std::vector<ROFRecord>* mROFRecords{nullptr}; /// List of ROF records. Not owner
   uint16_t mFeeId{0};                           /// FEE ID
   uint32_t mOrbit{};                            /// RDH orbit

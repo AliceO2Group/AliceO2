@@ -256,6 +256,20 @@ BOOST_AUTO_TEST_CASE(TestMatcherFromDescription)
   BOOST_CHECK_EQUAL(DataSpecUtils::asConcreteDataDescription(ddSpec).as<std::string>(), "TSET");
 }
 
+BOOST_AUTO_TEST_CASE(TestMatcherFromConcrete)
+{
+  auto fromQueryInputSpec = DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataMatcher{"TSET", "FOO", 1});
+  InputSpec ddSpec{
+    "binding",
+    std::move(fromQueryInputSpec)};
+
+  auto concrete = DataSpecUtils::asConcreteDataMatcher(ddSpec);
+
+  BOOST_CHECK_EQUAL(concrete.origin.as<std::string>(), "TSET");
+  BOOST_CHECK_EQUAL(concrete.description.as<std::string>(), "FOO");
+  BOOST_CHECK_EQUAL(concrete.subSpec, 1);
+}
+
 BOOST_AUTO_TEST_CASE(FindOutputSpec)
 {
   std::vector<OutputSpec> specs = {
@@ -327,4 +341,8 @@ BOOST_AUTO_TEST_CASE(Includes)
   BOOST_CHECK(DataSpecUtils::includes(wildcardInput1, wildcardInput1));
   BOOST_CHECK(!DataSpecUtils::includes(wildcardInput1, wildcardInput2));
   BOOST_CHECK(!DataSpecUtils::includes(wildcardInput2, wildcardInput1));
+
+  auto inputsFromQuery = DataDescriptorQueryBuilder::parse("b0:TST/FOO/0;b1:TST/FOO/1");
+  BOOST_CHECK(!DataSpecUtils::includes(inputsFromQuery[0], inputsFromQuery[1]));
+  BOOST_CHECK(!DataSpecUtils::includes(inputsFromQuery[1], inputsFromQuery[0]));
 }

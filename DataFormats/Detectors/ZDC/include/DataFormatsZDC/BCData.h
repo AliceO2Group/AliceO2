@@ -27,10 +27,30 @@ namespace zdc
 {
 class ChannelData;
 
+struct __attribute__((__packed__)) ModuleTriggerMap {
+  unsigned Alice_0 : 1;
+  unsigned Alice_1 : 1;
+  unsigned Alice_2 : 1;
+  unsigned Alice_3 : 1;
+  unsigned Auto_m : 1;
+  unsigned Auto_0 : 1;
+  unsigned Auto_1 : 1;
+  unsigned Auto_2 : 1;
+  unsigned Auto_3 : 1;
+  unsigned empty : 7;
+};
+
+union ModuleTriggerMapData {
+  uint16_t w;
+  struct ModuleTriggerMap f;
+  void reset();
+};
+
 struct BCData {
   /// we are going to refer to at most 26 channels, so 5 bits for the NChannels and 27 for the reference
   o2::dataformats::RangeRefComp<5> ref;
   o2::InteractionRecord ir;
+  std::array<uint16_t, NModules> moduleTriggers{};
   uint32_t channels = 0;    // pattern of channels it refers to
   uint32_t triggers = 0;    // pattern of triggered channels (not necessarily stored) in this BC
   uint8_t ext_triggers = 0; // pattern of ALICE triggers
@@ -47,9 +67,9 @@ struct BCData {
   }
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-  void print() const;
+  void print(uint32_t triggerMask = 0, int diff = 0) const;
 
-  ClassDefNV(BCData, 1);
+  ClassDefNV(BCData, 2);
 };
 } // namespace zdc
 } // namespace o2

@@ -20,6 +20,7 @@
 #include "Framework/DataRef.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Logger.h"
+#include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 #include <utility> // std::declval
 
@@ -145,6 +146,15 @@ class DPLRawParser
     {
       if (mInputIterator != mEnd) {
         return DataRefUtils::getHeader<o2::header::DataHeader*>(*mPartIterator);
+      }
+      return nullptr;
+    }
+
+    /// get DataProcessingHeader of the current input message
+    o2::framework::DataProcessingHeader const* o2DataProcessingHeader() const
+    {
+      if (mInputIterator != mEnd) {
+        return DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(*mPartIterator);
       }
       return nullptr;
     }

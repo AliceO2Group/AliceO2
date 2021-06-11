@@ -21,7 +21,6 @@
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/Cluster.h"
 #include "ITStracking/Constants.h"
-// #include "ITStracking/Definitions.h"
 #include "ITStracking/Tracklet.h"
 
 #include "ITStrackingHIP/DeviceStoreVertexerHIP.h"
@@ -47,7 +46,7 @@ class VertexerTraitsHIP : public VertexerTraits
   ~VertexerTraitsHIP();
 #else
   VertexerTraitsHIP();
-  ~VertexerTraitsHIP() = default;
+  ~VertexerTraitsHIP() override = default;
 #endif
   void initialise(ROframe*) override;
   void computeTracklets() override;

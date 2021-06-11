@@ -87,7 +87,7 @@ def gencode_do(df, df_cru, solar_map, chamber):
     for row in df_cru.itertuples():
         if len(row.solar_id) > 0:
             out.write("add_cru(s2f,{},{},{});\n".format(
-                row.fee_id, row.link_id, row.solar_id))
+                row.fee_id, int(row.link_id)%12, row.solar_id))
 
     out.write("}")
     gencode_close_generated(out)

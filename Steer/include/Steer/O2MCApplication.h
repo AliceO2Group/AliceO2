@@ -75,7 +75,7 @@ class O2MCApplication : public O2MCApplicationBase
   void GeneratePrimaries() override
   {
     // ordinarily we would call the event generator ...
-    LOG(INFO) << "Generate primaries " << mPrimaries.size() << "\n";
+    LOG(DEBUG) << "O2MCApplication: Init primaries from external buffer " << mPrimaries.size();
     GetStack()->Reset();
     // but here we init the stack from
     // a vector of particles that someone sets externally

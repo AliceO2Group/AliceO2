@@ -20,6 +20,14 @@ namespace o2
 namespace mid
 {
 
+void ELinkDecoder::setBareDecoder(bool isBare)
+{
+  /// Sets the decoder type
+  mMinimumSize = isBare ? 5 : 6;
+  mMaximumSize = isBare ? 21 : 22;
+  mTotalSize = mMinimumSize;
+}
+
 bool ELinkDecoder::add(size_t& idx, gsl::span<const uint8_t> payload, size_t nBytes, size_t step)
 {
   /// Fills inner bytes vector
@@ -41,7 +49,7 @@ bool ELinkDecoder::add(size_t& idx, gsl::span<const uint8_t> payload, size_t ste
   /// Adds the bytes of the board
   auto remaining = mTotalSize - mBytes.size();
   if (add(idx, payload, remaining, step)) {
-    if (mTotalSize == sMinimumSize) {
+    if (mTotalSize == mMinimumSize) {
       computeSize();
       remaining = mTotalSize - mBytes.size();
       if (remaining) {
@@ -57,7 +65,7 @@ void ELinkDecoder::addAndComputeSize(uint8_t byte)
 {
   /// Adds next byte and computes the expected data size
   mBytes.emplace_back(byte);
-  if (mBytes.size() == sMinimumSize) {
+  if (mBytes.size() == mMinimumSize) {
     computeSize();
   }
 }
@@ -81,7 +89,7 @@ void ELinkDecoder::reset()
 {
   /// Reset inner objects
   mBytes.clear();
-  mTotalSize = sMinimumSize;
+  mTotalSize = mMinimumSize;
 }
 
 uint16_t ELinkDecoder::getPattern(int cathode, int chamber) const

@@ -24,14 +24,31 @@ void RawWriter::init()
 {
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginEMC, false);
   mRawWriter->setCarryOverCallBack(this);
-  mRawWriter->setApplyCarryOverToLastPage(true);
+
+  // initialize mappers
+  if (!mMappingHandler) {
+    mMappingHandler = std::make_unique<o2::emcal::MappingHandler>();
+  }
+
   for (auto iddl = 0; iddl < 40; iddl++) {
     // For EMCAL set
     // - FEE ID = DDL ID
     // - C-RORC and link increasing with DDL ID
     // @TODO replace with link assignment on production FLPs,
     // eventually storing in CCDB
-    auto [crorc, link] = getLinkAssignment(iddl);
+
+    // initialize containers for SRU
+    SRUDigitContainer srucont;
+    srucont.mSRUid = iddl;
+    mSRUdata.push_back(srucont);
+
+    // Skip empty links with these ddl IDs,
+    // ddl ID 21 and 39 are empty links, while 23 and 36 are connected to LEDmon only
+    if (iddl == 21 || iddl == 22 || iddl == 36 || iddl == 39) {
+      continue;
+    }
+
+    auto [crorc, link] = mGeometry->getLinkAssignment(iddl);
     std::string rawfilename = mOutputLocation;
     switch (mFileFor) {
       case FileFor_t::kFullDet:
@@ -52,17 +69,6 @@ void RawWriter::init()
     }
     mRawWriter->registerLink(iddl, crorc, link, 0, rawfilename.data());
   }
-  // initialize mappers
-  if (!mMappingHandler) {
-    mMappingHandler = std::make_unique<o2::emcal::MappingHandler>();
-  }
-
-  // initialize containers for SRU
-  for (auto isru = 0; isru < 40; isru++) {
-    SRUDigitContainer srucont;
-    srucont.mSRUid = isru;
-    mSRUdata.push_back(srucont);
-  }
 }
 
 void RawWriter::digitsToRaw(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<o2::emcal::TriggerRecord> triggerbranch)
@@ -75,7 +81,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::emcal::Digit> digitsbranch, gsl::span<
 
 bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
 {
-  for (auto srucont : mSRUdata) {
+  for (auto& srucont : mSRUdata) {
     srucont.mChannels.clear();
   }
   std::vector<o2::emcal::Digit*>* bunchDigits;
@@ -87,7 +93,7 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
       if (tower > 20000) {
         std::cout << "Wrong cell ID " << tower << std::endl;
       }
-      auto onlineindices = getOnlineID(tower);
+      auto onlineindices = mGeometry->getOnlineID(tower);
       int sruID = std::get<0>(onlineindices);
       auto towerdata = mSRUdata[sruID].mChannels.find(tower);
       if (towerdata == mSRUdata[sruID].mChannels.end()) {
@@ -111,25 +117,39 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
   }
 
   // Create and fill DMA pages for each channel
-  std::cout << "encode data" << std::endl;
-  std::vector<char> payload;
+  LOG(DEBUG) << "encode data";
   for (auto srucont : mSRUdata) {
+
+    std::vector<char> payload; // this must be initialized per SRU, becuase pages are per SRU, therefore the payload was not reset.
+
+    if (srucont.mSRUid == 21 || srucont.mSRUid == 22 || srucont.mSRUid == 36 || srucont.mSRUid == 39) {
+      continue;
+    }
 
     for (const auto& [tower, channel] : srucont.mChannels) {
       // Find out hardware address of the channel
       auto hwaddress = mMappingHandler->getMappingForDDL(srucont.mSRUid).getHardwareAddress(channel.mRow, channel.mCol, ChannelType_t::HIGH_GAIN); // @TODO distinguish between high- and low-gain cells
 
       std::vector<int> rawbunches;
+      int nbunches = 0;
       for (auto& bunch : findBunches(channel.mDigits)) {
+        if (!bunch.mADCs.size()) {
+          LOG(ERROR) << "Found bunch with without ADC entries - skipping ...";
+          continue;
+        }
         rawbunches.push_back(bunch.mADCs.size() + 2); // add 2 words for header information
         rawbunches.push_back(bunch.mStarttime);
         for (auto adc : bunch.mADCs) {
           rawbunches.push_back(adc);
         }
+        nbunches++;
       }
       if (!rawbunches.size()) {
+        LOG(DEBUG) << "No bunch selected";
         continue;
       }
+      LOG(DEBUG) << "Selected " << nbunches << " bunches";
+
       auto encodedbunches = encodeBunchData(rawbunches);
       auto chanhead = createChannelHeader(hwaddress, rawbunches.size(), false); /// bad channel status eventually to be added later
       char* chanheadwords = reinterpret_cast<char*>(&chanhead);
@@ -141,6 +161,8 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
         if (encodedbunches.size() != nwordsRead) {
           LOG(ERROR) << "Mismatch in number of 32-bit words, encoded " << encodedbunches.size() << ", recalculated " << nwordsRead << std::endl;
           LOG(ERROR) << "Payload size: " << payloadsizeRead << ", number of words: " << rawbunches.size() << ", encodeed words " << encodedbunches.size() << ", calculated words " << nwordsRead << std::endl;
+        } else {
+          LOG(DEBUG) << "Matching number of payload 32-bit words, encoded " << encodedbunches.size() << ", decoded " << nwordsRead;
         }
       } else {
         LOG(ERROR) << "Header without header bit detected ..." << std::endl;
@@ -155,98 +177,93 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     }
 
     if (!payload.size()) {
-      continue;
+      // [EMCAL-699] No payload found in SRU
+      // Still the link is not completely ignored but a trailer with 0-payloadsize is added
+      LOG(DEBUG) << "Payload buffer has size 0 - only write empty trailer" << std::endl;
     }
+    LOG(DEBUG) << "Payload buffer has size " << payload.size();
 
     // Create RCU trailer
-    auto trailerwords = createRCUTrailer(payload.size() / 4, 16, 16, 100., 0.);
+    auto trailerwords = createRCUTrailer(payload.size() / 4, 100., trg.getBCData().toLong(), srucont.mSRUid);
     for (auto word : trailerwords) {
       payload.emplace_back(word);
     }
 
     // register output data
     auto ddlid = srucont.mSRUid;
-    auto [crorc, link] = getLinkAssignment(ddlid);
+    auto [crorc, link] = mGeometry->getLinkAssignment(ddlid);
     LOG(DEBUG1) << "Adding payload with size " << payload.size() << " (" << payload.size() / 4 << " ALTRO words)";
     mRawWriter->addData(ddlid, crorc, link, 0, trg.getBCData(), payload, false, trg.getTriggerBits());
   }
-  std::cout << "Done" << std::endl;
+  LOG(DEBUG) << "Done";
   return true;
 }
 
 std::vector<AltroBunch> RawWriter::findBunches(const std::vector<o2::emcal::Digit*>& channelDigits)
 {
   std::vector<AltroBunch> result;
-  AltroBunch* currentBunch = nullptr;
+  AltroBunch currentBunch;
+  bool bunchStarted = false;
   // Digits in ALTRO bunch in time-reversed order
   int itime;
   for (itime = channelDigits.size() - 1; itime >= 0; itime--) {
     auto dig = channelDigits[itime];
     if (!dig) {
+      if (bunchStarted) {
+        // we have a bunch which is started and needs to be closed
+        // check if the ALTRO bunch has a minimum amount of ADCs
+        if (currentBunch.mADCs.size() >= mMinADCBunch) {
+          // Bunch selected, set start time and push to bunches
+          currentBunch.mStarttime = itime + 1;
+          result.push_back(currentBunch);
+          currentBunch = AltroBunch();
+          bunchStarted = false;
+        }
+      }
       continue;
     }
     int adc = dig->getAmplitudeADC();
     if (adc < mPedestal) {
-      // Stop bunch
+      // ADC value below threshold
+      // in case we have an open bunch it needs to be stopped bunch
       // Set the start time to the time sample of previous (passing) digit
-      currentBunch->mStarttime = itime + 1;
-      currentBunch = nullptr;
-      continue;
+      if (bunchStarted) {
+        // check if the ALTRO bunch has a minimum amount of ADCs
+        if (currentBunch.mADCs.size() >= mMinADCBunch) {
+          // Bunch selected, set start time and push to bunches
+          currentBunch.mStarttime = itime + 1;
+          result.push_back(currentBunch);
+          currentBunch = AltroBunch();
+          bunchStarted = false;
+        }
+      }
     }
-    if (!currentBunch) {
-      // start new bunch
-      AltroBunch bunch;
-      result.push_back(bunch);
-      currentBunch = &(result.back());
+    // Valid ADC value, if the bunch is closed we start a new bunch
+    if (!bunchStarted) {
+      bunchStarted = true;
     }
-    currentBunch->mADCs.emplace_back(adc);
+    currentBunch.mADCs.emplace_back(adc);
   }
   // if we have a last bunch set time start time to the time bin of teh previous digit
-  if (currentBunch) {
-    currentBunch->mStarttime = itime + 1;
+  if (bunchStarted) {
+    if (currentBunch.mADCs.size() >= mMinADCBunch) {
+      currentBunch.mStarttime = itime + 1;
+      result.push_back(currentBunch);
+    }
   }
   return result;
-}
-
-std::tuple<int, int, int> RawWriter::getOnlineID(int towerID)
-{
-  auto cellindex = mGeometry->GetCellIndex(towerID);
-  auto supermoduleID = std::get<0>(cellindex);
-  auto etaphi = mGeometry->GetCellPhiEtaIndexInSModule(supermoduleID, std::get<1>(cellindex), std::get<2>(cellindex), std::get<3>(cellindex));
-  auto etaphishift = mGeometry->ShiftOfflineToOnlineCellIndexes(supermoduleID, std::get<0>(etaphi), std::get<1>(etaphi));
-  int row = std::get<0>(etaphishift), col = std::get<1>(etaphishift);
-
-  int ddlInSupermoudel = -1;
-  if (0 <= row && row < 8) {
-    ddlInSupermoudel = 0; // first cable row
-  } else if (8 <= row && row < 16 && 0 <= col && col < 24) {
-    ddlInSupermoudel = 0; // first half;
-  } else if (8 <= row && row < 16 && 24 <= col && col < 48) {
-    ddlInSupermoudel = 1; // second half;
-  } else if (16 <= row && row < 24) {
-    ddlInSupermoudel = 1; // third cable row
-  }
-  if (supermoduleID % 2 == 1) {
-    ddlInSupermoudel = 1 - ddlInSupermoudel; // swap for odd=C side, to allow us to cable both sides the same
-  }
-
-  return std::make_tuple(supermoduleID * 2 + ddlInSupermoudel, row, col);
-}
-
-std::tuple<int, int> RawWriter::getLinkAssignment(int ddlID)
-{
-  // Temporary link assignment (till final link assignment is known -
-  // eventually taken from CCDB)
-  // - Link (0-5) and C-RORC ID linear with ddlID
-  return std::make_tuple(ddlID / 6, ddlID % 6);
 }
 
 std::vector<int> RawWriter::encodeBunchData(const std::vector<int>& data)
 {
   std::vector<int> encoded;
   CaloBunchWord currentword;
+  currentword.mDataWord = 0;
   int wordnumber = 0;
   for (auto adc : data) {
+    if (adc > 0x3FF) {
+      LOG(ERROR) << "Exceeding max ADC count for 10 bit ALTRO word: " << adc << " (max: 1023)" << std::endl;
+    }
     switch (wordnumber) {
       case 0:
         currentword.mWord0 = adc;
@@ -282,14 +299,33 @@ ChannelHeader RawWriter::createChannelHeader(int hardwareAddress, int payloadSiz
   return header;
 }
 
-std::vector<char> RawWriter::createRCUTrailer(int payloadsize, int feca, int fecb, double timesample, double l1phase)
+std::vector<char> RawWriter::createRCUTrailer(int payloadsize, double timesample, uint64_t triggertime, int feeID)
 {
   RCUTrailer trailer;
-  trailer.setActiveFECsA(feca);
-  trailer.setActiveFECsB(fecb);
   trailer.setPayloadSize(payloadsize);
-  trailer.setL1Phase(l1phase);
-  trailer.setTimeSample(timesample);
+  trailer.setTimeSamplePhaseNS(triggertime, timesample);
+
+  // You can find details about these settings here https://alice.its.cern.ch/jira/browse/EMCAL-650
+  trailer.setRCUID(feeID);
+  trailer.setFirmwareVersion(2);
+  trailer.setActiveFECsA(0x0);
+  trailer.setActiveFECsB(0x1);
+  trailer.setBaselineCorrection(0);
+  trailer.setPolarity(false);
+  trailer.setNumberOfPresamples(0);
+  trailer.setNumberOfPostsamples(0);
+  trailer.setSecondBaselineCorrection(false);
+  trailer.setGlitchFilter(0);
+  trailer.setNumberOfNonZeroSuppressedPostsamples(1);
+  trailer.setNumberOfNonZeroSuppressedPresamples(1);
+  trailer.setNumberOfPretriggerSamples(0);
+  trailer.setNumberOfSamplesPerChannel(15);
+  // For MC we don't simulate pedestals. In order to prevent pedestal subtraction
+  // in the raw fitter we set the zero suppression to true in the RCU trailer
+  trailer.setZeroSuppression(true);
+  trailer.setSparseReadout(true);
+  trailer.setNumberOfAltroBuffers(RCUTrailer::BufferMode_t::NBUFFERS4);
+
   auto trailerwords = trailer.encode();
   std::vector<char> encoded(trailerwords.size() * sizeof(uint32_t));
   memcpy(encoded.data(), trailerwords.data(), trailerwords.size() * sizeof(uint32_t));
@@ -300,32 +336,13 @@ int RawWriter::carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> 
                                const char* ptr, int maxSize, int splitID,
                                std::vector<char>& trailer, std::vector<char>& header) const
 {
-  int offs = ptr - &data[0]; // offset wrt the head of the payload
-  // make sure ptr and end of the suggested block are within the payload
-  assert(offs >= 0 && size_t(offs + maxSize) <= data.size());
+  constexpr int TrailerSize = 9 * sizeof(uint32_t);
+  int bytesLeft = data.data() + data.size() - ptr;
+  int leftAfterSplit = bytesLeft - maxSize;
 
-  // Read trailer template from the end of payload
-  gsl::span<const uint32_t> payloadwords(reinterpret_cast<const uint32_t*>(data.data()), data.size() / sizeof(uint32_t));
-  auto rcutrailer = RCUTrailer::constructFromPayloadWords(payloadwords);
-
-  int sizeNoTrailer = maxSize - rcutrailer.getTrailerSize() * sizeof(uint32_t);
-  // calculate payload size for RCU trailer:
-  // assume actualsize is in byte
-  // Payload size is defined as the number of 32-bit payload words
-  // -> actualSize to be converted to size of 32 bit words
-  auto payloadsize = sizeNoTrailer / sizeof(uint32_t);
-  rcutrailer.setPayloadSize(payloadsize);
-  auto trailerwords = rcutrailer.encode();
-  trailer.resize(trailerwords.size() * sizeof(uint32_t));
-  memcpy(trailer.data(), trailerwords.data(), trailer.size());
-  // Size to return differs between intermediate pages and last page
-  // - intermediate page: Size of the trailer needs to be removed as the trailer gets appended
-  // - last page: Size of the trailer needs to be included as the trailer gets replaced
-  int bytesLeft = data.size() - (ptr - &data[0]);
-  bool lastPage = bytesLeft <= maxSize;
-  int actualSize = maxSize;
-  if (!lastPage) {
-    actualSize = sizeNoTrailer;
+  if (leftAfterSplit < TrailerSize) {
+    return std::max(0, bytesLeft - TrailerSize);
   }
-  return actualSize;
+
+  return maxSize;
 }

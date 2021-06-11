@@ -16,12 +16,15 @@
 #include <TGButton.h>
 #include <TGNumberEntry.h>
 #include <TGLabel.h>
+#include <TTimer.h>
 #include <EventVisualisationView/EventManagerFrame.h>
 #include <EventVisualisationView/MultiView.h>
 #include <EventVisualisationBase/DataSourceOffline.h>
 #include <EventVisualisationDetectors/DataReaderVSD.h>
 #include <Rtypes.h>
-#include <iostream>
+#include <mutex>
+
+std::mutex mtx; // mutex for critical section
 
 ClassImp(o2::event_visualisation::EventManagerFrame);
 
@@ -30,10 +33,18 @@ namespace o2
   namespace event_visualisation
   {
 
+  EventManagerFrame::~EventManagerFrame()
+  {
+    this->StopTimer();
+  }
+
   EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& eventManager)
     : TGMainFrame(gClient->GetRoot(), 400, 100, kVerticalFrame)
   {
     mEventManager = &eventManager;
+    this->mTimer = new TTimer(); // Auto-load time in seconds
+    this->mTime = 2;
+    this->mTimer->Connect("Timeout()", "o2::event_visualisation::EventManagerFrame", this, "DoTimeTick()");
 
     const TString cls("o2::event_visualisation::EventManagerFrame");
     TGTextButton* b = nullptr;
@@ -85,25 +96,25 @@ namespace o2
   void EventManagerFrame::DoFirstEvent()
   {
     mEventManager->GotoEvent(0);
-    mEventId->SetIntNumber(mEventManager->getCurrentEvent());
+    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   }
 
   void EventManagerFrame::DoPrevEvent()
   {
     mEventManager->PrevEvent();
-    mEventId->SetIntNumber(mEventManager->getCurrentEvent());
+    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   }
 
   void EventManagerFrame::DoNextEvent()
   {
     mEventManager->NextEvent();
-    mEventId->SetIntNumber(mEventManager->getCurrentEvent());
+    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   }
 
   void EventManagerFrame::DoLastEvent()
   {
     mEventManager->GotoEvent(-1); /// -1 means last available
-    mEventId->SetIntNumber(mEventManager->getCurrentEvent());
+    mEventId->SetIntNumber(mEventManager->getDataSource()->getCurrentEvent());
   }
 
   void EventManagerFrame::DoSetEvent()
@@ -112,6 +123,43 @@ namespace o2
 
   void EventManagerFrame::DoScreenshot()
   {
+  }
+
+  void EventManagerFrame::DoTimeTick()
+  {
+    std::unique_lock<std::mutex> lck(mtx, std::defer_lock);
+    bool inTick;
+    lck.lock();
+    inTick = this->inTick;
+    this->inTick = true;
+    lck.unlock();
+    if (inTick) {
+      return;
+    }
+
+    if (mEventManager->getDataSource()->refresh()) {
+      mEventManager->displayCurrentEvent();
+    }
+    lck.lock();
+    this->inTick = false;
+    lck.unlock();
+  }
+
+  void EventManagerFrame::StopTimer()
+  {
+    this->mTimerRunning = kFALSE;
+    if (this->mTimer != nullptr) {
+      this->mTimer->TurnOff();
+    }
+  }
+  void EventManagerFrame::StartTimer()
+  {
+    if (this->mTimer != nullptr) {
+      this->mTimer->SetTime((Long_t)(1000 * this->mTime));
+      this->mTimer->Reset();
+      this->mTimer->TurnOn();
+    }
+    this->mTimerRunning = kTRUE;
   }
 
   } // namespace event_visualisation

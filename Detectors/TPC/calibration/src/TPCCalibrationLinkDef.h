@@ -28,5 +28,32 @@
 #pragma link C++ class o2::tpc::CalibPadGainTracks;
 #pragma link C++ class o2::tpc::FastHisto<float> +;
 #pragma link C++ class o2::tpc::FastHisto<unsigned int> +;
+#pragma link C++ class o2::tpc::IDCGroup +;
+#pragma link C++ class o2::tpc::IDCGroupHelperRegion +;
+#pragma link C++ class o2::tpc::IDCGroupHelperSector +;
+#pragma link C++ struct o2::tpc::ParameterIDCGroup;
+#pragma link C++ struct o2::tpc::ParameterIDCCompression;
+#pragma link C++ class o2::tpc::IDCAverageGroup +;
+#pragma link C++ class o2::tpc::IDCFactorization +;
+#pragma link C++ struct o2::tpc::IDCDelta<float> +;
+#pragma link C++ struct o2::tpc::IDCDelta<short> +;
+#pragma link C++ struct o2::tpc::IDCDelta<char> +;
+#pragma link C++ struct o2::tpc::IDCDeltaCompressionFactors +;
+#pragma link C++ struct o2::tpc::IDCDeltaContainer<float> +;
+#pragma link C++ struct o2::tpc::IDCDeltaContainer<short> +;
+#pragma link C++ struct o2::tpc::IDCDeltaContainer<char> +;
+#pragma link C++ class o2::tpc::IDCDeltaCompressionHelper<short> +;
+#pragma link C++ class o2::tpc::IDCDeltaCompressionHelper<char> +;
+#pragma link C++ struct o2::tpc::IDCZero +;
+#pragma link C++ struct o2::tpc::IDCOne +;
+#pragma link C++ struct o2::tpc::OneDIDC +;
+#pragma link C++ class o2::tpc::OneDIDCAggregator +;
+#pragma link C++ struct o2::tpc::FourierCoeff +;
+#pragma link C++ struct o2::tpc::ParameterIDCGroupCCDB +;
+#pragma link C++ class o2::tpc::RobustAverage +;
+#pragma link C++ class o2::tpc::IDCFourierTransform +;
+#pragma link C++ class o2::tpc::IDCCCDBHelper<float> +;
+#pragma link C++ class o2::tpc::IDCCCDBHelper<short> +;
+#pragma link C++ class o2::tpc::IDCCCDBHelper<char> +;
 
 #endif

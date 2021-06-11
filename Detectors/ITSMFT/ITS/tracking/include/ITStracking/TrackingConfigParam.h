@@ -37,8 +37,8 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
 
 struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerParamConfig> {
 
-  // Use lookup table for mat. budget
-  bool useMatBudLUT = false;
+  // Use TGeo for mat. budget
+  bool useMatCorrTGeo = false;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
 };

@@ -17,6 +17,7 @@
 #include "TPCQC/Clusters.h"
 #include "TPCBase/Painter.h"
 #include "TPCBase/ROC.h"
+#include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/ClusterNative.h"
 
@@ -57,6 +58,21 @@ bool Clusters::processCluster(const o2::tpc::ClusterNative& cluster, const o2::t
   mTimeBin.getCalArray(nROC).setValue(rocRow, pad, count + timeBin);
 
   return true;
+}
+
+//______________________________________________________________________________
+void Clusters::fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue)
+{
+  const CRU cruID(cru);
+  float val;
+  val = mNClusters.getValue(cruID.sector(), rowInSector, padInRow);
+  mNClusters.setValue(cruID.sector(), rowInSector, padInRow, val + 1);
+
+  val = mQMax.getValue(cruID.sector(), rowInSector, padInRow);
+  mQMax.setValue(cruID.sector(), rowInSector, padInRow, val + adcValue);
+
+  val = mTimeBin.getValue(cruID.sector(), rowInSector, padInRow);
+  mTimeBin.setValue(cruID.sector(), rowInSector, padInRow, val + timeBin);
 }
 
 //______________________________________________________________________________

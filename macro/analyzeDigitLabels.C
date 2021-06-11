@@ -10,9 +10,8 @@
 #include "DataFormatsFT0/MCLabel.h"
 #include "DataFormatsFDD/MCLabel.h"
 #include "DataFormatsFV0/MCLabel.h"
-#include "ZDCSimulation/MCLabel.h"
+#include "DataFormatsZDC/MCLabel.h"
 #include "MIDSimulation/MCLabel.h"
-#include "TRDBase/MCLabel.h"
 
 #include <gsl/gsl> // for guideline support library; array_view
 #include <unordered_map>
@@ -82,7 +81,7 @@ void analyse(TTree* tr, const char* brname, Accumulator& prop)
   }
   auto classname = br->GetClassName();
   auto entries = br->GetEntries();
-  if (strcmp("IOMCTruthContainerView", classname) == 0) {
+  if (strcmp("o2::dataformats::IOMCTruthContainerView", classname) == 0) {
     o2::dataformats::IOMCTruthContainerView* io2 = nullptr;
     br->SetAddress(&io2);
 

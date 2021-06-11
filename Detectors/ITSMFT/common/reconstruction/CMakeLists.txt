@@ -23,17 +23,17 @@ o2_add_library(ITSMFTReconstruction
                        src/PayLoadCont.cxx
                        src/GBTWord.cxx
                        src/RUInfo.cxx
-		       src/GBTLink.cxx
-		       src/RUDecodeData.cxx
-		       src/RawPixelDecoder.cxx
+                       src/GBTLink.cxx
+                       src/RUDecodeData.cxx
+                       src/RawPixelDecoder.cxx
                        src/CTFCoder.cxx
                        src/DecodingStat.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                      O2::CommonDataFormat
-	                             O2::DetectorsRaw
+                                     O2::DetectorsRaw
                                      O2::SimulationDataFormat 
                                      O2::DataFormatsITSMFT
-				     O2::DPLUtils
+                                     O2::DPLUtils
                                      O2::rANS
                                      O2::Headers)
 
@@ -42,7 +42,6 @@ o2_target_root_dictionary(
   HEADERS include/ITSMFTReconstruction/PixelReader.h
           include/ITSMFTReconstruction/GBTLink.h
           include/ITSMFTReconstruction/RUDecodeData.h
-	  include/ITSMFTReconstruction/RawPixelDecoder.h
           include/ITSMFTReconstruction/DigitPixelReader.h
           include/ITSMFTReconstruction/RawPixelReader.h
           include/ITSMFTReconstruction/PixelData.h

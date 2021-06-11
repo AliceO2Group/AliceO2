@@ -223,7 +223,7 @@ inline std::array<std::vector<int>, 2> DeviceStoreVertexerHIP::getHistogramXYFro
 {
   std::array<std::vector<int>, 2> histoXY;
   for (int iHisto{0}; iHisto < 2; ++iHisto) {
-    histoXY[iHisto].resize(mGPUConf.nBinsXYZ[iHisto] - 1);
+    histoXY[iHisto].resize(mGPUConf.histConf.nBinsXYZ[iHisto] - 1);
     mHistogramXYZ[iHisto].copyIntoSizedVector(histoXY[iHisto]);
   }
 
@@ -233,7 +233,7 @@ inline std::array<std::vector<int>, 2> DeviceStoreVertexerHIP::getHistogramXYFro
 inline std::vector<int> DeviceStoreVertexerHIP::getHistogramZFromGPU()
 {
   std::vector<int> histoZ;
-  histoZ.resize(mGPUConf.nBinsXYZ[2] - 1);
+  histoZ.resize(mGPUConf.histConf.nBinsXYZ[2] - 1);
   std::cout << "Size of dest vector to be refined" << std::endl;
   mHistogramXYZ[2].copyIntoSizedVector(histoZ);
 

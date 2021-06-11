@@ -22,13 +22,13 @@ using namespace o2::cpv;
 CalibParams::CalibParams(short /*dummy*/)
 {
   //produce reasonable objest for test purposes
-  mGainCalib.fill(0.01);
+  mGainCalib.fill(1.);
 }
 
 bool CalibParams::setGain(TH2* h, short module)
 {
   const short MAXX = 128,
-              MAXZ = 56;
+              MAXZ = 60;
   if (!h) {
     LOG(ERROR) << "no input histogam";
     return false;

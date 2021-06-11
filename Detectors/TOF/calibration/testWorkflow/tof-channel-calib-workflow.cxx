@@ -10,6 +10,7 @@
 
 #include "TOFChannelCalibratorSpec.h"
 #include "Framework/DataProcessorSpec.h"
+#include "DataFormatsTOF/CalibInfoTOF.h"
 
 using namespace o2::framework;
 
@@ -28,6 +29,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   auto useCCDB = configcontext.options().get<bool>("use-ccdb");
-  specs.emplace_back(getTOFChannelCalibDeviceSpec(useCCDB, false));
+  specs.emplace_back(getTOFChannelCalibDeviceSpec<o2::dataformats::CalibInfoTOF>(useCCDB, false, false));
   return specs;
 }

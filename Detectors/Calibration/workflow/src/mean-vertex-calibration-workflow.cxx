@@ -10,14 +10,17 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "DetectorsCalibrationWorkflow/MeanVertexCalibratorSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
-// we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+  std::swap(workflowOptions, options);
 }
 
 // ------------------------------------------------------------------
@@ -27,6 +30,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   specs.emplace_back(getMeanVertexCalibDeviceSpec());
   return specs;
 }

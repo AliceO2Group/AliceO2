@@ -21,7 +21,7 @@ GeometryParams* GeometryParams::sGeomParam = nullptr;
 GeometryParams::GeometryParams(const std::string_view name)
   : // Set zeros to the variables: most of them should be calculated
     // and it is more clear to set them in the text
-    mNModules(3),
+    mNModules(5),
     mNumberOfCPVPadsPhi(128),
     mNumberOfCPVPadsZ(60),
     mCPVPadSizePhi(1.13),
@@ -70,17 +70,17 @@ GeometryParams::GeometryParams(const std::string_view name)
   double const kRADDEG = 180.0 / TMath::Pi();
 
   double r = mIPtoCPVSurface + mCPVBoxSize[1];
-  for (Int_t iModule = 0; iModule < mNModules; iModule++) {
-    double angle = moduleAngle * (iModule - 2); //Module 3 just below IP
-    mCPVAngle[iModule] = -angle;
-    mModuleCenter[iModule][0] = r * TMath::Sin(-angle / kRADDEG);
-    mModuleCenter[iModule][1] = -r * TMath::Cos(-angle / kRADDEG);
+  for (Int_t iModule = 2; iModule < mNModules; iModule++) {
+    double angle = moduleAngle * (iModule - 2); //Module 2 just below IP
+    mCPVAngle[iModule] = angle;
+    mModuleCenter[iModule][0] = r * TMath::Sin(angle / kRADDEG);
+    mModuleCenter[iModule][1] = -r * TMath::Cos(angle / kRADDEG);
     mModuleCenter[iModule][2] = 0.;
 
     mModuleAngle[iModule][0][0] = 90;         //thetaX polar angle for axis X
-    mModuleAngle[iModule][0][1] = -angle;     //phiX azimuthal angle for axis X
+    mModuleAngle[iModule][0][1] = angle;      //phiX azimuthal angle for axis X
     mModuleAngle[iModule][1][0] = 90;         //thetaY polar angle for axis Y
-    mModuleAngle[iModule][1][1] = 90 - angle; //phiY azimuthal angle for axis Y
+    mModuleAngle[iModule][1][1] = 90 + angle; //phiY azimuthal angle for axis Y
     mModuleAngle[iModule][2][0] = 0;          //thetaZ polar angle for axis Z
     mModuleAngle[iModule][2][1] = 0;          //phiZ azimuthal angle for axis Z
   }

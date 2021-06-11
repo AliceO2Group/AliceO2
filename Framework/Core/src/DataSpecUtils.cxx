@@ -470,6 +470,22 @@ OutputSpec DataSpecUtils::asOutputSpec(InputSpec const& spec)
                     spec.matcher);
 }
 
+DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataMatcher const& concrete)
+{
+  DataDescriptorMatcher matchEverything{
+    DataDescriptorMatcher::Op::And,
+    OriginValueMatcher{concrete.origin.as<std::string>()},
+    std::make_unique<DataDescriptorMatcher>(
+      DataDescriptorMatcher::Op::And,
+      DescriptionValueMatcher{concrete.description.as<std::string>()},
+      std::make_unique<DataDescriptorMatcher>(
+        DataDescriptorMatcher::Op::And,
+        SubSpecificationTypeValueMatcher{concrete.subSpec},
+        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
+                                                StartTimeValueMatcher{ContextRef{0}})))};
+  return std::move(matchEverything);
+}
+
 DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType)
 {
   auto timeDescriptionMatcher = std::make_unique<DataDescriptorMatcher>(
@@ -538,6 +554,44 @@ InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
                     spec.matcher);
 }
 
+std::optional<header::DataOrigin> DataSpecUtils::getOptionalOrigin(InputSpec const& spec)
+{
+  // FIXME: try to address at least a few cases.
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) -> std::optional<header::DataOrigin> {
+                        return std::make_optional(concrete.origin);
+                      },
+                      [](DataDescriptorMatcher const& matcher) -> std::optional<header::DataOrigin> {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueOrigin) {
+                          return std::make_optional(state.origin);
+                        } else if (state.hasError) {
+                          throw runtime_error("Could not extract origin from query");
+                        }
+                        return {};
+                      }},
+                    spec.matcher);
+}
+
+std::optional<header::DataDescription> DataSpecUtils::getOptionalDescription(InputSpec const& spec)
+{
+  // FIXME: try to address at least a few cases.
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) -> std::optional<header::DataDescription> {
+                        return std::make_optional(concrete.description);
+                      },
+                      [](DataDescriptorMatcher const& matcher) -> std::optional<header::DataDescription> {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueDescription) {
+                          return std::make_optional(state.description);
+                        } else if (state.hasError) {
+                          throw runtime_error("Could not extract description from query");
+                        }
+                        return {};
+                      }},
+                    spec.matcher);
+}
+
 std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOptionalSubSpec(OutputSpec const& spec)
 {
   return std::visit(overloaded{
@@ -589,7 +643,7 @@ bool DataSpecUtils::includes(const InputSpec& left, const InputSpec& right)
               auto leftInfo = extractMatcherInfo(leftMatcher);
               return (!leftInfo.hasOrigin || (rightInfo.hasOrigin && leftInfo.origin == rightInfo.origin)) &&
                      (!leftInfo.hasDescription || (rightInfo.hasDescription && leftInfo.description == rightInfo.description)) &&
-                     (!leftInfo.hasSubSpec || (rightInfo.hasSubSpec && leftInfo.subSpec == rightInfo.hasSubSpec));
+                     (!leftInfo.hasSubSpec || (rightInfo.hasSubSpec && leftInfo.subSpec == rightInfo.subSpec));
             }},
           left.matcher);
       }},

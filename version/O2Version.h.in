@@ -1,0 +1,18 @@
+// Copyright CERN and copyright holders of ALICE O2. This software is
+// distributed under the terms of the GNU General Public License v3 (GPL
+// Version 3), copied verbatim in the file "COPYING".
+//
+// See http://alice-o2.web.cern.ch/license for full licensing information.
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+// This file provides information about how O2 was built
+// and potentially other version information.
+
+#pragma once
+
+#define O2_GIT_REVISION "@O2_GIT_REVISION@"
+#define ALIDIST_GIT_REVISION "@ALIDIST_GIT_REVISION@"
+

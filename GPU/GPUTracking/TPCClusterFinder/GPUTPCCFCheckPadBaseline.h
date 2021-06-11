@@ -25,26 +25,18 @@ namespace GPUCA_NAMESPACE::gpu
 class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
 {
 
- private:
-  // Only use these constants on device side...
-  // Use getPadsPerBlock() for host side
-  enum {
-    PadsPerBlockGPU = 4, // Number of pads in a single cache line
-    PadsPerBlockCPU = 1,
-#ifdef GPUCA_GPUCODE
-    PadsPerBlock = PadsPerBlockGPU,
-#else
-    PadsPerBlock = PadsPerBlockCPU,
-#endif
-    NumOfCachedTimebins = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFCheckPadBaseline) / PadsPerBlock,
-  };
-
  public:
-  struct GPUSharedMemory {
-    tpccf::Charge charges[PadsPerBlock][NumOfCachedTimebins];
+  enum {
+    PadsPerCacheline = 8,
+    TimebinsPerCacheline = 4,
+    NumOfCachedTimebins = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFCheckPadBaseline) / PadsPerCacheline,
   };
 
-#ifdef HAVE_O2HEADERS
+  struct GPUSharedMemory {
+    tpccf::Charge charges[PadsPerCacheline][NumOfCachedTimebins];
+  };
+
+#ifdef GPUCA_HAVE_O2HEADERS
   typedef GPUTPCClusterFinder processorType;
   GPUhdi() static processorType* Processor(GPUConstantMem& processors)
   {
@@ -57,17 +49,12 @@ class GPUTPCCFCheckPadBaseline : public GPUKernelTemplate
     return GPUDataTypes::RecoStep::TPCClusterFinding;
   }
 
-  // Use this to get num of pads per block on host side. Can't use constant there.
-  static int getPadsPerBlock(bool isGPU)
-  {
-    return (isGPU) ? PadsPerBlockGPU : PadsPerBlockCPU;
-  }
-
   template <int iKernel = defaultKernel>
   GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer);
 
  private:
-  GPUd() static ChargePos padToChargePos(int pad, const GPUTPCClusterFinder&);
+  GPUd() static ChargePos padToChargePos(int& pad, const GPUTPCClusterFinder&);
+  GPUd() static void updatePadBaseline(int pad, const GPUTPCClusterFinder&, int totalCharges, int consecCharges);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

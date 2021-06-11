@@ -8,7 +8,7 @@ o2-its-reco-workflow >& reco.log
 # These macros can be run to check the quality of the results
 # root.exe CheckDigits.C+
 # root.exe CheckClusters.C+
-# root.exe CheckTopologies.C+
+# root.exe CreateDictionaries.C+
 # root.exe CheckTracks.C+
 # root.exe DisplayTrack.C+
 

@@ -50,9 +50,9 @@ class Geometry
   static constexpr double ZEMPOSITION[3] = {9.69, 0., 760.};
 
  private:
-  static Int_t getDetector(const Int_t det);
-  static Int_t getSector(const Int_t tow);
-  static Int_t getVolumeId(const Int_t* vol);
+  static int32_t getDetector(const int32_t det);
+  static int32_t getSector(const int32_t tow);
+  static int32_t getVolumeId(const int32_t* vol);
 
   ClassDefNV(Geometry, 1);
 };

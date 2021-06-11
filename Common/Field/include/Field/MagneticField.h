@@ -69,7 +69,7 @@ class MagneticField : public FairField
   ~MagneticField() override = default;
 
   /// create field from rounded value, i.e. +-5 or +-2 kGauss
-  static MagneticField* createNominalField(int fld);
+  static MagneticField* createNominalField(int fld, bool uniform = false);
 
   /// real field creation is here
   void CreateField();

@@ -11,7 +11,10 @@
 #include <functional>
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/DataDescriptorMatcher.h"
+#include "PaletteHelpers.h"
 #include <iostream>
+#include <cstring>
 #include <cmath>
 
 static inline ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2(lhs.x + rhs.x, lhs.y + rhs.y); }
@@ -115,9 +118,9 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
   auto getValue = [](int const& item) -> int { return item; };
   auto getColor = [](int value) {
     const ImU32 SLOT_EMPTY = ImColor(70, 70, 70, 255);
-    const ImU32 SLOT_FULL = ImColor(0xf9, 0xcd, 0xad, 255);
-    const ImU32 SLOT_DISPATCHED = ImColor(0xc8, 0xc8, 0xa9, 255);
-    const ImU32 SLOT_DONE = ImColor(0x83, 0xaf, 0, 255);
+    const ImU32 SLOT_FULL = ImColor(PaletteHelpers::RED);
+    const ImU32 SLOT_DISPATCHED = ImColor(PaletteHelpers::YELLOW);
+    const ImU32 SLOT_DONE = ImColor(PaletteHelpers::GREEN);
     const ImU32 SLOT_ERROR = ImColor(0xfe, 0x43, 0x65, 255);
     switch (value) {
       case 0:
@@ -140,10 +143,22 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
       MetricInfo const& metricInfo = metrics.metrics[variablesIndex.indexes[idx]];
       assert(metricInfo.storeIdx < metrics.stringMetrics.size());
       auto& data = metrics.stringMetrics[metricInfo.storeIdx];
-      if (vi == 0) {
-        ImGui::Text("$%zu (timeslice): %s", vi, data[(metricInfo.pos - 1) % data.size()].data);
-      } else {
-        ImGui::Text("$%zu: %s", vi, data[(metricInfo.pos - 1) % data.size()].data);
+      char const* value = data[(metricInfo.pos - 1) % data.size()].data;
+      if (strncmp("null", value, 4) == 0) {
+        continue;
+      }
+      switch (vi) {
+        case o2::framework::data_matcher::STARTTIME_POS:
+          ImGui::Text("$%zu (startTime): %s", vi, value);
+          break;
+        case o2::framework::data_matcher::TFCOUNTER_POS:
+          ImGui::Text("$%zu (tfCounter): %s", vi, value);
+          break;
+        case o2::framework::data_matcher::FIRSTTFORBIT_POS:
+          ImGui::Text("$%zu (firstTFOrbit): %s", vi, value);
+          break;
+        default:
+          ImGui::Text("$%zu: %s", vi, value);
       }
     }
     ImGui::EndTooltip();

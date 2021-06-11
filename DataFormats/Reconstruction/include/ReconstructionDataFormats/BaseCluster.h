@@ -12,12 +12,14 @@
 #define ALICEO2_BASE_BASECLUSTER_H
 
 #include <MathUtils/Cartesian.h>
-#include <TObject.h>
+#include "GPUCommonRtypes.h"
+#ifndef GPUCA_GPUCODE
+#include "DetectorsCommonDataFormats/DetMatrixCache.h"
 #include <bitset>
 #include <iomanip>
 #include <ios>
 #include <iosfwd>
-#include "DetectorsCommonDataFormats/DetMatrixCache.h"
+#endif
 
 namespace o2
 {
@@ -64,6 +66,7 @@ class BaseCluster
   T getSigmaYZ() const { return mSigmaYZ; }
   math_utils::Point3D<T> getXYZ() const { return mPos; }
   math_utils::Point3D<T>& getXYZ() { return mPos; }
+#ifndef GPUCA_GPUCODE
   // position in local frame, no check for matrices cache validity
   math_utils::Point3D<T> getXYZLoc(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2L(mSensorID)(mPos); }
   // position in global frame, no check for matrices cache validity
@@ -72,6 +75,7 @@ class BaseCluster
   // much faster for barrel detectors than using full 3D matrix.
   // no check for matrices cache validity
   math_utils::Point3D<T> getXYZGloRot(const o2::detectors::DetMatrixCache& dm) const { return dm.getMatrixT2GRot(mSensorID)(mPos); }
+#endif
   // get sensor id
   std::int16_t getSensorID() const { return mSensorID; }
   // get count field
@@ -116,6 +120,7 @@ class BaseCluster
   ClassDefNV(BaseCluster, 2);
 };
 
+#ifndef GPUCA_GPUCODE
 template <class T>
 std::ostream& operator<<(std::ostream& os, const BaseCluster<T>& c)
 {
@@ -126,5 +131,6 @@ std::ostream& operator<<(std::ostream& os, const BaseCluster<T>& c)
      << ") cnt:" << std::setw(4) << +c.getCount() << " bits:" << std::bitset<8>(c.getBits());
   return os;
 }
+#endif
 } // namespace o2
 #endif

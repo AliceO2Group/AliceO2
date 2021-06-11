@@ -7,22 +7,20 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+//
+/// \brief Use the HistogramRegistry to manipulate histograms.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/HistogramRegistry.h"
-#include <TH1F.h>
 #include <TParameter.h>
-
-#include <cmath>
 
 using namespace o2;
 using namespace o2::framework;
 
-// This is a very simple example showing how to create an histogram
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
-struct ATask {
+struct EtaPhiHistograms {
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{
     "registry",
@@ -41,7 +39,7 @@ struct ATask {
   }
 };
 
-struct BTask {
+struct FilteredHistograms {
   /// Construct a registry object with direct declaration
   HistogramRegistry registry{
     "registry",
@@ -58,7 +56,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct DimensionTest {
 
   HistogramRegistry registry{
     "registry",
@@ -91,6 +89,10 @@ struct CTask {
 
     registry.add("1d-profile-weight", "test 1d profile weight", {HistType::kTProfile, {{2, -10.0f, 10.01f}}}, true);
     registry.add("2d-profile-weight", "test 2d profile weight", {HistType::kTProfile2D, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}}, true);
+
+    registry.add("2d-step", "test 2d step", {HistType::kStepTHnD, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}, 3});
+
+    registry.add("2d-step-weight", "test 2d step weight", {HistType::kStepTHnF, {{2, -10.0f, 10.01f}, {2, -10.0f, 10.01f}}, 4}, true);
   }
 
   void process(aod::Tracks const& tracks)
@@ -121,11 +123,14 @@ struct CTask {
       registry.fill(HIST("3d-weight"), track.pt(), track.eta(), track.phi(), 2.);
 
       registry.fill(HIST("2d-profile-weight"), track.pt(), track.eta(), track.phi(), 5.);
+
+      registry.fill(HIST("2d-step"), 1, track.pt(), track.eta());
+      registry.fill(HIST("2d-step-weight"), 2, track.pt(), track.eta(), track.phi());
     }
   }
 };
 
-struct DTask {
+struct RealisticExample {
   HistogramRegistry spectra{"spectra", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
   HistogramRegistry etaStudy{"etaStudy", {}, OutputObjHandlingPolicy::AnalysisObject, true, true};
 
@@ -209,7 +214,7 @@ struct DTask {
   }
 };
 
-struct ETask {
+struct OutputObjTest {
   OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
@@ -222,7 +227,7 @@ struct ETask {
   }
 };
 
-struct FTask {
+struct TListTest {
   Configurable<int> cfgTrackType{"trktype", 1, "Type of selected tracks: 0 = no selection, 1 = global tracks FB96"};
   OutputObj<TList> fOutput{"TListForTests", OutputObjHandlingPolicy::AnalysisObject, OutputObjSourceType::OutputObjSource};
   HistogramRegistry registry{
@@ -250,13 +255,43 @@ struct FTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+struct ConfigurablesTest {
+  HistogramRegistry histos{"Histos"};
+
+  // first element in vector is number of bins (fixed binning) or VARIABLE_WIDTH (variable binning)
+  ConfigurableAxis ptBinning{"pt-bin-edges", {VARIABLE_WIDTH, 0.15, 1., 5., 10., 50.}, ""}; // variable bin edges
+  ConfigurableAxis centBinning{"cent-binning", {9, 0., 90}, ""};                            // fixed size bins
+
+  void init(InitContext const&)
+  {
+    AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/c)"};
+    AxisSpec centAxis = {centBinning, "#it{p}_{T} (GeV/c)"};
+
+    // for all axes that do not actually need to be configurable, better dont use the Configurables to avoid code clutter!
+    const int nCuts = 5;
+    AxisSpec cutAxis = {nCuts, -0.5, nCuts - 0.5, "cut setting"};
+
+    histos.add("myPtHistFromConfig", "", {HistType::kTH1D, {ptAxis}});
+    histos.add("myCentHistFromConfig", "", {HistType::kTH1D, {centAxis}});
+    histos.add("myCutHistNotFromConfig", "", {HistType::kTH1D, {cutAxis}});
+  }
+
+  void process(aod::Track const& track)
+  {
+    histos.fill(HIST("myCentHistFromConfig"), 1);
+    histos.fill(HIST("myPtHistFromConfig"), track.pt());
+  }
+};
+
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ETask>("output-obj-test"),
-    adaptAnalysisTask<ATask>("eta-and-phi-histograms"),
-    adaptAnalysisTask<BTask>("filtered-histograms"),
-    adaptAnalysisTask<CTask>("dimension-test"),
-    adaptAnalysisTask<DTask>("realistic-example"),
-    adaptAnalysisTask<FTask>("tlist-test")};
+    adaptAnalysisTask<OutputObjTest>(cfgc),
+    adaptAnalysisTask<EtaPhiHistograms>(cfgc),
+    adaptAnalysisTask<FilteredHistograms>(cfgc),
+    adaptAnalysisTask<DimensionTest>(cfgc),
+    adaptAnalysisTask<RealisticExample>(cfgc),
+    adaptAnalysisTask<TListTest>(cfgc),
+    adaptAnalysisTask<ConfigurablesTest>(cfgc),
+  };
 }

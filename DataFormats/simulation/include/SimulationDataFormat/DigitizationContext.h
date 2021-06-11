@@ -48,6 +48,9 @@ class DigitizationContext
  public:
   DigitizationContext() : mNofEntries{0}, mMaxPartNumber{0}, mEventRecords(), mEventParts() {}
 
+  uint32_t getFirstOrbitForSampling() const { return mFirstOrbitForSampling; }
+  void setFirstOrbitForSampling(uint32_t o) { mFirstOrbitForSampling = o; }
+
   int getNCollisions() const { return mNofEntries; }
   void setNCollisions(int n) { mNofEntries = n; }
 
@@ -106,11 +109,13 @@ class DigitizationContext
   // helper functions to save and load a context
   void saveToFile(std::string_view filename) const;
 
-  static DigitizationContext const* loadFromFile(std::string_view filename);
+  static DigitizationContext const* loadFromFile(std::string_view filename = "collisioncontext.root");
 
  private:
   int mNofEntries = 0;
   int mMaxPartNumber = 0; // max number of parts in any given collision
+  uint32_t mFirstOrbitForSampling = 0; // 1st orbit to start sampling
+
   float mMuBC;            // probability of hadronic interaction per bunch
 
   std::vector<o2::InteractionTimeRecord> mEventRecords;
@@ -127,7 +132,7 @@ class DigitizationContext
   std::string mQEDSimPrefix;                         // prefix for QED production/contribution
   mutable o2::parameters::GRPObject* mGRP = nullptr; //!
 
-  ClassDefNV(DigitizationContext, 3);
+  ClassDefNV(DigitizationContext, 4);
 };
 
 /// function reading the hits from a chain (previously initialized with initSimChains
@@ -140,7 +145,7 @@ inline void DigitizationContext::retrieveHits(std::vector<TChain*> const& chains
 {
   auto br = chains[sourceID]->GetBranch(brname);
   if (!br) {
-    LOG(ERROR) << "No branch found";
+    LOG(ERROR) << "No branch found with name " << brname;
     return;
   }
   br->SetAddress(&hits);

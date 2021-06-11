@@ -19,9 +19,10 @@
 #include <TCanvas.h>
 
 #include "FairLogger.h"
-#include "TRDSimulation/Detector.h"
+#include "DataFormatsTRD/Hit.h"
 #include "TRDBase/Geometry.h"
 #include "TRDBase/Calibrations.h"
+#include "TRDSimulation/Detector.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #endif
@@ -39,7 +40,7 @@ void CheckHits(const int detector = 50, // 354, 14, 242, 50
 
   TFile* fin = TFile::Open(hitfile.data());
   TTree* hitTree = (TTree*)fin->Get("o2sim");
-  std::vector<o2::trd::HitType>* hits = nullptr;
+  std::vector<o2::trd::Hit>* hits = nullptr;
   hitTree->SetBranchAddress("TRDHit", &hits);
   int nev = hitTree->GetEntries();
 

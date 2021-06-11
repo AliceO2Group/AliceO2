@@ -9,9 +9,4 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Raw/DigitBlockFT0.h"
-using namespace o2::ft0;
-
-int DigitBlockFT0::sEventID = 0;
-o2::ft0::LookUpTable DigitBlockFT0::sLookupTable = o2::ft0::LookUpTable::readTable();
-int DigitBlockFT0ext::sEventID = 0;
-o2::ft0::LookUpTable DigitBlockFT0ext::sLookupTable = o2::ft0::LookUpTable::readTable();
+//using namespace o2::ft0;

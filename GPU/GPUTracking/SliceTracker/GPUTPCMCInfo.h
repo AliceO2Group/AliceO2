@@ -34,6 +34,10 @@ struct GPUTPCMCInfo {
   float t0;
 #endif
 };
+struct GPUTPCMCInfoCol {
+  unsigned int first;
+  unsigned int num;
+};
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

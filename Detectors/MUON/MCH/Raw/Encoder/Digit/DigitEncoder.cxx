@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawElecMap/DsDetId.h"
@@ -83,7 +83,8 @@ DigitEncoder createDigitEncoder(Det2ElecMapper det2elec)
       auto elecId = optElecId.value().first;
       int dschid = optElecId.value().second;
       // FIXME: add a warning if timestamp is not in range
-      uint16_t ts(static_cast<int>(d.getTime().sampaTime) & 0x3FF);
+      // FIXME: what to do now that the SAMPA time is not stored in the digits?
+      uint16_t ts(0); //(static_cast<int>(d.getTime().sampaTime) & 0x3FF);
       int sampachid = dschid % 32;
       // FIXME: add a warning if ADC is not in range
       auto clusters = createSampaClusters<CHARGESUM>(ts, d.getADC() & 0xFFFFF);

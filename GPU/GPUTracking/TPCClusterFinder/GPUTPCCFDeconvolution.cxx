@@ -49,7 +49,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
   ushort partId = ll;
 
   ushort in3x3 = 0;
-  partId = CfUtils::partition(smem, ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
+  partId = CfUtils::partition<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, ll, iamPeak, SCRATCH_PAD_WORK_GROUP_SIZE, &in3x3);
 
   if (partId < in3x3) {
     smem.posBcast1[partId] = pos;
@@ -73,7 +73,7 @@ GPUdii() void GPUTPCCFDeconvolution::deconvolutionImpl(int nBlocks, int nThreads
   }
 
   ushort in5x5 = 0;
-  partId = CfUtils::partition(smem, partId, peakCount > 0 && !iamPeak, in3x3, &in5x5);
+  partId = CfUtils::partition<SCRATCH_PAD_WORK_GROUP_SIZE>(smem, partId, peakCount > 0 && !iamPeak, in3x3, &in5x5);
 
   if (partId < in5x5) {
     smem.posBcast1[partId] = pos;

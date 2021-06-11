@@ -32,7 +32,7 @@ EntropyEncoderSpec::EntropyEncoderSpec()
 
 void EntropyEncoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("tof-ctf-dictionary");
+  std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Encoder);
   }
@@ -43,7 +43,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   auto compDigits = pc.inputs().get<gsl::span<Digit>>("compDigits");
-  auto pspan = pc.inputs().get<gsl::span<uint32_t>>("patterns");
+  auto pspan = pc.inputs().get<gsl::span<uint8_t>>("patterns");
   auto rofs = pc.inputs().get<gsl::span<ReadoutWindowData>>("ROframes");
 
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{o2::header::gDataOriginTOF, "CTFDATA", 0, Lifetime::Timeframe});
@@ -54,7 +54,6 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   //  eeb->print();
   mTimer.Stop();
   LOG(INFO) << "Created encoded data of size " << eeb->size() << " for TOF in " << mTimer.CpuTime() - cput << " s";
-  //  pc.services().get<ControlService>().endOfStream();
 }
 
 void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
@@ -75,7 +74,7 @@ DataProcessorSpec getEntropyEncoderSpec()
     inputs,
     Outputs{{o2::header::gDataOriginTOF, "CTFDATA", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyEncoderSpec>()},
-    Options{{"tof-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF encoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF encoding dictionary"}}}};
 }
 
 } // namespace tof

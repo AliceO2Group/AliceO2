@@ -49,7 +49,7 @@ function(o2_add_executable baseTargetName)
                         A
                         "IS_TEST;NO_INSTALL;IS_BENCHMARK"
                         "COMPONENT_NAME;TARGETVARNAME"
-                        "SOURCES;PUBLIC_LINK_LIBRARIES")
+                        "SOURCES;PUBLIC_LINK_LIBRARIES;JOB_POOL")
 
   if(A_UNPARSED_ARGUMENTS)
     message(FATAL_ERROR "Got trailing arguments ${A_UNPARSED_ARGUMENTS}")
@@ -95,6 +95,9 @@ function(o2_add_executable baseTargetName)
 
   # set the executable output name
   set_property(TARGET ${target} PROPERTY OUTPUT_NAME ${exeName})
+  if(A_JOB_POOL)
+    set_property(TARGET ${target} PROPERTY JOB_POOL_COMPILE ${A_JOB_POOL})
+  endif()
 
   if(A_IS_TEST)
     # tests go in a separate directory

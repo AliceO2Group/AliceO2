@@ -18,6 +18,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "FDDWorkflow/RecPointReaderSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::fdd;
@@ -37,7 +38,8 @@ RecPointReader::RecPointReader(bool useMC)
 
 void RecPointReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("fdd-recpoints-infile");
+  mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                 ic.options().get<std::string>("fdd-recpoints-infile"));
   connectTree(mInputFileName);
 }
 
@@ -87,7 +89,8 @@ DataProcessorSpec getFDDRecPointReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<RecPointReader>()},
     Options{
-      {"fdd-recpoints-infile", VariantType::String, "o2reco_fdd.root", {"Name of the input file"}}}};
+      {"fdd-recpoints-infile", VariantType::String, "o2reco_fdd.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace fdd

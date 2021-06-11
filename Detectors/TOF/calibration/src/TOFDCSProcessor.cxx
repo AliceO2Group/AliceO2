@@ -46,7 +46,7 @@ void TOFDCSProcessor::init(const std::vector<DPID>& pids)
     mTOFDCS[it].makeEmpty();
   }
 
-  for (int iddl = 0; iddl < Geo::kNDDL; ++iddl) {
+  for (int iddl = 0; iddl < NDDLS; ++iddl) {
     for (int ifeac = 0; ifeac < NFEACS; ++ifeac) {
       getStripsConnectedToFEAC(iddl, ifeac, mFeacInfo[iddl][ifeac]);
     }
@@ -177,11 +177,17 @@ int TOFDCSProcessor::processDP(const DPCOM& dpcom)
             }
             for (int ipadz = 0; ipadz < Geo::NPADZ; ++ipadz) {
               for (int ipadx = mFeacInfo[iddl][ifeac].firstPadX; ipadx <= mFeacInfo[iddl][ifeac].lastPadX; ++ipadx) {
+                if (mVerbose) {
+                  LOG(INFO) << "mFeacInfo[" << iddl << "][" << ifeac << "].stripInSM[" << istrip << "] = " << mFeacInfo[iddl][ifeac].stripInSM[istrip];
+                }
                 Geo::getStripAndModule(mFeacInfo[iddl][ifeac].stripInSM[istrip], plate, strip);
                 det[1] = plate;
                 det[2] = strip;
                 det[3] = ipadz;
                 det[4] = ipadx;
+                if (mVerbose) {
+                  LOG(INFO) << "det[0] = " << det[0] << ", det[1] = " << det[1] << ", det[2] = " << det[2] << ", det[3] = " << det[3] << ", det[4] = " << det[4];
+                }
                 int channelIdx = Geo::getIndex(det);
                 if (mFeac[channelIdx] != singlefeacstatus) {
                   mFeac[channelIdx] = singlefeacstatus;
@@ -314,7 +320,7 @@ uint64_t TOFDCSProcessor::processFlags(const uint64_t flags, const char* pid)
 
 //______________________________________________________________________
 
-void TOFDCSProcessor::finalize()
+void TOFDCSProcessor::updateDPsCCDB()
 {
 
   // here we create the object to then be sent to CCDB
@@ -384,7 +390,8 @@ void TOFDCSProcessor::finalize()
     }
   }
   std::map<std::string, std::string> md;
-  prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/DCSDPs", mStartTF, md);
+  md["responsible"] = "Chiara Zampolli";
+  prepareCCDBobjectInfo(mTOFDCS, mccdbDPsInfo, "TOF/Calib/DCSDPs", mTF, md);
 
   return;
 }
@@ -400,7 +407,8 @@ void TOFDCSProcessor::updateFEACCCDB()
     LOG(INFO) << "At least one FEAC changed status --> we will update CCDB";
   }
   std::map<std::string, std::string> md;
-  prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/LVStatus", mTF, md);
+  md["responsible"] = "Chiara Zampolli";
+  prepareCCDBobjectInfo(mFeac, mccdbLVInfo, "TOF/Calib/LVStatus", mTF, md);
   return;
 }
 
@@ -415,7 +423,8 @@ void TOFDCSProcessor::updateHVCCDB()
     LOG(INFO) << "At least one HV changed status --> we will update CCDB";
   }
   std::map<std::string, std::string> md;
-  prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/HVStatus", mTF, md);
+  md["responsible"] = "Chiara Zampolli";
+  prepareCCDBobjectInfo(mHV, mccdbHVInfo, "TOF/Calib/HVStatus", mTF, md);
   return;
 }
 
@@ -557,5 +566,10 @@ void TOFDCSProcessor::getStripsConnectedToFEAC(int nDDL, int nFEAC, TOFFEACinfo&
       }
 
       break;
+  }
+  if (mVerbose) {
+    for (int ii = 0; ii < 6; ++ii) {
+      LOG(INFO) << "nDDL = " << nDDL << ", nFEAC = " << nFEAC << ", stripInSM[" << ii << "] = " << info.stripInSM[ii];
+    }
   }
 }

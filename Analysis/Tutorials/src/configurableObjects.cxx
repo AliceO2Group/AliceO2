@@ -7,9 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This task demonstrates how to use configurable to wrap classes.
+///        Use it with supplied configuration: "configurableObject.json".
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Analysis/configurableCut.h"
 
 #include <sstream>
@@ -17,9 +22,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-
-/// This task demonstrates how to use configurable to wrap classes
-/// use it with supplied configuration: "configurableObject.json"
 
 template <typename T>
 auto printArray(std::vector<T> const& vec)
@@ -52,6 +54,7 @@ auto printMatrix(Array2D<T> const& m)
 }
 
 static constexpr float defaultm[3][4] = {{1.1, 1.2, 1.3, 1.4}, {2.1, 2.2, 2.3, 2.4}, {3.1, 3.2, 3.3, 3.4}};
+static LabeledArray<float> la{&defaultm[0][0], 3, 4, {"r 1", "r 2", "r 3"}, {"c 1", "c 2", "c 3", "c 4"}};
 
 struct ConfigurableObjectDemo {
   Configurable<configurableCut> cut{"cut", {0.5, 1, true}, "generic cut"};
@@ -60,16 +63,22 @@ struct ConfigurableObjectDemo {
   // note that size is fixed by this declaration - externally supplied vector needs to be the same size!
   Configurable<std::vector<int>> array{"array", {0, 0, 0, 0, 0, 0, 0}, "generic array"};
   Configurable<Array2D<float>> vmatrix{"matrix", {&defaultm[0][0], 3, 4}, "generic matrix"};
+  Configurable<LabeledArray<float>> vla{"vla", {defaultm[0], 3, 4, {"r 1", "r 2", "r 3"}, {"c 1", "c 2", "c 3", "c 4"}}, "labeled array"};
 
-  void init(InitContext const&){};
-  void process(aod::Collision const&, aod::Tracks const& tracks)
+  void init(InitContext const&)
   {
-    LOGF(INFO, "Cut1: %.3f; Cut2: %.3f", cut, mutable_cut);
     LOGF(INFO, "Cut1 bins: %s; Cut2 bins: %s", printArray(cut->getBins()), printArray(mutable_cut->getBins()));
     LOGF(INFO, "Cut1 labels: %s; Cut2 labels: %s", printArray(cut->getLabels()), printArray(mutable_cut->getLabels()));
     auto vec = (std::vector<int>)array;
     LOGF(INFO, "Array: %s", printArray(vec).c_str());
     LOGF(INFO, "Matrix: %s", printMatrix((Array2D<float>)vmatrix));
+    LOGF(INFO, "Labeled:\n %s\n %s\n %s", printArray(vla->getLabelsRows()), printArray(vla->getLabelsCols()), printMatrix(vla->getData()));
+  };
+
+  void process(aod::Collision const&, aod::Tracks const& tracks)
+  {
+    LOGF(INFO, "Cut1: %.3f; Cut2: %.3f", cut, mutable_cut);
+
     for (auto const& track : tracks) {
       if (track.globalIndex() % 500 == 0) {
         std::string decision1;
@@ -95,8 +104,9 @@ struct ConfigurableObjectDemo {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ConfigurableObjectDemo>("configurable-demo")};
+    adaptAnalysisTask<ConfigurableObjectDemo>(cfgc),
+  };
 }

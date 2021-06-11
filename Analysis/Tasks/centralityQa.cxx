@@ -34,8 +34,8 @@ struct CentralityQaTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<CentralityQaTask>("centrality-qa")};
+    adaptAnalysisTask<CentralityQaTask>(cfgc, TaskName{"centrality-qa"})};
 }

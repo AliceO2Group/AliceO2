@@ -119,6 +119,12 @@ class CDBInterface
   /// \return gain map object
   const CalPad& getGainMap();
 
+  /// Return any CalPad object
+  ///
+  /// The function returns the CalPad object stored at the given path in the CCDB
+  /// \return CalPad object
+  const CalPad& getCalPad(const std::string_view path);
+
   /// Return the Detector parameters
   ///
   /// The function checks if the object is already loaded and returns it

@@ -174,11 +174,20 @@ struct DataSpecUtils {
   /// OutputSpec
   static InputSpec matchingInput(OutputSpec const& spec);
 
+  /// Get the origin, if available
+  static std::optional<header::DataOrigin> getOptionalOrigin(InputSpec const& spec);
+
+  /// Get the description, if available
+  static std::optional<header::DataDescription> getOptionalDescription(InputSpec const& spec);
+
   /// Get the subspec, if available
   static std::optional<header::DataHeader::SubSpecificationType> getOptionalSubSpec(OutputSpec const& spec);
 
   /// Get the subspec, if available
   static std::optional<header::DataHeader::SubSpecificationType> getOptionalSubSpec(InputSpec const& spec);
+
+  /// Build a DataDescriptMatcher which does not care about the subSpec.
+  static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(ConcreteDataMatcher const& concrete);
 
   /// Build a DataDescriptMatcher which does not care about the subSpec.
   static data_matcher::DataDescriptorMatcher dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType);

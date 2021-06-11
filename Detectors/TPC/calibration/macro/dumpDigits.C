@@ -17,7 +17,7 @@
 #endif
 
 void dumpDigits(std::vector<std::string_view> fileInfos, TString outputFileName = "", int nevents = 100,
-                int adcMin = -100, int adcMax = 1100,
+                float adcMin = -100, float adcMax = 1100,
                 int firstTimeBin = 0, int lastTimeBin = 1000,
                 float noiseThreshold = -1,
                 TString pedestalAndNoiseFile = "",
@@ -30,6 +30,7 @@ void dumpDigits(std::vector<std::string_view> fileInfos, TString outputFileName 
   dig.setADCRange(adcMin, adcMax);
   dig.setTimeBinRange(firstTimeBin, lastTimeBin);
   dig.setNoiseThreshold(noiseThreshold);
+  dig.setSkipIncompleteEvents(false);
 
   CalibRawBase::ProcessStatus status = CalibRawBase::ProcessStatus::Ok;
   for (const auto& fileInfo : fileInfos) {

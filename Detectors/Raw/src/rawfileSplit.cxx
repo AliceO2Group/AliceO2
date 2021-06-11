@@ -22,7 +22,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <TSystem.h>
+#include <filesystem>
 
 namespace bpo = boost::program_options;
 
@@ -43,6 +43,7 @@ int main(int argc, char* argv[])
   desc_add_option("spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes");
   desc_add_option("buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing");
   desc_add_option("detect-tf0", "autodetect HBFUtils start Orbit/BC from 1st TF seen");
+  desc_add_option("calculate-tf-start", "calculate TF start instead of using TType");
   desc_add_option("rorc", "impose RORC as default detector mode");
   desc_add_option("tfs-per-chunk,n", bpo::value<uint32_t>()->default_value(0xffffffff), " number of output TFs per chunk");
   desc_add_option("output-dir-prefix,o", bpo::value<std::string>()->default_value("./chunk"), "output directory prefix for raw data chunk (chunk ID will be added)");
@@ -100,6 +101,7 @@ int main(int argc, char* argv[])
   reader.setBufferSize(vm["buffer-size"].as<size_t>());
   reader.setDefaultReadoutCardType(rocard);
   reader.setTFAutodetect(vm.count("detect-tf0") ? RawFileReader::FirstTFDetection::Pending : RawFileReader::FirstTFDetection::Disabled);
+  reader.setPreferCalculatedTFStart(vm.count("calculate-tf-start"));
 
   std::string_view fileFor = vm["file-for"].as<std::string>();
 
@@ -162,11 +164,12 @@ int main(int argc, char* argv[])
 
         if (reinitWriter) {
           if (writer) { // generate config for previous chunk
-            writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
+            writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
           }
-          outDir = o2::utils::concat_string(outDirPrefix, "_", std::to_string(chunkID));
-          if (gSystem->AccessPathName(outDir.data())) {
-            if (gSystem->mkdir(outDir.data(), kTRUE)) {
+          outDir = o2::utils::Str::concat_string(outDirPrefix, "_", std::to_string(chunkID));
+          // if needed, create output directory
+          if (!std::filesystem::exists(outDir)) {
+            if (!std::filesystem::create_directories(outDir)) {
               LOG(FATAL) << "could not create output directory " << outDir;
             } else {
               LOG(INFO) << "created output directory " << outDir;
@@ -180,15 +183,15 @@ int main(int argc, char* argv[])
           std::string outFileName;
 
           if (fileFor == "all") { // single file for all links
-            outFileName = o2::utils::concat_string(outDir, "/", fileFor, ".raw");
+            outFileName = o2::utils::Str::concat_string(outDir, "/", fileFor, ".raw");
           } else if (fileFor == "cru") {
-            outFileName = o2::utils::concat_string(outDir, "/", fileFor, "_", std::to_string(RDHUtils::getCRUID(link.rdhl)), ".raw");
+            outFileName = o2::utils::Str::concat_string(outDir, "/", fileFor, "_", std::to_string(RDHUtils::getCRUID(link.rdhl)), ".raw");
           } else if (fileFor == "link") {
-            outFileName = o2::utils::concat_string(outDir, "/", fileFor,
-                                                   "_", std::to_string(RDHUtils::getLinkID(link.rdhl)),
-                                                   "_cru", std::to_string(RDHUtils::getCRUID(link.rdhl)),
-                                                   "_ep", std::to_string(RDHUtils::getEndPointID(link.rdhl)),
-                                                   "_feeid", std::to_string(RDHUtils::getFEEID(link.rdhl)), ".raw");
+            outFileName = o2::utils::Str::concat_string(outDir, "/", fileFor,
+                                                        "_", std::to_string(RDHUtils::getLinkID(link.rdhl)),
+                                                        "_cru", std::to_string(RDHUtils::getCRUID(link.rdhl)),
+                                                        "_ep", std::to_string(RDHUtils::getEndPointID(link.rdhl)),
+                                                        "_feeid", std::to_string(RDHUtils::getFEEID(link.rdhl)), ".raw");
           } else {
             throw std::runtime_error("invalid option provided for file grouping");
           }
@@ -203,7 +206,7 @@ int main(int argc, char* argv[])
     }
   }
   if (writer) { // generate config for previous chunk
-    writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
+    writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
   }
   writer.reset();
 

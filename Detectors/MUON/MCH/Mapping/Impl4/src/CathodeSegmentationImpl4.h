@@ -88,6 +88,8 @@ class CathodeSegmentation
 
   int padDualSampaChannel(int catPadIndex) const;
 
+  bool isValid(int catPadIndex) const;
+
  private:
   int dualSampaIndex(int dualSampaId) const;
 

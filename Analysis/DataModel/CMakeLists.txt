@@ -20,6 +20,7 @@ o2_target_root_dictionary(AnalysisDataModel
                                   include/AnalysisDataModel/PID/DetectorResponse.h
                                   include/AnalysisDataModel/PID/PIDTOF.h
                                   include/AnalysisDataModel/PID/TOFReso.h
+                                  include/AnalysisDataModel/PID/TOFResoALICE3.h
                                   include/AnalysisDataModel/PID/PIDTPC.h
                                   include/AnalysisDataModel/PID/BetheBloch.h
                                   include/AnalysisDataModel/PID/TPCReso.h
@@ -38,5 +39,10 @@ o2_add_executable(pidparam-tpc-bethe-bloch
 
 o2_add_executable(pidparam-tof-reso
                   SOURCES src/handleParamTOFReso.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                 )
+
+o2_add_executable(pidparam-tof-reso-alice3
+                  SOURCES src/handleParamTOFResoALICE3.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
                  )

@@ -22,10 +22,13 @@ namespace trd
 {
 
 // Global parameters for TRD simulation / digitization
+/*
+  See https://github.com/AliceO2Group/AliceO2/blob/dev/Common/SimConfig/doc/ConfigurableParam.md
+*/
 struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
-
-  int digithreads = 4; // number of digitizer threads
-
+  int digithreads = 4;       // number of digitizer threads
+  float maxMCStepSize = 0.1; // maximum size of MC steps
+  bool doTR = true;          // switch for transition radiation
   O2ParamDef(TRDSimParams, "TRDSimParams");
 };
 

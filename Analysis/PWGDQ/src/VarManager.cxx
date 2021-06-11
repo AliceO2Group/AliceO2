@@ -10,16 +10,17 @@
 
 #include "PWGDQCore/VarManager.h"
 
-#include <TMath.h>
+#include <cmath>
 
 ClassImp(VarManager);
 
 TString VarManager::fgVariableNames[VarManager::kNVars] = {""};
 TString VarManager::fgVariableUnits[VarManager::kNVars] = {""};
 bool VarManager::fgUsedVars[VarManager::kNVars] = {kFALSE};
-float VarManager::fgValues[VarManager::kNVars] = {0.0};
+float VarManager::fgValues[VarManager::kNVars] = {0.0f};
 std::map<int, int> VarManager::fgRunMap;
 TString VarManager::fgRunStr = "";
+o2::vertexing::DCAFitterN<2> VarManager::fgFitterTwoProng;
 
 //__________________________________________________________________
 VarManager::VarManager() : TObject()
@@ -72,6 +73,18 @@ void VarManager::SetRunNumbers(int n, int* runs)
 }
 
 //__________________________________________________________________
+void VarManager::SetRunNumbers(std::vector<int> runs)
+{
+  //
+  // maps the list of runs such that one can plot the list of runs nicely in a histogram axis
+  //
+  for (int i = 0; i < runs.size(); ++i) {
+    fgRunMap[runs.at(i)] = i + 1;
+    fgRunStr += Form("%d;", runs.at(i));
+  }
+}
+
+//__________________________________________________________________
 void VarManager::FillEventDerived(float* values)
 {
   //
@@ -89,7 +102,7 @@ void VarManager::FillTrackDerived(float* values)
   // Fill track-wise derived quantities (these are all quantities which can be computed just based on the values already filled in the FillTrack() function)
   //
   if (fgUsedVars[kP]) {
-    values[kP] = values[kPt] * TMath::CosH(values[kEta]);
+    values[kP] = values[kPt] * std::cosh(values[kEta]);
   }
 }
 
@@ -108,8 +121,6 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kRunNo] = "";
   fgVariableNames[kRunId] = "Run number";
   fgVariableUnits[kRunId] = "";
-  fgVariableNames[kCollisionTime] = "collision time";
-  fgVariableUnits[kCollisionTime] = "";
   fgVariableNames[kBC] = "Bunch crossing";
   fgVariableUnits[kBC] = "";
   fgVariableNames[kIsPhysicsSelection] = "Physics selection";
@@ -168,14 +179,14 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kITSlayerHit] = "";
   fgVariableNames[kTPCncls] = "TPC #cls";
   fgVariableUnits[kTPCncls] = "";
+  fgVariableNames[kTPCnclsCR] = "TPC #cls crossed rows";
+  fgVariableUnits[kTPCnclsCR] = "";
   fgVariableNames[kTPCchi2] = "TPC chi2";
   fgVariableUnits[kTPCchi2] = "";
   fgVariableNames[kTPCsignal] = "TPC dE/dx";
   fgVariableUnits[kTPCsignal] = "";
   fgVariableNames[kTRDsignal] = "TRD dE/dx";
   fgVariableUnits[kTRDsignal] = "";
-  fgVariableNames[kTOFsignal] = "TOF signal";
-  fgVariableUnits[kTOFsignal] = "";
   fgVariableNames[kTOFbeta] = "TOF #beta";
   fgVariableUnits[kTOFbeta] = "";
   fgVariableNames[kTrackLength] = "track length";
@@ -204,32 +215,46 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTOFnSigmaKa] = "";
   fgVariableNames[kTOFnSigmaPr] = "n #sigma_{p}^{TOF}";
   fgVariableUnits[kTOFnSigmaPr] = "";
-  fgVariableNames[kMuonInvBendingMomentum] = "Inverse bending mom.";
-  fgVariableUnits[kMuonInvBendingMomentum] = "1/(GeV/c)";
-  fgVariableNames[kMuonThetaX] = "theta X";
-  fgVariableUnits[kMuonThetaX] = "";
-  fgVariableNames[kMuonThetaY] = "theta Y";
-  fgVariableUnits[kMuonThetaY] = "";
-  fgVariableNames[kMuonZMu] = "ZMu";
-  fgVariableUnits[kMuonZMu] = "";
-  fgVariableNames[kMuonBendingCoor] = "bending coor.";
-  fgVariableUnits[kMuonBendingCoor] = "";
-  fgVariableNames[kMuonNonBendingCoor] = "non-bending coor.";
-  fgVariableUnits[kMuonNonBendingCoor] = "";
+  fgVariableNames[kMuonNClusters] = "muon n-clusters";
+  fgVariableUnits[kMuonNClusters] = "";
   fgVariableNames[kMuonRAtAbsorberEnd] = "R at the end of the absorber";
-  fgVariableUnits[kMuonRAtAbsorberEnd] = "";
+  fgVariableUnits[kMuonRAtAbsorberEnd] = "cm";
   fgVariableNames[kMuonPDca] = "p x dca";
   fgVariableUnits[kMuonPDca] = "cm x GeV/c";
-  fgVariableNames[kMuonChi2] = "#chi 2";
+  fgVariableNames[kMuonChi2] = "#chi^{2}";
   fgVariableUnits[kMuonChi2] = "";
-  fgVariableNames[kMuonChi2MatchTrigger] = "#chi 2 trigger match";
-  fgVariableUnits[kMuonChi2MatchTrigger] = "";
+  fgVariableNames[kMuonChi2MatchMCHMID] = "#chi^{2} MCH-MID";
+  fgVariableUnits[kMuonChi2MatchMCHMID] = "";
+  fgVariableNames[kMuonChi2MatchMCHMFT] = "#chi^{2} MCH-MFT";
+  fgVariableUnits[kMuonChi2MatchMCHMFT] = "";
+  fgVariableNames[kMuonMatchScoreMCHMFT] = "match score MCH-MFT";
+  fgVariableUnits[kMuonMatchScoreMCHMFT] = "";
+  fgVariableNames[kMuonCXX] = "cov XX";
+  fgVariableUnits[kMuonCXX] = "";
+  fgVariableNames[kMuonCYY] = "cov YY";
+  fgVariableUnits[kMuonCYY] = "";
+  fgVariableNames[kMuonCPhiPhi] = "cov PhiPhi";
+  fgVariableUnits[kMuonCPhiPhi] = "";
+  fgVariableNames[kMuonCTglTgl] = "cov TglTgl";
+  fgVariableUnits[kMuonCTglTgl] = "";
+  fgVariableNames[kMuonC1Pt21Pt2] = "cov 1Pt1Pt";
+  fgVariableUnits[kMuonC1Pt21Pt2] = "";
   fgVariableNames[kCandidateId] = "";
   fgVariableUnits[kCandidateId] = "";
   fgVariableNames[kPairType] = "Pair type";
   fgVariableUnits[kPairType] = "";
-  fgVariableNames[kPairLxy] = "Pair Lxy";
-  fgVariableUnits[kPairLxy] = "cm";
+  fgVariableNames[kVertexingLxy] = "Pair Lxy";
+  fgVariableUnits[kVertexingLxy] = "cm";
+  fgVariableNames[kVertexingLxyz] = "Pair Lxyz";
+  fgVariableUnits[kVertexingLxyz] = "cm";
+  fgVariableNames[kVertexingLxyErr] = "Pair Lxy err.";
+  fgVariableUnits[kVertexingLxyErr] = "cm";
+  fgVariableNames[kVertexingLxyzErr] = "Pair Lxyz err.";
+  fgVariableUnits[kVertexingLxyzErr] = "cm";
+  fgVariableNames[kVertexingProcCode] = "DCAFitterN<2> processing code";
+  fgVariableUnits[kVertexingProcCode] = "";
+  fgVariableNames[kVertexingChi2PCA] = "Pair #chi^{2} at PCA";
+  fgVariableUnits[kVertexingChi2PCA] = "";
   fgVariableNames[kPairMass] = "mass";
   fgVariableUnits[kPairMass] = "GeV/c2";
   fgVariableNames[kPairPt] = "p_{T}";
@@ -244,4 +269,6 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kDeltaPhi] = "rad.";
   fgVariableNames[kDeltaPhiSym] = "#Delta#phi";
   fgVariableUnits[kDeltaPhiSym] = "rad.";
+  fgVariableNames[kCosThetaHE] = "cos#it{#theta}";
+  fgVariableUnits[kCosThetaHE] = "";
 }

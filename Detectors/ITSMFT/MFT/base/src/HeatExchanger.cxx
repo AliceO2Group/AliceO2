@@ -3738,14 +3738,16 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
   //-----------------------------------------------------------------
   if (disk == 0 || disk == 1 || disk == 2) {
     auto* mCoolingPipe1 = new TGeoVolumeAssembly(Form("cooling_pipe1_H%d", half));
+    auto* mCoolingPipeRear1 = new TGeoVolumeAssembly(Form("cooling_pipeRear1_H%d", half));
+    auto* mCoolingPipeRear2 = new TGeoVolumeAssembly(Form("cooling_pipeRear2_H%d", half));
     if (disk == 0) {
-      length1 = 5.3;
+      length1 = 1.5;
     }
     if (disk == 1) {
-      length1 = 4.87;
+      length1 = 1.0;
     }
     if (disk == 2) {
-      length1 = 4.45;
+      length1 = 0.5;
     }
     rin = 0.25 / 2;
     rout = 0.4 / 2;
@@ -3763,13 +3765,13 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     transfoTorus1->RegisterYourself();
 
     if (disk == 0) {
-      length2 = 13.2;
+      length2 = 8.0;
     }
     if (disk == 1) {
-      length2 = 9.7;
+      length2 = 4.3;
     }
     if (disk == 2) {
-      length2 = 6.1;
+      length2 = 0.55;
     }
     TGeoVolume* Tube2 = gGeoManager->MakeTube(Form("Tube2_H%d_D%d", half, disk), mPipe, rin, rout, length2 / 2);
     TGeoVolume* TubeW2 = gGeoManager->MakeTube(Form("TubeW2_H%d_D%d", half, disk), mWater, 0., rin, length2 / 2);
@@ -3794,10 +3796,10 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
       length3 = 3.9;
     }
     if (disk == 1) {
-      length3 = 3.85;
+      length3 = 3.8;
     }
     if (disk == 2) {
-      length3 = 4.25;
+      length3 = 4.2;
     }
     TGeoVolume* Tube3 = gGeoManager->MakeTube(Form("Tube3_H%d_D%d", half, disk), mPipe, rin, rout, length3 / 2);
     TGeoVolume* TubeW3 = gGeoManager->MakeTube(Form("TubeW3_H%d_D%d", half, disk), mWater, 0., rin, length3 / 2);
@@ -3806,23 +3808,24 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     TGeoCombiTrans* transfoTube3 = new TGeoCombiTrans(-length2 - radius2 - radius1, -radius2 - length3 / 2, length1 / 2 + radius1, rTube3);
     transfoTube3->RegisterYourself();
 
-    Float_t length4 = 10.; //12.5; // one single pipe instead of 3 pipes coming from the 3 first disks
+    Float_t length4 = 16.0; // one single pipe instead of 3 pipes coming from the 3 first disks
     Float_t rin4 = 0.216;
     Float_t rout4 = 0.346;
     TGeoVolume* Tube4 = gGeoManager->MakeTube(Form("Tube4_H%d_D%d", half, disk), mPipe, rin4, rout4, length4 / 2);
     TGeoVolume* TubeW4 = gGeoManager->MakeTube(Form("TubeW4_H%d_D%d", half, disk), mWater, 0., rin4, length4 / 2);
-    Float_t theta4 = 19.; // horizontal plane angle
-    Float_t phi4 = 37;    // vertical plane angle
+    Float_t theta4 = 10.5; // horizontal plane angle
+    Float_t phi4 = 35;     // vertical plane angle
     TGeoRotation* rTube4 = new TGeoRotation("rotationTube4", 90.0 + theta4, 90.0 + phi4, 0.0);
     rTube4->RegisterYourself();
     // next line, the x and z axis are reversed in the location...
+    Float_t dx = 2.0;
     Float_t xTube4 = length1 / 2. + radius1 + TMath::Cos(theta4 * TMath::DegToRad()) * TMath::Sin(phi4 * TMath::DegToRad()) * length4 / 2 * 0.8;
-    Float_t yTube4 = -radius2 - length3 - TMath::Sin(theta4 * TMath::DegToRad()) * length4 / 2 * 0.8 - 0.2;
-    Float_t zTube4 = -radius1 - length2 - radius2 - TMath::Cos(theta4 * TMath::DegToRad()) * TMath::Cos(phi4 * TMath::DegToRad()) * length4 / 2 * 0.8;
+    Float_t yTube4 = -radius2 - length3 - TMath::Sin(theta4 * TMath::DegToRad()) * length4 / 2 * 0.8;
+    Float_t zTube4 = -radius1 - length2 - radius2 - TMath::Cos(theta4 * TMath::DegToRad()) * TMath::Cos(phi4 * TMath::DegToRad()) * length4 / 2 * 0.8 - 0.2;
     TGeoCombiTrans* transfoTube4 = new TGeoCombiTrans(zTube4, yTube4 - 0.2, xTube4 - 0.1, rTube4);
     transfoTube4->RegisterYourself();
 
-    Float_t length5 = 13.; //14.5; // one single pipe instead of 5 pipes
+    Float_t length5 = 13.0; // one single pipe instead of 5 pipes
     Double_t theta = 180. * TMath::Pi() / 180.;
     Double_t phi = 0. * TMath::Pi() / 180.;
     Double_t nlow[3];
@@ -3839,8 +3842,8 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     Float_t rout5 = 0.447;
     TGeoVolume* Tube5 = gGeoManager->MakeCtub(Form("Tube5_H%d_D%d", half, disk), mPipe, rin5, rout5, length5 / 2, 0., 360., nlow[0], nlow[1], nlow[2], nhi[0], nhi[1], nhi[2]);
     TGeoVolume* TubeW5 = gGeoManager->MakeCtub(Form("TubeW5_H%d_D%d", half, disk), mWater, 0., rin5, length5 / 2, 0., 360., nlow[0], nlow[1], nlow[2], nhi[0], nhi[1], nhi[2]);
-    Float_t theta5 = 8.5; // angle from the "horizontal" plane x,z
-    Float_t phi5 = 12.5;  // "azimutal" angle
+    Float_t theta5 = 11.5; // angle from the "horizontal" plane x,z
+    Float_t phi5 = 16.7;   // "azimutal" angle
     TGeoRotation* rTube5 = new TGeoRotation("rotationTube5", 90.0 + theta5, 90.0 + phi5, 0.0);
     rTube5->RegisterYourself();
     Float_t xTube5 = xTube4 + TMath::Cos(theta4 * TMath::DegToRad()) * TMath::Sin(phi4 * TMath::DegToRad()) * length4 / 2 + TMath::Cos(theta5 * TMath::DegToRad()) * TMath::Sin(phi5 * TMath::DegToRad()) * length5 / 2 * 1.03;
@@ -3872,10 +3875,10 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     mCoolingPipe1->AddNode(TubeW3, 1, transfoTube3);
 
     if (disk == 0) { // to create only one time Tube4 and Tube5
-      mCoolingPipe1->AddNode(Tube4, 1, transfoTube4);
-      mCoolingPipe1->AddNode(Tube5, 1, transfoTube5);
-      mCoolingPipe1->AddNode(TubeW4, 1, transfoTube4);
-      mCoolingPipe1->AddNode(TubeW5, 1, transfoTube5);
+      mCoolingPipeRear1->AddNode(Tube4, 1, transfoTube4);
+      mCoolingPipeRear1->AddNode(Tube5, 1, transfoTube5);
+      mCoolingPipeRear1->AddNode(TubeW4, 1, transfoTube4);
+      mCoolingPipeRear1->AddNode(TubeW5, 1, transfoTube5);
     }
 
     //-----------------------------------------------------------------
@@ -3932,8 +3935,8 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
       Tube4p->SetLineColor(kGray);
       TubeW4p->SetLineColor(kBlue);
 
-      mCoolingPipe2->AddNode(Tube4p, 1, transfoTube4p);
-      mCoolingPipe2->AddNode(TubeW4p, 1, transfoTube4p);
+      mCoolingPipeRear2->AddNode(Tube4p, 1, transfoTube4p);
+      mCoolingPipeRear2->AddNode(TubeW4p, 1, transfoTube4p);
       theta = 180. * TMath::Pi() / 180.;
       phi = 0. * TMath::Pi() / 180.;
       nlow[0] = TMath::Sin(theta) * TMath::Cos(phi);
@@ -3953,23 +3956,31 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
       transfoTube5p->RegisterYourself();
       Tube5p->SetLineColor(kGray);
       TubeW5p->SetLineColor(kBlue);
-      mCoolingPipe2->AddNode(Tube5p, 1, transfoTube5p);
-      mCoolingPipe2->AddNode(TubeW5p, 1, transfoTube5p);
+      mCoolingPipeRear2->AddNode(Tube5p, 1, transfoTube5p);
+      mCoolingPipeRear2->AddNode(TubeW5p, 1, transfoTube5p);
     }
     TGeoCombiTrans* transfoCoolingPipe1 = nullptr;
     TGeoCombiTrans* transfoCoolingPipe2 = nullptr;
+    TGeoCombiTrans* transfoCoolingPipeRear1 = nullptr;
+    TGeoCombiTrans* transfoCoolingPipeRear2 = nullptr;
 
     TGeoRotation* rotation1 = new TGeoRotation("rotation1", 90., 90., 90.);
     rotation1->RegisterYourself();
     // 0.75 = Y location from manifold line 836
     transfoCoolingPipe1 = new TGeoCombiTrans(13.8 + length1 / 2, 0.75, 0.0, rotation1);
     transfoCoolingPipe1->RegisterYourself();
+    transfoCoolingPipeRear1 = new TGeoCombiTrans(13.8 + length1 / 2, 0.75, 0.0, rotation1);
+    transfoCoolingPipeRear1->RegisterYourself();
     TGeoRotation* rotation2 = new TGeoRotation("rotation2", 90., 90., 90.);
     rotation2->RegisterYourself();
     transfoCoolingPipe2 = new TGeoCombiTrans(13.8 + length1 / 2, -0.75, 0.0, rotation2);
     transfoCoolingPipe2->RegisterYourself();
+    transfoCoolingPipeRear2 = new TGeoCombiTrans(13.8 + length1 / 2, -0.75, 0.0, rotation2);
+    transfoCoolingPipeRear2->RegisterYourself();
     mHalfDisk->AddNode(mCoolingPipe1, 1, transfoCoolingPipe1);
+    mHalfDisk->AddNode(mCoolingPipeRear1, 1, transfoCoolingPipeRear1);
     mHalfDisk->AddNode(mCoolingPipe2, 1, transfoCoolingPipe2);
+    mHalfDisk->AddNode(mCoolingPipeRear2, 1, transfoCoolingPipeRear2);
   }
 
   //=================================================================
@@ -3977,7 +3988,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
   if (disk == 3) {
     // One diagonal side
     auto* mCoolingPipe3 = new TGeoVolumeAssembly(Form("cooling_pipe3_H%d_D%d", half, disk));
-    Float_t length1_3 = 2.;
+    Float_t length1_3 = 4.0;
     TGeoVolume* Tube1_3 = gGeoManager->MakeTube(Form("Tube1_3_H%d_D%d", half, disk), mPipe, rin, rout, length1_3 / 2);
     TGeoVolume* TubeW1_3 = gGeoManager->MakeTube(Form("TubeW1_3_H%d_D%d", half, disk), mWater, 0., rin, length1_3 / 2);
     TGeoTranslation* tTube1_3 = new TGeoTranslation(0.0, 0.0, 0.0);
@@ -4009,7 +4020,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
 
     Float_t length3_3;
     if (disk == 3) {
-      length3_3 = 4.4;
+      length3_3 = 1.5;
     }
     TGeoVolume* Tube3_3 = gGeoManager->MakeTube(Form("Tube3_3_H%d_D%d", half, disk), mPipe, rin, rout, length3_3 / 2);
     TGeoVolume* TubeW3_3 = gGeoManager->MakeTube(Form("TubeW3_3_H%d_D%d", half, disk), mWater, 0., rin, length3_3 / 2);
@@ -4087,7 +4098,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
   if (disk == 4) {
     // One diagonal side
     auto* mCoolingPipe3 = new TGeoVolumeAssembly(Form("cooling_pipe3_H%d_D%d", half, disk));
-    Float_t length1_4 = 2.;
+    Float_t length1_4 = 3.0;
     TGeoVolume* Tube1_4 = gGeoManager->MakeTube(Form("Tube1_4_H%d_D%d", half, disk), mPipe, rin, rout, length1_4 / 2);
     TGeoVolume* TubeW1_4 = gGeoManager->MakeTube(Form("TubeW1_4_H%d_D%d", half, disk), mWater, 0., rin, length1_4 / 2);
     TGeoTranslation* tTube1_4 = new TGeoTranslation(0.0, 0.0, 0.0);
@@ -4121,7 +4132,7 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
 
     Float_t length3_4;
     if (disk == 4) {
-      length3_4 = 5.2;
+      length3_4 = 3.8;
     }
     TGeoVolume* Tube3_4 = gGeoManager->MakeTube(Form("Tube3_4_H%d_D%d", half, disk), mPipe, rin, rout, length3_4 / 2);
     TGeoVolume* TubeW3_4 = gGeoManager->MakeTube(Form("TubeW3_4_H%d_D%d", half, disk), mWater, 0., rin, length3_4 / 2);

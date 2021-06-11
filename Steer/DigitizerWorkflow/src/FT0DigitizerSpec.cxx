@@ -17,7 +17,6 @@
 #include "Headers/DataHeader.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "FT0Simulation/Digitizer.h"
-#include "FT0Simulation/DigitizationParameters.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/HitType.h"
 #include "DataFormatsFT0/Digit.h"
@@ -44,9 +43,7 @@ class FT0DPLDigitizerTask : public o2::base::BaseDPLDigitizer
   using GRP = o2::parameters::GRPObject;
 
  public:
-  FT0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer(DigitizationParameters{}) {}
-  explicit FT0DPLDigitizerTask(o2::ft0::DigitizationParameters const& parameters)
-    : o2::base::BaseDPLDigitizer(), mDigitizer(parameters){};
+  FT0DPLDigitizerTask() : o2::base::BaseDPLDigitizer(), mDigitizer() {}
   ~FT0DPLDigitizerTask() override = default;
 
   void initDigitizerTask(framework::InitContext& ic) override

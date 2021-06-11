@@ -30,7 +30,9 @@ using TrackParCov = TrackParametrizationWithError<float>;
 } // namespace o2::track
 namespace o2::base
 {
-class Propagator;
+template <typename>
+class PropagatorImpl;
+using Propagator = PropagatorImpl<float>;
 class MatLayerCylSet;
 } // namespace o2::base
 namespace o2::tpc

@@ -189,7 +189,7 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex, st
     }
   }
 
-  int result = fillIndex(clusterIndex, clusterBuffer, mcBuffer, clustersTPC, constMCLabelContainerViews, [](auto&) { return true; });
+  int result = fillIndex(clusterIndex, clusterBuffer, mcBuffer, clustersTPC, constMCLabelContainerViews);
   return result;
 }
 

@@ -35,7 +35,7 @@ struct Line final {
   GPUhd() Line(const Tracklet&, const Cluster*, const Cluster*);
 
 #ifdef _ALLOW_DEBUG_TREES_ITS_
-  Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId);
+  GPUhd() Line(const Tracklet& tracklet, const Cluster* innerClusters, const Cluster* outerClusters, const int evId);
 #endif
 
   inline static float getDistanceFromPoint(const Line& line, const std::array<float, 3>& point);

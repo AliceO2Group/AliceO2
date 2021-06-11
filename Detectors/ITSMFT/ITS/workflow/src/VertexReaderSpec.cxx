@@ -16,6 +16,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Logger.h"
 #include "ITSWorkflow/VertexReaderSpec.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::its;
@@ -27,7 +28,8 @@ namespace its
 
 void VertexReader::init(InitContext& ic)
 {
-  mFileName = ic.options().get<std::string>("its-vertex-infile");
+  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>("its-vertex-infile"));
   connectTree(mFileName);
 }
 
@@ -73,7 +75,8 @@ DataProcessorSpec getITSVertexReaderSpec()
     outputSpec,
     AlgorithmSpec{adaptFromTask<VertexReader>()},
     Options{
-      {"its-vertex-infile", VariantType::String, "o2trac_its.root", {"Name of the input ITS vertex file"}}}};
+      {"its-vertex-infile", VariantType::String, "o2trac_its.root", {"Name of the input ITS vertex file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace its

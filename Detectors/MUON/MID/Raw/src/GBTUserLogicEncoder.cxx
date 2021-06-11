@@ -22,6 +22,13 @@ namespace o2
 namespace mid
 {
 
+void GBTUserLogicEncoder::setGBTUniqueId(uint16_t gbtUniqueId)
+{
+  /// Sets the information associated to the GBT unique ID
+  mCrateId = crateparams::getCrateIdFromGBTUniqueId(gbtUniqueId);
+  mOffset = 8 * crateparams::getGBTIdInCrate(gbtUniqueId);
+}
+
 void GBTUserLogicEncoder::addShort(std::vector<char>& buffer, uint16_t shortWord) const
 {
   /// Adds a 16 bits word
@@ -35,11 +42,11 @@ void GBTUserLogicEncoder::processTrigger(const InteractionRecord& ir, uint8_t tr
   auto& vec = mBoards[ir];
   for (uint8_t ireg = 0; ireg < 2; ++ireg) {
     uint8_t firedLoc = (mMask >> (4 * ireg)) & 0xF;
-    vec.push_back({raw::sSTARTBIT, triggerWord, ireg, firedLoc});
+    vec.push_back({raw::sSTARTBIT, triggerWord, static_cast<uint8_t>(ireg + mOffset), firedLoc});
   }
   for (uint8_t iloc = 0; iloc < 8; ++iloc) {
     if (mMask & (1 << iloc)) {
-      vec.push_back({raw::sSTARTBIT | raw::sCARDTYPE, triggerWord, static_cast<uint8_t>(iloc + 8 * crateparams::getGBTIdInCrate(mFeeId)), 0});
+      vec.push_back({raw::sSTARTBIT | raw::sCARDTYPE, triggerWord, static_cast<uint8_t>(iloc + mOffset), 0});
       if (triggerWord & (raw::sSOX | raw::sEOX)) {
         /// Write masks
         for (int ich = 0; ich < 4; ++ich) {
@@ -59,12 +66,12 @@ void GBTUserLogicEncoder::addRegionalBoards(uint8_t activeBoards, InteractionRec
   for (uint8_t ireg = 0; ireg < 2; ++ireg) {
     uint8_t firedLoc = (activeBoards >> (4 * ireg)) & 0xF;
     if (firedLoc > 0) {
-      vec.push_back({raw::sSTARTBIT, 0, ireg, firedLoc});
+      vec.push_back({raw::sSTARTBIT, 0, static_cast<uint8_t>(ireg + mOffset), firedLoc});
     }
   }
 }
 
-void GBTUserLogicEncoder::process(gsl::span<const LocalBoardRO> data, const InteractionRecord& ir)
+void GBTUserLogicEncoder::process(gsl::span<const ROBoard> data, const InteractionRecord& ir)
 {
   /// Encode data
   auto& vec = mBoards[ir];
@@ -72,7 +79,7 @@ void GBTUserLogicEncoder::process(gsl::span<const LocalBoardRO> data, const Inte
   for (auto& loc : data) {
     for (int ich = 0; ich < 4; ++ich) {
       if (loc.patternsBP[ich] && loc.patternsNBP[ich]) {
-        activeBoards |= (1 << (crateparams::getLocId(loc.boardId) % 8));
+        activeBoards |= (1 << (raw::getLocId(loc.boardId) % 8));
       }
     }
     vec.emplace_back(loc);
@@ -83,14 +90,15 @@ void GBTUserLogicEncoder::process(gsl::span<const LocalBoardRO> data, const Inte
 void GBTUserLogicEncoder::flush(std::vector<char>& buffer, const InteractionRecord& ir)
 {
   /// Flush buffer
-  std::map<InteractionRecord, std::vector<LocalBoardRO>> tmpBoards;
+  std::map<InteractionRecord, std::vector<ROBoard>> tmpBoards;
   for (auto& item : mBoards) {
     if (item.first <= ir) {
       for (auto& loc : item.second) {
         buffer.emplace_back(loc.statusWord);
         buffer.emplace_back(loc.triggerWord);
         addShort(buffer, item.first.bc);
-        buffer.emplace_back((crateparams::getLocId(loc.boardId) << 4) | loc.firedChambers);
+        buffer.emplace_back((raw::getLocId(loc.boardId) << 4) | loc.firedChambers);
+        buffer.emplace_back(mCrateId << 4);
         if (raw::isLoc(loc.statusWord)) {
           for (int ich = 4; ich >= 0; --ich) {
             if (loc.firedChambers & (1 << ich)) {

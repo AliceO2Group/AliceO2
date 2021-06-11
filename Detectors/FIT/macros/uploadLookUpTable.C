@@ -8,29 +8,31 @@
 #include <map>
 #include <string_view>
 
-o2::ft0::HVchannel::HVBoard readHVBoard(std::string_view str);
-o2::ft0::Topo read_Topo(std::string_view str);
+//o2::ft0::HVchannel::HVBoard readHVBoard(std::string_view str);
 
 void uploadLookUpTable()
 {
   using o2::ccdb::BasicCCDBManager;
   using o2::ccdb::CcdbApi;
+  using namespace o2::ft0;
 
-  //  std::ifstream f{filename.data()};
-  std::ifstream f{"FT0ChannelsTable.txt"};
+  std::ifstream f{"/home/alla/aliO2/O2/Detectors/FIT/FT0/base/files/FT0ChannelsTable.02.0.4.2021.txt"};
   int channel;
-  std::string pm, pm_channel, hv_board, hv_channel, mcp_sn, hv_cable, signal_cable;
+  std::string pm, pm_channel, hv_board, hv_channel, mcp_sn, hv_cable, signal_cable, ep_PM;
   std::vector<o2::ft0::HVchannel> table;
   std::getline(f, pm); // skip one line
-  while (f >> channel >> pm >> pm_channel >> hv_board >> hv_channel >> mcp_sn >> hv_cable >> signal_cable) {
+  std::string line;
+  while (std::getline(f, line) && (std::istringstream(line) >> channel >> pm >> pm_channel >> hv_board >> hv_channel >> mcp_sn >> hv_cable >> signal_cable >> ep_PM)) {
     o2::ft0::HVchannel chan;
     chan.channel = channel;
     assert(std::string_view(pm_channel).substr(2, 2) == pm);
     chan.pm = read_Topo(pm_channel);
-    chan.HV_board = readHVBoard(hv_board);
+    chan.HV_board = hv_board; //readHVBoard(hv_board);
     chan.MCP_SN = mcp_sn;
     chan.HV_cabel = hv_cable;
     chan.signal_cable = signal_cable;
+    chan.EP = ep_PM;
+    LOG(INFO) << "read channel " << int(chan.channel);
     table.emplace_back(chan);
   }
   CcdbApi api;
@@ -39,7 +41,7 @@ void uploadLookUpTable()
   // store abitrary user object in strongly typed manner
   api.storeAsTFileAny(&table, "FT0/LookUpTable", metadata);
 }
-
+/*
 o2::ft0::HVchannel::HVBoard readHVBoard(std::string_view str)
 {
   using HVBoard = o2::ft0::HVchannel::HVBoard;
@@ -59,13 +61,4 @@ o2::ft0::HVchannel::HVBoard readHVBoard(std::string_view str)
     std::cerr << "Unknown HVBoard " << str << "\n";
     std::abort();
   }
-}
-o2::ft0::Topo read_Topo(std::string_view str)
-{
-  assert(str.substr(0, 2) == "PM" && str[4] == '/' && str[5] == 'C' && str[6] == 'h');
-  char side = str[2];
-  uint8_t pm_num = str[3] - '0';
-  uint8_t pm_ch = (str[7] - '0') * 10 + (str[8] - '0');
-  assert(side == 'A' || side == 'C');
-  return {(side == 'C' ? 10 : 0) + pm_num, pm_ch};
-}
+*/

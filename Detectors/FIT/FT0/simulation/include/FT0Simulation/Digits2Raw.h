@@ -23,6 +23,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
+#include "FT0Base/Geometry.h"
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
@@ -40,12 +41,11 @@ namespace ft0
 class Digits2Raw
 {
 
-  static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
-  static constexpr int LinkTCM = 19;
   static constexpr int NPMs = 20;
   static constexpr int GBTWordSize = 128; // with padding
   static constexpr int Max_Page_size = 8192;
+  static constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
 
  public:
   Digits2Raw() = default;
@@ -63,6 +63,9 @@ class Digits2Raw
 
   void setVerbosity(int v) { mVerbosity = v; }
   int getVerbosity() const { return mVerbosity; }
+  int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
+                      const char* ptr, int maxSize, int splitID,
+                      std::vector<char>& trailer, std::vector<char>& header) const;
 
  private:
   EventHeader makeGBTHeader(int link, o2::InteractionRecord const& mIntRecord);
@@ -77,10 +80,11 @@ class Digits2Raw
   uint16_t mCruID = 0;
   uint32_t mEndPointID = 0;
   uint64_t mFeeID = 0;
+  int mLinkTCM;
 
   /////////////////////////////////////////////////
 
-  ClassDefNV(Digits2Raw, 1);
+  ClassDefNV(Digits2Raw, 2);
 };
 
 } // namespace ft0

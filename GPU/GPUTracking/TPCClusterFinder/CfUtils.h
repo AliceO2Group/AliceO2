@@ -46,7 +46,7 @@ class CfUtils
 
   static GPUdi() bool isAboveThreshold(uchar peak) { return peak >> 1; }
 
-  template <typename SharedMemory>
+  template <size_t SCRATCH_PAD_WORK_GROUP_SIZE, typename SharedMemory>
   static GPUdi() ushort partition(SharedMemory& smem, ushort ll, bool pred, ushort partSize, ushort* newPartSize)
   {
     bool participates = ll < partSize;
