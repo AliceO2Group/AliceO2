@@ -15,7 +15,6 @@
 #include "DataFormatsZDC/MCLabel.h"
 #include "Framework/Logger.h"
 
-
 /// Example of accessing the ZDC digits
 
 void readZDCDigits(std::string digiFName = "zdcdigits.root")
