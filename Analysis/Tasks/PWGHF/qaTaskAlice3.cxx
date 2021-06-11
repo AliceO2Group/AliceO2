@@ -148,6 +148,7 @@ struct QaTrackingRejection {
     selectorElectron.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
     selectorElectron.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
     selectorElectron.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
+    selectorKaon.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
     selectorElectron.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
     selectorElectron.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
 
