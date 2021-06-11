@@ -100,9 +100,29 @@ void DigitRecoSpec::run(ProcessingContext& pc)
     LOG(INFO) << "Loaded TDC centering ZDCTDCParam for timestamp " << timeStamp;
     tdcParam->print();
 
+    // Energy calibration
+    auto* energyParam = mgr.get<o2::zdc::ZDCEnergyParam>(o2::zdc::CCDBPathEnergyCalib);
+    if (!energyParam) {
+      LOG(WARNING) << "Missing ZDCEnergyParam calibration object - using default";
+    } else {
+      LOG(INFO) << "Loaded Energy calibration ZDCEnergyParam for timestamp " << timeStamp;
+      energyParam->print();
+    }
+
+    // Tower calibration
+    auto* towerParam = mgr.get<o2::zdc::ZDCTowerParam>(o2::zdc::CCDBPathTowerCalib);
+    if (!towerParam) {
+      LOG(WARNING) << "Missing ZDCTowerParam calibration object - using default";
+    } else {
+      LOG(INFO) << "Loaded Tower calibration ZDCTowerParam for timestamp " << timeStamp;
+      towerParam->print();
+    }
+
     mDR.setModuleConfig(moduleConfig);
     mDR.setRecoConfigZDC(recoConfigZDC);
     mDR.setTDCParam(tdcParam);
+    mDR.setEnergyParam(energyParam);
+    mDR.setTowerParam(towerParam);
 
     if (mDebugOut) {
       mDR.setDebugOutput();

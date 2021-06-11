@@ -49,6 +49,7 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
 
   // Energy calibration
   float energy_calib[NChannels] = {0}; // Energy calibration coefficients
+  float tower_calib[NChannels] = {0};  // Tower calibration coefficients
   O2ParamDef(RecoParamZDC, "recoparamzdc");
 };
 } // namespace zdc

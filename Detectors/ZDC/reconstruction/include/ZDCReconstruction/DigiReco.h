@@ -17,6 +17,8 @@
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 #include "ZDCReconstruction/ZDCTDCParam.h"
+#include "ZDCReconstruction/ZDCEnergyParam.h"
+#include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "DataFormatsZDC/BCData.h"
@@ -65,6 +67,10 @@ class DigiReco
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
   void setTDCParam(const ZDCTDCParam* param) { mTDCParam = param; };
   const ZDCTDCParam* getTDCParam() { return mTDCParam; };
+  void setEnergyParam(const ZDCEnergyParam* param) { mEnergyParam = param; };
+  const ZDCEnergyParam* getEnergyParam() { return mEnergyParam; };
+  void setTowerParam(const ZDCTowerParam* param) { mTowerParam = param; };
+  const ZDCTowerParam* getTowerParam() { return mTowerParam; };
   void setRecoConfigZDC(const RecoConfigZDC* cfg) { mRecoConfigZDC = cfg; };
   const RecoConfigZDC* getRecoConfigZDC() { return mRecoConfigZDC; };
 
@@ -79,6 +85,8 @@ class DigiReco
   bool mIsContinuous = true;                                                  /// continuous (self-triggered) or externally-triggered readout
   int mNBCAHead = 0;                                                          /// when storing triggered BC, store also mNBCAHead BCs
   const ZDCTDCParam* mTDCParam = nullptr;                                     /// TDC calibration object
+  const ZDCEnergyParam* mEnergyParam = nullptr;                               /// Energy calibration object
+  const ZDCTowerParam* mTowerParam = nullptr;                                 /// Tower calibration object
   uint32_t mTDCMask[NTDCChannels] = {0};                                      /// Identify TDC channels in trigger mask
   const RecoConfigZDC* mRecoConfigZDC = nullptr;                              /// CCDB configuration parameters
   bool mVerbosity = DbgFull;
