@@ -102,6 +102,8 @@ class DigiReco
   static constexpr int mNSB = TSN * NTimeBinsPerBC; /// Total number of interpolated points per bunch crossing
   RecEventAux mRec;                                 /// Debug reconstruction event
   int mNBC = 0;
+  int mNLastLonely = 0;
+  int mNLast = 0;
   int16_t tdc_shift[NTDCChannels] = {0}; /// TDC correction (units of 1/96 ns)
   constexpr static uint16_t mMask[NTimeBinsPerBC] = {0x0001, 0x002, 0x004, 0x008, 0x0010, 0x0020, 0x0040, 0x0080, 0x0100, 0x0200, 0x0400, 0x0800};
 };
