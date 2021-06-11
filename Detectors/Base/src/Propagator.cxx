@@ -539,7 +539,7 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
 template <typename value_T>
 GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
 {
-  value_T xdca = 0., ydca = 0., zdca = 0., length = 0.;
+  value_T xdca = 0., ydca = 0., length = 0.;          // , zdca = 0. // zdca might be used in future
   if (math_utils::detail::abs<value_T>(mBz) > 1e-3) { // helix
     o2::math_utils::CircleXY<value_T> c;
     trc.getCircleParamsLoc(mBz, c);
@@ -554,7 +554,7 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
         ang = -ang;   // we need signeg angle
         c.rC = -c.rC; // we need signed curvature for zdca
       }
-      zdca = trc.getZ() + (trc.getSign() > 0. ? c.rC : -c.rC) * trc.getTgl() * ang;
+      // zdca = trc.getZ() + (trc.getSign() > 0. ? c.rC : -c.rC) * trc.getTgl() * ang;
       length = math_utils::detail::abs<value_type>(c.rC * ang * math_utils::detail::sqrt<value_type>(1. + trc.getTgl() * trc.getTgl()));
     }
   } else { // straight line
@@ -563,7 +563,7 @@ GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& 
     xdca = tgp * f * csp2;
     ydca = -f * csp2;
     auto dx = xdca - trc.getX(), dy = ydca - trc.getY(), dz = dx * trc.getTgl() / csp;
-    zdca = trc.getZ() + dz;
+    // zdca = trc.getZ() + dz;
     length = math_utils::detail::sqrt<value_type>(dx * dx + dy * dy + dz * dz);
   }
   // since we assume the track or its parent comes from the beam-line or decay, add XY(?) distance to it
