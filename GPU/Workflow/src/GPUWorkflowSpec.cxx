@@ -298,7 +298,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       if (info.size) {
         int fd = 0;
         if (confParam.mutexMemReg) {
-          fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+          fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
           if (fd == -1) {
             throw std::runtime_error("Error opening lock file");
           }
