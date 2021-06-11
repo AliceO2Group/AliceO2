@@ -72,7 +72,6 @@ struct GPUO2InterfaceConfiguration {
   struct GPUInterfaceSettings {
     int dumpEvents = 0;
     bool outputToExternalBuffers = false;
-    float memoryBufferScaleFactor = 1.f;
     // These constants affect GPU memory allocation only and do not limit the CPU processing
     unsigned long maxTPCZS = 8192ul * 1024 * 1024;
     unsigned int maxTPCHits = 1024 * 1024 * 1024;
@@ -91,10 +90,12 @@ struct GPUO2InterfaceConfiguration {
   GPUCalibObjectsConst configCalib;
 
   GPUSettingsO2 ReadConfigurableParam();
+  void PrintParam();
 
  private:
   friend class GPUReconstruction;
   GPUSettingsO2 ReadConfigurableParam_internal();
+  void PrintParam_internal();
 };
 
 } // namespace gpu

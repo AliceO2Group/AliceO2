@@ -10,7 +10,7 @@
 
 /// @brief  Processor spec for a ROOT file writer for TOF digits
 
-#include "TOFWorkflowUtils/TOFDigitWriterSpec.h"
+#include "TOFWorkflowIO/TOFDigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"

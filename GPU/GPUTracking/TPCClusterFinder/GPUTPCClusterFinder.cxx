@@ -81,6 +81,8 @@ void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
   computePointerWithAlignment(mem, mPfilteredPeakPositions, mNMaxClusters);
   if (mRec->GetProcessingSettings().runMC) {
     computePointerWithAlignment(mem, mPclusterPosInRow, mNMaxClusters);
+  } else {
+    mPclusterPosInRow = nullptr;
   }
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items());

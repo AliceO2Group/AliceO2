@@ -20,7 +20,6 @@
 #include "GPUQA.h"
 #include "GPUDisplayBackend.h"
 #include "genEvents.h"
-#include "GPUMemorySizeScalers.h"
 
 #include <iostream>
 #include <fstream>
@@ -120,7 +119,7 @@ int ReadConfiguration(int argc, char** argv)
     }
     return 1;
   }
-  if (configStandalone.printSettings) {
+  if (configStandalone.printSettings > 1) {
     qConfigPrint();
   }
   if (configStandalone.proc.debugLevel < 0) {
@@ -273,6 +272,11 @@ int ReadConfiguration(int argc, char** argv)
 #endif
 
   configStandalone.proc.showOutputStat = true;
+
+  if (configStandalone.printSettings) {
+    qConfigPrint();
+  }
+
   return (0);
 }
 
@@ -488,7 +492,6 @@ int SetupReconstruction()
   if (configStandalone.proc.debugLevel >= 4) {
     rec->PrintKernelOccupancies();
   }
-  rec->MemoryScalers()->factor *= configStandalone.memoryBufferScaleFactor;
   return (0);
 }
 
@@ -580,6 +583,7 @@ int LoadEvent(int iEvent, int x)
 
   ioPtrEvents[x] = chainTracking->mIOPtrs;
   ioMemEvents[x] = std::move(chainTracking->mIOMem);
+  chainTracking->mIOMem = decltype(chainTracking->mIOMem)();
   return 0;
 }
 

@@ -14,7 +14,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "TOFWorkflowUtils/CalibClusReaderSpec.h"
+#include "TOFWorkflowIO/CalibClusReaderSpec.h"
 #include "Framework/Logger.h"
 
 using namespace o2::framework;

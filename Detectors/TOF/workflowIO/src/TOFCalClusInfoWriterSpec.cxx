@@ -10,7 +10,7 @@
 
 /// @file   TOFCalClusInfoWriterSpec.cxx
 
-#include "TOFWorkflowUtils/TOFCalClusInfoWriterSpec.h"
+#include "TOFWorkflowIO/TOFCalClusInfoWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "DataFormatsTOF/CalibInfoCluster.h"
 #include "DataFormatsTOF/CosmicInfo.h"

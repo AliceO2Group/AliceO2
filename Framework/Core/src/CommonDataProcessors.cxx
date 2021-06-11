@@ -16,6 +16,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataOutputDirector.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/TableBuilder.h"
@@ -47,6 +48,8 @@
 #include <string>
 #include <thread>
 
+template class std::vector<o2::framework::OutputObjectInfo>;
+template class std::vector<o2::framework::OutputTaskInfo>;
 using namespace o2::framework::data_matcher;
 
 namespace o2
@@ -73,7 +76,7 @@ const static std::unordered_map<OutputObjHandlingPolicy, std::string> ROOTfileNa
                                                                                        {OutputObjHandlingPolicy::QAObject, "QAResults.root"}};
 
 // =============================================================================
-DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const& objmap, outputTasks const& tskmap)
+DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputObjectInfo> const& objmap, std::vector<OutputTaskInfo> const& tskmap)
 {
   auto writerFunction = [objmap, tskmap](InitContext& ic) -> std::function<void(ProcessingContext&)> {
     auto& callbacks = ic.services().get<CallbackService>();
@@ -191,18 +194,18 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(outputObjects const
       obj.obj = tm.ReadObjectAny(obj.kind);
       TNamed* named = static_cast<TNamed*>(obj.obj);
       obj.name = named->GetName();
-      auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.first == hash; });
+      auto hpos = std::find_if(tskmap.begin(), tskmap.end(), [&](auto&& x) { return x.id == hash; });
       if (hpos == tskmap.end()) {
         LOG(ERROR) << "No task found for hash " << hash;
         return;
       }
-      auto taskname = hpos->second;
-      auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.first == hash; });
+      auto taskname = hpos->name;
+      auto opos = std::find_if(objmap.begin(), objmap.end(), [&](auto&& x) { return x.id == hash; });
       if (opos == objmap.end()) {
         LOG(ERROR) << "No object list found for task " << taskname << " (hash=" << hash << ")";
         return;
       }
-      auto objects = opos->second;
+      auto objects = opos->bindings;
       if (std::find(objects.begin(), objects.end(), obj.name) == objects.end()) {
         LOG(ERROR) << "No object " << obj.name << " in map for task " << taskname;
         return;

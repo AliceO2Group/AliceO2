@@ -15,7 +15,7 @@
 #include "TTree.h"
 #include "TFile.h"
 
-#include "TOFWorkflow/TOFMatchedReaderSpec.h"
+#include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Headers/DataHeader.h"

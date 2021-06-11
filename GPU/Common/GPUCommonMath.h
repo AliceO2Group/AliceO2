@@ -57,6 +57,7 @@ class GPUCommonMath
   template <class T>
   GPUhd() static T Abs(T x);
   GPUd() static float ASin(float x);
+  GPUd() static float ACos(float x);
   GPUd() static float ATan(float x);
   GPUd() static float ATan2(float y, float x);
   GPUd() static float Sin(float x);
@@ -388,6 +389,8 @@ GPUhdi() int GPUCommonMath::Abs<int>(int x)
 }
 
 GPUdi() float GPUCommonMath::ASin(float x) { return CHOICE(asinf(x), asinf(x), asin(x)); }
+
+GPUdi() float GPUCommonMath::ACos(float x) { return CHOICE(acosf(x), acosf(x), acos(x)); }
 
 GPUdi() float GPUCommonMath::Log(float x) { return CHOICE(logf(x), logf(x), log(x)); }
 

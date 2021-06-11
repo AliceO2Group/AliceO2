@@ -258,6 +258,7 @@ foreach(b
         HistogramRegistry
         TableToTree
         TreeToTable
+        ExternalFairMQDeviceProxies
         )
   o2_add_executable(benchmark-${b}
                     SOURCES test/benchmark_${b}.cxx
