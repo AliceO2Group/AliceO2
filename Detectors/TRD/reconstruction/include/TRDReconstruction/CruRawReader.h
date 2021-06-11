@@ -38,6 +38,7 @@ namespace o2::trd
 {
 class Tracklet64;
 class TriggerRecord;
+class Digit;
 
 class CruRawReader
 {
@@ -88,20 +89,14 @@ class CruRawReader
 
   std::vector<Tracklet64>& getTracklets(InteractionRecord& ir) { return mEventRecords.getTracklets(ir); };
   std::vector<Digit>& getDigits(InteractionRecord& ir) { return mEventRecords.getDigits(ir); };
-  std::vector<CompressedDigit>& getCompressedDigits(InteractionRecord& ir) { return mEventRecords.getCompressedDigits(ir); };
   //  std::vector<o2::trd::TriggerRecord> getIR() { return mEventTriggers; }
-  void getParsedObjects(std::vector<Tracklet64>& tracklets, std::vector<CompressedDigit>& cdigits, std::vector<TriggerRecord>& triggers);
-  //void getParsedObjects(std::vector<Tracklet64>& tracklets,std::vector<Digit>& digits,std::vector<CompressedDigit>& cdigits,std::vector<TriggerRecord>& triggers);
+  void getParsedObjects(std::vector<Tracklet64>& tracklets, std::vector<Digit>& cdigits, std::vector<TriggerRecord>& triggers);
   int getDigitsFound() { return mTotalDigitsFound; }
   int getTrackletsFound() { return mTotalTrackletsFound; }
   int sumTrackletsFound() { return mEventRecords.sumTracklets(); }
   int sumDigitsFound() { return mEventRecords.sumDigits(); }
   void clearall()
   {
-    //mEventTracklets.clear(); // when this runs properly it will only 6 for the flp its runnung on.
-    //mEventTriggers.clear();
-    //mEventCompressedDigits.clear();
-    //mEventDigits.clear();
     mEventRecords.clear();
     clear();
   }
@@ -195,11 +190,6 @@ class CruRawReader
   uint32_t mFatalCounter;
   uint32_t mErrorCounter;
 
-  //std::vector<Tracklet64> mEventTracklets; // when this runs properly it will only 6 for the flp its runnung on.
-  //std::vector<o2::trd::TriggerRecord> mEventTriggers;
-  //std::vector<CompressedDigit> mEventCompressedDigits;
-  //std::vector<Digit> mEventDigits;
-  //  EventStorage mEventStores; // store data range indexes into the above vectors.
   EventStorage mEventRecords; // store data range indexes into the above vectors.
   bool mReturnBlob{0};        // whether to return blobs or vectors;
   struct TRDDataCounters_t {  //thisis on a per event basis

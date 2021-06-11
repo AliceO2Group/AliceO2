@@ -19,7 +19,6 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/EventRecord.h"
-#include "DataFormatsTRD/CompressedDigit.h"
 #include "DataFormatsTRD/Constants.h"
 #include <cassert>
 #include <array>
@@ -34,11 +33,8 @@ namespace o2::trd
 
 //Digit information
 std::vector<Digit>& EventRecord::getDigits() { return mDigits; }
-std::vector<CompressedDigit>& EventRecord::getCompressedDigits() { return mCompressedDigits; }
 void EventRecord::addDigits(Digit& digit) { mDigits.push_back(digit); }
-void EventRecord::addCompressedDigits(CompressedDigit& digit) { mCompressedDigits.push_back(digit); }
 void EventRecord::addDigits(std::vector<Digit>::iterator& start, std::vector<Digit>::iterator& end) { mDigits.insert(std::end(mDigits), start, end); }
-void EventRecord::addCompressedDigits(std::vector<CompressedDigit>::iterator& start, std::vector<CompressedDigit>::iterator& end) { mCompressedDigits.insert(std::end(mCompressedDigits), start, end); }
 
 //tracklet information
 std::vector<Tracklet64>& EventRecord::getTracklets() { return mTracklets; }
@@ -72,22 +68,6 @@ void EventStorage::addDigits(InteractionRecord& ir, Digit& digit)
     mEventRecords.back().addDigits(digit);
   }
 }
-void EventStorage::addCompressedDigits(InteractionRecord& ir, CompressedDigit& digit)
-{
-  bool added = false;
-  for (int count = 0; count < mEventRecords.size(); ++count) {
-    if (ir == mEventRecords[count].getBCData()) {
-      //TODO replace this with a hash/map not a vector
-      mEventRecords[count].addCompressedDigits(digit);
-      added = true;
-    }
-  }
-  if (!added) {
-    // unseen ir so add it
-    mEventRecords.push_back(ir);
-    mEventRecords.back().addCompressedDigits(digit);
-  }
-}
 void EventStorage::addDigits(InteractionRecord& ir, std::vector<Digit>::iterator start, std::vector<Digit>::iterator end)
 {
   bool added = false;
@@ -102,22 +82,6 @@ void EventStorage::addDigits(InteractionRecord& ir, std::vector<Digit>::iterator
     // unseen ir so add it
     mEventRecords.push_back(ir);
     mEventRecords.back().addDigits(start, end);
-  }
-}
-void EventStorage::addCompressedDigits(InteractionRecord& ir, std::vector<CompressedDigit>::iterator start, std::vector<CompressedDigit>::iterator end)
-{
-  bool added = false;
-  for (int count = 0; count < mEventRecords.size(); ++count) {
-    if (ir == mEventRecords[count].getBCData()) {
-      //TODO replace this with a hash/map not a vector
-      mEventRecords[count].addCompressedDigits(start, end);
-      added = true;
-    }
-  }
-  if (!added) {
-    // unseen ir so add it
-    mEventRecords.push_back(ir);
-    mEventRecords.back().addCompressedDigits(start, end);
   }
 }
 void EventStorage::addTracklet(InteractionRecord& ir, Tracklet64& tracklet)
@@ -185,21 +149,6 @@ void EventStorage::unpackDataForSending(std::vector<TriggerRecord>& triggers, st
     trackletcount += event.getTracklets().size();
   }
 }
-void EventStorage::unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<CompressedDigit>& digits)
-{
-  int digitcount = 0;
-  int trackletcount = 0;
-  for (auto event : mEventRecords) {
-    tracklets.insert(std::end(tracklets), std::begin(event.getTracklets()), std::end(event.getTracklets()));
-    digits.insert(std::end(digits), std::begin(event.getCompressedDigits()), std::end(event.getCompressedDigits()));
-    triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());
-    digitcount += event.getDigits().size();
-    trackletcount += event.getTracklets().size();
-    //LOG(info) << "For IR::" << event.getBCData();
-    //LOG(info) << "tracklets to add : " << event.getTracklets().size() << " trackletcout:" << trackletcount;
-    //LOG(info) << "digits to add : " << event.getDigits().size() << " digitcount " << digitcount;
-  }
-}
 int EventStorage::sumTracklets()
 {
   int sum = 0;
@@ -241,20 +190,6 @@ std::vector<Digit>& EventStorage::getDigits(InteractionRecord& ir)
   LOG(warn) << "attempted to get digits from IR: " << ir << " total digits of:" << sumDigits();
   printIR();
   return mDummyDigits;
-}
-
-std::vector<CompressedDigit>& EventStorage::getCompressedDigits(InteractionRecord& ir)
-{
-  bool found = false;
-  for (int count = 0; count < mEventRecords.size(); ++count) {
-    if (ir == mEventRecords[count].getBCData()) {
-      found = true;
-      return mEventRecords[count].getCompressedDigits();
-    }
-  }
-  LOG(warn) << "attempted to get digits from IR: " << ir << " total digits of:" << sumDigits();
-  printIR();
-  return mDummyCompressedDigits;
 }
 
 void EventStorage::printIR()

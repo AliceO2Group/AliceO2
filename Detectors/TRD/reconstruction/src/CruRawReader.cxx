@@ -21,7 +21,6 @@
 #include "TRDReconstruction/DigitsParser.h"
 #include "TRDReconstruction/TrackletsParser.h"
 #include "DataFormatsTRD/Constants.h"
-//#inaclude "DataFormatsTRD/CompressedDigit.h"
 
 #include <cstring>
 #include <string>
@@ -329,7 +328,7 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
   }
   //LOG(info) << "added tracklets from trackletparser with a size of:" << mTrackletsParser.getTracklets().size();
   mTrackletsParser.clear();
-  mEventRecords.addCompressedDigits(mIR, std::begin(mDigitsParser.getDigits()), std::end(mDigitsParser.getDigits()));
+  mEventRecords.addDigits(mIR, std::begin(mDigitsParser.getDigits()), std::end(mDigitsParser.getDigits()));
   if (mVerbose) {
     LOG(info) << "inserting digits from parser of size : " << mDigitsParser.getDigits().size();
   }
@@ -410,11 +409,11 @@ bool CruRawReader::run()
   return false;
 };
 
-void CruRawReader::getParsedObjects(std::vector<Tracklet64>& tracklets, std::vector<CompressedDigit>& cdigits, std::vector<TriggerRecord>& triggers)
+void CruRawReader::getParsedObjects(std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits, std::vector<TriggerRecord>& triggers)
 {
   int digitcountsum = 0;
   int trackletcountsum = 0;
-  mEventRecords.unpackDataForSending(triggers, tracklets, cdigits);
+  mEventRecords.unpackDataForSending(triggers, tracklets, digits);
   /*for(auto eventrecord: mEventRecords)//loop over triggers incase they have already been done.
   {
   int digitcount=0;

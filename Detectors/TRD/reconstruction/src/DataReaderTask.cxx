@@ -41,10 +41,10 @@ void DataReaderTask::init(InitContext& ic)
 void DataReaderTask::sendData(ProcessingContext& pc)
 {
   // mReader.getParsedObjects(mTracklets,mDigits,mTriggers);
-  mReader.getParsedObjects(mTracklets, mCompressedDigits, mTriggers);
+  mReader.getParsedObjects(mTracklets, mDigits, mTriggers);
 
-  LOG(info) << "Sending data onwards with " << mCompressedDigits.size() << " Digits and " << mTracklets.size() << " Tracklets and " << mTriggers.size() << " Triggers";
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mCompressedDigits);
+  LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets and " << mTriggers.size() << " Triggers";
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggers);
   //    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD,"STATS",0,Lifetime::Timerframe},mStats);
@@ -72,7 +72,7 @@ void DataReaderTask::run(ProcessingContext& pc)
       const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
-      if (!mCompressedData) {
+      if (!mCompressedData) { //we have raw data coming in from flp
         if (mVerbose) {
           LOG(info) << " parsing non compressed data in the data reader task";
         }
@@ -98,12 +98,12 @@ void DataReaderTask::run(ProcessingContext& pc)
         // mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
         //mReader.clearall();
         if (mVerbose) {
-          LOG(info) << "from parsing received: " << mTracklets.size() << " tracklets and " << mCompressedDigits.size() << " compressed digits";
+          LOG(info) << "from parsing received: " << mTracklets.size() << " tracklets and " << mDigits.size() << " compressed digits";
           LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
         }
         //  mTriggers = mReader.getIR();
         //get the payload of trigger and digits out.
-      } else { // we have compressed data coming in.
+      } else { // we have compressed data coming in from flp.
         mCompressedReader.setDataBuffer(payloadIn);
         mCompressedReader.setDataBufferSize(payloadInSize);
         mCompressedReader.configure(mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
@@ -123,7 +123,7 @@ void DataReaderTask::run(ProcessingContext& pc)
   LOG(info) << "Processing time for Data reading  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
   if (!mCompressedData) {
     LOG(info) << "Digits found : " << mReader.getDigitsFound();
-    LOG(info) << "Digits returned : " << mCompressedDigits.size();
+    LOG(info) << "Digits returned : " << mDigits.size();
 
     LOG(info) << "Tracklets found : " << mReader.getTrackletsFound();
     LOG(info) << "Tracklets returned : " << mTracklets.size();

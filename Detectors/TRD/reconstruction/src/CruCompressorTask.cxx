@@ -62,7 +62,7 @@ uint64_t CruCompressorTask::buildEventOutput()
   //write the
   std::vector<o2::trd::TriggerRecord> ir;
   std::vector<o2::trd::Tracklet64> tracklets;
-  std::vector<o2::trd::CompressedDigit> digits;
+  std::vector<o2::trd::Digit> digits;
   mReader.getParsedObjects(tracklets, digits, ir);
   trackletheader->bc = ir[0].getBCData().bc;
   trackletheader->orbit = ir[0].getBCData().orbit;

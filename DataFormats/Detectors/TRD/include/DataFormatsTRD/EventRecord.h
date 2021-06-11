@@ -39,7 +39,6 @@ class EventRecord
   {
     mTracklets.reserve(30);
     mDigits.reserve(20);
-    mCompressedDigits.reserve(30);
   }
   ~EventRecord() = default;
 
@@ -50,11 +49,8 @@ class EventRecord
 
   //Digit information
   std::vector<Digit>& getDigits();
-  std::vector<CompressedDigit>& getCompressedDigits();
   void addDigits(Digit& digit);
-  void addCompressedDigits(CompressedDigit& digit);
   void addDigits(std::vector<Digit>::iterator& start, std::vector<Digit>::iterator& end);
-  void addCompressedDigits(std::vector<CompressedDigit>::iterator& start, std::vector<CompressedDigit>::iterator& end);
 
   //tracklet information
   std::vector<Tracklet64>& getTracklets();
@@ -65,20 +61,18 @@ class EventRecord
 
   bool operator==(const EventRecord& o) const
   {
-    return mBCData == o.mBCData; //&& mDigits == o.mDigits && mTracklets == o.mTracklets && mCompressedDigits == o.mCompressedDigits;
+    return mBCData == o.mBCData; //&& mDigits == o.mDigits && mTracklets == o.mTracklets ;
   }
   void clear()
   {
     mDigits.clear();
     mTracklets.clear();
-    mCompressedDigits.clear();
   }
 
  private:
-  BCData mBCData;                                   /// orbit and Bunch crossing data of the physics trigger
-  std::vector<Digit> mDigits{};                     /// digit data, for this event
-  std::vector<Tracklet64> mTracklets{};             /// tracklet data, for this event
-  std::vector<CompressedDigit> mCompressedDigits{}; /// compressed digit data,for this event
+  BCData mBCData;                       /// orbit and Bunch crossing data of the physics trigger
+  std::vector<Digit> mDigits{};         /// digit data, for this event
+  std::vector<Tracklet64> mTracklets{}; /// tracklet data, for this event
 
   ClassDefNV(EventRecord, 1);
 };
@@ -93,19 +87,15 @@ class EventStorage
   //a vector of eventrecords and the associated funationality to go with it.
   void clear() { mEventRecords.clear(); }
   void addDigits(InteractionRecord& ir, Digit& digit);
-  void addCompressedDigits(InteractionRecord& ir, CompressedDigit& digit);
   void addDigits(InteractionRecord& ir, std::vector<Digit>::iterator start, std::vector<Digit>::iterator end);
-  void addCompressedDigits(InteractionRecord& ir, std::vector<CompressedDigit>::iterator start, std::vector<CompressedDigit>::iterator end);
   void addTracklet(InteractionRecord& ir, Tracklet64& tracklet);
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& tracklets);
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end);
   void unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits);
-  void unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<CompressedDigit>& digits);
   int sumTracklets();
   int sumDigits();
   std::vector<Tracklet64>& getTracklets(InteractionRecord& ir);
   std::vector<Digit>& getDigits(InteractionRecord& ir);
-  std::vector<CompressedDigit>& getCompressedDigits(InteractionRecord& ir);
   void printIR();
 
  private:
@@ -113,7 +103,6 @@ class EventStorage
   //these 2 are hacks to be able to send bak a blank vector if interaction record is not found.
   std::vector<Tracklet64> mDummyTracklets;
   std::vector<Digit> mDummyDigits;
-  std::vector<CompressedDigit> mDummyCompressedDigits;
   ClassDefNV(EventStorage, 1);
 };
 std::ostream& operator<<(std::ostream& stream, const EventRecord& trg);
