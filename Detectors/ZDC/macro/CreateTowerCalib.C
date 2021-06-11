@@ -53,7 +53,6 @@ void CreateTowerCalib(long tmin = 0, long tmax = -1,
   conf.setTowerCalib(IdZPC3, 1.);
   conf.setTowerCalib(IdZPC4, 1.);
 
-  conf.check();
   conf.print();
 
   o2::ccdb::CcdbApi api;

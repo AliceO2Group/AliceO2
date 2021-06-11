@@ -35,6 +35,6 @@ float ZDCTDCParam::getShift(uint32_t ich) const
 void ZDCTDCParam::print()
 {
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
-    LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " shift = " << tdc_shift[itdc] << " ns";
+    LOG(INFO) << ChannelNames[TDCSignal[itdc]] << " shift = " << tdc_shift[itdc] << " ns";
   }
 }
