@@ -10,7 +10,7 @@
 
 o2_add_library(
   GlobalTracking
-  SOURCES src/MatchTPCITS.cxx src/MatchTOF.cxx
+  SOURCES src/MatchTPCITS.cxx src/MatchTOFBase.cxx src/MatchTOF.cxx
           src/MatchTPCITSParams.cxx
           src/MatchCosmics.cxx
           src/MatchCosmicsParams.cxx

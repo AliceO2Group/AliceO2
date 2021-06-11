@@ -18,7 +18,7 @@
 #include "Framework/SerializationMethods.h"
 #include "Headers/DataHeader.h"
 #include "DataFormatsTOF/Cluster.h"
-#include "GlobalTracking/MatchTOF.h"
+#include "GlobalTracking/MatchTOFBase.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
@@ -96,7 +96,9 @@ class TOFDPLRecoWorkflowTask
       toflab = std::move(*toflabel);
     }
 
-    mMatcher.run(tracksRO, clustersRO, toflab, itstpclab);
+    mMatcher.setTOFClusterArray(clustersRO, toflab);
+    mMatcher.setITSTPCTrackArray(tracksRO, itstpclab);
+    mMatcher.run();
 
     // in run_match_tof aggiugnere esplicitamente la chiamata a fill del tree (nella classe MatchTOF) e il metodo per leggere i vettori di output
 
@@ -105,9 +107,9 @@ class TOFDPLRecoWorkflowTask
     //           << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send matching-info
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOF::TrackType::ITSTPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOF::TrackType::ITSTPC));
     }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
     mTimer.Stop();
@@ -120,7 +122,7 @@ class TOFDPLRecoWorkflowTask
   }
 
  private:
-  o2::globaltracking::MatchTOF mMatcher; ///< Cluster finder
+  o2::globaltracking::MatchTOFBase mMatcher; ///< Cluster finder
   TStopwatch mTimer;
 };
 
@@ -139,9 +141,9 @@ o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT)
     inputs.emplace_back("fitrecpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_1", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_1", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
 

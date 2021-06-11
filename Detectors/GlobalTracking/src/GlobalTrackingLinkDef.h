@@ -14,6 +14,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::globaltracking::MatchTOFBase + ;
 #pragma link C++ class o2::globaltracking::MatchTOF + ;
 #pragma link C++ class o2::globaltracking::TrackLocTPC + ;
 #pragma link C++ class o2::globaltracking::TrackLocITS + ;

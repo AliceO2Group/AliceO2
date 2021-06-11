@@ -35,7 +35,7 @@
 
 // from TOF
 #include "DataFormatsTOF/Cluster.h"
-#include "GlobalTracking/MatchTOF.h"
+#include "GlobalTracking/MatchTOFBase.h"
 #include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
 
 // from FIT
@@ -71,7 +71,7 @@ class TOFMatcherSpec : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   bool mUseMC = true;
   bool mUseFIT = false;
-  MatchTOF mMatcher; ///< Cluster finder
+  MatchTOFBase mMatcher; ///< Cluster finder
   TStopwatch mTimer;
 };
 
@@ -104,6 +104,16 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   recoData.collectData(pc, *mDataRequest.get());
   const auto clustersRO = pc.inputs().get<gsl::span<o2::tof::Cluster>>("tofcluster");
 
+  LOG(INFO) << "isTrackSourceLoaded: TPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPC);
+  LOG(INFO) << "isTrackSourceLoaded: ITSTPC -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
+  LOG(INFO) << "isTrackSourceLoaded: TPCTRD -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRD);
+  LOG(INFO) << "isTrackSourceLoaded: ITSTPCTRD -> " << recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRD);
+
+  bool isTPCused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPC);
+  bool isITSTPCused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
+  bool isTPCTRDused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRD);
+  bool isITSTPCTRDused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRD);
+
   if (mUseFIT) {
     // Note: the particular variable will go out of scope, but the span is passed by copy to the
     // worker and the underlying memory is valid throughout the whole computation
@@ -113,17 +123,49 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   }
 
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> toflab;
+  gsl::span<const o2::MCCompLabel> tpclab;
+  gsl::span<const o2::MCCompLabel> itstpclab;
+  gsl::span<const o2::MCCompLabel> tpctrdlab;
+  gsl::span<const o2::MCCompLabel> itstpctrdlab;
   if (mUseMC) {
     const auto toflabel = pc.inputs().get<o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("tofclusterlabel");
     toflab = std::move(*toflabel);
   }
 
-  //mMatcher.run(tracksRO, clustersRO, toflab, itstpclab);
+  mMatcher.setTOFClusterArray(clustersRO, toflab);
 
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector());
-  if (mUseMC) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector());
+  if (isTPCused) {
+    const auto tracksTPC = recoData.getTPCTracks();
+    if (mUseMC) {
+      tpclab = recoData.getTPCTracksMCLabels();
+    }
+    mMatcher.setTPCTrackArray(tracksTPC, tpclab);
   }
+
+  if (isITSTPCused) {
+    const auto tracksITSTPC = recoData.getTPCITSTracks();
+    if (mUseMC) {
+      itstpclab = recoData.getTPCITSTracksMCLabels();
+    }
+    mMatcher.setITSTPCTrackArray(tracksITSTPC, itstpclab);
+  }
+
+  mMatcher.run();
+
+  if (isTPCused) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOF::TrackType::TPC));
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOF::TrackType::TPC));
+    }
+  }
+
+  if (isITSTPCused) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOF::TrackType::ITSTPC));
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOF::TrackType::ITSTPC));
+    }
+  }
+
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
 
   mTimer.Stop();
@@ -152,9 +194,15 @@ DataProcessorSpec getTOFMatcherSpec(GTrackID::mask_t src, bool useMC, bool useFI
     inputs.emplace_back("fitrecpoints", o2::header::gDataOriginFT0, "RECPOINTS", 0, Lifetime::Timeframe);
   }
 
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_0", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_1", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_2", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_3", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHTOF", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_0", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_1", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_2", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_3", 0, Lifetime::Timeframe);
   }
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
 
