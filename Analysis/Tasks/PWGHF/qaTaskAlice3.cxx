@@ -55,7 +55,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"rej-el", VariantType::Int, 1, {"Efficiency for the Electron PDG code"}},
     {"rej-mu", VariantType::Int, 1, {"Efficiency for the Muon PDG code"}},
     {"rej-pi", VariantType::Int, 1, {"Efficiency for the Pion PDG code"}},
-    {"rej-ka", VariantType::Int, 0, {"Efficiency for the Kaon PDG code"}},
+    {"rej-ka", VariantType::Int, 1, {"Efficiency for the Kaon PDG code"}},
     {"rej-pr", VariantType::Int, 0, {"Efficiency for the Proton PDG code"}}};
   std::swap(workflowOptions, options);
 }
@@ -148,7 +148,7 @@ struct QaTrackingRejection {
     selectorElectron.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
     selectorElectron.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
     selectorElectron.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
-    selectorKaon.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
+    selectorElectron.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
     selectorElectron.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
     selectorElectron.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
 
@@ -271,6 +271,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   w.push_back(adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc));
   if (cfgc.options().get<int>("rej-el")) {
   w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Electron>>(cfgc, TaskName{"qa-tracking-rejection-electron"}));
+  }
+  if (cfgc.options().get<int>("rej-ka")) {
+  w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Kaon>>(cfgc, TaskName{"qa-tracking-rejection-kaon"}));
+  }
+  if (cfgc.options().get<int>("rej-pr")) {
+  w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Proton>>(cfgc, TaskName{"qa-tracking-rejection-proton"}));
   }
   if (cfgc.options().get<int>("rej-mu")) {
   w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Muon>>(cfgc, TaskName{"qa-tracking-rejection-mu"}));
