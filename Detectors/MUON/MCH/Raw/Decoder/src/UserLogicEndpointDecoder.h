@@ -126,15 +126,15 @@ size_t UserLogicEndpointDecoder<CHARGESUM, VERSION>::append(Payload buffer)
       // hence proper decoding will be implemented once the format is finalized.
       // For the moment we simply avoid throwing an exception when linkID is equal to 15
       continue;
-    }
-
-    if (gbt < 0 || gbt > 11) {
-      SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
-      if (handler) {
-        DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
-        handler(dsId, -1, ErrorBadLinkID);
-      } else {
-        throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
+    } else {
+      if (gbt < 0 || gbt > 11) {
+        SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
+        if (handler) {
+          DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
+          handler(dsId, -1, ErrorBadLinkID);
+        } else {
+          throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
+        }
       }
     }
 
