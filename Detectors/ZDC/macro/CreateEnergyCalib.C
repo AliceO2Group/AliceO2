@@ -24,7 +24,7 @@ using namespace o2::zdc;
 using namespace std;
 
 void CreateEnergyCalib(long tmin = 0, long tmax = -1,
-                        std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+                       std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
 {
 
   ZDCEnergyParam conf;
@@ -39,10 +39,10 @@ void CreateEnergyCalib(long tmin = 0, long tmax = -1,
   conf.setEnergyCalib(IdZNCC, 1.);
   conf.setEnergyCalib(IdZPCC, 1.);
 
-//   conf.setEnergyCalib(IdZNASum, 1.);
-//   conf.setEnergyCalib(IdZPASum, 1.);
-//   conf.setEnergyCalib(IdZNCSum, 1.);
-//   conf.setEnergyCalib(IdZPCSum, 1.);
+  //   conf.setEnergyCalib(IdZNASum, 1.);
+  //   conf.setEnergyCalib(IdZPASum, 1.);
+  //   conf.setEnergyCalib(IdZNCSum, 1.);
+  //   conf.setEnergyCalib(IdZPCSum, 1.);
 
   conf.print();
 

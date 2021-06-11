@@ -21,7 +21,6 @@
 #include "CommonUtils/StringUtils.h"
 #include "Framework/Logger.h"
 
-
 using namespace o2::zdc;
 
 //ClassImp(Digits2Raw);
