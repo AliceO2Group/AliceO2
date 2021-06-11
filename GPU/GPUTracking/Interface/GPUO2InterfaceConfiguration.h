@@ -53,9 +53,9 @@ class GPUReconstruction;
 struct GPUSettingsO2;
 
 struct GPUInterfaceQAOutputs {
-  const std::vector<TH1F>* hist1;
-  const std::vector<TH2F>* hist2;
-  const std::vector<TH1D>* hist3;
+  const std::vector<TH1F>* hist1 = nullptr;
+  const std::vector<TH2F>* hist2 = nullptr;
+  const std::vector<TH1D>* hist3 = nullptr;
 };
 
 struct GPUInterfaceOutputs : public GPUTrackingOutputs {
