@@ -392,7 +392,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           recv = true;
         }
         if (!recv || !recvsizes) {
-          throw std::runtime_error("TPC ZS data not received");
+          throw std::runtime_error("TPC ZS on the fly data not received");
         }
 
         unsigned int offset = 0;
@@ -403,7 +403,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
             offset += tpcZSonTheFlySizes[i * NEndpoints + j];
           }
           if (verbosity >= 1) {
-            LOG(INFO) << "GOT ZS pages FOR SECTOR " << i << " ->  pages: " << pageSector;
+            LOG(INFO) << "GOT ZS on the fly pages FOR SECTOR " << i << " ->  pages: " << pageSector;
           }
         }
       }
@@ -664,7 +664,11 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
         return;
       }
       if (retVal != 0) {
-        throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
+        if (retVal == 3 && processAttributes->config->configProcessing.ignoreNonFatalGPUErrors) {
+          LOG(ERROR) << "GPU Reconstruction aborted with non fatal error code, ignoring";
+        } else {
+          throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
+        }
       }
 
       if (!processAttributes->allocateOutputOnTheFly) {

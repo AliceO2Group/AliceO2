@@ -695,7 +695,9 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
       configStandalone.continueOnError = 0; // Forced exit from event display loop
       configStandalone.noprompt = 1;
     }
-    if (tmpRetVal && !configStandalone.continueOnError) {
+    if (tmpRetVal == 3 && configStandalone.proc.ignoreNonFatalGPUErrors) {
+      printf("Non-FATAL GPU error occured, ignoring\n");
+    } else if (tmpRetVal && !configStandalone.continueOnError) {
       if (tmpRetVal != 2) {
         printf("Error occured\n");
       }

@@ -160,6 +160,7 @@ AddOption(outputSharedClusterMap, bool, false, "", 0, "Ship optional shared clus
 AddOption(disableTPCNoisyPadFilter, bool, false, "", 0, "Disables all TPC noisy pad filters (Not the normal noise filter!)")
 AddOption(createO2Output, char, 2, "", 0, "Create Track output in O2 format (2 = skip non-O2 output in GPU track format (reverts to =1 if QA is requested))")
 AddOption(clearO2OutputFromGPU, bool, false, "", 0, "Free the GPU memory used for O2 output after copying to host, prevents further O2 processing on the GPU")
+AddOption(ignoreNonFatalGPUErrors, bool, false, "", 0, "Continue running after having received non fatal GPU errors, e.g. abort due to overflow")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
