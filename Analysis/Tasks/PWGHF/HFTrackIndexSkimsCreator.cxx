@@ -345,7 +345,7 @@ struct HfTagSelTracks {
             for (int iCandType = 0; iCandType <= CandV0bachelor; iCandType++) {
               cutStatus[iCandType][2] = false;
               if (doValPlots.value) {
-                registry.get<TH1>(HIST("hRejTracks"))->Fill(iCandType*5+4);
+                registry.get<TH1>(HIST("hRejTracks"))->Fill(iCandType * 5 + 4);
               }
             }
           }
@@ -548,8 +548,8 @@ struct HfTrackIndexSkimsCreator {
       auto pT = RecoDecay::Pt(pVec) - pTTolerance;
 
       // pT
-      auto pTBin = (pT >= pTBins2Prong[n2][0]-0.02 && pT < pTBins2Prong[n2][1]) ? 0 : findBin(pTBins2Prong[n2], pT); // 20 MeV tolerance because of no reco decay vertex
-      if (pTBin == -1) { // return immediately if it is outside the defined pT bins
+      auto pTBin = findBin(pTBins2Prong[n2], pT); // 20 MeV tolerance because of no reco decay vertex
+      if (pTBin == -1) {                                                                                               // return immediately if it is outside the defined pT bins
         isSelected &= ~(1 << n2);
         if (debug.value) {
           cutStatus[n2][0] = false;
@@ -569,7 +569,7 @@ struct HfTrackIndexSkimsCreator {
         if (massHypos[1] < cut2Prong[n2].get(pTBin, "massMin") || massHypos[1] >= cut2Prong[n2].get(pTBin, "massMax")) {
           whichHypo[n2] -= 2;
         }
-        if(whichHypo[n2] == 0) {
+        if (whichHypo[n2] == 0) {
           isSelected &= ~(1 << n2);
           if (debug.value) {
             cutStatus[n2][1] = false;
@@ -580,7 +580,7 @@ struct HfTrackIndexSkimsCreator {
       // imp. par. product cut
       if (debug || (isSelected & 1 << n2)) {
         auto impParProduct = hfTracks[0].dcaPrim0() * hfTracks[1].dcaPrim0();
-        if(impParProduct > cut2Prong[n2].get(pTBin, "d0d0")) {
+        if (impParProduct > cut2Prong[n2].get(pTBin, "d0d0")) {
           isSelected &= ~(1 << n2);
           if (debug.value) {
             cutStatus[n2][2] = false;
@@ -609,8 +609,8 @@ struct HfTrackIndexSkimsCreator {
       auto pT = RecoDecay::Pt(pVec) - pTTolerance;
 
       // pT
-      auto pTBin = (pT >= pTBins3Prong[n3][0]-0.02 && pT < pTBins3Prong[n3][1]) ? 0 : findBin(pTBins3Prong[n3], pT); // 20 MeV tolerance because of no reco decay vertex
-      if (pTBin == -1) { // cut if it is outside the defined pT bins
+      auto pTBin = findBin(pTBins3Prong[n3], pT); // 20 MeV tolerance because of no reco decay vertex
+      if (pTBin == -1) {                                                                                               // cut if it is outside the defined pT bins
         isSelected &= ~(1 << n3);
         if (debug.value) {
           cutStatus[n3][0] = false;
@@ -630,7 +630,7 @@ struct HfTrackIndexSkimsCreator {
         if (massHypos[1] < cut3Prong[n3].get(pTBin, "massMin") || massHypos[1] >= cut3Prong[n3].get(pTBin, "massMax")) {
           whichHypo[n3] -= 2;
         }
-        if(whichHypo[n3] == 0) {
+        if (whichHypo[n3] == 0) {
           isSelected = isSelected & ~(1 << n3);
           if (debug.value) {
             cutStatus[n3][1] = false;
@@ -665,7 +665,7 @@ struct HfTrackIndexSkimsCreator {
         // cosp
         if (debug || (isSelected & 1 << n2)) {
           auto cpa = RecoDecay::CPA(primVtx, secVtx, pVecCand);
-          if(cpa < cut2Prong[n2].get("cosp")) {
+          if (cpa < cut2Prong[n2].get("cosp")) {
             isSelected &= ~(1 << n2);
             if (debug.value) {
               cutStatus[n2][3] = false;
@@ -701,7 +701,7 @@ struct HfTrackIndexSkimsCreator {
         // cosp
         if ((debug || (isSelected & 1 << n3))) {
           auto cpa = RecoDecay::CPA(primVtx, secVtx, pVecCand);
-          if(cpa < cut3Prong[n3].get("cosp")) {
+          if (cpa < cut3Prong[n3].get("cosp")) {
             isSelected &= ~(1 << n3);
             if (debug.value) {
               cutStatus[n3][2] = false;
@@ -970,7 +970,7 @@ struct HfTrackIndexSkimsCreator {
                 if (isSelected3ProngCand & 1 << n3) {
                   if (whichHypo3Prong[n3] == 1 || whichHypo3Prong[n3] == 3) {
                     auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[n3][0]);
-                    switch(n3) {
+                    switch (n3) {
                       case hf_cand_prong3::DecayType::DPlusToPiKPi:
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
@@ -987,7 +987,7 @@ struct HfTrackIndexSkimsCreator {
                   }
                   if (whichHypo3Prong[n3] >= 2) {
                     auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[n3][1]);
-                    switch(n3) {
+                    switch (n3) {
                       case hf_cand_prong3::DecayType::DPlusToPiKPi:
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
@@ -1079,7 +1079,7 @@ struct HfTrackIndexSkimsCreator {
                 if (isSelected3ProngCand & 1 << n3) {
                   if (whichHypo3Prong[n3] == 1 || whichHypo3Prong[n3] == 3) {
                     auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[n3][0]);
-                    switch(n3) {
+                    switch (n3) {
                       case hf_cand_prong3::DecayType::DPlusToPiKPi:
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
@@ -1096,7 +1096,7 @@ struct HfTrackIndexSkimsCreator {
                   }
                   if (whichHypo3Prong[n3] >= 2) {
                     auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[n3][1]);
-                    switch(n3) {
+                    switch (n3) {
                       case hf_cand_prong3::DecayType::DPlusToPiKPi:
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
