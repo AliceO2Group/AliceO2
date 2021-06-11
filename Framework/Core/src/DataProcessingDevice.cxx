@@ -344,7 +344,7 @@ void on_signal_callback(uv_signal_t* handle, int signum)
 void DataProcessingDevice::InitTask()
 {
   for (auto& channel : fChannels) {
-    channel.second.at(0).Transport()->SubscribeToRegionEvents([& pendingRegionInfos = mPendingRegionInfos, &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([&pendingRegionInfos = mPendingRegionInfos, &regionInfoMutex = mRegionInfoMutex](FairMQRegionInfo info) {
       std::lock_guard<std::mutex> lock(regionInfoMutex);
       LOG(debug) << ">>> Region info event" << info.event;
       LOG(debug) << "id: " << info.id;
@@ -807,7 +807,15 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
         LOGP(error, "Header stack does not contain DataProcessingHeader");
         continue;
       }
-      results[hi] = InputType::Data;
+      // We can set the type for the next splitPayloadParts
+      // because we are guaranteed they are all the same.
+      // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
+      // pair.
+      size_t finalSplitPayloadIndex = hi + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1);
+      for (; hi < finalSplitPayloadIndex; ++hi) {
+        results[hi] = InputType::Data;
+      }
+      hi = finalSplitPayloadIndex - 1;
     }
     return results;
   };
@@ -825,8 +833,12 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
           auto headerIndex = 2 * pi;
           auto payloadIndex = 2 * pi + 1;
           assert(payloadIndex < parts.Size());
+          auto dh = o2::header::get<DataHeader*>(parts.At(headerIndex)->GetData());
+          // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
+          // pair.
           auto relayed = relayer.relay(std::move(parts.At(headerIndex)),
-                                       std::move(parts.At(payloadIndex)));
+                                       &parts.At(payloadIndex), dh->splitPayloadParts > 0 ? dh->splitPayloadParts * 2 - 1 : 0);
+          pi += dh->splitPayloadParts > 0 ? dh->splitPayloadParts - 1 : 0;
           if (relayed == DataRelayer::WillNotRelay) {
             reportError("Unable to relay part.");
           }
@@ -927,7 +939,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getReadyActions = [& relayer = context.relayer,
+  auto getReadyActions = [&relayer = context.relayer,
                           &completed,
                           &stats = context.registry->get<DataProcessingStats>()]() -> std::vector<DataRelayer::RecordAction> {
     stats.pendingInputs = (int)relayer->getParallelTimeslices() - completed.size();
@@ -961,7 +973,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [& timingInfo = context.timingInfo,
+  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo = context.timingInfo,
                                               &relayer = context.relayer](TimesliceSlot i) {
     ZoneScopedN("DataProcessingDevice::prepareForCurrentTimeslice");
     auto timeslice = relayer->getTimesliceForSlot(i);
@@ -1072,7 +1084,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
             LOG(ERROR) << "Forwarded data does not have a DataHeader";
             continue;
           }
-     
+
           forwardedParts[forward.channel].AddPart(std::move(header));
           forwardedParts[forward.channel].AddPart(std::move(payload));
         }
@@ -1099,7 +1111,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return false;
   }
 
-  auto postUpdateStats = [& stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+  auto postUpdateStats = [&stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
     std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
@@ -1115,7 +1127,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     stats.lastLatency = calculateInputRecordLatency(record, tStart);
   };
 
-  auto preUpdateStats = [& stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+  auto preUpdateStats = [&stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
     std::atomic_thread_fence(std::memory_order_release);
     for (size_t ai = 0; ai != record.size(); ai++) {
       auto cacheId = action.slot.index * record.size() + ai;
@@ -1188,7 +1200,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         forwardInputs(action.slot, record);
       }
 #ifdef TRACY_ENABLE
-        cleanupRecord(record);
+      cleanupRecord(record);
 #endif
     } else if (action.op == CompletionPolicy::CompletionOp::Process) {
       cleanTimers(action.slot, record);
