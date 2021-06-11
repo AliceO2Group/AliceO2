@@ -43,13 +43,10 @@ void DataReaderTask::sendData(ProcessingContext& pc)
   // mReader.getParsedObjects(mTracklets,mDigits,mTriggers);
   mReader.getParsedObjects(mTracklets, mCompressedDigits, mTriggers);
 
-  if (mVerbose) {
-    LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets";
-  }
-  LOG(info) << "Sending data onwards with " << mCompressedDigits.size() << " Digits and " << mTracklets.size() << " Tracklets";
+  LOG(info) << "Sending data onwards with " << mCompressedDigits.size() << " Digits and " << mTracklets.size() << " Tracklets and " << mTriggers.size() << " Triggers";
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mCompressedDigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRIGGERRECORD", 0, Lifetime::Timeframe}, mTriggers);
+  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggers);
   //    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD,"STATS",0,Lifetime::Timerframe},mStats);
 }
 

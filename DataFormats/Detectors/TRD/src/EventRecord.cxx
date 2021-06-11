@@ -59,10 +59,10 @@ void EventRecord::addTracklets(std::vector<Tracklet64>& tracklets)
 void EventStorage::addDigits(InteractionRecord& ir, Digit& digit)
 {
   bool added = false;
-  for (auto eventrecord : mEventRecords) {
-    if (ir == eventrecord.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
-      eventrecord.addDigits(digit);
+      mEventRecords[count].addDigits(digit);
       added = true;
     }
   }
@@ -75,14 +75,12 @@ void EventStorage::addDigits(InteractionRecord& ir, Digit& digit)
 void EventStorage::addCompressedDigits(InteractionRecord& ir, CompressedDigit& digit)
 {
   bool added = false;
-  int count = 0;
-  for (auto eventrecord : mEventRecords) {
-    if (ir == eventrecord.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addCompressedDigits(digit);
       added = true;
     }
-    count++;
   }
   if (!added) {
     // unseen ir so add it
@@ -93,14 +91,12 @@ void EventStorage::addCompressedDigits(InteractionRecord& ir, CompressedDigit& d
 void EventStorage::addDigits(InteractionRecord& ir, std::vector<Digit>::iterator start, std::vector<Digit>::iterator end)
 {
   bool added = false;
-  int count = 0;
-  for (auto eventrecord : mEventRecords) {
-    if (ir == eventrecord.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addDigits(start, end);
       added = true;
     }
-    count++;
   }
   if (!added) {
     // unseen ir so add it
@@ -111,14 +107,12 @@ void EventStorage::addDigits(InteractionRecord& ir, std::vector<Digit>::iterator
 void EventStorage::addCompressedDigits(InteractionRecord& ir, std::vector<CompressedDigit>::iterator start, std::vector<CompressedDigit>::iterator end)
 {
   bool added = false;
-  int count = 0;
-  for (auto eventrecord : mEventRecords) {
-    if (ir == eventrecord.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addCompressedDigits(start, end);
       added = true;
     }
-    count++;
   }
   if (!added) {
     // unseen ir so add it
@@ -129,14 +123,12 @@ void EventStorage::addCompressedDigits(InteractionRecord& ir, std::vector<Compre
 void EventStorage::addTracklet(InteractionRecord& ir, Tracklet64& tracklet)
 {
   bool added = false;
-  int count = 0;
-  for (auto eventrecord : mEventRecords) {
-    if (ir == eventrecord.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addTracklet(tracklet);
       added = true;
     }
-    count++;
   }
   if (!added) {
     // unseen ir so add it
@@ -148,14 +140,13 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& 
 {
   bool added = false;
   int count = 0;
-  for (auto eventrecord : mEventRecords) {
-    if (ir == eventrecord.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addTracklets(tracklets); //mTracklets.insert(mTracklets.back(),start,end);
                                                     // LOG(info) << "adding " << tracklets.size()  << " tracklets and tracklet sum:  " << sumTracklets() << " IR count : "<< mEventRecords.size();;
       added = true;
     }
-    count++;
   }
   if (!added) {
     // unseen ir so add it
@@ -167,15 +158,13 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& 
 void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end)
 {
   bool added = false;
-  int count = 0;
-  for (auto eventrecord : mEventRecords) {
-    if (ir == eventrecord.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addTracklets(start, end); //mTracklets.insert(mTracklets.back(),start,end);
       //  LOG(info) << "x iknown ir adding " << std::distance(start,end)<< " tracklets";
       added = true;
     }
-    count++;
   }
   if (!added) {
     // unseen ir so add it
@@ -230,10 +219,10 @@ int EventStorage::sumDigits()
 std::vector<Tracklet64>& EventStorage::getTracklets(InteractionRecord& ir)
 {
   bool found = false;
-  for (int i = 0; i < mEventRecords.size(); ++i) {
-    if (ir == mEventRecords[i].getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       found = true;
-      return mEventRecords[i].getTracklets();
+      return mEventRecords[count].getTracklets();
     }
   }
   LOG(warn) << "attempted to get tracklets from IR: " << ir << " total tracklets of:" << sumTracklets();
@@ -243,10 +232,10 @@ std::vector<Tracklet64>& EventStorage::getTracklets(InteractionRecord& ir)
 std::vector<Digit>& EventStorage::getDigits(InteractionRecord& ir)
 {
   bool found = false;
-  for (auto event : mEventRecords) {
-    if (ir == event.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       found = true;
-      return event.getDigits();
+      return mEventRecords[count].getDigits();
     }
   }
   LOG(warn) << "attempted to get digits from IR: " << ir << " total digits of:" << sumDigits();
@@ -257,10 +246,10 @@ std::vector<Digit>& EventStorage::getDigits(InteractionRecord& ir)
 std::vector<CompressedDigit>& EventStorage::getCompressedDigits(InteractionRecord& ir)
 {
   bool found = false;
-  for (auto event : mEventRecords) {
-    if (ir == event.getBCData()) {
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    if (ir == mEventRecords[count].getBCData()) {
       found = true;
-      return event.getCompressedDigits();
+      return mEventRecords[count].getCompressedDigits();
     }
   }
   LOG(warn) << "attempted to get digits from IR: " << ir << " total digits of:" << sumDigits();
@@ -272,8 +261,8 @@ void EventStorage::printIR()
 {
   std::string records;
   int count = 0;
-  for (auto event : mEventRecords) {
-    LOG(info) << "[" << count << "]" << event.getBCData() << " ";
+  for (int count = 0; count < mEventRecords.size(); ++count) {
+    LOG(info) << "[" << count << "]" << mEventRecords[count].getBCData() << " ";
     count++;
   }
 }
