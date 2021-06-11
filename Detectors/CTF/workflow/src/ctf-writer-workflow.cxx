@@ -33,6 +33,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   options.push_back(ConfigParamSpec{"dict-per-det", VariantType::Bool, false, {"create dictionary file per detector"}});
   options.push_back(ConfigParamSpec{"grpfile", VariantType::String, o2::base::NameConf::getGRPFileName(), {"name of the grp file"}});
   options.push_back(ConfigParamSpec{"no-grp", VariantType::Bool, false, {"do not read GRP file"}});
+  options.push_back(ConfigParamSpec{"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}});
+  options.push_back(ConfigParamSpec{"max-file-size", VariantType::Int64, 0l, {"if > 0, avoid exceeding given file size in accumulation mode"}});
   options.push_back(ConfigParamSpec{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}});
   options.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
   std::swap(workflowOptions, options);
@@ -47,6 +49,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   long run = 0;
   bool doCTF = true, doDict = false, dictPerDet = false;
+  size_t szMin = 0, szMax = 0;
+
   if (!configcontext.helpOnCommandLine()) {
     bool noGRP = configcontext.options().get<bool>("no-grp");
     auto onlyDet = configcontext.options().get<std::string>("onlyDet");
@@ -85,7 +89,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     } else {
       throw std::invalid_argument("Invalid output-type");
     }
+    szMin = configcontext.options().get<int64_t>("min-file-size");
+    szMax = configcontext.options().get<int64_t>("max-file-size");
   }
-  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run, doCTF, doDict, dictPerDet)};
+  WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run, doCTF, doDict, dictPerDet, szMin, szMax)};
   return std::move(specs);
 }

@@ -16,17 +16,27 @@ Example of usage:
 o2-its-reco-workflow --entropy-encoding | o2-ctf-writer-workflow --onlyDet ITS
 ```
 
+For the storage optimization reason one can request multiple CTFs stored in the same output file (as entries of the `ctf` tree):
+```bash
+o2-ctf-writer --min-file-size <min> --max-file-size <max> ...
+```
+will accumulate CTFs in entries of the same tree/file until its size fits exceeds `min` and does not exceed `max` (`max` check is disabled if `max<=min`) or EOS received.
+
 ## CTF reader workflow
 
 `o2-ctf-reader-workflow` should be the 1st workflow in the piped chain of CTF processing.
-At the moment accepts as an input a single file produced by the `o2-ctf-writer-workflow`, reads data for all detectors present in it
-(the list can be narrowd by `--onlyDet arg (=none)` and `--skipDet arg (=none)` comma-separated lists), decode them using decoder provided
-by detector and injects to DPL.
+At the moment accepts as an input a comma-separated list of CTF files produced by the `o2-ctf-writer-workflow`, reads data for all detectors present in it
+(the list can be narrowed by `--onlyDet arg (=none)` and `--skipDet arg (=none)` comma-separated lists), decode them using decoder provided
+by detector and injects to DPL. In case of multiple entries in the CTF tree, they all will be read in row.
 
 Example of usage:
 ```bash
 o2-ctf-reader-workflow --onlyDet ITS --ctf-input o2_ctf_0000000000.root  | o2-its-reco-workflow --trackerCA --clusters-from-upstream --disable-mc
 ```
+
+With `--delay <s>` a delay of `s` seconds will be introduced between injections of consecutive CTFs (if >1).
+One can loop over the input by providing `--loop <N=1>` option.
+
 
 ## Support for externally provided encoding dictionaries
 
