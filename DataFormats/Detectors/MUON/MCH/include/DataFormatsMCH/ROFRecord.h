@@ -59,6 +59,13 @@ class ROFRecord
     return mBCData == other.mBCData &&
            mDataRef == other.mDataRef;
   }
+  bool operator<(const ROFRecord& other) const
+  {
+    if (mBCData == other.mBCData) {
+      return mDataRef.getFirstEntry() < other.mDataRef.getFirstEntry();
+    }
+    return mBCData < other.mBCData;
+  }
 
  private:
   BCData mBCData{};   ///< interaction record
