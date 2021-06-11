@@ -298,7 +298,12 @@ int DigiReco::reconstruct(int ibeg, int iend)
 {
   // Process consecutive BCs
   if (ibeg == iend) {
-    LOG(INFO) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
+    if (mReco[ibeg].ir.bc == (o2::constants::lhc::LHCMaxBunches - 1)) {
+      mNLastLonely++;
+    } else {
+      mNLonely++;
+      LOG(INFO) << "Lonely bunch " << mReco[ibeg].ir.orbit << "." << mReco[ibeg].ir.bc;
+    }
     return 0;
   }
 
