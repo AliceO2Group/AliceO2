@@ -18,6 +18,11 @@ o2_add_dpl_workflow(qa-efficiency
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(qa-rejection
+                    SOURCES qaPidRejection.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::ALICE3Analysis
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(hf-track-index-skims-creator
                     SOURCES HFTrackIndexSkimsCreator.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils ROOT::EG
