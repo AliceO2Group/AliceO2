@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include <TMath.h>
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "ZDCReconstruction/DigiReco.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 

@@ -16,7 +16,7 @@
 #include "ZDCRaw/DumpRaw.h"
 #include "CommonConstants/LHCConstants.h"
 #include "ZDCSimulation/Digits2Raw.h"
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 
 using namespace o2::zdc;
 

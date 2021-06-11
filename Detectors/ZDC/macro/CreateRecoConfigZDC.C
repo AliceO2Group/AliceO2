@@ -10,7 +10,7 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
 #include "ZDCBase/Constants.h"
@@ -54,16 +54,6 @@ void CreateRecoConfigZDC(long tmin = 0, long tmax = -1,
   conf.setSearch(TDCZNCS, def_search);
   conf.setSearch(TDCZPCC, def_search);
   conf.setSearch(TDCZPCS, def_search);
-  conf.setSearch(TDCZNAC, 250);
-  conf.setSearch(TDCZNAS, 251);
-  conf.setSearch(TDCZPAC, 252);
-  conf.setSearch(TDCZPAS, 253);
-  conf.setSearch(TDCZEM1, 254);
-  conf.setSearch(TDCZEM2, 255);
-  conf.setSearch(TDCZNCC, 256);
-  conf.setSearch(TDCZNCS, 257);
-  conf.setSearch(TDCZPCC, 258);
-  conf.setSearch(TDCZPCS, 259);
 
   // Charge integration
   int beg_sig = 6;

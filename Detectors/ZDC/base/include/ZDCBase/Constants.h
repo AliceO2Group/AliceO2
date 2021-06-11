@@ -213,6 +213,8 @@ const std::string CCDBPathConfigModule = "ZDC/Config/Module";
 const std::string CCDBPathConfigReco = "ZDC/Calib/RecoParam";
 const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
+const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
+const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
 
 // Placeholders
 constexpr int DummyIntRange = -NTimeBinsPerBC - 1;

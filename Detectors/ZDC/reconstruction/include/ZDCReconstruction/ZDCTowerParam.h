@@ -8,27 +8,27 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_ZDC_ENERGYPARAM_H
-#define O2_ZDC_ENERGYPARAM_H
+#ifndef O2_ZDC_TOWERPARAM_H
+#define O2_ZDC_TOWERPARAM_H
 
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
 #include <array>
 
-/// \file ZDCEnergyParam.h
-/// \brief ZDC Energy calibration
+/// \file ZDCTowerParam.h
+/// \brief ZDC Tower calibration
 /// \author P. Cortese
 
 namespace o2
 {
 namespace zdc
 {
-struct ZDCEnergyParam {
-  float energy_calib[NChannels] = {0}; // Energy calibration coefficients
-  void setEnergyCalib(uint32_t ich, float val);
-  float getEnergyCalib(uint32_t ich) const;
+struct ZDCTowerParam {
+  float tower_calib[NChannels] = {0}; // Tower calibration coefficients
+  void setTowerCalib(uint32_t ich, float val);
+  float getTowerCalib(uint32_t ich) const;
   void print();
-  ClassDefNV(ZDCEnergyParam, 1);
+  ClassDefNV(ZDCTowerParam, 1);
 };
 } // namespace zdc
 } // namespace o2

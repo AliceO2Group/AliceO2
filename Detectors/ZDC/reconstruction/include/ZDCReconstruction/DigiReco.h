@@ -12,7 +12,7 @@
 #include <gsl/span>
 #include <TFile.h>
 #include <TTree.h>
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "ZDCBase/Constants.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "ZDCReconstruction/RecoParamZDC.h"

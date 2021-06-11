@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
 #include <string>
 #include <TH1.h>
