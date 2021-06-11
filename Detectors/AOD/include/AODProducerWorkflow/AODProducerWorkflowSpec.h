@@ -144,7 +144,7 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(std::shared_ptr<DataRequest> dataRequest) : mDataRequest(dataRequest) {}
+  AODProducerWorkflowDPL(std::shared_ptr<DataRequest> dataRequest, bool fillSVertices) : mDataRequest(dataRequest), mFillSVertices(fillSVertices) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -158,6 +158,7 @@ class AODProducerWorkflowDPL : public Task
   int64_t mTFNumber{-1};
   int mTruncate{1};
   int mRecoOnly{0};
+  bool mFillSVertices{false};
   TStopwatch mTimer;
 
   std::shared_ptr<DataRequest> mDataRequest;
@@ -196,28 +197,23 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
 
-  uint64_t maxGlBC = 0;
-  uint64_t minGlBC = INT64_MAX;
-
-  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
-                    gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
-                    const std::vector<o2::InteractionTimeRecord>& mcRecords);
-
   void collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                   gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 
-  uint64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
+  uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthMFT,
-                            gsl::span<const o2::MCCompLabel>& mcTruthTPC, TripletsMap_t& toStore);
+                            gsl::span<const o2::MCCompLabel>& mcTruthITS, std::vector<bool>& isStoredITS,
+                            gsl::span<const o2::MCCompLabel>& mcTruthMFT, std::vector<bool>& isStoredMFT,
+                            gsl::span<const o2::MCCompLabel>& mcTruthTPC, std::vector<bool>& isStoredTPC,
+                            TripletsMap_t& toStore);
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool fillSVertices);
 
 } // namespace o2::aodproducer
 

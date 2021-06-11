@@ -26,6 +26,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
+    {"fill-svertices", o2::framework::VariantType::Bool, false, {"fill V0 table"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
   std::swap(workflowOptions, options);
@@ -36,19 +37,21 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  auto fillSVertices = configcontext.options().get<bool>("fill-svertices");
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
 
-  bool useMC = true;
-
-  GID::mask_t src = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF");
-  src |= GID::getSourceMask(GID::FT0);
+  GID::mask_t src = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,FT0"); // asking only for currently processed sources
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy;
 
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src));
+  specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, useMC, fillSVertices));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, src, src, useMC, srcClus);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+  if (fillSVertices) {
+    o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
+  }
 
   return std::move(specs);
 }
