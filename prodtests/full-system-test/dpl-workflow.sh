@@ -28,7 +28,7 @@ if [ $NUMAGPUIDS != 0 ]; then
 fi
 
 # Set some individual workflow arguments depending on configuration
-CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP,FV0
+CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP,FV0,TRD
 CTF_DIR=
 CTF_DICT_DIR=
 GPU_INPUT=zsraw
@@ -39,9 +39,13 @@ TOF_INPUT=raw
 TOF_OUTPUT=clusters,matching-info
 ITS_CONFIG=
 ITS_CONFIG_KEY=
+TRD_CONFIG=
 if [ $SYNCMODE == 1 ]; then
   ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
+  TRD_CONFIG+=" --tracking-sources ITS-TPC"
+else
+  TRD_CONFIG+=" --tracking-sources TPC,ITS-TPC"
 fi
 if [ $CTFINPUT == 1 ]; then
   ITS_CONFIG+=" --tracking-mode async"
@@ -112,6 +116,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-mid-raw-to-digits-workflow $ARGS_ALL | "
   WORKFLOW+="o2-tof-compressor $ARGS_ALL | "
   WORKFLOW+="o2-fdd-flp-dpl-workflow --disable-root-output $ARGS_ALL | "
+  WORKFLOW+="o2-trd-datareader $ARGS_ALL | "
 fi
 
 # Common workflows
@@ -120,6 +125,8 @@ WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVE
 WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS | "
 WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
 WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF\" --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC | "
+WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --root-in 0 --root-out 0 | "
+WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --disable-root-input --disable-root-output $TRD_CONFIG | "
 
 # Workflows disabled in sync mode
 if [ $SYNCMODE == 0 ]; then
@@ -149,6 +156,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-fdd-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-hmpid-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-trd-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-tpc-reco-workflow --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline tpc-entropy-encoder:$N_TPCENT $ARGS_ALL | "
 
   WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | "
