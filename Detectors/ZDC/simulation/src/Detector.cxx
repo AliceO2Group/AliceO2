@@ -124,8 +124,8 @@ void Detector::InitializeO2Detector()
   // check a few values to test correctness of reading from file light22620362207s
   /*assert(std::abs(mLightTableZN[0][ZNRADIUSBINS - 1][0] - 1.39742) < 1.E-4); // beta=0; radius = ZNRADIUSBINS - 1; anglebin = 2;
   assert(std::abs(mLightTableZN[0][ZNRADIUSBINS - 1][1] - .45017) < 1.E-4);  // beta=1; radius = ZNRADIUSBINS - 1; anglebin = 2;
-  assert(std::abs(mLightTableZN[0][0][2] - .47985) < 1.E-4);                 // beta=0; radius = 0; anglebin = 2;
-  assert(std::abs(mLightTableZN[0][0][11] - .01358) < 1.E-4);                // beta=0; radius = 0; anglebin = 11;
+  assert(std::abs(mLightTableZN[0][0][2] - .47985) < 1.E-4);   // beta=0; radius = 0; anglebin = 2;
+  assert(std::abs(mLightTableZN[0][0][11] - .01358) < 1.E-4);  // beta=0; radius = 0; anglebin = 11;
   */
 
   //ZP case
@@ -994,7 +994,7 @@ void Detector::createAsideBeamLine()
 
   // The following tube ID 212.7 mm
   // represents VMBGA (400 mm) + VCDWE (300 mm) + VMBGA (400 mm) +
-  //            BTVTS (600 mm) + VMLGB (400 mm)
+  //     BTVTS (600 mm) + VMLGB (400 mm)
   tubpar[0] = 21.27 / 2.;
   tubpar[1] = 21.87 / 2.;
   tubpar[2] = 210.0 / 2.;
@@ -1016,7 +1016,7 @@ void Detector::createAsideBeamLine()
   zA += 2. * conpar[0] + 0.37 + 1.35;
 
   // The following tube ID 797 mm  represents the second part of VCTCC (4272 mm) +
-  //            4 x VCDGA (4 x 4272 mm) + the first part of VCTCR (850 mm)
+  //     4 x VCDGA (4 x 4272 mm) + the first part of VCTCR (850 mm)
   tubpar[0] = 79.7 / 2.;
   tubpar[1] = 81.3 / 2.;
   tubpar[2] = (2221. - 136.) / 2.;

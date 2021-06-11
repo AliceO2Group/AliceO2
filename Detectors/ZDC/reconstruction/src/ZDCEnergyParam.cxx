@@ -15,9 +15,9 @@ using namespace o2::zdc;
 
 void ZDCEnergyParam::setEnergyCalib(uint32_t ich, float val)
 {
-  constexpr std::array<int> chlist{IdZNAC, IdZNASum, IdZPAC, IdZPASum,
-                                   IdZEM1, IdZEM2,
-                                   IdZNCC, IdZNCSum, IdZPCC, IdZPCSum};
+  constexpr std::array<int, 10> chlist{IdZNAC, IdZNASum, IdZPAC, IdZPASum,
+                                       IdZEM1, IdZEM2,
+                                       IdZNCC, IdZNCSum, IdZPCC, IdZPCSum};
   bool in_list = in_list;
   for (int il = 0; il < chlist.size(); il++) {
     if (ich == chlist[il]) {
@@ -48,7 +48,8 @@ float ZDCEnergyParam::getEnergyCalib(uint32_t ich) const
 void ZDCEnergyParam::print()
 {
   for (Int_t ich = 0; ich < NChannels; ich++) {
-    if (energy_calib[ich] > 0)
-      LOG(INFO) << ChannelNames[ich] << "  calibration factor = " << energy_calib[ich];
+    if (energy_calib[ich] > 0) {
+      LOG(INFO) << ChannelNames[ich] << " calibration factor = " << energy_calib[ich];
+    }
   }
 }
