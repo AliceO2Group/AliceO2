@@ -545,11 +545,12 @@ struct HfTrackIndexSkimsCreator {
     for (int n2 = 0; n2 < n2ProngDecays; n2++) {
 
       auto pVec = RecoDecay::PVec(arrMom[0], arrMom[1]);
-      auto pT = RecoDecay::Pt(pVec) - pTTolerance;
+      auto pT = RecoDecay::Pt(pVec) - pTTolerance; // add tolerance because of no reco decay vertex
 
       // pT
-      auto pTBin = findBin(pTBins2Prong[n2], pT); // 20 MeV tolerance because of no reco decay vertex
-      if (pTBin == -1) {                                                                                               // return immediately if it is outside the defined pT bins
+      auto pTBin = findBin(pTBins2Prong[n2], pT);
+      // return immediately if it is outside the defined pT bins
+      if (pTBin == -1) {
         isSelected &= ~(1 << n2);
         if (debug.value) {
           cutStatus[n2][0] = false;
@@ -606,11 +607,12 @@ struct HfTrackIndexSkimsCreator {
     for (int n3 = 0; n3 < n3ProngDecays; n3++) {
 
       auto pVec = RecoDecay::PVec(arrMom[0], arrMom[1], arrMom[2]);
-      auto pT = RecoDecay::Pt(pVec) - pTTolerance;
+      auto pT = RecoDecay::Pt(pVec) - pTTolerance; // add tolerance because of no reco decay vertex
 
       // pT
-      auto pTBin = findBin(pTBins3Prong[n3], pT); // 20 MeV tolerance because of no reco decay vertex
-      if (pTBin == -1) {                                                                                               // cut if it is outside the defined pT bins
+      auto pTBin = findBin(pTBins3Prong[n3], pT);
+      // return immediately if it is outside the defined pT bins
+      if (pTBin == -1) {
         isSelected &= ~(1 << n3);
         if (debug.value) {
           cutStatus[n3][0] = false;
