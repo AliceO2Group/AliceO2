@@ -618,12 +618,12 @@ int GPUChainTracking::RunChain()
     SynchronizeStream(mRec->NStreams() - 2);
   }
 
-  if (CheckErrorCodes()) {
-    return 1;
-  }
-
   if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {
     mRec->SetNOMPThreads(-1);
+  }
+
+  if (CheckErrorCodes()) {
+    return 3;
   }
 
   return GetProcessingSettings().doublePipeline ? 0 : RunChainFinalize();
