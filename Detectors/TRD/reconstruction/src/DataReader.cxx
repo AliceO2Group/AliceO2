@@ -65,7 +65,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("TRD", "TRIGGERRECORD", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   //outputs.emplace_back("TRD", "FLPSTAT", 0, Lifetime::Timeframe);
   LOG(info) << "input spec is:" << inputspec;
   LOG(info) << "enablebyteswap :" << byteswap;
