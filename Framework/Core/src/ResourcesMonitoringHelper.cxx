@@ -72,7 +72,7 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
     for (size_t mi = 0; mi < deviceMetrics.metricLabels.size(); mi++) {
       std::string metricLabel = deviceMetrics.metricLabels[mi].label;
 
-      auto same = [metricLabel](std::string const &matcher) -> bool {
+      auto same = [metricLabel](std::string const& matcher) -> bool {
         std::regex r{matcher};
         return std::regex_match(metricLabel, r);
       };
