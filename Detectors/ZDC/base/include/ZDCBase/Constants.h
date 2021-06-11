@@ -14,6 +14,7 @@
 #include "CommonConstants/PhysicsConstants.h"
 #include <cstdint>
 #include <cstdlib>
+#include <array>
 #include <string_view>
 #include <string>
 #include <type_traits>
@@ -215,6 +216,16 @@ const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
+
+// List of channels that can be calibrated
+constexpr std::array<int, 10> ChEnergyCalib{IdZNAC, IdZNASum, IdZPAC, IdZPASum,
+                                            IdZEM1, IdZEM2,
+                                            IdZNCC, IdZNCSum, IdZPCC, IdZPCSum};
+
+constexpr std::array<int, 16> ChTowerCalib{IdZNA1, IdZNA2, IdZNA3, IdZNA4,
+                                           IdZPA1, IdZPA2, IdZPA3, IdZPA4,
+                                           IdZNC1, IdZNC2, IdZNC3, IdZNC4,
+                                           IdZPC1, IdZPC2, IdZPC3, IdZPC4};
 
 // Placeholders
 constexpr int DummyIntRange = -NTimeBinsPerBC - 1;

@@ -119,6 +119,32 @@ void DigiReco::init()
     LOG(INFO) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << ropt.tdc_search[itdc] << " i.s. = " << ropt.tdc_search[itdc] * FTDCVal << " ns";
   }
 
+  // Energy calibration
+  for (int il = 0; il < ChEnergyCalib.size(); il++) {
+    if (ropt.energy_calib[ChEnergyCalib[il]] > 0) {
+      LOG(INFO) << "Energy Calibration from command line " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+    } else if (mEnergyParam && mEnergyParam->energy_calib[ChEnergyCalib[il]] > 0) {
+      ropt.energy_calib[ChEnergyCalib[il]] = mEnergyParam->energy_calib[ChEnergyCalib[il]];
+      LOG(INFO) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+    } else {
+      ropt.energy_calib[ChEnergyCalib[il]] = 1;
+      LOG(WARNING) << "Default Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+    }
+  }
+
+  // Tower calibration
+  for (int il = 0; il < ChTowerCalib.size(); il++) {
+    if (ropt.tower_calib[ChTowerCalib[il]] > 0) {
+      LOG(INFO) << "Tower Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+    } else if (mTowerParam && mTowerParam->tower_calib[ChTowerCalib[il]] > 0) {
+      ropt.tower_calib[ChTowerCalib[il]] = mTowerParam->tower_calib[ChTowerCalib[il]];
+      LOG(INFO) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+    } else {
+      ropt.tower_calib[ChTowerCalib[il]] = 1;
+      LOG(WARNING) << "Default Tower Calibration  " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+    }
+  }
+
   // Fill maps channel maps for integration
   for (int ich = 0; ich < NChannels; ich++) {
     // If the reconstruction parameters were not manually set

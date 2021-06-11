@@ -15,13 +15,9 @@ using namespace o2::zdc;
 
 void ZDCTowerParam::setTowerCalib(uint32_t ich, float val)
 {
-  constexpr std::array<int, 16> chlist{IdZNA1, IdZNA2, IdZNA3, IdZNA4,
-                                       IdZPA1, IdZPA2, IdZPA3, IdZPA4,
-                                       IdZNC1, IdZNC2, IdZNC3, IdZNC4,
-                                       IdZPC1, IdZPC2, IdZPC3, IdZPC4};
   bool in_list = in_list;
-  for (int il = 0; il < chlist.size(); il++) {
-    if (ich == chlist[il]) {
+  for (int il = 0; il < ChTowerCalib.size(); il++) {
+    if (ich == ChTowerCalib[il]) {
       in_list = true;
       break;
     }
@@ -30,8 +26,8 @@ void ZDCTowerParam::setTowerCalib(uint32_t ich, float val)
     tower_calib[ich] = val;
   } else {
     LOG(FATAL) << __func__ << " channel " << ich << " not in allowed range";
-    for (int il = 0; il < chlist.size(); il++) {
-      LOG(info) << __func__ << " channel " << chlist[il] << " " << ChannelNames[chlist[il]];
+    for (int il = 0; il < ChTowerCalib.size(); il++) {
+      LOG(info) << __func__ << " channel " << ChTowerCalib[il] << " " << ChannelNames[ChTowerCalib[il]];
     }
   }
 }
