@@ -82,7 +82,7 @@ struct QaTrackingRejection {
   Configurable<float> ptMin{"ptMin", 0.f, "Lower limit in pT"};
   Configurable<float> ptMax{"ptMax", 4.f, "Upper limit in pT"};
   // TPC
-  Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT",9999., "Lower bound of track pT for TPC PID"};
+  Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 9999., "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 999999., "Upper bound of track pT for TPC PID"};
   Configurable<double> d_nSigmaTPC{"d_nSigmaTPC", 99999, "Nsigma cut on TPC only"};
   // TOF
@@ -112,28 +112,27 @@ struct QaTrackingRejection {
     const TString eta = "#it{#eta}";
     const TString phi = "#it{#varphi} [rad]";
 
-
     histos.add("tracking/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
-    histos.add("trackingTOFselElectron/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingTOFselPion/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingTOFselKaon/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingTOFselProton/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingRICHselElectron/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingRICHselPion/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingRICHselKaon/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingRICHselProton/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingMIDselMuon/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis,etaAxis});
-    
+    histos.add("trackingTOFselElectron/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingTOFselPion/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingTOFselKaon/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingTOFselProton/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingRICHselElectron/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingRICHselPion/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingRICHselKaon/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingRICHselProton/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingMIDselMuon/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+
     histos.add("tracking/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
-    histos.add("trackingTOFselElectron/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingTOFselPion/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingTOFselKaon/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingTOFselProton/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingRICHselElectron/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingRICHselPion/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingRICHselKaon/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingRICHselProton/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
-    histos.add("trackingMIDselMuon/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis,etaAxis});
+    histos.add("trackingTOFselElectron/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingTOFselPion/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingTOFselKaon/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingTOFselProton/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingRICHselElectron/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingRICHselPion/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingRICHselKaon/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingRICHselProton/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("trackingMIDselMuon/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
   }
   
   using TracksPID = soa::Join<aod::BigTracksPID, aod::HfTrackIndexALICE3PID>;
@@ -161,7 +160,7 @@ struct QaTrackingRejection {
     selectorPion.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
     selectorPion.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
     selectorPion.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
-    
+
     TrackSelectorPID selectorKaon(kKPlus);
     selectorKaon.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
     selectorKaon.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
@@ -171,7 +170,7 @@ struct QaTrackingRejection {
     selectorKaon.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
     selectorKaon.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
     selectorKaon.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
-    
+
     TrackSelectorPID selectorProton(kProton);
     selectorProton.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
     selectorProton.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
@@ -181,9 +180,9 @@ struct QaTrackingRejection {
     selectorProton.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
     selectorProton.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
     selectorProton.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
-    
+
     TrackSelectorPID selectorMuon(kMuonPlus);
- 
+
     std::vector<int64_t> recoEvt(collisions.size());
     std::vector<int64_t> recoTracks(tracks.size());
     LOGF(info, "%d", particlePDG);
@@ -201,29 +200,65 @@ struct QaTrackingRejection {
       bool isTOFhpProton = !(selectorProton.getStatusTrackPIDTOF(track) == TrackSelectorPID::Status::PIDRejected);
       bool isRICHhpProton = !(selectorProton.getStatusTrackPIDRICH(track) == TrackSelectorPID::Status::PIDRejected);
       bool isMIDhpMuon = !(selectorMuon.getStatusTrackPIDMID(track) == TrackSelectorPID::Status::PIDRejected);
-    
-      if (MC::isPhysicalPrimary(mcParticles, mcParticle)) {
-        histos.fill(HIST("tracking/pteta"), track.pt(),track.eta());
-        if (isTOFhpElectron) {histos.fill(HIST("trackingTOFselElectron/pteta"), track.pt(),track.eta());}
-        if (isTOFhpPion) {histos.fill(HIST("trackingTOFselPion/pteta"), track.pt(),track.eta());}
-        if (isTOFhpKaon) {histos.fill(HIST("trackingTOFselKaon/pteta"), track.pt(),track.eta());}
-        if (isTOFhpProton) {histos.fill(HIST("trackingTOFselProton/pteta"), track.pt(),track.eta());}
-        if (isRICHhpElectron) {histos.fill(HIST("trackingRICHselElectron/pteta"), track.pt(),track.eta());}
-        if (isRICHhpPion) {histos.fill(HIST("trackingRICHselPion/pteta"), track.pt(),track.eta());}
-        if (isRICHhpKaon) {histos.fill(HIST("trackingRICHselKaon/pteta"), track.pt(),track.eta());}
-        if (isRICHhpProton) {histos.fill(HIST("trackingRICHselProton/pteta"), track.pt(),track.eta());}
-        if (isMIDhpMuon) {histos.fill(HIST("trackingMIDselMuon/pteta"), track.pt(),track.eta());}
 
-	histos.fill(HIST("tracking/peta"), track.p(),track.eta());
-        if (isTOFhpElectron) {histos.fill(HIST("trackingTOFselElectron/peta"), track.p(),track.eta());}
-        if (isTOFhpPion) {histos.fill(HIST("trackingTOFselPion/peta"), track.p(),track.eta());}
-        if (isTOFhpKaon) {histos.fill(HIST("trackingTOFselKaon/peta"), track.p(),track.eta());}
-        if (isTOFhpProton) {histos.fill(HIST("trackingTOFselProton/peta"), track.p(),track.eta());}
-        if (isRICHhpElectron) {histos.fill(HIST("trackingRICHselElectron/peta"), track.p(),track.eta());}
-        if (isRICHhpPion) {histos.fill(HIST("trackingRICHselPion/peta"), track.p(),track.eta());}
-        if (isRICHhpKaon) {histos.fill(HIST("trackingRICHselKaon/peta"), track.p(),track.eta());}
-        if (isRICHhpProton) {histos.fill(HIST("trackingRICHselProton/peta"), track.p(),track.eta());}
-        if (isMIDhpMuon) {histos.fill(HIST("trackingMIDselMuon/peta"), track.p(),track.eta());}
+      if (MC::isPhysicalPrimary(mcParticles, mcParticle)) {
+        histos.fill(HIST("tracking/pteta"), track.pt(), track.eta());
+        if (isTOFhpElectron) {
+          histos.fill(HIST("trackingTOFselElectron/pteta"), track.pt(), track.eta());
+        }
+        if (isTOFhpPion) {
+          histos.fill(HIST("trackingTOFselPion/pteta"), track.pt(), track.eta());
+        }
+        if (isTOFhpKaon) {
+          histos.fill(HIST("trackingTOFselKaon/pteta"), track.pt(), track.eta());
+        }
+        if (isTOFhpProton) {
+          histos.fill(HIST("trackingTOFselProton/pteta"), track.pt(), track.eta());
+        }
+        if (isRICHhpElectron) {
+          histos.fill(HIST("trackingRICHselElectron/pteta"), track.pt(), track.eta());
+        }
+        if (isRICHhpPion) {
+          histos.fill(HIST("trackingRICHselPion/pteta"), track.pt(), track.eta());
+        }
+        if (isRICHhpKaon) {
+          histos.fill(HIST("trackingRICHselKaon/pteta"), track.pt(), track.eta());
+        }
+        if (isRICHhpProton) {
+          histos.fill(HIST("trackingRICHselProton/pteta"), track.pt(), track.eta());
+        }
+        if (isMIDhpMuon) {
+          histos.fill(HIST("trackingMIDselMuon/pteta"), track.pt(), track.eta());
+        }
+
+        histos.fill(HIST("tracking/peta"), track.p(), track.eta());
+        if (isTOFhpElectron) {
+          histos.fill(HIST("trackingTOFselElectron/peta"), track.p(), track.eta());
+        }
+        if (isTOFhpPion) {
+          histos.fill(HIST("trackingTOFselPion/peta"), track.p(), track.eta());
+        }
+        if (isTOFhpKaon) {
+          histos.fill(HIST("trackingTOFselKaon/peta"), track.p(), track.eta());
+        }
+        if (isTOFhpProton) {
+          histos.fill(HIST("trackingTOFselProton/peta"), track.p(), track.eta());
+        }
+        if (isRICHhpElectron) {
+          histos.fill(HIST("trackingRICHselElectron/peta"), track.p(), track.eta());
+        }
+        if (isRICHhpPion) {
+          histos.fill(HIST("trackingRICHselPion/peta"), track.p(), track.eta());
+        }
+        if (isRICHhpKaon) {
+          histos.fill(HIST("trackingRICHselKaon/peta"), track.p(), track.eta());
+        }
+        if (isRICHhpProton) {
+          histos.fill(HIST("trackingRICHselProton/peta"), track.p(), track.eta());
+        }
+        if (isMIDhpMuon) {
+          histos.fill(HIST("trackingMIDselMuon/peta"), track.p(), track.eta());
+        }
       }
     }
   }
