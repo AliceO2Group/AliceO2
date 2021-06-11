@@ -48,6 +48,11 @@ o2_add_executable(trd-vdrift-exb
                   SOURCES src/trd-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::TRDCalibration O2::TRDWorkflow O2::DetectorsCalibration)
 
+o2_add_executable(entropy-encoder-workflow
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  COMPONENT_NAME trd
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
+
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
     target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
