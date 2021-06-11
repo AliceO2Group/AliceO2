@@ -28,6 +28,7 @@ struct GPUMemorySizeScalers {
 
   // General scaling factor
   double factor = 1;
+  double temporaryFactor = 1;
 
   // Offset
   double offset = 1000.;
@@ -62,7 +63,7 @@ struct GPUMemorySizeScalers {
   void rescaleMaxMem(size_t newAvailableMemory);
   inline size_t getValue(size_t maxVal, size_t val)
   {
-    return returnMaxVal ? maxVal : (std::min<size_t>(maxVal, offset + val) * factor);
+    return returnMaxVal ? maxVal : (std::min<size_t>(maxVal, offset + val) * factor * temporaryFactor);
   }
 
   inline size_t NTPCPeaks(size_t tpcDigits) { return getValue(tpcMaxPeaks, hitOffset + tpcDigits * tpcPeaksPerDigit); }
