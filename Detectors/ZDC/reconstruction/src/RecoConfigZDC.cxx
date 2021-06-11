@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "ZDCReconstruction/RecoConfigZDC.h"
 
 using namespace o2::zdc;

@@ -13,7 +13,8 @@
 #endif
 
 #include "DataFormatsZDC/MCLabel.h"
-#include "FairLogger.h"
+#include "Framework/Logger.h"
+
 
 /// Example of accessing the ZDC digits
 

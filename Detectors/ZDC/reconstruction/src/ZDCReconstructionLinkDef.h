@@ -17,6 +17,7 @@
 #pragma link C++ class o2::zdc::RecoConfigZDC + ;
 #pragma link C++ class o2::zdc::RecoParamZDC + ;
 #pragma link C++ class o2::zdc::ZDCTDCParam + ;
-//#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
+#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
+#pragma link C++ class o2::zdc::ZDCTowerParam + ;
 
 #endif

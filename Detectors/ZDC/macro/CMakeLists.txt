@@ -26,7 +26,17 @@ o2_add_test_root_macro(CreateRecoConfigZDC.C
                                              O2::SimulationDataFormat O2::CCDB
                        LABELS zdc)
 
-o2_add_test_root_macro(CreateZDCTDCParam.C
+o2_add_test_root_macro(CreateTDCCalib.C
+                       PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::ZDCReconstruction
+                                             O2::SimulationDataFormat O2::CCDB
+                       LABELS zdc)
+
+o2_add_test_root_macro(CreateEnergyCalib.C
+                       PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::ZDCReconstruction
+                                             O2::SimulationDataFormat O2::CCDB
+                       LABELS zdc)
+
+o2_add_test_root_macro(CreateTowerCalib.C
                        PUBLIC_LINK_LIBRARIES O2::ZDCBase O2::ZDCReconstruction
                                              O2::SimulationDataFormat O2::CCDB
                        LABELS zdc)

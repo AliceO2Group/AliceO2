@@ -11,11 +11,11 @@
 #include "CommonConstants/LHCConstants.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "Framework/Logger.h"
 #include "ZDCSimulation/Digitizer.h"
 #include "ZDCSimulation/SimCondition.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include <TRandom.h>
-#include <FairLogger.h>
 
 using namespace o2::zdc;
 
