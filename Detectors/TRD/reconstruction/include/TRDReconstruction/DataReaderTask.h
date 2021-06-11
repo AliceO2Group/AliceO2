@@ -48,7 +48,6 @@ class DataReaderTask : public Task
                                          // TODO templatise this and 2 versions of datareadertask, instantiated with the relevant parser.
   std::vector<Tracklet64> mTracklets;
   std::vector<Digit> mDigits;
-  std::vector<CompressedDigit> mCompressedDigits;
   std::vector<o2::trd::TriggerRecord> mTriggers;
   //  std::vector<o2::trd::FlpStats> mStats;
 
