@@ -273,10 +273,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Electron>>(cfgc, TaskName{"qa-tracking-rejection-electron"}));
   }
   if (cfgc.options().get<int>("rej-ka")) {
-  w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Kaon>>(cfgc, TaskName{"qa-tracking-rejection-kaon"}));
+    w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Kaon>>(cfgc, TaskName{"qa-tracking-rejection-kaon"}));
   }
   if (cfgc.options().get<int>("rej-pr")) {
-  w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Proton>>(cfgc, TaskName{"qa-tracking-rejection-proton"}));
+    w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Proton>>(cfgc, TaskName{"qa-tracking-rejection-proton"}));
   }
   if (cfgc.options().get<int>("rej-mu")) {
   w.push_back(adaptAnalysisTask<QaTrackingRejection<o2::track::PID::Muon>>(cfgc, TaskName{"qa-tracking-rejection-mu"}));
