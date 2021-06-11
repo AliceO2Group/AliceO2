@@ -94,7 +94,8 @@ void sendOnChannel(FairMQDevice& device, FairMQParts& messages, std::string cons
       break;
     }
   }
-  if (timeout > 0 && timeout <= maxTimeout) {
+  // FIXME: we need a better logic for avoiding message spam
+  if (timeout > 1 && timeout <= maxTimeout) {
     LOG(WARNING) << "dispatching on channel " << channel << " was delayed by " << timeout << " ms";
   }
   // TODO: feeling this is a bit awkward, but the interface of FairMQParts does not provide a
@@ -436,8 +437,8 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
   spec.name = name;
   spec.inputs = inputSpecs;
   spec.outputs = {};
-  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds) {
-    auto device = rds.device();
+  spec.algorithm = adaptStateful([inputSpecs](CallbackService& callbacks, RawDeviceService& rds, DeviceSpec const& deviceSpec) {
+    auto* device = rds.device();
     // check that the input spec bindings have corresponding output channels
     // FairMQDevice calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
@@ -449,6 +450,19 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     };
     callbacks.set(CallbackService::Id::Start, channelConfigurationChecker);
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
+
+    if (deviceSpec.forwards.size() > 0) {
+      // check that no internal forwards are existing, i.e. that proxy is at the end of the workflow
+      // in principle we can be less strict here if we check only for the defined input specs that there
+      // are no internal forwards
+      throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
+    }
+    for (auto const& inputSpec : inputSpecs) {
+      // this is a prototype, in principle we want to have all spec objects const
+      // and so only the const object can be retrieved from service registry
+      ForwardRoute route{0, 1, inputSpec, "downstream"};
+      const_cast<DeviceSpec&>(deviceSpec).forwards.emplace_back(route);
+    }
 
     auto forwardEos = [device, lastDataProcessingHeader](EndOfStreamContext&) {
       // DPL implements an internal end of stream signal, which is propagated through
@@ -485,30 +499,9 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
 
     return adaptStateless([lastDataProcessingHeader](RawDeviceService& rds, InputRecord& inputs) {
-      FairMQParts outputs;
-      auto& device = *rds.device();
       for (size_t ii = 0; ii != inputs.size(); ++ii) {
-        auto first = inputs.getByPos(ii, 0);
-        // we could probably do something like this but we do not know when the message is going to be sent
-        // and if DPL is still owning a valid copy.
-        //auto headerMessage = device.NewMessageFor(input.spec->binding, input.header, headerMsgSize, [](void*, void*) {});
-
-        // Note: DPL is only setting up one instance of a channel while FairMQ allows to have an
-        // array of channels, the index is 0 in the call
-        constexpr auto index = 0;
         for (size_t pi = 0; pi < inputs.getNofParts(ii); ++pi) {
           auto part = inputs.getByPos(ii, pi);
-          // TODO: we need to make a copy of the messages, maybe we can implement functionality in
-          // the RawDeviceService to forward messages, but this also needs to take into account that
-          // other consumers might exist
-          size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<std::byte const*>(part.header));
-          const auto* dh = o2::header::get<DataHeader*>(part.header);
-          if (!dh) {
-            std::stringstream errorMessage;
-            errorMessage << "no data header in " << *first.spec;
-            throw std::runtime_error(errorMessage.str());
-          }
-          size_t payloadMsgSize = dh->payloadSize;
           const auto* dph = o2::header::get<DataProcessingHeader*>(part.header);
           if (dph) {
             // FIXME: should we implement an assignment operator for DataProcessingHeader?
@@ -516,17 +509,8 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
             lastDataProcessingHeader->duration = dph->duration;
             lastDataProcessingHeader->creation = dph->creation;
           }
-
-          // FIXME: there is a copy here. Why?????
-          auto headerMessage = device.NewMessageFor("downstream", index, headerMsgSize);
-          memcpy(headerMessage->GetData(), part.header, headerMsgSize);
-          auto payloadMessage = device.NewMessageFor("downstream", index, payloadMsgSize);
-          memcpy(payloadMessage->GetData(), part.payload, payloadMsgSize);
-          outputs.AddPart(std::move(headerMessage));
-          outputs.AddPart(std::move(payloadMessage));
         }
       }
-      sendOnChannel(device, outputs, "downstream");
     });
   });
   const char* d = strdup(((std::string(defaultChannelConfig).find("name=") == std::string::npos ? (std::string("name=") + name + ",") : "") + std::string(defaultChannelConfig)).c_str());
@@ -548,19 +532,31 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
   spec.name = name;
   spec.inputs = inputSpecs;
   spec.outputs = {};
-  spec.algorithm = adaptStateful([inputSpecs, channelSelector](CallbackService& callbacks, RawDeviceService& rds) {
+  spec.algorithm = adaptStateful([inputSpecs, channelSelector](CallbackService& callbacks, RawDeviceService& rds, const DeviceSpec& deviceSpec) {
     auto device = rds.device();
     // check that the input spec bindings have corresponding output channels
     // FairMQDevice calls the custom init before the channels have been configured
     // so we do the check before starting in a dedicated callback
-    // also we keep a list of all channels so we can send EOS on them
+    // also we set forwards for all input specs and keep a list of all channels so we can send EOS on them
     auto channelNames = std::make_shared<std::vector<std::string>>();
-    auto channelConfigurationInitializer = [inputSpecs = std::move(inputSpecs), device, channelSelector, channelNames]() {
+    auto channelConfigurationInitializer = [inputSpecs = std::move(inputSpecs), device, channelSelector, &deviceSpec, channelNames]() {
+      if (deviceSpec.forwards.size() > 0) {
+        // check that no internal forwards are existing, i.e. that proxy is at the end of the workflow
+        // in principle we can be less strict here if we check only for the defined input specs that there
+        // are no internal forwards
+        throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
+      }
       for (auto const& spec : inputSpecs) {
         auto channel = channelSelector(spec, device->fChannels);
         if (device->fChannels.count(channel) == 0) {
           throw std::runtime_error("no corresponding output channel found for input '" + channel + "'");
         }
+        ForwardRoute route{0, 1, spec, channel};
+        // this we will try to fix on the framework level, there will be an API to
+        // set external routes. Basically, this has to be added while setting up the
+        // workflow. After that, the actual spec provided by the service is supposed
+        // to be const by design
+        const_cast<DeviceSpec&>(deviceSpec).forwards.emplace_back(route);
 
         channelNames->emplace_back(std::move(channel));
       }
@@ -611,40 +607,12 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
     callbacks.set(CallbackService::Id::EndOfStream, forwardEos);
 
     return adaptStateless([channelSelector, lastDataProcessingHeader](RawDeviceService& rds, InputRecord& inputs) {
-      std::unordered_map<std::string, FairMQParts> outputs;
-      auto& device = *rds.device();
+      // there is nothing to do if the forwarding is handled on the framework level
+      // as forward routes but we need to keep a copy of the last DataProcessingHeader
+      // for sending the EOS
       for (size_t ii = 0; ii != inputs.size(); ++ii) {
-        auto first = inputs.getByPos(ii, 0);
-        // we could probably do something like this but we do not know when the message is going to be sent
-        // and if DPL is still owning a valid copy.
-        //auto headerMessage = device.NewMessageFor(input.spec->binding, input.header, headerMsgSize, [](void*, void*) {});
-
-        // Note: DPL is only setting up one instance of a channel while FairMQ allows to have an
-        // array of channels, the index is 0 in the call
-        constexpr auto index = 0;
         for (size_t pi = 0; pi < inputs.getNofParts(ii); ++pi) {
           auto part = inputs.getByPos(ii, pi);
-          // TODO: we need to make a copy of the messages, maybe we can implement functionality in
-          // the RawDeviceService to forward messages, but this also needs to take into account that
-          // other consumers might exist
-          size_t headerMsgSize = o2::header::Stack::headerStackSize(reinterpret_cast<std::byte const*>(part.header));
-          auto* dh = o2::header::get<DataHeader*>(part.header);
-          if (!dh) {
-            std::stringstream errorMessage;
-            errorMessage << "no data header in " << *first.spec;
-            throw std::runtime_error(errorMessage.str());
-          }
-          size_t payloadMsgSize = dh->payloadSize;
-
-          auto channel = channelSelector(*first.spec, device.fChannels);
-          auto headerMessage = device.NewMessageFor(channel, index, headerMsgSize);
-          memcpy(headerMessage->GetData(), part.header, headerMsgSize);
-          auto payloadMessage = device.NewMessageFor(channel, index, payloadMsgSize);
-          memcpy(payloadMessage->GetData(), part.payload, payloadMsgSize);
-          outputs[channel].AddPart(std::move(headerMessage));
-          outputs[channel].AddPart(std::move(payloadMessage));
-
-          // keep a copy of the last DataProcessingHeader for sending the EOS
           const auto* dph = o2::header::get<DataProcessingHeader*>(part.header);
           if (dph) {
             // FIXME: should we implement an assignment operator for DataProcessingHeader?
@@ -653,12 +621,6 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
             lastDataProcessingHeader->creation = dph->creation;
           }
         }
-      }
-      for (auto& [channelName, channelParts] : outputs) {
-        if (channelParts.Size() == 0) {
-          continue;
-        }
-        sendOnChannel(device, channelParts, channelName);
       }
     });
   });
