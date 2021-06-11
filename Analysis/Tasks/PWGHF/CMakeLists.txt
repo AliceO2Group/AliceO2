@@ -20,7 +20,7 @@ o2_add_dpl_workflow(qa-efficiency
 
 o2_add_dpl_workflow(qa-rejection
                     SOURCES qaTaskAlice3.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::ALICE3Analysis
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(hf-track-index-skims-creator
