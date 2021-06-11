@@ -49,7 +49,7 @@
 namespace bpo = boost::program_options;
 
 void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName,
-              const std::string& outDir, bool verbose, std::string filePerLink,
+              const std::string& outDir, int digitrate, bool verbose, std::string filePerLink,
               uint32_t rdhV = 6, bool noEmptyHBF = false, bool tracklethcheader = false, int superPageSizeInB = 1024 * 1024);
 
 int main(int argc, char** argv)
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(6), "rdh version in use default");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
-    add_option("reject-digits", bpo::value<bool>()->default_value(false), "reject the digits in the raw stream");
+    add_option("digitrate", bpo::value<int>()->default_value(1000), "only include digits at 1 per this number");
     add_option("verbose,w", bpo::value<bool>()->default_value(false), "verbose");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -103,13 +103,13 @@ int main(int argc, char** argv)
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
 
   std::cout << "yay it ran" << std::endl;
-  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["verbosity"].as<int>(),
+  trap2raw(vm["input-file-digits"].as<std::string>(), vm["input-file-tracklets"].as<std::string>(), vm["output-dir"].as<std::string>(), vm["digitrate"].as<int>(), vm["verbosity"].as<int>(),
            vm["fileper"].as<std::string>(), vm["rdh-version"].as<uint32_t>(), vm["no-empty-hbf"].as<bool>(), vm["trackletHCHeader"].as<bool>());
 
   return 0;
 }
 
-void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, bool verbose, std::string filePer, uint32_t rdhV, bool noEmptyHBF, bool trackletHCHeader, int superPageSizeInB)
+void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsName, const std::string& outDir, int digitrate, bool verbose, std::string filePer, uint32_t rdhV, bool noEmptyHBF, bool trackletHCHeader, int superPageSizeInB)
 {
   TStopwatch swTot;
   swTot.Start();
@@ -119,6 +119,7 @@ void trap2raw(const std::string& inpDigitsName, const std::string& inpTrackletsN
   mc2raw.setFilePer(filePer);
   mc2raw.setVerbosity(verbose);
   mc2raw.setTrackletHCHeader(trackletHCHeader); // run3 or run2
+  mc2raw.setDigitRate(digitrate);               // run3 or run2
   auto& wr = mc2raw.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
