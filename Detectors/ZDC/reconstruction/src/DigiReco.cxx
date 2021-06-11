@@ -127,8 +127,16 @@ void DigiReco::init()
       ropt.energy_calib[ChEnergyCalib[il]] = mEnergyParam->energy_calib[ChEnergyCalib[il]];
       LOG(INFO) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
     } else {
-      ropt.energy_calib[ChEnergyCalib[il]] = 1;
-      LOG(WARNING) << "Default Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+      if (ChEnergyCalib[il] == CaloCommonPM[ChEnergyCalib[il]]) {
+        // Is a common PM or a ZEM
+        ropt.energy_calib[ChEnergyCalib[il]] = 1;
+        LOG(WARNING) << "Default Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+      } else {
+        // Is one of the analog sums -> same calibration as common PM
+        // N.B. the calibration for common has already been set in the loop
+        ropt.energy_calib[ChEnergyCalib[il]] = ropt.energy_calib[CaloCommonPM[il]];
+        LOG(INFO) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
+      }
     }
   }
 
@@ -142,6 +150,16 @@ void DigiReco::init()
     } else {
       ropt.tower_calib[ChTowerCalib[il]] = 1;
       LOG(WARNING) << "Default Tower Calibration  " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
+    }
+  }
+
+  // Tower energy calibration
+  for (int il = 0; il < ChTowerCalib.size(); il++) {
+    if (ropt.energy_calib[ChTowerCalib[il]] > 0) {
+      LOG(INFO) << "Tower Energy Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
+    } else {
+      ropt.energy_calib[ChTowerCalib[il]] = ropt.tower_calib[ChTowerCalib[il]] * ropt.energy_calib[CaloCommonPM[ChTowerCalib[il]]];
+      LOG(INFO) << "Tower Energy Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
     }
   }
 
@@ -184,8 +202,6 @@ void DigiReco::init()
     }
     LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
   }
-
-  // TODO: Energy calibration
 }
 
 int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata)
@@ -438,11 +454,10 @@ int DigiReco::reconstruct(int ibeg, int iend)
 #ifdef O2_ZDC_DEBUG
           printf("CH %2d %s: %f\n", ich, ChannelNames[ich].data(), sum);
 #endif
-          rec.ezdc[ich] = sum;
+          rec.ezdc[ich] = sum * ropt.energy_calib[ich];
         }
       }
     }
-    // TODO: energy calibration
     if (mTreeDbg) {
       mRec = rec;
       mTDbg->Fill();
