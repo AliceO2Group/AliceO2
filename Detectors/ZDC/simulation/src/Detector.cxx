@@ -1269,7 +1269,7 @@ void Detector::createAsideBeamLine()
   TVirtualMC::GetMC()->Gsvolu("QA29", "TUBE", getMediumID(kFe), tubpar, 3);
   TVirtualMC::GetMC()->Gspos("QA29", 1, "ZDCA", -16.5 / 2., 0., tubpar[2] + zA, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("QA29", 2, "ZDCA", 16.5 / 2., 0., tubpar[2] + zA, 0, "ONLY");
-  //printf("	QA29 TUBE from z = %1.2f to z= %1.2f (separate pipes)\n",zA,2*tubpar[2]+zA);
+  //printf("QA29 TUBE from z = %1.2f to z= %1.2f (separate pipes)\n",zA,2*tubpar[2]+zA);
 
   zA += 2. * tubpar[2];
 
@@ -1280,7 +1280,7 @@ void Detector::createAsideBeamLine()
     boxpar[2] = mLumiLength / 2.;
     TVirtualMC::GetMC()->Gsvolu("QLUA", "BOX ", getMediumID(kCuLumi), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QLUA", 1, "ZDCA", 0., 0., Geometry::ZNAPOSITION[1] /*fPosZNA[2]*/ - 66. - boxpar[2], 0, "ONLY");
-    LOG(DEBUG) << "	A-side luminometer positioned in front of ZNA\n";
+    LOG(DEBUG) << "A-side luminometer positioned in front of ZNA\n";
   }
 }
 
@@ -1327,7 +1327,7 @@ void Detector::createCsideBeamLine()
 
   //-- BEAM PIPE from the end of D1 to the beginning of D2
   //-- FROM MAGNETIC BEGINNING OF D1 TO MAGNETIC END OF D1
-  //-- 	Cylindrical pipe (r = 3.47) + conical flare
+  //-- Cylindrical pipe (r = 3.47) + conical flare
   tubpar[0] = 6.94 / 2.;
   tubpar[1] = 7.34 / 2.;
   tubpar[2] = (6909.8 - zC) / 2.;
@@ -1693,7 +1693,7 @@ void Detector::createCsideBeamLine()
     boxpar[2] = mLumiLength / 2.; // FIX IT!!!!!!!!!!!!!!!!!!!!!!!!
     TVirtualMC::GetMC()->Gsvolu("QLUC", "BOX ", getMediumID(kCuLumi), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QLUC", 1, "ZDCC", 0., 0., Geometry::ZNCPOSITION[1] + 66. + boxpar[2], 0, "ONLY");
-    LOG(DEBUG) << "	C-side luminometer positioned in front of ZNC\n";
+    LOG(DEBUG) << "C-side luminometer positioned in front of ZNC\n";
   }
 }
 
@@ -1709,7 +1709,7 @@ void Detector::createMagnets()
   double zD2Field = 12167.8;
 
   // ***************************************************************
-  //		SIDE C
+  //SIDE C
   // ***************************************************************
   // --  COMPENSATOR DIPOLE (MBXW)
   // --  GAP (VACUUM WITH MAGNETIC FIELD)
@@ -1811,7 +1811,7 @@ void Detector::createMagnets()
   TVirtualMC::GetMC()->Gspos("MD2 ", 2, "YD2 ", 9.4, 0., 0., 0, "ONLY");
 
   // ***************************************************************
-  //		SIDE A
+  //SIDE A
   // ***************************************************************
 
   // COMPENSATOR DIPOLE (MCBWA) (2nd compensator)
