@@ -45,6 +45,8 @@ class Trap2CRU
   std::string getFilePer() { return mFilePer; };
   void setOutputDir(std::string outdir) { mOutputDir = outdir; };
   std::string getOutputDir() { return mOutputDir; };
+  void setDigitRate(int digitrate) { mDigitRate = digitrate; };
+  int getDigitRate() { return mDigitRate; };
   int getVerbosity() { return mVerbosity; }
   void setVerbosity(int verbosity) { mVerbosity = verbosity; }
   void sortDataToLinks();
@@ -79,6 +81,8 @@ class Trap2CRU
   int mVerbosity{0};
   std::string mOutputDir;
   uint32_t mSuperPageSizeInB;
+  int mDigitRate = 1000;
+  int mEventDigitCount = 0;
   //HalfCRUHeader mHalfCRUHeader;
   //TrackletMCMHeader mTrackletMCMHeader;
   // TrackletMCMData mTrackletMCMData;
