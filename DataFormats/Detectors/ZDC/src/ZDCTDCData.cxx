@@ -8,16 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "DataFormatsZDC/ZDCTDCData.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::zdc;
 
-#pragma link C++ class o2::zdc::RecoConfigZDC + ;
-#pragma link C++ class o2::zdc::RecoParamZDC + ;
-#pragma link C++ class o2::zdc::ZDCTDCParam + ;
-#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
-#pragma link C++ class o2::zdc::ZDCTowerParam + ;
-
-#endif
+void o2::zdc::ZDCTDCData::print() const
+{
+  printf("%2d (%s) %d = %8.3f @ %d = %6.3f\n", id, channelName(id), amp, amplitude(), val, value());
+}

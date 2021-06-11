@@ -8,16 +8,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "DataFormatsZDC/ZDCEnergy.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::zdc;
 
-#pragma link C++ class o2::zdc::RecoConfigZDC + ;
-#pragma link C++ class o2::zdc::RecoParamZDC + ;
-#pragma link C++ class o2::zdc::ZDCTDCParam + ;
-#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
-#pragma link C++ class o2::zdc::ZDCTowerParam + ;
-
-#endif
+void ZDCEnergy::print() const
+{
+  auto id = this->ch();
+  printf("%2d (%s): %9u = %9.2f\n", id, channelName(id), value & EnergyChMask, energy());
+}

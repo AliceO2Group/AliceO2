@@ -8,16 +8,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_ZDC_RECOWORKFLOW_H
+#define O2_ZDC_RECOWORKFLOW_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+/// @file   RecoWorkflow.h
 
-#pragma link C++ class o2::zdc::RecoConfigZDC + ;
-#pragma link C++ class o2::zdc::RecoParamZDC + ;
-#pragma link C++ class o2::zdc::ZDCTDCParam + ;
-#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
-#pragma link C++ class o2::zdc::ZDCTowerParam + ;
+#include "Framework/WorkflowSpec.h"
 
+namespace o2
+{
+namespace zdc
+{
+framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const int verbosity, const bool enableDebugOut, const std::string ccdbURL);
+} // namespace zdc
+} // namespace o2
 #endif
