@@ -20,7 +20,6 @@
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Constants.h"
-#include "DataFormatsTRD/CompressedDigit.h"
 
 #include <fstream>
 
@@ -28,7 +27,7 @@
 
 namespace o2::trd
 {
-
+class Digit;
 // class to Parse a single link of digits data.
 // calling class splits data by link and this gets called per link.
 
@@ -74,7 +73,7 @@ class DigitsParser
     mDataVerbose = data;
   }
   void setByteSwap(bool byteswap) { mByteOrderFix = byteswap; }
-  std::vector<CompressedDigit>& getDigits() { return mDigits; }
+  std::vector<Digit>& getDigits() { return mDigits; }
   void clearDigits() { mDigits.clear(); }
   void clear() { mDigits.clear(); }
 
@@ -91,7 +90,7 @@ class DigitsParser
   int mReturnVectorPos;
 
   std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>* mData = nullptr; // compressed data return space.
-  std::vector<CompressedDigit> mDigits;                                    // outgoing parsed digits
+  std::vector<Digit> mDigits;                                              // outgoing parsed digits
   // subtle point, mDigits is not cleared between parsings,only between events.
   // this means that successive calls to Parse simply appends the new digits onto the vector.
   // at the end of the event the calling object must pull/copy the vector and clear or clear on next parse.
