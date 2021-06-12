@@ -266,8 +266,8 @@ struct QaTrackingRejection {
 struct QaRejectionGeneral {
   static constexpr PDG_t PDGs[5] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton};
   // Cuts
-  Configurable<int> etaMax{"etaMax", 1.44, "Max #eta single track"};
-  Configurable<int> ptMin{"ptMin", 0.6, "p_{T} min single track"};
+  Configurable<int> etaMax{"etaMaxSel", 1.44, "Max #eta single track"};
+  Configurable<int> ptMin{"ptMinSel", 0.6, "p_{T} min single track"};
   // Particle selection
   Configurable<int> etaBins{"etaBins", 40, "Number of eta bins"};
   Configurable<float> etaMin{"etaMin", -2.f, "Lower limit in eta"};
@@ -381,7 +381,7 @@ struct QaRejectionGeneral {
 
     for (const auto& track : tracks) {
 
-      if (std::abs(track.eta()) > etaMax || track.pt() < ptMin)
+      if (std::abs(track.eta()) > etaMaxSel || track.pt() < ptMinSel)
         continue;
       const auto mcParticle = track.mcParticle();
       histos.fill(HIST("hAllNoSel/pteta"), track.pt(), track.eta());
