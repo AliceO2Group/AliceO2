@@ -39,6 +39,7 @@ class RangeReference
   }
   GPUd() void clear() { set(0, 0); }
   GPUd() FirstEntry getFirstEntry() const { return mFirstEntry; }
+  GPUd() FirstEntry getEntriesBound() const { return mFirstEntry + mEntries; }
   GPUd() NElem getEntries() const { return mEntries; }
   GPUd() void setFirstEntry(FirstEntry ent) { mFirstEntry = ent; }
   GPUd() void setEntries(NElem n) { mEntries = n; }
@@ -83,6 +84,7 @@ class RangeRefComp
   GPUd() static constexpr Base getMaxEntries() { return MaskN; }
   GPUhd() int getFirstEntry() const { return mData >> NBitsN; }
   GPUhd() int getEntries() const { return mData & ((0x1 << NBitsN) - 1); }
+  GPUhd() int getEntriesBound() const { return getFirstEntry() + getEntries(); }
   GPUhd() void setFirstEntry(int ent) { mData = (Base(ent) << NBitsN) | (mData & MaskN); }
   GPUhd() void setEntries(int n) { mData = (mData & MaskR) | (Base(n) & MaskN); }
   GPUhd() void changeEntriesBy(int inc) { setEntries(getEntries() + inc); }
