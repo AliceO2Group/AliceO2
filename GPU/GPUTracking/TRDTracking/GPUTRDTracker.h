@@ -171,7 +171,6 @@ class GPUTRDTracker_t : public GPUProcessor
   Hypothesis* mHypothesis;                 // array with multiple track hypothesis
   TRDTRK* mCandidates;                     // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePoint* mSpacePoints;          // array with tracklet coordinates in global tracking frame
-  int* mTrackletLabels;                    // array with MC tracklet labels
   TRD_GEOMETRY_CONST GPUTRDGeometry* mGeo; // TRD geometry
   /// ---- error parametrization depending on magnetic field ----
   float mRPhiA2;     // parameterization for tracklet position resolution
