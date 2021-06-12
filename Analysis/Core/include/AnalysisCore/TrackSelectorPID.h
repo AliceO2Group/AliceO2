@@ -280,6 +280,9 @@ class TrackSelectorPID
   template <typename T>
   bool isValidTrackPIDRICH(const T& track)
   {
+    if (track.richId() < 0) {
+      return false;
+    }
     auto pt = track.pt();
     return mPtRICHMin <= pt && pt <= mPtRICHMax;
   }
@@ -355,6 +358,15 @@ class TrackSelectorPID
 
   // MID
 
+  /// Checks if track is OK for MID PID.
+  /// \param track  track
+  /// \return true if track is OK for MID PID
+  template <typename T>
+  bool isValidTrackPIDMID(const T& track)
+  {
+    return track.midId() > -1;
+  }
+
   /// Checks if track is compatible with muon hypothesis in the MID detector.
   /// \param track  track
   /// \return true if track has been identified as muon by the MID detector
@@ -362,12 +374,8 @@ class TrackSelectorPID
   bool isSelectedTrackPIDMID(const T& track)
   {
     if (mPdg != kMuonMinus) {
-      //LOGF(info, "isSelectedTrackPIDMID: Not a muon hypothesis");
       return false;
     }
-    //LOGF(info, "isSelectedTrackPIDMID: Getting muon response");
-    //LOGF(info, "isSelectedTrackPIDMID: Got: %d", track.mid().midIsMuon());
-    //LOGF(info, "isSelectedTrackPIDMID: Return: %d", track.mid().midIsMuon() == 1);
     return track.mid().midIsMuon() == 1; // FIXME: change to return track.midIsMuon() once the column is bool.
   }
 
@@ -377,17 +385,17 @@ class TrackSelectorPID
   template <typename T>
   int getStatusTrackPIDMID(const T& track)
   {
-    //LOGF(info, "getStatusTrackPIDMID: Start");
     if (mPdg != kMuonMinus) {
-      //LOGF(info, "getStatusTrackPIDMID: Not a muon hypothesis");
       return Status::PIDRejected;
     }
-    if (isSelectedTrackPIDMID(track)) {
-      //LOGF(info, "getStatusTrackPIDMID: Accepted");
-      return Status::PIDAccepted; // accepted
+    if (isValidTrackPIDMID(track)) {
+      if (isSelectedTrackPIDMID(track)) {
+        return Status::PIDAccepted; // accepted
+      } else {
+        return Status::PIDRejected; // rejected
+      }
     } else {
-      //LOGF(info, "getStatusTrackPIDMID: Rejected");
-      return Status::PIDRejected; // rejected
+      return Status::PIDNotApplicable; // PID not applicable
     }
   }
 
