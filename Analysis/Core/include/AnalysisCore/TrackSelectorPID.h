@@ -422,6 +422,58 @@ class TrackSelectorPID
     return Status::PIDNotApplicable; // (NotApplicable for one detector) and (NotApplicable or Conditional for the other)
   }
 
+  /// Checks whether a track is identified as electron and rejected as pion by TOF or RICH.
+  /// \param track  track
+  /// \param useTOF  switch to use TOF
+  /// \param useRICH  switch to use RICH
+  /// \return true if track is selected by TOF or RICH
+  /// \note Ported from https://github.com/feisenhu/ALICE3-LoI-LMee/blob/main/efficiency/macros/anaEEstudy.cxx
+  template <typename T>
+  bool isElectronAndNotPion(const T& track, bool useTOF = true, bool useRICH = true)
+  {
+    bool isSelTOF = false;
+    bool isSelRICH = false;
+    bool hasRICH = track.richId() > -1;
+    bool hasTOF = isValidTrackPIDTOF(track);
+    auto nSigmaTOFEl = track.tofNSigmaEl();
+    auto nSigmaTOFPi = track.tofNSigmaPi();
+    auto nSigmaRICHEl = hasRICH ? track.rich().richNsigmaEl() : -1000.;
+    auto nSigmaRICHPi = hasRICH ? track.rich().richNsigmaPi() : -1000.;
+    auto p = track.p();
+
+    // TOF
+    if (useTOF && hasTOF && (p < 0.6)) {
+      if (p > 0.4 && hasRICH) {
+        if ((std::abs(nSigmaTOFEl) < mNSigmaTOFMax) && (std::abs(nSigmaRICHEl) < mNSigmaRICHMax))
+          isSelTOF = true; // is selected as electron by TOF and RICH
+      } else if (p <= 0.4) {
+        if (std::abs(nSigmaTOFEl) < mNSigmaTOFMax)
+          isSelTOF = true; // is selected as electron by TOF
+      } else {
+        isSelTOF = false; // This is rejecting all the heavier particles which do not have a RICH signal in the p area of 0.4-0.6 GeV/c
+      }
+      if (std::abs(nSigmaTOFPi) < mNSigmaTOFMax) {
+        isSelTOF = false; // is selected as pion by TOF
+      }
+    } else {
+      isSelTOF = false;
+    }
+
+    // RICH
+    if (useRICH && hasRICH) {
+      if (std::abs(nSigmaRICHEl) < mNSigmaRICHMax) {
+        isSelRICH = true; // is selected as electron by RICH
+      }
+      if ((std::abs(nSigmaRICHPi) < mNSigmaRICHMax) && (p > 1.0)) {
+        isSelRICH = false; // is selected as pion by RICH
+      }
+    } else {
+      isSelRICH = false;
+    }
+
+    return isSelRICH || isSelTOF;
+  }
+
  private:
   uint mPdg = kPiPlus; ///< PDG code of the expected particle
 
