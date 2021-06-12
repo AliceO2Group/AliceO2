@@ -266,8 +266,8 @@ struct QaTrackingRejection {
 struct QaRejectionGeneral {
   static constexpr PDG_t PDGs[5] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton};
   // Cuts
-  Configurable<int> etaMax{"etaMaxSel", 1.44, "Max #eta single track"};
-  Configurable<int> ptMin{"ptMinSel", 0.6, "p_{T} min single track"};
+  Configurable<float> etaMax{"etaMaxSel", 1.44, "Max #eta single track"};
+  Configurable<float> ptMin{"ptMinSel", 0.6, "p_{T} min single track"};
   // Particle selection
   Configurable<int> etaBins{"etaBins", 40, "Number of eta bins"};
   Configurable<float> etaMin{"etaMin", -2.f, "Lower limit in eta"};
