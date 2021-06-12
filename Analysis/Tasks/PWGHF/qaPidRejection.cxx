@@ -151,35 +151,14 @@ struct QaTrackingRejection {
     selectorElectron.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
     selectorElectron.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
 
-    TrackSelectorPID selectorPion(kPiPlus);
-    selectorPion.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
-    selectorPion.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
-    selectorPion.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
-    selectorPion.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
-    selectorPion.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
-    selectorPion.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
-    selectorPion.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
-    selectorPion.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
+    auto selectorPion(selectorElectron);
+    selectorPion.setPDG(kPiPlus);
 
-    TrackSelectorPID selectorKaon(kKPlus);
-    selectorKaon.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
-    selectorKaon.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
-    selectorKaon.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
-    selectorKaon.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
-    selectorKaon.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
-    selectorKaon.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
-    selectorKaon.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
-    selectorKaon.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
+    auto selectorKaon(selectorElectron);
+    selectorKaon.setPDG(kKPlus);
 
-    TrackSelectorPID selectorProton(kProton);
-    selectorProton.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
-    selectorProton.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
-    selectorProton.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
-    selectorProton.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
-    selectorProton.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
-    selectorProton.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
-    selectorProton.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
-    selectorProton.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
+    auto selectorProton(selectorElectron);
+    selectorProton.setPDG(kProton);
 
     TrackSelectorPID selectorMuon(kMuonPlus);
 
@@ -345,35 +324,14 @@ struct QaRejectionGeneral {
     selectorElectron.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
     selectorElectron.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
 
-    TrackSelectorPID selectorPion(kPiPlus);
-    selectorPion.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
-    selectorPion.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
-    selectorPion.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
-    selectorPion.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
-    selectorPion.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
-    selectorPion.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
-    selectorPion.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
-    selectorPion.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
+    auto selectorPion(selectorElectron);
+    selectorPion.setPDG(kPiPlus);
 
-    TrackSelectorPID selectorKaon(kKPlus);
-    selectorKaon.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
-    selectorKaon.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
-    selectorKaon.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
-    selectorKaon.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
-    selectorKaon.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
-    selectorKaon.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
-    selectorKaon.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
-    selectorKaon.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
+    auto selectorKaon(selectorElectron);
+    selectorKaon.setPDG(kKPlus);
 
-    TrackSelectorPID selectorProton(kProton);
-    selectorProton.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
-    selectorProton.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
-    selectorProton.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
-    selectorProton.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
-    selectorProton.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
-    selectorProton.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
-    selectorProton.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
-    selectorProton.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
+    auto selectorProton(selectorElectron);
+    selectorProton.setPDG(kProton);
 
     TrackSelectorPID selectorMuon(kMuonPlus);
 
