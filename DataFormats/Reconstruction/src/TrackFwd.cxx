@@ -346,14 +346,12 @@ bool TrackParCovFwd::update(const std::array<float, 2>& p, const std::array<floa
 }
 
 //__________________________________________________________________________
-void TrackParCovFwd::addMCSEffect(double dZ, double x_over_X0)
+void TrackParCovFwd::addMCSEffect(double x_over_X0)
 {
-  /// Add multiple Coulomb scattering effects to the track parameter covariances.
-  ///  * if (dZ > 0): MCS effects are evaluated with a linear propagation model.
-  ///  * if (dZ <= 0): only angular MCS effects are evaluated as if dZ = 0.
+  /// Add multiple Coulomb scattering effects to the track covariances.
+  ///  Only angular and pt MCS effects are evaluated.
   ///  * x_over_X0 is the fraction of the radiation lenght (x/X0).
   ///  * No energy loss correction.
-  ///  * All scattering evaluated at the position of the first cluster.
 
   auto phi0 = getPhi();
   auto tanl0 = getTanl();
@@ -372,62 +370,13 @@ void TrackParCovFwd::addMCSEffect(double dZ, double x_over_X0)
   // Get covariance matrix
   SMatrix55Sym newParamCov(getCovariances());
 
-  if (dZ > 0) {
-    auto A = tanl0 * tanl0 + 1;
-    auto B = dZ * cosphi0 * invtanl0;
-    auto C = dZ * sinphi0 * invtanl0;
-    auto D = A * B * invtanl0;
-    auto E = -A * C * invtanl0;
-    auto F = -C - D;
-    auto G = B + E;
-    auto H = -invqpt0 * tanl0;
+  auto A = tanl0 * tanl0 + 1;
 
-    newParamCov(0, 0) += sigmathetasq * F * F;
+  newParamCov(2, 2) += sigmathetasq * A;
 
-    newParamCov(0, 1) += sigmathetasq * F * G;
+  newParamCov(3, 3) += sigmathetasq * A * A;
 
-    newParamCov(1, 1) += sigmathetasq * G * G;
-
-    newParamCov(2, 0) += sigmathetasq * F;
-
-    newParamCov(2, 1) += sigmathetasq * G;
-
-    newParamCov(2, 2) += sigmathetasq;
-
-    newParamCov(3, 0) += sigmathetasq * A * F;
-
-    newParamCov(3, 1) += sigmathetasq * A * G;
-
-    newParamCov(3, 2) += sigmathetasq * A;
-
-    newParamCov(3, 3) += sigmathetasq * A * A;
-
-    newParamCov(4, 0) += sigmathetasq * F * H;
-
-    newParamCov(4, 1) += sigmathetasq * G * H;
-
-    newParamCov(4, 2) += sigmathetasq * H;
-
-    newParamCov(4, 3) += sigmathetasq * A * H;
-
-    newParamCov(4, 4) += sigmathetasq * tanl0 * tanl0 * invqpt0 * invqpt0;
-  } else {
-
-    auto A = tanl0 * tanl0 + 1;
-    auto H = -invqpt0 * tanl0;
-
-    newParamCov(2, 2) += sigmathetasq;
-
-    newParamCov(3, 2) += sigmathetasq * A;
-
-    newParamCov(3, 3) += sigmathetasq * A * A;
-
-    newParamCov(4, 2) += sigmathetasq * H;
-
-    newParamCov(4, 3) += sigmathetasq * A * H;
-
-    newParamCov(4, 4) += sigmathetasq * tanl0 * tanl0 * invqpt0 * invqpt0;
-  }
+  newParamCov(4, 4) += sigmathetasq * tanl0 * tanl0 * invqpt0 * invqpt0;
 
   // Set new covariances
   setCovariances(newParamCov);

@@ -216,7 +216,7 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
   }
 
   if ((NDisksMS * MFTDiskThicknessInX0) != 0) {
-    track.addMCSEffect(-1, NDisksMS * MFTDiskThicknessInX0);
+    track.addMCSEffect(NDisksMS * MFTDiskThicknessInX0);
     if (mVerbose) {
       std::cout << "Track covariances after MCS effects: \n"
                 << track.getCovariances() << std::endl

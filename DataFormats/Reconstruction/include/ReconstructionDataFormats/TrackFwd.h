@@ -146,7 +146,7 @@ class TrackParCovFwd : public TrackParFwd
   void propagateToZ(double zEnd, double zField); // Parameters: helix; errors: quadratic
 
   // Add Multiple Coulomb Scattering effects
-  void addMCSEffect(double dZ, double x2X0);
+  void addMCSEffect(double x2X0);
 
   // Kalman filter/fitting
   bool update(const std::array<float, 2>& p, const std::array<float, 2>& cov);
