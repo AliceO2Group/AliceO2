@@ -25,6 +25,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/TrackTriggerRecord.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
 #include "ReconstructionDataFormats/MatchInfoTOF.h"
@@ -70,14 +71,38 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
   const auto tofClusters = getTOFClusters();
   const auto tracksITSTPCTRD = getITSTPCTRDTracks<o2::trd::TrackTRD>();
 
+  const auto trigTPCTRD = getTPCTRDTriggers();
+
   usedData[GTrackID::ITS].resize(tracksITS.size());                                      // to flag used ITS tracks
   usedData[GTrackID::MFT].resize(tracksMFT.size());                                      // to flag used MFT tracks
   usedData[GTrackID::TPC].resize(tracksTPC.size());                                      // to flag used TPC tracks
   usedData[GTrackID::ITSTPC].resize(tracksTPCITS.size());                                // to flag used ITSTPC tracks
+  usedData[GTrackID::ITSTPCTRD].resize(tracksITSTPCTRD.size());                          // to flag used ITSTPCTRD tracks
+  usedData[GTrackID::TPCTRD].resize(tracksTPCTRD.size());                                // to flag used TPCTRD tracks
   usedData[GTrackID::TOF].resize(getTOFMatches().size());                                // to flag used ITSTPC-TOF matches
 
   // ITS-TPC-TRD-TOF
   // TODO, will flag used ITS-TPC-TRD
+
+  // ITS-TPC-TRD
+  {
+    const auto trigITSTPCTRD = getITSTPCTRDTriggers();
+    for (unsigned itr = 0; itr < trigITSTPCTRD.size(); itr++) {
+      const auto& trig = trigITSTPCTRD[itr];
+      float t0 = trig.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+      for (unsigned i = trig.getTrackRefs().getFirstEntry(); i < trig.getTrackRefs().getEntriesBound(); i++) {
+        const auto& trc = tracksITSTPCTRD[i];
+        if (isUsed2(i, GTrackID::ITSTPCTRD)) {
+          flagUsed(trc.getRefGlobalTrackId()); // flag seeding ITS-TPC track
+          continue;
+        }
+        if (creator(trc, {i, GTrackID::ITSTPCTRD}, t0, 1e-3)) { // assign 1ns error to BC
+          flagUsed2(i, GTrackID::ITSTPCTRD);                    // flag itself (is it needed?)
+          flagUsed(trc.getRefGlobalTrackId());                  // flag seeding ITS-TPC track
+        }
+      }
+    }
+  }
 
   // ITS-TPC-TOF matches, thes are just MatchInfoTOF objects, pointing on ITS-TPC match and TOF cl.
   {
@@ -89,6 +114,9 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     for (unsigned i = 0; i < matchesITSTPCTOF.size(); i++) {
       const auto& match = matchesITSTPCTOF[i];
       auto gidx = match.getEvIdxTrack().getIndex(); // this should be corresponding ITS-TPC track
+      if (isUsed(gidx)) {                           // RS FIXME: THIS IS TEMPORARY, until the TOF matching will use ITS-TPC-TRD as an input
+        continue;
+      }
       // no need to check isUsed: by construction this ITS-TPC was not used elsewhere
       const auto& tofCl = tofClusters[match.getTOFClIndex()];
       float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
@@ -100,22 +128,25 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator) const
     }
   }
 
-  /* // TODO : need trigger input for time info
-  // ITS-TPC-TRD
+  // TPC-TRD
   {
-    for (unsigned i = 0; i < tracksITSTPCTRD.size(); i++) {
-      const auto& track = tracksITSTPCTRD[i];
-      if (isUsed2(i, GTrackID::ITSTPCTRD)) {
-        flagUsed(track->getReferenceGlobalID()); //TODO once the TrackTRD will be finalized
-        continue;
-      }
-      if (creator(tracksTPCITS[gidx.getIndex()], {i, GTrackID::ITSTPCTOF}, timeTOFMUS, timeErr)) {
-        flagUsed2(i, GTrackID::TOF); // flag used TOF match // TODO might be not needed
-        flagUsed(gidx); // flag used ITS-TPC tracks
+    const auto trigTPCTRD = getTPCTRDTriggers();
+    for (unsigned itr = 0; itr < trigTPCTRD.size(); itr++) {
+      const auto& trig = trigTPCTRD[itr];
+      float t0 = trig.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+      for (unsigned i = trig.getTrackRefs().getFirstEntry(); i < trig.getTrackRefs().getEntriesBound(); i++) {
+        const auto& trc = tracksTPCTRD[i];
+        if (isUsed2(i, GTrackID::TPCTRD)) {
+          flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track
+          continue;
+        }
+        if (creator(trc, {i, GTrackID::TPCTRD}, t0, 1e-6)) { // assign 1ns error to BC
+          flagUsed2(i, GTrackID::TPCTRD);                    // flag itself (is it needed?)
+          flagUsed(trc.getRefGlobalTrackId());               // flag seeding TPC track
+        }
       }
     }
   }
-  */
 
   // ITS-TPC matches, may refer to ITS, TPC (TODO: something else?) tracks
   {

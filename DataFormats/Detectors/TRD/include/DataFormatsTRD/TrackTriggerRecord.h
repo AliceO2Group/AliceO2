@@ -36,6 +36,7 @@ class TrackTriggerRecord
   // setters (currently class members are set at the time of creation, if there is need to change them afterwards setters can be added below)
 
   // getters
+  const auto& getTrackRefs() const { return mTrackDataRange; }
   int getFirstTrack() const { return mTrackDataRange.getFirstEntry(); }
   int getNumberOfTracks() const { return mTrackDataRange.getEntries(); }
   BCData getBCData() const { return mBCData; }
