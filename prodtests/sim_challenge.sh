@@ -19,7 +19,7 @@ intRatePbPb=50
 # default collision system
 collSyst="pp"
 
-generPP="pythia8"
+generPP="pythia8pp"
 generPbPb="pythia8hi"
 
 # default sim engine
@@ -37,7 +37,7 @@ simWorker=""
 # option to set the number of tpc-lanes
 tpcLanes=""
 
-Usage() 
+Usage()
 {
   echo "Usage: ${0##*/} [-s system /pp[Def] or pbpb/] [-r IR(kHz) /Def = $intRatePP(pp)/$intRatePbPb(pbpb)] [-n Number of events /Def = $nevPP(pp) or $nevPbPb(pbpb)/] [-e TGeant3|TGeant4] [-f fromstage sim|digi|reco /Def = sim]"
   exit
@@ -45,17 +45,17 @@ Usage()
 
 fromstage="sim"
 while [ $# -gt 0 ] ; do
-    case $1 in
-	-n) nev=$2;  shift 2 ;;
-	-s) collSyst=$2; shift 2 ;;
-	-r) intRate=$2; shift 2 ;;
-	-e) engine=$2; shift 2 ;;
-	-f) fromstage=$2; shift 2 ;;
-        -j) simWorker="-j $2"; shift 2 ;;
-        -l) tpcLanes="--tpc-lanes $2"; shift 2 ;;
-	-h) Usage ;;
-	*) echo "Wrong input"; Usage;
-    esac
+  case $1 in
+    -n) nev=$2;  shift 2 ;;
+    -s) collSyst=$2; shift 2 ;;
+    -r) intRate=$2; shift 2 ;;
+    -e) engine=$2; shift 2 ;;
+    -f) fromstage=$2; shift 2 ;;
+    -j) simWorker="-j $2"; shift 2 ;;
+    -l) tpcLanes="--tpc-lanes $2"; shift 2 ;;
+    -h) Usage ;;
+    *) echo "Wrong input"; Usage;
+  esac
 done
 
 # convert to lower case (the bash construct ${collSyst,,} is less portable)
@@ -76,15 +76,18 @@ fi
 
 dosim="0"
 dodigi="0"
+dotrdtrap="0"
 doreco="0"
 # convert to lowercase
 fromstage=`echo "$fromstage" | awk '{print tolower($0)}'`
 if [ "$fromstage" == "sim" ]; then
   dosim="1"
   dodigi="1"
+  dotrdtrap="1"
   doreco="1"
 elif [ "$fromstage" == "digi" ]; then
   dodigi="1"
+  dotrdtrap="1"
   doreco="1"
 elif [ "$fromstage" == "reco" ]; then
   doreco="1"
@@ -111,6 +114,13 @@ if [ "$dodigi" == "1" ]; then
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
 fi
+
+if [ "$dotrdtrap" == "1" ]; then
+  echo "Running TRD trap simulator"
+  taskwrapper trdtrap.log o2-trd-trap-sim $gloOpt
+  echo "Return status of trd trap sim: $?"
+fi
+
 
 if [ "$doreco" == "1" ]; then
   echo "Running TPC reco flow"
@@ -139,6 +149,11 @@ if [ "$doreco" == "1" ]; then
   echo "Running ITS-TPC macthing flow"
   #needs results of o2-tpc-reco-workflow, o2-its-reco-workflow and o2-fit-reco-workflow
   taskwrapper itstpcMatch.log o2-tpcits-match-workflow $gloOpt
+  echo "Return status of itstpcMatch: $?"
+
+  echo "Running TRD matching to ITS-TPC and TPC"
+  #needs results of o2-tpc-reco-workflow and o2-tpcits-match-workflow
+  taskwrapper trdMatch.log o2-trd-global-tracking $gloOpt
   echo "Return status of itstpcMatch: $?"
 
   echo "Running ITSTPC-TOF macthing flow"
