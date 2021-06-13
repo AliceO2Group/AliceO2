@@ -242,6 +242,7 @@ struct QaTrackingRejection {
     }
   }
 };
+
 struct QaRejectionGeneral {
   static constexpr PDG_t PDGs[5] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton};
   // Cuts
@@ -294,6 +295,18 @@ struct QaRejectionGeneral {
     histos.add("hMuonRICHSelHpElTight/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
     histos.add("hKaonRICHSelHpElTight/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
 
+    histos.add("hAllRICHSelHpElTightAlt/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("hPionRICHSelHpElTightAlt/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("hElectronRICHSelHpElTightAlt/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("hMuonRICHSelHpElTightAlt/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("hKaonRICHSelHpElTightAlt/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+
+    histos.add("hAllRICHSelHpElTightAltDiff/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("hPionRICHSelHpElTightAltDiff/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("hElectronRICHSelHpElTightAltDiff/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("hMuonRICHSelHpElTightAltDiff/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+    histos.add("hKaonRICHSelHpElTightAltDiff/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+
     histos.add("hAllRICHSelHpElLoose/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
     histos.add("hPionRICHSelHpElLoose/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
     histos.add("hElectronRICHSelHpElLoose/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
@@ -335,8 +348,6 @@ struct QaRejectionGeneral {
 
     TrackSelectorPID selectorMuon(kMuonPlus);
 
-    static constexpr PDG_t PDGs[5] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton};
-
     for (const auto& track : tracks) {
 
       if (std::abs(track.eta()) > etaMaxSel || track.pt() < ptMinSel)
@@ -367,18 +378,20 @@ struct QaRejectionGeneral {
       bool isrichpi = false;
 
       if (track.p() < 0.6) {
-        istofel = std::abs(track.tofNSigmaEl()) < 3.0;
-        istofpi = std::abs(track.tofNSigmaPi()) < 3.0;
-        isrichel = std::abs(track.rich().richNsigmaEl()) < 3.0;
+        istofel = std::abs(track.tofNSigmaEl()) < d_pidTOFMaxpT;
+        istofpi = std::abs(track.tofNSigmaPi()) < d_pidTOFMaxpT;
+        isrichel = std::abs(track.rich().richNsigmaEl()) < d_pidRICHMaxpT;
       } else if (track.p() > 0.6 && track.p() < 1.0) {
-        isrichel = std::abs(track.rich().richNsigmaEl()) < 3.0;
+        isrichel = std::abs(track.rich().richNsigmaEl()) < d_pidRICHMaxpT;
       } else if (track.p() > 1.0 && track.p() < 2.0) {
-        isrichel = std::abs(track.rich().richNsigmaEl()) < 3.0;
-        isrichpi = std::abs(track.rich().richNsigmaPi()) < 3.0;
+        isrichel = std::abs(track.rich().richNsigmaEl()) < d_pidRICHMaxpT;
+        isrichpi = std::abs(track.rich().richNsigmaPi()) < d_pidRICHMaxpT;
       } else {
-        isrichel = std::abs(track.rich().richNsigmaEl()) < 3.0;
+        isrichel = std::abs(track.rich().richNsigmaEl()) < d_pidRICHMaxpT;
       }
       isRICHElTight = isrichel && !isrichpi && istofel && !istofpi;
+
+      auto isRICHElTightAlt = selectorElectron.isElectronAndNotPion(track);
 
       if (isRICHElLoose) {
         histos.fill(HIST("hAllRICHSelHpElLoose/pteta"), track.pt(), track.eta());
@@ -401,6 +414,28 @@ struct QaRejectionGeneral {
           histos.fill(HIST("hPionRICHSelHpElTight/pteta"), track.pt(), track.eta());
         if (mcParticle.pdgCode() == kKPlus)
           histos.fill(HIST("hKaonRICHSelHpElTight/pteta"), track.pt(), track.eta());
+      }
+      if (isRICHElTightAlt) {
+        histos.fill(HIST("hAllRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
+        if (mcParticle.pdgCode() == kElectron)
+          histos.fill(HIST("hElectronRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
+        if (mcParticle.pdgCode() == kMuonPlus)
+          histos.fill(HIST("hMuonRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
+        if (mcParticle.pdgCode() == kPiPlus)
+          histos.fill(HIST("hPionRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
+        if (mcParticle.pdgCode() == kKPlus)
+          histos.fill(HIST("hKaonRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
+      }
+      if (isRICHElTightAlt != isRICHElTight) {
+        histos.fill(HIST("hAllRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
+        if (mcParticle.pdgCode() == kElectron)
+          histos.fill(HIST("hElectronRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
+        if (mcParticle.pdgCode() == kMuonPlus)
+          histos.fill(HIST("hMuonRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
+        if (mcParticle.pdgCode() == kPiPlus)
+          histos.fill(HIST("hPionRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
+        if (mcParticle.pdgCode() == kKPlus)
+          histos.fill(HIST("hKaonRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
       }
       if (isMIDhpMuon) {
         histos.fill(HIST("hAllMID/pteta"), track.pt(), track.eta());
