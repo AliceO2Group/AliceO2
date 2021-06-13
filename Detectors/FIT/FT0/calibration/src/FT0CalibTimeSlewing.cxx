@@ -1,4 +1,3 @@
-
 // Copyright CERN and copyright holders of ALICE O2. This software is
 // distributed under the terms of the GNU General Public License v3 (GPL
 // Version 3), copied verbatim in the file "COPYING".
@@ -8,7 +7,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 /// \file FT0CalibTimeSlewing.cxx
 /// \brief Class for  slewing calibration object
 ///
@@ -26,7 +24,6 @@ using namespace o2::ft0;
 FT0CalibTimeSlewing::FT0CalibTimeSlewing()
 {
   for (int iCh = 0; iCh < NCHANNELS; iCh++) {
-    mFractionUnderPeak[iCh] = -100.;
     mSigmaPeak[iCh] = -1.;
     mTimeAmpHist[iCh] = new TH2F(Form("hTimeAmpHist%d", iCh), Form("TimeAmp%d", iCh),
                                  NUMBER_OF_HISTOGRAM_BINS_X, 0, HISTOGRAM_RANGE_X,
@@ -44,18 +41,17 @@ float FT0CalibTimeSlewing::getChannelOffset(int channel, int amplitude) const
 void FT0CalibTimeSlewing::fillGraph(int channel, TH2F* histo)
 {
   LOG(INFO) << "FT0CalibTimeSlewing::fillGraph " << channel << " entries " << int(histo->GetEntries());
-  int nbinxamp = histo->GetXaxis()->GetNbins();
   double shiftchannel = 0;
   TH1D* hist_Proj = histo->ProjectionY();
   TFitResultPtr res = hist_Proj->Fit("gaus", "SQ");
   if ((Int_t)res == 0) {
     shiftchannel = res->Parameter(1);
   }
-  Double_t xgr[nbinxamp] = {};
-  Double_t ygr[nbinxamp] = {};
+  Double_t xgr[NUMBER_OF_HISTOGRAM_BINS_X] = {};
+  Double_t ygr[NUMBER_OF_HISTOGRAM_BINS_X] = {};
   TH1D* proj = nullptr;
   int nbins = 0;
-  for (int ibin = 1; ibin < nbinxamp; ibin++) {
+  for (int ibin = 1; ibin < NUMBER_OF_HISTOGRAM_BINS_X; ibin++) {
     xgr[ibin] = histo->GetXaxis()->GetBinCenter(ibin);
     proj = histo->ProjectionY(Form("proj_px%i", ibin), ibin, ibin + 1);
     if (proj->GetEntries() < 500) {
@@ -77,7 +73,6 @@ FT0CalibTimeSlewing& FT0CalibTimeSlewing::operator+=(const FT0CalibTimeSlewing& 
 {
   for (int i = 0; i < NCHANNELS; i++) {
     mTimeSlewing[i] = other.mTimeSlewing[i];
-    mFractionUnderPeak[i] = other.mFractionUnderPeak[i];
     mSigmaPeak[i] = other.mSigmaPeak[i];
   }
   return *this;
@@ -91,13 +86,18 @@ void FT0CalibTimeSlewing::mergeFilesWithTree()
   for (Int_t i = 0; i < mNfiles; i++) {
     TFile* file =
       TFile::Open(Form("%s_%d.root", mSingleFileName.c_str(), i));
-    if (file)
+    if (file) {
       merger.AddAdoptFile(file);
+    }
   }
-  if (!merger.Merge())
+  if (!merger.Merge()) {
     LOG(FATAL) << "Could not merge files";
+  }
   TFile mMergedFile{merger.GetOutputFileName()};
   TTree* tr = (TTree*)mMergedFile.Get("treeCollectedCalibInfo");
+  if (!tr) {
+    LOG(FATAL) << "Could not get tree with calib info";
+  }
   fillHistos(tr);
 }
 

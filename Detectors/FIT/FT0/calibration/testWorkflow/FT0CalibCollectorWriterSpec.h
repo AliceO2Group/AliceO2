@@ -14,7 +14,6 @@
 /// @file   FT0CalibCollectorWriterSpec.h
 /// @brief  Device to write to tree the information for FT0 time slewing calibration.
 
-//#include "FT0Calibration/FT0CalibCollector.h"
 #include "FT0Calibration/FT0CalibrationInfoObject.h"
 #include <TTree.h>
 #include <gsl/span>
@@ -46,7 +45,7 @@ class FT0CalibCollectorWriter : public o2::framework::Task
   {
     mCount = 0;
     createAndOpenFileAndTree();
-    mFT0CalibInfoOut.reserve(10000 * Geo::Nchannels); // should be a reasonable number of entries per channel, which allows 1 GB of data
+    mFT0CalibInfoOut.reserve(1000000 * Geo::Nchannels); // tree size  208ch * 10^6 entries * 12 byte
   }
 
   void run(o2::framework::ProcessingContext& pc) final

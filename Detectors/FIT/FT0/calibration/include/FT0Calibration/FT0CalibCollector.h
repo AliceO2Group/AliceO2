@@ -31,6 +31,7 @@ class FT0CalibInfoSlot
 
  public:
   static constexpr int NCHANNELS = Geo::Nchannels;
+  static constexpr int HISTO_RANGE = 200;
 
   FT0CalibInfoSlot()
   {

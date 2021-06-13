@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file digi2raw.cxx
-/// \author ruben.shahoyan@cern.ch
+/// \file slew_upload.cxx
+/// \author Alla.Maevskaya@cern.ch
 
 #include <boost/program_options.hpp>
 #include <filesystem>
@@ -93,8 +93,9 @@ void slew_upload(const std::string& inFileName, const std::string& mergedFileNam
   sl.mergeFilesWithTree();
   for (int iCh = 0; iCh < o2::ft0 ::Geometry::Nchannels; ++iCh) {
     TH2F* hist = sl.getTimeAmpHist(iCh);
-    if (hist->GetEntries() < 100)
+    if (hist->GetEntries() < 100000) {
       continue;
+    }
     sl.fillGraph(iCh, hist);
   }
   std::array<TGraph, o2::ft0 ::Geometry::Nchannels> graphs = sl.getGraphs();

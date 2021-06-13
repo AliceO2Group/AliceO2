@@ -27,19 +27,15 @@ class FT0CalibrationInfoObject
   void setChannelIndex(uint8_t channel) { mChannelIndex = channel; }
   [[nodiscard]] uint8_t getChannelIndex() const { return mChannelIndex; }
 
-  void setTime(int16_t time) { mTime = time; }
-  [[nodiscard]] int16_t getTime() const { return mTime; }
+  void setTime(int8_t time) { mTime = time; }
+  [[nodiscard]] int8_t getTime() const { return mTime; }
   void setAmp(int16_t amp) { mAmp = amp; }
   [[nodiscard]] int16_t getAmp() const { return mAmp; }
-
-  void setTimestamp(int ts) { mTimestamp = ts; }
-  int getTimestamp() const { return mTimestamp; }
 
  private:
   uint8_t mChannelIndex;
   int16_t mTime;
   int16_t mAmp;
-  int mTimestamp; // timestamp in seconds
 
   ClassDefNV(FT0CalibrationInfoObject, 2);
 };

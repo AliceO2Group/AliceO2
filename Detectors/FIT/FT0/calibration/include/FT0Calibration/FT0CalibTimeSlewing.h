@@ -46,16 +46,9 @@ class FT0CalibTimeSlewing
   std::array<TGraph, NCHANNELS> getGraphs() const { return mTimeSlewing; }
   void fillGraph(int channel, TH2F* histo);
 
-  float getFractionUnderPeak(int channel) const { return mFractionUnderPeak[channel]; }
   float getSigmaPeak(int channel) const { return mSigmaPeak[channel]; }
-
-  void setFractionUnderPeak(int channel, float value) { mFractionUnderPeak[channel] = value; }
   void setSigmaPeak(int channel, float value) { mSigmaPeak[channel] = value; }
 
-  bool isProblematic(int channel)
-  {
-    return (getFractionUnderPeak(channel) < 0);
-  }
   ///< perform all initializations
   void init();
   void mergeFilesWithTree();
@@ -69,12 +62,11 @@ class FT0CalibTimeSlewing
 
  private:
   // FT0 channel calibrations
-  std::array<TGraph, NCHANNELS> mTimeSlewing;      ///< array of TGraph wirh time -amplitude for each channel
-  std::array<float, NCHANNELS> mFractionUnderPeak; ///< array with the fraction of entries below the peak
-  std::array<float, NCHANNELS> mSigmaPeak;         ///< array with the sigma of the peak
-  TFile* mMergedFile;                              // file  with merged tree
-  TH2F* mTimeAmpHist[NCHANNELS];                   //historgams time vs amplitude
-  int mNfiles;                                     // number of files with stored Tree with CalibrationInfoObject
+  std::array<TGraph, NCHANNELS> mTimeSlewing; ///< array of TGraph wirh time -amplitude for each channel
+  std::array<float, NCHANNELS> mSigmaPeak;    ///< array with the sigma of the peak
+  TFile* mMergedFile;                         // file  with merged tree
+  TH2F* mTimeAmpHist[NCHANNELS];              //historgams time vs amplitude
+  int mNfiles;                                // number of files with stored Tree with CalibrationInfoObject
   std::string mSingleFileName;
   std::string mMergedFileName;
 

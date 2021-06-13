@@ -34,6 +34,9 @@ void FT0CalibInfoSlot::fill(const gsl::span<const o2::ft0::FT0CalibrationInfoObj
   std::sort(ord.begin(), ord.end(), [&data](int i, int j) { return data[i].getChannelIndex() < data[j].getChannelIndex(); });
   int chPrev = 0, offsPrev = 0;
   for (int i = 0; i < nd; i++) {
+    if (std::abs(data[ord[i]].getTime()) > HISTO_RANGE) {
+      continue;
+    }
     const auto& dti = data[ord[i]];
     auto ch = dti.getChannelIndex();
     auto offset = offsPrev;
@@ -43,7 +46,6 @@ void FT0CalibInfoSlot::fill(const gsl::span<const o2::ft0::FT0CalibrationInfoObj
     offsPrev = offset;
     chPrev = ch;
     auto it = mFT0CollectedCalibInfoSlot.emplace(mFT0CollectedCalibInfoSlot.begin() + offset, data[ord[i]].getChannelIndex(), data[ord[i]].getTime(), data[ord[i]].getAmp());
-    it->setTimestamp(data[ord[i]].getTimestamp());
     mEntriesSlot[ch]++;
   }
 }
@@ -119,13 +121,10 @@ void FT0CalibCollector::initOutput()
 //_____________________________________________
 bool FT0CalibCollector::hasEnoughData(const Slot& slot) const
 {
-
   // We define that we have enough data if the tree is big enough.
-  // each FT0CalibrationInfoObject is composed of one int, two floats --> 12 bytes
-  // E.g. supposing that we have 256 entries per channel (which is an upper limit ) --> ~523 MB
-  // we can check if we have at least 1 GB of data --> 500*o2::ft0::Geometry::NCHANNELS entries in the vector
-  // (see header file for the fact that mMaxNumOfHits = 500)
-  // The case in which mScaleMaxNumOfHits = false allows for a fast check
+  // each FT0CalibrationInfoObject is composed of two int8 and one int16 --> 32 bytes
+  // E.g. supposing that we have 500000 entries per channel  --> 500 eneries per one amplitude bin
+  // we can check if we have  500000*o2::ft0::Geometry::NCHANNELS entries in the vector
 
   if (mTest) {
     return true;
@@ -142,7 +141,6 @@ bool FT0CalibCollector::hasEnoughData(const Slot& slot) const
 //_____________________________________________
 void FT0CalibCollector::finalizeSlot(Slot& slot)
 {
-  // here we fill the tree with the remaining stuff that was not filled before
 
   o2::ft0::FT0CalibInfoSlot* c = slot.getContainer();
   mFT0CollectedCalibInfo = c->getCollectedCalibInfoSlot();
