@@ -40,7 +40,6 @@ namespace mft
 //_________________________________________________________________________________________________
 bool TrackFitter::fit(TrackLTF& track, bool outward)
 {
-
   /// Fit a track using its attached clusters
   /// Returns false in case of failure
 
@@ -89,7 +88,7 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   auto Hz = std::copysign(1, mBZField);
 
   if (mVerbose) {
-      std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
+    std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
     std::cout << "N Clusters = " << nPoints << std::endl;
   }
 
@@ -165,6 +164,118 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
 }
 
 //_________________________________________________________________________________________________
+bool TrackFitter::propagateToNextClusterWithMCS(TrackLTF& track, double clz)
+{
+
+  // add MCS effects for the new cluster
+  using o2::mft::constants::LayerZPosition;
+  int startingLayerID, newLayerID;
+
+  //LayerID of each cluster from ZPosition // TODO: Use ChipMapping
+  for (auto layer = 10; layer--;) {
+    if (track.getZ() < LayerZPosition[layer] + .3 & track.getZ() > LayerZPosition[layer] - .3) {
+      startingLayerID = layer;
+    }
+  }
+  for (auto layer = 10; layer--;) {
+    if (clz<LayerZPosition[layer] + .3 & clz> LayerZPosition[layer] - .3) {
+      newLayerID = layer;
+    }
+  }
+
+  int direction = (newLayerID - startingLayerID) / std::abs(newLayerID - startingLayerID);
+  auto currentZ = track.getZ();
+  auto currentLayer = startingLayerID;
+
+  if (mVerbose) {
+    std::cout << " => Propagate to next cluster with MCS : startingLayerID = " << startingLayerID << " = > " << " newLayerID = " << newLayerID << " (NLayers = " << std::abs(newLayerID - startingLayerID);
+    std::cout << ") ; track.getZ() = " << track.getZ() << " => ";
+    std::cout << "destination cluster z = " << clz << " ; " << std::endl;
+  }
+
+  // Number of disks crossed by this tracklet
+  auto nIteration = 0;
+  while (currentLayer != newLayerID) {
+    auto nextlayer = currentLayer + direction;
+    auto nextZ = LayerZPosition[nextlayer];
+
+    int NDisksMS;
+    if (nextZ - track.getZ() > 0) {
+      NDisksMS = (currentLayer % 2 == 0) ? (currentLayer - nextlayer) / 2 : (currentLayer - nextlayer + 1) / 2;
+    } else {
+      NDisksMS = (currentLayer % 2 == 0) ? (nextlayer - currentLayer + 1) / 2 : (nextlayer - currentLayer) / 2;
+    }
+
+    if (mVerbose) {
+      std::cout << "currentLayer = " << currentLayer << " ; "
+                << "nextlayer = " << nextlayer << " ; ";
+      std::cout << "track.getZ() = " << track.getZ() << " ; ";
+      std::cout << "nextZ = " << nextZ << " ; ";
+      std::cout << "NDisksMS = " << NDisksMS << std::endl;
+    }
+
+    if ((NDisksMS * mMFTDiskThicknessInX0) != 0) {
+      track.addMCSEffect(NDisksMS * mMFTDiskThicknessInX0);
+      if (mVerbose) {
+        std::cout << "Track covariances after MCS effects: \n"
+                  << track.getCovariances() << std::endl
+                  << std::endl;
+      }
+    }
+
+    if (mVerbose) {
+      std::cout << "  BeforeExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " q/pt = " << track.getInvQPt() << std::endl;
+    }
+
+    // Propagate track to the z position of the new cluster
+    switch (mTrackModel) {
+      case Linear:
+        track.propagateToZlinear(nextZ);
+        break;
+      case Quadratic:
+        track.propagateToZquadratic(nextZ, mBZField);
+        break;
+      case Helix:
+        track.propagateToZhelix(nextZ, mBZField);
+        break;
+      case Optimized:
+        track.propagateToZ(nextZ, mBZField);
+        break;
+      default:
+        std::cout << " Invalid track model.\n";
+        return false;
+        break;
+    }
+    if (nIteration++ > 20) {
+      LOG(FATAL) << " ERROR: nIteration = " << nIteration << std::endl;
+      return false;
+    }
+    currentLayer = nextlayer;
+  }
+  if (clz != track.getZ()) {
+    switch (mTrackModel) {
+      case Linear:
+        track.propagateToZlinear(clz);
+        break;
+      case Quadratic:
+        track.propagateToZquadratic(clz, mBZField);
+        break;
+      case Helix:
+        track.propagateToZhelix(clz, mBZField);
+        break;
+      case Optimized:
+        track.propagateToZ(clz, mBZField);
+        break;
+      default:
+        std::cout << " Invalid track model.\n";
+        return false;
+        break;
+    }
+  }
+  return true;
+}
+
+//_________________________________________________________________________________________________
 bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
 {
   /// Propagate track to the z position of the new cluster
@@ -182,70 +293,8 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
     std::cout << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << std::endl;
   }
 
-  // add MCS effects for the new cluster
-  using o2::mft::constants::LayerZPosition;
-  int startingLayerID, newLayerID;
-
-  auto dZ = clz - track.getZ();
-  //LayerID of each cluster from ZPosition // TODO: Use ChipMapping
-  for (auto layer = 10; layer--;) {
-    if (track.getZ() < LayerZPosition[layer] + .3 & track.getZ() > LayerZPosition[layer] - .3) {
-      startingLayerID = layer;
-    }
-  }
-  for (auto layer = 10; layer--;) {
-    if (clz<LayerZPosition[layer] + .3 & clz> LayerZPosition[layer] - .3) {
-      newLayerID = layer;
-    }
-  }
-  // Number of disks crossed by this tracklet
-  int NDisksMS;
-  if (clz - track.getZ() > 0) {
-    NDisksMS = (startingLayerID % 2 == 0) ? (startingLayerID - newLayerID) / 2 : (startingLayerID - newLayerID + 1) / 2;
-  } else {
-    NDisksMS = (startingLayerID % 2 == 0) ? (newLayerID - startingLayerID + 1) / 2 : (newLayerID - startingLayerID) / 2;
-  }
-
-  auto MFTDiskThicknessInX0 = mMFTRadLength / 5.0;
-  if (mVerbose) {
-    std::cout << "startingLayerID = " << startingLayerID << " ; "
-              << "newLayerID = " << newLayerID << " ; ";
-    std::cout << "cl.getZ() = " << clz << " ; ";
-    std::cout << "startingParam.getZ() = " << track.getZ() << " ; ";
-    std::cout << "NDisksMS = " << NDisksMS << std::endl;
-  }
-
-  if ((NDisksMS * MFTDiskThicknessInX0) != 0) {
-    track.addMCSEffect(NDisksMS * MFTDiskThicknessInX0);
-    if (mVerbose) {
-      std::cout << "Track covariances after MCS effects: \n"
-                << track.getCovariances() << std::endl
-                << std::endl;
-    }
-  }
-
-  if (mVerbose) {
-    std::cout << "  BeforeExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " q/pt = " << track.getInvQPt() << std::endl;
-  }
-
-  // Propagate track to the z position of the new cluster
-  switch (mTrackModel) {
-    case Linear:
-      track.propagateToZlinear(clz);
-      break;
-    case Quadratic:
-      track.propagateToZquadratic(clz, mBZField);
-      break;
-    case Helix:
-      track.propagateToZhelix(clz, mBZField);
-      break;
-    case Optimized:
-      track.propagateToZ(clz, mBZField);
-      break;
-    default:
-      std::cout << " Invalid track model.\n";
-      return false;
-      break;
+  if (!propagateToNextClusterWithMCS(track, clz)) {
+    return false;
   }
 
   if (mVerbose) {
