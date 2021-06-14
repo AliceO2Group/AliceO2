@@ -111,7 +111,8 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "${command};" > ${SCRIPTNAME}
+  echo "export LIBC_FATAL_STDERR_=1" > ${SCRIPTNAME}        # <--- needed ... otherwise the LIBC fatal messages appear on a different tty
+  echo "${command};" >> ${SCRIPTNAME}
   echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
   chmod +x ${SCRIPTNAME}
 
@@ -180,8 +181,9 @@ taskwrapper() {
              -e \"Assertion.*failed\"               \
              -e \"Fatal in\"                        \
              -e \"libc++abi.*terminating\"          \
-             -e \"There was a crash.\""
-      
+             -e \"There was a crash.\"              \
+             -e \"\*\*\* Error in\""                  # <--- LIBC fatal error messages
+
     grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
     eval ${grepcommand}
     
