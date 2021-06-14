@@ -44,39 +44,6 @@ struct MFTBaseParam : public o2::conf::ConfigurableParamHelper<MFTBaseParam> {
   // General configurations
   bool minimal = false; // Disables all elements out of MFT acceptance
 
-  // General misalignment input parameters
-  bool misalignHalf = false;
-  bool misalignDisk = false;
-  bool misalignLadder = false;
-  bool misalignSensor = true;
-
-  double xHalf = 0.0;
-  double yHalf = 0.0;
-  double zHalf = 0.0;
-  double psiHalf = 0.0;
-  double thetaHalf = 0.0;
-  double phiHalf = 0.0;
-
-  double xDisk = 0.0;
-  double yDisk = 0.0;
-  double zDisk = 0.0;
-  double psiDisk = 0.0;
-  double thetaDisk = 0.0;
-  double phiDisk = 0.0;
-
-  double xLadder = 0.0;
-  double yLadder = 0.0;
-  double zLadder = 0.0;
-  double psiLadder = 0.0;
-  double thetaLadder = 0.0;
-  double phiLadder = 0.0;
-
-  double xSensor = 0.0;
-  double ySensor = 0.0;
-  double zSensor = 0.0;
-  double psiSensor = 0.0;
-  double thetaSensor = 0.0;
-  double phiSensor = 0.0;
 
   O2ParamDef(MFTBaseParam, "MFTBase");
 };
