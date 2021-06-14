@@ -36,7 +36,9 @@
 #include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
 #include "MCHBase/ClusterBlock.h"
+#include "MCHClustering/ClusterFinderOriginal.h"
 #include "MCHClustering/ClusterFinderGEM.h"
+#include "MCHClustering/ClusterDump.h"
 
 namespace o2
 {
@@ -49,18 +51,76 @@ using namespace o2::framework;
 class ClusterFinderGEMTask
 {
  public:
+  static constexpr int DoOriginal= 0x0001;
+  static constexpr int DoGEM= 0x0002;
+  static constexpr int DumpOriginal= 0x0004;
+  static constexpr int DumpGEM= 0x0008;
+  static constexpr int GEMOutputStream = 0x0010; // default is Original
+  //
+  bool isGEMActivated() 
+  {
+    return( mode & DoGEM);    
+  }
+  
+  bool isGEMDumped()
+  {
+    return( mode & DumpGEM);    
+  }
+  
+  bool isOriginalActivated( )
+  {
+    return( mode & DoOriginal);    
+  }
+
+  bool isOriginalDumped( )
+  {
+    return( mode & DumpOriginal);    
+  }
+
+  bool isGEMOutputStream( ) const
+  {
+    return( mode & GEMOutputStream);    
+  }
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
+    // mode = DoOriginal + DumpOriginal + GEMOutputStream;
+    mode = DoOriginal | DumpOriginal;
+    mode = DoGEM | DumpGEM;
     /// Prepare the clusterizer
     LOG(INFO) << "initializing cluster finder";
 
-    mClusterFinder.init();
-
+    if (isOriginalDumped() &&  ! isOriginalActivated())
+        mode = mode & (~DumpOriginal);
+    if (isGEMDumped() && ! isGEMActivated() )
+        mode = mode & (~DumpGEM);
+    if ( isOriginalDumped() )
+      mOriginalDump = new ClusterDump("OrigRun2.dat", 0);
+    if ( isGEMDumped() )
+      mGEMDump = new ClusterDump("GEMRun2.dat", 0);
+    
+    //
+    std::cout << "Configuration"  << std::endl;
+    std::cout << "  Original: " << isOriginalActivated() << std::endl;
+    std::cout << "  GEM     : " << isGEMActivated() << std::endl;
+    std::cout << "  Dump Original: " << isOriginalDumped() << std::endl;
+    std::cout << "  Dump GEM     : " << isGEMDumped() << std::endl;
+    std::cout << "  GEM stream output: " << isGEMOutputStream() << std::endl;
+    
+    // mClusterFinder.init( ClusterFinderGEM::DoGEM );
+    if ( isOriginalActivated() ) {
+        mClusterFinderOriginal.init(  );
+    } else if (isGEMActivated()) { 
+        mClusterFinderOriginal.init(  );
+        mClusterFinderGEM.init( mode );
+    }
+    
     /// Print the timer and clear the clusterizer when the processing is over
     ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
       LOG(INFO) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
-      this->mClusterFinder.deinit();
+      this->mClusterFinderOriginal.deinit();
+      this->mClusterFinderGEM.deinit();
+      
     });
   }
 
@@ -83,7 +143,6 @@ class ClusterFinderGEMTask
 
     clusterROFs.reserve(preClusterROFs.size());
     for (const auto& preClusterROF : preClusterROFs) {
-
       LOG(INFO) << "processing interaction: ev ??? " << preClusterROF.getBCData().orbit << "...";
       // GG infos
       // uint16_t bc = DummyBC;       ///< bunch crossing ID of interaction
@@ -91,19 +150,46 @@ class ClusterFinderGEMTask
       // clusterize every preclusters
       uint16_t bCrossing = preClusterROF.getBCData().bc;
       uint32_t orbit = preClusterROF.getBCData().orbit;
-      uint32_t iROF = 0;
+      uint32_t iPreCluster = 0;
       auto tStart = std::chrono::high_resolution_clock::now();
       //
-      mClusterFinder.reset();
+      if (isOriginalActivated()) mClusterFinderOriginal.reset();
+      if (isGEMActivated()) {
+          mClusterFinderOriginal.reset();
+          mClusterFinderGEM.reset();
+      }
+      // Get the starting index for new cluster founds
+      size_t startGEMIdx = mClusterFinderGEM.getClusters().size();
+      size_t startOriginalIdx = mClusterFinderOriginal.getClusters().size();
+      std::cout << "start GEM Idx " <<  startGEMIdx << " Original" << startOriginalIdx << std::endl;
       for (const auto& preCluster : preClusters.subspan(preClusterROF.getFirstIdx(), preClusterROF.getNEntries())) {
-        mClusterFinder.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iROF);
-        iROF++;
+        // Dump preclusters
+          std::cout << "Debug ??? Dump preCluster digit start/size=" << preCluster.firstDigit <<" / " << preCluster.nDigits << std::endl;
+        if ( isOriginalDumped())
+            mClusterFinderGEM.dumpPreCluster( mOriginalDump, digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iPreCluster);  
+        if ( isGEMDumped()) 
+            mClusterFinderGEM.dumpPreCluster( mGEMDump, digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iPreCluster);  
+        // Clusterize
+        if (isOriginalActivated())
+            mClusterFinderOriginal.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits));
+        if (isGEMActivated())
+            mClusterFinderGEM.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iPreCluster);
+        // Dump clusters (results)
+          std::cout << "Debug ??? Original found clusters.size=" << mClusterFinderOriginal.getClusters().size() << std::endl;
+        if ( isOriginalDumped()) mClusterFinderGEM.dumpClusterResults( mOriginalDump, mClusterFinderOriginal.getClusters(), startOriginalIdx, bCrossing, orbit, iPreCluster);  
+        if ( isGEMDumped()) mClusterFinderGEM.dumpClusterResults( mGEMDump, mClusterFinderGEM.getClusters(), startGEMIdx, bCrossing, orbit, iPreCluster);  
+        // if ( isGEMDumped())    
+        iPreCluster++;
       }
       auto tEnd = std::chrono::high_resolution_clock::now();
       mTimeClusterFinder += tEnd - tStart;
 
       // fill the ouput messages
-      clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinder.getClusters().size());
+      if ( isGEMOutputStream() )
+        clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinderGEM.getClusters().size());
+      else
+        clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinderOriginal.getClusters().size());
+      //
       writeClusters(clusters, usedDigits);
     }
   }
@@ -115,19 +201,28 @@ class ClusterFinderGEMTask
   {
     /// fill the output messages with clusters and attached digits of the current event
     /// modify the references to the attached digits according to their position in the global vector
-
     auto clusterOffset = clusters.size();
-    clusters.insert(clusters.end(), mClusterFinder.getClusters().begin(), mClusterFinder.getClusters().end());
-
+    if ( isGEMOutputStream() ) {
+      clusters.insert(clusters.end(), mClusterFinderGEM.getClusters().begin(), mClusterFinderGEM.getClusters().end());
+    } else {
+      clusters.insert(clusters.end(), mClusterFinderOriginal.getClusters().begin(), mClusterFinderOriginal.getClusters().end());
+    }    
     auto digitOffset = usedDigits.size();
-    usedDigits.insert(usedDigits.end(), mClusterFinder.getUsedDigits().begin(), mClusterFinder.getUsedDigits().end());
-
+    if ( isGEMOutputStream() ) 
+      usedDigits.insert(usedDigits.end(), mClusterFinderGEM.getUsedDigits().begin(), mClusterFinderGEM.getUsedDigits().end());
+    else
+      usedDigits.insert(usedDigits.end(), mClusterFinderOriginal.getUsedDigits().begin(), mClusterFinderOriginal.getUsedDigits().end());
+        
     for (auto itCluster = clusters.begin() + clusterOffset; itCluster < clusters.end(); ++itCluster) {
       itCluster->firstDigit += digitOffset;
     }
   }
 
-  ClusterFinderGEM mClusterFinder{};                  ///< clusterizer
+  ClusterFinderOriginal mClusterFinderOriginal{};                  ///< clusterizer
+  ClusterFinderGEM mClusterFinderGEM{};                            ///< clusterizer
+  int mode;                                                        ///< Original or GEM or both
+  ClusterDump *mGEMDump;
+  ClusterDump *mOriginalDump;
   std::chrono::duration<double> mTimeClusterFinder{}; ///< timer
 };
 

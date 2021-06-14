@@ -117,14 +117,12 @@ void ClusterFinderOriginal::deinit()
 void ClusterFinderOriginal::reset()
 {
   /// reset the list of reconstructed clusters and associated digits
-  std::cout << "GG   Reset mCluster - mClusters.size=" << mClusters.size() << "mUsedDigits.size=" << mUsedDigits.size() << std::endl;
-
   mClusters.clear();
   mUsedDigits.clear();
 }
 
 //_________________________________________________________________________________________________
-void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF, bool samePreCluster)
+void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits)
 {
   /// reconstruct the clusters from the list of digits of one precluster
   /// reconstructed clusters and associated digits are added to the internal lists
@@ -138,25 +136,19 @@ void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits, uint16_t
   mMathieson = (digits[0].getDetID() < 300) ? &mMathiesons[0] : &mMathiesons[1];
 
   // reset the current precluster being processed
-  std::cout << "GG findClusters " << bunchCrossing << " " << orbit << " " << iROF << " " << digits[0].getDetID()
-            << std::endl;
-  resetPreCluster(digits, bunchCrossing, orbit, iROF, samePreCluster);
+  resetPreCluster(digits);
 
   // try to simplify the precluster by removing pads if possible (sent back to preclustering)
   std::vector<int> removedDigits{};
   simplifyPreCluster(removedDigits);
 
-  std::cout << "GG   mPreCluster->multiplicity() or padSize" << mPreCluster->multiplicity() << std::endl;
-  int nPreviousCluster = 0;
   if (mPreCluster->multiplicity() > 1) {
+
     // extract clusters from the precluster
     int iNewCluster = mClusters.size();
-    nPreviousCluster = iNewCluster;
-    std::cout << "GG   processPreCluster mCluster.size=" << mClusters.size() << std::endl;
     processPreCluster();
 
     if (mClusters.size() > iNewCluster) {
-      std::cout << "GG   Cluster founds mClusters.size=" << mClusters.size() << " " << std::endl;
 
       // copy the digits associated to the new clusters (if any) in the list of used digits
       int iFirstNewDigit = mUsedDigits.size();
@@ -169,15 +161,11 @@ void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits, uint16_t
 
       // give the new clusters a unique ID, make them point to these digits then set their resolution
       for (; iNewCluster < mClusters.size(); ++iNewCluster) {
-        std::cout << "GG      New Hit " << iNewCluster << ", nDigits=" << nNewDigits << std::endl;
-
         mClusters[iNewCluster].uid = ClusterStruct::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), iNewCluster);
         mClusters[iNewCluster].firstDigit = iFirstNewDigit;
         mClusters[iNewCluster].nDigits = nNewDigits;
         setClusterResolution(mClusters[iNewCluster]);
       }
-      // GG Save the hits
-      // writeDump( mClusters, iNewCluster, bunchCrossing, orbit, iROF);
     }
   }
 
@@ -193,89 +181,25 @@ void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits, uint16_t
     std::vector<PreCluster> preClusters{};
     std::vector<Digit> usedDigits{};
     int nPreClusters = mPreClusterFinder.run();
-    std::cout << "GG   mPreClusterFinder.run() nPreClusters=" << nPreClusters << std::endl;
     preClusters.reserve(nPreClusters);
     usedDigits.reserve(removedDigits.size());
     mPreClusterFinder.getPreClusters(preClusters, usedDigits);
 
     // clusterize every new preclusters
     for (const auto& preCluster : preClusters) {
-      std::cout << "GG   Recall findClusters Digits = " << preCluster.firstDigit << ", " << preCluster.nDigits << std::endl;
-      findClusters({&usedDigits[preCluster.firstDigit], preCluster.nDigits}, bunchCrossing, orbit, iROF, 1);
-    }
-  }
-  // Dump result
-  if (!samePreCluster) {
-    // Dump hits from iNewCluster to mClusters.size()
-    uint32_t N = mClusters.size() - nPreviousCluster;
-    // struct ClusterStruct {
-    //  float x;             ///< cluster position along x
-    //  float y;             ///< cluster position along y
-    //  float z;             ///< cluster position along z
-    //  float ex;            ///< cluster resolution along x
-    //  float ey;            ///< cluster resolution along y
-    //  uint32_t uid;        ///< cluster unique ID
-    //  uint32_t firstDigit; ///< index of first associated digit in the ordered vector of digits
-    //  uint32_t nDigits;    ///< number of digits attached to this cluster
-    //
-    // Header
-    std::cout << "GG   Dump the reco hits=" << N << std::endl;
-
-    uint32_t header[6] = {(uint32_t)(bunchCrossing), (orbit), iROF, (0), N, 0};
-    pClusterDump->dumpUInt32(0, 6, header);
-
-    //
-    double x[N], y[N];
-    double ex[N], ey[N];
-    uint32_t uid[N];
-    uint32_t firstDigit[N], nDigits[N];
-
-    int i = 0;
-    for (int n = nPreviousCluster; n < mClusters.size(); ++n, i++) {
-      ClusterStruct hit = mClusters[n];
-      x[i] = hit.x;
-      y[i] = hit.y;
-      ex[i] = hit.ex;
-      ey[i] = hit.ey;
-      uid[i] = hit.uid;
-      firstDigit[i] = hit.firstDigit;
-      nDigits[i] = hit.nDigits;
-    }
-    if (N > 0) {
-      pClusterDump->dumpFloat64(0, N, x);
-      pClusterDump->dumpFloat64(0, N, y);
-      pClusterDump->dumpFloat64(0, N, ex);
-      pClusterDump->dumpFloat64(0, N, ey);
-      pClusterDump->dumpUInt32(0, N, uid);
-      pClusterDump->dumpUInt32(0, N, firstDigit);
-      pClusterDump->dumpUInt32(0, N, nDigits);
-      pClusterDump->flush();
+      findClusters({&usedDigits[preCluster.firstDigit], preCluster.nDigits});
     }
   }
 }
 
 //_________________________________________________________________________________________________
-void ClusterFinderOriginal::resetPreCluster(gsl::span<const Digit>& digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF, bool samePreCluster)
+void ClusterFinderOriginal::resetPreCluster(gsl::span<const Digit>& digits)
 {
   /// reset the precluster with the pads converted from the input digits
 
   mPreCluster->clear();
 
   mSegmentation = &mapping::segmentation(digits[0].getDetID());
-
-  // GG To Store the preCluster
-  int nPads = digits.size();
-  double xyDxy[nPads * 4];
-  Mask_t saturated[nPads];
-  Mask_t cathode[nPads];
-  double padCharge[nPads];
-  // use to store in the dump file
-  uint32_t padADC[nPads];
-  int DEId = digits[0].getDetID();
-  double* xPad = getX(xyDxy, nPads);
-  double* yPad = getY(xyDxy, nPads);
-  double* dxPad = getDX(xyDxy, nPads);
-  double* dyPad = getDY(xyDxy, nPads);
 
   for (int iDigit = 0; iDigit < digits.size(); ++iDigit) {
 
@@ -295,30 +219,6 @@ void ClusterFinderOriginal::resetPreCluster(gsl::span<const Digit>& digits, uint
     }
 
     mPreCluster->addPad(x, y, dx, dy, charge, isSaturated, plane, iDigit, PadOriginal::kZero);
-    // GG Store
-    xPad[iDigit] = x;
-    yPad[iDigit] = y;
-    dxPad[iDigit] = dx;
-    dyPad[iDigit] = dy;
-    padCharge[iDigit] = charge;
-    saturated[iDigit] = isSaturated;
-    cathode[iDigit] = plane;
-    padADC[iDigit] = adc;
-  }
-  // Store the preCluster in dump file
-  uint32_t N = digits.size();
-  if (!(samePreCluster) && (digits.size() != 0)) {
-    std::cout << "GG   Dump the Cluster size=" << N << std::endl;
-    uint32_t header[6] = {(uint32_t)(bunchCrossing), orbit, iROF, (uint32_t)(0), N, (uint32_t)(DEId)};
-    pClusterDump->dumpUInt32(0, 6, header);
-    pClusterDump->dumpFloat64(0, N, xPad);
-    pClusterDump->dumpFloat64(0, N, yPad);
-    pClusterDump->dumpFloat64(0, N, dxPad);
-    pClusterDump->dumpFloat64(0, N, dyPad);
-    pClusterDump->dumpFloat64(0, N, padCharge);
-    pClusterDump->dumpInt16(0, N, saturated);
-    pClusterDump->dumpInt16(0, N, cathode);
-    pClusterDump->dumpUInt32(0, N, padADC);
   }
 }
 
@@ -485,8 +385,8 @@ void ClusterFinderOriginal::simplifyPreCluster(std::vector<int>& removedDigits)
 //_________________________________________________________________________________________________
 void ClusterFinderOriginal::processPreCluster()
 {
-  std::cout << "GG   processPreCluster() Make the clustering" << std::endl;
   /// builds an array of pixel and extract clusters from it
+
   buildPixArray();
   if (mPixels.empty()) {
     return;
@@ -494,8 +394,6 @@ void ClusterFinderOriginal::processPreCluster()
 
   // switch between different clustering methods depending on the complexity of the precluster
   std::pair<int, int> nPadsXY = mPreCluster->sizeInPads(PadOriginal::kZero);
-  std::cout << "GG   processPreCluster() nbr of pads" << nPadsXY.first << ", " << nPadsXY.second << std::endl;
-
   if (nPadsXY.first < 4 && nPadsXY.second < 4) {
 
     // simple precluster

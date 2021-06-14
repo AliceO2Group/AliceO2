@@ -41,3 +41,12 @@ The line below allows to read run2 digits from the file digits.in, run the precl
 then the clustering and write the clusters with associated digits in the file clusters.out:
 
 `o2-mch-digits-reader-workflow --infile "digits.in" --useRun2DigitUID | o2-mch-digits-to-preclusters-workflow | o2-mch-preclusters-to-clusters-original-workflow | o2-mch-clusters-sink-workflow --outfile "clusters.out" --useRun2DigitUID`
+
+# MCH GEM Clustering (new)
+
+This preliminary development is the new algorithm implementation of the clustering/fitting.
+It is called GEM (Gaussian Expected-Maximiztion)
+
+## Input / Output
+Exactly the same as the orignal version (see 
+
