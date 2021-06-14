@@ -118,7 +118,7 @@ void DEDigitizer::addNoise(float noiseProba)
 
   int nofNoisyPads = std::ceil(gaus(mt));
 
-  std::uniform_int_distribution<int> ids(0, mSegmentation.nofPads());
+  std::uniform_int_distribution<int> ids(0, mSegmentation.nofPads() - 1);
 
   float chargeNoise = 1.2;
   // FIXME: draw this also from some distribution (according to
