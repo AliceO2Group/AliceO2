@@ -193,6 +193,7 @@ foreach(t
         InputSpec
         Kernels
         LogParsingHelpers
+        OverrideLabels
         PtrHelpers
         Root2ArrowTable
         RootConfigParamHelpers

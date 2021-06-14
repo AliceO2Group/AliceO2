@@ -2081,6 +2081,71 @@ void overridePipeline(ConfigContext& ctx, WorkflowSpec& workflow)
   }
 }
 
+void overrideLabels(ConfigContext& ctx, WorkflowSpec& workflow)
+{
+  struct LabelsSpec {
+    std::string_view matcher;
+    std::vector<std::string> labels;
+  };
+  std::vector<LabelsSpec> specs;
+
+  auto labelsString = ctx.options().get<std::string>("labels");
+  if (labelsString.empty()) {
+    return;
+  }
+  std::string_view sv{labelsString};
+
+  size_t specStart = 0;
+  size_t specEnd = 0;
+  constexpr char specDelim = ',';
+  constexpr char labelDelim = ':';
+  do {
+    specEnd = sv.find(specDelim, specStart);
+    auto token = sv.substr(specStart, specEnd == std::string_view::npos ? std::string_view::npos : specEnd - specStart);
+    if (token.empty()) {
+      throw std::runtime_error("bad labels definition. Syntax <processor>:<label>[:<label>][,<processor>:<label>[:<label>]");
+    }
+
+    size_t labelDelimPos = token.find(labelDelim);
+    if (labelDelimPos == 0 || labelDelimPos == std::string_view::npos) {
+      throw std::runtime_error("bad labels definition. Syntax <processor>:<label>[:<label>][,<processor>:<label>[:<label>]");
+    }
+    LabelsSpec spec{token.substr(0, labelDelimPos)};
+
+    size_t labelEnd = labelDelimPos + 1;
+    do {
+      size_t labelStart = labelDelimPos + 1;
+      labelEnd = token.find(labelDelim, labelStart);
+      auto label = labelEnd == std::string_view::npos ? token.substr(labelStart) : token.substr(labelStart, labelEnd - labelStart);
+      if (label.empty()) {
+        throw std::runtime_error("bad labels definition. Syntax <processor>:<label>[:<label>][,<processor>:<label>[:<label>]");
+      }
+      spec.labels.emplace_back(label);
+      labelDelimPos = labelEnd;
+    } while (labelEnd != std::string_view::npos);
+
+    specs.push_back(spec);
+    specStart = specEnd + 1;
+  } while (specEnd != std::string_view::npos);
+
+  if (labelsString.empty() == false && specs.empty() == true) {
+    throw std::runtime_error("bad labels definition. Syntax <processor>:<label>[:<label>][,<processor>:<label>[:<label>]");
+  }
+
+  for (auto& spec : specs) {
+    for (auto& processor : workflow) {
+      if (processor.name == spec.matcher) {
+        for (const auto& label : spec.labels) {
+          if (std::find_if(processor.labels.begin(), processor.labels.end(),
+                           [label](const auto& procLabel) { return procLabel.value == label; }) == processor.labels.end()) {
+            processor.labels.push_back({label});
+          }
+        }
+      }
+    }
+  }
+}
+
 /// Helper function to initialise the controller from the command line options.
 void initialiseDriverControl(bpo::variables_map const& varmap,
                              DriverControl& control)

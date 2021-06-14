@@ -36,6 +36,7 @@ std::vector<ConfigParamSpec> WorkflowCustomizationHelpers::requiredWorkflowOptio
                                        ConfigParamSpec{"spawners", VariantType::Int64, 1ll, {"number of parallel spawners to use"}},
                                        ConfigParamSpec{"pipeline", VariantType::String, "", {"override default pipeline size"}},
                                        ConfigParamSpec{"clone", VariantType::String, "", {"clone processors from a template"}},
+                                       ConfigParamSpec{"labels", VariantType::String, "", {"add labels to dataprocessors"}},
                                        ConfigParamSpec{"workflow-suffix", VariantType::String, "", {"suffix to add to all dataprocessors"}},
 
                                        // options for AOD rate limiting
