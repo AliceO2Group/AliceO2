@@ -464,7 +464,7 @@ class TrackSelectorPID
       if (std::abs(nSigmaRICHEl) < mNSigmaRICHMax) {
         isSelRICH = true; // is selected as electron by RICH
       }
-      if ((std::abs(nSigmaRICHPi) < mNSigmaRICHMax) && (p > 1.0)) {
+      if ((std::abs(nSigmaRICHPi) < mNSigmaRICHMax) && (p > 1.0) && (p < 2.0)) {
         isSelRICH = false; // is selected as pion by RICH
       }
     } else {
