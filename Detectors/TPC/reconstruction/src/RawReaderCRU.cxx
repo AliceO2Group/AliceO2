@@ -211,6 +211,7 @@ int RawReaderCRU::scanFile()
 
   auto& file = getFileHandle();
 
+  LOGP(info, "scanning file {}", mInputFileName);
   // get length of file in bytes
   file.seekg(0, file.end);
   mFileSize = file.tellg();
@@ -247,7 +248,7 @@ int RawReaderCRU::scanFile()
 
     // ===| skip IDC data |=====================================================
     const auto detField = o2::raw::RDHUtils::getDetectorField(rdh);
-    if ((detField > 1) || (payloadSize == 0)) {
+    if (((detField != 0xdeadbeef) && (detField > 1)) || (payloadSize == 0)) {
       file.seekg(offset, file.cur);
       ++currentPacket;
       currentPos = file.tellg();
@@ -268,13 +269,13 @@ int RawReaderCRU::scanFile()
         const uint64_t pageCnt = RDHUtils::getPageCounter(rdh);
         const uint64_t linkID = RDHUtils::getLinkID(rdh);
 
-        if (pageCnt == 0) {
-          if (linkID == 15) {
-            mManager->mRawDataType = RAWDataType::LinkZS;
-            LOGP(info, "Detected LinkZS data");
-            mManager->mDetectDataType = false;
-          }
+        //if (pageCnt == 0) {
+        if ((linkID == 15) || (detField == 0x1)) {
+          mManager->mRawDataType = RAWDataType::LinkZS;
+          LOGP(info, "Detected LinkZS data");
+          mManager->mDetectDataType = false;
         }
+        //}
 
         if (pageCnt == 1) {
           if (triggerType == triggerTypeForTriggeredData) {
@@ -774,8 +775,7 @@ void RawReaderCRU::processLinkZS()
     }
     file.seekg(payloadOffset, file.beg);
     file.read(buffer, payloadSize);
-    const auto globalBCOffset = (packet.getHeartBeatOrbit() - firstOrbitInEvent) * 3564;
-    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), globalBCOffset, mManager->mLinkZSCallback, false); // last parameter should be true for MW2 data
+    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), packet.getHeartBeatOrbit(), firstOrbitInEvent, mManager->mLinkZSCallback, false); // last parameter should be true for MW2 data
   }
 }
 
