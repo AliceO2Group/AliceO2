@@ -72,34 +72,48 @@ std::string rawChannelReference(std::string_view channelName, bool isUniqueChann
   }
 }
 
-void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, std::string indLevel)
+void dumpRawChannelConnect(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, bool preserveRawChannels, std::string indLevel)
 {
-  auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
-  LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
-            << " Please make sure it is declared in the global channel space under the name '" << channelRef
-            << "' in the mother workflow or another subworkflow.";
 
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
-  dumpOut << indLevel << indScheme << "target: \"::" << channelRef << "\"\n";
+  if (preserveRawChannels) {
+    dumpOut << indLevel << indScheme << "target: \"" << channel.address << "\"\n";
+    LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+              << " Please make sure it is available under the address '" << channel.address
+              << "' in the mother workflow or another subworkflow.";
+  } else {
+    auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
+    LOG(INFO) << "This topology will connect to the channel '" << channel.name << "', which is most likely bound outside."
+              << " Please make sure it is declared in the global channel space under the name '" << channelRef
+              << "' in the mother workflow or another subworkflow.";
+    dumpOut << indLevel << indScheme << "target: \"::" << channelRef << "\"\n";
+  }
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
 }
 
-void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, std::string indLevel)
+void dumpRawChannelBind(std::ostream& dumpOut, const RawChannel& channel, bool isUniqueChannel, bool preserveRawChannels, std::string indLevel)
 {
-  auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
-  LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'"
-            << " and declare it in the global channel space under the name '" << channelRef << "'."
-            << " Please make sure that another device connects to this channel elsewhere."
-            << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
-
   dumpOut << indLevel << "- name: " << channel.name << "\n";
   dumpOut << indLevel << indScheme << "type: " << channel.type << "\n";
   dumpOut << indLevel << indScheme << "transport: " << channel.transport << "\n";
   dumpOut << indLevel << indScheme << "addressing: " << (channel.address.find("ipc") != std::string_view::npos ? "ipc" : "tcp") << "\n";
   dumpOut << indLevel << indScheme << "rateLogging: \"{{ fmq_rate_logging }}\"\n";
-  dumpOut << indLevel << indScheme << "global: \"" << channelRef << "\"\n";
+  if (preserveRawChannels) {
+    LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'"
+              << " with the address '" << channel.address << "'."
+              << " Please make sure that another device connects to this channel elsewhere."
+              << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
+    dumpOut << indLevel << indScheme << "target: \"" << channel.address << "\"\n";
+  } else {
+    auto channelRef = rawChannelReference(channel.name, isUniqueChannel);
+    LOG(INFO) << "This topology will bind a dangling channel '" << channel.name << "'"
+              << " and declare it in the global channel space under the name '" << channelRef << "'."
+              << " Please make sure that another device connects to this channel elsewhere."
+              << " Also, don't mind seeing the message twice, it will be addressed in future releases.";
+    dumpOut << indLevel << indScheme << "global: \"" << channelRef << "\"\n";
+  }
 }
 
 std::string_view extractValueFromChannelConfig(std::string_view string, std::string_view token)
@@ -229,6 +243,11 @@ bool isUniqueProxy(const DeviceSpec& spec)
   return std::find(spec.labels.begin(), spec.labels.end(), ecs::uniqueProxyLabel) != spec.labels.end();
 }
 
+bool shouldPreserveRawChannels(const DeviceSpec& spec)
+{
+  return std::find(spec.labels.begin(), spec.labels.end(), ecs::preserveRawChannelsLabel) != spec.labels.end();
+}
+
 void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSpec& spec, const std::vector<DeviceSpec>& allSpecs, const DeviceExecution& execution, const std::string indLevel)
 {
   dumpOut << indLevel << "- name: \"" << spec.id << "\"\n";
@@ -246,11 +265,12 @@ void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSp
     }
   }
   bool uniqueProxy = isUniqueProxy(spec);
+  bool preserveRawChannels = shouldPreserveRawChannels(spec);
   bool bindsRawChannels = false;
   auto rawChannels = extractRawChannels(spec, execution);
   for (const auto& rawChannel : rawChannels) {
     if (rawChannel.method == "connect") {
-      dumpRawChannelConnect(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
+      dumpRawChannelConnect(dumpOut, rawChannel, uniqueProxy, preserveRawChannels, indLevel + indScheme);
     } else if (rawChannel.method == "bind") {
       bindsRawChannels = true;
     }
@@ -261,7 +281,7 @@ void dumpRole(std::ostream& dumpOut, const std::string& taskName, const DeviceSp
     dumpOut << indLevel << indScheme << "bind:\n";
     for (const auto& rawChannel : rawChannels) {
       if (rawChannel.method == "bind") {
-        dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
+        dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, preserveRawChannels, indLevel + indScheme);
       }
     }
   }
@@ -323,10 +343,11 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
     }
   }
   bool uniqueProxy = implementation::isUniqueProxy(spec);
+  bool preserveRawChannels = implementation::shouldPreserveRawChannels(spec);
   auto rawChannels = implementation::extractRawChannels(spec, execution);
   for (const auto& rawChannel : rawChannels) {
     if (rawChannel.method == "bind") {
-      dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, indLevel + indScheme);
+      dumpRawChannelBind(dumpOut, rawChannel, uniqueProxy, preserveRawChannels, indLevel + indScheme);
     }
   }
 
