@@ -98,3 +98,9 @@ o2_add_executable(
 target_include_directories(
   ${exenamerawchecker}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  tracks-reader-workflow
+  SOURCES src/tracks-reader-workflow.cxx
+  COMPONENT_NAME mid
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMID)
