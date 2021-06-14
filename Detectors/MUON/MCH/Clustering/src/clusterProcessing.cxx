@@ -15,6 +15,7 @@
 #define INSPECTMODEL 1
 #define VERBOSE 0
 #define CHECK 1
+#define DISABLE_EM_SATURATED 1
 
 // Type of projection
 // Here add alone pads
@@ -945,6 +946,9 @@ int clusterProcess(const double* xyDxyi, const Mask_t* cathi, const Mask_t* satu
                         thetaOpt, thetaOptMask);
     }
     double thetaEM[K * 5];
+    if (DISABLE_EM_SATURATED){
+      vectorSetZeroShort( saturatedGrp, nbrOfPadsInTheGroup);
+    }
     if (1 && (kOpt != K)) {
       weightedEMLoop(xyDxyGrp, saturatedGrp, chGrp, thetaOpt, thetaOptMask, K, nbrOfPadsInTheGroup, EMmode, EMConvergence, EMverbose, thetaEM);
     } else {
@@ -1015,14 +1019,17 @@ int clusterProcess(const double* xyDxyi, const Mask_t* cathi, const Mask_t* satu
         // Extract from cath1 the pads which belong to the group g
         maskedCopyXYdXY(xy1Dxy, nbrCath1, maskFit1, nbrCath1, &xyDxyFit[n0], nFit);
         // Saturated pads
-        vectorGatherShort(saturated, maskFit0, nbrCath0, &notSaturatedFit[0]);
-        vectorGatherShort(saturated, maskFit1, nbrCath1, &notSaturatedFit[n0]);
+        // vectorPrintShort(" notSaturatedFit 0 ??? ", notSaturatedFit, nFit);
+        vectorGatherShort( satPads0, maskFit0, nbrCath0, &notSaturatedFit[0]);
+        vectorGatherShort( satPads1, maskFit1, nbrCath1, &notSaturatedFit[n0]);
+        // vectorPrintShort(" notSaturatedFit 0 ??? ", notSaturatedFit, nFit);
         vectorNotShort(notSaturatedFit, nFit, notSaturatedFit);
         // Chargei in group g
         vectorGather(ch0, maskFit0, nbrCath0, zFit);
         vectorGather(ch1, maskFit1, nbrCath1, &zFit[n0]);
         // saturated pads are ignored
-        vectorMaskedMult(zFit, notSaturatedFit, nFit, zFit);
+        // ??? Don't Set to zero the sat. pads 
+        // vectorMaskedMult( zFit, notSaturatedFit, nFit, zFit);
         // Total Charge on both cathodes
         zCathTotalCharge[0] = vectorMaskedSum(zFit, &notSaturatedFit[0], n0);
         zCathTotalCharge[1] = vectorMaskedSum(&zFit[n0], &notSaturatedFit[n0], n1);
@@ -1048,7 +1055,8 @@ int clusterProcess(const double* xyDxyi, const Mask_t* cathi, const Mask_t* satu
           vectorGatherShort(saturated, maskFit0, nbrCath0, &notSaturatedFit[0]);
           vectorNotShort(notSaturatedFit, nFit, notSaturatedFit);
           vectorGather(zi, maskFit0, nbrCath0, zFit);
-          vectorMaskedMult(zFit, notSaturatedFit, nFit, zFit);
+          // ??? Don't Set to zero the sat. pads 
+          // vectorMaskedMult( zFit, notSaturatedFit, nFit, zFit);
 
           zCathTotalCharge[0] = vectorMaskedSum(zFit, notSaturatedFit, nFit);
           zCathTotalCharge[1] = 0;
@@ -1058,7 +1066,8 @@ int clusterProcess(const double* xyDxyi, const Mask_t* cathi, const Mask_t* satu
           vectorGatherShort(saturated, maskFit1, nbrCath1, &notSaturatedFit[0]);
           vectorNotShort(notSaturatedFit, nFit, notSaturatedFit);
           vectorGather(zi, maskFit1, nbrCath1, zFit);
-          vectorMaskedMult(zFit, notSaturatedFit, nFit, zFit);
+          // ??? Don't Set to zero the sat. pads 
+          // vectorMaskedMult(zFit, notSaturatedFit, nFit, zFit);
 
           zCathTotalCharge[0] = 0;
           zCathTotalCharge[1] = vectorMaskedSum(zFit, notSaturatedFit, nFit);

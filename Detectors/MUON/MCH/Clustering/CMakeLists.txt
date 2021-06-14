@@ -25,8 +25,10 @@ o2_target_root_dictionary(MCHClustering
                           HEADERS include/MCHClustering/ClusterizerParam.h)
 
 o2_add_library(MCHClusteringGEM
-               SOURCES src/ClusterDump.cxx
+               SOURCES src/MathiesonOriginal.cxx               	
                        src/ClusterOriginal.cxx
+                       src/ClusterFinderOriginal.cxx
+                       src/ClusterDump.cxx
                        src/ClusterFinderGEM.cxx
                        src/dataStructure.cxx
                        src/mathUtil.cxx

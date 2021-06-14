@@ -55,7 +55,7 @@ class ClusterDump
 
  private:
   std::string fileName;
-  std::fstream dumpFiles[4];
+  std::fstream dumpFiles[1];
   int mode; // 1 write the file else don't
 };
 } // namespace mch

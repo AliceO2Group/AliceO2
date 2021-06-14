@@ -32,10 +32,6 @@
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
 
-// GG
-#include "ClusterDump.h"
-#include "dataStructure.h"
-
 namespace o2
 {
 namespace mch
@@ -60,7 +56,7 @@ class ClusterFinderOriginal
   void deinit();
   void reset();
 
-  void findClusters(gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iROF, bool samePreCluster = 0);
+  void findClusters(gsl::span<const Digit> digits);
 
   /// return the list of reconstructed clusters
   const std::vector<ClusterStruct>& getClusters() const { return mClusters; }

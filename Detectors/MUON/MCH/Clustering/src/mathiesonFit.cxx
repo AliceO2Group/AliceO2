@@ -74,14 +74,31 @@ int f_ChargeIntegral(const gsl_vector* gslParams, void* dataFit, gsl_vector* res
     // z[:] +=  w[k] * cathWeight
     //       * computeMathieson2DIntegral( xInf[:], xSup[:], yInf[:], ySup[:], N )
     compute2DPadIntegrals(xyInfSup, N, chamberId, zTmp);
-    vectorMultVector(zTmp, cathWeights, N, zTmp);
     // GG Note: if require compute the charge of k-th component
     // z_k[k] = vectorSum( zTmp, N )
+    // Done after the loop: vectorMultVector( zTmp, cathWeights, N, zTmp);
     double wTmp = (k != K - 1) ? w[k] : lastW;
     // saturated pads
-    vectorMaskedMult(zTmp, notSaturated, N, zTmp);
+    // ??? ?
+    // vectorMaskedMult( zTmp, notSaturated, N, zTmp);
     vectorAddVector(z, wTmp, zTmp, N, z);
   }
+  // Normalize each cathodes
+  double sumNormalizedZ[2];
+  for (int i=0; i < N; i++) {
+      if (cath[i]==0) sumNormalizedZ[0] += notSaturated[i] * z[i];
+      else sumNormalizedZ[1] += notSaturated[i]*z[i];
+  }
+  double var[2] = { 1.0/sumNormalizedZ[0], 1./sumNormalizedZ[1] };
+  for (int i=0; i < N; i++) {
+      if (cath[i]==0) z[i] = z[i] * var[0]; 
+      else  z[i] = z[i] * var[1]; 
+  }
+  if (verbose > 1) {
+      printf( "  sum mathiesons %f %f\n", sumNormalizedZ[0], sumNormalizedZ[1]);
+  }
+  vectorMultVector( z, cathWeights, N, z);
+  // vectorMultScalar( z, 2.0/sumNormalizedZ, N, z);
 
   // ??? why abs value for penalties
   double wPenal = abs(1.0 - vectorSum(w, K - 1) + lastW);
@@ -92,24 +109,36 @@ int f_ChargeIntegral(const gsl_vector* gslParams, void* dataFit, gsl_vector* res
   double zCath0 = 0.0, zCath1 = 0.0;
   for (int i = 0; i < N; i++) {
     if (cath[i] == 0) {
-      zCath0 += z[i];
+        zCath0 += (z[i]*notSaturated[i]);
     } else {
-      zCath1 += z[i];
+        zCath1 += (z[i]*notSaturated[i]);
     }
+  }
+  if (verbose > 1) {
+    printf( "  non saturated sum zCath0/1 %f %f\n", zCath0, zCath1);
   }
   double cathPenal = fabs(zCathTotalCharge[0] - zCath0) + fabs(zCathTotalCharge[1] - zCath1);
   // ??? vectorAdd( zObs, -1.0, residual );
   // TODO Optimize (elementwise not a good solution)
   for (i = 0; i < N; i++) {
-    gsl_vector_set(residuals, i, (zObs[i] - z[i]) * (1.0 + cathPenal) + wPenal);
-    // gsl_vector_set( residuals, i, (zObs[i] - z[i])  + 0.*wPenal );
+    // gsl_vector_set(residuals, i, (zObs[i] - z[i]) * (1.0 + cathPenal) + wPenal);
+    double mask;
+    if ( (notSaturated[i]==0) && (z[i] < zObs[i]) ){
+        mask = 1;
+    } else {
+        mask = notSaturated[i];
+  }
+    gsl_vector_set( residuals, i, mask*(zObs[i] - z[i])  + 0.*wPenal );
   }
   if (verbose > 1) {
+    printf("  observed sumCath0=%15.8f, sumCath1=%15.8f,\n", zCathTotalCharge[0], zCathTotalCharge[1]); 
+    printf("  fitted   sumCath0=%15.8f, sumCath1=%15.8f,\n", zCath0, zCath1); 
     printf("  cathPenal=%5.4g wPenal=%5.4g \n", 1.0 + cathPenal, wPenal);
     printf("  residual\n");
-    printf("  %15s  %15s  %15s \n", "zObs", "z", "residual");
+    printf("  %15s  %15s  %15s %15s %15s %15s\n",  "zObs",  "z", "cathWeight", "norm. factor", "notSaturated", "residual");
     for (i = 0; i < N; i++) {
-      printf("  %15.8f  %15.8f  %15.8f \n", zObs[i], z[i], gsl_vector_get(residuals, i));
+      printf("  %15.8f  %15.8f  %15.8f  %15.8f         %d  %15.8f\n",  
+              zObs[i], z[i], cathWeights[i], sumNormalizedZ[cath[i]]* cathWeights[i], notSaturated[i], gsl_vector_get( residuals, i));
     }
     printf("\n");
   }
