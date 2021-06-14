@@ -39,8 +39,9 @@ void DigiReco::init()
   for (int tsi = 0; tsi <= n; tsi++) {
     O2_ZDC_DIGIRECO_FLT arg1 = TMath::Pi() * O2_ZDC_DIGIRECO_FLT(tsi) / O2_ZDC_DIGIRECO_FLT(TSN);
     O2_ZDC_DIGIRECO_FLT fs = 1;
-    if (arg1 != 0)
+    if (arg1 != 0) {
       fs = TMath::Sin(arg1) / arg1;
+    }
     O2_ZDC_DIGIRECO_FLT arg2 = O2_ZDC_DIGIRECO_FLT(tsi) / tsc;
     O2_ZDC_DIGIRECO_FLT fg = TMath::Exp(-arg2 * arg2);
     mTS[n + tsi] = fs * fg;
