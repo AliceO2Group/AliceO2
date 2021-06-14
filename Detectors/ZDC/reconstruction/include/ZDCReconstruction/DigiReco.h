@@ -91,7 +91,7 @@ class DigiReco
   const ZDCTowerParam* mTowerParam = nullptr;                                 /// Tower calibration object
   uint32_t mTDCMask[NTDCChannels] = {0};                                      /// Identify TDC channels in trigger mask
   const RecoConfigZDC* mRecoConfigZDC = nullptr;                              /// CCDB configuration parameters
-  bool mVerbosity = DbgFull;
+  int32_t mVerbosity = DbgMinimal;
   Double_t mTS[NTS];                                /// Tapered sinc function
   bool mTreeDbg = false;                            /// Write reconstructed data in debug output file
   std::unique_ptr<TFile> mDbg = nullptr;            /// Debug output file
