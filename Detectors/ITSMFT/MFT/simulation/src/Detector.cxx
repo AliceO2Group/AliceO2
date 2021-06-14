@@ -18,10 +18,8 @@
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
-#include "MFTBase/MFTBaseParam.h"
 
 #include "MFTSimulation/Detector.h"
-#include "MFTSimulation/GeometryMisAligner.h"
 
 #include "Field/MagneticField.h"
 #include "SimulationDataFormat/Stack.h"
@@ -707,42 +705,6 @@ void Detector::addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms,
   if (!gGeoManager->SetAlignableEntry(sname, path.Data(), uid)) {
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
   }
-}
-
-//_____________________________________________________________________________
-void Detector::Misaligner() const
-{
-  // produce misalignment parameters stored into local file or CCDB
-  auto& mftBaseParam = MFTBaseParam::Instance();
-
-  const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080";
-  long tmin = 0;
-  long tmax = -1;
-  const std::string& objectPath = "";
-  const std::string& fileName = "MFTAlignment.root";
-
-  // Initialize the misaligner
-  o2::mft::GeometryMisAligner aGMA;
-
-  if (mftBaseParam.misalignHalf) {
-    aGMA.SetHalfCartMisAlig(0., mftBaseParam.xHalf, 0., mftBaseParam.yHalf, 0., mftBaseParam.zHalf);
-    aGMA.SetHalfAngMisAlig(0., mftBaseParam.psiHalf, 0., mftBaseParam.thetaHalf, 0., mftBaseParam.phiHalf);
-  }
-
-  if (mftBaseParam.misalignDisk) {
-    aGMA.SetDiskCartMisAlig(0., mftBaseParam.xDisk, 0., mftBaseParam.yDisk, 0., mftBaseParam.zDisk);
-    aGMA.SetDiskAngMisAlig(0., mftBaseParam.psiDisk, 0., mftBaseParam.thetaDisk, 0., mftBaseParam.phiDisk);
-  }
-  if (mftBaseParam.misalignLadder) {
-    aGMA.SetLadderCartMisAlig(0., mftBaseParam.xLadder, 0., mftBaseParam.yLadder, 0., mftBaseParam.zLadder);
-    aGMA.SetLadderAngMisAlig(0., mftBaseParam.psiLadder, 0., mftBaseParam.thetaLadder, 0., mftBaseParam.phiLadder);
-  }
-  if (mftBaseParam.misalignSensor) {
-    aGMA.SetSensorCartMisAlig(0., mftBaseParam.xSensor, 0., mftBaseParam.ySensor, 0., mftBaseParam.zSensor);
-    aGMA.SetSensorAngMisAlig(0., mftBaseParam.psiSensor, 0., mftBaseParam.thetaSensor, 0., mftBaseParam.phiSensor);
-  }
-
-  aGMA.MisAlign(false, ccdbHost, tmin, tmax, objectPath, fileName);
 }
 
 //_____________________________________________________________________________

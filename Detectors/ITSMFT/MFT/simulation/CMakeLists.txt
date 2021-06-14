@@ -31,5 +31,4 @@ o2_add_executable(digi2raw
                                         O2::DetectorsRaw
                                         O2::DetectorsCommonDataFormats
                                         O2::CommonUtils
-                                        O2::CCDB
                                         Boost::program_options)

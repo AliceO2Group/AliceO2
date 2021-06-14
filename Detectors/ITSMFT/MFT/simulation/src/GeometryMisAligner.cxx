@@ -344,7 +344,6 @@ TGeoCombiTrans
   deltaRot.RotateZ(angMisAlig[2]);
 
   TGeoCombiTrans deltaTransf(deltaTrans, deltaRot);
-  //TGeoHMatrix newTransfMat = transform * deltaTransf;
 
   return TGeoCombiTrans(deltaTransf);
 }
@@ -444,6 +443,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
     lAP.setSymName(sname);
     lAP.setAlignableID(-1);
     lAP.setLocalParams(localDeltaTransform);
+    lAP.applyToGeometry();
     lAPvec.emplace_back(lAP);
 
     for (Int_t dk = 0; dk < nDisks; dk++) {
@@ -454,11 +454,13 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
       LOG(DEBUG) << "**** LocalDeltaTransform Disk: " << fmt::format("{} : {} | X: {:+f} Y: {:+f} Z: {:+f} | pitch: {:+f} roll: {:+f} yaw: {:+f}\n", lAP.getSymName(), lAP.getAlignableID(), localDeltaTransform.GetTranslation()[0], localDeltaTransform.GetTranslation()[1], localDeltaTransform.GetTranslation()[2], localDeltaTransform.GetRotationMatrix()[0], localDeltaTransform.GetRotationMatrix()[1], localDeltaTransform.GetRotationMatrix()[2]);
 
       lAP.setLocalParams(localDeltaTransform);
+      lAP.applyToGeometry();
+      lAPvec.emplace_back(lAP);
+
       Int_t nLadders = 0;
       for (Int_t sensor = mGeometryTGeo->getMinSensorsPerLadder(); sensor < mGeometryTGeo->getMaxSensorsPerLadder() + 1; sensor++) {
         nLadders += mGeometryTGeo->getNumberOfLaddersPerDisk(hf, dk, sensor);
       }
-      lAPvec.emplace_back(lAP);
 
       for (Int_t lr = 0; lr < nLadders; lr++) { //nLadders
         localDeltaTransform = MisAlignLadder();
@@ -468,6 +470,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
         lAP.setSymName(sname);
         lAP.setAlignableID(-1);
         lAP.setLocalParams(localDeltaTransform);
+        lAP.applyToGeometry();
         lAPvec.emplace_back(lAP);
 
         for (Int_t sr = 0; sr < nSensorsPerLadder; sr++) {
@@ -480,6 +483,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
           Int_t uid = o2::base::GeometryManager::getSensID(o2::detectors::DetID::MFT, nChip++);
           lAP.setAlignableID(uid);
           lAP.setLocalParams(localDeltaTransform);
+          lAP.applyToGeometry();
           lAPvec.emplace_back(lAP);
           if (verbose) {
             LOG(INFO) << "misaligner: " << sname << ", sensor: " << nChip;
