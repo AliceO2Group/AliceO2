@@ -19,6 +19,7 @@
 #include "TH2Poly.h"
 #include "TCanvas.h"
 #include "TLatex.h"
+#include "TKey.h"
 #include "Framework/Logger.h"
 
 #if (defined(WITH_OPENMP) || defined(_OPENMP)) && !defined(__CLING__)
