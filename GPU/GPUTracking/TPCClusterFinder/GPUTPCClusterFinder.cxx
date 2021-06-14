@@ -112,8 +112,8 @@ void GPUTPCClusterFinder::RegisterMemoryAllocation()
 void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mNMaxPeaks = mRec->MemoryScalers()->NTPCPeaks(mNMaxDigitsFragment);
-  mNMaxClusters = mRec->MemoryScalers()->NTPCClusters(mNMaxDigitsFragment);
-  mNMaxClusterPerRow = 0.01f * mRec->MemoryScalers()->NTPCClusters(mNMaxDigits); // TODO: Can save some memory hery by using mNMaxClusters, and copying the computed clusters out after every fragment
+  mNMaxClusters = mRec->MemoryScalers()->NTPCClusters(mNMaxDigitsFragment, true);
+  mNMaxClusterPerRow = 0.01f * mRec->MemoryScalers()->NTPCClusters(mNMaxDigits, true); // TODO: Can save some memory hery by using mNMaxClusters, and copying the computed clusters out after every fragment
   if (io.settingsTF && io.settingsTF->hasNHBFPerTF) {
     unsigned int threshold = 300000 * io.settingsTF->nHBFPerTF / 128;                                                            // TODO: Probably one would need to do this on a row-basis for a better estimate, but currently not supported
     mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, std::min<unsigned int>(threshold, mNMaxClusterPerRow * 10)); // Relative increased value up until a threshold, for noisy pads

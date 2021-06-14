@@ -292,7 +292,7 @@ int GPUReconstruction::InitPhaseBeforeDevice()
   }
 
   mMemoryScalers->factor = mProcessingSettings.memoryScalingFactor;
-  mMemoryScalers->returnMaxVal = mProcessingSettings.forceMaxMemScalers;
+  mMemoryScalers->returnMaxVal = mProcessingSettings.forceMaxMemScalers != 0;
   if (mProcessingSettings.forceMaxMemScalers > 1) {
     mMemoryScalers->rescaleMaxMem(mProcessingSettings.forceMaxMemScalers);
   }
