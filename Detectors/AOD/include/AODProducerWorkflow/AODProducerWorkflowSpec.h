@@ -204,6 +204,16 @@ class AODProducerWorkflowDPL : public Task
 
   uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
 
+  template <typename TracksCursorType, typename TracksCovCursorType>
+  void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
+                        const o2::track::TrackParCov& track, int collisionID, int src);
+
+  template <typename TracksExtraCursorType>
+  void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor);
+
+  template <typename mftTracksCursorType>
+  void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, const o2::mft::TrackMFT& track, int collisionID);
+
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
                             gsl::span<const o2::MCCompLabel>& mcTruthITS, std::vector<bool>& isStoredITS,
