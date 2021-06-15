@@ -69,7 +69,7 @@ GPUd() void GPUTPCCFChargeMapFiller::fillFromDigitsImpl(int nBlocks, int nThread
 template <>
 GPUdii() void GPUTPCCFChargeMapFiller::Thread<GPUTPCCFChargeMapFiller::findFragmentStart>(int nBlocks, int nThreads, int iBlock, int iThread, GPUSharedMemory& smem, processorType& clusterer, char setPositions)
 {
-  if (iThread != 0) {
+  if (iThread != 0 || iBlock != 0) {
     return;
   }
 
