@@ -163,7 +163,7 @@ DataProcessorSpec getTPCITSMatchingSpec(GTrackID::mask_t src, bool useFT0, bool 
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, useMC);
-  dataRequest->requestClusters(src, false); // no MC labels for clusters needed for refit only
+  dataRequest->requestClusters(GTrackID::getSourcesMask("ITS,TPC"), false); // Only ITS and TPC and no MC labels for clusters needed: refit only
 
   if (useFT0) {
     dataRequest->requestFT0RecPoints(false);
