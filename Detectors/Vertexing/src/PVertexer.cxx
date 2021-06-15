@@ -954,6 +954,15 @@ SeedHistoTZ PVertexer::buildHistoTZ(const VertexingInput& input)
 }
 
 //______________________________________________
+bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const
+{
+  o2d::DCA dca;
+  return o2::base::Propagator::Instance()->propagateToDCA(mMeanVertex, trc, mBz, 2.0f,
+                                                          o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca, nullptr, 0, mPVParams->dcaTolerance) &&
+         (dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) < mPVParams->pullIniCut);
+}
+
+//______________________________________________
 void PVertexer::doDBScanDump(const VertexingInput& input, gsl::span<const o2::MCCompLabel> lblTracks)
 {
   // dump tracks for T-Z clusters identified by the DBScan

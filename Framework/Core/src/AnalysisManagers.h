@@ -18,6 +18,7 @@
 #include "Framework/HistogramRegistry.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/ConfigurableHelpers.h"
 #include "Framework/InitContext.h"
 #include "Framework/RootConfigParamHelpers.h"
 #include "../src/ExpressionHelpers.h"
@@ -368,13 +369,7 @@ template <typename T, ConfigParamKind K, typename IP>
 struct OptionManager<Configurable<T, K, IP>> {
   static bool appendOption(std::vector<ConfigParamSpec>& options, Configurable<T, K, IP>& what)
   {
-    if constexpr (variant_trait_v<typename std::decay<T>::type> != VariantType::Unknown) {
-      options.emplace_back(ConfigParamSpec{what.name, variant_trait_v<std::decay_t<T>>, what.value, {what.help}, what.kind});
-    } else {
-      auto specs = RootConfigParamHelpers::asConfigParamSpecs<T>(what.name, what.value);
-      options.insert(options.end(), specs.begin(), specs.end());
-    }
-    return true;
+    return ConfigurableHelpers::appendOption(options, what);
   }
 
   static bool prepare(InitContext& context, Configurable<T, K, IP>& what)

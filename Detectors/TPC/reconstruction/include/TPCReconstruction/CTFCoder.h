@@ -162,11 +162,11 @@ void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::contai
     frequencyTable.addFrequencies(block.getDict(), block.getDict() + block.getNDict(), metaData.min, metaData.max);
     return frequencyTable;
   };
-  auto getProbabilityBits = [](const CTF::container_t& ctf, CTF::Slots slot) -> int {
+  auto getSymbolTablePrecision = [](const CTF::container_t& ctf, CTF::Slots slot) -> int {
     return ctf.getMetadata(slot).probabilityBits;
   };
 
-  this->createCoder<source_T>(coderType, buildFrequencyTable(ctf, slot), getProbabilityBits(ctf, slot), static_cast<int>(slot));
+  this->createCoder<source_T>(coderType, buildFrequencyTable(ctf, slot), getSymbolTablePrecision(ctf, slot), static_cast<int>(slot));
 }
 
 /// entropy-encode clusters to buffer with CTF

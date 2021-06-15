@@ -39,12 +39,12 @@ struct Stack {
   struct freeobj {
     freeobj(memory_resource* mr) : resource(mr) {}
     memory_resource* resource{nullptr};
-    void operator()(o2::byte* ptr) { resource->deallocate(ptr, 0, 0); }
+    void operator()(std::byte* ptr) { resource->deallocate(ptr, 0, 0); }
   };
 
  public:
-  using allocator_type = boost::container::pmr::polymorphic_allocator<o2::byte>;
-  using value_type = o2::byte;
+  using allocator_type = boost::container::pmr::polymorphic_allocator<std::byte>;
+  using value_type = std::byte;
   using BufferType = std::unique_ptr<value_type[], freeobj>; //this gives us proper default move semantics for free
 
   Stack() = default;
@@ -57,8 +57,8 @@ struct Stack {
   size_t size() const { return bufferSize; }
   allocator_type get_allocator() const { return allocator; }
   const BaseHeader* first() const { return reinterpret_cast<const BaseHeader*>(this->data()); }
-  static const BaseHeader* firstHeader(o2::byte const* buf) { return BaseHeader::get(buf); }
-  static const BaseHeader* lastHeader(o2::byte const* buf)
+  static const BaseHeader* firstHeader(std::byte const* buf) { return BaseHeader::get(buf); }
+  static const BaseHeader* lastHeader(std::byte const* buf)
   {
     const BaseHeader* last{firstHeader(buf)};
     while (last && last->flagsNextHeader) {
@@ -66,7 +66,7 @@ struct Stack {
     }
     return last;
   }
-  static size_t headerStackSize(o2::byte const* buf)
+  static size_t headerStackSize(std::byte const* buf)
   {
     size_t result = 0;
     const BaseHeader* last{firstHeader(buf)};
@@ -88,7 +88,7 @@ struct Stack {
   /// all headers must derive from BaseHeader, in addition also other stacks can be passed to ctor.
   template <typename FirstArgType, typename... Headers,
             typename std::enable_if_t<
-              !std::is_convertible<FirstArgType, boost::container::pmr::polymorphic_allocator<o2::byte>>::value, int> = 0>
+              !std::is_convertible<FirstArgType, boost::container::pmr::polymorphic_allocator<std::byte>>::value, int> = 0>
   Stack(FirstArgType&& firstHeader, Headers&&... headers)
     : Stack(boost::container::pmr::new_delete_resource(), std::forward<FirstArgType>(firstHeader),
             std::forward<Headers>(headers)...)
@@ -100,7 +100,7 @@ struct Stack {
   Stack(const allocator_type allocatorArg, Headers&&... headers)
     : allocator{allocatorArg},
       bufferSize{calculateSize(std::forward<Headers>(headers)...)},
-      buffer{static_cast<o2::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))), freeobj{allocator.resource()}}
+      buffer{static_cast<std::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))), freeobj{allocator.resource()}}
   {
     inject(buffer.get(), std::forward<Headers>(headers)...);
   }
@@ -117,7 +117,7 @@ struct Stack {
   constexpr static size_t calculateSize(T&& h) noexcept
   {
     //if it's a pointer (to a stack) traverse it
-    if constexpr (std::is_convertible_v<T, o2::byte*>) {
+    if constexpr (std::is_convertible_v<T, std::byte*>) {
       const BaseHeader* next = BaseHeader::get(std::forward<T>(h));
       if (!next) {
         return 0;
@@ -143,7 +143,7 @@ struct Stack {
 
   //______________________________________________________________________________________________
   template <typename T>
-  static o2::byte* inject(o2::byte* here, T&& h, bool more = false) noexcept
+  static std::byte* inject(std::byte* here, T&& h, bool more = false) noexcept
   {
     using headerType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
     if (here == nullptr) {
@@ -168,7 +168,7 @@ struct Stack {
       ::new (static_cast<void*>(here)) headerType(std::forward<T>(h));
       reinterpret_cast<BaseHeader*>(here)->flagsNextHeader = more;
       return here + h.size();
-    } else if constexpr (std::is_same_v<headerType, o2::byte*>) {
+    } else if constexpr (std::is_same_v<headerType, std::byte*>) {
       BaseHeader* from{BaseHeader::get(h)};
       BaseHeader* last{nullptr};
       while (from) {
@@ -188,7 +188,7 @@ struct Stack {
 
   //______________________________________________________________________________________________
   template <typename T, typename... Args>
-  static o2::byte* inject(o2::byte* here, T&& h, Args&&... args) noexcept
+  static std::byte* inject(std::byte* here, T&& h, Args&&... args) noexcept
   {
     bool more = hasNonEmptyArg(args...);
     auto alsohere = inject(here, h, more);
@@ -210,7 +210,7 @@ struct Stack {
   template <typename T>
   static bool hasNonEmptyArg(const T& h) noexcept
   {
-    if constexpr (std::is_convertible_v<T, o2::byte*>) {
+    if constexpr (std::is_convertible_v<T, std::byte*>) {
       return get<BaseHeader*>(h);
     } else {
       if (h.size() > 0) {

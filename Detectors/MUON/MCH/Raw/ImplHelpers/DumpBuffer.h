@@ -53,9 +53,6 @@ inline void append(std::vector<std::byte>& buffer, uint64_t w)
 }
 
 template <typename FORMAT>
-void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max());
-
-template <typename FORMAT>
 void dumpWord(std::ostream& out, uint64_t w);
 
 template <>
@@ -138,7 +135,7 @@ void dumpWordInfo<o2::mch::raw::UserLogicFormat, 1>(std::ostream& out, uint64_t 
 }
 
 template <typename FORMAT, int VERSION>
-void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out, size_t maxbytes)
+void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max())
 {
   int i{0};
   int inRDH{-1};

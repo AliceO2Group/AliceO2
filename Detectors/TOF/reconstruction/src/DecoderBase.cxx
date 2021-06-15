@@ -58,6 +58,14 @@ bool DecoderBaseT<RDH>::processHBF()
   }
 #endif
 
+  if (mDecoderBufferSize <= 0) {
+    std::cout << colorRed
+              << " got an empty buffer, do nothing"
+              << colorReset
+              << std::endl;
+    return true;
+  }
+
   mDecoderRDH = reinterpret_cast<const RDH*>(mDecoderPointer);
   auto rdh = mDecoderRDH;
 

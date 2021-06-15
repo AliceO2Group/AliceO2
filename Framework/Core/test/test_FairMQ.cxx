@@ -70,21 +70,21 @@ template <typename I, typename F>
 auto forEach(I begin, I end, F&& function)
 {
 
-  using span = gsl::span<const o2::byte>;
+  using span = gsl::span<const std::byte>;
   using SPAN_SIZE_TYPE = span::size_type;
   using gsl::narrow_cast;
   for (auto it = begin; it != end; ++it) {
-    o2::byte* headerBuffer{nullptr};
+    std::byte* headerBuffer{nullptr};
     SPAN_SIZE_TYPE headerBufferSize{0};
     if (*it != nullptr) {
-      headerBuffer = reinterpret_cast<o2::byte*>((*it)->GetData());
+      headerBuffer = reinterpret_cast<std::byte*>((*it)->GetData());
       headerBufferSize = narrow_cast<SPAN_SIZE_TYPE>((*it)->GetSize());
     }
     ++it;
-    o2::byte* dataBuffer{nullptr};
+    std::byte* dataBuffer{nullptr};
     SPAN_SIZE_TYPE dataBufferSize{0};
     if (*it != nullptr) {
-      dataBuffer = reinterpret_cast<o2::byte*>((*it)->GetData());
+      dataBuffer = reinterpret_cast<std::byte*>((*it)->GetData());
       dataBufferSize = narrow_cast<SPAN_SIZE_TYPE>((*it)->GetSize());
     }
 

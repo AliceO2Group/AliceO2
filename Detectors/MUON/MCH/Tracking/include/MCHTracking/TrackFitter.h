@@ -39,6 +39,9 @@ class TrackFitter
 
   void initField(float l3Current, float dipoleCurrent);
 
+  /// Set the vertex dispersion in y direction used for the track covariance seed
+  void setBendingVertexDispersion(double ey) { mBendingVertexDispersion2 = ey * ey; }
+
   /// Enable/disable the smoother (and the saving of related parameters)
   void smoothTracks(bool smooth) { mSmooth = smooth; }
   /// Return the smoother enable/disable flag
@@ -65,14 +68,15 @@ class TrackFitter
   void smoothTrack(Track& track, bool finalize);
   void runSmoother(const TrackParam& previousParam, TrackParam& param);
 
-  static constexpr double SMaxChi2 = 2.e10;               ///< maximum chi2 above which the track can be considered as abnormal
-  static constexpr double SBendingVertexDispersion = 70.; ///< vertex dispersion (cm) in bending plane
+  static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
   /// z position of the chambers
   static constexpr double SDefaultChamberZ[10] = {-526.16, -545.24, -676.4, -695.4, -967.5,
                                                   -998.5, -1276.5, -1307.5, -1406.6, -1437.6};
   /// default chamber thickness in X0 for reconstruction
   static constexpr double SChamberThicknessInX0[10] = {0.065, 0.065, 0.075, 0.075, 0.035,
                                                        0.035, 0.035, 0.035, 0.035, 0.035};
+
+  double mBendingVertexDispersion2 = 4900.; ///< vertex dispersion square (cm^2) in y direction
 
   bool mSmooth = false; ///< switch ON/OFF the smoother
 

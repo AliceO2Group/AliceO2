@@ -537,6 +537,42 @@ GPUd() bool PropagatorImpl<value_T>::propagateToDCABxByBz(const math_utils::Poin
 
 //____________________________________________________________
 template <typename value_T>
+GPUd() void PropagatorImpl<value_T>::estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const
+{
+  value_T xdca = 0., ydca = 0., length = 0.;          // , zdca = 0. // zdca might be used in future
+  if (math_utils::detail::abs<value_T>(mBz) > 1e-3) { // helix
+    o2::math_utils::CircleXY<value_T> c;
+    trc.getCircleParamsLoc(mBz, c);
+    auto distC = math_utils::detail::sqrt<value_type>(c.getCenterD2()); // distance from the circle center to origin
+    if (distC > 1.e-3) {
+      auto nrm = (distC - c.rC) / distC;
+      xdca = nrm * c.xC; // coordinates of the DCA to 0,0 in the local frame
+      ydca = nrm * c.yC;
+      auto v0x = trc.getX() - c.xC, v0y = trc.getY() - c.yC, v1x = xdca - c.xC, v1y = ydca - c.yC;
+      auto ang = math_utils::detail::acos<value_type>((v0x * v1x + v0y * v1y) / (c.rC * c.rC));
+      if ((trc.getSign() > 0.f) == (mBz > 0.f)) {
+        ang = -ang;   // we need signeg angle
+        c.rC = -c.rC; // we need signed curvature for zdca
+      }
+      // zdca = trc.getZ() + (trc.getSign() > 0. ? c.rC : -c.rC) * trc.getTgl() * ang;
+      length = math_utils::detail::abs<value_type>(c.rC * ang * math_utils::detail::sqrt<value_type>(1. + trc.getTgl() * trc.getTgl()));
+    }
+  } else { // straight line
+    auto csp2 = (1.f - trc.getSnp()) * (1.f + trc.getSnp()), csp = math_utils::detail::sqrt<value_type>(csp2);
+    auto tgp = trc.getSnp() / csp, f = trc.getX() * tgp - trc.getY();
+    xdca = tgp * f * csp2;
+    ydca = -f * csp2;
+    auto dx = xdca - trc.getX(), dy = ydca - trc.getY(), dz = dx * trc.getTgl() / csp;
+    // zdca = trc.getZ() + dz;
+    length = math_utils::detail::sqrt<value_type>(dx * dx + dy * dy + dz * dz);
+  }
+  // since we assume the track or its parent comes from the beam-line or decay, add XY(?) distance to it
+  length += math_utils::detail::sqrt<value_type>(xdca * xdca + ydca * ydca);
+  lt.addStep(length, trc.getP2Inv());
+}
+
+//____________________________________________________________
+template <typename value_T>
 GPUd() MatBudget PropagatorImpl<value_T>::getMatBudget(PropagatorImpl<value_type>::MatCorrType corrType, const math_utils::Point3D<value_type>& p0, const math_utils::Point3D<value_type>& p1) const
 {
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)

@@ -55,11 +55,11 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
         locXYZ = dict.getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt, false);
+        locXYZ = dict.getClusterCoordinates(c, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt);
+      locXYZ = dict.getClusterCoordinates(c, patt, false);
     }
     // Transformation to the local --> global
     auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;

@@ -135,7 +135,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
       retrieveHits("PHSHit", source, entry);
       part++;
       if (part == eventParts[collID].end() && isLastStream) { //last stream, copy digits directly to output vector
-        mDigitizer.processHits(mHits, mDigitsFinal, mDigitsOut, mLabels, collID, source, dt);
+        mDigitizer.processHits(mHits, mDigitsFinal, mDigitsOut, mLabels, entry, source, dt);
         mDigitsFinal.clear();
         //finalyze previous event and clean
         // Add trigger record
@@ -143,7 +143,7 @@ void DigitizerSpec::run(framework::ProcessingContext& pc)
         indexStart = mDigitsOut.size();
       } else { //Fill intermediate digitvector
         mDigitsTmp.swap(mDigitsFinal);
-        mDigitizer.processHits(mHits, mDigitsTmp, mDigitsFinal, mLabels, collID, source, dt);
+        mDigitizer.processHits(mHits, mDigitsTmp, mDigitsFinal, mLabels, entry, source, dt);
         mDigitsTmp.clear();
       }
     }

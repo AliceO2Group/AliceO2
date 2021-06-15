@@ -14,6 +14,7 @@
 /// In those tests we are mainly concerned about testinng
 /// whether the payloads are actually properly simulated.
 ///
+#include "MCHRawElecMap/Mapper.h"
 #define BOOST_TEST_MODULE Test MCHRaw Encoder
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -23,7 +24,6 @@
 #include "BareElinkEncoderMerger.h"
 #include "EncoderImplHelper.h"
 #include "GBTEncoder.h"
-#include "MCHRawCommon/DataFormats.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
@@ -36,70 +36,123 @@
 
 using namespace o2::mch::raw;
 
-template <typename FORMAT, typename CHARGESUM>
-struct CruBufferCreator {
-  static std::vector<std::byte> makeBuffer(int norbit, uint32_t firstOrbit, uint16_t firstBC);
-};
-
-template <typename FORMAT>
-struct CruBufferCreator<FORMAT, ChargeSumMode> {
-  static std::vector<std::byte> makeBuffer(int norbit = 1,
-                                           uint32_t firstOrbit = 12345,
-                                           uint16_t firstBC = 678)
-  {
-    auto encoder = createPayloadEncoder<FORMAT, ChargeSumMode, true>();
-
-    uint16_t sampaTime{24};
-    uint32_t bunchCrossing = 567;
-    uint16_t bc(firstBC);
-
-    encoder->startHeartbeatFrame(firstOrbit, bc);
-
-    encoder->addChannelData(DsElecId{728, 1, 0}, 3, {SampaCluster(sampaTime, bunchCrossing, 13, 14)});
-    encoder->addChannelData(DsElecId{728, 1, 0}, 13, {SampaCluster(sampaTime, bunchCrossing, 133, 134)});
-    encoder->addChannelData(DsElecId{728, 1, 0}, 23, {SampaCluster(sampaTime, bunchCrossing, 163, 164)});
-
-    encoder->addChannelData(DsElecId{361, 0, 4}, 0, {SampaCluster(sampaTime, bunchCrossing, 10, 11)});
-    encoder->addChannelData(DsElecId{361, 0, 4}, 1, {SampaCluster(sampaTime, bunchCrossing, 20, 21)});
-    encoder->addChannelData(DsElecId{361, 0, 4}, 2, {SampaCluster(sampaTime, bunchCrossing, 30, 31)});
-    encoder->addChannelData(DsElecId{361, 0, 4}, 3, {SampaCluster(sampaTime, bunchCrossing, 40, 41)});
-
-    encoder->addChannelData(DsElecId{448, 6, 2}, 22, {SampaCluster(sampaTime, bunchCrossing, 420, 421)});
-    encoder->addChannelData(DsElecId{448, 6, 2}, 23, {SampaCluster(sampaTime, bunchCrossing, 430, 431)});
-    encoder->addChannelData(DsElecId{448, 6, 2}, 24, {SampaCluster(sampaTime, bunchCrossing, 440, 441)});
-    encoder->addChannelData(DsElecId{448, 6, 2}, 25, {SampaCluster(sampaTime, bunchCrossing, 450, 451)});
-    encoder->addChannelData(DsElecId{448, 6, 2}, 26, {SampaCluster(sampaTime, bunchCrossing, 460, 461)});
-    encoder->addChannelData(DsElecId{448, 6, 2}, 42, {SampaCluster(sampaTime, bunchCrossing, 420, 421)});
-
-    if (norbit > 1) {
-      encoder->startHeartbeatFrame(firstOrbit + 1, bc);
-      encoder->addChannelData(DsElecId{728, 1, 2}, 0, {SampaCluster(sampaTime, bunchCrossing, 10, 11)});
-      encoder->addChannelData(DsElecId{728, 1, 2}, 1, {SampaCluster(sampaTime, bunchCrossing, 10, 11)});
-      encoder->addChannelData(DsElecId{361, 0, 4}, 0, {SampaCluster(sampaTime, bunchCrossing, 10, 11)});
-      encoder->addChannelData(DsElecId{361, 0, 4}, 1, {SampaCluster(sampaTime, bunchCrossing, 20, 21)});
-      encoder->addChannelData(DsElecId{361, 0, 4}, 2, {SampaCluster(sampaTime, bunchCrossing, 30, 31)});
-      encoder->addChannelData(DsElecId{361, 0, 4}, 3, {SampaCluster(sampaTime, bunchCrossing, 40, 41)});
-    }
-
-    if (norbit > 2) {
-      encoder->startHeartbeatFrame(firstOrbit + 2, bc);
-      encoder->addChannelData(DsElecId{448, 6, 2}, 12, {SampaCluster(sampaTime, bunchCrossing, 420, 421)});
-    }
-
-    std::vector<std::byte> buffer;
-    encoder->moveToBuffer(buffer);
-
-    return buffer;
-  }
-};
-
-template <typename FORMAT>
-std::unique_ptr<PayloadEncoder> defaultEncoder()
+template <typename ELECMAP, typename FORMAT, int VERSION = 0>
+std::vector<std::byte> makeBuffer(int norbit = 1,
+                                  uint32_t firstOrbit = 12345,
+                                  uint16_t firstBC = 678,
+                                  bool withHB = false)
 {
-  return createPayloadEncoder<FORMAT, SampleMode, true>();
+  const DsElecId ds1{728, 1, 0};
+  const DsElecId ds2{361, 0, 4};
+  const DsElecId ds3{448, 6, 2};
+  const DsElecId ds4{728, 1, 2};
+
+  std::set<DsElecId> dsElecIds;
+  if (withHB) {
+    dsElecIds.insert(ds1);
+    dsElecIds.insert(ds2);
+    dsElecIds.insert(ds3);
+    if (norbit > 1) {
+      dsElecIds.insert(ds4);
+    }
+  }
+  auto encoder = createPayloadEncoder(createSolar2FeeLinkMapper<ELECMAP>(),
+                                      isUserLogicFormat<FORMAT>::value,
+                                      VERSION,
+                                      isChargeSumMode<ChargeSumMode>::value);
+
+  uint16_t sampaTime{24};
+  uint32_t bunchCrossing = 567;
+  uint16_t bc(firstBC);
+
+  encoder->startHeartbeatFrame(firstOrbit, bc);
+  if (withHB) {
+    encoder->addHeartbeatHeaders(dsElecIds);
+  }
+
+  encoder->addChannelData(ds1, 3, {SampaCluster(sampaTime, bunchCrossing, 13, 14)});
+  encoder->addChannelData(ds1, 13, {SampaCluster(sampaTime, bunchCrossing, 133, 134)});
+  encoder->addChannelData(ds1, 23, {SampaCluster(sampaTime, bunchCrossing, 163, 164)});
+
+  encoder->addChannelData(ds2, 0, {SampaCluster(sampaTime, bunchCrossing, 10, 11)});
+  encoder->addChannelData(ds2, 1, {SampaCluster(sampaTime, bunchCrossing, 20, 21)});
+  encoder->addChannelData(ds2, 2, {SampaCluster(sampaTime, bunchCrossing, 30, 31)});
+  encoder->addChannelData(ds2, 3, {SampaCluster(sampaTime, bunchCrossing, 40, 41)});
+
+  encoder->addChannelData(ds3, 22, {SampaCluster(sampaTime, bunchCrossing, 420, 421)});
+  encoder->addChannelData(ds3, 23, {SampaCluster(sampaTime, bunchCrossing, 430, 431)});
+  encoder->addChannelData(ds3, 24, {SampaCluster(sampaTime, bunchCrossing, 440, 441)});
+  encoder->addChannelData(ds3, 25, {SampaCluster(sampaTime, bunchCrossing, 450, 451)});
+  encoder->addChannelData(ds3, 26, {SampaCluster(sampaTime, bunchCrossing, 460, 461)});
+  encoder->addChannelData(ds3, 42, {SampaCluster(sampaTime, bunchCrossing, 420, 421)});
+
+  if (norbit > 1) {
+    encoder->startHeartbeatFrame(firstOrbit + 1, bc);
+    encoder->addChannelData(ds4, 0, {SampaCluster(sampaTime, bunchCrossing, 10, 11)});
+    encoder->addChannelData(ds4, 1, {SampaCluster(sampaTime, bunchCrossing, 10, 11)});
+    encoder->addChannelData(ds2, 0, {SampaCluster(sampaTime, bunchCrossing, 10, 11)});
+    encoder->addChannelData(ds2, 1, {SampaCluster(sampaTime, bunchCrossing, 20, 21)});
+    encoder->addChannelData(ds2, 2, {SampaCluster(sampaTime, bunchCrossing, 30, 31)});
+    encoder->addChannelData(ds2, 3, {SampaCluster(sampaTime, bunchCrossing, 40, 41)});
+  }
+
+  if (norbit > 2) {
+    encoder->startHeartbeatFrame(firstOrbit + 2, bc);
+    encoder->addChannelData(ds3, 12, {SampaCluster(sampaTime, bunchCrossing, 420, 421)});
+  }
+
+  std::vector<std::byte> buffer;
+  encoder->moveToBuffer(buffer);
+
+  return buffer;
 }
 
-typedef boost::mpl::list<BareFormat, UserLogicFormat> testTypes;
+template <typename ELECMAP, typename FORMAT>
+std::unique_ptr<PayloadEncoder> defaultEncoder()
+{
+  return createPayloadEncoder(createSolar2FeeLinkMapper<ELECMAP>(),
+                              isUserLogicFormat<FORMAT>::value,
+                              0,
+                              isChargeSumMode<SampleMode>::value /* i.e. use sample mode */);
+}
+
+struct BareGen {
+  using format = BareFormat;
+  using elecmap = ElectronicMapperGenerated;
+  static constexpr int version = 0;
+};
+
+struct UserLogicGen {
+  using format = UserLogicFormat;
+  using elecmap = ElectronicMapperGenerated;
+  static constexpr int version = 0;
+};
+
+struct UserLogicGen1 {
+  using format = UserLogicFormat;
+  using elecmap = ElectronicMapperGenerated;
+  static constexpr int version = 1;
+};
+
+struct BareDummy {
+  using format = BareFormat;
+  using elecmap = ElectronicMapperDummy;
+  static constexpr int version = 0;
+};
+
+struct UserLogicDummy {
+  using format = UserLogicFormat;
+  using elecmap = ElectronicMapperDummy;
+  static constexpr int version = 0;
+};
+
+struct UserLogicDummy1 {
+  using format = UserLogicFormat;
+  using elecmap = ElectronicMapperDummy;
+  static constexpr int version = 1;
+};
+
+typedef boost::mpl::list<BareGen, UserLogicGen, UserLogicGen1, BareDummy, UserLogicDummy, UserLogicDummy1> testTypes;
 
 BOOST_AUTO_TEST_SUITE(o2_mch_raw)
 
@@ -107,7 +160,7 @@ BOOST_AUTO_TEST_SUITE(encoder)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(StartHBFrameBunchCrossingMustBe12Bits, T, testTypes)
 {
-  auto encoder = defaultEncoder<T>();
+  auto encoder = defaultEncoder<typename T::elecmap, typename T::format>();
   BOOST_CHECK_THROW(encoder->startHeartbeatFrame(0, 1 << 12), std::invalid_argument);
   BOOST_CHECK_NO_THROW(encoder->startHeartbeatFrame(0, 0xFFF));
 }
@@ -115,27 +168,17 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(StartHBFrameBunchCrossingMustBe12Bits, T, testType
 BOOST_AUTO_TEST_CASE_TEMPLATE(EmptyEncoderHasEmptyBufferIfPhaseIsZero, T, testTypes)
 {
   srand(time(nullptr));
-  auto encoder = defaultEncoder<T>();
+  auto encoder = defaultEncoder<typename T::elecmap, typename T::format>();
   encoder->startHeartbeatFrame(12345, 123);
   std::vector<std::byte> buffer;
   encoder->moveToBuffer(buffer);
   BOOST_CHECK_EQUAL(buffer.size(), 0);
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(EmptyEncodeIsNotNecessarilyEmptyDependingOnPhase, T, testTypes)
-{
-  srand(time(nullptr));
-  auto encoder = createPayloadEncoder<T, SampleMode, false>();
-  encoder->startHeartbeatFrame(12345, 123);
-  std::vector<std::byte> buffer;
-  encoder->moveToBuffer(buffer);
-  BOOST_CHECK_GE(buffer.size(), 0);
-}
-
 BOOST_AUTO_TEST_CASE_TEMPLATE(MultipleOrbitsWithNoDataIsAnEmptyBufferIfPhaseIsZero, T, testTypes)
 {
   srand(time(nullptr));
-  auto encoder = defaultEncoder<T>();
+  auto encoder = defaultEncoder<typename T::elecmap, typename T::format>();
   encoder->startHeartbeatFrame(12345, 123);
   encoder->startHeartbeatFrame(12345, 125);
   encoder->startHeartbeatFrame(12345, 312);
@@ -170,36 +213,51 @@ int estimateBareSize(int nofDS, int maxNofChPerGBT)
 }
 
 template <typename FORMAT>
-int estimateSize();
+int estimateSize(bool withHB = false);
 
 template <>
-int estimateSize<BareFormat>()
+int estimateSize<BareFormat>(bool withHB)
 {
-  return estimateBareSize(1, 3) +
-         estimateBareSize(1, 4) +
-         estimateBareSize(1, 6);
+  int size = estimateBareSize(1, 3) +
+             estimateBareSize(1, 4) +
+             estimateBareSize(1, 6);
+  if (withHB) {
+    size += 3 * 50 * 8;
+  }
+  return size; // in bytes
 }
 
 template <>
-int estimateSize<UserLogicFormat>()
+int estimateSize<UserLogicFormat>(bool withHB)
 {
-  return estimateUserLogicSize(1, 3) +
-         estimateUserLogicSize(1, 4) +
-         estimateUserLogicSize(1, 6) +
-         2 * 8; // 8 bytes per FEE (to ensure the payload size is a multiple of 128 bits = 1 GBT word)
+  int size = estimateUserLogicSize(1, 3) +
+             estimateUserLogicSize(1, 4) +
+             estimateUserLogicSize(1, 6) +
+             2 * 8; // 8 bytes per FEE (to ensure the payload size is a multiple of 128 bits = 1 GBT word)
+  if (withHB) {
+    size += 6 * 8;
+  }
+  return size; // in bytes
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(CheckNumberOfPayloadHeaders, T, testTypes)
 {
-  auto buffer = CruBufferCreator<T, ChargeSumMode>::makeBuffer();
+  auto buffer = makeBuffer<typename T::elecmap, typename T::format, T::version>();
   int nheaders = o2::mch::raw::countHeaders(buffer);
   BOOST_CHECK_EQUAL(nheaders, 3);
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(CheckSize, T, testTypes)
 {
-  auto buffer = CruBufferCreator<T, ChargeSumMode>::makeBuffer();
-  size_t expectedSize = estimateSize<T>();
+  auto buffer = makeBuffer<typename T::elecmap, typename T::format, T::version>();
+  size_t expectedSize = estimateSize<typename T::format>();
+  BOOST_CHECK_EQUAL(buffer.size(), expectedSize);
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(CheckSizeWithHB, T, testTypes)
+{
+  auto buffer = makeBuffer<typename T::elecmap, typename T::format, T::version>(1, 12345, 678, true);
+  size_t expectedSize = estimateSize<typename T::format>(true);
   BOOST_CHECK_EQUAL(buffer.size(), expectedSize);
 }
 

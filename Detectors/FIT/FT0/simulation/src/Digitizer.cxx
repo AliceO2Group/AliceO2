@@ -21,10 +21,48 @@
 #include <cassert>
 #include <iostream>
 #include <optional>
+#include <Vc/Vc>
 
 using namespace o2::ft0;
 
 ClassImp(Digitizer);
+
+namespace o2::ft0
+{
+// signal shape function
+template <typename Float>
+Float signalForm_i(Float x)
+{
+  using namespace std;
+  Float const a = -0.45458;
+  Float const b = -0.83344945;
+  return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
+};
+
+// integrated signal shape function
+inline float signalForm_integral(float x)
+{
+  using namespace std;
+  double const a = -0.45458;
+  double const b = -0.83344945;
+  if (x < 0) {
+    x = 0;
+  }
+  return -(exp(b * x) / b - exp(a * x) / a) / 7.8446501;
+};
+
+// SIMD version of the integrated signal shape function
+inline Vc::float_v signalForm_integralVc(Vc::float_v x)
+{
+  auto const mask = (x >= 0.0f);
+  Vc::float_v arg(0);
+  arg.assign(x, mask); // branchless if
+  Vc::float_v const a(-0.45458f);
+  Vc::float_v const b(-0.83344945f);
+  Vc::float_v result = -(Vc::exp(b * arg) / b - Vc::exp(a * arg) / a) / 7.8446501f;
+  return result;
+};
+} // namespace o2::ft0
 
 Digitizer::CFDOutput Digitizer::get_time(const std::vector<float>& times, float deadTime)
 {
@@ -170,7 +208,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
     Bool_t is_A_side = (hit_ch < 4 * mGeometry.NCellsA);
     Float_t time_compensate = is_A_side ? params.mA_side_cable_cmps : params.mC_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
-    if (hit_time > 250) {
+    if (hit_time > 150) {
       continue; //not collect very slow particles
     }
     auto relBC = o2::InteractionRecord{hit_time};
@@ -231,7 +269,7 @@ void Digitizer::storeBC(BCCache& bc,
     if (amp > 4095) {
       amp = 4095;
     }
-    LOG(INFO) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
+    LOG(DEBUG) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 

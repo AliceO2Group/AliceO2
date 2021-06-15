@@ -21,19 +21,22 @@
 
 using namespace o2::dataformats;
 
-std::string VtxTrackRef::asString() const
+std::string VtxTrackRef::asString(bool skipEmpty) const
 {
-  std::string str = fmt::format("1st entry: {:d} ", getFirstEntry());
+  std::string str = mVtxID < 0 ? "Orphan " : fmt::format("Vtx {:3d}", mVtxID);
+  fmt::format(" : 1st entry: {:d} ", getFirstEntry());
   for (int i = 0; i < VtxTrackIndex::NSources; i++) {
-    str += fmt::format(", N{:s} : {:d}", VtxTrackIndex::getSourceName(i), getEntriesOfSource(i));
+    if (!skipEmpty || getEntriesOfSource(i)) {
+      str += fmt::format(", N{:s} : {:d}", VtxTrackIndex::getSourceName(i), getEntriesOfSource(i));
+    }
   }
   return str;
 }
 
 // set the last +1 element index and finalize all references
-void VtxTrackRef::print() const
+void VtxTrackRef::print(bool skipEmpty) const
 {
-  LOG(INFO) << asString();
+  LOG(INFO) << asString(skipEmpty);
 }
 
 // set the last +1 element index and check consistency

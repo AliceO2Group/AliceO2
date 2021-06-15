@@ -12,6 +12,7 @@
 
 #include "Framework/ChannelConfigurationPolicy.h"
 #include "Framework/CompletionPolicy.h"
+#include "Framework/ConfigurableHelpers.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
@@ -24,6 +25,8 @@
 #include "Framework/RuntimeError.h"
 #include "Framework/ResourcePolicyHelpers.h"
 #include "Framework/Logger.h"
+#include "Framework/CheckTypes.h"
+#include "Framework/StructToTuple.h"
 
 #include <vector>
 #include <cstring>
@@ -68,8 +71,19 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 // By default we leave the channel policies unchanged. Notice that the default still include
 // a "match all" policy which uses pub / sub
 // FIXME: add a debug statement saying that the default policy was used?
+
 void defaultConfiguration(std::vector<o2::framework::ChannelConfigurationPolicy>& channelPolicies) {}
-void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec>& globalWorkflowOptions) {}
+void defaultConfiguration(std::vector<o2::framework::ConfigParamSpec>& globalWorkflowOptions)
+{
+  o2::framework::call_if_defined<struct WorkflowOptions>([&](auto* ptr) {
+    ptr = new std::decay_t<decltype(*ptr)>;
+    o2::framework::homogeneous_apply_refs([&globalWorkflowOptions](auto what) {
+      return o2::framework::ConfigurableHelpers::appendOption(globalWorkflowOptions, what);
+    },
+                                          *ptr);
+  });
+}
+
 void defaultConfiguration(std::vector<o2::framework::CompletionPolicy>& completionPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::DispatchPolicy>& dispatchPolicies) {}
 void defaultConfiguration(std::vector<o2::framework::ResourcePolicy>& resourcePolicies) {}
@@ -120,9 +134,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& specs,
            std::vector<o2::framework::ConfigParamSpec> const& workflowOptions,
            o2::framework::ConfigContext& configContext);
 
-void doBoostException(boost::exception& e);
-void doDPLException(o2::framework::RuntimeErrorRef& ref);
-void doUnknownException(std::string const& s);
+void doBoostException(boost::exception& e, const char*);
+void doDPLException(o2::framework::RuntimeErrorRef& ref, char const*);
+void doUnknownException(std::string const& s, char const*);
 void doDefaultWorkflowTerminationHook();
 
 template <typename T>
@@ -185,13 +199,13 @@ int main(int argc, char** argv)
     channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
     result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, resourcePolicies, workflowOptions, configContext);
   } catch (boost::exception& e) {
-    doBoostException(e);
+    doBoostException(e, argv[0]);
   } catch (std::exception const& error) {
-    doUnknownException(error.what());
+    doUnknownException(error.what(), argv[0]);
   } catch (o2::framework::RuntimeErrorRef& ref) {
-    doDPLException(ref);
+    doDPLException(ref, argv[0]);
   } catch (...) {
-    doUnknownException("");
+    doUnknownException("", argv[0]);
   }
 
   char* idstring = nullptr;

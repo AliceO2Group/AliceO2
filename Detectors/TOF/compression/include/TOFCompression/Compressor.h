@@ -28,7 +28,7 @@ namespace o2
 namespace tof
 {
 
-template <typename RDH, bool verbose>
+template <typename RDH, bool verbose, bool paranoid>
 class Compressor
 {
 

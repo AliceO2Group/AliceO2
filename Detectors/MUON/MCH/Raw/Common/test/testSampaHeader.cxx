@@ -275,5 +275,12 @@ BOOST_AUTO_TEST_CASE(CheckHeaderParity4)
   BOOST_CHECK_EQUAL(computeHeaderParity4(0x1722e9f00327d), 1); // 101101 P1
 }
 
+BOOST_AUTO_TEST_CASE(CreateHearbeat)
+{
+  SampaHeader h = sampaHeartbeat(0, 0);
+  BOOST_CHECK_EQUAL(h.isHeartbeat(), true);
+  h = sampaHeartbeat(39, 12345);
+  BOOST_CHECK_EQUAL(h.isHeartbeat(), true);
+}
 BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE_END()

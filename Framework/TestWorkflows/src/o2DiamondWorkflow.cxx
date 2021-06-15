@@ -13,6 +13,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ControlService.h"
+#include "Framework/Configurable.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include <FairMQDevice.h>
 #include <InfoLogger/InfoLogger.hxx>
@@ -24,14 +25,13 @@
 using namespace o2::framework;
 using namespace AliceO2::InfoLogger;
 
-void customize(std::vector<ConfigParamSpec>& options)
-{
-  options.push_back(ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}});
-  options.push_back(ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}});
-  options.push_back(ConfigParamSpec{"aDouble", VariantType::Double, 3., {"a double option"}});
-  options.push_back(ConfigParamSpec{"aString", VariantType::String, "foo", {"a string option"}});
-  options.push_back(ConfigParamSpec{"aBool", VariantType::Bool, true, {"a boolean option"}});
-}
+struct WorkflowOptions {
+  Configurable<int> anInt{"anInt", 1, ""};
+  Configurable<float> aFloat{"aFloat", 2.0f, {"a float option"}};
+  Configurable<double> aDouble{"aDouble", 3., {"a double option"}};
+  Configurable<std::string> aString{"aString", "foobar", {"a string option"}};
+  Configurable<bool> aBool{"aBool", true, {"a boolean option"}};
+};
 
 // This completion policy will only be applied to the device called `D` and
 // will process an InputRecord which had any of its constituent updated.

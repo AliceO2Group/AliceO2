@@ -21,6 +21,8 @@
 #include <set>
 #include <fmt/format.h>
 #include <iostream>
+#include "MCHRawElecMap/Mapper.h"
+#include "dslist.h"
 
 namespace o2::mch::raw::impl
 {
@@ -85,6 +87,86 @@ std::map<VALUE, KEY> inverseMap(const std::map<KEY, VALUE>& src)
   }
   return dest;
 }
+
+template <typename T>
+std::set<uint16_t> getSolarUIDs(int deid)
+{
+  auto d2e = o2::mch::raw::createDet2ElecMapper<T>();
+  std::set<uint16_t> solarsForDE;
+  auto dslist = createDualSampaMapper();
+  for (auto dsid : dslist(deid)) {
+    DsDetId id{static_cast<uint16_t>(deid), static_cast<uint16_t>(dsid)};
+    auto dsel = d2e(id);
+    if (dsel.has_value()) {
+      solarsForDE.insert(dsel->solarId());
+    }
+  }
+  return solarsForDE;
+}
+
+template <typename T>
+std::set<uint16_t> getSolarUIDs()
+{
+  std::set<uint16_t> solarUIDs;
+
+  for (auto deid : deIdsForAllMCH) {
+    std::set<uint16_t> solarsForDE = getSolarUIDs<T>(deid);
+    for (auto s : solarsForDE) {
+      solarUIDs.insert(s);
+    }
+  }
+  return solarUIDs;
+}
+
+template <typename T>
+std::vector<std::string> solar2FeeLinkConsistencyCheck()
+{
+  std::vector<std::string> errors;
+
+  // All solars must have a FeeLinkId
+  std::set<uint16_t> solarIds = getSolarUIDs<T>();
+  auto solar2feeLink = createSolar2FeeLinkMapper<T>();
+  std::vector<o2::mch::raw::FeeLinkId> feeLinkIds;
+  for (auto s : solarIds) {
+    auto p = solar2feeLink(s);
+    if (!p.has_value()) {
+      errors.push_back(fmt::format("Got no feelinkId for solarId {}", s));
+    } else {
+      feeLinkIds.push_back(p.value());
+    }
+  }
+
+  // All FeeLinkId must have a SolarId
+  auto feeLinkId2SolarId = createFeeLink2SolarMapper<T>();
+  for (auto f : feeLinkIds) {
+    auto p = feeLinkId2SolarId(f);
+    if (!p.has_value()) {
+      errors.push_back(fmt::format("Got no solarId for FeeLinkId {}", asString(f)));
+    }
+  }
+  return errors;
+}
+
+template <typename T>
+std::set<DsElecId> getAllDs()
+{
+  std::set<DsElecId> dsElecIds;
+
+  auto dslist = createDualSampaMapper();
+  auto det2ElecMapper = createDet2ElecMapper<T>();
+
+  for (auto deId : o2::mch::raw::deIdsForAllMCH) {
+    for (auto dsId : dslist(deId)) {
+      auto dsElecId = det2ElecMapper(DsDetId{deId, dsId});
+      if (dsElecId.has_value()) {
+        dsElecIds.insert(dsElecId.value());
+      }
+    }
+  }
+
+  return dsElecIds;
+}
+
 } // namespace o2::mch::raw::impl
 
 #endif

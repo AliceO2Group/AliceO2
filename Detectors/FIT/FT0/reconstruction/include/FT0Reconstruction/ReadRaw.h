@@ -30,6 +30,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/LookUpTable.h"
 #include "DataFormatsFT0/RawEventData.h"
+#include "FT0Base/Geometry.h"
 #include "Headers/RAWDataHeader.h"
 #include "TBranch.h"
 #include "TTree.h"
@@ -40,7 +41,7 @@ namespace ft0
 {
 class ReadRaw
 {
-  static constexpr int Nchannels_FT0 = 208;
+  static constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
   static constexpr int Nchannels_PM = 12;
   static constexpr int NPMs = 20;
   //  static constexpr int LinkTCM = 19;

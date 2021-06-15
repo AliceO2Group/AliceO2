@@ -19,6 +19,7 @@ o2_add_library(TRDBase
                        src/CalDet.cxx
                        src/CalROC.cxx
                        src/FeeParam.cxx
+                       src/RecoParam.cxx
                        src/PadStatus.cxx
                        src/LocalVDrift.cxx
                        src/LocalT0.cxx
@@ -50,6 +51,7 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/CalDet.h
                                   include/TRDBase/CalROC.h
                                   include/TRDBase/FeeParam.h
+                                  include/TRDBase/RecoParam.h
                                   include/TRDBase/PadParameters.h
                                   include/TRDBase/PadCalibrations.h
                                   include/TRDBase/ChamberCalibrations.h
@@ -61,7 +63,7 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/Calibrations.h
                                   include/TRDBase/ChamberNoise.h
                                   include/TRDBase/CalOnlineGainTables.h
-				  include/TRDBase/Digit.h
+                                  include/TRDBase/Digit.h
                                   include/TRDBase/Tracklet.h
                                   include/TRDBase/TrackletTransformer.h)
 

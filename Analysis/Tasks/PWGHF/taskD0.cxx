@@ -28,7 +28,7 @@ using namespace o2::analysis::hf_cuts_d0_topik;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Fill MC histograms."}};
+  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, true, {"Fill MC histograms."}};
   workflowOptions.push_back(optionDoMC);
 }
 

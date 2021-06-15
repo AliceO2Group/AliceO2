@@ -7,7 +7,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
-                     
+
 o2_add_library(TPCWorkflow
                SOURCES src/RecoWorkflow.cxx
                        src/ClustererSpec.cxx
@@ -59,6 +59,21 @@ o2_add_executable(raw-to-digits-workflow
 o2_add_executable(calib-pedestal
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-calib-pedestal.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(integrate-idc
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-integrate-idc.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(averagegroup-idc
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-averagegroup-idc.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(aggregate-idc
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-aggregate-grouped-idc.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(track-reader

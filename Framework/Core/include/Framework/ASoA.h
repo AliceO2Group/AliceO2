@@ -952,10 +952,11 @@ class Table
     template <typename TI>
     auto getId() const
     {
-      if constexpr (framework::has_type_v<std::decay_t<TI>, bindings_pack_t>) {
-        constexpr auto idx = framework::has_type_at_v<std::decay_t<TI>>(bindings_pack_t{});
+      using decayed = std::decay_t<TI>;
+      if constexpr (framework::has_type_v<decayed, bindings_pack_t>) {
+        constexpr auto idx = framework::has_type_at_v<decayed>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
-      } else if constexpr (std::is_same_v<std::decay_t<TI>, Parent>) {
+      } else if constexpr (std::is_same_v<decayed, Parent>) {
         return this->globalIndex();
       } else {
         return static_cast<int32_t>(-1);
@@ -1571,23 +1572,16 @@ namespace o2::soa
 {
 template <typename... Ts>
 struct Join : JoinBase<Ts...> {
-  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0)
-    : JoinBase<Ts...>{ArrowHelpers::joinTables(std::move(tables)), offset} {}
+  Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset = 0);
 
   template <typename... ATs>
-  Join(uint64_t offset, std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, ATs... ts)
-    : Join<Ts...>(std::vector<std::shared_ptr<arrow::Table>>{t1, t2, ts...}, offset)
-  {
-  }
+  Join(uint64_t offset, std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, ATs... ts);
 
   using base = JoinBase<Ts...>;
   using originals = originals_pack_t<Ts...>;
 
   template <typename... TA>
-  void bindExternalIndices(TA*... externals)
-  {
-    base::bindExternalIndices(externals...);
-  }
+  void bindExternalIndices(TA*... externals);
 
   using table_t = base;
   using persistent_columns_t = typename table_t::persistent_columns_t;
@@ -1596,6 +1590,26 @@ struct Join : JoinBase<Ts...> {
   using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
   using filtered_const_iterator = filtered_iterator;
 };
+
+template <typename... Ts>
+Join<Ts...>::Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset)
+  : JoinBase<Ts...>{ArrowHelpers::joinTables(std::move(tables)), offset}
+{
+}
+
+template <typename... Ts>
+template <typename... ATs>
+Join<Ts...>::Join(uint64_t offset, std::shared_ptr<arrow::Table> t1, std::shared_ptr<arrow::Table> t2, ATs... ts)
+  : Join<Ts...>(std::vector<std::shared_ptr<arrow::Table>>{t1, t2, ts...}, offset)
+{
+}
+
+template <typename... Ts>
+template <typename... TA>
+void Join<Ts...>::bindExternalIndices(TA*... externals)
+{
+  base::bindExternalIndices(externals...);
+}
 
 template <typename T1, typename T2>
 struct Concat : ConcatBase<T1, T2> {

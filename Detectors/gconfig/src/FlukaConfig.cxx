@@ -9,7 +9,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FairRunSim.h"
-#include "TFluka.h"
 #include "SimulationDataFormat/Stack.h"
 #include "SimulationDataFormat/StackParam.h"
 #include <iostream>
@@ -18,6 +17,7 @@
 #include "Generators/DecayerPythia8.h"
 #include "SimSetup/FlukaParam.h"
 #include "../commonConfig.C"
+#include "CommonUtils/ConfigurationMacroHelper.h"
 
 // these are used in commonConfig.C
 using o2::eventgen::DecayerPythia8;
@@ -49,28 +49,21 @@ void linkFlukaFiles()
 
 void Config()
 {
-  //
   linkFlukaFiles();
   FairRunSim* run = FairRunSim::Instance();
-  TString* gModel = run->GetGeoModel();
-  TFluka* fluka = new TFluka("C++ Interface to Fluka", 0);
-
-  // additional configuration paramters if requested from command line
-  auto& params = FlukaParam::Instance();
-  auto isAct = params.activationSimulation;
-  if (isAct) {
-    LOG(INFO) << "Set special FLUKA parameters for activation simulation";
-    auto hadronCut = params.activationHadronCut;
-    auto inpFile = params.scoringFile;
-    fluka->SetActivationSimulation(true, hadronCut);
-    fluka->SetUserScoringFileName(inpFile.c_str());
+  // try to see if Fluka is available in the runtime
+  auto status = gSystem->Load("libflukavmc");
+  if (status == 0 || status == 1) {
+    // we load Fluka as a real plugin via a ROOT Macro
+    auto fluka = o2::conf::GetFromMacro<TVirtualMC*>("$O2_ROOT/share/Detectors/gconfig/FlukaRuntimeConfig.macro", "FlukaRuntimeConfig()", "TVirtualMC*", "foo");
+    stackSetup(fluka, run);
+    decayerSetup(fluka);
+  } else {
+    LOG(ERROR) << "FLUKA is not available in the runtime environment";
+    LOG(ERROR) << "Please compile and load by including FLUKA_VMC/latest in the alienv package list";
+    LOG(FATAL) << "Quitting here due to FLUKA_VMC not being available";
   }
-  stackSetup(fluka, run);
-
-  // setup decayer
-  decayerSetup(fluka);
-
-  // ******* FLUKA  specific configuration for simulated Runs  *******
+  return;
 }
 
 void FlukaConfig()

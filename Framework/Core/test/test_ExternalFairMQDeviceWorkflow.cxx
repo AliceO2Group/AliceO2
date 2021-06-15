@@ -17,6 +17,7 @@ using namespace o2::framework;
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/ControlService.h"
+#include "Framework/CallbackService.h"
 #include "Framework/Logger.h"
 #include "Headers/DataHeader.h"
 #include "fairmq/FairMQDevice.h"
@@ -36,7 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 #define ASSERT_ERROR(condition)                                   \
   if ((condition) == false) {                                     \
-    LOG(ERROR) << R"(Test condition ")" #condition R"(" failed)"; \
+    LOG(FATAL) << R"(Test condition ")" #condition R"(" failed)"; \
   }
 
 std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
@@ -59,8 +60,9 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   auto producerCallback = [nRolls, counter = std::make_shared<int>()](DataAllocator& outputs, ControlService& control) {
     outputs.make<int>(OutputRef{"data", 0}) = *counter;
     if (++(*counter) >= nRolls) {
+      // send the end of stream signal, this is transferred by the proxies
+      // and allows to properly terminate downstream devices
       control.endOfStream();
-      control.readyToQuit(QuitRequest::Me);
     }
   };
 
@@ -96,26 +98,37 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   }
 
   Inputs sinkInputs = {InputSpec{"external", "TST", "DATA", 0, Lifetime::Timeframe}};
-  workflow.emplace_back(std::move(specifyFairMQDeviceOutputProxy("dpl-sink", sinkInputs, channelConfig.c_str())));
+  auto channelSelector = [](InputSpec const&, const std::unordered_map<std::string, std::vector<FairMQChannel>>&) -> std::string {
+    return "downstream";
+  };
+  workflow.emplace_back(std::move(specifyFairMQDeviceMultiOutputProxy("dpl-sink", sinkInputs, channelConfig.c_str(), channelSelector)));
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // a simple checker process subscribing to the output of the input proxy
   //
   // the compute callback of the checker
-  auto checkerCallback = [nRolls](InputRecord& inputs, ControlService& control) {
+  auto counter = std::make_shared<int>(0);
+  auto checkerCallback = [counter](InputRecord& inputs, ControlService& control) {
     LOG(DEBUG) << "got inputs " << inputs.size();
-    if (inputs.get<int>("datain") == nRolls - 1) {
-      LOG(INFO) << "terminating after " << nRolls << " successful event(s)";
-      control.endOfStream();
-      control.readyToQuit(QuitRequest::All);
+    ASSERT_ERROR(inputs.get<int>("datain") == *counter);
+    ++(*counter);
+  };
+  auto checkCounter = [counter, nRolls](EndOfStreamContext&) {
+    ASSERT_ERROR(*counter == nRolls);
+    if (*counter == nRolls) {
+      LOG(INFO) << "checker has received " << nRolls << " successful event(s)";
     }
+  };
+  auto checkerInit = [checkerCallback, checkCounter](CallbackService& callbacks) {
+    callbacks.set(CallbackService::Id::EndOfStream, checkCounter);
+    return adaptStateless(checkerCallback);
   };
 
   // the checker process connects to the proxy
   workflow.emplace_back(DataProcessorSpec{"checker",
                                           {InputSpec{"datain", "PRX", "DATA", 0, Lifetime::Timeframe}},
                                           {},
-                                          AlgorithmSpec{adaptStateless(checkerCallback)}});
+                                          AlgorithmSpec{adaptStateful(checkerInit)}});
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // the input proxy process
@@ -142,7 +155,11 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     // different data identifiers and change the data origin in the forwarding
     OutputSpec query{"PRX", dh->dataDescription, dh->subSpecification};
     auto channelName = channelRetriever(query, dph->startTime);
-    ASSERT_ERROR(!channelName.empty());
+    bool isData = DataSpecUtils::match(OutputSpec{"TST", "DATA", 0}, dh->dataOrigin, dh->dataDescription, dh->subSpecification);
+    // for the configured data channel we require the channel name, the EOS message containing
+    // the forwarded SourceInfoHeader created by the output proxy will be skipped here since the
+    // input proxy handles this internally
+    ASSERT_ERROR(!isData || !channelName.empty());
     LOG(DEBUG) << "using channel '" << channelName << "' for " << DataSpecUtils::describe(OutputSpec{dh->dataOrigin, dh->dataDescription, dh->subSpecification});
     if (channelName.empty()) {
       return;

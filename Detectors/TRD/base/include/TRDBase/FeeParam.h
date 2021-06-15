@@ -71,6 +71,7 @@ class FeeParam
   // wiring
   static int getORI(int detector, int readoutboard);
   static int getORIinSM(int detector, int readoutboard);
+  static void unpackORI(int link, int side, int& stack, int& layer, int& halfchamberside);
   //  void createORILookUpTable();
   static int getORIfromHCID(int hcid);
   static int getHCIDfromORI(int ori, int readoutboard); // TODO we need more info than just ori, for now readoutboard is there ... might change

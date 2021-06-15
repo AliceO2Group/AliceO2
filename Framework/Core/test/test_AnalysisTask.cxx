@@ -60,7 +60,7 @@ struct ATask {
 // FIXME: for the moment we do not derive from AnalysisTask as
 // we need GCC 7.4+ to fix a bug.
 struct BTask {
-  void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::UnassignedTracks const&, o2::soa::Join<o2::aod::Calos, o2::aod::CaloTriggers> const&)
+  void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::AmbiguousTracks const&, o2::soa::Join<o2::aod::Calos, o2::aod::CaloTriggers> const&)
   {
   }
 };
@@ -157,15 +157,15 @@ BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 
   auto task2 = adaptAnalysisTask<BTask>(*cfgc, TaskName{"test2"});
   BOOST_CHECK_EQUAL(task2.inputs.size(), 9);
-  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "CaloTriggers");
-  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "Calos");
-  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Collisions");
-  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "Tracks");
-  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "TracksCov");
-  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "TracksCovExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "TracksExtra");
-  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "UnassignedTracks");
+  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "CaloTriggers");
+  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Calos");
+  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "Collisions");
+  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task2.inputs[5].binding, "TracksCov");
+  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "TracksCovExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "TracksExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "TracksExtra");
+  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "AmbiguousTracks");
 
   auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
   BOOST_CHECK_EQUAL(task3.inputs.size(), 3);

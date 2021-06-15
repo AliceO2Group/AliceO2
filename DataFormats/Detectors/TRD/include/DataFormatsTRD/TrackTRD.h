@@ -36,9 +36,7 @@ static_assert(sizeof(o2::dataformats::GlobalTrackID) == sizeof(unsigned int));
 template <>
 GPUdi() o2::dataformats::GlobalTrackID GPUTRDTrack_t<trackInterface<GPUTRDO2BaseTrack>>::getRefGlobalTrackId() const
 {
-  o2::dataformats::GlobalTrackID retVal;
-  retVal.setRaw(mRefGlobalTrackId);
-  return retVal;
+  return o2::dataformats::GlobalTrackID{mRefGlobalTrackId};
 }
 template <>
 GPUdi() void GPUTRDTrack_t<trackInterface<GPUTRDO2BaseTrack>>::setRefGlobalTrackId(o2::dataformats::GlobalTrackID id)

@@ -66,8 +66,10 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 #ifdef GENERATORS_WITH_PYTHIA8
   auto makePythia8Gen = [](std::string& config) {
     auto gen = new o2::eventgen::GeneratorPythia8();
-    LOG(INFO) << "Reading \'Pythia8\' base configuration: " << config << std::endl;
-    gen->readFile(config);
+    if (!config.empty()) {
+      LOG(INFO) << "Reading \'Pythia8\' base configuration: " << config << std::endl;
+      gen->readFile(config);
+    }
     auto seed = (gRandom->GetSeed() % 900000000);
     LOG(INFO) << "Using random seed from gRandom % 900000000: " << seed;
     gen->readString("Random:setSeed on");
@@ -183,6 +185,10 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto muon = makeBoxGen(13, 100, -2.5, -4.0, 100, 100, 0., 360);
     primGen->AddGenerator(muon);
   } else if (genconfig.compare("pythia8") == 0) {
+    auto py8config = std::string();
+    auto py8 = makePythia8Gen(py8config);
+    primGen->AddGenerator(py8);
+  } else if (genconfig.compare("pythia8pp") == 0) {
     auto py8config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_inel.cfg";
     auto py8 = makePythia8Gen(py8config);
     primGen->AddGenerator(py8);

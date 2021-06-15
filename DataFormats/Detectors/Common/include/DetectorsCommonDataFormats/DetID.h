@@ -30,6 +30,7 @@
 #include "GPUCommonRtypes.h"
 #include "GPUCommonBitSet.h"
 #include "MathUtils/Utils.h"
+#include "DetectorsCommonDataFormats/UpgradesStatus.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include "Headers/DataHeader.h"
 #include <array>
@@ -89,6 +90,8 @@ class DetID
   typedef o2::gpu::gpustd::bitset<32> mask_t;
   static_assert(nDetectors <= 32, "bitset<32> insufficient");
 
+  static constexpr mask_t FullMask = (0x1u << nDetectors) - 1;
+
 #ifndef GPUCA_GPUCODE_DEVICE
   static constexpr std::string_view NONE{"none"}; ///< keywork for no-detector
   static constexpr std::string_view ALL{"all"};   ///< keywork for all detectors
@@ -121,6 +124,7 @@ class DetID
   GPUdi() static constexpr int getNDetectors() { return nDetectors; }
   // detector ID to mask conversion
   GPUd() static constexpr mask_t getMask(ID id);
+
 #ifndef GPUCA_GPUCODE_DEVICE
   /// names of defined detectors
   static constexpr const char* getName(ID id) { return sDetNames[id]; }
@@ -131,7 +135,23 @@ class DetID
   static mask_t getMask(const std::string_view detList);
 
   static std::string getNames(mask_t mask, char delimiter = ',');
+
+  inline static constexpr int nameToID(char const* name, int id = First)
+  {
+    return id > Last ? -1 : sameStr(name, sDetNames[id]) ? id
+                                                         : nameToID(name, id + 1);
+  }
+
 #endif // GPUCA_GPUCODE_DEVICE
+
+  static bool upgradesEnabled()
+  {
+#ifdef ENABLE_UPGRADES
+    return true;
+#else
+    return false;
+#endif
+  }
 
  private:
   // are 2 strings equal ? (trick from Giulio)
@@ -143,11 +163,6 @@ class DetID
   ID mID = First; ///< detector ID
 
 #ifndef GPUCA_GPUCODE_DEVICE
-  inline static constexpr int nameToID(char const* name, int id)
-  {
-    return id > Last ? id : sameStr(name, sDetNames[id]) ? id : nameToID(name, id + 1);
-  }
-
   // detector names, will be defined in DataSources
   static constexpr const char* sDetNames[nDetectors + 1] = ///< defined detector names
 #ifdef ENABLE_UPGRADES

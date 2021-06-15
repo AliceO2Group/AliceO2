@@ -44,6 +44,7 @@ namespace o2::trd
 class Tracklet64;
 class CalibratedTracklet;
 class TriggerRecord;
+class TrackTriggerRecord;
 //class TrackTRD;
 struct RecoInputContainer;
 } // namespace o2::trd
@@ -92,6 +93,7 @@ class VtxTrackRef;
 class V0;
 class Cascade;
 class TrackCosmics;
+class IRFrame;
 } // namespace o2::dataformats
 
 namespace o2
@@ -134,6 +136,8 @@ struct DataRequest {
   void requestPrimaryVertertices(bool mc);
   void requestPrimaryVerterticesTMP(bool mc);
   void requestSecondaryVertertices(bool mc);
+
+  void requestIRFramesITS();
 };
 
 // Helper class to requested data.
@@ -159,6 +163,7 @@ struct RecoContainer {
     INDICES,
     MCLABELS,      // track labels
     MCLABELSEXTRA, // additonal labels, like TOF clusters matching label (not sure TOF really needs it)
+    VARIA,         // misc data, which does not fit to other categories
     NCOMMONSLOTS
   };
 
@@ -234,6 +239,8 @@ struct RecoContainer {
   void addPVerticesTMP(o2::framework::ProcessingContext& pc, bool mc);
   void addSVertices(o2::framework::ProcessingContext& pc, bool);
 
+  void addIRFramesITS(o2::framework::ProcessingContext& pc);
+
   // custom getters
 
   // get contributors from single detectors: return array with sources set to all contributing GTrackIDs
@@ -294,7 +301,12 @@ struct RecoContainer {
     return getObject<U>(gid, TRACKS);
   }
 
-  o2::MCCompLabel getTrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELS); }
+  o2::MCCompLabel getTrackMCLabel(GTrackID id) const
+  {
+    //RS FIXME: THIS IS TEMPORARY: some labels are still not implemented: in this case return dummy label
+    return commonPool[id.getSource()].getSize(MCLABELS) ? getObject<o2::MCCompLabel>(id, MCLABELS) : o2::MCCompLabel{};
+    //return getObject<o2::MCCompLabel>(id, MCLABELS);
+  }
 
   //--------------------------------------------
   // fetch track param
@@ -353,6 +365,11 @@ struct RecoContainer {
   {
     return getTracks<U>(GTrackID::ITSTPCTRD);
   }
+  auto getITSTPCTRDTriggers() const
+  {
+    return getSpan<o2::trd::TrackTriggerRecord>(GTrackID::ITSTPCTRD, TRACKREFS);
+  }
+
   // TPC-TRD
   template <class U>
   auto getTPCTRDTrack(GTrackID id) const
@@ -363,6 +380,10 @@ struct RecoContainer {
   auto getTPCTRDTracks() const
   {
     return getTracks<U>(GTrackID::TPCTRD);
+  }
+  auto getTPCTRDTriggers() const
+  {
+    return getSpan<o2::trd::TrackTriggerRecord>(GTrackID::TPCTRD, TRACKREFS);
   }
   // TRD tracklets
   gsl::span<const o2::trd::Tracklet64> getTRDTracklets() const;
@@ -412,6 +433,9 @@ struct RecoContainer {
   auto getCosmicTrackMCLabel(int i) const { return cosmPool.get_as<o2::MCCompLabel>(COSM_TRACKS_MC, i); }
   auto getCosmicTracks() const { return cosmPool.getSpan<o2::dataformats::TrackCosmics>(COSM_TRACKS); }
   auto getCosmicTrackMCLabels() const { return cosmPool.getSpan<o2::MCCompLabel>(COSM_TRACKS_MC); }
+
+  // IRFrames where ITS was reconstructed and tracks were seen (e.g. sync.w-flow mult. selection)
+  auto getIRFramesITS() const { return getSpan<o2::dataformats::IRFrame>(GTrackID::ITS, VARIA); }
 };
 
 } // namespace globaltracking

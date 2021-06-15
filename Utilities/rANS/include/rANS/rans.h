@@ -16,14 +16,14 @@
 #ifndef RANS_RANS_H
 #define RANS_RANS_H
 
-#include "FrequencyTable.h"
-#include "Encoder.h"
-#include "Decoder.h"
-#include "DedupEncoder.h"
-#include "DedupDecoder.h"
-#include "LiteralEncoder.h"
-#include "LiteralDecoder.h"
-#include "internal/helper.h"
+#include "rANS/FrequencyTable.h"
+#include "rANS/Encoder.h"
+#include "rANS/Decoder.h"
+#include "rANS/DedupEncoder.h"
+#include "rANS/DedupDecoder.h"
+#include "rANS/LiteralEncoder.h"
+#include "rANS/LiteralDecoder.h"
+#include "rANS/internal/helper.h"
 
 namespace o2
 {

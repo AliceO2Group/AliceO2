@@ -17,27 +17,34 @@
 #include <string>
 #include <sstream>
 
+#define qon_mcat(a, b) a##b
+#define qon_mxcat(a, b) qon_mcat(a, b)
+#define qon_mcat3(a, b, c) a##b##c
+#define qon_mxcat3(a, b, c) qon_mcat3(a, b, c)
+#define qon_mstr(a) #a
+#define qon_mxstr(a) qon_mstr(a)
+
 namespace qConfig
 {
 template <class T>
-std::string print_type(T val)
+inline std::string print_type(T val)
 {
   std::ostringstream s;
   s << val;
   return s.str();
 };
 template <>
-std::string print_type<char>(char val)
+inline std::string print_type<char>(char val)
 {
   return std::to_string(val);
 };
 template <>
-std::string print_type<unsigned char>(unsigned char val)
+inline std::string print_type<unsigned char>(unsigned char val)
 {
   return std::to_string(val);
 };
 template <>
-std::string print_type<bool>(bool val)
+inline std::string print_type<bool>(bool val)
 {
   return val ? "true" : "false";
 };

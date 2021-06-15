@@ -28,21 +28,19 @@
 #ifndef ALICEO2_MATHUTILS_RANDOMRING_H_
 #define ALICEO2_MATHUTILS_RANDOMRING_H_
 
-#include "Vc/Vc"
 #include <array>
 
 #include "TF1.h"
 #include "TRandom.h"
 #include <functional>
 
-using float_v = Vc::float_v;
 
 namespace o2
 {
 namespace math_utils
 {
 
-template <size_t N = float_v::size() * 100000>
+template <size_t N = 4 * 100000>
 class RandomRing
 {
  public:
@@ -92,10 +90,15 @@ class RandomRing
   /// used for vectorised programming and increases the buffer
   /// position by the size of the vector
   /// @return vector with random values
-  float_v getNextValueVc()
+  template <typename VcType>
+  VcType getNextValueVc()
   {
-    const float_v value = float_v(&mRandomNumbers[mRingPosition]);
-    mRingPosition += float_v::size();
+    // This function is templated so that we don't need to include the <Vc/Vc> header
+    // within this header file (to reduce memory problems during compilation).
+    // The hope is that the calling user calls this with a
+    // correct Vc type (Vc::float_v) in a source file.
+    const VcType value = VcType(&mRandomNumbers[mRingPosition]);
+    mRingPosition += VcType::size();
     if (mRingPosition >= mRandomNumbers.size()) {
       mRingPosition = 0;
     }

@@ -19,6 +19,7 @@
 #include <type_traits>
 #include <Rtypes.h>
 #include "rANS/rans.h"
+#include "rANS/utils.h"
 #include "TTree.h"
 #include "CommonUtils/StringUtils.h"
 #include "Framework/Logger.h"
@@ -382,7 +383,7 @@ class EncodedBlocks
   void copyToFlat(void* base) { fillFlatCopy(create(base, estimateSize())); }
 
   /// attach to tree
-  void appendToTree(TTree& tree, const std::string& name) const;
+  size_t appendToTree(TTree& tree, const std::string& name) const;
 
   /// read from tree to non-flat object
   void readFromTree(TTree& tree, const std::string& name, int ev = 0);
@@ -446,7 +447,7 @@ class EncodedBlocks
 
   /// add and fill single branch
   template <typename D>
-  static void fillTreeBranch(TTree& tree, const std::string& brname, D& dt, int compLevel, int splitLevel = 99);
+  static size_t fillTreeBranch(TTree& tree, const std::string& brname, D& dt, int compLevel, int splitLevel = 99);
 
   /// read single branch
   template <typename D>
@@ -485,14 +486,16 @@ void EncodedBlocks<H, N, W>::readFromTree(VD& vec, TTree& tree, const std::strin
 ///_____________________________________________________________________________
 /// attach to tree
 template <typename H, int N, typename W>
-void EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name) const
+size_t EncodedBlocks<H, N, W>::appendToTree(TTree& tree, const std::string& name) const
 {
-  fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), const_cast<base&>(*this), WrappersCompressionLevel, WrappersSplitLevel);
+  long s = 0;
+  s += fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_wrapper."), const_cast<base&>(*this), WrappersCompressionLevel, WrappersSplitLevel);
   for (int i = 0; i < N; i++) {
     int compression = mMetadata[i].opt == Metadata::OptStore::ROOTCompression ? 1 : 0;
-    fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), const_cast<Block<W>&>(mBlocks[i]), compression);
+    s += fillTreeBranch(tree, o2::utils::Str::concat_string(name, "_block.", std::to_string(i), "."), const_cast<Block<W>&>(mBlocks[i]), compression);
   }
   tree.SetEntries(tree.GetEntries() + 1);
+  return s;
 }
 
 ///_____________________________________________________________________________
@@ -513,11 +516,14 @@ inline void EncodedBlocks<H, N, W>::readTreeBranch(TTree& tree, const std::strin
 /// add and fill single branch
 template <typename H, int N, typename W>
 template <typename D>
-inline void EncodedBlocks<H, N, W>::fillTreeBranch(TTree& tree, const std::string& brname, D& dt, int compLevel, int splitLevel)
+inline size_t EncodedBlocks<H, N, W>::fillTreeBranch(TTree& tree, const std::string& brname, D& dt, int compLevel, int splitLevel)
 {
-  auto* br = tree.Branch(brname.c_str(), &dt, 512, splitLevel);
-  br->SetCompressionLevel(compLevel);
-  br->Fill();
+  auto* br = tree.GetBranch(brname.c_str());
+  if (!br) {
+    br = tree.Branch(brname.c_str(), &dt, 512, splitLevel);
+    br->SetCompressionLevel(compLevel);
+  }
+  return br->Fill();
 }
 
 ///_____________________________________________________________________________
@@ -736,7 +742,7 @@ void EncodedBlocks<H, N, W>::decode(D_IT dest,                    // iterator to
         // to D-word array
         literals = std::vector<dest_t>{reinterpret_cast<const dest_t*>(block.getLiterals()), reinterpret_cast<const dest_t*>(block.getLiterals()) + md.nLiterals};
       }
-      decoder->process(dest, block.getData() + block.getNData(), md.messageLength, literals);
+      decoder->process(block.getData() + block.getNData(), dest, md.messageLength, literals);
     } else { // data was stored as is
       using destPtr_t = typename std::iterator_traits<D_IT>::pointer;
       destPtr_t srcBegin = reinterpret_cast<destPtr_t>(block.payload);
@@ -828,7 +834,8 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // directly encode source message into block buffer.
     auto blIn = bl->getCreateData();
     auto frSize = bl->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
-    const auto encodedMessageEnd = encoder->process(blIn, blIn + frSize, srcBegin, srcEnd, literals);
+    const auto encodedMessageEnd = encoder->process(srcBegin, srcEnd, blIn, literals);
+    rans::utils::checkBounds(encodedMessageEnd, blIn + frSize);
     dataSize = encodedMessageEnd - bl->getData();
     bl->setNData(dataSize);
     bl->realignBlock();
@@ -841,7 +848,7 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
       expandStorage(literalSize);
       bl->storeLiterals(literalSize, reinterpret_cast<const stream_t*>(literals.data()));
     }
-    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), static_cast<uint8_t>(encoder->getProbabilityBits()), opt,
+    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), static_cast<uint8_t>(encoder->getSymbolTablePrecision()), opt,
                      encoder->getMinSymbol(), encoder->getMaxSymbol(), dictSize, dataSize, literalSize};
 
   } else { // store original data w/o EEncoding

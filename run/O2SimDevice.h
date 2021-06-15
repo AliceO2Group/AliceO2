@@ -93,7 +93,7 @@ class O2SimDevice final : public FairMQDevice
     std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(O2PrimaryServerInfoRequest::Config));
     std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
 
-    int timeoutinMS = 4000; // wait for 4s max --> should be fast reply
+    int timeoutinMS = 60000; // wait for 60s max --> should be fast reply
     if (channel.Send(request, timeoutinMS) > 0) {
       LOG(INFO) << "Waiting for configuration answer ";
       if (channel.Receive(reply, timeoutinMS) > 0) {

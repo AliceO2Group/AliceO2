@@ -8,7 +8,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_test_root_macro(CheckTopologies.C
+o2_add_test_root_macro(CreateDictionaries.C
                        PUBLIC_LINK_LIBRARIES O2::MathUtils
                                              O2::MFTBase
                                              O2::ITSMFTReconstruction

@@ -15,8 +15,8 @@
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "ITSWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
-#include "TOFWorkflow/TOFMatchedReaderSpec.h"
-#include "TOFWorkflowUtils/ClusterReaderSpec.h"
+#include "TOFWorkflowIO/TOFMatchedReaderSpec.h"
+#include "TOFWorkflowIO/ClusterReaderSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -51,7 +51,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  GID::mask_t alowedSources = GID::getSourcesMask("ITS,ITS-TPC,ITS-TPC-TOF,TPC-TOF");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS,ITS-TPC,TPC-TRD,TPC-TOF,ITS-TPC-TRD,ITS-TPC-TOF");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));

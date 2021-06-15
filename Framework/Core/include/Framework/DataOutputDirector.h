@@ -10,8 +10,6 @@
 #ifndef o2_framework_DataOutputDirector_H_INCLUDED
 #define o2_framework_DataOutputDirector_H_INCLUDED
 
-#include "TFile.h"
-
 #include "Framework/DataDescriptorQueryBuilder.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataSpecUtils.h"
@@ -19,6 +17,8 @@
 #include "Framework/DataInputDirector.h"
 
 #include "rapidjson/fwd.h"
+
+class TFile;
 
 namespace o2::framework
 {

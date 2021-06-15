@@ -27,7 +27,6 @@
 #ifndef ALICEO2_MEMORY_RESOURCES_
 #define ALICEO2_MEMORY_RESOURCES_
 
-#include <boost/container/flat_map.hpp>
 #include <boost/container/pmr/memory_resource.hpp>
 #include <boost/container/pmr/monotonic_buffer_resource.hpp>
 #include <boost/container/pmr/polymorphic_allocator.hpp>
@@ -41,7 +40,6 @@
 #include <FairMQTransportFactory.h>
 #include <fairmq/MemoryResources.h>
 #include <fairmq/MemoryResourceTools.h>
-#include "Types.h"
 
 namespace o2
 {
@@ -305,8 +303,8 @@ class NoConstructAllocator : public boost::container::pmr::polymorphic_allocator
 //__________________________________________________________________________________________________
 //__________________________________________________________________________________________________
 
-using ByteSpectatorAllocator = SpectatorAllocator<o2::byte>;
-using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<o2::byte>;
+using ByteSpectatorAllocator = SpectatorAllocator<std::byte>;
+using BytePmrAllocator = boost::container::pmr::polymorphic_allocator<std::byte>;
 template <class T>
 using vector = std::vector<T, o2::pmr::polymorphic_allocator<T>>;
 

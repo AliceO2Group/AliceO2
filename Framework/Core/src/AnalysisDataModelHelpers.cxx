@@ -12,7 +12,14 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/Logger.h"
-#include <boost/algorithm/string.hpp>
+
+std::string str_tolower(std::string s)
+{
+  std::transform(s.begin(), s.end(), s.begin(),
+                 [](unsigned char c) { return std::tolower(c); } // correct
+  );
+  return s;
+}
 
 namespace o2::aod::datamodel
 {
@@ -23,7 +30,7 @@ std::string getTreeName(header::DataHeader dh)
 
   // lower case of first part of description
   auto found = description.find_first_of(":");
-  std::string treeName = boost::algorithm::to_lower_copy(description).substr(0, found);
+  std::string treeName = str_tolower(description).substr(0, found);
 
   // add prefix according to origin
   if (origin == "AOD") {

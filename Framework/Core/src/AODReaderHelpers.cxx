@@ -30,7 +30,6 @@
 
 #include <Monitoring/Monitoring.h>
 
-#include <ROOT/RDataFrame.hxx>
 #include <TGrid.h>
 #include <TFile.h>
 #include <TTreeCache.h>
