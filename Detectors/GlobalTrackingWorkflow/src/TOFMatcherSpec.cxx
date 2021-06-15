@@ -154,16 +154,16 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   mMatcher.run();
 
   if (isTPCused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOF::TrackType::TPC));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOF::TrackType::TPC));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
     }
   }
 
   if (isITSTPCused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOF::TrackType::ITSTPC));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOF::TrackType::ITSTPC));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
     }
   }
 

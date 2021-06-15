@@ -116,7 +116,7 @@ class TOFDPLRecoWorkflowWithTPCTask
     mMatcher.setTPCTrackArray(tracksRO, tpclab);
     mMatcher.run();
 
-    auto nmatch = mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOF::TrackType::TPC).size();
+    auto nmatch = mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC).size();
     if (mDoTPCRefit) {
       LOG(INFO) << "Refitting " << nmatch << " matched TPC tracks with TOF time info";
     } else {
@@ -132,9 +132,9 @@ class TOFDPLRecoWorkflowWithTPCTask
     //           << " DIGITS TO " << mClustersArray.size() << " CLUSTERS";
 
     // send matching-info
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOF::TrackType::TPC));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOF::TrackType::TPC));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
     }
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
     mTimer.Stop();

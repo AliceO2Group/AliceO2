@@ -15,7 +15,7 @@
 #define O2_TOF_MATCHER_SPEC
 
 #include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
 using namespace o2::framework;
 

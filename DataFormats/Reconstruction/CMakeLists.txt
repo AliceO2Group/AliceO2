@@ -18,6 +18,7 @@ o2_add_library(ReconstructionDataFormats
                        src/Vertex.cxx
                        src/PrimaryVertex.cxx
                        src/MatchInfoTOF.cxx
+                       src/MatchInfoTOFReco.cxx
                        src/TrackLTIntegral.cxx
                        src/PID.cxx
                        src/DCA.cxx
@@ -43,6 +44,7 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/Vertex.h
           include/ReconstructionDataFormats/PrimaryVertex.h
           include/ReconstructionDataFormats/MatchInfoTOF.h
+          include/ReconstructionDataFormats/MatchInfoTOFReco.h
           include/ReconstructionDataFormats/TrackLTIntegral.h
           include/ReconstructionDataFormats/PID.h
           include/ReconstructionDataFormats/DCA.h

@@ -25,7 +25,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackTPCTOF.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
 #include "CommonDataFormat/EvIndex.h"
@@ -131,10 +131,10 @@ class MatchTOF
     }
   }
 
-  std::vector<o2::dataformats::MatchInfoTOF>& getMatchedTrackVector(o2::dataformats::MatchInfoTOF::TrackType index) { return mMatchedTracks[index]; }
+  std::vector<o2::dataformats::MatchInfoTOF>& getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType index) { return mMatchedTracks[index]; }
   std::vector<o2::dataformats::CalibInfoTOF>& getCalibVector() { return mCalibInfoTOF; }
 
-  std::vector<o2::MCCompLabel>& getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOF::TrackType index) { return mOutTOFLabels[index]; } ///< get vector of TOF label of matched tracks
+  std::vector<o2::MCCompLabel>& getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType index) { return mOutTOFLabels[index]; } ///< get vector of TOF label of matched tracks
 
   // this method is deprecated
   void setFITRecPoints(const std::vector<o2::ft0::RecPoints>* recpoints)
@@ -173,7 +173,7 @@ class MatchTOF
   void makeConstrainedTPCTracks(V& container)
   {
     checkRefitter();
-    int nmatched = mMatchedTracks[o2::dataformats::MatchInfoTOF::TrackType::TPC].size(), nconstrained = 0;
+    int nmatched = mMatchedTracks[o2::dataformats::MatchInfoTOFReco::TrackType::TPC].size(), nconstrained = 0;
     container.resize(nmatched);
     for (unsigned i = 0; i < nmatched; i++) {
       if (makeConstrainedTPCTrack(i, container[nconstrained])) {
@@ -188,7 +188,7 @@ class MatchTOF
   virtual bool prepareTPCTracks();
   virtual bool prepareTOFClusters();
 
-  void doMatching(int sec, o2::dataformats::MatchInfoTOF::TrackType type = o2::dataformats::MatchInfoTOF::TrackType::ITSTPC);
+  void doMatching(int sec, o2::dataformats::MatchInfoTOFReco::TrackType type = o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC);
   void doMatchingForTPC(int sec);
   void selectBestMatches();
   void selectBestMatchesHP();
@@ -252,15 +252,15 @@ class MatchTOF
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mTOFClusLabelsPtr; ///< input TOF clusters MC labels (pointer to read from tree)
   std::vector<o2::MCCompLabel> mTracksLblWork;                           ///<TPCITS track labels
 
-  gsl::span<const o2::MCCompLabel> mTPCLabels[o2::dataformats::MatchInfoTOF::TrackType::SIZE];  ///< TPC label of input tracks
-  std::vector<o2::MCCompLabel>* mTPCLabelsVect[o2::dataformats::MatchInfoTOF::TrackType::SIZE]; ///< TPC label of input tracks (vector to read from tree)
+  gsl::span<const o2::MCCompLabel> mTPCLabels[o2::dataformats::MatchInfoTOFReco::TrackType::SIZE];  ///< TPC label of input tracks
+  std::vector<o2::MCCompLabel>* mTPCLabelsVect[o2::dataformats::MatchInfoTOFReco::TrackType::SIZE]; ///< TPC label of input tracks (vector to read from tree)
 
   gsl::span<o2::ft0::RecPoints const> mFITRecPoints; ///< FIT recpoints
 
   /// <<<-----
 
   ///<working copy of the input tracks
-  std::vector<matchTrack> mTracksWork[o2::dataformats::MatchInfoTOF::TrackType::SIZE]; ///<track params prepared for matching + time value
+  std::vector<matchTrack> mTracksWork[o2::dataformats::MatchInfoTOFReco::TrackType::SIZE]; ///<track params prepared for matching + time value
 
   std::vector<float> mExtraTPCFwdTime;              ///<track extra params for TPC tracks: Fws Max time
   std::vector<o2::track::TrackLTIntegral> mLTinfos; ///<expected times and others
@@ -268,23 +268,23 @@ class MatchTOF
   std::vector<int8_t> mSideTPC;                     ///<track side for TPC tracks
 
   ///< per sector indices of track entry in mTracksWork
-  std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSectIndexCache[o2::dataformats::MatchInfoTOF::TrackType::SIZE];
+  std::array<std::vector<int>, o2::constants::math::NSectors> mTracksSectIndexCache[o2::dataformats::MatchInfoTOFReco::TrackType::SIZE];
   ///< per sector indices of TOF cluster entry in mTOFClusWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mTOFClusSectIndexCache;
 
   ///<array of track-TOFCluster pairs from the matching
-  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracksPairs;
+  std::vector<o2::dataformats::MatchInfoTOFReco> mMatchedTracksPairs;
 
   ///<array of TOFChannel calibration info
   std::vector<o2::dataformats::CalibInfoTOF> mCalibInfoTOF;
 
   ///<array of matched TOFCluster with matching information (residuals, expected times...) with the corresponding vector of indices
   //std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks;
-  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks[o2::dataformats::MatchInfoTOF::TrackType::SIZE]; // this is the output of the matching
-  std::vector<o2::MCCompLabel> mOutTOFLabels[o2::dataformats::MatchInfoTOF::TrackType::SIZE];                ///< TOF label of matched tracks
+  std::vector<o2::dataformats::MatchInfoTOF> mMatchedTracks[o2::dataformats::MatchInfoTOFReco::TrackType::SIZE]; // this is the output of the matching
+  std::vector<o2::MCCompLabel> mOutTOFLabels[o2::dataformats::MatchInfoTOFReco::TrackType::SIZE];                ///< TOF label of matched tracks
 
-  int mNumOfTracks[o2::dataformats::MatchInfoTOF::TrackType::SIZE];                     // number of tracks to be matched
-  std::vector<int> mMatchedTracksIndex[o2::dataformats::MatchInfoTOF::TrackType::SIZE]; // vector of indexes of the tracks to be matched
+  int mNumOfTracks[o2::dataformats::MatchInfoTOFReco::TrackType::SIZE];                     // number of tracks to be matched
+  std::vector<int> mMatchedTracksIndex[o2::dataformats::MatchInfoTOFReco::TrackType::SIZE]; // vector of indexes of the tracks to be matched
 
   int mNumOfClusters;                   // number of clusters to be matched
   int* mMatchedClustersIndex = nullptr; //[mNumOfClusters]
