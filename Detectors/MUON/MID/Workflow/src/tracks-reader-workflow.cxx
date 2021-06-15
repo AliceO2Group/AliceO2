@@ -40,7 +40,7 @@ class TrackSamplerTask
     auto inputFileName = ic.options().get<std::string>("infile");
     mMinNumberOfROFsPerTF = ic.options().get<int>("repack-rofs");
 
-    mReader = std::make_shared<RootTreeReader>("midreco", inputFileName.c_str(), -1,
+    mReader = std::make_unique<RootTreeReader>("midreco", inputFileName.c_str(), -1,
                                                RootTreeReader::PublishingMode::Single,
                                                RootTreeReader::BranchDefinition<std::vector<char>>{
                                                  Output{"MID", "TRACKS", 0, Lifetime::Timeframe}, "MIDTrack"},
@@ -73,7 +73,7 @@ class TrackSamplerTask
 
       auto rofs = reinterpret_cast<std::vector<ROFRecord>*>(data);
 
-      // accumulated the ROFs, shifting the track indexing accordingly
+      // accumulate the ROFs, shifting the track indexing accordingly
       size_t offset = (mROFs.size() > 0) ? mROFs.back().firstEntry + mROFs.back().nEntries : 0;
       std::transform(rofs->begin(), rofs->end(), std::back_inserter(mROFs), [offset](const ROFRecord& rof) {
         return ROFRecord{rof, rof.firstEntry + offset, rof.nEntries};
@@ -83,7 +83,7 @@ class TrackSamplerTask
 
       auto tracks = reinterpret_cast<std::vector<char>*>(data);
 
-      // accumulated the tracks, in Track format
+      // accumulate the tracks, in Track format
       if (tracks->size() % sizeof(Track) != 0) {
         throw std::length_error("invalid track format");
       }
@@ -110,7 +110,7 @@ class TrackSamplerTask
   size_t mMinNumberOfROFsPerTF = 1;          ///< minimum number of ROF to send per TF
   std::vector<ROFRecord> mROFs{};            ///< internal vector of ROFs
   std::vector<Track> mTracks{};              ///< internal vector of tracks
-  std::shared_ptr<RootTreeReader> mReader{}; ///< root file reader
+  std::unique_ptr<RootTreeReader> mReader{}; ///< root file reader
   /// structure holding the function to accumulate the data
   RootTreeReader::SpecialPublishHook mAccumulator{
     [this](std::string_view name, ProcessingContext&, Output const&, char* data) -> bool {
