@@ -28,13 +28,7 @@ class MatchInfoTOF
   using evIdx = o2::dataformats::EvIndex<int, int>;
 
  public:
-  enum TrackType : int8_t { TPC = 0,
-                            ITSTPC,
-                            TPCTRD,
-                            ITSTPCTRD,
-                            SIZE };
-
-  MatchInfoTOF(evIdx evIdxTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT, evGIdx evIdxTrack, TrackType trkType, float dt = 0, float z = 0) : mEvIdxTOFCl(evIdxTOFCl), mChi2(chi2), mIntLT(trkIntLT), mEvIdxTrack(evIdxTrack), mTrackType(trkType), mDeltaT(dt), mZatTOF(z){};
+  MatchInfoTOF(evIdx evIdxTOFCl, float chi2, o2::track::TrackLTIntegral trkIntLT, evGIdx evIdxTrack, float dt = 0, float z = 0) : mEvIdxTOFCl(evIdxTOFCl), mChi2(chi2), mIntLT(trkIntLT), mEvIdxTrack(evIdxTrack), mDeltaT(dt), mZatTOF(z){};
   MatchInfoTOF() = default;
   void setEvIdxTOFCl(evIdx index) { mEvIdxTOFCl = index; }
   void setEvIdxTrack(evGIdx index) { mEvIdxTrack = index; }
@@ -47,9 +41,6 @@ class MatchInfoTOF
 
   void setChi2(int chi2) { mChi2 = chi2; }
   float getChi2() const { return mChi2; }
-
-  void setTrackType(TrackType value) { mTrackType = value; }
-  TrackType getTrackType() const { return mTrackType; }
 
   o2::track::TrackLTIntegral& getLTIntegralOut() { return mIntLT; }
   const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mIntLT; }
@@ -67,7 +58,6 @@ class MatchInfoTOF
   evGIdx mEvIdxTrack;                ///< EvIdx for track (first: ev index; second: track global index)
   float mZatTOF = 0.0;               ///< Z position at  TOF
   float mDeltaT = 0.0;               ///< tTOF - TPC (microsec)
-  TrackType mTrackType;              //! track type (TPC, ITSTPC, TPCTRD, ITSTPCTRD)
 
   ClassDefNV(MatchInfoTOF, 2);
 };

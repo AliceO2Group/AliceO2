@@ -8,25 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TOFMatcherSpec.h
+/// \file MatchInfoTOFReco.cxx
+/// \brief Class to temporary store the output of the matching to TOF in reconstruction
 
-#ifndef O2_TOF_MATCHER_SPEC
-#define O2_TOF_MATCHER_SPEC
-
-#include "Framework/DataProcessorSpec.h"
 #include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
-using namespace o2::framework;
+using namespace o2::dataformats;
 
-namespace o2
-{
-namespace globaltracking
-{
-
-/// create a processor spec
-framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT);
-
-} // namespace globaltracking
-} // namespace o2
-
-#endif /* O2_TOF_MATCHER_SPEC */
+ClassImp(o2::dataformats::MatchInfoTOFReco);

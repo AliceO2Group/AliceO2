@@ -12,7 +12,7 @@
 #define TOF_RECOWORKFLOWWITHTPC_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
 namespace o2
 {

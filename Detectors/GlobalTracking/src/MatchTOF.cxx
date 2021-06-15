@@ -43,7 +43,7 @@
 using namespace o2::globaltracking;
 using evGIdx = o2::dataformats::EvIndex<int, o2::dataformats::GlobalTrackID>;
 using evIdx = o2::dataformats::EvIndex<int, int>;
-using trkType = o2::dataformats::MatchInfoTOF::TrackType;
+using trkType = o2::dataformats::MatchInfoTOFReco::TrackType;
 using Cluster = o2::tof::Cluster;
 
 ClassImp(MatchTOF);
@@ -1069,10 +1069,10 @@ void MatchTOF::selectBestMatches()
   LOG(INFO) << "Number of pair matched = " << mMatchedTracksPairs.size();
 
   // first, we sort according to the chi2
-  std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](o2::dataformats::MatchInfoTOF& a, o2::dataformats::MatchInfoTOF& b) { return (a.getChi2() < b.getChi2()); });
+  std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](o2::dataformats::MatchInfoTOFReco& a, o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
   int i = 0;
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
-  for (const o2::dataformats::MatchInfoTOF& matchingPair : mMatchedTracksPairs) {
+  for (const o2::dataformats::MatchInfoTOFReco& matchingPair : mMatchedTracksPairs) {
     int trkType = (int)matchingPair.getTrackType();
 
     if (mMatchedTracksIndex[trkType][matchingPair.getTrackIndex()] != -1) { // the track was already filled
@@ -1137,13 +1137,13 @@ void MatchTOF::selectBestMatchesHP()
 
   LOG(INFO) << "Number of pair matched = " << mMatchedTracksPairs.size();
 
-  std::vector<o2::dataformats::MatchInfoTOF> tmpMatch;
+  std::vector<o2::dataformats::MatchInfoTOFReco> tmpMatch;
 
   // first, we sort according to the chi2
-  std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](o2::dataformats::MatchInfoTOF& a, o2::dataformats::MatchInfoTOF& b) { return (a.getChi2() < b.getChi2()); });
+  std::sort(mMatchedTracksPairs.begin(), mMatchedTracksPairs.end(), [this](o2::dataformats::MatchInfoTOFReco& a, o2::dataformats::MatchInfoTOFReco& b) { return (a.getChi2() < b.getChi2()); });
   int i = 0;
   // then we take discard the pairs if their track or cluster was already matched (since they are ordered in chi2, we will take the best matching)
-  for (const o2::dataformats::MatchInfoTOF& matchingPair : mMatchedTracksPairs) {
+  for (const o2::dataformats::MatchInfoTOFReco& matchingPair : mMatchedTracksPairs) {
     int trkType = (int)matchingPair.getTrackType();
 
     bool discard = matchingPair.getChi2() > chi2S;
