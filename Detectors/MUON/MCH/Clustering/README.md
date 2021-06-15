@@ -44,9 +44,21 @@ then the clustering and write the clusters with associated digits in the file cl
 
 # MCH GEM Clustering (new)
 
-This preliminary development is the new algorithm implementation of the clustering/fitting.
-It is called GEM (Gaussian Expected-Maximiztion)
+This preliminary development is an alternative algorithm of the clustering/fitting.
+It is called GEM (Gaussian Expected-Maximization). All files xxx[Oo]riginal[yyy].zzz
+have there coresponding file with name xxxGEMyyy].zzz
 
 ## Input / Output
-Exactly the same as the orignal version (see 
+Exactly the same as the orignal version (see above)
+
+## Example of workflow
+
+This is the same command as above. The command 'o2-mch-preclusters-to-clusters-original-workflow' is 
+replaced with 'o2-mch-preclusters-to-clusters-GEM-workflow'
+
+`o2-mch-digits-reader-workflow --infile "digits.in" --useRun2DigitUID | o2-mch-digits-to-preclusters-workflow | o2-mch-preclusters-to-clusters-GEM-workflow | o2-mch-clusters-sink-workflow --outfile "clusters.out" --useRun2DigitUID`
+
+
+
+
 
