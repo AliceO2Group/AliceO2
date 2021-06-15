@@ -92,6 +92,7 @@ struct HFJpsiCandidateSelector {
   Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
   Configurable<bool> isALICE3{"isALICE3", false, "Switch between ALICE 2 and ALICE 3 detector setup"};
+  Configurable<bool> selectENotPi{"selectENotPi", true, "Apply combined TOF + RICH e/π selection"};
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
   // TPC
@@ -204,10 +205,12 @@ struct HFJpsiCandidateSelector {
         continue;
       }
 
-      // track-level electron PID TOF selection
-      if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-          selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-        selectedEE = 0;
+      if (!(isALICE3 && selectENotPi)) {
+        // track-level electron PID TOF selection
+        if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          selectedEE = 0;
+        }
       }
 
       if (selectedEE == 0 && selectedMuMu == 0) {
@@ -216,10 +219,18 @@ struct HFJpsiCandidateSelector {
       }
 
       if (isALICE3) { // ALICE 3 detectors
-        // track-level electron PID RICH selection
-        if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-            selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-          selectedEE = 0;
+        if (selectENotPi) {
+          // combined TOF + RICH e selection with π rejection
+          if (!selectorElectron.isElectronAndNotPion(trackPos) ||
+              !selectorElectron.isElectronAndNotPion(trackNeg)) {
+            selectedEE = 0;
+          }
+        } else {
+          // track-level electron PID RICH selection
+          if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+              selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+            selectedEE = 0;
+          }
         }
 
         if (selectedEE == 0 && selectedMuMu == 0) {
@@ -228,13 +239,10 @@ struct HFJpsiCandidateSelector {
         }
 
         // track-level muon PID MID selection
-        //LOGF(info, "Muon selection: Start");
         if (selectorMuon.getStatusTrackPIDMID(trackPos) == TrackSelectorPID::Status::PIDRejected ||
             selectorMuon.getStatusTrackPIDMID(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-          //LOGF(info, "Muon selection: Rejected");
           selectedMuMu = 0;
         }
-        //LOGF(info, "Muon selection: Selected");
 
       } else { // ALICE 2 detectors
         // track-level electron PID TPC selection
