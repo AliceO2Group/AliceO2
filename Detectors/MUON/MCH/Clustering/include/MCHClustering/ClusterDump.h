@@ -53,6 +53,8 @@ class ClusterDump
 
   void dumpInt16(int ifile, long size, const int16_t* data);
 
+  const std::string& getName() const { return fileName; };
+
  private:
   std::string fileName;
   std::fstream dumpFiles[1];

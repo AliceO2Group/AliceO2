@@ -938,75 +938,78 @@ void forceSplitCathodes( double *newCath0, double *newcath1) {
 */
 // Assign a group to the original pads
 // No group merging, the charge select the group
-void assignPadsToGroupFromProjAndProjCharge( short *projPadGroup, double *chProj, int nProjPads, 
-        const PadIdx_t *cath0ToPadIdx, const PadIdx_t *cath1ToPadIdx, 
-        int nGrp, int nPads, short *padToCathGrp) {
-// outputs:
-//   - wellSplitGroup[ nGrp+1]: 1 if the group is well splitted,  0 if not
-  vectorSetZeroShort( padToCathGrp, nPads);
+void assignPadsToGroupFromProjAndProjCharge(short* projPadGroup, double* chProj, int nProjPads,
+                                            const PadIdx_t* cath0ToPadIdx, const PadIdx_t* cath1ToPadIdx,
+                                            int nGrp, int nPads, short* padToCathGrp)
+{
+  // outputs:
+  //   - wellSplitGroup[ nGrp+1]: 1 if the group is well splitted,  0 if not
+  vectorSetZeroShort(padToCathGrp, nPads);
   //
   // Max charge of the k-contribution to cathode I/J
   // The array is oveallocated
-  double maxChI[ nPads];
-  double maxChJ[ nPads];
-  vectorSetZero( maxChI , nPads);
-  vectorSetZero( maxChJ , nPads);
+  double maxChI[nPads];
+  double maxChJ[nPads];
+  vectorSetZero(maxChI, nPads);
+  vectorSetZero(maxChJ, nPads);
   //
-  PadIdx_t i, j; 
+  PadIdx_t i, j;
   short g, prevGroup;
-  for( int k=0; k < nProjPads; k++) {
+  for (int k = 0; k < nProjPads; k++) {
     g = projPadGroup[k];
     // give the indexes of overlapping pads
-    i = mapKToIJ[k].i; j = mapKToIJ[k].j;
+    i = mapKToIJ[k].i;
+    j = mapKToIJ[k].j;
     //
     // Cathode 0
     //
-    if ( (i >= 0) && (cath0ToPadIdx !=0) ) {
+    if ((i >= 0) && (cath0ToPadIdx != 0)) {
       // Remark: if i is an alone pad (j<0)
       // i is processed as well
       //
       // cath0ToPadIdx: map cathode-pad to the original pad
       PadIdx_t padIdx = cath0ToPadIdx[i];
-      prevGroup = padToCathGrp[ padIdx ];
-      if ( (prevGroup == 0) || (prevGroup == g) ) {
+      prevGroup = padToCathGrp[padIdx];
+      if ((prevGroup == 0) || (prevGroup == g)) {
         // Case: no group before or same group
         //
-        padToCathGrp[ padIdx ] = g;
+        padToCathGrp[padIdx] = g;
         // Update the max-charge contribution for i/padIdx
-        if( chProj[k] > maxChI[i] ) maxChI[i] = chProj[k]; 
+        if (chProj[k] > maxChI[i])
+          maxChI[i] = chProj[k];
       } else {
-        // 
-        if ( chProj[k] > maxChI[i] ) {
-          padToCathGrp[ padIdx ] = g;
-          maxChI[i] = chProj[k]; 
+        //
+        if (chProj[k] > maxChI[i]) {
+          padToCathGrp[padIdx] = g;
+          maxChI[i] = chProj[k];
         }
       }
     }
     //
     // Cathode 1
     //
-    if ( (j >= 0) && (cath1ToPadIdx != 0) ) {
+    if ((j >= 0) && (cath1ToPadIdx != 0)) {
       // Remark: if j is an alone pad (j<0)
       // j is processed as well
       //
       // cath1ToPadIdx: map cathode-pad to the original pad
       PadIdx_t padIdx = cath1ToPadIdx[j];
       prevGroup = padToCathGrp[padIdx];
-      if ( (prevGroup == 0) || (prevGroup == g) ){
-         // No group before
-         padToCathGrp[padIdx] = g;
+      if ((prevGroup == 0) || (prevGroup == g)) {
+        // No group before
+        padToCathGrp[padIdx] = g;
         // Update the max-charge contribution for j/padIdx
-        if( chProj[k] > maxChJ[j] ) maxChJ[j] = chProj[k]; 
+        if (chProj[k] > maxChJ[j])
+          maxChJ[j] = chProj[k];
       } else {
-        if ( chProj[k] > maxChJ[j] ) {
-          padToCathGrp[ padIdx ] = g;
-          maxChJ[j] = chProj[k]; 
+        if (chProj[k] > maxChJ[j]) {
+          padToCathGrp[padIdx] = g;
+          maxChJ[j] = chProj[k];
         }
       }
     }
   }
 }
-
 
 // Assign a group to the original pads
 int assignPadsToGroupFromProj(short* projPadGroup, int nProjPads,

@@ -45,14 +45,12 @@ namespace mch
 {
 class PadOriginal;
 class ClusterOriginal;
-/* ???
-class MathiesonOriginal;
-*/
+
+// GG class MathiesonOriginal;
 
 class ClusterFinderGEM
 {
  public:
-   
   ClusterFinderGEM();
   ~ClusterFinderGEM();
 
@@ -74,26 +72,26 @@ class ClusterFinderGEM
   void findClusters(gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster);
   //
   /// return the list of reconstructed clusters
-  
+
   const std::vector<ClusterStruct>& getClusters() const { return mClusters; }
   /// return the list of digits used in reconstructed clusters
   const std::vector<Digit>& getUsedDigits() const { return mUsedDigits; }
-  void dumpPreCluster( ClusterDump *dumpFile, gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster);
-  void dumpClusterResults( ClusterDump *dumpFile, const std::vector<ClusterStruct> &clusters, size_t startIdx, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster);
+  void dumpPreCluster(ClusterDump* dumpFile, gsl::span<const Digit> digits, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster);
+  void dumpClusterResults(ClusterDump* dumpFile, const std::vector<ClusterStruct>& clusters, size_t startIdx, uint16_t bunchCrossing, uint32_t orbit, uint32_t iPreCluster);
 
  private:
-
   // GG Original commented
   // Invalid static constexpr double SDistancePrecision = 1.e-3;                   ///< precision used to check overlaps and so on (cm)
   // static constexpr double SLowestPadCharge = 4.f * 0.22875f;            ///< minimum charge of a pad
   // static constexpr double SLowestPixelCharge = SLowestPadCharge / 12.;  ///< minimum charge of a pixel
   // static constexpr double SLowestClusterCharge = 2. * SLowestPadCharge; ///< minimum charge of a cluster
- 
-  static constexpr int SNFitClustersMax = 3;                            ///< maximum number of clusters fitted at the same time
-  static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1;        ///< maximum number of fit parameters
-  static constexpr double SLowestCoupling = 1.e-2;                      ///< minimum coupling between clusters of pixels and pads
-  static constexpr float SDefaultClusterResolution = 0.2f; ///< default cluster resolution (cm)
-  static constexpr float SBadClusterResolution = 10.f;     ///< bad (e.g. mono-cathode) cluster resolution (cm)
+
+  static constexpr int SNFitClustersMax = 3;                     ///< maximum number of clusters fitted at the same time
+  static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1; ///< maximum number of fit parameters
+  static constexpr double SLowestCoupling = 1.e-2;               ///< minimum coupling between clusters of pixels and pads
+  static constexpr float SDefaultClusterResolution = 0.2f;       ///< default cluster resolution (cm)
+  static constexpr float SBadClusterResolution = 10.f;           ///< bad (e.g. mono-cathode) cluster resolution (cm)
+  // GG Unused
   // void resetPreCluster(gsl::span<const Digit>& digits);
   // void simplifyPreCluster(std::vector<int>& removedDigits);
   // void processPreCluster();
@@ -135,13 +133,11 @@ class ClusterFinderGEM
   //           std::vector<std::vector<double>>& couplingClCl, std::vector<std::vector<double>>& couplingClPad) const;
   // void updatePads(const double fitParam[SNFitParamMax + 1], int nParamUsed);
   void setClusterResolution(ClusterStruct& cluster) const;
-  /*
   std::unique_ptr<MathiesonOriginal[]> mMathiesons; ///< Mathieson functions for station 1 and the others
-  MathiesonOriginal* mMathieson = nullptr;          ///< pointer to the Mathieson function currently used
-  */
-  std::unique_ptr<ClusterOriginal> mPreCluster; ///< precluster currently processed
-  // GG Inv std::vector<PadOriginal> mPixels;   ///< list of pixels for the current precluster
+  // GG MathiesonOriginal* mMathieson = nullptr;          ///< pointer to the Mathieson function currently used
 
+  std::unique_ptr<ClusterOriginal> mPreCluster; ///< precluster currently processed
+  // GG  std::vector<PadOriginal> mPixels;   ///< list of pixels for the current precluster
 
   const mapping::Segmentation* mSegmentation = nullptr; ///< pointer to the DE segmentation for the current precluster
   std::vector<ClusterStruct> mClusters{};               ///< list of reconstructed clusters
@@ -166,8 +162,9 @@ class ClusterFinderGEM
   uint32_t currentPreClusterID;
 
   // Dump Files
-  ClusterDump* pOriginalClusterDump;
-  ClusterDump* pGEMClusterDump;
+  // Invalid
+  // ClusterDump* pOriginalClusterDump;
+  // ClusterDump* pGEMClusterDump;
 };
 
 } // namespace mch
