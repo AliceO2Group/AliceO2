@@ -77,55 +77,55 @@ void ioutils::convertCompactClusters(gsl::span<const itsmft::CompClusterExt> clu
   }
 }
 
-std::vector<ROframe> ioutils::loadEventData(const std::string& fileName)
-{
-  std::vector<ROframe> events{};
-  std::ifstream inputStream{};
-  std::string line{}, unusedVariable{};
-  int layerId{}, monteCarlo{};
-  int clusterId{EventLabelsSeparator};
-  float xCoordinate{}, yCoordinate{}, zCoordinate{}, alphaAngle{};
-  float varZ{-1.f}, varY{-1.f};
+// std::vector<ROframe> ioutils::loadEventData(const std::string& fileName)
+// {
+//   std::vector<ROframe> events{};
+//   std::ifstream inputStream{};
+//   std::string line{}, unusedVariable{};
+//   int layerId{}, monteCarlo{};
+//   int clusterId{EventLabelsSeparator};
+//   float xCoordinate{}, yCoordinate{}, zCoordinate{}, alphaAngle{};
+//   float varZ{-1.f}, varY{-1.f};
 
-  inputStream.open(fileName);
+//   inputStream.open(fileName);
 
-  /// THIS IS LEAKING IN THE BACKWARD COMPATIBLE MODE. KEEP IT IN MIND.
-  dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr;
-  while (std::getline(inputStream, line)) {
+//   /// THIS IS LEAKING IN THE BACKWARD COMPATIBLE MODE. KEEP IT IN MIND.
+//   dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr;
+//   while (std::getline(inputStream, line)) {
 
-    std::istringstream inputStringStream(line);
-    if (inputStringStream >> layerId >> xCoordinate >> yCoordinate >> zCoordinate) {
+//     std::istringstream inputStringStream(line);
+//     if (inputStringStream >> layerId >> xCoordinate >> yCoordinate >> zCoordinate) {
 
-      if (layerId == PrimaryVertexLayerId) {
+//       if (layerId == PrimaryVertexLayerId) {
 
-        if (clusterId != 0) {
-          events.emplace_back(events.size(), 7);
-        }
+//         if (clusterId != 0) {
+//           events.emplace_back(events.size(), 7);
+//         }
 
-        events.back().addPrimaryVertex(xCoordinate, yCoordinate, zCoordinate);
-        clusterId = 0;
+//         events.back().addPrimaryVertex(xCoordinate, yCoordinate, zCoordinate);
+//         clusterId = 0;
 
-      } else {
+//       } else {
 
-        if (inputStringStream >> varY >> varZ >> unusedVariable >> alphaAngle >> monteCarlo) {
-          events.back().addClusterToLayer(layerId, xCoordinate, yCoordinate, zCoordinate,
-                                          events.back().getClustersOnLayer(layerId).size());
-          const float sinAlpha = std::sin(alphaAngle);
-          const float cosAlpha = std::cos(alphaAngle);
-          const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
-          const float yTF = xCoordinate * sinAlpha + yCoordinate * cosAlpha;
-          events.back().addTrackingFrameInfoToLayer(layerId, xCoordinate, yCoordinate, zCoordinate, xTF, alphaAngle,
-                                                    std::array<float, 2>{yTF, zCoordinate}, std::array<float, 3>{varY, 0.f, varZ});
-          events.back().addClusterLabelToLayer(layerId, MCCompLabel(monteCarlo));
+//         if (inputStringStream >> varY >> varZ >> unusedVariable >> alphaAngle >> monteCarlo) {
+//           events.back().addClusterToLayer(layerId, xCoordinate, yCoordinate, zCoordinate,
+//                                           events.back().getClustersOnLayer(layerId).size());
+//           const float sinAlpha = std::sin(alphaAngle);
+//           const float cosAlpha = std::cos(alphaAngle);
+//           const float xTF = xCoordinate * cosAlpha - yCoordinate * sinAlpha;
+//           const float yTF = xCoordinate * sinAlpha + yCoordinate * cosAlpha;
+//           events.back().addTrackingFrameInfoToLayer(layerId, xCoordinate, yCoordinate, zCoordinate, xTF, alphaAngle,
+//                                                     std::array<float, 2>{yTF, zCoordinate}, std::array<float, 3>{varY, 0.f, varZ});
+//           events.back().addClusterLabelToLayer(layerId, MCCompLabel(monteCarlo));
 
-          ++clusterId;
-        }
-      }
-    }
-  }
+//           ++clusterId;
+//         }
+//       }
+//     }
+//   }
 
-  return events;
-}
+//   return events;
+// }
 
 void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters,
                             gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
@@ -172,7 +172,8 @@ void ioutils::loadEventData(ROframe& event, gsl::span<const itsmft::CompClusterE
     /// Rotate to the global frame
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
     if (clsLabels) {
-      event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
+      // event.addClusterLabelToLayer(layer, *(clsLabels->getLabels(clusterId).begin()));
+      event.setMClabelsContainer(clsLabels);
     }
     event.addClusterExternalIndexToLayer(layer, clusterId);
     clusterId++;
@@ -221,7 +222,8 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     /// Rotate to the global frame
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), event.getClustersOnLayer(layer).size());
     if (mcLabels) {
-      event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+      // event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
+      event.setMClabelsContainer(mcLabels);
     }
     event.addClusterExternalIndexToLayer(layer, first + clusterId);
     clusterId++;
@@ -348,8 +350,6 @@ void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
     }
   }
 }
-
-
 
 } // namespace its
 } // namespace o2
