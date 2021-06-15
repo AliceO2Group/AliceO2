@@ -218,9 +218,9 @@ struct TaskJpsiMC {
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
         if (d_modeJpsiToMuMu) {
-          registry.fill(HIST("hmassSig"), InvMassJpsiToMuMu(candidate), candidate.pt());
+          registry.fill(HIST("hmassBg"), InvMassJpsiToMuMu(candidate), candidate.pt());
         } else {
-          registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
+          registry.fill(HIST("hmassBg"), InvMassJpsiToEE(candidate), candidate.pt());
         }
         registry.fill(HIST("hdeclengthBg"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxyBg"), candidate.decayLengthXY(), candidate.pt());
