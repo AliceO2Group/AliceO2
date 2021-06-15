@@ -15,6 +15,7 @@ o2_add_library(DataFormatsFV0
                 src/RawEventData.cxx
                 src/CTF.cxx
         PUBLIC_LINK_LIBRARIES O2::FV0Base
+                              O2::DataFormatsFIT
                               O2::SimulationDataFormat
                               O2::CommonDataFormat
                               Microsoft.GSL::GSL)

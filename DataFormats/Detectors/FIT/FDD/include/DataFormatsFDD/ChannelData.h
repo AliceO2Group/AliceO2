@@ -32,7 +32,7 @@ struct ChannelData {
   int16_t mTime = -1024;      // Time of Flight
   int16_t mChargeADC = -1024; // ADC sample
   uint8_t mFEEBits = 0;       //Bit information from FEE
-  enum Flags { Integrator = 0x1 << 0,
+                              /*  enum Flags { Integrator = 0x1 << 0,
                DoubleEvent = 0x1 << 1,
                Event1TimeLost = 0x1 << 2,
                Event2TimeLost = 0x1 << 3,
@@ -40,7 +40,16 @@ struct ChannelData {
                TimeTooLate = 0x1 << 5,
                AmpTooHigh = 0x1 << 6,
                EventInTrigger = 0x1 << 7,
-               TimeLost = 0x1 << 8 };
+               TimeLost = 0x1 << 8 };*/
+  enum EEventDataBit { kNumberADC,
+                       kIsDoubleEvent,
+                       kIsTimeInfoNOTvalid,
+                       kIsCFDinADCgate,
+                       kIsTimeInfoLate,
+                       kIsAmpHigh,
+                       kIsEventInTVDC,
+                       kIsTimeInfoLost
+  };
 
   ChannelData() = default;
   ChannelData(uint8_t channel, int time, int adc, uint8_t bits) : mPMNumber(channel), mTime(time), mChargeADC(adc), mFEEBits(bits) {}

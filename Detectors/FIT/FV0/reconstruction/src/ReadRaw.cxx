@@ -75,11 +75,11 @@ void ReadRaw::readRawData(const LookUpTable& lut)
           posPayload += sizeof(mTCMdata);
           LOG(DEBUG) << "    Read TCM: posPayload: " << posPayload
                      << " posInFile: " << posInFile;
-        } else {                                                         // is PM payload
-          posPayload += CRUWordSize - o2::fv0::EventHeader::PayloadSize; // padding is enabled
+        } else {                                                           // is PM payload
+          posPayload += CRUWordSize - o2::fv0::RawEventData::sPayloadSize; // padding is enabled
           for (int i = 0; i < eventHeader.nGBTWords; ++i) {
-            mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i]), o2::fv0::EventData::PayloadSizeFirstWord);
-            posPayload += o2::fv0::EventData::PayloadSizeFirstWord;
+            mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i]), o2::fv0::RawEventData::sPayloadSizeFirstWord);
+            posPayload += o2::fv0::RawEventData::sPayloadSizeFirstWord;
             chData = {Short_t(lut.getChannel(link, int(eventData[2 * i].channelID))),
                       Float_t(eventData[2 * i].time),
                       Short_t(eventData[2 * i].charge)};
@@ -93,8 +93,8 @@ void ReadRaw::readRawData(const LookUpTable& lut)
 
             Short_t channelIdFirstHalfWord = chData.pmtNumber;
 
-            mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
-            posPayload += o2::fv0::EventData::PayloadSizeSecondWord;
+            mRawFileIn.read(reinterpret_cast<char*>(&eventData[2 * i + 1]), o2::fv0::RawEventData::sPayloadSizeSecondWord);
+            posPayload += o2::fv0::RawEventData::sPayloadSizeSecondWord;
             chData = {Short_t(lut.getChannel(link, (eventData[2 * i + 1].channelID))),
                       Float_t(eventData[2 * i + 1].time),
                       Short_t(eventData[2 * i + 1].charge)};
