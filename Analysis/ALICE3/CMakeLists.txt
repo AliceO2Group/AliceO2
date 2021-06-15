@@ -30,6 +30,11 @@ o2_add_dpl_workflow(alice3-pid-rich-qa
                     PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore O2::ALICE3Analysis
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(alice3-pid-ftof-qa
+                    SOURCES src/pidFTOFqa.cxx
+                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore O2::ALICE3Analysis
+                    COMPONENT_NAME Analysis)
+
 o2_add_dpl_workflow(alice3-pid-tof
                     SOURCES src/alice3-pidTOF.cxx
                     PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore O2::ALICE3Analysis
