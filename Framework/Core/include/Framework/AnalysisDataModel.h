@@ -474,14 +474,14 @@ using FwdTrackCovFwd = FwdTracksCov::iterator;
 
 namespace muoncluster
 {
-DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack);        //! points to a fwdtrack in the fwdtrack table
-DECLARE_SOA_COLUMN(X, x, float);                             //!
-DECLARE_SOA_COLUMN(Y, y, float);                             //!
-DECLARE_SOA_COLUMN(Z, z, float);                             //!
-DECLARE_SOA_COLUMN(ErrX, errX, float);                       //!
-DECLARE_SOA_COLUMN(ErrY, errY, float);                       //!
-DECLARE_SOA_COLUMN(Charge, charge, float);                   //!
-DECLARE_SOA_COLUMN(Chi2, chi2, float);                       //!
+DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack); //! points to a fwdtrack in the fwdtrack table
+DECLARE_SOA_COLUMN(X, x, float);              //!
+DECLARE_SOA_COLUMN(Y, y, float);              //!
+DECLARE_SOA_COLUMN(Z, z, float);              //!
+DECLARE_SOA_COLUMN(ErrX, errX, float);        //!
+DECLARE_SOA_COLUMN(ErrY, errY, float);        //!
+DECLARE_SOA_COLUMN(Charge, charge, float);    //!
+DECLARE_SOA_COLUMN(Chi2, chi2, float);        //!
 } // namespace muoncluster
 
 DECLARE_SOA_TABLE(MuonClusters, "AOD", "MUONCLUSTER", //!
