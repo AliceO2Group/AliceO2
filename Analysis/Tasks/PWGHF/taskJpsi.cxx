@@ -159,6 +159,8 @@ struct TaskJpsiMC {
     registry.add("hYSig", "2-prong candidates (rec. matched);candidate rapidity;entries", {HistType::kTH2F, {{10, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hYBg", "2-prong candidates (rec. unmatched);candidate rapidity;entries", {HistType::kTH2F, {{10, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hYGen", "2-prong MC particles (gen. matched);candidate rapidity;entries", {HistType::kTH2F, {{10, -2., 2.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hPtGenProng0", "2-prong candidates (gen. matched);prong 0 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH2F, {{100, 0., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hPtGenProng1", "2-prong candidates (gen. matched);prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH2F, {{100, 0., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}})
   }
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi || aod::hf_selcandidate_jpsi::isSelJpsiToMuMu >= d_selectionFlagJpsi);
@@ -216,9 +218,9 @@ struct TaskJpsiMC {
         registry.fill(HIST("hCPARecBg"), candidate.cpa());
         registry.fill(HIST("hEtaRecBg"), candidate.eta());
         if (d_modeJpsiToMuMu) {
-          registry.fill(HIST("hmassSig"), InvMassJpsiToMuMu(candidate), candidate.pt());
+          registry.fill(HIST("hmassBg"), InvMassJpsiToMuMu(candidate), candidate.pt());
         } else {
-          registry.fill(HIST("hmassSig"), InvMassJpsiToEE(candidate), candidate.pt());
+          registry.fill(HIST("hmassBg"), InvMassJpsiToEE(candidate), candidate.pt());
         }
         registry.fill(HIST("hdeclengthBg"), candidate.decayLength(), candidate.pt());
         registry.fill(HIST("hdeclengthxyBg"), candidate.decayLengthXY(), candidate.pt());
@@ -240,6 +242,8 @@ struct TaskJpsiMC {
         registry.fill(HIST("hPtGen"), particle.pt());
         registry.fill(HIST("hEtaGen"), particle.eta());
         registry.fill(HIST("hYGen"), RecoDecay::Y(array{particle.px(), particle.py(), particle.pz()}, RecoDecay::getMassPDG(particle.pdgCode())), particle.pt());
+        registry.fill(HIST("hPtGenProng0"), particlesMC.iteratorAt(particle.daughter0()).pt(), particle.pt());
+        registry.fill(HIST("hPtGenProng1"), particlesMC.iteratorAt(particle.daughter1()).pt(), particle.pt());
       }
     }
   }
