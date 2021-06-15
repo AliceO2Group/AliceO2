@@ -55,7 +55,7 @@ if [ -d /proc/$STF_PID ]; then
     kill -9 $STF_PID
 fi
 
-mv 20* timeframe
+mv run*_20* timeframe
 rm -f *.log rdo_TF.cfg
 
 echo Done
