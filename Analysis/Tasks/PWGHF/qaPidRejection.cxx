@@ -79,7 +79,7 @@ struct QaTrackingRejection {
   Configurable<float> etaMax{"etaMax", 2.f, "Upper limit in eta"};
   Configurable<int> ptBins{"ptBins", 400, "Number of pT bins"};
   Configurable<float> ptMin{"ptMin", 0.f, "Lower limit in pT"};
-  Configurable<float> ptMax{"ptMax", 4.f, "Upper limit in pT"};
+  Configurable<float> ptMax{"ptMax", 20.f, "Upper limit in pT"};
   // TPC
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 9999., "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 999999., "Upper bound of track pT for TPC PID"};
@@ -252,9 +252,9 @@ struct QaRejectionGeneral {
   Configurable<int> etaBins{"etaBins", 40, "Number of eta bins"};
   Configurable<float> etaMin{"etaMin", -2.f, "Lower limit in eta"};
   Configurable<float> etaMax{"etaMax", 2.f, "Upper limit in eta"};
-  Configurable<int> ptBins{"ptBins", 80, "Number of pT bins"};
+  Configurable<int> ptBins{"ptBins", 400, "Number of pT bins"};
   Configurable<float> ptMin{"ptMin", 0.f, "Lower limit in pT"};
-  Configurable<float> ptMax{"ptMax", 8.f, "Upper limit in pT"};
+  Configurable<float> ptMax{"ptMax", 20.f, "Upper limit in pT"};
   // TPC
   Configurable<double> d_pidTPCMinpT{"d_pidTPCMinpT", 9999., "Lower bound of track pT for TPC PID"};
   Configurable<double> d_pidTPCMaxpT{"d_pidTPCMaxpT", 999999., "Upper bound of track pT for TPC PID"};
@@ -318,6 +318,12 @@ struct QaRejectionGeneral {
     histos.add("hMuonMID/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
     histos.add("hPionMID/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
     histos.add("hKaonMID/pteta", commonTitle + " Primary;" + pt, kTH2D, {ptAxis, etaAxis});
+
+    histos.add("hAllMID/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("hElectronMID/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("hMuonMID/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("hPionMID/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
+    histos.add("hKaonMID/peta", commonTitle + " Primary;" + p, kTH2D, {ptAxis, etaAxis});
   }
 
   using TracksPID = soa::Join<aod::BigTracksPID, aod::HfTrackIndexALICE3PID>;
@@ -447,6 +453,16 @@ struct QaRejectionGeneral {
           histos.fill(HIST("hPionMID/pteta"), track.pt(), track.eta());
         if (mcParticle.pdgCode() == kKPlus)
           histos.fill(HIST("hKaonMID/pteta"), track.pt(), track.eta());
+
+        histos.fill(HIST("hAllMID/peta"), track.p(), track.eta());
+        if (mcParticle.pdgCode() == kElectron)
+          histos.fill(HIST("hElectronMID/peta"), track.p(), track.eta());
+        if (mcParticle.pdgCode() == kMuonPlus)
+          histos.fill(HIST("hMuonMID/peta"), track.p(), track.eta());
+        if (mcParticle.pdgCode() == kPiPlus)
+          histos.fill(HIST("hPionMID/peta"), track.p(), track.eta());
+        if (mcParticle.pdgCode() == kKPlus)
+          histos.fill(HIST("hKaonMID/peta"), track.p(), track.eta());
       }
     }
   }
