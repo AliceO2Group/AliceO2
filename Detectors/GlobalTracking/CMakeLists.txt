@@ -10,7 +10,8 @@
 
 o2_add_library(
   GlobalTracking
-  SOURCES src/MatchTPCITS.cxx src/MatchTOF.cxx
+  SOURCES src/MatchTPCITS.cxx
+          src/MatchTOF.cxx
           src/MatchTPCITSParams.cxx
           src/MatchCosmics.cxx
           src/MatchCosmicsParams.cxx
@@ -29,6 +30,7 @@ o2_add_library(
     O2::TPCReconstruction
     O2::TOFBase
     O2::TOFCalibration
+    O2::TOFWorkflowUtils
     O2::SimConfig
     O2::DataFormatsFT0
     O2::DataFormatsGlobalTracking
