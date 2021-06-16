@@ -142,10 +142,10 @@ class DataDecoder
   uint32_t getSampaBcOffset() const { return mSampaTimeOffset; }
 
   static int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2);
-  static void computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug);
+  static void computeDigitsTime(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug);
   void computeDigitsTime()
   {
-    computeDigitsTime_(mDigits, mSampaTimeFrameStart, mDebug);
+    computeDigitsTime(mDigits, mSampaTimeFrameStart, mDebug);
   }
 
   const RawDigitVector& getDigits() const { return mDigits; }
@@ -157,6 +157,8 @@ class DataDecoder
   void init();
   void decodePage(gsl::span<const std::byte> page);
   void dumpDigits();
+  bool getPadMapping(const DsElecId& dsElecId, DualSampaChannelId channel, int& deId, int& dsIddet, int& padId);
+  bool addDigit(const DsElecId& dsElecId, DualSampaChannelId channel, const o2::mch::raw::SampaCluster& sc);
 
   Elec2DetMapper mElec2Det{nullptr};       ///< front-end electronics mapping
   FeeLink2SolarMapper mFee2Solar{nullptr}; ///< CRU electronics mapping
