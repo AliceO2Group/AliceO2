@@ -383,14 +383,14 @@ DataRelayer::RelayChoice
     LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
-    return WillNotRelay;
+    return Invalid;
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
     LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
-    return WillNotRelay;
+    return Invalid;
   }
 
   TimesliceIndex::ActionTaken action;
@@ -407,12 +407,12 @@ DataRelayer::RelayChoice
         mult = mult * 10;
       }
     }
-    return WillNotRelay;
+    return Dropped;
   }
 
   if (action == TimesliceIndex::ActionTaken::DropInvalid) {
     LOG(WARNING) << "Incoming data is invalid, not relaying.";
-    return WillNotRelay;
+    return Invalid;
   }
 
   // At this point the variables match the new input but the
