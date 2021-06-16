@@ -11,6 +11,9 @@
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DriverClient.h"
+#include "Framework/Monitoring.h"
+#include "Framework/Logger.h"
 #include <vector>
 #include <uv.h>
 #include <cassert>
@@ -124,8 +127,45 @@ void ComputingQuotaEvaluator::dispose(int taskId)
   }
 }
 
+/// Move offers from the pending list to the actual available offers
+void ComputingQuotaEvaluator::updateOffers(std::vector<ComputingQuotaOffer>& pending)
+{
+  for (size_t oi = 0; oi < mOffers.size(); oi++) {
+    auto& storeOffer = mOffers[oi];
+    auto& info = mInfos[oi];
+    if (pending.empty()) {
+      return;
+    }
+    if (storeOffer.valid == true) {
+      continue;
+    }
+    info.received = uv_now(mLoop);
+    auto& offer = pending.back();
+    storeOffer = offer;
+    pending.pop_back();
+  }
+}
+
 void ComputingQuotaEvaluator::handleExpired()
 {
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+  auto& monitoring = mRegistry.get<o2::monitoring::Monitoring>();
+  /// Whenever an offer is expired, we give back the resources
+  /// to the driver.
+  for (auto& ref : mExpiredOffers) {
+    auto& offer = mOffers[ref.index];
+    // FIXME: offers should go through the driver client, not the monitoring
+    // api.
+    auto& monitoring = mRegistry.get<o2::monitoring::Monitoring>();
+    monitoring.send(o2::monitoring::Metric{(uint64_t)offer.sharedMemory, "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
+    //    LOGP(INFO, "Offer expired {} {}", offer.sharedMemory, offer.cpu);
+    //    driverClient.tell("expired shmem {}", offer.sharedMemory);
+    //    driverClient.tell("expired cpu {}", offer.cpu);
+  }
+  mExpiredOffers.clear();
 }
 
 } // namespace o2::framework
