@@ -42,6 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD (all)"}},
     {"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}},
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
+    {"high-purity", o2::framework::VariantType::Bool, false, {"enable high purity matching cuts"}},
     {"output-type", o2::framework::VariantType::String, "matching-info,calib-info", {"matching-info, calib-info"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
 
@@ -70,7 +71,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto useFIT = configcontext.options().get<bool>("use-fit");
   auto useCCDB = configcontext.options().get<bool>("use-ccdb");
-  bool writeTOFTPC = false;
+  auto highpur = configcontext.options().get<bool>("high-purity");
 
   bool writematching = 0;
   bool writecalib = 0;
@@ -94,26 +95,31 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(INFO) << "TOF use-fit = " << useFIT;
   LOG(INFO) << "TOF disable-root-input = " << disableRootIn;
   LOG(INFO) << "TOF disable-root-output = " << disableRootOut;
+  LOG(INFO) << "TOF matching enable high-purity = " << highpur;
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
-  GID::mask_t dummy;
+  GID::mask_t mcmaskcl;
   GID::mask_t nonemask = GID::getSourcesMask(GID::NONE);
-
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, nonemask, nonemask, src, useMC, dummy); // only tracks needed
-
-  if (!disableRootIn) { // input data loaded from root files
-    LOG(INFO) << "Insert TOF Cluster Reader";
-    specs.emplace_back(o2::tof::getClusterReaderSpec(useMC));
+  GID::mask_t clustermask = GID::getSourcesMask("TOF");
+  if (useFIT) {
+    clustermask |= GID::getSourceMask(GID::FT0);
   }
 
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT));
+  if (useMC) {
+    mcmaskcl |= GID::getSourceMask(GID::TOF);
+  }
+
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, clustermask, nonemask, src, useMC, mcmaskcl);
+
+  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, highpur)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {
     if (writematching) {
-      specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_toftpc.root", writeTOFTPC));
+      specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_tpc.root", 1));
+      specs.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpc.root", 0));
     }
     if (writecalib) {
-      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_toftpc.root", writeTOFTPC));
+      specs.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_tof.root", 0));
     }
   }
 
