@@ -254,7 +254,7 @@ void createCXXfile(o2::mft::GeometryTGeo* gm)
 
   fprintf(srcFile,
           "// Copyright 2019-2020 CERN and copyright holders of ALICE O2.\n"
-          "// See http://alice-o2.web.cern.ch/copyright for details of the copyright holders.\n"
+          "// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.\n"
           "// All rights not expressly granted are reserved.\n"
           "//\n"
           "// This software is distributed under the terms of the GNU General Public\n"
