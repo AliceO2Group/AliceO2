@@ -83,11 +83,10 @@ using namespace o2::detectors;
 ClassImp(o2::mft::GeometryMisAligner);
 
 //______________________________________________________________________________
-GeometryMisAligner::GeometryMisAligner(Double_t cartXMisAligM, Double_t cartXMisAligW, Double_t cartYMisAligM, Double_t cartYMisAligW, Double_t angMisAligM, Double_t angMisAligW) :
-    fUseUni(kFALSE),
-    fUseGaus(kTRUE),
-    fXYAngMisAligFactor(0.0),
-    fZCartMisAligFactor(0.0)
+GeometryMisAligner::GeometryMisAligner(Double_t cartXMisAligM, Double_t cartXMisAligW, Double_t cartYMisAligM, Double_t cartYMisAligW, Double_t angMisAligM, Double_t angMisAligW) : fUseUni(kFALSE),
+                                                                                                                                                                                     fUseGaus(kTRUE),
+                                                                                                                                                                                     fXYAngMisAligFactor(0.0),
+                                                                                                                                                                                     fZCartMisAligFactor(0.0)
 {
   /// Standard constructor
   for (Int_t i = 0; i < 6; i++) {
@@ -107,11 +106,10 @@ GeometryMisAligner::GeometryMisAligner(Double_t cartXMisAligM, Double_t cartXMis
 }
 
 //______________________________________________________________________________
-GeometryMisAligner::GeometryMisAligner(Double_t cartMisAligM, Double_t cartMisAligW, Double_t angMisAligM, Double_t angMisAligW) :
-    fUseUni(kFALSE),
-    fUseGaus(kTRUE),
-    fXYAngMisAligFactor(0.0),
-    fZCartMisAligFactor(0.0)
+GeometryMisAligner::GeometryMisAligner(Double_t cartMisAligM, Double_t cartMisAligW, Double_t angMisAligM, Double_t angMisAligW) : fUseUni(kFALSE),
+                                                                                                                                   fUseGaus(kTRUE),
+                                                                                                                                   fXYAngMisAligFactor(0.0),
+                                                                                                                                   fZCartMisAligFactor(0.0)
 {
   /// Standard constructor
   for (Int_t i = 0; i < 6; i++) {
@@ -131,11 +129,10 @@ GeometryMisAligner::GeometryMisAligner(Double_t cartMisAligM, Double_t cartMisAl
 }
 
 //______________________________________________________________________________
-GeometryMisAligner::GeometryMisAligner(Double_t cartMisAlig, Double_t angMisAlig) :
-    fUseUni(kTRUE),
-    fUseGaus(kFALSE),
-    fXYAngMisAligFactor(0.0),
-    fZCartMisAligFactor(0.0)
+GeometryMisAligner::GeometryMisAligner(Double_t cartMisAlig, Double_t angMisAlig) : fUseUni(kTRUE),
+                                                                                    fUseGaus(kFALSE),
+                                                                                    fXYAngMisAligFactor(0.0),
+                                                                                    fZCartMisAligFactor(0.0)
 {
   /// Standard constructor
   for (Int_t i = 0; i < 6; i++) {
@@ -152,11 +149,10 @@ GeometryMisAligner::GeometryMisAligner(Double_t cartMisAlig, Double_t angMisAlig
 }
 
 //_____________________________________________________________________________
-GeometryMisAligner::GeometryMisAligner() :
-    fUseUni(kTRUE),
-    fUseGaus(kFALSE),
-    fXYAngMisAligFactor(0.0),
-    fZCartMisAligFactor(0.0)
+GeometryMisAligner::GeometryMisAligner() : fUseUni(kTRUE),
+                                           fUseGaus(kFALSE),
+                                           fXYAngMisAligFactor(0.0),
+                                           fZCartMisAligFactor(0.0)
 {
   /// Default constructor
   for (Int_t i = 0; i < 6; i++) {
@@ -499,7 +495,7 @@ void GeometryMisAligner::MisAlign(Bool_t verbose, const std::string& ccdbHost, l
     LOGP(INFO, "Storing alignment object on {}/{}", ccdbHost, path);
     o2::ccdb::CcdbApi api;
     std::map<std::string, std::string> metadata; // can be empty
-    api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
+    api.init(ccdbHost.c_str());                  // or http://localhost:8080 for a local installation
     // store abitrary user object in strongly typed manner
     api.storeAsTFileAny(&lAPvec, path, metadata, tmin, tmax);
   }
