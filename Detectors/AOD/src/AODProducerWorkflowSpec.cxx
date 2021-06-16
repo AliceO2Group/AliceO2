@@ -36,6 +36,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCEventLabel.h"
+#include "FT0Base/Geometry.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include <map>
@@ -606,7 +607,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // vector of FT0 amplitudes
-  std::vector<float> vAmplitudes(208, 0.);
+  int nFT0Channels = o2::ft0::Geometry::Nchannels;
+  int nFT0ChannelsAside = o2::ft0::Geometry::NCellsA * 4;
+  std::vector<float> vAmplitudes(nFT0Channels, 0.);
   // filling FT0 table
   for (auto& ft0RecPoint : ft0RecPoints) {
     const auto channelData = ft0RecPoint.getBunchChannelData(ft0ChData);
@@ -614,13 +617,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (auto& channel : channelData) {
       vAmplitudes[channel.ChId] = channel.QTCAmpl; // amplitude, mV
     }
-    float aAmplitudesA[96];
-    float aAmplitudesC[112];
-    for (int i = 0; i < 96; i++) {
-      aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
-    }
-    for (int i = 0; i < 112; i++) {
-      aAmplitudesC[i] = truncateFloatFraction(vAmplitudes[i + 96], mT0Amplitude);
+    float aAmplitudesA[nFT0ChannelsAside];
+    float aAmplitudesC[133];
+    for (int i = 0; i < nFT0Channels; i++) {
+      if (i < nFT0ChannelsAside) {
+        aAmplitudesA[i] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+      } else {
+        aAmplitudesC[i - nFT0ChannelsAside] = truncateFloatFraction(vAmplitudes[i], mT0Amplitude);
+      }
     }
     uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
     uint64_t bc = globalBC;
