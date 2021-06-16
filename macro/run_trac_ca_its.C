@@ -207,12 +207,12 @@ void run_trac_ca_its(bool cosmics = false,
   } else {
     // PbPb tracking params
     // ----
-    trackParams.resize(1);
-    memParams.resize(1);
-    // trackParams[0].TrackletMaxDeltaPhi = 0.05f;
-    // trackParams[1].TrackletMaxDeltaPhi = 0.1f;
-    // trackParams[2].MinTrackLength = 4;
-    // trackParams[2].TrackletMaxDeltaPhi = 0.3;
+    trackParams.resize(3);
+    memParams.resize(3);
+    trackParams[0].TrackletMaxDeltaPhi = 0.05f;
+    trackParams[1].TrackletMaxDeltaPhi = 0.1f;
+    trackParams[2].MinTrackLength = 4;
+    trackParams[2].TrackletMaxDeltaPhi = 0.3;
     // ---
     // Uncomment for pp
     trackParams.resize(2);
@@ -323,7 +323,7 @@ void run_trac_ca_its(bool cosmics = false,
 
   outFile.cd();
   outTree.Write();
-  outFile.Close();
+  // outFile.Close();
 
   TGraph* graph = new TGraph(ncls.size(), ncls.data(), time.data());
   graph->SetMarkerStyle(20);
