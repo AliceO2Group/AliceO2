@@ -583,9 +583,22 @@ void Tracker::computeTracksMClabels(const ROframe& event)
           count = 1;
         }
       }
-      track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
     }
 
+    uint8_t patt{0};
+    // set fake clusters pattern
+    for (int ic{TrackITSExt::MaxClusters}; ic--;) {
+      auto clid = track.getClusterIndex(ic);
+      if (clid != constants::its::UnusedIndex) {
+        const MCCompLabel& currentLabel = event.getClusterLabels(ic, clid);
+        if (currentLabel != maxOccurrencesValue) {
+          patt |= 0x1 << ic; // if cluster label is different from main label
+        }
+        track.setExternalClusterIndex(ic, event.getClusterExternalIndex(ic, clid));
+      }
+    }
+
+    track.setUserField(patt);
     if (isFakeTrack) {
       maxOccurrencesValue.setFakeFlag();
     }

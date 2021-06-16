@@ -106,7 +106,7 @@ class TrackITSExt : public TrackITS
   ///< heavy version of TrackITS, with clusters embedded
  public:
   static constexpr int MaxClusters = 16; /// Prepare for overlaps and new detector configurations
-  using TrackITS::TrackITS; // inherit base constructors
+  using TrackITS::TrackITS;              // inherit base constructors
 
   TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
               o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
@@ -128,6 +128,9 @@ class TrackITSExt : public TrackITS
   {
     if (newCluster) {
       getClusterRefs().setEntries(getNumberOfClusters() + 1);
+      uint16_t pattern = getPattern();
+      pattern |= 0x1 << layer;
+      setPattern(pattern);
     }
     mIndex[layer] = idx;
   }
