@@ -39,6 +39,7 @@ class ComputingQuotaEvaluator
   /// Handle all the offers which have timed out giving
   /// them back to the driver.
   void handleExpired();
+  void updateOffers(std::vector<ComputingQuotaOffer>& offers);
 
   /// All the available offerts
   std::array<ComputingQuotaOffer, MAX_INFLIGHT_OFFERS> mOffers;

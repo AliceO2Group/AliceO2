@@ -494,25 +494,6 @@ void DataProcessingDevice::PostRun()
 
 void DataProcessingDevice::Reset() { mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset); }
 
-namespace
-{
-/// Move offers from the pending list to the actual available offers
-void updateOffers(std::array<ComputingQuotaOffer, ComputingQuotaEvaluator::MAX_INFLIGHT_OFFERS>& store, std::vector<ComputingQuotaOffer>& offers)
-{
-  for (auto& storeOffer : store) {
-    if (offers.empty()) {
-      return;
-    }
-    if (storeOffer.valid == true) {
-      continue;
-    }
-    auto& offer = offers.back();
-    storeOffer = offer;
-    offers.pop_back();
-  }
-}
-} // namespace
-
 bool DataProcessingDevice::ConditionalRun()
 {
   // This will block for the correct delay (or until we get data
@@ -535,7 +516,7 @@ bool DataProcessingDevice::ConditionalRun()
 
     mState.loopReason = DeviceState::NO_REASON;
     if (!mState.pendingOffers.empty()) {
-      updateOffers(mQuotaEvaluator.mOffers, mState.pendingOffers);
+      mQuotaEvaluator.updateOffers(mState.pendingOffers);
     }
 
     // A new state was requested, we exit.
