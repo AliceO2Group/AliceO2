@@ -212,7 +212,7 @@ taskwrapper() {
 
       sleep 2
 
-      taskwrapper_cleanup ${PID} SIGKILL
+      [ ! "${JOBUTILS_DEBUGMODE}" ] && taskwrapper_cleanup ${PID} SIGKILL
 
       RC_ACUM=$((RC_ACUM+1))
       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
