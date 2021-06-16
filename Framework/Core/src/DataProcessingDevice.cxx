@@ -839,8 +839,13 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
           auto relayed = relayer.relay(std::move(parts.At(headerIndex)),
                                        &parts.At(payloadIndex), dh->splitPayloadParts > 0 ? dh->splitPayloadParts * 2 - 1 : 0);
           pi += dh->splitPayloadParts > 0 ? dh->splitPayloadParts - 1 : 0;
-          if (relayed == DataRelayer::WillNotRelay) {
-            reportError("Unable to relay part.");
+          switch (relayed) {
+            case DataRelayer::WillRelay:
+              break;
+            case DataRelayer::Invalid:
+            case DataRelayer::Dropped:
+            case DataRelayer::Backpressured:
+              reportError("Unable to relay part");
           }
         } break;
         case InputType::SourceInfo: {

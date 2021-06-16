@@ -56,8 +56,10 @@ class DataRelayer
   /// methods need to be called.
   constexpr static ServiceKind service_kind = ServiceKind::Global;
   enum RelayChoice {
-    WillRelay,
-    WillNotRelay
+    WillRelay,     /// Ownership of the data has been taken
+    Invalid,       /// The incoming data was not valid and has been dropped
+    Backpressured, /// The incoming data was not relayed, because we are backpressured
+    Dropped        /// The incoming data was not relayed and has been dropped
   };
 
   struct ActivityStats {
