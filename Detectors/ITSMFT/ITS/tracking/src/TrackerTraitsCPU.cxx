@@ -41,13 +41,13 @@ void TrackerTraitsCPU::computeLayerTracklets()
     for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
       gsl::span<const Cluster> layer0 = tf->getClustersOnLayer(rof0, iLayer);
       if (layer0.empty()) {
-        return;
+        continue;
       }
 
       const int currentLayerClustersNum{static_cast<int>(layer0.size())};
-
       for (int iCluster{0}; iCluster < currentLayerClustersNum; ++iCluster) {
         const Cluster& currentCluster{layer0[iCluster]};
+        const int currentSortedIndex{tf->getSortedIndex(rof0, iLayer, iCluster)};
 
         if (tf->isClusterUsed(iLayer, currentCluster.clusterId)) {
           continue;
@@ -112,7 +112,6 @@ void TrackerTraitsCPU::computeLayerTracklets()
                 if (deltaZ < mTrkParams.TrackletMaxDeltaZ[iLayer] &&
                     (deltaPhi < mTrkParams.TrackletMaxDeltaPhi ||
                      gpu::GPUCommonMath::Abs(deltaPhi - constants::math::TwoPi) < mTrkParams.TrackletMaxDeltaPhi)) {
-                  const int currentSortedIndex{tf->getSortedIndex(rof0, iLayer, iCluster)};
                   if (iLayer > 0 && tf->getTrackletsLookupTable()[iLayer - 1].size() <= currentSortedIndex) {
                     tf->getTrackletsLookupTable()[iLayer - 1].resize(currentSortedIndex + 1, tf->getTracklets()[iLayer].size());
                   }
@@ -131,8 +130,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
         }
       }
       if (iLayer > 0) {
-        auto currentSize{tf->getTrackletsLookupTable()[iLayer - 1].size()};
-        tf->getTrackletsLookupTable()[iLayer - 1].resize(currentSize + currentLayerClustersNum + 1, tf->getTracklets()[iLayer].size());
+        tf->getTrackletsLookupTable()[iLayer - 1].resize(tf->getSortedIndex(rof0, iLayer, currentLayerClustersNum - 1), tf->getTracklets()[iLayer].size());
       }
     }
   }
@@ -227,9 +225,9 @@ void TrackerTraitsCPU::computeLayerCells()
             const float3 normVect{cellPlaneNormalVector.x * inverseVectorNorm,
                                   cellPlaneNormalVector.y * inverseVectorNorm,
                                   cellPlaneNormalVector.z * inverseVectorNorm};
-            const float planeDistance{-normVect.x * (cellClus1.xCoordinate - tf->getBeamX()) -
-                                      (normVect.y * cellClus1.yCoordinate - tf->getBeamY()) -
-                                      normVect.z * cellClus1R2};
+            const float planeDistance{- normVect.x * (cellClus1.xCoordinate - tf->getBeamX())
+                                      - normVect.y * (cellClus1.yCoordinate - tf->getBeamY())
+                                      - normVect.z * cellClus1R2};
             const float normVectZsquare{normVect.z * normVect.z};
             const float cellRadius{std::sqrt(
               (1.0f - normVectZsquare - 4.0f * planeDistance * normVect.z) /

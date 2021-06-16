@@ -302,7 +302,6 @@ void TimeFrame::printCellLUTs()
 
 void TimeFrame::printVertices()
 {
-  std::cout << "--------" << std::endl;
   std::cout << "Vertices in ROF (nROF = " << mNrof << ", lut size = " << mROframesPV.size() << ")" << std::endl;
   for (unsigned int iR{0}; iR < mROframesPV.size(); ++iR) {
     std::cout << mROframesPV[iR] << "\t";
@@ -313,6 +312,19 @@ void TimeFrame::printVertices()
   }
   std::cout << "--------" << std::endl;
 
+}
+
+void TimeFrame::printROFoffsets()
+{
+  std::cout << "--------" << std::endl;
+  for (unsigned int iLayer{0}; iLayer < mROframesClusters.size(); ++iLayer)
+  {
+    std::cout << "Layer " << iLayer << std::endl;
+    for (auto value : mROframesClusters[iLayer]) {
+      std::cout << value << "\t";
+    }
+    std::cout << std::endl;
+  }
 }
 
 } // namespace its

@@ -69,13 +69,6 @@ void run_trac_ca_its(bool cosmics = false,
 
   gSystem->Load("libO2ITStracking");
 
-  //std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance());
-  // std::unique_ptr<GPUReconstruction> rec(GPUReconstruction::CreateInstance("CUDA", true)); // for GPU with CUDA
-  // auto* chainITS = rec->AddChain<GPUChainITS>();
-  // rec->Init();
-
-  // o2::its::Tracker tracker(chainITS->GetITSTrackerTraits());
-  // o2::its::Tracker tracker(new o2::its::TrackerTraitsCPU());
   o2::its::ROframe event(0, 7);
 
   if (path.back() != '/') {
@@ -261,7 +254,6 @@ void run_trac_ca_its(bool cosmics = false,
 
     vertexer.initialiseVertexer(&event);
     vertexer.findTracklets();
-    // vertexer.filterMCTracklets(); // to use MC check
     vertexer.validateTracklets();
     vertexer.findVertices();
     std::vector<Vertex> vertITS = vertexer.exportVertices();
@@ -293,7 +285,6 @@ void run_trac_ca_its(bool cosmics = false,
 
     ncls.push_back(event.getTotalClusters());
     time.push_back(diff_t.count());
-    outTree.Fill();
     roFrameCounter++;
   }
   tf.printVertices();

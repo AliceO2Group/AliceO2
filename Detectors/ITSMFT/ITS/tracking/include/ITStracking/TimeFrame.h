@@ -115,6 +115,7 @@ class TimeFrame final
   void clear();
 
   /// Debug and printing
+  void printROFoffsets();
   void printVertices();
   void printTrackletLUTonLayer(int i);
   void printCellLUTonLayer(int i);
