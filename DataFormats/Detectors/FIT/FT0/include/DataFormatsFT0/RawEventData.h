@@ -18,6 +18,7 @@
 #include "Headers/RAWDataHeader.h"
 #include "TList.h" //temporary for QC-FT0 (ChannelTimeCalibrationCheck.cxx), should be moved
 #include "DataFormatsFIT/RawEventData.h"
+#include "FT0Base/Geometry.h"
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
 #include <utility>
@@ -29,7 +30,7 @@ namespace o2
 {
 namespace ft0
 {
-constexpr int Nchannels_FT0 = 208;
+constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
 constexpr int Nchannels_PM = 12;
 constexpr int NPMs = 20;
 using EventHeader = o2::fit::EventHeader;
