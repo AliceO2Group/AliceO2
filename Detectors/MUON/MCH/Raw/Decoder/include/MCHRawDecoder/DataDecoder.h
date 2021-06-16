@@ -159,6 +159,21 @@ class DataDecoder
   void dumpDigits();
   bool getPadMapping(const DsElecId& dsElecId, DualSampaChannelId channel, int& deId, int& dsIddet, int& padId);
   bool addDigit(const DsElecId& dsElecId, DualSampaChannelId channel, const o2::mch::raw::SampaCluster& sc);
+  int32_t getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel);
+  void updateMergerRecord(uint32_t mergerChannelId, uint32_t digitId);
+  bool mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaCluster& sc);
+
+  // structure that stores the index of the last decoded digit for a given readout channel,
+  // as well as the time stamp of the last ADC sample of the digit
+  struct MergerChannelRecord {
+    MergerChannelRecord() = default;
+    int32_t digitId{-1};
+    int32_t bcEnd{-1};
+  };
+  static constexpr uint32_t sMaxSolarId = 200 * 8 - 1;
+  static constexpr uint32_t sReadoutChannelsNum = (sMaxSolarId + 1) * 40 * 64;
+  // table storing the digits merging information for each readout channel in the MCH system
+  std::array<MergerChannelRecord, sReadoutChannelsNum> mMergerRecords; ///< merger records for all MCH readout channels
 
   Elec2DetMapper mElec2Det{nullptr};       ///< front-end electronics mapping
   FeeLink2SolarMapper mFee2Solar{nullptr}; ///< CRU electronics mapping
