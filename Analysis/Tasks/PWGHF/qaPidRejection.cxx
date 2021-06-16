@@ -178,7 +178,7 @@ struct QaTrackingRejection {
       bool isRICHhpKaon = !(selectorKaon.getStatusTrackPIDRICH(track) == TrackSelectorPID::Status::PIDRejected);
       bool isTOFhpProton = !(selectorProton.getStatusTrackPIDTOF(track) == TrackSelectorPID::Status::PIDRejected);
       bool isRICHhpProton = !(selectorProton.getStatusTrackPIDRICH(track) == TrackSelectorPID::Status::PIDRejected);
-      bool isMIDhpMuon = !(selectorMuon.getStatusTrackPIDMID(track) == TrackSelectorPID::Status::PIDRejected);
+      bool isMIDhpMuon = (selectorMuon.getStatusTrackPIDMID(track) == TrackSelectorPID::Status::PIDAccepted);
 
       if (MC::isPhysicalPrimary(mcParticles, mcParticle)) {
         histos.fill(HIST("tracking/pteta"), track.pt(), track.eta());
