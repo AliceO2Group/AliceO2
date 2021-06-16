@@ -273,31 +273,31 @@ struct HfTagSelTracks {
       int iDebugCut = 2;
       // pT cut
       if (trackPt < pTMinTrack2Prong) {
-        statusProng &= ~BIT(Cand2Prong); // the bitwise operation &= ~BIT(n) will set the nth bit to 0
+        CLRBIT(statusProng, CandidateType::Cand2Prong); // set the nth bit to 0
         if (debug.value) {
           cutStatus[Cand2Prong][0] = false;
           if (fillHistograms.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::Cand2Prong + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand2Prong + iDebugCut);
           }
         }
       }
       if (trackPt < pTMinTrack3Prong) {
-        statusProng &= ~BIT(Cand3Prong);
+        CLRBIT(statusProng, CandidateType::Cand3Prong);
         if (debug.value) {
           cutStatus[Cand3Prong][0] = false;
           if (fillHistograms.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::Cand3Prong + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand3Prong + iDebugCut);
           }
         }
       }
       MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " pt = " << trackPt << " (cut " << ptMinTrackBach << ")");
 
       if (trackPt < ptMinTrackBach) {
-        statusProng &= ~BIT(CandV0bachelor);
+        CLRBIT(statusProng, CandidateType::CandV0bachelor);
         if (debug.value) {
           cutStatus[CandV0bachelor][0] = false;
           if (fillHistograms.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::CandV0bachelor + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::CandV0bachelor + iDebugCut);
           }
         }
       }
@@ -305,31 +305,31 @@ struct HfTagSelTracks {
       iDebugCut = 3;
       // eta cut
       if ((debug.value || TESTBIT(statusProng, CandidateType::Cand2Prong)) && std::abs(trackEta) > etaMax2Prong) {
-        statusProng &= ~BIT(Cand2Prong);
+        CLRBIT(statusProng, CandidateType::Cand2Prong);
         if (debug.value) {
           cutStatus[Cand2Prong][1] = false;
           if (fillHistograms.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::Cand2Prong + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand2Prong + iDebugCut);
           }
         }
       }
       if ((debug.value || TESTBIT(statusProng, CandidateType::Cand3Prong)) && std::abs(trackEta) > etaMax3Prong) {
-        statusProng &= ~BIT(Cand3Prong);
+        CLRBIT(statusProng, CandidateType::Cand3Prong);
         if (debug.value) {
           cutStatus[Cand3Prong][1] = false;
           if (fillHistograms.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::Cand3Prong + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand3Prong + iDebugCut);
           }
         }
       }
       MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " eta = " << trackEta << " (cut " << etaMaxBach << ")");
 
       if ((debug.value || TESTBIT(statusProng, CandidateType::CandV0bachelor)) && std::abs(trackEta) > etaMaxBach) {
-        statusProng &= ~BIT(CandV0bachelor);
+        CLRBIT(statusProng, CandidateType::CandV0bachelor);
         if (debug.value) {
           cutStatus[CandV0bachelor][1] = false;
           if (fillHistograms.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::CandV0bachelor + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::CandV0bachelor + iDebugCut);
           }
         }
       }
@@ -349,7 +349,7 @@ struct HfTagSelTracks {
             for (int iCandType = 0; iCandType < NCandidateTypes; iCandType++) {
               cutStatus[iCandType][2] = false;
               if (fillHistograms.value) {
-                registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * iCandType + iDebugCut);
+                registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * iCandType + iDebugCut);
               }
             }
           }
@@ -365,29 +365,29 @@ struct HfTagSelTracks {
           statusProng = 0;
         }
         if ((debug.value || TESTBIT(statusProng, CandidateType::Cand2Prong)) && !isSelectedTrack(track, dca, Cand2Prong)) {
-          statusProng &= ~BIT(Cand2Prong);
+          CLRBIT(statusProng, CandidateType::Cand2Prong);
           if (debug.value) {
             cutStatus[Cand2Prong][3] = false;
             if (fillHistograms.value) {
-              registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::Cand2Prong + iDebugCut);
+              registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand2Prong + iDebugCut);
             }
           }
         }
         if ((debug.value || TESTBIT(statusProng, CandidateType::Cand3Prong)) && !isSelectedTrack(track, dca, Cand3Prong)) {
-          statusProng &= ~BIT(Cand3Prong);
+          CLRBIT(statusProng, CandidateType::Cand3Prong);
           if (debug.value) {
             cutStatus[Cand3Prong][3] = false;
             if (fillHistograms.value) {
-              registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::Cand3Prong + iDebugCut);
+              registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand3Prong + iDebugCut);
             }
           }
         }
         if ((debug.value || TESTBIT(statusProng, CandidateType::CandV0bachelor)) && !isSelectedTrack(track, dca, CandV0bachelor)) {
-          statusProng &= ~BIT(CandV0bachelor);
+          CLRBIT(statusProng, CandidateType::CandV0bachelor);
           if (debug.value) {
             cutStatus[CandV0bachelor][3] = false;
             if (fillHistograms.value) {
-              registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::CandV0bachelor + iDebugCut);
+              registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::CandV0bachelor + iDebugCut);
             }
           }
         }
@@ -397,29 +397,29 @@ struct HfTagSelTracks {
       // fill histograms
       if (fillHistograms.value) {
         iDebugCut = 1;
-        if TESTBIT(statusProng, CandidateType::Cand2Prong) {
+        if TESTBIT (statusProng, CandidateType::Cand2Prong) {
           registry.get<TH1>(HIST("hPtCuts2Prong"))->Fill(trackPt);
           registry.get<TH1>(HIST("hEtaCuts2Prong"))->Fill(trackEta);
           registry.get<TH2>(HIST("hDCAToPrimXYVsPtCuts2Prong"))->Fill(trackPt, dca[0]);
           if (debug.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::Cand2Prong + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand2Prong + iDebugCut);
           }
         }
-        if TESTBIT(statusProng, CandidateType::Cand3Prong) {
+        if TESTBIT (statusProng, CandidateType::Cand3Prong) {
           registry.get<TH1>(HIST("hPtCuts3Prong"))->Fill(trackPt);
           registry.get<TH1>(HIST("hEtaCuts3Prong"))->Fill(trackEta);
           registry.get<TH2>(HIST("hDCAToPrimXYVsPtCuts3Prong"))->Fill(trackPt, dca[0]);
           if (debug.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::Cand3Prong + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand3Prong + iDebugCut);
           }
         }
-        if TESTBIT(statusProng, CandidateType::CandV0bachelor) {
+        if TESTBIT (statusProng, CandidateType::CandV0bachelor) {
           MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "Will be kept: Proton from Lc " << indexBach);
           registry.get<TH1>(HIST("hPtCutsV0bachelor"))->Fill(trackPt);
           registry.get<TH1>(HIST("hEtaCutsV0bachelor"))->Fill(trackEta);
           registry.get<TH2>(HIST("hDCAToPrimXYVsPtCutsV0bachelor"))->Fill(trackPt, dca[0]);
           if (debug.value) {
-            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts+1) * CandidateType::CandV0bachelor + iDebugCut);
+            registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::CandV0bachelor + iDebugCut);
           }
         }
       }
