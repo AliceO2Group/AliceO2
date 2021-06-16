@@ -33,13 +33,13 @@ enum Code {
 };
 } // namespace pdg
 
-/// Finds pT bin in a configurable array.
+/// Finds pT bin in an array.
 /// \param bins  array of pT bins
 /// \param value  pT
 /// \return index of the pT bin
 /// \note Accounts for the offset so that pt bin array can be used to also configure a histogram axis.
 template <typename T1, typename T2>
-int findBin(o2::framework::Configurable<std::vector<T1>> const& bins, T2 value)
+int findBin(T1 const& bins, T2 value)
 {
   if (value < bins->front()) {
     return -1;
@@ -48,23 +48,6 @@ int findBin(o2::framework::Configurable<std::vector<T1>> const& bins, T2 value)
     return -1;
   }
   return std::distance(bins->begin(), std::upper_bound(bins->begin(), bins->end(), value)) - 1;
-}
-
-/// Finds pT bin in an array.
-/// \param bins  array of pT bins
-/// \param value  pT
-/// \return index of the pT bin
-/// \note Accounts for the offset so that pt bin array can be used to also configure a histogram axis.
-template <typename T1, typename T2>
-int findBin(std::vector<T1> const& bins, T2 value)
-{
-  if (value < bins.front()) {
-    return -1;
-  }
-  if (value >= bins.back()) {
-    return -1;
-  }
-  return std::distance(bins.begin(), std::upper_bound(bins.begin(), bins.end(), value)) - 1;
 }
 
 // namespace per channel
@@ -87,12 +70,12 @@ constexpr double pTBinsTrack[npTBinsTrack + 1] = {
 auto pTBinsTrack_v = std::vector<double>{pTBinsTrack, pTBinsTrack + npTBinsTrack + 1};
 
 // default values for the cuts
-constexpr double cutsTrack[npTBinsTrack][nCutVarsTrack] = {{0.0025, 10.},  /* pt<0.5*/
-                                                           {0.0025, 10.},  /* 0.5<pt<1*/
-                                                           {0.0025, 10.},  /* 1<pt<1.5*/
-                                                           {0.0025, 10.},  /* 1.5<pt<2*/
-                                                           {0.0000, 10.},  /* 2<pt<3*/
-                                                           {0.0000, 10.}}; /* pt>3*/
+constexpr double cutsTrack[npTBinsTrack][nCutVarsTrack] = {{0.0025, 10.},  /* 0   < pt < 0.5 */
+                                                           {0.0025, 10.},  /* 0.5 < pt < 1 */
+                                                           {0.0025, 10.},  /* 1   < pt < 1.5 */
+                                                           {0.0025, 10.},  /* 1.5 < pt < 2 */
+                                                           {0.0000, 10.},  /* 2   < pt < 3 */
+                                                           {0.0000, 10.}}; /* 3   < pt < 1000 */
 
 // row labels
 static const std::vector<std::string> pTBinLabelsTrack{};
@@ -115,8 +98,8 @@ constexpr double pTBins[npTBins + 1] = {
 auto pTBinsVec = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
-constexpr double cuts[npTBins][nCutVars] = {{1.65, 2.15, 0.5, 100.},  /* pt<5*/
-                                            {1.65, 2.15, 0.5, 100.}}; /* pt>5*/
+constexpr double cuts[npTBins][nCutVars] = {{1.65, 2.15, 0.5, 100.},  /* 1 < pt < 5 */
+                                            {1.65, 2.15, 0.5, 100.}}; /* 5 < pt > 1000 */
 
 // row labels
 static const std::vector<std::string> pTBinLabels{};
@@ -139,8 +122,8 @@ constexpr double pTBins[npTBins + 1] = {
 auto pTBinsVec = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
-constexpr double cuts[npTBins][nCutVars] = {{1.75, 2.05, 0.7, 0.02},  /* 1<pt<5*/
-                                            {1.75, 2.05, 0.5, 0.02}}; /* pt>5*/
+constexpr double cuts[npTBins][nCutVars] = {{1.75, 2.05, 0.7, 0.02},  /* 1 < pt < 5 */
+                                            {1.75, 2.05, 0.5, 0.02}}; /* 5 < pt > 1000 */
 
 // row labels
 static const std::vector<std::string> pTBinLabels{};
