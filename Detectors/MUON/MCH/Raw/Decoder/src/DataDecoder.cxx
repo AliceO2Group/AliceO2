@@ -259,6 +259,78 @@ void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits)
 
 //_________________________________________________________________________________________________
 
+int32_t DataDecoder::getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel)
+{
+  auto solarId = dsElecId.solarId();
+  uint32_t dsId = static_cast<uint32_t>(dsElecId.elinkGroupId()) * 5 + dsElecId.elinkIndexInGroup();
+  if (solarId > DataDecoder::sMaxSolarId || dsId >= 40) {
+    return -1;
+  }
+
+  return (solarId * 40 * 64) + (dsId * 64) + channel;
+}
+
+//_________________________________________________________________________________________________
+
+bool DataDecoder::mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaCluster& sc)
+{
+  static constexpr uint32_t BCROLLOVER = (1 << 20);
+  static constexpr uint32_t ONEADCCLOCK = 4;
+  static constexpr uint32_t MAXNOFSAMPLES = 0x3FF;
+  static constexpr uint32_t TWENTYBITSATONE = 0xFFFFF;
+
+  // only digits that start at the beginning of the SAMPA window can be merged
+  if (sc.sampaTime != 0) {
+    return false;
+  }
+
+  auto& mergerCh = mMergerRecords.at(mergerChannelId);
+
+  // if there is not previous digit for this channel then no merging is possible
+  if (mergerCh.digitId < 0) {
+    return false;
+  }
+
+  // time stamp of the digits to be merged
+  uint32_t bcStart = sc.bunchCrossing;
+  // correct for bunch crossing counter rollover if needed
+  if (bcStart < mergerCh.bcEnd) {
+    bcStart += BCROLLOVER;
+  }
+
+  // if the new digit starts just one ADC clock cycle after the end of the previous,
+  // the it can be merged into the existing one
+  if ((bcStart - mergerCh.bcEnd) != ONEADCCLOCK) {
+    return false;
+  }
+
+  // add total charge and number of samples to existing digit
+  auto& digit = mDigits.at(mergerCh.digitId).digit;
+  digit.setADC(digit.getADC() + sc.sum());
+  uint32_t newNofSamples = digit.getNofSamples() + sc.nofSamples();
+  if (newNofSamples > MAXNOFSAMPLES) {
+    newNofSamples = MAXNOFSAMPLES;
+  }
+  digit.setNofSamples(newNofSamples);
+
+  // update the time stamp of the signal's end
+  mergerCh.bcEnd = (bcStart & TWENTYBITSATONE) + (sc.nofSamples() - 1) * 4;
+
+  return true;
+}
+
+//_________________________________________________________________________________________________
+
+void DataDecoder::updateMergerRecord(uint32_t mergerChannelId, uint32_t digitId)
+{
+  auto& mergerCh = mMergerRecords.at(mergerChannelId);
+  auto& digit = mDigits.at(digitId);
+  mergerCh.digitId = digitId;
+  mergerCh.bcEnd = digit.info.bunchCrossing + (digit.info.sampaTime + digit.digit.getNofSamples() - 1) * 4;
+}
+
+//_________________________________________________________________________________________________
+
 bool DataDecoder::getPadMapping(const DsElecId& dsElecId, DualSampaChannelId channel, int& deId, int& dsIddet, int& padId)
 {
   deId = -1;
@@ -381,9 +453,15 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
       return;
     }
 
+    if (mergeDigits(mergerChannelId, sc)) {
+      return;
+    }
+
     if (!addDigit(dsElecId, channel, sc)) {
       return;
     }
+
+    updateMergerRecord(mergerChannelId, mDigits.size() - 1);
   };
 
   patchPage(page, mDebug);
@@ -560,6 +638,10 @@ void DataDecoder::reset()
 {
   mDigits.clear();
   mOrbits.clear();
+  for (auto& mergerCh : mMergerRecords) {
+    mergerCh.digitId = -1;
+    mergerCh.bcEnd = -1;
+  }
 }
 
 } // namespace raw
