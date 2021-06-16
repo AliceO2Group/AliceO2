@@ -442,7 +442,7 @@ DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK",
                        fwdtrack::Sign<fwdtrack::Signed1Pt>,
                        fwdtrack::Chi2, fwdtrack::Chi2MatchMCHMID, fwdtrack::Chi2MatchMCHMFT,
                        fwdtrack::MatchScoreMCHMFT, fwdtrack::MatchMFTTrackID, fwdtrack::MatchMCHTrackID,
-		       fwdtrack::MCHBitMap);
+                       fwdtrack::MCHBitMap);
 
 DECLARE_SOA_EXTENDED_TABLE(FwdTracks, StoredFwdTracks, "FWDTRACK", //!
                            aod::fwdtrack::Eta,                     // NOTE the order is different here than in MFTTracks as table extension has to be unique
