@@ -342,6 +342,7 @@ DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2MatchMCHMFT, float);   //! MCH-MFT Match
 DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float); //! MCH-MFT Machine Learning Matching Score for GlobalMuonTracks
 DECLARE_SOA_COLUMN(MatchMFTTrackID, matchMFTTrackID, int);     //! ID of matching MFT track for GlobalMuonTrack (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MatchMCHTrackID, matchMCHTrackID, int);     //! ID of matching MCH track for GlobalMuonTracks  (ints while self indexing not available)
+DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, short);               //! Fired muon chambers BitMap
 
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //!
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
@@ -440,7 +441,8 @@ DECLARE_SOA_TABLE_FULL(StoredFwdTracks, "FwdTracks", "AOD", "FWDTRACK",
                        fwdtrack::Pz<fwdtrack::Pt, fwdtrack::Tgl>,
                        fwdtrack::Sign<fwdtrack::Signed1Pt>,
                        fwdtrack::Chi2, fwdtrack::Chi2MatchMCHMID, fwdtrack::Chi2MatchMCHMFT,
-                       fwdtrack::MatchScoreMCHMFT, fwdtrack::MatchMFTTrackID, fwdtrack::MatchMCHTrackID);
+                       fwdtrack::MatchScoreMCHMFT, fwdtrack::MatchMFTTrackID, fwdtrack::MatchMCHTrackID,
+		       fwdtrack::MCHBitMap);
 
 DECLARE_SOA_EXTENDED_TABLE(FwdTracks, StoredFwdTracks, "FWDTRACK", //!
                            aod::fwdtrack::Eta,                     // NOTE the order is different here than in MFTTracks as table extension has to be unique
