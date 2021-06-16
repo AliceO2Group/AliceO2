@@ -9,6 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ComputingQuotaEvaluator.h"
+#include "Framework/ServiceRegistry.h"
+#include "Framework/DeviceState.h"
 #include <vector>
 #include <uv.h>
 #include <cassert>
@@ -16,8 +18,9 @@
 namespace o2::framework
 {
 
-ComputingQuotaEvaluator::ComputingQuotaEvaluator(uv_loop_t* loop)
-  : mLoop{loop}
+ComputingQuotaEvaluator::ComputingQuotaEvaluator(ServiceRegistry& registry)
+  : mRegistry{registry},
+    mLoop{registry.get<DeviceState>().loop}
 {
   // The first offer is valid, but does not contain any resource
   // so this will only work with some device which does not require
@@ -32,7 +35,7 @@ ComputingQuotaEvaluator::ComputingQuotaEvaluator(uv_loop_t* loop)
     OfferScore::Unneeded,
     true};
   mInfos[0] = {
-    uv_now(loop),
+    uv_now(mLoop),
     0,
     0};
 }
@@ -66,6 +69,7 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
       continue;
     }
     if (offer.runtime > 0 && offer.runtime + info.received < uv_now(mLoop)) {
+      mExpiredOffers.push_back(ComputingQuotaOfferRef{i});
       continue;
     }
     /// We then check if the offer is suitable
@@ -118,6 +122,10 @@ void ComputingQuotaEvaluator::dispose(int taskId)
       offer.score = OfferScore::Unneeded;
     }
   }
+}
+
+void ComputingQuotaEvaluator::handleExpired()
+{
 }
 
 } // namespace o2::framework

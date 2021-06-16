@@ -1107,7 +1107,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   // when the runner is done.
   std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
   std::unique_ptr<DeviceState> deviceState;
-  ComputingQuotaEvaluator quotaEvaluator{loop};
+  std::unique_ptr<ComputingQuotaEvaluator> quotaEvaluator;
 
   auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                      &runningWorkflow,
@@ -1118,16 +1118,18 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &deviceState,
                                      &errorPolicy,
                                      &loop](fair::mq::DeviceRunner& r) {
+    simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
+
     deviceState = std::make_unique<DeviceState>();
     deviceState->loop = loop;
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
-    simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
+    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRegistry);
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(&quotaEvaluator));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
