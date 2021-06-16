@@ -342,7 +342,7 @@ DECLARE_SOA_COLUMN(Chi2MatchMCHMFT, chi2MatchMCHMFT, float);   //! MCH-MFT Match
 DECLARE_SOA_COLUMN(MatchScoreMCHMFT, matchScoreMCHMFT, float); //! MCH-MFT Machine Learning Matching Score for GlobalMuonTracks
 DECLARE_SOA_COLUMN(MatchMFTTrackID, matchMFTTrackID, int);     //! ID of matching MFT track for GlobalMuonTrack (ints while self indexing not available)
 DECLARE_SOA_COLUMN(MatchMCHTrackID, matchMCHTrackID, int);     //! ID of matching MCH track for GlobalMuonTracks  (ints while self indexing not available)
-DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, short);               //! Fired muon chambers BitMap
+DECLARE_SOA_COLUMN(MCHBitMap, MchBitMap, int16_t);               //! Fired muon chambers BitMap
 
 DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //!
                            [](float signed1Pt) -> short { return (signed1Pt > 0) ? 1 : -1; });
