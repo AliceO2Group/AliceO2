@@ -13,6 +13,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include "MCHRawCommon/DataFormats.h"
 
 namespace o2
 {
@@ -67,7 +68,7 @@ class SampaHeader
                        SampaPacketType pkt,
                        uint16_t numWords,
                        uint8_t h,
-                       uint8_t ch,
+                       SampaChannelAddress ch,
                        uint32_t bx,
                        bool dp);
 
@@ -91,7 +92,7 @@ class SampaHeader
   SampaPacketType packetType() const;
   uint16_t nof10BitWords() const;
   uint8_t chipAddress() const;
-  uint8_t channelAddress() const;
+  SampaChannelAddress channelAddress() const;
   uint32_t bunchCrossingCounter() const;
   bool payloadParity() const;
   ///@}
@@ -105,7 +106,7 @@ class SampaHeader
   void packetType(SampaPacketType pkt);
   void nof10BitWords(uint16_t nofwords);
   void chipAddress(uint8_t h);
-  void channelAddress(uint8_t ch);
+  void channelAddress(SampaChannelAddress ch);
   void bunchCrossingCounter(uint32_t bx);
   void payloadParity(bool dp);
   ///@}
@@ -135,8 +136,11 @@ constexpr bool isSampaSync(uint64_t w)
 /// The 50-bits Sampa SYNC word.
 SampaHeader sampaSync();
 
+/// Heartbeat packet
+SampaHeader sampaHeartbeat(uint8_t elinkId, uint20_t bunchCrossing);
+
 /// Return channel number (0..63)
-uint8_t channelNumber64(const SampaHeader& sh);
+DualSampaChannelId getDualSampaChannelId(const SampaHeader& sh);
 
 /// packetTypeName returns a string representation of the given packet type.
 std::string packetTypeName(SampaPacketType pkt);

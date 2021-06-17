@@ -70,7 +70,8 @@ struct ParsedMetricMatch {
 };
 
 /// This struct hold information about device metrics when running
-/// in standalone mode
+/// in standalone mode. It's position in the holding vector is
+/// the same as the DeviceSpec in its own vector.
 struct DeviceMetricsInfo {
   // We keep the size of each metric to 4096 bytes. No need for more
   // for the debug GUI

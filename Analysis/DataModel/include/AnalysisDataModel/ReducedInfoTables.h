@@ -171,7 +171,7 @@ DECLARE_SOA_COLUMN(Pt, pt, float);                    //!
 DECLARE_SOA_COLUMN(Eta, eta, float);                  //!
 DECLARE_SOA_COLUMN(Phi, phi, float);                  //!
 DECLARE_SOA_COLUMN(Sign, sign, int);                  //!
-DECLARE_SOA_COLUMN(FilterMap, filterMap, uint16_t);   //!
+DECLARE_SOA_COLUMN(FilterMap, filterMap, uint32_t);   //!
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px,                    //!
                            [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!

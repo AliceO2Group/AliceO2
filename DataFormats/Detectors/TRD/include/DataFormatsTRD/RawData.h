@@ -80,7 +80,8 @@ Word 7  |              reserved 5                       |             link 14 da
     //             |---------------------------------------------------------------- 32..63 reserved1
     struct {
       uint64_t HeaderVersion : 8;  // TRD Header Version
-      uint64_t BunchCrossing : 12; // bunch crossing
+      uint64_t BunchCrossing : 12; // bunch crossing of the physics trigger.
+      //NB  The BC in the RDH is the BC sent together with the heartbeat trigger, while the BC in the HalfCRUHeader is the BC of the physics trigger where the data that follows the HalfCRUHeader belongs to. However, it is not forbidden for CTP to send the heartbeat trigger together with a physics trigger, in this case the two would match (accidentally).
       uint64_t StopBit : 4;        // 8 .. 11 stop bit  0x1 if TRD packet is last data packet of trigger, else 0x0  TODO why 4 bits if only using 1?
       uint64_t EndPoint : 4;       // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
       uint64_t EventType : 4;      // bit 0..7 event type of the data. Trigger bits from TTC-PON message, distinguish physics from calibration events.
@@ -298,6 +299,21 @@ struct DigitMCMHeader {
   };
 };
 
+// digit mask used for the zero suppressed digit data
+struct DigitMCMADCMask {
+  //             10987654321098765432109876543210
+  // uint32_t:   00000000000000000000000000000000
+  union {
+    uint32_t word; //MCM ADC MASK header
+    struct {
+      uint32_t n : 2; // unused always 0x3
+      uint32_t c : 5; // unused always 0x1f
+      uint32_t adcmask : 21;
+      uint32_t j : 4; // unused always 0xc
+    } __attribute__((__packed__));
+  };
+};
+
 //the odd numbering of 1 2 3 and 6 are taken from the TDP page 111 section 15.7.2, 15.7.3 15.7.4 15.7.5
 struct trdTestPattern1 {
   //             10987654321098765432109876543210
@@ -406,6 +422,7 @@ uint32_t getlinkerrorflag(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkdatasize(const HalfCRUHeader& cruhead, const uint32_t link);
 uint32_t getlinkerrorflags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
 uint32_t getlinkdatasizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
+uint32_t getQFromRaw(const o2::trd::TrackletMCMHeader* header, const o2::trd::TrackletMCMData* data, int pidindex, int trackletindex);
 uint32_t getHCIDFromTrackletHCHeader(const TrackletHCHeader& header);
 uint32_t getHCIDFromTrackletHCHeader(const uint32_t& headerword);
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamberheader);
@@ -417,12 +434,17 @@ void printHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
 void dumpHalfChamber(o2::trd::TrackletHCHeader& halfchamber);
 void printHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 void dumpHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
+void clearHalfCRUHeader(o2::trd::HalfCRUHeader& halfcru);
 std::ostream& operator<<(std::ostream& stream, const HalfCRUHeader& halfcru);
 bool trackletMCMHeaderSanityCheck(o2::trd::TrackletMCMHeader& header);
 bool trackletHCHeaderSanityCheck(o2::trd::TrackletHCHeader& header);
 bool digitMCMHeaderSanityCheck(o2::trd::DigitMCMHeader* header);
 void printDigitMCMHeader(o2::trd::DigitMCMHeader& header);
 void printDigitHCHeader(o2::trd::DigitHCHeader& header);
+DigitMCMADCMask buildBlankADCMask();
+int getNumberofTracklets(o2::trd::TrackletMCMHeader& header);
+void setNumberOfTrackletsInHeader(o2::trd::TrackletMCMHeader& header, int numberoftracklets);
+int nextmcmadc(unsigned int& bp, int channel);
 }
 }
 #endif

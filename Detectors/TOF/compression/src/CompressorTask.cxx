@@ -29,8 +29,8 @@ namespace o2
 namespace tof
 {
 
-template <typename RDH, bool verbose>
-void CompressorTask<RDH, verbose>::init(InitContext& ic)
+template <typename RDH, bool verbose, bool paranoid>
+void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
 {
   LOG(INFO) << "Compressor init";
 
@@ -52,8 +52,8 @@ void CompressorTask<RDH, verbose>::init(InitContext& ic)
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
-template <typename RDH, bool verbose>
-void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
+template <typename RDH, bool verbose, bool paranoid>
+void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 {
   LOG(DEBUG) << "Compressor run";
 
@@ -144,10 +144,10 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
   device->Send(partsOut, fairMQChannel);
 }
 
-template class CompressorTask<o2::header::RAWDataHeaderV4, true>;
-template class CompressorTask<o2::header::RAWDataHeaderV4, false>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, true>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, false>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, false, false>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, false, true>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, true, false>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, true, true>;
 
 } // namespace tof
 } // namespace o2

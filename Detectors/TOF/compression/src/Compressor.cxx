@@ -96,8 +96,8 @@ namespace o2
 namespace tof
 {
 
-template <typename RDH, bool verbose>
-bool Compressor<RDH, verbose>::processHBF()
+template <typename RDH, bool verbose, bool paranoid>
+bool Compressor<RDH, verbose, paranoid>::processHBF()
 {
 
   if (verbose && mDecoderVerbose) {
@@ -111,6 +111,16 @@ bool Compressor<RDH, verbose>::processHBF()
   mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
 
+  /** check that we got the first RDH open **/
+  if (rdh->stop || rdh->pageCnt != 0) {
+    std::cout << colorRed
+              << "[FATAL] this does not look like the first RDH in the HBF"
+              << colorReset
+              << std::endl;
+    o2::raw::RDHUtils::printRDH(*rdh);
+    return true;
+  }
+
   /** loop until RDH close **/
   while (!rdh->stop) {
 
@@ -120,6 +130,16 @@ bool Compressor<RDH, verbose>::processHBF()
                 << colorReset
                 << std::endl;
       o2::raw::RDHUtils::printRDH(*rdh);
+    }
+
+    /** do some minimal RDH sanity checks **/
+    if (rdh->feeId != mDecoderRDH->feeId ||
+        rdh->orbit != mDecoderRDH->orbit) {
+      std::cout << colorRed
+                << "[FATAL] something does not match between this and first RDH"
+                << colorReset
+                << std::endl;
+      return true;
     }
 
     auto headerSize = rdh->headerSize;
@@ -149,6 +169,16 @@ bool Compressor<RDH, verbose>::processHBF()
               << colorReset
               << std::endl;
     o2::raw::RDHUtils::printRDH(*rdh);
+  }
+
+  /** do some minimal RDH sanity checks **/
+  if (rdh->feeId != mDecoderRDH->feeId ||
+      rdh->orbit != mDecoderRDH->orbit) {
+    std::cout << colorRed
+              << "[FATAL] something does not match between this and first RDH"
+              << colorReset
+              << std::endl;
+    return true;
   }
 
   /** copy RDH open to encoder buffer **/
@@ -209,8 +239,8 @@ bool Compressor<RDH, verbose>::processHBF()
   return true;
 }
 
-template <typename RDH, bool verbose>
-bool Compressor<RDH, verbose>::processDRM()
+template <typename RDH, bool verbose, bool paranoid>
+bool Compressor<RDH, verbose, paranoid>::processDRM()
 {
 
   if (verbose && mDecoderVerbose) {
@@ -239,11 +269,10 @@ bool Compressor<RDH, verbose>::processDRM()
     auto bytePayload = tofDataHeader->bytePayload;
     printf(" %08x TOF Data Header       (bytePayload=%d) \n", *mDecoderPointer, bytePayload);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** TOF Orbit **/
   mDecoderSummary.tofOrbit = mDecoderPointer;
@@ -252,11 +281,10 @@ bool Compressor<RDH, verbose>::processDRM()
     auto orbit = tofOrbit->orbit;
     printf(" %08x TOF Orbit             (orbit=%u) \n", *mDecoderPointer, orbit);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** check DRM Data Header **/
   if (!IS_DRM_GLOBAL_HEADER(*mDecoderPointer)) {
@@ -273,11 +301,10 @@ bool Compressor<RDH, verbose>::processDRM()
     auto eventWords = drmDataHeader->eventWords;
     printf(" %08x DRM Data Header       (drmId=%d, eventWords=%d) \n", *mDecoderPointer, drmId, eventWords);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** DRM Header Word 1 **/
   mDecoderSummary.drmHeadW1 = mDecoderPointer;
@@ -288,11 +315,10 @@ bool Compressor<RDH, verbose>::processDRM()
     auto drmHSize = drmHeadW1->drmHSize;
     printf(" %08x DRM Header Word 1     (partSlotMask=0x%03x, clockStatus=%d, drmHSize=%d) \n", *mDecoderPointer, partSlotMask, clockStatus, drmHSize);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** DRM Header Word 2 **/
   mDecoderSummary.drmHeadW2 = mDecoderPointer;
@@ -303,11 +329,10 @@ bool Compressor<RDH, verbose>::processDRM()
     auto readoutTimeOut = drmHeadW2->readoutTimeOut;
     printf(" %08x DRM Header Word 2     (enaSlotMask=0x%03x, faultSlotMask=0x%03x, readoutTimeOut=%d) \n", *mDecoderPointer, enaSlotMask, faultSlotMask, readoutTimeOut);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** DRM Header Word 3 **/
   mDecoderSummary.drmHeadW3 = mDecoderPointer;
@@ -317,33 +342,30 @@ bool Compressor<RDH, verbose>::processDRM()
     auto locBunchCnt = drmHeadW3->locBunchCnt;
     printf(" %08x DRM Header Word 3     (gbtBunchCnt=%d, locBunchCnt=%d) \n", *mDecoderPointer, gbtBunchCnt, locBunchCnt);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** DRM Header Word 4 **/
   mDecoderSummary.drmHeadW4 = mDecoderPointer;
   if (verbose && mDecoderVerbose) {
     printf(" %08x DRM Header Word 4   \n", *mDecoderPointer);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** DRM Header Word 5 **/
   mDecoderSummary.drmHeadW5 = mDecoderPointer;
   if (verbose && mDecoderVerbose) {
     printf(" %08x DRM Header Word 5   \n", *mDecoderPointer);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** encode Crate Header **/
   *mEncoderPointer = 0x80000000;
@@ -394,22 +416,20 @@ bool Compressor<RDH, verbose>::processDRM()
         auto locEvCnt = drmDataTrailer->locEvCnt;
         printf(" %08x DRM Data Trailer      (locEvCnt=%d) \n", *mDecoderPointer, locEvCnt);
       }
-#ifdef DECODER_PARANOID
-      if (decoderParanoid())
-        return true;
-#endif
       decoderNext();
+      if (paranoid && decoderParanoid()) {
+        return true;
+      }
 
       /** filler detected **/
       if (IS_FILLER(*mDecoderPointer)) {
         if (verbose && mDecoderVerbose) {
           printf(" %08x Filler \n", *mDecoderPointer);
         }
-#ifdef DECODER_PARANOID
-        if (decoderParanoid())
-          return true;
-#endif
         decoderNext();
+        if (paranoid && decoderParanoid()) {
+          return true;
+        }
       }
 
       /** encode Crate Trailer **/
@@ -513,19 +533,18 @@ bool Compressor<RDH, verbose>::processDRM()
   return false;
 }
 
-template <typename RDH, bool verbose>
-bool Compressor<RDH, verbose>::processLTM()
+template <typename RDH, bool verbose, bool paranoid>
+bool Compressor<RDH, verbose, paranoid>::processLTM()
 {
   /** process LTM **/
 
   if (verbose && mDecoderVerbose) {
     printf(" %08x LTM Global Header \n", *mDecoderPointer);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** loop over LTM payload **/
   while (true) {
@@ -534,30 +553,28 @@ bool Compressor<RDH, verbose>::processLTM()
       if (verbose && mDecoderVerbose) {
         printf(" %08x LTM Global Trailer \n", *mDecoderPointer);
       }
-#ifdef DECODER_PARANOID
-      if (decoderParanoid())
-        return true;
-#endif
       decoderNext();
+      if (paranoid && decoderParanoid()) {
+        return true;
+      }
       break;
     }
 
     if (verbose && mDecoderVerbose) {
       printf(" %08x LTM data \n", *mDecoderPointer);
     }
-#ifdef DECODER_PARANOID
-    if (decoderParanoid())
-      return true;
-#endif
     decoderNext();
+    if (paranoid && decoderParanoid()) {
+      return true;
+    }
   }
 
   /** success **/
   return false;
 }
 
-template <typename RDH, bool verbose>
-bool Compressor<RDH, verbose>::processTRM()
+template <typename RDH, bool verbose, bool paranoid>
+bool Compressor<RDH, verbose, paranoid>::processTRM()
 {
   /** process TRM **/
 
@@ -571,11 +588,10 @@ bool Compressor<RDH, verbose>::processTRM()
     auto emptyBit = trmDataHeader->emptyBit;
     printf(" %08x TRM Data Header       (slotId=%u, eventWords=%d, eventCnt=%d, emptyBit=%01x) \n", *mDecoderPointer, slotId, eventWords, eventCnt, emptyBit);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** loop over TRM payload **/
   while (true) {
@@ -603,22 +619,20 @@ bool Compressor<RDH, verbose>::processTRM()
         auto lutErrorBit = trmDataTrailer->lutErrorBit;
         printf(" %08x TRM Data Trailer      (slotId=%u, eventCRC=%d, lutErrorBit=%d) \n", *mDecoderPointer, slotId, eventCRC, lutErrorBit);
       }
-#ifdef DECODER_PARANOID
-      if (decoderParanoid())
-        return true;
-#endif
       decoderNext();
+      if (paranoid && decoderParanoid()) {
+        return true;
+      }
 
       /** filler detected **/
       if (IS_FILLER(*mDecoderPointer)) {
         if (verbose && mDecoderVerbose) {
           printf(" %08x Filler \n", *mDecoderPointer);
         }
-#ifdef DECODER_PARANOID
-        if (decoderParanoid())
-          return true;
-#endif
         decoderNext();
+        if (paranoid && decoderParanoid()) {
+          return true;
+        }
       }
 
       /** encoder Spider **/
@@ -636,12 +650,11 @@ bool Compressor<RDH, verbose>::processTRM()
     if (verbose && mDecoderVerbose) {
       printf("%s %08x [ERROR] breaking TRM decode stream %s \n", colorRed, *mDecoderPointer, colorReset);
     }
-    /** decode error detected, be paranoid **/
-    if (decoderParanoid()) {
+    decoderNext();
+    if (decoderParanoid()) { /** decode error detected, be always paranoid **/
       return true;
     }
 
-    decoderNext();
     return false;
 
   } /** end of loop over TRM payload **/
@@ -650,8 +663,8 @@ bool Compressor<RDH, verbose>::processTRM()
   return false;
 }
 
-template <typename RDH, bool verbose>
-bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
+template <typename RDH, bool verbose, bool paranoid>
+bool Compressor<RDH, verbose, paranoid>::processTRMchain(int itrm, int ichain)
 {
   /** process TRM chain **/
 
@@ -665,11 +678,10 @@ bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
     auto bunchCnt = trmChainHeader->bunchCnt;
     printf(" %08x TRM Chain-%c Header    (slotId=%u, bunchCnt=%d) \n", *mDecoderPointer, ichain == 0 ? 'A' : 'B', slotId, bunchCnt);
   }
-#ifdef DECODER_PARANOID
-  if (decoderParanoid())
-    return true;
-#endif
   decoderNext();
+  if (paranoid && decoderParanoid()) {
+    return true;
+  }
 
   /** loop over TRM Chain payload **/
   while (true) {
@@ -688,11 +700,10 @@ bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
         auto dataId = trmDataHit->dataId;
         printf(" %08x TRM Data Hit          (time=%d, chanId=%d, tdcId=%d, dataId=0x%x) \n", *mDecoderPointer, time, chanId, tdcId, dataId);
       }
-#ifdef DECODER_PARANOID
-      if (decoderParanoid())
-        return true;
-#endif
       decoderNext();
+      if (paranoid && decoderParanoid()) {
+        return true;
+      }
       continue;
     }
 
@@ -705,11 +716,10 @@ bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
       if (verbose && mDecoderVerbose) {
         printf("%s %08x TDC error %s \n", colorRed, *mDecoderPointer, colorReset);
       }
-#ifdef DECODER_PARANOID
-      if (decoderParanoid())
-        return true;
-#endif
       decoderNext();
+      if (paranoid && decoderParanoid()) {
+        return true;
+      }
       continue;
     }
 
@@ -721,11 +731,10 @@ bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
         auto eventCnt = trmChainTrailer->eventCnt;
         printf(" %08x TRM Chain-A Trailer   (slotId=%u, eventCnt=%d) \n", *mDecoderPointer, slotId, eventCnt);
       }
-#ifdef DECODER_PARANOID
-      if (decoderParanoid())
-        return true;
-#endif
       decoderNext();
+      if (paranoid && decoderParanoid()) {
+        return true;
+      }
       break;
     }
 
@@ -735,12 +744,11 @@ bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
     if (verbose && mDecoderVerbose) {
       printf("%s %08x [ERROR] breaking TRM Chain-%c decode stream %s \n", colorRed, *mDecoderPointer, ichain == 0 ? 'A' : 'B', colorReset);
     }
-    /** decode error detected, be paranoid **/
-    if (decoderParanoid()) {
+    decoderNext();
+    if (decoderParanoid()) { /** decode error detected, be alway paranoid **/
       return true;
     }
 
-    decoderNext();
     break;
 
   } /** end of loop over TRM chain payload **/
@@ -749,8 +757,8 @@ bool Compressor<RDH, verbose>::processTRMchain(int itrm, int ichain)
   return false;
 }
 
-template <typename RDH, bool verbose>
-bool Compressor<RDH, verbose>::decoderParanoid()
+template <typename RDH, bool verbose, bool paranoid>
+bool Compressor<RDH, verbose, paranoid>::decoderParanoid()
 {
   /** decoder paranoid **/
 
@@ -762,8 +770,8 @@ bool Compressor<RDH, verbose>::decoderParanoid()
   return false;
 }
 
-template <typename RDH, bool verbose>
-void Compressor<RDH, verbose>::encoderSpider(int itrm)
+template <typename RDH, bool verbose, bool paranoid>
+void Compressor<RDH, verbose, paranoid>::encoderSpider(int itrm)
 {
   /** encoder spider **/
 
@@ -875,8 +883,8 @@ void Compressor<RDH, verbose>::encoderSpider(int itrm)
   }
 }
 
-template <typename RDH, bool verbose>
-bool Compressor<RDH, verbose>::checkerCheck()
+template <typename RDH, bool verbose, bool paranoid>
+bool Compressor<RDH, verbose, paranoid>::checkerCheck()
 {
   /** checker check **/
 
@@ -1285,107 +1293,37 @@ bool Compressor<RDH, verbose>::checkerCheck()
   return false;
 }
 
-template <typename RDH, bool verbose>
-void Compressor<RDH, verbose>::checkerCheckRDH()
-{
-}
-
-template <>
-void Compressor<o2::header::RAWDataHeaderV4, true>::checkerCheckRDH()
-{
-
-  uint32_t orbit = *mDecoderSummary.tofOrbit;
-  uint32_t drmId = GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader);
-
-  /** check orbit **/
-  if (mCheckerVerbose) {
-    printf(" --- Checking DRM/RDH orbit: %08x/%08x \n", orbit, mDecoderRDH->heartbeatOrbit);
-  }
-  if (orbit != mDecoderRDH->heartbeatOrbit) {
-    if (mCheckerVerbose) {
-      printf(" DRM/RDH orbit mismatch: %08x/%08x \n", orbit, mDecoderRDH->heartbeatOrbit);
-    }
-    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_ORBIT_MISMATCH;
-  }
-
-  /** check FEE id **/
-  if (mCheckerVerbose) {
-    printf(" --- Checking DRM/RDH FEE id: %d/%d \n", drmId, mDecoderRDH->feeId & 0xFF);
-  }
-  if (drmId != (mDecoderRDH->feeId & 0xFF)) {
-    if (mCheckerVerbose) {
-      printf(" DRM/RDH FEE id mismatch: %d/%d \n", drmId, mDecoderRDH->feeId & 0xFF);
-    }
-    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_FEEID_MISMATCH;
-  }
-}
-
-template <>
-void Compressor<o2::header::RAWDataHeaderV4, false>::checkerCheckRDH()
-{
-
-  uint32_t orbit = *mDecoderSummary.tofOrbit;
-  uint32_t drmId = GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader);
-
-  /** check orbit **/
-  if (orbit != mDecoderRDH->heartbeatOrbit) {
-    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_ORBIT_MISMATCH;
-  }
-
-  /** check FEE id **/
-  if (drmId != (mDecoderRDH->feeId & 0xFF)) {
-    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_FEEID_MISMATCH;
-  }
-}
-
-template <>
-void Compressor<o2::header::RAWDataHeaderV6, true>::checkerCheckRDH()
+template <typename RDH, bool verbose, bool paranoid>
+void Compressor<RDH, verbose, paranoid>::checkerCheckRDH()
 {
   uint32_t orbit = *mDecoderSummary.tofOrbit;
   uint32_t drmId = GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader);
 
   /** check orbit **/
-  if (mCheckerVerbose) {
+  if (verbose && mCheckerVerbose) {
     printf(" --- Checking DRM/RDH orbit: %08x/%08x \n", orbit, mDecoderRDH->orbit);
   }
   if (orbit != mDecoderRDH->orbit) {
-    if (mCheckerVerbose) {
+    if (verbose && mCheckerVerbose) {
       printf(" DRM/RDH orbit mismatch: %08x/%08x \n", orbit, mDecoderRDH->orbit);
     }
     mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_ORBIT_MISMATCH;
   }
 
   /** check FEE id **/
-  if (mCheckerVerbose) {
+  if (verbose && mCheckerVerbose) {
     printf(" --- Checking DRM/RDH FEE id: %d/%d \n", drmId, mDecoderRDH->feeId & 0xFF);
   }
   if (drmId != (mDecoderRDH->feeId & 0xFF)) {
-    if (mCheckerVerbose) {
+    if (verbose && mCheckerVerbose) {
       printf(" DRM/RDH FEE id mismatch: %d/%d \n", drmId, mDecoderRDH->feeId & 0xFF);
     }
     mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_FEEID_MISMATCH;
   }
 }
 
-template <>
-void Compressor<o2::header::RAWDataHeaderV6, false>::checkerCheckRDH()
-{
-  uint32_t orbit = *mDecoderSummary.tofOrbit;
-  uint32_t drmId = GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader);
-
-  /** check orbit **/
-  if (orbit != mDecoderRDH->orbit) {
-    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_ORBIT_MISMATCH;
-  }
-
-  /** check FEE id **/
-  if (drmId != (mDecoderRDH->feeId & 0xFF)) {
-    mCheckerSummary.DiagnosticWord[0] |= diagnostic::DRM_FEEID_MISMATCH;
-  }
-}
-
-template <typename RDH, bool verbose>
-void Compressor<RDH, verbose>::resetCounters()
+template <typename RDH, bool verbose, bool paranoid>
+void Compressor<RDH, verbose, paranoid>::resetCounters()
 {
   mEventCounter = 0;
   mFatalCounter = 0;
@@ -1399,8 +1337,8 @@ void Compressor<RDH, verbose>::resetCounters()
   }
 }
 
-template <typename RDH, bool verbose>
-void Compressor<RDH, verbose>::checkSummary()
+template <typename RDH, bool verbose, bool paranoid>
+void Compressor<RDH, verbose, paranoid>::checkSummary()
 {
   char chname[2] = {'a', 'b'};
 
@@ -1469,10 +1407,10 @@ void Compressor<RDH, verbose>::checkSummary()
   printf("\n");
 }
 
-template class Compressor<o2::header::RAWDataHeaderV4, false>;
-template class Compressor<o2::header::RAWDataHeaderV4, true>;
-template class Compressor<o2::header::RAWDataHeaderV6, false>;
-template class Compressor<o2::header::RAWDataHeaderV6, true>;
+template class Compressor<o2::header::RAWDataHeaderV6, false, false>;
+template class Compressor<o2::header::RAWDataHeaderV6, false, true>;
+template class Compressor<o2::header::RAWDataHeaderV6, true, false>;
+template class Compressor<o2::header::RAWDataHeaderV6, true, true>;
 
 } // namespace tof
 } // namespace o2

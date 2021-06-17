@@ -500,21 +500,21 @@ bool MatchTOF::prepareTracks()
   } // loop over tracks of single sector
 
   // Uncomment for local debug
-  /* 
+  /*
   // printing the tracks
   std::array<float, 3> globalPos;
   int itmp = 0;
   for (int sec = o2::constants::math::NSectors; sec--;) {
     auto& cacheTrk = mTracksSectIndexCache[sec];   // array of cached tracks indices for this sector; reminder: they are ordered in time!
     for (int itrk = 0; itrk < cacheTrk.size(); itrk++){
-      itmp++; 
+      itmp++;
       auto& trc = mTracksWork[cacheTrk[itrk]];
       trc.getXYZGlo(globalPos);
       //printf("Track %d: Global coordinates After propagating to 371 cm: globalPos[0] = %f, globalPos[1] = %f, globalPos[2] = %f\n", itrk, globalPos[0], globalPos[1], globalPos[2]);
       //      Printf("The phi angle is %f", TMath::ATan2(globalPos[1], globalPos[0]));
     }
   }
-  Printf("we have %d tracks",itmp);      
+  Printf("we have %d tracks",itmp);
   */
 
   return true;
@@ -571,11 +571,11 @@ bool MatchTOF::prepareTPCTracks()
     mSideTPC.push_back(trcOrig.hasASideClustersOnly() ? 1 : (trcOrig.hasCSideClustersOnly() ? -1 : 0));
     mExtraTPCFwdTime.push_back((trcOrig.getDeltaTFwd() + 5) * mTPCTBinMUS + extraErr);
 
-    o2::track::TrackLTIntegral intLT0; //mTPCTracksWork.back().getLTIntegralOut(); // we get the integrated length from TPC-ITC outward propagation
     // make a copy of the TPC track that we have to propagate
-    //o2::tpc::TrackTPC* trc = new o2::tpc::TrackTPC(trcTPCOrig); // this would take the TPCout track
-    mTracksWork.emplace_back(std::make_pair(trcOrig.getOuterParam(), timeInfo));
+    mTracksWork.emplace_back(std::make_pair(trcOrig.getOuterParam(), timeInfo)); // RS Why do we creat a track copy before deciding that the track should be propagated?
     auto& trc = mTracksWork.back().first;
+
+    o2::track::TrackLTIntegral intLT0{}; // we get the integrated length from TPC-ITC outward propagation
     auto& intLT = mLTinfos.emplace_back(intLT0);
 
     if (trcOrig.getNClusters() < nclustersMin) {
@@ -588,7 +588,7 @@ bool MatchTOF::prepareTPCTracks()
       continue;
     }
 
-    //    printf("N clusters = %d\n",trcOrig.getNClusters());
+    o2::base::Propagator::Instance()->estimateLTFast(intLT, trc); // init intLT with fast estimate
 
 #ifdef _ALLOW_TOF_DEBUG_
     // propagate to matching Xref
@@ -648,7 +648,7 @@ bool MatchTOF::prepareTPCTracks()
   } // loop over tracks of single sector
 
   // Uncomment for local debug
-  /* 
+  /*
   // printing the tracks
   std::array<float, 3> globalPos;
   int itmp = 0;
@@ -656,15 +656,15 @@ bool MatchTOF::prepareTPCTracks()
     Printf("sector %d", sec);
     auto& cacheTrk = mTracksSectIndexCache[sec];   // array of cached tracks indices for this sector; reminder: they are ordered in time!
     for (int itrk = 0; itrk < cacheTrk.size(); itrk++){
-      itmp++; 
+      itmp++;
       auto& trc = mTracksWork[cacheTrk[itrk]].first;
       auto& trcAttr = mTracksWork[cacheTrk[itrk]].second;
       trc.getXYZGlo(globalPos);
-      printf("Track %d: Global coordinates After propagating to 371 cm: globalPos[0] = %f, globalPos[1] = %f, globalPos[2] = %f -- timestamp = %f +/- %f\n", itrk, globalPos[0], globalPos[1], globalPos[2],trcAttr.getTimeStamp(),trcAttr.getTimeStampError()); 
+      printf("Track %d: Global coordinates After propagating to 371 cm: globalPos[0] = %f, globalPos[1] = %f, globalPos[2] = %f -- timestamp = %f +/- %f\n", itrk, globalPos[0], globalPos[1], globalPos[2],trcAttr.getTimeStamp(),trcAttr.getTimeStampError());
       //      Printf("The phi angle is %f", TMath::ATan2(globalPos[1], globalPos[0]));
     }
   }
-  Printf("we have %d tracks",itmp);      
+  Printf("we have %d tracks",itmp);
 */
 
   return true;
@@ -843,12 +843,12 @@ void MatchTOF::doMatching(int sec)
     float step = 1.0;                                                                                                               // step size in cm
                                                                                                                                     //uncomment for local debug
                                                                                                                                     /*
-																//trefTrk.getXYZGlo(posBeforeProp);
-																//float posBeforeProp[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // in local ref system
-																//printf("Global coordinates: posBeforeProp[0] = %f, posBeforeProp[1] = %f, posBeforeProp[2] = %f\n", posBeforeProp[0], posBeforeProp[1], posBeforeProp[2]);
-																//Printf("Radius xy = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1]));
-																//Printf("Radius xyz = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1] + posBeforeProp[2]*posBeforeProp[2]));
-																*/
+                                //trefTrk.getXYZGlo(posBeforeProp);
+                                //float posBeforeProp[3] = {trefTrk.getX(), trefTrk.getY(), trefTrk.getZ()}; // in local ref system
+                                //printf("Global coordinates: posBeforeProp[0] = %f, posBeforeProp[1] = %f, posBeforeProp[2] = %f\n", posBeforeProp[0], posBeforeProp[1], posBeforeProp[2]);
+                                //Printf("Radius xy = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1]));
+                                //Printf("Radius xyz = %f", TMath::Sqrt(posBeforeProp[0]*posBeforeProp[0] + posBeforeProp[1]*posBeforeProp[1] + posBeforeProp[2]*posBeforeProp[2]));
+                                */
 
 #ifdef _ALLOW_TOF_DEBUG_
     if (mDBGFlags) {
@@ -897,8 +897,8 @@ void MatchTOF::doMatching(int sec)
       // to reduce the active region of the strip -> uncomment these lines
       // float yresidual = TMath::Abs(deltaPosTemp[1]);
       // if(yresidual > 0.55){
-      // 	reachedPoint += step;
-      // 	continue;
+      //   reachedPoint += step;
+      //   continue;
       // }
 
       //      printf("res %f %f %f -- %f %f %f (%d)\n",deltaPosTemp[0],deltaPosTemp[1],deltaPosTemp[2],pos[0],pos[1],pos[2],detIdTemp[2]);
@@ -962,7 +962,7 @@ void MatchTOF::doMatching(int sec)
     // uncomment for debug purposes, to check tracks that did not cross any strip
     /*
     if (nStripsCrossedInPropagation == 0) {
-      auto labelTPCNoStripsCrossed = mTPCLabels->at(mTracksSectIndexCache[sec][itrk]);    
+      auto labelTPCNoStripsCrossed = mTPCLabels->at(mTracksSectIndexCache[sec][itrk]);
       Printf("The current track (index = %d) never crossed a strip", cacheTrk[itrk]);
       Printf("TrackID = %d, EventID = %d, SourceID = %d", labelTPCNoStripsCrossed.getTrackID(), labelTPCNoStripsCrossed.getEventID(), labelTPCNoStripsCrossed.getSourceID());
       printf("Global coordinates: pos[0] = %f, pos[1] = %f, pos[2] = %f\n", pos[0], pos[1], pos[2]);
@@ -1269,9 +1269,9 @@ void MatchTOF::doMatchingForTPC(int sec)
       }
       // uncomment below only for local debug; this will produce A LOT of output - one print per propagation step
       /*
-	Printf("posFloat[0] = %f, posFloat[1] = %f, posFloat[2] = %f", posFloat[0], posFloat[1], posFloat[2]);
-	Printf("radius xy = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1]));
-	Printf("radius xyz = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1] + posFloat[2]*posFloat[2]));
+  Printf("posFloat[0] = %f, posFloat[1] = %f, posFloat[2] = %f", posFloat[0], posFloat[1], posFloat[2]);
+  Printf("radius xy = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1]));
+  Printf("radius xyz = %f", TMath::Sqrt(posFloat[0]*posFloat[0] + posFloat[1]*posFloat[1] + posFloat[2]*posFloat[2]));
       */
 
       reachedPoint += step;
@@ -1562,7 +1562,7 @@ bool MatchTOF::propagateToRefX(o2::track::TrackParCov& trc, float xRef, float st
       //Printf("propagateToRefX: changing sector");
       auto alphaNew = o2::math_utils::angle2Alpha(trc.getPhiPos());
       if (!trc.rotate(alphaNew) != 0) {
-        //	Printf("propagateToRefX: failed to rotate");
+        //  Printf("propagateToRefX: failed to rotate");
         break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)
       }
     }
@@ -1602,7 +1602,7 @@ bool MatchTOF::propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef
       //Printf("propagateToRefX: changing sector");
       auto alphaNew = o2::math_utils::angle2Alpha(trcNoCov.getPhiPos());
       if (!trcNoCov.rotateParam(alphaNew) != 0) {
-        //	Printf("propagateToRefX: failed to rotate");
+        //  Printf("propagateToRefX: failed to rotate");
         break; // failed (this line is taken from MatchTPCITS and the following comment too: RS: check effect on matching tracks to neighbouring sector)
       }
     }
@@ -1689,7 +1689,7 @@ bool MatchTOF::makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCT
   const auto& tofCl = mTOFClustersArrayInp[match.getTOFClIndex()];
   const auto& intLT = match.getLTIntegralOut();
   // correct the time of the track
-  auto timeTOFMUS = (tofCl.getTime() - intLT.getTOF(o2::track::PID::Pion)) * 1e-6; // tof time in \mus, FIXME: account for time of flight to R TOF
+  auto timeTOFMUS = (tofCl.getTime() - intLT.getTOF(tpcTrOrig.getPID())) * 1e-6;   // tof time in \mus, FIXME: account for time of flight to R TOF
   auto timeTOFTB = timeTOFMUS * mTPCTBinMUSInv;                                    // TOF time in TPC timebins
   auto deltaTBins = timeTOFTB - tpcTrOrig.getTime0();                              // time shift in timeBins
   float timeErr = 0.010;                                                           // assume 10 ns error FIXME

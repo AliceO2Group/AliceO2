@@ -15,6 +15,7 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/DataRef.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/CompletionPolicy.h"
 #include "Framework/Logger.h"
 #include "Framework/PartRef.h"
@@ -196,6 +197,14 @@ DataRelayer::RelayChoice
   DataRelayer::relay(std::unique_ptr<FairMQMessage>&& header,
                      std::unique_ptr<FairMQMessage>&& payload)
 {
+  return relay(std::move(header), &payload, 1);
+}
+
+DataRelayer::RelayChoice
+  DataRelayer::relay(std::unique_ptr<FairMQMessage>&& firstPart,
+                     std::unique_ptr<FairMQMessage>* restOfParts,
+                     size_t restOfPartsSize)
+{
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
   // STATE HOLDING VARIABLES
   // This is the class level state of the relaying. If we start supporting
@@ -213,14 +222,14 @@ DataRelayer::RelayChoice
   // This returns the identifier for the given input. We use a separate
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
-  auto getInputTimeslice = [& matchers = mInputMatchers,
+  auto getInputTimeslice = [&matchers = mInputMatchers,
                             &distinctRoutes = mDistinctRoutesIndex,
-                            &header,
+                            &firstPart,
                             &index](VariableContext& context)
     -> std::tuple<int, TimesliceId> {
     /// FIXME: for the moment we only use the first context and reset
     /// between one invokation and the other.
-    auto input = matchToContext(header->GetData(), matchers, distinctRoutes, context);
+    auto input = matchToContext(firstPart->GetData(), matchers, distinctRoutes, context);
 
     if (input == INVALID_INPUT) {
       return {
@@ -262,9 +271,10 @@ DataRelayer::RelayChoice
   };
 
   // Actually save the header / payload in the slot
-  auto saveInSlot = [&header,
+  auto saveInSlot = [&firstPart,
                      &cachedStateMetrics = mCachedStateMetrics,
-                     &payload,
+                     &restOfParts,
+                     &restOfPartsSize,
                      &cache,
                      &numInputTypes,
                      &metrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
@@ -273,9 +283,13 @@ DataRelayer::RelayChoice
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
     // TODO: make sure that multiple parts can only be added within the same call of
     // DataRelayer::relay
-    PartRef entry{std::move(header), std::move(payload)};
+    PartRef entry{std::move(firstPart), std::move(restOfParts[0])};
     parts.emplace_back(std::move(entry));
-    assert(header.get() == nullptr && payload.get() == nullptr);
+    auto rest = restOfParts + 1;
+    for (size_t pi = 0; pi < (restOfPartsSize - 1) / 2; ++pi) {
+      PartRef entry{std::move(rest[pi * 2]), std::move(rest[pi * 2 + 1])};
+      parts.emplace_back(std::move(entry));
+    }
   };
 
   auto updateStatistics = [& stats = mStats](TimesliceIndex::ActionTaken action) {
@@ -354,9 +368,9 @@ DataRelayer::RelayChoice
   VariableContext pristineContext;
   std::tie(input, timeslice) = getInputTimeslice(pristineContext);
 
-  auto DataHeaderInfo = [&header]() {
+  auto DataHeaderInfo = [&firstPart]() {
     std::string error;
-    const auto* dh = o2::header::get<o2::header::DataHeader*>(header->GetData());
+    const auto* dh = o2::header::get<o2::header::DataHeader*>(firstPart->GetData());
     if (dh) {
       error += fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     } else {
@@ -369,14 +383,14 @@ DataRelayer::RelayChoice
     LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
-    return WillNotRelay;
+    return Invalid;
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
     LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
-    return WillNotRelay;
+    return Invalid;
   }
 
   TimesliceIndex::ActionTaken action;
@@ -393,12 +407,12 @@ DataRelayer::RelayChoice
         mult = mult * 10;
       }
     }
-    return WillNotRelay;
+    return Dropped;
   }
 
   if (action == TimesliceIndex::ActionTaken::DropInvalid) {
     LOG(WARNING) << "Incoming data is invalid, not relaying.";
-    return WillNotRelay;
+    return Invalid;
   }
 
   // At this point the variables match the new input but the
@@ -474,7 +488,8 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     auto nPartsGetter = [&partial](size_t idx) {
       return partial[idx].size();
     };
-    auto action = mCompletionPolicy.callback({getter, nPartsGetter, static_cast<size_t>(partial.size())});
+    InputSpan span{getter, nPartsGetter, static_cast<size_t>(partial.size())};
+    auto action = mCompletionPolicy.callback(span);
     switch (action) {
       case CompletionPolicy::CompletionOp::Consume:
       case CompletionPolicy::CompletionOp::Process:

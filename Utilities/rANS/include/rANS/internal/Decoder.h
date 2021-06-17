@@ -22,9 +22,9 @@
 #include <tuple>
 #include <type_traits>
 
-#include "DecoderSymbol.h"
-#include "EncoderSymbol.h"
-#include "helper.h"
+#include "rANS/internal/DecoderSymbol.h"
+#include "rANS/internal/EncoderSymbol.h"
+#include "rANS/internal/helper.h"
 
 namespace o2
 {
@@ -34,127 +34,128 @@ namespace internal
 {
 __extension__ typedef unsigned __int128 uint128;
 
-template <typename State_T, typename Stream_T>
+template <typename state_T, typename stream_T>
 class Decoder
 {
   // the Coder works either with a 64Bit state and 32 bit streaming or
   //a 32 Bit state and 8 Bit streaming We need to make sure it gets initialized with
   //the right template arguments at compile time.
-  static_assert((sizeof(State_T) == sizeof(uint32_t) && sizeof(Stream_T) == sizeof(uint8_t)) ||
-                  (sizeof(State_T) == sizeof(uint64_t) && sizeof(Stream_T) == sizeof(uint32_t)),
+  static_assert((sizeof(state_T) == sizeof(uint32_t) && sizeof(stream_T) == sizeof(uint8_t)) ||
+                  (sizeof(state_T) == sizeof(uint64_t) && sizeof(stream_T) == sizeof(uint32_t)),
                 "Coder can either be 32Bit with 8 Bit stream type or 64 Bit Type with 32 Bit stream type");
 
  public:
-  Decoder();
+  explicit Decoder(size_t symbolTablePrecission) noexcept;
 
   // Initializes a rANS decoder.
   // Unlike the encoder, the decoder works forwards as you'd expect.
-  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
-  Stream_IT init(Stream_IT iter);
+  template <typename stream_IT>
+  stream_IT init(stream_IT inputIter);
 
   // Returns the current cumulative frequency (map it to a symbol yourself!)
-  uint32_t get(uint32_t scale_bits);
+  uint32_t get();
 
   // Equivalent to Rans32DecAdvance that takes a symbol.
-  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
-  Stream_IT advanceSymbol(Stream_IT iter, const DecoderSymbol& sym, uint32_t scale_bits);
+  template <typename stream_IT>
+  stream_IT advanceSymbol(stream_IT inputIter, const DecoderSymbol& sym);
 
  private:
-  State_T mState;
+  state_T mState{};
+  size_t mSymbolTablePrecission{};
 
   // Renormalize.
-  template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool> = true>
-  std::tuple<State_T, Stream_IT> renorm(State_T x, Stream_IT iter);
+  template <typename stream_IT>
+  std::tuple<state_T, stream_IT> renorm(state_T x, stream_IT iter);
 
   // L ('l' in the paper) is the lower bound of our normalization interval.
   // Between this and our byte-aligned emission, we use 31 (not 32!) bits.
   // This is done intentionally because exact reciprocals for 31-bit uints
   // fit in 32-bit uints: this permits some optimizations during encoding.
-  inline static constexpr State_T LOWER_BOUND = needs64Bit<State_T>() ? (1u << 31) : (1u << 23); // lower bound of our normalization interval
+  inline static constexpr state_T LOWER_BOUND = needs64Bit<state_T>() ? (1u << 31) : (1u << 23); // lower bound of our normalization interval
 
-  inline static constexpr State_T STREAM_BITS = sizeof(Stream_T) * 8; // lower bound of our normalization interval
+  inline static constexpr state_T STREAM_BITS = sizeof(stream_T) * 8; // lower bound of our normalization interval
 };
 
-template <typename State_T, typename Stream_T>
-Decoder<State_T, Stream_T>::Decoder() : mState(0){};
+template <typename state_T, typename stream_T>
+Decoder<state_T, stream_T>::Decoder(size_t symbolTablePrecission) noexcept : mSymbolTablePrecission{symbolTablePrecission} {};
 
-template <typename State_T, typename Stream_T>
-template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
-Stream_IT Decoder<State_T, Stream_T>::init(Stream_IT iter)
+template <typename state_T, typename stream_T>
+template <typename stream_IT>
+stream_IT Decoder<state_T, stream_T>::init(stream_IT inputIter)
 {
 
-  State_T x = 0;
-  Stream_IT streamPos = iter;
+  state_T newState = 0;
+  stream_IT streamPosition = inputIter;
 
-  if constexpr (needs64Bit<State_T>()) {
-    x = static_cast<State_T>(*streamPos) << 0;
-    --streamPos;
-    x |= static_cast<State_T>(*streamPos) << 32;
-    --streamPos;
-    assert(std::distance(streamPos, iter) == 2);
+  if constexpr (needs64Bit<state_T>()) {
+    newState = static_cast<state_T>(*streamPosition) << 0;
+    --streamPosition;
+    newState |= static_cast<state_T>(*streamPosition) << 32;
+    --streamPosition;
+    assert(std::distance(streamPosition, inputIter) == 2);
   } else {
-    x = static_cast<State_T>(*streamPos) << 0;
-    --streamPos;
-    x |= static_cast<State_T>(*streamPos) << 8;
-    --streamPos;
-    x |= static_cast<State_T>(*streamPos) << 16;
-    --streamPos;
-    x |= static_cast<State_T>(*streamPos) << 24;
-    --streamPos;
-    assert(std::distance(streamPos, iter) == 4);
+    newState = static_cast<state_T>(*streamPosition) << 0;
+    --streamPosition;
+    newState |= static_cast<state_T>(*streamPosition) << 8;
+    --streamPosition;
+    newState |= static_cast<state_T>(*streamPosition) << 16;
+    --streamPosition;
+    newState |= static_cast<state_T>(*streamPosition) << 24;
+    --streamPosition;
+    assert(std::distance(streamPosition, inputIter) == 4);
   }
 
-  mState = x;
-  return streamPos;
+  mState = newState;
+  return streamPosition;
 };
 
-template <typename State_T, typename Stream_T>
-uint32_t Decoder<State_T, Stream_T>::get(uint32_t scale_bits)
+template <typename state_T, typename stream_T>
+uint32_t Decoder<state_T, stream_T>::get()
 {
-  return mState & ((1u << scale_bits) - 1);
+  return mState & ((pow2(mSymbolTablePrecission)) - 1);
 };
 
-template <typename State_T, typename Stream_T>
-template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
-Stream_IT Decoder<State_T, Stream_T>::advanceSymbol(Stream_IT iter, const DecoderSymbol& sym, uint32_t scale_bits)
+template <typename state_T, typename stream_T>
+template <typename stream_IT>
+stream_IT Decoder<state_T, stream_T>::advanceSymbol(stream_IT inputIter, const DecoderSymbol& symbol)
 {
-  static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);
+  static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
-  State_T mask = (1ull << scale_bits) - 1;
+  state_T mask = (pow2(mSymbolTablePrecission)) - 1;
 
   // s, x = D(x)
-  State_T x = mState;
-  x = sym.freq * (x >> scale_bits) + (x & mask) - sym.start;
+  state_T newState = mState;
+  newState = symbol.getFrequency() * (newState >> mSymbolTablePrecission) + (newState & mask) - symbol.getCumulative();
 
   // renormalize
-  Stream_IT streamPos;
-  std::tie(mState, streamPos) = this->renorm(x, iter);
-  return streamPos;
+  const auto [renormedState, newStreamPosition] = this->renorm(newState, inputIter);
+  mState = renormedState;
+  return newStreamPosition;
 };
 
-template <typename State_T, typename Stream_T>
-template <typename Stream_IT, std::enable_if_t<isCompatibleIter_v<Stream_T, Stream_IT>, bool>>
-inline std::tuple<State_T, Stream_IT> Decoder<State_T, Stream_T>::renorm(State_T x, Stream_IT iter)
+template <typename state_T, typename stream_T>
+template <typename stream_IT>
+inline std::tuple<state_T, stream_IT> Decoder<state_T, stream_T>::renorm(state_T state, stream_IT inputIter)
 {
-  static_assert(std::is_same<typename std::iterator_traits<Stream_IT>::value_type, Stream_T>::value);
+  static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
-  Stream_IT streamPos = iter;
+  stream_IT streamPosition = inputIter;
 
   // renormalize
-  if (x < LOWER_BOUND) {
-    if constexpr (needs64Bit<State_T>()) {
-      x = (x << STREAM_BITS) | *streamPos;
-      --streamPos;
-      assert(x >= LOWER_BOUND);
+  if (state < LOWER_BOUND) {
+    if constexpr (needs64Bit<state_T>()) {
+      state = (state << STREAM_BITS) | *streamPosition;
+      --streamPosition;
+      assert(state >= LOWER_BOUND);
     } else {
 
       do {
-        x = (x << STREAM_BITS) | *streamPos;
-        --streamPos;
-      } while (x < LOWER_BOUND);
+        state = (state << STREAM_BITS) | *streamPosition;
+        --streamPosition;
+      } while (state < LOWER_BOUND);
     }
   }
-  return std::make_tuple(x, streamPos);
+  return std::make_tuple(state, streamPosition);
 }
 
 } // namespace internal

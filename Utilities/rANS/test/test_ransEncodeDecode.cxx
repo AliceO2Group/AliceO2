@@ -25,40 +25,14 @@
 
 #include "rANS/rans.h"
 
-template <typename CODER_T, typename STREAM_T, uint P>
-struct Fixture {
-  // type of the coder: 32 bit or 64 bit
-  using coder_t = CODER_T;
-  // how many bytes do we stream out during normalization:
-  // 1 Byte for 32Bit coders, 4Byte for 64Bit coders
-  using stream_t = STREAM_T;
-  // what is the datatype of our source symbols?
-  using source_t = char;
-
-  using encoder_t = o2::rans::Encoder<coder_t, stream_t, source_t>;
-  using decoder_t = o2::rans::Decoder<coder_t, stream_t, source_t>;
-  using literalEncoder_t = o2::rans::LiteralEncoder<coder_t, stream_t, source_t>;
-  using literalDecoder_t = o2::rans::LiteralDecoder<coder_t, stream_t, source_t>;
-  using dedupEncoder_t = o2::rans::DedupEncoder<coder_t, stream_t, source_t>;
-  using dedupDecoder_t = o2::rans::DedupDecoder<coder_t, stream_t, source_t>;
-
-  //TUNIG parameters
-  // how many bits do we resample the symbol statistics to?
-  // this depends on the size of the alphabet (i.e. how big source_t is).
-  // See poster for more details
-  // https://indico.cern.ch/event/773049/contributions/3474364/attachments/1936180/3208584/Layout.pdf
-  // As a rule of thumb we need
-  // 10 Bits for 8Bit alphabets,
-  // 22Bits for 16Bit alphabets,
-  // 25Bits for 25Bit alphabets
-  const uint probabilityBits = P;
-
-  const std::string source;
+struct EmptyTestString {
+  std::string data{};
 };
 
-template <typename CODER_T, typename STREAM_T, uint P>
-struct FixtureFull : public Fixture<CODER_T, STREAM_T, P> {
-  const std::string source = R"(Sed ut perspiciatis, unde omnis iste natus error sit voluptatem accusantium
+struct FullTestString : public EmptyTestString {
+  FullTestString()
+  {
+    data = R"(Sed ut perspiciatis, unde omnis iste natus error sit voluptatem accusantium
 doloremque laudantium, totam rem aperiam eaque ipsa, quae ab illo inventore veritatis
 et quasi architecto beatae vitae dicta sunt, explicabo. nemo enim ipsam voluptatem,
 quia voluptas sit, aspernatur aut odit aut fugit, sed quia consequuntur magni dolores
@@ -69,113 +43,146 @@ quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid 
 commodi consequatur? quis autem vel eum iure reprehenderit, qui in ea voluptate velit
 esse, quam nihil molestiae consequatur, vel illum, qui dolorem eum fugiat,
 quo voluptas nulla pariatur?)";
+  }
 };
 
-typedef boost::mpl::vector<Fixture<uint32_t, uint8_t, 14>, Fixture<uint64_t, uint32_t, 18>, FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint64_t, uint32_t, 18>> Fixtures;
+template <typename coder_T>
+struct Params {
+};
 
-BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode, T, Fixtures, T)
+template <>
+struct Params<uint32_t> {
+  using coder_t = uint32_t;
+  using stream_t = uint8_t;
+  using source_t = char;
+  static constexpr size_t symbolTablePrecission = 16;
+};
+
+template <>
+struct Params<uint64_t> {
+  using coder_t = uint64_t;
+  using stream_t = uint32_t;
+  using source_t = char;
+  static constexpr size_t symbolTablePrecission = 16;
+};
+
+template <
+  template <typename, typename, typename> class encoder_T,
+  template <typename, typename, typename> class decoder_T,
+  typename coder_T, class dictString_T, class testString_T>
+struct EncodeDecodeBase {
+ public:
+  using params_t = Params<coder_T>;
+
+  EncodeDecodeBase()
+  {
+    dictString_T source;
+    std::string& s = source.data;
+    o2::rans::FrequencyTable frequencies;
+    frequencies.addSamples(std::begin(s), std::end(s));
+
+    encoder = decltype(encoder)(frequencies, params_t::symbolTablePrecission);
+    decoder = decltype(decoder)(frequencies, params_t::symbolTablePrecission);
+
+    const auto [min, max] = [&s]() {
+      const auto [minIter, maxIter] = std::minmax_element(s.begin(), s.end());
+      const char min = minIter == s.end() ? 0 : *minIter;
+      const char max = maxIter == s.end() ? 0 : *maxIter + 1;
+      return std::make_tuple(min, max);
+    }();
+
+    const size_t alphabetRangeBits = o2::rans::internal::numBitsForNSymbols(max - min + 1 + 1);
+
+    BOOST_CHECK_EQUAL(encoder.getSymbolTablePrecision(), params_t::symbolTablePrecission);
+    BOOST_CHECK_EQUAL(encoder.getAlphabetRangeBits(), alphabetRangeBits);
+    BOOST_CHECK_EQUAL(encoder.getMinSymbol(), min);
+    BOOST_CHECK_EQUAL(encoder.getMaxSymbol(), max);
+
+    BOOST_CHECK_EQUAL(decoder.getSymbolTablePrecision(), params_t::symbolTablePrecission);
+    BOOST_CHECK_EQUAL(decoder.getAlphabetRangeBits(), alphabetRangeBits);
+    BOOST_CHECK_EQUAL(decoder.getMinSymbol(), min);
+    BOOST_CHECK_EQUAL(decoder.getMaxSymbol(), max);
+  }
+
+  virtual void encode() = 0;
+  virtual void decode() = 0;
+
+  void check()
+  {
+    testString_T testString;
+    BOOST_CHECK_EQUAL_COLLECTIONS(testString.data.begin(), testString.data.end(), decodeBuffer.begin(), decodeBuffer.end());
+  }
+
+  testString_T source;
+  encoder_T<typename params_t::coder_t, typename params_t::stream_t, typename params_t::source_t> encoder{};
+  decoder_T<typename params_t::coder_t, typename params_t::stream_t, typename params_t::source_t> decoder{};
+  std::vector<typename Params<coder_T>::stream_t> encodeBuffer{};
+  std::vector<typename Params<coder_T>::source_t> decodeBuffer{};
+};
+
+template <typename coder_T, class dictString_T, class testString_T>
+struct EncodeDecode : public EncodeDecodeBase<o2::rans::Encoder, o2::rans::Decoder, coder_T, dictString_T, testString_T> {
+  void encode() override
+  {
+    BOOST_CHECK_NO_THROW(this->encoder.process(std::begin(this->source.data), std::end(this->source.data), std::back_inserter(this->encodeBuffer)));
+  };
+  void decode() override
+  {
+    BOOST_CHECK_NO_THROW(this->decoder.process(this->encodeBuffer.end(), std::back_inserter(this->decodeBuffer), this->source.data.size()));
+  };
+};
+
+template <typename coder_T, class dictString_T, class testString_T>
+struct EncodeDecodeLiteral : public EncodeDecodeBase<o2::rans::LiteralEncoder, o2::rans::LiteralDecoder, coder_T, dictString_T, testString_T> {
+  void encode() override
+  {
+    BOOST_CHECK_NO_THROW(this->encoder.process(std::begin(this->source.data), std::end(this->source.data), std::back_inserter(this->encodeBuffer), literals));
+  };
+  void decode() override
+  {
+    BOOST_CHECK_NO_THROW(this->decoder.process(this->encodeBuffer.end(), std::back_inserter(this->decodeBuffer), this->source.data.size(), literals));
+    BOOST_CHECK(literals.empty());
+  };
+
+  std::vector<typename Params<coder_T>::source_t> literals;
+};
+
+template <typename coder_T, class dictString_T, class testString_T>
+struct EncodeDecodeDedup : public EncodeDecodeBase<o2::rans::DedupEncoder, o2::rans::DedupDecoder, coder_T, dictString_T, testString_T> {
+  void encode() override
+  {
+    BOOST_CHECK_NO_THROW(this->encoder.process(std::begin(this->source.data), std::end(this->source.data), std::back_inserter(this->encodeBuffer), duplicates));
+  };
+  void decode() override
+  {
+    BOOST_CHECK_NO_THROW(this->decoder.process(this->encodeBuffer.end(), std::back_inserter(this->decodeBuffer), this->source.data.size(), duplicates));
+  };
+
+  using params_t = Params<coder_T>;
+  typename o2::rans::DedupEncoder<typename params_t::coder_t,
+                                  typename params_t::stream_t,
+                                  typename params_t::source_t>::duplicatesMap_t duplicates;
+};
+
+using testCase_t = boost::mpl::vector<EncodeDecode<uint32_t, EmptyTestString, EmptyTestString>,
+                                      EncodeDecode<uint64_t, EmptyTestString, EmptyTestString>,
+                                      EncodeDecode<uint32_t, FullTestString, FullTestString>,
+                                      EncodeDecode<uint64_t, FullTestString, FullTestString>,
+                                      EncodeDecodeLiteral<uint32_t, EmptyTestString, EmptyTestString>,
+                                      EncodeDecodeLiteral<uint64_t, EmptyTestString, EmptyTestString>,
+                                      EncodeDecodeLiteral<uint32_t, FullTestString, FullTestString>,
+                                      EncodeDecodeLiteral<uint64_t, FullTestString, FullTestString>,
+                                      EncodeDecodeLiteral<uint32_t, EmptyTestString, FullTestString>,
+                                      EncodeDecodeLiteral<uint64_t, EmptyTestString, FullTestString>,
+                                      EncodeDecodeDedup<uint32_t, EmptyTestString, EmptyTestString>,
+                                      EncodeDecodeDedup<uint64_t, EmptyTestString, EmptyTestString>,
+                                      EncodeDecodeDedup<uint32_t, FullTestString, FullTestString>,
+                                      EncodeDecodeDedup<uint64_t, FullTestString, FullTestString>>;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_encodeDecode, testCase_T, testCase_t)
 {
-  fair::Logger::SetConsoleSeverity("trace");
-  // iterate over the message and create PDF and CDF for each symbol in the message
-  o2::rans::FrequencyTable frequencies;
-  frequencies.addSamples(std::begin(T::source), std::end(T::source));
-
-  // buffer to write the rANS coded message into
-  std::vector<typename T::stream_t> encoderBuffer(1 << 20, 0);
-  //create a stateful encoder object that builds an encoding table from the given symbol statistics
-  const typename T::encoder_t encoder{frequencies, T::probabilityBits};
-  // encoder rANS encodes symbols from SOURCE array to encoder Buffer. Since coder and decoder
-  // are mathematical inverse functions on the ANS state, they operate as a stack -
-  // i.e. the decoder outputs the message in reverse order of the encoder.
-  // By convention the encoder runs backwards over the input so that the decoder can return
-  // the data in the expected order. The encoder will start from encoderBuffer.begin()
-  // and return an iterator one element past the last entry written.
-  // This means the encodeded message ranges from encoderBuffer.begin() to encodedMessageEnd -1, with (encodedMessageEnd -encoderBuffer.begin()) entries written.
-  auto encodedMessageEnd = encoder.process(encoderBuffer.begin(), encoderBuffer.end(), std::begin(T::source), std::end(T::source));
-
-  // The decoded message will go into the decoder buffer which will have as many symbols as the original message
-  std::vector<typename T::source_t> decoderBuffer(std::distance(std::begin(T::source), std::end(T::source)), 0);
-  // create a stateful decoder object that build a decoding table from the given symbol statistics
-  const typename T::decoder_t decoder{frequencies, T::probabilityBits};
-  // the decoder unwinds the rANS state in the encoder buffer starting at ransBegin and decodes it into the decode buffer;
-  decoder.process(decoderBuffer.begin(), encodedMessageEnd, std::distance(std::begin(T::source), std::end(T::source)));
-
-  //the decodeBuffer and the source message have to be identical afterwards.
-  BOOST_REQUIRE(std::memcmp(&(*T::source.begin()), decoderBuffer.data(),
-                            decoderBuffer.size() * sizeof(typename T::source_t)) == 0);
-}
-
-typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint64_t, uint32_t, 14>> LiteralFixtures;
-
-BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_literals, T, LiteralFixtures, T)
-{
-  fair::Logger::SetConsoleSeverity("trace");
-
-  // iterate over the message and create PDF and CDF for each symbol in the message
-  o2::rans::FrequencyTable frequencies;
-  frequencies.addSamples(std::begin(T::source), std::end(T::source));
-
-  std::string adaptedSource = "\\";
-  adaptedSource.append(T::source);
-  adaptedSource.append("&%=/*!");
-
-  // buffer to write the rANS coded message into
-  std::vector<typename T::stream_t> encoderBuffer(1 << 20, 0);
-  //create a stateful encoder object that builds an encoding table from the given symbol statistics
-  const typename T::literalEncoder_t encoder{frequencies, T::probabilityBits};
-  // encoder rANS encodes symbols from SOURCE array to encoder Buffer. Since coder and decoder
-  // are mathematical inverse functions on the ANS state, they operate as a stack -
-  // i.e. the decoder outputs the message in reverse order of the encoder.
-  // By convention the encoder runs backwards over the input so that the decoder can return
-  // the data in the expected order. The encoder will start from encoderBuffer.begin()
-  // and return an iterator one element past the last entry written.
-  // This means the encodeded message ranges from encoderBuffer.begin() to encodedMessageEnd -1, with (encodedMessageEnd -encoderBuffer.begin()) entries written.
-  std::vector<typename T::source_t> literals;
-  auto encodedMessageEnd = encoder.process(encoderBuffer.begin(), encoderBuffer.end(), std::begin(adaptedSource), std::end(adaptedSource), literals);
-
-  // The decoded message will go into the decoder buffer which will have as many symbols as the original message
-  std::vector<typename T::source_t> decoderBuffer(std::distance(std::begin(adaptedSource), std::end(adaptedSource)), 0);
-  // create a stateful decoder object that build a decoding table from the given symbol statistics
-  const typename T::literalDecoder_t decoder{frequencies, T::probabilityBits};
-  // the decoder unwinds the rANS state in the encoder buffer starting at ransBegin and decodes it into the decode buffer;
-  decoder.process(decoderBuffer.begin(), encodedMessageEnd, std::distance(std::begin(adaptedSource), std::end(adaptedSource)), literals);
-
-  //the decodeBuffer and the source message have to be identical afterwards.
-  BOOST_REQUIRE(std::memcmp(&(*adaptedSource.begin()), decoderBuffer.data(),
-                            decoderBuffer.size() * sizeof(typename T::source_t)) == 0);
-}
-
-typedef boost::mpl::vector<FixtureFull<uint32_t, uint8_t, 14>, FixtureFull<uint64_t, uint32_t, 14>> DedupFixtures;
-
-BOOST_FIXTURE_TEST_CASE_TEMPLATE(test_EncodeDecode_dedup, T, DedupFixtures, T)
-{
-  fair::Logger::SetConsoleSeverity("trace");
-  // iterate over the message and create PDF and CDF for each symbol in the message
-  o2::rans::FrequencyTable frequencies;
-  frequencies.addSamples(std::begin(T::source), std::end(T::source));
-
-  // buffer to write the rANS coded message into
-  std::vector<typename T::stream_t> encoderBuffer(1 << 20, 0);
-  //create a stateful encoder object that builds an encoding table from the given symbol statistics
-  const typename T::dedupEncoder_t encoder{frequencies, T::probabilityBits};
-  // encoder rANS encodes symbols from SOURCE array to encoder Buffer. Since coder and decoder
-  // are mathematical inverse functions on the ANS state, they operate as a stack -
-  // i.e. the decoder outputs the message in reverse order of the encoder.
-  // By convention the encoder runs backwards over the input so that the decoder can return
-  // the data in the expected order. The encoder will start from encoderBuffer.begin()
-  // and return an iterator one element past the last entry written.
-  // This means the encodeded message ranges from encoderBuffer.begin() to encodedMessageEnd -1, with (encodedMessageEnd -encoderBuffer.begin()) entries written.
-  std::map<uint32_t, uint32_t> duplicates;
-  auto encodedMessageEnd = encoder.process(encoderBuffer.begin(), encoderBuffer.end(), std::begin(T::source), std::end(T::source), duplicates);
-
-  // The decoded message will go into the decoder buffer which will have as many symbols as the original message
-  std::vector<typename T::source_t> decoderBuffer(std::distance(std::begin(T::source), std::end(T::source)), 0);
-  // create a stateful decoder object that build a decoding table from the given symbol statistics
-  const typename T::dedupDecoder_t decoder{frequencies, T::probabilityBits};
-  // the decoder unwinds the rANS state in the encoder buffer starting at ransBegin and decodes it into the decode buffer;
-  decoder.process(decoderBuffer.begin(), encodedMessageEnd, std::distance(std::begin(T::source), std::end(T::source)), duplicates);
-
-  //the decodeBuffer and the source message have to be identical afterwards.
-  BOOST_REQUIRE(std::memcmp(&(*T::source.begin()), decoderBuffer.data(),
-                            decoderBuffer.size() * sizeof(typename T::source_t)) == 0);
-}
+  testCase_T testCase;
+  testCase.encode();
+  testCase.decode();
+  testCase.check();
+};

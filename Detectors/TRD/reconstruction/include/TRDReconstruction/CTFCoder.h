@@ -96,7 +96,7 @@ void CTFCoder::encode(VEC& buff, const gsl::span<const TriggerRecord>& trigData,
   ENCODETRD(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
   ENCODETRD(helper.begin_entriesTrk(),   helper.end_entriesTrk(),    CTF::BLC_entriesTrk,   0);
   ENCODETRD(helper.begin_entriesDig(),   helper.end_entriesDig(),    CTF::BLC_entriesDig,   0);
-  
+
   ENCODETRD(helper.begin_HCIDTrk(),      helper.end_HCIDTrk(),       CTF::BLC_HCIDTrk,      0);
   ENCODETRD(helper.begin_padrowTrk(),    helper.end_padrowTrk(),     CTF::BLC_padrowTrk,    0);
   ENCODETRD(helper.begin_colTrk(),       helper.end_colTrk(),        CTF::BLC_colTrk,       0);

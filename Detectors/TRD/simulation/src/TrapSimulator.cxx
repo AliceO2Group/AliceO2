@@ -962,6 +962,9 @@ int TrapSimulator::packData(std::vector<uint32_t>& rawdata, uint32_t offset)
 int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, unsigned int iEv) const
 {
   //
+  // This is simply a copy of fix to compile from run2
+  // TODO needs to possibly be updated changed thrown away ??? problem for later, worry about tracklets now.
+  //
   // Produce raw data stream from this MCM and put in buf
   // Returns number of words filled, or negative value
   // with -1 * number of overflowed words
@@ -989,7 +992,7 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
   }
 
   // Produce ADC mask : nncc cccm mmmm mmmm mmmm mmmm mmmm 1100
-  // 				n : unused , c : ADC count, m : selected ADCs
+  // n : unused , c : ADC count, m : selected ADCs
   if (rawVer >= 3 &&
       (mTrapConfig->getTrapReg(TrapConfig::kC15CPUA, mDetector, mRobPos, mMcmPos) & (1 << 13))) { // check for zs flag in TRAP configuration
     int nActiveADC = 0;                                                                           // number numberOverFlowWordsWritten activated ADC bits in a word

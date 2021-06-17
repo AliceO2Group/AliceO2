@@ -86,15 +86,6 @@ template <typename T>
 struct GetDigitRefsN<T, std::enable_if_t<HasArrayRef<T>::value && (std::tuple_size<decltype(std::declval<T>().ref)>::value > 1)>> {
   constexpr static std::size_t value = std::tuple_size<decltype(std::declval<T>().ref)>::value;
 };
-//Temporary for FV0
-template <typename T, typename = void>
-struct IsFV0;
-template <typename T>
-struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().mIntRecord), o2::InteractionRecord>::value>> : std::false_type {
-};
-template <typename T>
-struct IsFV0<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ir), o2::InteractionRecord>::value>> : std::true_type {
-};
 //Check if InteractionRecord field exists
 template <typename T, typename = void>
 struct HasIntRecord : std::false_type {
@@ -106,17 +97,6 @@ struct HasIntRecord<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().
 template <typename T>
 struct HasIntRecord<T, std::enable_if_t<std::is_same<decltype(std::declval<T>().ir), o2::InteractionRecord>::value>> : std::true_type {
 };
-//Temporary because of different InteractionRecord field names
-template <typename T, typename IR>
-auto SetIntRecord(T& digit, IR&& ir) -> std::enable_if_t<!IsFV0<T>::value>
-{
-  digit.mIntRecord = std::forward<IR>(ir);
-}
-template <typename T, typename IR>
-auto SetIntRecord(T& digit, IR&& ir) -> std::enable_if_t<IsFV0<T>::value>
-{
-  digit.ir = std::forward<IR>(ir);
-}
 //Dividing to sub-digit structures with InteractionRecord(single one, e.g. for TCM extended mode) and without
 template <typename T>
 using GetVecSubDigit = typename boost::mpl::remove_if<T, boost::mpl::lambda<HasIntRecord<boost::mpl::_1>>::type>::type;
@@ -150,9 +130,7 @@ struct GetSubDigitField<T, std::enable_if_t<(boost::mpl::size<T>::value > 1)>> {
   struct MakeTuple<std::tuple<Args...>, LastArg> {
     typedef std::tuple<Args..., LastArg> type;
   };
-  //boost::mpl::vector<...> to std::tuple<std::vector<...>,...>
   typedef typename boost::mpl::fold<T, std::tuple<>, MakeTuple<boost::mpl::_1, std::vector<boost::mpl::_2>>>::type vector_type;
-  //boost::mpl::vector<...> to std::tuple<...>
   typedef typename boost::mpl::fold<T, std::tuple<>, MakeTuple<boost::mpl::_1, boost::mpl::_2>>::type type;
   constexpr static bool sIsEmpty = false;
   constexpr static bool sIsTuple = true;
@@ -166,18 +144,20 @@ struct GetSubDigitField<T, std::enable_if_t<(boost::mpl::size<T>::value > 1)>> {
 // SubDigit - sub digit structure which shouldn't contain InteractionRecord field
 // SingleSubDigit - separated SubDigits which contain InteractionRecord field and not referred by ReferenceRange field in Digit structure.
 // For example extended TCM mode uses such SingleSubDigits
-template <typename DigitBlockType, typename DigitType, typename... SubDigitTypes>
+template <typename DigitType, typename... SubDigitTypes>
 class DigitBlockBase //:public DigitBlock
 {
  public:
   DigitBlockBase(o2::InteractionRecord intRec)
   {
-    DigitBlockHelper::SetIntRecord(mDigit, intRec);
+    mDigit.setIntRecord(intRec);
+  }
+  DigitBlockBase(const DigitType& digit) : mDigit(digit)
+  {
   }
   DigitBlockBase() = default;
   DigitBlockBase(const DigitBlockBase& other) = default;
   ~DigitBlockBase() = default;
-  typedef DigitBlockType DigitBlock_t;
   typedef DigitType Digit_t;
   typedef boost::mpl::vector<SubDigitTypes...> VecAllSubDigit_t;
   typedef DigitBlockHelper::GetVecSubDigit<VecAllSubDigit_t> VecSubDigit_t;
@@ -189,19 +169,6 @@ class DigitBlockBase //:public DigitBlock
   Digit_t mDigit;
   SubDigit_t mSubDigit;
   SingleSubDigit_t mSingleSubDigit;
-  /*
-  template <typename T,typename ... U>
-  void process(T& dataBlock, U&&... feeParameters)
-  {
-    static_cast<DigitBlock_t*>(this)->processDigits(dataBlock, std::forward<U>(feeParameters)...);
-  }
-  */
-  template <typename... T>
-  void pop(std::vector<T>&... vecDigits)
-  {
-    static_cast<DigitBlock_t*>(this)->getDigits(vecDigits...);
-  }
-
   template <typename... T>
   auto getSubDigits(std::vector<Digit_t>& vecDigits, std::vector<T>&... vecSubDigits)
     -> std::enable_if_t<sizeof...(T) == sNSubDigits>
@@ -250,7 +217,53 @@ class DigitBlockBase //:public DigitBlock
   {
     std::get<0>(tupleVecSingleSubDigits).push_back(std::move(mSingleSubDigit));
   }
+  // 1-Dim SubDigit
+  template <typename DigitBlockType, typename DigitT, typename SubDigitT>
+  static auto makeDigitBlock(const std::vector<DigitT>& vecDigits, const std::vector<SubDigitT>& vecSubDigits) -> std::enable_if_t<DigitBlockHelper::GetDigitRefsN<DigitT>::value == 1 && DigitBlockHelper::IsSpecOfType<DigitBlockBase, typename DigitBlockType::DigitBlockBase_t>::value, std::vector<DigitBlockType>>
+  {
+    std::vector<DigitBlockType> vecResult;
+    vecResult.reserve(vecDigits.size());
+    for (const auto& digit : vecDigits) {
+      auto itBegin = vecSubDigits.begin();
+      std::advance(itBegin, digit.ref.getFirstEntry());
+      auto itLast = itBegin;
+      std::advance(itLast, digit.ref.getEntries());
+      vecResult.push_back({digit});
+      vecResult.back().mSubDigit.reserve(digit.ref.getEntries());
+      std::copy(itBegin, itLast, std::back_inserter(vecResult.back().mSubDigit));
+    }
+    return vecResult;
+  }
 
+  // Multi-Dim SubDigits
+  template <typename DigitBlockType, typename DigitT, typename... SubDigitT>
+  static auto makeDigitBlock(const std::vector<DigitT>& vecDigits, const std::vector<SubDigitT>&... vecSubDigits) -> std::enable_if_t<(DigitBlockHelper::GetDigitRefsN<DigitT>::value > 1) && (DigitBlockHelper::IsSpecOfType<DigitBlockBase, typename DigitBlockType::DigitBlockBase_t>::value), std::vector<DigitBlockType>>
+  {
+    std::vector<DigitBlockType> vecResult;
+    vecResult.reserve(vecDigits.size());
+    for (const auto& digit : vecDigits) {
+      vecResult.push_back({digit});
+      auto& refTuple = vecResult.back().mSubDigit;
+      fillSubDigitTuple<sizeof...(SubDigitT)>(digit, std::tie(vecSubDigits...), refTuple);
+    }
+    return vecResult;
+  }
+
+  template <std::size_t N, typename DigitT, typename... T>
+  static void fillSubDigitTuple(const DigitT& digit, const std::tuple<T...>& tupleSrc, std::tuple<T...>& tupleDest)
+  {
+    const auto& vecSrc = std::get<N>(tupleSrc);
+    auto& vecDest = std::get<N>(tupleSrc);
+    auto itBegin = vecSrc.begin();
+    std::advance(itBegin, digit.ref[N - 1].getFirstEntry());
+    auto itLast = itBegin;
+    std::advance(itLast, digit.ref[N - 1].getEntries());
+    vecDest.reserve(digit.ref[N - 1].getEntries());
+    std::copy(itBegin, itLast, std::back_inserter(vecDest));
+    if constexpr (N > 1) {
+      fillSubDigitTuple<N - 1>(digit, tupleSrc, tupleDest);
+    }
+  }
   void print() const
   {
     mDigit.printLog();

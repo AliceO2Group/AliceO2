@@ -12,10 +12,14 @@
 
 using namespace o2::tof;
 
-TOFFEEchannelConfig* TOFFEElightConfig::getChannelConfig(int icrate, int itrm, int ichain, int itdc, int ichtdc)
+const TOFFEEchannelConfig* TOFFEElightConfig::getChannelConfig(int icrate, int itrm, int ichain, int itdc, int ichtdc) const
 {
 
   // return the channel config for the given crate, trm, chain, tdc, tdcchannel
 
-  return icrate >= Geo::kNCrate ? nullptr : itrm >= Geo::kNTRM ? nullptr : ichain >= Geo::kNChain ? nullptr : itdc >= Geo::kNTdc ? nullptr : ichtdc >= Geo::kNCh ? nullptr : &mChannelConfig[icrate][itrm][ichain][itdc][ichtdc];
+  return icrate >= Geo::kNCrate ? nullptr : itrm >= Geo::kNTRM - 2 ? nullptr
+                                          : ichain >= Geo::kNChain ? nullptr
+                                          : itdc >= Geo::kNTdc     ? nullptr
+                                          : ichtdc >= Geo::kNCh    ? nullptr
+                                                                   : &mChannelConfig[icrate][itrm][ichain][itdc][ichtdc]; // the TRM index goes from 0 to 9, but in O2 kNTRM = 12, because it corresponds to the VME slots which span in [3, 12]
 }

@@ -280,8 +280,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<OutputSpec> providedCCDBs;
   std::vector<OutputSpec> providedOutputObjHist;
 
-  outputTasks outTskMap;
-  outputObjects outObjHistMap;
+  std::vector<OutputTaskInfo> outTskMap;
+  std::vector<OutputObjectInfo> outObjHistMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -360,11 +360,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObjHist.emplace_back(output);
-        auto it = std::find_if(outObjHistMap.begin(), outObjHistMap.end(), [&](auto&& x) { return x.first == hash; });
+        auto it = std::find_if(outObjHistMap.begin(), outObjHistMap.end(), [&](auto&& x) { return x.id == hash; });
         if (it == outObjHistMap.end()) {
           outObjHistMap.push_back({hash, {output.binding.value}});
         } else {
-          it->second.push_back(output.binding.value);
+          it->bindings.push_back(output.binding.value);
         }
       }
       if (output.lifetime == Lifetime::Condition) {
@@ -814,6 +814,9 @@ WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::Workfl
   for (auto& spec : workflow) {
     if (spec.name.empty()) {
       throw std::runtime_error("Invalid DataProcessorSpec name");
+    }
+    if (strpbrk(spec.name.data(), ",;:\"'$") != nullptr) {
+      throw std::runtime_error("Cannot use any of ,;:\"'$ as DataProcessor name");
     }
     if (validNames.find(spec.name) != validNames.end()) {
       throw std::runtime_error("Name " + spec.name + " is used twice.");

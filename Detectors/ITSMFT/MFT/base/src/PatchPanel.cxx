@@ -47,6 +47,7 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   auto* PatchPanelVolume = new TGeoVolumeAssembly("PatchPanelVolume");
 
   TGeoMedium* kMedAlu = gGeoManager->GetMedium("MFT_Alu$");
+  TGeoMedium* kMedCu = gGeoManager->GetMedium("MFT_Cu$");
 
   /////////////////////////////////////   A ////////////////////////////
 
@@ -816,11 +817,70 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   auto* patchpanel_Volume =
     new TGeoVolume("patchpanel_Volume", patchpanel_Shape, kMedAlu);
 
+  //====== Contents of the patch panel (cables, pipes, cards) coded as plates ======
+  Double_t radin_pl0 = 33;   // inner radius
+  Double_t radout_pl0 = 45;  // outer radius
+  Double_t high_pl0 = 0.15;  // thickness
+  Double_t angin_pl0 = 20.;  // theta min
+  Double_t angfin_pl0 = 30.; // theta max
+
+  Double_t radin_pl1 = 33;
+  Double_t radout_pl1 = 49;
+  Double_t high_pl1 = 0.15;
+  Double_t angin_pl1 = 31.;
+  Double_t angfin_pl1 = 49.;
+
+  //=== Central part with high density of materials ==
+  Double_t radin_pl2 = 32;
+  Double_t radout_pl2 = 49;
+  Double_t high_pl2 = 0.3;
+  Double_t angin_pl2 = 57.;
+  Double_t angfin_pl2 = 75.;
+
+  Double_t radin_pl3 = 29;
+  Double_t radout_pl3 = 47;
+  Double_t high_pl3 = 0.3;
+  Double_t angin_pl3 = 75.5;
+  Double_t angfin_pl3 = 104.5;
+
+  Double_t radin_pl4 = 32;
+  Double_t radout_pl4 = 49;
+  Double_t high_pl4 = 0.3;
+  Double_t angin_pl4 = 105.;
+  Double_t angfin_pl4 = 122.;
+  //===================================================
+
+  Double_t radin_pl5 = 33;
+  Double_t radout_pl5 = 49;
+  Double_t high_pl5 = 0.15;
+  Double_t angin_pl5 = 131;
+  Double_t angfin_pl5 = 149;
+
+  Double_t radin_pl6 = 33;
+  Double_t radout_pl6 = 45;
+  Double_t high_pl6 = 0.15;
+  Double_t angin_pl6 = 150;
+  Double_t angfin_pl6 = 160;
+
+  auto* plate_0 = new TGeoTubeSeg("plate_0", radin_pl0, radout_pl0, high_pl0 / 2, 180. + angin_pl0, 180. + angfin_pl0);
+  auto* plate_1 = new TGeoTubeSeg("plate_1", radin_pl1, radout_pl1, high_pl1 / 2, 180. + angin_pl1, 180. + angfin_pl1);
+  auto* plate_2 = new TGeoTubeSeg("plate_2", radin_pl2, radout_pl2, high_pl2 / 2, 180. + angin_pl2, 180. + angfin_pl2);
+  auto* plate_3 = new TGeoTubeSeg("plate_3", radin_pl3, radout_pl3, high_pl3 / 2, 180. + angin_pl3, 180. + angfin_pl3);
+  auto* plate_4 = new TGeoTubeSeg("plate_4", radin_pl4, radout_pl4, high_pl4 / 2, 180. + angin_pl4, 180. + angfin_pl4);
+  auto* plate_5 = new TGeoTubeSeg("plate_5", radin_pl5, radout_pl5, high_pl5 / 2, 180. + angin_pl5, 180. + angfin_pl5);
+  auto* plate_6 = new TGeoTubeSeg("plate_6", radin_pl6, radout_pl6, high_pl6 / 2, 180. + angin_pl6, 180. + angfin_pl6);
+
+  auto* plate_Shape = new TGeoCompositeShape("plate_Shape", "plate_0 + plate_1 + plate_2 + plate_3 + plate_4 + plate_5 + plate_6");
+  auto* plate_Volume = new TGeoVolume("plate_Volume", plate_Shape, kMedCu);
+  auto* tr_pl = new TGeoTranslation("tr_pl", 0, 0, -2.4);
+  tr_pl->RegisterYourself();
+
   auto* tr_fin = new TGeoTranslation("tr_fin", 0, 0, -0.2);
   tr_fin->RegisterYourself();
 
   patchpanel_Volume->SetLineColor(kGreen - 9);
   PatchPanelVolume->AddNode(patchpanel_Volume, 1, tr_fin);
+  PatchPanelVolume->AddNode(plate_Volume, 2, tr_pl);
 
   return PatchPanelVolume;
 }

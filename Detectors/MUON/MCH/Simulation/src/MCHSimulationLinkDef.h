@@ -19,7 +19,9 @@
 
 #pragma link C++ class o2::mch::Detector + ;
 #pragma link C++ class o2::mch::Hit + ;
-#pragma link C++ class std::vector < o2::mch::Hit > +;
-#pragma link C++ class o2::base::DetImpl < o2::mch::Detector > +;
+#pragma link C++ class std::vector < o2::mch::Hit> + ;
+#pragma link C++ class o2::base::DetImpl < o2::mch::Detector> + ;
+#pragma link C++ class o2::mch::DigitizerParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::mch::DigitizerParam> + ;
 
 #endif

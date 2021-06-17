@@ -19,6 +19,8 @@
 #include <TObject.h>
 #include <TString.h>
 #include <Math/Vector4D.h>
+#include "Math/Vector3D.h"
+#include "Math/GenVector/Boost.h"
 #include <TRandom.h>
 
 #include <vector>
@@ -77,6 +79,7 @@ class VarManager : public TObject
     // TODO: need to agree on a scheme to incorporate all various hypotheses (e.g. e - mu, jpsi - K+, Jpsi - pipi,...)
     kJpsiToEE = 0, // J/psi        -> e+ e-
     kJpsiToMuMu,   // J/psi        -> mu+ mu-
+    kElectronMuon, // Electron - muon correlations
     kNMaxCandidateTypes
   };
 
@@ -202,6 +205,7 @@ class VarManager : public TObject
     kVertexingLxyzErr,
     kVertexingProcCode,
     kVertexingChi2PCA,
+    kCosThetaHE,
     kNPairVariables,
 
     // Candidate-track correlation variables
@@ -278,8 +282,8 @@ class VarManager : public TObject
   static void FillEvent(T const& event, float* values = nullptr);
   template <uint32_t fillMap, typename T>
   static void FillTrack(T const& track, float* values = nullptr);
-  template <typename T>
-  static void FillPair(T const& t1, T const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
+  template <typename T1, typename T2>
+  static void FillPair(T1 const& t1, T2 const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
   template <typename C, typename T>
   static void FillPairVertexing(C const& collision, T const& t1, T const& t2, float* values = nullptr, PairCandidateType pairType = kJpsiToEE);
   template <typename T1, typename T2>
@@ -612,8 +616,8 @@ void VarManager::FillTrack(T const& track, float* values)
   FillTrackDerived(values);
 }
 
-template <typename T>
-void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidateType pairType)
+template <typename T1, typename T2>
+void VarManager::FillPair(T1 const& t1, T2 const& t2, float* values, PairCandidateType pairType)
 {
   if (!values) {
     values = fgValues;
@@ -626,6 +630,11 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidate
     m2 = fgkMuonMass;
   }
 
+  if (pairType == kElectronMuon) {
+    m1 = fgkElectronMass;
+    m2 = fgkMuonMass;
+  }
+
   ROOT::Math::PtEtaPhiMVector v1(t1.pt(), t1.eta(), t1.phi(), m1);
   ROOT::Math::PtEtaPhiMVector v2(t2.pt(), t2.eta(), t2.phi(), m2);
   ROOT::Math::PtEtaPhiMVector v12 = v1 + v2;
@@ -634,6 +643,19 @@ void VarManager::FillPair(T const& t1, T const& t2, float* values, PairCandidate
   values[kEta] = v12.Eta();
   values[kPhi] = v12.Phi();
   values[kRap] = -v12.Rapidity();
+  // CosTheta Helicity calculation
+  ROOT::Math::Boost boostv12{v12.BoostToCM()};
+  ROOT::Math::XYZVectorF v1_CM{(boostv12(v1).Vect()).Unit()};
+  ROOT::Math::XYZVectorF v2_CM{(boostv12(v2).Vect()).Unit()};
+  ROOT::Math::XYZVectorF zaxis{(v12.Vect()).Unit()};
+
+  double cosTheta = 0;
+  if (t1.sign() > 0) {
+    cosTheta = zaxis.Dot(v1_CM);
+  } else {
+    cosTheta = zaxis.Dot(v2_CM);
+  }
+  values[kCosThetaHE] = cosTheta;
 }
 
 template <typename C, typename T>
@@ -698,12 +720,12 @@ void VarManager::FillPairVertexing(C const& collision, T const& t1, T const& t2,
   // get uncertainty of the decay length
   //double phi, theta;
   //getPointDirection(array{collision.posX(), collision.posY(), collision.posZ()}, secondaryVertex, phi, theta);
-  double phi = std::atan2(secondaryVertex[1] - collision.posY(), secondaryVertex[1] - collision.posX());
+  double phi = std::atan2(secondaryVertex[1] - collision.posY(), secondaryVertex[0] - collision.posX());
   double theta = std::atan2(secondaryVertex[2] - collision.posZ(),
                             std::sqrt((secondaryVertex[0] - collision.posX()) * (secondaryVertex[0] - collision.posX()) +
                                       (secondaryVertex[1] - collision.posY()) * (secondaryVertex[1] - collision.posY())));
 
-  values[kVertexingLxyErr] = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
+  values[kVertexingLxyzErr] = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, theta) + getRotatedCovMatrixXX(covMatrixPCA, phi, theta));
   values[kVertexingLxyErr] = std::sqrt(getRotatedCovMatrixXX(covMatrixPV, phi, 0.) + getRotatedCovMatrixXX(covMatrixPCA, phi, 0.));
 
   values[kVertexingLxy] = (collision.posX() - secondaryVertex[0]) * (collision.posX() - secondaryVertex[0]) +

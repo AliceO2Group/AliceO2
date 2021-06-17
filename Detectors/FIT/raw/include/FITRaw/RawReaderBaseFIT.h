@@ -23,7 +23,6 @@
 #include <Rtypes.h>
 #include "FITRaw/RawReaderBase.h"
 
-#include <CommonDataFormat/InteractionRecord.h>
 #include "Headers/RAWDataHeader.h"
 
 #include <gsl/span>

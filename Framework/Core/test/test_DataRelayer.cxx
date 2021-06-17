@@ -447,3 +447,75 @@ BOOST_AUTO_TEST_CASE(TestClear)
   relayer.getReadyToProcess(ready);
   BOOST_REQUIRE_EQUAL(ready.size(), 0);
 }
+
+BOOST_AUTO_TEST_CASE(SplitParts)
+{
+  Monitoring metrics;
+  InputSpec spec1{"clusters", "TPC", "CLUSTERS"};
+  InputSpec spec2{"its", "ITS", "CLUSTERS"};
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{spec1, 0, "Fake1", 0},
+    InputRoute{spec2, 0, "Fake2", 0},
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index;
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAny();
+  DataRelayer relayer(policy, inputs, metrics, index);
+  relayer.setPipelineLength(4);
+
+  // Let's create a dummy O2 Message with two headers in the stack:
+  // - DataHeader matching the one provided in the input
+  DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+
+  DataHeader dh2;
+  dh2.dataDescription = "CLUSTERS";
+  dh2.dataOrigin = "ITS";
+  dh2.subSpecification = 0;
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  size_t timeslice = 0;
+
+  std::vector<std::unique_ptr<FairMQMessage>> splitParts;
+
+  for (size_t i = 0; i < 10; ++i) {
+    DataProcessingHeader dph1{timeslice, 1};
+    dh1.splitPayloadIndex = i;
+    dh1.splitPayloadParts = 10;
+    Stack stack1{dh1, dph1};
+
+    FairMQMessagePtr header1 = transport->CreateMessage(stack1.size());
+    FairMQMessagePtr payload1 = transport->CreateMessage(100);
+
+    memcpy(header1->GetData(), stack1.data(), stack1.size());
+    splitParts.emplace_back(std::move(header1));
+    splitParts.emplace_back(std::move(payload1));
+  }
+
+  for (size_t i = 0; i < 10; ++i) {
+    DataProcessingHeader dph2{timeslice, 1};
+    dh2.splitPayloadIndex = i;
+    dh2.splitPayloadParts = 10;
+    Stack stack2{dh2, dph2};
+
+    FairMQMessagePtr header1 = transport->CreateMessage(stack2.size());
+    FairMQMessagePtr payload1 = transport->CreateMessage(100);
+
+    memcpy(header1->GetData(), stack2.data(), stack2.size());
+    splitParts.emplace_back(std::move(header1));
+    splitParts.emplace_back(std::move(payload1));
+  }
+  BOOST_REQUIRE_EQUAL(splitParts.size(), 40);
+
+  relayer.relay(std::move(splitParts[0]), &splitParts[1], 19);
+  relayer.relay(std::move(splitParts[20]), &splitParts[21], 19);
+  std::vector<RecordAction> ready;
+  relayer.getReadyToProcess(ready);
+  assert(ready.size() == 1);
+  assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+}

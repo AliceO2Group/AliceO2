@@ -1,3 +1,7 @@
+<!-- doxy
+\page refFITcommoncalibration Calibration workflow
+/doxy -->
+
 ## FIT Calibration workflow
 
 ###Overview
@@ -29,7 +33,7 @@ For example check `FT0CalibrationDummy-Workflow` which uses combined calibration
   `o2-ft0-digits-reader-workflow | o2-calibration-ft0-tf-processor | o2-calibration-ft0-dummy-example | o2-calibration-ccdb-populator-workflow --ccdb-path=http://localhost:8080 -b`
 - Channel Time calibration:
 `o2-ft0-digits-reader-workflow | o2-calibration-ft0-tf-processor | o2-calibration-ft0-channel-offset-calibration | o2-calibration-ccdb-populator-workflow --ccdb-path=http://localhost:8080 -`
-  
+
 - General calibration workflow (for now, the same as Channel Time calibration)
 `o2-ft0-digits-reader-workflow | o2-calibration-ft0-tf-processor | o2-calibration-ft0-calibration | o2-calibration-ccdb-populator-workflow --ccdb-path=http://localhost:8080 -b`
 

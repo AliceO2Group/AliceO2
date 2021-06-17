@@ -15,9 +15,9 @@
 
 #include "DetectorsBase/Propagator.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
-#include "TOFWorkflowUtils/ClusterReaderSpec.h"
-#include "TOFWorkflow/TOFMatchedWriterSpec.h"
-#include "TOFWorkflow/TOFCalibWriterSpec.h"
+#include "TOFWorkflowIO/ClusterReaderSpec.h"
+#include "TOFWorkflowIO/TOFMatchedWriterSpec.h"
+#include "TOFWorkflowIO/TOFCalibWriterSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TOFWorkflow/RecoWorkflowSpec.h"

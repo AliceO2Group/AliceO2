@@ -116,7 +116,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       }
       LOG(INFO) << "Imposing hadronic interaction rate " << intRate << "Hz";
       mgr.getInteractionSampler().setInteractionRate(intRate);
-
+      o2::raw::HBFUtils::Instance().print();
+      o2::raw::HBFUtils::Instance().checkConsistency();
       mgr.getInteractionSampler().setFirstIR({0, o2::raw::HBFUtils::Instance().orbitFirstSampled});
       mgr.getDigitizationContext().setFirstOrbitForSampling(o2::raw::HBFUtils::Instance().orbitFirstSampled);
 
@@ -143,6 +144,9 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       auto qedprefix = ctx.options().get<std::string>("simPrefixQED");
       if (qedprefix.size() > 0) {
         o2::steer::InteractionSampler qedInteractionSampler;
+        if (!bcPatternFile.empty()) {
+          qedInteractionSampler.setBunchFilling(bcPatternFile);
+        }
 
         // get first and last "hadronic" interaction records and let
         // QED events range from the first bunch crossing to the last bunch crossing

@@ -12,8 +12,7 @@
       "active": "true",
       "machines": [],
       "query": "clusters:TPC/RAWDATA",
-      "samplingConditions": [],
-      "fairMQOutput": "name=data,type=push,method=bind,address=tcp://127.0.0.1:26525,rateLogging=1"
+      "samplingConditions": []
     }
   ]
 }

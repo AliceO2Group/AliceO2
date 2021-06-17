@@ -51,8 +51,9 @@ namespace ctf
 {
 
 template <typename T>
-void appendToTree(TTree& tree, const std::string brname, T& ptr)
+size_t appendToTree(TTree& tree, const std::string brname, T& ptr)
 {
+  size_t s = 0;
   auto* br = tree.GetBranch(brname.c_str());
   auto* pptr = &ptr;
   if (br) {
@@ -60,8 +61,13 @@ void appendToTree(TTree& tree, const std::string brname, T& ptr)
   } else {
     br = tree.Branch(brname.c_str(), &pptr);
   }
-  br->Fill();
+  int res = br->Fill();
+  if (res < 0) {
+    throw std::runtime_error(fmt::format("Failed to fill CTF branch {}", brname));
+  }
+  s += res;
   br->ResetAddress();
+  return s;
 }
 
 using DetID = o2::detectors::DetID;
@@ -71,7 +77,7 @@ class CTFWriterSpec : public o2::framework::Task
 {
  public:
   CTFWriterSpec() = delete;
-  CTFWriterSpec(DetID::mask_t dm, uint64_t r = 0, bool doCTF = true, bool doDict = false, bool dictPerDet = false);
+  CTFWriterSpec(DetID::mask_t dm, uint64_t r = 0, bool doCTF = true, bool doDict = false, bool dictPerDet = false, size_t smn = 0, size_t szmx = 0);
   ~CTFWriterSpec() override = default;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -80,23 +86,36 @@ class CTFWriterSpec : public o2::framework::Task
 
  private:
   template <typename C>
-  void processDet(o2::framework::ProcessingContext& pc, DetID det, CTFHeader& header, TTree* tree);
+  size_t processDet(o2::framework::ProcessingContext& pc, DetID det, CTFHeader& header, TTree* tree);
   template <typename C>
   void storeDictionary(DetID det, CTFHeader& header);
   void storeDictionaries();
   void prepareDictionaryTreeAndFile(DetID det);
   void closeDictionaryTreeAndFile(CTFHeader& header);
   std::string dictionaryFileName(const std::string& detName = "");
+  void closeTFTreeAndFile();
+  void prepareTFTreeAndFile(const o2::header::DataHeader* dh);
+  size_t estimateCTFSize(ProcessingContext& pc);
 
   DetID::mask_t mDets; // detectors
   bool mWriteCTF = false;
   bool mCreateDict = false;
   bool mDictPerDetector = false;
-  size_t mNTF = 0;
   int mSaveDictAfter = -1; // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   uint64_t mRun = 0;
+  size_t mMinSize = 0;     // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
+  size_t mMaxSize = 0;     // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
+  size_t mAccCTFSize = 0;  // so far accumulated size (if any)
+  size_t mCurrCTFSize = 0; // size of currently processed CTF
+  size_t mNCTF = 0;        // total number of CTFs written
+  size_t mNAccCTF = 0;     // total number of CTFs accumulated in the current file
+  size_t mNCTFFiles = 0;   // total number of CTF files written
+
   std::string mDictDir = "";
   std::string mCTFDir = "";
+
+  std::unique_ptr<TFile> mCTFFileOut;
+  std::unique_ptr<TTree> mCTFTreeOut;
 
   std::unique_ptr<TFile> mDictFileOut; // file to store dictionary
   std::unique_ptr<TTree> mDictTreeOut; // tree to store dictionary
@@ -112,18 +131,20 @@ class CTFWriterSpec : public o2::framework::Task
   TStopwatch mTimer;
 };
 
+//___________________________________________________________________
 // process data of particular detector
 template <typename C>
-void CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det, CTFHeader& header, TTree* tree)
+size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det, CTFHeader& header, TTree* tree)
 {
+  size_t sz = 0;
   if (!isPresent(det) || !pc.inputs().isValid(det.getName())) {
-    return;
+    return sz;
   }
   auto ctfBuffer = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName());
   const auto ctfImage = C::getImage(ctfBuffer.data());
   ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "));
   if (mWriteCTF) {
-    ctfImage.appendToTree(*tree, det.getName());
+    sz += ctfImage.appendToTree(*tree, det.getName());
     header.detectors.set(det);
   }
   if (mCreateDict) {
@@ -145,8 +166,10 @@ void CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det, 
       }
     }
   }
+  return sz;
 }
 
+//___________________________________________________________________
 // store dictionary of a particular detector
 template <typename C>
 void CTFWriterSpec::storeDictionary(DetID det, CTFHeader& header)
@@ -172,8 +195,9 @@ void CTFWriterSpec::storeDictionary(DetID det, CTFHeader& header)
   }
 }
 
-CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDict, bool dictPerDet)
-  : mDets(dm), mRun(r), mWriteCTF(doCTF), mCreateDict(doDict), mDictPerDetector(dictPerDet)
+//___________________________________________________________________
+CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDict, bool dictPerDet, size_t szmn, size_t szmx)
+  : mDets(dm), mRun(r), mWriteCTF(doCTF), mCreateDict(doDict), mDictPerDetector(dictPerDet), mMinSize(szmn), mMaxSize(szmx)
 {
   mTimer.Stop();
   mTimer.Reset();
@@ -194,74 +218,144 @@ CTFWriterSpec::CTFWriterSpec(DetID::mask_t dm, uint64_t r, bool doCTF, bool doDi
   }
 }
 
+//___________________________________________________________________
 void CTFWriterSpec::init(InitContext& ic)
 {
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
   mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
   mCTFDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("output-dir"));
+  if (mWriteCTF) {
+    if (mMinSize > 0) {
+      LOG(INFO) << "Multiple CTFs will be accumulated in the tree/file until its size exceeds " << mMinSize << " bytes";
+      if (mMaxSize > mMinSize) {
+        LOG(INFO) << "but does not exceed " << mMaxSize << " bytes";
+      }
+    }
+  }
 }
 
+//___________________________________________________________________
+size_t CTFWriterSpec::estimateCTFSize(ProcessingContext& pc)
+{
+  size_t s = 0;
+  for (auto id = DetID::First; id <= DetID::Last; id++) {
+    DetID det(id);
+    if (!isPresent(det) || !pc.inputs().isValid(det.getName())) {
+      continue;
+    }
+    s += pc.inputs().get<gsl::span<o2::ctf::BufferType>>(det.getName()).size();
+  }
+  return s;
+}
+
+//___________________________________________________________________
 void CTFWriterSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getByPos(0));
 
-  std::unique_ptr<TFile> fileOut;
-  std::unique_ptr<TTree> treeOut;
+  mCurrCTFSize = estimateCTFSize(pc);
   if (mWriteCTF) {
-    fileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter)).c_str(), "recreate"));
-    treeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
+    prepareTFTreeAndFile(dh);
   }
 
   // create header
   CTFHeader header{mRun, dh->firstTForbit};
-
-  processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, treeOut.get());
-  processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, treeOut.get());
-  processDet<o2::tpc::CTF>(pc, DetID::TPC, header, treeOut.get());
-  processDet<o2::trd::CTF>(pc, DetID::TRD, header, treeOut.get());
-  processDet<o2::tof::CTF>(pc, DetID::TOF, header, treeOut.get());
-  processDet<o2::ft0::CTF>(pc, DetID::FT0, header, treeOut.get());
-  processDet<o2::fv0::CTF>(pc, DetID::FV0, header, treeOut.get());
-  processDet<o2::fdd::CTF>(pc, DetID::FDD, header, treeOut.get());
-  processDet<o2::mid::CTF>(pc, DetID::MID, header, treeOut.get());
-  processDet<o2::mch::CTF>(pc, DetID::MCH, header, treeOut.get());
-  processDet<o2::emcal::CTF>(pc, DetID::EMC, header, treeOut.get());
-  processDet<o2::phos::CTF>(pc, DetID::PHS, header, treeOut.get());
-  processDet<o2::cpv::CTF>(pc, DetID::CPV, header, treeOut.get());
-  processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, treeOut.get());
-  processDet<o2::hmpid::CTF>(pc, DetID::HMP, header, treeOut.get());
+  size_t szCTF = 0;
+  szCTF += processDet<o2::itsmft::CTF>(pc, DetID::ITS, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::itsmft::CTF>(pc, DetID::MFT, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::tpc::CTF>(pc, DetID::TPC, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::trd::CTF>(pc, DetID::TRD, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::tof::CTF>(pc, DetID::TOF, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::ft0::CTF>(pc, DetID::FT0, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::fv0::CTF>(pc, DetID::FV0, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::fdd::CTF>(pc, DetID::FDD, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::mid::CTF>(pc, DetID::MID, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::mch::CTF>(pc, DetID::MCH, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::emcal::CTF>(pc, DetID::EMC, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::phos::CTF>(pc, DetID::PHS, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::cpv::CTF>(pc, DetID::CPV, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::zdc::CTF>(pc, DetID::ZDC, header, mCTFTreeOut.get());
+  szCTF += processDet<o2::hmpid::CTF>(pc, DetID::HMP, header, mCTFTreeOut.get());
 
   mTimer.Stop();
 
   if (mWriteCTF) {
-    appendToTree(*treeOut.get(), "CTFHeader", header);
-    treeOut->SetEntries(1);
-    treeOut->Write();
-    treeOut.reset();
-    fileOut->Close();
-    LOG(INFO) << "TF#" << mNTF << ": wrote " << fileOut->GetName() << " with CTF{" << header << "} in " << mTimer.CpuTime() - cput << " s";
+    szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
+    mAccCTFSize += szCTF;
+    mCTFTreeOut->SetEntries(++mNAccCTF);
+    LOG(INFO) << "TF#" << mNCTF << ": wrote CTF{" << header << "} of size " << szCTF << " to " << mCTFFileOut->GetName() << " in " << mTimer.CpuTime() - cput << " s";
+    if (mNAccCTF > 1) {
+      LOG(INFO) << "Current CTF tree has " << mNAccCTF << " entries with total size of " << mAccCTFSize << " bytes";
+    }
   } else {
-    LOG(INFO) << "TF#" << mNTF << " CTF writing is disabled";
+    LOG(INFO) << "TF#" << mNCTF << " CTF writing is disabled, size was " << szCTF << " bytes";
   }
-  mNTF++;
-  if (mCreateDict && mSaveDictAfter > 0 && (mNTF % mSaveDictAfter) == 0) {
+
+  if (mWriteCTF && mAccCTFSize >= mMinSize) {
+    closeTFTreeAndFile();
+  }
+
+  mNCTF++;
+  if (mCreateDict && mSaveDictAfter > 0 && (mNCTF % mSaveDictAfter) == 0) {
     storeDictionaries();
   }
 }
 
+//___________________________________________________________________
 void CTFWriterSpec::endOfStream(EndOfStreamContext& ec)
 {
 
   if (mCreateDict) {
     storeDictionaries();
   }
-
+  if (mWriteCTF) {
+    closeTFTreeAndFile();
+  }
   LOGF(INFO, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
+//___________________________________________________________________
+void CTFWriterSpec::prepareTFTreeAndFile(const o2::header::DataHeader* dh)
+{
+  if (!mWriteCTF) {
+    return;
+  }
+  bool needToOpen = false;
+  if (!mCTFTreeOut) {
+    needToOpen = true;
+  } else {
+    if ((mAccCTFSize >= mMinSize) ||                                                         // min size exceeded, may close the file
+        (mAccCTFSize && mMaxSize > mMinSize && ((mAccCTFSize + mCurrCTFSize) > mMaxSize))) { // this is not the 1st CTF in the file and the new size will exceed allowed max
+      needToOpen = true;
+    } else {
+      LOGP(INFO, "Will add new CTF of estimated size {} to existing file of size {}", mCurrCTFSize, mAccCTFSize);
+    }
+  }
+  if (needToOpen) {
+    closeTFTreeAndFile();
+    mCTFFileOut.reset(TFile::Open(o2::utils::Str::concat_string(mCTFDir, o2::base::NameConf::getCTFFileName(dh->runNumber, dh->firstTForbit, dh->tfCounter)).c_str(), "recreate"));
+    mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
+    mNCTFFiles++;
+  }
+}
+
+//___________________________________________________________________
+void CTFWriterSpec::closeTFTreeAndFile()
+{
+  if (mCTFTreeOut) {
+    mCTFTreeOut->Write();
+    mCTFTreeOut.reset();
+    mCTFFileOut->Close();
+    mCTFFileOut.reset();
+    mNAccCTF = 0;
+  }
+  mAccCTFSize = 0;
+}
+
+//___________________________________________________________________
 void CTFWriterSpec::prepareDictionaryTreeAndFile(DetID det)
 {
   if (mDictPerDetector) {
@@ -278,6 +372,7 @@ void CTFWriterSpec::prepareDictionaryTreeAndFile(DetID det)
   }
 }
 
+//___________________________________________________________________
 std::string CTFWriterSpec::dictionaryFileName(const std::string& detName)
 {
   if (mDictPerDetector) {
@@ -290,9 +385,10 @@ std::string CTFWriterSpec::dictionaryFileName(const std::string& detName)
   }
 }
 
+//___________________________________________________________________
 void CTFWriterSpec::storeDictionaries()
 {
-  CTFHeader header{mRun, uint32_t(mNTF)};
+  CTFHeader header{mRun, uint32_t(mNCTF)};
   storeDictionary<o2::itsmft::CTF>(DetID::ITS, header);
   storeDictionary<o2::itsmft::CTF>(DetID::MFT, header);
   storeDictionary<o2::tpc::CTF>(DetID::TPC, header);
@@ -313,9 +409,10 @@ void CTFWriterSpec::storeDictionaries()
   if (mDictTreeOut) {
     closeDictionaryTreeAndFile(header);
   }
-  LOG(INFO) << "Saved CTF dictionary after " << mNTF << " TFs processed";
+  LOG(INFO) << "Saved CTF dictionary after " << mNCTF << " TFs processed";
 }
 
+//___________________________________________________________________
 void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
 {
   if (mDictTreeOut) {
@@ -327,7 +424,8 @@ void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
   }
 }
 
-DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet)
+//___________________________________________________________________
+DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet, size_t szmn, size_t szmx)
 {
   std::vector<InputSpec> inputs;
   LOG(INFO) << "Detectors list:";
@@ -341,7 +439,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF,
     "ctf-writer",
     inputs,
     Outputs{},
-    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet)},
+    AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, run, doCTF, doDict, dictPerDet, szmn, szmx)},
     Options{{"save-dict-after", VariantType::Int, -1, {"In dictionary generation mode save it dictionary after certain number of TFs processed"}},
             {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory"}},
             {"output-dir", VariantType::String, "none", {"CTF output directory"}}}};

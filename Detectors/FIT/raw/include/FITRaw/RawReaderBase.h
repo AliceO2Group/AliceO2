@@ -64,7 +64,7 @@ class RawReaderBase
       refDataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += refDataBlock.mSize;
       if (!refDataBlock.isCorrect()) {
-        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size" << refDataBlock.mSize;
+        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size: " << refDataBlock.mSize;
         refDataBlock.print();
         vecDataBlocks.pop_back();
         return srcPos;
@@ -92,7 +92,7 @@ class RawReaderBase
   {
     int digitCounter = mMapDigits.size();
     for (auto& digit : mMapDigits) {
-      digit.second.pop(vecDigit...);
+      digit.second.getDigits(vecDigit...);
     }
     mMapDigits.clear();
     return digitCounter;

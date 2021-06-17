@@ -24,6 +24,7 @@ namespace ft0
 struct ChannelData {
   static constexpr char sChannelNameDPL[] = "DIGITSCH";
   static constexpr char sDigitName[] = "ChannelData";
+  static constexpr char sDigitBranchName[] = "FT0DIGITSBCH";
   static constexpr uint8_t DUMMY_CHANNEL_ID = 0xff;
   static constexpr uint8_t DUMMY_CHAIN_QTC = 0xff;
   static constexpr int16_t DUMMY_CFD_TIME = -5000;
@@ -63,6 +64,7 @@ struct ChannelData {
   void printLog() const;
   [[nodiscard]] uint8_t getChannelID() const { return ChId; }
   [[nodiscard]] uint16_t getTime() const { return CFDTime; }
+  [[nodiscard]] uint16_t getAmp() const { return QTCAmpl; }
 
   bool operator==(ChannelData const& other) const
   {

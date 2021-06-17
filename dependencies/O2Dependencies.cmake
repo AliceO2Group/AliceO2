@@ -84,8 +84,8 @@ set_package_properties(Microsoft.GSL
 find_package(FairMQ CONFIG)
 set_package_properties(FairMQ PROPERTIES TYPE REQUIRED)
 
-find_package(protobuf CONFIG)
-set_package_properties(protobuf PROPERTIES TYPE REQUIRED PURPOSE "For CCDB API")
+# find_package(protobuf CONFIG)
+# set_package_properties(protobuf PROPERTIES TYPE REQUIRED PURPOSE "For CCDB API")
 
 find_package(InfoLogger CONFIG NAMES InfoLogger libInfoLogger)
 set_package_properties(InfoLogger PROPERTIES TYPE REQUIRED)

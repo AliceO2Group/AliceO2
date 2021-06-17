@@ -11,10 +11,13 @@
 o2_add_library(DataFormatsTRD
                SOURCES src/TriggerRecord.cxx
                        src/LinkRecord.cxx
+                       src/AngularResidHistos.cxx
                        src/Tracklet64.cxx
                        src/RawData.cxx
+                       src/CompressedDigit.cxx
                        src/CTF.cxx
                        src/Digit.cxx
+                       src/EventRecord.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::SimulationDataFormat)
 
 o2_target_root_dictionary(DataFormatsTRD
@@ -25,11 +28,14 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/RawData.h
                        include/DataFormatsTRD/Constants.h
                        include/DataFormatsTRD/CalibratedTracklet.h
+                       include/DataFormatsTRD/AngularResidHistos.h
                        include/DataFormatsTRD/HelperMethods.h
                        include/DataFormatsTRD/Hit.h
                        include/DataFormatsTRD/Digit.h
                        include/DataFormatsTRD/CTF.h
-                       include/DataFormatsTRD/SignalArray.h)
+                       include/DataFormatsTRD/SignalArray.h
+                       include/DataFormatsTRD/CompressedDigit.h
+                       include/DataFormatsTRD/CompressedHeader.h)
 
 o2_add_test(Digit
             COMPONENT_NAME trd

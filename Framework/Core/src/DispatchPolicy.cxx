@@ -25,6 +25,11 @@ std::vector<DispatchPolicy> DispatchPolicy::createDefaultPolicies()
   return {DispatchPolicy{"dispatch-all-after-computation", [](DeviceSpec const&) { return true; }, DispatchPolicy::DispatchOp::AfterComputation}};
 }
 
+DispatchPolicy::TriggerMatcher DispatchPolicy::defaultDispatchPolicy()
+{
+  return DispatchPolicy::TriggerMatcher{[](Output const&) -> bool { return true; }};
+}
+
 std::ostream& operator<<(std::ostream& oss, DispatchPolicy::DispatchOp const& val)
 {
   switch (val) {

@@ -120,6 +120,9 @@ class ExpTimes
 template <typename Coll, typename Trck, o2::track::PID::ID id>
 float ExpTimes<Coll, Trck, id>::ComputeExpectedTime(const float& tofExpMom, const float& length, const float& massZ)
 {
+  if (tofExpMom <= 0.f) {
+    return 0.f;
+  }
   const float energy = sqrt((massZ * massZ) + (tofExpMom * tofExpMom));
   return length * energy / (kCSPEED * tofExpMom);
 }
@@ -128,7 +131,7 @@ float ExpTimes<Coll, Trck, id>::ComputeExpectedTime(const float& tofExpMom, cons
 template <typename Coll, typename Trck, o2::track::PID::ID id>
 float ExpTimes<Coll, Trck, id>::GetExpectedSigma(const DetectorResponse& response, const Coll& col, const Trck& trk) const
 {
-  if (trk.tofSignal() <= 0) {
+  if (!trk.hasTOF()) {
     return -999.f;
   }
   const float x[7] = {trk.p(), trk.tofSignal(), col.collisionTimeRes() * 1000.f, o2::track::PID::getMass2Z(id), trk.length(), trk.sigma1Pt(), trk.pt()};

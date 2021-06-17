@@ -17,15 +17,19 @@
 using namespace o2::raw;
 
 SimpleSTF::SimpleSTF(std::vector<o2f::InputRoute>&& sch, PartsRef&& pref, Messages&& msg)
-  : schema{std::move(sch)}, partsRef{std::move(pref)}, messages{std::move(msg)}, record{schema, {[this](size_t i, size_t part) {                     // getter for the DataRef of a part in the input "i"
-                                                                                                   auto ref = this->partsRef[i].first + (part << 1); // entry of the header for this part, the payload follows
-                                                                                                   auto header = static_cast<char const*>(this->messages[ref]->data());
-                                                                                                   auto payload = static_cast<char const*>(this->messages[ref + 1]->data());
-                                                                                                   return o2f::DataRef{nullptr, header, payload};
-                                                                                                 },
-                                                                                                 [this](size_t i) { // getter for the nparts in the input "i"
-                                                                                                   return i < partsRef.size() ? partsRef[i].second : 0;
-                                                                                                 },
-                                                                                                 this->partsRef.size()}}
+  : schema{std::move(sch)},
+    partsRef{std::move(pref)},
+    messages{std::move(msg)},
+    span{[this](size_t i, size_t part) {                     // getter for the DataRef of a part in the input "i"
+           auto ref = this->partsRef[i].first + (part << 1); // entry of the header for this part, the payload follows
+           auto header = static_cast<char const*>(this->messages[ref]->data());
+           auto payload = static_cast<char const*>(this->messages[ref + 1]->data());
+           return o2f::DataRef{nullptr, header, payload};
+         },
+         [this](size_t i) { // getter for the nparts in the input "i"
+           return i < partsRef.size() ? partsRef[i].second : 0;
+         },
+         this->partsRef.size()},
+    record{schema, span}
 {
 }

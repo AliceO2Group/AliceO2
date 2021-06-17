@@ -84,7 +84,7 @@ void FullHistoryMerger::updateCache(const DataRef& ref)
 
     mFirstObjectSerialized.first = sourceID;
     mFirstObjectSerialized.second.spec = new InputSpec(*ref.spec);
-    mFirstObjectSerialized.second.header = new char[Stack::headerStackSize(reinterpret_cast<o2::byte const*>(dh))];
+    mFirstObjectSerialized.second.header = new char[Stack::headerStackSize(reinterpret_cast<std::byte const*>(dh))];
     memcpy((void*)mFirstObjectSerialized.second.header, ref.header, dh->headerSize);
     mFirstObjectSerialized.second.payload = new char[dh->payloadSize];
     memcpy((void*)mFirstObjectSerialized.second.payload, ref.payload, dh->payloadSize);

@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <Vc/Vc>
 
 using namespace o2::math_utils;
 using namespace o2::fdd;
@@ -138,7 +139,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
         q += Vc::float_v::Size;
         Vc::prefetchForOneRead(q);
         workVc.load(p);
-        workVc += mRndGainVar.getNextValueVc() * charge * pmtVc;
+        workVc += mRndGainVar.getNextValueVc<Vc::float_v>() * charge * pmtVc;
         workVc.store(p);
         p += Vc::float_v::Size;
         Vc::prefetchForOneRead(p);

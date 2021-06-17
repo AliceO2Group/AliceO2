@@ -17,7 +17,6 @@
 #include "Framework/Task.h"
 #include "TStopwatch.h"
 #include "TRDBase/GeometryFlat.h"
-#include "TRDCalibration/CalibVDrift.h"
 #include "GPUO2Interface.h"
 #include "GPUTRDTracker.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -50,7 +49,6 @@ class TRDGlobalTracking : public o2::framework::Task
   bool mUseMC{false};                                 ///< MC flag
   float mTPCTBinMUS{.2f};                             ///< width of a TPC time bin in us
   float mTPCVdrift{2.58f};                            ///< TPC drift velocity (for shifting TPC tracks along Z)
-  CalibVDrift mCalibVDrift{};                         ///< steers the vDrift calibration
   std::shared_ptr<o2::globaltracking::DataRequest> mDataRequest; ///< seeding input (TPC-only, ITS-TPC or both)
   o2::dataformats::GlobalTrackID::mask_t mTrkMask;               ///< seeding track sources (TPC, ITS-TPC)
   TStopwatch mTimer;

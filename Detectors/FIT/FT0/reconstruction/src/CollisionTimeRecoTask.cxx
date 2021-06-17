@@ -48,7 +48,8 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   int nch = inChData.size();
   const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
-    int offsetChannel = mCalibOffset->mTimeOffsets[inChData[ich].ChId];
+    int offsetChannel = getOffset(ich, inChData[ich].QTCAmpl);
+
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
                                                (inChData[ich].CFDTime - offsetChannel) * Geometry::ChannelWidth,
                                                (double)inChData[ich].QTCAmpl * parInv,
@@ -88,4 +89,16 @@ void CollisionTimeRecoTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
   // if (!mContinuous)   return;
+}
+//______________________________________________________
+int CollisionTimeRecoTask::getOffset(int channel, int amp)
+{
+  if (!mCalibSlew || !mCalibOffset) {
+    return 0;
+  }
+  int offsetChannel = mCalibOffset->mTimeOffsets[channel];
+  TGraph& gr = mCalibSlew->at(channel);
+  double slewoffset = gr.Eval(amp);
+  LOG(DEBUG) << "@@@CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
+  return offsetChannel + int(slewoffset);
 }

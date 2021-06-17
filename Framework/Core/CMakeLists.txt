@@ -11,6 +11,7 @@
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
                        src/ArrowSupport.cxx
+                       src/AnalysisDataModel.cxx
                        src/ASoA.cxx
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
@@ -65,6 +66,7 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
+                       src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
                        src/LifetimeHelpers.cxx
@@ -93,6 +95,7 @@ o2_add_library(Framework
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
                        src/TableTreeHelpers.cxx
+                       src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
@@ -106,6 +109,7 @@ o2_add_library(Framework
                        src/WSDriverClient.cxx
                        src/runDataProcessing.cxx
                        src/ExternalFairMQDeviceProxy.cxx
+                       src/HistogramSpec.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
                        src/Base64.cxx
@@ -150,6 +154,7 @@ foreach(t
         ConfigurationOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
+        CheckTypes
         CompletionPolicy
         ComputingResourceHelpers
         ConfigParamStore
@@ -253,6 +258,7 @@ foreach(b
         HistogramRegistry
         TableToTree
         TreeToTable
+        ExternalFairMQDeviceProxies
         )
   o2_add_executable(benchmark-${b}
                     SOURCES test/benchmark_${b}.cxx

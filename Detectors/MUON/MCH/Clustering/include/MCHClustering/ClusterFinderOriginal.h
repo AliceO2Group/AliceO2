@@ -67,8 +67,6 @@ class ClusterFinderOriginal
   static constexpr int SNFitClustersMax = 3;                     ///< maximum number of clusters fitted at the same time
   static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1; ///< maximum number of fit parameters
   static constexpr double SLowestCoupling = 1.e-2;               ///< minimum coupling between clusters of pixels and pads
-  static constexpr float SDefaultClusterResolution = 0.2f;       ///< default cluster resolution (cm)
-  static constexpr float SBadClusterResolution = 10.f;           ///< bad (e.g. mono-cathode) cluster resolution (cm)
 
   void resetPreCluster(gsl::span<const Digit>& digits);
   void simplifyPreCluster(std::vector<int>& removedDigits);

@@ -111,7 +111,8 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "${command};" > ${SCRIPTNAME}
+  echo "export LIBC_FATAL_STDERR_=1" > ${SCRIPTNAME}        # <--- needed ... otherwise the LIBC fatal messages appear on a different tty
+  echo "${command};" >> ${SCRIPTNAME}
   echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
   chmod +x ${SCRIPTNAME}
 
@@ -173,19 +174,20 @@ taskwrapper() {
     # - segmentation violation
     # - there was a crash
     # - bus error (often occuring with shared mem)
-    pattern="-e \"xception\"                        \
+    pattern="-e \"\<[Ee]xception\"                  \
              -e \"segmentation violation\"          \
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
              -e \"Fatal in\"                        \
              -e \"libc++abi.*terminating\"          \
-             -e \"There was a crash.\""
-      
-    grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
+             -e \"There was a crash.\"              \
+             -e \"\*\*\* Error in\""                  # <--- LIBC fatal error messages
+
+    grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
     eval ${grepcommand}
     
-    grepcommand="grep -h --count ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} 2>/dev/null"
+    grepcommand="grep -a -h --count ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} 2>/dev/null"
     # using eval here since otherwise the pattern is translated to a
     # a weirdly quoted stringlist
     RC=$(eval ${grepcommand})
@@ -196,7 +198,7 @@ taskwrapper() {
     if [ "$RC" != "" -a "$RC" != "0" ]; then
       echo "Detected critical problem in logfile $logfile"
       if [ "${JOBUTILS_PRINT_ON_ERROR}" ]; then
-        grepcommand="grep -H -A 2 -B 2 ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES}"
+        grepcommand="grep -a -H -A 2 -B 2 ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES}"
         eval ${grepcommand}
       fi
 
@@ -210,7 +212,7 @@ taskwrapper() {
 
       sleep 2
 
-      taskwrapper_cleanup ${PID} SIGKILL
+      [ ! "${JOBUTILS_DEBUGMODE}" ] && taskwrapper_cleanup ${PID} SIGKILL
 
       RC_ACUM=$((RC_ACUM+1))
       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
@@ -375,7 +377,7 @@ taskwrapper() {
   # ?? should directly exit here?
   wait $PID || QUERY_RC_FROM_LOG="ON"
   # query return code from log (seems to be safer as sometimes the wait issues "PID" not a child of this shell)
-  RC=$(grep "TASK-EXIT-CODE:" ${logfile} | awk '//{print $2}')
+  RC=$(grep -a "TASK-EXIT-CODE:" ${logfile} | awk '//{print $2}')
   RC_ACUM=$((RC_ACUM+RC))
   if [ "${RC}" -eq "0" ]; then
     if [ ! "${JOBUTILS_JOB_SKIPCREATEDONE}" ]; then

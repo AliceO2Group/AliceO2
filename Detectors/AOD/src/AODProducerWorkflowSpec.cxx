@@ -17,6 +17,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataTypes.h"
@@ -25,10 +26,12 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/TableTreeHelpers.h"
 #include "GlobalTracking/MatchTOF.h"
-#include "GlobalTrackingWorkflow/PrimaryVertexingSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "ReconstructionDataFormats/V0.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -36,6 +39,7 @@
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 using namespace o2::framework;
@@ -43,47 +47,64 @@ using namespace o2::math_utils::detail;
 using PVertex = o2::dataformats::PrimaryVertex;
 using V2TRef = o2::dataformats::VtxTrackRef;
 using GIndex = o2::dataformats::VtxTrackIndex;
+using DataRequest = o2::globaltracking::DataRequest;
+using GID = o2::dataformats::GlobalTrackID;
 
 namespace o2::aodproducer
 {
 
-void AODProducerWorkflowDPL::findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const PVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords)
+// using global variables to pass parameters to extra table filler
+float tpcInnerParam = 0.f;
+uint32_t flags = 0;
+uint8_t itsClusterMap = 0;
+uint8_t tpcNClsFindable = 0;
+int8_t tpcNClsFindableMinusFound = 0;
+int8_t tpcNClsFindableMinusCrossedRows = 0;
+uint8_t tpcNClsShared = 0;
+uint8_t trdPattern = 0;
+float itsChi2NCl = -999.f;
+float tpcChi2NCl = -999.f;
+float trdChi2 = -999.f;
+float tofChi2 = -999.f;
+float tpcSignal = -999.f;
+float trdSignal = -999.f;
+float tofSignal = -999.f;
+float length = -999.f;
+float tofExpMom = -999.f;
+float trackEtaEMCAL = -999.f;
+float trackPhiEMCAL = -999.f;
+
+void AODProducerWorkflowDPL::collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
+                                        gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
+                                        const std::vector<o2::InteractionTimeRecord>& mcRecords,
+                                        std::map<uint64_t, int>& bcsMap)
 {
+  // collecting non-empty BCs and enumerating them
+  for (auto& rec : mcRecords) {
+    uint64_t globalBC = rec.toLong();
+    bcsMap[globalBC] = 1;
+  }
+
   for (auto& ft0RecPoint : ft0RecPoints) {
-    uint64_t bc = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
-    if (minGlBC > bc) {
-      minGlBC = bc;
-    }
-    if (maxGlBC < bc) {
-      maxGlBC = bc;
-    }
+    uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
+    bcsMap[globalBC] = 1;
   }
 
   for (auto& vertex : primVertices) {
-    const InteractionRecord& colIRMin = vertex.getIRMin();
-    const InteractionRecord& colIRMax = vertex.getIRMax();
-    uint64_t colBCMin = colIRMin.orbit * o2::constants::lhc::LHCMaxBunches + colIRMin.bc;
-    uint64_t colBCMax = colIRMax.orbit * o2::constants::lhc::LHCMaxBunches + colIRMax.bc;
-    if (minGlBC > colBCMin) {
-      minGlBC = colBCMin;
-    }
-    if (maxGlBC < colBCMax) {
-      maxGlBC = colBCMax;
-    }
+    auto& timeStamp = vertex.getTimeStamp();
+    double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
+    uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+    bcsMap[globalBC] = 1;
   }
 
-  for (auto& rec : mcRecords) {
-    uint64_t bc = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
-    if (minGlBC > bc) {
-      minGlBC = bc;
-    }
-    if (maxGlBC < bc) {
-      maxGlBC = bc;
-    }
+  int bcID = 0;
+  for (auto& item : bcsMap) {
+    item.second = bcID;
+    bcID++;
   }
 }
 
-uint64_t AODProducerWorkflowDPL::getTFNumber(uint64_t firstVtxGlBC, int runNumber)
+uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber)
 {
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
   o2::ccdb::CcdbApi ccdb_api;
@@ -106,145 +127,103 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(uint64_t firstVtxGlBC, int runNumbe
   // mus to ms
   ts = ts / 1000;
 
-  // firstRec --> calculated using `minimal` global BC in the simulation (see AODProducerWorkflowDPL::findMinMaxBc)
-  // firstVtxGlBC --> calculated using global BC corresponding to the first prim. vertex
-
   uint32_t initialOrbit = mapStartOrbit->at(runNumber);
-  uint16_t firstRecBC = minGlBC % o2::constants::lhc::LHCMaxBunches;
-  uint32_t firstRecOrbit = minGlBC / o2::constants::lhc::LHCMaxBunches;
-  uint16_t firstVtxBC = firstVtxGlBC % o2::constants::lhc::LHCMaxBunches;
-  uint32_t firstVtxOrbit = firstVtxGlBC / o2::constants::lhc::LHCMaxBunches;
+  uint16_t firstRecBC = tfStartIR.bc;
+  uint32_t firstRecOrbit = initialOrbit + tfStartIR.orbit;
   const o2::InteractionRecord firstRec(firstRecBC, firstRecOrbit);
-  const o2::InteractionRecord firstVtx(firstVtxBC, firstVtxOrbit);
-  ts += (firstVtx - firstRec).bc2ns() / 1000000;
+  ts += firstRec.bc2ns() / 1000000;
 
   return ts;
 };
 
-template <typename TTracks, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
-void AODProducerWorkflowDPL::fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
-                                             const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType)
+template <typename TracksCursorType, typename TracksCovCursorType>
+void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
+                                              const o2::track::TrackParCov& track, int collisionID, int src)
 {
-  for (int i = 0; i < tracks.size(); i++) {
-    auto& track = tracks[i];
-    int collisionID = vCollRefs[i];
-
-    float tpcInnerParam = 0.f;
-    uint32_t flags = 0;
-    uint8_t itsClusterMap = 0;
-    uint8_t tpcNClsFindable = 0;
-    int8_t tpcNClsFindableMinusFound = 0;
-    int8_t tpcNClsFindableMinusCrossedRows = 0;
-    uint8_t tpcNClsShared = 0;
-    uint8_t trdPattern = 0;
-    float itsChi2NCl = -999.f;
-    float tpcChi2NCl = -999.f;
-    float trdChi2 = -999.f;
-    float tofChi2 = -999.f;
-    float tpcSignal = -999.f;
-    float trdSignal = -999.f;
-    float tofSignal = -999.f;
-    float length = -999.f;
-    float tofExpMom = -999.f;
-    float trackEtaEMCAL = -999.f;
-    float trackPhiEMCAL = -999.f;
-
-    // filling available columns for different track types
-    std::variant<o2::its::TrackITS, o2::tpc::TrackTPC, o2::dataformats::TrackTPCITS> tmp = track;
-    std::visit(
-      overloaded{
-        [&](o2::its::TrackITS itsTrack) {
-          itsClusterMap = itsTrack.getPattern();
-        },
-        [&](o2::tpc::TrackTPC tpcTrack) {
-          tpcChi2NCl = tpcTrack.getNClusters() ? tpcTrack.getChi2() / tpcTrack.getNClusters() : 0;
-          tpcSignal = tpcTrack.getdEdx().dEdxTotTPC;
-          tpcNClsFindable = tpcTrack.getNClusters();
-        },
-        [&](o2::dataformats::TrackTPCITS itsTpcTrack) {
-          LOG(DEBUG) << "TrackTPCITS: check";
-        }},
-      tmp);
-
-    // TODO:
-    // fill trackextra table
-    tracksCursor(0,
-                 collisionID,
-                 trackType,
-                 truncateFloatFraction(track.getX(), mTrackX),
-                 truncateFloatFraction(track.getAlpha(), mTrackAlpha),
-                 track.getY(),
-                 track.getZ(),
-                 truncateFloatFraction(track.getSnp(), mTrackSnp),
-                 truncateFloatFraction(track.getTgl(), mTrackTgl),
-                 truncateFloatFraction(track.getQ2Pt(), mTrack1Pt));
-    tracksCovCursor(0,
-                    truncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
-                    truncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
-                    truncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
-                    truncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
-                    truncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
-                    (Char_t)(128. * track.getSigmaZY() / track.getSigmaZ2() / track.getSigmaY2()),
-                    (Char_t)(128. * track.getSigmaSnpY() / track.getSigmaSnp2() / track.getSigmaY2()),
-                    (Char_t)(128. * track.getSigmaSnpZ() / track.getSigmaSnp2() / track.getSigmaZ2()),
-                    (Char_t)(128. * track.getSigmaTglY() / track.getSigmaTgl2() / track.getSigmaY2()),
-                    (Char_t)(128. * track.getSigmaTglZ() / track.getSigmaTgl2() / track.getSigmaZ2()),
-                    (Char_t)(128. * track.getSigmaTglSnp() / track.getSigmaTgl2() / track.getSigmaSnp2()),
-                    (Char_t)(128. * track.getSigma1PtY() / track.getSigma1Pt2() / track.getSigmaY2()),
-                    (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
-                    (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
-                    (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()));
-    tracksExtraCursor(0,
-                      truncateFloatFraction(tpcInnerParam, mTrack1Pt),
-                      flags,
-                      itsClusterMap,
-                      tpcNClsFindable,
-                      tpcNClsFindableMinusFound,
-                      tpcNClsFindableMinusCrossedRows,
-                      tpcNClsShared,
-                      trdPattern,
-                      truncateFloatFraction(itsChi2NCl, mTrackCovOffDiag),
-                      truncateFloatFraction(tpcChi2NCl, mTrackCovOffDiag),
-                      truncateFloatFraction(trdChi2, mTrackCovOffDiag),
-                      truncateFloatFraction(tofChi2, mTrackCovOffDiag),
-                      truncateFloatFraction(tpcSignal, mTrackSignal),
-                      truncateFloatFraction(trdSignal, mTrackSignal),
-                      truncateFloatFraction(tofSignal, mTrackSignal),
-                      truncateFloatFraction(length, mTrackSignal),
-                      truncateFloatFraction(tofExpMom, mTrack1Pt),
-                      truncateFloatFraction(trackEtaEMCAL, mTrackPosEMCAL),
-                      truncateFloatFraction(trackPhiEMCAL, mTrackPosEMCAL));
-  }
+  // tracks
+  tracksCursor(0,
+               collisionID,
+               src,
+               truncateFloatFraction(track.getX(), mTrackX),
+               truncateFloatFraction(track.getAlpha(), mTrackAlpha),
+               track.getY(),
+               track.getZ(),
+               truncateFloatFraction(track.getSnp(), mTrackSnp),
+               truncateFloatFraction(track.getTgl(), mTrackTgl),
+               truncateFloatFraction(track.getQ2Pt(), mTrack1Pt));
+  // trackscov
+  tracksCovCursor(0,
+                  truncateFloatFraction(TMath::Sqrt(track.getSigmaY2()), mTrackCovDiag),
+                  truncateFloatFraction(TMath::Sqrt(track.getSigmaZ2()), mTrackCovDiag),
+                  truncateFloatFraction(TMath::Sqrt(track.getSigmaSnp2()), mTrackCovDiag),
+                  truncateFloatFraction(TMath::Sqrt(track.getSigmaTgl2()), mTrackCovDiag),
+                  truncateFloatFraction(TMath::Sqrt(track.getSigma1Pt2()), mTrackCovDiag),
+                  (Char_t)(128. * track.getSigmaZY() / track.getSigmaZ2() / track.getSigmaY2()),
+                  (Char_t)(128. * track.getSigmaSnpY() / track.getSigmaSnp2() / track.getSigmaY2()),
+                  (Char_t)(128. * track.getSigmaSnpZ() / track.getSigmaSnp2() / track.getSigmaZ2()),
+                  (Char_t)(128. * track.getSigmaTglY() / track.getSigmaTgl2() / track.getSigmaY2()),
+                  (Char_t)(128. * track.getSigmaTglZ() / track.getSigmaTgl2() / track.getSigmaZ2()),
+                  (Char_t)(128. * track.getSigmaTglSnp() / track.getSigmaTgl2() / track.getSigmaSnp2()),
+                  (Char_t)(128. * track.getSigma1PtY() / track.getSigma1Pt2() / track.getSigmaY2()),
+                  (Char_t)(128. * track.getSigma1PtZ() / track.getSigma1Pt2() / track.getSigmaZ2()),
+                  (Char_t)(128. * track.getSigma1PtSnp() / track.getSigma1Pt2() / track.getSigmaSnp2()),
+                  (Char_t)(128. * track.getSigma1PtTgl() / track.getSigma1Pt2() / track.getSigmaTgl2()));
 }
 
-template <typename TTracks, typename TTracksCursor>
-void AODProducerWorkflowDPL::fillMFTTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& mftTracksCursor)
+template <typename TracksExtraCursorType>
+void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor)
 {
-  for (int i = 0; i < tracks.size(); i++) {
-    auto& track = tracks[i];
-    int collisionID = vCollRefs[i];
+  // extra
+  tracksExtraCursor(0,
+                    truncateFloatFraction(tpcInnerParam, mTrack1Pt),
+                    flags,
+                    itsClusterMap,
+                    tpcNClsFindable,
+                    tpcNClsFindableMinusFound,
+                    tpcNClsFindableMinusCrossedRows,
+                    tpcNClsShared,
+                    trdPattern,
+                    truncateFloatFraction(itsChi2NCl, mTrackCovOffDiag),
+                    truncateFloatFraction(tpcChi2NCl, mTrackCovOffDiag),
+                    truncateFloatFraction(trdChi2, mTrackCovOffDiag),
+                    truncateFloatFraction(tofChi2, mTrackCovOffDiag),
+                    truncateFloatFraction(tpcSignal, mTrackSignal),
+                    truncateFloatFraction(trdSignal, mTrackSignal),
+                    truncateFloatFraction(tofSignal, mTrackSignal),
+                    truncateFloatFraction(length, mTrackSignal),
+                    truncateFloatFraction(tofExpMom, mTrack1Pt),
+                    truncateFloatFraction(trackEtaEMCAL, mTrackPosEMCAL),
+                    truncateFloatFraction(trackPhiEMCAL, mTrackPosEMCAL));
+}
 
-    mftTracksCursor(0,
-                    collisionID,
-                    track.getX(),
-                    track.getY(),
-                    track.getZ(),
-                    track.getPhi(),
-                    track.getTanl(),
-                    track.getInvQPt(),
-                    track.getNumberOfPoints(),
-                    track.getTrackChi2());
-  }
+template <typename mftTracksCursorType>
+void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksCursor,
+                                                 const o2::mft::TrackMFT& track, int collisionID)
+{
+  // mft tracks
+  mftTracksCursor(0,
+                  collisionID,
+                  track.getX(),
+                  track.getY(),
+                  track.getZ(),
+                  track.getPhi(),
+                  track.getTanl(),
+                  track.getInvQPt(),
+                  track.getNumberOfPoints(),
+                  track.getTrackChi2());
 }
 
 template <typename MCParticlesCursorType>
 void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthMFT,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthTPC, TripletsMap_t& toStore)
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthITS, std::vector<bool>& isStoredITS,
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthMFT, std::vector<bool>& isStoredMFT,
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthTPC, std::vector<bool>& isStoredTPC,
+                                                  TripletsMap_t& toStore)
 {
   // mark reconstructed MC particles to store them into the table
-  for (auto& mcTruth : mcTruthITS) {
-    if (!mcTruth.isValid()) {
+  for (int i = 0; i < mcTruthITS.size(); i++) {
+    auto& mcTruth = mcTruthITS[i];
+    if (!mcTruth.isValid() || !isStoredITS[i]) {
       continue;
     }
     int source = mcTruth.getSourceID();
@@ -252,8 +231,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     int particle = mcTruth.getTrackID();
     toStore[Triplet_t(source, event, particle)] = 1;
   }
-  for (auto& mcTruth : mcTruthMFT) {
-    if (!mcTruth.isValid()) {
+  for (int i = 0; i < mcTruthMFT.size(); i++) {
+    auto& mcTruth = mcTruthMFT[i];
+    if (!mcTruth.isValid() || !isStoredMFT[i]) {
       continue;
     }
     int source = mcTruth.getSourceID();
@@ -261,8 +241,9 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     int particle = mcTruth.getTrackID();
     toStore[Triplet_t(source, event, particle)] = 1;
   }
-  for (auto& mcTruth : mcTruthTPC) {
-    if (!mcTruth.isValid()) {
+  for (int i = 0; i < mcTruthTPC.size(); i++) {
+    auto& mcTruth = mcTruthTPC[i];
+    if (!mcTruth.isValid() || !isStoredTPC[i]) {
       continue;
     }
     int source = mcTruth.getSourceID();
@@ -373,16 +354,6 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
   }
 }
 
-void AODProducerWorkflowDPL::writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber)
-{
-  std::string treeName;
-  std::string dirName = "DF_" + std::to_string(tfNumber);
-  treeName = dirName + "/" + tableName;
-  TableToTree t2t(table, outfile, treeName.c_str());
-  t2t.addAllBranches();
-  t2t.process();
-}
-
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
@@ -446,56 +417,63 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
-  auto ft0ChData = pc.inputs().get<gsl::span<o2::ft0::ChannelDataFloat>>("ft0ChData");
-  auto ft0RecPoints = pc.inputs().get<gsl::span<o2::ft0::RecPoints>>("ft0RecPoints");
-  auto primVer2TRefs = pc.inputs().get<gsl::span<V2TRef>>("primVer2TRefs");
-  auto primVerGIs = pc.inputs().get<gsl::span<GIndex>>("primVerGIs");
-  auto primVertices = pc.inputs().get<gsl::span<PVertex>>("primVertices");
-  auto primVerLabels = pc.inputs().get<gsl::span<o2::MCEventLabel>>("primVerLabels");
-  auto tracksITS = pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS");
-  auto tracksMFT = pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT");
-  auto tracksITSTPC = pc.inputs().get<gsl::span<o2::dataformats::TrackTPCITS>>("tracksITSTPC");
-  auto tracksTPC = pc.inputs().get<gsl::span<o2::tpc::TrackTPC>>("trackTPC");
-  auto tracksTPCMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackTPCMCTruth");
-  auto tracksITSMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackITSMCTruth");
-  auto tracksMFTMCTruth = pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMFTMCTruth");
+  o2::globaltracking::RecoContainer recoData;
+  recoData.collectData(pc, *mDataRequest);
 
+  auto primVertices = recoData.getPrimaryVertices();
+  auto primVer2TRefs = recoData.getPrimaryVertexMatchedTrackRefs();
+  auto primVerGIs = recoData.getPrimaryVertexMatchedTracks();
+  auto primVerLabels = recoData.getPrimaryVertexMCLabels();
+
+  // temporary placeholder
+  if (mFillSVertices) {
+    auto secVertices = recoData.getV0s();
+    auto p2secRefs = recoData.getPV2V0Refs();
+  }
+
+  auto ft0ChData = recoData.getFT0ChannelsData();
+  auto ft0RecPoints = recoData.getFT0RecPoints();
+
+  auto tracksITS = recoData.getITSTracks();
+  auto tracksMFT = recoData.getMFTTracks();
+  auto tracksTPC = recoData.getTPCTracks();
+  auto tracksITSTPC = recoData.getTPCITSTracks();
+
+  auto tracksTPCMCTruth = recoData.getTPCTracksMCLabels();
+  auto tracksITSMCTruth = recoData.getITSTracksMCLabels();
+  auto tracksMFTMCTruth = recoData.getMFTTracksMCLabels();
+
+  // using vectors to mark referenced tracks
+  // todo: should not use these (?), to be removed, when all track types are processed
+  std::vector<bool> isStoredTPC(tracksTPC.size(), false);
+  std::vector<bool> isStoredITS(tracksITS.size(), false);
+  std::vector<bool> isStoredMFT(tracksMFT.size(), false);
+
+  LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(DEBUG) << "FOUND " << tracksTPC.size() << " TPC tracks";
+  LOG(DEBUG) << "FOUND " << tracksTPCMCTruth.size() << " TPC labels";
   LOG(DEBUG) << "FOUND " << tracksMFT.size() << " MFT tracks";
+  LOG(DEBUG) << "FOUND " << tracksMFTMCTruth.size() << " MFT labels";
   LOG(DEBUG) << "FOUND " << tracksITS.size() << " ITS tracks";
+  LOG(DEBUG) << "FOUND " << tracksITSMCTruth.size() << " ITS labels";
   LOG(DEBUG) << "FOUND " << tracksITSTPC.size() << " ITSTPC tracks";
+  LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
 
-  TableBuilder bcBuilderS;
-  TableBuilder collisionsBuilderS;
-  TableBuilder mcColLabelsBuilderS;
-  TableBuilder ft0BuilderS;
-  TableBuilder mcCollisionsBuilderS;
-  TableBuilder tracksBuilderS;
-  TableBuilder tracksCovBuilderS;
-  TableBuilder tracksExtraBuilderS;
-  TableBuilder mftTracksBuilderS;
-  TableBuilder mcParticlesBuilderS;
-  TableBuilder mcTrackLabelBuilderS;
-  TableBuilder fv0aBuilderS;
-  TableBuilder fddBuilderS;
-  TableBuilder fv0cBuilderS;
-  TableBuilder zdcBuilderS;
-
-  auto& bcBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "BC"}) : bcBuilderS;
-  auto& collisionsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"}) : collisionsBuilderS;
-  auto& mcColLabelsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISLABEL"}) : mcColLabelsBuilderS;
-  auto& ft0Builder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"}) : ft0BuilderS;
-  auto& mcCollisionsBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"}) : mcCollisionsBuilderS;
-  auto& tracksBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"}) : tracksBuilderS;
-  auto& tracksCovBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"}) : tracksCovBuilderS;
-  auto& tracksExtraBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"}) : tracksExtraBuilderS;
-  auto& mftTracksBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"}) : mftTracksBuilderS;
-  auto& mcParticlesBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"}) : mcParticlesBuilderS;
-  auto& mcTrackLabelBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"}) : mcTrackLabelBuilderS;
-  auto& fv0aBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"}) : fv0aBuilderS;
-  auto& fddBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"}) : fddBuilderS;
-  auto& fv0cBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"}) : fv0cBuilderS;
-  auto& zdcBuilder = mIgnoreWriter == 0 ? pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"}) : zdcBuilderS;
+  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
+  auto& mcColLabelsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISIONLABEL"});
+  auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
+  auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
+  auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
+  auto& tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"});
+  auto& tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
+  auto& mftTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"});
+  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
+  auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
+  auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
+  auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
+  auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
+  auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
@@ -521,34 +499,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(DEBUG) << "FOUND " << mcRecords.size() << " records";
   LOG(DEBUG) << "FOUND " << mcParts.size() << " parts";
 
-  uint64_t globalBC;
-  uint64_t BCid;
-  std::vector<uint64_t> BCIDs;
-
-  findMinMaxBc(ft0RecPoints, primVertices, mcRecords);
+  std::map<uint64_t, int> bcsMap;
+  collectBCs(ft0RecPoints, primVertices, mcRecords, bcsMap);
 
   const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
   o2::InteractionRecord startIR = {0, dh->firstTForbit};
 
-  uint64_t firstVtxGlBC = minGlBC;
-  uint64_t startBCofTF = startIR.toLong();
-  if (!primVertices.empty()) {
-    firstVtxGlBC = std::round(startBCofTF + primVertices[0].getTimeStamp().getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMUS);
-  }
-
   uint64_t tfNumber;
+  // default dummy run number
   int runNumber = 244918; // TODO: get real run number
   if (mTFNumber == -1L) {
-    tfNumber = getTFNumber(firstVtxGlBC, runNumber);
+    tfNumber = getTFNumber(startIR, runNumber);
   } else {
     tfNumber = mTFNumber;
-  }
-
-  TFile* outfile;
-  if (mIgnoreWriter) {
-    std::string dirName = "DF_" + std::to_string(tfNumber);
-    outfile = TFile::Open("AOD.root", "UPDATE");
-    outfile->mkdir(dirName.c_str());
   }
 
   // TODO: add real FV0A, FV0C, FDD, ZDC tables instead of dummies
@@ -562,23 +525,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
              dummyTime,
              dummyTriggerMask);
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableFV0A = fv0aBuilder.finalize();
-    std::string tableName("O2fv0a");
-    writeTableToFile(outfile, tableFV0A, tableName, tfNumber);
-  }
-
   float dummyFV0AmplC[32] = {0.};
   fv0cCursor(0,
              dummyBC,
              dummyFV0AmplC,
              dummyTime);
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableFV0C = fv0cBuilder.finalize();
-    std::string tableName("O2fv0c");
-    writeTableToFile(outfile, tableFV0C, tableName, tfNumber);
-  }
 
   float dummyFDDAmplA[4] = {0.};
   float dummyFDDAmplC[4] = {0.};
@@ -589,12 +540,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             dummyTime,
             dummyTime,
             dummyTriggerMask);
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableFDD = fddBuilder.finalize();
-    std::string tableName("O2fdd");
-    writeTableToFile(outfile, tableFDD, tableName, tfNumber);
-  }
 
   float dummyEnergyZEM1 = 0;
   float dummyEnergyZEM2 = 0;
@@ -625,26 +570,20 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             dummyTime,
             dummyTime);
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableZDC = zdcBuilder.finalize();
-    std::string tableName("O2zdc");
-    writeTableToFile(outfile, tableZDC, tableName, tfNumber);
-  }
-
   // TODO: figure out collision weight
   float mcColWeight = 1.;
   // filling mcCollision table
   int index = 0;
   for (auto& rec : mcRecords) {
     auto time = rec.getTimeNS();
-    globalBC = rec.bc + rec.orbit * o2::constants::lhc::LHCMaxBunches;
-    BCid = globalBC - minGlBC;
-    if (BCid < 0) {
-      BCid = 0;
-    } else if (BCid > maxGlBC - minGlBC) {
-      BCid = maxGlBC - minGlBC;
+    uint64_t globalBC = rec.toLong();
+    auto item = bcsMap.find(globalBC);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", index = " << index;
     }
-    BCIDs.push_back(BCid);
     auto& colParts = mcParts[index];
     for (auto colPart : colParts) {
       auto eventID = colPart.entryID;
@@ -654,7 +593,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       short generatorID = sourceID;
       auto& header = mcReader.getMCEventHeader(sourceID, eventID);
       mcCollisionsCursor(0,
-                         BCid,
+                         bcID,
                          generatorID,
                          truncateFloatFraction(header.GetX(), mCollisionPosition),
                          truncateFloatFraction(header.GetY(), mCollisionPosition),
@@ -664,12 +603,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                          header.GetB());
     }
     index++;
-  }
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableMCCollisions = mcCollisionsBuilder.finalize();
-    std::string tableName("O2mccollision");
-    writeTableToFile(outfile, tableMCCollisions, tableName, tfNumber);
   }
 
   // vector of FT0 amplitudes
@@ -689,34 +622,23 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     for (int i = 0; i < 112; i++) {
       aAmplitudesC[i] = truncateFloatFraction(vAmplitudes[i + 96], mT0Amplitude);
     }
-    globalBC = ft0RecPoint.getInteractionRecord().orbit * o2::constants::lhc::LHCMaxBunches + ft0RecPoint.getInteractionRecord().bc;
-    BCid = globalBC - minGlBC;
-    if (BCid < 0) {
-      BCid = 0;
-    } else if (BCid > maxGlBC - minGlBC) {
-      BCid = maxGlBC - minGlBC;
+    uint64_t globalBC = ft0RecPoint.getInteractionRecord().toLong();
+    uint64_t bc = globalBC;
+    auto item = bcsMap.find(bc);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a FT0 rec. point; BC = " << bc;
     }
-    BCIDs.push_back(BCid);
     ft0Cursor(0,
-              BCid,
+              bcID,
               aAmplitudesA,
               aAmplitudesC,
               truncateFloatFraction(ft0RecPoint.getCollisionTimeA() / 1E3, mT0Time), // ps to ns
               truncateFloatFraction(ft0RecPoint.getCollisionTimeC() / 1E3, mT0Time), // ps to ns
               ft0RecPoint.getTrigger().triggersignals);
   }
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableFT0 = ft0Builder.finalize();
-    std::string tableName("O2ft0");
-    writeTableToFile(outfile, tableFT0, tableName, tfNumber);
-  }
-
-  // initializing vectors for trackID --> collisionID connection
-  std::vector<int> vCollRefsITS(tracksITS.size(), -1);
-  std::vector<int> vCollRefsMFT(tracksMFT.size(), -1);
-  std::vector<int> vCollRefsTPC(tracksTPC.size(), -1);
-  std::vector<int> vCollRefsTPCITS(tracksITSTPC.size(), -1);
 
   // filling MC collision labels
   for (auto& label : primVerLabels) {
@@ -725,10 +647,103 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     mcColLabelsCursor(0, mcCollisionID, mcMask);
   }
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableMCColLabels = mcColLabelsBuilder.finalize();
-    std::string tableName("O2mccollisionlabel");
-    writeTableToFile(outfile, tableMCColLabels, tableName, tfNumber);
+  // filling unassigned tracks first
+  // so that all unassigned tracks are stored in the beginning of the table together
+  auto& trackRefU = primVer2TRefs.back(); // references to unassigned tracks are at the end
+  for (int src = GIndex::NSources; src--;) {
+    int start = trackRefU.getFirstEntryOfSource(src);
+    int end = start + trackRefU.getEntriesOfSource(src);
+    LOG(DEBUG) << "Unassigned tracks: src = " << src << ", start = " << start << ", end = " << end;
+    for (int ti = start; ti < end; ti++) {
+      tpcInnerParam = 0.f;
+      flags = 0;
+      itsClusterMap = 0;
+      tpcNClsFindable = 0;
+      tpcNClsFindableMinusFound = 0;
+      tpcNClsFindableMinusCrossedRows = 0;
+      tpcNClsShared = 0;
+      trdPattern = 0;
+      itsChi2NCl = -999.f;
+      tpcChi2NCl = -999.f;
+      trdChi2 = -999.f;
+      tofChi2 = -999.f;
+      tpcSignal = -999.f;
+      trdSignal = -999.f;
+      tofSignal = -999.f;
+      length = -999.f;
+      tofExpMom = -999.f;
+      trackEtaEMCAL = -999.f;
+      trackPhiEMCAL = -999.f;
+      auto& trackIndex = primVerGIs[ti];
+      if (src == GIndex::Source::ITS && mFillTracksITS) {
+        const auto& track = tracksITS[trackIndex.getIndex()];
+        isStoredITS[trackIndex.getIndex()] = true;
+        // extra info
+        itsClusterMap = track.getPattern();
+        // track
+        addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
+        addToTracksExtraTable(tracksExtraCursor);
+      }
+      if (src == GIndex::Source::TPC && mFillTracksTPC) {
+        const auto& track = tracksTPC[trackIndex.getIndex()];
+        isStoredTPC[trackIndex.getIndex()] = true;
+        // extra info
+        tpcChi2NCl = track.getNClusters() ? track.getChi2() / track.getNClusters() : 0;
+        tpcSignal = track.getdEdx().dEdxTotTPC;
+        tpcNClsFindable = track.getNClusters();
+        // track
+        addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
+        addToTracksExtraTable(tracksExtraCursor);
+      }
+      if (src == GIndex::Source::ITSTPC && mFillTracksITSTPC) {
+        const auto& track = tracksITSTPC[trackIndex.getIndex()];
+        auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+        // extra info from sub-tracks
+        if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+          isStoredITS[track.getRefITS()] = true;
+          const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
+          itsClusterMap = itsOrig.getPattern();
+        }
+        if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+          isStoredTPC[track.getRefTPC()] = true;
+          const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+          tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+          tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+          tpcNClsFindable = tpcOrig.getNClusters();
+        }
+        addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
+        addToTracksExtraTable(tracksExtraCursor);
+      }
+      if (src == GIndex::Source::ITSTPCTOF && mFillTracksITSTPC) {
+        auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+        const auto& track = recoData.getITSTPCTOFTrack(contributorsGID[GIndex::Source::ITSTPCTOF]);
+        const auto& tofMatch = recoData.getTOFMatch(contributorsGID[GIndex::Source::ITSTPCTOF]);
+        tofChi2 = tofMatch.getChi2();
+        const auto& tofInt = tofMatch.getLTIntegralOut();
+        tofSignal = tofInt.getTOF(0); // fixme: what id should be used here?
+        length = tofInt.getL();
+        // extra info from sub-tracks
+        if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+          isStoredITS[track.getRefITS()] = true;
+          const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
+          itsClusterMap = itsOrig.getPattern();
+        }
+        if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+          isStoredTPC[track.getRefTPC()] = true;
+          const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+          tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+          tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+          tpcNClsFindable = tpcOrig.getNClusters();
+        }
+        addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
+        addToTracksExtraTable(tracksExtraCursor);
+      }
+      if (src == GIndex::Source::MFT && mFillTracksMFT) {
+        const auto& track = tracksMFT[trackIndex.getIndex()];
+        isStoredMFT[trackIndex.getIndex()] = true;
+        addToMFTTracksTable(mftTracksCursor, track, -1);
+      }
+    }
   }
 
   // filling collisions table
@@ -736,22 +751,22 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
     auto& timeStamp = vertex.getTimeStamp();
-    Double_t tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
-    globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
+    double tsTimeStamp = timeStamp.getTimeStamp() * 1E3; // mus to ns
+    uint64_t globalBC = std::round(tsTimeStamp / o2::constants::lhc::LHCBunchSpacingNS);
     LOG(DEBUG) << globalBC << " " << tsTimeStamp;
     // collision timestamp in ns wrt the beginning of collision BC
     tsTimeStamp = globalBC * o2::constants::lhc::LHCBunchSpacingNS - tsTimeStamp;
-    BCid = globalBC - minGlBC;
-    if (BCid < 0) {
-      BCid = 0;
-    } else if (BCid > maxGlBC - minGlBC) {
-      BCid = maxGlBC - minGlBC;
+    auto item = bcsMap.find(globalBC);
+    int bcID = -1;
+    if (item != bcsMap.end()) {
+      bcID = item->second;
+    } else {
+      LOG(FATAL) << "Error: could not find a corresponding BC ID for a collision; BC = " << globalBC << ", collisionID = " << collisionID;
     }
-    BCIDs.push_back(BCid);
     // TODO: get real collision time mask
     int collisionTimeMask = 0;
     collisionsCursor(0,
-                     BCid,
+                     bcID,
                      truncateFloatFraction(vertex.getX(), mCollisionPosition),
                      truncateFloatFraction(vertex.getY(), mCollisionPosition),
                      truncateFloatFraction(vertex.getZ(), mCollisionPosition),
@@ -767,73 +782,133 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      truncateFloatFraction(tsTimeStamp, mCollisionPosition),
                      truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov),
                      collisionTimeMask);
-
-    auto trackRef = primVer2TRefs[collisionID];
-    for (auto src : {GIndex::Source::ITS, GIndex::Source::TPC, GIndex::Source::MFT, GIndex::Source::ITSTPC}) {
+    auto& trackRef = primVer2TRefs[collisionID];
+    for (int src = GIndex::NSources; src--;) {
       int start = trackRef.getFirstEntryOfSource(src);
-      int ntracks = trackRef.getEntriesOfSource(src);
-      LOG(DEBUG) << " ====> Collision " << collisionID << " ; src = " << src << " : ntracks = " << ntracks;
-
-      // FIXME: `track<-->vertex` ambiguity is not accounted for in this code
-      for (int ti = 0; ti < ntracks; ti++) {
-        auto trackIndex = primVerGIs[start + ti];
-        // setting collisionID for tracks attached to vertices
-        if (src == GIndex::Source::TPC) {
-          vCollRefsTPC[trackIndex.getIndex()] = collisionID;
-        } else if (src == GIndex::Source::ITS) {
-          vCollRefsITS[trackIndex.getIndex()] = collisionID;
-        } else if (src == GIndex::Source::MFT) {
-          vCollRefsMFT[trackIndex.getIndex()] = collisionID;
-        } else if (src == GIndex::Source::ITSTPC) {
-          vCollRefsTPCITS[trackIndex.getIndex()] = collisionID;
-        } else {
-          LOG(WARNING) << "Unsupported track type!";
+      int end = start + trackRef.getEntriesOfSource(src);
+      LOG(DEBUG) << " ====> Collision " << collisionID << " ; src = " << src << " : ntracks = " << end - start;
+      LOG(DEBUG) << "start = " << start << ", end = " << end;
+      for (int ti = start; ti < end; ti++) {
+        tpcInnerParam = 0.f;
+        flags = 0;
+        itsClusterMap = 0;
+        tpcNClsFindable = 0;
+        tpcNClsFindableMinusFound = 0;
+        tpcNClsFindableMinusCrossedRows = 0;
+        tpcNClsShared = 0;
+        trdPattern = 0;
+        itsChi2NCl = -999.f;
+        tpcChi2NCl = -999.f;
+        trdChi2 = -999.f;
+        tofChi2 = -999.f;
+        tpcSignal = -999.f;
+        trdSignal = -999.f;
+        tofSignal = -999.f;
+        length = -999.f;
+        tofExpMom = -999.f;
+        trackEtaEMCAL = -999.f;
+        trackPhiEMCAL = -999.f;
+        auto& trackIndex = primVerGIs[ti];
+        if (src == GIndex::Source::ITS && mFillTracksITS) {
+          const auto& track = tracksITS[trackIndex.getIndex()];
+          isStoredITS[trackIndex.getIndex()] = true;
+          // extra info
+          itsClusterMap = track.getPattern();
+          // track
+          addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
+          addToTracksExtraTable(tracksExtraCursor);
+        }
+        if (src == GIndex::Source::TPC && mFillTracksTPC) {
+          const auto& track = tracksTPC[trackIndex.getIndex()];
+          isStoredTPC[trackIndex.getIndex()] = true;
+          // extra info
+          tpcChi2NCl = track.getNClusters() ? track.getChi2() / track.getNClusters() : 0;
+          tpcSignal = track.getdEdx().dEdxTotTPC;
+          tpcNClsFindable = track.getNClusters();
+          // track
+          addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
+          addToTracksExtraTable(tracksExtraCursor);
+        }
+        if (src == GIndex::Source::ITSTPC && mFillTracksITSTPC) {
+          const auto& track = tracksITSTPC[trackIndex.getIndex()];
+          auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+          // extra info from sub-tracks
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+            isStoredITS[track.getRefITS()] = true;
+            const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
+            itsClusterMap = itsOrig.getPattern();
+          }
+          if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            isStoredTPC[track.getRefTPC()] = true;
+            const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+            tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+            tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+            tpcNClsFindable = tpcOrig.getNClusters();
+          }
+          addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
+          addToTracksExtraTable(tracksExtraCursor);
+        }
+        if (src == GIndex::Source::ITSTPCTOF && mFillTracksITSTPC) {
+          auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+          const auto& track = recoData.getITSTPCTOFTrack(contributorsGID[GIndex::Source::ITSTPCTOF]);
+          const auto& tofMatch = recoData.getTOFMatch(contributorsGID[GIndex::Source::ITSTPCTOF]);
+          tofChi2 = tofMatch.getChi2();
+          const auto& tofInt = tofMatch.getLTIntegralOut();
+          tofSignal = tofInt.getTOF(0); // fixme: what id should be used here?
+          length = tofInt.getL();
+          // extra info from sub-tracks
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+            isStoredITS[track.getRefITS()] = true;
+            const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
+            itsClusterMap = itsOrig.getPattern();
+          }
+          if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            isStoredTPC[track.getRefTPC()] = true;
+            const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+            tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+            tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+            tpcNClsFindable = tpcOrig.getNClusters();
+          }
+          addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
+          addToTracksExtraTable(tracksExtraCursor);
+        }
+        if (src == GIndex::Source::MFT && mFillTracksMFT) {
+          const auto& track = tracksMFT[trackIndex.getIndex()];
+          isStoredMFT[trackIndex.getIndex()] = true;
+          addToMFTTracksTable(mftTracksCursor, track, collisionID);
         }
       }
     }
     collisionID++;
   }
 
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableCollisions = collisionsBuilder.finalize();
-    std::string tableName("O2collision");
-    writeTableToFile(outfile, tableCollisions, tableName, tfNumber);
-  }
-
   // filling BC table
   // TODO: get real triggerMask
   uint64_t triggerMask = 1;
-  std::sort(BCIDs.begin(), BCIDs.end());
-  uint64_t prevBCid = BCIDs.back();
-  for (auto& id : BCIDs) {
-    if (id == prevBCid) {
-      continue;
-    }
+  for (auto& item : bcsMap) {
+    uint64_t bc = item.first;
     bcCursor(0,
              runNumber,
-             startBCofTF + minGlBC + id,
+             bc,
              triggerMask);
-    prevBCid = id;
   }
 
-  BCIDs.clear();
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableBC = bcBuilder.finalize();
-    std::string tableName("O2bc");
-    writeTableToFile(outfile, tableBC, tableName, tfNumber);
-  }
+  bcsMap.clear();
 
   // filling mc particles table
   TripletsMap_t toStore;
-  fillMCParticlesTable(mcReader, mcParticlesCursor, tracksITSMCTruth, tracksMFTMCTruth, tracksTPCMCTruth, toStore);
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableMCParticles = mcParticlesBuilder.finalize();
-    std::string tableName("O2mcparticle");
-    writeTableToFile(outfile, tableMCParticles, tableName, tfNumber);
-  }
+  fillMCParticlesTable(mcReader, mcParticlesCursor,
+                       tracksITSMCTruth, isStoredITS,
+                       tracksMFTMCTruth, isStoredMFT,
+                       tracksTPCMCTruth, isStoredTPC,
+                       toStore);
 
-  // filling tracks tables and track label table
+  isStoredITS.clear();
+  isStoredMFT.clear();
+  isStoredTPC.clear();
+
+  // ------------------------------------------------------
+  // filling track labels
 
   // labelMask (temporary) usage:
   //   bit 13 -- ITS and TPC labels are not equal
@@ -846,127 +921,107 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint32_t labelTPC;
   uint16_t labelMask;
 
-  if (mFillTracksITS) {
-    fillTracksTable(tracksITS, vCollRefsITS, tracksCursor, tracksCovCursor, tracksExtraCursor, GIndex::Source::ITS);
-    for (auto& mcTruthITS : tracksITSMCTruth) {
-      labelID = std::numeric_limits<uint32_t>::max();
-      // TODO: fill label mask
-      labelMask = 0;
-      if (mcTruthITS.isValid()) {
-        labelID = toStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+  // need to go through labels in the same order as for tracks
+  for (auto& trackRef : primVer2TRefs) {
+    for (int src = GIndex::NSources; src--;) {
+      int start = trackRef.getFirstEntryOfSource(src);
+      int end = start + trackRef.getEntriesOfSource(src);
+      for (int ti = start; ti < end; ti++) {
+        auto& trackIndex = primVerGIs[ti];
+        labelID = std::numeric_limits<uint32_t>::max();
+        labelITS = labelID;
+        labelTPC = labelID;
+        labelMask = 0;
+        // its labels
+        if (src == GIndex::Source::ITS && mFillTracksITS) {
+          auto& mcTruthITS = tracksITSMCTruth[trackIndex.getIndex()];
+          if (mcTruthITS.isValid()) {
+            labelID = toStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+          }
+          if (mcTruthITS.isFake()) {
+            labelMask |= (0x1 << 15);
+          }
+          if (mcTruthITS.isNoise()) {
+            labelMask |= (0x1 << 14);
+          }
+          mcTrackLabelCursor(0,
+                             labelID,
+                             labelMask);
+        }
+        // tpc labels
+        if (src == GIndex::Source::TPC && mFillTracksTPC) {
+          auto& mcTruthTPC = tracksTPCMCTruth[trackIndex.getIndex()];
+          if (mcTruthTPC.isValid()) {
+            labelID = toStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+          }
+          if (mcTruthTPC.isFake()) {
+            labelMask |= (0x1 << 15);
+          }
+          if (mcTruthTPC.isNoise()) {
+            labelMask |= (0x1 << 14);
+          }
+          mcTrackLabelCursor(0,
+                             labelID,
+                             labelMask);
+        }
+        // its-tpc labels and its-tpc-tof labels
+        // todo:
+        //  probably need to store both its and tpc labels
+        //  for now filling only TPC label
+        if ((src == GIndex::Source::ITSTPC || src == GIndex::Source::ITSTPCTOF) && mFillTracksITSTPC) {
+          auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+          auto& mcTruthITS = tracksITSMCTruth[contributorsGID[GIndex::Source::ITS].getIndex()];
+          auto& mcTruthTPC = tracksTPCMCTruth[contributorsGID[GIndex::Source::TPC].getIndex()];
+          // its-contributor label
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+            if (mcTruthITS.isValid()) {
+              labelITS = toStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
+            }
+          }
+          if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            if (mcTruthTPC.isValid()) {
+              labelTPC = toStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
+            }
+          }
+          labelID = labelTPC;
+          if (mcTruthITS.isFake() || mcTruthTPC.isFake()) {
+            labelMask |= (0x1 << 15);
+          }
+          if (mcTruthITS.isNoise() || mcTruthTPC.isNoise()) {
+            labelMask |= (0x1 << 14);
+          }
+          if (labelITS != labelTPC) {
+            LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << trackIndex.getIndex();
+            labelMask |= (0x1 << 13);
+          }
+          mcTrackLabelCursor(0,
+                             labelID,
+                             labelMask);
+        }
+        // mft labels
+        // todo: move to a separate table
+        if (src == GIndex::Source::MFT && mFillTracksMFT) {
+          auto& mcTruthMFT = tracksMFTMCTruth[trackIndex.getIndex()];
+          if (mcTruthMFT.isValid()) {
+            labelID = toStore.at(Triplet_t(mcTruthMFT.getSourceID(), mcTruthMFT.getEventID(), mcTruthMFT.getTrackID()));
+          }
+          if (mcTruthMFT.isFake()) {
+            labelMask |= (0x1 << 15);
+          }
+          if (mcTruthMFT.isNoise()) {
+            labelMask |= (0x1 << 14);
+          }
+          mcTrackLabelCursor(0,
+                             labelID,
+                             labelMask);
+        }
       }
-      if (mcTruthITS.isFake()) {
-        labelMask |= (0x1 << 15);
-      }
-      if (mcTruthITS.isNoise()) {
-        labelMask |= (0x1 << 14);
-      }
-      mcTrackLabelCursor(0,
-                         labelID,
-                         labelMask);
-    }
-  }
-
-  if (mFillTracksMFT) {
-    fillMFTTracksTable(tracksMFT, vCollRefsMFT, mftTracksCursor);
-    for (auto& mcTruthMFT : tracksMFTMCTruth) {
-      labelID = std::numeric_limits<uint32_t>::max();
-      // TODO: fill label mask
-      labelMask = 0;
-      if (mcTruthMFT.isValid()) {
-        labelID = toStore.at(Triplet_t(mcTruthMFT.getSourceID(), mcTruthMFT.getEventID(), mcTruthMFT.getTrackID()));
-      }
-      if (mcTruthMFT.isFake()) {
-        labelMask |= (0x1 << 15);
-      }
-      if (mcTruthMFT.isNoise()) {
-        labelMask |= (0x1 << 14);
-      }
-      mcTrackLabelCursor(0,
-                         labelID,
-                         labelMask);
-    }
-  }
-
-  if (mFillTracksTPC) {
-    fillTracksTable(tracksTPC, vCollRefsTPC, tracksCursor, tracksCovCursor, tracksExtraCursor, GIndex::Source::TPC);
-    for (auto& mcTruthTPC : tracksTPCMCTruth) {
-      labelID = std::numeric_limits<uint32_t>::max();
-      // TODO: fill label mask
-      labelMask = 0;
-      if (mcTruthTPC.isValid()) {
-        labelID = toStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
-      }
-      if (mcTruthTPC.isFake()) {
-        labelMask |= (0x1 << 15);
-      }
-      if (mcTruthTPC.isNoise()) {
-        labelMask |= (0x1 << 14);
-      }
-      mcTrackLabelCursor(0,
-                         labelID,
-                         labelMask);
-    }
-  }
-
-  if (mFillTracksITSTPC) {
-    fillTracksTable(tracksITSTPC, vCollRefsTPCITS, tracksCursor, tracksCovCursor, tracksExtraCursor, GIndex::Source::ITSTPC);
-    for (int i = 0; i < tracksITSTPC.size(); i++) {
-      const auto& trc = tracksITSTPC[i];
-      auto mcTruthITS = tracksITSMCTruth[trc.getRefITS()];
-      auto mcTruthTPC = tracksTPCMCTruth[trc.getRefTPC()];
-      labelID = std::numeric_limits<uint32_t>::max();
-      labelITS = std::numeric_limits<uint32_t>::max();
-      labelTPC = std::numeric_limits<uint32_t>::max();
-      // TODO: fill label mask
-      // currently using label mask to indicate labelITS != labelTPC
-      labelMask = 0;
-      if (mcTruthITS.isValid() && mcTruthTPC.isValid()) {
-        labelITS = toStore.at(Triplet_t(mcTruthITS.getSourceID(), mcTruthITS.getEventID(), mcTruthITS.getTrackID()));
-        labelTPC = toStore.at(Triplet_t(mcTruthTPC.getSourceID(), mcTruthTPC.getEventID(), mcTruthTPC.getTrackID()));
-        labelID = labelITS;
-      }
-      if (mcTruthITS.isFake() || mcTruthTPC.isFake()) {
-        labelMask |= (0x1 << 15);
-      }
-      if (mcTruthITS.isNoise() || mcTruthTPC.isNoise()) {
-        labelMask |= (0x1 << 14);
-      }
-      if (labelITS != labelTPC) {
-        LOG(DEBUG) << "ITS-TPC MCTruth: labelIDs do not match at " << i;
-        labelMask |= (0x1 << 13);
-      }
-      mcTrackLabelCursor(0,
-                         labelID,
-                         labelMask);
     }
   }
 
   toStore.clear();
 
-  if (!mIgnoreWriter) {
-    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
-  }
-
-  if (mIgnoreWriter) {
-    std::shared_ptr<arrow::Table> tableTracks = tracksBuilder.finalize();
-    std::string tableName("O2track");
-    writeTableToFile(outfile, tableTracks, tableName, tfNumber);
-    std::shared_ptr<arrow::Table> tableTracksCov = tracksCovBuilder.finalize();
-    tableName = "O2trackcov";
-    writeTableToFile(outfile, tableTracksCov, tableName, tfNumber);
-    std::shared_ptr<arrow::Table> tableTracksExtra = tracksExtraBuilder.finalize();
-    tableName = "O2trackextra";
-    writeTableToFile(outfile, tableTracksExtra, tableName, tfNumber);
-    std::shared_ptr<arrow::Table> mftTracks = mftTracksBuilder.finalize();
-    tableName = "O2mfttrack";
-    writeTableToFile(outfile, mftTracks, tableName, tfNumber);
-    std::shared_ptr<arrow::Table> tableMCTrackLabels = mcTrackLabelBuilder.finalize();
-    tableName = "O2mctracklabel";
-    writeTableToFile(outfile, tableMCTrackLabels, tableName, tfNumber);
-    outfile->Close();
-    delete outfile;
-  }
+  pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
 
   mTimer.Stop();
 }
@@ -977,49 +1032,40 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(int mIgnoreWriter)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool fillSVertices)
 {
-  std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
+  auto dataRequest = std::make_shared<DataRequest>();
 
-  inputs.emplace_back("ft0ChData", "FT0", "RECCHDATA", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ft0RecPoints", "FT0", "RECPOINTS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("primVer2TRefs", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("primVerGIs", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);
-  inputs.emplace_back("primVertices", "GLO", "PVTX", 0, Lifetime::Timeframe);
-  inputs.emplace_back("primVerLabels", "GLO", "PVTX_MCTR", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackITS", "ITS", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackMFT", "MFT", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("tracksITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackTPCMCTruth", "TPC", "TRACKSMCLBL", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackITSMCTruth", "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
-  inputs.emplace_back("trackMFTMCTruth", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe);
-
-  if (!mIgnoreWriter) {
-    outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISLABEL", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-    outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
-    outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestPrimaryVertertices(useMC);
+  if (fillSVertices) {
+    dataRequest->requestSecondaryVertertices(useMC);
   }
+  dataRequest->requestFT0RecPoints(false);
+
+  outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+  outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "aod-producer-workflow",
-    inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(mIgnoreWriter)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(dataRequest, fillSVertices)},
     Options{
       ConfigParamSpec{"fill-tracks-its", VariantType::Int, 1, {"Fill ITS tracks into tracks table"}},
       ConfigParamSpec{"fill-tracks-mft", VariantType::Int, 1, {"Fill MFT tracks into mfttracks table"}},

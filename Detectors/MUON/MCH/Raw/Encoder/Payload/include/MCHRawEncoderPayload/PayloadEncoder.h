@@ -18,6 +18,7 @@
 #include "MCHRawElecMap/Mapper.h"
 #include <functional>
 #include <optional>
+#include <set>
 
 namespace o2::mch::raw
 {
@@ -43,12 +44,17 @@ class PayloadEncoder
   /// \param dsId is the (electronic) identifier of a dual sampa
   /// \param chId dual sampa channel id 0..63
   /// \param data the actual data to be added
-  virtual void addChannelData(DsElecId dsId, uint8_t chId, const std::vector<SampaCluster>& data) = 0;
+  virtual void addChannelData(DsElecId dsId, DualSampaChannelId chId,
+                              const std::vector<SampaCluster>& data) = 0;
 
   // startHeartbeatFrame sets the trigger (orbit,bunchCrossing) to be used
   // for all generated payload headers (until next call to this method).
   // Causes the alignment of the underlying gbts.
   virtual void startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing) = 0;
+
+  // addHeartbeatHeaders adds Heartbeat Sampa headers for each dual sampa in the
+  // given set.
+  virtual void addHeartbeatHeaders(const std::set<DsElecId>& dsids) = 0;
 
   /// Export our encoded data.
   ///
@@ -61,17 +67,15 @@ class PayloadEncoder
 
 /// createPayloadEncoder creates a payload encoder
 ///
-/// template parameters :
-///
-/// \tparam FORMAT defines the data format (either BareFormat or UserLogic)
-/// \tparam CHARGESUM defines the data format mode (either SampleMode or ChargeSumMode)
-/// \tparam forceNoPhase to be deprecated ?
-/// \tparam VERSION defines the version of the FORMAT
+/// \param userLogic whether to encode in UserLogic (true) or BareFormat (false)
+/// \param version defines the version of the encoding format
 ///         (currently 0 or 1 are possible, just for UserLogic)
+/// \param chargeSumMode whether to encode in charge sum mode (true) or sample mode (false)
 /// \param solar2feelink a mapper to convert solarId values into FeeLinkId objects
-///
-template <typename FORMAT, typename CHARGESUM, bool forceNoPhase = false, int VERSION = 0>
-std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper solar2feelink =
-                                                       createSolar2FeeLinkMapper<ElectronicMapperGenerated>());
+std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper solar2feelink,
+                                                     bool userLogic,
+                                                     int version,
+                                                     bool chargeSumMode);
+
 } // namespace o2::mch::raw
 #endif

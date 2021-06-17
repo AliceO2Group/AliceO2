@@ -81,7 +81,7 @@ void EntropyEncoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyEncoderSpec()
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("triggers", "TRD", "TRIGRECORDS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("triggers", "TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracklets", "TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "TRD", "DIGITS", 0, Lifetime::Timeframe);
 

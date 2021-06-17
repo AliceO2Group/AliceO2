@@ -28,7 +28,7 @@ namespace o2
 namespace tof
 {
 
-template <typename RDH, bool verbose>
+template <typename RDH, bool verbose, bool paranoid>
 class CompressorTask : public Task
 {
  public:
@@ -38,7 +38,7 @@ class CompressorTask : public Task
   void run(ProcessingContext& pc) final;
 
  private:
-  Compressor<RDH, verbose> mCompressor;
+  Compressor<RDH, verbose, paranoid> mCompressor;
   int mOutputBufferSize;
 };
 
