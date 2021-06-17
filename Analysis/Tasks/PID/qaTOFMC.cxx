@@ -64,10 +64,10 @@ struct pidTOFTaskQA {
   HistogramRegistry histos{"Histos", {}, OutputObjHandlingPolicy::QAObject};
 
   Configurable<int> nBinsP{"nBinsP", 400, "Number of bins for the momentum"};
-  Configurable<float> MinP{"MinP", 0.1, "Minimum momentum in range"};
-  Configurable<float> MaxP{"MaxP", 5, "Maximum momentum in range"};
-  Configurable<float> MinEta{"MinEta", -0.8, "Minimum eta in range"};
-  Configurable<float> MaxEta{"MaxEta", 0.8, "Maximum eta in range"};
+  Configurable<float> minP{"minP", 0.1, "Minimum momentum in range"};
+  Configurable<float> maxP{"maxP", 5, "Maximum momentum in range"};
+  Configurable<float> minEta{"minEta", -0.8, "Minimum eta in range"};
+  Configurable<float> maxEta{"maxEta", 0.8, "Maximum eta in range"};
   Configurable<int> nMinNumberOfContributors{"nMinNumberOfContributors", 2, "Minimum required number of contributors to the vertex"};
 
   template <typename T>
@@ -93,22 +93,22 @@ struct pidTOFTaskQA {
   void addParticleHistos()
   {
     // NSigma
-    histos.add(hnsigmaMC[i].data(), Form("True %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
+    histos.add(hnsigmaMC[i].data(), Form("True %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
     makelogaxis(histos.get<TH2>(HIST(hnsigmaMC[i])));
-    histos.add(hnsigmaMCprm[i].data(), Form("True Primary %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
+    histos.add(hnsigmaMCprm[i].data(), Form("True Primary %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
     makelogaxis(histos.get<TH2>(HIST(hnsigmaMCprm[i])));
-    histos.add(hnsigmaMCsec[i].data(), Form("True Secondary %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
+    histos.add(hnsigmaMCsec[i].data(), Form("True Secondary %s;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[i], pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
     makelogaxis(histos.get<TH2>(HIST(hnsigmaMCsec[i])));
   }
 
   void init(o2::framework::InitContext&)
   {
     histos.add("event/T0", ";Tracks with TOF;T0 (ps);Counts", HistType::kTH2F, {{1000, 0, 1000}, {1000, -1000, 1000}});
-    histos.add(hnsigma[pid_type].data(), Form(";#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
+    histos.add(hnsigma[pid_type].data(), Form(";#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
     makelogaxis(histos.get<TH2>(HIST(hnsigma[pid_type])));
-    histos.add(hnsigmaprm[pid_type].data(), Form("Primary;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
+    histos.add(hnsigmaprm[pid_type].data(), Form("Primary;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
     makelogaxis(histos.get<TH2>(HIST(hnsigmaprm[pid_type])));
-    histos.add(hnsigmasec[pid_type].data(), Form("Secondary;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, MinP, MaxP}, {2000, -30, 30}});
+    histos.add(hnsigmasec[pid_type].data(), Form("Secondary;#it{p}_{T} (GeV/#it{c});N_{#sigma}^{TOF}(%s)", pT[pid_type]), HistType::kTH2F, {{nBinsP, minP, maxP}, {2000, -30, 30}});
     makelogaxis(histos.get<TH2>(HIST(hnsigmasec[pid_type])));
     addParticleHistos<0>();
     addParticleHistos<1>();
@@ -119,11 +119,11 @@ struct pidTOFTaskQA {
     addParticleHistos<6>();
     addParticleHistos<7>();
     addParticleHistos<8>();
-    histos.add("event/tofbeta", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1.2}});
+    histos.add("event/tofbeta", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, minP, maxP}, {1000, 0, 1.2}});
     makelogaxis(histos.get<TH2>(HIST("event/tofbeta")));
-    histos.add("event/tofbetaPrm", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1.2}});
+    histos.add("event/tofbetaPrm", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, minP, maxP}, {1000, 0, 1.2}});
     makelogaxis(histos.get<TH2>(HIST("event/tofbetaPrm")));
-    histos.add("event/tofbetaSec", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, MinP, MaxP}, {1000, 0, 1.2}});
+    histos.add("event/tofbetaSec", ";#it{p}_{T} (GeV/#it{c});TOF #beta", HistType::kTH2F, {{nBinsP, minP, maxP}, {1000, 0, 1.2}});
     makelogaxis(histos.get<TH2>(HIST("event/tofbetaSec")));
   }
 
@@ -159,7 +159,7 @@ struct pidTOFTaskQA {
       if (!t.hasTOF()) { // Skipping tracks without TOF
         continue;
       }
-      if (t.eta() < MinEta || t.eta() > MaxEta) {
+      if (t.eta() < minEta || t.eta() > maxEta) {
         continue;
       }
       nTracksWithTOF++;
