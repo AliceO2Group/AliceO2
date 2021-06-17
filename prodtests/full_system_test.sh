@@ -95,10 +95,11 @@ if [ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]; then
   taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
   cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CreateDictionaries.C .
   taskwrapper itsmftdict2.log root -b -q CreateDictionaries.C++
+  rm -f CreateDictionaries_C* CreateDictionaries.C
   taskwrapper itsmftdict3.log o2-mft-reco-workflow --disable-mc
-  cp ~/alice/O2/Detectors/ITSMFT/MFT/macros/test/CheckTopologies.C .
-  taskwrapper itsmftdict4.log root -b -q CheckTopologies.C++
-  rm -f CheckTopologies_C*
+  cp ~/alice/O2/Detectors/ITSMFT/MFT/macros/test/CreateDictionaries.C .
+  taskwrapper itsmftdict4.log root -b -q CreateDictionaries.C++
+  rm -f CreateDictionaries_C* CreateDictionaries.C
 fi
 
 mkdir -p raw
