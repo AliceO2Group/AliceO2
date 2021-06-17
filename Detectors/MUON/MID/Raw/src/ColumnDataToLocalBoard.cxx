@@ -43,7 +43,7 @@ void ColumnDataToLocalBoard::process(gsl::span<const ColumnData> data)
   // First fill the map with the active local boards.
   // Each local board gets a unique id.
   for (auto& col : data) {
-    for (int iline = mMapping.getFirstBoardBP(col.columnId, col.deId); iline <= mMapping.getLastBoardBP(col.columnId, col.deId); ++iline) {
+    for (int iline = mMapping.getFirstBoardBP(col.columnId, col.deId), lastLine = mMapping.getLastBoardBP(col.columnId, col.deId); iline <= lastLine; ++iline) {
       if (col.getBendPattern(iline) || col.getNonBendPattern()) {
         auto uniqueLocId = mCrateMapper.deLocalBoardToRO(col.deId, col.columnId, iline);
         auto& roData = mLocalBoardsMap[uniqueLocId];
