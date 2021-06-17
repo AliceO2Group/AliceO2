@@ -12,7 +12,7 @@
 
 #include <vector>
 #include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflow/DigitWriterSpec.h"
+#include "CTPWorkflowIO/DigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
