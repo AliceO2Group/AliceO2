@@ -88,17 +88,18 @@ class TrackITS : public o2::track::TrackParCov
   o2::track::TrackParCov& getParamOut() { return mParamOut; }
   const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
-  void setPattern(uint16_t p) { mPattern = p; }
+  void setPattern(uint32_t p) { mPattern = p; }
   int getPattern() const { return mPattern; }
   bool hasHitOnLayer(int i) { return mPattern & (0x1 << i); }
+  bool isFakeOnLayer(int i) { return !(mPattern & (0x1 << (16 + i))); }
 
  private:
   o2::track::TrackParCov mParamOut; ///< parameter at largest radius
   ClusRefs mClusRef;                ///< references on clusters
   float mChi2 = 0.;                 ///< Chi2 for this track
-  uint16_t mPattern = 0;            ///< layers pattern
+  uint32_t mPattern = 0;            ///< layers pattern
 
-  ClassDefNV(TrackITS, 4);
+  ClassDefNV(TrackITS, 5);
 };
 
 class TrackITSExt : public TrackITS
@@ -106,10 +107,17 @@ class TrackITSExt : public TrackITS
   ///< heavy version of TrackITS, with clusters embedded
  public:
   static constexpr int MaxClusters = 16; /// Prepare for overlaps and new detector configurations
-  using TrackITS::TrackITS; // inherit base constructors
+  using TrackITS::TrackITS;              // inherit base constructors
 
   TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
               o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
+    : TrackITS(parCov, chi2, outer), mIndex{cls}
+  {
+    setNumberOfClusters(ncl);
+  }
+
+  TrackITSExt(o2::track::TrackParCov& parCov, short ncl, float chi2, std::uint32_t rof,
+              o2::track::TrackParCov& outer, std::array<int, MaxClusters> cls)
     : TrackITS(parCov, chi2, outer), mIndex{cls}
   {
     setNumberOfClusters(ncl);
@@ -128,8 +136,16 @@ class TrackITSExt : public TrackITS
   {
     if (newCluster) {
       getClusterRefs().setEntries(getNumberOfClusters() + 1);
+      uint32_t pattern = getPattern();
+      pattern |= 0x1 << layer;
+      setPattern(pattern);
     }
     mIndex[layer] = idx;
+  }
+
+  std::array<int, MaxClusters>& getClusterIndexes()
+  {
+    return mIndex;
   }
 
  private:

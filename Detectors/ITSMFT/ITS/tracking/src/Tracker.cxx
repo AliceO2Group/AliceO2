@@ -582,12 +582,28 @@ void Tracker::computeTracksMClabels(const ROframe& event)
           occurrences.emplace_back(label, 1);
         }
       }
-      track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
     }
     std::sort(std::begin(occurrences), std::end(occurrences), [](auto e1, auto e2) {
       return e1.second > e2.second;
     });
+
     auto maxOccurrencesValue = occurrences[0].first;
+    uint32_t pattern = track.getPattern();
+    // set fake clusters pattern
+    for (int ic{TrackITSExt::MaxClusters}; ic--;) {
+      auto clid = track.getClusterIndex(ic);
+      if (clid != constants::its::UnusedIndex) {
+        auto labelsSpan = event.getClusterLabels(ic, clid);
+        for (auto& currentLabel : labelsSpan) {
+          if (currentLabel == maxOccurrencesValue) {
+            pattern |= 0x1 << (16 + ic); // set bit if correct
+            break;
+          }
+        }
+        track.setExternalClusterIndex(ic, event.getClusterExternalIndex(ic, clid));
+      }
+    }
+    track.setPattern(pattern);
     if (occurrences[0].second < track.getNumberOfClusters()) {
       maxOccurrencesValue.setFakeFlag();
     }
