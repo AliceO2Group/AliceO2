@@ -22,11 +22,11 @@ namespace fdd
 
 framework::WorkflowSpec getFDDRawWorkflow(bool useProcess,
                                           bool dumpProcessor, bool dumpReader,
-                                          bool disableRootOut)
+                                          bool disableRootOut, bool askSTFDist)
 {
   LOG(INFO) << "framework::WorkflowSpec getFDDWorkflow";
   framework::WorkflowSpec specs;
-  specs.emplace_back(o2::fdd::getFDDRawDataReaderSpec(RawReaderFDD{dumpReader}));
+  specs.emplace_back(o2::fdd::getFDDRawDataReaderSpec(RawReaderFDD{dumpReader}, askSTFDist));
 
   if (useProcess) {
     specs.emplace_back(o2::fdd::getFDDRawDataProcessSpec(dumpProcessor));

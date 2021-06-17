@@ -21,7 +21,7 @@ namespace fdd
 {
 framework::WorkflowSpec getFDDRawWorkflow(bool useProcess,
                                           bool dumpProcessor, bool dumpReader,
-                                          bool disableRootOut);
+                                          bool disableRootOut, bool askSTFDist);
 } // namespace fdd
 } // namespace o2
 #endif

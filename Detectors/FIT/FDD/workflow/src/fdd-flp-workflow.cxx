@@ -45,6 +45,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
       o2::framework::VariantType::String,
       "",
       {"Semicolon separated key=value strings"}});
+  workflowOptions.push_back(ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
 }
 
 // ------------------------------------------------------------------
@@ -60,7 +61,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
   auto disableRootOut =
     configcontext.options().get<bool>("disable-root-output");
+  auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
   LOG(INFO) << "WorkflowSpec FLPWorkflow";
   return std::move(o2::fdd::getFDDRawWorkflow(
-    useProcessor, dumpProcessor, dumpReader, disableRootOut));
+    useProcessor, dumpProcessor, dumpReader, disableRootOut, askSTFDist));
 }
