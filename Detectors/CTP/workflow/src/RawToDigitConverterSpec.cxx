@@ -57,6 +57,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     gbtword80_t remnant = 0;
     uint32_t size_gbt = 0;
     int wordCount = 0;
+    std::vector<gbtword80_t> diglets;
     for (auto payloadWord : payload) {
       if (wordCount == 15) {
         wordCount = 0;
@@ -64,13 +65,14 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
         wordCount++;
       } else if (wordCount == 9) {
         wordCount++;
-        std::vector<gbtword80_t> diglets;
+        diglets.clear();
         makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
         // save digit in buffer recs
         for (auto diglet : diglets) {
           gbtword80_t pld = (diglet & pldmask);
-          if (pld.count() == 0)
+          if (pld.count() == 0) {
             continue;
+          }
           pld <<= 12;
           CTPDigit digit;
           uint32_t bcid = (diglet & bcidmask).to_ulong();
@@ -137,14 +139,15 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterS
                                           o2::framework::Options{}};
 }
 // Inverse of Digits2Raw::makeGBTWord
-void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t> diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const
+void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const
 {
   gbtword80_t diglet = remnant;
   uint32_t i = 0;
   while (i < (NGBT - Npld)) {
     std::bitset<NGBT> masksize = 0;
-    for (uint32_t j = 0; j < (Npld - size_gbt); j++)
+    for (uint32_t j = 0; j < (Npld - size_gbt); j++) {
       masksize[j] = 1;
+    }
     diglet |= (GBTWord & masksize) << (size_gbt);
     diglets.push_back(diglet);
     diglet = 0;

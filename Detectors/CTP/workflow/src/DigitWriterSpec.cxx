@@ -8,11 +8,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   ClusterWriterSpec.cxx
+/// @file   DigitWriterSpec.cxx
 
 #include <vector>
 #include "DataFormatsCTP/Digits.h"
-#include "CTPWorkflow/WriterSpec.h"
+#include "CTPWorkflow/DigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"

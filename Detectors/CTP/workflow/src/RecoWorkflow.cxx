@@ -21,7 +21,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CTPWorkflow/RecoWorkflow.h"
 #include "CTPWorkflow/ReaderSpec.h"
-#include "CTPWorkflow/WriterSpec.h"
+#include "CTPWorkflow/DigitWriterSpec.h"
 #include "CTPWorkflow/RawToDigitConverterSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -30,9 +30,6 @@ using namespace o2::dataformats;
 
 namespace o2
 {
-
-template <typename T>
-using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 namespace ctp
 {
