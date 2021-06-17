@@ -22,7 +22,6 @@ namespace ctp
 using OutputSpec = framework::OutputSpec;
 
 framework::DataProcessorSpec getDigitsReaderSpec(bool propagateMC = true);
-framework::DataProcessorSpec getClustersReaderSpec(bool propagateMC = true);
 
 } // namespace ctp
 } // end namespace o2

@@ -25,8 +25,7 @@ namespace reco_workflow
 {
 
 /// define input and output types of the workflow
-enum struct InputType { Hits,   // read hits from file
-                        Digits, // read digits from file
+enum struct InputType { Digits, // read digits from file
                         Raw     // read data in raw page format from file
 };
 enum struct OutputType { Digits,

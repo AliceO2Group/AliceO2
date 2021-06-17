@@ -11,7 +11,7 @@
 /// @file   ctp-reco-workflow.cxx
 /// @author RL from CPV example
 /// @brief  Basic DPL workflow for CTP reconstruction starting from digits
-include "Framework/WorkflowSpec.h"
+#include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "CTPWorkflow/RecoWorkflow.h"
 #include "Algorithm/RangeTokenizer.h"
@@ -61,4 +61,3 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
                                              cfgc.options().get<std::string>("output-type") //
   );
 }
-© 2021 GitHub, Inc.

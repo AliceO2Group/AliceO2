@@ -10,12 +10,11 @@
 #include <string>
 #include "FairLogger.h"
 #include "CommonDataFormat/InteractionRecord.h"
-//#include "Framework/InputRecordWalker.h"
 //#include "Framework/ConfigParamRegistry.h"
 //#include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 #include "DetectorsRaw/RDHUtils.h"
-//#include "CPVReconstruction/RawDecoder.h"
+#include "DPLUtils/DPLRawParser.h"
 #include "CTPWorkflow/RawToDigitConverterSpec.h"
 
 using namespace o2::ctp::reco_workflow;
@@ -26,113 +25,97 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 
 void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 {
-  // Cache digits from bunch crossings as the component reads timeframes from many links consecutively
-  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::ctp::CTPDigit>>> digitBuffer; // Internal digit buffer
-  int firstEntry = 0;
-  mOutputHWErrors.clear();
-
-
-  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
-    o2::ctp::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
-    // loop over all the DMA pages
-    while (rawreader.hasNext()) {
-      try {
-        rawreader.next();
-      } catch (RawErrorType_t e) {
-        LOG(ERROR) << "Raw decoding error " << (int)e;
-        //add error list
-        mOutputHWErrors.emplace_back(5, 0, 0, 0, e); //Put general errors to non-existing DDL5
-        //if problem in header, abandon this page
-        if (e == RawErrorType_t::kRDH_DECODING) {
-          break;
-        }
-        //if problem in payload, try to continue
-        continue;
-      }
-      auto& rdh = rawreader.getRawHeader();
-      auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
-      // auto ddl = o2::raw::RDHUtils::getFEEID(header);
-      auto mod = o2::raw::RDHUtils::getLinkID(rdh) + 2; //link=0,1,2 -> mod=2,3,4
-      // if(ddl != mDDL){
-      //   LOG(ERROR) << "DDL from header "<< ddl << " != configured DDL=" << mDDL;
-      // }
-      if (mod > o2::cpv::Geometry::kNMod) { //only 3 correct modules:2,3,4
-        LOG(ERROR) << "module=" << mod << "do not exist";
-        mOutputHWErrors.emplace_back(6, mod, 0, 0, kRDH_INVALID); //Add non-existing DDL as DDL 5
-        continue;                                                 //skip STU mod
-      }
-      // use the altro decoder to decode the raw data, and extract the RCU trailer
-      o2::cpv::RawDecoder decoder(rawreader);
-      RawErrorType_t err = decoder.decode();
-
-      if (err != kOK) {
-        //TODO handle severe errors
-        //TODO: probably careful conversion of decoder errors to Fitter errors?
-        mOutputHWErrors.emplace_back(mod, 1, 0, 0, err); //assign general header errors to non-existing FEE 16
-      }
-
-      std::shared_ptr<std::vector<o2::cpv::Digit>> currentDigitContainer;
-      auto digilets = decoder.getDigits();
-      if (digilets.empty()) { //no digits -> continue to next pages
-        continue;
-      }
-      o2::InteractionRecord currentIR(0, triggerOrbit); //(bc, orbit)
-      // Loop over all the BCs
-      for (auto itBCRecords : decoder.getBCRecords()) {
-        currentIR.bc = itBCRecords.bc;
-        for (int iDig = itBCRecords.firstDigit; iDig <= itBCRecords.lastDigit; iDig++) {
-          auto adch = digilets[iDig];
-          auto found = digitBuffer.find(currentIR);
-          if (found == digitBuffer.end()) {
-            currentDigitContainer = std::make_shared<std::vector<o2::cpv::Digit>>();
-            digitBuffer[currentIR] = currentDigitContainer;
-          } else {
-            currentDigitContainer = found->second;
-          }
-
-          AddressCharge ac = {adch};
-          unsigned short absId = ac.Address;
-          //if we deal with non-pedestal data?
-          if (!mIsPedestalData) { //not a pedestal data
-            //test bad map
-            if (mBadMap->isChannelGood(absId)) {
-              //we need to subtract pedestal from amplidute and calibrate it
-              float amp = mCalibParams->getGain(absId) * (ac.Charge - mPedestals->getPedestal(absId));
-              if (amp > 0) {
-                currentDigitContainer->emplace_back(absId, amp, -1);
-              }
-            }
-          } else { //pedestal data, no calibration needed.
-            currentDigitContainer->emplace_back(absId, (float)ac.Charge, -1);
-          }
-        }
-      }
-      //Check and send list of hwErrors
-      for (auto& er : decoder.getErrors()) {
-        mOutputHWErrors.push_back(er);
-      }
-    } //RawReader::hasNext
-  }
-
-  // Loop over BCs, sort digits with increasing digit ID and write to output containers
   mOutputDigits.clear();
-  mOutputTriggerRecords.clear();
-  for (auto [bc, digits] : digitBuffer) {
-    int prevDigitSize = mOutputDigits.size();
-    if (digits->size()) {
-      // Sort digits according to digit ID
-      std::sort(digits->begin(), digits->end(), [](o2::cpv::Digit& lhs, o2::cpv::Digit& rhs) { return lhs.getAbsId() < rhs.getAbsId(); });
-
-      for (auto digit : *digits) {
-        mOutputDigits.push_back(digit);
-      }
+  std::map<o2::InteractionRecord, CTPDigit> digits;
+  const gbtword80_t bcidmask=0xfff;
+  gbtword80_t pldmask;
+  using InputSpec = o2::framework::InputSpec;
+  using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
+  using Lifetime = o2::framework::Lifetime;
+  //mOutputHWErrors.clear();
+  std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
+  o2::framework::DPLRawParser parser(ctx.inputs(), filter);
+  uint32_t payloadCTP;
+  for (auto it = parser.begin(); it != parser.end(); ++it) {
+    auto rdh = it.get_if<o2::header::RAWDataHeader>();
+    auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
+    auto linkCRU = o2::raw::RDHUtils::getLinkID(rdh); // 0 = IR, 1 = TCR
+    if(linkCRU == o2::ctp::CRULinkIDIntRec) {
+        payloadCTP = o2::ctp::NIntRecPayload;
+    } else if(linkCRU == o2::ctp::CRULinkIDClassRec) {
+        payloadCTP = o2::ctp::NClassPayload;
+    } else {
+        LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-
-    mOutputTriggerRecords.emplace_back(bc, prevDigitSize, mOutputDigits.size() - prevDigitSize);
+    pldmask = 0;
+    for(uint32_t i=0; i < payloadCTP; i++) {
+        pldmask[12+i] = 1;
+    }
+    // TF in 128 bits words
+    gsl::span<const uint8_t> payload(it.data(), it.size());
+    gbtword80_t gbtWord = 0;
+    gbtword80_t remnant = 0;
+    uint32_t size_gbt = 0;
+    int wordCount=0;
+    for(auto payloadWord: payload) {
+        if(wordCount == 15) {
+           wordCount = 0;
+        } else if(wordCount > 9) {
+            wordCount++;
+        } else if (wordCount == 9) {
+           wordCount++;
+           std::vector<gbtword80_t> diglets;
+           makeGBTWordInverse(diglets,gbtWord,remnant,size_gbt,payloadCTP);
+           // save digit in buffer recs
+           for(auto diglet: diglets) {
+               gbtword80_t pld = (diglet & pldmask);
+               if(pld.count() == 0) continue;
+               pld <<= 12;
+               CTPDigit digit;
+               uint32_t bcid = (diglet & bcidmask).to_ulong();
+               o2::InteractionRecord ir;
+               ir.orbit = triggerOrbit;
+               ir.bc = bcid;
+               digit.intRecord = ir;
+               if(linkCRU == o2::ctp::CRULinkIDIntRec) {
+                   if(digits.count(ir) == 1) {
+                       if(digits[ir].CTPInputMask.count() == 0) {
+                           digits[ir].setInputMask(pld);
+                       } else {
+                           LOG(ERROR) << "Two CTP IRs for same timestamp.";
+                       }
+                   } else {
+                       digit.setInputMask(pld);
+                       digits[ir] = digit;
+                   }
+               } else if(linkCRU == o2::ctp::CRULinkIDClassRec) {
+                   if(digits.count(ir) == 1) {
+                       if(digits[ir].CTPClassMask.count() == 0) {
+                           digits[ir].setClassMask(pld);
+                       } else {
+                           LOG(ERROR) << "Two CTP Class masks for same timestamp";
+                       }
+                   } else {
+                       digit.setClassMask(pld);
+                       digits[ir] = digit;
+                   }
+               } else {
+                   LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
+                }
+           }
+           gbtWord = 0;
+        } else {
+            gbtWord |= payloadWord >> (wordCount*8);
+            wordCount++;
+        }        
+    }
   }
-  digitBuffer.clear();
+  mOutputDigits.clear();
+  for(auto const digmap: digits) {
+      mOutputDigits.push_back(digmap.second);
+  }
 
-  LOG(INFO) << "[CPVRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
+  LOG(INFO) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
   ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   //ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
 }
@@ -149,10 +132,25 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterS
   return o2::framework::DataProcessorSpec{"CTPRawToDigitConverterSpec",
                                           inputs, // o2::framework::select("A:CTP/RAWDATA"),
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::cpv::reco_workflow::RawToDigitConverterSpec>(),
+                                          o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawToDigitConverterSpec>(),
                                           o2::framework::Options{
-                                            //{"pedestal", o2::framework::VariantType::String, "off", {"Analyze as pedestal run on/off"}},
-                                            //{"DDL", o2::framework::VariantType::String, "0", {"DDL id to read"}},
                                           }};
 }
-© 2021 GitHub, Inc.
+// Inverse of Digits2Raw::makeGBTWord
+void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t> diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const
+{
+    gbtword80_t diglet = remnant;
+    uint32_t i=0;
+    while( i < (NGBT - Npld)) {
+        std::bitset<NGBT> masksize = 0;
+        for(uint32_t j = 0; j < (Npld - size_gbt); j++) masksize[j]=1;
+        diglet |= (GBTWord & masksize) << (size_gbt);
+        diglets.push_back(diglet);
+        diglet=0;
+        i += Npld - size_gbt;
+        GBTWord = GBTWord >> (Npld - size_gbt);
+        size_gbt = 0;
+    }
+    size_gbt = NGBT  - i;
+    remnant = GBTWord;
+}

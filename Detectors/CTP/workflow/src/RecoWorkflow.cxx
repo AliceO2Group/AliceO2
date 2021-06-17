@@ -22,7 +22,7 @@
 #include "CTPWorkflow/RecoWorkflow.h"
 #include "CTPWorkflow/ReaderSpec.h"
 #include "CTPWorkflow/WriterSpec.h"
-//#include "CPVWorkflow/RawToDigitConverterSpec.h"
+#include "CTPWorkflow/RawToDigitConverterSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
@@ -42,7 +42,6 @@ namespace reco_workflow
 
 const std::unordered_map<std::string, InputType> InputMap{
   {"raw", InputType::Raw},
-  {"hits", InputType::Hits},
   {"digits", InputType::Digits}};
 
 const std::unordered_map<std::string, OutputType> OutputMap{

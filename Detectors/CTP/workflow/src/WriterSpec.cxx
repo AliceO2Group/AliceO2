@@ -41,21 +41,22 @@ DataProcessorSpec getDigitWriterSpec(bool useMC)
   };
 
   if (useMC) {
-    return MakeRootTreeWriterSpec("ctp-digit-writer",
-                                  "ctpdigits.root",
-                                  MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
-                                  BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
-                                                              "CTPDigit", DigitsSizeGetter},
-                                  BranchDefinition<MCLabelType>{InputSpec{"clusMC", "CPV", "DIGITSMCTR", 0},
-                                                                "CPVDigitMCTruth"})();
-  } else {
-    return MakeRootTreeWriterSpec("ctp-digit-writer",
-                                  "ctpdigits.root",
-                                  MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
-                                  BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
-                                                              "CTPDigit", DigitsSizeGetter})();
+    //return MakeRootTreeWriterSpec("ctp-digit-writer",
+                                  //"ctpdigits.root",
+                                  //MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
+                                  //BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
+                                                              //"CTPDigit", DigitsSizeGetter},
+                                  //BranchDefinition<MCLabelType>{InputSpec{"clusMC", "CPV", "DIGITSMCTR", 0},
+                                                                //"CPVDigitMCTruth"})();
+    LOG(WARNING) << "CTP MC truth not available, proceeding without.";
+    useMC = false;
   }
+  return MakeRootTreeWriterSpec("ctp-digit-writer",
+                                "ctpdigits.root",
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
+                                BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
+                                                              "CTPDigit", DigitsSizeGetter})();
 }
 
-} // namespace cpv
+} // namespace ctp
 } // namespace o2

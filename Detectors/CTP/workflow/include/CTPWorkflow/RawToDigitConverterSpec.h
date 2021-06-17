@@ -13,7 +13,6 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsCTP/Digits.h"
-//#include "CPVReconstruction/RawDecoder.h"
 
 namespace o2
 {
@@ -47,25 +46,22 @@ class RawToDigitConverterSpec : public framework::Task
   ///
   /// The following branches are linked:
   /// Input RawData: {"ROUT", "RAWDATA", 0, Lifetime::Timeframe}
-  /// Output cells: {"CPV", "CELLS", 0, Lifetime::Timeframe}
-  /// Output cells trigger record: {"CPV", "CELLSTR", 0, Lifetime::Timeframe}
-  /// Output HW errors: {"CPV", "RAWHWERRORS", 0, Lifetime::Timeframe}
+  /// Output HW errors: {"CTP", "RAWHWERRORS", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
-
+  void makeGBTWordInverse(std::vector<gbtword80_t> diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const;
  protected:
-  /// \brief simple check of HW address
-  char CheckHWAddress(short ddl, short hwAddress, short& fee);
-
  private:
+   std::vector<CTPDigit> mOutputDigits;    
 };
 
-/// \brief Creating DataProcessorSpec for the CPV Cell Converter Spec
+
+/// \brief Creating DataProcessorSpec for the CTP
 ///
-/// Refer to RawToDigitConverterSpec::run for input and output specs
 o2::framework::DataProcessorSpec getRawToDigitConverterSpec();
+
 
 } // namespace reco_workflow
 
-} // namespace cpv
+} // namespace ctp
 
 } // namespace o2

@@ -21,7 +21,6 @@ namespace ctp
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getClusterWriterSpec(bool useMC);
 framework::DataProcessorSpec getDigitWriterSpec(bool useMC);
 
 } // namespace ctp
