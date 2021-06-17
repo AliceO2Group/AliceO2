@@ -34,7 +34,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
-  std::swap(workflowOptions, options);  
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -57,10 +57,10 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   auto wf = o2::ctp::reco_workflow::getWorkflow(cfgc.options().get<bool>("disable-root-input"),
-                                             cfgc.options().get<bool>("disable-root-output"),
-                                             !cfgc.options().get<bool>("disable-mc"),       //
-                                             cfgc.options().get<std::string>("input-type"), //
-                                             cfgc.options().get<std::string>("output-type") //
+                                                cfgc.options().get<bool>("disable-root-output"),
+                                                !cfgc.options().get<bool>("disable-mc"),       //
+                                                cfgc.options().get<std::string>("input-type"), //
+                                                cfgc.options().get<std::string>("output-type") //
   );
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
