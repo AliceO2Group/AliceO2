@@ -182,6 +182,10 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="$CMD_CTF | "
 fi
 
+if [ "0$RUN_EVENT_DISPLAY" == "01" ]; then
+  WORKFLOW+="o2-eve-display $ARGS_ALL --display-tracks TPC --display-clusters TPC $DISABLE_MC | "
+fi
+
 # DPL run binary
 WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT --run"
 
