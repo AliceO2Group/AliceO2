@@ -211,7 +211,7 @@ void run_trac_ca_its(bool cosmics = false,
     memParams.resize(3);
     trackParams[0].TrackletMaxDeltaPhi = 0.05f;
     trackParams[1].TrackletMaxDeltaPhi = 0.1f;
-    trackParams[2].MinTrackLength = 4;
+    trackParams[2].MinTrackLength = 5;
     trackParams[2].TrackletMaxDeltaPhi = 0.3;
     // ---
     // Uncomment for pp
@@ -243,7 +243,8 @@ void run_trac_ca_its(bool cosmics = false,
   auto clSpan = gsl::span(cclusters->data(), cclusters->size());
 
   o2::its::TimeFrame tf;
-  tf.loadROFrameData(rofs, clSpan, pattIt, dict, labels);
+  gsl::span<o2::itsmft::ROFRecord> rofspan(*rofs);
+  tf.loadROFrameData(rofspan, clSpan, pattIt, dict, labels);
   pattIt = patt.begin();
   int rofId{0};
   for (auto& rof : *rofs) {

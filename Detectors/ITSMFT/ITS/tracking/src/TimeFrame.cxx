@@ -100,14 +100,13 @@ int TimeFrame::loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const
   return clusters_in_frame.size();
 }
 
-int TimeFrame::loadROFrameData(const std::vector<o2::itsmft::ROFRecord>* rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt,
-                               const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
+int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels)
 {
   GeometryTGeo* geom = GeometryTGeo::Instance();
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
   mNrof = 0;
-  for (int clusterId{0}; clusterId < clusters.size() && mNrof < rofs->size(); ++clusterId) {
+  for (int clusterId{0}; clusterId < clusters.size() && mNrof < rofs.size(); ++clusterId) {
     auto& c = clusters[clusterId];
 
     int layer = geom->getLayer(c.getSensorID());
@@ -145,7 +144,7 @@ int TimeFrame::loadROFrameData(const std::vector<o2::itsmft::ROFRecord>* rofs, g
     }
     addClusterExternalIndexToLayer(layer, clusterId);
 
-    if (clusterId == rofs->at(mNrof).getFirstEntry() + rofs->at(mNrof).getNEntries() - 1) {
+    if (clusterId == rofs[mNrof].getFirstEntry() + rofs[mNrof].getNEntries() - 1) {
       for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
         mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
       }
