@@ -134,7 +134,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT
   // if not zero suppressed add (bcid,0)
   for (auto const& dig : digits) {
     std::bitset<NGBT> gbtsend;
-    if (makeGBTWord(dig, gbtword, size_gbt, Npld,gbtsend) == true) {
+    if (makeGBTWord(dig, gbtword, size_gbt, Npld, gbtsend) == true) {
       for (uint32_t i = 0; i < NGBT; i += 8) {
         uint32_t w = 0;
         for (uint32_t j = 0; j < 8; j++) {

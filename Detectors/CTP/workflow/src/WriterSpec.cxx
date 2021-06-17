@@ -30,7 +30,6 @@ using DigitType = std::vector<o2::ctp::CTPDigit>;
 using MCLabelType = o2::dataformats::MCTruthContainer<MCCompLabel>;
 using namespace o2::header;
 
-
 DataProcessorSpec getDigitWriterSpec(bool useMC)
 {
   // Spectators for logging
@@ -42,12 +41,12 @@ DataProcessorSpec getDigitWriterSpec(bool useMC)
 
   if (useMC) {
     //return MakeRootTreeWriterSpec("ctp-digit-writer",
-                                  //"ctpdigits.root",
-                                  //MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
-                                  //BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
-                                                              //"CTPDigit", DigitsSizeGetter},
-                                  //BranchDefinition<MCLabelType>{InputSpec{"clusMC", "CPV", "DIGITSMCTR", 0},
-                                                                //"CPVDigitMCTruth"})();
+    //"ctpdigits.root",
+    //MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
+    //BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
+    //"CTPDigit", DigitsSizeGetter},
+    //BranchDefinition<MCLabelType>{InputSpec{"clusMC", "CPV", "DIGITSMCTR", 0},
+    //"CPVDigitMCTruth"})();
     LOG(WARNING) << "CTP MC truth not available, proceeding without.";
     useMC = false;
   }
@@ -55,7 +54,7 @@ DataProcessorSpec getDigitWriterSpec(bool useMC)
                                 "ctpdigits.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
                                 BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
-                                                              "CTPDigit", DigitsSizeGetter})();
+                                                            "CTPDigit", DigitsSizeGetter})();
 }
 
 } // namespace ctp

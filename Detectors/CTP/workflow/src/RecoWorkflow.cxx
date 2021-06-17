@@ -89,7 +89,6 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     if (!disableRootInp) {
       specs.emplace_back(o2::ctp::getDigitsReaderSpec(propagateMC));
     }
-
   }
   return std::move(specs);
 }

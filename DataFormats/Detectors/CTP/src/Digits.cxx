@@ -22,13 +22,15 @@ void CTPDigit::printStream(std::ostream& stream) const
   stream << "CTP Digit:  BC " << intRecord.bc << " orbit " << intRecord.orbit << std::endl;
   stream << "Input Mask: " << CTPInputMask << std::endl;
 }
-void CTPDigit::setInputMask(gbtword80_t mask) {
-  for(int i = 0; i< CTP_NINPUTS; i++) {
-      CTPInputMask[i] = mask[i];
+void CTPDigit::setInputMask(gbtword80_t mask)
+{
+  for (int i = 0; i < CTP_NINPUTS; i++) {
+    CTPInputMask[i] = mask[i];
   }
 }
-void CTPDigit::setClassMask(gbtword80_t mask) {
-  for(int i = 0; i< CTP_NCLASSES; i++) {
-      CTPClassMask[i] = mask[i];
+void CTPDigit::setClassMask(gbtword80_t mask)
+{
+  for (int i = 0; i < CTP_NCLASSES; i++) {
+    CTPClassMask[i] = mask[i];
   }
 }

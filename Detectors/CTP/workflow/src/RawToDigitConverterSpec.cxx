@@ -27,7 +27,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
 {
   mOutputDigits.clear();
   std::map<o2::InteractionRecord, CTPDigit> digits;
-  const gbtword80_t bcidmask=0xfff;
+  const gbtword80_t bcidmask = 0xfff;
   gbtword80_t pldmask;
   using InputSpec = o2::framework::InputSpec;
   using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
@@ -40,79 +40,80 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     auto rdh = it.get_if<o2::header::RAWDataHeader>();
     auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
     auto linkCRU = o2::raw::RDHUtils::getLinkID(rdh); // 0 = IR, 1 = TCR
-    if(linkCRU == o2::ctp::CRULinkIDIntRec) {
-        payloadCTP = o2::ctp::NIntRecPayload;
-    } else if(linkCRU == o2::ctp::CRULinkIDClassRec) {
-        payloadCTP = o2::ctp::NClassPayload;
+    if (linkCRU == o2::ctp::CRULinkIDIntRec) {
+      payloadCTP = o2::ctp::NIntRecPayload;
+    } else if (linkCRU == o2::ctp::CRULinkIDClassRec) {
+      payloadCTP = o2::ctp::NClassPayload;
     } else {
-        LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
+      LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
     }
     pldmask = 0;
-    for(uint32_t i=0; i < payloadCTP; i++) {
-        pldmask[12+i] = 1;
+    for (uint32_t i = 0; i < payloadCTP; i++) {
+      pldmask[12 + i] = 1;
     }
     // TF in 128 bits words
     gsl::span<const uint8_t> payload(it.data(), it.size());
     gbtword80_t gbtWord = 0;
     gbtword80_t remnant = 0;
     uint32_t size_gbt = 0;
-    int wordCount=0;
-    for(auto payloadWord: payload) {
-        if(wordCount == 15) {
-           wordCount = 0;
-        } else if(wordCount > 9) {
-            wordCount++;
-        } else if (wordCount == 9) {
-           wordCount++;
-           std::vector<gbtword80_t> diglets;
-           makeGBTWordInverse(diglets,gbtWord,remnant,size_gbt,payloadCTP);
-           // save digit in buffer recs
-           for(auto diglet: diglets) {
-               gbtword80_t pld = (diglet & pldmask);
-               if(pld.count() == 0) continue;
-               pld <<= 12;
-               CTPDigit digit;
-               uint32_t bcid = (diglet & bcidmask).to_ulong();
-               o2::InteractionRecord ir;
-               ir.orbit = triggerOrbit;
-               ir.bc = bcid;
-               digit.intRecord = ir;
-               if(linkCRU == o2::ctp::CRULinkIDIntRec) {
-                   if(digits.count(ir) == 1) {
-                       if(digits[ir].CTPInputMask.count() == 0) {
-                           digits[ir].setInputMask(pld);
-                       } else {
-                           LOG(ERROR) << "Two CTP IRs for same timestamp.";
-                       }
-                   } else {
-                       digit.setInputMask(pld);
-                       digits[ir] = digit;
-                   }
-               } else if(linkCRU == o2::ctp::CRULinkIDClassRec) {
-                   if(digits.count(ir) == 1) {
-                       if(digits[ir].CTPClassMask.count() == 0) {
-                           digits[ir].setClassMask(pld);
-                       } else {
-                           LOG(ERROR) << "Two CTP Class masks for same timestamp";
-                       }
-                   } else {
-                       digit.setClassMask(pld);
-                       digits[ir] = digit;
-                   }
-               } else {
-                   LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
-                }
-           }
-           gbtWord = 0;
-        } else {
-            gbtWord |= payloadWord >> (wordCount*8);
-            wordCount++;
-        }        
+    int wordCount = 0;
+    for (auto payloadWord : payload) {
+      if (wordCount == 15) {
+        wordCount = 0;
+      } else if (wordCount > 9) {
+        wordCount++;
+      } else if (wordCount == 9) {
+        wordCount++;
+        std::vector<gbtword80_t> diglets;
+        makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
+        // save digit in buffer recs
+        for (auto diglet : diglets) {
+          gbtword80_t pld = (diglet & pldmask);
+          if (pld.count() == 0)
+            continue;
+          pld <<= 12;
+          CTPDigit digit;
+          uint32_t bcid = (diglet & bcidmask).to_ulong();
+          o2::InteractionRecord ir;
+          ir.orbit = triggerOrbit;
+          ir.bc = bcid;
+          digit.intRecord = ir;
+          if (linkCRU == o2::ctp::CRULinkIDIntRec) {
+            if (digits.count(ir) == 1) {
+              if (digits[ir].CTPInputMask.count() == 0) {
+                digits[ir].setInputMask(pld);
+              } else {
+                LOG(ERROR) << "Two CTP IRs for same timestamp.";
+              }
+            } else {
+              digit.setInputMask(pld);
+              digits[ir] = digit;
+            }
+          } else if (linkCRU == o2::ctp::CRULinkIDClassRec) {
+            if (digits.count(ir) == 1) {
+              if (digits[ir].CTPClassMask.count() == 0) {
+                digits[ir].setClassMask(pld);
+              } else {
+                LOG(ERROR) << "Two CTP Class masks for same timestamp";
+              }
+            } else {
+              digit.setClassMask(pld);
+              digits[ir] = digit;
+            }
+          } else {
+            LOG(ERROR) << "Unxpected  CTP CRU link:" << linkCRU;
+          }
+        }
+        gbtWord = 0;
+      } else {
+        gbtWord |= payloadWord >> (wordCount * 8);
+        wordCount++;
+      }
     }
   }
   mOutputDigits.clear();
-  for(auto const digmap: digits) {
-      mOutputDigits.push_back(digmap.second);
+  for (auto const digmap : digits) {
+    mOutputDigits.push_back(digmap.second);
   }
 
   LOG(INFO) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
@@ -133,24 +134,24 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterS
                                           inputs, // o2::framework::select("A:CTP/RAWDATA"),
                                           outputs,
                                           o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawToDigitConverterSpec>(),
-                                          o2::framework::Options{
-                                          }};
+                                          o2::framework::Options{}};
 }
 // Inverse of Digits2Raw::makeGBTWord
 void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t> diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const
 {
-    gbtword80_t diglet = remnant;
-    uint32_t i=0;
-    while( i < (NGBT - Npld)) {
-        std::bitset<NGBT> masksize = 0;
-        for(uint32_t j = 0; j < (Npld - size_gbt); j++) masksize[j]=1;
-        diglet |= (GBTWord & masksize) << (size_gbt);
-        diglets.push_back(diglet);
-        diglet=0;
-        i += Npld - size_gbt;
-        GBTWord = GBTWord >> (Npld - size_gbt);
-        size_gbt = 0;
-    }
-    size_gbt = NGBT  - i;
-    remnant = GBTWord;
+  gbtword80_t diglet = remnant;
+  uint32_t i = 0;
+  while (i < (NGBT - Npld)) {
+    std::bitset<NGBT> masksize = 0;
+    for (uint32_t j = 0; j < (Npld - size_gbt); j++)
+      masksize[j] = 1;
+    diglet |= (GBTWord & masksize) << (size_gbt);
+    diglets.push_back(diglet);
+    diglet = 0;
+    i += Npld - size_gbt;
+    GBTWord = GBTWord >> (Npld - size_gbt);
+    size_gbt = 0;
+  }
+  size_gbt = NGBT - i;
+  remnant = GBTWord;
 }

@@ -39,9 +39,9 @@ struct ProcessAttributes {
 
 DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
 {
-  if(propagateMC) {
-      LOG(WARNING) <<  "MC truth not implemented for CTP, continouing wothout MC";
-      propagateMC = false;
+  if (propagateMC) {
+    LOG(WARNING) << "MC truth not implemented for CTP, continouing wothout MC";
+    propagateMC = false;
   }
   auto initFunction = [propagateMC](InitContext& ic) {
     // get the option from the init context
@@ -59,33 +59,33 @@ DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
       o2::header::DataHeader::SubSpecificationType subSpec = 0;
       if (propagateMC) {
         //processAttributes->reader = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
-                                                                     //filename.c_str(), // input file name
-                                                                     //nofEvents,        // number of entries to publish
-                                                                     //publishingMode,
-                                                                     //Output{"CTP", "DIGITS", subSpec, persistency},
-                                                                     //"CTPDigit", // name of data branch
-                                                                     //Output{"CTP", "DIGITSMCTR", subSpec, persistency},"CPVDigitMCTruth"); 
+        //filename.c_str(), // input file name
+        //nofEvents,        // number of entries to publish
+        //publishingMode,
+        //Output{"CTP", "DIGITS", subSpec, persistency},
+        //"CTPDigit", // name of data branch
+        //Output{"CTP", "DIGITSMCTR", subSpec, persistency},"CPVDigitMCTruth");
       }
       processAttributes->reader = std::make_shared<RootTreeReader>(treename.c_str(), // tree name
-                                                                    filename.c_str(), // input file name
-                                                                    nofEvents,        // number of entries to publish
-                                                                    publishingMode,
-                                                                    Output{"CTP", "DIGITS", subSpec, persistency},
-                                                                    "CTPDigit"); // name of data branch
+                                                                   filename.c_str(), // input file name
+                                                                   nofEvents,        // number of entries to publish
+                                                                   publishingMode,
+                                                                   Output{"CTP", "DIGITS", subSpec, persistency},
+                                                                   "CTPDigit"); // name of data branch
     }
 
-    auto processFunction = [processAttributes, propagateMC ] (ProcessingContext& pc) { // false for propagateMC
+    auto processFunction = [processAttributes, propagateMC](ProcessingContext& pc) { // false for propagateMC
       if (processAttributes->finished) {
         return;
       }
 
-      auto publish = [&processAttributes, &pc, propagateMC ]() {  // false for propgateMC
+      auto publish = [&processAttributes, &pc, propagateMC]() { // false for propgateMC
         //o2::cpv::CPVBlockHeader cpvheader(true);
         //if (processAttributes->reader->next()) {
-          //(*processAttributes->reader)(pc, cpvheader);
+        //(*processAttributes->reader)(pc, cpvheader);
         //} else {
-          //processAttributes->reader.reset();
-          //return false;
+        //processAttributes->reader.reset();
+        //return false;
         //}
         return true;
       };
@@ -98,7 +98,7 @@ DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
         //pc.outputs().snapshot(OutputRef{"output", 0, {dummyheader}}, 0);
         //pc.outputs().snapshot(OutputRef{"outputTR", 0, {dummyheader}}, 0);
         //if (propagateMC) {
-          //pc.outputs().snapshot(OutputRef{"outputMC", 0, {dummyheader}}, 0);
+        //pc.outputs().snapshot(OutputRef{"outputMC", 0, {dummyheader}}, 0);
         //}
       }
       if ((processAttributes->finished = (active == false)) && processAttributes->terminateOnEod) {

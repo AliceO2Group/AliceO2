@@ -44,7 +44,7 @@ class Digits2Raw
   void processDigits(const std::string& fileDigitsName);
   void emptyHBFMethod(const header::RDHAny* rdh, std::vector<char>& toAdd) const;
   std::vector<char> digits2HBTPayload(const gsl::span<std::bitset<NGBT>> digits, uint32_t Npld) const;
-  bool makeGBTWord(const gbtword80_t& pld, gbtword80_t& gbtword, uint32_t& size_gbt, uint32_t Npld,gbtword80_t& gbtsend) const;
+  bool makeGBTWord(const gbtword80_t& pld, gbtword80_t& gbtword, uint32_t& size_gbt, uint32_t Npld, gbtword80_t& gbtsend) const;
   //void makeGBTWordInverse(std::vector<gbtword80_t> diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const;
   int digit2GBTdigit(std::bitset<NGBT>& gbtdigitIR, std::bitset<NGBT>& gbtdigitTR, const CTPDigit& digit);
   std::vector<std::bitset<NGBT>> addEmptyBC(std::vector<std::bitset<NGBT>>& hbfIRZS);
