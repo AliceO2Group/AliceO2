@@ -83,6 +83,8 @@ class TrackExtrap
     return extrapToVertex(trackParam, 0., 0., zVtx, 0., 0., false, false);
   }
 
+  static bool extrapToMID(TrackParam* trackParam);
+
   static double getMCSAngle2(const TrackParam& param, double dZ, double x0);
   static void addMCSEffect(TrackParam* trackParam, double dZ, double x0);
 
@@ -126,6 +128,12 @@ class TrackExtrap
   /// Most probable value (GeV/c) of muon momentum in bending plane (used when B = 0)
   /// Needed to get some "reasonable" corrections for MCS and E loss even if B = 0
   static constexpr double SMostProbBendingMomentum = 2.;
+  static constexpr double SMuonFilterZBeg = -1471.;    ///< Position of the begining of the muon filter (cm)
+  static constexpr double SMuonFilterThickness = 120.; ///< Thickness of the muon filter (cm)
+  /// Position of the end of the muon filter (cm)
+  static constexpr double SMuonFilterZEnd = SMuonFilterZBeg - SMuonFilterThickness;
+  static constexpr double SMuonFilterX0 = 1.76; ///< Radiation length of the muon filter (cm)
+  static constexpr double SMIDZ = -1603.5;      ///< Position of the first MID chamber (cm)
 
   static bool sExtrapV2; ///< switch to Runge-Kutta extrapolation v2
 

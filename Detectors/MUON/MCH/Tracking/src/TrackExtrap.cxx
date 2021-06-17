@@ -249,6 +249,32 @@ bool TrackExtrap::extrapToZCov(TrackParam* trackParam, double zEnd, bool updateP
 }
 
 //__________________________________________________________________________
+bool TrackExtrap::extrapToMID(TrackParam* trackParam)
+{
+  /// Extrapolate the track parameters and their covariances to the z position of the first MID chamber
+  /// Add to the track parameter covariances the effects of multiple Coulomb scattering in the muon filter
+
+  if (trackParam->getZ() == SMIDZ) {
+    return true; // nothing to be done
+  }
+
+  // check the track position with respect to the muon filter (spectro z<0)
+  if (trackParam->getZ() < SMuonFilterZBeg) {
+    LOG(WARNING) << "The track already passed the beginning of the muon filter";
+    return false;
+  }
+
+  // propagate through the muon filter and add MCS effets
+  if (!extrapToZCov(trackParam, SMuonFilterZEnd)) {
+    return false;
+  }
+  addMCSEffect(trackParam, -SMuonFilterThickness, SMuonFilterX0);
+
+  // propagate to the first MID chamber
+  return extrapToZCov(trackParam, SMIDZ);
+}
+
+//__________________________________________________________________________
 bool TrackExtrap::extrapToVertex(TrackParam* trackParam, double xVtx, double yVtx, double zVtx,
                                  double errXVtx, double errYVtx, bool correctForMCS, bool correctForEnergyLoss)
 {

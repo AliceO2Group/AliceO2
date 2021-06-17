@@ -28,12 +28,15 @@ namespace mch
 {
 
 //__________________________________________________________________________
-TrackMCH::TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters)
-  : mZ(z), mChi2(chi2), mClusRef(firstClIdx, nClusters)
+TrackMCH::TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters,
+                   double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID)
+  : mZ(z), mChi2(chi2), mClusRef(firstClIdx, nClusters), mZAtMID(zAtMID)
 {
   /// constructor
   setParameters(param);
   setCovariances(cov);
+  setParametersAtMID(paramAtMID);
+  setCovariancesAtMID(covAtMID);
 }
 
 //__________________________________________________________________________
@@ -74,12 +77,12 @@ double TrackMCH::getP() const
 }
 
 //__________________________________________________________________________
-void TrackMCH::setCovariances(const TMatrixD& cov)
+void TrackMCH::setCovariances(const TMatrixD& src, double (&dest)[SCovSize])
 {
   /// set the track parameter covariances
   for (int i = 0; i < SNParams; i++) {
     for (int j = 0; j <= i; j++) {
-      mCov[SCovIdx[i][j]] = cov(i, j);
+      dest[SCovIdx[i][j]] = src(i, j);
     }
   }
 }
