@@ -309,6 +309,8 @@ DataRelayer::RelayChoice
         stats.droppedComputations++;
         stats.relayedMessages++;
         break;
+      case TimesliceIndex::ActionTaken::Wait:
+        break;
     }
   };
 
