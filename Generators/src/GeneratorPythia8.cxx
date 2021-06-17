@@ -91,7 +91,7 @@ Bool_t GeneratorPythia8::Init()
   }
 
 #if PYTHIA_VERSION_INTEGER < 8300
-  /** [NOTE] The issue with large particle production vertex when running 
+  /** [NOTE] The issue with large particle production vertex when running
       Pythia8 heavy-ion model (Angantyr) is solved in Pythia 8.3 series.
       For discussions about this issue, please refer to this JIRA ticket
       https://alice.its.cern.ch/jira/browse/O2-1382.
@@ -125,7 +125,7 @@ Bool_t
   }
 
 #if PYTHIA_VERSION_INTEGER < 8300
-  /** [NOTE] The issue with large particle production vertex when running 
+  /** [NOTE] The issue with large particle production vertex when running
       Pythia8 heavy-ion model (Angantyr) is solved in Pythia 8.3 series.
       For discussions about this issue, please refer to this JIRA ticket
       https://alice.its.cern.ch/jira/browse/O2-1382.
@@ -198,6 +198,8 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 
   eventHeader->putInfo<std::string>("generator", "pythia8");
   eventHeader->putInfo<int>("version", PYTHIA_VERSION_INTEGER);
+  eventHeader->putInfo<std::string>("processName", mPythia.info.name());
+  eventHeader->putInfo<int>("processCode", mPythia.info.code());
 
 #if PYTHIA_VERSION_INTEGER < 8300
   auto hiinfo = mPythia.info.hiinfo;
