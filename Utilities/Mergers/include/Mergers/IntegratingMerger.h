@@ -52,12 +52,14 @@ class IntegratingMerger : public framework::Task
 
  private:
   void publish(framework::DataAllocator& allocator);
+  void clear();
 
  private:
   header::DataHeader::SubSpecificationType mSubSpec;
   ObjectStore mMergedObject = std::monostate{};
   MergerConfig mConfig;
   std::unique_ptr<monitoring::Monitoring> mCollector;
+  int mCyclesSinceReset = 0;
 
   // stats
   int mTotalObjectsMerged = 0;

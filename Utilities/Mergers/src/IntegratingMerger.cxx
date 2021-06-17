@@ -41,6 +41,7 @@ IntegratingMerger::IntegratingMerger(const MergerConfig& config, const header::D
 
 void IntegratingMerger::init(framework::InitContext& ictx)
 {
+  mCyclesSinceReset = 0;
 }
 
 void IntegratingMerger::run(framework::ProcessingContext& ctx)
@@ -71,19 +72,29 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
   }
 
   if (ctx.inputs().isValid("timer-publish")) {
-
+    mCyclesSinceReset++;
     publish(ctx.outputs());
 
-    if (mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference) {
-      mMergedObject = std::monostate{};
+    if (mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference ||
+        mConfig.mergedObjectTimespan.value == MergedObjectTimespan::NCycles && mConfig.mergedObjectTimespan.param == mCyclesSinceReset) {
+      clear();
     }
   }
+}
+
+// I am not calling it reset(), because it does not have to be performed during the FairMQs reset.
+void IntegratingMerger::clear()
+{
+  mMergedObject = std::monostate{};
+  mCyclesSinceReset = 0;
+  mTotalObjectsMerged = 0;
+  mObjectsMerged = 0;
 }
 
 void IntegratingMerger::publish(framework::DataAllocator& allocator)
 {
   if (std::holds_alternative<std::monostate>(mMergedObject)) {
-    LOG(INFO) << "Nothing to publish yet";
+    LOG(INFO) << "No objects received since start or reset, nothing to publish";
   } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec},
                        *std::get<MergeInterfacePtr>(mMergedObject));
@@ -97,6 +108,7 @@ void IntegratingMerger::publish(framework::DataAllocator& allocator)
   mTotalObjectsMerged += mObjectsMerged;
   mCollector->send({mTotalObjectsMerged, "total_objects_merged"}, monitoring::DerivedMetricMode::RATE);
   mCollector->send({mObjectsMerged, "objects_merged_since_last_publication"});
+  mCollector->send({mCyclesSinceReset, "cycles_since_reset"});
   mObjectsMerged = 0;
 }
 

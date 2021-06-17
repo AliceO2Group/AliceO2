@@ -104,9 +104,9 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
     size_t inputsPerMergerRemainder = layerInputs.size() % numberOfMergers;
 
     MergerConfig layerConfig = mConfig;
-    if (layer > 1 && mConfig.inputObjectTimespan.value == InputObjectsTimespan::LastDifference) {
-      layerConfig.inputObjectTimespan = {InputObjectsTimespan::FullHistory};     // in LastDifference mode only the first layer should integrate
-      layerConfig.mergedObjectTimespan = {MergedObjectTimespan::LastDifference}; // and objects that are merged should not be used again
+    if (layer < mergersPerLayer.size() - 1) {
+      // in intermediate layers we should reset the results, so the same data is not added many times.
+      layerConfig.mergedObjectTimespan = {MergedObjectTimespan::NCycles, 1};
     }
     mergerBuilder.setConfig(layerConfig);
 
