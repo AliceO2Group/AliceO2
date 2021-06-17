@@ -20,6 +20,7 @@ o2_add_library(
           src/RawCheckerSpec.cxx
           src/RawDecoderSpec.cxx
           src/RawGBTDecoderSpec.cxx
+          src/RawInputSpecHandler.cxx
           src/RawWriterSpec.cxx
           src/TrackerMCSpec.cxx
           src/TrackerSpec.cxx

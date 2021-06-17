@@ -84,7 +84,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       [&gbtIds, &feeIdConfig, perFeeId](size_t index) { return perFeeId ? feeIdConfig.getGBTUniqueId(gbtIds[index]) : gbtIds[index]; });
     specs.insert(specs.end(), parallelSpecs.begin(), parallelSpecs.end());
   } else {
-    specs.emplace_back(o2::mid::getRawDecoderSpec(true, feeIdConfig, crateMasks, electronicsDelay));
+    specs.emplace_back(o2::mid::getRawDecoderSpec(true, feeIdConfig, crateMasks, electronicsDelay, false));
     specs.emplace_back(o2::mid::getRawCheckerSpec(feeIds, crateMasks, electronicsDelay, false));
   }
   return specs;
