@@ -477,7 +477,6 @@ void Tracker::traverseCellsTree(const int currentCellId, const int currentLayerI
 
 void Tracker::computeRoadsMClabels(const ROframe& event)
 {
-  /// Moore's Voting Algorithm
   if (!event.hasMCinformation()) {
     return;
   }
@@ -489,9 +488,8 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
   for (int iRoad{0}; iRoad < roadsNum; ++iRoad) {
 
     Road& currentRoad{mPrimaryVertexContext->getRoads()[iRoad]};
-    MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
-                                    constants::its::UnusedIndex, false};
-    int count{0};
+    std::vector<std::pair<MCCompLabel, size_t>> occurrences;
+    occurrences.clear();
     bool isFakeRoad{false};
     bool isFirstRoadCell{true};
 
@@ -511,40 +509,72 @@ void Tracker::computeRoadsMClabels(const ROframe& event)
       if (isFirstRoadCell) {
 
         const int cl0index{mPrimaryVertexContext->getClusters()[iCell][currentCell.getFirstClusterIndex()].clusterId};
-        auto& cl0labs{*(event.getClusterLabels(iCell, cl0index).begin())};
-        maxOccurrencesValue = cl0labs;
-        count = 1;
+        auto cl0labs{event.getClusterLabels(iCell, cl0index)};
+        bool found{false};
+        for (size_t iOcc{0}; iOcc < occurrences.size(); ++iOcc) {
+          std::pair<o2::MCCompLabel, size_t>& occurrence = occurrences[iOcc];
+          for (auto& label : cl0labs) {
+            if (label == occurrence.first) {
+              ++occurrence.second;
+              found = true;
+              // break; // uncomment to stop to the first hit
+            }
+          }
+        }
+        if (!found) {
+          for (auto& label : cl0labs) {
+            occurrences.emplace_back(label, 1);
+          }
+        }
 
         const int cl1index{mPrimaryVertexContext->getClusters()[iCell + 1][currentCell.getSecondClusterIndex()].clusterId};
-        const auto& cl1labs{*(event.getClusterLabels(iCell + 1, cl1index).begin())};
 
-        if (cl1labs == maxOccurrencesValue) {
-          ++count;
-        } else {
-          maxOccurrencesValue = cl1labs;
-          count = 1;
-          isFakeRoad = true;
+        const auto& cl1labs{event.getClusterLabels(iCell + 1, cl1index)};
+        found = false;
+        for (size_t iOcc{0}; iOcc < occurrences.size(); ++iOcc) {
+          std::pair<o2::MCCompLabel, size_t>& occurrence = occurrences[iOcc];
+          for (auto& label : cl1labs) {
+            if (label == occurrence.first) {
+              ++occurrence.second;
+              found = true;
+              // break; // uncomment to stop to the first hit
+            }
+          }
+        }
+        if (!found) {
+          for (auto& label : cl1labs) {
+            occurrences.emplace_back(label, 1);
+          }
         }
 
         isFirstRoadCell = false;
       }
 
       const int cl2index{mPrimaryVertexContext->getClusters()[iCell + 2][currentCell.getThirdClusterIndex()].clusterId};
-      const auto& cl2labs{*(event.getClusterLabels(iCell + 2, cl2index).begin())};
-
-      if (cl2labs == maxOccurrencesValue) {
-        ++count;
-      } else {
-        --count;
-        isFakeRoad = true;
+      const auto& cl2labs{event.getClusterLabels(iCell + 2, cl2index)};
+      bool found{false};
+      for (size_t iOcc{0}; iOcc < occurrences.size(); ++iOcc) {
+        std::pair<o2::MCCompLabel, size_t>& occurrence = occurrences[iOcc];
+        for (auto& label : cl2labs) {
+          if (label == occurrence.first) {
+            ++occurrence.second;
+            found = true;
+            // break; // uncomment to stop to the first hit
+          }
+        }
       }
-
-      if (count == 0) {
-        maxOccurrencesValue = cl2labs;
-        count = 1;
+      if (!found) {
+        for (auto& label : cl2labs) {
+          occurrences.emplace_back(label, 1);
+        }
       }
     }
 
+    std::sort(std::begin(occurrences), std::end(occurrences), [](auto e1, auto e2) {
+      return e1.second > e2.second;
+    });
+
+    auto maxOccurrencesValue = occurrences[0].first;
     mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue.getRawValue(), isFakeRoad);
   }
 }
@@ -573,7 +603,7 @@ void Tracker::computeTracksMClabels(const ROframe& event)
           if (label == occurrence.first) {
             ++occurrence.second;
             found = true;
-            break;
+            // break; // uncomment to stop to the first hit
           }
         }
       }
