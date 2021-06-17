@@ -35,6 +35,7 @@
 #include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <mutex>
+#include <boost/interprocess/sync/named_semaphore.hpp>
 
 namespace o2
 {
@@ -228,12 +229,16 @@ string CcdbApi::getFullUrlForStorage(CURL* curl, const string& path, const strin
   return fullUrl;
 }
 
+std::string getSnapshotPath(std::string const& topdir, const string& path)
+{
+  return topdir + "/" + path + "/snapshot.root";
+}
+
 // todo make a single method of the one above and below
 string CcdbApi::getFullUrlForRetrieval(CURL* curl, const string& path, const map<string, string>& metadata, long timestamp) const
 {
   if (mInSnapshotMode) {
-    string snapshotPath = mSnapshotTopPath + "/" + path + "/snapshot.root";
-    return snapshotPath;
+    return getSnapshotPath(mSnapshotTopPath, path);
   }
 
   // Prepare timestamps
@@ -455,15 +460,22 @@ void* CcdbApi::extractFromTFile(TFile& file, TClass const* cl)
   return result;
 }
 
-void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info const& tinfo) const
+void* CcdbApi::extractFromLocalFile(std::string const& filename, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const
 {
   if (!std::filesystem::exists(filename)) {
-    LOG(INFO) << "Local snapshot " << filename << " not found \n";
+    LOG(ERROR) << "Local snapshot " << filename << " not found \n";
     return nullptr;
   }
   std::lock_guard<std::mutex> guard(gIOMutex);
   auto tcl = tinfo2TClass(tinfo);
   TFile f(filename.c_str(), "READ");
+  if (headers) {
+    auto storedmeta = retrieveMetaInfo(f);
+    if (storedmeta) {
+      *headers = *storedmeta; // do a simple deep copy
+      delete storedmeta;
+    }
+  }
   return extractFromTFile(f, tcl);
 }
 
@@ -654,13 +666,66 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
                                  std::map<std::string, std::string>* headers, std::string const& etag,
                                  const std::string& createdNotAfter, const std::string& createdNotBefore) const
 {
-  // We need the TClass for this type; will verify if dictionary exists
+  // The environment option ALICEO2_CCDB_LOCALCACHE allows
+  // to reduce the number of queries to the server, by collecting the objects in a local
+  // cache folder, and serving from this folder for repeated queries.
+  // This is useful for instance for MC GRID productions in which we spawn
+  // many isolated processes, all querying the CCDB (for potentially the same objects and same timestamp).
+  // In addition, we can monitor exactly which objects are fetched and what is their content.
+  // One can also distribute so obtained caches to sites without network access.
+  auto cachedir = getenv("ALICEO2_CCDB_LOCALCACHE");
+  if (cachedir) {
+    // protect this sensitive section by a multi-process named semaphore
+    bool use_sema = false;
+    boost::interprocess::named_semaphore* sem = nullptr;
+    std::hash<std::string> hasher;
+    const auto semhashedstring = "aliceccdb" + std::to_string(hasher(std::string(cachedir) + path)).substr(0, 16);
+    try {
+      sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
+    } catch (std::exception e) {
+      LOG(WARN) << "Exception occurred during CCDB (cache) semaphore setup; Continuing without";
+      sem = nullptr;
+    }
+    if (sem) {
+      sem->wait(); // wait until we can enter (no one else there)
+    }
+    if (!std::filesystem::exists(cachedir)) {
+      if (!std::filesystem::create_directories(cachedir)) {
+        LOG(ERROR) << "Could not create local snapshot cache directory " << cachedir << "\n";
+      }
+    }
+    std::string logfile = std::string(cachedir) + "/log";
+    std::fstream out(logfile, ios_base::out | ios_base::app);
+    if (out.is_open()) {
+      out << "CCDB-access[" << getpid() << "] to " << path << " timestamp " << timestamp << "\n";
+    }
+    auto snapshotfile = getSnapshotPath(cachedir, path);
+    std::filesystem::exists(snapshotfile);
+    if (!std::filesystem::exists(snapshotfile)) {
+      out << "CCDB-access[" << getpid() << "]  ... downloading to snapshot " << snapshotfile << "\n";
+      // if file not already here and valid --> snapshot it
+      retrieveBlob(path, cachedir, metadata, timestamp);
+    } else {
+      out << "CCDB-access[" << getpid() << "]  ... serving from local snapshot " << snapshotfile << "\n";
+    }
+    if (sem) {
+      sem->post();
+      if (sem->try_wait()) {
+        // if nobody else is waiting remove the semaphore resource
+        sem->post();
+        boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
+      }
+    }
+    return extractFromLocalFile(snapshotfile, tinfo, headers);
+  }
+
+  // normal mode follows
 
   CURL* curl_handle = curl_easy_init();
   string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
-    return extractFromLocalFile(fullUrl, tinfo);
+    return extractFromLocalFile(fullUrl, tinfo, headers);
   }
 
   // add some global options to the curl query
