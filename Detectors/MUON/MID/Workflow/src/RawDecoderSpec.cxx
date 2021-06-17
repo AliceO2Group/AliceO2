@@ -56,6 +56,10 @@ class RawDecoderDeviceDPL
     auto tAlgoStart = std::chrono::high_resolution_clock::now();
 
     if (isDroppedTF(pc, header::gDataOriginMID)) {
+      std::vector<ROBoard> data;
+      std::vector<ROFRecord> rofs;
+      pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DECODED", mSubSpec}, data);
+      pc.outputs().snapshot(of::Output{header::gDataOriginMID, "DECODEDROF", mSubSpec}, rofs);
       return;
     }
 
