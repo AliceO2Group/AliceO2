@@ -225,9 +225,7 @@ void TrackerTraitsCPU::computeLayerCells()
             const float3 normVect{cellPlaneNormalVector.x * inverseVectorNorm,
                                   cellPlaneNormalVector.y * inverseVectorNorm,
                                   cellPlaneNormalVector.z * inverseVectorNorm};
-            const float planeDistance{- normVect.x * (cellClus1.xCoordinate - tf->getBeamX())
-                                      - normVect.y * (cellClus1.yCoordinate - tf->getBeamY())
-                                      - normVect.z * cellClus1R2};
+            const float planeDistance{-normVect.x * (cellClus1.xCoordinate - tf->getBeamX()) - normVect.y * (cellClus1.yCoordinate - tf->getBeamY()) - normVect.z * cellClus1R2};
             const float normVectZsquare{normVect.z * normVect.z};
             const float cellRadius{std::sqrt(
               (1.0f - normVectZsquare - 4.0f * planeDistance * normVect.z) /

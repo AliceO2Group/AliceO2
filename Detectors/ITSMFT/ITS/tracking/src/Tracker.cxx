@@ -319,7 +319,7 @@ void Tracker::findTracks()
       continue;
     }
 
-    std::pair<int, int> rofs[3]{{-1,0}, {-1, 0}, {-1, 0}};
+    std::pair<int, int> rofs[3]{{-1, 0}, {-1, 0}, {-1, 0}};
     for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
         continue;

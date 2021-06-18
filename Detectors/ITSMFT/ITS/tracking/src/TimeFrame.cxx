@@ -310,14 +310,12 @@ void TimeFrame::printVertices()
     std::cout << mPrimaryVertices[iV].x << "\t" << mPrimaryVertices[iV].y << "\t" << mPrimaryVertices[iV].z << std::endl;
   }
   std::cout << "--------" << std::endl;
-
 }
 
 void TimeFrame::printROFoffsets()
 {
   std::cout << "--------" << std::endl;
-  for (unsigned int iLayer{0}; iLayer < mROframesClusters.size(); ++iLayer)
-  {
+  for (unsigned int iLayer{0}; iLayer < mROframesClusters.size(); ++iLayer) {
     std::cout << "Layer " << iLayer << std::endl;
     for (auto value : mROframesClusters[iLayer]) {
       std::cout << value << "\t";
