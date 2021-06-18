@@ -916,8 +916,8 @@ void assignOneCathPadsToGroup(short* padGroup, int nPads, int nGrp, int nCath0, 
 
 /* ???
 void forceSplitCathodes( double *newCath0, double *newcath1) {
-    
-  // need i/j intersection 
+
+  // need i/j intersection
   // Cath0
   for ( int c=0; c < nCath0; c++ ) {
     if ( cath0ToGrp[c] <= 0 ) {
@@ -931,8 +931,8 @@ void forceSplitCathodes( double *newCath0, double *newcath1) {
       // Matrix chargeRatio[ group, cathodes ]
     } else {
       // copy to new cath
-         
-    }   
+
+    }
   }
 }
 */

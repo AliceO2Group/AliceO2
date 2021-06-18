@@ -106,7 +106,7 @@ o2_add_executable(
         SOURCES src/preclusters-to-clusters-GEM-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHGEMWorkflow)
-        
+
 o2_add_executable(
         clusters-sink-workflow
         SOURCES src/clusters-sink-workflow.cxx
