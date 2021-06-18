@@ -22,6 +22,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonConstants/Triggers.h"
 #include "Framework/Logger.h"
+#include <filesystem>
 
 using namespace o2::raw;
 using IR = o2::InteractionRecord;
@@ -451,7 +452,7 @@ void RawFileWriter::LinkData::addPreformattedCRUPage(const gsl::span<char> data)
     throw std::runtime_error("preformatted payload exceeds max size");
   }
   if (int(buffer.size()) - lastRDHoffset > sizeof(RDHAny)) { // we must start from empty page
-    addHBFPage();                                         // start new CRU page
+    addHBFPage();                                            // start new CRU page
   }
   pushBack(&data[0], data.size());
 }
@@ -646,11 +647,11 @@ void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir, bool dataAdded)
     if (writer->mVerbosity > 2) {
       LOG(INFO) << "Adding HBF " << ir << " for " << describe();
     }
-    closeHBFPage();                                     // close current HBF: add RDH with stop and update counters
-    RDHUtils::setTriggerType(rdhCopy, 0);               // reset to avoid any detector specific flags in the dummy HBFs
+    closeHBFPage();                                          // close current HBF: add RDH with stop and update counters
+    RDHUtils::setTriggerType(rdhCopy, 0);                    // reset to avoid any detector specific flags in the dummy HBFs
     writer->mHBFUtils.updateRDH<RDHAny>(rdhCopy, ir, false); // update HBF orbit/bc and trigger flags
-    openHBFPage(rdhCopy);                               // open new HBF
-    updateIR = ir + 1;                                  // new Trigger in RORC detector will be generated at >= this IR
+    openHBFPage(rdhCopy);                                    // open new HBF
+    updateIR = ir + 1;                                       // new Trigger in RORC detector will be generated at >= this IR
   }
 }
 
@@ -725,4 +726,12 @@ void RawFileWriter::DetLazinessCheck::completeLinks(RawFileWriter* wr, const IR&
     }
   }
   clear();
+}
+
+void o2::raw::assertOutputDirectory(std::string_view outDirName)
+{
+  std::filesystem::create_directories(outDirName);
+  if (!std::filesystem::exists(outDirName)) {
+    LOG(FATAL) << "could not create output directory " << outDirName;
+  }
 }

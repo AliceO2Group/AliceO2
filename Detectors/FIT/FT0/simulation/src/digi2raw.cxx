@@ -106,17 +106,11 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   wr.useRDHVersion(rdhV);
   wr.setDontFillEmptyHBF(noEmptyHBF);
 
+  o2::raw::assertOutputDirectory(outDir);
+
   std::string outDirName(outDir);
   if (outDirName.back() != '/') {
     outDirName += '/';
-  }
-  // if needed, create output directory
-  if (!std::filesystem::exists(outDirName)) {
-    if (!std::filesystem::create_directories(outDirName)) {
-      LOG(FATAL) << "could not create output directory " << outDirName;
-    } else {
-      LOG(INFO) << "created output directory " << outDirName;
-    }
   }
 
   m2r.readDigits(outDirName, inpName);
