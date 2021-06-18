@@ -161,7 +161,6 @@ void CheckTracks(std::string tracfile = "o2trac_its.root", std::string clusfile 
         fak->Fill(recTrack.getPt());
       }
       if (!lab.isValid() || lab.getSourceID() != 0 || lab.getEventID() < 0 || lab.getEventID() >= nev) {
-        cout << "Ops" << std::endl;
         continue;
       }
       trackFrames[lab.getEventID()].update(frame, i);
