@@ -47,8 +47,10 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                         bool disableRootOut,
                                         bool propagateMC,
+                                        bool noLostTF,
                                         std::string const& cfgInput,
-                                        std::string const& cfgOutput)
+                                        std::string const& cfgOutput
+                                       )
 {
   InputType inputType;
 
@@ -74,7 +76,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     //no explicit raw reader
 
     if (isEnabled(OutputType::Digits)) {
-      specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec());
+      specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
       if (!disableRootOut) {
         specs.emplace_back(o2::ctp::getDigitWriterSpec(false));
       }

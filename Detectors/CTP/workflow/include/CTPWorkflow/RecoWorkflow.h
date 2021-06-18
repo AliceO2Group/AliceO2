@@ -36,6 +36,7 @@ enum struct OutputType { Digits,
 framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                     bool disableRootOut,
                                     bool propagateMC = true,
+                                    bool noLostTF = false,
                                     std::string const& cfgInput = "raw",    //
                                     std::string const& cfgOutput = "digits" //
 );

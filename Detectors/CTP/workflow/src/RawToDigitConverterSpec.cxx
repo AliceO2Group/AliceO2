@@ -7,11 +7,11 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
 #include <string>
 #include "FairLogger.h"
 #include "CommonDataFormat/InteractionRecord.h"
-//#include "Framework/ConfigParamRegistry.h"
-//#include "Framework/ControlService.h"
+#include "Framework/InputRecordWalker.h"
 #include "Framework/WorkflowSpec.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
@@ -35,6 +35,22 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   //mOutputHWErrors.clear();
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
   o2::framework::DPLRawParser parser(ctx.inputs(), filter);
+  //setUpDummyLink
+   auto& inputs = ctx.inputs();
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  {
+    std::vector<InputSpec> dummy{InputSpec{"dummy", o2::framework::ConcreteDataMatcher{"CTP", "RAWDATA", 0xDEADBEEF}}};
+    for (const auto& ref : o2::framework::InputRecordWalker(inputs, dummy)) {
+      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (dh->payloadSize == 0) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        return;
+      }
+    }
+  }
+  //
   uint32_t payloadCTP;
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto rdh = it.get_if<o2::header::RAWDataHeader>();
@@ -122,22 +138,6 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   //ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
 }
-
-o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterSpec()
-{
-  std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
-
-  std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
-  //outputs.emplace_back("CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe);
-
-  return o2::framework::DataProcessorSpec{"CTPRawToDigitConverterSpec",
-                                          inputs, // o2::framework::select("A:CTP/RAWDATA"),
-                                          outputs,
-                                          o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawToDigitConverterSpec>(),
-                                          o2::framework::Options{}};
-}
 // Inverse of Digits2Raw::makeGBTWord
 void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const
 {
@@ -158,3 +158,40 @@ void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t>& digle
   size_gbt = NGBT - i;
   remnant = GBTWord;
 }
+//
+o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterSpec()
+{
+  std::vector<o2::framework::InputSpec> inputs;
+  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
+
+  std::vector<o2::framework::OutputSpec> outputs;
+  outputs.emplace_back("CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
+  //outputs.emplace_back("CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe);
+
+  return o2::framework::DataProcessorSpec{"CTPRawToDigitConverterSpec",
+                                          inputs, // o2::framework::select("A:CTP/RAWDATA"),
+                                          outputs,
+                                          o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawToDigitConverterSpec>(),
+                                          o2::framework::Options{}};
+}
+//
+o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterSpec(bool askDISTSTF)
+{
+  std::vector<o2::framework::InputSpec> inputs;
+  inputs.emplace_back("TF", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  if (askDISTSTF) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+  }
+
+  std::vector<o2::framework::OutputSpec> outputs;
+  outputs.emplace_back("CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
+
+  return o2::framework::DataProcessorSpec{
+    "CTP-RawStreamDecoder",
+    inputs,
+    outputs,
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawToDigitConverterSpec>()},
+    o2::framework::Options{{"result-file", o2::framework::VariantType::String, "/tmp/hmpCTPDecodeResults", {"Base name of the decoding results files."}}
+           }};
+}
+
