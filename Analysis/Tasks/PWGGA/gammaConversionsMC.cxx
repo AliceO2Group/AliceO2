@@ -19,9 +19,9 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-using tracksAndTPCInfo = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidRespTPCEl, aod::pidRespTPCPi, aod::McTrackLabels>;
+using tracksAndTPCInfo = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi, aod::McTrackLabels>;
 
-struct GammaConversionsMC {
+struct GammaConversionsMc {
 
   Configurable<float> fSinglePtCut{"fSinglePtCut", 0.04, "minimum daughter track pt"};
 
@@ -41,6 +41,8 @@ struct GammaConversionsMC {
   Configurable<float> fPIDMinPnSigmaAbovePionLine{"fPIDMinPnSigmaAbovePionLine", 0.4, "minimum track momentum to apply any pion rejection"}; //case 7:  // 0.4 GeV
 
   Configurable<float> fPIDMaxPnSigmaAbovePionLine{"fPIDMaxPnSigmaAbovePionLine", 8., "border between low and high momentum pion rejection"}; //case 7:  // 8. GeV
+
+  Configurable<float> fMinTPCNClsOverFindable{"fMinTPCNClsFoundOverFindable", 0.6, "minimum ratio found tpc clusters over findable"}; //case 9:  // 0.6
 
   Configurable<float> fQtPtMax{"fQtPtMax", 0.11, "up to fQtMax, multiply the pt of the V0s by this value to get the maximum qt "};
 
@@ -65,8 +67,11 @@ struct GammaConversionsMC {
       {"hPhiRec", "hEtaRec", {HistType::kTH1F, {{1000, 0.f, 2.f * M_PI}}}},
       {"hConvPointR", "hConvPointR", {HistType::kTH1F, {{800, 0.f, 200.f}}}},
 
-      {"hTPCdEdxSig", "hTPCdEdxSig", {HistType::kTH2F, {{150, 0.03f, 20.f}, {400, -10.f, 10.f}}}},
+      {"hTPCdEdxSigEl", "hTPCdEdxSigEl", {HistType::kTH2F, {{150, 0.03f, 20.f}, {400, -10.f, 10.f}}}},
+      {"hTPCdEdxSigPi", "hTPCdEdxSigPi", {HistType::kTH2F, {{150, 0.03f, 20.f}, {400, -10.f, 10.f}}}},
       {"hTPCdEdx", "hTPCdEdx", {HistType::kTH2F, {{150, 0.03f, 20.f}, {800, 0.f, 200.f}}}},
+
+      {"hTPCNClsOverFindable", "hTPCNClsOverFindable", {HistType::kTH1F, {{100, 0.f, 1.f}}}},
 
       {"hArmenteros", "hArmenteros", {HistType::kTH2F, {{200, -1.f, 1.f}, {250, 0.f, 25.f}}}},
       {"hPsiPtRec", "hPsiPtRec", {HistType::kTH2F, {{500, -2.f, 2.f}, {100, 0.f, 25.f}}}},
@@ -90,6 +95,7 @@ struct GammaConversionsMC {
     kElectronPID,
     kPionRejLowMom,
     kPionRejHighMom,
+    kTPCNClsOverFindable,
     kV0Radius,
     kArmenteros,
     kPsiPair,
@@ -104,6 +110,7 @@ struct GammaConversionsMC {
     "kElectronPID",
     "kPionRejLowMom",
     "kPionRejHighMom",
+    "kTPCNClsOverFindable",
     "kV0Radius",
     "kArmenteros",
     "kPsiPair",
@@ -131,7 +138,10 @@ struct GammaConversionsMC {
       auto lTrackNeg = lV0.template negTrack_as<tracksAndTPCInfo>(); //negative daughter
 
       // apply track cuts
-      if (!(trackPassesCuts(lTrackPos) && trackPassesCuts(lTrackNeg))) {
+      float lTPCNClsOverFindablePos = -1.;
+      float lTPCNClsOverFindableNeg = -1.;
+
+      if (!(trackPassesCuts(lTrackPos, lTPCNClsOverFindablePos) && trackPassesCuts(lTrackNeg, lTPCNClsOverFindableNeg))) {
         continue;
       }
 
@@ -142,7 +152,7 @@ struct GammaConversionsMC {
         continue;
       }
 
-      fillHistogramsAfterCuts(lV0, lTrackPos, lTrackNeg, lV0CosinePA);
+      fillHistogramsAfterCuts(lV0, lTrackPos, lTrackNeg, lTPCNClsOverFindablePos, lTPCNClsOverFindableNeg, lV0CosinePA);
 
       processTruePhotons(lV0, lTrackPos, lTrackNeg, theMcParticles);
     }
@@ -160,7 +170,7 @@ struct GammaConversionsMC {
   }
 
   template <typename T>
-  bool trackPassesCuts(const T& theTrack)
+  bool trackPassesCuts(const T& theTrack, float& theTPCNClsOverFindable)
   {
     // single track eta cut
     if (TMath::Abs(theTrack.eta()) > fEtaCut) {
@@ -177,6 +187,12 @@ struct GammaConversionsMC {
     if (!(selectionPIDTPC_track(theTrack))) {
       return kFALSE;
     }
+
+    theTPCNClsOverFindable = (float)theTrack.tpcNClsFound() / (float)theTrack.tpcNClsFindable();
+    if (theTPCNClsOverFindable < fMinTPCNClsOverFindable) {
+      registry.fill(HIST("IsPhotonSelected"), kTPCNClsOverFindable);
+      return kFALSE;
+    }
     return kTRUE;
   }
 
@@ -191,26 +207,23 @@ struct GammaConversionsMC {
     if (!ArmenterosQtCut(theV0.alpha(), theV0.qtarm(), theV0.pt())) {
       registry.fill(HIST("IsPhotonSelected"), kArmenteros);
       return kFALSE;
-      ;
     }
 
     if (TMath::Abs(theV0.psipair()) > fPsiPairCut) {
       registry.fill(HIST("IsPhotonSelected"), kPsiPair);
       return kFALSE;
-      ;
     }
 
     if (theV0CosinePA < fCosPAngleCut) {
       registry.fill(HIST("IsPhotonSelected"), kCosinePA);
       return kFALSE;
-      ;
     }
 
     return kTRUE;
   }
 
   template <typename TV0, typename TTRACK>
-  void fillHistogramsAfterCuts(const TV0& theV0, const TTRACK& theTrackPos, const TTRACK& theTrackNeg, float theV0CosinePA)
+  void fillHistogramsAfterCuts(const TV0& theV0, const TTRACK& theTrackPos, const TTRACK& theTrackNeg, float theTPCNClsOverFindablePos, float theTPCNClsOverFindableNeg, float theV0CosinePA)
   {
     registry.fill(HIST("IsPhotonSelected"), kPhotonOut);
 
@@ -219,11 +232,16 @@ struct GammaConversionsMC {
     registry.fill(HIST("hPhiRec"), theV0.phi());
     registry.fill(HIST("hConvPointR"), theV0.v0radius());
 
-    registry.fill(HIST("hTPCdEdxSig"), theTrackNeg.p(), theTrackNeg.tpcNSigmaEl());
-    registry.fill(HIST("hTPCdEdxSig"), theTrackPos.p(), theTrackPos.tpcNSigmaEl());
+    registry.fill(HIST("hTPCdEdxSigEl"), theTrackNeg.p(), theTrackNeg.tpcNSigmaEl());
+    registry.fill(HIST("hTPCdEdxSigEl"), theTrackPos.p(), theTrackPos.tpcNSigmaEl());
+    registry.fill(HIST("hTPCdEdxSigPi"), theTrackNeg.p(), theTrackNeg.tpcNSigmaPi());
+    registry.fill(HIST("hTPCdEdxSigPi"), theTrackPos.p(), theTrackPos.tpcNSigmaPi());
 
     registry.fill(HIST("hTPCdEdx"), theTrackNeg.p(), theTrackNeg.tpcSignal());
     registry.fill(HIST("hTPCdEdx"), theTrackPos.p(), theTrackPos.tpcSignal());
+
+    registry.fill(HIST("hTPCNClsOverFindable"), theTPCNClsOverFindablePos);
+    registry.fill(HIST("hTPCNClsOverFindable"), theTPCNClsOverFindableNeg);
 
     registry.fill(HIST("hArmenteros"), theV0.alpha(), theV0.qtarm());
     registry.fill(HIST("hPsiPtRec"), theV0.psipair(), theV0.pt());
@@ -302,5 +320,5 @@ struct GammaConversionsMC {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<GammaConversionsMC>(cfgc)};
+    adaptAnalysisTask<GammaConversionsMc>(cfgc)};
 }
