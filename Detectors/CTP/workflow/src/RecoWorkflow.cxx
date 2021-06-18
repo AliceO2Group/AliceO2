@@ -49,8 +49,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                         bool propagateMC,
                                         bool noLostTF,
                                         std::string const& cfgInput,
-                                        std::string const& cfgOutput
-                                       )
+                                        std::string const& cfgOutput)
 {
   InputType inputType;
 

@@ -36,7 +36,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
   o2::framework::DPLRawParser parser(ctx.inputs(), filter);
   //setUpDummyLink
-   auto& inputs = ctx.inputs();
+  auto& inputs = ctx.inputs();
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {
@@ -191,7 +191,5 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterS
     inputs,
     outputs,
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawToDigitConverterSpec>()},
-    o2::framework::Options{{"result-file", o2::framework::VariantType::String, "/tmp/hmpCTPDecodeResults", {"Base name of the decoding results files."}}
-           }};
+    o2::framework::Options{{"result-file", o2::framework::VariantType::String, "/tmp/hmpCTPDecodeResults", {"Base name of the decoding results files."}}}};
 }
-

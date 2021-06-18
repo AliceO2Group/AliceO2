@@ -49,6 +49,7 @@ class RawToDigitConverterSpec : public framework::Task
   /// Output HW errors: {"CTP", "RAWHWERRORS", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
   void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld) const;
+
  protected:
  private:
   std::vector<CTPDigit> mOutputDigits;
