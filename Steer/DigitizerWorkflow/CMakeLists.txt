@@ -40,7 +40,7 @@ o2_add_executable(digitizer-workflow
                                         O2::FV0Simulation
                                         O2::FDDSimulation
                                         O2::CTPSimulation
-                                        O2::CTPWorkflow
+                                        O2::CTPWorkflowIO
                                         O2::FDDWorkflow
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation
@@ -98,7 +98,7 @@ o2_add_executable(digitizer-workflow
                                         O2::FV0Simulation
                                         O2::FDDSimulation
                                         O2::CTPSimulation
-                                        O2::CTPWorkflow
+                                        O2::CTPWorkflowIO
                                         O2::FDDWorkflow
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation

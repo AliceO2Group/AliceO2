@@ -10,8 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(CTPWorkflow
-               SOURCES src/CTPDigitWriterSpec.cxx
-                       src/RecoWorkflow.cxx
+               SOURCES src/RecoWorkflow.cxx
                        src/RawToDigitConverterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsCTP

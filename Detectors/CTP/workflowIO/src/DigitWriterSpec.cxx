@@ -8,53 +8,30 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   DigitWriterSpec.cxx
+/// \file DigitWriterSpec.cxx
+/// \author Roman Lietava
 
-#include <vector>
-#include "DataFormatsCTP/Digits.h"
 #include "CTPWorkflowIO/DigitWriterSpec.h"
-#include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
-
-using namespace o2::framework;
 
 namespace o2
 {
 namespace ctp
 {
-
 template <typename T>
-using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
-using DigitType = std::vector<o2::ctp::CTPDigit>;
-using MCLabelType = o2::dataformats::MCTruthContainer<MCCompLabel>;
-using namespace o2::header;
+using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-DataProcessorSpec getDigitWriterSpec(bool useMC)
+framework::DataProcessorSpec getDigitWriterSpec(bool raw)
 {
+  using InputSpec = framework::InputSpec;
+  using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;
   // Spectators for logging
-  // this is only to restore the original behavior
-  auto DigitsSize = std::make_shared<int>(0);
-  auto DigitsSizeGetter = [DigitsSize](DigitType const& Digits) {
-    *DigitsSize = Digits.size();
+  auto logger = [](std::vector<o2::ctp::CTPDigit> const& vecDigits) {
+    LOG(INFO) << "CTPDigitWriter pulled " << vecDigits.size() << " digits";
   };
-
-  if (useMC) {
-    //return MakeRootTreeWriterSpec("ctp-digit-writer",
-    //"ctpdigits.root",
-    //MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
-    //BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
-    //"CTPDigit", DigitsSizeGetter},
-    //BranchDefinition<MCLabelType>{InputSpec{"clusMC", "CPV", "DIGITSMCTR", 0},
-    //"CPVDigitMCTruth"})();
-    LOG(WARNING) << "CTP MC truth not available, proceeding without.";
-    useMC = false;
-  }
-  return MakeRootTreeWriterSpec("ctp-digit-writer",
-                                "ctpdigits.root",
+  return MakeRootTreeWriterSpec(raw ? "ctp-digit-writer-dec" : "ctp-digit-writer",
+                                raw ? "o2_ctpdigits.root" : "ctpdigits.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits"},
-                                BranchDefinition<DigitType>{InputSpec{"CTPDigit", "CTP", "DIGITS", 0},
-                                                            "CTPDigit", DigitsSizeGetter})();
+                                BranchDefinition<std::vector<o2::ctp::CTPDigit>>{InputSpec{"digit", "CTP", "DIGITS", 0}, "CTPDigits", logger})();
 }
 
 } // namespace ctp
