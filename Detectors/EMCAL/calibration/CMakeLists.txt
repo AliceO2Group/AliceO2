@@ -10,32 +10,32 @@
 
 o2_add_library(EMCALCalibration
                SOURCES src/EMCALChannelCalibrator.cxx src/EMCALSlotCalib.cxx
-	       PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase 
-		                   O2::EMCALCalib
-		   						 O2::CommonUtils
-	                             O2::DetectorsCalibration
-	                             O2::DataFormatsEMCAL
-				                 O2::Framework
-				     	         O2::Algorithm)
-				  
-				   
+               PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
+                                     O2::EMCALCalib
+                                     O2::CommonUtils
+                                     O2::DetectorsCalibration
+                                     O2::DataFormatsEMCAL
+                                     O2::Framework
+                                     O2::Algorithm)  
+
+
 o2_target_root_dictionary(EMCALCalibration
                           HEADERS include/EMCALCalibration/EMCALChannelCalibrator.h
-						          include/EMCALCalibration/EMCALSlotCalib.h
+                                  include/EMCALCalibration/EMCALSlotCalib.h
                           LINKDEF src/EMCALCalibrationLinkDef.h)
-						  						 
+
 #o2_add_library(EMCALSlotCalib
-#              SOURCES  
+#              SOURCES
 #		       PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
 #							     O2::EMCALCalib
 #	                             O2::DetectorsCalibration
 #	                             O2::DataFormatsEMCAL
 #				                 O2::Framework
 #				     	         O2::Algorithm)
-				  
-				   
+
+
 #o2_target_root_dictionary(EMCALSlotCalib
-#                          HEADERS 
+#                          HEADERS
 #                          LINKDEF src/EMCALSlotCalibrationLinkDef.h)
 
 
@@ -44,6 +44,6 @@ o2_add_executable(emcal-channel-calib-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/emc-channel-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
- 		                                O2::EMCALCalibration
-	                                    O2::DetectorsCalibration)
+                                        O2::EMCALCalibration
+                                        O2::DetectorsCalibration)
 
