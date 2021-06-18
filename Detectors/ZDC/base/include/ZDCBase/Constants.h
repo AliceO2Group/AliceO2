@@ -56,16 +56,6 @@ constexpr float ChannelTimeBinNS = 2.; //< bin length in NS
 constexpr float SampleLenghtNS = NTimeBinsPerBC * ChannelTimeBinNS;
 
 constexpr int NChannels = 2 * (NChannelsZN + NChannelsZP) + NChannelsZEM;
-#define O2_ZDC_REF_INIT_VAL 0xffffffff
-#define O2_ZDC_REF_INIT_ZEM O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL
-#define O2_ZDC_REF_INIT_ZDC O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL, O2_ZDC_REF_INIT_VAL
-#define O2_ZDC_REF_INIT O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZEM, O2_ZDC_REF_INIT_ZDC, O2_ZDC_REF_INIT_ZDC
-
-#define O2_ZDC_FLT_INIT_VAL -INFINITY
-#define O2_ZDC_FLT_INIT_ZEM O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL
-#define O2_ZDC_FLT_INIT_ZDC O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL, O2_ZDC_FLT_INIT_VAL
-#define O2_ZDC_FLT_INIT O2_ZDC_FLT_INIT_ZDC, O2_ZDC_FLT_INIT_ZDC, O2_ZDC_FLT_INIT_ZEM, O2_ZDC_FLT_INIT_ZDC, O2_ZDC_FLT_INIT_ZDC
-
 constexpr uint8_t ALICETriggerMask = 0x1;
 
 constexpr int NModules = 8;
@@ -84,15 +74,17 @@ constexpr float EnergyUnit = 0.01;    // Energy unit (GeV)
 constexpr uint32_t EnergyMask = 0x07ffffff;
 constexpr uint32_t EnergyChMask = 0xf8000000;
 
+// Temporary reconstructed event
 constexpr int MaxTDCValues = 5;  // max number of TDC values to store in reconstructed event
 constexpr int NTDCChannels = 10; // max number of TDC values to store in reconstructed event
+constexpr uint32_t ZDCRefInitVal = 0xffffffff;
 // Parameters of interpolating function
 constexpr int TSL = 6;                      // number of zeros on the right (and on the left) of central peak
 constexpr int TSN = 200;                    // Number of interpolated points between each pair = TSN-1
 constexpr int TSNS = 96;                    // Number of interpolated points per ns
-constexpr int NTS = 2 * TSL * TSN + 1;      //Tapered sinc function array size
-constexpr static float FTDCAmp = 1. / 8.;   /// Multiplication factor in conversion from integer
-constexpr static float FTDCVal = 1. / TSNS; /// Multiplication factor in conversion from integer
+constexpr int NTS = 2 * TSL * TSN + 1;      // Tapered sinc function array size
+constexpr static float FTDCAmp = 1. / 8.;   // Multiplication factor in conversion from integer
+constexpr static float FTDCVal = 1. / TSNS; // Multiplication factor in conversion from integer
 
 enum TDCChannelID {
   TDCZNAC,

@@ -39,9 +39,16 @@ struct RecEventAux {
   std::array<bool, NTDCChannels> pattern;                /// Pattern of TDC
   uint16_t fired[NTDCChannels] = {0};                    /// Position at which the trigger algorithm is fired
   float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
-  uint32_t ref[NChannels] = {O2_ZDC_REF_INIT};           /// Cache of references
+  uint32_t ref[NChannels];                               /// Cache of references
 
   // Functions
+  RecEventAux()
+  {
+    for (int32_t i = 0; i < NChannels; i++) {
+      ref[i] = ZDCRefInitVal;
+    }
+  }
+
   void print() const;
   float EZDC(uint8_t ich)
   {

@@ -449,7 +449,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
       if (fired[ich]) {
         // Check if channel data are present in payload
         auto ref = mReco[ibun].ref[ich];
-        if (ref < O2_ZDC_REF_INIT_VAL) {
+        if (ref < ZDCRefInitVal) {
           float sum = 0;
           for (int is = ropt.beg_int[ich]; is <= ropt.end_int[ich]; is++) {
             // TODO: fallback if offset is missing
@@ -501,7 +501,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
     auto ref_m = mReco[b1].ref[TDCSignal[itdc]];
     auto ref_s = mReco[b2].ref[TDCSignal[itdc]];
     // Check data consistency before computing difference
-    if (ref_m == O2_ZDC_REF_INIT_VAL || ref_s == O2_ZDC_REF_INIT_VAL) {
+    if (ref_m == ZDCRefInitVal || ref_s == ZDCRefInitVal) {
       LOG(FATAL) << "Missing information for bunch crossing";
       return;
     }
@@ -551,7 +551,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   // since a fatal should have been raised already
   for (int ibun = ibeg; ibun <= iend; ibun++) {
     auto ref = mReco[ibun].ref[TDCSignal[itdc]];
-    if (ref == O2_ZDC_REF_INIT_VAL) {
+    if (ref == ZDCRefInitVal) {
       LOG(FATAL) << "Missing information for bunch crossing";
     }
   }
