@@ -28,7 +28,7 @@ static const int EMmode = 1;
 static const int EMverbose = 0;
 // Mathieson approximation with one gaussian
 /*
-static double cstSigXCh1ToCh2 = 0.1814;    
+static double cstSigXCh1ToCh2 = 0.1814;
 static double cstSigYCh1ToCh2 = 0.1835;
 static double cstSigXCh3ToCh10 = 0.2128;
 static double cstSigYCh3ToCh10 = 0.2145;
@@ -895,7 +895,7 @@ int clusterProcess(const double* xyDxyi, const Mask_t* cathi, const Mask_t* satu
     double thetaL[nbrOfPadsInTheGroup*5];
     double laplacian[nbrOfPadsInTheGroup];
 
-    int K = findLocalMaxWithLaplacian( xyDxyGrp, chGrp, grpIdxToProjIdx, nbrOfPadsInTheGroup, nbrOfPadsInTheGroup, 
+    int K = findLocalMaxWithLaplacian( xyDxyGrp, chGrp, grpIdxToProjIdx, nbrOfPadsInTheGroup, nbrOfPadsInTheGroup,
                                        laplacian, thetaL);
     if ( grpIdxToProjIdx !=0 ) { delete[] grpIdxToProjIdx; grpIdxToProjIdx=0; }
     // Copy the K maxima

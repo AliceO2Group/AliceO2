@@ -53,7 +53,7 @@ Exactly the same as the orignal version (see above)
 
 ## Example of workflow
 
-This is the same command as above. The command 'o2-mch-preclusters-to-clusters-original-workflow' is 
+This is the same command as above. The command 'o2-mch-preclusters-to-clusters-original-workflow' is
 replaced with 'o2-mch-preclusters-to-clusters-GEM-workflow'
 
 `o2-mch-digits-reader-workflow --infile "digits.in" --useRun2DigitUID | o2-mch-digits-to-preclusters-workflow | o2-mch-preclusters-to-clusters-GEM-workflow | o2-mch-clusters-sink-workflow --outfile "clusters.out" --useRun2DigitUID`
