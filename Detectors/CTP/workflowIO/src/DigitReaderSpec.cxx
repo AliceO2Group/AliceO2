@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "CTPWorkflowIO/ReaderSpec.h"
+#include "CTPWorkflowIO/DigitReaderSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Headers/DataHeader.h"
@@ -26,9 +26,6 @@ namespace o2
 
 namespace ctp
 {
-
-template <typename T>
-using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 
 struct ProcessAttributes {
   std::shared_ptr<RootTreeReader> reader;

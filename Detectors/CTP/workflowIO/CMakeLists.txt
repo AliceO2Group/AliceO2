@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(CTPWorkflowIO
-               SOURCES src/ReaderSpec.cxx
+               SOURCES src/DigitReaderSpec.cxx
                        src/DigitWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsCTP

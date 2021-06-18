@@ -20,7 +20,7 @@
 #include "DataFormatsCTP/Digits.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CTPWorkflow/RecoWorkflow.h"
-#include "CTPWorkflowIO/ReaderSpec.h"
+#include "CTPWorkflowIO/DigitReaderSpec.h"
 #include "CTPWorkflowIO/DigitWriterSpec.h"
 #include "CTPWorkflow/RawToDigitConverterSpec.h"
 #include "Framework/DataSpecUtils.h"
