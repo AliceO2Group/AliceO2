@@ -193,31 +193,14 @@ void TrackerDPL::run(ProcessingContext& pc)
   const auto& multEstConf = FastMultEstConfig::Instance(); // parameters for mult estimation and cuts
   FastMultEst multEst;                                     // mult estimator
 
-  // snippet to convert found tracks to final output tracks with separate cluster indices
-  auto copyTracks = [](auto& tracks, auto& allTracks, auto& allClusIdx) {
-    for (auto& trc : tracks) {
-      trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
-      int ncl = trc.getNumberOfClusters(), nclf = 0;
-      uint8_t patt = 0;
-      for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
-        auto clid = trc.getClusterIndex(ic);
-        if (clid >= 0) {
-          allClusIdx.push_back(clid);
-          nclf++;
-          patt |= 0x1 << ic;
-        }
-      }
-      assert(ncl == nclf);
-      trc.setPattern(patt);
-      allTracks.emplace_back(trc);
-    }
-  };
-
   gsl::span<const unsigned char>::iterator pattIt = patterns.begin();
   if (continuous) {
     gsl::span<itsmft::ROFRecord> rofspan(rofs);
     mTimeFrame.loadROFrameData(rofspan, compClusters, pattIt, mDict, labels);
-    for (auto& rof : rofs) {
+    pattIt = patterns.begin();
+    std::vector<int> savedROF;
+    for (auto& rof : rofspan) {
+
       int nclUsed = ioutils::loadROFrameData(rof, event, compClusters, pattIt, mDict, labels);
       // prepare in advance output ROFRecords, even if this ROF to be rejected
       int first = allTracks.size();
@@ -230,34 +213,10 @@ void TrackerDPL::run(ProcessingContext& pc)
         vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
         vtxROF.setNEntries(0);
 
-        if (multEstConf.cutMultClusLow > 0 || multEstConf.cutMultClusHigh > 0) { // cut was requested
-          auto mult = multEst.process(rof.getROFData(compClusters));
-          if (mult < multEstConf.cutMultClusLow || mult > multEstConf.cutMultClusHigh) {
-            LOG(INFO) << "Estimated cluster mult. " << mult << " is outside of requested range "
-                      << multEstConf.cutMultClusLow << " : " << multEstConf.cutMultClusHigh << " | ROF " << rof.getBCData();
-            rof.setFirstEntry(first);
-            rof.setNEntries(0);
-            continue;
-          }
-        }
-      }
-
-      std::vector<Vertex> vtxVecLoc;
-      if (mRunVertexer) {
-        mVertexer->clustersToVertices(event);
-        vtxVecLoc = mVertexer->exportVertices();
-      }
-
-      if (mRunVertexer && (multEstConf.cutMultVtxLow > 0 || multEstConf.cutMultVtxHigh > 0)) { // cut was requested
-        std::vector<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> vtxVecSel;
-        vtxVecSel.swap(vtxVecLoc);
-        for (const auto& vtx : vtxVecSel) {
-          if (vtx.getNContributors() < multEstConf.cutMultVtxLow || (multEstConf.cutMultVtxHigh > 0 && vtx.getNContributors() > multEstConf.cutMultVtxHigh)) {
-            LOG(INFO) << "Found vertex mult. " << vtx.getNContributors() << " is outside of requested range "
-                      << multEstConf.cutMultVtxLow << " : " << multEstConf.cutMultVtxHigh << " | ROF " << rof.getBCData();
-            continue; // skip vertex of unwanted multiplicity
-          }
-          vtxVecLoc.push_back(vtx);
+        std::vector<Vertex> vtxVecLoc;
+        if (mRunVertexer) {
+          mVertexer->clustersToVertices(event);
+          vtxVecLoc = mVertexer->exportVertices();
         }
 
         std::vector<std::pair<float3, int>> tfVert;
@@ -266,7 +225,7 @@ void TrackerDPL::run(ProcessingContext& pc)
             tfVert.push_back(std::make_pair<float3, int>({vert.getX(), vert.getY(), vert.getZ()}, vert.getNContributors()));
           }
         } else {
-          tfVert.push_back(std::make_pair<float3, int>({0.f,0.f,0.f}, 1));
+          tfVert.push_back(std::make_pair<float3, int>({0.f, 0.f, 0.f}, 1));
         }
         mTimeFrame.addPrimaryVertices(tfVert);
 
@@ -274,33 +233,49 @@ void TrackerDPL::run(ProcessingContext& pc)
         for (const auto& vtx : vtxVecLoc) {
           vertices.push_back(vtx);
         }
-
-
+        savedROF.push_back(roFrame);
       }
-      mTracker->clustersToTracks();
-
-      for (unsigned int iROF{0}; iROF < rofs.size(); iROF) {
-        auto& rof{rofs[iROF]};
-        auto& tracks{mTimeFrame.getTracks(iROF)};
-        auto& tracksLabels{mTimeFrame.getTracksLabel(iROF)};
-        auto number{tracks.size()};
-        auto first{allTracks.size()};
-        int shiftIdx = -rof.getFirstEntry();          // cluster entry!!!
-        rof.setFirstEntry(first);
-        rof.setNEntries(number);
-        copyTracks(tracks, allTracks, allClusIdx, shiftIdx);
-        std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
-      }
-
       roFrame++;
+    }
+    mTracker->clustersToTracks();
 
-      LOG(INFO) << "Found tracks: " << tracks.size();
-      int number = tracks.size();
+    for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
+
+      auto& rof{rofs[iROF]};
+      tracks = mTimeFrame.getTracks(iROF);
+      trackLabels = mTimeFrame.getTracksLabel(iROF);
+      auto number{tracks.size()};
+      auto first{allTracks.size()};
+      int offset = -rof.getFirstEntry(); // cluster entry!!!
+      rof.setFirstEntry(first);
+      rof.setNEntries(number);
+
+      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+      // Some conversions that needs to be moved in the tracker internals
+      for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
+        auto& trc{tracks[iTrk]};
+        trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+        int ncl = trc.getNumberOfClusters(), nclf = 0;
+        uint8_t patt = 0;
+        for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
+          auto clid = trc.getClusterIndex(ic);
+          if (clid >= 0) {
+            allClusIdx.push_back(clid);
+            nclf++;
+            patt |= 0x1 << ic;
+          }
+        }
+        assert(ncl == nclf);
+        trc.setPattern(patt);
+        allTracks.emplace_back(trc);
+      }
     }
   } //MP: no triggered mode for the time being
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
   if (mIsMC) {
+    LOG(INFO) << "ITSTracker pushed " << allTrackLabels.size() << " track labels";
+
     pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
     pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
   }
