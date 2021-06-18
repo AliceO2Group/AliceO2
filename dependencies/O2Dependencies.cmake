@@ -98,6 +98,9 @@ set_package_properties(RapidJSON PROPERTIES TYPE REQUIRED)
 find_package(CURL)
 set_package_properties(CURL PROPERTIES TYPE REQUIRED)
 
+find_package(ONNXRuntime::ONNXRuntime CONFIG)
+set_package_properties(ONNXRuntime::ONNXRuntime PROPERTIES TYPE REQUIRED)
+
 find_package(JAliEnROOT MODULE)
 set_package_properties(JAliEnROOT PROPERTIES TYPE RECOMMENDED)
 
