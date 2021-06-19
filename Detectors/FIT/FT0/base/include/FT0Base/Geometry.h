@@ -37,8 +37,9 @@ class Geometry
 
   ///
   TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
+  TVector3 tiltMCP(int imcp) { return mAngels[imcp]; }
 
-  static constexpr int Nchannels = 229;                     // number od channels
+  static constexpr int Nchannels = 229;                     // number of LUT channels
   static constexpr int NCellsA = 24;                        // number of radiatiors on A side
   static constexpr int NCellsC = 28;                        // number of radiatiors on C side
   static constexpr float ZdetA = 335.5;                     // number of radiatiors on A side
@@ -46,10 +47,14 @@ class Geometry
   static constexpr float ChannelWidth = 13.02;              // channel width in ps
   static constexpr float ChannelWidthInverse = 0.076804916; // channel width in ps inverse
 
+  void setAsideModules();
+  void setCsideModules();
+
  private:
   TVector3 mMCP[52];
+  TVector3 mAngels[28];
 
-  ClassDefNV(Geometry, 1);
+  ClassDefNV(Geometry, 2);
 };
 } // namespace ft0
 } // namespace o2

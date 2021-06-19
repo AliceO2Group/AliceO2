@@ -22,21 +22,25 @@ using namespace o2::ft0;
 
 Geometry::Geometry() : mMCP{{0, 0, 0}}
 {
+  Float_t mPosModuleAx[Geometry::NCellsA] = {-12.2, -6.1, 0, 6.1, 12.2, -12.2, -6.1, 0,
+                                             6.1, 12.2, -13.3743, -7.274299999999999,
+                                             7.274299999999999, 13.3743, -12.2, -6.1, 0,
+                                             6.1, 12.2, -12.2, -6.1, 0, 6.1, 12.2};
 
-  Float_t zDetA = 333;
-  Float_t xa[24] = {-11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8, -12.8, -6.9,
-                    6.9, 12.8, -11.8, -5.9, 0, 5.9, 11.8, -11.8, -5.9, 0, 5.9, 11.8};
+  Float_t mPosModuleAy[Geometry::NCellsA] = {12.2, 12.2, 13.53, 12.2, 12.2, 6.1, 6.1,
+                                             7.43, 6.1, 6.1, 0, 0, 0, 0, -6.1, -6.1,
+                                             -7.43, -6.1, -6.1, -12.2, -12.2, -13.53,
+                                             -12.2, -12.2};
 
-  Float_t ya[24] = {11.9, 11.9, 12.9, 11.9, 11.9, 6.0, 6.0, 7.0, 6.0, 6.0, -0., -0.,
-                    0., 0., -6.0, -6.0, -7.0, -6.0, -6.0, -11.9, -11.9, -12.9, -11.9, -11.9};
-
-  Float_t pmcp[3] = {2.949, 2.949, 2.8}; // MCP
+  Float_t mStartC[3] = {20., 20, 5.5};
+  Float_t mStartA[3] = {20., 20., 5};
+  Float_t pmcp[3] = {2.9491, 2.9491, 2.5};
 
   // Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
 
   // C side Concave Geometry
 
-  Double_t crad = 82.; // define concave c-side radius here
+  Double_t crad = ZdetC; // define concave c-side radius here
 
   Double_t dP = pmcp[0]; // side length of mcp divided by 2
 
@@ -79,7 +83,7 @@ Geometry::Geometry() : mMCP{{0, 0, 0}}
 
   // compensation based on node position within individual detector geometries
   // determine compensated radius
-  Double_t rcomp = crad /*+ pstartC[2] / 2.0*/; //
+  Double_t rcomp = crad; //
   for (Int_t i = 0; i < 28; i++) {
     // Get compensated translation data
     xc2[i] = rcomp * TMath::Cos(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
@@ -91,11 +95,97 @@ Geometry::Geometry() : mMCP{{0, 0, 0}}
     bc[i] *= 180 / TMath::Pi();
     gc[i] = -1 * ac[i];
   }
+  setAsideModules();
+  setCsideModules();
   // Set coordinate
-  for (int ipmt = 0; ipmt < 24; ipmt++) {
-    mMCP[ipmt].SetXYZ(xa[ipmt], xa[ipmt], zDetA);
+  /*  for (int ipmt = 0; ipmt < 24; ipmt++) {
+    mMCP[ipmt].SetXYZ(mPosModuleAx[ipmt], mPosModuleAy[ipmt], ZdetA);
   }
   for (int ipmt = 24; ipmt < 52; ipmt++) {
     mMCP[ipmt].SetXYZ(xc2[ipmt - 24], yc2[ipmt - 24], zc2[ipmt - 24]);
+    }*/
+}
+
+void Geometry::setAsideModules()
+{
+  Float_t mPosModuleAx[Geometry::NCellsA] = {-12.2, -6.1, 0, 6.1, 12.2, -12.2, -6.1, 0,
+                                             6.1, 12.2, -13.3743, -7.274299999999999,
+                                             7.274299999999999, 13.3743, -12.2, -6.1, 0,
+                                             6.1, 12.2, -12.2, -6.1, 0, 6.1, 12.2};
+
+  Float_t mPosModuleAy[Geometry::NCellsA] = {12.2, 12.2, 13.53, 12.2, 12.2, 6.1, 6.1,
+                                             7.43, 6.1, 6.1, 0, 0, 0, 0, -6.1, -6.1,
+                                             -7.43, -6.1, -6.1, -12.2, -12.2, -13.53,
+                                             -12.2, -12.2};
+
+  // A side Translations
+  for (Int_t ipmt = 0; ipmt < NCellsA; ipmt++) {
+    mMCP[ipmt].SetXYZ(mPosModuleAx[ipmt], mPosModuleAy[ipmt], ZdetA);
+  }
+}
+void Geometry::setCsideModules()
+{
+  // C side Concave Geometry
+  Float_t mInStart[3] = {2.9491, 2.9491, 2.5};
+  Float_t mStartC[3] = {20., 20, 5.5};
+
+  Double_t crad = ZdetC; // define concave c-side radius here
+
+  Double_t dP = mInStart[0]; // side length of mcp divided by 2
+
+  // uniform angle between detector faces==
+  Double_t btta = 2 * TMath::ATan(dP / crad);
+
+  // get noncompensated translation data
+  Double_t grdin[6] = {-3, -2, -1, 1, 2, 3};
+  Double_t gridpoints[6];
+  for (Int_t i = 0; i < 6; i++) {
+    gridpoints[i] = crad * TMath::Sin((1 - 1 / (2 * TMath::Abs(grdin[i]))) * grdin[i] * btta);
+  }
+
+  Double_t xi[NCellsC] = {gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0],
+                          gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
+                          gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0],
+                          gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
+                          gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[1],
+                          gridpoints[2], gridpoints[3], gridpoints[4]};
+  Double_t yi[NCellsC] = {gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4],
+                          gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4],
+                          gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[2],
+                          gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[1], gridpoints[1],
+                          gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[0],
+                          gridpoints[0], gridpoints[0], gridpoints[0]};
+  Double_t zi[NCellsC];
+  for (Int_t i = 0; i < NCellsC; i++) {
+    zi[i] = TMath::Sqrt(TMath::Power(crad, 2) - TMath::Power(xi[i], 2) - TMath::Power(yi[i], 2));
+  }
+
+  // get rotation data
+  Double_t ac[NCellsC], bc[NCellsC], gc[NCellsC];
+  for (Int_t i = 0; i < NCellsC; i++) {
+    ac[i] = TMath::ATan(yi[i] / xi[i]) - TMath::Pi() / 2 + 2 * TMath::Pi();
+    if (xi[i] < 0) {
+      bc[i] = TMath::ACos(zi[i] / crad);
+    } else {
+      bc[i] = -1 * TMath::ACos(zi[i] / crad);
+    }
+  }
+  Double_t xc2[NCellsC], yc2[NCellsC], zc2[NCellsC];
+
+  // compensation based on node position within individual detector geometries
+  // determine compensated radius
+  Double_t rcomp = crad + mStartC[2] / 2.0; //
+  for (Int_t i = 0; i < NCellsC; i++) {
+    // Get compensated translation data
+    xc2[i] = rcomp * TMath::Cos(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
+    yc2[i] = rcomp * TMath::Sin(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
+    zc2[i] = rcomp * TMath::Cos(bc[i]);
+
+    // Convert angles to degrees
+    ac[i] *= 180 / TMath::Pi();
+    bc[i] *= 180 / TMath::Pi();
+    gc[i] = -1 * ac[i];
+    mAngels[i].SetXYZ(ac[i], bc[i], gc[i]);
+    mMCP[i + NCellsA].SetXYZ(xc2[i], yc2[i], zc2[i]);
   }
 }
