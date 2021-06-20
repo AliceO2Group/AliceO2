@@ -110,7 +110,7 @@ void CalibTimeSlewingParamTOF::addTimeSlewingInfo(int channel, float tot, float 
   }
 
   int currentch = channel;
-  while (mChannelStart[sector][currentch] == -1 && currentch > -1) {
+  while (currentch > -1 && mChannelStart[sector][currentch] == -1) {
     // printf("DBG: fill channel %i\n",currentch);
     // set also all the previous ones which were not filled
     mChannelStart[sector][currentch] = (mTimeSlewing[sector]).size();
