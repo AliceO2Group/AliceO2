@@ -793,6 +793,11 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, FairMQParts
       // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
       // pair.
       size_t finalSplitPayloadIndex = hi + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1);
+      if (finalSplitPayloadIndex > results.size()) {
+        LOGP(error, "DataHeader::splitPayloadParts invalid");
+        results[hi] = InputType::Invalid;
+        continue;
+      }
       for (; hi < finalSplitPayloadIndex; ++hi) {
         results[hi] = InputType::Data;
       }
