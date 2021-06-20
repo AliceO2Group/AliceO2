@@ -30,7 +30,7 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct JetFinderTask {
+struct JetFinderTaskBase {
   Produces<o2::aod::Jets> jetsTable;
   Produces<o2::aod::JetConstituents> constituentsTable;
   Produces<o2::aod::JetConstituentsSub> constituentsSubTable;
@@ -74,32 +74,13 @@ struct JetFinderTask {
     jetFinder.jetR = jetR;
   }
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
-               soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
+  void processBase()
   {
-
-    if (!collision.alias()[kINT7]) {
-      return; //remove hard code
-    }
-    if (!collision.sel7()) {
-      return; //remove hard code
-    }
-    jets.clear();
-    inputParticles.clear();
-
-    for (auto& track : tracks) {
-      /*  auto energy = std::sqrt(track.p() * track.p() + mPion*mPion);
-      inputParticles.emplace_back(track.px(), track.py(), track.pz(), energy);
-      inputParticles.back().set_user_index(track.globalIndex());*/
-      fillConstituents(track, inputParticles);
-      inputParticles.back().set_user_index(track.globalIndex());
-    }
-
     fastjet::ClusterSequenceArea clusterSeq(jetFinder.findJets(inputParticles, jets));
 
     for (const auto& jet : jets) {
       jetsTable(collision, jet.pt(), jet.eta(), jet.phi(),
-                jet.E(), jet.m(), jet.area());
+                jet.E(), jet.m(), jet.area(), -1);
       hJetPt->Fill(jet.pt());
       hJetPhi->Fill(jet.phi());
       hJetEta->Fill(jet.eta());
@@ -113,10 +94,97 @@ struct JetFinderTask {
       }
     }
   }
+
+  void processBegin()
+  {
+    jets.clear();
+    inputParticles.clear();
+  }
+
+};
+
+struct JetFinderTaskCharged : public JetFinderTaskBase {
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
+               soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
+  {
+    if (!collision.alias()[kINT7]) {
+      return; //remove hard code
+    }
+    if (!collision.sel7()) {
+      return; //remove hard code
+    }
+    processBegin();
+
+    for (auto& track : tracks) {
+      /*  auto energy = std::sqrt(track.p() * track.p() + mPion*mPion);
+      inputParticles.emplace_back(track.px(), track.py(), track.pz(), energy);
+      inputParticles.back().set_user_index(track.globalIndex());*/
+      fillConstituents(track, inputParticles);
+      inputParticles.back().set_user_index(track.globalIndex());
+    }
+
+    processBase();
+  }
+};
+
+struct JetFinderTaskFull : public JetFinderTaskBase {
+  o2::emcal::Geometry* geometry
+  void Init()
+  {
+    // Setup geometry for EMCal
+    // This would be a candidate to be moved elsewhere, but it depends on what is stored in the cluster table.
+    // NOTE: The geometry manager isn't necessary just to load the EMCAL geometry.
+    //       However, it _is_ necessary for loading the misalignment matrices as of September 2020
+    //       Eventually, those matrices will be moved to the CCDB, but it's not yet ready.
+    // FIXME: Hardcoded for run 2
+    o2::base::GeometryManager::loadGeometry(); // for generating full clusters
+    LOG(DEBUG) << "After load geometry!";
+    o2::emcal::Geometry* geometry = o2::emcal::Geometry::GetInstanceFromRunNumber(223409);
+    if (!geometry) {
+      LOG(ERROR) << "Failure accessing geometry";
+    }
+
+    JetFinderTaskBase::Init();
+  }
+
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
+               soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks,
+               aod::EMCALClusters const & clusters)
+  {
+    if (!collision.alias()[kINT7]) {
+      return; //remove hard code
+    }
+    if (!collision.sel7()) {
+      return; //remove hard code
+    }
+    processBegin();
+
+    for (auto& track : tracks) {
+      fillConstituents(track, inputParticles);
+      inputParticles.back().set_user_index(track.globalIndex());
+    }
+    for (auto & cluster : clusters) {
+      // The right thing to do here would be to fully calculate the momentum depending on the position.
+      // However, it's not clear that this functionality exists yet (21 June 2021)
+      inputParticles.emplace_back(fastjet::PseudoJet());
+      // TODO: This isn't right, but it's the best that can be done at the moment (21 June 2021)
+      inputParticles.back().reset_PtYPhiM(cluster.E(), cluster.Eta(), cluster.Phi(), JetFinder::mPion);
+      inputParticles.back().set_user_index(cluster.globalIndex());
+    }
+
+    processBase();
+  }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  // TODO: Is there a better way to do this?
+  auto jetType = cfgc.options().get<str>("jet-type");
+  if (jetType == "full") {
+    return WorkflowSpec{
+      adaptAnalysisTask<JetFinderTaskFull>(cfgc, TaskName{"jet-finder-full"})};
+  }
   return WorkflowSpec{
-    adaptAnalysisTask<JetFinderTask>(cfgc, TaskName{"jet-finder"})};
+    adaptAnalysisTask<JetFinderTaskCharged>(cfgc, TaskName{"jet-finder-charged"})};
 }
+
