@@ -155,7 +155,7 @@ std::string Geo::getVolumePath(const Int_t* ind)
   Int_t icopy = -1;
   icopy = sector;
 
-  auto string1 = fmt::format("/cave_1/barrel_1/B077_1/BSEGMO{:i}_1/BTOF{:i}_1", icopy, icopy);
+  auto string1 = fmt::format("/cave_1/barrel_1/B077_1/BSEGMO{:d}_1/BTOF{:d}_1", icopy, icopy);
 
   Bool_t fgHoles = kTRUE;
 
