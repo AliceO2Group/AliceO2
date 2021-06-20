@@ -14,3 +14,4 @@
 #pragma link off all functions;
 
 #pragma link C++ class JetFinder + ;
+#pragma link C++ namespace JetUtilities+;
