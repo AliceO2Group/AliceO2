@@ -100,6 +100,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
     auto dataProcessingHeaderOut = *DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(firstPart);
     headerOut.dataDescription = "CRAWDATA";
     headerOut.payloadSize = 0;
+    headerOut.splitPayloadParts = 1;
 
     /** initialise output message **/
     auto bufferSize = mOutputBufferSize >= 0 ? mOutputBufferSize + subspecBufferSize[subspec] : std::abs(mOutputBufferSize);
