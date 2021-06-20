@@ -843,23 +843,34 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // store incompressible symbols if any
 
     int literalSize = 0;
-    if (literals.size()) {
-      literalSize = (literals.size() * sizeof(STYP)) / sizeof(stream_t) + (sizeof(STYP) < sizeof(stream_t));
+    size_t literalPayloadSize = literals.size();
+    if (literalPayloadSize) {
+      size_t szb = literalPayloadSize * sizeof(STYP);
+      literalSize = szb / sizeof(stream_t);
+      if (szb % sizeof(stream_t)) {
+        literalSize++;
+        literals.resize(literalSize * sizeof(stream_t), 0); // pad with 0s to data size to copy
+      }
       expandStorage(literalSize);
       bl->storeLiterals(literalSize, reinterpret_cast<const stream_t*>(literals.data()));
     }
-    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), static_cast<uint8_t>(encoder->getSymbolTablePrecision()), opt,
+    *meta = Metadata{messageLength, literalPayloadSize, sizeof(uint64_t), sizeof(stream_t), static_cast<uint8_t>(encoder->getSymbolTablePrecision()), opt,
                      encoder->getMinSymbol(), encoder->getMaxSymbol(), dictSize, dataSize, literalSize};
 
   } else { // store original data w/o EEncoding
-    const size_t szb = messageLength * sizeof(STYP);
-    const int dataSize = szb / sizeof(stream_t) + (sizeof(STYP) < sizeof(stream_t));
+    size_t szb = messageLength * sizeof(STYP);
+    int dataSize = szb / sizeof(stream_t);
+    std::vector<STYP> vtmp;
+    if (szb % sizeof(stream_t)) {
+      dataSize++;
+      vtmp.resize(dataSize * sizeof(stream_t), 0);
+    }
     // no dictionary needed
     expandStorage(dataSize);
     *meta = Metadata{messageLength, 0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt, 0, 0, 0, dataSize, 0};
     //FIXME: no we don't need an intermediate vector.
     // provided iterator is not necessarily pointer, need to use intermediate vector!!!
-    std::vector<STYP> vtmp(srcBegin, srcEnd);
+    std::copy(srcBegin, srcEnd, std::back_inserter(vtmp));
     bl->storeData(meta->nDataWords, reinterpret_cast<const W*>(vtmp.data()));
   }
   // resize block if necessary
