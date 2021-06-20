@@ -313,7 +313,7 @@ TGeoVolume* Flex::makeLines(Int_t nbsensors, Double_t length, Double_t widthflex
   auto* layer = new TGeoCompositeShape("layerhole2", layerholesub2);
 
   TGeoBBox* line[25];
-  TGeoTranslation *t[6], *ts[15], *tvdd, *tl[2];
+  TGeoTranslation *t[6], *ts[25], *tvdd, *tl[2];
   TGeoSubtraction* layerl[25];
   TGeoCompositeShape* layern[25];
   Int_t istart, istop;
