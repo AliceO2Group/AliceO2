@@ -507,6 +507,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     : mContext{context}
   {
   }
+  ~ControlWebSocketHandler() override = default;
 
   /// Invoked at the end of the headers.
   /// as a special header we have "x-dpl-pid" which devices can use
