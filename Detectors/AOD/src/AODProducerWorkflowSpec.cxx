@@ -110,7 +110,7 @@ uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStar
 
   uint32_t initialOrbit = mapStartOrbit->at(runNumber);
   uint16_t firstRecBC = tfStartIR.bc;
-  uint32_t firstRecOrbit = initialOrbit + tfStartIR.orbit;
+  uint32_t firstRecOrbit = tfStartIR.orbit;
   const o2::InteractionRecord firstRec(firstRecBC, firstRecOrbit);
   ts += firstRec.bc2ns() / 1000000;
 
@@ -454,6 +454,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& mftTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"});
   auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
   auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
+  auto& mcMftTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCMFTTRACKLABEL"});
   auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
   auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
   auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
@@ -470,6 +471,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto mftTracksCursor = mftTracksBuilder.cursor<o2::aodproducer::MFTTracksTable>();
   auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aodproducer::MCParticlesTable>();
   auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
+  auto mcMftTrackLabelCursor = mcMftTrackLabelBuilder.cursor<o2::aod::McMftTrackLabels>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
   auto fv0cCursor = fv0cBuilder.cursor<o2::aod::FV0Cs>();
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
@@ -998,9 +1000,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
           if (mcTruthMFT.isNoise()) {
             labelMask |= (0x1 << 14);
           }
-          mcTrackLabelCursor(0,
-                             labelID,
-                             labelMask);
+          mcMftTrackLabelCursor(0,
+                                labelID,
+                                labelMask);
         }
       }
     }
@@ -1042,6 +1044,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool f
   outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mcmfttracklabel"}, "AOD", "MCMFTTRACKLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
   outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
