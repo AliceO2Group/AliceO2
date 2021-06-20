@@ -198,6 +198,28 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
 
+  struct TrackExtraInfo {
+    float tpcInnerParam = 0.f;
+    uint32_t flags = 0;
+    uint8_t itsClusterMap = 0;
+    uint8_t tpcNClsFindable = 0;
+    int8_t tpcNClsFindableMinusFound = 0;
+    int8_t tpcNClsFindableMinusCrossedRows = 0;
+    uint8_t tpcNClsShared = 0;
+    uint8_t trdPattern = 0;
+    float itsChi2NCl = -999.f;
+    float tpcChi2NCl = -999.f;
+    float trdChi2 = -999.f;
+    float tofChi2 = -999.f;
+    float tpcSignal = -999.f;
+    float trdSignal = -999.f;
+    float tofSignal = -999.f;
+    float length = -999.f;
+    float tofExpMom = -999.f;
+    float trackEtaEMCAL = -999.f;
+    float trackPhiEMCAL = -999.f;
+  };
+
   void collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                   gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
@@ -210,7 +232,7 @@ class AODProducerWorkflowDPL : public Task
                         const o2::track::TrackParCov& track, int collisionID, int src);
 
   template <typename TracksExtraCursorType>
-  void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor);
+  void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder);
 
   template <typename mftTracksCursorType>
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, const o2::mft::TrackMFT& track, int collisionID);
