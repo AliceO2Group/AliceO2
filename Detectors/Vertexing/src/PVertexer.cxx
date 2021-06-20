@@ -535,7 +535,7 @@ void PVertexer::reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& t
 
   for (int im = 0; im < nv; im++) { // loop from highest multiplicity to lowest one
     int it = multSort[im];
-    if (it < 0) { // if <0, the vertex was already discarded
+    if (timeSort[it] < 0) { // if <0, the vertex was already discarded
       continue;
     }
 
