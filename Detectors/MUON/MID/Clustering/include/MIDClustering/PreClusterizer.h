@@ -55,11 +55,11 @@ class PreClusterizer
   void preClusterizeBP(PatternStruct& de);
   void preClusterizeNBP(PatternStruct& de);
 
-  Mapping mMapping;                              ///< Mapping
-  std::unordered_map<int, PatternStruct> mMpDEs; ///< Internal mapping
-  std::unordered_map<int, bool> mActiveDEs;      ///< List of active detection elements for event
-  std::vector<PreCluster> mPreClusters;          ///< List of pre-clusters
-  std::vector<ROFRecord> mROFRecords;            ///< List of pre-clusters RO frame records
+  Mapping mMapping{};                              ///< Mapping
+  std::unordered_map<int, PatternStruct> mMpDEs{}; ///< Internal mapping
+  std::unordered_map<int, bool> mActiveDEs{};      ///< List of active detection elements for event
+  std::vector<PreCluster> mPreClusters{};          ///< List of pre-clusters
+  std::vector<ROFRecord> mROFRecords{};            ///< List of pre-clusters RO frame records
 };
 } // namespace mid
 } // namespace o2

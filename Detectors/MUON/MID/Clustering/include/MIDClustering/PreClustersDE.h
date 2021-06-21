@@ -53,8 +53,7 @@ class PreClustersDE
   BP& getPreClusterBP(int icolumn, int idx) { return mPreClustersBP[icolumn][idx]; }
 
   /// Gets pre-cluster in the BP (const version)
-  const BP&
-    getPreClusterBP(int icolumn, int idx) const { return mPreClustersBP[icolumn][idx]; }
+  const BP& getPreClusterBP(int icolumn, int idx) const { return mPreClustersBP[icolumn][idx]; }
 
   /// Gets the number of pre-clusters in the NBP
   size_t getNPreClustersNBP() const { return mPreClustersNBP.size(); }
@@ -80,9 +79,9 @@ class PreClustersDE
   void reset();
 
  private:
-  int mDEId = 99;                                ///< Detection element ID
-  std::vector<NBP> mPreClustersNBP;              ///< list of PreClusters in the NBP in each DE
-  std::array<std::vector<BP>, 7> mPreClustersBP; ///< list of PreClusters in the BP in each DE per column
+  int mDEId{99};                                   ///< Detection element ID
+  std::vector<NBP> mPreClustersNBP{};              ///< list of PreClusters in the NBP in each DE
+  std::array<std::vector<BP>, 7> mPreClustersBP{}; ///< list of PreClusters in the BP in each DE per column
 };
 } // namespace mid
 } // namespace o2
