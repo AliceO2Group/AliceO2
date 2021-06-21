@@ -16,7 +16,6 @@ o2_add_library(CPVCalibWorkflow
                                      O2::DataFormatsCPV
                                      O2::DetectorsRaw
                                      O2::CPVReconstruction
-                                     O2::CPVCalib 
                                      O2::DetectorsCalibration)
 
 
@@ -25,6 +24,5 @@ o2_add_executable(calib-workflow
                   SOURCES src/cpv-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::DataFormatsCPV
-                                        O2::CPVCalib
                                         O2::CPVCalibWorkflow
                                         O2::DetectorsCalibration)

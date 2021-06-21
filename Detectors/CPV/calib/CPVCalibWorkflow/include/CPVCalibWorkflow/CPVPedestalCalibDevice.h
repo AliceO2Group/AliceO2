@@ -18,7 +18,7 @@
 // #include "Framework/ConfigParamRegistry.h"
 // #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
-#include "CPVCalib/Pedestals.h"
+#include "DataFormatsCPV/Pedestals.h"
 #include "CPVBase/Geometry.h"
 #include "TH2.h"
 

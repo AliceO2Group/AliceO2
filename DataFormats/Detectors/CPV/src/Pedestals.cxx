@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "CPVCalib/Pedestals.h"
+#include "DataFormatsCPV/Pedestals.h"
 #include "FairLogger.h"
 #include <TH1.h>
 #include <TH1F.h>

@@ -15,8 +15,8 @@
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/Cluster.h"
 #include "CPVReconstruction/FullCluster.h"
-#include "CPVCalib/CalibParams.h"
-#include "CPVCalib/BadChannelMap.h"
+#include "DataFormatsCPV/CalibParams.h"
+#include "DataFormatsCPV/BadChannelMap.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 

@@ -21,7 +21,6 @@ o2_add_library(CPVWorkflow
                                      O2::DataFormatsCPV 
                                      O2::DPLUtils 
                                      O2::CPVBase 
-                                     O2::CPVCalib 
                                      O2::CPVSimulation 
                                      O2::CPVReconstruction 
                                      O2::Algorithm)

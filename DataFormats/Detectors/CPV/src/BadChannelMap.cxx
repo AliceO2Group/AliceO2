@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "CPVBase/Geometry.h"
-#include "CPVCalib/BadChannelMap.h"
+#include "DataFormatsCPV/BadChannelMap.h"
 
 #include "FairLogger.h"
 
