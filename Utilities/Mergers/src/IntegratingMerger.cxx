@@ -22,11 +22,8 @@
 
 #include "Framework/InputRecordWalker.h"
 #include "Framework/Logger.h"
-//#include "Framework/DataRef.h"
 
-//using namespace o2;
 using namespace o2::framework;
-//using namespace std::chrono;
 
 namespace o2::mergers
 {
@@ -35,12 +32,12 @@ IntegratingMerger::IntegratingMerger(const MergerConfig& config, const header::D
   : mConfig(config),
     mSubSpec(subSpec)
 {
-  mCollector = monitoring::MonitoringFactory::Get("infologger:///debug?qc");
-  //  mCollector->enableProcessMonitoring();
 }
 
 void IntegratingMerger::init(framework::InitContext& ictx)
 {
+  mCollector = monitoring::MonitoringFactory::Get(mConfig.monitoringUrl);
+  mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
 }
 
 void IntegratingMerger::run(framework::ProcessingContext& ctx)
@@ -66,7 +63,7 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
       } else {
         throw std::runtime_error("mMergedObject' variant has no value.");
       }
-      mObjectsMerged++;
+      mDeltasMerged++;
     }
   }
 
@@ -82,22 +79,27 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
 
 void IntegratingMerger::publish(framework::DataAllocator& allocator)
 {
+  mTotalDeltasMerged += mDeltasMerged;
+
   if (std::holds_alternative<std::monostate>(mMergedObject)) {
     LOG(INFO) << "Nothing to publish yet";
   } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec},
                        *std::get<MergeInterfacePtr>(mMergedObject));
+    LOG(INFO) << "Published the merged object with " << mTotalDeltasMerged << " deltas in total,"
+              << " including " << mDeltasMerged << " in the last cycle.";
   } else if (std::holds_alternative<TObjectPtr>(mMergedObject)) {
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec},
                        *std::get<TObjectPtr>(mMergedObject));
+    LOG(INFO) << "Published the merged object with " << mTotalDeltasMerged << " deltas in total,"
+              << " including " << mDeltasMerged << " in the last cycle.";
   } else {
     throw std::runtime_error("mMergedObject' variant has no value.");
   }
 
-  mTotalObjectsMerged += mObjectsMerged;
-  mCollector->send({mTotalObjectsMerged, "total_objects_merged"}, monitoring::DerivedMetricMode::RATE);
-  mCollector->send({mObjectsMerged, "objects_merged_since_last_publication"});
-  mObjectsMerged = 0;
+  mCollector->send({mTotalDeltasMerged, "total_deltas_merged"}, monitoring::DerivedMetricMode::RATE);
+  mCollector->send({mDeltasMerged, "deltas_merged_since_last_publication"});
+  mDeltasMerged = 0;
 }
 
 } // namespace o2::mergers
