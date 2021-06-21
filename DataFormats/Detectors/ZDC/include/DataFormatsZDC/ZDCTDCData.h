@@ -8,40 +8,52 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_CHANNEL_DATA_H_
-#define _ZDC_CHANNEL_DATA_H_
+#ifndef ZDC_TDC_DATA_H
+#define ZDC_TDC_DATA_H
 
 #include "ZDCBase/Constants.h"
 #include <array>
 #include <Rtypes.h>
 
-/// \file ChannelData.h
-/// \brief Container class to store NTimeBinsPerBC ADC values of single ZDC channel
-/// \author ruben.shahoyan@cern.ch
+/// \file ZDCTDCData.h
+/// \brief Container class to store a TDC hit in a ZDC channel
+/// \author pietro.cortese@cern.ch
 
 namespace o2
 {
 namespace zdc
 {
 
-struct ChannelData {
+struct ZDCTDCData {
 
   int8_t id = IdDummy; // channel ID
-  std::array<int16_t, NTimeBinsPerBC> data = {0};
+  int16_t val = 0;     // tdc value
+  int16_t amp = 0;     // tdc amplitude
 
-  ChannelData() = default;
-  ChannelData(int8_t ida, const std::array<float, NTimeBinsPerBC>& src)
+  ZDCTDCData() = default;
+  ZDCTDCData(int8_t ida, int16_t vala, int16_t ampa)
   {
     id = ida;
-    for (int i = NTimeBinsPerBC; i--;) {
-      data[i] = int16_t(src[i]);
-    }
+    val = vala;
+    amp = ampa;
   }
-  ChannelData(const ChannelData&) = default;
+
+  inline float amplitude() const
+  {
+    return FTDCAmp * amp;
+  }
+  inline float value() const
+  {
+    return FTDCVal * val;
+  }
+  inline uint8_t ch() const
+  {
+    return id;
+  }
 
   void print() const;
 
-  ClassDefNV(ChannelData, 1);
+  ClassDefNV(ZDCTDCData, 1);
 };
 } // namespace zdc
 } // namespace o2

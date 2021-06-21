@@ -8,16 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "DataFormatsZDC/BCRecData.h"
+#include "DataFormatsZDC/ChannelData.h"
+#include <bitset>
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::zdc;
 
-#pragma link C++ class o2::zdc::RecoConfigZDC + ;
-#pragma link C++ class o2::zdc::RecoParamZDC + ;
-#pragma link C++ class o2::zdc::ZDCTDCParam + ;
-#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
-#pragma link C++ class o2::zdc::ZDCTowerParam + ;
-
-#endif
+void BCRecData::print() const
+{
+  printf("Orbit %9u bc %4u nch %2d pos %d ntdc %2d pos %d nmsg %2d pos %d\n", ir.orbit, ir.bc,
+         refe.getEntries(), refe.getFirstEntry(),
+         reft.getEntries(), reft.getFirstEntry(),
+         refi.getEntries(), refi.getFirstEntry());
+}

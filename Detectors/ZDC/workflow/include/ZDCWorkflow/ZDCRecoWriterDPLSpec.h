@@ -8,16 +8,26 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   ZDCRecoWriterSpec.h
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef O2_ZDCRECOTWRITERDPLSPEC_H
+#define O2_ZDCRECOTWRITERDPLSPEC_H
 
-#pragma link C++ class o2::zdc::RecoConfigZDC + ;
-#pragma link C++ class o2::zdc::RecoParamZDC + ;
-#pragma link C++ class o2::zdc::ZDCTDCParam + ;
-#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
-#pragma link C++ class o2::zdc::ZDCTowerParam + ;
+#include "Framework/DataProcessorSpec.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
+#include "DataFormatsZDC/MCLabel.h"
 
-#endif
+using namespace o2::framework;
+
+namespace o2
+{
+namespace zdc
+{
+
+/// create a processor spec
+framework::DataProcessorSpec getZDCRecoWriterDPLSpec();
+
+} // namespace zdc
+} // namespace o2
+
+#endif /* O2_ZDCRECOTWRITERDPLSPEC_H */

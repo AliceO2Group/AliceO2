@@ -8,16 +8,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "Framework/Logger.h"
+#include "ZDCReconstruction/RecoParamZDC.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+O2ParamImpl(o2::zdc::RecoParamZDC);
 
-#pragma link C++ class o2::zdc::RecoConfigZDC + ;
-#pragma link C++ class o2::zdc::RecoParamZDC + ;
-#pragma link C++ class o2::zdc::ZDCTDCParam + ;
-#pragma link C++ class o2::zdc::ZDCEnergyParam + ;
-#pragma link C++ class o2::zdc::ZDCTowerParam + ;
-
-#endif
+void o2::zdc::RecoParamZDC::setBit(uint32_t ibit, bool val)
+{
+  if (ibit >= 0 && ibit < NTDCChannels) {
+    bitset[ibit] = val;
+  } else {
+    LOG(FATAL) << __func__ << " bit " << ibit << " not in allowed range";
+  }
+}
