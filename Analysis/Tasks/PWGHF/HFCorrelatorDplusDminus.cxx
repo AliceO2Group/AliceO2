@@ -31,7 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   ConfigParamSpec optionDoLikeSign{"doLikeSign", VariantType::Bool, false, {"Run Like-Sign analysis."}};
   ConfigParamSpec optionDoMCccbar{"doMCccbar", VariantType::Bool, false, {"Run MC-Gen dedicated tasks."}};
   ConfigParamSpec optionDoMCGen{"doMCGen", VariantType::Bool, false, {"Run MC-Gen dedicated tasks."}};
-  ConfigParamSpec optionDoMCRec{"doMCRec", VariantType::Bool, false, {"Run MC-Rec dedicated tasks."}};
+  ConfigParamSpec optionDoMCRec{"doMCRec", VariantType::Bool, true, {"Run MC-Rec dedicated tasks."}};
   workflowOptions.push_back(optionDoLikeSign);
   workflowOptions.push_back(optionDoMCccbar);
   workflowOptions.push_back(optionDoMCGen);

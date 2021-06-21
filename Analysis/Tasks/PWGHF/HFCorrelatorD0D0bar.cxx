@@ -31,7 +31,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   ConfigParamSpec optionDoLikeSign{"doLikeSign", VariantType::Bool, false, {"Run Like-Sign analysis."}};
   ConfigParamSpec optionDoMCccbar{"doMCccbar", VariantType::Bool, false, {"Run MC-Gen dedicated tasks."}};
   ConfigParamSpec optionDoMCGen{"doMCGen", VariantType::Bool, false, {"Run MC-Gen dedicated tasks."}};
-  ConfigParamSpec optionDoMCRec{"doMCRec", VariantType::Bool, false, {"Run MC-Rec dedicated tasks."}};
+  ConfigParamSpec optionDoMCRec{"doMCRec", VariantType::Bool, true, {"Run MC-Rec dedicated tasks."}};
   workflowOptions.push_back(optionDoLikeSign);
   workflowOptions.push_back(optionDoMCccbar);
   workflowOptions.push_back(optionDoMCGen);
@@ -246,7 +246,7 @@ struct HfCorrelatorD0D0barMcRec {
         if (candidate2.isSelD0bar() < selectionFlagD0bar) { //discard candidates not selected as D0bar in inner loop
           continue;
         }
-        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0barSignal 'true' if candidate2 matched to D0 (particle)
+        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0barSignal 'true' if candidate2 matched to D0bar (antiparticle)
         if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
           continue;
         }
