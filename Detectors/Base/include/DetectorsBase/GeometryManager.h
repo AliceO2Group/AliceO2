@@ -72,8 +72,8 @@ class GeometryManager : public TObject
   ~GeometryManager() override = default;
 
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
-  static bool applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars, bool ovlpcheck = false, double ovlToler = 1e-3);
-  static bool applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars, bool ovlpcheck = false, double ovlToler = 1e-3);
+  static bool applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars);
+  static bool applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars);
 
   struct MatBudgetExt {
     double meanRho = 0.;  // mean density: sum(x_i*rho_i)/sum(x_i) [g/cm3]
