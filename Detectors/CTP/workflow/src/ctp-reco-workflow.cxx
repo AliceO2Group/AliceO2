@@ -27,7 +27,8 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"input-type", o2::framework::VariantType::String, "digits", {"hits, digits, raw, clusters"}},
+    {"input-type", o2::framework::VariantType::String, "raw", {"digits, raw"}},
+    {"output-type", o2::framework::VariantType::String, "digits", {"digits, raw"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
