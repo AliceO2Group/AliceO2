@@ -60,7 +60,8 @@ class Vertexer
   std::vector<Vertex> exportVertices();
   VertexerTraits* getTraits() const { return mTraits; };
 
-  float clustersToVertices(ROframe&, const bool useMc = false, std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
+  float clustersToVertices(
+    ROframe&, const bool useMc = false, std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void filterMCTracklets();
   void validateTracklets();
 

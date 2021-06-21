@@ -73,7 +73,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger)
   std::stringstream sstream;
   if (constants::DoTimeBenchmarks) {
     sstream << std::setw(2) << " - "
-                            << "Vertex processing completed in: " << total << "ms" << std::endl;
+            << "Vertex processing completed in: " << total << "ms" << std::endl;
   }
   logger(sstream.str());
 
