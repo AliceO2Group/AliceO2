@@ -22,13 +22,26 @@ void TOFFEElightReader::loadFEElightConfig(const char* fileName)
   char* expandedFileName = gSystem->ExpandPathName(fileName);
   std::ifstream is;
   is.open(expandedFileName, std::ios::binary);
-  is.read(reinterpret_cast<char*>(&mFEElightConfig), sizeof(mFEElightConfig));
+  mFileLoadBuff.reset(new char[sizeof(o2::tof::TOFFEElightConfig)]);
+  is.read(mFileLoadBuff.get(), sizeof(o2::tof::TOFFEElightConfig));
   is.close();
+  mFEElightConfig = reinterpret_cast<const TOFFEElightConfig*>(mFileLoadBuff.get());
+}
+
+//_______________________________________________________________
+void TOFFEElightReader::loadFEElightConfig(gsl::span<const char> configBuf)
+{
+  // load FEElight config from buffer
+
+  if (configBuf.size() != sizeof(o2::tof::TOFFEElightConfig)) {
+    LOG(FATAL) << "Incoming message with TOFFEE configuration does not match expected size: " << configBuf.size() << " received, " << sizeof(*mFEElightConfig) << " expected";
+  }
+  mFEElightConfig = reinterpret_cast<const TOFFEElightConfig*>(configBuf.data());
 }
 
 //_______________________________________________________________
 
-int TOFFEElightReader::parseFEElightConfig()
+int TOFFEElightReader::parseFEElightConfig(bool verbose)
 {
   // parse FEElight config
   // loops over all FEE channels, checks whether they are enabled
@@ -36,26 +49,37 @@ int TOFFEElightReader::parseFEElightConfig()
 
   mFEElightInfo.resetAll();
 
+  int version = mFEElightConfig->mVersion;
+  int runNumber = mFEElightConfig->mRunNumber;
+  int runType = mFEElightConfig->mRunType;
+
+  mFEElightInfo.mVersion = version;
+  mFEElightInfo.mRunNumber = runNumber;
+  mFEElightInfo.mRunType = runType;
+
   int nEnabled = 0, index;
-  TOFFEEchannelConfig* channelConfig = nullptr;
+  const TOFFEEchannelConfig* channelConfig = nullptr;
   for (int crateId = 0; crateId < Geo::kNCrate; crateId++) {
-    for (int trmId = 0; trmId < Geo::kNTRM; trmId++) {
+    for (int trmId = 0; trmId < Geo::kNTRM - 2; trmId++) { // in O2, the number of TRMs is 12, but in the FEE world it is 10
       for (int chainId = 0; chainId < Geo::kNChain; chainId++) {
         for (int tdcId = 0; tdcId < Geo::kNTdc; tdcId++) {
           for (int channelId = 0; channelId < Geo::kNCh; channelId++) {
-            channelConfig = mFEElightConfig.getChannelConfig(crateId, trmId, chainId, tdcId, channelId);
-            LOG(INFO) << "Processing electronic channel with indices: crate = " << crateId << ", trm = " << trmId << ", chain = "
-                      << chainId << ", tdc = " << tdcId << ", tdcChannel = " << channelId << " -> " << channelConfig;
+            channelConfig = mFEElightConfig->getChannelConfig(crateId, trmId, chainId, tdcId, channelId);
+            if (verbose) {
+              LOG(INFO) << "Processing electronic channel with indices: crate = " << crateId << ", trm = " << trmId << ", chain = "
+                        << chainId << ", tdc = " << tdcId << ", tdcChannel = " << channelId << " -> " << channelConfig;
+            }
             if (channelConfig) {
               if (!channelConfig->isEnabled()) {
                 continue;
               }
               // get index DO from crate, trm, chain, tdc, tdcchannel
-              index = Geo::getCHFromECH(Geo::getECHFromIndexes(crateId, trmId, chainId, tdcId, channelId));
+              index = Geo::getCHFromECH(Geo::getECHFromIndexes(crateId, trmId + 3, chainId, tdcId, channelId)); // in O2, the TRM index is shifted by 3 because it corresponds to the VME slot
               if (index == -1) {
                 continue;
               }
               nEnabled++;
+              LOG(INFO) << "Enabling channel " << index;
               mFEElightInfo.mChannelEnabled[index] = channelConfig->isEnabled();
               mFEElightInfo.mMatchingWindow[index] = channelConfig->mMatchingWindow;
               mFEElightInfo.mLatencyWindow[index] = channelConfig->mLatencyWindow;
@@ -66,10 +90,12 @@ int TOFFEElightReader::parseFEElightConfig()
     }
   }
 
-  TOFFEEtriggerConfig* triggerConfig = nullptr;
+  const TOFFEEtriggerConfig* triggerConfig = nullptr;
   for (Int_t iddl = 0; iddl < TOFFEElightConfig::NTRIGGERMAPS; iddl++) {
-    triggerConfig = mFEElightConfig.getTriggerConfig(iddl);
-    LOG(INFO) << "Processing trigger config " << iddl << ": " << triggerConfig;
+    triggerConfig = mFEElightConfig->getTriggerConfig(iddl);
+    if (verbose) {
+      LOG(INFO) << "Processing trigger config " << iddl << ": " << triggerConfig;
+    }
     if (triggerConfig) {
       mFEElightInfo.mTriggerMask[iddl] = triggerConfig->mStatusMap;
     }

@@ -164,6 +164,32 @@ int RawPixelDecoder<Mapping>::fillDecodedDigits(DigitContainer& digits, ROFConta
 
 ///______________________________________________________________
 /// Fill decoded digits to global vector
+template <>
+template <class DigitContainer, class ROFContainer>
+int RawPixelDecoder<ChipMappingMFT>::fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs)
+{
+  if (mInteractionRecord.isDummy()) {
+    return 0; // nothing was decoded
+  }
+  mTimerFetchData.Start(false);
+  int ref = digits.size();
+  while (!mOrderedChipsPtr.empty()) {
+    const auto& chipData = *mOrderedChipsPtr.back();
+    assert(mLastReadChipID < chipData.getChipID());
+    mLastReadChipID = chipData.getChipID();
+    for (const auto& hit : chipData.getData()) {
+      digits.emplace_back(mLastReadChipID, hit.getRow(), hit.getCol());
+    }
+    mOrderedChipsPtr.pop_back();
+  }
+  int nFilled = digits.size() - ref;
+  rofs.emplace_back(mInteractionRecord, mROFCounter, ref, nFilled);
+  mTimerFetchData.Stop();
+  return nFilled;
+}
+
+///______________________________________________________________
+/// Fill decoded digits to global vector
 template <class Mapping>
 template <class CalibContainer>
 void RawPixelDecoder<Mapping>::fillCalibData(CalibContainer& calib)

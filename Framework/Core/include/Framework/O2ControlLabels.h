@@ -26,6 +26,10 @@ namespace ecs
 // Effectively, it allows us to declare cross-machine channels, e.g. for QC.
 const extern DataProcessorLabel uniqueProxyLabel;
 
+// This label makes AliECS templates use the originally declared addresses for raw FairMQ channels.
+// Thus, AliECS will not perform host and port allocation automatically. It takes priority over `uniqueProxyLabel`.
+const extern DataProcessorLabel preserveRawChannelsLabel;
+
 } // namespace ecs
 } // namespace o2::framework
 

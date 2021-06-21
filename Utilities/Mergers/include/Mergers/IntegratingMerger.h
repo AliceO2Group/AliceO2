@@ -62,8 +62,8 @@ class IntegratingMerger : public framework::Task
   int mCyclesSinceReset = 0;
 
   // stats
-  int mTotalObjectsMerged = 0;
-  int mObjectsMerged = 0;
+  int mTotalDeltasMerged = 0;
+  int mDeltasMerged = 0;
 };
 
 } // namespace o2::mergers

@@ -27,7 +27,7 @@
 
 #include <fairlogger/Logger.h>
 
-#include "internal/helper.h"
+#include "rANS/internal/helper.h"
 
 namespace o2
 {
@@ -40,91 +40,101 @@ std::ostream& operator<<(std::ostream& out, const FrequencyTable& fTable);
 class FrequencyTable
 {
  public:
-  using value_t = int32_t;
+  using symbol_t = int32_t;
+  using count_t = uint32_t;
+  using iterator_t = count_t*;
+  using constIterator_t = const count_t*;
+  using histogram_t = std::vector<count_t>;
 
-  FrequencyTable() : mMin(0), mMax(0), mNumSamples(0), mFrequencyTable(){};
+  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  FrequencyTable() noexcept {}; //NOLINT
 
-  FrequencyTable(value_t min, value_t max) : mMin(min), mMax(max), mNumSamples(0), mFrequencyTable(mMax - mMin + 1, 0)
-  {
-    assert(mMax >= mMin);
-  }
+  FrequencyTable(symbol_t min, symbol_t max) : mMin{min}, mMax{max}, mFrequencyTable(max - min + 1, 0) { assert(mMax >= mMin); };
 
-  FrequencyTable(size_t range) : FrequencyTable(0, internal::bitsToRange(range) - 1)
-  {
-    assert(range >= 1);
-  };
+  template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
+  void addSamples(Source_IT begin, Source_IT end);
 
-  template <typename Source_IT>
-  void addSamples(Source_IT begin, Source_IT end, value_t min = 0, value_t max = 0);
+  template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool> = true>
+  void addSamples(Source_IT begin, Source_IT end, symbol_t min, symbol_t max);
 
-  template <typename Freq_IT>
-  void addFrequencies(Freq_IT begin, Freq_IT end, value_t min, value_t max);
+  template <typename Freq_IT, std::enable_if_t<internal::isIntegralIter_v<Freq_IT>, bool> = true>
+  void addFrequencies(Freq_IT begin, Freq_IT end, symbol_t min, symbol_t max);
 
-  value_t operator[](value_t index) const;
+  inline count_t operator[](symbol_t symbol) const { return getSymbol(symbol); };
 
-  size_t size() const;
+  count_t at(size_t index) const;
 
-  const uint32_t* data() const;
+  inline size_t size() const { return mFrequencyTable.size(); };
 
-  const uint32_t* cbegin() const;
+  inline const count_t* data() const noexcept { return mFrequencyTable.data(); };
 
-  const uint32_t* cend() const;
+  inline constIterator_t cbegin() const noexcept { return data(); };
 
-  uint32_t* begin();
+  inline constIterator_t cend() const noexcept { return data() + size(); };
 
-  uint32_t* end();
+  inline constIterator_t begin() const noexcept { return cbegin(); };
 
-  const uint32_t* begin() const;
+  inline constIterator_t end() const noexcept { return cend(); };
 
-  const uint32_t* end() const;
+  inline iterator_t begin() noexcept { return const_cast<iterator_t>(cbegin()); };
+
+  inline iterator_t end() noexcept { return const_cast<iterator_t>(cend()); };
 
   FrequencyTable& operator+(FrequencyTable& other);
 
-  value_t getMinSymbol() const;
-  value_t getMaxSymbol() const;
+  inline histogram_t&& release() && noexcept;
 
-  size_t getAlphabetRangeBits() const;
+  inline symbol_t getMinSymbol() const noexcept { return mNumSamples == 0 ? 0 : mMin; };
+  inline symbol_t getMaxSymbol() const noexcept { return mNumSamples == 0 ? 0 : mMax; };
 
-  size_t getNumSamples() const;
+  inline size_t getAlphabetRangeBits() const noexcept { return internal::numBitsForNSymbols(mFrequencyTable.size()); };
 
-  size_t getUsedAlphabetSize() const;
+  inline size_t getNumSamples() const noexcept { return mNumSamples; };
+
+  size_t getNUsedAlphabetSymbols() const noexcept;
 
  private:
-  void resizeFrequencyTable(value_t min, value_t max);
+  void resizeFrequencyTable(symbol_t min, symbol_t max);
 
-  value_t mMin;
-  value_t mMax;
-  size_t mNumSamples;
-  std::vector<uint32_t> mFrequencyTable;
+  const count_t& getSymbol(symbol_t symbol) const;
+  count_t& getSymbol(symbol_t symbol);
+
+  histogram_t mFrequencyTable{};
+  symbol_t mMin{std::numeric_limits<symbol_t>::max()};
+  symbol_t mMax{std::numeric_limits<symbol_t>::min()};
+  size_t mNumSamples{};
 };
 
-template <typename Source_IT>
-void FrequencyTable::addSamples(Source_IT begin, Source_IT end, value_t min, value_t max)
+template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool>>
+void FrequencyTable::addSamples(Source_IT begin, Source_IT end)
 {
-  static_assert(std::is_integral<typename std::iterator_traits<Source_IT>::value_type>::value);
+  if (begin != end) {
+    const auto& [minIter, maxIter] = std::minmax_element(begin, end);
+    addSamples(begin, end, *minIter, *maxIter);
+  } else {
+    LOG(warning) << "Passed empty message to " << __func__; // RS this is ok for empty columns
+    return;
+  }
+}
 
+template <typename Source_IT, std::enable_if_t<internal::isIntegralIter_v<Source_IT>, bool>>
+void FrequencyTable::addSamples(Source_IT begin, Source_IT end, symbol_t min, symbol_t max)
+{
   LOG(trace) << "start adding samples";
   internal::RANSTimer t;
   t.start();
 
   if (begin == end) {
-    LOG(debug) << "Passed empty message to " << __func__;  // RS this is ok for empty columns
+    LOG(warning) << "Passed empty message to " << __func__; // RS this is ok for empty columns
     return;
   }
 
-  if (min == max) {
-    const auto& [minIter, maxIter] = std::minmax_element(begin, end);
-    resizeFrequencyTable(*minIter, *maxIter);
+  resizeFrequencyTable(min, max);
 
-  } else {
-    resizeFrequencyTable(min, max);
-  }
+  // add new symbols
+  std::for_each(begin, end, [this](symbol_t symbol) { ++this->getSymbol(symbol); });
 
-  for (auto it = begin; it != end; ++it) {
-    assert((*it - mMin) < mFrequencyTable.size());
-    mFrequencyTable[*it - mMin]++;
-  }
-  mNumSamples = std::distance(begin, end);
+  mNumSamples += std::distance(begin, end);
 
   t.stop();
   LOG(debug1) << __func__ << " inclusive time (ms): " << t.getDurationMS();
@@ -135,8 +145,8 @@ void FrequencyTable::addSamples(Source_IT begin, Source_IT end, value_t min, val
   LOG(trace) << "done adding samples";
 }
 
-template <typename Freq_IT>
-void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, value_t min, value_t max)
+template <typename Freq_IT, std::enable_if_t<internal::isIntegralIter_v<Freq_IT>, bool>>
+void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, symbol_t min, symbol_t max)
 {
   static_assert(std::is_integral<typename std::iterator_traits<Freq_IT>::value_type>::value);
 
@@ -145,7 +155,7 @@ void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, value_t min, val
   t.start();
 
   if (begin == end) {
-    LOG(debug) << "Passed empty FrequencyTable to " << __func__;  // RS this is ok for empty columns
+    LOG(warning) << "Passed empty FrequencyTable to " << __func__; // RS this is ok for empty columns
     return;
   }
 
@@ -159,7 +169,7 @@ void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, value_t min, val
   std::transform(begin, end,
                  mFrequencyTable.begin() + offset,
                  mFrequencyTable.begin() + offset,
-                 [this](typename std::iterator_traits<Freq_IT>::value_type first, uint32_t second) {
+                 [this](typename std::iterator_traits<Freq_IT>::value_type first, count_t second) {
     mNumSamples += first;
     return first + second; });
 
@@ -173,87 +183,45 @@ void FrequencyTable::addFrequencies(Freq_IT begin, Freq_IT end, value_t min, val
   LOG(trace) << "done adding frequencies";
 }
 
-inline typename FrequencyTable::value_t FrequencyTable::operator[](value_t index) const
+inline auto FrequencyTable::at(size_t index) const -> count_t
 {
-  const value_t idx = index - mMin;
-  assert(idx >= 0);
-  assert(idx < mFrequencyTable.size());
+  assert(index < size());
   return mFrequencyTable[index];
-}
-
-inline size_t FrequencyTable::size() const
-{
-  return mFrequencyTable.size();
-}
-
-inline const uint32_t* FrequencyTable::data() const
-{
-  return mFrequencyTable.data();
-}
-
-inline const uint32_t* FrequencyTable::cbegin() const
-{
-  return mFrequencyTable.data();
-}
-
-inline const uint32_t* FrequencyTable::cend() const
-{
-  return mFrequencyTable.data() + mFrequencyTable.size();
-}
-
-inline uint32_t* FrequencyTable::begin()
-{
-  return const_cast<uint32_t*>(static_cast<const FrequencyTable*>(this)->begin());
-}
-
-inline uint32_t* FrequencyTable::end()
-{
-  return const_cast<uint32_t*>(static_cast<const FrequencyTable*>(this)->end());
-}
-
-inline const uint32_t* FrequencyTable::begin() const
-{
-  return cbegin();
-}
-
-inline const uint32_t* FrequencyTable::end() const
-{
-  return cend();
-}
+};
 
 inline FrequencyTable& FrequencyTable::operator+(FrequencyTable& other)
 {
-  addFrequencies(std::begin(other), std::end(other), other.getMinSymbol(), other.getMaxSymbol());
+  addFrequencies(other.cbegin(), other.cend(), other.getMinSymbol(), other.getMaxSymbol());
   return *this;
 }
 
-inline typename FrequencyTable::value_t FrequencyTable::getMinSymbol() const
+inline auto FrequencyTable::release() && noexcept -> histogram_t&&
 {
-  return mMin;
+  mMin = 0;
+  mMax = 0;
+  mNumSamples = 0;
+  return std::move(mFrequencyTable);
+};
+
+inline size_t FrequencyTable::getNUsedAlphabetSymbols() const noexcept
+{
+  return std::count_if(cbegin(), cend(), [](count_t count) { return count > 0; });
 }
 
-inline typename FrequencyTable::value_t FrequencyTable::getMaxSymbol() const
+inline auto FrequencyTable::getSymbol(symbol_t symbol) const -> const count_t&
 {
-  return mMax;
+  //negative numbers cause overflow thus we get away with one comparison only
+  const size_t index = static_cast<size_t>(symbol - mMin);
+  assert(index < mFrequencyTable.size());
+  return mFrequencyTable[index];
 }
 
-inline size_t FrequencyTable::getAlphabetRangeBits() const
+inline auto FrequencyTable::getSymbol(symbol_t symbol) -> count_t&
 {
-  if (mMax - mMin > 0) {
-    return std::ceil(std::log2(mMax - mMin));
-  } else if (mMax - mMin == 0) {
-    return 1;
-  } else {
-    return 0;
-  }
+  return const_cast<count_t&>(static_cast<const FrequencyTable&>(*this).getSymbol(symbol));
 }
 
-inline size_t FrequencyTable::getNumSamples() const
-{
-  return mNumSamples;
-}
-
-}  // namespace rans
-}  // namespace o2
+} // namespace rans
+} // namespace o2
 
 #endif /* INCLUDE_RANS_FREQUENCYTABLE_H_ */

@@ -18,6 +18,7 @@
 #include <sstream>
 #include <SimConfig/SimConfig.h>
 #include <DetectorsBase/Detector.h>
+#include "DetectorsBase/Aligner.h"
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
 #include <SimulationDataFormat/MCEventHeader.h>
@@ -145,6 +146,10 @@ bool O2MCApplicationBase::MisalignGeometry()
   auto& confref = o2::conf::SimConfig::Instance();
   auto geomfile = o2::base::NameConf::getGeomFileName(confref.getOutPrefix());
   gGeoManager->Export(geomfile.c_str());
+
+  // apply alignment for included detectors AFTER exporting ideal geometry
+  auto& aligner = o2::base::Aligner::Instance();
+  aligner.applyAlignment(0);
 
   // return original return value of misalignment procedure
   return true;

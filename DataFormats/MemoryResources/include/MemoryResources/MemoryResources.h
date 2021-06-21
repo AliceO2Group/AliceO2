@@ -27,7 +27,6 @@
 #ifndef ALICEO2_MEMORY_RESOURCES_
 #define ALICEO2_MEMORY_RESOURCES_
 
-#include <boost/container/flat_map.hpp>
 #include <boost/container/pmr/memory_resource.hpp>
 #include <boost/container/pmr/monotonic_buffer_resource.hpp>
 #include <boost/container/pmr/polymorphic_allocator.hpp>

@@ -56,8 +56,10 @@ class DataRelayer
   /// methods need to be called.
   constexpr static ServiceKind service_kind = ServiceKind::Global;
   enum RelayChoice {
-    WillRelay,
-    WillNotRelay
+    WillRelay,     /// Ownership of the data has been taken
+    Invalid,       /// The incoming data was not valid and has been dropped
+    Backpressured, /// The incoming data was not relayed, because we are backpressured
+    Dropped        /// The incoming data was not relayed and has been dropped
   };
 
   struct ActivityStats {
@@ -82,6 +84,17 @@ class DataRelayer
   /// @return true if there were expirations, false if not.
   ActivityStats processDanglingInputs(std::vector<ExpirationHandler> const&,
                                       ServiceRegistry& context, bool createNew);
+
+  /// This is to relay a whole set of FairMQMessages, all which are part
+  /// of the same set of split parts.
+  /// @a firstHeader is the first message of such set
+  /// @a restOfParts is a pointer to the rest of the messages
+  /// @a restSize is how many messages are there in restOfParts
+  /// is the header which is common across all subsequent elements.
+  /// Notice that we expect that the header is an O2 Header Stack
+  RelayChoice relay(std::unique_ptr<FairMQMessage>&& firstHeader,
+                    std::unique_ptr<FairMQMessage>* restOfParts,
+                    size_t restSize);
 
   /// This is used to ask for relaying a given (header,payload) pair.
   /// Notice that we expect that the header is an O2 Header Stack

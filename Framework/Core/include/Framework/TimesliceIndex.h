@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_TIMESLICEINDEX_H_
 
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/ServiceHandle.h"
 
 #include <cstdint>
@@ -48,10 +49,19 @@ class TimesliceIndex
   /// TimesliceIndex is threadsafe because it's accessed only by the
   /// DataRelayer.
   constexpr static ServiceKind service_kind = ServiceKind::Global;
+
+  /// What to do when there is backpressure
+  enum struct BackpressureOp {
+    Wait,        // Do nothing and wait for the oldest slot to complete
+    DropAncient, // Drop the message with the least recent timestamp
+    DropRecent   // Drop the message with the most recent timestamp
+  };
+
   /// The outcome for the processing of a given timeslot
   enum struct ActionTaken {
     ReplaceUnused,   /// An unused / invalid slot is used to hold the new context
     ReplaceObsolete, /// An obsolete slot is used to hold the new context and the old one is dropped
+    Wait,            /// We wait for the oldest slot to complete.
     DropInvalid,     /// An invalid context is not inserted in the index and dropped
     DropObsolete     /// An obsolete context is not inserted in the index and dropped
   };
@@ -110,6 +120,9 @@ class TimesliceIndex
   /// This keeps track whether or not something was relayed
   /// since last time we called getReadyToProcess()
   std::vector<bool> mDirty;
+
+  /// What to do in case of backpressure
+  BackpressureOp mBackpressurePolicy = BackpressureOp::DropAncient;
 };
 
 } // namespace o2::framework

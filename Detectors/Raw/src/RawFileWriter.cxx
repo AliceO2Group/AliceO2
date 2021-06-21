@@ -196,6 +196,7 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
     return;
   }
   if (ir < mFirstIRAdded) {
+    mHBFUtils.checkConsistency(); // done only once
     mFirstIRAdded = ir;
   }
   if (mDoLazinessCheck && !mCachingStage) {

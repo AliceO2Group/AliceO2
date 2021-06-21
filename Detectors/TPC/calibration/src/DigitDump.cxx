@@ -103,8 +103,12 @@ void DigitDump::sortDigits()
       if (a.getTimeStamp() < b.getTimeStamp()) {
         return true;
       }
-      if ((a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() < b.getRow())) {
-        return true;
+      if (a.getTimeStamp() == b.getTimeStamp()) {
+        if (a.getRow() < b.getRow()) {
+          return true;
+        } else if (a.getRow() == b.getRow()) {
+          return a.getPad() < b.getPad();
+        }
       }
       return false;
     });
@@ -164,4 +168,35 @@ void DigitDump::initInputOutput()
     setupOutputTree();
   }
   mInitialized = true;
+}
+
+//______________________________________________________________________________
+void DigitDump::checkDuplicates(bool removeDuplicates)
+{
+  auto isEqual = [](const Digit& a, const Digit& b) {
+    return (a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() == b.getRow()) && (a.getPad() == b.getPad());
+  };
+
+  sortDigits();
+  for (size_t iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
+    auto& digits = mDigits[iSec];
+    const auto nDigits = digits.size();
+    if (nDigits < 2) {
+      continue;
+    }
+
+    for (auto iDigit = nDigits - 2; iDigit--;) {
+      auto& dig = digits[iDigit];
+      auto& digPrev = digits[iDigit + 1];
+
+      if (isEqual(dig, digPrev)) {
+        if (removeDuplicates) {
+          digits.erase(digits.begin() + iDigit + 1);
+          LOGP(warning, "dig found twice at sector {:2}, cru {:3}, row {:3}, pad {:3}, time {:6}, ADC {:.2} (previous: {:.2}), removing it", iSec, dig.getCRU(), dig.getRow(), dig.getPad(), dig.getTimeStamp(), dig.getChargeFloat(), digPrev.getChargeFloat());
+        } else {
+          LOGP(warning, "dig found twice at sector {:2}, cru {:3}, row {:3}, pad {:3}, time {:6}, ADC {:.2} (previous: {:.2})", iSec, dig.getCRU(), dig.getRow(), dig.getPad(), dig.getTimeStamp(), dig.getChargeFloat(), digPrev.getChargeFloat());
+        }
+      }
+    }
+  }
 }

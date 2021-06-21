@@ -104,7 +104,6 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
     for (int iv = ivStart; iv < nv; iv++) {
       const auto& vto = vtxOrdBrack[iv];
       auto res = tro.tBracket.isOutside(vto.tBracket);
-
       if (res == TBracket::Below) {                                       // vertex preceeds the track
         if (tro.tBracket.getMin() > vto.tBracket.getMin() + maxVtxSpan) { // all following vertices will be preceeding all following tracks times
           ivStart = ++iv;
@@ -118,16 +117,16 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       // track matches to vertex, register
       vtxList.push_back(vto.origID); // flag matching vertex
     }
-    if (vtxList.size() > 1) { // did track match to multiple vertices?
-      nAmbiguous++;
+    if (vtxList.size()) {
+      nAssigned++;
       for (auto v : vtxList) {
         tmpMap[v].emplace_back(tro.origID).setAmbiguous();
       }
-    }
-    if (vtxList.empty()) {
-      orphans.emplace_back(tro.origID); // register unassigned track
+      if (vtxList.size() > 1) { // did track match to multiple vertices?
+        nAmbiguous++;
+      }
     } else {
-      nAssigned++;
+      orphans.emplace_back(tro.origID); // register unassigned track
     }
   }
 

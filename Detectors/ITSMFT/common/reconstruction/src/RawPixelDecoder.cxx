@@ -307,6 +307,7 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
 template <>
 void RawPixelDecoder<ChipMappingMFT>::ensureChipOrdering()
 {
+  mOrderedChipsPtr.clear();
   // define looping order, if mCurRUDecodeID < mRUDecodeVec.size(), this means that decodeNextTrigger() was called before
   if (mCurRUDecodeID < mRUDecodeVec.size()) { // define sort order
     for (; mCurRUDecodeID < mRUDecodeVec.size(); mCurRUDecodeID++) {

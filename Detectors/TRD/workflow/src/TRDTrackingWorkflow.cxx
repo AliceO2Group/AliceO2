@@ -20,6 +20,8 @@
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDWorkflowIO/TRDTrackWriterSpec.h"
 #include "TRDWorkflow/TRDTrackingWorkflow.h"
+#include "TRDWorkflow/TrackBasedCalibSpec.h"
+#include "TRDWorkflowIO/TRDCalibWriterSpec.h"
 
 using GTrackID = o2::dataformats::GlobalTrackID;
 
@@ -45,6 +47,8 @@ framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disable
   specs.emplace_back(o2::trd::getTRDTrackletTransformerSpec());
   specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD));
 
+  specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec());
+
   if (!disableRootOut) {
     if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDGlobalTrackWriterSpec(useMC));
@@ -52,6 +56,7 @@ framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disable
     if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC));
     }
+    specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
   }
   return specs;
 }

@@ -15,7 +15,9 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "FT0Calibration/FT0DummyCalibrationObject.h" //delete this when example not needed anymore
+#include "FT0Calibration/FT0CalibTimeSlewing.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <vector>
 
 namespace o2::fit
@@ -130,6 +132,11 @@ inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0ChannelTimeCalib
 {
   return "FT0/Calibration/ChannelTimeOffset";
 }
+template <>
+inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0CalibTimeSlewing>()
+{
+  return "FT0/Calibration/SlewingCorrection";
+}
 
 template <>
 inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0ChannelTimeCalibrationObject>(const o2::ft0::FT0ChannelTimeCalibrationObject& calibrationObject)
@@ -139,6 +146,13 @@ inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::p
   return result;
 }
 
+template <>
+inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0CalibTimeSlewing>(const o2::ft0::FT0CalibTimeSlewing& calibrationObject)
+{
+  std::vector<CalibObjWithInfoType> result;
+  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject));
+  return result;
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DUMMY STUFF DELETE IT WHEN EXAMPLE NOT NEEDED ANYMORE

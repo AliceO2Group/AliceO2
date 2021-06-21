@@ -24,6 +24,7 @@ namespace rdh_utils
 using o2::raw::RDHUtils;
 using FEEIDType = uint16_t;
 static constexpr FEEIDType UserLogicLinkID = 15;
+static constexpr FEEIDType IDCLinkID = 20;
 
 /// compose feeid from cru, endpoint and link
 static constexpr FEEIDType getFEEID(const FEEIDType cru, const FEEIDType endpoint, const FEEIDType link) { return FEEIDType((cru << 7) | ((endpoint & 1) << 6) | (link & 0x3F)); }

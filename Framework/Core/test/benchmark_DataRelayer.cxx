@@ -244,4 +244,62 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
 
 BENCHMARK(BM_RelayMultipleRoutes);
 
+/// In this case we have a record with two entries
+static void BM_RelaySplitParts(benchmark::State& state)
+{
+  Monitoring metrics;
+  InputSpec spec1{"clusters", "TPC", "CLUSTERS"};
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{spec1, 0, "Fake1", 0},
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index;
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAny();
+  DataRelayer relayer(policy, inputs, metrics, index);
+  relayer.setPipelineLength(4);
+
+  // Let's create a dummy O2 Message with two headers in the stack:
+  // - DataHeader matching the one provided in the input
+  DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  size_t timeslice = 0;
+
+  for (auto _ : state) {
+    // FIXME: Understand why pausing the timer makes it slower..
+    state.PauseTiming();
+    std::vector<std::unique_ptr<FairMQMessage>> splitParts;
+
+    for (size_t i = 0; i < 100; ++i) {
+      DataProcessingHeader dph1{timeslice, 1};
+      dh1.splitPayloadIndex = i;
+      dh1.splitPayloadParts = 10;
+      Stack stack1{dh1, dph1};
+
+      FairMQMessagePtr header1 = transport->CreateMessage(stack1.size());
+      FairMQMessagePtr payload1 = transport->CreateMessage(100);
+
+      memcpy(header1->GetData(), stack1.data(), stack1.size());
+      splitParts.emplace_back(std::move(header1));
+      splitParts.emplace_back(std::move(payload1));
+    }
+    state.ResumeTiming();
+
+    relayer.relay(std::move(splitParts[0]), &splitParts[1], splitParts.size() - 1);
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    assert(ready.size() == 1);
+    assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+  }
+  // One for the header, one for the payload
+}
+
+BENCHMARK(BM_RelaySplitParts);
+
 BENCHMARK_MAIN();

@@ -25,15 +25,24 @@ namespace impl
 {
 void append(std::vector<uint10_t>& b10, uint50_t value);
 
-SampaHeader buildSampaHeader(uint8_t elinkId, uint8_t chId, gsl::span<const SampaCluster> data);
+SampaHeader buildSampaHeader(uint8_t elinkId, DualSampaChannelId chId,
+                             gsl::span<const SampaCluster> data);
 
 void fillUserLogicBuffer10(std::vector<uint10_t>& b10,
                            gsl::span<const SampaCluster> clusters,
                            uint8_t elinkId,
-                           uint8_t chId,
+                           DualSampaChannelId chId,
                            bool addSync);
 
 void b10to64(std::vector<uint10_t> b10, std::vector<uint64_t>& b64, uint16_t prefix14);
+
+uint16_t computeChipAddress(uint8_t elinkId, DualSampaChannelId chId);
+
+// ensures the buffer size is a multiple of 50 bits
+void addPadding(std::vector<uint10_t>& b10);
+
+// append Sampa sync word to the 10-bits buffer
+void appendSync(std::vector<uint10_t>& b10);
 
 } // namespace impl
 } // namespace o2::mch::raw

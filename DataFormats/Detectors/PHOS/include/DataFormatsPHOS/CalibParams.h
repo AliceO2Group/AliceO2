@@ -51,7 +51,7 @@ class CalibParams
   /// \brief Set High Gain energy calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \param c is the calibration coefficient
-  void setGain(short cellID, float c) { mGainCalib[cellID - OFFSET] = c; }
+  void setGain(short cellID, float c) { mGainCalib.at(cellID - OFFSET) = c; }
 
   /// \brief Set High Gain energy calibration coefficients for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with calibration coefficients
@@ -67,7 +67,7 @@ class CalibParams
   /// \brief Set High Gain to Low Gain ratio
   /// \param cellID Absolute ID of cell
   /// \param r is the calibration coefficient
-  void setHGLGRatio(short cellID, float r) { mHGLGRatio[cellID - OFFSET] = r; }
+  void setHGLGRatio(short cellID, float r) { mHGLGRatio.at(cellID - OFFSET) = r; }
 
   /// \brief Set High Gain to Low Gain ratio for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with High Gain to Low Gain ratio
@@ -83,7 +83,7 @@ class CalibParams
   /// \brief Set High Gain time calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \param t is the calibration coefficient
-  void setHGTimeCalib(short cellID, float t) { mHGTimeCalib[cellID - OFFSET] = t; }
+  void setHGTimeCalib(short cellID, float t) { mHGTimeCalib.at(cellID - OFFSET) = t; }
 
   /// \brief Set High Gain time calibration coefficients for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with calibration coefficients
@@ -99,7 +99,7 @@ class CalibParams
   /// \brief Set time calibration coefficient
   /// \param cellID Absolute ID of cell
   /// \param t is the calibration coefficient
-  void setLGTimeCalib(short cellID, float t) { mLGTimeCalib[cellID - OFFSET] = t; }
+  void setLGTimeCalib(short cellID, float t) { mLGTimeCalib.at(cellID - OFFSET) = t; }
 
   /// \brief Set Low Gain time calibration coefficients for one module in the form of 2D histogram
   /// \param 2D(64,56) histogram with calibration coefficients
@@ -108,7 +108,7 @@ class CalibParams
   bool setLGTimeCalib(TH2* h, char module);
 
  private:
-  static constexpr short NCHANNELS = 14337;  ///< Number of channels starting from 1
+  static constexpr short NCHANNELS = 12544;  ///< Number of channels = 14336-1792
   static constexpr short OFFSET = 1793;      ///< Non-existing channels 56*64*0.5+1
   std::array<float, NCHANNELS> mGainCalib;   ///< Container for the gain calibration coefficients
   std::array<float, NCHANNELS> mHGLGRatio;   ///< Container for the High Gain to Low Gain ratios

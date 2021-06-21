@@ -113,3 +113,20 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
   configDeviceBackend.forceDeviceType = global.forceDeviceType;
   return global;
 }
+
+#include "utils/qconfig_helpers.h"
+
+namespace
+{
+GPUSettingsStandalone configStandalone;
+std::vector<std::function<void()>> qprint_global;
+#define QCONFIG_PRINT
+#include "utils/qconfig.h"
+#undef QCONFIG_PRINT
+} // namepsace
+
+void GPUO2InterfaceConfiguration::PrintParam_internal()
+{
+  qConfigPrint(configProcessing, "proc.");
+  qConfigPrint(configReconstruction, "rec.");
+}

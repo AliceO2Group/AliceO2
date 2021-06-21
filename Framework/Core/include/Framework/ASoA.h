@@ -952,10 +952,11 @@ class Table
     template <typename TI>
     auto getId() const
     {
-      if constexpr (framework::has_type_v<std::decay_t<TI>, bindings_pack_t>) {
-        constexpr auto idx = framework::has_type_at_v<std::decay_t<TI>>(bindings_pack_t{});
+      using decayed = std::decay_t<TI>;
+      if constexpr (framework::has_type_v<decayed, bindings_pack_t>) {
+        constexpr auto idx = framework::has_type_at_v<decayed>(bindings_pack_t{});
         return framework::pack_element_t<idx, external_index_columns_t>::getId();
-      } else if constexpr (std::is_same_v<std::decay_t<TI>, Parent>) {
+      } else if constexpr (std::is_same_v<decayed, Parent>) {
         return this->globalIndex();
       } else {
         return static_cast<int32_t>(-1);

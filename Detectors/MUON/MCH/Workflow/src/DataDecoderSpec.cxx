@@ -39,6 +39,7 @@
 
 #include "DataFormatsMCH/Digit.h"
 #include "MCHRawCommon/DataFormats.h"
+#include "MCHRawCommon/CoDecParam.h"
 #include "MCHRawDecoder/DataDecoder.h"
 #include "MCHRawDecoder/ROFFinder.h"
 #include "MCHRawElecMap/Mapper.h"
@@ -73,7 +74,7 @@ class DataDecoderTask
     RdhHandler rdhHandler;
 
     auto ds2manu = ic.options().get<bool>("ds2manu");
-    auto sampaBcOffset = ic.options().get<int>("sampa-bc-offset");
+    auto sampaBcOffset = CoDecParam::Instance().sampaBcOffset;
     mDebug = ic.options().get<bool>("debug");
     mCheckROFs = ic.options().get<bool>("check-rofs");
     mDummyROFs = ic.options().get<bool>("dummy-rofs");
@@ -262,7 +263,6 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
             {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
-            {"sampa-bc-offset", VariantType::Int, 339986, {"SAMPA bunch-crossing counter at the beginning of the run"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
             {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}}}};
 }

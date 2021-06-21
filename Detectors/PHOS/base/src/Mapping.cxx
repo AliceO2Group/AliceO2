@@ -108,8 +108,8 @@ Mapping::ErrorStatus Mapping::absIdTohw(short absId, short caloFlag, short& ddl,
     return kNotInitialized;
   }
 
-  ddl = mAbsToHW[absId][caloFlag][0];
-  hwAddr = mAbsToHW[absId][caloFlag][1];
+  ddl = mAbsToHW[absId - 1][caloFlag][0];
+  hwAddr = mAbsToHW[absId - 1][caloFlag][1];
   return kOK;
 }
 //_______________________________________________________
@@ -205,8 +205,8 @@ Mapping::ErrorStatus Mapping::setMapping()
 
         mAbsId[ddl][hwAddress] = absId;
         mCaloFlag[ddl][hwAddress] = (CaloFlag)caloFlag;
-        mAbsToHW[absId][caloFlag][0] = ddl;
-        mAbsToHW[absId][caloFlag][1] = hwAddress;
+        mAbsToHW[absId - 1][caloFlag][0] = ddl;
+        mAbsToHW[absId - 1][caloFlag][1] = hwAddress;
       }
       fIn.close();
     } //RCU

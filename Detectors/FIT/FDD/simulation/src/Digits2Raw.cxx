@@ -106,15 +106,14 @@ void Digits2Raw::convertDigits(o2::fdd::Digit bcdigits, gsl::span<const ChannelD
     newData.charge = pmchannels[ich].mChargeADC;
     newData.time = pmchannels[ich].mTime;
 
-    newData.numberADC = bool(pmchannels[ich].mFEEBits & ChannelData::Integrator);
-    newData.isDoubleEvent = bool(pmchannels[ich].mFEEBits & ChannelData::DoubleEvent);
-    newData.is1TimeLostEvent = bool(pmchannels[ich].mFEEBits & ChannelData::Event1TimeLost);
-    newData.is2TimeLostEvent = bool(pmchannels[ich].mFEEBits & ChannelData::Event2TimeLost);
-    newData.isADCinGate = bool(pmchannels[ich].mFEEBits & ChannelData::AdcInGate);
-    newData.isTimeInfoLate = bool(pmchannels[ich].mFEEBits & ChannelData::TimeTooLate);
-    newData.isAmpHigh = bool(pmchannels[ich].mFEEBits & ChannelData::AmpTooHigh);
-    newData.isEventInTVDC = bool(pmchannels[ich].mFEEBits & ChannelData::EventInTrigger);
-    newData.isTimeInfoLost = bool(pmchannels[ich].mFEEBits & ChannelData::TimeLost);
+    newData.numberADC = bool(pmchannels[ich].mFEEBits & ChannelData::kNumberADC);
+    newData.isDoubleEvent = bool(pmchannels[ich].mFEEBits & ChannelData::kIsDoubleEvent);
+    newData.isTimeInfoNOTvalid = bool(pmchannels[ich].mFEEBits & ChannelData::kIsTimeInfoNOTvalid);
+    newData.isCFDinADCgate = bool(pmchannels[ich].mFEEBits & ChannelData::kIsCFDinADCgate);
+    newData.isTimeInfoLate = bool(pmchannels[ich].mFEEBits & ChannelData::kIsTimeInfoLate);
+    newData.isAmpHigh = bool(pmchannels[ich].mFEEBits & ChannelData::kIsAmpHigh);
+    newData.isEventInTVDC = bool(pmchannels[ich].mFEEBits & ChannelData::kIsEventInTVDC);
+    newData.isTimeInfoLost = bool(pmchannels[ich].mFEEBits & ChannelData::kIsTimeInfoLost);
 
     newData.channelID = lut.getModChannel(pmchannels[ich].mPMNumber);
     iChannelPerLink++;

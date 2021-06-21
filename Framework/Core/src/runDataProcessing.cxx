@@ -45,6 +45,7 @@
 #include "Framework/DriverControl.h"
 #include "Framework/CommandInfo.h"
 #include "Framework/RunningWorkflowInfo.h"
+#include "Framework/TopologyPolicy.h"
 #include "DriverServerContext.h"
 #include "ControlServiceHelpers.h"
 #include "HTTPParser.h"
@@ -506,6 +507,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     : mContext{context}
   {
   }
+  ~ControlWebSocketHandler() override = default;
 
   /// Invoked at the end of the headers.
   /// as a special header we have "x-dpl-pid" which devices can use
@@ -1106,7 +1108,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   // when the runner is done.
   std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
   std::unique_ptr<DeviceState> deviceState;
-  ComputingQuotaEvaluator quotaEvaluator{loop};
+  std::unique_ptr<ComputingQuotaEvaluator> quotaEvaluator;
 
   auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                      &runningWorkflow,
@@ -1117,16 +1119,18 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &deviceState,
                                      &errorPolicy,
                                      &loop](fair::mq::DeviceRunner& r) {
+    simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
+
     deviceState = std::make_unique<DeviceState>();
     deviceState->loop = loop;
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
-    simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
+    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRegistry);
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(&quotaEvaluator));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
@@ -1758,6 +1762,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           performanceMetrics.push_back("aod-bytes-read-uncompressed");
           performanceMetrics.push_back("aod-bytes-read-compressed");
           performanceMetrics.push_back("aod-file-read-info");
+          performanceMetrics.push_back("table-bytes-.*");
           ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, driverInfo.metrics, runningWorkflow.devices, performanceMetrics);
         }
         // This is a clean exit. Before we do so, if required,
@@ -2259,22 +2264,24 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                      [](OutputSpec const& a, OutputSpec const& b) { return DataSpecUtils::describe(a) < DataSpecUtils::describe(b); });
   }
 
-  // check if DataProcessorSpec at i depends on j
-  auto checkDependencies = [& workflow = physicalWorkflow](int i, int j) {
-    DataProcessorSpec const& a = workflow[i];
-    DataProcessorSpec const& b = workflow[j];
-    for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
-      for (size_t oi = 0; oi < b.outputs.size(); ++oi) {
-        try {
-          if (DataSpecUtils::match(a.inputs[ii], b.outputs[oi])) {
-            return true;
-          }
-        } catch (...) {
-          continue;
-        }
+  std::vector<TopologyPolicy> topologyPolicies = TopologyPolicy::createDefaultPolicies();
+  std::vector<TopologyPolicy::DependencyChecker> dependencyCheckers;
+  dependencyCheckers.reserve(physicalWorkflow.size());
+
+  for (auto& spec : physicalWorkflow) {
+    for (auto& policy : topologyPolicies) {
+      if (policy.matcher(spec)) {
+        dependencyCheckers.push_back(policy.checkDependency);
+        break;
       }
     }
-    return false;
+  }
+  assert(dependencyCheckers.size() == physicalWorkflow.size());
+  // check if DataProcessorSpec at i depends on j
+  auto checkDependencies = [&workflow = physicalWorkflow,
+                            &dependencyCheckers](int i, int j) {
+    TopologyPolicy::DependencyChecker& checker = dependencyCheckers[i];
+    return checker(workflow[i], workflow[j]);
   };
 
   // Create a list of all the edges, so that we can do a topological sort

@@ -47,3 +47,13 @@ int HBFUtils::fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& t
   }
   return dst.size();
 }
+
+//_________________________________________________
+void HBFUtils::checkConsistency() const
+{
+  if (orbitFirstSampled < orbitFirst) {
+    auto s = fmt::format("1st sampled orbit ({}) < 1st orbit of run ({})", orbitFirstSampled, orbitFirst);
+    LOG(ERROR) << s;
+    throw std::runtime_error(s);
+  }
+}
