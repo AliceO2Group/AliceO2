@@ -32,7 +32,7 @@ class RawToDigitConverterSpec : public framework::Task
  public:
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
-  RawToDigitConverterSpec() : framework::Task(){};
+  RawToDigitConverterSpec() = default;
 
   /// \brief Destructor
   ~RawToDigitConverterSpec() override = default;
@@ -57,7 +57,6 @@ class RawToDigitConverterSpec : public framework::Task
 
 /// \brief Creating DataProcessorSpec for the CTP
 ///
-o2::framework::DataProcessorSpec getRawToDigitConverterSpec();
 o2::framework::DataProcessorSpec getRawToDigitConverterSpec(bool askSTFDist);
 
 } // namespace reco_workflow

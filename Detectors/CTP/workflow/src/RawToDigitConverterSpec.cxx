@@ -46,6 +46,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       if (dh->payloadSize == 0) {
         LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
         return;
       }
     }
@@ -158,23 +159,6 @@ void RawToDigitConverterSpec::makeGBTWordInverse(std::vector<gbtword80_t>& digle
   size_gbt = NGBT - i;
   remnant = GBTWord;
 }
-//
-o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterSpec()
-{
-  std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
-
-  std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
-  //outputs.emplace_back("CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe);
-
-  return o2::framework::DataProcessorSpec{"CTPRawToDigitConverterSpec",
-                                          inputs, // o2::framework::select("A:CTP/RAWDATA"),
-                                          outputs,
-                                          o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawToDigitConverterSpec>(),
-                                          o2::framework::Options{}};
-}
-//
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawToDigitConverterSpec(bool askDISTSTF)
 {
   std::vector<o2::framework::InputSpec> inputs;
