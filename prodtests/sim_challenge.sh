@@ -176,6 +176,11 @@ if [ "$doreco" == "1" ]; then
   taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
   echo "Return status of TOF matching qa: $?"
 
+  echo "Running ZDC reconstruction"
+  #need ZDC digits
+  taskwrapper zdcreco.log o2-zdc-digits-reco $gloOpt
+  echo "Return status of ZDC reconstruction: $?"
+
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1
   echo "Return status of AOD production: $?"

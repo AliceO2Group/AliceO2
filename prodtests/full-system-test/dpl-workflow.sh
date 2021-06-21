@@ -136,6 +136,7 @@ if [ $SYNCMODE == 0 ]; then
   WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
   WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --disable-root-input --disable-root-output | "
   WORKFLOW+="o2-fdd-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output | "
+  WORKFLOW+="o2-zdc-digits-reco $ARGS_ALL --disable-root-input --disable-root-output  $DISABLE_MC | "
 fi
 
 # Workflows disabled in async mode
