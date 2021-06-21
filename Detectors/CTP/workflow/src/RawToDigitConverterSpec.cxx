@@ -130,7 +130,6 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       }
     }
   }
-  mOutputDigits.clear();
   for (auto const digmap : digits) {
     mOutputDigits.push_back(digmap.second);
   }
