@@ -173,7 +173,7 @@ class DataDecoder
   static constexpr uint32_t sMaxSolarId = 200 * 8 - 1;
   static constexpr uint32_t sReadoutChannelsNum = (sMaxSolarId + 1) * 40 * 64;
   // table storing the digits merging information for each readout channel in the MCH system
-  std::array<MergerChannelRecord, sReadoutChannelsNum> mMergerRecords; ///< merger records for all MCH readout channels
+  std::vector<MergerChannelRecord> mMergerRecords{sReadoutChannelsNum}; ///< merger records for all MCH readout channels
 
   Elec2DetMapper mElec2Det{nullptr};       ///< front-end electronics mapping
   FeeLink2SolarMapper mFee2Solar{nullptr}; ///< CRU electronics mapping
