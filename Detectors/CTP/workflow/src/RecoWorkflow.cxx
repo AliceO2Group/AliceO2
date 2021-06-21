@@ -77,7 +77,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     if (isEnabled(OutputType::Digits)) {
       specs.emplace_back(o2::ctp::reco_workflow::getRawToDigitConverterSpec(noLostTF));
       if (!disableRootOut) {
-        specs.emplace_back(o2::ctp::getDigitWriterSpec(false));
+        specs.emplace_back(o2::ctp::getDigitWriterSpec(true));
       }
     }
   }
