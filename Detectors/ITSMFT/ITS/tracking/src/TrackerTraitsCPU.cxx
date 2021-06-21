@@ -37,7 +37,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
   TimeFrame* tf = mTimeFrame;
 
   for (int rof0{0}; rof0 < tf->getNrof(); ++rof0) {
-    gsl::span<const float3> primaryVertices = tf->getPrimaryVertices(rof0);
+    gsl::span<const Vertex> primaryVertices = tf->getPrimaryVertices(rof0);
     for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
       gsl::span<const Cluster> layer0 = tf->getClustersOnLayer(rof0, iLayer);
       if (layer0.empty()) {
@@ -54,7 +54,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
         }
 
         for (auto& primaryVertex : primaryVertices) {
-          const float tanLambda{(currentCluster.zCoordinate - primaryVertex.z) / currentCluster.radius};
+          const float tanLambda{(currentCluster.zCoordinate - primaryVertex.getZ()) / currentCluster.radius};
 
           const float zAtRmin{tanLambda * (tf->getMinR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
           const float zAtRmax{tanLambda * (tf->getMaxR(iLayer + 1) - currentCluster.radius) + currentCluster.zCoordinate};
@@ -87,7 +87,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
               if (firstBinIndex < 0 || firstBinIndex > tf->getIndexTables(rof1)[iLayer].size() ||
                   maxBinIndex < 0 || maxBinIndex > tf->getIndexTables(rof1)[iLayer].size()) {
                 std::cout << iLayer << "\t" << iCluster << "\t" << zAtRmin << "\t" << zAtRmax << "\t" << mTrkParams.TrackletMaxDeltaZ[iLayer] << "\t" << mTrkParams.TrackletMaxDeltaPhi << std::endl;
-                std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.z << "\t" << currentCluster.radius << std::endl;
+                std::cout << currentCluster.zCoordinate << "\t" << primaryVertex.getZ() << "\t" << currentCluster.radius << std::endl;
                 std::cout << tf->getMinR(iLayer + 1) << "\t" << currentCluster.radius << "\t" << currentCluster.zCoordinate << std::endl;
                 std::cout << "Illegal access to IndexTable " << firstBinIndex << "\t" << maxBinIndex << "\t" << selectedBinsRect.z << "\t" << selectedBinsRect.x << std::endl;
                 exit(1);
@@ -195,9 +195,9 @@ void TrackerTraitsCPU::computeLayerCells()
           unsigned short romin = std::min(std::min(currentTracklet.rof[0], currentTracklet.rof[1]), nextTracklet.rof[1]);
           unsigned short romax = std::max(std::max(currentTracklet.rof[0], currentTracklet.rof[1]), nextTracklet.rof[1]);
           bool deltaZflag{false};
-          gsl::span<const float3> primaryVertices{tf->getPrimaryVertices(romin, romax)};
+          gsl::span<const Vertex> primaryVertices{tf->getPrimaryVertices(romin, romax)};
           for (const auto& primaryVertex : primaryVertices)
-            deltaZflag = std::abs(directionZIntersection - primaryVertex.z) < mTrkParams.CellMaxDeltaZ[iLayer];
+            deltaZflag = std::abs(directionZIntersection - primaryVertex.getZ()) < mTrkParams.CellMaxDeltaZ[iLayer];
 
           if (deltaZflag) {
 

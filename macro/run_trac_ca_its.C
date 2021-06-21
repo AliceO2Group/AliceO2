@@ -258,13 +258,8 @@ void run_trac_ca_its(bool cosmics = false,
     vertexer.validateTracklets();
     vertexer.findVertices();
     std::vector<Vertex> vertITS = vertexer.exportVertices();
-    std::vector<std::pair<float3, int>> tfVert;
-    for (const auto& vert : vertITS) {
-      std::cout << "ROF " << rofId << ", pv " << vert.getX() << "\t" << vert.getY() << "\t" << vert.getZ() << std::endl;
-      tfVert.push_back(std::make_pair<float3, int>({vert.getX(), vert.getY(), vert.getZ()}, vert.getNContributors()));
-    }
     rofId++;
-    tf.addPrimaryVertices(tfVert);
+    tf.addPrimaryVertices(vertITS);
     auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
     vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
     vtxROF.setNEntries(vertITS.size());

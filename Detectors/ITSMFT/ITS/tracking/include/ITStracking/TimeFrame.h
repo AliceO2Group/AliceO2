@@ -35,6 +35,8 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
+#include "ReconstructionDataFormats/Vertex.h"
+
 namespace o2
 {
 
@@ -49,15 +51,17 @@ class ROFRecord;
 namespace its
 {
 
+using Vertex = o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+
 class TimeFrame final
 {
  public:
   TimeFrame(int nLayers = 7);
-  const float3& getPrimaryVertex(const int) const;
-  gsl::span<const float3> getPrimaryVertices(int tf) const;
-  gsl::span<const float3> getPrimaryVertices(int romin, int romax) const;
+  const Vertex& getPrimaryVertex(const int) const;
+  gsl::span<const Vertex> getPrimaryVertices(int tf) const;
+  gsl::span<const Vertex> getPrimaryVertices(int romin, int romax) const;
   int getPrimaryVerticesNum(int rofID = -1) const;
-  void addPrimaryVertices(const std::vector<std::pair<float3, int>>& vertices);
+  void addPrimaryVertices(const std::vector<Vertex>& vertices);
   int loadROFrameData(const o2::itsmft::ROFRecord& rof, gsl::span<const itsmft::Cluster> clusters,
                       const dataformats::MCTruthContainer<MCCompLabel>* mcLabels = nullptr);
 
@@ -139,7 +143,7 @@ class TimeFrame final
   std::vector<float> mMaxR;
   std::vector<int> mROframesPV = {0};
   std::vector<std::vector<int>> mROframesClusters;
-  std::vector<float3> mPrimaryVertices;
+  std::vector<Vertex> mPrimaryVertices;
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<bool>> mUsedClusters;
@@ -162,18 +166,18 @@ class TimeFrame final
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
 };
 
-inline const float3& TimeFrame::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
+inline const Vertex& TimeFrame::getPrimaryVertex(const int vertexIndex) const { return mPrimaryVertices[vertexIndex]; }
 
-inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int tf) const
+inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int tf) const
 {
   const int start = mROframesPV[tf];
   const int stop = tf >= mNrof - 1 ? mNrof : tf + 1;
-  return {&mPrimaryVertices[start], static_cast<gsl::span<const float3>::size_type>(mROframesPV[stop] - mROframesPV[tf])};
+  return {&mPrimaryVertices[start], static_cast<gsl::span<const Vertex>::size_type>(mROframesPV[stop] - mROframesPV[tf])};
 }
 
-inline gsl::span<const float3> TimeFrame::getPrimaryVertices(int romin, int romax) const
+inline gsl::span<const Vertex> TimeFrame::getPrimaryVertices(int romin, int romax) const
 {
-  return {&mPrimaryVertices[mROframesPV[romin]], static_cast<gsl::span<const float3>::size_type>(mROframesPV[romax + 1] - mROframesPV[romin])};
+  return {&mPrimaryVertices[mROframesPV[romin]], static_cast<gsl::span<const Vertex>::size_type>(mROframesPV[romax + 1] - mROframesPV[romin])};
 }
 
 inline int TimeFrame::getPrimaryVerticesNum(int rofID) const

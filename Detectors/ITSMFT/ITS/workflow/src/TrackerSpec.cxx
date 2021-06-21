@@ -226,15 +226,7 @@ void TrackerDPL::run(ProcessingContext& pc)
           vtxVecLoc = mVertexer->exportVertices();
         }
 
-        std::vector<std::pair<float3, int>> tfVert;
-        if (mRunVertexer) {
-          for (const auto& vert : vtxVecLoc) {
-            tfVert.push_back(std::make_pair<float3, int>({vert.getX(), vert.getY(), vert.getZ()}, vert.getNContributors()));
-          }
-        } else {
-          tfVert.push_back(std::make_pair<float3, int>({0.f, 0.f, 0.f}, 1));
-        }
-        mTimeFrame.addPrimaryVertices(tfVert);
+        mTimeFrame.addPrimaryVertices(vtxVecLoc);
 
         vtxROF.setNEntries(vtxVecLoc.size());
         for (const auto& vtx : vtxVecLoc) {
