@@ -187,18 +187,19 @@ int run_primary_vertexer_ITS(const GPUDataTypes::DeviceType dtype = GPUDataTypes
     vertexer.setDebugCentroidsHistograms();
     // \debug
 
-    total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", std::cout, eventptr);
+    auto logger = [](std::string s) { std::cout << s << std::endl; };
+    total[0] = vertexer.evaluateTask(&o2::its::Vertexer::initialiseVertexer, "Vertexer initialisation", logger, eventptr);
     // total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTrivialMCTracklets, "Trivial Tracklet finding", std::cout); // If enable this, comment out the validateTracklets
-    total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", std::cout);
+    total[1] = vertexer.evaluateTask(&o2::its::Vertexer::findTracklets, "Tracklet finding", logger);
 #ifdef _ALLOW_DEBUG_TREES_ITS_
     if (useMCcheck) {
       vertexer.evaluateTask(&o2::its::Vertexer::filterMCTracklets, "MC tracklets filtering", std::cout);
     }
 #endif
-    total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", std::cout);
+    total[2] = vertexer.evaluateTask(&o2::its::Vertexer::validateTracklets, "Adjacent tracklets validation", logger);
     // In case willing to use the histogram-based CPU vertexer
     // total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findHistVertices, "Vertex finding with histograms", std::cout);
-    total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", std::cout);
+    total[3] = vertexer.evaluateTask(&o2::its::Vertexer::findVertices, "Vertex finding", logger);
 
     std::vector<Vertex> vertITS = vertexer.exportVertices();
     const size_t numVert = vertITS.size();
