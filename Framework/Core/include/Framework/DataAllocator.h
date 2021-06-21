@@ -298,7 +298,7 @@ class DataAllocator
 
         if constexpr (std::is_pointer<typename T::value_type>::value == false) {
           // vector of elements
-          if (object.data()) {
+          if (object.data() && sizeInBytes) {
             memcpy(payloadMessage->GetData(), object.data(), sizeInBytes);
           }
         } else {
