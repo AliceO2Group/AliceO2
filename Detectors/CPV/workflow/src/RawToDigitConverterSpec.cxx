@@ -28,7 +28,7 @@ using namespace o2::cpv::reco_workflow;
 void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 {
   LOG(DEBUG) << "Initializing RawToDigitConverterSpec...";
-  
+
   //Read command-line options
   //Pedestal flag true/false
   mIsPedestalData = false;
@@ -36,21 +36,21 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
     mIsPedestalData = ctx.options().get<bool>("pedestal");
   }
   LOG(INFO) << "Pedestal data: " << mIsPedestalData;
-  if(mIsPedestalData) {  //no calibration for pedestal runs needed
-    return;  //skip CCDB initialization for pedestal runs
+  if (mIsPedestalData) { //no calibration for pedestal runs needed
+    return;              //skip CCDB initialization for pedestal runs
   }
 
   //CCDB Url
   std::string ccdbUrl = "localtest";
   if (ctx.options().isSet("ccdb-url")) {
     ccdbUrl = ctx.options().get<std::string>("ccdb-url");
-  } 
+  }
   LOG(INFO) << "CCDB Url: " << ccdbUrl;
 
   //dummy calibration objects
-  if(ccdbUrl.compare("localtest")==0) {// test default calibration
+  if (ccdbUrl.compare("localtest") == 0) { // test default calibration
     mIsUsingCcdbMgr = false;
-    mCalibParams = std::make_unique<o2::cpv::CalibParams>(1); 
+    mCalibParams = std::make_unique<o2::cpv::CalibParams>(1);
     mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
     mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
     LOG(INFO) << "No reading calibration from ccdb requested, using dummy calibration for testing";
@@ -60,16 +60,16 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
   //init CCDB
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbMgr.setURL(ccdbUrl);
-  mIsUsingCcdbMgr = ccdbMgr.isHostReachable();//if host is not reachable we can use only dummy calibration
+  mIsUsingCcdbMgr = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
   if (!mIsUsingCcdbMgr) {
-      LOG(ERROR) << "Host " << ccdbUrl << " is not reachable!!!";
-      LOG(ERROR) << "Using dummy calibration";
-      mCalibParams = std::make_unique<o2::cpv::CalibParams>(1); 
-      mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
-      mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
+    LOG(ERROR) << "Host " << ccdbUrl << " is not reachable!!!";
+    LOG(ERROR) << "Using dummy calibration";
+    mCalibParams = std::make_unique<o2::cpv::CalibParams>(1);
+    mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
+    mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
   } else {
-    ccdbMgr.setCaching(true);//make local cache of remote objects
-    ccdbMgr.setLocalObjectValidityChecking(true);//query objects from remote site only when local one is not valid
+    ccdbMgr.setCaching(true);                     //make local cache of remote objects
+    ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
     LOG(INFO) << "Successfully initializated BasicCCDBManager with caching option";
 
     //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
@@ -97,7 +97,7 @@ void RawToDigitConverterSpec::init(framework::InitContext& ctx)
 }
 
 void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
-{  
+{
   // Cache digits from bunch crossings as the component reads timeframes from many links consecutively
   std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::cpv::Digit>>> digitBuffer; // Internal digit buffer
   int firstEntry = 0;
@@ -156,7 +156,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       } catch (RawErrorType_t e) {
         LOG(ERROR) << "Raw decoding error " << (int)e;
         //add error list
-        //RawDecoderError(short c, short d, short g, short p, RawErrorType_t e) 
+        //RawDecoderError(short c, short d, short g, short p, RawErrorType_t e)
         mOutputHWErrors.emplace_back(25, 0, 0, 0, e); //Put general errors to non-existing ccId 25
         //if problem in header, abandon this page
         if (e == RawErrorType_t::kRDH_DECODING) {
@@ -172,7 +172,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       if (mod > o2::cpv::Geometry::kNMod || mod < 2) { //only 3 correct modules:2,3,4
         LOG(ERROR) << "module=" << mod << "do not exist";
         mOutputHWErrors.emplace_back(25, mod, 0, 0, kRDH_INVALID); //Add non-existing modules to non-existing ccId 25 and dilogic = mod
-        continue;                                                 //skip STU mod
+        continue;                                                  //skip STU mod
       }
       o2::cpv::RawDecoder decoder(rawreader);
       RawErrorType_t err = decoder.decode();

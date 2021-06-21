@@ -40,18 +40,18 @@ void RawWriter::init()
   LOG(INFO) << "CCDB Url: " << mCcdbUrl;
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   ccdbMgr.setURL(mCcdbUrl);
-  bool isCcdbReachable = ccdbMgr.isHostReachable();//if host is not reachable we can use only dummy calibration
+  bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
   if (!isCcdbReachable) {
-      if (mCcdbUrl.compare("localtest") != 0) {
-        LOG(ERROR) << "Host " << mCcdbUrl << " is not reachable!!!";
-      }
-      LOG(INFO) << "Using dummy calibration";
-      mCalibParams = std::make_unique<o2::cpv::CalibParams>(1); 
-      //mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
-      mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
+    if (mCcdbUrl.compare("localtest") != 0) {
+      LOG(ERROR) << "Host " << mCcdbUrl << " is not reachable!!!";
+    }
+    LOG(INFO) << "Using dummy calibration";
+    mCalibParams = std::make_unique<o2::cpv::CalibParams>(1);
+    //mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
+    mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
   } else {
-    ccdbMgr.setCaching(true);//make local cache of remote objects
-    ccdbMgr.setLocalObjectValidityChecking(true);//query objects from remote site only when local one is not valid
+    ccdbMgr.setCaching(true);                     //make local cache of remote objects
+    ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
     LOG(INFO) << "Successfully initializated BasicCCDBManager with caching option";
 
     //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
@@ -89,7 +89,7 @@ void RawWriter::digitsToRaw(gsl::span<o2::cpv::Digit> digitsbranch, gsl::span<o2
   if (triggerbranch.begin() == triggerbranch.end()) { //do we have any data?
     return;
   }
-  
+
   //process digits which belong to same orbit
   int iFirstTrgInCurrentOrbit = 0;
   int currentOrbit = triggerbranch[0].getBCData().orbit;

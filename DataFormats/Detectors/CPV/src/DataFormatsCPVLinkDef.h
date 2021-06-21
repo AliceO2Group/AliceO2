@@ -35,5 +35,4 @@
 #pragma link C++ class o2::cpv::Pedestals + ;
 #pragma link C++ class o2::TObjectWrapper < o2::cpv::Pedestals> + ;
 
-
 #endif

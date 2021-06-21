@@ -64,7 +64,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
                                              !cfgc.options().get<bool>("disable-mc"),       //
                                              cfgc.options().get<std::string>("input-type"), //
                                              cfgc.options().get<std::string>("output-type") //
- //                                            cfgc.options().get<bool>("pedestal"),
- //                                            cfgc.options().get<std::string>("ccdb-url"),
+                                                                                            //                                            cfgc.options().get<bool>("pedestal"),
+                                                                                            //                                            cfgc.options().get<std::string>("ccdb-url"),
   );
 }
