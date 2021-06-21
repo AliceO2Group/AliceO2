@@ -284,7 +284,7 @@ bool DataDecoder::mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaClust
     return false;
   }
 
-  auto& mergerCh = mMergerRecords.at(mergerChannelId);
+  auto& mergerCh = mMergerRecords[mergerChannelId];
 
   // if there is not previous digit for this channel then no merging is possible
   if (mergerCh.digitId < 0) {
@@ -305,7 +305,7 @@ bool DataDecoder::mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaClust
   }
 
   // add total charge and number of samples to existing digit
-  auto& digit = mDigits.at(mergerCh.digitId).digit;
+  auto& digit = mDigits[mergerCh.digitId].digit;
   digit.setADC(digit.getADC() + sc.sum());
   uint32_t newNofSamples = digit.getNofSamples() + sc.nofSamples();
   if (newNofSamples > MAXNOFSAMPLES) {
@@ -323,8 +323,8 @@ bool DataDecoder::mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaClust
 
 void DataDecoder::updateMergerRecord(uint32_t mergerChannelId, uint32_t digitId)
 {
-  auto& mergerCh = mMergerRecords.at(mergerChannelId);
-  auto& digit = mDigits.at(digitId);
+  auto& mergerCh = mMergerRecords[mergerChannelId];
+  auto& digit = mDigits[digitId];
   mergerCh.digitId = digitId;
   mergerCh.bcEnd = digit.info.bunchCrossing + (digit.info.sampaTime + digit.digit.getNofSamples() - 1) * 4;
 }
