@@ -11,7 +11,7 @@
 add_subdirectory(CPVCalibWorkflow)
 
 if(BUILD_TESTING)
-  o2_add_test_root_macro(macros/PostBadMapCCDB.C  
+  o2_add_test_root_macro(macros/PostBadMapCCDB.C
                          PUBLIC_LINK_LIBRARIES O2::CCDB O2::DataFormatsCPV
                          LABELS CPV COMPILE_ONLY)
 

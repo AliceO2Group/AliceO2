@@ -29,10 +29,7 @@
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::cpv::CTFHeader, 7, uint32_t> + ;
 
 #pragma link C++ class o2::cpv::BadChannelMap + ;
-#pragma link C++ class o2::TObjectWrapper < o2::cpv::BadChannelMap> + ;
 #pragma link C++ class o2::cpv::CalibParams + ;
-#pragma link C++ class o2::TObjectWrapper < o2::cpv::CalibParams> + ;
 #pragma link C++ class o2::cpv::Pedestals + ;
-#pragma link C++ class o2::TObjectWrapper < o2::cpv::Pedestals> + ;
 
 #endif

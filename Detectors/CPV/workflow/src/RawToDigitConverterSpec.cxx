@@ -120,34 +120,10 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
     }
   }
 
-  //we need to know timestamp from data.
-  //for now lets consider it is 'now' (i.e. o2::ccdb::getCurrentTS())
-
   std::vector<o2::framework::InputSpec> rawFilter{
     {"RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Timeframe},
   };
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), rawFilter)) {
-    /*enum RawErrorType_t {
-    kOK,            ///< NoError
-    kOK_NO_PAYLOAD, ///< No payload per ddl (not error)
-    kRDH_DECODING,
-    kRDH_INVALID,
-    kNOT_CPV_RDH,
-    kSTOPBIT_NOTFOUND,
-    kPAGE_NOTFOUND,
-    kPAYLOAD_INCOMPLETE,
-    kNO_CPVHEADER,
-    kNO_CPVTRAILER,
-    kCPVHEADER_INVALID,
-    kCPVTRAILER_INVALID,
-    kSEGMENT_HEADER_ERROR,
-    kROW_HEADER_ERROR,
-    kEOE_HEADER_ERROR,
-    kPADERROR,
-    kUNKNOWN_WORD,
-    kPadAddress
-    };*/
-
     o2::cpv::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
     // loop over all the DMA pages
     while (rawreader.hasNext()) {
@@ -156,6 +132,7 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
       } catch (RawErrorType_t e) {
         LOG(ERROR) << "Raw decoding error " << (int)e;
         //add error list
+        //RawErrorType_t is defined in O2/Detectors/CPV/reconstruction/include/CPVReconstruction/RawReaderMemory.h
         //RawDecoderError(short c, short d, short g, short p, RawErrorType_t e)
         mOutputHWErrors.emplace_back(25, 0, 0, 0, e); //Put general errors to non-existing ccId 25
         //if problem in header, abandon this page
