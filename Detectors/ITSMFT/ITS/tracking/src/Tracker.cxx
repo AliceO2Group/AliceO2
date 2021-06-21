@@ -55,24 +55,27 @@ Tracker::~Tracker()
 Tracker::~Tracker() = default;
 #endif
 
-void Tracker::clustersToTracks(std::ostream& timeBenchmarkOutputStream)
+void Tracker::clustersToTracks(std::function<void(std::string s)> logger)
 {
   double total{0};
   for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
     mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
 
     total += evaluateTask(&Tracker::initialiseTimeFrame, "Context initialisation",
-                          timeBenchmarkOutputStream, iteration, mMemParams[iteration], mTrkParams[iteration]);
-    total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
-    total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
-    total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
-    total += evaluateTask(&Tracker::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);
-    total += evaluateTask(&Tracker::findTracks, "Track finding", timeBenchmarkOutputStream);
+                          logger, iteration, mMemParams[iteration], mTrkParams[iteration]);
+    total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger);
+    total += evaluateTask(&Tracker::computeCells, "Cell finding", logger);
+    total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
+    total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
+    total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
   }
 
-  if (constants::DoTimeBenchmarks)
-    timeBenchmarkOutputStream << std::setw(2) << " - "
-                              << "Vertex processing completed in: " << total << "ms" << std::endl;
+  std::stringstream sstream;
+  if (constants::DoTimeBenchmarks) {
+    sstream << std::setw(2) << " - "
+                            << "Vertex processing completed in: " << total << "ms" << std::endl;
+  }
+  logger(sstream.str());
 
   if (mTimeFrame->hasMCinformation()) {
     computeTracksMClabels();
@@ -204,7 +207,6 @@ void Tracker::findRoads(int& iteration)
     std::cout << "+++ Roads with " << iLevel + 2 << " clusters: " << nRoads << " / " << mTimeFrame->getRoads().size() << std::endl;
 #endif
   }
-  std::cout << "Number of roads: " << mTimeFrame->getRoads().size() << std::endl;
 }
 
 void Tracker::findTracks()
@@ -340,9 +342,6 @@ void Tracker::findTracks()
       continue;
     }
     int trackROF{rofs[0].second > rofs[1].second ? rofs[0].first : rofs[1].first};
-    if (trackROF >= mTimeFrame->getNrof() || trackROF < 0) {
-      std::cout << "OOB ROF " << trackROF << std::endl;
-    }
     mTimeFrame->getTracks(trackROF).emplace_back(track);
   }
 }

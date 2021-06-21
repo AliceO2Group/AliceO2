@@ -24,6 +24,7 @@
 #include <iosfwd>
 #include <memory>
 #include <utility>
+#include <sstream>
 
 #include "ITStracking/Configuration.h"
 #include "DetectorsBase/MatLayerCylSet.h"
@@ -37,8 +38,6 @@
 
 #include "DataFormatsITS/TrackITS.h"
 #include "SimulationDataFormat/MCCompLabel.h"
-
-#include "Framework/Logger.h"
 
 #ifdef CA_DEBUG
 #include "ITStracking/StandaloneDebugger.h"
@@ -70,7 +69,7 @@ class Tracker
   void setBz(float bz);
   float getBz() const;
 
-  void clustersToTracks(std::ostream& = std::cout);
+  void clustersToTracks(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }
@@ -96,7 +95,7 @@ class Tracker
   void rectifyClusterIndices();
 
   template <typename... T>
-  float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);
+  float evaluateTask(void (Tracker::*)(T...), const char*, std::function<void(std::string s)> logger, T&&... args);
 
   TrackerTraits* mTraits = nullptr;                      /// Observer pointer, not owned by this class
   TimeFrame* mTimeFrame = nullptr;                       /// Observer pointer, not owned by this class
@@ -138,7 +137,7 @@ void Tracker::initialiseTimeFrame(T&&... args)
 }
 
 template <typename... T>
-float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, std::ostream& ostream,
+float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, std::function<void(std::string s)> logger,
                             T&&... args)
 {
   float diff{0.f};
@@ -151,13 +150,13 @@ float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, s
     std::chrono::duration<double, std::milli> diff_t{end - start};
     diff = diff_t.count();
 
-    if (fair::Logger::Logging(fair::Severity::info)) {
-      if (taskName == nullptr) {
-        ostream << diff << "\t";
-      } else {
-        ostream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms" << std::endl;
-      }
+    std::stringstream sstream;
+    if (taskName == nullptr) {
+      sstream << diff << "\t";
+    } else {
+      sstream << std::setw(2) << " - " << taskName << " completed in: " << diff << " ms";
     }
+    logger(sstream.str());
   } else {
     (this->*task)(std::forward<T>(args)...);
   }
