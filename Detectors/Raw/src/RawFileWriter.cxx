@@ -730,8 +730,20 @@ void RawFileWriter::DetLazinessCheck::completeLinks(RawFileWriter* wr, const IR&
 
 void o2::raw::assertOutputDirectory(std::string_view outDirName)
 {
-  std::filesystem::create_directories(outDirName);
   if (!std::filesystem::exists(outDirName)) {
-    LOG(FATAL) << "could not create output directory " << outDirName;
+#if defined(__clang__)
+    // clang `create_directories` implementation is misbehaving and can
+    // return false even if the directory is actually successfully created
+    // so we work around that "feature" by not checking the
+    // return value at all but using a second call to `exists`
+    std::filesystem::create_directories(outDirName);
+    if (!std::filesystem::exists(outDirName)) {
+      LOG(FATAL) << "could not create output directory " << outDirName;
+    }
   }
+#else
+    if (!std::filesystem::create_directories(outDirName)) {
+      LOG(FATAL) << "could not create output directory " << outDirName;
+    }
+#endif
 }
