@@ -33,6 +33,7 @@
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "CommonDataFormat/IRFrame.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 
 #include "ITSReconstruction/FastMultEstConfig.h"
@@ -159,6 +160,11 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
+  auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
+  int nBCPerTF = alpParams.roFrameLengthInBC;
+
   LOG(INFO) << "ITSTracker pulled " << compClusters.size() << " clusters, " << rofs.size() << " RO frames";
 
   const dataformats::MCTruthContainer<MCCompLabel>* labels = nullptr;
@@ -249,6 +255,10 @@ void TrackerDPL::run(ProcessingContext& pc)
       int offset = -rof.getFirstEntry(); // cluster entry!!!
       rof.setFirstEntry(first);
       rof.setNEntries(number);
+
+      if (tracks.size()) {
+        irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
+      }
 
       std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
       // Some conversions that needs to be moved in the tracker internals
