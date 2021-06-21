@@ -25,45 +25,30 @@ double bytesToGB(size_t s) { return (double)s / (1024.0 * 1024.0 * 1024.0); }
     failed("API returned error code.");                                                        \
   }
 
-// #define CHECK(cmd)                                                                                         \
-//   {                                                                                                        \
-//     cudaError_t error = cmd;                                                                               \
-//     if (error != cudaSuccess) {                                                                            \
-//       fprintf(stderr, "error: '%s'(%d) at %s:%d\n", cudaGetErrorString(error), error, __FILE__, __LINE__); \
-//       exit(EXIT_FAILURE);                                                                                  \
-//     }                                                                                                      \
-//   }
-
 namespace o2
 {
 namespace benchmark
 {
 namespace gpu
 {
-// Kernels go here
-/* 
- * Square each element in the array A and write to array C.
- */
-// template <typename T>
-// __global__ void
-//   vector_square(T* C_d, T* A_d, size_t N)
-// {
-//   size_t offset = (blockIdx.x * blockDim.x + threadIdx.x);
-//   size_t stride = blockDim.x * gridDim.x;
 
-//   for (size_t i = offset; i < N; i += stride) {
-//     C_d[i] = A_d[i] * A_d[i];
-//   }
-// }
+///////////////////
+/// Kernels go here
 
 template <class buffer_type>
 GPUg() void readerKernel(
+  size_t Ntimes,
+  buffer_type* result,
   buffer_type* buffer,
   size_t bufferSize)
 {
   for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < bufferSize; i += blockDim.x * gridDim.x) {
+    buffer_type result{0};
+    result += buffer[i];
   }
 }
+///////////////////
+
 } // namespace gpu
 
 void printDeviceProp(int deviceId)
@@ -191,12 +176,13 @@ template <typename... T>
 float GPUbenchmark<buffer_type>::measure(void (GPUbenchmark<buffer_type>::*task)(T...), const char* taskName, T&&... args)
 {
   float diff{0.f};
+  std::cout << std::setw(2) << ">>> " << taskName;
   auto start = std::chrono::high_resolution_clock::now();
   (this->*task)(std::forward<T>(args)...);
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> diff_t{end - start};
   diff = diff_t.count();
-  std::cout << std::setw(2) << ">>> " << taskName << " completed in: " << diff << " ms" << std::endl;
+  std::cout << std::setw(2) << " completed in: \x1B[32m" << diff << " ms\x1B[0m" << std::endl;
   return diff;
 }
 
@@ -213,41 +199,71 @@ void GPUbenchmark<buffer_type>::printDevices()
 }
 
 template <class buffer_type>
-void GPUbenchmark<buffer_type>::init(const int deviceId)
+void GPUbenchmark<buffer_type>::generalInit(const int deviceId)
 {
   cudaDeviceProp props;
   size_t free;
 
-  // Fetch and store traits
+  // Fetch and store features
   GPUCHECK(cudaGetDeviceProperties(&props, deviceId));
   GPUCHECK(cudaMemGetInfo(&free, &mState.totalMemory));
 
   mState.nMultiprocessors = props.multiProcessorCount;
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
-  mState.allocatedMemory = static_cast<long int>(FREE_MEMORY_FRACTION_TO_ALLOCATE * free);
+  mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
+  mState.scratchSize = static_cast<long int>(FREE_MEMORY_FRACTION_TO_ALLOCATE * free);
+  std::cout << ">>> Running on: " << props.name << std::endl;
+  // Allocate scratch on GPU
+  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.scratchSize));
+  mState.computeScratchPtrs();
 
-  // Setup
-  GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.allocatedMemory));
-
-  mState.computeBufferPointers();
-
-  for (size_t iAddr{0}; iAddr < mState.getBuffersPointers().size(); ++iAddr) {
-
+  // Initialize corresponding buffers on host and copy content on GPU
+  mState.getHostBuffers().resize(mState.getScratchPtrs().size());
+  for (size_t iScratchPart{0}; iScratchPart < mState.getScratchPtrs().size(); ++iScratchPart) {
+    mState.getHostBuffers()[iScratchPart].resize(gpuState<buffer_type>::getArraySize());
+    GPUCHECK(cudaMemcpy(mState.getScratchPtrs()[iScratchPart], mState.getHostBuffers()[iScratchPart].data(), gpuState<buffer_type>::getArraySize() * sizeof(buffer_type), cudaMemcpyHostToDevice));
   }
+  std::cout << "    ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
+            << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
+            << "    ├ Number of scratch partitions: " << mState.getMaxSegments() << " of " << PARTITION_SIZE_GB << "GB each\n"
+            << "    ├ Size of arrays in segments: " << gpuState<buffer_type>::getArraySize() << " elements" << std::endl
+            << "    └ Memory buffers copied from host to device"
+            << std::endl;
+}
 
-
+template <class buffer_type>
+void GPUbenchmark<buffer_type>::readingInit()
+{
+  mState.deviceReadingResultsPtrs.resize(mState.getMaxSegments());
+  mState.hostReadingResultsVector.resize(mState.getMaxSegments());
+  for (size_t iScratchPart{0}; iScratchPart < mState.getMaxSegments(); ++iScratchPart) {
+    GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&(mState.deviceReadingResultsPtrs[iScratchPart])), sizeof(buffer_type)));
+  }
 }
 
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::readingBenchmark()
 {
-  dim3 nBlocks(mState.nMultiprocessors);
-  dim3 nThreads(mState.nMaxThreadsPerBlock);
-  // gpu::readerKernel<buffer_type><<<nBlocks, nThreads>>>();
+  dim3 nBlocks{static_cast<uint32_t>(mState.nMultiprocessors / mState.getMaxSegments())};
+  dim3 nThreads{static_cast<uint32_t>(std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock))};
+
+  for (size_t iScratchPart{0}; iScratchPart < mState.getMaxSegments(); ++iScratchPart) {
+    gpu::readerKernel<buffer_type><<<nBlocks, nThreads>>>(1, mState.deviceReadingResultsPtrs[iScratchPart], mState.getScratchPtrs()[iScratchPart], gpuState<buffer_type>::getArraySize());
+  }
+  GPUCHECK(cudaDeviceSynchronize());
 }
 
 template <class buffer_type>
-void GPUbenchmark<buffer_type>::finalize()
+void GPUbenchmark<buffer_type>::readingFinalize()
+{
+  for (size_t iScratchPart{0}; iScratchPart < mState.getMaxSegments(); ++iScratchPart) {
+    GPUCHECK(cudaMemcpy(&mState.hostReadingResultsVector[iScratchPart], mState.deviceReadingResultsPtrs[iScratchPart], sizeof(buffer_type), cudaMemcpyDeviceToHost));
+    std::cout << "result " << iScratchPart << ": " << mState.hostReadingResultsVector[iScratchPart] << std::endl;
+  }
+}
+
+template <class buffer_type>
+void GPUbenchmark<buffer_type>::generalFinalize()
 {
   GPUCHECK(cudaFree(mState.scratchPtr));
 }
@@ -256,19 +272,16 @@ template <class buffer_type>
 void GPUbenchmark<buffer_type>::run()
 {
   // printDevices();
-  measure(&GPUbenchmark<buffer_type>::init, "Init", 0);
-  std::cout << "  ├ Allocated: " << mState.allocatedMemory << "/" << mState.totalMemory
-            << " bytes (" << std::setprecision(3) << (100.f) * (mState.allocatedMemory / (float)mState.totalMemory) << "%)\n";
-  std::cout << "  ├ Can do: " << mState.getMaxSegments() << " segments of " << PARTITION_SIZE_GB << "GB each\n";
-  std::cout << "  └ Length of arrays in segments: " << mState.getArrayLength() << std::endl;
+  generalInit(0);
 
-
-  // measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark");
-  GPUbenchmark<buffer_type>::finalize();
+  readingInit();
+  measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark");
+  GPUbenchmark<buffer_type>::generalFinalize();
 }
 
 template class GPUbenchmark<char>;
-template class GPUbenchmark<uint4>;
+// template class GPUbenchmark<uint4>;
+template class GPUbenchmark<size_t>;
 template class GPUbenchmark<int>;
 
 } // namespace benchmark

@@ -13,9 +13,9 @@
 
 #ifndef GPU_BENCHMARK_COMMON_H
 #define GPU_BENCHMARK_COMMON_H
-#if defined(__HIPCC__)
-#include "hip/hip_runtime.h"
-#endif
+// #if defined(__HIPCC__)
+// #include "hip/hip_runtime.h"
+// #endif
 
 #include <iostream>
 #include <iomanip>

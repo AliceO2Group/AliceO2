@@ -11,15 +11,16 @@
 /// \file benchmark.cxx
 /// \author: mconcas@cern.ch
 
-#include <iostream>
 #include "Shared/Kernels.h"
 
 int main()
 {
-  o2::benchmark::GPUbenchmark<char> bm_char{};
-  bm_char.run();
-  o2::benchmark::GPUbenchmark<int> bm_int{};
-  bm_int.run();
+  // o2::benchmark::GPUbenchmark<char> bm_char{};
+  // bm_char.run();
+  o2::benchmark::GPUbenchmark<size_t> bm_size_t{};
+  bm_size_t.run();
+  // o2::benchmark::GPUbenchmark<int> bm_int{};
+  // bm_int.run();
 
   return 0;
 }
