@@ -233,7 +233,7 @@ Bool_t GeometryManager::getOriginalMatrix(DetID detid, int sensid, TGeoHMatrix& 
 }
 
 //______________________________________________________________________
-bool GeometryManager::applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars, bool ovlpcheck, double ovlToler)
+bool GeometryManager::applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars)
 {
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
   for (auto dv : algPars) {
@@ -245,7 +245,7 @@ bool GeometryManager::applyAlignment(const std::vector<const std::vector<o2::det
 }
 
 //______________________________________________________________________
-bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars, bool ovlpcheck, double ovlToler)
+bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars)
 {
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
   int nvols = algPars.size();
@@ -255,7 +255,7 @@ bool GeometryManager::applyAlignment(const std::vector<o2::detectors::AlignParam
 
   bool res = true;
   for (int i = 0; i < nvols; i++) {
-    if (!algPars[ord[i]].applyToGeometry(ovlpcheck, ovlToler)) {
+    if (!algPars[ord[i]].applyToGeometry()) {
       res = false;
       LOG(ERROR) << "Error applying alignment object for volume" << algPars[ord[i]].getSymName();
     }

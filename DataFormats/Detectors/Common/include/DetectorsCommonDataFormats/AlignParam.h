@@ -48,8 +48,8 @@ class AlignParam
   double getY() const { return mY; }
   double getZ() const { return mZ; }
 
-  /// apply object to geoemetry with optional check for the overlaps
-  bool applyToGeometry(bool ovlpcheck = false, double ovlToler = 1e-3) const;
+  /// apply object to geoemetry
+  bool applyToGeometry() const;
 
   /// extract global delta matrix
   TGeoHMatrix createMatrix() const;
