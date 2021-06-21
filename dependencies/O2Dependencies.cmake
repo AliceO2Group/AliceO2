@@ -10,17 +10,9 @@
 
 include_guard()
 
-include("${CMAKE_CURRENT_LIST_DIR}/O2RecipeAdapter.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/O2TestsAdapter.cmake")
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_MODULE_PATH})
-
-if(ALIBUILD_BASEDIR)
-  # try autodetecting external packages from an alibuild installation zone
-  include(O2FindDependenciesFromAliBuild)
-  o2_find_dependencies_from_alibuild(${ALIBUILD_BASEDIR} LABEL ${ALIBUILD_LABEL}
-                                     QUIET)
-endif()
 
 # Required packages
 #
