@@ -298,7 +298,9 @@ class DataAllocator
 
         if constexpr (std::is_pointer<typename T::value_type>::value == false) {
           // vector of elements
-          memcpy(payloadMessage->GetData(), object.data(), sizeInBytes);
+          if (object.data()) {
+            memcpy(payloadMessage->GetData(), object.data(), sizeInBytes);
+          }
         } else {
           // serialize vector of pointers to elements
           auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());
