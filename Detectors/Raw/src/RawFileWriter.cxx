@@ -740,10 +740,10 @@ void o2::raw::assertOutputDirectory(std::string_view outDirName)
     if (!std::filesystem::exists(outDirName)) {
       LOG(FATAL) << "could not create output directory " << outDirName;
     }
-  }
 #else
     if (!std::filesystem::create_directories(outDirName)) {
       LOG(FATAL) << "could not create output directory " << outDirName;
     }
 #endif
+  }
 }
