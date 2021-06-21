@@ -409,7 +409,8 @@ class RawReaderCRUEventSync
   LinkInfo& getLinkInfo(const RDH& rdh, DataType dataType)
   {
     if (!mLastEvent) {
-      createEvent(rdh, dataType);
+      const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
+      createEvent(heartbeatOrbit, dataType);
     }
 
     const auto feeId = RDHUtils::getFEEID(rdh);
@@ -454,7 +455,7 @@ class RawReaderCRUEventSync
   void sortEvents() { std::sort(mEventInformation.begin(), mEventInformation.end()); }
 
   /// create a new event or return the one with the given HB orbit
-  EventInfo& createEvent(const RDH& rdh, DataType dataType);
+  EventInfo& createEvent(const uint32_t heartbeatOrbit, DataType dataType);
 
   /// analyse events and mark complete events
   void analyse(RAWDataType rawDataType = RAWDataType::GBT);
