@@ -12,7 +12,7 @@
 #include "TFile.h"
 #include "TH2F.h"
 #include "CCDB/CcdbApi.h"
-#include "CPVCalib/CalibParams.h"
+#include "DataFormatsCPV/CalibParams.h"
 #include "CPVBase/Geometry.h"
 #include <iostream>
 #endif

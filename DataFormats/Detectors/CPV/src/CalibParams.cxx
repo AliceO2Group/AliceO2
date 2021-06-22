@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "CPVCalib/CalibParams.h"
+#include "DataFormatsCPV/CalibParams.h"
 #include "CPVBase/Geometry.h"
 
 #include "FairLogger.h"

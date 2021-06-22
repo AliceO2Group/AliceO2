@@ -82,8 +82,8 @@ o2_add_test_root_macro(analyzeHits.C
                                              O2::FDDSimulation
                                              O2::MCHSimulation
                                              O2::MIDSimulation
-          O2::ZDCSimulation
-          O2::CPVBase)
+                                             O2::ZDCSimulation
+                                             O2::DataFormatsCPV)
 
 o2_add_test_root_macro(duplicateHits.C
   PUBLIC_LINK_LIBRARIES O2::ITSMFTSimulation
@@ -99,7 +99,7 @@ o2_add_test_root_macro(duplicateHits.C
   O2::MCHSimulation
   O2::MIDSimulation
   O2::ZDCSimulation
-  O2::CPVBase COMPILE_ONLY)
+  O2::DataFormatsCPV COMPILE_ONLY)
 
 o2_add_test_root_macro(migrateSimFiles.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats)

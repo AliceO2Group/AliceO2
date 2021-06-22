@@ -42,7 +42,6 @@ class Geometry
   /// Absolute pad coordunate
   /// absId=0..128*60*3-1=23039
   /// Raw addresses:
-  /// DDL corresponds to one module: ddl=Module
   /// each module consist of 16 columns of width 8 pads: row=0..15
   /// Each column consists of 10 dilogics (in z direction) dilogic=0...9
   /// Ecah dilogic contains 8*6 pads: hwaddress=0...48

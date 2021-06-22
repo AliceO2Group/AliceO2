@@ -11,7 +11,7 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "TRandom.h"
 #include "CCDB/CcdbApi.h"
-#include "CPVCalib/BadChannelMap.h"
+#include "DataFormatsCPV/BadChannelMap.h"
 #include "CPVBase/Geometry.h"
 #endif
 void PostBadMapCCDB()

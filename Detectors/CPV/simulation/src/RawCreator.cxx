@@ -50,6 +50,7 @@ int main(int argc, const char** argv)
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
+    add_option("ccdb-url,c", bpo::value<std::string>()->default_value("http://ccdb-test.cern.ch:8080"), "CCDB Url ['localtest' for local testing]");
     add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
@@ -81,6 +82,8 @@ int main(int argc, const char** argv)
        outputdir = vm["output-dir"].as<std::string>(),
        filefor = vm["file-for"].as<std::string>();
 
+  auto ccdbUrl = vm["ccdb-url"].as<std::string>();
+
   // if needed, create output directory
   if (!std::filesystem::exists(outputdir)) {
     if (!std::filesystem::create_directories(outputdir)) {
@@ -108,6 +111,7 @@ int main(int argc, const char** argv)
   o2::cpv::RawWriter rawwriter;
   rawwriter.setOutputLocation(outputdir.data());
   rawwriter.setFileFor(granularity);
+  rawwriter.setCcdbUrl(ccdbUrl.data());
   rawwriter.init();
   rawwriter.getWriter().setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::CPV)); // must be set explicitly
 

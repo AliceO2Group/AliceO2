@@ -16,7 +16,6 @@ o2_add_library(CPVReconstruction
                        src/CTFCoder.cxx
                        src/CTFHelper.cxx
                PUBLIC_LINK_LIBRARIES O2::CPVBase
-                                     O2::CPVCalib
                                      O2::DataFormatsCPV
                                      O2::DetectorsRaw
                                      AliceO2::InfoLogger

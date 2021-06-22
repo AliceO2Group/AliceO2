@@ -13,7 +13,7 @@
 
 #include "DetectorsBase/Detector.h"
 #include "MathUtils/Cartesian.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
 #include "RStringView.h"
 #include "Rtypes.h"
 

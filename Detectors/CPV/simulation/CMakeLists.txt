@@ -16,11 +16,10 @@ o2_add_library(CPVSimulation
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                                      O2::DataFormatsCPV
                                      O2::CPVBase
-                                     O2::CPVCalib
                                      O2::CCDB
                                      O2::SimConfig
-                                     O2::SimulationDataFormat 
-                                     O2::Headers 
+                                     O2::SimulationDataFormat
+                                     O2::Headers
                                      O2::DetectorsRaw)
 
 o2_target_root_dictionary(CPVSimulation
