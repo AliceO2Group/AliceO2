@@ -609,9 +609,9 @@ void makeAverageIDCs(const std::vector<std::string>& files, const char* outFile 
 template <typename DataT = double>
 void makeDistortionsCorrections(const char* outFileDistortions = "distortions.root", const int sides = 0, const char* inpFile = "", const char* histName = hisSCRandomName)
 {
-  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI)
+  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
 
-    TFile fSCDensity(inpFile, "READ");
+  TFile fSCDensity(inpFile, "READ");
   std::cout << "input file: " << inpFile << std::endl;
   std::cout << "output file: " << outFileDistortions << std::endl;
 
@@ -742,10 +742,10 @@ void makeAverageDensityMap(const std::vector<std::string> files, const char* his
 template <typename DataT = double>
 void createScaledMeanMap(const std::string inpFile, const std::string outFile, const int sides, const int scaleFac = 1, const float sigmaScale = 0.03f)
 {
-  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI)
+  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
 
-    // load the mean histo
-    using SC = o2::tpc::SpaceCharge<DataT>;
+  // load the mean histo
+  using SC = o2::tpc::SpaceCharge<DataT>;
   SC scOriginal;
   SC scScaled;
 
