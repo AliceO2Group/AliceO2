@@ -707,48 +707,51 @@ std::tuple<double, double> Geometry::EtaPhiFromIndex(Int_t absId) const
   return std::make_tuple(vglob.Eta(), vglob.Phi());
 }
 
-Int_t Geometry::GetAbsCellId(Int_t nSupMod, Int_t nModule, Int_t nIphi, Int_t nIeta) const
+int Geometry::GetAbsCellId(int supermoduleID, int moduleID, int phiInModule, int etaInModule) const
 {
   // 0 <= nSupMod < fNumberOfSuperModules
   // 0 <= nModule  < fNPHI * fNZ ( fNPHI * fNZ/2 for fKey110DEG=1)
   // 0 <= nIphi   < fNPHIdiv
   // 0 <= nIeta   < fNETAdiv
   // 0 <= absid   < fNCells
-  Int_t id = 0; // have to change from 0 to fNCells-1
-  for (int i = 0; i < nSupMod; i++) {
+  int cellid = 0; // have to change from 0 to fNCells-1
+  for (int i = 0; i < supermoduleID; i++) {
     if (GetSMType(i) == EMCAL_STANDARD) {
-      id += mNCellsInSupMod;
+      cellid += mNCellsInSupMod;
     } else if (GetSMType(i) == EMCAL_HALF) {
-      id += mNCellsInSupMod / 2;
+      cellid += mNCellsInSupMod / 2;
     } else if (GetSMType(i) == EMCAL_THIRD) {
-      id += mNCellsInSupMod / 3;
+      cellid += mNCellsInSupMod / 3;
     } else if (GetSMType(i) == DCAL_STANDARD) {
-      id += 2 * mNCellsInSupMod / 3;
+      cellid += 2 * mNCellsInSupMod / 3;
     } else if (GetSMType(i) == DCAL_EXT) {
-      id += mNCellsInSupMod / 3;
+      cellid += mNCellsInSupMod / 3;
     } else {
       throw InvalidSupermoduleTypeException();
     }
   }
 
-  id += mNCellsInModule * nModule;
-  id += mNPHIdiv * nIphi;
-  id += nIeta;
-  if (!CheckAbsCellId(id)) {
-    id = -TMath::Abs(id); // if negative something wrong
-  }
+  cellid += mNCellsInModule * moduleID;
+  cellid += mNPHIdiv * phiInModule;
+  cellid += etaInModule;
+  if (!CheckAbsCellId(cellid))
+    throw InvalidCellIDException(cellid);
 
-  return id;
+  return cellid;
 }
 
-std::tuple<Int_t, Int_t, Int_t> Geometry::GetModuleIndexesFromCellIndexesInSModule(Int_t nSupMod, Int_t iphi, Int_t ieta) const
+std::tuple<int, int, int> Geometry::GetModuleIndexesFromCellIndexesInSModule(int supermoduleID, int phiInSupermodule, int etaInSupermodule) const
 {
-  Int_t nphi = GetNumberOfModuleInPhiDirection(nSupMod);
+  int nModulesInSMPhi = GetNumberOfModuleInPhiDirection(supermoduleID);
 
-  Int_t ietam = ieta / mNETAdiv,
-        iphim = iphi / mNPHIdiv,
-        nModule = ietam * nphi + iphim;
-  return std::make_tuple(iphim, ietam, nModule);
+  int moduleEta = etaInSupermodule / mNETAdiv,
+      modulePhi = phiInSupermodule / mNPHIdiv,
+      moduleID = moduleEta * nModulesInSMPhi + modulePhi;
+  int etaInModule = etaInSupermodule % mNETAdiv,
+      phiInModule = phiInSupermodule % mNPHIdiv;
+  phiInModule = phiInSupermodule % mNPHIdiv;
+  return std::make_tuple(modulePhi, moduleEta, moduleID);
+  //return std::make_tuple(phiInModule, etaInModule, moduleID);
 }
 
 Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t ieta) const
@@ -770,7 +773,7 @@ Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t iet
 
 std::tuple<int, int> Geometry::GlobalRowColFromIndex(int cellID) const
 {
-  if (cellID >= GetNCells()) {
+  if (!CheckAbsCellId(cellID)) {
     throw InvalidCellIDException(cellID);
   }
   auto [supermodule, module, phiInModule, etaInModule] = GetCellIndex(cellID);
@@ -1001,37 +1004,36 @@ std::tuple<int, int, int, int> Geometry::GetCellIndex(Int_t absId) const
 
 Int_t Geometry::GetSuperModuleNumber(Int_t absId) const { return std::get<0>(GetCellIndex(absId)); }
 
-std::tuple<int, int> Geometry::GetModulePhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule) const
+std::tuple<int, int> Geometry::GetModulePhiEtaIndexInSModule(int supermoduleID, int moduleID) const
 {
-  Int_t nphi = -1;
-  if (GetSMType(nSupMod) == EMCAL_HALF) {
-    nphi = mNPhi / 2; // halfSM
-  } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
-    nphi = mNPhi / 3; // 1/3 SM
-  } else if (GetSMType(nSupMod) == DCAL_EXT) {
-    nphi = mNPhi / 3; // 1/3 SM
+  int nModulesInPhi = -1;
+  if (GetSMType(supermoduleID) == EMCAL_HALF) {
+    nModulesInPhi = mNPhi / 2; // halfSM
+  } else if (GetSMType(supermoduleID) == EMCAL_THIRD) {
+    nModulesInPhi = mNPhi / 3; // 1/3 SM
+  } else if (GetSMType(supermoduleID) == DCAL_EXT) {
+    nModulesInPhi = mNPhi / 3; // 1/3 SM
   } else {
-    nphi = mNPhi; // full SM
+    nModulesInPhi = mNPhi; // full SM
   }
 
-  return std::make_tuple(int(nModule % nphi), int(nModule / nphi));
+  return std::make_tuple(int(moduleID % nModulesInPhi), int(moduleID / nModulesInPhi));
 }
 
-std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(Int_t nSupMod, Int_t nModule, Int_t nIphi,
-                                                           Int_t nIeta) const
+std::tuple<int, int> Geometry::GetCellPhiEtaIndexInSModule(int supermoduleID, int moduleID, int phiInModule,
+                                                           int etaInModule) const
 {
-  auto indices = GetModulePhiEtaIndexInSModule(nSupMod, nModule);
-  Int_t iphim = std::get<0>(indices), ietam = std::get<1>(indices);
+  auto [phiOfModule, etaOfModule] = GetModulePhiEtaIndexInSModule(supermoduleID, moduleID);
 
-  //  ieta  = ietam*fNETAdiv + (1-nIeta); // x(module) = -z(SM)
-  Int_t ieta = ietam * mNETAdiv + (mNETAdiv - 1 - nIeta); // x(module) = -z(SM)
-  Int_t iphi = iphim * mNPHIdiv + nIphi;                  // y(module) =  y(SM)
+  //  ieta  = etaOfModule*fNETAdiv + (1-etaInModule); // x(module) = -z(SM)
+  int etaInSupermodule = etaOfModule * mNETAdiv + (mNETAdiv - 1 - etaInModule); // x(module) = -z(SM)
+  int phiInSupermodule = phiOfModule * mNPHIdiv + phiInModule;                  // y(module) =  y(SM)
 
-  if (iphi < 0 || ieta < 0) {
-    LOG(DEBUG) << " nSupMod " << nSupMod << " nModule " << nModule << " nIphi " << nIphi << " nIeta " << nIeta
-               << " => ieta " << ieta << " iphi " << iphi;
+  if (phiInSupermodule < 0 || etaInSupermodule < 0) {
+    LOG(DEBUG) << " Supermodule " << supermoduleID << ", Module " << moduleID << " (phi " << phiInModule << ", eta " << etaInModule << ")"
+               << " => in Supermodule: eta " << etaInSupermodule << ", phi " << phiInSupermodule;
   }
-  return std::make_tuple(iphi, ieta);
+  return std::make_tuple(phiInSupermodule, etaInSupermodule);
 }
 
 std::tuple<int, int> Geometry::ShiftOnlineToOfflineCellIndexes(Int_t supermoduleID, Int_t iphi, Int_t ieta) const
