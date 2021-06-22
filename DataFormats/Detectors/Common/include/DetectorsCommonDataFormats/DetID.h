@@ -171,7 +171,6 @@ class DetID
 #else
     {"ITS", "TPC", "TRD", "TOF", "PHS", "CPV", "EMC", "HMP", "MFT", "MCH", "MID", "ZDC", "FT0", "FV0", "FDD", "ACO", "CTP", nullptr};
 #endif
-<<<<<<< HEAD
   // detector names, will be defined in DataSources
   static constexpr std::array<mask_t, nDetectors> sMasks = ///< detectot masks
     {math_utils::bit2Mask(ITS), math_utils::bit2Mask(TPC), math_utils::bit2Mask(TRD), math_utils::bit2Mask(TOF), math_utils::bit2Mask(PHS),
@@ -183,8 +182,6 @@ class DetID
      math_utils::bit2Mask(IT3), math_utils::bit2Mask(TRK), math_utils::bit2Mask(FT3), math_utils::bit2Mask(PSR)
 #endif
   };
-=======
->>>>>>> 935c85675180aa8b1b9b2d21bcacf07012ba4d99
 
   static constexpr std::array<o2h::DataOrigin, nDetectors>
     sOrigins = ///< detector data origins
