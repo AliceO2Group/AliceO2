@@ -97,11 +97,7 @@ void convertDigitsToZSfinal(std::string_view digitsFile, std::string_view output
   // if needed, create output directory
   if (!std::filesystem::exists(outDir)) {
     if (createParentDir) {
-      if (!std::filesystem::create_directories(outDir)) {
-        LOG(FATAL) << "could not create output directory " << outDir;
-      } else {
-        LOG(INFO) << "created output directory " << outDir;
-      }
+      o2::raw::assertOutputDirectory(outDir);
     } else {
       LOGP(error, "Requested output directory '{}' does not exists, consider removing '-n'", outDir);
       exit(1);
