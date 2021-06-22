@@ -42,7 +42,9 @@ struct GammaConversionsMc {
 
   Configurable<float> fPIDMaxPnSigmaAbovePionLine{"fPIDMaxPnSigmaAbovePionLine", 8., "border between low and high momentum pion rejection"}; //case 7:  // 8. GeV
 
-  Configurable<float> fMinTPCNClsOverFindable{"fMinTPCNClsFoundOverFindable", 0.6, "minimum ratio found tpc clusters over findable"}; //case 9:  // 0.6
+  Configurable<float> fMinTPCFoundOverFindableCls{"fMinTPCNClsFoundOverFindable", 0.6, "minimum ratio found tpc clusters over findable"}; //case 9:  // 0.6
+
+  Configurable<float> fMinTPCCrossedRowsOverFindableCls{"fMinTPCCrossedRowsOverFindableCls", 0.0, "minimum ratio TPC crossed rows over findable clusters"};
 
   Configurable<float> fQtPtMax{"fQtPtMax", 0.11, "up to fQtMax, multiply the pt of the V0s by this value to get the maximum qt "};
 
@@ -55,7 +57,7 @@ struct GammaConversionsMc {
   HistogramRegistry registry{
     "registry",
     {
-      {"IsPhotonSelected", "IsPhotonSelected", {HistType::kTH1F, {{12, -0.5f, 11.5f}}}},
+      {"IsPhotonSelected", "IsPhotonSelected", {HistType::kTH1F, {{13, -0.5f, 11.5f}}}},
 
       {"beforeCuts/hPtRec_before", "hPtRec_before", {HistType::kTH1F, {{100, 0.0f, 25.0f}}}},
       {"beforeCuts/hEtaRec_before", "hEtaRec_before", {HistType::kTH1F, {{1000, -2.f, 2.f}}}},
@@ -71,7 +73,8 @@ struct GammaConversionsMc {
       {"hTPCdEdxSigPi", "hTPCdEdxSigPi", {HistType::kTH2F, {{150, 0.03f, 20.f}, {400, -10.f, 10.f}}}},
       {"hTPCdEdx", "hTPCdEdx", {HistType::kTH2F, {{150, 0.03f, 20.f}, {800, 0.f, 200.f}}}},
 
-      {"hTPCNClsOverFindable", "hTPCNClsOverFindable", {HistType::kTH1F, {{100, 0.f, 1.f}}}},
+      {"hTPCFoundOverFindableCls", "hTPCFoundOverFindableCls", {HistType::kTH1F, {{100, 0.f, 1.f}}}},
+      {"hTPCCrossedRowsOverFindableCls", "hTPCCrossedRowsOverFindableCls", {HistType::kTH1F, {{100, 0.f, 1.5f}}}},
 
       {"hArmenteros", "hArmenteros", {HistType::kTH2F, {{200, -1.f, 1.f}, {250, 0.f, 25.f}}}},
       {"hPsiPtRec", "hPsiPtRec", {HistType::kTH2F, {{500, -2.f, 2.f}, {100, 0.f, 25.f}}}},
@@ -95,7 +98,8 @@ struct GammaConversionsMc {
     kElectronPID,
     kPionRejLowMom,
     kPionRejHighMom,
-    kTPCNClsOverFindable,
+    kTPCFoundOverFindableCls,
+    kTPCCrossedRowsOverFindableCls,
     kV0Radius,
     kArmenteros,
     kPsiPair,
@@ -110,7 +114,8 @@ struct GammaConversionsMc {
     "kElectronPID",
     "kPionRejLowMom",
     "kPionRejHighMom",
-    "kTPCNClsOverFindable",
+    "kTPCFoundOverFindableCls",
+    "kTPCCrossedRowsOverFindableCls",
     "kV0Radius",
     "kArmenteros",
     "kPsiPair",
@@ -138,10 +143,7 @@ struct GammaConversionsMc {
       auto lTrackNeg = lV0.template negTrack_as<tracksAndTPCInfo>(); //negative daughter
 
       // apply track cuts
-      float lTPCNClsOverFindablePos = -1.;
-      float lTPCNClsOverFindableNeg = -1.;
-
-      if (!(trackPassesCuts(lTrackPos, lTPCNClsOverFindablePos) && trackPassesCuts(lTrackNeg, lTPCNClsOverFindableNeg))) {
+      if (!(trackPassesCuts(lTrackPos) && trackPassesCuts(lTrackNeg))) {
         continue;
       }
 
@@ -152,7 +154,7 @@ struct GammaConversionsMc {
         continue;
       }
 
-      fillHistogramsAfterCuts(lV0, lTrackPos, lTrackNeg, lTPCNClsOverFindablePos, lTPCNClsOverFindableNeg, lV0CosinePA);
+      fillHistogramsAfterCuts(lV0, lTrackPos, lTrackNeg, lV0CosinePA);
 
       processTruePhotons(lV0, lTrackPos, lTrackNeg, theMcParticles);
     }
@@ -170,8 +172,9 @@ struct GammaConversionsMc {
   }
 
   template <typename T>
-  bool trackPassesCuts(const T& theTrack, float& theTPCNClsOverFindable)
+  bool trackPassesCuts(const T& theTrack)
   {
+
     // single track eta cut
     if (TMath::Abs(theTrack.eta()) > fEtaCut) {
       registry.fill(HIST("IsPhotonSelected"), kTrackEta);
@@ -188,11 +191,16 @@ struct GammaConversionsMc {
       return kFALSE;
     }
 
-    theTPCNClsOverFindable = (float)theTrack.tpcNClsFound() / (float)theTrack.tpcNClsFindable();
-    if (theTPCNClsOverFindable < fMinTPCNClsOverFindable) {
-      registry.fill(HIST("IsPhotonSelected"), kTPCNClsOverFindable);
+    if (theTrack.tpcFoundOverFindableCls() < fMinTPCFoundOverFindableCls) {
+      registry.fill(HIST("IsPhotonSelected"), kTPCFoundOverFindableCls);
       return kFALSE;
     }
+
+    if (theTrack.tpcCrossedRowsOverFindableCls() < fMinTPCCrossedRowsOverFindableCls) {
+      registry.fill(HIST("IsPhotonSelected"), kTPCCrossedRowsOverFindableCls);
+      return kFALSE;
+    }
+
     return kTRUE;
   }
 
@@ -223,7 +231,7 @@ struct GammaConversionsMc {
   }
 
   template <typename TV0, typename TTRACK>
-  void fillHistogramsAfterCuts(const TV0& theV0, const TTRACK& theTrackPos, const TTRACK& theTrackNeg, float theTPCNClsOverFindablePos, float theTPCNClsOverFindableNeg, float theV0CosinePA)
+  void fillHistogramsAfterCuts(const TV0& theV0, const TTRACK& theTrackPos, const TTRACK& theTrackNeg, float theV0CosinePA)
   {
     registry.fill(HIST("IsPhotonSelected"), kPhotonOut);
 
@@ -240,8 +248,11 @@ struct GammaConversionsMc {
     registry.fill(HIST("hTPCdEdx"), theTrackNeg.p(), theTrackNeg.tpcSignal());
     registry.fill(HIST("hTPCdEdx"), theTrackPos.p(), theTrackPos.tpcSignal());
 
-    registry.fill(HIST("hTPCNClsOverFindable"), theTPCNClsOverFindablePos);
-    registry.fill(HIST("hTPCNClsOverFindable"), theTPCNClsOverFindableNeg);
+    registry.fill(HIST("hTPCFoundOverFindableCls"), theTrackNeg.tpcFoundOverFindableCls());
+    registry.fill(HIST("hTPCFoundOverFindableCls"), theTrackPos.tpcFoundOverFindableCls());
+
+    registry.fill(HIST("hTPCCrossedRowsOverFindableCls"), theTrackNeg.tpcCrossedRowsOverFindableCls());
+    registry.fill(HIST("hTPCCrossedRowsOverFindableCls"), theTrackPos.tpcCrossedRowsOverFindableCls());
 
     registry.fill(HIST("hArmenteros"), theV0.alpha(), theV0.qtarm());
     registry.fill(HIST("hPsiPtRec"), theV0.psipair(), theV0.pt());
