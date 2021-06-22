@@ -27,6 +27,7 @@
 #include "CPVBase/Geometry.h"
 #include "CPVSimulation/RawWriter.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DataFormatsParameters/GRPObject.h"
 
 namespace bpo = boost::program_options;
 
@@ -101,10 +102,14 @@ int main(int argc, const char** argv)
     granularity = o2::cpv::RawWriter::FileFor_t::kLink;
   }
 
+  std::string inputGRP = o2::base::NameConf::getGRPFileName();
+  const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
+
   o2::cpv::RawWriter rawwriter;
   rawwriter.setOutputLocation(outputdir.data());
   rawwriter.setFileFor(granularity);
   rawwriter.init();
+  rawwriter.getWriter().setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::CPV)); // must be set explicitly
 
   // Loop over all entries in the tree, where each tree entry corresponds to a time frame
   for (auto en : *treereader) {
