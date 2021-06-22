@@ -38,9 +38,9 @@ enum struct OutputType { Digits,
 framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                     bool disableRootOut,
                                     bool propagateMC = true,
-                                    std::string const& cfgInput = "digits",   //
-                                    std::string const& cfgOutput = "clusters" //
-);
+                                    bool askSTFDist = true,
+                                    std::string const& cfgInput = "digits",
+                                    std::string const& cfgOutput = "clusters");
 } // namespace reco_workflow
 
 } // namespace cpv
