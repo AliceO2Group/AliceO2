@@ -192,39 +192,43 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
           ctx](const std::string& content, const fair::LogMetaData& metadata) {
     // translate FMQ metadata
     InfoLogger::InfoLogger::Severity severity = InfoLogger::Severity::Undefined;
-    int level = InfoLogger::undefinedMessageOption.level;
 
     if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::nolog)) {
       // discard
       return;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::fatal)) {
       severity = InfoLogger::Severity::Fatal;
+      level = 10;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
       severity = InfoLogger::Severity::Error;
+      level = 20;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
       severity = InfoLogger::Severity::Warning;
+      level = 30;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
       severity = InfoLogger::Severity::Info;
-      level = 10;
+      level = 40;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
       severity = InfoLogger::Severity::Info;
+      level = 50;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
       severity = InfoLogger::Severity::Debug;
+      level = 60;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
       severity = InfoLogger::Severity::Debug;
-      level = 10;
+      level = 61;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
       severity = InfoLogger::Severity::Debug;
-      level = 20;
+      level = 62;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
       severity = InfoLogger::Severity::Debug;
-      level = 30;
+      level = 63;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
       severity = InfoLogger::Severity::Debug;
-      level = 40;
+      level = 64;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
       severity = InfoLogger::Severity::Debug;
-      level = 50;
+      level = 65;
     }
 
     InfoLogger::InfoLoggerMessageOption opt = {
