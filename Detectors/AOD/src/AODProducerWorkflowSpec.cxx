@@ -454,7 +454,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& mftTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"});
   auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
   auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
-  auto& mcMftTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCMFTTRACKLABEL"});
+  auto& mcMFTTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCMFTTRACKLABEL"});
   auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
   auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
   auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
@@ -471,7 +471,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto mftTracksCursor = mftTracksBuilder.cursor<o2::aodproducer::MFTTracksTable>();
   auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aodproducer::MCParticlesTable>();
   auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
-  auto mcMftTrackLabelCursor = mcMftTrackLabelBuilder.cursor<o2::aod::McMftTrackLabels>();
+  auto mcMFTTrackLabelCursor = mcMFTTrackLabelBuilder.cursor<o2::aod::McMFTTrackLabels>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
   auto fv0cCursor = fv0cBuilder.cursor<o2::aod::FV0Cs>();
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
@@ -909,6 +909,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   uint32_t labelITS;
   uint32_t labelTPC;
   uint16_t labelMask;
+  uint8_t mftLabelMask;
 
   // need to go through labels in the same order as for tracks
   for (auto& trackRef : primVer2TRefs) {
@@ -921,6 +922,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         labelITS = labelID;
         labelTPC = labelID;
         labelMask = 0;
+        mftLabelMask = 0;
         // its labels
         if (src == GIndex::Source::ITS && mFillTracksITS) {
           auto& mcTruthITS = tracksITSMCTruth[trackIndex.getIndex()];
@@ -995,14 +997,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
             labelID = toStore.at(Triplet_t(mcTruthMFT.getSourceID(), mcTruthMFT.getEventID(), mcTruthMFT.getTrackID()));
           }
           if (mcTruthMFT.isFake()) {
-            labelMask |= (0x1 << 15);
+            mftLabelMask |= (0x1 << 7);
           }
           if (mcTruthMFT.isNoise()) {
-            labelMask |= (0x1 << 14);
+            mftLabelMask |= (0x1 << 6);
           }
-          mcMftTrackLabelCursor(0,
+          mcMFTTrackLabelCursor(0,
                                 labelID,
-                                labelMask);
+                                mftLabelMask);
         }
       }
     }

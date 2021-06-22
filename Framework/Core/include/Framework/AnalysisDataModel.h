@@ -809,12 +809,12 @@ using McTrackLabel = McTrackLabels::iterator;
 namespace mcmfttracklabel
 {
 DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle
-DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 0-6: mismatch at ITS layer. Bit 7-9: # of TPC mismatches in the ranges 0, 1, 2-3, 4-7, 8-15, 16-31, 32-63, >64. Bit 10: TRD, bit 11: TOF, bit 15: indicates negative label
+DECLARE_SOA_COLUMN(McMask, mcMask, uint8_t);
 } // namespace mcmfttracklabel
 
-DECLARE_SOA_TABLE(McMftTrackLabels, "AOD", "MCMFTTRACKLABEL", //! Table joined to the mft track table containing the MC index
+DECLARE_SOA_TABLE(McMFTTrackLabels, "AOD", "MCMFTTRACKLABEL", //! Table joined to the mft track table containing the MC index
                   mcmfttracklabel::McParticleId, mcmfttracklabel::McMask);
-using McMftTrackLabel = McMftTrackLabels::iterator;
+using McMFTTrackLabel = McMFTTrackLabels::iterator;
 
 namespace mccalolabel
 {
