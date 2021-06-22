@@ -8,7 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_IO_STRUCT_H
+#define O2_MCH_DEVIO_DIGITS_IO_STRUCT_H
 
 #include <gsl/span>
 #include <iostream>
@@ -50,3 +51,5 @@ bool readBinaryStruct(std::istream& in, std::vector<T>& items, const char* itemN
 }
 
 } // namespace o2::mch::io::impl
+
+#endif

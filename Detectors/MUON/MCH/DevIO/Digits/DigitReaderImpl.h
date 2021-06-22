@@ -8,7 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_READER_IMPL_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_READER_IMPL_H
 
 #include <istream>
 #include "DigitFileFormat.h"
@@ -38,3 +39,5 @@ struct DigitReaderImpl {
 std::unique_ptr<DigitReaderImpl> createDigitReaderImpl(int version);
 
 } // namespace o2::mch::io::impl
+
+#endif

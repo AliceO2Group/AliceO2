@@ -8,7 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_FILE_FORMAT_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_FILE_FORMAT_H
 
 #include <cstdint>
 #include <iosfwd>
@@ -48,3 +49,4 @@ DigitFileFormat readDigitFileFormat(std::istream& in);
 bool isValid(DigitFileFormat dff);
 
 } // namespace o2::mch::io
+#endif

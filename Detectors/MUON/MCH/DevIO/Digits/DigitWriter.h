@@ -8,7 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_WRITER_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_WRITER_H
 
 #include <iosfwd>
 #include <gsl/span>
@@ -31,14 +32,14 @@ class DigitWriter
 {
  public:
   /** Create a text digit writer
-  * @param os output stream to write to 
+  * @param os output stream to write to
   */
   DigitWriter(std::ostream& os);
 
   /** Create a binary digit writer
-  * @param os output stream to write to 
+  * @param os output stream to write to
   * @param dff the digit file format to be used
-  * @param maxSize if not zero indicate that writing should stop past 
+  * @param maxSize if not zero indicate that writing should stop past
   * this size, expressed in KB.
   */
   DigitWriter(std::ostream& os, DigitFileFormat format,
@@ -64,3 +65,5 @@ class DigitWriter
 };
 } // namespace io
 } // namespace o2::mch
+
+#endif

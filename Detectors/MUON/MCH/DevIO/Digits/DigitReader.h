@@ -8,7 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_READER_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_READER_H
 
 #include <iosfwd>
 #include "DigitFileFormat.h"
@@ -49,17 +50,17 @@ class DigitReader
             std::vector<ROFRecord>& rofs);
 
   /** Count the number of timeframes in the input stream.
-  * WARNING : depending on the size of the input this might be a 
+  * WARNING : depending on the size of the input this might be a
   * costly operation */
   size_t nofTimeFrames() const;
 
   /** Count the number of ROFRecords in the input stream
-  * WARNING : depending on the size of the input this might be a 
+  * WARNING : depending on the size of the input this might be a
   * costly operation */
   size_t nofROFs() const;
 
   /** Count the number of digits in the input stream
-  * WARNING : depending on the size of the input this might be a 
+  * WARNING : depending on the size of the input this might be a
   * costly operation */
   size_t nofDigits() const;
 
@@ -80,3 +81,5 @@ class DigitReader
 };
 
 } // namespace o2::mch::io
+
+#endif

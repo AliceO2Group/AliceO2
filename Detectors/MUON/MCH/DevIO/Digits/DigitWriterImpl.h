@@ -8,7 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_WRITER_IMPL_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_WRITER_IMPL_H
 
 #include <ostream>
 #include <gsl/span>
@@ -38,3 +39,4 @@ struct DigitWriterImpl {
 
 std::unique_ptr<DigitWriterImpl> createDigitWriterImpl(int version);
 } // namespace o2::mch::io::impl
+#endif
