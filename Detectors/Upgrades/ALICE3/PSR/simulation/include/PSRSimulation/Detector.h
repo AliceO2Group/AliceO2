@@ -110,7 +110,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Returns the number of layers
   Int_t getNumberOfLayers() const { return mNumberOfLayers; }
 
-  void buildBasicPSR(int nLayers =3, Float_t r_del = 20.0, Float_t z_length = 400.0, Float_t RIn = 100.0, Float_t ROut = 110.0, Float_t Layerx2X0 = 0.01);
+  void buildBasicPSR(int nLayers = 5, Float_t r_del = 20.0, Float_t z_length = 400.0, Float_t RIn = 100.0, Float_t Pb_t = 1.0, Float_t Layerx2X0 = .01);
   void buildPSRV1();
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details

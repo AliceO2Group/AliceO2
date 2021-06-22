@@ -59,7 +59,8 @@ Detector::Detector()
 }
 
 //_________________________________________________________________________________________________
-void Detector::buildBasicPSR(int nLayers, Float_t del_r, Float_t z_length, Float_t rIn, Float_t rOut, Float_t Layerx2X0)
+//void buildBasicPSR(int nLayers = 3, Float_t r_del = 20.0, Float_t z_length = 400.0, Float_t RIn = 100.0, Float_t Pb_t = 1.0, Float_t Layerx2X0 = .01);
+void Detector::buildBasicPSR(int nLayers, Float_t r_del, Float_t z_length, Float_t RIn, Float_t Pb_t, Float_t Layerx2X0)
 {
   // Build a basic parametrized PSR detector with nLayers equally spaced between z_first and z_first+z_length
   // Covering pseudo rapidity [etaIn,etaOut]. Passive silicon thinkness computed to match layer x/X0
@@ -80,8 +81,9 @@ for (Int_t direction : {1}) {
 
   LOG(INFO) << "The program ran till here 1" << endl; 
       // Adds evenly spaced layers
-      float_t layerR = rIn +layerNumber * del_r ; 
-      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z_length, layerR, rOut, sensorThickness, Layerx2X0);
+      float_t layerR = RIn +(layerNumber*r_del) ;
+//PSRLayer::PSRLayer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t Pb_t, Float_t sensorThickness, Float_t Layerx2X0 
+      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z_length, layerR, Pb_t, sensorThickness, Layerx2X0);
 	}
   }
 }
@@ -89,11 +91,11 @@ for (Int_t direction : {1}) {
 //_________________________________________________________________________________________________
 void Detector::buildPSRV1()
 {
-  /*
+  
   //Build FT3 detector according to
   //https://indico.cern.ch/event/992488/contributions/4174473/attachments/2168881/3661331/tracker_parameters_werner_jan_11_2021.pdf
 
-  LOG(INFO) << "Building FT3 Detector V1";
+  LOG(INFO) << "Building PSR Detector V1";
 
   mNumberOfLayers = 10;
   Float_t sensorThickness = 30.e-4;
@@ -118,10 +120,10 @@ void Detector::buildPSRV1()
   mLayerID[1].resize(mNumberOfLayers);
   mLayers.resize(2);
 
-  for (auto direction : {0, 1}) {
+  for (auto direction : { 1}) {
     for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
       std::string directionName = std::to_string(direction);
-      std::string layerName = GeometryTGeo::getFT3LayerPattern() + directionName + "_" + std::to_string(layerNumber);
+      std::string layerName = GeometryTGeo::getPSRLayerPattern() + directionName + "_" + std::to_string(layerNumber);
       mLayerName[direction][layerNumber] = layerName;
       auto& z = layersConfig[layerNumber][0];
 
@@ -132,10 +134,11 @@ void Detector::buildPSRV1()
 
       LOG(INFO) << "Adding Layer " << layerName << " at z = " << z;
       // Add layers
-      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, thickness, x0);
+     // auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, thickness, x0);
+        auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, thickness, x0);
     }
   }
-  */
+  
 }
 
 //_________________________________________________________________________________________________
@@ -147,7 +150,7 @@ Detector::Detector(Bool_t active)
 
   LOG(INFO) << "The program ran till here 2" << endl; 
   buildBasicPSR(); // BasicPSR = Parametrized detector equidistant layers
-  //buildFT3V1(); // FT3V1 = Werner's layout
+  //buildPSRV1(); // FT3V1 = Werner's layout
 }
 
 //_________________________________________________________________________________________________
@@ -314,13 +317,13 @@ void Detector::createMaterials()
   Float_t deemaxAir = 0.1;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
   Float_t epsilAir = 1.0E-4;      // .10000E+01;
   Float_t stminAir = 0.0;         // cm "Default value used"
-/*
-  Float_t tmaxfdPb = 0.1;        // .10000E+01; // Degree
-  Float_t stemaxPb = .10000E+01; // cm
-  Float_t deemaxPb = 0.1;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
-  Float_t epsilPb = 1.0E-4;      // .10000E+01;
-  Float_t stminPb = 0.0;         // cm "Default value used"
-*/
+
+  Float_t tmaxfdPb = -20.0;        // .10000E+01; // Degree
+  Float_t stemaxPb = -1.; // cm
+  Float_t deemaxPb = -0.3;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
+  Float_t epsilPb = .001;      // .10000E+01;
+  Float_t stminPb = -0.8;         // cm "Default value used"
+
   // AIR
   Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
   Float_t zAir[4] = {6., 7., 8., 18.};
@@ -329,6 +332,9 @@ void Detector::createMaterials()
 
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
+
+  o2::base::Detector::Material(13, "LEAD$", 207.19, 82., 11.35, .56, 18.5);
+  o2::base::Detector::Medium(13, "PB$", 13, 0, ifield, fieldm, tmaxfdPb, stemaxPb, deemaxPb, epsilPb, stminPb);
 
   o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
   o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);

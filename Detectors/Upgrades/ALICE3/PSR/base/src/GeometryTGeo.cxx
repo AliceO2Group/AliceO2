@@ -53,6 +53,7 @@ std::string GeometryTGeo::sVolumeName = "PSRV";      ///< Mother volume name
 std::string GeometryTGeo::sLayerName = "PSRLayer";   ///< Layer name
 std::string GeometryTGeo::sChipName = "PSRChip";     ///< Chip name
 std::string GeometryTGeo::sSensorName = "PSRSensor"; ///< Sensor name
+std::string GeometryTGeo::sShowerlayerName = "PSRShowerlayer"; ///< Showerlayer name
 
 //__________________________________________________________________________
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : o2::itsmft::GeometryTGeo(DetID::PSR)
@@ -88,9 +89,15 @@ void GeometryTGeo::Build(int loadTrans)
 //__________________________________________________________________________
 const char* GeometryTGeo::composeSymNameLayer(Int_t d, Int_t lr)
 {
-  LOG(INFO) << "composenamelayer works"; 
   return Form("%s/%s%d", composeSymNamePSR(d), getPSRLayerPattern(), lr);
-  LOG(INFO) << "composenamelayer works"; 
+}
+
+//__________________________________________________________________________
+const char* GeometryTGeo::composeSymNameShowerlayer(Int_t d, Int_t lr)
+{
+  LOG(INFO) << "composenamelayer works_0";
+  return Form("%s/%s%d", composeSymNameShowerlayer(d,lr), getPSRShowerlayerPattern(), lr);
+  LOG(INFO) << "composenamelayer works_1";
 }
 
 //__________________________________________________________________________
