@@ -98,7 +98,9 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     return;
   }
 
-  digiTree->SetBranchStatus("ZDCDigitLabel*", 0);
+  if (digiTree->GetBranchStatus("ZDCDigitLabels")) {
+    digiTree->SetBranchStatus("ZDCDigitLabel*", 0);
+  }
 
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);
