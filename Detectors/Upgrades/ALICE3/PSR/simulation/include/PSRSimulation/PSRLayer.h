@@ -34,7 +34,7 @@ class PSRLayer : public TObject
   PSRLayer() = default;
 
   // Sample layer constructor (deleted option: Int_t layerDirection)
-  PSRLayer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0);
+  PSRLayer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t Pb_t, Float_t sensorThickness, Float_t Layerx2X0);
 
   /// Copy constructor
   PSRLayer(const PSRLayer&) = default;
@@ -54,7 +54,7 @@ class PSRLayer : public TObject
   Int_t mDirection;          ///< Layer direction 0=Forward 1 = Backward
   std::string mLayerName;    ///< Current layer name
   Double_t mInnerRadius;     ///< Inner radius of this layer
-  Double_t mOuterRadius;     ///< Outer radius of this layer
+  Double_t mPb_thick;        ///< Pb Layer thickness
   Double_t mZ;               ///< Z position of the layer
   Double_t mSensorThickness; ///< Sensor thickness
   Double_t mChipThickness;   ///< Chip thickness
