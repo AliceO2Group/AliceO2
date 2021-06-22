@@ -35,6 +35,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"trd-datareader-headerverbose", VariantType::Bool, false, {"Enable verbose header info"}},
     {"trd-datareader-dataverbose", VariantType::Bool, false, {"Enable verbose data info"}},
     {"trd-datareader-compresseddata", VariantType::Bool, false, {"The incoming data is compressed or not"}},
+    {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -62,7 +63,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto compresseddata = cfgc.options().get<bool>("trd-datareader-compresseddata");
   auto headerverbose = cfgc.options().get<bool>("trd-datareader-headerverbose");
   auto dataverbose = cfgc.options().get<bool>("trd-datareader-dataverbose");
-
+  auto askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
@@ -90,9 +91,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   int idevice = 0;
   //  LOG(info) << "expected incoming data definition : " << inputspec;
   // this is probably never going to be used but would to nice to know hence here.
+  auto orig = o2::header::gDataOriginTRD;
+  std::vector<InputSpec> inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Optional}};
+  if (askSTFDist) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  }
   workflow.emplace_back(DataProcessorSpec{
     std::string("trd-datareader"), // left as a string cast incase we append stuff to the string
-    select(std::string("x:TRD/" + inputspec).c_str()),
+    inputs,                        //select(std::string("x:TRD/" + inputspec).c_str()),
     outputs,
     algoSpec,
     Options{}});

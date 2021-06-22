@@ -15,12 +15,16 @@
 
 #include "TRDReconstruction/DataReaderTask.h"
 #include "TRDReconstruction/CruRawReader.h"
+
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/InputRecordWalker.h"
+
 #include "DataFormatsTRD/Constants.h"
+
 #include <fairmq/FairMQDevice.h>
 
 //using namespace o2::framework;
@@ -62,28 +66,45 @@ void DataReaderTask::run(ProcessingContext& pc)
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
   int inputcount = 0;
+  std::vector<InputSpec> dummy{InputSpec{"filter", ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"}, Lifetime::Timeframe}};
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  //   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+
+  for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
+    const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    if (dh->payloadSize == 16) {
+      LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+           dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+      sendData(pc); //send the empty tf data.
+      return;
+    }
+    LOG(info) << " matched DEADBEEF";
+  }
+  //TODO combine the previous and subsequent loops.
+  int inputcounts = 0;
   /* loop over inputs routes */
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+    LOG(info) << " looping over inputs " << inputcounts;
+    inputcounts++;
     if (!iit.isValid()) {
       continue;
     }
     /* loop over input parts */
+    int inputpartscount = 0;
     for (auto const& ref : iit) {
-
+      LOG(info) << " looping over parts " << inputpartscount;
+      if (mVerbose) {
+        const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+        LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+      }
       const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
       if (!mCompressedData) { //we have raw data coming in from flp
         if (mVerbose) {
-          LOG(info) << " parsing non compressed data in the data reader task";
+          LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
         }
-
-        int a = 1;
-        int d = 1;
-        //        while(d==1){
-        //          a=sin(rand());
-        //        }
-
         mReader.setDataBuffer(payloadIn);
         mReader.setDataBufferSize(payloadInSize);
         mReader.configure(mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
