@@ -149,78 +149,94 @@ std::vector<T> injectCustomizations()
   policies.insert(std::end(policies), std::begin(policies), std::end(policies));
 }
 
+int mainNoCatch(int argc, char** argv)
+{
+  using namespace o2::framework;
+  using namespace boost::program_options;
+
+  std::vector<o2::framework::ConfigParamSpec> workflowOptions;
+  UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
+  auto requiredWorkflowOptions = WorkflowCustomizationHelpers::requiredWorkflowOptions();
+  workflowOptions.insert(std::end(workflowOptions), std::begin(requiredWorkflowOptions), std::end(requiredWorkflowOptions));
+
+  std::vector<CompletionPolicy> completionPolicies;
+  UserCustomizationsHelper::userDefinedCustomization(completionPolicies, 0);
+  auto defaultCompletionPolicies = CompletionPolicy::createDefaultPolicies();
+  completionPolicies.insert(std::end(completionPolicies), std::begin(defaultCompletionPolicies), std::end(defaultCompletionPolicies));
+
+  std::vector<DispatchPolicy> dispatchPolicies;
+  UserCustomizationsHelper::userDefinedCustomization(dispatchPolicies, 0);
+  auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
+  dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
+
+  std::vector<ResourcePolicy> resourcePolicies;
+  UserCustomizationsHelper::userDefinedCustomization(resourcePolicies, 0);
+  auto defaultResourcePolicies = ResourcePolicy::createDefaultPolicies();
+  resourcePolicies.insert(std::end(resourcePolicies), std::begin(defaultResourcePolicies), std::end(defaultResourcePolicies));
+
+  std::vector<std::unique_ptr<ParamRetriever>> retrievers;
+  std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
+  retrievers.emplace_back(std::move(retriever));
+  auto workflowOptionsStore = std::make_unique<ConfigParamStore>(workflowOptions, std::move(retrievers));
+  workflowOptionsStore->preload();
+  workflowOptionsStore->activate();
+  ConfigParamRegistry workflowOptionsRegistry(std::move(workflowOptionsStore));
+  ConfigContext configContext(workflowOptionsRegistry, argc, argv);
+  o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
+  overrideCloning(configContext, specs);
+  overridePipeline(configContext, specs);
+  for (auto& spec : specs) {
+    UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);
+  }
+  std::vector<ChannelConfigurationPolicy> channelPolicies;
+  UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
+  auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(configContext);
+  channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
+  return doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, resourcePolicies, workflowOptions, configContext);
+}
+
 int main(int argc, char** argv)
 {
   using namespace o2::framework;
   using namespace boost::program_options;
 
+  static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
   int result = 1;
-  try {
-    // The 0 here is an int, therefore having the template matching in the
-    // SFINAE expression above fit better the version which invokes user code over
-    // the default one.
-    // The default policy is a catch all pub/sub setup to be consistent with the past.
-    std::vector<o2::framework::ConfigParamSpec> workflowOptions;
-    UserCustomizationsHelper::userDefinedCustomization(workflowOptions, 0);
-    auto requiredWorkflowOptions = WorkflowCustomizationHelpers::requiredWorkflowOptions();
-    workflowOptions.insert(std::end(workflowOptions), std::begin(requiredWorkflowOptions), std::end(requiredWorkflowOptions));
-
-    std::vector<CompletionPolicy> completionPolicies;
-    UserCustomizationsHelper::userDefinedCustomization(completionPolicies, 0);
-    auto defaultCompletionPolicies = CompletionPolicy::createDefaultPolicies();
-    completionPolicies.insert(std::end(completionPolicies), std::begin(defaultCompletionPolicies), std::end(defaultCompletionPolicies));
-
-    std::vector<DispatchPolicy> dispatchPolicies;
-    UserCustomizationsHelper::userDefinedCustomization(dispatchPolicies, 0);
-    auto defaultDispatchPolicies = DispatchPolicy::createDefaultPolicies();
-    dispatchPolicies.insert(std::end(dispatchPolicies), std::begin(defaultDispatchPolicies), std::end(defaultDispatchPolicies));
-
-    std::vector<ResourcePolicy> resourcePolicies;
-    UserCustomizationsHelper::userDefinedCustomization(resourcePolicies, 0);
-    auto defaultResourcePolicies = ResourcePolicy::createDefaultPolicies();
-    resourcePolicies.insert(std::end(resourcePolicies), std::begin(defaultResourcePolicies), std::end(defaultResourcePolicies));
-
-    std::vector<std::unique_ptr<ParamRetriever>> retrievers;
-    std::unique_ptr<ParamRetriever> retriever{new BoostOptionsRetriever(true, argc, argv)};
-    retrievers.emplace_back(std::move(retriever));
-    auto workflowOptionsStore = std::make_unique<ConfigParamStore>(workflowOptions, std::move(retrievers));
-    workflowOptionsStore->preload();
-    workflowOptionsStore->activate();
-    ConfigParamRegistry workflowOptionsRegistry(std::move(workflowOptionsStore));
-    ConfigContext configContext(workflowOptionsRegistry, argc, argv);
-    o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
-    overrideCloning(configContext, specs);
-    overridePipeline(configContext, specs);
-    for (auto& spec : specs) {
-      UserCustomizationsHelper::userDefinedCustomization(spec.requiredServices, 0);
+  if (noCatch) {
+    result = mainNoCatch(argc, argv);
+  } else {
+    try {
+      // The 0 here is an int, therefore having the template matching in the
+      // SFINAE expression above fit better the version which invokes user code over
+      // the default one.
+      // The default policy is a catch all pub/sub setup to be consistent with the past.
+      result = mainNoCatch(argc, argv);
+    } catch (boost::exception& e) {
+      doBoostException(e, argv[0]);
+      throw;
+    } catch (std::exception const& error) {
+      doUnknownException(error.what(), argv[0]);
+      throw;
+    } catch (o2::framework::RuntimeErrorRef& ref) {
+      doDPLException(ref, argv[0]);
+      throw;
+    } catch (...) {
+      doUnknownException("", argv[0]);
+      throw;
     }
-    std::vector<ChannelConfigurationPolicy> channelPolicies;
-    UserCustomizationsHelper::userDefinedCustomization(channelPolicies, 0);
-    auto defaultChannelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(configContext);
-    channelPolicies.insert(std::end(channelPolicies), std::begin(defaultChannelPolicies), std::end(defaultChannelPolicies));
-    result = doMain(argc, argv, specs, channelPolicies, completionPolicies, dispatchPolicies, resourcePolicies, workflowOptions, configContext);
-  } catch (boost::exception& e) {
-    doBoostException(e, argv[0]);
-  } catch (std::exception const& error) {
-    doUnknownException(error.what(), argv[0]);
-  } catch (o2::framework::RuntimeErrorRef& ref) {
-    doDPLException(ref, argv[0]);
-  } catch (...) {
-    doUnknownException("", argv[0]);
-  }
 
-  char* idstring = nullptr;
-  for (int argi = 0; argi < argc; argi++) {
-    if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
-      idstring = argv[argi + 1];
-      break;
+    char* idstring = nullptr;
+    for (int argi = 0; argi < argc; argi++) {
+      if (strcmp(argv[argi], "--id") == 0 && argi + 1 < argc) {
+        idstring = argv[argi + 1];
+        break;
+      }
     }
+    o2::framework::OnWorkflowTerminationHook onWorkflowTerminationHook;
+    UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
+    onWorkflowTerminationHook(idstring);
+    doDefaultWorkflowTerminationHook();
+    return result;
   }
-  o2::framework::OnWorkflowTerminationHook onWorkflowTerminationHook;
-  UserCustomizationsHelper::userDefinedCustomization(onWorkflowTerminationHook, 0);
-  onWorkflowTerminationHook(idstring);
-  doDefaultWorkflowTerminationHook();
-  return result;
 }
-
 #endif
