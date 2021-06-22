@@ -273,8 +273,7 @@ class AlpideCoder
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::NoDataFound);
 #endif
-          LOG(ERROR) << "Expected DataShort or DataLong mask, got : " << dataS;
-          return Error;
+          return unexpectedEOF(fmt::format("Expected DataShort or DataLong mask, got {:x}", dataS));
         }
         expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
         continue; // end of DATA(SHORT or LONG) processing
@@ -415,7 +414,11 @@ class AlpideCoder
   void resetMap();
 
   ///< error message on unexpected EOF
-  static int unexpectedEOF(const std::string& message);
+  static int unexpectedEOF(const std::string& message)
+  {
+    LOG(DEBUG) << message;
+    return Error;
+  }
 
   // =====================================================================
   //

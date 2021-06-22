@@ -53,6 +53,7 @@
 #include <array>
 #include <cstdlib>
 #include "Framework/ASoAHelpers.h"
+#include "AnalysisTasksUtils/UtilsDebugLcK0Sp.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -73,6 +74,19 @@ DECLARE_SOA_TABLE(V0GoodIndices, "AOD", "V0GOODINDICES", o2::soa::Index<>,
 } // namespace o2::aod
 
 using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
+using FullTracksExtMC = soa::Join<FullTracksExt, aod::McTrackLabels>;
+
+//#define MY_DEBUG
+#ifdef MY_DEBUG
+using MyTracks = FullTracksExtMC;
+#define MY_DEBUG_MSG(condition, cmd) \
+  if (condition) {                   \
+    cmd;                             \
+  }
+#else
+using MyTracks = FullTracksExt;
+#define MY_DEBUG_MSG(condition, cmd)
+#endif
 
 //This prefilter creates a skimmed list of good V0s to re-reconstruct so that
 //CPU is saved in case there are specific selections that are to be done
@@ -82,6 +96,12 @@ struct lambdakzeroprefilterpairs {
   Configurable<float> dcapostopv{"dcapostopv", .1, "DCA Pos To PV"};
   Configurable<int> mincrossedrows{"mincrossedrows", 70, "min crossed rows"};
   Configurable<int> tpcrefit{"tpcrefit", 1, "demand TPC refit"};
+
+  // for debugging
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S negative daughters, for debug"};
+#endif
 
   HistogramRegistry registry{
     "registry",
@@ -93,36 +113,56 @@ struct lambdakzeroprefilterpairs {
   Produces<aod::V0GoodIndices> v0goodindices;
 
   void process(aod::Collision const& collision, aod::V0s const& V0s,
-               soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
+               MyTracks const& tracks
+#ifdef MY_DEBUG
+               ,
+               aod::McParticles const& particlesMC
+#endif
+  )
   {
     for (auto& V0 : V0s) {
+
+#ifdef MY_DEBUG
+      auto labelPos = V0.posTrack_as<MyTracks>().mcParticleId();
+      auto labelNeg = V0.negTrack_as<MyTracks>().mcParticleId();
+      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
+#endif
+      MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "V0 builder: found K0S from Lc, posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
+
       registry.fill(HIST("hGoodIndices"), 0.5);
       if (tpcrefit) {
-        if (!(V0.posTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
+        if (!(V0.posTrack_as<MyTracks>().trackType() & o2::aod::track::TPCrefit)) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "posTrack " << labelPos << " has no TPC refit");
           continue; //TPC refit
         }
-        if (!(V0.negTrack_as<FullTracksExt>().trackType() & o2::aod::track::TPCrefit)) {
+        if (!(V0.negTrack_as<MyTracks>().trackType() & o2::aod::track::TPCrefit)) {
+          MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "negTrack " << labelNeg << " has no TPC refit");
           continue; //TPC refit
         }
       }
       registry.fill(HIST("hGoodIndices"), 1.5);
-      if (V0.posTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
+      if (V0.posTrack_as<MyTracks>().tpcNClsCrossedRows() < mincrossedrows) {
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "posTrack " << labelPos << " has " << V0.posTrack_as<MyTracks>().tpcNClsCrossedRows() << " crossed rows, cut at " << mincrossedrows);
         continue;
       }
-      if (V0.negTrack_as<FullTracksExt>().tpcNClsCrossedRows() < mincrossedrows) {
+      if (V0.negTrack_as<MyTracks>().tpcNClsCrossedRows() < mincrossedrows) {
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "negTrack " << labelNeg << " has " << V0.negTrack_as<MyTracks>().tpcNClsCrossedRows() << " crossed rows, cut at " << mincrossedrows);
         continue;
       }
       registry.fill(HIST("hGoodIndices"), 2.5);
-      if (fabs(V0.posTrack_as<FullTracksExt>().dcaXY()) < dcapostopv) {
+      if (fabs(V0.posTrack_as<MyTracks>().dcaXY()) < dcapostopv) {
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "posTrack " << labelPos << " has dcaXY " << V0.posTrack_as<MyTracks>().dcaXY() << " , cut at " << dcanegtopv);
         continue;
       }
-      if (fabs(V0.negTrack_as<FullTracksExt>().dcaXY()) < dcanegtopv) {
+      if (fabs(V0.negTrack_as<MyTracks>().dcaXY()) < dcanegtopv) {
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "negTrack " << labelNeg << " has dcaXY " << V0.negTrack_as<MyTracks>().dcaXY() << " , cut at " << dcanegtopv);
         continue;
       }
+      MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "Filling good indices: posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
       registry.fill(HIST("hGoodIndices"), 3.5);
-      v0goodindices(V0.posTrack_as<FullTracksExt>().globalIndex(),
-                    V0.negTrack_as<FullTracksExt>().globalIndex(),
-                    V0.posTrack_as<FullTracksExt>().collisionId());
+      v0goodindices(V0.posTrack_as<MyTracks>().globalIndex(),
+                    V0.negTrack_as<MyTracks>().globalIndex(),
+                    V0.posTrack_as<MyTracks>().collisionId());
     }
   }
 };
@@ -149,13 +189,22 @@ struct lambdakzerobuilder {
   Configurable<float> dcav0dau{"dcav0dau", 1.0, "DCA V0 Daughters"};
   Configurable<float> v0radius{"v0radius", 5.0, "v0radius"};
 
+  // for debugging
+#ifdef MY_DEBUG
+  Configurable<std::vector<int>> v_labelK0Spos{"v_labelK0Spos", {729, 2866, 4754}, "labels of K0S positive daughters, for debug"};
+  Configurable<std::vector<int>> v_labelK0Sneg{"v_labelK0Sneg", {730, 2867, 4755}, "labels of K0S positive daughters, for debug"};
+#endif
+
   double massPi = TDatabasePDG::Instance()->GetParticle(kPiPlus)->Mass();
   double massKa = TDatabasePDG::Instance()->GetParticle(kKPlus)->Mass();
   double massPr = TDatabasePDG::Instance()->GetParticle(kProton)->Mass();
 
-  using FullTracksExt = soa::Join<aod::FullTracks, aod::TracksExtended>;
-
-  void process(aod::Collision const& collision, aod::V0GoodIndices const& V0s, soa::Join<aod::FullTracks, aod::TracksExtended> const& tracks)
+  void process(aod::Collision const& collision, aod::V0GoodIndices const& V0s, MyTracks const& tracks
+#ifdef MY_DEBUG
+               ,
+               aod::McParticles const& particlesMC
+#endif
+  )
   {
     //Define o2 fitter, 2-prong
     o2::vertexing::DCAFitterN<2> fitter;
@@ -176,11 +225,20 @@ struct lambdakzerobuilder {
       std::array<float, 3> pvec0 = {0.};
       std::array<float, 3> pvec1 = {0.};
 
+#ifdef MY_DEBUG
+      auto labelPos = V0.posTrack_as<MyTracks>().mcParticleId();
+      auto labelNeg = V0.negTrack_as<MyTracks>().mcParticleId();
+      bool isK0SfromLc = isK0SfromLcFunc(labelPos, labelNeg, v_labelK0Spos, v_labelK0Sneg);
+#endif
+
+      MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "labelPos = " << labelPos << ", labelNeg = " << labelNeg);
+
       registry.fill(HIST("hV0Candidate"), 0.5);
 
-      auto pTrack = getTrackParCov(V0.posTrack_as<FullTracksExt>());
-      auto nTrack = getTrackParCov(V0.negTrack_as<FullTracksExt>());
+      auto pTrack = getTrackParCov(V0.posTrack_as<MyTracks>());
+      auto nTrack = getTrackParCov(V0.negTrack_as<MyTracks>());
       int nCand = fitter.process(pTrack, nTrack);
+      MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "fitter: nCand = " << nCand << " for posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
       if (nCand != 0) {
         fitter.propagateTracksToVertex();
         const auto& vtx = fitter.getPCACandidate();
@@ -193,33 +251,40 @@ struct lambdakzerobuilder {
         continue;
       }
 
+      MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "in builder 0: posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
+
       //Apply selections so a skimmed table is created only
       if (fitter.getChi2AtPCACandidate() > dcav0dau) {
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "posTrack --> " << labelPos << ", negTrack --> " << labelNeg << " will be skipped due to dca cut");
         continue;
       }
 
       auto V0CosinePA = RecoDecay::CPA(array{collision.posX(), collision.posY(), collision.posZ()}, array{pos[0], pos[1], pos[2]}, array{pvec0[0] + pvec1[0], pvec0[1] + pvec1[1], pvec0[2] + pvec1[2]});
       if (V0CosinePA < v0cospa) {
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "posTrack --> " << labelPos << ", negTrack --> " << labelNeg << " will be skipped due to CPA cut");
         continue;
       }
 
       auto V0radius = RecoDecay::sqrtSumOfSquares(pos[0], pos[1]); //probably find better name to differentiate the cut from the variable
       if (V0radius < v0radius) {
+        MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "posTrack --> " << labelPos << ", negTrack --> " << labelNeg << " will be skipped due to radius cut");
         continue;
       }
 
+      MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "in builder 1, keeping K0S candidate: posTrack --> " << labelPos << ", negTrack --> " << labelNeg);
+
       registry.fill(HIST("hV0Candidate"), 1.5);
       v0data(
-        V0.posTrack_as<FullTracksExt>().globalIndex(),
-        V0.negTrack_as<FullTracksExt>().globalIndex(),
-        V0.negTrack_as<FullTracksExt>().collisionId(),
+        V0.posTrack_as<MyTracks>().globalIndex(),
+        V0.negTrack_as<MyTracks>().globalIndex(),
+        V0.negTrack_as<MyTracks>().collisionId(),
         fitter.getTrack(0).getX(), fitter.getTrack(1).getX(),
         pos[0], pos[1], pos[2],
         pvec0[0], pvec0[1], pvec0[2],
         pvec1[0], pvec1[1], pvec1[2],
         fitter.getChi2AtPCACandidate(),
-        V0.posTrack_as<FullTracksExt>().dcaXY(),
-        V0.negTrack_as<FullTracksExt>().dcaXY());
+        V0.posTrack_as<MyTracks>().dcaXY(),
+        V0.negTrack_as<MyTracks>().dcaXY());
     }
   }
 };

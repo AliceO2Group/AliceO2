@@ -18,7 +18,7 @@
 #include "DataFormatsTRD/CTF.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
-#include "TRDBase/Digit.h" // TODO Consider moving to DataFormats
+#include "DataFormatsTRD/Digit.h"
 #include <gsl/span>
 #include <bitset>
 

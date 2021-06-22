@@ -18,10 +18,9 @@
 #pragma link C++ class o2::trd::Geometry + ;
 #pragma link C++ class o2::trd::GeometryBase + ;
 #pragma link C++ class o2::trd::CommonParam + ;
-#pragma link C++ class o2::trd::Digit + ;
-#pragma link C++ class std::vector < o2::trd::Digit > +;
 #pragma link C++ class o2::trd::SimParam + ;
 #pragma link C++ class o2::trd::FeeParam + ;
+#pragma link C++ class o2::trd::RecoParam + ;
 #pragma link C++ class o2::trd::CalDet + ;
 #pragma link C++ class o2::trd::CalROC + ;
 #pragma link C++ class o2::trd::PadResponse + ;
@@ -45,10 +44,5 @@
 #pragma link C++ class o2::trd::Tracklet + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet > +;
 
-#include "SimulationDataFormat/MCTruthContainer.h"
-#include "SimulationDataFormat/ConstMCTruthContainer.h"
-
-// this is just needed to please the DPL ROOTTreeWriter facility
-#pragma link C++ class o2::dataformats::ConstMCTruthContainer < o2::trd::MCLabel> + ;
 
 #endif

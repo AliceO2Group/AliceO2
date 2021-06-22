@@ -138,7 +138,7 @@ class GRPObject
   /// print itself
   void print() const;
 
-  static GRPObject* loadFrom(const std::string& grpFileName, const std::string& grpName = "GRP");
+  static GRPObject* loadFrom(const std::string& grpFileName = "", const std::string& grpName = "GRP");
 
  private:
   timePoint mTimeStart = 0;      ///< DAQ_time_start entry from DAQ logbook
@@ -164,7 +164,7 @@ class GRPObject
   std::string mDataPeriod = ""; ///< name of the period
   std::string mLHCState = "";   ///< machine state
 
-  ClassDefNV(GRPObject, 4);
+  ClassDefNV(GRPObject, 5);
 };
 
 //______________________________________________

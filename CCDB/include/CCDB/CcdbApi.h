@@ -345,9 +345,9 @@ class CcdbApi //: public DatabaseInterface
    * A helper function to extract object from a local ROOT file
    * @param filename name of ROOT file
    * @param cl The TClass object describing the serialized type
-   * @return raw pointer to created object
+   * @return raw pointer to created object (and headers of answer)
    */
-  void* extractFromLocalFile(std::string const& filename, std::type_info const& tinfo) const;
+  void* extractFromLocalFile(std::string const& filename, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
 
   /**
    * Helper function to download binary content from alien:// storage

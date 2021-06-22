@@ -7,14 +7,16 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This example shows how schema evolution of tables can be implemented.
+///        Here two tables are defined, EtaPhiV2 has an additional member compared to EtaPhiV1
+///        It is shown how an example task can use a template, and can be instantiated to work
+///        on both.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-
-// This example shows how schema evolution of tables can be implemented
-// Here two tables are defined, EtaPhiV2 has an additional member compared to EtaPhiV1
-// It is shown how an example task can use a template, and can be instantiated to work
-// on both.
 
 namespace o2::aod
 {
@@ -24,7 +26,7 @@ DECLARE_SOA_COLUMN(Eta, eta, float);
 DECLARE_SOA_COLUMN(AbsEta, absEta, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
 } // namespace etaphi
-DECLARE_SOA_TABLE(EtaPhiV1, "AOD", "ETAPHI", etaphi::Eta, etaphi::Phi);
+DECLARE_SOA_TABLE(EtaPhiV1, "AOD", "ETAPHIV1", etaphi::Eta, etaphi::Phi);
 DECLARE_SOA_TABLE(EtaPhiV2, "AOD", "ETAPHIV2", etaphi::Eta, etaphi::AbsEta, etaphi::Phi);
 } // namespace o2::aod
 
@@ -32,7 +34,7 @@ using namespace o2;
 using namespace o2::framework;
 
 // Producer of EtaPhiV1
-struct ATask {
+struct ProduceEtaPhiV1 {
   Produces<aod::EtaPhiV1> etaphi;
 
   void process(aod::Tracks const& tracks)
@@ -47,7 +49,7 @@ struct ATask {
 };
 
 // Producer of EtaPhiV2
-struct BTask {
+struct ProduceEtaPhiV2 {
   Produces<aod::EtaPhiV2> etaphi;
 
   void process(aod::Tracks const& tracks)
@@ -64,7 +66,7 @@ struct BTask {
 // Consumper of both EtaPhiV1 and EtaPhiV2
 // InputTable is a template which is then specified below when the workflow is defined
 template <typename InputTable>
-struct CTask {
+struct ConsumeEtaPhiVx {
   void process(InputTable const& etaPhis)
   {
     constexpr bool isV2 = std::is_same<InputTable, aod::EtaPhiV2>::value;
@@ -81,9 +83,9 @@ struct CTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"produce-etaphi-v1"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"produce-etaphi-v2"}),
-    adaptAnalysisTask<CTask<aod::EtaPhiV1>>(cfgc, TaskName{"consume-etaphi-v1"}), // here CTask is added with EtaPhiV1 input
-    adaptAnalysisTask<CTask<aod::EtaPhiV2>>(cfgc, TaskName{"consume-etaphi-v2"}), // here CTask is added with EtaPhiV2 input
+    adaptAnalysisTask<ProduceEtaPhiV1>(cfgc),
+    adaptAnalysisTask<ProduceEtaPhiV2>(cfgc),
+    adaptAnalysisTask<ConsumeEtaPhiVx<aod::EtaPhiV1>>(cfgc, TaskName{"EtaPhiV1"}), // here ConsumeEtaPhiVx is added with EtaPhiV1 input
+    adaptAnalysisTask<ConsumeEtaPhiVx<aod::EtaPhiV2>>(cfgc, TaskName{"EtaPhiV2"}), // here ConsumeEtaPhiVx is added with EtaPhiV2 input
   };
 }

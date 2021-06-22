@@ -22,7 +22,10 @@ enum struct DplPluginKind : int {
   CustomAlgorithm,
   // A plugin which implements a ImGUI GUI. Needs to return an
   // object of the kind o2::framework::DebugGUIImpl
-  DebugGUIImpl
+  DebugGUIImpl,
+  // A plugin which implements a custom Services. Needs to return
+  // an object of the kind o2::framework::ServiceSpec
+  CustomService
 };
 
 } // namespace o2::framework
@@ -42,6 +45,19 @@ struct DPLPluginHandle {
   {                                                                                                      \
     return new DPLPluginHandle{new NAME{}, strdup(#NAME), o2::framework::DplPluginKind::KIND, previous}; \
   }                                                                                                      \
+  }
+
+#define DEFINE_DPL_PLUGINS_BEGIN                                  \
+  extern "C" {                                                    \
+  DPLPluginHandle* dpl_plugin_callback(DPLPluginHandle* previous) \
+  {
+
+#define DEFINE_DPL_PLUGIN_INSTANCE(NAME, KIND) \
+  previous = new DPLPluginHandle{new NAME{}, strdup(#NAME), o2::framework::DplPluginKind::KIND, previous};
+
+#define DEFINE_DPL_PLUGINS_END \
+  return previous;             \
+  }                            \
   }
 
 namespace o2::framework

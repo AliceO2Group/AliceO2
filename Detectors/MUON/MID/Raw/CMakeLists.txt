@@ -26,7 +26,7 @@ o2_add_library(
           src/LinkDecoder.cxx
           src/RawFileReader.cxx
   PUBLIC_LINK_LIBRARIES
-    ms_gsl::ms_gsl
+    Microsoft.GSL::GSL
     O2::DataFormatsMID
     O2::Headers
     O2::DPLUtils

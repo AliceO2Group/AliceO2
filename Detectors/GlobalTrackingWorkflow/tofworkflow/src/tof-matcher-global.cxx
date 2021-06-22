@@ -14,10 +14,10 @@
 /// @brief  Basic DPL workflow for TOF reconstruction starting from digits
 
 #include "DetectorsBase/Propagator.h"
-#include "GlobalTrackingWorkflow/TrackTPCITSReaderSpec.h"
-#include "TOFWorkflowUtils/ClusterReaderSpec.h"
-#include "TOFWorkflow/TOFMatchedWriterSpec.h"
-#include "TOFWorkflow/TOFCalibWriterSpec.h"
+#include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
+#include "TOFWorkflowIO/ClusterReaderSpec.h"
+#include "TOFWorkflowIO/TOFMatchedWriterSpec.h"
+#include "TOFWorkflowIO/TOFCalibWriterSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TOFWorkflow/RecoWorkflowSpec.h"
@@ -77,6 +77,7 @@ using namespace o2::framework;
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
 
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
   auto nLanes = cfgc.options().get<int>("tof-lanes");

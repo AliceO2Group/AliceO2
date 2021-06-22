@@ -123,7 +123,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
 #define DECODEFT0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODEFT0(cd.trigger,   CTF::BLC_trigger);
-  DECODEFT0(cd.bcInc,     CTF::BLC_bcInc); 
+  DECODEFT0(cd.bcInc,     CTF::BLC_bcInc);
   DECODEFT0(cd.orbitInc,  CTF::BLC_orbitInc);
   DECODEFT0(cd.nChan,     CTF::BLC_nChan);
   DECODEFT0(cd.eventFlags,     CTF::BLC_flags);
@@ -158,15 +158,16 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     }
     Triggers trig;
     trig.triggersignals = cd.trigger[idig];
-
+    const auto& params = DigitizationParameters::Instance();
+    int triggerGate = params.mTime_trg_gate;
     firstEntry = channelVec.size();
     uint8_t chID = 0;
     int amplA = 0, amplC = 0, timeA = 0, timeC = 0;
+
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
-      //
-      if (std::abs(chan.CFDTime) < cd.header.triggerGate) {
+      if (std::abs(chan.CFDTime) < triggerGate) {
         if (chan.ChId < 4 * uint8_t(Geometry::NCellsA)) { // A side
           amplA += chan.QTCAmpl;
           timeA += chan.CFDTime;

@@ -175,8 +175,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   fMC->CurrentVolOffID(3, strip); // 3: number of geom levels between PXTL and strip: get strip number in PHOS module
   Int_t cell;
   fMC->CurrentVolOffID(2, cell); // 2: number of geom levels between PXTL and cell: get sell in strip number.
-  Int_t detID = Geometry::relToAbsId(moduleNumber - 1, strip, cell);
-
+  Int_t detID = Geometry::relToAbsId(moduleNumber, strip, cell);
   if (superParent == mCurentSuperParent && detID == mCurrentCellID && mCurrentHit) {
     // continue with current hit
     mCurrentHit->addEnergyLoss(lostenergy);
@@ -234,6 +233,7 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating PHOS geometry\n";
 
   phos::GeometryParams* geom = phos::GeometryParams::GetInstance("Run2");
+  Geometry::GetInstance("Run2");
 
   if (!geom) {
     LOG(ERROR) << "ConstructGeometry: PHOS Geometry class has not been set up.\n";
@@ -261,6 +261,7 @@ void Detector::ConstructGeometry()
   // Depending on configuration we should prepare containers for normal PHOS module "PHOS"
   // and half-module "PHOH"
   // This is still air tight box around PHOS
+
   fMC->Gsvolu("PHOS", "TRD1", getMediumID(ID_FE), geom->getPHOSParams(), 4);
   if (mCreateHalfMod) {
     fMC->Gsvolu("PHOH", "TRD1", getMediumID(ID_FE), geom->getPHOSParams(), 4);
@@ -275,21 +276,20 @@ void Detector::ConstructGeometry()
   Int_t idrotm[5];
   Int_t iXYZ, iAngle;
   char im[5];
-  for (Int_t iModule = 0; iModule < 5; iModule++) {
-    if (!mActiveModule[iModule + 1]) {
+  for (Int_t iModule = 1; iModule < 5; iModule++) {
+    if (!mActiveModule[iModule]) {
       continue;
     }
     Float_t angle[3][2] = {0};
     geom->getModuleAngle(iModule, angle);
     Matrix(idrotm[iModule], angle[0][0], angle[0][1], angle[1][0], angle[1][1], angle[2][0], angle[2][1]);
-
     Float_t pos[3] = {0};
     geom->getModuleCenter(iModule, pos);
 
-    if (iModule == 0) { // special 1/2 module
-      fMC->Gspos("PHOH", iModule + 1, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
+    if (iModule == 1) { // special 1/2 module
+      fMC->Gspos("PHOH", iModule, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
     } else {
-      fMC->Gspos("PHOS", iModule + 1, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
+      fMC->Gspos("PHOS", iModule, "barrel", pos[0], pos[1] + 30., pos[2], idrotm[iModule], "ONLY");
     }
   }
 
@@ -799,9 +799,9 @@ void Detector::ConstructEMCGeometry()
     fMC->Gspos("PEMH", 1, "PATH", 0., 0., z, 0, "ONLY");
   }
 
-  fMC->Gspos("PATB", 1, "PHOS", 0., 0., 0, 0, "ONLY");
+  fMC->Gspos("PATB", 1, "PHOS", 0., 0., 0., 0, "ONLY");
   if (mCreateHalfMod) { // half of PHOS module
-    fMC->Gspos("PATH", 1, "PHOH", 0., 0., 0, 0, "ONLY");
+    fMC->Gspos("PATH", 1, "PHOH", 0., 0., 0., 0, "ONLY");
   }
 }
 
@@ -823,7 +823,7 @@ void Detector::ConstructSupportGeometry()
   fMC->Gsvolu("PRRD", "BOX ", getMediumID(ID_AIR), par, 3);
 
   y0 = -(geom->getRailsDistanceFromIP() - geom->getRailRoadSize(1) / 2.0);
-  fMC->Gspos("PRRD", 1, "barrel", 0.0, y0 + 30., 0.0, 0, "ONLY");
+  fMC->Gspos("PRRD", 1, "barrel", 0.0, y0 + 30. - 6.15, 0.0, 0, "ONLY");
 
   // --- Dummy box containing one rail
 
@@ -926,7 +926,7 @@ void Detector::defineSensitiveVolumes()
 //-----------------------------------------
 void Detector::addAlignableVolumes() const
 {
-  //
+
   // Create entries for alignable volumes associating the symbolic volume
   // name with the corresponding volume path.
 
@@ -938,15 +938,16 @@ void Detector::addAlignableVolumes() const
   o2::detectors::DetID::ID idPHOS = o2::detectors::DetID::PHS;
 
   TString physModulePath = "/cave_1/barrel_1/PHOS_";
+  TString physModulePath2 = "/cave_1/barrel_1/PHOH_";
 
   TString symbModuleName = "PHOS/Module";
 
   for (Int_t iModule = 1; iModule <= geom->getNModules(); iModule++) {
-    if (!mActiveModule[iModule - 1]) {
+    if (!mActiveModule[iModule]) {
       continue;
     }
 
-    TString volPath(physModulePath);
+    TString volPath(iModule == 1 ? physModulePath2 : physModulePath);
     volPath += iModule;
 
     TString symName(symbModuleName);
@@ -961,7 +962,6 @@ void Detector::addAlignableVolumes() const
     LOG(DEBUG) << "symName=" << symName << "\n";
     LOG(DEBUG) << "--------------------------------------------"
                << "\n";
-
     LOG(DEBUG) << "Check for alignable entry: " << symName;
 
     if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data(), modUID)) {
@@ -972,16 +972,8 @@ void Detector::addAlignableVolumes() const
     // Create the Tracking to Local transformation matrix for PHOS modules
     TGeoPNEntry* alignableEntry = gGeoManager->GetAlignableEntryByUID(modUID);
     LOG(DEBUG) << "Got TGeoPNEntry " << alignableEntry;
-
     if (alignableEntry) {
-      Float_t angle = geom->getPHOSAngle(iModule);
-      TGeoHMatrix* globMatrix = alignableEntry->GetGlobalOrig();
-
-      TGeoHMatrix* matTtoL = new TGeoHMatrix;
-      matTtoL->RotateZ(270. + angle);
-      const TGeoHMatrix& globmatrixi = globMatrix->Inverse();
-      matTtoL->MultiplyLeft(&globmatrixi);
-      alignableEntry->SetMatrix(matTtoL);
+      alignableEntry->SetMatrix(Geometry::GetInstance()->getAlignmentMatrix(iModule));
     }
   }
 }

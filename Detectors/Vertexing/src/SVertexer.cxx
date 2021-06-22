@@ -30,15 +30,11 @@ using TrackITS = o2::its::TrackITS;
 using TrackTPC = o2::tpc::TrackTPC;
 
 //__________________________________________________________________
-void SVertexer::process(const gsl::span<const PVertex>& vertices,           // primary vertices
-                        const gsl::span<const GIndex>& trackIndex,          // Global ID's for associated tracks
-                        const gsl::span<const VRef>& vtxRefs,               // references from vertex to these track IDs
-                        const o2::globaltracking::RecoContainer& recoTracks // accessor to various tracks
-)
+void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // accessor to various reconstrucred data types
 {
   updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
-  mPVertices = vertices;
-  buildT2V(trackIndex, vtxRefs, recoTracks);
+  mPVertices = recoData.getPrimaryVertices();
+  buildT2V(recoData); // build track->vertex refs from vertex->track (if other workflow will need this, consider producing a message in the VertexTrackMatcher)
   int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
   mV0sTmp[0].clear();
   mCascadesTmp[0].clear();
@@ -148,19 +144,19 @@ void SVertexer::setupThreads()
 }
 
 //__________________________________________________________________
-void SVertexer::buildT2V(const gsl::span<const GIndex>& trackIndex,           // Global ID's for associated tracks
-                         const gsl::span<const VRef>& vtxRefs,                // references from vertex to these track IDs
-                         const o2::globaltracking::RecoContainer& recoTracks) // accessor to various tracks
+void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // accessor to various tracks
 {
   // build track->vertices from vertices->tracks, rejecting vertex contributors
+  auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+  auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
   // track selector: at the moment reject prompt tracks contributing to vertex fit and unconstrained TPC tracks
   auto selTrack = [&](GIndex gid) {
-    return (gid.isPVContributor() || !recoTracks.isTrackSourceLoaded(gid.getSource())) ? false : true;
+    return (gid.isPVContributor() || !recoData.isTrackSourceLoaded(gid.getSource())) ? false : true;
   };
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
-  int nv = vtxRefs.size();
+  int nv = vtxRefs.size() - 1; // The last entry is for unassigned tracks, ignore them
   for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();
@@ -183,7 +179,7 @@ void SVertexer::buildT2V(const gsl::span<const GIndex>& trackIndex,           //
           continue;
         }
       }
-      const auto& trc = recoTracks.getTrack(tvid);
+      const auto& trc = recoData.getTrackParam(tvid);
       int posneg = trc.getSign() < 0 ? 1 : 0;
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}});
       if (tvid.isAmbiguous()) { // track attached to >1 vertex, remember that it was already processed
@@ -299,16 +295,16 @@ bool SVertexer::checkV0(TrackCand& seedP, TrackCand& seedN, int iP, int iN, int 
   if (!added) {
     return false;
   }
-
   auto& v0 = mV0sTmp[ithread].back();
+
   // check cascades
   if (checkForCascade) {
     int nCascAdded = 0;
     if (hypCheckStatus[HypV0::Lambda]) {
-      nCascAdded += checkCascades(r2v0, p2V0, iN, NEG, ithread);
+      nCascAdded += checkCascades(r2v0, pV0, p2V0, iN, NEG, ithread);
     }
     if (hypCheckStatus[HypV0::AntiLambda]) {
-      nCascAdded += checkCascades(r2v0, p2V0, iP, POS, ithread);
+      nCascAdded += checkCascades(r2v0, pV0, p2V0, iP, POS, ithread);
     }
     if (!nCascAdded && rejectIfNotCascade) { // v0 would be accepted only if it creates a cascade
       mV0sTmp[ithread].pop_back();
@@ -320,7 +316,7 @@ bool SVertexer::checkV0(TrackCand& seedP, TrackCand& seedN, int iP, int iN, int 
 }
 
 //__________________________________________________________________
-int SVertexer::checkCascades(float r2v0, float p2V0, int avoidTrackID, int posneg, int ithread)
+int SVertexer::checkCascades(float r2v0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, int ithread)
 {
   // check last added V0 for belonging to cascade
   auto& fitterCasc = mFitterCasc[ithread];
@@ -347,7 +343,7 @@ int SVertexer::checkCascades(float r2v0, float p2V0, int avoidTrackID, int posne
     int candC = 0;
     const auto& cascXYZ = fitterCasc.getPCACandidatePos(candC);
     // make sure the cascade radius is smaller than that of the vertex
-    float dxc = cascXYZ[0] - pv.getX(), dyc = cascXYZ[1] - pv.getY(), r2casc = dxc * dxc + dyc * dyc;
+    float dxc = cascXYZ[0] - pv.getX(), dyc = cascXYZ[1] - pv.getY(), dzc = cascXYZ[2] - pv.getZ(), r2casc = dxc * dxc + dyc * dyc;
     if (r2v0 - r2casc < mMinR2DiffV0Casc || r2casc < mMinR2ToMeanVertex) {
       continue;
     }
@@ -364,12 +360,16 @@ int SVertexer::checkCascades(float r2v0, float p2V0, int avoidTrackID, int posne
     trNeut.getPxPyPzGlo(pNeut);
     trBach.getPxPyPzGlo(pBach);
     std::array<float, 3> pCasc = {pNeut[0] + pBach[0], pNeut[1] + pBach[1], pNeut[2] + pBach[2]};
-    auto prodPPos = pCasc[0] * cascXYZ[0] + pCasc[1] * cascXYZ[1] + pCasc[2] * cascXYZ[2];
+    auto prodPPos = pV0[0] * dxc + pV0[1] * dyc + pV0[2] * dzc;
     if (prodPPos < 0.) { // causality cut
       continue;
     }
-    float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
     float pt2Casc = pCasc[0] * pCasc[0] + pCasc[1] * pCasc[1], p2Casc = pt2Casc + pCasc[2] * pCasc[2];
+    float cosPA = (pCasc[0] * dxc + pCasc[1] * dyc + pCasc[2] * dzc) / std::sqrt(p2Casc * (r2casc + dzc * dzc));
+    if (cosPA < mSVParams->minCosPACasc) {
+      continue;
+    }
+    float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
     float ptCasc = std::sqrt(pt2Casc);
     bool goodHyp = false;
     for (int ipid = 0; ipid < NHypCascade; ipid++) {
@@ -390,7 +390,7 @@ int SVertexer::checkCascades(float r2v0, float p2V0, int avoidTrackID, int posne
       mCascadesTmp[ithread].pop_back();
       continue;
     }
-    casc.setCosPA(dca.getY());
+    casc.setCosPA(cosPA);
     casc.setVertexID(v0.getVertexID());
     casc.setDCA(fitterCasc.getChi2AtPCACandidate());
   }

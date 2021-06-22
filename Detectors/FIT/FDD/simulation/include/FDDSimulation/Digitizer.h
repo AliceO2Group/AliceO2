@@ -35,8 +35,8 @@ class Digitizer
 {
 
  private:
-  typedef math_utils::RandomRing<float_v::size() * DigitizationParameters::PheRRSize> HitRandomRingType;
-  typedef math_utils::RandomRing<float_v::size() * DigitizationParameters::HitRRSize> PheRandomRingType;
+  typedef math_utils::RandomRing</*float_v::size()*/ 4 * DigitizationParameters::PheRRSize> HitRandomRingType;
+  typedef math_utils::RandomRing</*float_v::size()*/ 4 * DigitizationParameters::HitRRSize> PheRandomRingType;
 
   using ChannelBCDataF = std::array<float, NTimeBinsPerBC>;
 

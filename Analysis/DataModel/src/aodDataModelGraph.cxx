@@ -87,8 +87,7 @@ template <typename T>
 Style getStyleFor()
 {
   auto label = MetadataTrait<T>::metadata::tableLabel();
-  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) { return true; 
-
+  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) { return true;
 }return false; });
   if (entry != tableStyles.end()) {
     auto value = *entry;
@@ -259,14 +258,14 @@ int main(int, char**)
   displayEntity<Run2BCInfos>();
 
   displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection,
-                  pidRespTOFEl, pidRespTOFMu, pidRespTOFPi,
-                  pidRespTOFKa, pidRespTOFPr, pidRespTOFDe,
-                  pidRespTOFTr, pidRespTOFHe, pidRespTOFAl,
-                  pidRespTPCEl, pidRespTPCMu, pidRespTPCPi,
-                  pidRespTPCKa, pidRespTPCPr, pidRespTPCDe,
-                  pidRespTPCTr, pidRespTPCHe, pidRespTPCAl>();
-  displayEntity<UnassignedTracks>();
-  displayEntity<UnassignedMFTTracks>();
+                  pidTOFFullEl, pidTOFFullMu, pidTOFFullPi,
+                  pidTOFFullKa, pidTOFFullPr, pidTOFFullDe,
+                  pidTOFFullTr, pidTOFFullHe, pidTOFFullAl,
+                  pidTPCFullEl, pidTPCFullMu, pidTPCFullPi,
+                  pidTPCFullKa, pidTPCFullPr, pidTPCFullDe,
+                  pidTPCFullTr, pidTPCFullHe, pidTPCFullAl>();
+  displayEntity<AmbiguousTracks>();
+  displayEntity<AmbiguousMFTTracks>();
 
   displayEntity<McParticles>();
   displayEntity<McTrackLabels>();

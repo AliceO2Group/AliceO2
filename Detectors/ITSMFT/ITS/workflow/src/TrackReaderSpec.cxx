@@ -32,8 +32,8 @@ TrackReader::TrackReader(bool useMC)
 
 void TrackReader::init(InitContext& ic)
 {
-  mInputFileName = o2::utils::concat_string(o2::base::NameConf::rectifyDirectory(ic.options().get<std::string>("input-dir")),
-                                            ic.options().get<std::string>("its-tracks-infile"));
+  mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                 ic.options().get<std::string>("its-tracks-infile"));
   connectTree(mInputFileName);
 }
 

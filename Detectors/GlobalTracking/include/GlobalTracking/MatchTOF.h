@@ -190,12 +190,7 @@ class MatchTOF
   void setFITRecPoints(const std::vector<o2::ft0::RecPoints>* recpoints)
   {
     if (recpoints) {
-#ifdef MS_GSL_V3
       mFITRecPoints = {recpoints->data(), recpoints->size()};
-#else
-      // need explicit cast because the gsl index_type is signed
-      mFITRecPoints = {recpoints->data(), static_cast<decltype(mFITRecPoints)::index_type>(recpoints->size())};
-#endif
     }
   }
   void setFITRecPoints(gsl::span<o2::ft0::RecPoints const> recpoints)

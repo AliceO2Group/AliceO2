@@ -6,11 +6,12 @@
 
 Module numbering:  start from module 0 (non-existing), 1 (half-module), 2 (bottom),... 4(highest)
 
-All channels have unique absId: start from 1 till 4*64*56. Numbering in each module starts at bottom left and first go in z direction:
+All channels have unique absId: start from 1 till 4x64x56 (no absId in non-existing module). Numbering in each module starts at bottom left and first go in z direction:
+```
   56   112   3584
   ...  ...    ...
   1    57 ...3529
-
+```
 One can use also relative numbering  relid[3]: 
 (module number[0...3], iphi[1...64], iz[1...56])
 

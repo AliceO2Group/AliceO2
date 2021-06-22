@@ -33,7 +33,7 @@
 #include <stdexcept>
 #include <iostream>
 // note: std filesystem is first supported in gcc 8
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 using namespace o2::framework;
 
@@ -77,7 +77,7 @@ class StaticChecker
         setError(std::string("inconsistent number of branches in 'testtree' of file ") + check.fileName + " expecting " + std::to_string(check.nBranches) + " got " + std::to_string(tree->GetNbranches()));
       }
       file->Close();
-      boost::filesystem::remove(check.fileName.c_str());
+      std::filesystem::remove(check.fileName.c_str());
     }
     mChecks.clear();
     if (mErrorMessage.empty() == false) {
@@ -164,7 +164,7 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  std::string fileName = boost::filesystem::temp_directory_path().string();
+  std::string fileName = std::filesystem::temp_directory_path().string();
   fileName += "/test_RootTreeWriter";
   std::string altFileName = fileName + "_alt.root";
   fileName += ".root";

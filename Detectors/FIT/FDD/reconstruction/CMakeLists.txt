@@ -21,3 +21,9 @@ o2_target_root_dictionary(
   HEADERS include/FDDReconstruction/Reconstructor.h
           include/FDDReconstruction/ReadRaw.h
           include/FDDReconstruction/CTFCoder.h)
+
+o2_add_executable(
+  test-raw2digit
+  COMPONENT_NAME fdd
+  SOURCES src/test-raw2digit.cxx
+  PUBLIC_LINK_LIBRARIES O2::FDDReconstruction)

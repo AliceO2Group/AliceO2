@@ -81,7 +81,7 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyDecoderSpec()
 {
   std::vector<OutputSpec> outputs{
-    OutputSpec{{"triggers"}, "TRD", "TRIGRECORDS", 0, Lifetime::Timeframe},
+    OutputSpec{{"triggers"}, "TRD", "TRKTRGRD", 0, Lifetime::Timeframe},
     OutputSpec{{"tracklets"}, "TRD", "TRACKLETS", 0, Lifetime::Timeframe},
     OutputSpec{{"digits"}, "TRD", "DIGITS", 0, Lifetime::Timeframe}};
 

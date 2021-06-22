@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <vector>
+#include <memory>
 
 #include "Headers/RAWDataHeader.h"
 #include "CommonDataFormat/InteractionRecord.h"
@@ -71,11 +72,11 @@ class HmpidCoder2
   uint32_t* mPadMap;
   int mEventSizePerEquipment[Geo::MAXEQUIPMENTS];
   int mEventPadsPerEquipment[Geo::MAXEQUIPMENTS];
-  int mPailoadBufferDimPerEquipment;
+  int mPayloadBufferDimPerEquipment;
   long mPadsCoded;
   bool mSkipEmptyEvents;
-  std::unique_ptr<uint32_t> mUPayloadBufferPtr;
-  std::unique_ptr<uint32_t> mUPadMap;
+  std::unique_ptr<uint32_t[]> mUPayloadBufferPtr;
+  std::unique_ptr<uint32_t[]> mUPadMap;
 
   LinkSubSpec_t mTheRFWLinks[Geo::MAXEQUIPMENTS];
 

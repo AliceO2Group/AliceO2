@@ -10,6 +10,7 @@
 
 o2_add_library(MCHRawEncoderPayload
         SOURCES
+        BareElinkEncoder.cxx
         BitSet.cxx
         DataBlock.cxx
         PayloadEncoder.cxx

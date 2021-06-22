@@ -19,7 +19,7 @@
 #include "ITStracking/Constants.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/Tracklet.h"
-
+#include <fmt/format.h>
 #include "ReconstructionDataFormats/Track.h"
 #include <cassert>
 #include <iostream>
@@ -113,8 +113,8 @@ void TrackerTraitsCPU::computeLayerTracklets()
     }
     if (iLayer > 0 && iLayer < mTrkParams.TrackletsPerRoad() - 1 &&
         primaryVertexContext->getTracklets()[iLayer].size() > primaryVertexContext->getCellsLookupTable()[iLayer - 1].size()) {
-      std::cout << "**** FATAL: not enough memory in the CellsLookupTable, increase the tracklet memory coefficients ****" << std::endl;
-      exit(1);
+      throw std::runtime_error(fmt::format("not enough memory in the CellsLookupTable, increase the tracklet memory coefficients: {} tracklets on L{}, lookup table size {} on L{}",
+                                           primaryVertexContext->getTracklets()[iLayer].size(), iLayer, primaryVertexContext->getCellsLookupTable()[iLayer - 1].size(), iLayer - 1));
     }
   }
 #ifdef CA_DEBUG

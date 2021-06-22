@@ -33,10 +33,11 @@ GPUdii() void GPUTPCCFClusterizer::Thread<0>(int nBlocks, int nThreads, int iBlo
 
   tpc::ClusterNative* clusterOut = (onlyMC) ? nullptr : clusterer.mPclusterByRow;
 
-  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow);
+  GPUTPCCFClusterizer::computeClustersImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), clusterer, clusterer.mPmemory->fragment, smem, chargeMap, clusterer.mPfilteredPeakPositions, clusterer.Param().rec, CPU_PTR(&labelAcc), clusterer.mPmemory->counters.nClusters, clusterer.mNMaxClusterPerRow, clusterer.mPclusterInRow, clusterOut, clusterer.mPclusterPosInRow);
 }
 
 GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads, int iBlock, int iThread,
+                                                       processorType& clusterer,
                                                        const CfFragment& fragment,
                                                        GPUSharedMemory& smem,
                                                        const Array2D<PackedCharge>& chargeMap,
@@ -76,18 +77,19 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
   pc.finalize(pos, charge, fragment.start);
 
   tpc::ClusterNative myCluster;
-  pc.toNative(pos, charge, calib.tpcCFminSplitNum, myCluster);
+  pc.toNative(pos, charge, calib.tpc.cfMinSplitNum, myCluster);
 
-  bool aboveQTotCutoff = (myCluster.qTot > calib.tpcCFqtotCutoff);
+  bool aboveQTotCutoff = (myCluster.qTot > calib.tpc.cfQTotCutoff);
 
-  if (!aboveQTotCutoff) {
+  if (clusterPosInRow && !aboveQTotCutoff) {
     clusterPosInRow[idx] = maxClusterPerRow;
     return;
   }
 
-  uint rowIndex;
+  uint rowIndex = 0;
   if (clusterByRow != nullptr) {
     rowIndex = sortIntoBuckets(
+      clusterer,
       myCluster,
       pos.row(),
       maxClusterPerRow,
@@ -96,7 +98,7 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
     if (clusterPosInRow != nullptr) {
       clusterPosInRow[idx] = rowIndex;
     }
-  } else {
+  } else if (clusterPosInRow) {
     rowIndex = clusterPosInRow[idx];
   }
 
@@ -126,7 +128,7 @@ GPUdii() void GPUTPCCFClusterizer::updateClusterInner(
     CPU_ONLY(
       labelAcc->collect(pos.delta(d), q));
 
-    aboveThreshold |= (uchar(q > calib.tpcCFinnerThreshold) << i);
+    aboveThreshold |= (uchar(q > calib.tpc.cfInnerThreshold) << i);
   }
 
   innerAboveThreshold[lid] = aboveThreshold;
@@ -249,11 +251,14 @@ GPUdii() void GPUTPCCFClusterizer::buildCluster(
 #endif
 }
 
-GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(const tpc::ClusterNative& cluster, uint row, uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
+GPUd() uint GPUTPCCFClusterizer::sortIntoBuckets(processorType& clusterer, const tpc::ClusterNative& cluster, uint row, uint maxElemsPerBucket, uint* elemsInBucket, tpc::ClusterNative* buckets)
 {
   uint index = CAMath::AtomicAdd(&elemsInBucket[row], 1u);
   if (index < maxElemsPerBucket) {
     buckets[maxElemsPerBucket * row + index] = cluster;
+  } else {
+    clusterer.raiseError(GPUErrors::ERROR_CF_ROW_CLUSTER_OVERFLOW, index, maxElemsPerBucket);
+    CAMath::AtomicExch(&elemsInBucket[row], maxElemsPerBucket);
   }
   return index;
 }

@@ -41,7 +41,7 @@ class TPCInterpolationDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getTPCInterpolationSpec(bool useMC, const std::vector<int>& tpcClusLanes);
+framework::DataProcessorSpec getTPCInterpolationSpec(bool useMC);
 
 } // namespace tpc
 } // namespace o2

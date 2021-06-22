@@ -74,36 +74,40 @@ void PreClusterFinder::deinit()
 void PreClusterFinder::reset()
 {
   /// reset fired pad and precluster information
+  for (int iDE = 0; iDE < SNDEs; ++iDE) {
+    reset(iDE);
+  }
+}
+
+//_________________________________________________________________________________________________
+void PreClusterFinder::reset(int deIndex)
+{
+  /// reset fired pad and precluster information of this DE
 
   Mapping::MpPad* pad(nullptr);
+  DetectionElement& de(*(mDEs[deIndex]));
 
-  // loop over DEs
-  for (int iDE = 0; iDE < SNDEs; ++iDE) {
+  // loop over planes
+  for (int iPlane = 0; iPlane < 2; ++iPlane) {
 
-    DetectionElement& de(*(mDEs[iDE]));
+    // clear number of preclusters
+    mNPreClusters[deIndex][iPlane] = 0;
 
-    // loop over planes
-    for (int iPlane = 0; iPlane < 2; ++iPlane) {
+    // loop over fired pads
+    for (int iFiredPad = 0; iFiredPad < de.nFiredPads[iPlane]; ++iFiredPad) {
 
-      // clear number of preclusters
-      mNPreClusters[iDE][iPlane] = 0;
-
-      // loop over fired pads
-      for (int iFiredPad = 0; iFiredPad < de.nFiredPads[iPlane]; ++iFiredPad) {
-
-        pad = &de.mapping->pads[de.firedPads[iPlane][iFiredPad]];
-        pad->iDigit = 0;
-        pad->useMe = false;
-      }
-
-      // clear number of fired pads
-      de.nFiredPads[iPlane] = 0;
+      pad = &de.mapping->pads[de.firedPads[iPlane][iFiredPad]];
+      pad->iDigit = 0;
+      pad->useMe = false;
     }
 
-    // clear ordered number of fired pads
-    de.nOrderedPads[0] = 0;
-    de.nOrderedPads[1] = 0;
+    // clear number of fired pads
+    de.nFiredPads[iPlane] = 0;
   }
+
+  // clear ordered number of fired pads
+  de.nOrderedPads[0] = 0;
+  de.nOrderedPads[1] = 0;
 }
 
 //_________________________________________________________________________________________________
@@ -145,6 +149,45 @@ void PreClusterFinder::loadDigit(const Digit& digit)
     de.firedPads[iPlane].push_back(iPad);
   }
   ++de.nFiredPads[iPlane];
+}
+
+//_________________________________________________________________________________________________
+int PreClusterFinder::discardHighOccupancy(bool perDE, bool perEvent)
+{
+  /// discard high-occupancy (noisy) DE and/or event
+
+  static constexpr double maxOccupancy = 0.2;
+  static constexpr int maxHighOccupancyDE = 4;
+
+  if (!perDE && !perEvent) {
+    return 0;
+  }
+
+  // discard DE with high occupancy in either bending or non-bending plane on stations 3-4-5
+  int nDigits(0);
+  int nRemovedDigits(0);
+  int nHighOccupancyDE(0);
+  for (int iDE = 0; iDE < SNDEs; ++iDE) {
+    DetectionElement& de(*(mDEs[iDE]));
+    nDigits += de.nFiredPads[0] + de.nFiredPads[1];
+    if (de.mapping->uid >= 500 &&
+        (de.nFiredPads[0] > maxOccupancy * de.mapping->nPads[0] ||
+         de.nFiredPads[1] > maxOccupancy * de.mapping->nPads[1])) {
+      ++nHighOccupancyDE;
+      if (perDE) {
+        nRemovedDigits += de.nFiredPads[0] + de.nFiredPads[1];
+        reset(iDE);
+      }
+    }
+  }
+
+  // discard events with too many high-occupancy DE
+  if (perEvent && nHighOccupancyDE > maxHighOccupancyDE) {
+    nRemovedDigits = nDigits;
+    reset();
+  }
+
+  return nRemovedDigits;
 }
 
 //_________________________________________________________________________________________________

@@ -7,38 +7,42 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Filters are used to select specific rows of a table.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include <arrow/util/config.h>
 
 namespace o2::aod
 {
 namespace etaphi
 {
 DECLARE_SOA_COLUMN(NPhi, nphi, float);
-DECLARE_SOA_EXPRESSION_COLUMN(CosPhi, cosphi, float, ncos(aod::etaphi::nphi));
+DECLARE_SOA_EXPRESSION_COLUMN(CosPhi, cosphi, float,
+                              ncos(aod::etaphi::nphi));
 } // namespace etaphi
 namespace track
 {
-DECLARE_SOA_EXPRESSION_COLUMN(SPt, spt, float, nabs(aod::track::sigma1Pt / aod::track::signed1Pt));
+DECLARE_SOA_EXPRESSION_COLUMN(SPt, spt, float,
+                              nabs(aod::track::sigma1Pt / aod::track::signed1Pt));
 }
 DECLARE_SOA_TABLE(TPhi, "AOD", "TPHI",
                   etaphi::NPhi);
-DECLARE_SOA_EXTENDED_TABLE_USER(EPhi, TPhi, "EPHI", aod::etaphi::CosPhi);
+DECLARE_SOA_EXTENDED_TABLE_USER(EPhi, TPhi, "EPHI",
+                                aod::etaphi::CosPhi);
 using etracks = soa::Join<aod::Tracks, aod::TracksCov>;
-DECLARE_SOA_EXTENDED_TABLE_USER(MTracks, etracks, "MTRACK", aod::track::SPt);
+DECLARE_SOA_EXTENDED_TABLE_USER(MTracks, etracks, "MTRACK",
+                                aod::track::SPt);
 } // namespace o2::aod
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-// This is a very simple example showing how to iterate over tracks
-// and create a new collection for them.
-// FIXME: this should really inherit from AnalysisTask but
-//        we need GCC 7.4+ for that
-struct ATask {
+// production of table o2::aod::TPhi
+struct ProduceTPhi {
   Produces<aod::TPhi> tphi;
   void process(aod::Tracks const& tracks)
   {
@@ -48,11 +52,12 @@ struct ATask {
   }
 };
 
-struct BTask {
+// Apply filters on Collisions, Tracks, and TPhi
+struct SpawnExtendedTables {
+  // spawn the extended tables
   Spawns<aod::EPhi> ephi;
   Spawns<aod::MTracks> mtrk;
 
-  float fPI = static_cast<float>(M_PI);
   Configurable<float> ptlow{"ptlow", 0.5f, ""};
   Configurable<float> ptup{"ptup", 2.0f, ""};
   Filter ptFilter_a = aod::track::pt > ptlow;
@@ -73,6 +78,7 @@ struct BTask {
   Filter bitwiseFilter = (o2::aod::track::flags & static_cast<uint32_t>(o2::aod::track::TPCrefit)) != 0u;
 #endif
 
+  // process only collisions and tracks which pass all defined filter criteria
   void process(soa::Filtered<aod::Collisions>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TPhi>> const& tracks)
   {
     LOGF(INFO, "Collision: %d [N = %d out of %d], -%.1f < %.3f < %.1f",
@@ -84,7 +90,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct ConsumeExtendedTables {
   void process(aod::Collision const&, soa::Join<aod::Tracks, aod::EPhi> const& tracks)
   {
     for (auto& track : tracks) {
@@ -93,7 +99,8 @@ struct CTask {
   }
 };
 
-struct DTask {
+// tracks which are not tracklets
+struct FilterTracks {
   Filter notTracklet = aod::track::trackType != static_cast<uint8_t>(aod::track::TrackTypeEnum::Run2Tracklet);
   void process(aod::Collision const&, soa::Filtered<aod::MTracks> const& tracks)
   {
@@ -106,8 +113,9 @@ struct DTask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"produce-normalizedphi"}),
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"consume-normalizedphi"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"consume-spawned-ephi"}),
-    adaptAnalysisTask<DTask>(cfgc, TaskName{"consume-spawned-mtracks"})};
+    adaptAnalysisTask<ProduceTPhi>(cfgc),
+    adaptAnalysisTask<SpawnExtendedTables>(cfgc),
+    adaptAnalysisTask<ConsumeExtendedTables>(cfgc),
+    adaptAnalysisTask<FilterTracks>(cfgc),
+  };
 }

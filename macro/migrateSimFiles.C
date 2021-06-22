@@ -65,7 +65,7 @@ void migrateSimFiles(const char* filebase = "o2sim")
 {
 
   // READ GRP AND ITERATE OVER DETECTED PARTS
-  auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName(filebase).c_str());
+  auto grp = o2::parameters::GRPObject::loadFrom(filebase);
   if (!grp) {
     std::cerr << "No GRP found. Exiting\n";
   }

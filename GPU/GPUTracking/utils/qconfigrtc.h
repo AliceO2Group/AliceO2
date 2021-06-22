@@ -21,6 +21,10 @@
 #define qon_mstr(a) #a
 #define qon_mxstr(a) qon_mstr(a)
 #endif
+#ifndef qon_mxcat
+#define qon_mcat(a, b) a##b
+#define qon_mxcat(a, b) qon_mcat(a, b)
+#endif
 
 template <class T>
 static std::string qConfigPrintRtc(const T& tSrc, bool useConstexpr)

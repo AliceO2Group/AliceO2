@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(TestSlicingFramework)
 
   std::vector<uint64_t> offsets;
   std::vector<arrow::Datum> slices;
-  auto status = sliceByColumn<int32_t>("x", table, 12, &slices, &offsets);
+  auto status = sliceByColumn<int32_t>("x", table, 12, &slices, nullptr, &offsets);
   BOOST_REQUIRE(status.ok());
   BOOST_REQUIRE_EQUAL(slices.size(), 12);
   std::array<int, 12> sizes{0, 4, 1, 0, 1, 2, 0, 0, 0, 0, 0, 0};

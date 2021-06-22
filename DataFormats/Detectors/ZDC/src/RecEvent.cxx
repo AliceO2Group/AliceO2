@@ -14,5 +14,16 @@ using namespace o2::zdc;
 
 void RecEvent::print() const
 {
-  ir.print();
+  for (auto bcdata : mRecBC) {
+    bcdata.ir.print();
+    int fe, ne, ft, nt, fi, ni;
+    bcdata.getRef(fe, ne, ft, nt, fi, ni);
+    for (int ie = 0; ie < ne; ie++) {
+      mEnergy[fe + ie].print();
+    }
+    for (int it = 0; it < nt; it++) {
+      mTDCData[ft + it].print();
+    }
+    // TODO: event info
+  }
 }

@@ -8,93 +8,66 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/** @file Digitizer.h
- * C++  MCH Digitizer.
- * @author Michael Winn, Laurent Aphecetche
- */
+#ifndef O2_MCH_SIMULATION_DIGITIZER_H
+#define O2_MCH_SIMULATION_DIGITIZER_H
 
-#ifndef O2_MCH_SIMULATION_MCHDIGITIZER_H_
-#define O2_MCH_SIMULATION_MCHDIGITIZER_H_
-
-#include "DataFormatsMCH/Digit.h"
 #include "MCHSimulation/Hit.h"
-
+#include "MCHGeometryTransformer/Transformations.h"
+#include "MCHSimulation/DEDigitizer.h"
+#include <map>
+#include <gsl/span>
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
-namespace o2
+namespace o2::mch
 {
-namespace mch
-{
-
+/** MCH Digitizer.
+ *
+ * This class is just steering the usage of o2::mch::DEDigitizer
+ *
+ */
 class Digitizer
 {
  public:
-  Digitizer(int mode = 0);
+  /** Constructor.
+   * @param transformationCreator is a function that is able to create
+   * a geo::TransformationCreator
+   */
+  Digitizer(geo::TransformationCreator transformationCreator);
 
-  ~Digitizer() = default;
+  // @see DEDigitizer::addNoise
+  void addNoise(float noiseProba);
 
-  void init();
+  // @see DEDigitizer::startCollision
+  void startCollision(o2::InteractionRecord collisionTime);
 
-  //process hits: fill digit vector with digits
-  void process(const std::vector<Hit> hits, std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
-  void provideMC(o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
-  void mergeDigits();
-  void generateNoiseDigits();
-  //external pile-up adding up
-  void mergeDigits(std::vector<Digit>& digits, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& mcContainer);
+  // @see DEDigitizer::processHit
+  void processHits(gsl::span<Hit> hits, int evID, int srcID);
 
-  void fillOutputContainer(std::vector<Digit>& digits);
+  // @see DEDigitizer::extractDigitsAndLabels
+  void extractDigitsAndLabels(std::vector<Digit>& digits,
+                              o2::dataformats::MCTruthContainer<o2::MCCompLabel>& labels);
 
-  void setEventTime(double timeNS) { mEventTime = timeNS; }
-
-  void setContinuous(bool val) { mContinuous = val; }
-  bool isContinuous() const { return mContinuous; }
-
-  void setSrcID(int v);
-  int getSrcID() const { return mSrcID; }
-
-  void setEventID(int v);
-  int getEventID() const { return mEventID; }
-
-  void setNoise(bool val) { mNoise = val; }
-  bool isNoise() const { return mNoise; }
-
-  //for debugging
-  std::vector<Digit> getDigits() { return mDigits; }
-  std::vector<o2::MCCompLabel> getTrackLabels() { return mTrackLabels; }
+  // @see DEDigitizer:clear
+  void clear();
 
  private:
-  int mEventTime;
-  int mEventID = 0;
-  int mSrcID = 0;
-
-  bool mContinuous = false;
-  bool mNoise = true;
-
-  //time difference allowed for pileup (in ns (assuming that event time is in ns))
-  float mDeltat = 100.;
-
-  //number of detector elements
-  const static int mNdE = 156;
-
-  //noise above threshold probability within read-out window
-  float mProbNoise = 1e-5;
-  //sum_i 1/padcount_i where i is the detelemID
-  float mInvPadSum = 0.0450832;
-  float mNormProbNoise = mProbNoise / mInvPadSum;
-
-  // digit per pad
-  std::vector<Digit> mDigits;
-
-  //MCLabel container (transient)
-  std::vector<o2::MCCompLabel> mTrackLabels;
-  //MCLabel container (output)
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mMCTruthOutputContainer;
-
-  int processHit(const Hit& hit, int detID, int event_time);
+  std::map<int, std::unique_ptr<DEDigitizer>> mDEDigitizers; // list of workers
 };
 
-} // namespace mch
-} // namespace o2
+/** Group Interaction Record that are "too close" in time (BC).
+ *
+ * @param records : a list of input IR to group
+ * @param width (in BC unit) : all IRs within this distance will be considered
+ * to be a single group
+ *
+ * @returns a map of IRs->{index} where index is relative to input records
+ *
+ */
+std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::InteractionRecord> records, uint32_t width = 4);
+
+/** Same as above for InteractionTimeRecord. */
+std::map<o2::InteractionRecord, std::vector<int>> groupIR(gsl::span<const o2::InteractionTimeRecord> records, uint32_t width = 4);
+
+} // namespace o2::mch
 #endif

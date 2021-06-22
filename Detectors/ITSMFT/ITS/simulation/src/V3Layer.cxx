@@ -447,12 +447,13 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
   // Updated:      16 Mar 2017  Mario Sitta  AliceO2 version
   // Updated:      10 Jan 2018  Mario Sitta  Compute all dimensions using
   //                                         AlpideChip as basis
+  // Updated:      10 Mar 2021  Mario Sitta  Get rid of fake IB HS and Module
   //
 
   const Int_t nameLen = 30;
   char volumeName[nameLen];
 
-  Double_t xpos, ypos;
+  Double_t xpos, ypos, ymod;
   Double_t alpha;
 
   // First create all needed shapes
@@ -468,15 +469,15 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
 
   // Now build up the stave
   if (mLayerNumber < sNumberOfInnerLayers) {
-    TGeoVolume* modVol = createStaveInnerB();
-    ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - mChipThickness; // = 0 if not kIBModel4
-    staveVol->AddNode(modVol, 0, new TGeoTranslation(0, ypos, 0));
-    mHierarchy[kHalfStave] = 1;
+    ymod = createStaveInnerB(staveVol);
+    ypos = ymod - mChipThickness; // = 0 if not kIBModel4
+    mHierarchy[kHalfStave] = 0;
+    mHierarchy[kModule] = 0;
 
     // Mechanical stave structure
     mechStaveVol = createStaveStructInnerB();
     if (mechStaveVol) {
-      ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - ypos;
+      ypos = ymod - ypos;
       if (mStaveModel != Detector::kIBModel4) {
         ypos += (static_cast<TGeoBBox*>(mechStaveVol->GetShape()))->GetDY();
       }
@@ -511,36 +512,7 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
   return staveVol;
 }
 
-TGeoVolume* V3Layer::createStaveInnerB(const TGeoManager* mgr)
-{
-  Double_t xmod, ymod, zmod;
-  const Int_t nameLen = 30;
-  char volumeName[nameLen];
-
-  // First we create the module (i.e. the HIC with 9 chips)
-  TGeoVolume* moduleVol = createModuleInnerB();
-
-  // Then we create the fake halfstave and the actual stave
-  xmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDX();
-  ymod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDY();
-  zmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDZ();
-
-  TGeoBBox* hstave = new TGeoBBox(xmod, ymod, zmod);
-
-  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
-
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
-  TGeoVolume* hstaveVol = new TGeoVolume(volumeName, hstave, medAir);
-
-  // Finally build it up
-  hstaveVol->AddNode(moduleVol, 0);
-  mHierarchy[kModule] = 1;
-
-  // Done, return the stave structure
-  return hstaveVol;
-}
-
-TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
+Double_t V3Layer::createStaveInnerB(TGeoVolume* mother, const TGeoManager* mgr)
 {
   Double_t xtot, ytot, ztot, xchip, zchip, ymod;
   Double_t xpos, ypos, zpos;
@@ -568,7 +540,61 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
 
   mIBModuleZLength = 2 * zchip * sIBChipsPerRow + (sIBChipsPerRow - 1) * sIBChipZGap;
 
-  // Then create the Glue, the Kapton and the two Aluminum cables
+  xtot = xchip + (sIBFPCWiderXPlus + sIBFPCWiderXNeg) / 2;
+  ztot = mIBModuleZLength / 2;
+
+  // Then create all other elements (glue and FPC)
+  TGeoVolume* ibModule = createModuleInnerB(xchip, zchip);
+
+  // Build up the stave
+  // Chips are rotated by 180deg around Y axis
+  // in order to have the correct X and Z axis orientation
+  xpos = -xtot + (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDX() + sIBFPCWiderXNeg;
+  ypos = ymod - mChipThickness;
+
+  for (Int_t j = 0; j < sIBChipsPerRow; j++) {
+    zpos = ztot - j * (2 * zchip + sIBChipZGap) - zchip;
+    mother->AddNode(chipVol, j, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 0, 180, 180)));
+    mHierarchy[kChip]++;
+  }
+  ytot = ymod;
+
+  // Place the FPC and glue
+  if (mStaveModel == Detector::kIBModel4) {
+    Double_t yvol = (static_cast<TGeoBBox*>(ibModule->GetShape()))->GetDY();
+    ypos += (ymod + yvol);
+    mother->AddNode(ibModule, 1, new TGeoTranslation(0, ypos, 0));
+    ytot += yvol;
+  }
+
+  // Done, return the total thickness (used to properly place the services)
+  return ytot;
+}
+
+TGeoVolume* V3Layer::createModuleInnerB(const Double_t xchip, const Double_t zchip, const TGeoManager* mgr)
+{
+  //
+  // Creates the FPC and glue volumes
+  // (zimilar to previous method, except the Chips)
+  //
+  // Input:
+  //         xchip : the Chip width
+  //         zchip : the Chip length
+  //         mgr   : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //         the module as a TGeoVolume
+  //
+  // Updated:      03 Apr 2021
+
+  Double_t xtot, ytot, ztot;
+  Double_t xpos, ypos, zpos;
+  const Int_t nameLen = 30;
+  char volumeName[nameLen];
+
+  // Create the Glue, the Kapton and the two Aluminum cables
   xtot = xchip + (sIBFPCWiderXPlus + sIBFPCWiderXNeg) / 2;
   ztot = mIBModuleZLength / 2;
 
@@ -578,15 +604,11 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   TGeoVolume* aluGndCableVol = createIBFPCAlGnd(xtot, ztot);
   TGeoVolume* aluAnodeCableVol = createIBFPCAlAnode(xtot, ztot);
 
-  // Finally create the module and populate it with the chips
-  // (and the FPC Kapton and Aluminum in the most recent IB model)
+  // Then create the module volume
   Double_t ygnd = (static_cast<TGeoBBox*>(aluGndCableVol->GetShape()))->GetDY();
   Double_t yano = (static_cast<TGeoBBox*>(aluAnodeCableVol->GetShape()))->GetDY();
 
-  ytot = ymod;
-  if (mStaveModel == Detector::kIBModel4) {
-    ytot += (sIBGlueThick / 2 + ygnd + sIBFlexCableKapThick / 2 + yano + sIBFlexCapacitorYHi / 2);
-  }
+  ytot = sIBGlueThick / 2 + ygnd + sIBFlexCableKapThick / 2 + yano + sIBFlexCapacitorYHi / 2;
 
   TGeoBBox* module = new TGeoBBox(xtot, ytot, ztot);
 
@@ -595,7 +617,7 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   TGeoMedium* medKapton = mgr->GetMedium("ITS_KAPTON(POLYCH2)$");
   TGeoMedium* medGlue = mgr->GetMedium("ITS_GLUE_IBFPC$");
 
-  snprintf(volumeName, nameLen, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
+  snprintf(volumeName, nameLen, "ServicesContainer%d", mLayerNumber);
   TGeoVolume* modVol = new TGeoVolume(volumeName, module, medAir);
 
   TGeoVolume* glueVol = new TGeoVolume("FPCGlue", glue, medGlue);
@@ -607,35 +629,24 @@ TGeoVolume* V3Layer::createModuleInnerB(const TGeoManager* mgr)
   kapCableVol->SetFillColor(kBlue);
 
   // Build up the module
-  // Chips are rotated by 180deg around Y axis
-  // in order to have the correct X and Z axis orientation
-  xpos = -xtot + (static_cast<TGeoBBox*>(chipVol->GetShape()))->GetDX() + sIBFPCWiderXNeg;
-  ypos = -ytot + ymod; // = 0 if not kIBModel4
-  for (Int_t j = 0; j < sIBChipsPerRow; j++) {
-    zpos = ztot - j * (2 * zchip + sIBChipZGap) - zchip;
-    modVol->AddNode(chipVol, j, new TGeoCombiTrans(xpos, ypos, zpos, new TGeoRotation("", 0, 180, 180)));
-    mHierarchy[kChip]++;
+  xpos = -xtot + xchip + sIBFPCWiderXNeg;
+  ypos = -ytot + glue->GetDY();
+  if (mBuildLevel < 2) { // Glue
+    modVol->AddNode(glueVol, 1, new TGeoTranslation(xpos, ypos, 0));
   }
+  ypos += glue->GetDY();
 
-  if (mStaveModel == Detector::kIBModel4) {
-    ypos += (ymod + glue->GetDY());
-    if (mBuildLevel < 2) { // Glue
-      modVol->AddNode(glueVol, 1, new TGeoTranslation(xpos, ypos, 0));
-    }
-    ypos += glue->GetDY();
+  if (mBuildLevel < 4) { // Kapton
+    ypos += ygnd;
+    modVol->AddNode(aluGndCableVol, 1, new TGeoTranslation(0, ypos, 0));
 
-    if (mBuildLevel < 4) { // Kapton
-      ypos += ygnd;
-      modVol->AddNode(aluGndCableVol, 1, new TGeoTranslation(0, ypos, 0));
+    ypos += (ygnd + kapCable->GetDY());
+    modVol->AddNode(kapCableVol, 1, new TGeoTranslation(0, ypos, 0));
 
-      ypos += (ygnd + kapCable->GetDY());
-      modVol->AddNode(kapCableVol, 1, new TGeoTranslation(0, ypos, 0));
+    ypos += (kapCable->GetDY() + yano);
+    modVol->AddNode(aluAnodeCableVol, 1, new TGeoTranslation(0, ypos, 0));
 
-      ypos += (kapCable->GetDY() + yano);
-      modVol->AddNode(aluAnodeCableVol, 1, new TGeoTranslation(0, ypos, 0));
-
-      ypos += yano;
-    }
+    ypos += yano;
   }
 
   // Add the capacitors

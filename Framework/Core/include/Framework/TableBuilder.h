@@ -551,6 +551,29 @@ struct HolderTrait<int64_t> {
   using Holder = BuilderHolder<int64_t, CachedInsertion>;
 };
 
+/// Helper function to convert a brace-initialisable struct to
+/// a tuple.
+template <class T>
+auto constexpr to_tuple(T&& object) noexcept
+{
+  using type = std::decay_t<T>;
+  if constexpr (is_braces_constructible<type, any_type, any_type, any_type, any_type>{}) {
+    auto&& [p0, p1, p2, p3] = object;
+    return std::make_tuple(p0, p1, p2, p3);
+  } else if constexpr (is_braces_constructible<type, any_type, any_type, any_type>{}) {
+    auto&& [p0, p1, p2] = object;
+    return std::make_tuple(p0, p1, p2);
+  } else if constexpr (is_braces_constructible<type, any_type, any_type>{}) {
+    auto&& [p0, p1] = object;
+    return std::make_tuple(p0, p1);
+  } else if constexpr (is_braces_constructible<type, any_type>{}) {
+    auto&& [p0] = object;
+    return std::make_tuple(p0);
+  } else {
+    return std::make_tuple();
+  }
+}
+
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
 /// to build an arrow::Table from a TDataFrame.
@@ -770,14 +793,13 @@ auto makeEmptyTable()
 
 /// Expression-based column generator to materialize columns
 template <typename... C>
-auto spawner(framework::pack<C...> columns, arrow::Table* atable)
+auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* name)
 {
-  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
-
   if (atable->num_rows() == 0) {
     return makeEmptyTable<soa::Table<C...>>();
   }
+  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
 
   arrow::TableBatchReader reader(*atable);
   std::shared_ptr<arrow::RecordBatch> batch;
@@ -788,15 +810,20 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw runtime_error_f("Cannot read batches from table: %s", s.ToString().c_str());
+      throw runtime_error_f("Cannot read batches from table %s: %s", name, s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
     }
-    s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
-    if (!s.ok()) {
-      throw runtime_error_f("Cannot apply projector: %s", s.ToString().c_str());
+    try {
+      s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
+      if (!s.ok()) {
+        throw runtime_error_f("Cannot apply projector to table %s: %s", name, s.ToString().c_str());
+      }
+    } catch (std::exception& e) {
+      throw runtime_error_f("Cannot apply projector to table %s: exception caught: %s", name, e.what());
     }
+
     for (auto i = 0u; i < sizeof...(C); ++i) {
       chunks[i].emplace_back(v.at(i));
     }

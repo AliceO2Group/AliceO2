@@ -15,9 +15,10 @@ o2_add_library(DataFormatsFV0
                 src/RawEventData.cxx
                 src/CTF.cxx
         PUBLIC_LINK_LIBRARIES O2::FV0Base
+                              O2::DataFormatsFIT
                               O2::SimulationDataFormat
                               O2::CommonDataFormat
-                              ms_gsl::ms_gsl)
+                              Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(DataFormatsFV0
         HEADERS include/DataFormatsFV0/Hit.h

@@ -22,7 +22,7 @@
 #include "FairVolume.h"
 
 #include "CPVBase/Geometry.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
 #include "CPVBase/CPVSimParams.h"
 #include "CPVSimulation/Detector.h"
 #include "CPVSimulation/GeometryParams.h"

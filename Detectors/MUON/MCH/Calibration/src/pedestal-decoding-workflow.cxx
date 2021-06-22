@@ -48,6 +48,8 @@
 #include "MCHBase/DecoderError.h"
 #include "MCHCalibration/PedestalDigit.h"
 
+#include "CommonUtils/ConfigurableParam.h"
+
 static const size_t SOLAR_ID_MAX = 100 * 8;
 
 namespace o2
@@ -84,6 +86,29 @@ static bool isValidDeID(int deId)
 
   return false;
 }
+
+static void patchPage(gsl::span<const std::byte> rdhBuffer, bool verbose)
+{
+  static int sNrdhs = 0;
+  auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(rdhBuffer[0])));
+  sNrdhs++;
+
+  auto existingFeeId = o2::raw::RDHUtils::getFEEID(rdhAny);
+  if (existingFeeId == 0) {
+    // early versions of raw data did not set the feeId
+    // which we need to select the right decoder
+    auto cruId = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF;
+    auto flags = o2::raw::RDHUtils::getCRUID(rdhAny) & 0xFF00;
+    auto endpoint = o2::raw::RDHUtils::getEndPointID(rdhAny);
+    uint32_t feeId = cruId * 2 + endpoint + flags;
+    o2::raw::RDHUtils::setFEEID(rdhAny, feeId);
+  }
+
+  if (verbose) {
+    std::cout << "RDH number " << sNrdhs << "--\n";
+    o2::raw::RDHUtils::printRDH(rdhAny);
+  }
+};
 
 //=======================
 // Data decoder
@@ -138,6 +163,7 @@ class PedestalsTask
   void reset()
   {
     mDigits.clear();
+    mErrors.clear();
   }
 
   //_________________________________________________________________________________________________
@@ -153,6 +179,9 @@ class PedestalsTask
     auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
       auto solarId = dsElecId.solarId();
       auto dsId = dsElecId.elinkId();
+      if (mDebug) {
+        std::cout << "New digit: SOLAR " << (int)solarId << "  DS " << (int)dsId << "  CH " << (int)channel << std::endl;
+      }
 
       mDigits.emplace_back(o2::mch::calibration::PedestalDigit(solarId, dsId, channel, sc.bunchCrossing, 0, sc.samples));
       ++ndigits;
@@ -164,6 +193,8 @@ class PedestalsTask
 
       mErrors.emplace_back(o2::mch::DecoderError(solarId, dsId, chip, error));
     };
+
+    patchPage(page, mDebug);
 
     if (mDebug) {
       auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
@@ -326,8 +357,8 @@ class PedestalsTask
 
     // create the output message
     auto freefct = [](void* data, void*) { free(data); };
-    pc.outputs().adoptChunk(Output{"MCH", "PDIGITS", 0}, digitsBuffer, digitsSize, freefct, nullptr);
-    //pc.outputs().adoptChunk(Output{"MCH", "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "PDIGITS", 0}, digitsBuffer, digitsSize, freefct, nullptr);
+    pc.outputs().adoptChunk(Output{header::gDataOriginMCH, "ERRORS", 0}, errorsBuffer, errorsSize, freefct, nullptr);
 
     logStats();
   }
@@ -374,6 +405,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"input-spec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -388,7 +420,8 @@ o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(std::string inputSpe
   return DataProcessorSpec{
     getMCHPedestalDecodingDeviceName(),
     o2::framework::select(inputSpec.c_str()),
-    Outputs{OutputSpec{"MCH", "PDIGITS", 0, Lifetime::Timeframe} /*, OutputSpec{"MCH", "ERRORS", 0, Lifetime::Timeframe}*/},
+    Outputs{OutputSpec{header::gDataOriginMCH, "PDIGITS", 0, Lifetime::Timeframe},
+            OutputSpec{header::gDataOriginMCH, "ERRORS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::PedestalsTask>(inputSpec)},
     Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
             {"logging-interval", VariantType::Int, 0, {"time interval in seconds between logging messages (set to zero to disable)"}},
@@ -401,6 +434,7 @@ o2::framework::DataProcessorSpec getMCHPedestalDecodingSpec(std::string inputSpe
 WorkflowSpec defineDataProcessing(const ConfigContext& config)
 {
   auto inputSpec = config.options().get<std::string>("input-spec");
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec specs;
 

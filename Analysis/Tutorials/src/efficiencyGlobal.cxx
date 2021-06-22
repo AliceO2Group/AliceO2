@@ -7,21 +7,19 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 ///
 /// \brief This example demonstrates how the CCDB can be used to store an efficiency object which is valid for a full train run
 ///        The objects are uploaded with
 ///        The objects are uploaded with https://alimonitor.cern.ch/ccdb/upload.jsp
 ///        A sufficiently large time stamp interval should be given to span all runs under consideration
 ///        NOTE If an efficiency object per run is needed, please check the example efficiencyPerRun.cxx
-///
-
-#include <chrono>
+/// \author
+/// \since
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include <CCDB/BasicCCDBManager.h>
+#include <chrono>
 
 using namespace o2::framework;
 using namespace o2;
@@ -34,6 +32,7 @@ struct EfficiencyGlobal {
 
   OutputObj<TH1F> pt{TH1F("pt", "pt", 20, 0., 10.)};
 
+  // the efficiency has been previously stored in the CCDB as TH1F histogram
   TH1F* efficiency = nullptr;
 
   void init(InitContext&)
@@ -63,5 +62,7 @@ struct EfficiencyGlobal {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<EfficiencyGlobal>(cfgc, TaskName{"EfficiencyGlobal"})};
+  return WorkflowSpec{
+    adaptAnalysisTask<EfficiencyGlobal>(cfgc),
+  };
 }

@@ -74,19 +74,23 @@ class LookUpTable
     }
   }
 
-  int getChannel(int link, int mcp) const { return mInvTopo[getIdx(link, mcp)]; }
+  int getChannel(int link, int mcp, int ep = 0) const { return mInvTopo[getIdx(link, mcp)]; }
   int getLink(int channel) const { return mTopoVector[channel].modLink; }
   int getModChannel(int channel) const { return mTopoVector[channel].modCh; }
   int getTcmLink() const { return Nmodules; }
+  bool isTCM(int link, int ep) const { return link == 2 && ep == 0; }
+  Topo getTopoPM(int globalChannelID) const { return mTopoVector[globalChannelID]; }
+  Topo getTopoTCM() const { return Topo{getTcmLink(), 0}; }
+  std::size_t getNchannels() const { return mTopoVector.size(); } //get number of global PM channels
   void printFullMap() const
   {
-    std::cout << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]" << std::endl;
+    LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
       std::cout << "  " << std::right << std::setw(2) << channel << "  ";
       std::cout << std::right << std::setw(2) << mTopoVector[channel].modLink << "  ";
       std::cout << std::right << std::setw(3) << mTopoVector[channel].modCh << std::endl;
     }
-    std::cout << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]" << std::endl;
+    LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
       std::cout << "  " << std::right << std::setw(3) << idx << "  ";
       std::cout << std::right << std::setw(3) << mInvTopo[idx] << "    ";
@@ -124,10 +128,76 @@ class SingleLUT : public LookUpTable
   SingleLUT& operator=(SingleLUT&) = delete;
 
  public:
+  typedef Topo Topo_t;
+  static constexpr char sDetectorName[] = "FDD";
   static SingleLUT& Instance()
   {
     static SingleLUT instanceLUT;
     return instanceLUT;
+  }
+  //Temporary
+  //Making topo for FEE recognizing(Local channelID is supressed)
+  static Topo_t makeGlobalTopo(const Topo_t& topo)
+  {
+    return Topo_t{topo.modLink, 0};
+  }
+  static int getLocalChannelID(const Topo_t& topo)
+  {
+    return topo.modCh;
+  }
+  //Prepare full map for FEE metadata
+  template <typename RDHtype, typename RDHhelper = void>
+  auto makeMapFEEmetadata() -> std::map<Topo_t, RDHtype>
+  {
+    std::map<Topo_t, RDHtype> mapResult;
+    const uint16_t cruID = 0;      //constant
+    const uint32_t endPointID = 0; //constant
+    uint64_t feeID = 0;            //increments
+    //PM
+    for (int iCh = 0; iCh < Instance().getNchannels(); iCh++) {
+      auto pairInserted = mapResult.insert({makeGlobalTopo(Instance().getTopoPM(iCh)), RDHtype{}});
+      if (pairInserted.second) {
+        auto& rdhObj = pairInserted.first->second;
+        const auto& topoObj = pairInserted.first->first;
+        if constexpr (std::is_same<RDHhelper, void>::value) {
+          rdhObj.linkID = topoObj.modLink;
+          rdhObj.endPointID = endPointID;
+          rdhObj.feeId = feeID;
+          rdhObj.cruID = cruID;
+        } else //Using RDHUtils
+        {
+          RDHhelper::setLinkID(&rdhObj, topoObj.modLink);
+          RDHhelper::setEndPointID(&rdhObj, endPointID);
+          RDHhelper::setFEEID(&rdhObj, feeID);
+          RDHhelper::setCRUID(&rdhObj, cruID);
+        }
+        feeID++;
+      }
+    }
+    //TCM
+    {
+      auto pairInserted = mapResult.insert({makeGlobalTopo(Instance().getTopoTCM()), RDHtype{}});
+      if (pairInserted.second) {
+        auto& rdhObj = pairInserted.first->second;
+        const auto& topoObj = pairInserted.first->first;
+        if constexpr (std::is_same<RDHhelper, void>::value) {
+          rdhObj.linkID = topoObj.modLink;
+          rdhObj.endPointID = endPointID;
+          rdhObj.feeId = feeID;
+          rdhObj.cruID = cruID;
+        } else //Using RDHUtils
+        {
+          RDHhelper::setLinkID(&rdhObj, topoObj.modLink);
+          RDHhelper::setEndPointID(&rdhObj, endPointID);
+          RDHhelper::setFEEID(&rdhObj, feeID);
+          RDHhelper::setCRUID(&rdhObj, cruID);
+        }
+      } else {
+        LOG(INFO) << "WARNING! CHECK LUT! TCM METADATA IS INCORRECT!";
+      }
+    }
+    assert(mapResult.size() > 0);
+    return mapResult;
   }
 };
 } // namespace fdd

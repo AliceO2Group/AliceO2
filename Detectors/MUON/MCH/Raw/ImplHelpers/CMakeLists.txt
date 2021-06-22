@@ -9,8 +9,8 @@
 # submit itself to any jurisdiction.
 
 o2_add_header_only_library(
-  MCHRawImplHelpers 
-  INTERFACE_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl
+  MCHRawImplHelpers
+  INTERFACE_LINK_LIBRARIES fmt::fmt Microsoft.GSL::GSL
   INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIRECTORY})
 
 o2_add_test(movebuffer

@@ -7,18 +7,22 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Example how to enumerate V0s and cascades. Note ...
+///        V0s = Join<TransientV0s, StoredV0s>
+///        Cascades = Join<TransientCascades, StoredCascades>
+///        TransientV0 and TransientCascades are filled by the helper task weak-decay-indices. Hence use ...
+///        o2-analysis-weak-decay-indices --aod-file AO2D.root | o2-analysistutorial-weak-decay-iteration
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-
-// Example how to enumerate V0s and cascades
-// Needs weak-decay-indices in the workflow
-// Example usage: o2-analysis-weak-decay-indices --aod-file AO2D.root | o2-analysistutorial-weak-decay-iteration
 
 using namespace o2;
 using namespace o2::framework;
 
-struct BTask {
+struct LoopV0s {
   void process(aod::V0s const& v0s, aod::Tracks const& tracks)
   {
     for (auto& v0 : v0s) {
@@ -27,7 +31,7 @@ struct BTask {
   }
 };
 
-struct CTask {
+struct LoopCascades {
   void process(aod::Cascades const& cascades, aod::V0s const& v0s, aod::Tracks const& tracks)
   {
     for (auto& cascade : cascades) {
@@ -37,7 +41,7 @@ struct CTask {
 };
 
 // Grouping V0s
-struct DTask {
+struct GroupV0s {
   void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Tracks const& tracks)
   {
     LOGF(INFO, "Collision %d has %d V0s", collision.globalIndex(), v0s.size());
@@ -50,7 +54,7 @@ struct DTask {
 
 // Grouping V0s and cascades
 // NOTE that you need to subscribe to V0s even if you only process cascades
-struct ETask {
+struct GroupV0sCascades {
   void process(aod::Collision const& collision, aod::V0s const& v0s, aod::Cascades const& cascades, aod::Tracks const& tracks)
   {
     LOGF(INFO, "Collision %d has %d cascades (%d tracks)", collision.globalIndex(), cascades.size(), tracks.size());
@@ -65,9 +69,9 @@ struct ETask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<BTask>(cfgc, TaskName{"consume-v0s"}),
-    adaptAnalysisTask<CTask>(cfgc, TaskName{"consume-cascades"}),
-    adaptAnalysisTask<DTask>(cfgc, TaskName{"consume-grouped-v0s"}),
-    adaptAnalysisTask<ETask>(cfgc, TaskName{"consume-grouped-cascades"}),
+    adaptAnalysisTask<LoopV0s>(cfgc),
+    adaptAnalysisTask<LoopCascades>(cfgc),
+    adaptAnalysisTask<GroupV0s>(cfgc),
+    adaptAnalysisTask<GroupV0sCascades>(cfgc),
   };
 }

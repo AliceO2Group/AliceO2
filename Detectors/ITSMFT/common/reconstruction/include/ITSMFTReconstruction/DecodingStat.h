@@ -57,11 +57,11 @@ struct ChipStat {
     "Unknow word"                                   // UnknownWord
   };
 
-  uint16_t chipID = 0;
+  uint16_t id = -1;
   size_t nHits = 0;
   std::array<uint32_t, NErrorsDefined> errorCounts = {};
   ChipStat() = default;
-  ChipStat(uint16_t id) : chipID(id) {}
+  ChipStat(uint16_t _id) : id(_id) {}
 
   void clear()
   {
@@ -70,19 +70,8 @@ struct ChipStat {
   }
 
   uint32_t getNErrors() const;
-
-  void addErrors(uint32_t mask)
-  {
-    if (mask) {
-      for (int i = NErrorsDefined; i--;) {
-        if (mask & (0x1 << i)) {
-          errorCounts[i]++;
-        }
-      }
-    }
-  }
-
-  void print(bool skipEmpty = true) const;
+  void addErrors(uint32_t mask, uint16_t chID);
+  void print(bool skipNoErr = true, const std::string& pref = "FEEID") const;
 
   ClassDefNV(ChipStat, 1);
 };
@@ -151,7 +140,7 @@ struct GBTLinkDecodingStat {
     packetStates.fill(0);
   }
 
-  void print(bool skipEmpty = true) const;
+  void print(bool skipNoErr = true) const;
 
   ClassDefNV(GBTLinkDecodingStat, 2);
 };

@@ -23,6 +23,8 @@
 #include <iostream>
 #include <iomanip>
 #include <functional>
+#include <unordered_map>
+
 #include "Rtypes.h"
 #include "DetectorsDCS/StringUtils.h"
 #include "DetectorsDCS/GenericFunctions.h"

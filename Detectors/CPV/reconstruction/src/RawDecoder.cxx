@@ -18,7 +18,6 @@
 using namespace o2::cpv;
 
 RawDecoder::RawDecoder(RawReaderMemory& reader) : mRawReader(reader),
-                                                  mRCUTrailer(),
                                                   mChannelsInitialized(false)
 {
 }
@@ -26,98 +25,115 @@ RawDecoder::RawDecoder(RawReaderMemory& reader) : mRawReader(reader),
 RawErrorType_t RawDecoder::decode()
 {
 
-  auto& header = mRawReader.getRawHeader();
-  short ddl = o2::raw::RDHUtils::getFEEID(header);
+  auto& rdh = mRawReader.getRawHeader();
+  short linkID = o2::raw::RDHUtils::getLinkID(rdh);
   mDigits.clear();
+  mBCRecords.clear();
 
-  auto payloadwords = mRawReader.getPayload();
-  if (payloadwords.size() == 0) {
-    mErrors.emplace_back(ddl, 0, 0, 0, kNO_PAYLOAD); //add error
-    LOG(ERROR) << "Empty payload for DDL=" << ddl;
-    return kNO_PAYLOAD;
+  auto payloadWords = mRawReader.getPayload();
+  if (payloadWords.size() == 0) {
+    return kOK_NO_PAYLOAD;
   }
 
-  // if(readRCUTrailer()!=kOK){
-  //   LOG(ERROR) << "can not read RCU trailer for DDL " << ddl ;
-  //   return kRCU_TRAILER_ERROR;
-  // }
-
   return readChannels();
-}
-
-RawErrorType_t RawDecoder::readRCUTrailer()
-{
-  gsl::span<const char> payload(reinterpret_cast<const char*>(mRawReader.getPayload().data()), mRawReader.getPayload().size() * sizeof(uint32_t));
-  mRCUTrailer.constructFromRawPayload(payload);
-  return kOK;
 }
 
 RawErrorType_t RawDecoder::readChannels()
 {
   mChannelsInitialized = false;
-  auto& header = mRawReader.getRawHeader();
-  // short ddl = o2::raw::RDHUtils::getLinkID(header) ; //Current module
 
-  auto& payloadwords = mRawReader.getPayload();
-  uint32_t wc = 0;
-  auto b = payloadwords.cbegin();
-  auto e = payloadwords.cend();
-  while (b != e) {
-    cpvword w(b, e);
-    if (w.isOK()) {
-      for (int i = 0; i < 3; i++) {
-        PadWord pw = {w.cpvPadWord(i)};
-        if (pw.zero == 0) {
-          addDigit(pw.mDataWord, w.ccId());
-        } else {
-          if (pw.mDataWord != 0xffffff) { //not empty pad
-            LOG(ERROR) << "no zero bit in data word " << pw.mDataWord;
-            mErrors.emplace_back(w.ccId(), 0, 0, 0, kPADERROR); //add error for non-existing row
+  auto& payloadWords = mRawReader.getPayload();
+  uint32_t wordCountFromLastHeader = 1; //header word is included
+  int nDigitsAddedFromLastHeader = 0;
+  bool isHeaderExpected = true;    //true if we expect to read header, false otherwise
+  bool skipUntilNextHeader = true; //true if something wrong with data format, try to read next header
+  uint16_t currentBC;
+  uint32_t currentOrbit = mRawReader.getCurrentHBFOrbit();
+  auto b = payloadWords.cbegin();
+  auto e = payloadWords.cend();
+  while (b != e) { //payload must start with cpvheader folowed by cpvwords and finished with cpvtrailer
+    CpvHeader header(b, e);
+    if (header.isOK()) {
+      if (!isHeaderExpected) { //actually, header was not expected
+        LOG(ERROR) << "RawDecoder::readChannels() : "
+                   << "header was not expected";
+        removeLastNDigits(nDigitsAddedFromLastHeader); //remove previously added digits as they are bad
+        mErrors.emplace_back(5, 0, 0, 0, kNO_CPVTRAILER);
+      }
+      skipUntilNextHeader = false;
+      currentBC = header.bc();
+      wordCountFromLastHeader = 0;
+      nDigitsAddedFromLastHeader = 0;
+      if (currentOrbit != header.orbit()) { //bad cpvheader
+        LOG(ERROR) << "RawDecoder::readChannels() : "
+                   << "currentOrbit != header.orbit()";
+        mErrors.emplace_back(5, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
+        skipUntilNextHeader = true;
+      }
+    } else {
+      if (skipUntilNextHeader) {
+        b += 16;
+        continue; //continue while'ing until it's not header
+      }
+      CpvWord word(b, e);
+      if (word.isOK()) {
+        wordCountFromLastHeader++;
+        for (int i = 0; i < 3; i++) {
+          PadWord pw = {word.cpvPadWord(i)};
+          if (pw.zero == 0) {
+            addDigit(pw.mDataWord, word.ccId(), currentBC);
+            nDigitsAddedFromLastHeader++;
           }
         }
-      }
-    } else { //this may be trailer
-      cpvtrailer tr(b, e);
-      if (tr.isOK()) {
-        if (tr.wordCounter() != wc) {
-          //some words lost?
-          LOG(ERROR) << "Read " << wc << " words, expected " << tr.wordCounter();
-          mErrors.emplace_back(w.ccId(), 0, 0, 0, kPAYLOAD_DECODING);
-          //TODO! should we continuew or brake?
+      } else { //this may be trailer
+        CpvTrailer trailer(b, e);
+        if (trailer.isOK()) {
+          int diffInCount = wordCountFromLastHeader - trailer.wordCounter();
+          if (diffInCount > 1 ||
+              diffInCount < -1) {
+            //some words lost?
+            LOG(ERROR) << "RawDecoder::readChannels() : "
+                       << "Read " << wordCountFromLastHeader << " words, expected " << trailer.wordCounter();
+            mErrors.emplace_back(5, 0, 0, 0, kCPVTRAILER_INVALID);
+            //throw all previous data and go to next header
+            removeLastNDigits(nDigitsAddedFromLastHeader);
+            skipUntilNextHeader = true;
+          }
+          if (trailer.bc() != currentBC) {
+            //trailer does not fit header
+            LOG(ERROR) << "RawDecoder::readChannels() : "
+                       << "CPVHeader BC is " << currentBC << " but CPVTrailer BC is " << trailer.bc();
+            mErrors.emplace_back(5, 0, 0, 0, kCPVTRAILER_INVALID);
+            removeLastNDigits(nDigitsAddedFromLastHeader);
+            skipUntilNextHeader = true;
+          }
+          isHeaderExpected = true;
+        } else {
+          wordCountFromLastHeader++;
+          //error
+          LOG(ERROR) << "RawDecoder::readChannels() : "
+                     << "Read unknown word";
+          mErrors.emplace_back(5, 0, 0, 0, kUNKNOWN_WORD); //add error for non-existing row
+          //what to do?
         }
-      } else {
-        //error
-        LOG(ERROR) << "Read neither data nor trailer word";
-        mErrors.emplace_back(w.ccId(), 0, 0, 0, kPADERROR); //add error for non-existing row
       }
     }
     b += 16;
-    wc++;
   }
-
   mChannelsInitialized = true;
   return kOK;
 }
 
-const RCUTrailer& RawDecoder::getRCUTrailer() const
+void RawDecoder::addDigit(uint32_t w, short ccId, uint16_t bc)
 {
-  if (!mRCUTrailer.isInitialized()) {
-    LOG(ERROR) << "RCU trailer not initialized";
+  //new bc -> add bc reference
+  if (mBCRecords.empty() || (mBCRecords.back().bc != bc)) {
+    mBCRecords.push_back(BCRecord(bc, mDigits.size(), mDigits.size()));
+  } else {
+    mBCRecords.back().lastDigit++;
   }
-  return mRCUTrailer;
-}
 
-const std::vector<uint32_t>& RawDecoder::getDigits() const
-{
-  if (!mChannelsInitialized) {
-    LOG(ERROR) << "Channels not initialized";
-  }
-  return mDigits;
-}
-
-void RawDecoder::addDigit(uint32_t w, short ccId)
-{
-
+  //add digit
   PadWord pad = {w};
   unsigned short absId;
   o2::cpv::Geometry::hwaddressToAbsId(ccId, pad.dil, pad.gas, pad.address, absId);
@@ -126,4 +142,25 @@ void RawDecoder::addDigit(uint32_t w, short ccId)
   ac.Address = absId;
   ac.Charge = pad.charge;
   mDigits.push_back(ac.mDataWord);
+}
+
+void RawDecoder::removeLastNDigits(int n)
+{
+  if (n < 0) {
+    return;
+  }
+  int nRemoved = 0;
+  while (nRemoved < n) {
+    if (mDigits.size() > 0) { // still has digits to remove
+      mDigits.pop_back();
+      if (mBCRecords.back().lastDigit == mBCRecords.back().firstDigit) {
+        mBCRecords.pop_back();
+      } else {
+        mBCRecords.back().lastDigit--;
+      }
+      nRemoved++;
+    } else { // has nothing to remove already
+      break;
+    }
+  }
 }

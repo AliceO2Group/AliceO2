@@ -13,7 +13,6 @@
 #include <iosfwd>
 #include <bitset>
 #include <Rtypes.h>
-#include <CCDB/TObjectWrapper.h> // Needed to trigger dictionary build
 
 class TH2;
 

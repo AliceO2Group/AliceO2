@@ -58,10 +58,10 @@ class TOFDPLRecoWorkflowWithTPCTask
   {
     // nothing special to be set up
     o2::base::GeometryManager::loadGeometry();
-    o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+    o2::base::Propagator::initFieldFromGRP();
     std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
     std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-    if (o2::base::NameConf::pathExists(matLUTFile)) {
+    if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
       LOG(INFO) << "Loaded material LUT from " << matLUTFile;

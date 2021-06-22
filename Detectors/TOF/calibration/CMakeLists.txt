@@ -10,22 +10,22 @@
 
 o2_add_library(TOFCalibration
                SOURCES src/CalibTOFapi.cxx
-	               src/CalibTOF.cxx
-		       src/CollectCalibInfoTOF.cxx
+                   src/CalibTOF.cxx
+               src/CollectCalibInfoTOF.cxx
                        src/LHCClockCalibrator.cxx
-		       src/TOFChannelCalibrator.cxx
-		       src/TOFCalibCollector.cxx
-		       src/TOFDCSProcessor.cxx
-		       src/TOFFEElightReader.cxx
-		       src/TOFFEElightConfig.cxx
+               src/TOFChannelCalibrator.cxx
+               src/TOFCalibCollector.cxx
+               src/TOFDCSProcessor.cxx
+               src/TOFFEElightReader.cxx
+               src/TOFFEElightConfig.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF O2::TOFBase
                                      O2::CCDB
-	                             O2::DetectorsCalibration
-	                             O2::DetectorsDCS
-				     ROOT::Minuit
-	                             ms_gsl::ms_gsl)
-				  
-				   
+                                 O2::DetectorsCalibration
+                                 O2::DetectorsDCS
+                     ROOT::Minuit
+                                 Microsoft.GSL::GSL)
+
+
 o2_target_root_dictionary(TOFCalibration
                           HEADERS include/TOFCalibration/CalibTOFapi.h
                                   include/TOFCalibration/CalibTOF.h
@@ -33,53 +33,53 @@ o2_target_root_dictionary(TOFCalibration
                                   include/TOFCalibration/TOFChannelCalibrator.h
                                   include/TOFCalibration/TOFCalibCollector.h
                                   include/TOFCalibration/CollectCalibInfoTOF.h
-				  include/TOFCalibration/TOFDCSProcessor.h
-				  include/TOFCalibration/TOFFEElightReader.h
-				  include/TOFCalibration/TOFFEElightConfig.h)
+                  include/TOFCalibration/TOFDCSProcessor.h
+                  include/TOFCalibration/TOFFEElightReader.h
+                  include/TOFCalibration/TOFFEElightConfig.h)
 
 
 o2_add_executable(data-generator-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/data-generator-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
-	                                O2::DataFormatsTOF
-					O2::TOFBase)
+                                    O2::DataFormatsTOF
+                    O2::TOFBase)
 
 o2_add_executable(lhc-clockphase-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/lhc-clockphase-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
- 		                        O2::TOFCalibration
-	                                O2::DetectorsCalibration)
+                                O2::TOFCalibration
+                                    O2::DetectorsCalibration)
 
 o2_add_executable(tof-channel-calib-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/tof-channel-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
- 		                        O2::TOFCalibration
-	                                O2::DetectorsCalibration)
+                                O2::TOFCalibration
+                                    O2::DetectorsCalibration)
 
 o2_add_executable(tof-calib-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/tof-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
- 		                        O2::TOFCalibration
-	                                O2::DetectorsCalibration)
+                                O2::TOFCalibration
+                                    O2::DetectorsCalibration)
 
 
 o2_add_executable(tof-dummy-ccdb-for-calib
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/tof-dummy-ccdb-for-calib.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
- 		                        O2::TOFCalibration
-	                                O2::DetectorsCalibration)
+                                O2::TOFCalibration
+                                    O2::DetectorsCalibration)
 
 o2_add_executable(tof-collect-calib-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/tof-collect-calib-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
- 		                        O2::TOFCalibration
-	                                O2::DetectorsCalibration)
+                                O2::TOFCalibration
+                                    O2::DetectorsCalibration)
 
 o2_add_executable(tof-dcs-workflow
                   COMPONENT_NAME calibration
@@ -92,4 +92,11 @@ o2_add_executable(tof-dcs-sim-workflow
                   COMPONENT_NAME calibration
                   SOURCES testWorkflow/tof-dcs-sim-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::DCStestWorkflow)
+
+o2_add_executable(tof-dcs-config-processor-workflow
+                  COMPONENT_NAME calibration
+                  SOURCES testWorkflow/tof-dcs-config-processor-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::TOFCalibration
+                                        O2::DetectorsCalibration)
 

@@ -14,6 +14,7 @@ install(DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/Framework
 o2_add_library(FrameworkFoundation
                SOURCES src/RuntimeError.cxx
                TARGETVARNAME targetName
+               PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation3rdparty
               )
 set(DPL_ENABLE_BACKTRACE ON CACHE BOOL "Enable backtrace on o2::framework::runtime_error")
 
@@ -51,3 +52,5 @@ o2_add_test(test_RuntimeError NAME test_FrameworkFoundation_RuntimeError
             COMPONENT_NAME FrameworkFoundation
             SOURCES test/test_RuntimeError.cxx
             PUBLIC_LINK_LIBRARIES O2::FrameworkFoundation)
+
+add_subdirectory(3rdparty)

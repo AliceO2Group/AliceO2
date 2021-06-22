@@ -20,6 +20,7 @@
 #include <atomic>
 
 typedef struct uv_connect_s uv_connect_t;
+typedef struct uv_async_s uv_async_t;
 
 namespace o2::framework
 {
@@ -36,8 +37,8 @@ class WSDriverClient : public DriverClient
 {
  public:
   WSDriverClient(ServiceRegistry& registry, DeviceState& state, char const* ip, unsigned short port);
+  ~WSDriverClient();
   void tell(const char* msg, size_t s, bool flush = true) final;
-  void observe(const char* command, std::function<void(char const*)>) final;
   void flushPending() final;
   void setDPLClient(std::unique_ptr<WSDPLClient>);
   void setConnection(uv_connect_t* connection) { mConnection = connection; };
@@ -47,11 +48,14 @@ class WSDriverClient : public DriverClient
   std::mutex& mutex() { return mClientMutex; }
 
  private:
+  /// Use this to awake the main thread.
+  void awake();
   // Whether or not we managed to connect.
   std::atomic<bool> mConnected = false;
   std::mutex mClientMutex;
   DeviceSpec const& mSpec;
   std::vector<uv_buf_t> mBacklog;
+  uv_async_t* mAwakeMainThread = nullptr;
   uv_connect_t* mConnection = nullptr;
   std::unique_ptr<WSDPLClient> mClient;
 };

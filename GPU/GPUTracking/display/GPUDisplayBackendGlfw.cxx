@@ -149,7 +149,7 @@ void GPUDisplayBackendGlfw::GetKey(int key, int scancode, int mods, int& keyOut,
   if ((mods & GLFW_MOD_SHIFT) && localeKey >= 'a' && localeKey <= 'z') {
     localeKey += 'A' - 'a';
   }
-  // GPUInfo("Key: key %d (%c) -> %d (%c) special %d (%c)", key, (char) key, (int) localeKey, localeKey, specialKey, (char) specialKey);
+  // GPUInfo("Key: key %d (%c) scancode %d -> %d (%c) special %d (%c)", key, (char)key, scancode, (int)localeKey, localeKey, specialKey, (char)specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
@@ -167,16 +167,37 @@ void GPUDisplayBackendGlfw::key_callback(GLFWwindow* window, int key, int scanco
 {
   int handleKey = 0, keyPress = 0;
   GetKey(key, scancode, mods, handleKey, keyPress);
-  if (action == GLFW_PRESS) {
-    me->mKeys[keyPress] = true;
-    me->mKeysShift[keyPress] = mods & GLFW_MOD_SHIFT;
-  } else if (action == GLFW_RELEASE) {
-    if (me->mKeys[keyPress]) {
-      me->HandleKeyRelease(handleKey);
+  if (handleKey < 32) {
+    if (action == GLFW_PRESS) {
+      me->mKeys[keyPress] = true;
+      me->mKeysShift[keyPress] = mods & GLFW_MOD_SHIFT;
+      me->HandleKey(handleKey);
+    } else if (action == GLFW_RELEASE) {
+      me->mKeys[keyPress] = false;
+      me->mKeysShift[keyPress] = false;
     }
-    me->mKeys[keyPress] = false;
-    me->mKeysShift[keyPress] = false;
+  } else if (handleKey < 256) {
+    if (action == GLFW_PRESS) {
+      me->mLastKeyDown = handleKey;
+    } else if (action == GLFW_RELEASE) {
+      keyPress = me->mKeyDownMap[handleKey];
+      me->mKeys[keyPress] = false;
+      me->mKeysShift[keyPress] = false;
+    }
   }
+}
+
+void GPUDisplayBackendGlfw::char_callback(GLFWwindow* window, unsigned int codepoint)
+{
+  // GPUInfo("Key (char callback): %d %c - key: %d", codepoint, (char)codepoint, (int)me->mLastKeyDown);
+  int keyPress = codepoint;
+  if (keyPress >= 'a' && keyPress <= 'z') {
+    keyPress += 'A' - 'a';
+  }
+  me->mKeyDownMap[me->mLastKeyDown] = keyPress;
+  me->mKeys[keyPress] = true;
+  me->mKeysShift[keyPress] = me->mKeys[KEY_SHIFT];
+  me->HandleKey(codepoint);
 }
 
 void GPUDisplayBackendGlfw::mouseButton_callback(GLFWwindow* window, int button, int action, int mods)
@@ -246,6 +267,7 @@ int GPUDisplayBackendGlfw::OpenGLMain()
   glfwMakeContextCurrent(mWindow);
 
   glfwSetKeyCallback(mWindow, key_callback);
+  glfwSetCharCallback(mWindow, char_callback);
   glfwSetMouseButtonCallback(mWindow, mouseButton_callback);
   glfwSetScrollCallback(mWindow, scroll_callback);
   glfwSetCursorPosCallback(mWindow, cursorPos_callback);

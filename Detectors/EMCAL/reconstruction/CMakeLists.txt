@@ -20,8 +20,8 @@ o2_add_library(EMCALReconstruction
                        src/CaloRawFitter.cxx
                        src/CaloRawFitterStandard.cxx
                        src/CaloRawFitterGamma2.cxx
-		       src/ClusterizerParameters.cxx 
-                       src/Clusterizer.cxx 
+                       src/ClusterizerParameters.cxx
+                       src/Clusterizer.cxx
                        src/ClusterizerTask.cxx
                        src/DigitReader.cxx
                        src/CTFCoder.cxx
@@ -33,7 +33,7 @@ o2_add_library(EMCALReconstruction
                                      O2::DetectorsRaw
                                      O2::EMCALBase
                                      O2::rANS
-                                     ms_gsl::ms_gsl)
+                                     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(
                           EMCALReconstruction

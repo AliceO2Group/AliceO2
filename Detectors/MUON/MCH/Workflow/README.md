@@ -45,7 +45,7 @@ The workflow accepts the following options:
 Example of a DPL chain to go from a raw data file to a file of preclusters :
 
 ```shell
-o2-raw-file-reader-workflow --input-conf file-reader.cfg --loop 0  -b |
+o2-raw-file-sampler-workflow --input-conf file-reader.cfg --loop 0  -b |
 o2-mch-raw-to-digits-workflow -b |
 o2-mch-digits-to-preclusters-workflow -b |
 o2-mch-preclusters-sink-workflow -b
@@ -78,6 +78,33 @@ o2-mch-preclusters-to-clusters-original-workflow
 
 Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
 
+Option `--run2-config` allows to configure the clustering to process run2 data.
+
+Option `--config "file.json"` or `--config "file.ini"` allows to change the clustering parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
+
+* Example of configuration file in JSON format:
+```json
+{
+    "MCHClustering": {
+        "lowestPadCharge": "4.",
+        "defaultClusterResolution": "0.4"
+    }
+}
+```
+* Example of configuration file in INI format:
+```ini
+[MCHClustering]
+lowestPadCharge=4.
+defaultClusterResolution=0.4
+```
+
+Option `--configKeyValues "key1=value1;key2=value2;..."` allows to change the clustering parameters from the command line. The parameters changed from the command line will supersede the ones changed from a configuration file.
+
+* Example of parameters changed from the command line:
+```shell
+--configKeyValues "MCHClustering.lowestPadCharge=4.;MCHClustering.defaultClusterResolution=0.4"
+```
+
 ## CTF encoding/decoding
 
 Entropy encoding is done be attaching the `o2-mch-entropy-encoder-workflow` to the output of `DIGITS` and `DIGITROF` data-descriptions, providing `Digit` and `ROFRecord` respectively. Afterwards the encoded data can be stored by the `o2-ctf-writer-workflow`.
@@ -94,14 +121,14 @@ The `o2-mch-clusters-transformer-workflow` takes as input the list of all cluste
 
 It sends the list of the same clusters, but converted in global reference frame, with the data description "GLOBALCLUSTERS".
 
-To test it one can use e.g. a sampler-transformer-sink pipeline as such : 
+To test it one can use e.g. a sampler-transformer-sink pipeline as such :
 
-``` 
-o2-mch-clusters-sampler-workflow 
+```
+o2-mch-clusters-sampler-workflow
     -b --nEventsPerTF 1000 --infile someclusters.data |
-o2-mch-clusters-transformer-workflow  
-    -b --geometry Detectors/MUON/MCH/Geometry/Test/ideal-geometry-o2.json | 
-o2-mch-clusters-sink-workflow 
+o2-mch-clusters-transformer-workflow
+    -b --geometry Detectors/MUON/MCH/Geometry/Test/ideal-geometry-o2.json |
+o2-mch-clusters-sink-workflow
     -b --txt --outfile global-clusters.txt --no-digits --global
 ```
 
@@ -117,9 +144,34 @@ Take as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/
 
 Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current in L3 and in the dipole to be used to set the magnetic field.
 
-Option `--moreCandidates` allows to enable the search for more track candidates in stations 4 & 5.
-
 Option `--debug x` allows to enable the debug level x (0 = no debug, 1 or 2).
+
+Option `--config "file.json"` or `--config "file.ini"` allows to change the tracking parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
+
+* Example of configuration file in JSON format:
+```json
+{
+    "MCHTracking": {
+        "chamberResolutionY": "0.1",
+        "requestStation[1]": "false",
+        "moreCandidates": "true"
+    }
+}
+```
+* Example of configuration file in INI format:
+```ini
+[MCHTracking]
+chamberResolutionY=0.1
+requestStation[1]=false
+moreCandidates=true
+```
+
+Option `--configKeyValues "key1=value1;key2=value2;..."` allows to change the tracking parameters from the command line. The parameters changed from the command line will supersede the ones changed from a configuration file.
+
+* Example of parameters changed from the command line:
+```shell
+--configKeyValues "MCHTracking.chamberResolutionY=0.1;MCHTracking.requestStation[1]=false;MCHTracking.moreCandidates=true"
+```
 
 ### New track finder
 
@@ -163,7 +215,7 @@ Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current
 ### Digit sampler
 
 ```shell
-o2-mch-digits-reader-workflow --infile "digits.in"
+o2-mch-digits-sampler-workflow --infile "digits.in"
 ```
 
 where `digits.in` is a binary file containing for each event:

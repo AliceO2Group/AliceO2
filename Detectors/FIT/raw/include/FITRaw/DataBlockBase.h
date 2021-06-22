@@ -122,22 +122,22 @@ template <typename T, typename = typename std::enable_if_t<DataBlockHelper<T>::c
 struct DataBlockWrapper {
   DataBlockWrapper() = default;
   DataBlockWrapper(const DataBlockWrapper&) = default;
-
-  std::vector<uint8_t> serialize(size_t nWords)
+  typedef T Data_t;
+  void serialize(std::vector<char>& vecBytes, size_t nWords, size_t& destPos) const
   {
-    std::vector<uint8_t> vecBytes(SIZE_WORD * nWords);
-    uint8_t* srcAddress = (uint8_t*)mData;
-    if (nWords == 0 || nWords > MaxNwords) {
-      return std::move(vecBytes);
+    const uint8_t* srcAddress = (uint8_t*)mData;
+    if (nWords == 0 || nWords > MaxNwords || vecBytes.size() - destPos < nWords * SIZE_WORD) {
+      LOG(INFO) << "Warning! Incorrect serialisation procedure!";
+      return;
     }
-    gsl::span<uint8_t> serializedBytes(vecBytes);
+    gsl::span<char> serializedBytes(vecBytes);
     size_t countBytes = 0;
     int nSteps = std::get<kNSTEPS>(sReadingLookupTable[nWords]);
     for (int iStep = 0; iStep < nSteps; iStep++) {
-      memcpy(serializedBytes.data() + std::get<kSRCBYTEPOS>(sByteLookupTable[iStep]), srcAddress + std::get<kDESTBYTEPOS>(sByteLookupTable[iStep]), std::get<kNBYTES>(sByteLookupTable[iStep]));
+      memcpy(serializedBytes.data() + std::get<kSRCBYTEPOS>(sByteLookupTable[iStep]) + destPos, srcAddress + std::get<kDESTBYTEPOS>(sByteLookupTable[iStep]), std::get<kNBYTES>(sByteLookupTable[iStep]));
       countBytes += std::get<kSRCBYTEPOS>(sByteLookupTable[iStep]);
     }
-    return std::move(vecBytes);
+    destPos += nWords * SIZE_WORD;
   }
 
   void deserialize(const gsl::span<const uint8_t> inputBytes, size_t nWords, size_t& srcPos)
@@ -162,19 +162,19 @@ struct DataBlockWrapper {
     srcPos += mNwords * SIZE_WORD;
   }
 
-  static constexpr int MaxNwords = T::PayloadSize * T::MaxNelements / T::PayloadPerGBTword + (T::PayloadSize * T::MaxNelements % T::PayloadPerGBTword > 0); //calculating max GBT words per block
+  static constexpr int MaxNwords = Data_t::PayloadSize * Data_t::MaxNelements / Data_t::PayloadPerGBTword + (Data_t::PayloadSize * Data_t::MaxNelements % Data_t::PayloadPerGBTword > 0); //calculating max GBT words per block
   static constexpr int MaxNbytes = SIZE_WORD * MaxNwords;
 
-  static constexpr int MinNwords = T::PayloadSize * T::MinNelements / T::PayloadPerGBTword + (T::PayloadSize * T::MinNelements % T::PayloadPerGBTword > 0); //calculating min GBT words per block
+  static constexpr int MinNwords = Data_t::PayloadSize * Data_t::MinNelements / Data_t::PayloadPerGBTword + (Data_t::PayloadSize * Data_t::MinNelements % Data_t::PayloadPerGBTword > 0); //calculating min GBT words per block
   static constexpr int MinNbytes = SIZE_WORD * MinNwords;
 
   //get number of byte reading steps
   static constexpr size_t getNsteps()
   {
     int count = 0;
-    size_t payloadFull = T::MaxNelements * T::PayloadSize;
-    size_t payloadInWord = T::PayloadPerGBTword;
-    size_t payloadPerElem = T::PayloadSize;
+    size_t payloadFull = Data_t::MaxNelements * Data_t::PayloadSize;
+    size_t payloadInWord = Data_t::PayloadPerGBTword;
+    size_t payloadPerElem = Data_t::PayloadSize;
     while (payloadFull > 0) {
       if (payloadPerElem < payloadInWord) {
         count++;
@@ -188,10 +188,10 @@ struct DataBlockWrapper {
         payloadInWord = 0;
       }
       if (payloadInWord == 0) {
-        payloadInWord = T::PayloadPerGBTword;
+        payloadInWord = Data_t::PayloadPerGBTword;
       }
       if (payloadPerElem == 0) {
-        payloadPerElem = T::PayloadSize;
+        payloadPerElem = Data_t::PayloadSize;
       }
     }
     return count;
@@ -217,15 +217,15 @@ struct DataBlockWrapper {
     int countWord = 0;
     size_t destBytePosPerElem = 0;
     size_t srcBytePos = 0;
-    size_t payloadFull = T::MaxNelements * T::PayloadSize;
+    size_t payloadFull = Data_t::MaxNelements * Data_t::PayloadSize;
 
     size_t bytesInWord = SIZE_WORD;
-    size_t payloadInWord = T::PayloadPerGBTword;
+    size_t payloadInWord = Data_t::PayloadPerGBTword;
 
-    size_t payloadPerElem = T::PayloadSize;
+    size_t payloadPerElem = Data_t::PayloadSize;
 
     uint64_t indexElem = 0;
-    uint64_t indexLastElem = T::MaxNelements - 1;
+    uint64_t indexLastElem = Data_t::MaxNelements - 1;
 
     while (payloadFull > 0) {
       if (payloadPerElem < payloadInWord) { //new element
@@ -258,10 +258,10 @@ struct DataBlockWrapper {
       }
 
       if (payloadInWord == 0) {
-        payloadInWord = T::PayloadPerGBTword;
+        payloadInWord = Data_t::PayloadPerGBTword;
       }
       if (payloadPerElem == 0) {
-        payloadPerElem = T::PayloadSize;
+        payloadPerElem = Data_t::PayloadSize;
         countElement++;
         destBytePosPerElem = countElement * sizeof(T);
       }
@@ -285,7 +285,7 @@ struct DataBlockWrapper {
   static constexpr std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords + 1> GetReadingLookupTable()
   {
     std::array<std::tuple<unsigned int, unsigned int, bool>, MaxNwords + 1> readingScheme{};
-    size_t payloadPerElem = T::PayloadSize;
+    size_t payloadPerElem = Data_t::PayloadSize;
     std::get<kNSTEPS>(readingScheme[0]) = 0;
     std::get<kNELEMENTS>(readingScheme[0]) = 0;
     std::get<kISPARTED>(readingScheme[0]) = false;
@@ -302,7 +302,7 @@ struct DataBlockWrapper {
         countWord++;
       }
       if (payloadPerElem == 0) {
-        payloadPerElem = T::PayloadSize;
+        payloadPerElem = Data_t::PayloadSize;
       }
       payloadPerElem -= std::get<kNBYTES>((GetByteLookupTable())[iStep]);
     }
@@ -341,23 +341,24 @@ struct DataBlockWrapper {
   }
   void print() const
   {
-    assert(mNelements <= T::MaxNelements);
+    assert(mNelements <= Data_t::MaxNelements);
     for (int i = 0; i < mNelements; i++) {
       LOG(INFO) << "Printing element number: " << i;
       mData[i].print();
     }
   }
-  T mData[T::MaxNelements];
+  Data_t mData[Data_t::MaxNelements];
   unsigned int mNelements; //number of deserialized elements;
   unsigned int mNwords;    //number of deserialized GBT words; //can be excluded
   bool mIsIncorrect;
 };
 
 //CRTP(static polymorphism) + Composition over multiple inheritance(Header + multiple data structures)
-template <class DataBlock, class Header, class... DataStructures>
+template <template <typename...> class DataBlock, class Header, class... DataStructures>
 class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataBlockWrapper<DataStructures>...>::type
 {
   typedef boost::mpl::vector<DataStructures...> DataBlockTypes;
+  typedef DataBlock<Header, DataStructures...> DataBlock_t;
   typedef DataBlockBase<DataBlock, Header, DataStructures...> TemplateHeader;
   typedef typename boost::mpl::inherit<DataBlockWrapper<Header>, DataBlockWrapper<DataStructures>...>::type DataBlockDerivedBase;
 
@@ -383,13 +384,18 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
   {
     return DataBlockWrapper<Header>::mData[0].getIntRec();
   }
+
+  void setInteractionRecord(const InteractionRecord& intRec)
+  {
+    DataBlockWrapper<Header>::mData[0].setIntRec(intRec);
+  }
   //
   //use this for block decoding
   void decodeBlock(gsl::span<const uint8_t> payload, size_t srcPos)
   {
     mSize = 0;
     size_t bytePos = srcPos;
-    static_cast<DataBlock*>(this)->deserialize(payload, bytePos);
+    static_cast<DataBlock_t*>(this)->deserialize(payload, bytePos);
     mSize = bytePos - srcPos;
     //checking sanity and updating
     update();
@@ -402,7 +408,7 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<Header>, DataB
     mIsCorrect = true;
     checkDeserialization(mIsCorrect, DataBlockWrapper<Header>::mIsIncorrect);                // checking deserialization status for header
     (checkDeserialization(mIsCorrect, DataBlockWrapper<DataStructures>::mIsIncorrect), ...); // checking deserialization status for sub-block
-    static_cast<DataBlock*>(this)->sanityCheck(mIsCorrect);
+    static_cast<DataBlock_t*>(this)->sanityCheck(mIsCorrect);
   }
 
   size_t mSize; //deserialized size

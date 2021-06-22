@@ -386,11 +386,7 @@ int ClusterNativeHelper::Reader::fillIndex(ClusterNativeAccess& clusterIndex,
   int result = 0;
   for (size_t index = 0, end = inputs.size(); index < end; index++) {
     o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel> const* labelsptr = nullptr;
-#ifdef MS_GSL_V3
     std::size_t extent = 0;
-#else
-    int extent = 0;
-#endif
     if (index < mcinputs.size()) {
       labelsptr = &mcinputs[index];
       extent = 1;

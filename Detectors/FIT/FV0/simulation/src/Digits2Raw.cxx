@@ -59,7 +59,6 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
     for (int ibc = 0; ibc < nbc; ibc++) {
       auto& bcd = digitsBC[ibc];
       auto channels = bcd.getBunchChannelData(digitsCh);
-
       if (!channels.empty()) {
         LOG(DEBUG) << "o2::fv0::Digits2Raw::readDigits(): Start to convertDigits() at ibc = " << ibc << "  " << bcd.ir
                    << " iCh0:" << bcd.ref.getFirstEntry() << "  nentries:" << bcd.ref.getEntries();
@@ -76,7 +75,6 @@ void Digits2Raw::convertDigits(o2::fv0::BCData bcdigits, gsl::span<const Channel
   int prevPmLink = -1;
   int iChannelPerLink = 0;
   int nch = pmchannels.size();
-
   std::stringstream ss;
   ss << "  Number of channels: " << nch << "   (Ch, PMT, Q, T)\n";
   for (int ich = 0; ich < nch; ich++) {
@@ -117,18 +115,30 @@ void Digits2Raw::convertDigits(o2::fv0::BCData bcdigits, gsl::span<const Channel
   makeGBTHeader(mRawEventData.mEventHeader, sTcmLink, intRecord);
   mRawEventData.mEventHeader.nGBTWords = 1;
   auto& tcmdata = mRawEventData.mTCMdata;
-  tcmdata.vertex = 1;
+  /*
   tcmdata.orA = 1;
   tcmdata.orC = 0;
   tcmdata.sCen = 0;
   tcmdata.cen = 0;
+  tcmdata.vertex = 1;
+  */
   tcmdata.nChanA = 0;
   tcmdata.nChanC = 0;
   tcmdata.amplA = 0;
+
   tcmdata.amplC = 0;
   tcmdata.timeA = 0;
   tcmdata.timeC = 0;
-
+  //Temporary for tests
+  tcmdata.orA = bool(bcdigits.mTriggers.triggerSignals & (1 << 0));
+  tcmdata.orC = bool(bcdigits.mTriggers.triggerSignals & (1 << 1));
+  tcmdata.sCen = bool(bcdigits.mTriggers.triggerSignals & (1 << 2));
+  tcmdata.cen = bool(bcdigits.mTriggers.triggerSignals & (1 << 3));
+  tcmdata.vertex = bool(bcdigits.mTriggers.triggerSignals & (1 << 4));
+  tcmdata.laser = bool(bcdigits.mTriggers.triggerSignals & (1 << 5));
+  tcmdata.nChanA = bcdigits.mTriggers.nChanA;
+  tcmdata.amplA = bcdigits.mTriggers.amplA;
+  //
   auto data = mRawEventData.to_vector(kTRUE); //for tcm module
   uint32_t linkId = uint32_t(sTcmLink);
   uint64_t feeId = uint64_t(sTcmLink);

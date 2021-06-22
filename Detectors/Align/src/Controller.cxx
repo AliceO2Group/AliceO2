@@ -983,8 +983,8 @@ void Controller::acknowledgeNewRun(int run)
   LOG(WARNING) << __PRETTY_FUNCTION__ << " yet incomplete";
 
   o2::base::GeometryManager::loadGeometry();
-  o2::base::PropagatorImpl<double>::initFieldFromGRP(o2::base::NameConf::getGRPFileName());
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName())};
+  o2::base::PropagatorImpl<double>::initFieldFromGRP();
+  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
 
   //FIXME(milettri): needs AliESDEvent
   //  // load needed info for new run

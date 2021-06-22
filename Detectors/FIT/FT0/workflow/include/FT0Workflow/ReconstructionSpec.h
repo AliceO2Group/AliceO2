@@ -17,6 +17,8 @@
 #include "Framework/Task.h"
 #include "FT0Reconstruction/CollisionTimeRecoTask.h"
 #include "DataFormatsFT0/RecPoints.h"
+#include "CCDB/BasicCCDBManager.h"
+#include "FT0Base/Geometry.h"
 #include "TStopwatch.h"
 
 using namespace o2::framework;
@@ -28,6 +30,8 @@ namespace ft0
 
 class ReconstructionDPL : public Task
 {
+  static constexpr int NCHANNELS = o2::ft0::Geometry::Nchannels;
+
  public:
   ReconstructionDPL(bool useMC) : mUseMC(useMC) {}
   ~ReconstructionDPL() override = default;

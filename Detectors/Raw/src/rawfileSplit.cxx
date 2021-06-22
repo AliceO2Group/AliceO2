@@ -22,7 +22,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <TSystem.h>
+#include <filesystem>
 
 namespace bpo = boost::program_options;
 
@@ -164,11 +164,12 @@ int main(int argc, char* argv[])
 
         if (reinitWriter) {
           if (writer) { // generate config for previous chunk
-            writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
+            writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
           }
-          outDir = o2::utils::concat_string(outDirPrefix, "_", std::to_string(chunkID));
-          if (gSystem->AccessPathName(outDir.data())) {
-            if (gSystem->mkdir(outDir.data(), kTRUE)) {
+          outDir = o2::utils::Str::concat_string(outDirPrefix, "_", std::to_string(chunkID));
+          // if needed, create output directory
+          if (!std::filesystem::exists(outDir)) {
+            if (!std::filesystem::create_directories(outDir)) {
               LOG(FATAL) << "could not create output directory " << outDir;
             } else {
               LOG(INFO) << "created output directory " << outDir;
@@ -182,15 +183,15 @@ int main(int argc, char* argv[])
           std::string outFileName;
 
           if (fileFor == "all") { // single file for all links
-            outFileName = o2::utils::concat_string(outDir, "/", fileFor, ".raw");
+            outFileName = o2::utils::Str::concat_string(outDir, "/", fileFor, ".raw");
           } else if (fileFor == "cru") {
-            outFileName = o2::utils::concat_string(outDir, "/", fileFor, "_", std::to_string(RDHUtils::getCRUID(link.rdhl)), ".raw");
+            outFileName = o2::utils::Str::concat_string(outDir, "/", fileFor, "_", std::to_string(RDHUtils::getCRUID(link.rdhl)), ".raw");
           } else if (fileFor == "link") {
-            outFileName = o2::utils::concat_string(outDir, "/", fileFor,
-                                                   "_", std::to_string(RDHUtils::getLinkID(link.rdhl)),
-                                                   "_cru", std::to_string(RDHUtils::getCRUID(link.rdhl)),
-                                                   "_ep", std::to_string(RDHUtils::getEndPointID(link.rdhl)),
-                                                   "_feeid", std::to_string(RDHUtils::getFEEID(link.rdhl)), ".raw");
+            outFileName = o2::utils::Str::concat_string(outDir, "/", fileFor,
+                                                        "_", std::to_string(RDHUtils::getLinkID(link.rdhl)),
+                                                        "_cru", std::to_string(RDHUtils::getCRUID(link.rdhl)),
+                                                        "_ep", std::to_string(RDHUtils::getEndPointID(link.rdhl)),
+                                                        "_feeid", std::to_string(RDHUtils::getFEEID(link.rdhl)), ".raw");
           } else {
             throw std::runtime_error("invalid option provided for file grouping");
           }
@@ -205,7 +206,7 @@ int main(int argc, char* argv[])
     }
   }
   if (writer) { // generate config for previous chunk
-    writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
+    writer->writeConfFile(writer->getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDir, '/', writer->getOrigin().str, "raw.cfg"));
   }
   writer.reset();
 

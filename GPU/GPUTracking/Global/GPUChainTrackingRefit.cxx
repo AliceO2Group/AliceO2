@@ -19,7 +19,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 
 int GPUChainTracking::RunRefit()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::Refit;
   GPUTrackingRefitProcessor& Refit = processors()->trackingRefit;
   GPUTrackingRefitProcessor& RefitShadow = doGPU ? processorsShadow()->trackingRefit : Refit;

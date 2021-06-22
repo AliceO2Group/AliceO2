@@ -18,8 +18,8 @@
 #include "PackedCharge.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "CommonConstants/LHCConstants.h"
-#include "GPURawData.h"
 #include "GPUCommonAlgorithm.h"
+#include "DetectorsRaw/RDHUtils.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
@@ -73,22 +73,22 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
       CA_SHARED_CACHE_REF(&s.ZSPage[0], pageSrc, TPCZSHDR::TPC_ZS_PAGE_SIZE, unsigned int, pageCache);
       GPUbarrier();
       const unsigned char* page = (const unsigned char*)pageCache;
-      const RAWDataHeaderGPU* rdh = (const RAWDataHeaderGPU*)page;
-      if (GPURawDataUtils::getSize(rdh) == sizeof(RAWDataHeaderGPU)) {
+      const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
+      if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
 #ifdef GPUCA_GPUCODE
         return;
 #else
         continue;
 #endif
       }
-      const unsigned char* pagePtr = page + sizeof(RAWDataHeaderGPU);
+      const unsigned char* pagePtr = page + sizeof(o2::header::RAWDataHeader);
       const TPCZSHDR* hdr = reinterpret_cast<const TPCZSHDR*>(pagePtr);
       pagePtr += sizeof(*hdr);
       const bool decode12bit = hdr->version == 2;
       const unsigned int decodeBits = decode12bit ? TPCZSHDR::TPC_ZS_NBITS_V2 : TPCZSHDR::TPC_ZS_NBITS_V1;
       const float decodeBitsFactor = 1.f / (1 << (decodeBits - 10));
       unsigned int mask = (1 << decodeBits) - 1;
-      int timeBin = (hdr->timeOffset + (GPURawDataUtils::getOrbit(rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
+      int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
       const int rowOffset = s.regionStartRow + ((endpoint & 1) ? (s.nRowsRegion / 2) : 0);
       const int nRows = (endpoint & 1) ? (s.nRowsRegion - s.nRowsRegion / 2) : (s.nRowsRegion / 2);
 

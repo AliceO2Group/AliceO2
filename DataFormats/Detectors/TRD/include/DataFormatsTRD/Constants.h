@@ -56,12 +56,21 @@ constexpr float GRANULARITYTRKLSLOPE = 1.f / PADGRANULARITYTRKLSLOPE; // granula
 
 // OS: Should this not be flexible for example in case of Kr calib?
 constexpr int TIMEBINS = 30; // the number of time bins
-constexpr int NBINSANGLEDIFF = 26; // the number of bins for the track angle used for the vDrift and ExB calibration based on the tracking (last bin is for under-/overflow entries)
+constexpr float MAXIMPACTANGLE = 25.f; // the maximum impact angle for tracks relative to the TRD detector plane to be considered for vDrift and ExB calibration
+constexpr int NBINSANGLEDIFF = 25;     // the number of bins for the track angle used for the vDrift and ExB calibration based on the tracking
 
 // Trigger parameters
 constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
 constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
 constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
+
+// array size to store incoming half cru payload.
+constexpr int HBFBUFFERMAX = 1048576;         // max buffer size for data read from a half cru, (all events)
+constexpr int CRUPADDING32 = 0xeeeeeeee;      // padding word used in the cru.
+constexpr int TRACKLETENDMARKER = 0x10001000; // marker for the end of tracklets in raw data, 2 of these.
+constexpr int DIGITENDMARKER = 0x0;           // marker for the end of digits in raw data, 2 of these
+constexpr int MAXDATAPERLINK32 = 13824;       // max number of 32 bit words per link ((21x12+2+4)*64) 64 mcm, 21 channels, 10 words per channel 2 header words(DigitMCMHeader DigitMCMADCmask) 4 words for tracklets.
+constexpr int MAXDATAPERLINK256 = 1728;       // max number of linkwords per cru link. (256bit words)
 
 } //namespace constants
 } // namespace trd

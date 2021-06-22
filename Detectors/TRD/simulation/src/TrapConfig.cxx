@@ -1064,7 +1064,7 @@ void TrapConfig::configureOnlineGains()
     for (int iDet = 0; iDet < nDets; ++iDet) {
       //const int MaxRows = Geometry::getStack(iDet) == 2 ? NROWC0 : NROWC1;
       int MaxCols = NCOLUMN;
-      //	CalOnlineGainTableROC gainTbl = mGainTable.getGainTableROC(iDet);
+      //CalOnlineGainTableROC gainTbl = mGainTable.getGainTableROC(iDet);
       const int nRobs = Geometry::getStack(iDet) == 2 ? Geometry::ROBmaxC0() : Geometry::ROBmaxC1();
 
       for (int rob = 0; rob < nRobs; ++rob) {

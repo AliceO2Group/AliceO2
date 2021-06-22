@@ -25,8 +25,9 @@
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
-#include "CPVCalib/CalibParams.h"
-#include "CPVCalib/Pedestals.h"
+#include "DataFormatsCPV/CalibParams.h"
+#include "DataFormatsCPV/Pedestals.h"
+#include "DataFormatsCPV/BadChannelMap.h"
 
 namespace o2
 {
@@ -64,11 +65,12 @@ class RawWriter
   o2::raw::RawFileWriter& getWriter() const { return *mRawWriter; }
 
   void setOutputLocation(const char* outputdir) { mOutputLocation = outputdir; }
+  void setCcdbUrl(const char* ccdbUrl) { mCcdbUrl = ccdbUrl; }
   void setFileFor(FileFor_t filefor) { mFileFor = filefor; }
 
   void init();
   void digitsToRaw(gsl::span<o2::cpv::Digit> digits, gsl::span<o2::cpv::TriggerRecord> triggers);
-  bool processTrigger(const gsl::span<o2::cpv::Digit> digitsbranch, const o2::cpv::TriggerRecord& trg);
+  bool processOrbit(const gsl::span<o2::cpv::Digit> digitsbranch, const gsl::span<o2::cpv::TriggerRecord> trgs);
 
   int carryOverMethod(const header::RDHAny* rdh, const gsl::span<char> data,
                       const char* ptr, int maxSize, int splitID,
@@ -78,13 +80,15 @@ class RawWriter
   std::vector<padCharge> mPadCharge[kNcc][kNDilogic][kNGasiplex]; ///< list of signals per event
   FileFor_t mFileFor = FileFor_t::kFullDet;                       ///< Granularity of the output files
   std::string mOutputLocation = "./";                             ///< Rawfile name
+  std::string mCcdbUrl = "http://ccdb-test.cern.ch:8080";         ///< CCDB Url
   std::unique_ptr<CalibParams> mCalibParams;                      ///< CPV calibration
   std::unique_ptr<Pedestals> mPedestals;                          ///< CPV pedestals
+  std::unique_ptr<BadChannelMap> mBadMap;                         ///< CPV bad channel map
   std::vector<char> mPayload;                                     ///< Payload to be written
   gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format including the time response
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer
 
-  ClassDefNV(RawWriter, 1);
+  ClassDefNV(RawWriter, 2);
 };
 
 } // namespace cpv

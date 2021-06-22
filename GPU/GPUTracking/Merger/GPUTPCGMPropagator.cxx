@@ -1064,7 +1064,7 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
 
 GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, const float* p2)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   return mMatLUT->getMatBudget(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
 #else
   return o2::base::MatBudget();
@@ -1073,7 +1073,7 @@ GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, con
 
 GPUdic(0, 1) void GPUTPCGMPropagator::UpdateMaterial(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};
   float xyz2[3] = {getGlobalX(t0e.GetX(), t0e.GetY()), getGlobalY(t0e.GetX(), t0e.GetY()), t0e.GetZ()};
   o2::base::MatBudget mat = getMatBudget(xyz1, xyz2);

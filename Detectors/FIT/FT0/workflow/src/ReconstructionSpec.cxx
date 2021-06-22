@@ -18,6 +18,7 @@
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/MCLabel.h"
+#include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 
 using namespace o2::framework;
 
@@ -35,10 +36,12 @@ void ReconstructionDPL::init(InitContext& ic)
 
 void ReconstructionDPL::run(ProcessingContext& pc)
 {
+  auto& mCCDBManager = o2::ccdb::BasicCCDBManager::instance();
+  mCCDBManager.setURL("http://ccdb-test.cern.ch:8080");
+  LOG(INFO) << " set-up CCDB";
   mTimer.Start(false);
   mRecPoints.clear();
   auto digits = pc.inputs().get<gsl::span<o2::ft0::Digit>>("digits");
-  //auto digits = pc.inputs().get<const std::vector<o2::ft0::Digit>>("digits");
   auto digch = pc.inputs().get<gsl::span<o2::ft0::ChannelData>>("digch");
   // RS: if we need to process MC truth, uncomment lines below
   //std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>> labels;
@@ -48,6 +51,10 @@ void ReconstructionDPL::run(ProcessingContext& pc)
     // lblPtr = labels.get();
     LOG(INFO) << "Ignoring MC info";
   }
+  auto caliboffsets = mCCDBManager.get<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset");
+  mReco.SetChannelOffset(caliboffsets);
+  auto calibslew = mCCDBManager.get<std::array<TGraph, NCHANNELS>>("FT0/SlewingCorr");
+  mReco.SetSlew(calibslew);
   int nDig = digits.size();
   LOG(DEBUG) << " nDig " << nDig;
   mRecPoints.reserve(nDig);

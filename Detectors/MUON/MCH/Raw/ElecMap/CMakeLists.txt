@@ -32,7 +32,7 @@ o2_add_library(MCHRawElecMap
         src/MapFEC.cxx
         src/Mapper.cxx
         src/dslist.cxx
-        PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers ms_gsl::ms_gsl)
+        PUBLIC_LINK_LIBRARIES O2::MCHRawImplHelpers Microsoft.GSL::GSL)
 
 
 o2_add_executable(elecmap-cli

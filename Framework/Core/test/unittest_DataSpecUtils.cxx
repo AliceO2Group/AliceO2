@@ -341,4 +341,8 @@ BOOST_AUTO_TEST_CASE(Includes)
   BOOST_CHECK(DataSpecUtils::includes(wildcardInput1, wildcardInput1));
   BOOST_CHECK(!DataSpecUtils::includes(wildcardInput1, wildcardInput2));
   BOOST_CHECK(!DataSpecUtils::includes(wildcardInput2, wildcardInput1));
+
+  auto inputsFromQuery = DataDescriptorQueryBuilder::parse("b0:TST/FOO/0;b1:TST/FOO/1");
+  BOOST_CHECK(!DataSpecUtils::includes(inputsFromQuery[0], inputsFromQuery[1]));
+  BOOST_CHECK(!DataSpecUtils::includes(inputsFromQuery[1], inputsFromQuery[0]));
 }

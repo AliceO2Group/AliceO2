@@ -46,11 +46,11 @@ class UserLogicEndpointDecoder : public PayloadDecoder<UserLogicEndpointDecoder<
                            std::function<std::optional<uint16_t>(FeeLinkId id)> fee2SolarMapper,
                            DecodedDataHandlers decodedDataHandlers);
 
-  /** @name Main interface 
+  /** @name Main interface
     */
   ///@{
 
-  /** @brief Append the equivalent n 64-bits words 
+  /** @brief Append the equivalent n 64-bits words
     * bytes size (=n) must be a multiple of 8
     *
     * @return the number of bytes used in the bytes span
@@ -119,13 +119,22 @@ size_t UserLogicEndpointDecoder<CHARGESUM, VERSION>::append(Payload buffer)
 
     int gbt = ulword.linkID;
 
-    if (gbt < 0 || gbt > 11) {
-      SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
-      if (handler) {
-        DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
-        handler(dsId, -1, ErrorBadLinkID);
-      } else {
-        throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
+    // The User Logic uses the condition gbt=15 to identify special control and diagnostics words
+    // that are generated internally and do not contain data coming from the front-end electronics.
+    if (gbt == 15) {
+      // TODO: the exact format of the UL control words is still being defined and tested,
+      // hence proper decoding will be implemented once the format is finalized.
+      // For the moment we simply avoid throwing an exception when linkID is equal to 15
+      continue;
+    } else {
+      if (gbt < 0 || gbt > 11) {
+        SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
+        if (handler) {
+          DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
+          handler(dsId, -1, ErrorBadLinkID);
+        } else {
+          throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
+        }
       }
     }
 

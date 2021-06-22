@@ -10,8 +10,13 @@ The calibration flow of O2 foresees that every calibration device (expected to a
 Each calibration device (to be run in a workflow) has to derive from `o2::calibration::TimeSlotCalibration`, which is a templated class that takes as types the Input type (i.e. the object to be processed, coming from the upstream device) and the Container type (i.e. the object that will contain the calibration data per TimeSlot). Each calibration device has to be configured with the following parameters:
 
 ```cpp
-tf-per-slot : default length of a TiemSlot in TFs (will be widened in case of too little statistics)
-max-delay   : maximum arrival delay of a TF with respect to the most recent one processed; units in number of TimeSlots; if beyond this, the TF will be considered too old, and discarded.
+tf-per-slot               : default length of a TiemSlot in TFs (will be widened in case of too little statistics). If this is set to `std::numeric_limits<long>::max()`, then there will be
+                            only 1 slot at a time, valid till infinity.
+updateInterval            : to be used together with `tf-per-slot = std::numeric_limits<long>::max()`: it allows to try to finalize the slot (and produce calibration) when the `updateInterval`
+                            has passed. Note that this is an approximation (as explained in the code) due to the fact that TFs will come asynchronously (not ordered in time).
+max-delay                 : maximum arrival delay of a TF with respect to the most recent one processed; units in number of TimeSlots; if beyond this, the TF will be considered too old, and discarded.
+                            If `tf-per-slot == std::numeric_limits<long>::max()`, or `updateAtTheEndOfRunOnly == true`, its value is irrelevant.
+updateAtTheEndOfRunOnly   : to tell the TimeCalibration to finalize the slots and prepare the CCDB entries only at the end of the run.
 ```
 Example for the options above: 
 `tf-per-slot = 20`
@@ -53,13 +58,12 @@ The output to be sent by the calibrator should include:
 *   a vector of the `o2::ccdb::CcdbObjectInfo` objects that contain the extra
 information (metadata, startValidity...) associated to the objects themselves.
 
-E.g.:
+The origins of the pair of outputs will always be `o2::calibration::Utils::gDataOriginCDBPayload` and `o2::calibration::Utils::gDataOriginCDBWrapper` respectively, while the DataDescription must be unique for given calibration type, e.g.
 
 ```c++
-output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, i}, *image.get()); // vector<char>
-output.snapshot(Output{clbUtils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, i}, w);               // root-serialized
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TOF_LHCphase", i}, *image.get()); // vector<char>
+output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TOF_LHCphase", i}, w);            // root-serialized
 ```
-The origin of the output will always be `o2::calibration::Utils::gDataOriginCLB`, while the description will be `clbUtils::gDataDescriptionCLBPayload` for the object itself, and `o2::calibration::Utils::gDataDescriptionCLBInfo` for the description.
 
 See e.g. AliceO2/Detectors/TOF/calibration/testWorkflow/LHCClockCalibratorSpec.h,  AliceO2/Detectors/TOF/calibration/testWorkflow/lhc-clockphase-workflow.cxx 
 

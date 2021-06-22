@@ -24,8 +24,10 @@
 #include "TRDBase/PadPlane.h"
 #include <TMath.h>
 #include <FairLogger.h>
+#include "DataFormatsTRD/Constants.h"
 
 using namespace o2::trd;
+using namespace o2::trd::constants;
 
 //_____________________________________________________________________________
 void PadPlane::setTiltingAngle(double t)
@@ -35,7 +37,7 @@ void PadPlane::setTiltingAngle(double t)
   //
 
   mTiltingAngle = t;
-  mTiltingTan = TMath::Tan(TMath::Pi() / 180.0 * mTiltingAngle);
+  mTiltingTan = TMath::Tan(TMath::DegToRad() * mTiltingAngle);
 }
 
 //_____________________________________________________________________________
@@ -158,3 +160,57 @@ void PadPlane::setNrows(int n)
   }
   mNrows = n;
 };
+
+double PadPlane::getPadRow(double z) const
+{
+  double lengthCorr = mLengthIPad * mInverseLengthOPad;
+
+  // calculate position based on inner pad length
+  double padrow = -z * mInverseLengthIPad + mNrows * 0.5;
+
+  // correct row for outer pad rows
+  if (padrow <= 1.0) {
+    padrow = 1.0 - (1.0 - padrow) * lengthCorr;
+  }
+
+  if (padrow >= double(mNrows - 1)) {
+    padrow = double(mNrows - 1) + (padrow - double(mNrows - 1)) * lengthCorr;
+  }
+
+  // sanity check: is the padrow coordinate reasonable?
+  assert(!(padrow < 0.0 || padrow > double(mNrows)));
+
+  return padrow;
+}
+
+double PadPlane::getPad(double y, double z) const
+{
+  int padrow = getPadRow(z);
+  double padrowOffset = getPadRowOffsetROC(padrow, z);
+  double tiltOffsetY = getTiltOffset(padrow, padrowOffset);
+
+  double pad = y * mInverseWidthIPad + mNcols * 0.5;
+
+  double lengthCorr = mWidthIPad * mInverseWidthOPad;
+  // correct row for outer pad rows
+  if (pad <= 1.0) {
+    pad = 1.0 - (1.0 - pad) * lengthCorr;
+  }
+
+  if (pad >= double(mNcols - 1)) {
+    pad = double(mNcols - 1) + (pad - double(mNcols - 1)) * lengthCorr;
+  }
+
+  double tiltOffsetPad;
+  if (pad <= 1.0 || pad >= double(mNcols - 1)) {
+    tiltOffsetPad = tiltOffsetY * mInverseWidthOPad;
+    pad += tiltOffsetPad;
+  } else {
+    tiltOffsetPad = tiltOffsetY * mInverseWidthIPad;
+    pad += tiltOffsetPad;
+  }
+
+  assert(!(pad < 0.0 || pad > double(mNcols)));
+
+  return pad;
+}

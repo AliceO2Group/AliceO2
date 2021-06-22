@@ -25,3 +25,24 @@ void VertexSeed::print() const
   double dZ, rmsZ, dT, rmsT;
   PVertex::print();
 }
+
+int SeedHistoTZ::findPeakBin()
+{
+  if (nEntries < 2) {
+    return -1;
+  }
+  int maxBin = -1, ib = filledBins.size(), last = ib;
+  float maxv = 0.;
+  while (ib--) {
+    auto bin = filledBins[ib];
+    auto v = getBinContent(bin);
+    if (v > maxv) {
+      maxv = v;
+      maxBin = bin;
+    } else if (v <= 0.) {                  // bin was emptied
+      filledBins[ib] = filledBins[--last]; // move last non-empty bin in place of emptied one
+    }
+  }
+  filledBins.resize(last);
+  return maxBin;
+}

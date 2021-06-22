@@ -19,6 +19,8 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 
@@ -30,11 +32,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   auto outputDesc = ConfigParamSpec{"tof-compressor-output-desc", VariantType::String, "CRAWDATA", {"Output specs description string"}};
   auto rdhVersion = ConfigParamSpec{"tof-compressor-rdh-version", VariantType::Int, o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>(), {"Raw Data Header version"}};
   auto verbose = ConfigParamSpec{"tof-compressor-verbose", VariantType::Bool, false, {"Enable verbose compressor"}};
+  auto paranoid = ConfigParamSpec{"tof-compressor-paranoid", VariantType::Bool, false, {"Enable paranoid compressor"}};
 
   workflowOptions.push_back(config);
   workflowOptions.push_back(outputDesc);
   workflowOptions.push_back(rdhVersion);
   workflowOptions.push_back(verbose);
+  workflowOptions.push_back(paranoid);
+  workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h" // the main driver
@@ -42,26 +47,28 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 /// This function hooks up the the workflow specifications into the DPL driver.
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   auto config = cfgc.options().get<std::string>("tof-compressor-config");
   //  auto outputDesc = cfgc.options().get<std::string>("output-desc");
   auto rdhVersion = cfgc.options().get<int>("tof-compressor-rdh-version");
   auto verbose = cfgc.options().get<bool>("tof-compressor-verbose");
+  auto paranoid = cfgc.options().get<bool>("tof-compressor-paranoid");
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
 
   AlgorithmSpec algoSpec;
-  if (rdhVersion == 4) {
-    if (verbose) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV4, true>>()};
-    } else {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV4, false>>()};
+  if (rdhVersion == 6) {
+    if (!verbose && !paranoid) {
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, false, false>>()};
     }
-  } else if (rdhVersion == 6) {
-    if (verbose) {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, true>>()};
-    } else {
-      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, false>>()};
+    if (!verbose && paranoid) {
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, false, true>>()};
+    }
+    if (verbose && !paranoid) {
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, true, false>>()};
+    }
+    if (verbose && paranoid) {
+      algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeaderV6, true, true>>()};
     }
   }
 
@@ -73,11 +80,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
      This is is done with a configuration string like the following
      one, where the input matching for each device is provide in
      comma-separated strings. For instance
-     
+
      A:TOF/RAWDATA/768;B:TOF/RAWDATA/1024,C:TOF/RAWDATA/1280;D:TOF/RAWDATA/1536
-     
+
      will lead to a workflow with 2 devices which will input match
-     
+
      tof-compressor-0 --> A:TOF/RAWDATA/768;B:TOF/RAWDATA/1024
      tof-compressor-1 --> C:TOF/RAWDATA/1280;D:TOF/RAWDATA/1536
   **/

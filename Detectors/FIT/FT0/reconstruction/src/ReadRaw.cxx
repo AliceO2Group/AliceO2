@@ -35,7 +35,7 @@ Event header + event data, 2 channels per 1 GBT word;
 if no data for this PM - only headers.
 
 Trigger mode : detector sends data to FLP at each trigger;
-Continueous mode  :   for only bunches with data at least in 1 channel.  
+Continueous mode  :   for only bunches with data at least in 1 channel.
 */
 
 #include "Headers/RAWDataHeader.h"
@@ -60,9 +60,8 @@ Continueous mode  :   for only bunches with data at least in 1 channel.
 #include "TBranch.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
-#ifdef MS_GSL_V3
 #include <gsl/span_ext>
-#endif
+
 using namespace o2::ft0;
 using RDHUtils = o2::raw::RDHUtils;
 
@@ -153,20 +152,20 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
           LOG(INFO) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
         } else {
           if (mIsPadded) {
-            pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
+            pos += CRUWordSize - o2::ft0::RawEventData::sPayloadSize;
           }
           for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
-            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::EventData::PayloadSizeFirstWord);
+            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::RawEventData::sPayloadSizeFirstWord);
             chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i].channelID), ep),
                                       int(mEventData[2 * i].time),
                                       int(mEventData[2 * i].charge),
                                       int(mEventData[2 * i].numberADC));
 
-            pos += o2::ft0::EventData::PayloadSizeFirstWord;
+            pos += o2::ft0::RawEventData::sPayloadSizeFirstWord;
             LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID), ep) << " pos " << pos;
 
-            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
-            pos += o2::ft0::EventData::PayloadSizeSecondWord;
+            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), o2::ft0::RawEventData::sPayloadSizeSecondWord);
+            pos += o2::ft0::RawEventData::sPayloadSizeSecondWord;
             LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep) << " pos " << pos;
             if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
               continue;

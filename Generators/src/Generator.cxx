@@ -62,6 +62,7 @@ Bool_t
 
   /** endless generate-and-trigger loop **/
   while (true) {
+    mReadEventCounter++;
 
     /** clear particle vector **/
     mParticles.clear();
@@ -78,7 +79,10 @@ Bool_t
 
     /** trigger event **/
     if (triggerEvent()) {
+      mTriggerOkHook(mParticles, mReadEventCounter);
       break;
+    } else {
+      mTriggerFalseHook(mParticles, mReadEventCounter);
     }
   }
 

@@ -9,56 +9,51 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(
-  AODProducerWorkflow
-  SOURCES src/AODProducerWorkflow.cxx
-          src/AODProducerWorkflowSpec.cxx
-  PUBLIC_LINK_LIBRARIES
-    O2::AnalysisDataModel
-    O2::DetectorsVertexing
-    O2::Framework
-    O2::FT0Workflow
-    O2::GlobalTracking
-    O2::GlobalTrackingWorkflow
-    O2::ITSMFTWorkflow
-    O2::ITStracking
-    O2::ITSWorkflow
-    O2::SimulationDataFormat
-    O2::Steer
-    O2::TOFWorkflow
-    O2::TPCWorkflow
-    O2::CCDB
-    O2::MathUtils
+        AODProducerWorkflow
+        SOURCES src/AODProducerWorkflowSpec.cxx
+        PUBLIC_LINK_LIBRARIES
+          O2::AnalysisDataModel
+          O2::DetectorsVertexing
+          O2::Framework
+          O2::FT0Workflow
+          O2::GlobalTracking
+          O2::GlobalTrackingWorkflow
+          O2::ITSMFTWorkflow
+          O2::ITStracking
+          O2::ITSWorkflow
+          O2::MFTWorkflow
+          O2::SimulationDataFormat
+          O2::Steer
+          O2::TOFWorkflow
+          O2::TPCWorkflow
+          O2::CCDB
+          O2::MathUtils
 )
-
 o2_add_executable(
   workflow
   COMPONENT_NAME aod-producer
   SOURCES src/aod-producer-workflow.cxx
   PUBLIC_LINK_LIBRARIES O2::AODProducerWorkflow
 )
-
 o2_add_executable(
-  standalone-aod-producer
-  COMPONENT_NAME reco
-  SOURCES src/StandaloneAODProducer.cxx
-  PUBLIC_LINK_LIBRARIES
-    O2::DataFormatsTPC
-    O2::DataFormatsITSMFT
-    O2::DataFormatsITS
-    O2::DataFormatsFT0
-    O2::DataFormatsTOF
-    O2::ITSReconstruction
-    O2::FT0Reconstruction
-    O2::TPCFastTransformation
-    O2::TPCBase
-    O2::TPCReconstruction
-    O2::TOFBase
-    O2::TOFCalibration
-    O2::SimConfig
-    O2::DataFormatsFT0
-    O2::AnalysisDataModel
-    O2::Steer
+        standalone-aod-producer
+        COMPONENT_NAME reco
+        SOURCES src/StandaloneAODProducer.cxx
+        PUBLIC_LINK_LIBRARIES
+          O2::DataFormatsTPC
+          O2::DataFormatsITSMFT
+          O2::DataFormatsITS
+          O2::DataFormatsFT0
+          O2::DataFormatsTOF
+          O2::ITSReconstruction
+          O2::FT0Reconstruction
+          O2::TPCFastTransformation
+          O2::TPCBase
+          O2::TPCReconstruction
+          O2::TOFBase
+          O2::TOFCalibration
+          O2::SimConfig
+          O2::DataFormatsFT0
+          O2::AnalysisDataModel
+          O2::Steer
 )
-
-
-

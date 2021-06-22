@@ -9,11 +9,18 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(MCHRawCommon
-        SOURCES src/SampaHeader.cxx src/SampaCluster.cxx
-        PUBLIC_LINK_LIBRARIES fmt::fmt ms_gsl::ms_gsl Boost::boost O2::Headers O2::CommonConstants
-        O2::DetectorsRaw
-        PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
+               SOURCES src/CoDecParam.cxx
+                       src/DataFormats.cxx
+                       src/SampaBunchCrossingCounter.cxx
+                       src/SampaCluster.cxx
+                       src/SampaHeader.cxx
+               PUBLIC_LINK_LIBRARIES fmt::fmt Microsoft.GSL::GSL Boost::boost
+                                     O2::Headers O2::CommonConstants
+                                     O2::DetectorsRaw
+               PRIVATE_LINK_LIBRARIES O2::MCHRawImplHelpers)
 
+o2_target_root_dictionary(MCHRawCommon
+                          HEADERS include/MCHRawCommon/CoDecParam.h)
 if(BUILD_TESTING)
         add_subdirectory(test)
 endif()

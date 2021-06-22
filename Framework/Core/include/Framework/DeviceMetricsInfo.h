@@ -44,13 +44,16 @@ struct StringMetric {
   char data[MAX_SIZE];
 };
 
-// Also for the keys it does not make much sense to keep more than 247 chars.
+// Also for the keys it does not make much sense to keep more than 255 chars.
 // They should be nevertheless 0 terminated.
-struct MetricLabelIndex {
-  static constexpr size_t MAX_METRIC_LABEL_SIZE = 256 - sizeof(size_t) - sizeof(unsigned char); // Maximum size for a metric name.
-  size_t index;
+struct MetricLabel {
+  static constexpr size_t MAX_METRIC_LABEL_SIZE = 256 - sizeof(unsigned char); // Maximum size for a metric name.
   unsigned char size = 0;
   char label[MAX_METRIC_LABEL_SIZE];
+};
+
+struct MetricLabelIndex {
+  size_t index;
 };
 
 /// Temporary struct to hold a metric after it has been parsed.
@@ -67,7 +70,8 @@ struct ParsedMetricMatch {
 };
 
 /// This struct hold information about device metrics when running
-/// in standalone mode
+/// in standalone mode. It's position in the holding vector is
+/// the same as the DeviceSpec in its own vector.
 struct DeviceMetricsInfo {
   // We keep the size of each metric to 4096 bytes. No need for more
   // for the debug GUI
@@ -80,7 +84,8 @@ struct DeviceMetricsInfo {
   std::vector<float> min;
   std::vector<size_t> minDomain;
   std::vector<size_t> maxDomain;
-  std::vector<MetricLabelIndex> metricLabelsIdx;
+  std::vector<MetricLabel> metricLabels;
+  std::vector<MetricLabelIndex> metricLabelsAlphabeticallySortedIdx;
   std::vector<MetricInfo> metrics;
   std::vector<bool> changed;
 };

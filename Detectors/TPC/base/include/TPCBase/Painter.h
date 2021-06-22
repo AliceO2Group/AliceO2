@@ -17,6 +17,8 @@
 ///
 
 #include <vector>
+#include <string>
+#include <string_view>
 #include "DataFormatsTPC/Defs.h"
 
 class TH1;
@@ -67,6 +69,9 @@ struct PadCoordinates {
 
 /// create a vector of pad corner coordinate for one full sector
 std::vector<PadCoordinates> getPadCoordinatesSector();
+
+/// ROC title from ROC number
+std::string getROCTitle(const int rocNumber);
 
 //using T=float;
 /// Drawing of a CalDet object
@@ -148,6 +153,9 @@ std::vector<TCanvas*> makeSummaryCanvases(const CalDet<T>& calDet, int nbins1D =
 /// \param calPadNames comma separated list of names of the CalPad objects as stored in the file.
 /// \return TCanvas containing CalDet content
 std::vector<TCanvas*> makeSummaryCanvases(const std::string_view fileName, const std::string_view calPadNames, int nbins1D = 300, float xMin1D = 0, float xMax1D = 0, bool onlyFilled = true);
+
+/// draw sector boundaris, side name and sector numbers
+void drawSectorsXY(Side side, int sectorLineColor = 920, int sectorTextColor = 1);
 
 } // namespace painter
 

@@ -79,22 +79,22 @@ class RawFileWriter
   /// Single GBT link helper
   struct LinkData {
     static constexpr int MarginToFlush = 10 * sizeof(RDHAny); // flush superpage if free space left <= this margin
-    RDHAny rdhCopy;                                          // RDH with the running info of the last RDH seen
-    IR updateIR;                                          // IR at which new HBF needs to be created
-    int lastRDHoffset = -1;                               // position of last RDH in the link buffer
-    bool startOfRun = true;                               // to signal if this is the 1st HBF of the run or not
-    uint8_t packetCounter = 0;                            // running counter
-    uint16_t pageCnt = 0;                                 // running counter
-    LinkSubSpec_t subspec = 0;                            // subspec according to DataDistribution
-    bool discardData = false;                             // discard data if true (e.g. desired max IR reached)
+    RDHAny rdhCopy;                                           // RDH with the running info of the last RDH seen
+    IR updateIR;                                              // IR at which new HBF needs to be created
+    int lastRDHoffset = -1;                                   // position of last RDH in the link buffer
+    bool startOfRun = true;                                   // to signal if this is the 1st HBF of the run or not
+    uint8_t packetCounter = 0;                                // running counter
+    uint16_t pageCnt = 0;                                     // running counter
+    LinkSubSpec_t subspec = 0;                                // subspec according to DataDistribution
+    bool discardData = false;                                 // discard data if true (e.g. desired max IR reached)
     //
     size_t nTFWritten = 0;    // number of TFs written
     size_t nRDHWritten = 0;   // number of RDHs written
     size_t nBytesWritten = 0; // number of bytes written
     //
-    std::string fileName{};                // file name associated with this link
-    std::vector<char> buffer;              // buffer to accumulate superpage data
-    RawFileWriter* writer = nullptr;       // pointer on the parent writer
+    std::string fileName{};          // file name associated with this link
+    std::vector<char> buffer;        // buffer to accumulate superpage data
+    RawFileWriter* writer = nullptr; // pointer on the parent writer
 
     PayloadCache cacheBuffer;         // used for caching in case of async. data input
     std::unique_ptr<TTree> cacheTree; // tree to store the cache
@@ -115,9 +115,10 @@ class RawFileWriter
     std::string describe() const;
 
    protected:
+    void addDataInternal(const IR& ir, const gsl::span<char> data, bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0, bool checkEmpty = true);
     void openHBFPage(const RDHAny& rdh, uint32_t trigger = 0);
     void addHBFPage(bool stop = false);
-    void closeHBFPage() { addHBFPage(true); }
+    void closeHBFPage();
     void flushSuperPage(bool keepLastPage = false);
     void fillEmptyHBHs(const IR& ir, bool dataAdded);
     void addPreformattedCRUPage(const gsl::span<char> data);
@@ -132,20 +133,7 @@ class RawFileWriter
     }
 
     /// append to the end of the buffer and return the point where appended to
-    size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true)
-    {
-      if (!sz) {
-        return buffer.size();
-      }
-      nBytesWritten += sz;
-      // do we have a space one this superpage?
-      if ((writer->mSuperPageSize - int(buffer.size())) < 0) { // need to flush
-        flushSuperPage(keepLastOnFlash);
-      }
-      auto offs = expandBufferBy(sz);
-      memmove(&buffer[offs], ptr, sz);
-      return offs;
-    }
+    size_t pushBack(const char* ptr, size_t sz, bool keepLastOnFlash = true);
 
     /// add RDH to buffer. In case this requires flushing of the superpage, do not keep the previous page
     size_t pushBack(const RDHAny& rdh)
@@ -153,8 +141,27 @@ class RawFileWriter
       nRDHWritten++;
       return pushBack(reinterpret_cast<const char*>(&rdh), sizeof(RDHAny), false);
     }
-
   };
+  //=====================================================================================
+  // If addData was called with given IR for at least 1 link, then it should be called for all links, even it with empty payload
+  // This structure will check if detector has dared to do this
+  struct DetLazinessCheck {
+    IR ir{};
+    bool preformatted = false;
+    uint32_t trigger = 0;
+    uint32_t detField = 0;
+    size_t irSeen = 0;
+    size_t completeCount = 0;
+    std::unordered_map<LinkSubSpec_t, bool> linksDone; // links for which addData was called
+    void acknowledge(LinkSubSpec_t s, const IR& _ir, bool _preformatted, uint32_t _trigger, uint32_t _detField);
+    void completeLinks(RawFileWriter* wr, const IR& _ir);
+    void clear()
+    {
+      linksDone.clear();
+      ir.clear();
+    }
+  };
+
   //=====================================================================================
 
   RawFileWriter(o2::header::DataOrigin origin = o2::header::gDataOriginInvalid, bool cru = true) : mOrigin(origin)
@@ -165,6 +172,7 @@ class RawFileWriter
   }
   ~RawFileWriter();
   void useCaching();
+  void doLazinessCheck(bool v) { mDoLazinessCheck = v; }
   void writeConfFile(std::string_view origin = "FLP", std::string_view description = "RAWDATA", std::string_view cfgname = "raw.cfg", bool fullPath = true) const;
   void close();
 
@@ -393,13 +401,13 @@ class RawFileWriter
   int mVerbosity = 0;
   o2::header::DataOrigin mOrigin = o2::header::gDataOriginInvalid;
   int mUseRDHVersion = RDHUtils::getVersion<o2::header::RAWDataHeader>(); // by default, use default version
-  int mSuperPageSize = 1024 * 1024; // super page size
-  bool mStartTFOnNewSPage = true;   // every TF must start on a new SPage
-  bool mDontFillEmptyHBF = false;   // skipp adding empty HBFs (uness it must have TF flag)
-  bool mAddSeparateHBFStopPage = true; // HBF stop is added on a separate CRU page
-  bool mUseRDHStop = true;             // detector uses STOP in RDH
-  bool mCRUDetector = true;            // Detector readout via CRU ( RORC if false)
-  bool mApplyCarryOverToLastPage = false; // call CarryOver method also for last chunk and overwrite modified trailer
+  int mSuperPageSize = 1024 * 1024;                                       // super page size
+  bool mStartTFOnNewSPage = true;                                         // every TF must start on a new SPage
+  bool mDontFillEmptyHBF = false;                                         // skipp adding empty HBFs (uness it must have TF flag)
+  bool mAddSeparateHBFStopPage = true;                                    // HBF stop is added on a separate CRU page
+  bool mUseRDHStop = true;                                                // detector uses STOP in RDH
+  bool mCRUDetector = true;                                               // Detector readout via CRU ( RORC if false)
+  bool mApplyCarryOverToLastPage = false;                                 // call CarryOver method also for last chunk and overwrite modified trailer
 
   //>> caching --------------
   bool mCachingStage = false; // signal that current data should be cached
@@ -412,8 +420,18 @@ class RawFileWriter
   TStopwatch mTimer;
   RoMode_t mROMode = NotSet;
   IR mFirstIRAdded; // 1st IR seen
+  DetLazinessCheck mDetLazyCheck{};
+  bool mDoLazinessCheck = true;
+
   ClassDefNV(RawFileWriter, 1);
-}; // namespace raw
+};
+
+/** Ensure (i.e. create if needed) directory
+ * @param outDirName : output path to be asserted
+ *
+ * Log a FATAL if the directory does not exist and can not be created
+ */
+void assertOutputDirectory(std::string_view outDirName);
 
 } // namespace raw
 } // namespace o2

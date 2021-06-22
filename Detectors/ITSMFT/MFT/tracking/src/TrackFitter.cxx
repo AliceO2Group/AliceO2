@@ -37,29 +37,15 @@ namespace mft
 {
 
 //_________________________________________________________________________________________________
-void TrackFitter::setBz(float bZ)
-{
-  auto& mftTrackingParam = MFTTrackingParam::Instance();
-
-  /// Set the magnetic field for the MFT
-  mBZField = bZ;
-
-  if (mftTrackingParam.verbose) {
-    LOG(INFO) << "Setting Fitter field = " << bZ;
-  }
-}
-
-//_________________________________________________________________________________________________
 bool TrackFitter::fit(TrackLTF& track, bool outward)
 {
 
   /// Fit a track using its attached clusters
   /// Returns false in case of failure
 
-  auto& mftTrackingParam = MFTTrackingParam::Instance();
   auto nClusters = track.getNumberOfPoints();
 
-  if (mftTrackingParam.verbose) {
+  if (mVerbose) {
     std::cout << "Seed covariances: \n"
               << track.getCovariances() << std::endl
               << std::endl;
@@ -82,7 +68,7 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
       ncl++;
     }
   }
-  if (mftTrackingParam.verbose) {
+  if (mVerbose) {
     //  Print final covariances? std::cout << "Track covariances:"; track->getCovariances().Print();
     std::cout << "Track Chi2 = " << track.getTrackChi2() << std::endl;
     std::cout << " ***************************** Done fitting *****************************\n";
@@ -95,8 +81,6 @@ bool TrackFitter::fit(TrackLTF& track, bool outward)
 bool TrackFitter::initTrack(TrackLTF& track, bool outward)
 {
 
-  auto& mftTrackingParam = MFTTrackingParam::Instance();
-
   // initialize the starting track parameters and cluster
   double sigmainvQPtsq;
   double chi2invqptquad;
@@ -105,7 +89,7 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   auto k = TMath::Abs(o2::constants::math::B2C * mBZField);
   auto Hz = std::copysign(1, mBZField);
 
-  if (mftTrackingParam.verbose) {
+  if (mVerbose) {
     std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
     std::cout << "N Clusters = " << nPoints << std::endl;
   }
@@ -149,9 +133,9 @@ bool TrackFitter::initTrack(TrackLTF& track, bool outward)
   track.setPhi(phi0);
   track.setTanl(tanl0);
 
-  if (mftTrackingParam.verbose) {
+  if (mVerbose) {
     std::cout << " Init " << (track.isCA() ? "CA Track " : "LTF Track") << std::endl;
-    auto model = (mftTrackingParam.trackmodel == Helix) ? "Helix" : (mftTrackingParam.trackmodel == Quadratic) ? "Quadratic" : "Linear";
+    auto model = (mTrackModel == Helix) ? "Helix" : (mTrackModel == Quadratic) ? "Quadratic" : "Linear";
     std::cout << "Track Model: " << model << std::endl;
     std::cout << "  initTrack: X = " << x0 << " Y = " << y0 << " Z = " << z0 << " Tgl = " << tanl0 << "  Phi = " << phi0 << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
     std::cout << " Variances: sigma2_x0 = " << TMath::Sqrt(sigmax0sq) << " sigma2_y0 = " << TMath::Sqrt(sigmay0sq) << " sigma2_q/pt = " << TMath::Sqrt(sigmainvQPtsq) << std::endl;
@@ -229,7 +213,6 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
   /// Recompute the parameters adding the cluster constraint with the Kalman filter
   /// Returns false in case of failure
 
-  auto& mftTrackingParam = MFTTrackingParam::Instance();
   const auto& clx = track.getXCoordinates()[cluster];
   const auto& cly = track.getYCoordinates()[cluster];
   const auto& clz = track.getZCoordinates()[cluster];
@@ -241,7 +224,7 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
     LOG(INFO) << "track.getZ() = " << track.getZ() << " ; newClusterZ = " << clz << " ==> Skipping point.";
     return true;
   }
-  if (mftTrackingParam.verbose) {
+  if (mVerbose) {
     std::cout << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << cluster << std::endl;
   }
 
@@ -269,8 +252,8 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
     NDisksMS = (startingLayerID % 2 == 0) ? (newLayerID - startingLayerID + 1) / 2 : (newLayerID - startingLayerID) / 2;
   }
 
-  auto MFTDiskThicknessInX0 = mftTrackingParam.MFTRadLength / 5.0;
-  if (mftTrackingParam.verbose) {
+  auto MFTDiskThicknessInX0 = mMFTRadLength / 5.0;
+  if (mVerbose) {
     std::cout << "startingLayerID = " << startingLayerID << " ; "
               << "newLayerID = " << newLayerID << " ; ";
     std::cout << "cl.getZ() = " << clz << " ; ";
@@ -282,12 +265,12 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
     track.addMCSEffect(-1, NDisksMS * MFTDiskThicknessInX0);
   }
 
-  if (mftTrackingParam.verbose) {
+  if (mVerbose) {
     std::cout << "  BeforeExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
   }
 
   // Propagate track to the z position of the new cluster
-  switch (mftTrackingParam.trackmodel) {
+  switch (mTrackModel) {
     case Linear:
       track.propagateToZlinear(clz);
       break;
@@ -303,7 +286,7 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
       break;
   }
 
-  if (mftTrackingParam.verbose) {
+  if (mVerbose) {
     std::cout << "   AfterExtrap: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
   }
 
@@ -312,7 +295,7 @@ bool TrackFitter::computeCluster(TrackLTF& track, int cluster)
   const std::array<float, 2>& cov = {sigmaX2, sigmaY2};
 
   if (track.update(pos, cov)) {
-    if (mftTrackingParam.verbose) {
+    if (mVerbose) {
       std::cout << "   New Cluster: X = " << clx << " Y = " << cly << " Z = " << clz << std::endl;
       std::cout << "   AfterKalman: X = " << track.getX() << " Y = " << track.getY() << " Z = " << track.getZ() << " Tgl = " << track.getTanl() << "  Phi = " << track.getPhi() << " pz = " << track.getPz() << " qpt = " << 1.0 / track.getInvQPt() << std::endl;
       std::cout << std::endl;

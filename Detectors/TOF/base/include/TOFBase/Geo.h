@@ -13,7 +13,7 @@
 
 #include "Rtypes.h"
 #include "CommonConstants/LHCConstants.h"
-#include "DetectorsRaw/HBFUtils.h"
+//#include "DetectorsRaw/HBFUtils.h"
 
 namespace o2
 {
@@ -41,7 +41,7 @@ class Geo
   static void getVolumeIndices(Int_t index, Int_t* detId); // Get volume index from channel index
 
   static void getPos(Int_t* det, Float_t* pos);
-  static void getVolumePath(const Int_t* ind, Char_t* path);
+  static std::string getVolumePath(const Int_t* ind);
   static Int_t getStripNumberPerSM(Int_t iplate, Int_t istrip);
   static void getStripAndModule(Int_t iStripPerSM, Int_t& iplate, Int_t& istrip); // Return the module and strip per module corresponding to the strip number per SM
 
@@ -279,9 +279,9 @@ class Geo
   static Int_t getECHFromCH(int chan) { return CHAN_TO_ELCHAN[chan]; }
   static Int_t getCHFromECH(int echan) { return ELCHAN_TO_CHAN[echan]; }
 
- private:
   static void Init();
 
+ private:
   static Int_t getSector(const Float_t* pos);
   static Int_t getPlate(const Float_t* pos);
   static Int_t getPadZ(const Float_t* pos);

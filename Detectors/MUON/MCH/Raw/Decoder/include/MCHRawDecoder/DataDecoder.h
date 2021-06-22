@@ -15,6 +15,9 @@
 /// \brief Definition of the decoder for the MCH data
 ///
 
+#ifndef O2_MCH_DATADECODER_H_
+#define O2_MCH_DATADECODER_H_
+
 #include <gsl/span>
 #include <unordered_set>
 #include <unordered_map>
@@ -50,6 +53,9 @@ void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits);
 class DataDecoder
 {
  public:
+  static constexpr int32_t tfTimeMax{0x7FFFFFFF};
+  static constexpr int32_t tfTimeInvalid{-tfTimeMax};
+
   struct SampaInfo {
     union {
       uint32_t id = 0;
@@ -71,34 +77,77 @@ class DataDecoder
         uint32_t orbit;              /// bit 32 to 63: orbit
       };                             ///
     };
-    uint32_t getBXTime()
+    uint32_t getBXTime() const
     {
       return (bunchCrossing + (sampaTime * 4));
+    }
+    int32_t tfTime;
+    bool timeValid() const
+    {
+      return (tfTime != tfTimeInvalid);
+    }
+
+    bool operator==(const SampaInfo&) const;
+    bool operator<(const SampaInfo& rhs) const
+    {
+      if (id < rhs.id) {
+        return true;
+      } else if (time < rhs.time) {
+        return true;
+      }
+      return false;
     }
   };
 
   struct SampaTimeFrameStart {
+    SampaTimeFrameStart() = default;
     SampaTimeFrameStart(uint32_t orbit, uint32_t bunchCrossing) : mOrbit(orbit), mBunchCrossing(bunchCrossing) {}
 
     uint32_t mOrbit{0};
-    int32_t mBunchCrossing{0};
+    uint32_t mBunchCrossing{0};
   };
 
-  using SampaTimeFrameStarts = std::unordered_map<uint32_t, std::optional<SampaTimeFrameStart>>;
+  struct RawDigit {
+    o2::mch::Digit digit;
+    SampaInfo info;
+    auto getDetID() const { return digit.getDetID(); }
+    auto getPadID() const { return digit.getPadID(); }
+    uint32_t getADC() const { return digit.getADC(); }
+    auto getTime() const { return info.tfTime; }
+    bool timeValid() const { return info.timeValid(); }
+    auto getOrbit() const { return info.orbit; }
+    auto getBunchCrossing() const { return info.bunchCrossing; }
+    auto getSampaTime() const { return info.sampaTime; }
+    auto getBXTime() const { return info.getBXTime(); }
 
-  DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose);
+    bool operator==(const RawDigit&) const;
+  };
+
+  using RawDigitVector = std::vector<RawDigit>;
+
+  DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
+              uint32_t sampaBcOffset,
+              std::string mapCRUfile, std::string mapFECfile,
+              bool ds2manu, bool verbose, bool useDummyElecMap);
 
   void reset();
   void decodeBuffer(gsl::span<const std::byte> buf);
 
+  void setFirstOrbitInRun(uint32_t orbit) { mFirstOrbitInRun = orbit; }
+  std::optional<uint32_t> getFirstOrbitInRun() { return mFirstOrbitInRun; }
+  void setFirstOrbitInTF(uint32_t orbit);
+
+  void setSampaBcOffset(uint32_t offset) { mSampaTimeOffset = offset; }
+  uint32_t getSampaBcOffset() const { return mSampaTimeOffset; }
+
   static int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2);
-  static void computeDigitsTime_(std::vector<o2::mch::Digit>& digits, std::vector<SampaInfo>& sampaInfo, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug);
+  static void computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug);
   void computeDigitsTime()
   {
-    computeDigitsTime_(mOutputDigits, mSampaInfos, mSampaTimeFrameStarts, mDebug);
+    computeDigitsTime_(mDigits, mSampaTimeFrameStart, mDebug);
   }
 
-  const std::vector<o2::mch::Digit>& getOutputDigits() const { return mOutputDigits; }
+  const RawDigitVector& getDigits() const { return mDigits; }
   const std::unordered_set<OrbitInfo, OrbitInfoHash>& getOrbits() const { return mOrbits; }
 
  private:
@@ -106,7 +155,7 @@ class DataDecoder
   void initFee2SolarMapper(std::string filename);
   void init();
   void decodePage(gsl::span<const std::byte> page);
-  void dumpDigits(bool bending);
+  void dumpDigits();
 
   Elec2DetMapper mElec2Det{nullptr};       ///< front-end electronics mapping
   FeeLink2SolarMapper mFee2Solar{nullptr}; ///< CRU electronics mapping
@@ -115,11 +164,13 @@ class DataDecoder
 
   o2::mch::raw::PageDecoder mDecoder; ///< CRU page decoder
 
-  std::vector<o2::mch::Digit> mOutputDigits; ///< vector of decoded digits
-  std::vector<SampaInfo> mSampaInfos;        ///< vector of auxiliary SampaInfo objects
-
+  RawDigitVector mDigits;                               ///< vector of decoded digits
   std::unordered_set<OrbitInfo, OrbitInfoHash> mOrbits; ///< list of orbits in the processed buffer
-  SampaTimeFrameStarts mSampaTimeFrameStarts;           ///< time stamps of the TimeFrames in the processed buffer
+
+  std::optional<uint32_t> mFirstOrbitInRun; ///< first orbit in the processed run
+  SampaTimeFrameStart mSampaTimeFrameStart; ///< SAMPA bunch-crossing counter at the beiginning of the TF
+
+  uint32_t mSampaTimeOffset{339986}; ///< SAMPA BC counter value at the beginning of the first orbit in the run
 
   SampaChannelHandler mChannelHandler;                  ///< optional user function to be called for each decoded SAMPA hit
   std::function<void(o2::header::RDHAny*)> mRdhHandler; ///< optional user function to be called for each RDH
@@ -127,8 +178,16 @@ class DataDecoder
   bool mDebug{false};
   bool mDs2manu{false};
   uint32_t mOrbit{0};
+  bool mUseDummyElecMap{false};
 };
+
+bool operator<(const DataDecoder::RawDigit& d1, const DataDecoder::RawDigit& d2);
+
+std::ostream& operator<<(std::ostream& os, const DataDecoder::RawDigit& d);
+
+std::string asString(const DataDecoder::RawDigit& d);
 
 } // namespace raw
 } // namespace mch
 } // end namespace o2
+#endif //O2_MCH_DATADECODER_H_

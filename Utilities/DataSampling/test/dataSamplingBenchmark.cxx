@@ -12,6 +12,7 @@
 #include "DataSampling/DataSampling.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include <vector>
+#include <filesystem>
 
 using namespace o2::framework;
 using namespace o2::utilities;
@@ -45,7 +46,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 #include <memory>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/functional/hash.hpp>
 #include <fairmq/FairMQDevice.h>
@@ -154,7 +154,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "  ]\n"
     "}";
 
-  if (!boost::filesystem::exists(configurationPath)) {
+  if (!std::filesystem::exists(configurationPath)) {
     std::ofstream configurationFile(configurationPath);
     configurationFile << configuration;
     configurationFile.close();

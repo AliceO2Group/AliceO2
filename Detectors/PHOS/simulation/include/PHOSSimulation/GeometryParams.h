@@ -143,7 +143,7 @@ class GeometryParams final : public TNamed
   // General PHOS modules parameters
   int mNModules;               ///< Number of PHOS modules
   float mAngle;                ///< Position angles between modules
-  float mPHOSAngle[4];         ///< Position angles of modules
+  float mPHOSAngle[5];         ///< Position angles of modules
   float mPHOSParams[4];        ///< Half-sizes of PHOS trapecoid
   float mPHOSATBParams[4];     ///< Half-sizes of (air-filled) inner part of PHOS air tight box
   float mCrystalShift;         ///< Distance from crystal center to front surface

@@ -28,10 +28,11 @@ enum triggerAliases {
   kCUP9,
   kMUP10,
   kMUP11,
+  kALL,
   kNaliases
 };
 
-static const std::string aliasLabels[kNaliases] = {
+static const char* aliasLabels[kNaliases] = {
   "kINT7",
   "kEMC7",
   "kINT7inMUON",
@@ -42,6 +43,7 @@ static const std::string aliasLabels[kNaliases] = {
   "kCUP8",
   "kCUP9",
   "kMUP10",
+  "kALL",
   "kMUP11"};
 
 class TriggerAliases

@@ -10,21 +10,33 @@
 
 o2_add_library(MCHSimulation
                SOURCES src/Detector.cxx
+                       src/DEDigitizer.cxx
                        src/Digitizer.cxx
+                       src/DigitizerParam.cxx
                        src/Hit.cxx
                        src/Stepper.cxx
                        src/Stepper.h
                        src/Response.cxx
-		       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
-		                             O2::MCHBase O2::DetectorsPassive
-                                     O2::MCHMappingImpl4 O2::DetectorsBase
-                                     O2::MCHGeometryCreator)
+                PUBLIC_LINK_LIBRARIES O2::DataFormatsMCH
+                                      O2::DetectorsBase
+                                      O2::DetectorsPassive
+                                      O2::DetectorsRaw
+                                      O2::MCHBase
+                                      O2::MCHGeometryCreator
+                                      O2::MCHMappingImpl4
+                                      O2::SimulationDataFormat)
 
 o2_target_root_dictionary(MCHSimulation
                           HEADERS include/MCHSimulation/Detector.h
                                   include/MCHSimulation/Digitizer.h
+                                  include/MCHSimulation/DigitizerParam.h
                                   include/MCHSimulation/Hit.h
                                   include/MCHSimulation/Response.h)
+
+o2_add_executable(inspect-collision-context
+                  COMPONENT_NAME mch
+                  SOURCES src/inspect-collision-context.cxx
+                  PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
 
 o2_data_file(COPY data DESTINATION Detectors/MCH/simulation)
 

@@ -345,6 +345,9 @@ int genEvents::GenerateEvent(const GPUParam& param, char* filename)
 
   mRec->mIOPtrs.nMCInfosTPC = mcInfo.size();
   mRec->mIOPtrs.mcInfosTPC = mcInfo.data();
+  static const GPUTPCMCInfoCol mcColInfo = {0, (unsigned int)mcInfo.size()};
+  mRec->mIOPtrs.mcInfosTPCCol = &mcColInfo;
+  mRec->mIOPtrs.nMCInfosTPCCol = 1;
 
   mRec->DumpData(filename);
   labels.clear();
@@ -356,15 +359,15 @@ void genEvents::RunEventGenerator(GPUChainTracking* rec)
 {
   std::unique_ptr<genEvents> gen(new genEvents(rec));
   char dirname[256];
-  snprintf(dirname, 256, "events/%s/", configStandalone.EventsDir);
+  snprintf(dirname, 256, "events/%s/", configStandalone.eventsDir);
   mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
   rec->DumpSettings(dirname);
 
   gen->InitEventGenerator();
 
-  for (int i = 0; i < (configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents); i++) {
-    GPUInfo("Generating event %d/%d", i, configStandalone.NEvents == -1 ? 10 : configStandalone.NEvents);
-    snprintf(dirname, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.EventsDir, i);
+  for (int i = 0; i < (configStandalone.nEvents == -1 ? 10 : configStandalone.nEvents); i++) {
+    GPUInfo("Generating event %d/%d", i, configStandalone.nEvents == -1 ? 10 : configStandalone.nEvents);
+    snprintf(dirname, 256, "events/%s/" GPUCA_EVDUMP_FILE ".%d.dump", configStandalone.eventsDir, i);
     gen->GenerateEvent(rec->GetParam(), dirname);
   }
   gen->FinishEventGenerator();

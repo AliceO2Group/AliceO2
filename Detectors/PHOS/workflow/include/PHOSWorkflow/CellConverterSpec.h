@@ -10,7 +10,7 @@
 
 #include <vector>
 
-#include "PHOSCalib/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsPHOS/Cell.h"
@@ -75,7 +75,7 @@ class CellConverterSpec : public framework::Task
   std::vector<Cell> mOutputCells;                              ///< Container with output cells
   std::vector<TriggerRecord> mOutputCellTrigRecs;              ///< Container with trigger records for output cells
   o2::dataformats::MCTruthContainer<MCLabel> mOutputTruthCont; ///< output MC labels
-  o2::phos::BadChannelMap* mBadMap = nullptr;                  ///< Bad channels map
+  o2::phos::BadChannelsMap* mBadMap = nullptr;                 ///< Bad channels map
 };
 
 /// \brief Creating DataProcessorSpec for the PHOS Cell Converter Spec

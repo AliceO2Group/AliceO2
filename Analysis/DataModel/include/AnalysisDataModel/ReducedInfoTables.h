@@ -104,8 +104,11 @@ DECLARE_SOA_TABLE(ReducedTracksBarrel, "AOD", "RTBARREL", //!
 
 // barrel covariance matrix  TODO: add all the elements required for secondary vertexing
 DECLARE_SOA_TABLE(ReducedTracksBarrelCov, "AOD", "RTBARRELCOV", //!
-                  track::CYY, track::CZZ, track::CSnpSnp,
-                  track::CTglTgl, track::C1Pt21Pt2);
+                  track::X, track::Alpha,
+                  track::Y, track::Z, track::Snp, track::Tgl, track::Signed1Pt,
+                  track::CYY, track::CZY, track::CZZ, track::CSnpY, track::CSnpZ,
+                  track::CSnpSnp, track::CTglY, track::CTglZ, track::CTglSnp, track::CTglTgl,
+                  track::C1PtY, track::C1PtZ, track::C1PtSnp, track::C1PtTgl, track::C1Pt21Pt2);
 
 // barrel PID information
 DECLARE_SOA_TABLE(ReducedTracksBarrelPID, "AOD", "RTBARRELPID", //!
@@ -135,6 +138,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
                            [](float pt, float eta) -> float { return pt * std::sinh(eta); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pmom, pmom, //!
                            [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+DECLARE_SOA_COLUMN(RawPhi, rawPhi, float); //!
 } // namespace reducedmuon
 
 // Muon track kinematics
@@ -148,19 +152,15 @@ DECLARE_SOA_TABLE(ReducedMuons, "AOD", "RTMUON", //!
 
 // Muon track quality details
 DECLARE_SOA_TABLE(ReducedMuonsExtra, "AOD", "RTMUONEXTRA", //!
-                  muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::ZMu, muon::BendingCoor, muon::NonBendingCoor,
-                  muon::Chi2, muon::Chi2MatchTrigger);
-
-// TODO: tables to be used once new AO2Ds are created
-/*DECLARE_SOA_TABLE(ReducedMuonsExtra, "AOD", "RTMUONEXTRA", //!
                   fwdtrack::NClusters, fwdtrack::PDca, fwdtrack::RAtAbsorberEnd,
                   fwdtrack::Chi2, fwdtrack::Chi2MatchMCHMID, fwdtrack::Chi2MatchMCHMFT,
                   fwdtrack::MatchScoreMCHMFT, fwdtrack::MatchMFTTrackID, fwdtrack::MatchMCHTrackID);
 // Muon covariance, TODO: the rest of the matrix should be added when needed
 DECLARE_SOA_TABLE(ReducedMuonsCov, "AOD", "RTMUONCOV",
-                  aod::fwdtrack::CXX, aod::fwdtrack::CYY, aod::fwdtrack::CPhiPhi,
-                  aod::fwdtrack::CTglTgl, aod::fwdtrack::C1Pt21Pt2);
-*/
+                  fwdtrack::X, fwdtrack::Y, fwdtrack::Z, reducedmuon::RawPhi, fwdtrack::Tgl, fwdtrack::Signed1Pt,
+                  fwdtrack::CXX, fwdtrack::CXY, fwdtrack::CYY, fwdtrack::CPhiX, fwdtrack::CPhiY, fwdtrack::CPhiPhi,
+                  fwdtrack::CTglX, fwdtrack::CTglY, fwdtrack::CTglPhi, fwdtrack::CTglTgl, fwdtrack::C1PtX,
+                  fwdtrack::C1PtY, fwdtrack::C1PtPhi, fwdtrack::C1PtTgl, fwdtrack::C1Pt21Pt2);
 
 // pair information
 namespace reducedpair
@@ -171,7 +171,7 @@ DECLARE_SOA_COLUMN(Pt, pt, float);                    //!
 DECLARE_SOA_COLUMN(Eta, eta, float);                  //!
 DECLARE_SOA_COLUMN(Phi, phi, float);                  //!
 DECLARE_SOA_COLUMN(Sign, sign, int);                  //!
-DECLARE_SOA_COLUMN(FilterMap, filterMap, uint16_t);   //!
+DECLARE_SOA_COLUMN(FilterMap, filterMap, uint32_t);   //!
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px,                    //!
                            [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
@@ -198,7 +198,7 @@ using ReducedTrackBarrelCov = ReducedTracksBarrelCov::iterator;
 using ReducedTrackBarrelPID = ReducedTracksBarrelPID::iterator;
 using ReducedMuon = ReducedMuons::iterator;
 using ReducedMuonExtra = ReducedMuonsExtra::iterator;
-//using ReducedMuonCov = ReducedMuonsCov::iterator;
+using ReducedMuonCov = ReducedMuonsCov::iterator;
 using Dilepton = Dileptons::iterator;
 } // namespace o2::aod
 

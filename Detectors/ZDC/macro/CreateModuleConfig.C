@@ -10,7 +10,7 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "CCDB/CcdbApi.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCBase/Constants.h"

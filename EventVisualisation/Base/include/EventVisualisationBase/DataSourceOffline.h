@@ -29,25 +29,26 @@ namespace event_visualisation
 class DataSourceOffline : public DataSource
 {
  protected:
-  static DataReader* instance[EVisualisationGroup::NvisualisationGroups];
+  Int_t mCurrentEvent = 0;
+  DataReader* mDataReaders[EVisualisationGroup::NvisualisationGroups];
+  VisualisationEvent getEventData(int no, EVisualisationGroup purpose, EVisualisationDataType dataType);
 
  public:
-  DataSourceOffline() = default;
+  DataSourceOffline();
 
   ~DataSourceOffline() override = default;
   DataSourceOffline(DataSourceOffline const&) = delete;
+  void setCurrentEvent(Int_t currentEvent) override;
+  Int_t getCurrentEvent() override;
 
   /// Deleted assigment operator
   void operator=(DataSourceOffline const&) = delete;
 
-  int GetEventCount() override;
+  int getEventCount() override;
 
-  void registerReader(DataReader* reader, EVisualisationGroup purpose)
-  {
-    instance[purpose] = reader;
-  }
+  void registerReader(DataReader* reader, EVisualisationGroup type);
 
-  VisualisationEvent getEventData(int no, EVisualisationGroup purpose, EVisualisationDataType dataType) override;
+  std::vector<std::pair<VisualisationEvent, std::string>> getVisualisationList(int no) override;
 };
 
 } // namespace event_visualisation

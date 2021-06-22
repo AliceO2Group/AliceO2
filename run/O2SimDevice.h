@@ -16,6 +16,7 @@
 #include <memory>
 #include "FairMQMessage.h"
 #include <FairMQDevice.h>
+#include <FairMQParts.h>
 #include <FairLogger.h>
 #include "../macro/o2sim.C"
 #include "TVirtualMC.h"
@@ -25,6 +26,7 @@
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
 #include <cstring>
+#include "PrimaryServerState.h"
 
 namespace o2
 {
@@ -63,7 +65,7 @@ class O2SimDevice final : public FairMQDevice
     // NOTE: In a FairMQDevice this is better done here (instead of outside) since
     // we have to setup simulation + worker in the same thread (due to many threadlocal variables
     // in the simulation) ... at least as long FairMQDevice is not spawning workers on the master thread
-    initSim(fChannels.at("primary-get").at(0), mSimRun);
+    initSim(fChannels.at("o2sim-primserv-info").at(0), mSimRun);
 
     // set the vmc and app pointers
     mVMC = TVirtualMC::GetMC();
@@ -85,12 +87,13 @@ class O2SimDevice final : public FairMQDevice
   // returns true if successful / false if not
   static bool querySimConfig(FairMQChannel& channel)
   {
-    auto text = new std::string("configrequest");
-    std::unique_ptr<FairMQMessage> request(channel.NewMessage(const_cast<char*>(text->c_str()),
-                                                              text->length(), CustomCleanup, text));
+    //auto text = new std::string("configrequest");
+    //std::unique_ptr<FairMQMessage> request(channel.NewMessage(const_cast<char*>(text->c_str()),
+    //                                                          text->length(), CustomCleanup, text));
+    std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(O2PrimaryServerInfoRequest::Config));
     std::unique_ptr<FairMQMessage> reply(channel.NewMessage());
 
-    int timeoutinMS = 100000; // wait for 100s max
+    int timeoutinMS = 60000; // wait for 60s max --> should be fast reply
     if (channel.Send(request, timeoutinMS) > 0) {
       LOG(INFO) << "Waiting for configuration answer ";
       if (channel.Receive(reply, timeoutinMS) > 0) {
@@ -142,77 +145,136 @@ class O2SimDevice final : public FairMQDevice
     return true;
   }
 
-  bool Kernel(FairMQChannel& requestchannel, FairMQChannel& dataoutchannel)
+  bool isWorkAvailable(FairMQChannel& statuschannel, int workerID = -1)
   {
-    auto text = new std::string("primrequest");
+    std::stringstream str;
+    str << "[W" << workerID << "]";
+    auto workerStr = str.str();
 
-    // create message object with a pointer to the data buffer,
-    // its size,
-    // custom deletion function (called when transfer is done),
-    // and pointer to the object managing the data buffer
-    FairMQMessagePtr request(requestchannel.NewMessage(const_cast<char*>(text->c_str()), // data
-                                                       text->length(),                   // size
-                                                       CustomCleanup,
-                                                       text));
-    FairMQMessagePtr reply(dataoutchannel.NewMessage());
+    int timeoutinMS = 2000; // wait for 2s max
+    bool reprobe = true;
+    while (reprobe) {
+      reprobe = false;
+      int i = -1;
+      FairMQMessagePtr request(statuschannel.NewSimpleMessage(O2PrimaryServerInfoRequest::Status));
+      FairMQMessagePtr reply(statuschannel.NewSimpleMessage(i));
+      auto sendcode = statuschannel.Send(request, timeoutinMS);
+      if (sendcode > 0) {
+        LOG(INFO) << workerStr << " Waiting for status answer ";
+        auto code = statuschannel.Receive(reply, timeoutinMS);
+        if (code > 0) {
+          int state(*((int*)(reply->GetData())));
+          if (state == (int)o2::O2PrimaryServerState::ReadyToServe) {
+            LOG(INFO) << workerStr << " SERVER IS SERVING";
+            return true;
+          } else if (state == (int)o2::O2PrimaryServerState::Initializing) {
+            LOG(INFO) << workerStr << " SERVER IS STILL INITIALIZING";
+            reprobe = true;
+            sleep(1);
+          } else if (state == (int)o2::O2PrimaryServerState::WaitingEvent) {
+            LOG(INFO) << workerStr << " SERVER IS WAITING FOR EVENT";
+            reprobe = true;
+            sleep(1);
+          } else if (state == (int)o2::O2PrimaryServerState::Idle) {
+            LOG(INFO) << workerStr << " SERVER IS IDLE";
+            return false;
+          } else {
+            LOG(INFO) << workerStr << " SERVER STATE UNKNOWN OR STOPPED";
+          }
+        } else {
+          LOG(ERROR) << workerStr << " STATUS REQUEST UNSUCCESSFUL";
+        }
+      }
+    }
+    return false;
+  }
+
+  bool Kernel(int workerID, FairMQChannel& requestchannel, FairMQChannel& dataoutchannel, FairMQChannel* statuschannel = nullptr)
+  {
+    static int counter = 0;
+
+    FairMQMessagePtr request(requestchannel.NewSimpleMessage(PrimaryChunkRequest{workerID, -1, counter++})); // <-- don't need content; channel means -> give primaries
+    FairMQParts reply;
 
     mVMCApp->setSimDataChannel(&dataoutchannel);
 
-    LOG(INFO) << "Requesting work ";
-    int timeoutinMS = 1000000; // wait for 1000s max -- we should have a more robust solution
-                               // this should be mostly driven by the time to setup the particle generator in the server
+    // we log info with workerID prepended
+    auto workerStr = [workerID]() {
+      std::stringstream str;
+      str << "[W" << workerID << "]";
+      return str.str();
+    };
+
+    LOG(INFO) << workerStr() << " Requesting work chunk";
+    int timeoutinMS = 2000;
     auto sendcode = requestchannel.Send(request, timeoutinMS);
     if (sendcode > 0) {
-      LOG(INFO) << "Waiting for answer ";
+      LOG(INFO) << workerStr() << " Waiting for answer";
       // asking for primary generation
 
-      int trial = 0;
-      int code = -1;
-      do {
-        code = requestchannel.Receive(reply, timeoutinMS);
-        trial++;
-        if (code > 0) {
-          LOG(INFO) << "Answer received, containing " << reply->GetSize() << " bytes ";
-
+      auto code = requestchannel.Receive(reply);
+      if (code > 0) {
+        LOG(INFO) << workerStr() << " Primary chunk received";
+        auto rawmessage = std::move(reply.At(0));
+        auto header = *(o2::PrimaryChunkAnswer*)(rawmessage->GetData());
+        if (!header.payload_attached) {
+          LOG(INFO) << "No payload; Server in state " << PrimStateToString[(int)header.serverstate];
+          // if no payload attached we inspect the server state, to see what to do
+          if (header.serverstate == O2PrimaryServerState::Initializing || header.serverstate == O2PrimaryServerState::WaitingEvent) {
+            sleep(1); // back-off and retry
+            return true;
+          }
+          return false;
+        } else {
+          auto payload = std::move(reply.At(1));
           // wrap incoming bytes as a TMessageWrapper which offers "adoption" of a buffer
-          auto message = new TMessageWrapper(reply->GetData(), reply->GetSize());
+          auto message = new TMessageWrapper(payload->GetData(), payload->GetSize());
           auto chunk = static_cast<o2::data::PrimaryChunk*>(message->ReadObjectAny(message->GetClass()));
 
-          mVMCApp->setPrimaries(chunk->mParticles);
-
-          auto info = chunk->mSubEventInfo;
-          mVMCApp->setSubEventInfo(&info);
-
-          LOG(INFO) << "Processing " << chunk->mParticles.size() << " primary particles "
-                    << "for event " << info.eventID << "/" << info.maxEvents << " "
-                    << "part " << info.part << "/" << info.nparts;
-          gRandom->SetSeed(chunk->mSubEventInfo.seed);
-
-          // Process one event
-          auto& conf = o2::conf::SimConfig::Instance();
-          if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0) {
-            // this is preferred and necessary for Geant4
-            // since repeated "ProcessRun" might have significant overheads
-            mVMC->ProcessEvent();
-          } else {
-            // for Geant3 calling ProcessEvent is not enough
-            // as some hooks are not called
-            mVMC->ProcessRun(1);
+          bool goon = true;
+          // no particles and eventID == -1 --> indication for no more work
+          if (chunk->mParticles.size() == 0 && chunk->mSubEventInfo.eventID == -1) {
+            LOG(INFO) << workerStr() << " No particles in reply : quitting kernel";
+            goon = false;
           }
 
-          FairSystemInfo sysinfo;
-          LOG(INFO) << "TIME-STAMP " << mTimer.RealTime() << "\t";
-          mTimer.Continue();
-          LOG(INFO) << "MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
-                    << sysinfo.GetMaxMemory() << " MB\n";
+          if (goon) {
+            mVMCApp->setPrimaries(chunk->mParticles);
+
+            auto info = chunk->mSubEventInfo;
+            mVMCApp->setSubEventInfo(&info);
+
+            LOG(INFO) << workerStr() << " Processing " << chunk->mParticles.size() << " primary particles "
+                      << "for event " << info.eventID << "/" << info.maxEvents << " "
+                      << "part " << info.part << "/" << info.nparts;
+            gRandom->SetSeed(chunk->mSubEventInfo.seed);
+
+            // Process one event
+            auto& conf = o2::conf::SimConfig::Instance();
+            if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0) {
+              // this is preferred and necessary for Geant4
+              // since repeated "ProcessRun" might have significant overheads
+              mVMC->ProcessEvent();
+            } else {
+              // for Geant3 calling ProcessEvent is not enough
+              // as some hooks are not called
+              mVMC->ProcessRun(1);
+            }
+
+            FairSystemInfo sysinfo;
+            LOG(INFO) << workerStr() << " TIME-STAMP " << mTimer.RealTime() << "\t";
+            mTimer.Continue();
+            LOG(INFO) << workerStr() << " MEM-STAMP " << sysinfo.GetCurrentMemory() / (1024. * 1024) << " "
+                      << sysinfo.GetMaxMemory() << " MB\n";
+          }
           delete message;
           delete chunk;
-        } else {
-          LOG(INFO) << " No answer reveived from server. Return code " << code;
         }
-      } while (code == -1 && trial <= 2);
+      } else {
+        LOG(INFO) << workerStr() << " No primary answer received from server (within timeout). Return code " << code;
+      }
     } else {
-      LOG(INFO) << " Requesting work from server not possible. Return code " << sendcode;
+      LOG(INFO) << workerStr() << " Requesting work from server not possible. Return code " << sendcode;
       return false;
     }
     return true;
@@ -222,7 +284,7 @@ class O2SimDevice final : public FairMQDevice
   /// Overloads the ConditionalRun() method of FairMQDevice
   bool ConditionalRun() final
   {
-    return Kernel(fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
+    return Kernel(-1, fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
   }
 
   void PostRun() final { LOG(INFO) << "Shutting down "; }

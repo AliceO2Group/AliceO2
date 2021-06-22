@@ -9,8 +9,8 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDWorkflow/TRDTrackletTransformerSpec.h"
-#include "TRDWorkflow/TRDCalibratedTrackletWriterSpec.h"
-#include "TRDWorkflow/TRDTrackletReaderSpec.h"
+#include "TRDWorkflowIO/TRDCalibratedTrackletWriterSpec.h"
+#include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
@@ -23,6 +23,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     "root-in", VariantType::Int, 1, {"enable (1) or disable (0) input from ROOT file"}});
   workflowOptions.push_back(ConfigParamSpec{
     "root-out", VariantType::Int, 1, {"enable (1) or disable (0) output to ROOT file"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -31,6 +33,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   int rootIn = configcontext.options().get<int>("root-in");
   int rootOut = configcontext.options().get<int>("root-out");
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   WorkflowSpec spec;
 

@@ -43,7 +43,7 @@ template <class Mapping>
 STFDecoder<Mapping>::STFDecoder(bool doClusters, bool doPatterns, bool doDigits, bool doCalib, std::string_view dict, std::string_view noise)
   : mDoClusters(doClusters), mDoPatterns(doPatterns), mDoDigits(doDigits), mDoCalibData(doCalib), mDictName(dict), mNoiseName(noise)
 {
-  mSelfName = o2::utils::concat_string(Mapping::getName(), "STFDecoder");
+  mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "STFDecoder");
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -61,8 +61,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
   mDecoder->setVerbosity(ic.options().get<int>("decoder-verbosity"));
   mDecoder->setFillCalibData(mDoCalibData);
-  std::string noiseFile = o2::base::NameConf::getDictionaryFileName(detID, mNoiseName, ".root");
-  if (o2::base::NameConf::pathExists(noiseFile)) {
+  std::string noiseFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mNoiseName, "root");
+  if (o2::utils::Str::pathExists(noiseFile)) {
     TFile* f = TFile::Open(noiseFile.data(), "old");
     auto pnoise = (NoiseMap*)f->Get("Noise");
     AlpideCoder::setNoisyPixels(pnoise);
@@ -74,7 +74,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   if (mDoClusters) {
     mClusterer = std::make_unique<Clusterer>();
     mClusterer->setNChips(Mapping::getNChips());
-    const auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName());
+    const auto grp = o2::parameters::GRPObject::loadFrom();
     if (grp) {
       mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut(detID));
     } else {
@@ -89,8 +89,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mClusterer->setMaxBCSeparationToMask(nbc);
     mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
 
-    std::string dictFile = o2::base::NameConf::getDictionaryFileName(detID, mDictName, ".bin");
-    if (o2::base::NameConf::pathExists(dictFile)) {
+    std::string dictFile = o2::base::NameConf::getAlpideClusterDictionaryFileName(detID, mDictName, "bin");
+    if (o2::utils::Str::pathExists(dictFile)) {
       mClusterer->loadDictionary(dictFile);
       LOG(INFO) << mSelfName << " clusterer running with a provided dictionary: " << dictFile;
     } else {
@@ -117,6 +117,19 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<GBTCalibData> calVec;
   std::vector<ROFRecord> digROFVec;
 
+  if (mDoDigits) {
+    digVec.reserve(mEstNDig);
+    digROFVec.reserve(mEstNROF);
+  }
+  if (mDoClusters) {
+    clusCompVec.reserve(mEstNClus);
+    clusROFVec.reserve(mEstNROF);
+    clusPattVec.reserve(mEstNClusPatt);
+  }
+  if (mDoCalibData) {
+    calVec.reserve(mEstNCalib);
+  }
+
   mDecoder->setDecodeNextAuto(false);
   while (mDecoder->decodeNextTrigger()) {
     if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
@@ -125,7 +138,6 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
         mDecoder->fillCalibData(calVec);
       }
     }
-
     if (mDoClusters) { // !!! THREADS !!!
       mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
     }
@@ -134,8 +146,11 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   if (mDoDigits) {
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
     pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
+    mEstNDig = std::max(mEstNDig, size_t(digVec.size() * 1.2));
+    mEstNROF = std::max(mEstNROF, size_t(digROFVec.size() * 1.2));
     if (mDoCalibData) {
       pc.outputs().snapshot(Output{orig, "GBTCALIB", 0, Lifetime::Timeframe}, calVec);
+      mEstNCalib = std::max(mEstNCalib, size_t(calVec.size() * 1.2));
     }
   }
 
@@ -143,6 +158,9 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
     pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
+    mEstNClus = std::max(mEstNClus, size_t(clusCompVec.size() * 1.2));
+    mEstNClusPatt = std::max(mEstNClusPatt, size_t(clusPattVec.size() * 1.2));
+    mEstNROF = std::max(mEstNROF, size_t(clusROFVec.size() * 1.2));
   }
 
   if (mDoClusters) {

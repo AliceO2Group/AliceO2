@@ -15,7 +15,15 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ft0::FT0CalibrationInfoObject + ;
-#pragma link C++ class o2::ft0::FT0CalibrationObject + ;
-#pragma link C++ class o2::ft0::FT0ChannelDataTimeSlotContainer + ;
+#pragma link C++ class o2::ft0::FT0ChannelTimeCalibrationObject + ;
+#pragma link C++ class o2::ft0::FT0ChannelTimeTimeSlotContainer + ;
+#pragma link C++ class o2::ft0::FT0CalibTimeSlewing + ;
+#pragma link C++ class o2::ft0::FT0CalibCollector + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0CalibInfoSlot>;
+//delete lines below
+#pragma link C++ class o2::ft0::FT0DummyCalibrationObject + ;
+#pragma link C++ class o2::ft0::FT0DummyCalibrationObjectTime + ;
+#pragma link C++ class o2::ft0::FT0DummyCalibrationObjectCharge + ;
+#pragma link C++ class o2::ft0::FT0DummyNeededCalibrationObject + ;
 
 #endif

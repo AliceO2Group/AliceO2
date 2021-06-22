@@ -27,14 +27,14 @@
 #include <algorithm>
 #include <vector>
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "clusterFinderDefs.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/Constants.h"
-#include "GPURawData.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCBase/RDHUtils.h"
+#include "DetectorsRaw/RDHUtils.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -43,7 +43,7 @@ using namespace o2::tpc::constants;
 
 void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   memset(nClusters, 0, NSLICES * sizeof(nClusters[0]));
   unsigned int offset = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
@@ -82,7 +82,7 @@ void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNative
 
 void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAccess& native, std::unique_ptr<ClusterNative[]>& nativeBuffer, const AliHLTTPCRawCluster** rawClusters, unsigned int* nRawClusters)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   memset((void*)&native, 0, sizeof(native));
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < nRawClusters[i]; j++) {
@@ -114,7 +114,7 @@ void GPUReconstructionConvert::ConvertRun2RawToNative(o2::tpc::ClusterNativeAcce
 
 int GPUReconstructionConvert::GetMaxTimeBin(const ClusterNativeAccess& native)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   float retVal = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
@@ -133,7 +133,7 @@ int GPUReconstructionConvert::GetMaxTimeBin(const ClusterNativeAccess& native)
 
 int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutDigits& digits)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   float retVal = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int k = 0; k < digits.nTPCDigits[i]; k++) {
@@ -150,16 +150,16 @@ int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutDigits& digits
 
 int GPUReconstructionConvert::GetMaxTimeBin(const GPUTrackingInOutZS& zspages)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   float retVal = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
-    int firstHBF = zspages.slice[i].count[0] ? o2::raw::RDHUtils::getHeartBeatOrbit(*(const RAWDataHeaderGPU*)zspages.slice[i].zsPtr[0][0]) : 0;
+    int firstHBF = zspages.slice[i].count[0] ? o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)zspages.slice[i].zsPtr[0][0]) : 0;
     for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
       for (unsigned int k = 0; k < zspages.slice[i].count[j]; k++) {
         const char* page = (const char*)zspages.slice[i].zsPtr[j][k];
         for (unsigned int l = 0; l < zspages.slice[i].nZSPtr[j][k]; l++) {
-          RAWDataHeaderGPU* rdh = (RAWDataHeaderGPU*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE);
-          TPCZSHDR* hdr = (TPCZSHDR*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(RAWDataHeaderGPU));
+          o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE);
+          TPCZSHDR* hdr = (TPCZSHDR*)(page + l * TPCZSHDR::TPC_ZS_PAGE_SIZE + sizeof(o2::header::RAWDataHeader));
           unsigned int timeBin = (hdr->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstHBF) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN + hdr->nTimeBins;
           if (timeBin > retVal) {
             retVal = timeBin;
@@ -193,14 +193,14 @@ void GPUReconstructionConvert::ZSstreamOut(unsigned short* bufIn, unsigned int& 
   lenIn = 0;
 }
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 void GPUReconstructionConvert::ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit)
 {
-  RAWDataHeaderGPU* rdh = (RAWDataHeaderGPU*)ptr;
+  o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)ptr;
   o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, orbit);
   o2::raw::RDHUtils::setHeartBeatBC(*rdh, shift);
-  o2::raw::RDHUtils::setMemorySize(*rdh, sizeof(RAWDataHeaderGPU));
-  o2::raw::RDHUtils::setVersion(*rdh, o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>());
+  o2::raw::RDHUtils::setMemorySize(*rdh, sizeof(o2::header::RAWDataHeader));
+  o2::raw::RDHUtils::setVersion(*rdh, o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>());
   o2::raw::RDHUtils::setFEEID(*rdh, feeId);
 }
 
@@ -222,7 +222,7 @@ static inline auto ZSEncoderGetCharge(const o2::tpc::Digit a) { return a.getChar
 template <class T, class S>
 void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigned long long int[]>* outBuffer, unsigned int* outSizes, o2::raw::RawFileWriter* raw, const o2::InteractionRecord* ir, const GPUParam& param, bool zs12bit, bool verify, float threshold, bool padding)
 {
-  // Pass in either outBuffer / outSizes, to fill standalone output buffers, or raw / ir to use RawFileWriter
+  // Pass in either outBuffer / outSizes, to fill standalone output buffers, or raw to use RawFileWriter
   // ir is the interaction record for time bin 0
   if (((outBuffer == nullptr) ^ (outSizes == nullptr)) || ((raw != nullptr) && (ir == nullptr)) || !((outBuffer == nullptr) ^ (raw == nullptr)) || (raw && verify) || (threshold > 0.f && verify)) {
     throw std::runtime_error("Invalid parameters");
@@ -240,13 +240,11 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
     std::array<long long int, TPCZSHDR::TPC_ZS_PAGE_SIZE / sizeof(long long int)> singleBuffer;
 #ifdef GPUCA_O2_LIB
     int rawlnk = rdh_utils::UserLogicLinkID;
-    int bcShiftInFirstHBF = ir ? ir->bc : 0;
-    int orbitShift = ir ? ir->orbit : 0;
 #else
     int rawlnk = 15;
-    int bcShiftInFirstHBF = 0;
-    int orbitShift = 0;
 #endif
+    int bcShiftInFirstHBF = ir ? ir->bc : 0;
+    int orbitShift = ir ? ir->orbit : 0;
     int rawcru = 0;
     int rawendpoint = 0;
     (void)(rawcru + rawendpoint); // avoid compiler warning
@@ -355,15 +353,15 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
           if (raw) {
             size_t size = (padding || lastEndpoint == -1) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (unsigned char*)page);
             size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord>(size);
-            raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + (hbf - orbitShift) * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(RAWDataHeaderGPU), (char*)page + size), true);
+            raw->addData(rawfeeid, rawcru, rawlnk, rawendpoint, *ir + (hbf - orbitShift) * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true);
           } else
 #endif
           {
-            RAWDataHeaderGPU* rdh = (RAWDataHeaderGPU*)page;
-            o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, hbf);
+            o2::header::RAWDataHeader* rdh = (o2::header::RAWDataHeader*)page;
+            o2::raw::RDHUtils::setHeartBeatOrbit(*rdh, hbf + orbitShift);
             o2::raw::RDHUtils::setHeartBeatBC(*rdh, bcShiftInFirstHBF);
             o2::raw::RDHUtils::setMemorySize(*rdh, TPCZSHDR::TPC_ZS_PAGE_SIZE);
-            o2::raw::RDHUtils::setVersion(*rdh, o2::raw::RDHUtils::getVersion<o2::gpu::RAWDataHeaderGPU>());
+            o2::raw::RDHUtils::setVersion(*rdh, o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>());
             o2::raw::RDHUtils::setFEEID(*rdh, rawfeeid);
           }
         }
@@ -387,7 +385,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
         hbf = nexthbf;
         pagePtr = reinterpret_cast<unsigned char*>(page);
         std::fill(page->begin(), page->end(), 0);
-        pagePtr += sizeof(RAWDataHeaderGPU);
+        pagePtr += sizeof(o2::header::RAWDataHeader);
         hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
         pagePtr += sizeof(*hdr);
         hdr->version = zs12bit ? 2 : 1;
@@ -450,15 +448,15 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
       std::vector<o2::tpc::Digit> compareBuffer;
       compareBuffer.reserve(tmpBuffer.size());
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-        unsigned int firstOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(*(const RAWDataHeaderGPU*)buffer[i][j].data());
+        unsigned int firstOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(*(const o2::header::RAWDataHeader*)buffer[i][j].data());
         for (unsigned int k = 0; k < buffer[i][j].size(); k++) {
           page = &buffer[i][j][k];
           pagePtr = reinterpret_cast<unsigned char*>(page);
-          const RAWDataHeaderGPU* rdh = (const RAWDataHeaderGPU*)pagePtr;
-          if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(RAWDataHeaderGPU)) {
+          const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)pagePtr;
+          if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
             continue;
           }
-          pagePtr += sizeof(RAWDataHeaderGPU);
+          pagePtr += sizeof(o2::header::RAWDataHeader);
           hdr = reinterpret_cast<TPCZSHDR*>(pagePtr);
           pagePtr += sizeof(*hdr);
           if (hdr->version != 1 && hdr->version != 2) {
@@ -573,7 +571,7 @@ void GPUReconstructionConvert::RunZSEncoderCreateMeta(const unsigned long long i
 
 void GPUReconstructionConvert::RunZSFilter(std::unique_ptr<o2::tpc::Digit[]>* buffers, const o2::tpc::Digit* const* ptrs, size_t* nsb, const size_t* ns, const GPUParam& param, bool zs12bit, float threshold)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   for (unsigned int i = 0; i < NSLICES; i++) {
     if (buffers[i].get() != ptrs[i] || nsb != ns) {
       throw std::runtime_error("Not owning digits");

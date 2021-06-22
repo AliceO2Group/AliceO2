@@ -33,6 +33,11 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
     BOOST_CHECK_THROW((void)WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
   };
 
+  auto checkSpecialChars = [](WorkflowSpec const& workflow) {
+    // Empty workflows should be invalid.
+    BOOST_CHECK_THROW((void)WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
+  };
+
   auto checkOk = [](WorkflowSpec const& workflow) {
     // Empty workflows should be invalid.
     BOOST_CHECK_NO_THROW((void)WorkflowHelpers::verifyWorkflow(workflow));
@@ -50,6 +55,8 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
   checkIncompleteInput(WorkflowSpec{{"A", {InputSpec{"x", "", ""}}}});
   // missing description
   checkIncompleteInput(WorkflowSpec{{"A", {InputSpec{"x", "TST", ""}}}});
+  // comma is not allowed
+  checkSpecialChars(WorkflowSpec{{"A,B", {}}});
   // This is fine, since by default both subSpec == 0 and
   // Timeframe are assumed.
   checkOk(WorkflowSpec{{"A", {InputSpec{"x", "TST", "A"}}}});

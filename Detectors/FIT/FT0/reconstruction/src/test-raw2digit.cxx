@@ -28,31 +28,14 @@ int main()
     }
     void print() const
     {
-      std::cout << std::endl;
-      std::cout << "------DIGITS--------\n";
-      std::cout << "ref: " << mDigit.ref.getFirstEntry() << "|" << mDigit.ref.getEntries();
-      std::cout << "\nbc-orbit: " << mDigit.mIntRecord.bc << "|" << mDigit.mIntRecord.orbit;
-      //std::cout<<"\nmEventStatus: "<< static_cast<uint16_t>(mDigit.mEventStatus);//Excluded, init problem
-      std::cout << "\nTriggers\n";
-      std::cout << "triggersignals: " << static_cast<uint16_t>(mDigit.mTriggers.triggersignals);
-      std::cout << "\nnChanA: " << static_cast<uint16_t>(mDigit.mTriggers.nChanA);
-      std::cout << "\nnChanC: " << static_cast<uint16_t>(mDigit.mTriggers.nChanC);
-      std::cout << "\namplA: " << mDigit.mTriggers.amplA << std::endl;
-      std::cout << "amplC: " << mDigit.mTriggers.amplC << std::endl;
-      std::cout << "timeA: " << mDigit.mTriggers.timeA << std::endl;
-      std::cout << "timeC: " << mDigit.mTriggers.timeC << std::endl;
-      std::cout << "------CHANNEL DATA--------";
+      mDigit.printLog();
       for (const auto& entry : mVecChannelData) {
-        std::cout << "\nChId: " << static_cast<uint16_t>(entry.ChId);
-        //std::cout<<"\nChainQTC: "<< static_cast<uint16_t>(entry.ChainQTC);//Excluded, init problem
-        std::cout << "\nCFDTime: " << entry.CFDTime << std::endl;
-        std::cout << "QTCAmpl: " << entry.QTCAmpl << std::endl;
-        std::cout << "-------------------------";
+        entry.printLog();
       }
     }
   };
   std::vector<EventFT0_t> vecTotalEvents, vecTotalEvents2;
-  gSystem->Exec("$O2_ROOT/bin/o2-sim -n 10 -m FT0 -g pythia8");
+  gSystem->Exec("$O2_ROOT/bin/o2-sim -n 10 -m FT0 -g pythia8pp");
   gSystem->Exec("$O2_ROOT/bin/o2-sim-digitizer-workflow -b");
   TFile flIn("ft0digits.root");
   std::unique_ptr<TTree> treeInput((TTree*)flIn.Get("o2sim"));
@@ -111,9 +94,31 @@ int main()
   std::cout << "\n===================================\n";
   std::cout << "\nTOTAL EVENTS: " << vecTotalEvents2.size() << std::endl;
   if (vecTotalEvents == vecTotalEvents2) {
-    std::cout << "TEST IS OK!\n";
+    std::cout << "\n TEST IS OK!\n";
   } else {
-    std::cout << "ERROR!\n";
+    std::cout << "\nDIFFERENCE BETWEEN SRC AND DEST\n";
+    std::cout << "\n===============================\n";
+    for (int iEntry = 0; iEntry < std::max(vecTotalEvents.size(), vecTotalEvents2.size()); iEntry++) {
+      if (iEntry < vecTotalEvents.size() && iEntry < vecTotalEvents2.size()) {
+        if (vecTotalEvents[iEntry] == vecTotalEvents2[iEntry]) {
+          continue;
+        }
+      }
+      std::cout << "\nEntryID: " << iEntry;
+      std::cout << "\n------------------------------SOURCE------------------------------\n";
+      if (iEntry < vecTotalEvents.size()) {
+        vecTotalEvents[iEntry].print();
+      } else {
+        std::cout << "\nEMPTY!\n";
+      }
+      std::cout << "\n------------------------------DESTINATION------------------------------\n";
+      if (iEntry < vecTotalEvents2.size()) {
+        vecTotalEvents2[iEntry].print();
+      } else {
+        std::cout << "\nEMPTY!\n";
+      }
+    }
+    std::cout << "\nERROR!\n";
   }
   return 0;
 }

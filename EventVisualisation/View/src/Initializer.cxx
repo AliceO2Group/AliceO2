@@ -59,25 +59,25 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
   LOG(INFO) << "Initializer -- OCDB path:" << ocdbStorage;
 
   auto& eventManager = EventManager::getInstance();
-  eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
 
+  eventManager.setDataSourceType(defaultDataSource);
+  eventManager.Open();
   if (Options::Instance()->tpc()) {
-    eventManager.registerDetector(new DataReaderTPC(new DataInterpreterTPC()), EVisualisationGroup::TPC);
+    eventManager.getDataSource()->registerDetector(new DataReaderTPC(new DataInterpreterTPC()), EVisualisationGroup::TPC);
   }
   if (Options::Instance()->its()) {
-    eventManager.registerDetector(new DataReaderITS(new DataInterpreterITS()), EVisualisationGroup::ITS);
+    eventManager.getDataSource()->registerDetector(new DataReaderITS(new DataInterpreterITS()), EVisualisationGroup::ITS);
   }
   if (Options::Instance()->json()) {
-    eventManager.registerDetector(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
+    eventManager.getDataSource()->registerDetector(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
   }
 
-  eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
-  eventManager.Open();
 
   GeometryManager::getInstance().setR2Geometry(std::string(settings.GetValue("simple.geom.default", "R3")).compare("R2") == 0);
 
   setupGeometry();
+
   gSystem->ProcessEvents();
   gEve->Redraw3D(true);
 
@@ -105,8 +105,9 @@ void Initializer::setup(EventManager::EDataSource defaultDataSource)
   // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-
+  eventManager.getDataSource()->refresh();
   frame->DoFirstEvent();
+  frame->StartTimer();
 }
 
 void Initializer::setupGeometry()
@@ -117,13 +118,16 @@ void Initializer::setupGeometry()
 
   // get geometry from Geometry Manager and register in multiview
   auto multiView = MultiView::getInstance();
+
   //auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
   for (int iDet = 0; iDet < NvisualisationGroups; ++iDet) {
+
     if (GeometryManager::getInstance().getR2Geometry()) {
       if (!R2Visualisation[iDet]) {
         continue;
       }
     }
+
     if (!GeometryManager::getInstance().getR2Geometry()) {
       if (!R3Visualisation[iDet]) {
         continue;
@@ -132,15 +136,19 @@ void Initializer::setupGeometry()
 
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
+    LOG(INFO) << detName;
+
     if (settings.GetValue((detName + ".draw").c_str(), false)) {
-      if (detName == "TPC" || detName == "MCH" || detName == "MTR" || detName == "MID" || detName == "MFT" || detName == "AD0" || detName == "FMD") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
+      if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
 
         multiView->drawGeometryForDetector(detName, true, false);
       } else if (detName == "RPH") { // special TPC geom from R-Phi view
 
         multiView->drawGeometryForDetector(detName, false, true, false);
       } else { // default
-        multiView->drawGeometryForDetector(detName);
+        if (detName != "ACO") {
+          multiView->drawGeometryForDetector(detName);
+        }
       }
     }
   }

@@ -178,7 +178,7 @@ o2::parameters::GRPObject const& DigitizationContext::getGRP() const
   if (!mGRP) {
     // we take the GRP from the background file
     // maybe we should add a check that all GRPs are consistent ..
-    mGRP = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName(mSimPrefixes[0].data()).c_str());
+    mGRP = o2::parameters::GRPObject::loadFrom(mSimPrefixes[0]);
   }
   return *mGRP;
 }

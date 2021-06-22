@@ -19,18 +19,20 @@
 #include "Framework/ConfigParamSpec.h"
 #include "MIDWorkflow/RawDecoderSpec.h"
 #include "MIDWorkflow/RawAggregatorSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  std::vector<ConfigParamSpec>
-    options{
-      {"feeId-config-file", VariantType::String, "", {"Filename with crate FEE ID correspondence"}},
-      {"crate-masks-file", VariantType::String, "", {"Filename with crate masks"}},
-      {"electronics-delay-file", VariantType::String, "", {"Filename with electronics delay"}},
-      {"decode-only", o2::framework::VariantType::Bool, false, {"Output decoded boards instead of digits"}}};
+  std::vector<ConfigParamSpec> options{
+    {"feeId-config-file", VariantType::String, "", {"Filename with crate FEE ID correspondence"}},
+    {"crate-masks-file", VariantType::String, "", {"Filename with crate masks"}},
+    {"electronics-delay-file", VariantType::String, "", {"Filename with electronics delay"}},
+    {"decode-only", o2::framework::VariantType::Bool, false, {"Output decoded boards instead of digits"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
 
@@ -38,6 +40,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
+  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   auto feeIdConfigFilename = cfgc.options().get<std::string>("feeId-config-file");
   o2::mid::FEEIdConfig feeIdConfig;
   if (!feeIdConfigFilename.empty()) {
@@ -55,9 +58,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
 
   bool decodeOnly = cfgc.options().get<bool>("decode-only");
+  auto askDISTSTF = !cfgc.options().get<bool>("ignore-dist-stf");
 
   o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::mid::getRawDecoderSpec(false, feeIdConfig, crateMasks, electronicsDelay));
+  specs.emplace_back(o2::mid::getRawDecoderSpec(false, feeIdConfig, crateMasks, electronicsDelay, askDISTSTF));
   if (!decodeOnly) {
     specs.emplace_back(o2::mid::getRawAggregatorSpec());
   }

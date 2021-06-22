@@ -13,5 +13,6 @@ add_subdirectory(simulation)
 add_subdirectory(macros)
 add_subdirectory(tracking)
 add_subdirectory(workflow)
+add_subdirectory(calibration)
 
 o2_data_file(COPY data DESTINATION Detectors/Geometry/MFT/)

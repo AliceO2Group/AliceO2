@@ -25,6 +25,7 @@ namespace o2::framework
 
 struct DeviceSpec;
 struct DriverServerContext;
+struct DriverClientContext;
 
 struct WSError {
   int code;
@@ -66,7 +67,11 @@ struct WSDPLClient : public HTTPParser {
   /// to the driver.
   /// @a spec the DeviceSpec associated with this client
   /// @a handshake a callback to invoke whenever we have a successful handshake
-  WSDPLClient(uv_stream_t* stream, DeviceSpec const& spec, std::function<void()> handshake, std::unique_ptr<WebSocketHandler> handler);
+  WSDPLClient(uv_stream_t* stream,
+              std::unique_ptr<DriverClientContext> context,
+              std::function<void()> handshake,
+              std::unique_ptr<WebSocketHandler> handler);
+
   void replyVersion(std::string_view const& s) override;
   void replyCode(std::string_view const& s) override;
   void header(std::string_view const& k, std::string_view const& v) override;
@@ -85,9 +90,9 @@ struct WSDPLClient : public HTTPParser {
   bool isHandshaken() { return mHandshaken; }
 
   std::string mNonce;
-  DeviceSpec const& mSpec;
   std::atomic<bool> mHandshaken = false;
   std::function<void()> mHandshake;
+  std::unique_ptr<DriverClientContext> mContext;
   std::unique_ptr<WebSocketHandler> mHandler;
   uv_stream_t* mStream = nullptr;
   std::map<std::string, std::string> mHeaders;

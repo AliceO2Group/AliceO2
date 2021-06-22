@@ -19,6 +19,7 @@
 #include <gsl/span>
 #include "Framework/InputRoute.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 
 namespace o2
 {
@@ -44,6 +45,7 @@ struct SimpleSTF {
   std::vector<o2f::InputRoute> schema;
   PartsRef partsRef; // i-th entry is the 1st entry and N parts of multipart for i-th channel in the messages
   Messages messages;
+  o2f::InputSpan span;
   o2f::InputRecord record;
 };
 

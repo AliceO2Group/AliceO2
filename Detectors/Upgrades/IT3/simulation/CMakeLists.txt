@@ -11,7 +11,8 @@
 o2_add_library(ITS3Simulation
                SOURCES src/V11Geometry.cxx src/V3Layer.cxx
                        src/Detector.cxx src/V3Services.cxx
-               PUBLIC_LINK_LIBRARIES O2::ITS3Base O2::ITSMFTSimulation
+                       src/Digitizer.cxx
+               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ITS3Base O2::ITSMFTSimulation
                                      ROOT::Physics)
 
 o2_target_root_dictionary(ITS3Simulation
@@ -19,6 +20,7 @@ o2_target_root_dictionary(ITS3Simulation
                                   include/ITS3Simulation/V3Layer.h
                                   include/ITS3Simulation/V11Geometry.h
                                   include/ITS3Simulation/V3Services.h
+                                  include/ITS3Simulation/Digitizer.h
                                   )
 
 o2_data_file(COPY data  DESTINATION Detectors/ITS3/simulation)

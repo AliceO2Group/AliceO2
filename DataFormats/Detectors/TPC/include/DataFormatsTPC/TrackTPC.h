@@ -127,11 +127,9 @@ class TrackTPC : public o2::track::TrackParCov
   GPUd() void setdEdx(const dEdxInfo& v) { mdEdx = v; }
 
  private:
-  float mTime0 = 0.f;                 ///< Reference Z of the track assumed for the vertex, scaled with pseudo
-                                      ///< VDrift and reference timeframe length, unless it was moved to be on the
-                                      ///< side of TPC compatible with edge clusters sides.
-  float mDeltaTFwd = 0;               ///< max possible increment to track time
-  float mDeltaTBwd = 0;               ///< max possible decrement to track time
+  float mTime0 = 0.f;                 ///< Assumed time of the vertex that created the track in TPC time bins, 0 for triggered data
+  float mDeltaTFwd = 0;               ///< max possible increment to mTime0
+  float mDeltaTBwd = 0;               ///< max possible decrement to mTime0
   short mFlags = 0;                   ///< various flags, see Flags enum
   float mChi2 = 0.f;                  // Chi2 of the track
   o2::track::TrackParCov mOuterParam; // Track parameters at outer end of TPC.

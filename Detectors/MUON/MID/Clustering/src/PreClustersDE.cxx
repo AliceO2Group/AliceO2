@@ -43,7 +43,7 @@ std::vector<int> PreClustersDE::getNeighbours(int icolumn, int idx) const
   }
   const BP& pcB = mPreClustersBP[icolumn][idx];
   for (int ib = 0; ib < mPreClustersBP[icolumn + 1].size(); ++ib) {
-    const BP& neigh = mPreClustersBP[icolumn + 1][idx];
+    const BP& neigh = mPreClustersBP[icolumn + 1][ib];
     if (neigh.area.getYmin() > pcB.area.getYmax()) {
       continue;
     }

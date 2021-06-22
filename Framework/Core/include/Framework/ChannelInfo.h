@@ -11,6 +11,7 @@
 #define O2_FRAMEWORK_CHANNELINFO_H
 
 #include <string>
+#include <FairMQParts.h>
 
 class FairMQChannel;
 
@@ -35,6 +36,7 @@ struct InputChannelInfo {
   InputChannelState state = InputChannelState::Running;
   uint32_t hasPendingEvents = 0;
   FairMQChannel* channel = nullptr;
+  FairMQParts parts;
 };
 
 } // namespace o2::framework

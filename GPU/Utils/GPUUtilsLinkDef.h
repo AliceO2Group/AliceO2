@@ -18,5 +18,37 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::gpu::FlatObject + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 1> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 2> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 3> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 4> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 5> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 6> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 7> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 8> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 9> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 10> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 11> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 12> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 13> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 14> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 15> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 16> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 17> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 18> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 19> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 20> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 21> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 22> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 23> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 24> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 25> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 26> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 27> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 28> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 29> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 30> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 31> + ;
+#pragma link C++ class o2::gpu::gpustd::bitset < 32> + ;
 
 #endif

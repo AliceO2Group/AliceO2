@@ -16,9 +16,11 @@
 #pragma link C++ class o2::tof::Cluster + ;
 #pragma link C++ class o2::tof::CalibInfoCluster + ;
 #pragma link C++ class o2::tof::CosmicInfo + ;
+#pragma link C++ class o2::tof::CalibInfoTrackCl + ;
 #pragma link C++ class std::vector < o2::tof::Cluster> + ;
 #pragma link C++ class std::vector < o2::tof::CalibInfoCluster> + ;
 #pragma link C++ class std::vector < o2::tof::CosmicInfo> + ;
+#pragma link C++ class std::vector < o2::tof::CalibInfoTrackCl> + ;
 
 #pragma link C++ class o2::dataformats::CalibInfoTOFshort + ;
 #pragma link C++ class o2::dataformats::CalibInfoTOF + ;

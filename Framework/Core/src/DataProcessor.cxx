@@ -80,6 +80,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
   using o2::monitoring::Monitoring;
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
+  auto& monitoring = registry.get<Monitoring>();
 
   for (auto& messageRef : context) {
     FairMQParts parts;
@@ -95,13 +96,31 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     DataHeader* dh = const_cast<DataHeader*>(cdh);
     dh->payloadSize = payload->GetSize();
     dh->serialization = o2::header::gSerializationMethodArrow;
+    monitoring.send(Metric{(uint64_t)payload->GetSize(), fmt::format("table-bytes-{}-{}-created", dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>())}.addTag(Key::Subsystem, Value::DPL));
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
     parts.AddPart(std::move(payload));
     device.Send(parts, messageRef.channel, 0);
   }
-  auto& monitoring = registry.get<Monitoring>();
+  static int64_t previousBytesSent = 0;
+  auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId, std::array<ComputingQuotaOffer, 16>& offers) {
+    int64_t bytesSent = bs;
+    for (size_t oi = 0; oi < offers.size(); oi++) {
+      auto& offer = offers[oi];
+      if (offer.user != taskId) {
+        continue;
+      }
+      int64_t toRemove = std::min((int64_t)bytesSent, offer.sharedMemory);
+      offer.sharedMemory -= toRemove;
+      bytesSent -= toRemove;
+      if (bytesSent <= 0) {
+        return;
+      }
+    }
+  };
+  registry.get<DeviceState>().offerConsumers.push_back(disposeResources);
+  previousBytesSent = context.bytesSent();
   monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.flushBuffer();

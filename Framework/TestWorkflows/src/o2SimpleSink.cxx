@@ -10,10 +10,12 @@
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/RawDeviceService.h"
 
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <FairMQDevice.h>
 #include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
@@ -22,8 +24,8 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
 {
   return AlgorithmSpec{adaptStateful([what, minDelay]() {
     srand(getpid());
-    return adaptStateless([what, minDelay](DataAllocator& outputs) {
-      std::this_thread::sleep_for(std::chrono::seconds((rand() % 5) + minDelay));
+    return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
+      device.device()->WaitFor(std::chrono::seconds(minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
   })};

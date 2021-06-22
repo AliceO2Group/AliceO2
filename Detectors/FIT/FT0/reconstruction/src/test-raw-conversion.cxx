@@ -8,7 +8,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <TSystem.h>
+#include <filesystem>
 #include <TTree.h>
 #include "Framework/Logger.h"
 #include "DataFormatsFT0/Digit.h"
@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
   const std::string branchBC{"FT0DIGITSBC"};
   const std::string branchCH{"FT0DIGITSCH"};
 
-  if (gSystem->AccessPathName(genDigDile.c_str())) {
+  if (!std::filesystem::exists(genDigDile)) {
     LOG(FATAL) << "Generated digits file " << genDigDile << " is absent";
   }
   TFile flIn(genDigDile.c_str());
@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
   tree->SetBranchAddress("FT0DIGITSBC", &ft0BCDataPtr);
   tree->SetBranchAddress("FT0DIGITSCH", &ft0ChDataPtr);
 
-  if (gSystem->AccessPathName(decDigDile.c_str())) {
+  if (!std::filesystem::exists(decDigDile)) {
     LOG(FATAL) << "Decoded digits file " << genDigDile << " is absent";
   }
 

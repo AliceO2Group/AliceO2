@@ -94,21 +94,25 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     if (o2::phos::PHOSSimParams::Instance().mApplyNonLinearity) {
       energy = nonLinearity(energy);
     }
-    energy = uncalibrate(energy, absId);
     float time = h.GetTime() + dt * 1.e-9;
     if (o2::phos::PHOSSimParams::Instance().mApplyTimeResolution) {
       time = uncalibrateT(timeResolution(time, energy), absId);
     }
+    energy = uncalibrate(energy, absId);
     if (mArrayD[i].getAmplitude() > 0) {
       //update energy and time
-      mArrayD[i].addEnergyTime(energy, time);
-      //if overflow occured?
       if (mArrayD[i].isHighGain()) {
+        mArrayD[i].addEnergyTime(energy, time);
+        //if overflow occured?
         if (mArrayD[i].getAmplitude() > o2::phos::PHOSSimParams::Instance().mMCOverflow) { //10bit ADC
           float hglgratio = mCalibParams->getHGLGRatio(absId);
           mArrayD[i].setAmplitude(mArrayD[i].getAmplitude() / hglgratio);
           mArrayD[i].setHighGain(false);
         }
+      } else { //digit already in LG
+        float hglgratio = mCalibParams->getHGLGRatio(absId);
+        energy /= hglgratio;
+        mArrayD[i].addEnergyTime(energy, time);
       }
     } else {
       mArrayD[i].setHighGain(energy < o2::phos::PHOSSimParams::Instance().mMCOverflow); //10bit ADC
@@ -158,12 +162,12 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   const int nDDL = 14;
   const int nxTRU = 8;
   const int nzTRU = 28;
-  float sum2x2[nxTRU][nzTRU];
-  float time2x2[nxTRU][nzTRU];
+  float sum2x2[nxTRU + 1][nzTRU + 1];
+  float time2x2[nxTRU + 1][nzTRU + 1];
   float tt = 0;
   for (char iTRU = 0; iTRU < nDDL; iTRU++) {
-    for (char ix = 0; ix < nxTRU; ix++) {
-      for (char iz = 0; iz < nzTRU; iz++) {
+    for (char ix = 1; ix <= nxTRU; ix++) {
+      for (char iz = 1; iz <= nzTRU; iz++) {
         char truRelId[3] = {iTRU, ix, iz};
         short tileId = Geometry::truRelToAbsNumbering(truRelId);
         if (!mTrigUtils->isGood2x2(tileId)) {
@@ -206,8 +210,8 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
 
     if (mTrig4x4) {
-      for (char ix = 0; ix < nxTRU - 1; ix++) {
-        for (char iz = 0; iz < nzTRU - 1; iz++) {
+      for (char ix = 1; ix < nxTRU; ix++) {
+        for (char iz = 1; iz < nzTRU; iz++) {
           char truRelId[3] = {iTRU, ix, iz};
           short tileId = Geometry::truRelToAbsNumbering(truRelId);
           if (!mTrigUtils->isGood4x4(tileId)) {
@@ -236,7 +240,6 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
       }
     }
   }
-
   for (int i = 0; i < NCHANNELS; i++) {
     if (mArrayD[i].getAmplitude() > PHOSSimParams::Instance().mZSthreshold) {
       digitsOut.push_back(mArrayD[i]);

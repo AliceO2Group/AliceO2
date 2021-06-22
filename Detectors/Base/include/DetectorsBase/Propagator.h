@@ -126,6 +126,8 @@ class PropagatorImpl
   GPUd() const o2::gpu::GPUTPCGMPolynomialField* getGPUField() const { return mGPUField; }
   GPUd() void setBz(value_type bz) { mBz = bz; }
 
+  GPUd() void estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const;
+
 #ifndef GPUCA_GPUCODE
   static PropagatorImpl* Instance(bool uninitialized = false)
   {
@@ -134,7 +136,7 @@ class PropagatorImpl
   }
 
   static int initFieldFromGRP(const o2::parameters::GRPObject* grp, bool verbose = false);
-  static int initFieldFromGRP(const std::string grpFileName, std::string grpName = "GRP", bool verbose = false);
+  static int initFieldFromGRP(const std::string grpFileName = "", std::string grpName = "GRP", bool verbose = false);
 #endif
 
   GPUd() MatBudget getMatBudget(MatCorrType corrType, const o2::math_utils::Point3D<value_type>& p0, const o2::math_utils::Point3D<value_type>& p1) const;

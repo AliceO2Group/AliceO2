@@ -139,8 +139,8 @@ class PedestalCalibDevice : public o2::framework::Task
     auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
     LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
               << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
-    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload, 0}, *image.get());
-    output.snapshot(Output{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo, 0}, info); // root-serialized
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN", 0}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN", 0}, info); // root-serialized
 
     size_t pedestalsSize;
     char* pedestalsBuffer = createBuffer(mCalibrator->getPedestalsVector(), pedestalsSize);
@@ -169,8 +169,8 @@ DataProcessorSpec getMCHPedestalCalibSpec(const std::string inputSpec)
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBPayload});
-  outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MCH_BADCHAN"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MCH_BADCHAN"});
   outputs.emplace_back(OutputSpec{"MCH", "PEDESTALS", 0, Lifetime::Timeframe});
 
   return DataProcessorSpec{

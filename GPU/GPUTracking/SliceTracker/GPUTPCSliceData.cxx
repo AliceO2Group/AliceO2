@@ -39,7 +39,7 @@ void GPUTPCSliceData::InitializeRows(const MEM_CONSTANT(GPUParam) & p)
   }
   for (int i = 0; i < GPUCA_ROW_COUNT; ++i) {
     mRows[i].mX = p.tpcGeometry.Row2X(i);
-    mRows[i].mMaxY = CAMath::Tan(p.par.DAlpha / 2.) * mRows[i].mX;
+    mRows[i].mMaxY = CAMath::Tan(p.par.dAlpha / 2.) * mRows[i].mX;
   }
 }
 
@@ -310,7 +310,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
     GPUbarrier();
     const GPUTPCGrid& grid = row.mGrid;
     const int numberOfBins = grid.N();
-    CONSTEXPR int maxBins = sizeof(calink) < 4 ? (1 << (sizeof(calink) * 8)) : 0x7FFFFFFF; // NOLINT: false warning
+    CONSTEXPR int maxBins = sizeof(calink) < 4 ? (int)(1ul << (sizeof(calink) * 8)) : 0x7FFFFFFF; // NOLINT: false warning
     if (sizeof(calink) < 4 && numberOfBins >= maxBins) {
       if (iThread == 0) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_BIN_OVERFLOW, rowIndex, numberOfBins, maxBins);
@@ -393,7 +393,7 @@ GPUdii() int GPUTPCSliceData::InitFromClusterData(int nBlocks, int nThreads, int
 
     if (iThread == 0) {
       const float maxAbsZ = CAMath::Max(CAMath::Abs(tmpMinMax[2]), CAMath::Abs(tmpMinMax[3]));
-      if (maxAbsZ > 300 && !mem->param.par.ContinuousTracking) {
+      if (maxAbsZ > 300 && !mem->param.par.continuousTracking) {
         mem->errorCodes.raiseError(GPUErrors::ERROR_SLICEDATA_Z_OVERFLOW, (unsigned int)maxAbsZ);
         return 1;
       }

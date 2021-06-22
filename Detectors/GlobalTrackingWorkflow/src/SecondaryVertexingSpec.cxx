@@ -13,6 +13,7 @@
 #include <vector>
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DetectorsBase/Propagator.h"
@@ -22,6 +23,9 @@
 #include "CommonDataFormat/BunchFilling.h"
 #include "SimulationDataFormat/DigitizationContext.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsVertexing/SVertexer.h"
+#include "TStopwatch.h"
+
 #include "Framework/ConfigParamRegistry.h"
 
 using namespace o2::framework;
@@ -33,24 +37,40 @@ using PVertex = const o2::dataformats::PrimaryVertex;
 using V0 = o2::dataformats::V0;
 using Cascade = o2::dataformats::Cascade;
 using RRef = o2::dataformats::RangeReference<int, int>;
+using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2
 {
 namespace vertexing
 {
 
-o2::globaltracking::DataRequest dataRequestSV;
 namespace o2d = o2::dataformats;
+
+class SecondaryVertexingSpec : public Task
+{
+ public:
+  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, bool enabCasc) : mDataRequest(dr), mEnableCascades(enabCasc) {}
+  ~SecondaryVertexingSpec() override = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext& pc) final;
+  void endOfStream(EndOfStreamContext& ec) final;
+
+ private:
+  std::shared_ptr<DataRequest> mDataRequest;
+  bool mEnableCascades = false;
+  o2::vertexing::SVertexer mVertexer;
+  TStopwatch mTimer;
+};
 
 void SecondaryVertexingSpec::init(InitContext& ic)
 {
   //-------- init geometry and field --------//
   o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+  o2::base::Propagator::initFieldFromGRP();
   // this is a hack to provide Mat.LUT from the local file, in general will be provided by the framework from CCDB
   std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
   std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-  if (o2::base::NameConf::pathExists(matLUTFile)) {
+  if (o2::utils::Str::pathExists(matLUTFile)) {
     auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
     o2::base::Propagator::Instance()->setMatLUT(lut);
     LOG(INFO) << "Loaded material LUT from " << matLUTFile;
@@ -70,18 +90,14 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
 
   o2::globaltracking::RecoContainer recoData;
-  recoData.collectData(pc, dataRequestSV);
-
-  const auto pvertices = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("pvtx");
-  const auto pvtxTracks = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_cont");
-  const auto pvtxTrackRefs = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref");
+  recoData.collectData(pc, *mDataRequest.get());
 
   auto& v0s = pc.outputs().make<std::vector<V0>>(Output{"GLO", "V0S", 0, Lifetime::Timeframe});
   auto& v0Refs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
   auto& cascs = pc.outputs().make<std::vector<Cascade>>(Output{"GLO", "CASCS", 0, Lifetime::Timeframe});
   auto& cascRefs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
 
-  mVertexer.process(pvertices, pvtxTracks, pvtxTrackRefs, recoData);
+  mVertexer.process(recoData);
   mVertexer.extractSecondaryVertices(v0s, v0Refs, cascs, cascRefs);
 
   mTimer.Stop();
@@ -98,12 +114,11 @@ void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc)
 {
   std::vector<OutputSpec> outputs;
+  auto dataRequest = std::make_shared<DataRequest>();
+
   bool useMC = false;
-  dataRequestSV.requestTracks(src, false);
-  auto& inputs = dataRequestSV.inputs;
-  inputs.emplace_back("pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe);                // prim.vertices
-  inputs.emplace_back("pvtx_cont", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);     // global ids of associated tracks
-  inputs.emplace_back("pvtx_tref", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe); // vertex - trackID refs
+  dataRequest->requestTracks(src, useMC);
+  dataRequest->requestPrimaryVertertices(useMC);
 
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);           // found V0s
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);   // prim.vertex -> V0s refs
@@ -112,9 +127,9 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
 
   return DataProcessorSpec{
     "secondary-vertexing",
-    inputs,
+    dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(enableCasc)},
+    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, enableCasc)},
     Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
             {"threads", VariantType::Int, 1, {"Number of threads"}}}};
 }

@@ -379,11 +379,11 @@ GeometryParams::GeometryParams(const std::string_view name)
   mAngle = 20;
   for (Int_t i = 1; i <= mNModules; i++) {
     Float_t angle = mAngle * (i - 2);
-    mPHOSAngle[i - 1] = angle;
+    mPHOSAngle[i] = angle;
   }
 
   Float_t r = mIPtoOuterCoverDistance + mPHOSParams[3];
-  for (Int_t iModule = 0; iModule < mNModules; iModule++) {
+  for (Int_t iModule = 1; iModule <= mNModules; iModule++) {
     mModuleCenter[iModule][0] = r * TMath::Sin(mPHOSAngle[iModule] / kRADDEG);
     mModuleCenter[iModule][1] = -r * TMath::Cos(mPHOSAngle[iModule] / kRADDEG);
     mModuleCenter[iModule][2] = 0.;

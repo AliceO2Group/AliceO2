@@ -1,6 +1,6 @@
 // Pythia8 UserHooks
 //
-//   usage: o2sim -g pythia8 --configKeyValues "GeneratorPythia8.hooksFileName=pythia8_userhooks_jets.C"
+//   usage: o2sim -g pythia8pp --configKeyValues "GeneratorPythia8.hooksFileName=pythia8_userhooks_jets.C"
 //
 /// \author R+Preghenella - April 2020
 

@@ -14,7 +14,7 @@
 #include "DataFormatsFDD/Hit.h"
 #include "MCHSimulation/Hit.h"
 #include "MIDSimulation/Hit.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
 #include "DataFormatsZDC/Hit.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -377,7 +377,7 @@ void analyzeHits(const char* filebase = "o2sim", const char* prefix = "")
   gPrefix = prefix;
 
   // READ GRP AND ITERATE OVER DETECTED PARTS
-  auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName(filebase).c_str());
+  auto grp = o2::parameters::GRPObject::loadFrom(filebase);
 
   // should correspond to the same number as defined in DetID
   analyzeITS(getHitTree(grp, filebase, o2::detectors::DetID::ITS));

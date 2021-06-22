@@ -10,9 +10,9 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+#include "Framework/HistogramRegistry.h"
 #include "AnalysisDataModel/EventSelection.h"
 #include "AnalysisCore/MC.h"
-#include "AnalysisCore/HistHelpers.h"
 #include "AnalysisCore/TrackSelection.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 
@@ -20,22 +20,19 @@
 #include <array>
 #include <utility>
 
-#include <TH1.h>
-#include <TH2.h>
 #include <TF1.h>
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-using namespace o2::experimental::histhelpers;
 using namespace std;
 
-#define NPTBINS 53
 #define NPARTICLES 5
-const double pt_bins[NPTBINS + 1] = {0.0, 0.05, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
-                                     0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.1, 1.2, 1.3, 1.4,
-                                     1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0,
-                                     4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 8.0, 10.0, 20.0};
+
+const std::vector<double> ptBins = {0.0, 0.05, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45,
+                                    0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.1, 1.2, 1.3, 1.4,
+                                    1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4, 3.6, 3.8, 4.0,
+                                    4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 8.0, 10.0, 20.0};
 const double mass[NPARTICLES] = {0.000510999, 0.139570, 0.493677, 0.938272, 1.87561};
 enum PType : uint8_t {
   kEl,
@@ -76,29 +73,17 @@ struct TrackCheckTaskEvSel {
   Configurable<bool> isMC{"isMC", false, "option to flag mc"};
   Configurable<double> cfgCutY{"cfgCutY", 0.5, "option to configure rapidity cut"};
   Configurable<float> cfgCutVZ{"cfgCutVZ", 10.f, "option to configure z-vertex cut"};
-  OutputObj<TH1F> hTrkPrimAftEvSel{TH1F("hTrkPrimAftEvSel",
-                                        "Reco Prim tracks AftEvSel (charged); #it{p}_{T} (GeV/#it{c}); Counts",
-                                        NPTBINS, pt_bins)};
-  OutputObj<HistArray> hTrkPrimAftEvSel_truepid{HistArray("hTrkPrimAftEvSel_truepid"),
-                                                OutputObjHandlingPolicy::AnalysisObject};
+
+  HistogramRegistry histograms{"histograms"};
 
   void init(InitContext&)
   {
-    hTrkPrimAftEvSel_truepid->Add<kEl>(TH1F("hTrkPrimAftEvSel_truepid_el",
-                                            "Gen tracks aft. ev. sel. (true El); #it{p}_{T} (GeV/#it{c}); Counts",
-                                            NPTBINS, pt_bins));
-    hTrkPrimAftEvSel_truepid->Add<kPi>(TH1F("hTrkPrimAftEvSel_truepid_pi",
-                                            "Gen tracks aft. ev. sel. (true Pi); #it{p}_{T} (GeV/#it{c}); Counts",
-                                            NPTBINS, pt_bins));
-    hTrkPrimAftEvSel_truepid->Add<kKa>(TH1F("hTrkPrimAftEvSel_truepid_ka",
-                                            "Gen. tracks aft. ev. sel. (true Ka); #it{p}_{T} (GeV/#it{c}); Counts",
-                                            NPTBINS, pt_bins));
-    hTrkPrimAftEvSel_truepid->Add<kPr>(TH1F("hTrkPrimAftEvSel_truepid_pr",
-                                            "Gen tracks aft. ev. sel. (true Pr); #it{p}_{T} (GeV/#it{c}); Counts",
-                                            NPTBINS, pt_bins));
-    hTrkPrimAftEvSel_truepid->Add<kDe>(TH1F("hTrkPrimAftEvSel_truepid_de",
-                                            "Gen tracks aft. ev. sel. (true De); #it{p}_{T} (GeV/#it{c}); Counts",
-                                            NPTBINS, pt_bins));
+    histograms.add("hTrkPrimAftEvSel", "Reco Prim tracks AftEvSel (charged); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimAftEvSel_truepid_el", "Gen tracks aft. ev. sel. (true El); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimAftEvSel_truepid_pi", "Gen tracks aft. ev. sel. (true Pi); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimAftEvSel_truepid_ka", "Gen. tracks aft. ev. sel. (true Ka); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimAftEvSel_truepid_pr", "Gen tracks aft. ev. sel. (true Pr); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimAftEvSel_truepid_de", "Gen tracks aft. ev. sel. (true De); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
   } //init
 
   //Filters
@@ -138,23 +123,23 @@ struct TrackCheckTaskEvSel {
         if (isPrimary && abs(y) < cfgCutY) {
           //histograms with generated distribution (after event selection)
           if (pdgcode == 11) {
-            hTrkPrimAftEvSel_truepid->Fill<kEl>(track.pt());
+            histograms.fill(HIST("hTrkPrimAftEvSel_truepid_el"), track.pt());
           } else if (pdgcode == 211) {
-            hTrkPrimAftEvSel_truepid->Fill<kPi>(track.pt());
+            histograms.fill(HIST("hTrkPrimAftEvSel_truepid_pi"), track.pt());
           } else if (pdgcode == 321) {
-            hTrkPrimAftEvSel_truepid->Fill<kKa>(track.pt());
+            histograms.fill(HIST("hTrkPrimAftEvSel_truepid_ka"), track.pt());
           } else if (pdgcode == 2212) {
-            hTrkPrimAftEvSel_truepid->Fill<kPr>(track.pt());
+            histograms.fill(HIST("hTrkPrimAftEvSel_truepid_pr"), track.pt());
           } else if (pdgcode == 1000010020) {
-            hTrkPrimAftEvSel_truepid->Fill<kDe>(track.pt());
+            histograms.fill(HIST("hTrkPrimAftEvSel_truepid_de"), track.pt());
           }
 
-          hTrkPrimAftEvSel->Fill(track.pt()); //charged particles
+          histograms.fill(HIST("hTrkPrimAftEvSel"), track.pt()); // charged particles
         }
       }
     } // end loop on tracks
-  }   //end of process
-};    //end struct TrackCheckTaskEvSel
+  }   // end of process
+};    // end struct TrackCheckTaskEvSel
 
 //event selection + track selection here
 struct TrackCheckTaskEvSelTrackSel {
@@ -162,80 +147,37 @@ struct TrackCheckTaskEvSelTrackSel {
   Configurable<bool> isMC{"isMC", false, "option to flag mc"};
   Configurable<double> cfgCutY{"cfgCutY", 0.5, "option to configure rapidity cut"};
   Configurable<float> cfgCutVZ{"cfgCutVZ", 10.f, "option to configure z-vertex cut"};
-  OutputObj<TH1F> hTrkPrimReco{TH1F("hTrkPrimReco", "Reco Prim tracks (charged); #it{p}_{T} (GeV/#it{c}); Counts",
-                                    NPTBINS, pt_bins)};
-  OutputObj<HistArray> hTrkPrimReco_truepid{HistArray("hTrkPrimReco_truepid"),
-                                            OutputObjHandlingPolicy::AnalysisObject};
-  OutputObj<HistArray> hDCAxyReco_truepid{HistArray("hDCAxyReco_truepid"), OutputObjHandlingPolicy::AnalysisObject};
-  OutputObj<HistArray> hDCAxyPrim_truepid{HistArray("hDCAxyPrim_truepid"), OutputObjHandlingPolicy::AnalysisObject};
-  OutputObj<HistArray> hDCAxySeco_truepid{HistArray("hDCAxySeco_truepid"), OutputObjHandlingPolicy::AnalysisObject};
+
+  HistogramRegistry histograms{"histograms"};
 
   void init(InitContext&)
   {
-    hTrkPrimReco_truepid->Add<kEl>(TH1F("hTrkPrimReco_truepid_el",
-                                        "Primary Reco tracks (true El); #it{p}_{T} (GeV/#it{c}); Counts",
-                                        NPTBINS, pt_bins));
-    hTrkPrimReco_truepid->Add<kPi>(TH1F("hTrkPrimReco_truepid_pi",
-                                        "Primary Reco tracks (true Pi); #it{p}_{T} (GeV/#it{c}); Counts",
-                                        NPTBINS, pt_bins));
-    hTrkPrimReco_truepid->Add<kKa>(TH1F("hTrkPrimReco_truepid_ka",
-                                        "Primary Reco tracks (true Ka); #it{p}_{T} (GeV/#it{c}); Counts",
-                                        NPTBINS, pt_bins));
-    hTrkPrimReco_truepid->Add<kPr>(TH1F("hTrkPrimReco_truepid_pr",
-                                        "Primary Reco tracks (true Pr); #it{p}_{T} (GeV/#it{c}); Counts",
-                                        NPTBINS, pt_bins));
-    hTrkPrimReco_truepid->Add<kDe>(TH1F("hTrkPrimReco_truepid_de",
-                                        "Primary Reco tracks (true De); #it{p}_{T} (GeV/#it{c}); Counts",
-                                        NPTBINS, pt_bins));
+    AxisSpec dcaAxis = {800, -4., 4.};
 
-    hDCAxyReco_truepid->Add<kEl>(TH2F("hDCAxyReco_truepid_el",
-                                      "DCAxy reco (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxyReco_truepid->Add<kPi>(TH2F("hDCAxyReco_truepid_pi",
-                                      "DCAxy reco (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxyReco_truepid->Add<kKa>(TH2F("hDCAxyReco_truepid_ka",
-                                      "DCAxy reco (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxyReco_truepid->Add<kPr>(TH2F("hDCAxyReco_truepid_pr",
-                                      "DCAxy reco (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxyReco_truepid->Add<kDe>(TH2F("hDCAxyReco_truepid_de",
-                                      "DCAxy reco (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
+    histograms.add("hTrkPrimReco", "Reco Prim tracks (charged); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimReco_truepid_el", "Primary Reco tracks (true El); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimReco_truepid_pi", "Primary Reco tracks (true Pi); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimReco_truepid_ka", "Primary Reco tracks (true Ka); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimReco_truepid_pr", "Primary Reco tracks (true Pr); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
+    histograms.add("hTrkPrimReco_truepid_de", "Primary Reco tracks (true De); #it{p}_{T} (GeV/#it{c}); Counts", {kTH1F, {{ptBins}}});
 
-    hDCAxyPrim_truepid->Add<kEl>(TH2F("hDCAxyPrim_truepid_el",
-                                      "DCAxy primaries (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxyPrim_truepid->Add<kPi>(TH2F("hDCAxyPrim_truepid_pi",
-                                      "DCAxy primaries (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxyPrim_truepid->Add<kKa>(TH2F("hDCAxyPrim_truepid_ka",
-                                      "DCAxy primaries (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxyPrim_truepid->Add<kPr>(TH2F("hDCAxyPrim_truepid_pr",
-                                      "DCAxy primaries (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxyPrim_truepid->Add<kDe>(TH2F("hDCAxyPrim_truepid_de",
-                                      "DCAxy primaries (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
+    histograms.add("hDCAxyReco_truepid_el", "DCAxy reco (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxyReco_truepid_pi", "DCAxy reco (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxyReco_truepid_ka", "DCAxy reco (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxyReco_truepid_pr", "DCAxy reco (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxyReco_truepid_de", "DCAxy reco (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
 
-    hDCAxySeco_truepid->Add<kEl>(TH2F("hDCAxySeco_truepid_el",
-                                      "DCAxy secondaries (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxySeco_truepid->Add<kPi>(TH2F("hDCAxySeco_truepid_pi",
-                                      "DCAxy secondaries (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxySeco_truepid->Add<kKa>(TH2F("hDCAxySeco_truepid_ka",
-                                      "DCAxy secondaries (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxySeco_truepid->Add<kPr>(TH2F("hDCAxySeco_truepid_pr",
-                                      "DCAxy secondaries (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
-    hDCAxySeco_truepid->Add<kDe>(TH2F("hDCAxySeco_truepid_de",
-                                      "DCAxy secondaries (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)",
-                                      NPTBINS, pt_bins, 800, -4., 4.));
+    histograms.add("hDCAxyPrim_truepid_el", "DCAxy primaries (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxyPrim_truepid_pi", "DCAxy primaries (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxyPrim_truepid_ka", "DCAxy primaries (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxyPrim_truepid_pr", "DCAxy primaries (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxyPrim_truepid_de", "DCAxy primaries (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
 
+    histograms.add("hDCAxySeco_truepid_el", "DCAxy secondaries (true El); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxySeco_truepid_pi", "DCAxy secondaries (true Pi); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxySeco_truepid_ka", "DCAxy secondaries (true Ka); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxySeco_truepid_pr", "DCAxy secondaries (true Pr); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
+    histograms.add("hDCAxySeco_truepid_de", "DCAxy secondaries (true De); #it{p}_{T} (GeV/#it{c}); DCAxy (cm)", {kTH2F, {{ptBins}, dcaAxis}});
   } //init
 
   //Filters
@@ -278,51 +220,51 @@ struct TrackCheckTaskEvSelTrackSel {
         // + distributions for reco primaries (MC truth)
         if (abs(y) < cfgCutY) {
           if (pdgcode == 11) {
-            hDCAxyReco_truepid->Fill<kEl>(track.pt(), track.dcaXY());
+            histograms.fill(HIST("hDCAxyReco_truepid_el"), track.pt(), track.dcaXY());
             if (isPrimary) {
-              hDCAxyPrim_truepid->Fill<kEl>(track.pt(), track.dcaXY());
-              hTrkPrimReco_truepid->Fill<kEl>(track.pt());
+              histograms.fill(HIST("hDCAxyPrim_truepid_el"), track.pt(), track.dcaXY());
+              histograms.fill(HIST("hTrkPrimReco_truepid_el"), track.pt());
             } else {
-              hDCAxySeco_truepid->Fill<kEl>(track.pt(), track.dcaXY());
+              histograms.fill(HIST("hDCAxySeco_truepid_el"), track.pt(), track.dcaXY());
             }
           } else if (pdgcode == 211) {
-            hDCAxyReco_truepid->Fill<kPi>(track.pt(), track.dcaXY());
+            histograms.fill(HIST("hDCAxyReco_truepid_pi"), track.pt(), track.dcaXY());
             if (isPrimary) {
-              hDCAxyPrim_truepid->Fill<kPi>(track.pt(), track.dcaXY());
-              hTrkPrimReco_truepid->Fill<kPi>(track.pt());
+              histograms.fill(HIST("hDCAxyPrim_truepid_pi"), track.pt(), track.dcaXY());
+              histograms.fill(HIST("hTrkPrimReco_truepid_pi"), track.pt());
             } else {
-              hDCAxySeco_truepid->Fill<kPi>(track.pt(), track.dcaXY());
+              histograms.fill(HIST("hDCAxySeco_truepid_pi"), track.pt(), track.dcaXY());
             }
           } else if (pdgcode == 321) {
-            hDCAxyReco_truepid->Fill<kKa>(track.pt(), track.dcaXY());
+            histograms.fill(HIST("hDCAxyReco_truepid_ka"), track.pt(), track.dcaXY());
             if (isPrimary) {
-              hDCAxyPrim_truepid->Fill<kKa>(track.pt(), track.dcaXY());
-              hTrkPrimReco_truepid->Fill<kKa>(track.pt());
+              histograms.fill(HIST("hDCAxyPrim_truepid_ka"), track.pt(), track.dcaXY());
+              histograms.fill(HIST("hTrkPrimReco_truepid_ka"), track.pt());
             } else {
-              hDCAxySeco_truepid->Fill<kKa>(track.pt(), track.dcaXY());
+              histograms.fill(HIST("hDCAxySeco_truepid_ka"), track.pt(), track.dcaXY());
             }
           } else if (pdgcode == 2212) {
-            hDCAxyReco_truepid->Fill<kPr>(track.pt(), track.dcaXY());
+            histograms.fill(HIST("hDCAxyReco_truepid_pr"), track.pt(), track.dcaXY());
             if (isPrimary) {
-              hDCAxyPrim_truepid->Fill<kPr>(track.pt(), track.dcaXY());
-              hTrkPrimReco_truepid->Fill<kPr>(track.pt());
+              histograms.fill(HIST("hDCAxyPrim_truepid_pr"), track.pt(), track.dcaXY());
+              histograms.fill(HIST("hTrkPrimReco_truepid_pr"), track.pt());
             } else {
-              hDCAxySeco_truepid->Fill<kPr>(track.pt(), track.dcaXY());
+              histograms.fill(HIST("hDCAxySeco_truepid_pr"), track.pt(), track.dcaXY());
             }
           } else if (pdgcode == 1000010020) {
-            hDCAxyReco_truepid->Fill<kDe>(track.pt(), track.dcaXY());
+            histograms.fill(HIST("hDCAxyReco_truepid_de"), track.pt(), track.dcaXY());
             if (isPrimary) {
-              hDCAxyPrim_truepid->Fill<kDe>(track.pt(), track.dcaXY());
-              hTrkPrimReco_truepid->Fill<kDe>(track.pt());
+              histograms.fill(HIST("hDCAxyPrim_truepid_de"), track.pt(), track.dcaXY());
+              histograms.fill(HIST("hTrkPrimReco_truepid_de"), track.pt());
             } else {
-              hDCAxySeco_truepid->Fill<kDe>(track.pt(), track.dcaXY());
+              histograms.fill(HIST("hDCAxySeco_truepid_de"), track.pt(), track.dcaXY());
             }
           }
         }
 
         //reco histos (charged particles)
         if (isPrimary && abs(y) < cfgCutY) {
-          hTrkPrimReco->Fill(track.pt()); //charged particles
+          histograms.fill(HIST("hTrkPrimReco"), track.pt()); // charged particles
         }
       }
     } // end loop on tracks

@@ -103,8 +103,34 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   /// ladder is the matrix ID and is converted to geometry ID
   Int_t getNumberOfSensorsPerLadder(Int_t half, Int_t disk, Int_t ladder) const
   {
-    Int_t ladderID = mLadderIndex2Id[disk][ladder];
-    return extractNumberOfSensorsPerLadder(half, disk, ladderID);
+    return extractNumberOfSensorsPerLadder(half, disk, ladder);
+  }
+  /// Returns the number of ladders in each disk of each half
+  Int_t getNumberOfLaddersPerDisk(Int_t half, Int_t disk, Int_t sensors) const
+  {
+    return extractNumberOfLadders(half, disk, sensors);
+  }
+  /// Returns the number of disks in each half
+  Int_t getNumberOfDisksPerHalf(Int_t half) const
+  {
+    return extractNumberOfDisks(half);
+  }
+  /// Returns the number of halfs MFT
+  Int_t getNumberOfHalfs()
+  {
+    return extractNumberOfHalves();
+  }
+
+  /// Returns the min number of sensors per ladder
+  Int_t getMinSensorsPerLadder()
+  {
+    return MinSensorsPerLadder;
+  }
+
+  /// Returns the max number of sensors per ladder
+  Int_t getMaxSensorsPerLadder()
+  {
+    return MaxSensorsPerLadder;
   }
 
   /// Returns the ladder geometry ID from the matrix ID
@@ -112,6 +138,21 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   {
     return mLadderIndex2Id[disk][ladder];
   }
+
+  /// sym name of the MFT
+  static const char* composeSymNameMFT() { return o2::detectors::DetID(o2::detectors::DetID::MFT).getName(); }
+
+  /// sym name of the half
+  static const char* composeSymNameHalf(int hf);
+
+  /// Sym name of the disk at given half
+  static const char* composeSymNameDisk(int hf, int dk);
+
+  /// Sym name of the ladder at given half/disk
+  static const char* composeSymNameLadder(int hf, int dk, int lr);
+
+  /// Sym name of the chip in the given half/disk/ladder
+  static const char* composeSymNameChip(int hf, int dk, int lr, int chip);
 
  protected:
   /// Determines the number of detector halves in the Geometry

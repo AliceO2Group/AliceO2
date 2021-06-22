@@ -34,7 +34,7 @@ NWORKERS=1
 
 ### step 1
 
-o2-sim -j ${NWORKERS} -n ${NEVENTS1} -g pythia8 -m ${MODULES} -o step1 \
+o2-sim -j ${NWORKERS} -n ${NEVENTS1} -g pythia8pp -m ${MODULES} -o step1 \
        --configFile sim_step1.ini --seed 73141128
 
 ### step 2

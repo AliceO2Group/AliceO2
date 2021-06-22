@@ -9,7 +9,7 @@
 # submit itself to any jurisdiction.
 
 o2_add_library(EMCALSimulation
-               SOURCES src/Detector.cxx src/Digitizer.cxx src/DigitizerTask.cxx
+               SOURCES src/Detector.cxx src/Digitizer.cxx src/SDigitizer.cxx
                        src/DigitsWriteoutBuffer.cxx src/SpaceFrame.cxx src/SimParam.cxx
                        src/LabeledDigit.cxx src/RawWriter.cxx
                PUBLIC_LINK_LIBRARIES O2::EMCALBase O2::DetectorsBase O2::SimConfig O2::SimulationDataFormat O2::Headers O2::DetectorsRaw)
@@ -17,7 +17,7 @@ o2_add_library(EMCALSimulation
 o2_target_root_dictionary(EMCALSimulation
                           HEADERS include/EMCALSimulation/Detector.h
                                   include/EMCALSimulation/Digitizer.h
-                                  include/EMCALSimulation/DigitizerTask.h
+                                  include/EMCALSimulation/SDigitizer.h
                                   include/EMCALSimulation/DigitsWriteoutBuffer.h
                                   include/EMCALSimulation/RawWriter.h
                                   include/EMCALSimulation/SpaceFrame.h

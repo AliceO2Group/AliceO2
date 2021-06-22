@@ -10,6 +10,10 @@
 
 /// @author Sandro Wenzel
 
+#include <FairMQTransportFactory.h>
+#include <FairMQChannel.h>
+#include <FairMQMessage.h>
+
 #include <cstdlib>
 #include <unistd.h>
 #include <sstream>
@@ -30,14 +34,13 @@
 #include <sys/types.h>
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-
-#include "rapidjson/document.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/filereadstream.h"
-#include "rapidjson/filewritestream.h"
-
 #include "O2Version.h"
+#include <cstdio>
+#include <unordered_map>
+#include <filesystem>
+
+#include "SimPublishChannelHelper.h"
+#include <CommonUtils/FileSystemUtils.h>
 
 std::string getServerLogName()
 {
@@ -63,8 +66,22 @@ std::string getMergerLogName()
   return str.str();
 }
 
+void remove_tmp_files()
+{
+  // remove all (known) socket files in /tmp
+  // using the naming convention /tmp/o2sim-.*PID
+  std::stringstream searchstr;
+  searchstr << "o2sim-.*-" << getpid() << "$";
+  auto filenames = o2::utils::listFiles("/tmp/", searchstr.str());
+  // remove those files
+  for (auto& fn : filenames) {
+    std::filesystem::remove(std::filesystem::path(fn));
+  }
+}
+
 void cleanup()
 {
+  remove_tmp_files();
   o2::utils::ShmManager::Instance().release();
 
   // special mode in which we dump the output from various
@@ -121,23 +138,147 @@ int checkresult()
   return errors;
 }
 
+// ---> THE FOLLOWING CAN BE PUT INTO A "STATE" STRUCT
 std::vector<int> gChildProcesses; // global vector of child pids
+// record distributed events in a container
+std::vector<int> gDistributedEvents;
+// record finished events in a container
+std::vector<int> gFinishedEvents;
+int gAskedEvents;
+
+std::string getControlAddress()
+{
+  std::stringstream controlsocketname;
+  controlsocketname << "ipc:///tmp/o2sim-control-" << getpid();
+  return controlsocketname.str();
+}
+std::string getInternalControlAddress()
+{
+  // creates names for an internal-only socket
+  // hashing to distinguish from more "public" sockets
+  std::hash<std::string> hasher;
+  std::stringstream str;
+  str << "o2sim-internal_" << getpid();
+  std::string tmp(std::to_string(hasher(str.str())));
+  std::stringstream controlsocketname;
+  controlsocketname << "ipc:///tmp/" << tmp.substr(0, 10) << "_" << getpid();
+  return controlsocketname.str();
+}
 
 // signal handler for graceful exit
 void sighandler(int signal)
 {
   if (signal == SIGINT || signal == SIGTERM) {
     LOG(INFO) << "o2-sim driver: Signal caught ... clean up and exit";
-    cleanup();
     // forward signal to all children
     for (auto& pid : gChildProcesses) {
-      kill(pid, signal);
+      killpg(pid, signal);
     }
+    cleanup();
     exit(0);
   }
 }
 
-// monitores a certain incoming event pipes and displays new information
+bool isBusy()
+{
+  if (gFinishedEvents.size() != gAskedEvents) {
+    return true;
+  }
+  return false;
+}
+
+// launches a thread that listens for control command from outside
+// or that propagates control strings to all children
+void launchControlThread()
+{
+  static std::vector<std::thread> threads;
+  auto controladdress = getControlAddress();
+  auto internalcontroladdress = getInternalControlAddress();
+  LOG(INFO) << "Control address is: " << controladdress;
+  setenv("ALICE_O2SIMCONTROL", internalcontroladdress.c_str(), 1);
+
+  auto lambda = [controladdress, internalcontroladdress]() {
+    auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+
+    auto internalchannel = FairMQChannel{"o2sim-control", "pub", factory};
+    internalchannel.Bind(internalcontroladdress);
+    internalchannel.Validate();
+    std::unique_ptr<FairMQMessage> message(internalchannel.NewMessage());
+
+    auto outsidechannel = FairMQChannel{"o2sim-outside-exchange", "rep", factory};
+    outsidechannel.Bind(controladdress);
+    outsidechannel.Validate();
+    std::unique_ptr<FairMQMessage> request(outsidechannel.NewMessage());
+
+    bool keepgoing = true;
+    while (keepgoing) {
+      outsidechannel.Init();
+      outsidechannel.Bind(controladdress);
+      outsidechannel.Validate();
+      if (outsidechannel.Receive(request) > 0) {
+        std::string command(reinterpret_cast<char const*>(request->GetData()), request->GetSize());
+        LOG(INFO) << "Control message: " << command;
+        int code = -1;
+        if (isBusy()) {
+          code = 1; // code = 1 --> busy
+          std::unique_ptr<FairMQMessage> reply(outsidechannel.NewSimpleMessage(code));
+          outsidechannel.Send(reply);
+        } else {
+          code = 0; // code = 0 --> ok
+
+          o2::conf::SimReconfigData reconfig;
+          auto success = o2::conf::parseSimReconfigFromString(command, reconfig);
+          if (!success) {
+            LOG(WARN) << "CONTROL REQUEST COULD NOT BE PARSED";
+            code = 2; // code = 2 --> error with request data
+          }
+          std::unique_ptr<FairMQMessage> reply(outsidechannel.NewSimpleMessage(code));
+          outsidechannel.Send(reply);
+
+          if (code == 0) {
+            gAskedEvents = reconfig.nEvents;
+            gDistributedEvents.clear();
+            gFinishedEvents.clear();
+            // forward request from outside to all internal processes
+            internalchannel.Send(request);
+            keepgoing = !reconfig.stop;
+          }
+        }
+      }
+    }
+  };
+  threads.push_back(std::thread(lambda));
+  threads.back().detach();
+}
+
+// launches a thread that listens for control command from outside
+// or that propagates control strings to all children
+void launchWorkerListenerThread()
+{
+  static std::vector<std::thread> threads;
+  auto lambda = []() {
+    auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+
+    auto listenchannel = FairMQChannel{"channel0", "sub", factory};
+    listenchannel.Init();
+    std::stringstream address;
+    address << "ipc:///tmp/o2sim-worker-notifications-" << getpid();
+    listenchannel.Connect(address.str());
+    listenchannel.Validate();
+    std::unique_ptr<FairMQMessage> message(listenchannel.NewMessage());
+
+    while (true) {
+      if (listenchannel.Receive(message) > 0) {
+        std::string msg(reinterpret_cast<char const*>(message->GetData()), message->GetSize());
+        LOG(INFO) << "Worker message: " << msg;
+      }
+    }
+  };
+  threads.push_back(std::thread(lambda));
+  threads.back().detach();
+}
+
+// monitors a certain incoming event pipes and displays new information
 // gives possibility to exec a callback at these events
 void launchThreadMonitoringEvents(
   int pipefd, std::string text, std::vector<int>& eventcontainer,
@@ -191,89 +332,30 @@ int main(int argc, char* argv[])
 
   // copy topology file to working dir and update ports
   std::stringstream configss;
-  configss << rootpath << "/share/config/o2simtopology.json";
-  std::string localconfig = std::string("o2simtopology_") + std::to_string(getpid()) + std::string(".json");
+  configss << rootpath << "/share/config/o2simtopology_template.json";
+  auto localconfig = std::string("o2simtopology_") + std::to_string(getpid()) + std::string(".json");
 
   // need to add pid to channel urls to allow simultaneous deploys!
-  // open otiginal config and read the JSON config
-  FILE* fp = fopen(configss.str().c_str(), "r");
-  constexpr unsigned short usmax = std::numeric_limits<unsigned short>::max() - 1;
-  char Buffer[usmax];
-  rapidjson::FileReadStream is(fp, Buffer, sizeof(Buffer));
-  rapidjson::Document d;
-  d.ParseStream(is);
-  fclose(fp);
-  // find and manipulate URLS
-  std::string serveraddress;
-  std::string mergeraddress;
-  std::string s;
-
-  auto& options = d["fairMQOptions"];
-  assert(options.IsObject());
-  for (auto option = options.MemberBegin(); option != options.MemberEnd();
-       ++option) {
-    s = option->name.GetString();
-    if (s == "devices") {
-      assert(option->value.IsArray());
-      auto devices = option->value.GetArray();
-      for (auto& device : devices) {
-        s = device["id"].GetString();
-        if (s == "primary-server") {
-          auto channels = device["channels"].GetArray();
-          auto sockets = (channels[0])["sockets"].GetArray();
-          auto& addressv = (sockets[0])["address"];
-          auto address = addressv.GetString();
-          serveraddress = address + std::to_string(getpid());
-          addressv.SetString(serveraddress.c_str(), d.GetAllocator());
-        }
-        if (s == "hitmerger") {
-          auto channels = device["channels"].GetArray();
-          for (auto& channel : channels) {
-            s = channel["name"].GetString();
-            // set server's address for merger
-            if (s == "primary-get") {
-              auto sockets = channel["sockets"].GetArray();
-              auto& addressv = (sockets[0])["address"];
-              addressv.SetString(serveraddress.c_str(), d.GetAllocator());
-            }
-            if (s == "simdata") {
-              auto sockets = channel["sockets"].GetArray();
-              auto& addressv = (sockets[0])["address"];
-              auto address = addressv.GetString();
-              mergeraddress = address + std::to_string(getpid());
-              addressv.SetString(mergeraddress.c_str(), d.GetAllocator());
-            }
-          }
-        }
-      }
-      //loop over devices again and set URLs for the workers
-      for (auto& device : devices) {
-        s = device["id"].GetString();
-        if (s == "worker") {
-          auto channels = device["channels"].GetArray();
-          for (auto& channel : channels) {
-            s = channel["name"].GetString();
-            if (s == "primary-get") {
-              auto sockets = channel["sockets"].GetArray();
-              auto& addressv = (sockets[0])["address"];
-              addressv.SetString(serveraddress.c_str(), d.GetAllocator());
-            }
-            if (s == "simdata") {
-              auto sockets = channel["sockets"].GetArray();
-              auto& addressv = (sockets[0])["address"];
-              addressv.SetString(mergeraddress.c_str(), d.GetAllocator());
-            }
-          }
-        }
-      }
+  // we simply insert the PID into the topology template
+  std::ifstream in(configss.str());
+  std::ofstream out(localconfig);
+  std::string wordToReplace("#PID#");
+  std::string wordToReplaceWith = std::to_string(getpid());
+  std::string line;
+  size_t len = wordToReplace.length();
+  while (std::getline(in, line)) {
+    size_t pos = line.find(wordToReplace);
+    if (pos != std::string::npos) {
+      line.replace(pos, len, wordToReplaceWith);
     }
+    out << line << '\n';
   }
-  // write the config copy with new name
-  fp = fopen(localconfig.c_str(), "w");
-  rapidjson::FileWriteStream os(fp, Buffer, sizeof(Buffer));
-  rapidjson::Writer<rapidjson::FileWriteStream> writer(os);
-  d.Accept(writer);
-  fclose(fp);
+  in.close();
+  out.close();
+
+  // create a channel for outside event notifications --> factor out into common function
+  // auto factory = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  auto externalpublishchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-notifications"));
 
   auto& conf = o2::conf::SimConfig::Instance();
   if (!conf.resetFromArguments(argc, argv)) {
@@ -281,7 +363,7 @@ int main(int argc, char* argv[])
   }
   // in case of zero events asked (only setup geometry etc) we just call the non-distributed version
   // (otherwise we would need to add more synchronization between the actors)
-  if (conf.getNEvents() <= 0) {
+  if (conf.getNEvents() <= 0 && !conf.asService()) {
     LOG(INFO) << "No events to be simulated; Switching to non-distributed mode";
     const int Nargs = argc + 1;
     std::string name("o2-sim-serial");
@@ -297,6 +379,12 @@ int main(int argc, char* argv[])
       perror(nullptr);
     }
     return r;
+  }
+
+  gAskedEvents = conf.getNEvents();
+  if (conf.asService()) {
+    launchControlThread();
+    // launchWorkerListenerThread();
   }
 
   // we create the global shared mem pool; just enough to serve
@@ -317,9 +405,6 @@ int main(int argc, char* argv[])
     perror("problem in creating pipe");
   }
 
-  // record distributed events in a container
-  std::vector<int> distributedEvents;
-
   // the server
   int pid = fork();
   if (pid == 0) {
@@ -337,7 +422,7 @@ int main(int argc, char* argv[])
     const std::string config = localconfig;
 
     // copy all arguments into a common vector
-    const int Nargs = argc + 7;
+    const int Nargs = argc + 9;
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     arguments[1] = "--control";
@@ -346,8 +431,10 @@ int main(int argc, char* argv[])
     arguments[4] = "primary-server";
     arguments[5] = "--mq-config";
     arguments[6] = config.c_str();
+    arguments[7] = "--severity";
+    arguments[8] = "debug";
     for (int i = 1; i < argc; ++i) {
-      arguments[6 + i] = argv[i];
+      arguments[8 + i] = argv[i];
     }
     arguments[Nargs - 1] = nullptr;
     for (int i = 0; i < Nargs; ++i) {
@@ -365,9 +452,17 @@ int main(int argc, char* argv[])
     return r;
   } else {
     gChildProcesses.push_back(pid);
+    setpgid(pid, pid);
     close(pipe_serverdriver_fd[1]);
     std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << getServerLogName() << "\n";
-    launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "DISTRIBUTING EVENT : ", distributedEvents);
+
+    // A simple callback for distributed primary-chunk "events"
+    auto distributionCallback = [&conf, &externalpublishchannel](std::vector<int> const& v) {
+      std::stringstream str;
+      str << "EVENT " << v.back() << " DISTRIBUTED";
+      o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+    };
+    launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "DISTRIBUTING EVENT : ", gDistributedEvents, distributionCallback);
   }
 
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
@@ -399,6 +494,7 @@ int main(int argc, char* argv[])
       return 0;
     } else {
       gChildProcesses.push_back(pid);
+      setpgid(pid, pid); // the worker processes will form their own group
       std::cout << "Spawning sim worker " << id << " on PID " << pid
                 << "; Redirect output to " << workerlogss.str() << "\n";
     }
@@ -410,9 +506,6 @@ int main(int argc, char* argv[])
     perror("problem in creating pipe");
   }
 
-  // record finished events in a container
-  std::vector<int> finishedEvents;
-
   pid = fork();
   if (pid == 0) {
     int fd = open(getMergerLogName().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
@@ -422,7 +515,6 @@ int main(int argc, char* argv[])
     close(fd);   // fd no longer needed - the dup'ed handles are sufficient
     close(pipe_mergerdriver_fd[0]);
     setenv("ALICE_O2SIMMERGERTODRIVER_PIPE", std::to_string(pipe_mergerdriver_fd[1]).c_str(), 1);
-
     const std::string name("o2-sim-hit-merger-runner");
     const std::string path = installpath + "/" + name;
     execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(),
@@ -430,22 +522,31 @@ int main(int argc, char* argv[])
     return 0;
   } else {
     std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << getMergerLogName() << "\n";
+    setpgid(pid, pid);
     gChildProcesses.push_back(pid);
     close(pipe_mergerdriver_fd[1]);
 
     // A simple callback that determines if the simulation is complete and triggers
     // a shutdown of all child processes. This appears to be more robust than leaving
     // that decision upon the children (sometimes there are problems with that).
-    auto finishCallback = [&conf](std::vector<int> const& v) {
-      if (conf.getNEvents() == v.size()) {
-        LOG(INFO) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
-        for (auto p : gChildProcesses) {
-          kill(p, SIGTERM);
+    auto finishCallback = [&conf, &externalpublishchannel](std::vector<int> const& v) {
+      std::stringstream str;
+      str << "EVENT " << v.back() << " FINISHED " << gAskedEvents << " " << v.size();
+      o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+      if (gAskedEvents == v.size()) {
+        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "DONE"));
+        if (!conf.asService()) {
+          LOG(INFO) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
+          for (auto p : gChildProcesses) {
+            killpg(p, SIGTERM);
+          }
+        } else {
+          LOG(INFO) << "SIMULATION DONE. STAYING AS DAEMON.";
         }
       }
     };
 
-    launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ", finishedEvents, finishCallback);
+    launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ", gFinishedEvents, finishCallback);
   }
 
   // wait on merger (which when exiting completes the workflow)
@@ -453,38 +554,42 @@ int main(int argc, char* argv[])
 
   int status, cpid;
   // wait just blocks and waits until any child returns; but we make sure to wait until merger is here
+  bool errored = false;
   while ((cpid = wait(&status)) != mergerpid) {
-    if (WIFSIGNALED(status)) {
+    if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
       LOG(INFO) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
                 << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
-    }
-    // we bring down all processes if one of them aborts
-    if (WTERMSIG(status) == SIGABRT) {
+
+      // we bring down all processes if one of them had problems or got a termination signal
+      // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
+      LOG(INFO) << "Problem detected (or child received termination signal) ... shutting down whole system ";
       for (auto p : gChildProcesses) {
-        kill(p, SIGTERM);
+        LOG(INFO) << "TERMINATING " << p;
+        killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
       }
-      cleanup();
-      LOG(FATAL) << "ABORTING DUE TO ABORT IN COMPONENT";
+      LOG(ERROR) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+      errored = true;
     }
   }
   // This marks the actual end of the computation (since results are available)
   LOG(INFO) << "Merger process " << mergerpid << " returned";
   LOG(INFO) << "Simulation process took " << timer.RealTime() << " s";
 
-  // make sure the rest shuts down
-  for (auto p : gChildProcesses) {
-    if (p != mergerpid) {
-      LOG(DEBUG) << "SHUTTING DOWN CHILD PROCESS " << p;
-      kill(p, SIGTERM);
+  if (!errored) {
+    // ordinary shutdown of the rest
+    for (auto p : gChildProcesses) {
+      if (p != mergerpid) {
+        LOG(INFO) << "SHUTTING DOWN CHILD PROCESS " << p;
+        killpg(p, SIGTERM);
+      }
     }
   }
 
   LOG(DEBUG) << "ShmManager operation " << o2::utils::ShmManager::Instance().isOperational() << "\n";
-  cleanup();
 
   // do a quick check to see if simulation produced something reasonable
   // (mainly useful for continuous integration / automated testing suite)
-  auto returncode = checkresult();
+  auto returncode = errored ? 1 : checkresult();
   if (returncode == 0) {
     // Extract a single file for MCEventHeaders
     // This file will be small and can quickly unblock start of signal transport (in embedding).
@@ -501,5 +606,6 @@ int main(int argc, char* argv[])
     LOG(INFO) << "SIMULATION RETURNED SUCCESFULLY";
   }
 
+  cleanup();
   return returncode;
 }

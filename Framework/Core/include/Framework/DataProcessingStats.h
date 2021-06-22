@@ -32,7 +32,9 @@ struct DataProcessingStats {
   std::atomic<int> incomplete = 0;
   std::atomic<int> inputParts = 0;
   std::atomic<int> lastElapsedTimeMs = 0;
-  std::atomic<int> lastTotalProcessedSize = 0;
+  std::atomic<int> lastProcessedSize = 0;
+  std::atomic<int> totalProcessedSize = 0;
+  std::atomic<int> totalSigusr1 = 0;
 
   std::atomic<uint64_t> lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
   std::atomic<uint64_t> lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics

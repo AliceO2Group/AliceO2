@@ -7,18 +7,21 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief FullTracks is a join of Tracks, TracksCov, and TracksExtra.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include <TH2F.h>
-
 #include <cmath>
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct ATask {
+struct EtaAndClsHistograms {
   OutputObj<TH2F> etaClsH{TH2F("eta_vs_cls", "#eta vs N_{cls}", 102, -2.01, 2.01, 160, -0.5, 159.5)};
 
   void process(aod::FullTracks const& tracks)
@@ -32,6 +35,6 @@ struct ATask {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>(cfgc, TaskName{"eta-and-cls-histograms"}),
+    adaptAnalysisTask<EtaAndClsHistograms>(cfgc),
   };
 }

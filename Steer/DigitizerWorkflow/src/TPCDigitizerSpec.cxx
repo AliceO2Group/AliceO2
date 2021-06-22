@@ -21,11 +21,11 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
 #include "Framework/DeviceSpec.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
-#include "TSystem.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
 #include <SimulationDataFormat/IOMCTruthContainerView.h>
@@ -39,8 +39,8 @@
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsBase/Detector.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "TPCSimulation/SAMPAProcessing.h"
 #include "SimConfig/DigiParams.h"
+#include <filesystem>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -133,7 +133,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
         readSpaceCharge.push_back(substr);
       }
       if (readSpaceCharge[0].size() != 0) { // use pre-calculated space-charge object
-        if (!gSystem->AccessPathName(readSpaceCharge[0].data())) {
+        if (std::filesystem::exists(readSpaceCharge[0])) {
           TFile fileSC(readSpaceCharge[0].data(), "READ");
           mDigitizer.setUseSCDistortions(fileSC);
         } else {
@@ -150,7 +150,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
           inputHisto.push_back(substr);
         }
         std::unique_ptr<TH3> hisSCDensity;
-        if (!gSystem->AccessPathName(inputHisto[0].data())) {
+        if (std::filesystem::exists(inputHisto[0])) {
           auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
           if (fileSCInput->FindKey(inputHisto[1].data())) {
             hisSCDensity.reset((TH3*)fileSCInput->Get(inputHisto[1].data()));
@@ -216,7 +216,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     /// For the time being use the defaults for the CDB
     auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults();
-    if (!gSystem->AccessPathName("GainMap.root")) {
+    if (std::filesystem::exists("GainMap.root")) {
       LOG(INFO) << "TPC: Using gain map from 'GainMap.root'";
       cdb.setGainMapFromFile("GainMap.root");
     }
@@ -368,8 +368,12 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       mDigitCounter += mDigits.size();
     };
 
-    static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-    mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(irecords[0].getTimeNS() / 1000.f));
+    if (isContinuous) {
+      auto& hbfu = o2::raw::HBFUtils::Instance();
+      double time = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).bc2ns() / 1000.;
+      mDigitizer.setOutputDigitTimeOffset(time);
+      mDigitizer.setStartTime(irecords[0].getTimeNS() / 1000.f);
+    }
 
     TStopwatch timer;
     timer.Start();
@@ -377,11 +381,11 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      const float eventTime = irecords[collID].getTimeNS() / 1000.f;
+      const double eventTime = irecords[collID].getTimeNS() / 1000.f;
       LOG(INFO) << "TPC: Event time " << eventTime << " us";
       mDigitizer.setEventTime(eventTime);
       if (!isContinuous) {
-        mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(eventTime));
+        mDigitizer.setStartTime(eventTime);
       }
       size_t startSize = mDigitCounter; // digitsAccum->size();
 

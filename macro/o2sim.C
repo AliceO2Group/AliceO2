@@ -27,6 +27,7 @@
 #include <DetectorsBase/MaterialManager.h>
 #include <CCDB/BasicCCDBManager.h>
 #include <DetectorsCommonDataFormats/NameConf.h>
+#include "DetectorsBase/Aligner.h"
 #include <unistd.h>
 #include <sstream>
 #endif
@@ -91,6 +92,7 @@ FairRunSim* o2sim_init(bool asservice)
 
   // construct geometry / including magnetic field
   build_geometry(run);
+
   // setup generator
   auto embedinto_filename = confref.getEmbedIntoFileName();
   auto primGen = new o2::eventgen::PrimaryGenerator();
@@ -106,8 +108,26 @@ FairRunSim* o2sim_init(bool asservice)
   TStopwatch timer;
   timer.Start();
 
+  o2::detectors::DetID::mask_t detMask{};
+  {
+    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    for (const auto& md : modulelist) {
+      int id = o2::detectors::DetID::nameToID(md.c_str());
+      if (id >= o2::detectors::DetID::First) {
+        detMask |= o2::detectors::DetID::getMask(id);
+      }
+    }
+    // somewhat ugly, but this is the most straighforward way to make sure the detectors to align
+    // don't include detectors which are not activated
+    auto& aligner = o2::base::Aligner::Instance();
+    if (aligner.getDetectorsMask().any()) {
+      aligner.setValue(fmt::format("{}.mDetectors", aligner.getName()), o2::detectors::DetID::getNames(detMask, ','));
+    }
+  }
+
   // run init
   run->Init();
+
   std::time_t runStart = std::time(nullptr);
 
   // runtime database
@@ -134,22 +154,7 @@ FairRunSim* o2sim_init(bool asservice)
     grp.setRun(run->GetRunId());
     grp.setTimeStart(runStart);
     grp.setTimeEnd(std::time(nullptr));
-    TObjArray* modArr = run->GetListOfModules();
-    TIter next(modArr);
-    FairModule* module = nullptr;
-    while ((module = (FairModule*)next())) {
-      o2::base::Detector* det = dynamic_cast<o2::base::Detector*>(module);
-      if (!det) {
-        continue; // not a detector
-      }
-      if (det->GetDetId() < o2::detectors::DetID::First) {
-        continue; // passive
-      }
-      if (det->GetDetId() > o2::detectors::DetID::Last) {
-        continue; // passive
-      }
-      grp.addDetReadOut(o2::detectors::DetID(det->GetDetId()));
-    }
+    grp.setDetsReadOut(detMask);
     // CTP is not a physical detector, just flag in the GRP if requested
     if (isActivated("CTP")) {
       grp.addDetReadOut(o2::detectors::DetID::CTP);
@@ -170,6 +175,7 @@ FairRunSim* o2sim_init(bool asservice)
     TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
+
   // todo: save beam information in the grp
 
   // print summary about cuts and processes used

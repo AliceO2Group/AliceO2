@@ -32,7 +32,7 @@
 #include <fstream>
 #include <iostream>
 #include <boost/test/data/test_case.hpp>
-#include <boost/mpl/list_c.hpp>
+#include <boost/mpl/list.hpp>
 
 using namespace o2::mch::raw;
 namespace bdata = boost::unit_test::data;
@@ -107,7 +107,7 @@ const uint64_t CruPageBadN10bitWords[] = {
 
 SampaChannelHandler handlePacket(std::string& result)
 {
-  return [&result](DsElecId dsId, uint8_t channel, SampaCluster sc) {
+  return [&result](DsElecId dsId, DualSampaChannelId channel, SampaCluster sc) {
     result += fmt::format("{}-ch-{}-ts-{}-q", asString(dsId), channel, sc.sampaTime);
     if (sc.isClusterSum()) {
       result += fmt::format("-{}-cs-{}", sc.chargeSum, sc.clusterSize);
@@ -175,18 +175,19 @@ std::string decodeBuffer(int feeId, gsl::span<const std::byte> buffer)
 
 template <typename CHARGESUM, int VERSION>
 std::string testPayloadDecode(DsElecId ds1,
-                              int ch1,
+                              DualSampaChannelId ch1,
                               const std::vector<SampaCluster>& clustersFirstChannel,
                               DsElecId ds2 = DsElecId{0, 0, 0},
-                              int ch2 = 47,
+                              DualSampaChannelId ch2 = 47,
                               const std::vector<SampaCluster>& clustersSecondChannel = {},
                               std::optional<size_t> insertSync = std::nullopt)
 {
-  auto encoder = createPayloadEncoder<UserLogicFormat, CHARGESUM, true, VERSION>();
-
-  encoder->startHeartbeatFrame(0, 0);
 
   auto solar2feelink = createSolar2FeeLinkMapper<ElectronicMapperGenerated>();
+
+  auto encoder = createPayloadEncoder(solar2feelink, true, VERSION, isChargeSumMode<CHARGESUM>::value);
+
+  encoder->startHeartbeatFrame(0, 0);
 
   uint16_t feeId{0};
 

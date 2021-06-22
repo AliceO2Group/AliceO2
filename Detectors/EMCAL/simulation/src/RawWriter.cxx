@@ -177,8 +177,9 @@ bool RawWriter::processTrigger(const o2::emcal::TriggerRecord& trg)
     }
 
     if (!payload.size()) {
-      LOG(DEBUG) << "Payload buffer has size 0" << std::endl;
-      continue;
+      // [EMCAL-699] No payload found in SRU
+      // Still the link is not completely ignored but a trailer with 0-payloadsize is added
+      LOG(DEBUG) << "Payload buffer has size 0 - only write empty trailer" << std::endl;
     }
     LOG(DEBUG) << "Payload buffer has size " << payload.size();
 

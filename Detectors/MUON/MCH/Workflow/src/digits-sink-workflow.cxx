@@ -38,6 +38,7 @@
 
 #include "DPLUtils/DPLRawParser.h"
 #include "DataFormatsMCH/Digit.h"
+#include "DataFormatsMCH/ROFRecord.h"
 #include "MCHRawDecoder/OrbitInfo.h"
 
 using namespace o2;
@@ -84,17 +85,22 @@ class DigitsSinkTask
     // get the input digits
     auto digits = pc.inputs().get<gsl::span<Digit>>("digits");
     auto orbits = pc.inputs().get<gsl::span<OrbitInfo>>("orbits");
+    auto rofs = pc.inputs().get<gsl::span<ROFRecord>>("digitrofs");
     std::set<OrbitInfo> ordered_orbits(orbits.begin(), orbits.end());
 
     if (mText) {
       mOutputFile << std::endl
                   << "=======================" << std::endl;
-      for (auto o : ordered_orbits) {
+      for (const auto& o : ordered_orbits) {
         mOutputFile << " FEEID " << o.getFeeID() << "  LINK " << (int)o.getLinkID() << "  ORBIT " << o.getOrbit() << std::endl;
       }
       mOutputFile << "---------------" << std::endl;
-      for (auto d : digits) {
-        mOutputFile << " DE# " << d.getDetID() << "  PadId " << d.getPadID() << "  ADC " << d.getADC() << "  time " << d.getTime() << std::endl;
+      for (const auto& d : digits) {
+        mOutputFile << " DE# " << d.getDetID() << "  PadId " << d.getPadID() << "  ADC " << d.getADC() << std::endl;
+      }
+      mOutputFile << "---------------" << std::endl;
+      for (const auto& rof : rofs) {
+        mOutputFile << " IR " << rof.getBCData() << "  first " << rof.getFirstIdx() << "  size " << rof.getNEntries() << std::endl;
       }
     } else {
       int nDigits = digits.size();
@@ -120,7 +126,9 @@ WorkflowSpec defineDataProcessing(const ConfigContext&)
   // The producer to generate some data in the workflow
   DataProcessorSpec producer{
     "DigitsSink",
-    Inputs{InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}, InputSpec{"orbits", "MCH", "ORBITS", 0, Lifetime::Timeframe}},
+    Inputs{InputSpec{"digits", header::gDataOriginMCH, "DIGITS", 0, Lifetime::Timeframe},
+           InputSpec{"orbits", header::gDataOriginMCH, "ORBITS", 0, Lifetime::Timeframe},
+           InputSpec{"digitrofs", header::gDataOriginMCH, "DIGITROFS", 0, Lifetime::Timeframe}},
     Outputs{},
     AlgorithmSpec{adaptFromTask<o2::mch::raw::DigitsSinkTask>()},
     Options{ { "outfile", VariantType::String, "digits.out", { "output file name" } },

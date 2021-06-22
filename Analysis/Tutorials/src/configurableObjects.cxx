@@ -7,9 +7,14 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief This task demonstrates how to use configurable to wrap classes.
+///        Use it with supplied configuration: "configurableObject.json".
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Analysis/configurableCut.h"
 
 #include <sstream>
@@ -17,9 +22,6 @@
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
-
-/// This task demonstrates how to use configurable to wrap classes
-/// use it with supplied configuration: "configurableObject.json"
 
 template <typename T>
 auto printArray(std::vector<T> const& vec)
@@ -105,5 +107,6 @@ struct ConfigurableObjectDemo {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ConfigurableObjectDemo>(cfgc, TaskName{"configurable-demo"})};
+    adaptAnalysisTask<ConfigurableObjectDemo>(cfgc),
+  };
 }

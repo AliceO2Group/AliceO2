@@ -56,10 +56,10 @@ class TOFDPLRecoWorkflowTask
   {
     // nothing special to be set up
     o2::base::GeometryManager::loadGeometry();
-    o2::base::Propagator::initFieldFromGRP("o2sim_grp.root");
+    o2::base::Propagator::initFieldFromGRP();
     std::string matLUTPath = ic.options().get<std::string>("material-lut-path");
     std::string matLUTFile = o2::base::NameConf::getMatLUTFileName(matLUTPath);
-    if (o2::base::NameConf::pathExists(matLUTFile)) {
+    if (o2::utils::Str::pathExists(matLUTFile)) {
       auto* lut = o2::base::MatLayerCylSet::loadFromFile(matLUTFile);
       o2::base::Propagator::Instance()->setMatLUT(lut);
       LOG(INFO) << "Loaded material LUT from " << matLUTFile;
@@ -85,20 +85,6 @@ class TOFDPLRecoWorkflowTask
       mMatcher.setFITRecPoints(recPoints);
       LOG(INFO) << "TOF Reco Workflow pulled " << recPoints.size() << " FIT RecPoints";
     }
-
-    //-------- init geometry and field --------//
-    // std::string path = "./";
-    // std::string inputGeom = "O2geometry.root";
-    // std::string inputGRP = "o2sim_grp.root";
-
-    //  o2::base::GeometryManager::loadGeometry(path);
-    //  o2::base::Propagator::initFieldFromGRP(path + inputGRP);
-
-    // call actual matching info routine
-    //#ifdef _ALLOW_DEBUG_TREES_
-    //  mMatcher.setDebugTreeFileName(path + mMatcher.getDebugTreeFileName());
-    //  mMatcher.setDebugFlag(o2::globaltracking::MatchTOF::MatchTreeAll);
-    //#endif
 
     // we do a copy of the input but we are looking for a way to avoid it (current problem in conversion form unique_ptr to *)
 

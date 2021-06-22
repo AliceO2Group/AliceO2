@@ -135,7 +135,7 @@ void GPUDisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
   }
   int specialKey = GetKey(sym);
   int localeKey = tmpString[0];
-  // GPUInfo("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)", event.xkey.keycode, (int) sym, (char) sym, (int) localeKey, localeKey, specialKey, (char) specialKey);
+  // GPUInfo("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)", (int)event.xkey.keycode, (int)sym, (char)sym, (int)localeKey, (char)localeKey, (int)specialKey, (char)specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
@@ -374,15 +374,13 @@ int GPUDisplayBackendX11::OpenGLMain()
           GetKey(event, handleKey, keyPress);
           mKeysShift[keyPress] = mKeys[KEY_SHIFT];
           mKeys[keyPress] = true;
+          HandleKey(handleKey);
           break;
         }
 
         case KeyRelease: {
           int handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
-          if (mKeys[keyPress]) {
-            HandleKeyRelease(handleKey);
-          }
           mKeys[keyPress] = false;
           mKeysShift[keyPress] = false;
           break;

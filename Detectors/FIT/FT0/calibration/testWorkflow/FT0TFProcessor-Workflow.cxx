@@ -11,7 +11,6 @@
 #include <Framework/ConfigContext.h>
 #include "Framework/DeviceSpec.h"
 #include "Framework/WorkflowSpec.h"
-#include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/Task.h"
 #include "DataFormatsFT0/ChannelData.h"
 #include "DataFormatsFT0/Digit.h"
@@ -34,7 +33,8 @@ class FT0TFProcessor final : public o2::framework::Task
     calib_data.reserve(channels.size());
 
     for (const auto& channel : channels) {
-      calib_data.emplace_back(channel.getChannelID(), channel.getTime());
+      calib_data.emplace_back(channel.ChId, channel.CFDTime, channel.QTCAmpl);
+      //    calib_data.emplace_back(channel.getChannelID(), channel.getTime(), channel.getAmp());
     }
   }
 };

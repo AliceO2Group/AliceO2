@@ -34,7 +34,7 @@
 #ifdef GPUCA_NOCOMPAT
 #include "GPUTPCGMMergerGPU.h"
 #endif
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUITSFitterKernels.h"
 #include "GPUTPCConvertKernel.h"
 #include "GPUTPCCompressionKernels.h"
@@ -86,7 +86,7 @@ class GPUReconstructionKernels : public T
 };
 
 #ifndef GPUCA_GPURECONSTRUCTIONCPU_IMPLEMENTATION
-// Hide the body for all files but GPUReconstructionCPU.cxx, otherwise we get weird symbol clashes when the compiler inlines
+// Hide the function bodies for all files but GPUReconstructionCPU.cxx, otherwise we get symbol clashes when the compiler inlines
 template <>
 class GPUReconstructionKernels<GPUReconstructionCPUBackend> : public GPUReconstructionCPUBackend
 {

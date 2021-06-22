@@ -8,6 +8,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file CTPDigitWriterSpec.h
+/// \author Roman Lietava
+
 #ifndef O2_CTPDIGITWRITERSPEC_H
 #define O2_CTPDIGITWRITERSPEC_H
 

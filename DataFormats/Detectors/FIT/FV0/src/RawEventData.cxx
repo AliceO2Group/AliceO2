@@ -15,46 +15,6 @@
 using namespace o2::fv0;
 
 ClassImp(RawEventData);
-
-void EventHeader::print() const
-{
-  LOG(INFO) << std::hex;
-  LOG(INFO) << "################EventHeader###############";
-  LOG(INFO) << "startDescriptor: " << startDescriptor;
-  LOG(INFO) << "nGBTWords: " << nGBTWords;
-  LOG(INFO) << "BC: " << bc;
-  LOG(INFO) << "Orbit: " << orbit;
-  LOG(INFO) << "##########################################";
-  LOG(INFO) << std::dec;
-}
-
-void RawEventData::print() const
-{
-  LOG(INFO) << "==================Raw event data==================";
-  LOG(INFO) << "##################Header##################";
-  LOG(INFO) << "startDescriptor: " << mEventHeader.startDescriptor;
-  LOG(INFO) << "Nchannels: " << mEventHeader.nGBTWords * 2;
-  LOG(INFO) << "BC: " << mEventHeader.bc;
-  LOG(INFO) << "Orbit: " << mEventHeader.orbit;
-  LOG(INFO) << "##########################################";
-  LOG(INFO) << "###################DATA###################";
-  for (int iCh = 0; iCh < mEventHeader.nGBTWords * 2; iCh++) {
-    LOG(INFO) << "------------Channel " << mEventData[iCh].channelID << "------------";
-    LOG(INFO) << "Charge: " << mEventData[iCh].charge;
-    LOG(INFO) << "Time: " << mEventData[iCh].time;
-    LOG(INFO) << "1TimeLostEvent: " << mEventData[iCh].is1TimeLostEvent;
-    LOG(INFO) << "2TimeLostEvent: " << mEventData[iCh].is2TimeLostEvent;
-    LOG(INFO) << "ADCinGate: " << mEventData[iCh].isADCinGate;
-    LOG(INFO) << "AmpHigh: " << mEventData[iCh].isAmpHigh;
-    LOG(INFO) << "DoubleEvent: " << mEventData[iCh].isDoubleEvent;
-    LOG(INFO) << "EventInTVDC: " << mEventData[iCh].isEventInTVDC;
-    LOG(INFO) << "TimeInfoLate: " << mEventData[iCh].isTimeInfoLate;
-    LOG(INFO) << "TimeInfoLost: " << mEventData[iCh].isTimeInfoLost;
-    LOG(INFO) << "numberADC: " << mEventData[iCh].numberADC;
-  }
-  LOG(INFO) << "##########################################";
-}
-
 void RawEventData::printHexEventHeader() const
 {
   std::stringstream ssheader;

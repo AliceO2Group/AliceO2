@@ -21,6 +21,7 @@ o2_add_library(TPCSimulation
                        src/PadResponse.cxx
                        src/Point.cxx
                        src/SAMPAProcessing.cxx
+                       src/IDCSim.cxx
                PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::SimulationDataFormat
                                      O2::TPCBase O2::TPCSpaceCharge
                                      ROOT::Physics)
@@ -37,12 +38,8 @@ o2_target_root_dictionary(TPCSimulation
                                   include/TPCSimulation/GEMAmplification.h
                                   include/TPCSimulation/PadResponse.h
                                   include/TPCSimulation/Point.h
-                                  include/TPCSimulation/SAMPAProcessing.h)
-
-o2_add_executable(digits-to-rawzs
-                  COMPONENT_NAME tpc
-                  PUBLIC_LINK_LIBRARIES O2::TPCBase O2::SimulationDataFormat O2::GPUO2Interface O2::GPUTracking O2::DetectorsRaw
-                  SOURCES run/convertDigitsToRawZS.cxx)
+                                  include/TPCSimulation/SAMPAProcessing.h
+                                  include/TPCSimulation/IDCSim.h)
 
 o2_data_file(COPY files DESTINATION Detectors/TPC)
 o2_data_file(COPY data  DESTINATION Detectors/TPC/simulation)

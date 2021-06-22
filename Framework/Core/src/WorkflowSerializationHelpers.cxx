@@ -14,6 +14,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/VariantJSONHelpers.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/Logger.h"
 
 #include <rapidjson/reader.h>
 #include <rapidjson/prettywriter.h>
@@ -46,6 +47,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_INPUTS,
     IN_OUTPUTS,
     IN_OPTIONS,
+    IN_LABELS,
     IN_WORKFLOW_OPTIONS,
     IN_INPUT,
     IN_INPUT_BINDING,
@@ -66,6 +68,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_OPTION_DEFAULT,
     IN_OPTION_HELP,
     IN_OPTION_KIND,
+    IN_LABEL,
     IN_METADATUM,
     IN_METADATUM_NAME,
     IN_METADATUM_EXECUTABLE,
@@ -120,6 +123,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         break;
       case State::IN_OPTIONS:
         s << "IN_OPTIONS";
+        break;
+      case State::IN_LABELS:
+        s << "IN_LABELS";
         break;
       case State::IN_WORKFLOW_OPTIONS:
         s << "IN_WORKFLOW_OPTIONS";
@@ -180,6 +186,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         break;
       case State::IN_OPTION_KIND:
         s << "IN_OPTION_KIND";
+        break;
+      case State::IN_LABEL:
+        s << "IN_LABEL";
         break;
       case State::IN_ERROR:
         s << "IN_ERROR";
@@ -276,12 +285,16 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
                                                       StartTimeValueMatcher{ContextRef{0}})))};
 
         dataProcessors.back().inputs.push_back(InputSpec({binding}, std::move(expectedMatcher00)));
-      }
-      if (inputHasSubSpec) {
-        dataProcessors.back().inputs.push_back(InputSpec(binding, origin, description, subspec, lifetime, inputOptions));
+      } else if (inputHasDescription) {
+        if (inputHasSubSpec) {
+          dataProcessors.back().inputs.push_back(InputSpec(binding, origin, description, subspec, lifetime, inputOptions));
+        } else {
+          dataProcessors.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime, inputOptions));
+        }
       } else {
-        dataProcessors.back().inputs.push_back(InputSpec(binding, {origin, description}, lifetime, inputOptions));
+        LOG(ERROR) << "Input w/o description but with subspec is not supported";
       }
+
       inputOptions.clear();
       inputHasDescription = false;
       inputHasSubSpec = false;
@@ -386,6 +399,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_OPTION);
     } else if (in(State::IN_WORKFLOW_OPTIONS)) {
       push(State::IN_OPTION);
+    } else if (in(State::IN_LABELS)) {
+      push(State::IN_LABEL);
     } else if (in(State::IN_METADATA)) {
       push(State::IN_METADATUM);
     } else if (in(State::IN_METADATUM_ARGS)) {
@@ -401,7 +416,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     enter("END_ARRAY");
     // Handle the case in which inputs / options / outputs are
     // empty.
-    if (in(State::IN_INPUT) || in(State::IN_OUTPUT) || in(State::IN_OPTION) || in(State::IN_METADATUM) || in(State::IN_METADATUM_ARG) || in(State::IN_METADATUM_CHANNEL) || in(State::IN_DATAPROCESSORS)) {
+    if (in(State::IN_INPUT) || in(State::IN_OUTPUT) || in(State::IN_OPTION) || in(State::IN_LABEL) || in(State::IN_METADATUM) || in(State::IN_METADATUM_ARG) || in(State::IN_METADATUM_CHANNEL) || in(State::IN_DATAPROCESSORS)) {
       pop();
     }
     pop();
@@ -453,6 +468,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_OUTPUTS);
     } else if (in(State::IN_DATAPROCESSOR) && strncmp(str, "options", length) == 0) {
       push(State::IN_OPTIONS);
+    } else if (in(State::IN_DATAPROCESSOR) && strncmp(str, "labels", length) == 0) {
+      push(State::IN_LABELS);
     } else if (in(State::IN_EXECUTION) && strncmp(str, "workflow", length) == 0) {
       push(State::IN_WORKFLOW);
     } else if (in(State::IN_EXECUTION) && strncmp(str, "metadata", length) == 0) {
@@ -519,6 +536,11 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       optionDefault = s;
     } else if (in(State::IN_OPTION_HELP)) {
       optionHelp = s;
+    } else if (in(State::IN_LABEL)) {
+      dataProcessors.back().labels.push_back({s});
+      // This is in an array, so we do not actually want to
+      // exit from the state.
+      push(State::IN_LABEL);
     } else if (in(State::IN_METADATUM_ARG)) {
       metadata.back().cmdLineArgs.push_back(s);
       // This is in an array, so we do not actually want to
@@ -634,7 +656,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool inputHasDescription;
 };
 
-void WorkflowSerializationHelpers::import(std::istream& s,
+bool WorkflowSerializationHelpers::import(std::istream& s,
                                           std::vector<DataProcessorSpec>& workflow,
                                           std::vector<DataProcessorInfo>& metadata,
                                           CommandInfo& command)
@@ -645,14 +667,31 @@ void WorkflowSerializationHelpers::import(std::istream& s,
   // FIXME: not particularly resilient, but works for now.
   // FIXME: this will fail if { is found at char 1024.
   char buf[1024];
+  bool hasFatalImportError = false;
   while (s.peek() != '{') {
     if (s.eof()) {
-      return;
+      return !hasFatalImportError;
     }
     if (s.fail() || s.bad()) {
       throw std::runtime_error("Malformatted input workflow");
     }
     s.getline(buf, 1024, '\n');
+    // FairLogger messages (starting with [) simply get forwarded.
+    // Other messages we consider them as ERRORs since they
+    // were printed out without FairLogger.
+    if (buf[0] == '[') {
+      if (strncmp(buf, "[ERROR] invalid workflow in", strlen("[ERROR] invalid workflow in")) == 0 ||
+          strncmp(buf, "[ERROR] error while setting up workflow", strlen("[ERROR] error while setting up workflow")) == 0 ||
+          strncmp(buf, "[ERROR] error parsing options of", strlen("[ERROR] error parsing options of")) == 0) {
+        hasFatalImportError = true;
+      }
+      std::cout << buf << std::endl;
+    } else {
+      LOG(ERROR) << buf;
+    }
+  }
+  if (hasFatalImportError) {
+    return false;
   }
   rapidjson::Reader reader;
   rapidjson::IStreamWrapper isw(s);
@@ -661,6 +700,7 @@ void WorkflowSerializationHelpers::import(std::istream& s,
   if (ok == false) {
     throw std::runtime_error("Error while parsing serialised workflow");
   }
+  return true;
 }
 
 void WorkflowSerializationHelpers::dump(std::ostream& out,
@@ -800,6 +840,12 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
       w.Key("kind");
       w.String(std::to_string((int)option.kind).c_str());
       w.EndObject();
+    }
+    w.EndArray();
+    w.Key("labels");
+    w.StartArray();
+    for (auto& label : processor.labels) {
+      w.String(label.value.c_str());
     }
     w.EndArray();
     w.Key("rank");

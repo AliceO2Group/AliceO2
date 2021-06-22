@@ -17,7 +17,6 @@
 #include "DPLUtils/RawParser.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Headers/DataHeaderHelpers.h"
-#include "CommonConstants/LHCConstants.h"
 
 #include "TPCBase/RDHUtils.h"
 #include "TPCReconstruction/RawReaderCRU.h"
@@ -35,6 +34,17 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
 uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors)
 {
   std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{o2::header::gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
+
+  // TODO: check if presence of data sampling can be checked in another way
+  bool sampledData = true;
+  for ([[maybe_unused]] auto const& ref : InputRecordWalker(inputs, filter)) {
+    sampledData = false;
+    break;
+  }
+  if (sampledData) {
+    filter = {{"sampled-rawdata", ConcreteDataTypeMatcher{"DS", "RAWDATA"}, Lifetime::Timeframe}};
+    LOGP(info, "Using sampled data");
+  }
 
   uint64_t activeSectors = 0;
   bool isLinkZS = false;
@@ -72,9 +82,9 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
     rdh_utils::FEEIDType cruID, linkID, endPoint;
     rdh_utils::getMapping(feeID, cruID, endPoint, linkID);
     const auto globalLinkID = linkID + endPoint * 12;
-    LOGP(info, "Specifier: {}/{}/{}", dh->dataOrigin, dh->dataDescription, subSpecification);
-    LOGP(info, "Payload size: {}", dh->payloadSize);
-    LOGP(info, "CRU: {}; linkID: {}; endPoint: {}; globalLinkID: {}", cruID, linkID, endPoint, globalLinkID);
+    LOGP(debug, "Specifier: {}/{}/{}", dh->dataOrigin, dh->dataDescription, subSpecification);
+    LOGP(debug, "Payload size: {}", dh->payloadSize);
+    LOGP(debug, "CRU: {}; linkID: {}; endPoint: {}; globalLinkID: {}", cruID, linkID, endPoint, globalLinkID);
     // ^^^^^^
 
     // TODO: exception handling needed?
@@ -89,7 +99,8 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
         LOGP(fatal, "could not get RDH from packet");
       }
       const auto link = RDHUtils::getLinkID(*rdhPtr);
-      if (link == rdh_utils::UserLogicLinkID) {
+      const auto detField = RDHUtils::getDetectorField(*rdhPtr);
+      if ((link == rdh_utils::UserLogicLinkID) || (detField == 1)) {
         LOGP(info, "Detected Link-based zero suppression");
         isLinkZS = true;
         if (!reader->getManager() || !reader->getManager()->getLinkZSCallback()) {
@@ -135,7 +146,7 @@ void processGBT(o2::framework::RawParser<>& parser, std::unique_ptr<RawReaderCRU
     for (int i = 0; i < size; i += 16) {
       gFrame.setFrameNumber(iFrame);
       gFrame.setPacketNumber(iFrame / 508);
-      gFrame.readFromMemory(gsl::span<const o2::byte>(data + i, 16));
+      gFrame.readFromMemory(gsl::span<const std::byte>((std::byte*)data + i, 16));
 
       // extract the half words from the 4 32-bit words
       gFrame.getFrameHalfWords();
@@ -167,7 +178,6 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
     const auto orbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
     const auto data = (const char*)it.data();
     const auto size = it.size();
-    const auto globalBCOffset = (orbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches;
-    raw_processing_helpers::processZSdata(data, size, feeID, globalBCOffset, reader->getManager()->getLinkZSCallback(), useTimeBins);
+    raw_processing_helpers::processZSdata(data, size, feeID, orbit, firstOrbit, reader->getManager()->getLinkZSCallback(), useTimeBins);
   }
 }
