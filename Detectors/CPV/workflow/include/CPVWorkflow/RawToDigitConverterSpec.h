@@ -77,7 +77,7 @@ class RawToDigitConverterSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the CPV Digit Converter Spec
 ///
 /// Refer to RawToDigitConverterSpec::run for input and output specs
-o2::framework::DataProcessorSpec getRawToDigitConverterSpec();
+o2::framework::DataProcessorSpec getRawToDigitConverterSpec(bool askDISTSTF = true);
 
 } // namespace reco_workflow
 

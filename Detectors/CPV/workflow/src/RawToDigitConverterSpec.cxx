@@ -227,13 +227,14 @@ void RawToDigitConverterSpec::run(framework::ProcessingContext& ctx)
   ctx.outputs().snapshot(o2::framework::Output{"CPV", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
 }
 
-o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterSpec()
+o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterSpec(bool askDISTSTF)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"CPV", "RAWDATA"}, o2::framework::Lifetime::Optional);
   //receive at least 1 guaranteed input (which will allow to acknowledge the TF)
-  inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
-
+  if (askDISTSTF) {
+    inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
+  }
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back("CPV", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("CPV", "DIGITTRIGREC", 0, o2::framework::Lifetime::Timeframe);
