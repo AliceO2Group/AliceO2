@@ -17,6 +17,8 @@
 ///
 
 #include <vector>
+#include <string>
+#include <string_view>
 #include "DataFormatsTPC/Defs.h"
 
 class TH1;
@@ -67,6 +69,9 @@ struct PadCoordinates {
 
 /// create a vector of pad corner coordinate for one full sector
 std::vector<PadCoordinates> getPadCoordinatesSector();
+
+/// ROC title from ROC number
+std::string getROCTitle(const int rocNumber);
 
 //using T=float;
 /// Drawing of a CalDet object

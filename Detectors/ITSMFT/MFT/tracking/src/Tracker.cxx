@@ -209,7 +209,7 @@ void Tracker::findTracksLTF(ROframe& event)
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
   Int_t extClsIndex;
   Float_t dR2, dR2min, dR2cut = mLTFclsR2Cut;
-  Bool_t hasDisk[constants::mft::DisksNumber], newPoint, seed;
+  Bool_t hasDisk[constants::mft::DisksNumber], newPoint;
 
   Int_t clsInLayer1, clsInLayer2, clsInLayer;
 
@@ -217,10 +217,9 @@ void Tracker::findTracksLTF(ROframe& event)
   TrackElement trackPoints[constants::mft::LayersNumber];
 
   Int_t step = 0;
-  seed = kTRUE;
   layer1 = 0;
 
-  while (seed) {
+  while (true) {
 
     layer2 = (step == 0) ? (constants::mft::LayersNumber - 1) : (layer2 - 1);
     step++;
@@ -504,7 +503,7 @@ void Tracker::computeCellsInRoad(ROframe& event)
         if (nPtsInLayer2 > 1) {
           LOG(INFO) << "BV===== more than one point in road " << mRoad.getRoadId() << " in layer " << layer2 << " : " << nPtsInLayer2 << "\n";
         }
-	*/
+  */
         for (Int_t point2 = 0; point2 < nPtsInLayer2; ++point2) {
 
           clsInLayer2 = mRoad.getClustersIdInLayer(layer2)[point2];

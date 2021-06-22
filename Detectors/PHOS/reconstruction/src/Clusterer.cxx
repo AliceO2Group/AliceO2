@@ -81,11 +81,11 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
     // Collect digits to clusters
     makeClusters(clusters, cluelements);
 
-    if (mProcessMC) {
-      evalLabels(clusters, cluelements, dmc, cluMC);
-    }
     LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters.size();
     trigRec.emplace_back(tr.getBCData(), indexStart, clusters.size() - indexStart);
+  }
+  if (mProcessMC) {
+    evalLabels(clusters, cluelements, dmc, cluMC);
   }
 }
 //____________________________________________________________________________
@@ -133,12 +133,11 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
 
     makeClusters(clusters, cluelements);
 
-    if (mProcessMC) {
-      evalLabels(clusters, cluelements, dmc, cluMC);
-    }
-
     LOG(DEBUG) << "Found clusters from " << indexStart << " to " << clusters.size();
     trigRec.emplace_back(tr.getBCData(), indexStart, clusters.size() - indexStart);
+  }
+  if (mProcessMC) {
+    evalLabels(clusters, cluelements, dmc, cluMC);
   }
 }
 //____________________________________________________________________________

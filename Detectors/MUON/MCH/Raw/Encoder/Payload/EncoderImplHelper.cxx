@@ -17,7 +17,7 @@
 namespace o2::mch::raw::impl
 {
 
-uint16_t chipAddress(uint8_t elinkId, uint8_t chId)
+uint16_t computeChipAddress(uint8_t elinkId, DualSampaChannelId chId)
 {
   auto opt = o2::mch::raw::indexFromElinkId(elinkId);
   if (!opt.has_value()) {
@@ -30,7 +30,7 @@ uint16_t chipAddress(uint8_t elinkId, uint8_t chId)
 /// The vector of SampaCluster is assumed to be valid, i.e. :
 /// - all clusters are all of the same kind (ChargeSumMode or SampleMode)
 /// - all clusters have the same bunchCrossingCounter
-SampaHeader buildSampaHeader(uint8_t elinkId, uint8_t chId, gsl::span<const SampaCluster> data)
+SampaHeader buildSampaHeader(uint8_t elinkId, DualSampaChannelId chId, gsl::span<const SampaCluster> data)
 {
   assertIsInRange("chId", chId, 0, 63);
 
@@ -47,14 +47,13 @@ SampaHeader buildSampaHeader(uint8_t elinkId, uint8_t chId, gsl::span<const Samp
   }
   assertNofBits("nof10BitWords", n10, 10);
   header.nof10BitWords(n10);
-  header.chipAddress(chipAddress(elinkId, chId));
+  header.chipAddress(computeChipAddress(elinkId, chId));
   header.channelAddress(chId % 32);
-  header.hammingCode(computeHammingCode(header.uint64()));
-  header.headerParity(computeHeaderParity(header.uint64()));
   assertNofBits("bunchCrossingCounter", bunchCrossingCounter, 20);
   header.bunchCrossingCounter(bunchCrossingCounter);
-
-  // FIXME: compute payload parity
+  // compute the hamming code and parity at last
+  header.headerParity(computeHeaderParity(header.uint64()));
+  header.hammingCode(computeHammingCode(header.uint64()));
   return header;
 }
 
@@ -72,7 +71,6 @@ uint64_t build64(uint16_t a10, uint16_t b10 = 0, uint16_t c10 = 0, uint16_t d10 
          (static_cast<uint64_t>(e10));
 }
 
-// ensures the buffer size is a multiple of 5
 void addPadding(std::vector<uint10_t>& b10)
 {
   while (b10.size() % 5) {
@@ -118,16 +116,21 @@ void append(std::vector<uint10_t>& b10, uint50_t value)
   b10.emplace_back((value & 0x3FF0000000000) >> 40);
 }
 
+void appendSync(std::vector<uint10_t>& b10)
+{
+  addPadding(b10);
+  append(b10, sampaSyncWord);
+}
+
 void fillUserLogicBuffer10(std::vector<uint10_t>& b10,
                            gsl::span<const SampaCluster> clusters,
                            uint8_t elinkId,
-                           uint8_t chId,
+                           DualSampaChannelId chId,
                            bool addSync)
 {
   auto sh = buildSampaHeader(elinkId, chId, clusters);
   if (addSync) {
-    addPadding(b10);
-    append(b10, sampaSyncWord);
+    appendSync(b10);
   }
   append(b10, sh.uint64());
   bufferizeClusters(clusters, b10);

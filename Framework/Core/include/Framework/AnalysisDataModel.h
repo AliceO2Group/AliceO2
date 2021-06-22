@@ -471,6 +471,27 @@ DECLARE_SOA_EXTENDED_TABLE(FwdTracksCov, StoredFwdTracksCov, "FWDTRACKCOV", //!
 
 using FwdTrack = FwdTracks::iterator;
 using FwdTrackCovFwd = FwdTracksCov::iterator;
+
+namespace muoncluster
+{
+DECLARE_SOA_INDEX_COLUMN(FwdTrack, fwdtrack); //! points to a fwdtrack in the fwdtrack table
+DECLARE_SOA_COLUMN(X, x, float);              //!
+DECLARE_SOA_COLUMN(Y, y, float);              //!
+DECLARE_SOA_COLUMN(Z, z, float);              //!
+DECLARE_SOA_COLUMN(ErrX, errX, float);        //!
+DECLARE_SOA_COLUMN(ErrY, errY, float);        //!
+DECLARE_SOA_COLUMN(Charge, charge, float);    //!
+DECLARE_SOA_COLUMN(Chi2, chi2, float);        //!
+} // namespace muoncluster
+
+DECLARE_SOA_TABLE(MuonClusters, "AOD", "MUONCLUSTER", //!
+                  muoncluster::FwdTrackId,
+                  muoncluster::X, muoncluster::Y, muoncluster::Z,
+                  muoncluster::ErrX, muoncluster::ErrY,
+                  muoncluster::Charge, muoncluster::Chi2);
+
+using MuonCluster = MuonClusters::iterator;
+
 } // namespace aod
 namespace soa
 {
@@ -555,109 +576,6 @@ DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER", //!
                   calotrigger::L1TimeSum, calotrigger::NL0Times,
                   calotrigger::TriggerBits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
-
-// -BEGIN- DEPRECATED. WILL BE REMOVED SOON
-namespace muon
-{
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                                          //!
-DECLARE_SOA_COLUMN(InverseBendingMomentum, inverseBendingMomentum, float); //!
-DECLARE_SOA_COLUMN(ThetaX, thetaX, float);                                 //!
-DECLARE_SOA_COLUMN(ThetaY, thetaY, float);                                 //!
-DECLARE_SOA_COLUMN(ZMu, zMu, float);                                       //!
-DECLARE_SOA_COLUMN(BendingCoor, bendingCoor, float);                       //!
-DECLARE_SOA_COLUMN(NonBendingCoor, nonBendingCoor, float);                 //!
-DECLARE_SOA_COLUMN(Covariances, covariances, float[15]);                   //!
-DECLARE_SOA_COLUMN(Chi2, chi2, float);                                     //!
-DECLARE_SOA_COLUMN(Chi2MatchTrigger, chi2MatchTrigger, float);             //!
-DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta,                                       //!
-                           [](float inverseBendingMomentum, float thetaX, float thetaY) -> float {
-                             float pz = -std::sqrt(1.0 + std::tan(thetaY) * std::tan(thetaY)) / std::abs(inverseBendingMomentum);
-                             float pt = std::abs(pz) * std::sqrt(std::tan(thetaX) * std::tan(thetaX) + std::tan(thetaY) * std::tan(thetaY));
-                             float eta = std::acos(pz / std::sqrt(pt * pt + pz * pz));
-                             eta = std::tan(0.5 * eta);
-                             if (eta > 0.0)
-                               return -std::log(eta);
-                             else
-                               return 0.0;
-                           });
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi, //!
-                           [](float thetaX, float thetaY) -> float {
-                             float phi = std::atan2(std::tan(thetaY), std::tan(thetaX));
-                             constexpr float twopi = 2.0f * static_cast<float>(M_PI);
-                             return (phi >= 0.0 ? phi : phi + twopi);
-                           });
-DECLARE_SOA_DYNAMIC_COLUMN(RAtAbsorberEnd, rAtAbsorberEnd, //! linear extrapolation of the coordinates of the track to the position of the end of the absorber (-505 cm)
-                           [](float bendingCoor, float nonBendingCoor, float zMu, float thetaX, float thetaY) -> float {
-                             float dZ = -505. - zMu;
-                             float NonBendingSlope = std::tan(thetaX);
-                             float BendingSlope = std::tan(thetaY);
-                             float xAbs = nonBendingCoor + NonBendingSlope * dZ;
-                             float yAbs = bendingCoor + BendingSlope * dZ;
-                             float rAtAbsorberEnd = std::sqrt(xAbs * xAbs + yAbs * yAbs);
-                             return rAtAbsorberEnd;
-                           });
-DECLARE_SOA_DYNAMIC_COLUMN(PDca, pDca, //! linear extrapolation of the coordinates of the track to the position of the end of the absorber (-505 cm)
-                           [](float inverseBendingMomentum, float thetaX, float thetaY, float bendingCoor, float nonBendingCoor, float zMu) -> float {
-                             float dca = std::sqrt(bendingCoor * bendingCoor + nonBendingCoor * nonBendingCoor + zMu * zMu);
-                             float pz = -std::sqrt(1.0 + std::tan(thetaY) * std::tan(thetaY)) / std::abs(inverseBendingMomentum);
-                             float pt = std::abs(pz) * std::sqrt(std::tan(thetaX) * std::tan(thetaX) + std::tan(thetaY) * std::tan(thetaY));
-                             float pTot = std::sqrt(pt * pt + pz * pz);
-                             float pDca = pTot * dca;
-                             return pDca;
-                           });
-DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //!
-                              nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) * nsqrt(ntan(aod::muon::thetaX) * ntan(aod::muon::thetaX) + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-DECLARE_SOA_EXPRESSION_COLUMN(Px, px, float, //!
-                              -1.0f * ntan(aod::muon::thetaX) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-DECLARE_SOA_EXPRESSION_COLUMN(Py, py, float, //!
-                              -1.0f * ntan(aod::muon::thetaY) * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-DECLARE_SOA_EXPRESSION_COLUMN(Pz, pz, float, //!
-                              -1.0f * nsqrt(1.0f + ntan(aod::muon::thetaY) * ntan(aod::muon::thetaY)) / nabs(aod::muon::inverseBendingMomentum));
-DECLARE_SOA_DYNAMIC_COLUMN(Sign, sign, //!
-                           [](float inverseBendingMomentum) -> short { return (inverseBendingMomentum > 0.0f) ? 1 : -1; });
-} // namespace muon
-
-DECLARE_SOA_TABLE_FULL(StoredMuons, "Muons", "AOD", "MUON", //!
-                       muon::BCId, muon::InverseBendingMomentum,
-                       muon::ThetaX, muon::ThetaY, muon::ZMu,
-                       muon::BendingCoor, muon::NonBendingCoor,
-                       muon::Covariances, muon::Chi2, muon::Chi2MatchTrigger,
-                       muon::Eta<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY>,
-                       muon::Phi<muon::ThetaX, muon::ThetaY>,
-                       muon::RAtAbsorberEnd<muon::BendingCoor, muon::NonBendingCoor, muon::ThetaX, muon::ThetaY, muon::ZMu>,
-                       muon::PDca<muon::InverseBendingMomentum, muon::ThetaX, muon::ThetaY, muon::BendingCoor, muon::NonBendingCoor, muon::ZMu>,
-                       muon::Sign<muon::InverseBendingMomentum>);
-
-DECLARE_SOA_EXTENDED_TABLE(Muons, StoredMuons, "MUON", //!
-                           aod::muon::Pt,
-                           aod::muon::Px,
-                           aod::muon::Py,
-                           aod::muon::Pz);
-
-using Muon = Muons::iterator;
-
-// NOTE for now muon tracks are uniquely assigned to a BC / GlobalBC assuming they contain an MID hit. Discussion on tracks without MID hit is ongoing.
-
-namespace muoncluster
-{
-DECLARE_SOA_INDEX_COLUMN_FULL(Track, track, int, Muons, ""); //! points to a muon track in the Muon table
-DECLARE_SOA_COLUMN(X, x, float);                             //!
-DECLARE_SOA_COLUMN(Y, y, float);                             //!
-DECLARE_SOA_COLUMN(Z, z, float);                             //!
-DECLARE_SOA_COLUMN(ErrX, errX, float);                       //!
-DECLARE_SOA_COLUMN(ErrY, errY, float);                       //!
-DECLARE_SOA_COLUMN(Charge, charge, float);                   //!
-DECLARE_SOA_COLUMN(Chi2, chi2, float);                       //!
-} // namespace muoncluster
-
-DECLARE_SOA_TABLE(MuonClusters, "AOD", "MUONCLUSTER", //!
-                  muoncluster::TrackId,
-                  muoncluster::X, muoncluster::Y, muoncluster::Z,
-                  muoncluster::ErrX, muoncluster::ErrY,
-                  muoncluster::Charge, muoncluster::Chi2);
-
-using MuonCluster = MuonClusters::iterator;
-// -END- DEPRECATED. WILL BE REMOVED SOON
 
 namespace zdc
 {

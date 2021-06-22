@@ -23,9 +23,9 @@ namespace mch
 namespace raw
 {
 /// A SampaChannelHandler is a function that takes a pair to identify
-/// a readout sampa channel and a SampaCluster containing the channel data.
+/// a readout dual sampa channel and a SampaCluster containing the channel data.
 using SampaChannelHandler = std::function<void(DsElecId dsId,
-                                               uint8_t channel,
+                                               DualSampaChannelId channel,
                                                SampaCluster)>;
 
 /// A SampaHeartBeatHandler is a function that takes a chip index and

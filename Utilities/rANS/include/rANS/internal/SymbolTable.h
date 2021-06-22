@@ -21,7 +21,7 @@
 #include <cmath>
 #include <fairlogger/Logger.h>
 
-#include "SymbolStatistics.h"
+#include "rANS/internal/SymbolStatistics.h"
 
 namespace o2
 {
@@ -35,28 +35,34 @@ class SymbolTable
 {
 
  public:
-  SymbolTable(const SymbolStatistics& symbolStats);
+  using symbol_t = SymbolStatistics::symbol_t;
 
-  const T& operator[](int64_t index) const;
+  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  SymbolTable() noexcept {}; //NOLINT
 
-  const T& getEscapeSymbol() const;
+  explicit SymbolTable(const SymbolStatistics& symbolStats);
 
-  bool isRareSymbol(int64_t index) const;
+  inline size_t size() const noexcept { return mIndex.size(); };
 
-  size_t getAlphabetRangeBits() const;
-  int getMinSymbol() const { return mMin; }
-  int getMaxSymbol() const { return mMax; }
+  const T& operator[](symbol_t symbol) const noexcept;
+  inline const T& at(size_t index) const { return *mIndex[index]; };
+  inline const T& getEscapeSymbol() const noexcept { return *mEscapeSymbol; };
+  inline bool isEscapeSymbol(symbol_t symbol) const noexcept { return &((*this)[symbol]) == mEscapeSymbol.get(); }
+
+  inline size_t getAlphabetRangeBits() const noexcept { return numBitsForNSymbols(size()); };
+  inline size_t getNUsedAlphabetSymbols() const noexcept { return mSymbols.size() + 1; /*all normal symbols plus escape symbol*/ };
+  inline symbol_t getMinSymbol() const noexcept { return mMin; };
+  inline symbol_t getMaxSymbol() const noexcept { return getMinSymbol() + size() - 1; };
 
  private:
-  int mMin;
-  int mMax;
-  std::vector<T*> mIndex;
-  std::vector<T> mSymbols;
-  std::unique_ptr<T> mEscapeSymbol;
+  std::vector<T*> mIndex{};
+  std::vector<T> mSymbols{};
+  std::unique_ptr<T> mEscapeSymbol{};
+  int mMin{};
 };
 
 template <typename T>
-SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin(symbolStats.getMinSymbol()), mMax(symbolStats.getMaxSymbol()), mIndex(), mSymbols(), mEscapeSymbol(nullptr)
+SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin{symbolStats.getMinSymbol()}
 {
   LOG(trace) << "start building symbol table";
 
@@ -64,19 +70,14 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin(symbolSt
   mSymbols.reserve(symbolStats.getNUsedAlphabetSymbols());
 
   mEscapeSymbol = [&]() -> std::unique_ptr<T> {
-    const auto it = symbolStats.getEscapeSymbol();
-    if (it != symbolStats.end()) {
-      const auto [symFrequency, symCumulated] = *(it);
-      return std::make_unique<T>(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());
-    } else {
-      return nullptr;
-    }
+    const auto [symFrequency, symCumulated] = symbolStats.getEscapeSymbol();
+    return std::make_unique<T>(symFrequency, symCumulated, symbolStats.getSymbolTablePrecision());
   }();
 
-  for (auto it = symbolStats.begin(); it != symbolStats.getEscapeSymbol(); ++it) {
+  for (auto it = symbolStats.begin(); it != --symbolStats.end(); ++it) {
     const auto [symFrequency, symCumulated] = *it;
     if (symFrequency) {
-      mSymbols.emplace_back(symCumulated, symFrequency, symbolStats.getSymbolTablePrecision());
+      mSymbols.emplace_back(symFrequency, symCumulated, symbolStats.getSymbolTablePrecision());
       mIndex.emplace_back(&mSymbols.back());
     } else {
       mIndex.emplace_back(mEscapeSymbol.get());
@@ -97,46 +98,14 @@ SymbolTable<T>::SymbolTable(const SymbolStatistics& symbolStats) : mMin(symbolSt
 }
 
 template <typename T>
-inline const T& SymbolTable<T>::operator[](int64_t index) const
+inline const T& SymbolTable<T>::operator[](symbol_t symbol) const noexcept
 {
-  const int64_t idx = index - mMin;
+  const size_t index = static_cast<size_t>(symbol - mMin);
   // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
-  if (static_cast<uint64_t>(idx) < mIndex.size()) {
-    return *(mIndex[idx]);
+  if (index < mIndex.size()) {
+    return *(mIndex[index]);
   } else {
     return *mEscapeSymbol;
-  }
-}
-
-template <typename T>
-inline bool SymbolTable<T>::isRareSymbol(int64_t index) const
-{
-  const int64_t idx = index - mMin;
-  // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
-  if (static_cast<uint64_t>(idx) < mIndex.size()) {
-    assert(mEscapeSymbol != nullptr);
-    return mIndex[idx] == mEscapeSymbol.get();
-  } else {
-    return true;
-  }
-}
-
-template <typename T>
-inline const T& SymbolTable<T>::getEscapeSymbol() const
-{
-  assert(mEscapeSymbol != nullptr);
-  return *mEscapeSymbol;
-}
-
-template <typename T>
-inline size_t SymbolTable<T>::getAlphabetRangeBits() const
-{
-  if (mMax - mMin > 0) {
-    return std::ceil(std::log2(mMax - mMin));
-  } else if (mMax - mMin == 0) {
-    return 1;
-  } else {
-    return 0;
   }
 }
 

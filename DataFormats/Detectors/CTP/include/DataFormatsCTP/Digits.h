@@ -25,13 +25,18 @@ namespace o2
 namespace ctp
 {
 /// CTP related constants
+static constexpr uint32_t NGBT = 80;
 static constexpr std::uint32_t NumOfHBInTF = 256;
 static constexpr std::uint32_t CTP_NINPUTS = 46;    /// Max number of CTP inputs for all levels
 static constexpr std::uint32_t CTP_NCLASSES = 64;   /// Number of classes in hardware
-static constexpr std::uint32_t CTP_MAXL0PERDET = 5; /// Max number of LM/L0inputs per detector
-/// Positions of CTP Detector inputs in CTPInputMask
-static constexpr std::pair<uint32_t, std::bitset<CTP_MAXL0PERDET>> CTP_INPUTMASK_FV0(0, 0x1f);
-static constexpr std::pair<uint32_t, std::bitset<CTP_MAXL0PERDET>> CTP_INPUTMASK_FT0(5, 0x1f);
+static constexpr std::uint32_t CTP_MAXTRIGINPPERDET = 5; /// Max number of LM/L0inputs per detector
+/// Positions of CTP Detector inputs in CTPInputMask: first=offset, second=mask
+/// For digits input position is  fixed
+/// CTP hits are inputs. Digits are inputs collected from all detectors and CTP Class mask.
+/// digits->raw: NO CTP Config to be used
+/// raw->digits: NO CTP config to be used
+/// Hits (CTP inputs) to CTP digits, i.e. inputs in correct position in mask nad CTP classes mask: CTP config to be used.
+///
 ///
 struct CTPDigit {
   o2::InteractionRecord intRecord;
@@ -39,11 +44,11 @@ struct CTPDigit {
   std::bitset<CTP_NCLASSES> CTPClassMask;
   CTPDigit() = default;
   void printStream(std::ostream& stream) const;
-  ClassDefNV(CTPDigit, 1);
+  ClassDefNV(CTPDigit, 2);
 };
 struct CTPInputDigit {
   o2::InteractionRecord intRecord;
-  std::bitset<CTP_MAXL0PERDET> inputsMask;
+  std::bitset<CTP_MAXTRIGINPPERDET> inputsMask;
   o2::detectors::DetID::ID detector;
   CTPInputDigit() = default;
   ClassDefNV(CTPInputDigit, 1)

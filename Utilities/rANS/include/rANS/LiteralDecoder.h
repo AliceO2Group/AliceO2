@@ -21,14 +21,16 @@
 #include <cstddef>
 #include <type_traits>
 #include <iostream>
+#include <iomanip>
 #include <string>
 
 #include <fairlogger/Logger.h>
 
-#include "internal/DecoderSymbol.h"
-#include "internal/ReverseSymbolLookupTable.h"
-#include "internal/SymbolTable.h"
-#include "internal/Decoder.h"
+#include "rANS/internal/DecoderSymbol.h"
+#include "rANS/internal/ReverseSymbolLookupTable.h"
+#include "rANS/internal/SymbolTable.h"
+#include "rANS/internal/Decoder.h"
+#include "rANS/internal/DecoderBase.h"
 
 namespace o2
 {
@@ -36,27 +38,26 @@ namespace rans
 {
 
 template <typename coder_T, typename stream_T, typename source_T>
-class LiteralDecoder : public Decoder<coder_T, stream_T, source_T>
+class LiteralDecoder : public internal::DecoderBase<coder_T, stream_T, source_T>
 {
-  //inherit constructors;
-  using Decoder<coder_T, stream_T, source_T>::Decoder;
-
  public:
-  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
-  void process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength, std::vector<source_T>& literals) const;
+  using internal::DecoderBase<coder_T, stream_T, source_T>::DecoderBase;
+
+  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool> = true>
+  void process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength, std::vector<source_T>& literals) const;
+
+ private:
+  using ransDecoder_t = typename internal::DecoderBase<coder_T, stream_T, source_T>::ransDecoder_t;
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool>>
-void LiteralDecoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength, std::vector<source_T>& literals) const
+template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool>>
+void LiteralDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength, std::vector<source_T>& literals) const
 {
   using namespace internal;
-  using ransDecoder = internal::Decoder<coder_T, stream_T>;
   LOG(trace) << "start decoding";
   RANSTimer t;
   t.start();
-  static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
-  static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
   if (messageLength == 0) {
     LOG(warning) << "Empty message passed to decoder, skipping decode process";
@@ -66,22 +67,23 @@ void LiteralDecoder<coder_T, stream_T, source_T>::process(const source_IT output
   stream_IT inputIter = inputEnd;
   source_IT it = outputBegin;
 
-  auto decode = [&, this](ransDecoder& decoder) {
-    auto cumul = decoder.get(this->mProbabilityBits);
-    const auto streamSymbol = (*this->mReverseLUT)[cumul];
+  auto decode = [&, this](ransDecoder_t& decoder) {
+    const auto cumul = decoder.get();
+    const auto streamSymbol = (this->mReverseLUT)[cumul];
     source_T symbol = streamSymbol;
-    if (this->mSymbolTable->isRareSymbol(streamSymbol)) {
+    if (this->mSymbolTable.isEscapeSymbol(streamSymbol)) {
       symbol = literals.back();
       literals.pop_back();
     }
 
-    return std::make_tuple(symbol, decoder.advanceSymbol(inputIter, (*this->mSymbolTable)[streamSymbol], this->mProbabilityBits));
+    return std::make_tuple(symbol, decoder.advanceSymbol(inputIter, (this->mSymbolTable)[streamSymbol]));
   };
 
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder rans0, rans1;
+  ransDecoder_t rans0{this->mSymbolTablePrecission};
+  ransDecoder_t rans1{this->mSymbolTablePrecission};
   inputIter = rans0.init(inputIter);
   inputIter = rans1.init(inputIter);
 

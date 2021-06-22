@@ -3726,8 +3726,8 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
   mWater = gGeoManager->GetMedium("MFT_Water$");
   Float_t length1;
   Float_t length2;
-  Float_t rin;
-  Float_t rout;
+  Float_t rin = 0.25 / 2;
+  Float_t rout = 0.4 / 2;
   TGeoVolume* Tube1 = nullptr;
   TGeoVolume* Torus1 = nullptr;
   TGeoVolume* TubeW1 = nullptr;
@@ -3749,8 +3749,6 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     if (disk == 2) {
       length1 = 0.5;
     }
-    rin = 0.25 / 2;
-    rout = 0.4 / 2;
     Tube1 = gGeoManager->MakeTube(Form("Tube1_H%d_D%d", half, disk), mPipe, rin, rout, length1 / 2);
     TubeW1 = gGeoManager->MakeTube(Form("TubeW1_H%d_D%d", half, disk), mWater, 0., rin, length1 / 2);
     TGeoTranslation* tTube1 = new TGeoTranslation(0.0, 0.0, 0.0);

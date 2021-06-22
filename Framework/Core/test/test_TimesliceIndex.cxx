@@ -79,21 +79,21 @@ BOOST_AUTO_TEST_CASE(TestLRUReplacement)
     context.put({0, uint64_t{40}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
-    BOOST_CHECK_EQUAL(slot.index, 0);
-    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceObsolete);
+    BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
   {
     context.put({0, uint64_t{50}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
-    BOOST_CHECK_EQUAL(slot.index, 1);
-    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceObsolete);
+    BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
   {
     context.put({0, uint64_t{10}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
     BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
-    BOOST_CHECK(action == TimesliceIndex::ActionTaken::DropObsolete);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
 }

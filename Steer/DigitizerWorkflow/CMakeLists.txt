@@ -47,7 +47,7 @@ o2_add_executable(digitizer-workflow
                                         O2::ITSMFTWorkflow
                                         O2::MCHSimulation
                                         O2::MCHBase
-					O2::DataFormatsMCH
+                                        O2::DataFormatsMCH
                                         O2::MFTSimulation
                                         O2::MIDSimulation
                                         O2::PHOSSimulation
@@ -55,15 +55,15 @@ o2_add_executable(digitizer-workflow
                                         O2::TOFSimulation
                                         O2::TOFCalibration
                                         O2::TOFReconstruction
-                                        O2::TOFWorkflowUtils
+                                        O2::TOFWorkflowIO
                                         O2::TPCSimulation
                                         O2::TRDSimulation
                                         O2::TRDWorkflow
                                         O2::TRDWorkflowIO
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation
-					O2::ZDCWorkflow
-					O2::DetectorsRaw
+                                        O2::ZDCWorkflow
+                                        O2::DetectorsRaw
                                         O2::ITS3Simulation
                                         O2::ITS3Workflow
                                         )
@@ -112,14 +112,14 @@ o2_add_executable(digitizer-workflow
                                         O2::TOFSimulation
                                         O2::TOFCalibration
                                         O2::TOFReconstruction
-                                        O2::TOFWorkflowUtils
+                                        O2::TOFWorkflowIO
                                         O2::TPCSimulation
                                         O2::TRDSimulation
                                         O2::TRDWorkflow
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation
-					O2::ZDCWorkflow
-					O2::DetectorsRaw
+                                        O2::ZDCWorkflow
+                                        O2::DetectorsRaw
                                         )
 endif()
 
@@ -127,7 +127,7 @@ endif()
 o2_add_executable(mctruth-testworkflow
                   COMPONENT_NAME sim
                   SOURCES src/MCTruthTestWorkflow.cxx
-	                  src/MCTruthSourceSpec.cxx
-	                  src/MCTruthWriterSpec.cxx
+                          src/MCTruthSourceSpec.cxx
+                          src/MCTruthWriterSpec.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::SimulationDataFormat)

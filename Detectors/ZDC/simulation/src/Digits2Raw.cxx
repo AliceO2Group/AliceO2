@@ -19,7 +19,7 @@
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "CommonUtils/StringUtils.h"
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 
 using namespace o2::zdc;
 

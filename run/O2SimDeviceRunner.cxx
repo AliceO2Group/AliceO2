@@ -52,6 +52,10 @@ void sigaction_handler(int signal, siginfo_t* signal_info, void*)
   if (signal_info->si_pid == gDriverProcess) {
     _exit(0); // external requests are not treated as error
   }
+  if (signal == SIGTERM) {
+    // normal termination is not error
+    _exit(0);
+  }
   // we treat internal signal interruption as an error
   // because only ordinary termination is good in the context of the distributed system
   _exit(128 + signal);

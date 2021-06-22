@@ -44,6 +44,7 @@ namespace o2::trd
 class Tracklet64;
 class CalibratedTracklet;
 class TriggerRecord;
+class TrackTriggerRecord;
 //class TrackTRD;
 struct RecoInputContainer;
 } // namespace o2::trd
@@ -300,7 +301,12 @@ struct RecoContainer {
     return getObject<U>(gid, TRACKS);
   }
 
-  o2::MCCompLabel getTrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELS); }
+  o2::MCCompLabel getTrackMCLabel(GTrackID id) const
+  {
+    //RS FIXME: THIS IS TEMPORARY: some labels are still not implemented: in this case return dummy label
+    return commonPool[id.getSource()].getSize(MCLABELS) ? getObject<o2::MCCompLabel>(id, MCLABELS) : o2::MCCompLabel{};
+    //return getObject<o2::MCCompLabel>(id, MCLABELS);
+  }
 
   //--------------------------------------------
   // fetch track param
@@ -359,6 +365,11 @@ struct RecoContainer {
   {
     return getTracks<U>(GTrackID::ITSTPCTRD);
   }
+  auto getITSTPCTRDTriggers() const
+  {
+    return getSpan<o2::trd::TrackTriggerRecord>(GTrackID::ITSTPCTRD, TRACKREFS);
+  }
+
   // TPC-TRD
   template <class U>
   auto getTPCTRDTrack(GTrackID id) const
@@ -369,6 +380,10 @@ struct RecoContainer {
   auto getTPCTRDTracks() const
   {
     return getTracks<U>(GTrackID::TPCTRD);
+  }
+  auto getTPCTRDTriggers() const
+  {
+    return getSpan<o2::trd::TrackTriggerRecord>(GTrackID::TPCTRD, TRACKREFS);
   }
   // TRD tracklets
   gsl::span<const o2::trd::Tracklet64> getTRDTracklets() const;

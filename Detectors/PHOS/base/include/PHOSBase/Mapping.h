@@ -38,7 +38,7 @@ class Mapping
                      kWrongAbsId,
                      kWrongCaloFlag,
                      kNotInitialized };
-  static constexpr short NCHANNELS = 14337;               ///< Number of channels starting from 1
+  static constexpr short NCHANNELS = 14336;               ///< Number of channels starting from 1
   static constexpr short NHWPERDDL = 2048;                ///< Number of HW addressed per DDL
   static constexpr short NMaxHWAddress = 3929;            ///< Maximal HW address (size of array)
   static constexpr short NDDL = 14;                       ///< Total number of DDLs

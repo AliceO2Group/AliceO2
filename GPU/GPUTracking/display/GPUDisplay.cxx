@@ -2014,7 +2014,7 @@ int GPUDisplay::DrawGLScene_internal(bool mixAnimation, float mAnimateTime)
 #else
       int numThread = 0, numThreads = 1;
 #endif
-      if (mChain) {
+      if (mChain && (mChain->GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking)) {
         GPUCA_OPENMP(for)
         for (int iSlice = 0; iSlice < NSLICES; iSlice++) {
           GPUTPCTracker& tracker = (GPUTPCTracker&)sliceTracker(iSlice);

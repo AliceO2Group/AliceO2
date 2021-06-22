@@ -124,10 +124,15 @@ GPUdii() void GPUTPCCFStreamCompaction::Thread<GPUTPCCFStreamCompaction::compact
   compactImpl(get_num_groups(0), get_local_size(0), get_group_id(0), get_local_id(0), smem, in, out, clusterer.mPisPeak, clusterer.mPbuf + (iBuf - 1) * clusterer.mBufSize, clusterer.mPbuf + iBuf * clusterer.mBufSize, nElems, bufferSize);
   unsigned int lastId = get_global_size(0) - 1;
   if ((unsigned int)get_global_id(0) == lastId) {
+    SizeT nFinal = clusterer.mPbuf[lastId];
+    if (nFinal > bufferSize) {
+      clusterer.raiseError(stage ? GPUErrors::ERROR_CF_CLUSTER_OVERFLOW : GPUErrors::ERROR_CF_PEAK_OVERFLOW, nFinal, bufferSize);
+      nFinal = bufferSize;
+    }
     if (stage) {
-      clusterer.mPmemory->counters.nClusters = clusterer.mPbuf[lastId];
+      clusterer.mPmemory->counters.nClusters = nFinal;
     } else {
-      clusterer.mPmemory->counters.nPeaks = clusterer.mPbuf[lastId];
+      clusterer.mPmemory->counters.nPeaks = nFinal;
     }
   }
 }
@@ -162,7 +167,7 @@ GPUdii() void GPUTPCCFStreamCompaction::compactImpl(int nBlocks, int nThreads, i
   }
 
   if (idx == lastItem) {
-    newIdx[idx] = CAMath::Min(compIdx, bufferSize); // TODO: Eventually, we can just return the last value, no need to store to memory
+    newIdx[idx] = compIdx; // TODO: Eventually, we can just return the last value, no need to store to memory
   }
 }
 

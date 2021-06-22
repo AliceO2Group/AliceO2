@@ -387,6 +387,24 @@ void FeeParam::createORILookUpTable()
 }
 */
 
+void FeeParam::unpackORI(int link, int side, int& stack, int& layer, int& halfchamberside)
+{
+  // given the link 0-29 and the side A/C 0/1 return the stack layer and halfchamber side
+  if (side == 0) {
+    stack = link / 12;
+    layer = 5 - link % 6;
+    halfchamberside = (link / 6) % 2;
+  } else {
+    //c side
+    stack = 4 - link / 12;
+    layer = 5 - link % 6;
+    halfchamberside = (link / 6) % 2;
+    if (link > 23) {
+      halfchamberside = 1;
+    }
+  }
+}
+
 int FeeParam::getORI(int detector, int readoutboard)
 {
   int supermodule = detector / NCHAMBERPERSEC;

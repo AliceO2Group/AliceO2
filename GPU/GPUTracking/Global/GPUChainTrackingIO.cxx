@@ -125,6 +125,10 @@ void GPUChainTracking::DumpData(const char* filename)
       fwrite(&counts, sizeof(counts), 1, fp);
     }
   }
+  if (mIOPtrs.settingsTF) {
+    unsigned int n = 1;
+    DumpData(fp, &mIOPtrs.settingsTF, &n, InOutPointerType::TF_SETTINGS);
+  }
 #endif
   DumpData(fp, mIOPtrs.sliceTracks, mIOPtrs.nSliceTracks, InOutPointerType::SLICE_OUT_TRACK);
   DumpData(fp, mIOPtrs.sliceClusters, mIOPtrs.nSliceClusters, InOutPointerType::SLICE_OUT_CLUSTER);
@@ -218,6 +222,8 @@ int GPUChainTracking::ReadData(const char* filename)
     }
     mIOPtrs.tpcZS = mIOMem.tpcZSmeta.get();
   }
+  unsigned int n;
+  ReadData(fp, &mIOPtrs.settingsTF, &n, &mIOMem.settingsTF, InOutPointerType::TF_SETTINGS);
 #endif
   ReadData(fp, mIOPtrs.sliceTracks, mIOPtrs.nSliceTracks, mIOMem.sliceTracks, InOutPointerType::SLICE_OUT_TRACK);
   ReadData(fp, mIOPtrs.sliceClusters, mIOPtrs.nSliceClusters, mIOMem.sliceClusters, InOutPointerType::SLICE_OUT_CLUSTER);

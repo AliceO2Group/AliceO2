@@ -9,6 +9,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
+#include "FT0Base/Geometry.h"
 #include <numeric>
 #include <algorithm>
 #include "MathUtils/fit.h"
@@ -36,7 +37,7 @@ void FT0ChannelTimeTimeSlotContainer::fill(const gsl::span<const FT0CalibrationI
     const auto chTime = entry.getTime();
 
     //i dont really know when should it be marked as invalid
-    if (o2::ft0::ChannelData::DUMMY_CHANNEL_ID != chID && o2::ft0::ChannelData::DUMMY_CFD_TIME != chTime) {
+    if (chID < o2::ft0::Geometry::Nchannels) {
       mHistogram(chTime, chID);
       ++mEntriesPerChannel[chID];
     } else {

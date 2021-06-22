@@ -20,6 +20,7 @@
 #pragma link C++ class o2::trd::CommonParam + ;
 #pragma link C++ class o2::trd::SimParam + ;
 #pragma link C++ class o2::trd::FeeParam + ;
+#pragma link C++ class o2::trd::RecoParam + ;
 #pragma link C++ class o2::trd::CalDet + ;
 #pragma link C++ class o2::trd::CalROC + ;
 #pragma link C++ class o2::trd::PadResponse + ;

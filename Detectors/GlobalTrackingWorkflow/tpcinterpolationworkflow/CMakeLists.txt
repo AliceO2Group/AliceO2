@@ -18,7 +18,7 @@ o2_add_library(TPCInterpolationWorkflow
                                      O2::ITSWorkflow
                                      O2::SpacePoints
                                      O2::GlobalTrackingWorkflow
-                                     O2::TOFWorkflow
+                                     O2::TOFWorkflowIO
                                      O2::Framework
                                      )
 

@@ -15,5 +15,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::ft3::GeometryTGeo;
+#pragma link C++ class o2::ft3::FT3BaseParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::ft3::FT3BaseParam> + ;
 
 #endif

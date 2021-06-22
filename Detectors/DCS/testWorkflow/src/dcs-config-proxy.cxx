@@ -58,7 +58,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(ERROR) << "received " << parts.Size() << " instead of 2 expected";
-      sendAnswer("error: wrong number of messages", acknowledge, device);
+      sendAnswer("error0: wrong number of messages", acknowledge, device);
       return;
     }
     std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
@@ -67,7 +67,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     int dID = getDetID(filename);
     if (dID < 0) {
       LOG(ERROR) << "unknown detector for " << filename;
-      sendAnswer("error: unrecognized filename", acknowledge, device);
+      sendAnswer("error1: unrecognized filename", acknowledge, device);
       return;
     }
 
@@ -77,7 +77,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     auto channel = channelRetriever(outsp, *timesliceId);
     if (channel.empty()) {
       LOG(ERROR) << "No output channel found for OutputSpec " << outsp;
-      sendAnswer("error: no channel to send", acknowledge, device);
+      sendAnswer("error2: no channel to send", acknowledge, device);
       return;
     }
 

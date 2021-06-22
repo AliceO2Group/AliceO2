@@ -25,6 +25,7 @@
 #include <stdexcept>
 #include <vector>
 #include <sstream>
+#include <set>
 
 namespace o2::mch::raw
 {
@@ -336,10 +337,10 @@ void UserLogicElinkDecoder<CHARGESUM>::sendCluster(const SampaCluster& sc) const
   debugHeader() << (*this) << " --> "
                 << fmt::format(" calling channelHandler for {} ch {} = {}\n",
                                o2::mch::raw::asString(mDsId),
-                               channelNumber64(mSampaHeader),
+                               getDualSampaChannelId(mSampaHeader),
                                o2::mch::raw::asString(sc));
 #endif
-  mDecodedDataHandlers.sampaChannelHandler(mDsId, channelNumber64(mSampaHeader), sc);
+  mDecodedDataHandlers.sampaChannelHandler(mDsId, getDualSampaChannelId(mSampaHeader), sc);
 }
 
 template <typename CHARGESUM>
@@ -429,30 +430,6 @@ void UserLogicElinkDecoder<CHARGESUM>::sendHBPacket()
   if (handler) {
     handler(mDsId, mSampaHeader.chipAddress() % 2, mSampaHeader.bunchCrossingCounter());
   }
-}
-
-template <>
-void UserLogicElinkDecoder<SampleMode>::prepareAndSendCluster()
-{
-  if (mDecodedDataHandlers.sampaChannelHandler) {
-    SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), mSamples);
-    sendCluster(sc);
-  }
-  mSamples.clear();
-}
-
-template <>
-void UserLogicElinkDecoder<ChargeSumMode>::prepareAndSendCluster()
-{
-  if (mSamples.size() != 2) {
-    throw std::invalid_argument(fmt::format("expected sample size to be 2 but it is {}", mSamples.size()));
-  }
-  if (mDecodedDataHandlers.sampaChannelHandler) {
-    uint32_t q = (((static_cast<uint32_t>(mSamples[1]) & 0x3FF) << 10) | (static_cast<uint32_t>(mSamples[0]) & 0x3FF));
-    SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), q, mClusterSize);
-    sendCluster(sc);
-  }
-  mSamples.clear();
 }
 
 template <typename CHARGESUM>

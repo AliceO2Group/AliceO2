@@ -39,6 +39,7 @@
 
 #include "DataFormatsMCH/Digit.h"
 #include "MCHRawCommon/DataFormats.h"
+#include "MCHRawCommon/CoDecParam.h"
 #include "MCHRawDecoder/DataDecoder.h"
 #include "MCHRawDecoder/ROFFinder.h"
 #include "MCHRawElecMap/Mapper.h"
@@ -73,14 +74,15 @@ class DataDecoderTask
     RdhHandler rdhHandler;
 
     auto ds2manu = ic.options().get<bool>("ds2manu");
-    auto sampaBcOffset = ic.options().get<int>("sampa-bc-offset");
+    auto sampaBcOffset = CoDecParam::Instance().sampaBcOffset;
     mDebug = ic.options().get<bool>("debug");
     mCheckROFs = ic.options().get<bool>("check-rofs");
     mDummyROFs = ic.options().get<bool>("dummy-rofs");
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
-
-    mDecoder = new DataDecoder(channelHandler, rdhHandler, sampaBcOffset, mapCRUfile, mapFECfile, ds2manu, mDebug);
+    auto useDummyElecMap = ic.options().get<bool>("dummy-elecmap");
+    mDecoder = new DataDecoder(channelHandler, rdhHandler, sampaBcOffset, mapCRUfile, mapFECfile, ds2manu, mDebug,
+                               useDummyElecMap);
   }
 
   //_________________________________________________________________________________________________
@@ -259,8 +261,8 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
     Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
             {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
+            {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
-            {"sampa-bc-offset", VariantType::Int, 339986, {"SAMPA bunch-crossing counter at the beginning of the run"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
             {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}}}};
 }

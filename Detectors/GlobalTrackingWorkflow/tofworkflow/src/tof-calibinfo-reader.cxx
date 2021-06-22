@@ -15,7 +15,7 @@
 
 #include "DetectorsBase/Propagator.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
-#include "TOFWorkflow/CalibInfoReaderSpec.h"
+#include "TOFWorkflowIO/CalibInfoReaderSpec.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "TOFWorkflow/RecoWorkflowSpec.h"

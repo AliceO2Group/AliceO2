@@ -981,7 +981,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
         }
       }
     }
-    if (mQATasks & taskClusterAttach) {
+    if ((mQATasks & taskClusterAttach) && mTracking->mIOPtrs.mergedTrackHitAttachment) {
       // fill cluster adjacent status
       for (unsigned int i = 0; i < GetNMCLabels(); i++) {
         if (mClusterParam[i].attached == 0 && mClusterParam[i].fakeAttached == 0) {

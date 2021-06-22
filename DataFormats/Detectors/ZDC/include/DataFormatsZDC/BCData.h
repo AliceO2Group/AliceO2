@@ -8,8 +8,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_BC_DATA_H_
-#define _ZDC_BC_DATA_H_
+#ifndef O2_ZDC_BC_DATA_H_
+#define O2_ZDC_BC_DATA_H_
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
@@ -65,6 +65,7 @@ struct BCData {
     triggers = chTrig;
     ext_triggers = extTrig;
   }
+  BCData(const BCData&) = default;
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   void print(uint32_t triggerMask = 0, int diff = 0) const;

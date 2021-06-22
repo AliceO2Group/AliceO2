@@ -16,19 +16,19 @@
 #ifndef RANS_DEDUPDECODER_H
 #define RANS_DEDUPDECODER_H
 
-#include "Decoder.h"
-
 #include <cstddef>
 #include <type_traits>
 #include <iostream>
+#include <iomanip>
 #include <string>
 
 #include <fairlogger/Logger.h>
 
-#include "internal/DecoderSymbol.h"
-#include "internal/ReverseSymbolLookupTable.h"
-#include "internal/SymbolTable.h"
-#include "internal/Decoder.h"
+#include "rANS/internal/DecoderSymbol.h"
+#include "rANS/internal/ReverseSymbolLookupTable.h"
+#include "rANS/internal/SymbolTable.h"
+#include "rANS/internal/Decoder.h"
+#include "rANS/internal/DecoderBase.h"
 
 namespace o2
 {
@@ -36,29 +36,30 @@ namespace rans
 {
 
 template <typename coder_T, typename stream_T, typename source_T>
-class DedupDecoder : public Decoder<coder_T, stream_T, source_T>
+class DedupDecoder : public internal::DecoderBase<coder_T, stream_T, source_T>
 {
-  //inherit constructors;
-  using Decoder<coder_T, stream_T, source_T>::Decoder;
 
  public:
   using duplicatesMap_t = std::map<uint32_t, uint32_t>;
 
-  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool> = true>
-  void process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength, duplicatesMap_t& duplicates) const;
+  //inherit constructors;
+  using internal::DecoderBase<coder_T, stream_T, source_T>::DecoderBase;
+
+  template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool> = true>
+  void process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength, duplicatesMap_t& duplicates) const;
+
+ private:
+  using ransDecoder_t = typename internal::DecoderBase<coder_T, stream_T, source_T>::ransDecoder_t;
 };
 
 template <typename coder_T, typename stream_T, typename source_T>
-template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT> && internal::isCompatibleIter_v<source_T, source_IT>, bool>>
-void DedupDecoder<coder_T, stream_T, source_T>::process(const source_IT outputBegin, const stream_IT inputEnd, size_t messageLength, duplicatesMap_t& duplicates) const
+template <typename stream_IT, typename source_IT, std::enable_if_t<internal::isCompatibleIter_v<stream_T, stream_IT>, bool>>
+void DedupDecoder<coder_T, stream_T, source_T>::process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength, duplicatesMap_t& duplicates) const
 {
   using namespace internal;
-  using ransDecoder = internal::Decoder<coder_T, stream_T>;
   LOG(trace) << "start decoding";
   RANSTimer t;
   t.start();
-  static_assert(std::is_same<typename std::iterator_traits<source_IT>::value_type, source_T>::value);
-  static_assert(std::is_same<typename std::iterator_traits<stream_IT>::value_type, stream_T>::value);
 
   if (messageLength == 0) {
     LOG(warning) << "Empty message passed to decoder, skipping decode process";
@@ -71,11 +72,11 @@ void DedupDecoder<coder_T, stream_T, source_T>::process(const source_IT outputBe
   // make Iter point to the last last element
   --inputIter;
 
-  ransDecoder rans;
+  ransDecoder_t rans{this->mSymbolTablePrecission};
   inputIter = rans.init(inputIter);
 
   for (size_t i = 0; i < (messageLength); i++) {
-    const auto s = (*this->mReverseLUT)[rans.get(this->mProbabilityBits)];
+    const auto s = (this->mReverseLUT)[rans.get()];
 
     // deduplication
     auto duplicatesIter = duplicates.find(i);
@@ -87,7 +88,7 @@ void DedupDecoder<coder_T, stream_T, source_T>::process(const source_IT outputBe
       }
     }
     *it++ = s;
-    inputIter = rans.advanceSymbol(inputIter, (*this->mSymbolTable)[s], this->mProbabilityBits);
+    inputIter = rans.advanceSymbol(inputIter, (this->mSymbolTable)[s]);
   }
 
   t.stop();

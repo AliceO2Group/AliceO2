@@ -95,6 +95,7 @@ o2_add_library(Framework
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
                        src/TableTreeHelpers.cxx
+                       src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
@@ -153,6 +154,7 @@ foreach(t
         ConfigurationOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
+        CheckTypes
         CompletionPolicy
         ComputingResourceHelpers
         ConfigParamStore
@@ -256,6 +258,7 @@ foreach(b
         HistogramRegistry
         TableToTree
         TreeToTable
+        ExternalFairMQDeviceProxies
         )
   o2_add_executable(benchmark-${b}
                     SOURCES test/benchmark_${b}.cxx

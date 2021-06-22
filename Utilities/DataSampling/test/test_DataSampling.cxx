@@ -16,9 +16,6 @@
 #include "DataSampling/DataSampling.h"
 #include "DataSampling/Dispatcher.h"
 #include "DataSampling/DataSamplingPolicy.h"
-#include "Framework/DataProcessingHeader.h"
-#include "Framework/ExternalFairMQDeviceProxy.h"
-#include "DataSampling/DataSamplingReadoutAdapter.h"
 #include "Framework/DataSpecUtils.h"
 
 #include "Headers/DataHeader.h"
@@ -169,37 +166,6 @@ BOOST_AUTO_TEST_CASE(DataSamplingTimePipelineFlow)
   BOOST_CHECK_EQUAL(disp->outputs.size(), 3);
   BOOST_CHECK(disp->algorithm.onInit != nullptr);
   BOOST_CHECK_EQUAL(disp->maxInputTimeslices, 3);
-}
-
-BOOST_AUTO_TEST_CASE(DataSamplingFairMq)
-{
-  WorkflowSpec workflow{
-    specifyExternalFairMQDeviceProxy(
-      "readout-proxy",
-      Outputs{{"TPC", "RAWDATA"}},
-      "fake-channel-config",
-      dataSamplingReadoutAdapter({"TPC", "RAWDATA"}))};
-
-  std::string configFilePath = std::string(getenv("O2_ROOT")) + "/share/tests/test_DataSampling.json";
-  DataSampling::GenerateInfrastructure(workflow, "json:/" + configFilePath);
-
-  auto disp = std::find_if(workflow.begin(), workflow.end(),
-                           [](const DataProcessorSpec& d) {
-                             return d.name.find("Dispatcher") != std::string::npos;
-                           });
-  BOOST_REQUIRE(disp != workflow.end());
-
-  auto input = std::find_if(disp->inputs.begin(), disp->inputs.end(),
-                            [](const InputSpec& in) {
-                              return DataSpecUtils::match(in, ConcreteDataMatcher{DataOrigin("TPC"), DataDescription("RAWDATA"), 0}) && in.lifetime == Lifetime::Timeframe;
-                            });
-  BOOST_CHECK(input != disp->inputs.end());
-
-  auto channelConfig = std::find_if(disp->options.begin(), disp->options.end(),
-                                    [](const ConfigParamSpec& opt) {
-                                      return opt.name == "channel-config";
-                                    });
-  BOOST_REQUIRE(channelConfig != disp->options.end());
 }
 
 BOOST_AUTO_TEST_CASE(InputSpecsForPolicy)

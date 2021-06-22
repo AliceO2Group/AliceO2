@@ -119,6 +119,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     std::unique_ptr<o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>[]> tpcDigitMCView;
     std::unique_ptr<GPUTPCDigitsMCInput> tpcDigitMCMap;
     std::unique_ptr<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>> clusterNativeMCBuffer;
+    std::unique_ptr<GPUSettingsTF[]> settingsTF;
   } mIOMem;
 
   // Read / Dump / Clear Data

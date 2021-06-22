@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 // FairRoot includes
-#include "FairLogger.h"      // for LOG, LOG_IF
+#include "Framework/Logger.h"
 #include "FairRootManager.h" // for FairRootManager
 #include "FairVolume.h"      // for FairVolume
 #include "DetectorsBase/MaterialManager.h"
@@ -124,8 +124,8 @@ void Detector::InitializeO2Detector()
   // check a few values to test correctness of reading from file light22620362207s
   /*assert(std::abs(mLightTableZN[0][ZNRADIUSBINS - 1][0] - 1.39742) < 1.E-4); // beta=0; radius = ZNRADIUSBINS - 1; anglebin = 2;
   assert(std::abs(mLightTableZN[0][ZNRADIUSBINS - 1][1] - .45017) < 1.E-4);  // beta=1; radius = ZNRADIUSBINS - 1; anglebin = 2;
-  assert(std::abs(mLightTableZN[0][0][2] - .47985) < 1.E-4);                 // beta=0; radius = 0; anglebin = 2;
-  assert(std::abs(mLightTableZN[0][0][11] - .01358) < 1.E-4);                // beta=0; radius = 0; anglebin = 11;
+  assert(std::abs(mLightTableZN[0][0][2] - .47985) < 1.E-4);   // beta=0; radius = 0; anglebin = 2;
+  assert(std::abs(mLightTableZN[0][0][11] - .01358) < 1.E-4);  // beta=0; radius = 0; anglebin = 11;
   */
 
   //ZP case
@@ -810,9 +810,9 @@ void Detector::createAsideBeamLine()
   zA += 2. * conpar[0];
 
   // Upper section : one single phi segment of a tube
-  //  5 parameters for tubs: inner radius = 0.,
-  //	outer radius = 7. cm, half length = 50 cm
-  //	phi1 = 0., phi2 = 180.
+  // 5 parameters for tubs: inner radius = 0.,
+  // outer radius = 7. cm, half length = 50 cm
+  // phi1 = 0., phi2 = 180.
   tubspar[0] = 0.0 / 2.;
   tubspar[1] = 14.0 / 2.;
   tubspar[2] = 100.0 / 2.;
@@ -994,7 +994,7 @@ void Detector::createAsideBeamLine()
 
   // The following tube ID 212.7 mm
   // represents VMBGA (400 mm) + VCDWE (300 mm) + VMBGA (400 mm) +
-  //            BTVTS (600 mm) + VMLGB (400 mm)
+  //     BTVTS (600 mm) + VMLGB (400 mm)
   tubpar[0] = 21.27 / 2.;
   tubpar[1] = 21.87 / 2.;
   tubpar[2] = 210.0 / 2.;
@@ -1016,7 +1016,7 @@ void Detector::createAsideBeamLine()
   zA += 2. * conpar[0] + 0.37 + 1.35;
 
   // The following tube ID 797 mm  represents the second part of VCTCC (4272 mm) +
-  //            4 x VCDGA (4 x 4272 mm) + the first part of VCTCR (850 mm)
+  //     4 x VCDGA (4 x 4272 mm) + the first part of VCTCR (850 mm)
   tubpar[0] = 79.7 / 2.;
   tubpar[1] = 81.3 / 2.;
   tubpar[2] = (2221. - 136.) / 2.;
@@ -1269,7 +1269,7 @@ void Detector::createAsideBeamLine()
   TVirtualMC::GetMC()->Gsvolu("QA29", "TUBE", getMediumID(kFe), tubpar, 3);
   TVirtualMC::GetMC()->Gspos("QA29", 1, "ZDCA", -16.5 / 2., 0., tubpar[2] + zA, 0, "ONLY");
   TVirtualMC::GetMC()->Gspos("QA29", 2, "ZDCA", 16.5 / 2., 0., tubpar[2] + zA, 0, "ONLY");
-  //printf("	QA29 TUBE from z = %1.2f to z= %1.2f (separate pipes)\n",zA,2*tubpar[2]+zA);
+  //printf("QA29 TUBE from z = %1.2f to z= %1.2f (separate pipes)\n",zA,2*tubpar[2]+zA);
 
   zA += 2. * tubpar[2];
 
@@ -1280,7 +1280,7 @@ void Detector::createAsideBeamLine()
     boxpar[2] = mLumiLength / 2.;
     TVirtualMC::GetMC()->Gsvolu("QLUA", "BOX ", getMediumID(kCuLumi), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QLUA", 1, "ZDCA", 0., 0., Geometry::ZNAPOSITION[1] /*fPosZNA[2]*/ - 66. - boxpar[2], 0, "ONLY");
-    LOG(DEBUG) << "	A-side luminometer positioned in front of ZNA\n";
+    LOG(DEBUG) << "A-side luminometer positioned in front of ZNA\n";
   }
 }
 
@@ -1327,7 +1327,7 @@ void Detector::createCsideBeamLine()
 
   //-- BEAM PIPE from the end of D1 to the beginning of D2
   //-- FROM MAGNETIC BEGINNING OF D1 TO MAGNETIC END OF D1
-  //-- 	Cylindrical pipe (r = 3.47) + conical flare
+  //-- Cylindrical pipe (r = 3.47) + conical flare
   tubpar[0] = 6.94 / 2.;
   tubpar[1] = 7.34 / 2.;
   tubpar[2] = (6909.8 - zC) / 2.;
@@ -1693,7 +1693,7 @@ void Detector::createCsideBeamLine()
     boxpar[2] = mLumiLength / 2.; // FIX IT!!!!!!!!!!!!!!!!!!!!!!!!
     TVirtualMC::GetMC()->Gsvolu("QLUC", "BOX ", getMediumID(kCuLumi), boxpar, 3);
     TVirtualMC::GetMC()->Gspos("QLUC", 1, "ZDCC", 0., 0., Geometry::ZNCPOSITION[1] + 66. + boxpar[2], 0, "ONLY");
-    LOG(DEBUG) << "	C-side luminometer positioned in front of ZNC\n";
+    LOG(DEBUG) << "C-side luminometer positioned in front of ZNC\n";
   }
 }
 
@@ -1709,7 +1709,7 @@ void Detector::createMagnets()
   double zD2Field = 12167.8;
 
   // ***************************************************************
-  //		SIDE C
+  //SIDE C
   // ***************************************************************
   // --  COMPENSATOR DIPOLE (MBXW)
   // --  GAP (VACUUM WITH MAGNETIC FIELD)
@@ -1811,7 +1811,7 @@ void Detector::createMagnets()
   TVirtualMC::GetMC()->Gspos("MD2 ", 2, "YD2 ", 9.4, 0., 0., 0, "ONLY");
 
   // ***************************************************************
-  //		SIDE A
+  //SIDE A
   // ***************************************************************
 
   // COMPENSATOR DIPOLE (MCBWA) (2nd compensator)

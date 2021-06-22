@@ -52,6 +52,11 @@ class STFDecoder : public Task
   bool mDoCalibData = false;
   int mNThreads = 1;
   size_t mTFCounter = 0;
+  size_t mEstNDig = 0;
+  size_t mEstNClus = 0;
+  size_t mEstNClusPatt = 0;
+  size_t mEstNCalib = 0;
+  size_t mEstNROF = 0;
   std::string mSelfName;
   std::string mDictName;
   std::string mNoiseName;

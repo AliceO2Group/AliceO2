@@ -48,6 +48,6 @@ int main(int argc, char** argv)
   verifyTable<o2::aod::StoredTracksCov>(infile.get(), "O2track");
   verifyTable<o2::aod::TracksExtra>(infile.get(), "O2track");
   verifyTable<o2::aod::Calos>(infile.get(), "O2calo");
-  verifyTable<o2::aod::StoredMuons>(infile.get(), "O2muon");
+  verifyTable<o2::aod::StoredFwdTracks>(infile.get(), "O2fwdtrack");
   return 0;
 }

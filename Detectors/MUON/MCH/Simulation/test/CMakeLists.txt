@@ -14,24 +14,27 @@ o2_add_test(digit-merging
         PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase O2::DetectorsPassive
         LABELS muon mch sim)
 
-# o2_add_test(digitization
-#         COMPONENT_NAME mch
-#         SOURCES testDigitization.cxx 
-#         PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase O2::DetectorsPassive
-#         LABELS muon mch long sim)
-#
+o2_add_test(digitizer
+        COMPONENT_NAME mch
+        SOURCES testDigitizer.cxx
+        PUBLIC_LINK_LIBRARIES O2::DetectorsPassive
+                              O2::MCHBase
+                              O2::MCHGeometryTest
+                              O2::MCHSimulation
+        LABELS muon mch long sim)
+
 # o2_add_test(response
 #         COMPONENT_NAME mch
-#         SOURCES testResponse.cxx 
+#         SOURCES testResponse.cxx
 #         PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase O2::DetectorsPassive
 #         LABELS muon mch  sim)
 
 o2_add_test(regular-geometry
         COMPONENT_NAME mch
-        SOURCES 
+        SOURCES
         testRegularGeometry.cxx
         PUBLIC_LINK_LIBRARIES O2::MCHSimulation O2::MCHBase O2::DetectorsPassive
-        LABELS muon mch  sim)
+        LABELS muon mch sim)
 
 if(benchmark_FOUND)
         o2_add_executable(

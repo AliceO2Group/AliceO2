@@ -10,19 +10,19 @@
 
 o2_add_library(FDDSimulation
                SOURCES src/Detector.cxx
-	       	       src/Digitizer.cxx
-		       src/Digits2Raw.cxx
-               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat 
-	       		             O2::FDDBase 
-				     O2::DataFormatsFDD
-				     O2::DetectorsRaw
+                       src/Digitizer.cxx
+                       src/Digits2Raw.cxx
+               PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                     O2::FDDBase
+                                     O2::DataFormatsFDD
+                                     O2::DetectorsRaw
                                      ROOT::Physics)
 
 o2_target_root_dictionary(FDDSimulation
                           HEADERS include/FDDSimulation/Detector.h
-    			          include/FDDSimulation/Digitizer.h
-    				  include/FDDSimulation/DigitizationParameters.h
-				  include/FDDSimulation/Digits2Raw.h)
+                                  include/FDDSimulation/Digitizer.h
+                                  include/FDDSimulation/DigitizationParameters.h
+                                  include/FDDSimulation/Digits2Raw.h)
 
 o2_add_executable(digit2raw
         COMPONENT_NAME fdd
@@ -32,4 +32,3 @@ o2_add_executable(digit2raw
                               O2::DetectorsCommonDataFormats
                               O2::CommonUtils
                               Boost::program_options)
-                  

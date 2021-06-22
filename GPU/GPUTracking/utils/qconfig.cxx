@@ -31,12 +31,6 @@
 
 namespace qConfig
 {
-#define qon_mcat(a, b) a##b
-#define qon_mxcat(a, b) qon_mcat(a, b)
-#define qon_mcat3(a, b, c) a##b##c
-#define qon_mxcat3(a, b, c) qon_mcat3(a, b, c)
-#define qon_mstr(a) #a
-#define qon_mxstr(a) qon_mstr(a)
 #define QCONFIG_SETTING(name, type)                     \
   struct qon_mxcat3(q, name, _t)                        \
   {                                                     \
@@ -506,6 +500,11 @@ static inline int qConfigParse(int argc, const char** argv, const char* /*filena
   }
   return (0);
 }
+
+std::vector<std::function<void()>> qprint_global;
+#define QCONFIG_PRINT
+#include "qconfig.h"
+#undef QCONFIG_PRINT
 } // end namespace qConfig
 
 // Main parse function called from outside
@@ -513,8 +512,7 @@ int qConfigParse(int argc, const char** argv, const char* filename) { return (qC
 
 void qConfigPrint()
 {
-  std::string blockName;
-#define QCONFIG_PRINT
-#include "qconfig.h"
-#undef QCONFIG_PRINT
+  for (auto& f : qConfig::qprint_global) {
+    f();
+  }
 }

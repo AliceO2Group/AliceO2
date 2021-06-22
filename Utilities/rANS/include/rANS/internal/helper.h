@@ -30,14 +30,34 @@ namespace internal
 {
 
 template <typename T>
-inline constexpr bool needs64Bit()
+inline constexpr bool needs64Bit() noexcept
 {
   return sizeof(T) > 4;
 }
 
-inline constexpr size_t bitsToRange(size_t bits)
+inline constexpr size_t pow2(size_t n) noexcept
 {
-  return 1 << bits;
+  return 1 << n;
+}
+
+inline constexpr size_t numSymbolsWithNBits(size_t bits) noexcept
+{
+  return (1 << (bits + 1)) - 1;
+}
+
+inline constexpr size_t numBitsForNSymbols(size_t nSymbols) noexcept
+{
+  switch (nSymbols) {
+    case 0:
+      return 0; // to represent 0 symbols we need 0 bits
+      break;
+    case 1: // to represent 1 symbol we need 1 bit
+      return 1;
+      break;
+    default: // general case for > 1 symbols
+      return std::ceil(std::log2(nSymbols));
+      break;
+  }
 }
 
 class RANSTimer
@@ -45,13 +65,13 @@ class RANSTimer
  public:
   void start() { mStart = std::chrono::high_resolution_clock::now(); };
   void stop() { mStop = std::chrono::high_resolution_clock::now(); };
-  double getDurationMS()
+  inline double getDurationMS() noexcept
   {
     std::chrono::duration<double, std::milli> duration = mStop - mStart;
     return duration.count();
   }
 
-  double getDurationS()
+  inline double getDurationS() noexcept
   {
     std::chrono::duration<double, std::ratio<1>> duration = mStop - mStart;
     return duration.count();
@@ -63,7 +83,9 @@ class RANSTimer
 };
 
 template <typename T, typename IT>
-inline constexpr bool isCompatibleIter_v = std::is_same_v<typename std::iterator_traits<IT>::value_type, T>;
+inline constexpr bool isCompatibleIter_v = std::is_convertible_v<typename std::iterator_traits<IT>::value_type, T>;
+template <typename IT>
+inline constexpr bool isIntegralIter_v = std::is_integral_v<typename std::iterator_traits<IT>::value_type>;
 
 } // namespace internal
 } // namespace rans

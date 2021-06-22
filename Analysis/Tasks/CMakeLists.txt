@@ -9,6 +9,7 @@
 # submit itself to any jurisdiction.
 
 add_subdirectory(PWGCF)
+add_subdirectory(PWGPP)
 add_subdirectory(PWGDQ)
 add_subdirectory(PWGHF)
 add_subdirectory(PWGJE)

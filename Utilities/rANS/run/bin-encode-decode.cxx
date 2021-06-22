@@ -14,6 +14,7 @@
 /// @brief  benchmark encode/decode using rans on binary data.
 
 #include "rANS/rans.h"
+#include "rANS/utils.h"
 
 #include <boost/program_options.hpp>
 
@@ -68,8 +69,7 @@ int main(int argc, char* argv[])
     ("file,f",bpo::value<std::string>(), "file to compress")
     ("samples,s",bpo::value<uint32_t>(), "how often to run benchmark")
     ("bits,b",bpo::value<uint32_t>(), "resample dictionary to N Bits")
-    ("range,r",bpo::value<uint32_t>()->default_value(0), "range of the source data")
-  	("log_severity,l",bpo::value<std::string>(), "severity of FairLogger");
+    ("log_severity,l",bpo::value<std::string>(), "severity of FairLogger");
   // clang-format on
 
   bpo::variables_map vm;
@@ -98,14 +98,6 @@ int main(int argc, char* argv[])
     }
   }();
 
-  const uint32_t symbolRangeBits = [&]() {
-    if (vm.count("range")) {
-      return vm["range"].as<uint32_t>();
-    } else {
-      return static_cast<uint32_t>(0);
-    }
-  }();
-
   const uint32_t repetitions = [&]() {
     if (vm.count("samples")) {
       return vm["samples"].as<uint32_t>();
@@ -125,16 +117,14 @@ int main(int argc, char* argv[])
     o2::rans::FrequencyTable frequencies;
     frequencies.addSamples(std::begin(tokens), std::end(tokens));
 
-    std::vector<stream_t> encoderBuffer(256 << 20, 0);
-    const auto encodedMessageEnd = [&]() {
-      const o2::rans::Encoder64<source_t> encoder{frequencies, probabilityBits};
-      return encoder.process(encoderBuffer.begin(), encoderBuffer.end(), std::begin(tokens), std::end(tokens));
-    }();
+    std::vector<stream_t> encoderBuffer;
+    const o2::rans::Encoder64<source_t> encoder{frequencies, probabilityBits};
+    encoder.process(std::begin(tokens), std::end(tokens), std::back_inserter(encoderBuffer));
 
     std::vector<source_t> decoderBuffer(tokens.size());
     [&]() {
       o2::rans::Decoder64<source_t> decoder{frequencies, probabilityBits};
-      decoder.process(decoderBuffer.begin(), encodedMessageEnd, std::distance(std::begin(tokens), std::end(tokens)));
+      decoder.process(encoderBuffer.end(), decoderBuffer.begin(), std::distance(std::begin(tokens), std::end(tokens)));
     }();
 
     if (std::memcmp(tokens.data(), decoderBuffer.data(),
