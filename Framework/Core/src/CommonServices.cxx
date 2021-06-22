@@ -192,6 +192,7 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
           ctx](const std::string& content, const fair::LogMetaData& metadata) {
     // translate FMQ metadata
     InfoLogger::InfoLogger::Severity severity = InfoLogger::Severity::Undefined;
+    int level = InfoLogger::undefinedMessageOption.level;
 
     if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::nolog)) {
       // discard
