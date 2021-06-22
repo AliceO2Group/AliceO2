@@ -11,7 +11,6 @@
 #ifndef O2_ZDC_RECOPARAMZDC_H
 #define O2_ZDC_RECOPARAMZDC_H
 
-#include <array>
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "ZDCBase/Constants.h"
@@ -28,7 +27,7 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   // Trigger
   Int_t tsh[NTDCChannels] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4};               // Trigger shift
   Int_t tth[NTDCChannels] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};               // Trigger threshold
-  std::array<bool, NTDCChannels> bitset = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Set bits in coincidence
+  bool bitset[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};             // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
 
   // TDC
