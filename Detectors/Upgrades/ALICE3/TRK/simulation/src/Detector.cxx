@@ -123,7 +123,7 @@ void Detector::configITS(Detector* its)
   layers.emplace_back(std::array<double, 2>{80.f, 132.f});
   layers.emplace_back(std::array<double, 2>{100.f, 132.f});
 
-  std::array<float, 12> sensorThicknesses = {50.e-4, 50.e-4, 50.e-4, 50.e-4, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3};
+  std::array<float, 12> sensorThicknesses = {100.e-4, 100.e-4, 100.e-4, 100.e-4, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3};
   its->setStaveModelOB(o2::trk::Detector::kOBModel2);
   // its->createOuterBarrel(false);
 
