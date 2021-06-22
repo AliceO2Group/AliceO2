@@ -130,6 +130,10 @@ using namespace o2::tpc;
 using CalPad = CalDet<float>;
 using CalPadArr = CalArray<float>;
 
+static constexpr unsigned short NR = 129;   // grid in r
+static constexpr unsigned short NZ = 129;   // grid in z
+static constexpr unsigned short NPHI = 180; // grid in phi
+
 // Physics parameters
 const float mEpsilon0 = o2::tpc::TPCParameters<double>::E0 * 0.01; //8.854187817e-14; // vacuum permittivity [A·s/(V·cm)]
 
@@ -154,8 +158,8 @@ const char* hisSCPIRandomName = "hisPI";              // name of the histogram o
 CalPad loadMap(std::string mapfile, std::string mapName);
 void normalizeHistoQVEps0(TH3& histoIonsPhiRZ);
 
-template <typename DataT, size_t Nz, size_t Nr, size_t Nphi>
-void setOmegaTauT1T2(o2::tpc::SpaceCharge<DataT, Nz, Nr, Nphi>& sc);
+template <typename DataT>
+void setOmegaTauT1T2(o2::tpc::SpaceCharge<DataT>& sc);
 
 /// Create SC density histograms and IDC containers from simulated TPC hits
 /// An interaction rate of 50 kHz is assumed. Therefore, the ion drift time determines the number of ion pile-up events.
@@ -167,8 +171,10 @@ void setOmegaTauT1T2(o2::tpc::SpaceCharge<DataT, Nz, Nr, Nphi>& sc);
 /// \param distortionType sets the type of the electron distortions: 0->no distortions of electrons are applied, 1->average distortion of electrons. Distortions can be created by the makeDistortionsCorrections() function.
 void createSCHistosFromHits(const int ionDriftTime = 200, const int nEvIon = 1, const int debug = 1, const int sides = 0, const char* inputfolder = "", const int distortionType = 0 /*, const int nThreads = 1*/)
 {
+  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI);
+
   // load average distortions of electrons
-  SpaceCharge<double, 129, 129, 180> spacecharge;
+  SpaceCharge<double> spacecharge;
   if (distortionType == 1) {
     const std::string inpFileDistortions = Form("%sdistortions.root", inputfolder);
     TFile fInp(inpFileDistortions.data(), "READ");
@@ -600,16 +606,18 @@ void makeAverageIDCs(const std::vector<std::string>& files, const char* outFile 
 /// \param sides set for which sides the distortions/corrections will be calculated. sides=0: A- and C-Side, sides=1: A-Side only, sides=2: C-Side only
 /// \param inpFile name of the root file containing the space charge density histogram
 /// \param histName name of the space charge density histogram in the root file
-template <typename DataT = double, size_t nZ = 17, size_t nR = 17, size_t nPhi = 90>
+template <typename DataT = double>
 void makeDistortionsCorrections(const char* outFileDistortions = "distortions.root", const int sides = 0, const char* inpFile = "", const char* histName = hisSCRandomName)
 {
-  TFile fSCDensity(inpFile, "READ");
+  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI)
+
+    TFile fSCDensity(inpFile, "READ");
   std::cout << "input file: " << inpFile << std::endl;
   std::cout << "output file: " << outFileDistortions << std::endl;
 
-  using SC = o2::tpc::SpaceCharge<DataT, nZ, nR, nPhi>;
+  using SC = o2::tpc::SpaceCharge<DataT>;
   SC spacecharge;
-  setOmegaTauT1T2<DataT, nZ, nR, nPhi>(spacecharge);
+  setOmegaTauT1T2<DataT>(spacecharge);
   spacecharge.fillChargeDensityFromFile(fSCDensity, histName);
   const bool calcLocalVectors = true;
 
@@ -731,11 +739,13 @@ void makeAverageDensityMap(const std::vector<std::string> files, const char* his
 /// \param sides set for which sides will be processed. sides=0: A- and C-Side, sides=1: A-Side only, sides=2: C-Side only
 /// \param scaleFac multiply sigma by this value. The resulting scaling is "1 + scaleFac * sigmaScale"
 /// \param sigmaScale sigma of the scaling
-template <typename DataT = double, size_t nZ = 17, size_t nR = 17, size_t nPhi = 90>
+template <typename DataT = double>
 void createScaledMeanMap(const std::string inpFile, const std::string outFile, const int sides, const int scaleFac = 1, const float sigmaScale = 0.03f)
 {
-  // load the mean histo
-  using SC = o2::tpc::SpaceCharge<DataT, nZ, nR, nPhi>;
+  o2::tpc::SpaceCharge<double>::setGrid(NZ, NR, NPHI)
+
+    // load the mean histo
+    using SC = o2::tpc::SpaceCharge<DataT>;
   SC scOriginal;
   SC scScaled;
 
@@ -747,7 +757,7 @@ void createScaledMeanMap(const std::string inpFile, const std::string outFile, c
     scOriginal.setDensityFromFile(fInp, Side::C);
   }
 
-  setOmegaTauT1T2<DataT, nZ, nR, nPhi>(scScaled);
+  setOmegaTauT1T2<DataT>(scScaled);
   int sideStart = 0;
   int sideEnd = 2;
   if (sides == 1) {
@@ -758,9 +768,9 @@ void createScaledMeanMap(const std::string inpFile, const std::string outFile, c
 
   for (int iSide = sideStart; iSide < sideEnd; ++iSide) {
     const Side side = iSide == 0 ? Side::A : Side::C;
-    for (size_t iZ = 0; iZ < nZ; ++iZ) {
-      for (size_t iR = 0; iR < nR; ++iR) {
-        for (size_t iPhi = 0; iPhi < nPhi; ++iPhi) {
+    for (size_t iZ = 0; iZ < scOriginal.getNZVertices(); ++iZ) {
+      for (size_t iR = 0; iR < scOriginal.getNRVertices(); ++iR) {
+        for (size_t iPhi = 0; iPhi < scOriginal.getNPhiVertices(); ++iPhi) {
           const DataT density = scOriginal.getDensity(iZ, iR, iPhi, side);
           const float scaleVal = 1 + scaleFac * sigmaScale;
           scScaled.fillDensity(density * scaleVal, iZ, iR, iPhi, side);
@@ -848,8 +858,8 @@ void scaleIDCs(const char* inpIDCs, const char* outFile, const int scaleFac = 1,
 }
 
 /// helper function to set omegatau for the space charge class
-template <typename DataT = double, size_t nZ = 17, size_t nR = 17, size_t nPhi = 90>
-void setOmegaTauT1T2(o2::tpc::SpaceCharge<DataT, nZ, nR, nPhi>& sc)
+template <typename DataT = double>
+void setOmegaTauT1T2(o2::tpc::SpaceCharge<DataT>& sc)
 {
   sc.setOmegaTauT1T2(0.32f, 1, 1);
 }
