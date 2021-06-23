@@ -253,11 +253,12 @@ void createCXXfile(o2::mft::GeometryTGeo* gm)
   FILE* srcFile = fopen("ChipMappingMFT.cxx", "w");
 
   fprintf(srcFile,
-          "// Copyright CERN and copyright holders of ALICE O2. This software is\n"
-          "// distributed under the terms of the GNU General Public License v3 (GPL\n"
-          "// Version 3), copied verbatim in the file \"COPYING\".\n"
+          "// Copyright 2019-2020 CERN and copyright holders of ALICE O2.\n"
+          "// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.\n"
+          "// All rights not expressly granted are reserved.\n"
           "//\n"
-          "// See http://alice-o2.web.cern.ch/license for full licensing information.\n"
+          "// This software is distributed under the terms of the GNU General Public\n"
+          "// License v3 (GPL Version 3), copied verbatim in the file \"COPYING\".\n"
           "//\n"
           "// In applying this license CERN does not waive the privileges and immunities\n"
           "// granted to it by virtue of its status as an Intergovernmental Organization\n"
