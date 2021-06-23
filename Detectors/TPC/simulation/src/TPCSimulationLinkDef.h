@@ -32,6 +32,7 @@
 #pragma link C++ class std::vector < o2::tpc::ElementalHit> + ;
 #pragma link C++ class o2::tpc::HitGroup + ;
 #pragma link C++ class o2::tpc::SAMPAProcessing + ;
+#pragma link C++ class o2::tpc::IDCSim + ;
 
 #pragma link C++ class std::vector < o2::tpc::HitGroup> + ;
 

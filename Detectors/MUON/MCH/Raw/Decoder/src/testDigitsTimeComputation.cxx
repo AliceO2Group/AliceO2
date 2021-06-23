@@ -82,10 +82,9 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTime)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = 0;
 
-  std::unordered_map<uint32_t, std::optional<DataDecoder::SampaTimeFrameStart>> sampaTimeFrameStarts;
-  sampaTimeFrameStarts[digits[0].info.id].emplace(tfOrbit, tfBunchCrossing);
+  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStarts, false);
+  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing);
@@ -104,10 +103,9 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = BCROLLOVER - 100;
 
-  std::unordered_map<uint32_t, std::optional<DataDecoder::SampaTimeFrameStart>> sampaTimeFrameStarts;
-  sampaTimeFrameStarts[digits[0].info.id].emplace(tfOrbit, tfBunchCrossing);
+  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStarts, false);
+  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing) + BCROLLOVER;
@@ -126,37 +124,14 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover2)
   uint32_t tfOrbit = 1;
   uint32_t tfBunchCrossing = 100;
 
-  std::unordered_map<uint32_t, std::optional<DataDecoder::SampaTimeFrameStart>> sampaTimeFrameStarts;
-  sampaTimeFrameStarts[digits[0].info.id].emplace(tfOrbit, tfBunchCrossing);
+  DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStarts, false);
+  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing) - BCROLLOVER;
 
   BOOST_CHECK_EQUAL(digits[0].getTime(), digitTime);
-}
-
-BOOST_AUTO_TEST_CASE(ComputeDigitsTimeNoTFStart)
-{
-  uint32_t sampaTime = 10;
-  uint32_t bunchCrossing = BCINORBIT - 100;
-  uint32_t orbit = 1;
-
-  std::vector<RawDigit> digits = makeDigitsVector(sampaTime, bunchCrossing, orbit);
-
-  uint32_t tfOrbit = 1;
-  uint32_t tfBunchCrossing = 0;
-
-  std::unordered_map<uint32_t, std::optional<DataDecoder::SampaTimeFrameStart>> sampaTimeFrameStarts;
-  sampaTimeFrameStarts[digits[0].info.id + 1].emplace(tfOrbit, tfBunchCrossing);
-
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStarts, false);
-
-  int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
-                      static_cast<int32_t>(tfBunchCrossing);
-
-  BOOST_CHECK_EQUAL(digits[0].getTime(), DataDecoder::tfTimeInvalid);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

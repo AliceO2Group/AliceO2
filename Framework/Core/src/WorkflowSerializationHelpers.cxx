@@ -656,7 +656,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   bool inputHasDescription;
 };
 
-void WorkflowSerializationHelpers::import(std::istream& s,
+bool WorkflowSerializationHelpers::import(std::istream& s,
                                           std::vector<DataProcessorSpec>& workflow,
                                           std::vector<DataProcessorInfo>& metadata,
                                           CommandInfo& command)
@@ -667,14 +667,31 @@ void WorkflowSerializationHelpers::import(std::istream& s,
   // FIXME: not particularly resilient, but works for now.
   // FIXME: this will fail if { is found at char 1024.
   char buf[1024];
+  bool hasFatalImportError = false;
   while (s.peek() != '{') {
     if (s.eof()) {
-      return;
+      return !hasFatalImportError;
     }
     if (s.fail() || s.bad()) {
       throw std::runtime_error("Malformatted input workflow");
     }
     s.getline(buf, 1024, '\n');
+    // FairLogger messages (starting with [) simply get forwarded.
+    // Other messages we consider them as ERRORs since they
+    // were printed out without FairLogger.
+    if (buf[0] == '[') {
+      if (strncmp(buf, "[ERROR] invalid workflow in", strlen("[ERROR] invalid workflow in")) == 0 ||
+          strncmp(buf, "[ERROR] error while setting up workflow", strlen("[ERROR] error while setting up workflow")) == 0 ||
+          strncmp(buf, "[ERROR] error parsing options of", strlen("[ERROR] error parsing options of")) == 0) {
+        hasFatalImportError = true;
+      }
+      std::cout << buf << std::endl;
+    } else {
+      LOG(ERROR) << buf;
+    }
+  }
+  if (hasFatalImportError) {
+    return false;
   }
   rapidjson::Reader reader;
   rapidjson::IStreamWrapper isw(s);
@@ -683,6 +700,7 @@ void WorkflowSerializationHelpers::import(std::istream& s,
   if (ok == false) {
     throw std::runtime_error("Error while parsing serialised workflow");
   }
+  return true;
 }
 
 void WorkflowSerializationHelpers::dump(std::ostream& out,

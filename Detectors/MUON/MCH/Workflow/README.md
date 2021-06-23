@@ -78,6 +78,33 @@ o2-mch-preclusters-to-clusters-original-workflow
 
 Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
 
+Option `--run2-config` allows to configure the clustering to process run2 data.
+
+Option `--config "file.json"` or `--config "file.ini"` allows to change the clustering parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
+
+* Example of configuration file in JSON format:
+```json
+{
+    "MCHClustering": {
+        "lowestPadCharge": "4.",
+        "defaultClusterResolution": "0.4"
+    }
+}
+```
+* Example of configuration file in INI format:
+```ini
+[MCHClustering]
+lowestPadCharge=4.
+defaultClusterResolution=0.4
+```
+
+Option `--configKeyValues "key1=value1;key2=value2;..."` allows to change the clustering parameters from the command line. The parameters changed from the command line will supersede the ones changed from a configuration file.
+
+* Example of parameters changed from the command line:
+```shell
+--configKeyValues "MCHClustering.lowestPadCharge=4.;MCHClustering.defaultClusterResolution=0.4"
+```
+
 ## CTF encoding/decoding
 
 Entropy encoding is done be attaching the `o2-mch-entropy-encoder-workflow` to the output of `DIGITS` and `DIGITROF` data-descriptions, providing `Digit` and `ROFRecord` respectively. Afterwards the encoded data can be stored by the `o2-ctf-writer-workflow`.

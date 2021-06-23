@@ -28,9 +28,6 @@
 #pragma link C++ class std::vector < o2::fv0::BCData> + ;
 
 #pragma link C++ class o2::fv0::RawEventData + ;
-#pragma link C++ class o2::fv0::EventHeader + ;
-#pragma link C++ class o2::fv0::EventData + ;
-#pragma link C++ class o2::fv0::TCMdata + ;
 #pragma link C++ class o2::fv0::Topo + ;
 
 #pragma link C++ class o2::fv0::CTFHeader + ;

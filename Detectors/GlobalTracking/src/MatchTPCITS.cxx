@@ -1235,12 +1235,12 @@ float MatchTPCITS::getPredictedChi2NoZ(const o2::track::TrackParCov& trITS, cons
 
   //  if (std::abs(trITS.getAlpha() - trTPC.getAlpha()) > FLT_EPSILON) {
   //    LOG(ERROR) << "The reference Alpha of the tracks differ: "
-  //	       << trITS.getAlpha() << " : " << trTPC.getAlpha();
+  //        << trITS.getAlpha() << " : " << trTPC.getAlpha();
   //    return 2. * o2::track::HugeF;
   //  }
   //  if (std::abs(trITS.getX() - trTPC.getX()) > FLT_EPSILON) {
   //    LOG(ERROR) << "The reference X of the tracks differ: "
-  //	       << trITS.getX() << " : " << trTPC.getX();
+  //        << trITS.getX() << " : " << trTPC.getX();
   //    return 2. * o2::track::HugeF;
   //  }
   MatrixDSym4 covMat;
@@ -1455,10 +1455,13 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     return false;
   }
 
-  // we need to update the LTOF integral by the distance to the "primary vertex"
+  // We need to update the LTOF integral by the distance to the "primary vertex"
+  // We want to leave the track at the the position of its last update, so we do a fast propagation on the TrackPar copy of trfit,
+  // and since for the LTOF calculation the material effects are irrelevant, we skip material corrections
   const o2::dataformats::VertexBase vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
-  if (!propagator->propagateToDCA(vtxDummy, trfit, propagator->getNominalBz(),
-                                  maxStep, mUseMatCorrFlag, nullptr, &trfit.getLTIntegralOut())) {
+  o2::track::TrackPar trpar(trfit);
+  if (!propagator->propagateToDCA(vtxDummy.getXYZ(), trpar, propagator->getNominalBz(),
+                                  maxStep, MatCorrType::USEMatCorrNONE, nullptr, &trfit.getLTIntegralOut())) {
     LOG(ERROR) << "LTOF integral might be incorrect";
   }
 
@@ -1865,7 +1868,7 @@ int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& lli
         /*
         const auto lab = mITSClsLabels->getLabels(clID)[0];                                           // tmp
         LOG(INFO) << "cl " << cntc++ << " ClLbl:" << lab << " TrcLbl" << lblTrc << " chi2 = " << chi2 << " chipGID: " << lad.chips[chipID].id; // tmp
-	*/
+ */
         if (chi2 > mParams->cutABTrack2ClChi2) {
           continue;
         }
@@ -1883,7 +1886,7 @@ int MatchTPCITS::checkABSeedFromLr(int lrSeed, int seedID, ABTrackLinksList& lli
           if (lrTgt < llist.lowestLayer) {
             llist.lowestLayer = lrTgt; // update lowest layer reached
           }
-          //	  printf("Added chi2 %.3f @ lr %d as %d\n",link.chi2, lrTgt, lnkID); // tmp tmp
+          //   printf("Added chi2 %.3f @ lr %d as %d\n",link.chi2, lrTgt, lnkID); // tmp tmp
         }
       }
     }
@@ -2140,7 +2143,7 @@ float MatchTPCITS::correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTP
     float xTgt;
     auto propagator = o2::base::Propagator::Instance();
     if (!trc.getXatLabR(r, xTgt, propagator->getNominalBz(), o2::track::DirInward) ||
-	!propagator->PropagateToXBxByBz(trc, xTgt, MaxSnp, 2., mUseMatCorrFlag)) {
+ !propagator->PropagateToXBxByBz(trc, xTgt, MaxSnp, 2., mUseMatCorrFlag)) {
       return -1;
     }
   }

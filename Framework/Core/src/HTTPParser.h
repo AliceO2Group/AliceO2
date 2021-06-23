@@ -87,6 +87,8 @@ void encode_websocket_frames(std::vector<uv_buf_t>& outputs, char const* src, si
 
 /// An handler for a websocket message stream.
 struct WebSocketHandler {
+  virtual ~WebSocketHandler() = default;
+
   /// Invoked when all the headers are received.
   virtual void headers(std::map<std::string, std::string> const& headers){};
   /// FIXME: not implemented

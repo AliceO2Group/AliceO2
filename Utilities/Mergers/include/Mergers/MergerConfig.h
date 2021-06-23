@@ -16,6 +16,8 @@
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
 
+#include <string>
+
 namespace o2::mergers
 {
 
@@ -57,6 +59,7 @@ struct MergerConfig {
   ConfigEntry<MergedObjectTimespan> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
   ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::EachNSeconds, 10};
   ConfigEntry<TopologySize, int> topologySize = {TopologySize::NumberOfLayers, 1};
+  std::string monitoringUrl = "infologger:///debug?qc";
 };
 
 } // namespace o2::mergers

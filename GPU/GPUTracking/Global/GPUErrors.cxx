@@ -56,9 +56,10 @@ static std::unordered_map<unsigned int, const char*> errorNames = {
 void GPUErrors::printErrors()
 {
   for (unsigned int i = 0; i < std::min(*mErrors, GPUCA_MAX_ERRORS); i++) {
-    const auto& it = errorNames.find(mErrors[4 * i + 1]);
+    unsigned int errorCode = mErrors[4 * i + 1];
+    const auto& it = errorNames.find(errorCode);
     const char* errorName = it == errorNames.end() ? "INVALID ERROR CODE" : it->second;
-    GPUError("GPU Error Code (%u:%u) %s : %u / %u / %u", i, mErrors[4 * i + 1], errorName, mErrors[4 * i + 2], mErrors[4 * i + 3], mErrors[4 * i + 4]);
+    GPUError("GPU Error Code (%u:%u) %s : %u / %u / %u", i, errorCode, errorName, mErrors[4 * i + 2], mErrors[4 * i + 3], mErrors[4 * i + 4]);
   }
   if (*mErrors > GPUCA_MAX_ERRORS) {
     GPUError("Additional errors occured (codes not stored)");

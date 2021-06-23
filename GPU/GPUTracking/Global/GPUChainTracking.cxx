@@ -181,6 +181,10 @@ bool GPUChainTracking::ValidateSteps()
     GPUError("Invalid input / output / step, mergerReadFromTrackerDirectly cannot read/store sectors tracks and needs TPC conversion");
     return false;
   }
+  if (!GetProcessingSettings().fullMergerOnGPU && (param().rec.tpc.mergerReadFromTrackerDirectly || GetProcessingSettings().createO2Output) && (GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging)) {
+    GPUError("createO2Output and mergerReadFromTrackerDirectly works only in combination with fullMergerOnGPU if the merger is to run on GPU");
+    return false;
+  }
   bool tpcClustersAvail = (GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCDecompression);
 #ifndef GPUCA_ALIROOT_LIB
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && !tpcClustersAvail) {
@@ -614,12 +618,12 @@ int GPUChainTracking::RunChain()
     SynchronizeStream(mRec->NStreams() - 2);
   }
 
-  if (CheckErrorCodes()) {
-    return 1;
-  }
-
   if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {
     mRec->SetNOMPThreads(-1);
+  }
+
+  if (CheckErrorCodes()) {
+    return 3;
   }
 
   return GetProcessingSettings().doublePipeline ? 0 : RunChainFinalize();

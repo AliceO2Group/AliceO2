@@ -60,8 +60,8 @@ class IntegratingMerger : public framework::Task
   std::unique_ptr<monitoring::Monitoring> mCollector;
 
   // stats
-  int mTotalObjectsMerged = 0;
-  int mObjectsMerged = 0;
+  int mTotalDeltasMerged = 0;
+  int mDeltasMerged = 0;
 };
 
 } // namespace o2::mergers

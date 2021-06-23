@@ -14,7 +14,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsCPV/Digit.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
 #include "CPVSimulation/Digitizer.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"

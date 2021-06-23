@@ -37,7 +37,6 @@ Float signalForm_i(Float x)
   Float const a = -0.45458;
   Float const b = -0.83344945;
   return x > Float(0) ? -(exp(b * x) - exp(a * x)) / Float(7.8446501) : Float(0);
-  //return -(exp(-0.83344945 * x) - exp(-0.45458 * x)) * (x >= 0) / 7.8446501; // Maximum should be 7.0/250 mV
 };
 
 // integrated signal shape function
@@ -209,7 +208,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
     Bool_t is_A_side = (hit_ch < 4 * mGeometry.NCellsA);
     Float_t time_compensate = is_A_side ? params.mA_side_cable_cmps : params.mC_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
-    if (hit_time > 250) {
+    if (hit_time > 150) {
       continue; //not collect very slow particles
     }
     auto relBC = o2::InteractionRecord{hit_time};
@@ -270,7 +269,7 @@ void Digitizer::storeBC(BCCache& bc,
     if (amp > 4095) {
       amp = 4095;
     }
-    LOG(INFO) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
+    LOG(DEBUG) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored;
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 

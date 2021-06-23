@@ -535,7 +535,7 @@ void PVertexer::reduceDebris(std::vector<PVertex>& vertices, std::vector<int>& t
 
   for (int im = 0; im < nv; im++) { // loop from highest multiplicity to lowest one
     int it = multSort[im];
-    if (it < 0) { // if <0, the vertex was already discarded
+    if (timeSort[it] < 0) { // if <0, the vertex was already discarded
       continue;
     }
 
@@ -951,6 +951,15 @@ SeedHistoTZ PVertexer::buildHistoTZ(const VertexingInput& input)
   }
 
   return std::move(seedHistoTZ);
+}
+
+//______________________________________________
+bool PVertexer::relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2) const
+{
+  o2d::DCA dca;
+  return o2::base::Propagator::Instance()->propagateToDCA(mMeanVertex, trc, mBz, 2.0f,
+                                                          o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca, nullptr, 0, mPVParams->dcaTolerance) &&
+         (dca.getY() * dca.getY() / (dca.getSigmaY2() + vtxErr2) < mPVParams->pullIniCut);
 }
 
 //______________________________________________

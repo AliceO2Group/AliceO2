@@ -16,6 +16,7 @@
 #include <chrono>
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "CommonDataFormat/TimeStamp.h"
+#include "CommonDataFormat/IRFrame.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
@@ -41,6 +42,12 @@ void DataRequest::addInput(const InputSpec&& isp)
   if (std::find(inputs.begin(), inputs.end(), isp) == inputs.end()) {
     inputs.emplace_back(isp);
   }
+}
+
+void DataRequest::requestIRFramesITS()
+{
+  addInput({"IRFramesITS", "ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+  requestMap["IRFramesITS"] = false;
 }
 
 void DataRequest::requestITSTracks(bool mc)
@@ -100,8 +107,9 @@ void DataRequest::requestTPCTOFTracks(bool mc)
 void DataRequest::requestITSTPCTRDTracks(bool mc)
 {
   addInput({"trackITSTPCTRD", "TRD", "MATCHTRD_GLO", 0, Lifetime::Timeframe});
+  addInput({"trigITSTPCTRD", "TRD", "TRKTRG_GLO", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "TRD Tracks does not support MC truth";
+    LOG(WARNING) << "TRD Tracks does not support MC truth, dummy label will be returned";
   }
   requestMap["trackITSTPCTRD"] = false;
 }
@@ -109,8 +117,9 @@ void DataRequest::requestITSTPCTRDTracks(bool mc)
 void DataRequest::requestTPCTRDTracks(bool mc)
 {
   addInput({"trackTPCTRD", "TRD", "MATCHTRD_TPC", 0, Lifetime::Timeframe});
+  addInput({"trigTPCTRD", "TRD", "TRKTRG_TPC", 0, Lifetime::Timeframe});
   if (mc) {
-    LOG(ERROR) << "TRD Tracks does not support MC truth";
+    LOG(WARNING) << "TRD Tracks does not support MC truth, dummy label will be returned";
   }
   requestMap["trackTPCTRD"] = false;
 }
@@ -359,6 +368,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addSVertices(pc, req->second);
   }
+
+  req = reqMap.find("IRFramesITS");
+  if (req != reqMap.end()) {
+    addIRFramesITS(pc);
+  }
 }
 
 //____________________________________________________________
@@ -420,6 +434,12 @@ void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
 }
 
 //____________________________________________________________
+void RecoContainer::addIRFramesITS(ProcessingContext& pc)
+{
+  commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("IRFramesITS"), VARIA);
+}
+
+//____________________________________________________________
 void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), TRACKS);
@@ -453,12 +473,14 @@ void RecoContainer::addITSTPCTracks(ProcessingContext& pc, bool mc)
 void RecoContainer::addITSTPCTRDTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTRD>>("trackITSTPCTRD"), TRACKS);
+  commonPool[GTrackID::ITSTPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTriggerRecord>>("trigITSTPCTRD"), TRACKREFS);
 }
 
 //__________________________________________________________
 void RecoContainer::addTPCTRDTracks(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::TPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTRD>>("trackTPCTRD"), TRACKS);
+  commonPool[GTrackID::TPCTRD].registerContainer(pc.inputs().get<gsl::span<o2::trd::TrackTriggerRecord>>("trigTPCTRD"), TRACKREFS);
 }
 
 //__________________________________________________________

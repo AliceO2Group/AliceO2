@@ -17,13 +17,12 @@ o2_add_library(CPVWorkflow
                        src/RawToDigitConverterSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
-               PUBLIC_LINK_LIBRARIES O2::Framework 
-                                     O2::DataFormatsCPV 
-                                     O2::DPLUtils 
-                                     O2::CPVBase 
-                                     O2::CPVCalib 
-                                     O2::CPVSimulation 
-                                     O2::CPVReconstruction 
+               PUBLIC_LINK_LIBRARIES O2::Framework
+                                     O2::DataFormatsCPV
+                                     O2::DPLUtils
+                                     O2::CPVBase
+                                     O2::CPVSimulation
+                                     O2::CPVReconstruction
                                      O2::Algorithm)
 
 o2_add_executable(reco-workflow

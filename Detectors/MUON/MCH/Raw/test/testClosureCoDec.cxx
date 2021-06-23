@@ -8,43 +8,102 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "MCHRawElecMap/Mapper.h"
+#include "MCHRawEncoderPayload/DataBlock.h"
 #define BOOST_TEST_MODULE Test MCHRaw Closure
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+#include "DetectorsRaw/HBFUtils.h"
+#include "DetectorsRaw/RawFileWriter.h"
+#include "Framework/Logger.h"
 #include "MCHRawCommon/DataFormats.h"
 #include "MCHRawDecoder/PageDecoder.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
 #include "MCHRawEncoderPayload/PayloadPaginator.h"
+#include <boost/mpl/list.hpp>
 #include <fmt/format.h>
 #include <iostream>
-#include <boost/mpl/list.hpp>
-#include "DetectorsRaw/HBFUtils.h"
 
 using namespace o2::mch::raw;
 
+std::vector<std::string> chargeSumInput = {
+  "S728-J1-DS0-CH3-ts-24-bc-0-cs-14-q-13",
+  "S728-J1-DS0-CH13-ts-24-bc-0-cs-134-q-133",
+  "S728-J1-DS0-CH23-ts-24-bc-0-cs-164-q-163",
+
+  "S361-J0-DS4-CH0-ts-24-bc-0-cs-11-q-10",
+  "S361-J0-DS4-CH1-ts-24-bc-0-cs-21-q-20",
+  "S361-J0-DS4-CH2-ts-24-bc-0-cs-31-q-30",
+  "S361-J0-DS4-CH3-ts-24-bc-0-cs-41-q-40",
+
+  "S448-J6-DS2-CH22-ts-24-bc-0-cs-421-q-420",
+  "S448-J6-DS2-CH23-ts-24-bc-0-cs-431-q-430",
+  "S448-J6-DS2-CH24-ts-24-bc-0-cs-441-q-440",
+  "S448-J6-DS2-CH25-ts-24-bc-0-cs-451-q-450",
+  "S448-J6-DS2-CH26-ts-24-bc-0-cs-461-q-460",
+  "S448-J6-DS2-CH42-ts-24-bc-0-cs-421-q-420"};
+
+std::vector<std::string> sampleInput = {
+  "S728-J1-DS0-CH3-ts-24-bc-0-cs-3-q-13-15-17",
+  "S728-J1-DS0-CH13-ts-24-bc-0-cs-3-q-133-135-137",
+  "S728-J1-DS0-CH23-ts-24-bc-0-cs-2-q-163-165",
+
+  "S361-J0-DS4-CH0-ts-24-bc-0-cs-3-q-10-12-14",
+  "S361-J0-DS4-CH1-ts-24-bc-0-cs-3-q-20-22-24",
+  "S361-J0-DS4-CH2-ts-24-bc-0-cs-3-q-30-32-34",
+  "S361-J0-DS4-CH3-ts-24-bc-0-cs-3-q-40-42-44",
+
+  "S448-J6-DS2-CH22-ts-24-bc-0-cs-3-q-420-422-424",
+  "S448-J6-DS2-CH23-ts-24-bc-0-cs-3-q-430-432-434",
+  "S448-J6-DS2-CH24-ts-24-bc-0-cs-3-q-440-442-444",
+  "S448-J6-DS2-CH25-ts-24-bc-0-cs-3-q-450-452-454",
+  "S448-J6-DS2-CH26-ts-24-bc-0-cs-3-q-460-462-464",
+  "S448-J6-DS2-CH42-ts-24-bc-0-cs-5-q-420-422-424-426-428"};
+
+template <typename ELECMAP, typename FORMAT, typename CHARGESUM, int VERSION>
+std::vector<std::byte> paginate(gsl::span<const std::byte> buffer, const std::string& tmpbasename)
+{
+  fair::Logger::SetConsoleSeverity("nolog");
+  o2::raw::RawFileWriter fw;
+
+  fw.setVerbosity(1);
+  fw.setDontFillEmptyHBF(true);
+
+  auto solar2LinkInfo = createSolar2LinkInfo<ELECMAP, FORMAT, CHARGESUM, VERSION>();
+
+  // only use the solarIds that are actually in this test buffer
+  // (to speed up the test)
+  std::set<LinkInfo> links;
+  for (auto solarId : {361, 448, 728}) {
+    links.insert(solar2LinkInfo(solarId).value());
+  }
+
+  registerLinks(fw, tmpbasename, links, false);
+
+  paginate(fw, buffer, links, solar2LinkInfo);
+
+  fw.close();
+
+  auto filename = fmt::format("{:s}.raw", tmpbasename);
+  std::ifstream in(filename, std::ifstream::binary);
+  if (in.fail()) {
+    throw std::runtime_error(fmt::format("could not open ", filename));
+  }
+  // get length of file:
+  in.seekg(0, in.end);
+  int length = in.tellg();
+  in.seekg(0, in.beg);
+  std::vector<std::byte> pages(length);
+
+  // read data as a block:
+  in.read(reinterpret_cast<char*>(&pages[0]), length);
+
+  return pages;
+}
+
 const char* sampaClusterFormat = "{}-CH{}-{}";
-
-template <typename FORMAT>
-struct isUserLogicFormat {
-  static constexpr bool value = false;
-};
-
-template <>
-struct isUserLogicFormat<UserLogicFormat> {
-  static constexpr bool value = true;
-};
-
-template <typename CHARGESUM>
-struct isChargeSumMode {
-  static constexpr bool value = false;
-};
-
-template <>
-struct isChargeSumMode<ChargeSumMode> {
-  static constexpr bool value = true;
-};
 
 // Create a vector of SampaCluster from a string d
 // where d is of the form ts-#-bc-#-cs-#-q-# or
@@ -55,7 +114,7 @@ std::vector<SampaCluster> getSampaClusters(const std::string& d)
 {
   std::vector<SampaCluster> clusters;
 
-  std::cout << "d: " << d << std::endl;
+  //std::cout << "d: " << d << std::endl;
 
   auto index = d.find("ts-");
   auto ts = std::stoi(d.substr(index + 3));
@@ -80,6 +139,20 @@ std::vector<SampaCluster> getSampaClusters(const std::string& d)
   return clusters;
 }
 
+std::set<DsElecId> getDs(gsl::span<std::string> data)
+{
+  std::set<DsElecId> dsids;
+  for (auto d : data) {
+    auto dsElecId = decodeDsElecId(d);
+    if (!dsElecId) {
+      std::cout << "Could not get dsElecId for " << d << "\n";
+      continue;
+    }
+    dsids.insert(dsElecId.value());
+  }
+  return dsids;
+}
+
 // create a raw data buffer from a list of strings
 // where each string is of the form
 // S#-J#-DS#-CH#-ts-#-bc-#-q-#
@@ -89,12 +162,20 @@ std::vector<SampaCluster> getSampaClusters(const std::string& d)
 // - first create a buffer of payloads using a PayloadEncoder
 // - then create the raw data itself (with proper RDHs) from the payload buffer
 //
-template <typename FORMAT, typename CHARGESUM>
+template <typename ELECMAP, typename FORMAT, typename CHARGESUM, int VERSION>
 std::vector<std::byte> createBuffer(gsl::span<std::string> data,
                                     uint32_t orbit = 12345, uint16_t bc = 678)
 {
-  auto encoder = createPayloadEncoder<FORMAT, CHARGESUM, true>();
+  const o2::raw::HBFUtils& hbfutils = o2::raw::HBFUtils::Instance();
+  o2::conf::ConfigurableParam::setValue<uint32_t>("HBFUtils", "orbitFirst", orbit);
+
+  auto encoder = createPayloadEncoder(createSolar2FeeLinkMapper<ELECMAP>(),
+                                      isUserLogicFormat<FORMAT>::value,
+                                      VERSION,
+                                      isChargeSumMode<CHARGESUM>::value);
   encoder->startHeartbeatFrame(orbit, bc);
+  std::set<DsElecId> dsElecIds = getDs(data);
+  encoder->addHeartbeatHeaders(dsElecIds);
   for (auto d : data) {
     auto dsElecId = decodeDsElecId(d);
     if (!dsElecId) {
@@ -110,33 +191,34 @@ std::vector<std::byte> createBuffer(gsl::span<std::string> data,
   std::vector<std::byte> buffer;
   encoder->moveToBuffer(buffer);
 
-  const o2::raw::HBFUtils& hbfutils = o2::raw::HBFUtils::Instance();
   o2::conf::ConfigurableParam::setValue<uint32_t>("HBFUtils", "orbitFirst", orbit);
-  std::vector<std::byte> out = o2::mch::raw::paginate(buffer,
-                                                      isUserLogicFormat<FORMAT>::value,
-                                                      isChargeSumMode<CHARGESUM>::value,
-                                                      fmt::format("mch-closure-codec-{}-{}.raw",
-                                                                  orbit, bc));
+  o2::conf::ConfigurableParam::setValue<uint32_t>("HBFUtils", "orbitFirstSampled", orbit);
+
+  std::vector<std::byte> out =
+    paginate<ELECMAP, FORMAT, CHARGESUM, VERSION>(buffer,
+                                                  fmt::format("mch-closure-codec-{}-{}.raw",
+                                                              orbit, bc));
   return out;
 }
 
 // method that is called by the decoder each time a SampaCluster is decoded.
 SampaChannelHandler handlePacketStoreAsVec(std::vector<std::string>& result)
 {
-  return [&result](DsElecId dsId, uint8_t channel, SampaCluster sc) {
+  return [&result](DsElecId dsId, DualSampaChannelId channel, SampaCluster sc) {
     result.emplace_back(fmt::format(sampaClusterFormat, asString(dsId), channel, asString(sc)));
   };
 }
 
 // decode the buffer and check its content against the expected vector of strings
+template <typename ELECMAP>
 bool testDecode(gsl::span<const std::byte> testBuffer, gsl::span<std::string> expected)
 {
   std::vector<std::string> result;
 
   DecodedDataHandlers handlers;
   handlers.sampaChannelHandler = handlePacketStoreAsVec(result);
-  auto pageDecoder = createPageDecoder(testBuffer, handlers);
-
+  auto pageDecoder = createPageDecoder(testBuffer, handlers,
+                                       createFeeLink2SolarMapper<ELECMAP>());
   auto parser = createPageParser();
 
   parser(testBuffer, pageDecoder);
@@ -156,60 +238,62 @@ bool testDecode(gsl::span<const std::byte> testBuffer, gsl::span<std::string> ex
     }
     return false;
   }
+
   return true;
 }
 
-BOOST_AUTO_TEST_SUITE(o2_mch_raw)
+struct BareGen {
+  using format = BareFormat;
+  using elecmap = ElectronicMapperGenerated;
+  static constexpr int version = 0;
+};
 
-BOOST_AUTO_TEST_SUITE(closure)
+struct UserLogicGen {
+  using format = UserLogicFormat;
+  using elecmap = ElectronicMapperGenerated;
+  static constexpr int version = 0;
+};
 
-std::vector<std::string> chargeSumInput = {
-  "S728-J1-DS0-CH3-ts-24-bc-0-cs-14-q-13",
-  "S728-J1-DS0-CH13-ts-24-bc-0-cs-134-q-133",
-  "S728-J1-DS0-CH23-ts-24-bc-0-cs-164-q-163",
+struct UserLogicGen1 {
+  using format = UserLogicFormat;
+  using elecmap = ElectronicMapperGenerated;
+  static constexpr int version = 1;
+};
 
-  "S361-J0-DS4-CH0-ts-24-bc-0-cs-11-q-10",
-  "S361-J0-DS4-CH1-ts-24-bc-0-cs-21-q-20",
-  "S361-J0-DS4-CH2-ts-24-bc-0-cs-31-q-30",
-  "S361-J0-DS4-CH3-ts-24-bc-0-cs-41-q-40",
+struct BareDummy {
+  using format = BareFormat;
+  using elecmap = ElectronicMapperDummy;
+  static constexpr int version = 0;
+};
 
-  "S448-J6-DS2-CH22-ts-24-bc-0-cs-421-q-420",
-  "S448-J6-DS2-CH23-ts-24-bc-0-cs-431-q-430",
-  "S448-J6-DS2-CH24-ts-24-bc-0-cs-441-q-440",
-  "S448-J6-DS2-CH25-ts-24-bc-0-cs-451-q-450",
-  "S448-J6-DS2-CH26-ts-24-bc-0-cs-461-q-460",
-  "S448-J6-DS2-CH42-ts-24-bc-0-cs-421-q-420"};
+struct UserLogicDummy {
+  using format = UserLogicFormat;
+  using elecmap = ElectronicMapperDummy;
+  static constexpr int version = 0;
+};
 
-typedef boost::mpl::list<BareFormat, UserLogicFormat> testTypes;
+struct UserLogicDummy1 {
+  using format = UserLogicFormat;
+  using elecmap = ElectronicMapperDummy;
+  static constexpr int version = 1;
+};
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(ClosureChargeSum, FORMAT, testTypes)
+typedef boost::mpl::list<BareGen, UserLogicGen, UserLogicGen1, BareDummy, UserLogicDummy, UserLogicDummy1> testTypes;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(ClosureChargeSum, T, testTypes)
 {
-  auto buffer = createBuffer<FORMAT, ChargeSumMode>(chargeSumInput);
-  testDecode(buffer, chargeSumInput);
+  auto buffer = createBuffer<typename T::elecmap,
+                             typename T::format,
+                             ChargeSumMode,
+                             T::version>(chargeSumInput);
+  testDecode<typename T::elecmap>(buffer, chargeSumInput);
 }
 
-std::vector<std::string> sampleInput = {
-  "S728-J1-DS0-CH3-ts-24-bc-0-cs-3-q-13-15-17",
-  "S728-J1-DS0-CH13-ts-24-bc-0-cs-3-q-133-135-137",
-  "S728-J1-DS0-CH23-ts-24-bc-0-cs-2-q-163-165",
-
-  "S361-J0-DS4-CH0-ts-24-bc-0-cs-3-q-10-12-14",
-  "S361-J0-DS4-CH1-ts-24-bc-0-cs-3-q-20-22-24",
-  "S361-J0-DS4-CH2-ts-24-bc-0-cs-3-q-30-32-34",
-  "S361-J0-DS4-CH3-ts-24-bc-0-cs-3-q-40-42-44",
-
-  "S448-J6-DS2-CH22-ts-24-bc-0-cs-3-q-420-422-424",
-  "S448-J6-DS2-CH23-ts-24-bc-0-cs-3-q-430-432-434",
-  "S448-J6-DS2-CH24-ts-24-bc-0-cs-3-q-440-442-444",
-  "S448-J6-DS2-CH25-ts-24-bc-0-cs-3-q-450-452-454",
-  "S448-J6-DS2-CH26-ts-24-bc-0-cs-3-q-460-462-464",
-  "S448-J6-DS2-CH42-ts-24-bc-0-cs-5-q-420-422-424-426-428"};
-
-BOOST_AUTO_TEST_CASE_TEMPLATE(ClosureSample, FORMAT, testTypes)
+BOOST_AUTO_TEST_CASE_TEMPLATE(ClosureSample, T, testTypes)
 {
-  auto buffer = createBuffer<FORMAT, SampleMode>(sampleInput);
-  testDecode(buffer, sampleInput);
+  auto buffer = createBuffer<typename T::elecmap,
+                             typename T::format,
+                             SampleMode,
+                             T::version>(sampleInput);
+  testDecode<typename T::elecmap>(buffer, sampleInput);
 }
-
-BOOST_AUTO_TEST_SUITE_END()
-BOOST_AUTO_TEST_SUITE_END()

@@ -10,7 +10,7 @@
 #include "FairLogger.h"
 
 #include "DataFormatsCPV/Digit.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
 #include <iostream>
 
 using namespace o2::cpv;

@@ -27,6 +27,14 @@ using namespace o2::analysis;
 
 namespace o2::aod
 {
+namespace hf_selcollision
+{
+DECLARE_SOA_COLUMN(WhyRejectColl, whyRejectColl, int); //!
+} // namespace hf_selcollision
+
+DECLARE_SOA_TABLE(HFSelCollision, "AOD", "HFSELCOLLISION", //!
+                  hf_selcollision::WhyRejectColl);
+
 namespace hf_seltrack
 {
 DECLARE_SOA_COLUMN(IsSelProng, isSelProng, int); //!
@@ -736,6 +744,26 @@ DECLARE_SOA_TABLE(HfCandProng3MCGen, "AOD", "HFCANDP3MCGEN", //!
                   hf_cand_prong3::OriginMCGen,
                   hf_cand_prong3::FlagMCDecayChanGen);
 
+// definition of columns and tables for D-Dbar correlation pairs
+namespace hf_correlation_ddbar
+{
+DECLARE_SOA_COLUMN(DeltaPhi, deltaPhi, float);
+DECLARE_SOA_COLUMN(DeltaEta, deltaEta, float);
+DECLARE_SOA_COLUMN(PtD, ptD, float);
+DECLARE_SOA_COLUMN(PtDbar, ptDbar, float);
+DECLARE_SOA_COLUMN(MD, mD, float);
+DECLARE_SOA_COLUMN(MDbar, mDbar, float);
+DECLARE_SOA_COLUMN(SignalStatus, signalStatus, int);
+} // namespace hf_correlation_ddbar
+DECLARE_SOA_TABLE(DDbarPair, "AOD", "DDBARPAIR",
+                  aod::hf_correlation_ddbar::DeltaPhi,
+                  aod::hf_correlation_ddbar::DeltaEta,
+                  aod::hf_correlation_ddbar::PtD,
+                  aod::hf_correlation_ddbar::PtDbar);
+DECLARE_SOA_TABLE(DDbarRecoInfo, "AOD", "DDBARRECOINFO",
+                  aod::hf_correlation_ddbar::MD,
+                  aod::hf_correlation_ddbar::MDbar,
+                  aod::hf_correlation_ddbar::SignalStatus);
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_HFSECONDARYVERTEX_H_

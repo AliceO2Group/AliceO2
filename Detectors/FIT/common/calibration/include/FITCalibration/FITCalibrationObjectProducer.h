@@ -14,6 +14,7 @@
 #include "FITCalibration/FITCalibrationApi.h"
 #include "FT0Calibration/FT0ChannelTimeCalibrationObject.h"
 #include "FT0Calibration/FT0ChannelTimeTimeSlotContainer.h"
+#include "FT0Calibration/FT0CalibTimeSlewing.h"
 #include "FITCalibration/FITCalibrationObjectProducer.h"
 #include "FT0Calibration/FT0DummyCalibrationObject.h" // delete this
 

@@ -137,6 +137,9 @@ class DigitDump : public CalibRawBase
   /// End event function
   void endEvent() final;
 
+  /// check duplicates and remove the if removeDuplicates is true
+  void checkDuplicates(bool removeDuplicates = false);
+
  private:
   std::unique_ptr<CalPad> mPedestal{}; ///< CalDet object with pedestal information
   std::unique_ptr<CalPad> mNoise{};    ///< CalDet object with noise

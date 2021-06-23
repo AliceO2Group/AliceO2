@@ -53,6 +53,8 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   }
   auto caliboffsets = mCCDBManager.get<o2::ft0::FT0ChannelTimeCalibrationObject>("FT0/Calibration/ChannelTimeOffset");
   mReco.SetChannelOffset(caliboffsets);
+  auto calibslew = mCCDBManager.get<std::array<TGraph, NCHANNELS>>("FT0/SlewingCorr");
+  mReco.SetSlew(calibslew);
   int nDig = digits.size();
   LOG(DEBUG) << " nDig " << nDig;
   mRecPoints.reserve(nDig);

@@ -23,6 +23,7 @@
 #include "DataFormatsFT0/ChannelData.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RawFileWriter.h"
+#include "FT0Base/Geometry.h"
 #include <TStopwatch.h>
 #include <cassert>
 #include <fstream>
@@ -40,11 +41,11 @@ namespace ft0
 class Digits2Raw
 {
 
-  static constexpr int Nchannels_FT0 = 208;
   static constexpr int Nchannels_PM = 12;
   static constexpr int NPMs = 20;
   static constexpr int GBTWordSize = 128; // with padding
   static constexpr int Max_Page_size = 8192;
+  static constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
 
  public:
   Digits2Raw() = default;

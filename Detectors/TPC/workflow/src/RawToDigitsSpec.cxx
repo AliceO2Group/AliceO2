@@ -49,6 +49,9 @@ class TPCDigitDumpDevice : public o2::framework::Task
     mUseOldSubspec = ic.options().get<bool>("use-old-subspec");
     const bool createOccupancyMaps = ic.options().get<bool>("create-occupancy-maps");
     mForceQuit = ic.options().get<bool>("force-quit");
+    mCheckDuplicates = ic.options().get<bool>("check-for-duplicates");
+    mRemoveDuplicates = ic.options().get<bool>("remove-duplicates");
+
     if (mUseOldSubspec) {
       LOGP(info, "Using old subspecification (CruId << 16) | ((LinkId + 1) << (CruEndPoint == 1 ? 8 : 0))");
     }
@@ -134,13 +137,20 @@ class TPCDigitDumpDevice : public o2::framework::Task
   bool mCalibDumped{false};
   bool mUseOldSubspec{false};
   bool mForceQuit{false};
+  bool mCheckDuplicates{false};
+  bool mRemoveDuplicates{false};
   uint64_t mActiveSectors{0};  ///< bit mask of active sectors
   std::vector<int> mSectors{}; ///< tpc sector configuration
 
   //____________________________________________________________________________
   void snapshotDigits(DataAllocator& output)
   {
-    mDigitDump.sortDigits();
+    if (mCheckDuplicates || mRemoveDuplicates) {
+      // iplicityly sorts
+      mDigitDump.checkDuplicates(mRemoveDuplicates);
+    } else {
+      mDigitDump.sortDigits();
+    }
     for (auto isector : mSectors) {
       o2::tpc::TPCSectorHeader header{isector};
       header.activeSectors = mActiveSectors;
@@ -180,6 +190,8 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, s
       {"force-quit", VariantType::Bool, false, {"force quit after max-events have been reached"}},
       {"pedestal-file", VariantType::String, "", {"file with pedestals and noise for zero suppression"}},
       {"create-occupancy-maps", VariantType::Bool, false, {"create occupancy maps and store them to local root file for debugging"}},
+      {"check-for-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and only report them"}},
+      {"remove-duplicates", VariantType::Bool, false, {"check if duplicate digits exist and remove them"}},
     } // end Options
   };  // end DataProcessorSpec
 }

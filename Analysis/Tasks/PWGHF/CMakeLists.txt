@@ -8,16 +8,6 @@
 # granted to it by virtue of its status as an Intergovernmental Organization or
 # submit itself to any jurisdiction.
 
-o2_add_dpl_workflow(qa-event-track
-                    SOURCES qaTask.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(qa-efficiency
-                    SOURCES qaTaskEfficiency.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME Analysis)
-
 o2_add_dpl_workflow(hf-track-index-skims-creator
                     SOURCES HFTrackIndexSkimsCreator.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils ROOT::EG
@@ -133,4 +123,17 @@ o2_add_dpl_workflow(hf-task-lc-tok0sp
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils
                     COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(hf-correlator-d0d0bar
+                    SOURCES HFCorrelatorD0D0bar.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
 
+o2_add_dpl_workflow(hf-correlator-dplusdminus
+                    SOURCES HFCorrelatorDplusDminus.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(hf-task-correlation-ddbar
+                    SOURCES taskCorrelationDDbar.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    COMPONENT_NAME Analysis)

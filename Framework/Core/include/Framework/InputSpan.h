@@ -13,9 +13,10 @@
 #include "Framework/DataRef.h"
 #include <functional>
 
-namespace o2
-{
-namespace framework
+extern template class std::function<o2::framework::DataRef(size_t)>;
+extern template class std::function<o2::framework::DataRef(size_t, size_t)>;
+
+namespace o2::framework
 {
 
 /// Mapping helper between the store of all inputs being processed and the
@@ -33,30 +34,18 @@ class InputSpan
   /// @a getter is the mapping between an element of the span referred by
   /// index and the buffer associated.
   /// @a size is the number of elements in the span.
-  InputSpan(std::function<DataRef(size_t)> getter, size_t size)
-    : mGetter{}, mNofPartsGetter{}, mSize{size}
-  {
-    mGetter = [getter](size_t index, size_t) -> DataRef {
-      return getter(index);
-    };
-  }
+  InputSpan(std::function<DataRef(size_t)> getter, size_t size);
 
   /// @a getter is the mapping between an element of the span referred by
   /// index and the buffer associated.
   /// @a size is the number of elements in the span.
-  InputSpan(std::function<DataRef(size_t, size_t)> getter, size_t size)
-    : mGetter{getter}, mNofPartsGetter{}, mSize{size}
-  {
-  }
+  InputSpan(std::function<DataRef(size_t, size_t)> getter, size_t size);
 
   /// @a getter is the mapping between an element of the span referred by
   /// index and the buffer associated.
   /// @nofPartsGetter is the getter for the number of parts associated with an index
   /// @a size is the number of elements in the span.
-  InputSpan(std::function<DataRef(size_t, size_t)> getter, std::function<size_t(size_t)> nofPartsGetter, size_t size)
-    : mGetter{getter}, mNofPartsGetter{nofPartsGetter}, mSize{size}
-  {
-  }
+  InputSpan(std::function<DataRef(size_t, size_t)> getter, std::function<size_t(size_t)> nofPartsGetter, size_t size);
 
   /// @a i-th element of the InputSpan
   DataRef get(size_t i, size_t partidx = 0) const
@@ -250,7 +239,6 @@ class InputSpan
   size_t mSize;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
 #endif // FRAMEWORK_INPUTSSPAN_H

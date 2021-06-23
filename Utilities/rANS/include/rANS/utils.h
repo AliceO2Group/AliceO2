@@ -12,5 +12,9 @@
 /// @author Michael Lettrich
 /// @since  2020-11-18
 /// @brief  header for utils
+#ifndef INCLUDE_RANS_UTILS__H_
+#define INCLUDE_RANS_UTILS__H_
 
-#include "utils/CombinedIterator.h"
+#include "rANS/utils/iterators.h"
+
+#endif /* INCLUDE_RANS_UTILS__H_ */

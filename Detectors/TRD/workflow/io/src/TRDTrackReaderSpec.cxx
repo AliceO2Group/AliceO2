@@ -61,7 +61,7 @@ void TRDTrackReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get("tracksTRD"));
   assert(mTree);
   mTree->SetBranchAddress("tracks", &mTracksPtr);
-  mTree->SetBranchAddress("trackTrig", &mTrigRecPtr);
+  mTree->SetBranchAddress("trgrec", &mTrigRecPtr);
   LOG(INFO) << "Loaded tree from " << filename << " with " << mTree->GetEntries() << " entries";
 }
 

@@ -33,6 +33,7 @@ class InputHelper
   static int addInputSpecsPVertex(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc);
   static int addInputSpecsSVertex(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs);
   static int addInputSpecsCosmics(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc);
+  static int addInputSpecsIRFramesITS(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs);
 };
 
 } // namespace globaltracking

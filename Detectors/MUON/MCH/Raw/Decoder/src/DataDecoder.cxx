@@ -23,6 +23,7 @@
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "MCHMappingInterface/Segmentation.h"
+#include "Framework/Logger.h"
 
 namespace o2
 {
@@ -87,11 +88,24 @@ static void patchPage(gsl::span<const std::byte> rdhBuffer, bool verbose)
 
 bool operator<(const DataDecoder::RawDigit& d1, const DataDecoder::RawDigit& d2)
 {
+  if (d1.getTime() == d2.getTime()) {
+    if (d1.getDetID() == d2.getDetID()) {
+      return d1.getPadID() < d2.getPadID();
+    }
+    return d1.getDetID() < d2.getDetID();
+  }
   return (d1.getTime() < d2.getTime());
+}
+
+std::string asString(const DataDecoder::RawDigit& d)
+{
+  return fmt::format("DE {:4d} PADID {:5d} ADC {:5d} TIME {} BX {}",
+                     d.getDetID(), d.getPadID(), d.getADC(), d.getTime(), d.getBunchCrossing());
 }
 
 std::ostream& operator<<(std::ostream& os, const DataDecoder::RawDigit& d)
 {
+  os << asString(d);
   return os;
 }
 
@@ -115,8 +129,11 @@ bool DataDecoder::RawDigit::operator==(const DataDecoder::RawDigit& other) const
   return digit == other.digit && info == other.info;
 }
 
-DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler, std::string mapCRUfile, std::string mapFECfile, bool ds2manu, bool verbose)
-  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose)
+DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
+                         uint32_t sampaBcOffset,
+                         std::string mapCRUfile, std::string mapFECfile,
+                         bool ds2manu, bool verbose, bool useDummyElecMap)
+  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mSampaTimeOffset(sampaBcOffset), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap)
 {
   init();
 }
@@ -130,6 +147,28 @@ static bool isValidDeID(int deId)
   }
 
   return false;
+}
+
+void DataDecoder::setFirstOrbitInTF(uint32_t orbit)
+{
+  constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
+  constexpr int TWENTYBITSATONE = 0xFFFFF;
+  if (!mFirstOrbitInRun) {
+    LOG(ERROR) << "[setFirstOrbitInTF] first orbit in run not set!";
+    return;
+  }
+  if (orbit < mFirstOrbitInRun) {
+    LOG(ERROR) << "[setFirstOrbitInTF] first TF orbit smaller than first orbit in run!";
+    return;
+  }
+
+  // the SAMPA BC value at the beginning of the TF is computed by counting the number of orbits
+  // since the beginning of the run, and then multiplying this number by the number of BC in one orbit.
+  // We then take the first 20 bits of the result to emulate the internal SAMPA BC counter.
+  uint64_t nOrbitsInRun = orbit - mFirstOrbitInRun.value();
+  uint64_t bc = (nOrbitsInRun * BCINORBIT + mSampaTimeOffset);
+  uint32_t bc20bits = bc & TWENTYBITSATONE;
+  mSampaTimeFrameStart = SampaTimeFrameStart(orbit, bc20bits);
 }
 
 void DataDecoder::decodeBuffer(gsl::span<const std::byte> buf)
@@ -203,28 +242,32 @@ void dumpOrbits(const std::unordered_set<OrbitInfo, OrbitInfoHash>& mOrbits)
 
 void DataDecoder::decodePage(gsl::span<const std::byte> page)
 {
-  size_t ndigits{0};
-
+  /*
+   * TODO: we should use the HBPackets to verify the synchronization between the SAMPA chips
   auto heartBeatHandler = [&](DsElecId dsElecId, uint8_t chip, uint32_t bunchCrossing) {
     SampaInfo sampaId;
     sampaId.chip = chip;
     sampaId.ds = dsElecId.elinkId();
     sampaId.solar = dsElecId.solarId();
 
-    mSampaTimeFrameStarts[sampaId.id].emplace(mOrbit, bunchCrossing);
     if (mDebug) {
       auto s = asString(dsElecId);
-      std::cout << "HeartBeat: " << s << "  ID " << sampaId.id << "  solar " << sampaId.solar << "  ds " << sampaId.ds << "  chip " << sampaId.chip
-                << "  mOrbit " << mOrbit << "  bunchCrossing " << bunchCrossing << std::endl;
+      LOGP(info, "HeartBeat: {} ID {} SOLAR {} ds {} chip {} -> bxcount {} orbit {} [ bc {} ]",
+           s, sampaId.id, csampaId.solar, csampaId.ds, csampaId.chip,
+           bunchCrossingCounter, mOrbit,
+           bunchCrossingCounter % 3564);
     }
   };
+   */
 
-  auto channelHandler = [&](DsElecId dsElecId, uint8_t channel, o2::mch::raw::SampaCluster sc) {
+  auto channelHandler = [&](DsElecId dsElecId, DualSampaChannelId channel,
+                            o2::mch::raw::SampaCluster sc) {
     if (mChannelHandler) {
       mChannelHandler(dsElecId, channel, sc);
     }
 
     if (mDs2manu) {
+      LOGP(error, "using ds2manu");
       channel = ds2manu(int(channel));
     }
 
@@ -245,6 +288,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
     }
 
     if (deId < 0 || dsIddet < 0 || !isValidDeID(deId)) {
+      LOGP(error, "got invalid DsDetId from dsElecId={}", asString(dsElecId));
       return;
     }
 
@@ -263,16 +307,9 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     // skip channels not associated to any pad
     if (padId < 0) {
+      LOGP(error, "got invalid padId from dsElecId={} dualSampaId={} channel={}", asString(dsElecId), dsIddet, channel);
       return;
     }
-
-    SampaInfo sampaInfo;
-    sampaInfo.chip = channel / 32;
-    sampaInfo.ds = dsElecId.elinkId();
-    sampaInfo.solar = dsElecId.solarId();
-    sampaInfo.sampaTime = sc.sampaTime;
-    sampaInfo.bunchCrossing = sc.bunchCrossing;
-    sampaInfo.orbit = mOrbit;
 
     RawDigit digit;
     digit.digit = o2::mch::Digit(deId, padId, digitadc, 0, sc.nofSamples());
@@ -287,18 +324,19 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
 
     if (mDebug) {
       RawDigit& lastDigit = mDigits.back();
-      std::cout << "DIGIT STORED:\n ORBIT " << mOrbitId << "  ADC " << lastDigit.getADC()
-                << " DE# " << lastDigit.getDetID() << " PadId " << lastDigit.getPadID()
-                << " time " << lastDigit.getSampaTime() << std::endl;
+      LOGP(info, "DIGIT STORED: ORBIT {} ADC {} DE {} PADID {} TIME {} BXCOUNT {}",
+           mOrbit, lastDigit.getADC(), lastDigit.getDetID(), lastDigit.getPadID(),
+           lastDigit.getSampaTime(), lastDigit.getBunchCrossing());
     }
-    ++ndigits;
   };
 
   patchPage(page, mDebug);
 
   auto& rdhAny = *reinterpret_cast<RDH*>(const_cast<std::byte*>(&(page[0])));
   mOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdhAny);
-  mOrbitId = mOrbit - mFirstTForbit;
+  if (mDebug) {
+    std::cout << "[decodeBuffer] mOrbit set to " << mOrbit << std::endl;
+  }
 
   if (mRdhHandler) {
     mRdhHandler(&rdhAny);
@@ -310,7 +348,7 @@ void DataDecoder::decodePage(gsl::span<const std::byte> page)
   if (!mDecoder) {
     DecodedDataHandlers handlers;
     handlers.sampaChannelHandler = channelHandler;
-    handlers.sampaHeartBeatHandler = heartBeatHandler;
+    //handlers.sampaHeartBeatHandler = heartBeatHandler;
     mDecoder = mFee2Solar ? o2::mch::raw::createPageDecoder(page, handlers, mFee2Solar)
                           : o2::mch::raw::createPageDecoder(page, handlers);
   }
@@ -322,7 +360,7 @@ int32_t DataDecoder::digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbi
   // bunch crossings are stored with 20 bits
   static const int32_t BCROLLOVER = (1 << 20);
   // number of bunch crossings in one orbit
-  static const int32_t BCINORBIT = o2::constants::lhc::LHCMaxBunches;
+  constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
 
   // We use the difference of orbits values to estimate the minimum and maximum allowed
   // difference in bunch crossings
@@ -350,7 +388,7 @@ int32_t DataDecoder::digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbi
   return static_cast<int32_t>(dBc);
 }
 
-void DataDecoder::computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStarts& sampaTimeFrameStarts, bool debug)
+void DataDecoder::computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug)
 {
   constexpr int32_t timeInvalid = DataDecoder::tfTimeInvalid;
   auto setDigitTime = [&](Digit& d, int32_t tfTime) {
@@ -363,28 +401,17 @@ void DataDecoder::computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart
   for (size_t di = 0; di < digits.size(); di++) {
     Digit& d = digits[di].digit;
     SampaInfo& info = digits[di].info;
-    std::optional<SampaTimeFrameStart>& tfStart = sampaTimeFrameStarts[info.id];
 
-    if (!tfStart) {
-      LOG(ERROR) << "\n[computeDigitsTime_] missing TimeFrame start for ID " << info.id << "  DS " << info.solar << ","
-                 << info.ds << " (J" << (info.ds / 5) + 1 << " B" << (info.ds % 5) << ")," << info.chip
-                 << "  pad " << d.getDetID() << "," << d.getPadID() << "  "
-                 << info.orbit << " " << info.tfTime << " " << info.bunchCrossing << " "
-                 << info.sampaTime << " " << info.getBXTime();
-      d.setTime(timeInvalid);
-      info.tfTime = timeInvalid;
-    } else {
-      int32_t tfTime = 0;
-      uint32_t bc = tfStart->mBunchCrossing;
-      uint32_t orbit = tfStart->mOrbit;
-      tfTime = DataDecoder::digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
-      if (debug) {
-        std::cout << "\n[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
-                  << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime << std::endl;
-      }
-      setDigitTime(d, tfTime);
-      info.tfTime = tfTime;
+    int32_t tfTime = 0;
+    uint32_t bc = sampaTimeFrameStart.mBunchCrossing;
+    uint32_t orbit = sampaTimeFrameStart.mOrbit;
+    tfTime = DataDecoder::digitsTimeDiff(orbit, bc, info.orbit, info.getBXTime());
+    if (debug) {
+      std::cout << "\n[computeDigitsTime_] hit " << info.orbit << "," << info.getBXTime()
+                << "    tfTime(1) " << orbit << "," << bc << "    diff " << tfTime << std::endl;
     }
+    setDigitTime(d, tfTime);
+    info.tfTime = tfTime;
 
     if (debug) {
       std::cout << "                     solar " << info.solar << "  ds " << info.ds << "  chip " << info.chip << std::endl;
@@ -410,10 +437,15 @@ static std::string readFileContent(std::string& filename)
 
 void DataDecoder::initElec2DetMapper(std::string filename)
 {
-  std::cout << "[initElec2DetMapper] filename=" << filename << std::endl;
   if (filename.empty()) {
-    mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
+    if (mUseDummyElecMap) {
+      LOGP(warning, "[initElec2DetMapper] Using dummy electronic mapping");
+      mElec2Det = createElec2DetMapper<ElectronicMapperDummy>();
+    } else {
+      mElec2Det = createElec2DetMapper<ElectronicMapperGenerated>();
+    }
   } else {
+    LOGP(info, "[initElec2DetMapper] filename={}", filename);
     ElectronicMapperString::sFecMap = readFileContent(filename);
     mElec2Det = createElec2DetMapper<ElectronicMapperString>();
   }
@@ -421,10 +453,15 @@ void DataDecoder::initElec2DetMapper(std::string filename)
 
 void DataDecoder::initFee2SolarMapper(std::string filename)
 {
-  std::cout << "[initFee2SolarMapper] filename=" << filename << std::endl;
   if (filename.empty()) {
-    mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
+    if (mUseDummyElecMap) {
+      LOGP(warning, "[initFee2SolarMapper] Using dummy electronic mapping");
+      mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperDummy>();
+    } else {
+      mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperGenerated>();
+    }
   } else {
+    LOGP(info, "[initFee2SolarMapper] filename={}", filename);
     ElectronicMapperString::sCruMap = readFileContent(filename);
     mFee2Solar = createFeeLink2SolarMapper<ElectronicMapperString>();
   }
@@ -450,7 +487,6 @@ void DataDecoder::init()
 //_________________________________________________________________________________________________
 void DataDecoder::reset()
 {
-  mSampaTimeFrameStarts.clear();
   mDigits.clear();
   mOrbits.clear();
 }

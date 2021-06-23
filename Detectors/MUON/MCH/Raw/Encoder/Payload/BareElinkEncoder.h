@@ -53,6 +53,8 @@ class ElinkEncoder<BareFormat, CHARGESUM>
   /// of this channel within one Sampa time window.
   void addChannelData(uint8_t chId, const std::vector<SampaCluster>& data);
 
+  void addHeartbeat(uint20_t bunchCrossing);
+
   /// Empty the bit stream.
   void clear();
 
@@ -142,6 +144,14 @@ void ElinkEncoder<BareFormat, CHARGESUM>::addChannelData(uint8_t chId, const std
   }
 }
 
+template <typename CHARGESUM>
+void ElinkEncoder<BareFormat, CHARGESUM>::addHeartbeat(uint20_t bunchCrossing)
+{
+  uint8_t chipAddress = impl::computeChipAddress(mElinkId, 0);
+  SampaHeader sh = sampaHeartbeat(chipAddress, bunchCrossing);
+  append50(sh.uint64());
+}
+
 /// append the data of a SampaCluster
 template <typename CHARGESUM>
 void ElinkEncoder<BareFormat, CHARGESUM>::append(const SampaCluster& sc)
@@ -149,20 +159,6 @@ void ElinkEncoder<BareFormat, CHARGESUM>::append(const SampaCluster& sc)
   append10(sc.nofSamples());
   append10(sc.sampaTime);
   appendCharges(sc);
-}
-
-template <>
-void ElinkEncoder<BareFormat, ChargeSumMode>::appendCharges(const SampaCluster& sc)
-{
-  append20(sc.chargeSum);
-}
-
-template <>
-void ElinkEncoder<BareFormat, SampleMode>::appendCharges(const SampaCluster& sc)
-{
-  for (auto& s : sc.samples) {
-    append10(s);
-  }
 }
 
 /// append one bit (either set or unset)

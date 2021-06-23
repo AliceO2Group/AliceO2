@@ -31,6 +31,7 @@
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplay + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplayLight + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplayHeavy + ;
+#pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsDisplayRenderer + ;
 #pragma link C++ class o2::gpu::GPUConfigurableParamGPUSettingsQA + ;
 
 #endif

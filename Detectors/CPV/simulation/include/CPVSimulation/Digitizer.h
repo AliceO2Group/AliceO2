@@ -11,12 +11,12 @@
 #ifndef ALICEO2_CPV_DIGITIZER_H
 #define ALICEO2_CPV_DIGITIZER_H
 
-#include "DataFormatsCPV/Digit.h"
 #include "CPVBase/Geometry.h"
-#include "CPVCalib/CalibParams.h"
-#include "CPVCalib/Pedestals.h"
-#include "CPVCalib/BadChannelMap.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
+#include "DataFormatsCPV/Digit.h"
+#include "DataFormatsCPV/CalibParams.h"
+#include "DataFormatsCPV/Pedestals.h"
+#include "DataFormatsCPV/BadChannelMap.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 

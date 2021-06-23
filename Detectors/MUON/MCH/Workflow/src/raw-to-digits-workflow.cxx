@@ -26,12 +26,20 @@
 
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/CompletionPolicyHelpers.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
 
 using namespace o2::framework;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
+  std::vector<ConfigParamSpec> options{
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+
+  o2::raw::HBFUtilsInitializer::addConfigOption(options);
+
+  std::swap(workflowOptions, options);
   workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
 }
 
@@ -40,14 +48,15 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 using namespace o2;
 using namespace o2::framework;
 
-WorkflowSpec defineDataProcessing(const ConfigContext& config)
+WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
 {
-  auto inputSpec = config.options().get<std::string>("dataspec");
+  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  WorkflowSpec specs;
+  auto inputSpec = configcontext.options().get<std::string>("dataspec");
+  WorkflowSpec wf{o2::mch::raw::getDecodingSpec(inputSpec)};
 
-  DataProcessorSpec producer = o2::mch::raw::getDecodingSpec(inputSpec);
-  specs.push_back(producer);
+  // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
 
-  return specs;
+  return std::move(wf);
 }

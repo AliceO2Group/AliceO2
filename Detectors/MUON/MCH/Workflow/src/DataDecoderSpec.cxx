@@ -34,14 +34,19 @@
 #include "Headers/RAWDataHeader.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "CommonConstants/LHCConstants.h"
+#include "DetectorsRaw/HBFUtils.h"
 
 #include "DataFormatsMCH/Digit.h"
 #include "MCHRawCommon/DataFormats.h"
+#include "MCHRawCommon/CoDecParam.h"
 #include "MCHRawDecoder/DataDecoder.h"
 #include "MCHRawDecoder/ROFFinder.h"
 #include "MCHRawElecMap/Mapper.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHWorkflow/DataDecoderSpec.h"
+
+//#define MCH_RAW_DATADECODER_DEBUG_DIGIT_TIME 1
 
 namespace o2
 {
@@ -69,13 +74,15 @@ class DataDecoderTask
     RdhHandler rdhHandler;
 
     auto ds2manu = ic.options().get<bool>("ds2manu");
+    auto sampaBcOffset = CoDecParam::Instance().sampaBcOffset;
     mDebug = ic.options().get<bool>("debug");
     mCheckROFs = ic.options().get<bool>("check-rofs");
     mDummyROFs = ic.options().get<bool>("dummy-rofs");
     auto mapCRUfile = ic.options().get<std::string>("cru-map");
     auto mapFECfile = ic.options().get<std::string>("fec-map");
-
-    mDecoder = new DataDecoder(channelHandler, rdhHandler, mapCRUfile, mapFECfile, ds2manu, mDebug);
+    auto useDummyElecMap = ic.options().get<bool>("dummy-elecmap");
+    mDecoder = new DataDecoder(channelHandler, rdhHandler, sampaBcOffset, mapCRUfile, mapFECfile, ds2manu, mDebug,
+                               useDummyElecMap);
   }
 
   //_________________________________________________________________________________________________
@@ -84,9 +91,16 @@ class DataDecoderTask
   {
     const auto* dh = o2::header::get<o2::header::DataHeader*>(pc.inputs().getByPos(0).header);
     mFirstTForbit = dh->firstTForbit;
-    mDecoder->setFirstTForbit(mFirstTForbit);
+
+    if (!mDecoder->getFirstOrbitInRun()) {
+      uint32_t firstRunOrbit = mFirstTForbit - dh->tfCounter * o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
+      mDecoder->setFirstOrbitInRun(firstRunOrbit);
+    }
+    mDecoder->setFirstOrbitInTF(mFirstTForbit);
+
     if (mDebug) {
-      std::cout << "[DataDecoderSpec::run] first orbit is " << mFirstTForbit << std::endl;
+      std::cout << "[DataDecoderSpec::run] first run orbit is " << mDecoder->getFirstOrbitInRun().value() << std::endl;
+      std::cout << "[DataDecoderSpec::run] first TF orbit is " << mFirstTForbit << std::endl;
     }
 
     // get the input buffer
@@ -133,7 +147,10 @@ class DataDecoderTask
 
     const RDH* rdh = reinterpret_cast<const RDH*>(raw);
     mFirstTForbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdh);
-    mDecoder->setFirstTForbit(mFirstTForbit);
+    if (!mDecoder->getFirstOrbitInRun()) {
+      mDecoder->setFirstOrbitInRun(mFirstTForbit);
+    }
+    mDecoder->setFirstOrbitInTF(mFirstTForbit);
 
     gsl::span<const std::byte> buffer(reinterpret_cast<const std::byte*>(raw), payloadSize);
     mDecoder->decodeBuffer(buffer);
@@ -142,6 +159,8 @@ class DataDecoderTask
   //_________________________________________________________________________________________________
   void run(framework::ProcessingContext& pc)
   {
+    static int32_t deltaMax = 0;
+
     auto createBuffer = [&](auto& vec, size_t& size) {
       size = vec.empty() ? 0 : sizeof(*(vec.begin())) * vec.size();
       char* buf = nullptr;
@@ -171,7 +190,25 @@ class DataDecoderTask
     }
     mDecoder->computeDigitsTime();
 
-    ROFFinder rofFinder(mDecoder->getDigits(), mFirstTForbit);
+    auto& digits = mDecoder->getDigits();
+    auto& orbits = mDecoder->getOrbits();
+
+#ifdef MCH_RAW_DATADECODER_DEBUG_DIGIT_TIME
+    constexpr int BCINORBIT = o2::constants::lhc::LHCMaxBunches;
+    int32_t bcMax = mNHBPerTF * 3564 - 1;
+    for (auto d : digits) {
+      if (d.getTime() < 0 || d.getTime() > bcMax) {
+        int32_t delta = d.getTime() - bcMax;
+        if (delta > deltaMax) {
+          deltaMax = delta;
+          std::cout << "Max digit time exceeded: TF ORBIT " << mDecoder->getFirstOrbitInTF().value() << "  DE# " << d.getDetID() << " PadId " << d.getPadID() << " ADC " << d.getADC()
+                    << " time " << d.getTime() << " (" << bcMax << ", delta=" << delta << ")" << std::endl;
+        }
+      }
+    }
+#endif
+
+    ROFFinder rofFinder(digits, mFirstTForbit);
     rofFinder.process(mDummyROFs);
 
     if (mDebug) {
@@ -183,8 +220,6 @@ class DataDecoderTask
       rofFinder.isRofTimeMonotonic();
       rofFinder.isDigitsTimeAligned();
     }
-
-    auto& orbits = mDecoder->getOrbits();
 
     // send the output buffer via DPL
     size_t digitsSize, rofsSize, orbitsSize;
@@ -226,6 +261,7 @@ o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec)
     Options{{"debug", VariantType::Bool, false, {"enable verbose output"}},
             {"cru-map", VariantType::String, "", {"custom CRU mapping"}},
             {"fec-map", VariantType::String, "", {"custom FEC mapping"}},
+            {"dummy-elecmap", VariantType::Bool, false, {"use dummy electronic mapping (for debug, temporary)"}},
             {"ds2manu", VariantType::Bool, false, {"convert channel numbering from Run3 to Run1-2 order"}},
             {"check-rofs", VariantType::Bool, false, {"perform consistency checks on the output ROFs"}},
             {"dummy-rofs", VariantType::Bool, false, {"disable the ROFs finding algorithm"}}}};

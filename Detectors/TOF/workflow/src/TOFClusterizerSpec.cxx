@@ -89,7 +89,7 @@ class TOFDPLClustererTask
     }
 
     o2::dataformats::CalibLHCphaseTOF lhcPhaseObj;
-    o2::dataformats::CalibTimeSlewingParamTOF channelCalibObj;
+    auto channelCalibObj = std::make_unique<o2::dataformats::CalibTimeSlewingParamTOF>();
 
     if (mUseCCDB) { // read calibration objects from ccdb
       // check LHC phase
@@ -101,20 +101,20 @@ class TOFDPLClustererTask
 
       // make a copy in global scope
       lhcPhaseObj = lhcPhaseObjTmp;
-      channelCalibObj = channelCalibObjTmp;
+      *channelCalibObj = channelCalibObjTmp;
     } else { // calibration objects set to zero
       lhcPhaseObj.addLHCphase(0, 0);
       lhcPhaseObj.addLHCphase(2000000000, 0);
 
       for (int ich = 0; ich < o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELS; ich++) {
-        channelCalibObj.addTimeSlewingInfo(ich, 0, 0);
+        channelCalibObj->addTimeSlewingInfo(ich, 0, 0);
         int sector = ich / o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
         int channelInSector = ich % o2::dataformats::CalibTimeSlewingParamTOF::NCHANNELXSECTOR;
-        channelCalibObj.setFractionUnderPeak(sector, channelInSector, 1);
+        channelCalibObj->setFractionUnderPeak(sector, channelInSector, 1);
       }
     }
 
-    o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, &channelCalibObj);
+    o2::tof::CalibTOFapi calibapi(long(0), &lhcPhaseObj, channelCalibObj.get());
 
     mClusterer.setCalibApi(&calibapi);
 

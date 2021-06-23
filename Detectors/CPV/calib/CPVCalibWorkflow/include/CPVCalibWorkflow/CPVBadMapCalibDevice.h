@@ -18,7 +18,7 @@
 // #include "Framework/ConfigParamRegistry.h"
 // #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
-#include "CPVCalib/BadChannelMap.h"
+#include "DataFormatsCPV/BadChannelMap.h"
 #include "CPVBase/Geometry.h"
 #include "TH2.h"
 

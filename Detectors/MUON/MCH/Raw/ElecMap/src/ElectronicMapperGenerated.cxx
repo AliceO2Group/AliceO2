@@ -125,4 +125,28 @@ std::function<std::optional<uint16_t>(FeeLinkId)>
   return impl::mapperFeeLink2Solar<ElectronicMapperGenerated>(feeLinkId2SolarId);
 }
 
+template <>
+std::set<uint16_t> getSolarUIDs<ElectronicMapperGenerated>(int deid)
+{
+  return impl::getSolarUIDs<ElectronicMapperGenerated>(deid);
+}
+
+template <>
+std::set<uint16_t> getSolarUIDs<ElectronicMapperGenerated>()
+{
+  return impl::getSolarUIDs<ElectronicMapperGenerated>();
+}
+
+template <>
+std::vector<std::string> solar2FeeLinkConsistencyCheck<ElectronicMapperGenerated>()
+{
+  return impl::solar2FeeLinkConsistencyCheck<ElectronicMapperGenerated>();
+}
+
+template <>
+std::set<DsElecId> getAllDs<ElectronicMapperGenerated>()
+{
+  return impl::getAllDs<ElectronicMapperGenerated>();
+}
+
 } // namespace o2::mch::raw

@@ -10,3 +10,4 @@
 
 add_subdirectory(simulation)
 add_subdirectory(workflow)
+add_subdirectory(macro)

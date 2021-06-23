@@ -19,8 +19,9 @@ o2_add_library(DataFormatsFT0
                         O2::Headers
                         O2::SimulationDataFormat
                         O2::CCDB
-	                      O2::DetectorsCalibration
-                        O2::FT0Base)
+                        O2::DetectorsCalibration
+                        O2::FT0Base
+                        O2::DataFormatsFIT)
 
 o2_target_root_dictionary(DataFormatsFT0
                           HEADERS include/DataFormatsFT0/Digit.h

@@ -14,10 +14,11 @@
 #include "Framework/Task.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
-#include "CPVCalib/CalibParams.h"
-#include "CPVCalib/BadChannelMap.h"
-#include "CPVCalib/Pedestals.h"
+#include "DataFormatsCPV/CalibParams.h"
+#include "DataFormatsCPV/BadChannelMap.h"
+#include "DataFormatsCPV/Pedestals.h"
 #include "CPVReconstruction/RawDecoder.h"
+#include "CCDB/BasicCCDBManager.h"
 
 namespace o2
 {
@@ -52,8 +53,8 @@ class RawToDigitConverterSpec : public framework::Task
   ///
   /// The following branches are linked:
   /// Input RawData: {"ROUT", "RAWDATA", 0, Lifetime::Timeframe}
-  /// Output cells: {"CPV", "CELLS", 0, Lifetime::Timeframe}
-  /// Output cells trigger record: {"CPV", "CELLSTR", 0, Lifetime::Timeframe}
+  /// Output cells: {"CPV", "DIGITS", 0, Lifetime::Timeframe}
+  /// Output cells trigger record: {"CPV", "DIGITTRIGREC", 0, Lifetime::Timeframe}
   /// Output HW errors: {"CPV", "RAWHWERRORS", 0, Lifetime::Timeframe}
   void run(framework::ProcessingContext& ctx) final;
 
@@ -62,8 +63,9 @@ class RawToDigitConverterSpec : public framework::Task
   char CheckHWAddress(short ddl, short hwAddress, short& fee);
 
  private:
-  int mDDL = 15;
-  bool mIsPedestalData;                             ///< No subtract pedestals if true
+  bool mIsPedestalData;                             ///< Do not subtract pedestals if true
+  bool mIsUsingCcdbMgr;                             ///< Are we using CCDB manager?
+  long mCurrentTimeStamp;                           ///< Current timestamp for CCDB querying
   std::unique_ptr<CalibParams> mCalibParams;        ///< CPV calibration
   std::unique_ptr<Pedestals> mPedestals;            ///< CPV pedestals
   std::unique_ptr<BadChannelMap> mBadMap;           ///< BadMap
@@ -72,10 +74,10 @@ class RawToDigitConverterSpec : public framework::Task
   std::vector<RawDecoderError> mOutputHWErrors;     ///< Errors occured in reading data
 };
 
-/// \brief Creating DataProcessorSpec for the CPV Cell Converter Spec
+/// \brief Creating DataProcessorSpec for the CPV Digit Converter Spec
 ///
 /// Refer to RawToDigitConverterSpec::run for input and output specs
-o2::framework::DataProcessorSpec getRawToDigitConverterSpec();
+o2::framework::DataProcessorSpec getRawToDigitConverterSpec(bool askDISTSTF = true);
 
 } // namespace reco_workflow
 

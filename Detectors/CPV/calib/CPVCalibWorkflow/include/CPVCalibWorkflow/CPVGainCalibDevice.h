@@ -16,7 +16,7 @@
 
 #include "Framework/Task.h"
 #include "Framework/WorkflowSpec.h"
-#include "CPVCalib/CalibParams.h"
+#include "DataFormatsCPV/CalibParams.h"
 #include "CPVBase/Geometry.h"
 #include "TH2.h"
 #include <string>
