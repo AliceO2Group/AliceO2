@@ -83,6 +83,7 @@ o2_add_library(Framework
                        src/O2ControlLabels.cxx
                        src/OutputSpec.cxx
                        src/PropertyTreeHelpers.cxx
+                       src/Plugins.cxx
                        src/RCombinedDS.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
