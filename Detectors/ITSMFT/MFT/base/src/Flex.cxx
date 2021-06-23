@@ -351,11 +351,11 @@ TGeoVolume* Flex::makeLines(Int_t nbsensors, Double_t length, Double_t widthflex
     length_line = length - Geometry::sConnectorOffset -
                   TMath::Nint((iline - 6) / 3) * SegmentationAlpide::SensorSizeCols -
                   SegmentationAlpide::SensorSizeCols / 2;
-    ts[iline] = new TGeoTranslation(Form("t%d", iline), length / 2 - length_line / 2 - Geometry::sConnectorOffset,
-                                    -2 * (iline - 6) * Geometry::sLineWidth + 0.5 - widthflex / 2, 0.);
+    ts[iline - 6] = new TGeoTranslation(Form("t%d", iline), length / 2 - length_line / 2 - Geometry::sConnectorOffset,
+                                        -2 * (iline - 6) * Geometry::sLineWidth + 0.5 - widthflex / 2, 0.);
     line[iline] = new TGeoBBox(Form("line%d", iline), length_line / 2, Geometry::sLineWidth / 2,
                                thickness / 2 + Geometry::sEpsilon);
-    layerl[iline] = new TGeoSubtraction(layern[iline - 1], line[iline], nullptr, ts[iline]);
+    layerl[iline] = new TGeoSubtraction(layern[iline - 1], line[iline], nullptr, ts[iline - 6]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d", iline), layerl[iline]);
     kTotalLinesNb++;
   }
