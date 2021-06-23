@@ -46,7 +46,7 @@ class ZDCDataReaderDPLSpec : public Task
 {
  public:
   ZDCDataReaderDPLSpec() = default;
-  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger);
+  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger);
   ~ZDCDataReaderDPLSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -57,7 +57,7 @@ class ZDCDataReaderDPLSpec : public Task
   RawReaderZDC mRawReader;
 };
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger);
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger);
 
 } // namespace zdc
 } // namespace o2

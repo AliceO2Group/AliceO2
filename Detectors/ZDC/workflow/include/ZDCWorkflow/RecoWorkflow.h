@@ -19,7 +19,7 @@ namespace o2
 {
 namespace zdc
 {
-framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const int verbosity, const bool enableDebugOut, const std::string ccdbURL);
+framework::WorkflowSpec getRecoWorkflow(const bool useMC, const bool disableRootInp, const bool disableRootOut, const int verbosity, const bool enableDebugOut);
 } // namespace zdc
 } // namespace o2
 #endif
