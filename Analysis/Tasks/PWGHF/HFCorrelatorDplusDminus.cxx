@@ -223,10 +223,10 @@ struct HfCorrelatorDplusDminusMcRec {
         outerParticleSign = -1; //Dminus (second daughter track is positive)
       }
       if (std::abs(candidate1.flagMCMatchRec()) == 1 << DecayType::DPlusToPiKPi) {
-        //fill invariant mass plots and generic info from Dplus/Dminus signal candidates
-        if (outerParticleSign == 1) { //matched as Dplus
+        //fill invariant mass plots and per-candidate distributions from Dplus/Dminus signal candidates
+        if (outerParticleSign == 1) { //reco and matched as Dplus
           registry.fill(HIST("hMassDplusMCRecSig"), InvMassDPlus(candidate1), candidate1.pt());
-        } else { //matched as Dminus
+        } else { //reco and matched as Dminus
           registry.fill(HIST("hMassDminusMCRecSig"), InvMassDPlus(candidate1), candidate1.pt());
         }
         registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
@@ -238,10 +238,10 @@ struct HfCorrelatorDplusDminusMcRec {
         registry.fill(HIST("hYMCRec"), YDPlus(candidate1));
         registry.fill(HIST("hSelectionStatusMCRec"), candidate1.isSelDplusToPiKPi());
       } else {
-        //fill invariant mass plots and generic info from Dplus/Dminus background candidates
-        if (outerParticleSign == 1) { //matched as Dplus
+        //fill invariant mass plots from Dplus/Dminus background candidates
+        if (outerParticleSign == 1) { //reco as Dplus
           registry.fill(HIST("hMassDplusMCRecBkg"), InvMassDPlus(candidate1), candidate1.pt());
-        } else { //matched as Dminus
+        } else { //reco as Dminus
           registry.fill(HIST("hMassDminusMCRecBkg"), InvMassDPlus(candidate1), candidate1.pt());
         }
       }
