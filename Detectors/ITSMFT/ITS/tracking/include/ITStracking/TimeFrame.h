@@ -215,7 +215,7 @@ inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int lay
 
 inline int TimeFrame::getClusterROF(int iLayer, int iCluster)
 {
-  return std::lower_bound(mROframesClusters[iLayer].begin(), mROframesClusters[iLayer].end(), iCluster + 1) - mROframesClusters[iLayer].begin() - 1;
+  return std::max(std::lower_bound(mROframesClusters[iLayer].begin(), mROframesClusters[iLayer].end(), iCluster + 1) - mROframesClusters[iLayer].begin() - 1, 0l);
 }
 
 inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId, int layerId) const
