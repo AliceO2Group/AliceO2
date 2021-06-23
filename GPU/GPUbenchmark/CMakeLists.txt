@@ -16,6 +16,7 @@ if(CUDA_ENABLED)
                   SOURCES benchmark.cxx
                           cuda/Kernels.cu
                   PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                        Boost::program_options
                   TARGETVARNAME targetName)
 endif()
 
@@ -30,7 +31,7 @@ if(HIP_ENABLED)
   if(EXISTS ${HIPIFY_EXECUTABLE})
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CU_KERNEL})
     message("Generating HIP kernel code ...")
-    execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} ${CU_KERNEL} | tee ${HIP_KERNEL_PATH}")
+    execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} ${CU_KERNEL} > ${HIP_KERNEL_PATH}")
   elseif()
     message(STATUS "Could not generate ${HIP_KERNEL} HIP kernel, skipping...")
   endif()
@@ -46,6 +47,7 @@ if(HIP_ENABLED)
                             hip/Kernels.hip.cxx
                     PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                           hip::host
+                                          Boost::program_options
                     TARGETVARNAME targetName)
 
   if(HIP_AMDGPUTARGET)
