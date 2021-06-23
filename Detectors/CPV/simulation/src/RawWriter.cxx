@@ -46,9 +46,11 @@ void RawWriter::init()
       LOG(ERROR) << "Host " << mCcdbUrl << " is not reachable!!!";
     }
     LOG(INFO) << "Using dummy calibration";
-    mCalibParams = std::make_unique<o2::cpv::CalibParams>(1);
+    mCalibParamsTst = std::make_unique<o2::cpv::CalibParams>(1);
+    mCalibParams = mCalibParamsTst.get();
     //mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
-    mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
+    mPedestalsTst = std::make_unique<o2::cpv::Pedestals>(1);
+    mPedestals = mPedestalsTst.get();
   } else {
     ccdbMgr.setCaching(true);                     //make local cache of remote objects
     ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
@@ -59,10 +61,11 @@ void RawWriter::init()
     ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
 
     LOG(INFO) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
-    mCalibParams.reset(ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains"));
+    mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
     if (!mCalibParams) {
       LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
-      mCalibParams = std::make_unique<o2::cpv::CalibParams>(1);
+      mCalibParamsTst = std::make_unique<o2::cpv::CalibParams>(1);
+      mCalibParams = mCalibParamsTst.get();
     }
 
     /*
@@ -75,10 +78,11 @@ void RawWriter::init()
     */
 
     LOG(INFO) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
-    mPedestals.reset(ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals"));
+    mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
     if (!mPedestals) {
       LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
-      mPedestals = std::make_unique<o2::cpv::Pedestals>(1);
+      mPedestalsTst = std::make_unique<o2::cpv::Pedestals>(1);
+      mPedestals = mPedestalsTst.get();
     }
     LOG(INFO) << "Task configuration is done.";
   }
