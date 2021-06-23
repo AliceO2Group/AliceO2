@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,6 +15,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
@@ -46,7 +48,10 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
     createRoute("z_source", spec3)};
   // First of all we test if an empty registry behaves as expected, raising a
   // bunch of exceptions.
-  InputRecord emptyRecord(schema, {[](size_t) { return DataRef{nullptr, nullptr, nullptr}; }, 0});
+  InputSpan span{
+    [](size_t) { return DataRef{nullptr, nullptr, nullptr}; },
+    0};
+  InputRecord emptyRecord(schema, span);
 
   BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), RuntimeErrorRef, any_exception);
   BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), RuntimeErrorRef, any_exception);
@@ -87,8 +92,8 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   createMessage(dh1, 1);
   createMessage(dh2, 2);
   createEmpty();
-  InputSpan span{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
-  InputRecord record{schema, std::move(span)};
+  InputSpan span2{[&inputs](size_t i) { return DataRef{nullptr, static_cast<char const*>(inputs[2 * i]), static_cast<char const*>(inputs[2 * i + 1])}; }, inputs.size() / 2};
+  InputRecord record{schema, span2};
 
   // Checking we can get the whole ref by name
   BOOST_CHECK_NO_THROW(record.get("x"));

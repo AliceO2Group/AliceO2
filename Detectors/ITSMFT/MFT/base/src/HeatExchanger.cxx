@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -3726,8 +3727,8 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
   mWater = gGeoManager->GetMedium("MFT_Water$");
   Float_t length1;
   Float_t length2;
-  Float_t rin;
-  Float_t rout;
+  Float_t rin = 0.25 / 2;
+  Float_t rout = 0.4 / 2;
   TGeoVolume* Tube1 = nullptr;
   TGeoVolume* Torus1 = nullptr;
   TGeoVolume* TubeW1 = nullptr;
@@ -3749,8 +3750,6 @@ void HeatExchanger::createCoolingPipes(Int_t half, Int_t disk)
     if (disk == 2) {
       length1 = 0.5;
     }
-    rin = 0.25 / 2;
-    rout = 0.4 / 2;
     Tube1 = gGeoManager->MakeTube(Form("Tube1_H%d_D%d", half, disk), mPipe, rin, rout, length1 / 2);
     TubeW1 = gGeoManager->MakeTube(Form("TubeW1_H%d_D%d", half, disk), mWater, 0., rin, length1 / 2);
     TGeoTranslation* tTube1 = new TGeoTranslation(0.0, 0.0, 0.0);

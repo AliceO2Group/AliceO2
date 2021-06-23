@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -31,10 +32,10 @@ namespace raw
     distribution of its signal.
     2) All HBF and TF (RAWDataHeaders with corresponding HB and TF trigger flags) are present
     in the emulated raw data, even if some of them had no data in particular detector.
-    
+
     The HBFUtils class provides tools for interaction record -> HBF conversion and sampling
     of IRs for which the HBF RDH should be added to the raw data from the CRU.
-    
+
     See testHBFUtils.cxx for the outline of generating HBF frames for simulated data.
   */
 
@@ -87,8 +88,8 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   void updateRDH(H& rdh, const IR& rec, bool setHBTF = true) const;
 
   /*//-------------------------------------------------------------------------------------
-    Fill provided vector (cleaned) by interaction records (bc/orbit) for HBFs, considering 
-    BCs between interaction records "fromIR"  and "toIR" (inclusive). 
+    Fill provided vector (cleaned) by interaction records (bc/orbit) for HBFs, considering
+    BCs between interaction records "fromIR"  and "toIR" (inclusive).
     This method provides the IRs for RDHs to add obligatory for the MC->raw conversion,
     in order to avoid missing HBFs (or even TFs)
     Typical use case: assume we are converting to RAW data the digits corresponding to triggers
@@ -124,6 +125,8 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   int fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& toIR) const;
 
   void print() const { printKeyValues(true); }
+
+  void checkConsistency() const;
 
   int nHBFPerTF = 256;     ///< number of orbits per BC
   uint32_t orbitFirst = 0; ///< orbit of 1st TF of the run

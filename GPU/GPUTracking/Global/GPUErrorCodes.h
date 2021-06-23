@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -32,3 +33,8 @@ GPUCA_ERROR_CODE(16, ERROR_MERGER_HIT_OVERFLOW)
 GPUCA_ERROR_CODE(17, ERROR_MERGER_TRACK_OVERFLOW)
 GPUCA_ERROR_CODE(18, ERROR_COMPRESSION_ROW_HIT_OVERFLOW)
 GPUCA_ERROR_CODE(19, ERROR_LOOPER_MATCH_OVERFLOW)
+GPUCA_ERROR_CODE(20, ERROR_CF_PEAK_OVERFLOW)
+GPUCA_ERROR_CODE(21, ERROR_CF_CLUSTER_OVERFLOW)
+GPUCA_ERROR_CODE(22, ERROR_CF_ROW_CLUSTER_OVERFLOW)
+GPUCA_ERROR_CODE(23, ERROR_CF_GLOBAL_CLUSTER_OVERFLOW)
+GPUCA_ERROR_CODE(24, MAX_OVERFLOW_ERROR_NUMBER) // Overflow errors are detected as errno <= MAX_OVERFLOW_ERROR_NUMBER

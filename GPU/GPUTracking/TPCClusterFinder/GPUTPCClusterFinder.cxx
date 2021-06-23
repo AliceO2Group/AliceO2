@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -75,12 +76,14 @@ void* GPUTPCClusterFinder::SetPointersOutput(void* mem)
 
 void* GPUTPCClusterFinder::SetPointersScratch(void* mem)
 {
-  computePointerWithAlignment(mem, mPpadHasLostBaseline, TPC_PADS_IN_SECTOR);
+  computePointerWithAlignment(mem, mPpadIsNoisy, TPC_PADS_IN_SECTOR);
   computePointerWithAlignment(mem, mPpositions, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPpeakPositions, mNMaxPeaks);
   computePointerWithAlignment(mem, mPfilteredPeakPositions, mNMaxClusters);
   if (mRec->GetProcessingSettings().runMC) {
     computePointerWithAlignment(mem, mPclusterPosInRow, mNMaxClusters);
+  } else {
+    mPclusterPosInRow = nullptr;
   }
   computePointerWithAlignment(mem, mPisPeak, mNMaxDigitsFragment);
   computePointerWithAlignment(mem, mPchargeMap, TPCMapMemoryLayout<decltype(*mPchargeMap)>::items());
@@ -110,8 +113,14 @@ void GPUTPCClusterFinder::RegisterMemoryAllocation()
 void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mNMaxPeaks = mRec->MemoryScalers()->NTPCPeaks(mNMaxDigitsFragment);
-  mNMaxClusters = mRec->MemoryScalers()->NTPCClusters(mNMaxDigitsFragment);
-  mNMaxClusterPerRow = 0.01f * mRec->MemoryScalers()->NTPCClusters(mNMaxDigits); // TODO: Can save some memory hery by using mNMaxClusters, and copying the computed clusters out after every fragment
+  mNMaxClusters = mRec->MemoryScalers()->NTPCClusters(mNMaxDigitsFragment, true);
+  mNMaxClusterPerRow = 0.01f * mRec->MemoryScalers()->NTPCClusters(mNMaxDigits, true); // TODO: Can save some memory hery by using mNMaxClusters, and copying the computed clusters out after every fragment
+  if (io.settingsTF && io.settingsTF->hasNHBFPerTF) {
+    unsigned int threshold = 300000 * io.settingsTF->nHBFPerTF / 128;                                                            // TODO: Probably one would need to do this on a row-basis for a better estimate, but currently not supported
+    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, std::min<unsigned int>(threshold, mNMaxClusterPerRow * 10)); // Relative increased value up until a threshold, for noisy pads
+    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, io.settingsTF->nHBFPerTF * 20000 / 256);                     // Absolute increased value, to have a minimum for noisy pads
+  }
+
   mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigitsFragment);
   mNBufs = getNSteps(mBufSize);
 }

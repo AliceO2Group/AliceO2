@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,6 +21,7 @@
 #include <chrono>
 #include <vector>
 #include <stdexcept>
+#include <string>
 
 #include <gsl/span>
 
@@ -32,6 +34,7 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 
+#include "CommonUtils/ConfigurableParam.h"
 #include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
@@ -55,6 +58,10 @@ class ClusterFinderOriginalTask
     /// Prepare the clusterizer
     LOG(INFO) << "initializing cluster finder";
 
+    auto config = ic.options().get<std::string>("config");
+    if (!config.empty()) {
+      o2::conf::ConfigurableParam::updateFromFile(config, "MCHClustering", true);
+    }
     bool run2Config = ic.options().get<bool>("run2-config");
     mClusterFinder.init(run2Config);
 
@@ -137,7 +144,8 @@ o2::framework::DataProcessorSpec getClusterFinderOriginalSpec()
             OutputSpec{{"clusters"}, "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterFinderOriginalTask>()},
-    Options{{"run2-config", VariantType::Bool, false, {"setup for run2 data"}}}};
+    Options{{"config", VariantType::String, "", {"JSON or INI file with clustering parameters"}},
+            {"run2-config", VariantType::Bool, false, {"setup for run2 data"}}}};
 }
 
 } // end namespace mch

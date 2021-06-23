@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,6 +23,7 @@
 #include "DetectorsRaw/HBFUtils.h"
 #include "CommonConstants/Triggers.h"
 #include "Framework/Logger.h"
+#include <filesystem>
 
 using namespace o2::raw;
 using IR = o2::InteractionRecord;
@@ -196,6 +198,7 @@ void RawFileWriter::addData(uint16_t feeid, uint16_t cru, uint8_t lnk, uint8_t e
     return;
   }
   if (ir < mFirstIRAdded) {
+    mHBFUtils.checkConsistency(); // done only once
     mFirstIRAdded = ir;
   }
   if (mDoLazinessCheck && !mCachingStage) {
@@ -450,7 +453,7 @@ void RawFileWriter::LinkData::addPreformattedCRUPage(const gsl::span<char> data)
     throw std::runtime_error("preformatted payload exceeds max size");
   }
   if (int(buffer.size()) - lastRDHoffset > sizeof(RDHAny)) { // we must start from empty page
-    addHBFPage();                                         // start new CRU page
+    addHBFPage();                                            // start new CRU page
   }
   pushBack(&data[0], data.size());
 }
@@ -645,11 +648,11 @@ void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir, bool dataAdded)
     if (writer->mVerbosity > 2) {
       LOG(INFO) << "Adding HBF " << ir << " for " << describe();
     }
-    closeHBFPage();                                     // close current HBF: add RDH with stop and update counters
-    RDHUtils::setTriggerType(rdhCopy, 0);               // reset to avoid any detector specific flags in the dummy HBFs
+    closeHBFPage();                                          // close current HBF: add RDH with stop and update counters
+    RDHUtils::setTriggerType(rdhCopy, 0);                    // reset to avoid any detector specific flags in the dummy HBFs
     writer->mHBFUtils.updateRDH<RDHAny>(rdhCopy, ir, false); // update HBF orbit/bc and trigger flags
-    openHBFPage(rdhCopy);                               // open new HBF
-    updateIR = ir + 1;                                  // new Trigger in RORC detector will be generated at >= this IR
+    openHBFPage(rdhCopy);                                    // open new HBF
+    updateIR = ir + 1;                                       // new Trigger in RORC detector will be generated at >= this IR
   }
 }
 
@@ -724,4 +727,24 @@ void RawFileWriter::DetLazinessCheck::completeLinks(RawFileWriter* wr, const IR&
     }
   }
   clear();
+}
+
+void o2::raw::assertOutputDirectory(std::string_view outDirName)
+{
+  if (!std::filesystem::exists(outDirName)) {
+#if defined(__clang__)
+    // clang `create_directories` implementation is misbehaving and can
+    // return false even if the directory is actually successfully created
+    // so we work around that "feature" by not checking the
+    // return value at all but using a second call to `exists`
+    std::filesystem::create_directories(outDirName);
+    if (!std::filesystem::exists(outDirName)) {
+      LOG(FATAL) << "could not create output directory " << outDirName;
+    }
+#else
+    if (!std::filesystem::create_directories(outDirName)) {
+      LOG(FATAL) << "could not create output directory " << outDirName;
+    }
+#endif
+  }
 }

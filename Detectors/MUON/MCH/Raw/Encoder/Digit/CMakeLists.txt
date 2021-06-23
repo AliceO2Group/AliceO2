@@ -1,34 +1,38 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(MCHRawEncoderDigit
         SOURCES
-        DigitEncoder.cxx
-        DigitReader.cxx
+        Digit2ElecMapper.cxx
+        DigitPayloadEncoder.cxx
+        DigitRawEncoder.cxx
+        DigitTreeReader.cxx
         PUBLIC_LINK_LIBRARIES
+        O2::DataFormatsParameters
         O2::MCHRawEncoderPayload)
 
-o2_add_executable(digit2json
-        SOURCES digit2json.cxx
+o2_add_executable(digits-to-json
+        SOURCES digits-to-json.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
         Boost::program_options
         O2::MCHMappingImpl4
         O2::MCHRawElecMap
-        O2::MCHSimulation
         O2::MCHRawEncoderDigit
+        O2::MCHSimulation
         O2::Steer
         fmt::fmt)
 
-o2_add_executable(digit2raw
-        SOURCES digit2raw.cxx
+o2_add_executable(digits-to-raw
+        SOURCES digits-to-raw.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES
         Boost::program_options
@@ -40,3 +44,9 @@ o2_add_executable(digit2raw
         O2::MCHSimulation
         O2::Steer
         fmt::fmt)
+
+o2_add_test(digit-tree-reader
+            SOURCES testDigitTreeReader.cxx
+            COMPONENT_NAME mch
+            LABELS muon mch
+            PUBLIC_LINK_LIBRARIES O2::MCHRawEncoderDigit)

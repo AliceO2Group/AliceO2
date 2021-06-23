@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,10 +17,11 @@
 
 namespace po = boost::program_options;
 
+template <typename ELECMAP>
 int dump(const o2::mch::raw::DsElecId& dsElecId,
          const o2::mch::raw::DsDetId& dsDetId)
 {
-  auto solar2fee = o2::mch::raw::createSolar2FeeLinkMapper<o2::mch::raw::ElectronicMapperGenerated>();
+  auto solar2fee = o2::mch::raw::createSolar2FeeLinkMapper<ELECMAP>();
   auto feelink = solar2fee(dsElecId.solarId());
   if (!feelink.has_value()) {
     std::cout << "Could not get FeeLinkId for solarId " << dsElecId.solarId() << "\n";
@@ -33,36 +35,38 @@ int dump(const o2::mch::raw::DsElecId& dsElecId,
   return 0;
 }
 
+template <typename ELECMAP>
 int convertElec2Det(uint16_t solarId, uint8_t groupId, uint8_t indexId)
 {
   try {
     std::cout << fmt::format("solarId {} groupId {} indexId {}\n",
                              solarId, groupId, indexId);
     o2::mch::raw::DsElecId dsElecId(solarId, groupId, indexId);
-    auto elec2det = o2::mch::raw::createElec2DetMapper<o2::mch::raw::ElectronicMapperGenerated>();
+    auto elec2det = o2::mch::raw::createElec2DetMapper<ELECMAP>();
     auto dsDetId = elec2det(dsElecId);
     if (!dsDetId.has_value()) {
       std::cout << o2::mch::raw::asString(dsElecId) << " is not (yet?) known to the electronic mapper\n";
       return 3;
     }
-    return dump(dsElecId, dsDetId.value());
+    return dump<ELECMAP>(dsElecId, dsDetId.value());
   } catch (const std::exception& e) {
     std::cout << e.what() << "\n";
     return 4;
   }
 }
 
+template <typename ELECMAP>
 int convertDet2Elec(int deId, int dsId)
 {
   try {
     o2::mch::raw::DsDetId dsDetId(deId, dsId);
-    auto det2elec = o2::mch::raw::createDet2ElecMapper<o2::mch::raw::ElectronicMapperGenerated>();
+    auto det2elec = o2::mch::raw::createDet2ElecMapper<ELECMAP>();
     auto dsElecId = det2elec(dsDetId);
     if (!dsElecId.has_value()) {
       std::cout << o2::mch::raw::asString(dsDetId) << " is not (yet?) known to the electronic mapper\n";
       return 3;
     }
-    return dump(dsElecId.value(), dsDetId);
+    return dump<ELECMAP>(dsElecId.value(), dsDetId);
   } catch (const std::exception& e) {
     std::cout << e.what() << "\n";
     return 5;
@@ -85,6 +89,7 @@ int main(int argc, char** argv)
   int indexId;
   int deId;
   int dsId;
+  bool dummyElecMap;
 
   po::variables_map vm;
   po::options_description generic("Generic options");
@@ -97,6 +102,7 @@ int main(int argc, char** argv)
       ("indexId,i",po::value<int>(&indexId),"index id")
       ("dsId,d",po::value<int>(&dsId),"dual sampa id")
       ("deId,e",po::value<int>(&deId),"detection element id")
+      ("dummy-elecmap",po::value<bool>(&dummyElecMap)->default_value(false),"use dummy electronic mapping (only for debug!)")
       ;
   // clang-format on
 
@@ -117,11 +123,21 @@ int main(int argc, char** argv)
   }
 
   if (vm.count("solarId") && vm.count("groupId") && vm.count("indexId")) {
-    return convertElec2Det(static_cast<uint16_t>(solarId),
-                           static_cast<uint8_t>(groupId),
-                           static_cast<uint8_t>(indexId));
+    if (dummyElecMap) {
+      return convertElec2Det<o2::mch::raw::ElectronicMapperDummy>(static_cast<uint16_t>(solarId),
+                                                                  static_cast<uint8_t>(groupId),
+                                                                  static_cast<uint8_t>(indexId));
+    } else {
+      return convertElec2Det<o2::mch::raw::ElectronicMapperGenerated>(static_cast<uint16_t>(solarId),
+                                                                      static_cast<uint8_t>(groupId),
+                                                                      static_cast<uint8_t>(indexId));
+    }
   } else if (vm.count("deId") && vm.count("dsId")) {
-    return convertDet2Elec(deId, dsId);
+    if (dummyElecMap) {
+      return convertDet2Elec<o2::mch::raw::ElectronicMapperDummy>(deId, dsId);
+    } else {
+      return convertDet2Elec<o2::mch::raw::ElectronicMapperGenerated>(deId, dsId);
+    }
   } else {
     std::cout << "Incorrect mix of options\n";
     return usage(generic);

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,27 +18,34 @@
 #include <string>
 #include <sstream>
 
+#define qon_mcat(a, b) a##b
+#define qon_mxcat(a, b) qon_mcat(a, b)
+#define qon_mcat3(a, b, c) a##b##c
+#define qon_mxcat3(a, b, c) qon_mcat3(a, b, c)
+#define qon_mstr(a) #a
+#define qon_mxstr(a) qon_mstr(a)
+
 namespace qConfig
 {
 template <class T>
-std::string print_type(T val)
+inline std::string print_type(T val)
 {
   std::ostringstream s;
   s << val;
   return s.str();
 };
 template <>
-std::string print_type<char>(char val)
+inline std::string print_type<char>(char val)
 {
   return std::to_string(val);
 };
 template <>
-std::string print_type<unsigned char>(unsigned char val)
+inline std::string print_type<unsigned char>(unsigned char val)
 {
   return std::to_string(val);
 };
 template <>
-std::string print_type<bool>(bool val)
+inline std::string print_type<bool>(bool val)
 {
   return val ? "true" : "false";
 };

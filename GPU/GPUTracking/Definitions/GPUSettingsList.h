@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -157,8 +158,10 @@ AddOption(prefetchTPCpageScan, char, 0, "", 0, "Prefetch Data for TPC page scan 
 AddOption(runMC, bool, false, "", 0, "Process MC labels")
 AddOption(runQA, int, 0, "qa", 'q', "Enable tracking QA (negative number to provide bitmask for QA tasks)", message("Running QA: %s"), def(1))
 AddOption(outputSharedClusterMap, bool, false, "", 0, "Ship optional shared cluster map as output for further use")
+AddOption(disableTPCNoisyPadFilter, bool, false, "", 0, "Disables all TPC noisy pad filters (Not the normal noise filter!)")
 AddOption(createO2Output, char, 2, "", 0, "Create Track output in O2 format (2 = skip non-O2 output in GPU track format (reverts to =1 if QA is requested))")
 AddOption(clearO2OutputFromGPU, bool, false, "", 0, "Free the GPU memory used for O2 output after copying to host, prevents further O2 processing on the GPU")
+AddOption(ignoreNonFatalGPUErrors, bool, false, "", 0, "Continue running after having received non fatal GPU errors, e.g. abort due to overflow")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayBackend*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
@@ -193,6 +196,7 @@ AddOption(drawTPC, bool, true, "", 0, "Enable drawing TPC data")
 AddOption(drawTRD, bool, true, "", 0, "Enabale drawing TRD data")
 AddOption(drawTOF, bool, true, "", 0, "Enabale drawing TOF data")
 AddOption(drawITS, bool, true, "", 0, "Enabale drawing ITS data")
+AddOption(invertColors, bool, false, "", 0, "Invert colors")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -203,8 +207,37 @@ AddOption(drawITSTracks, bool, true, "", 0, "Show tracks with ITS contribution")
 AddOption(drawTRDTracks, bool, true, "", 0, "Show tracks with TRD contribution")
 AddOption(drawTOFTracks, bool, true, "", 0, "Show tracks with TOF contribution")
 AddOption(drawTracksAndFilter, bool, false, "", 0, "Use AND filter instead of OR filter for selecting tracks")
+AddOption(propagateLoopers, bool, false, "", 0, "Enabale propagation of loopers")
 AddOption(clustersOnly, bool, false, "", 0, "Visualize clusters only")
 AddOption(clustersOnNominalRow, bool, false, "", 0, "Show clusters at nominal x of pad row for early-transformed data")
+AddOption(separateGlobalTracks, bool, false, "", 0, "Separate global tracks")
+AddOption(markClusters, int, 0, "", 0, "Mark clusters")
+AddOption(markFakeClusters, int, 0, "", 0, "Mark fake clusters")
+AddOption(markAdjacentClusters, int, 0, "", 0, "Mark adjacent clusters")
+AddOption(hideRejectedClusters, int, 1, "", 0, "Hide rejected clusters")
+AddOption(hideRejectedTracks, int, 1, "", 0, "Hide rejected tracks")
+AddOption(hideUnmatchedClusters, int, 0, "", 0, "Hide unmatched clusters")
+AddOption(trackFilter, int, 0, "", 0, "Apply filter on tracks to be displayed")
+AddOption(projectXY, int, 0, "", 0, "Project everything on the XY-plane")
+AddOption(xAdd, float, 0, "", 0, "Separate sectors, increase X coordinate")
+AddOption(zAdd, float, 0, "", 0, "Separate sides, increase Z coordinate")
+AddHelp("help", 'h')
+EndConfig()
+
+// Camera, window, and renderer settings for the event display
+BeginSubConfig(GPUSettingsDisplayRenderer, renderer, configStandalone.display, "GLR", 'g', "Camera / window / renderer OpenGL display settings", display_camera)
+AddOption(camLookOrigin, bool, false, "", 0, "Make the camera look at the origin")
+AddOption(camYUp, bool, false, "", 0, "Orient the camera such that the y-axis is always upwards")
+AddOption(cameraMode, int, 0, "", 0, "Camera mode")
+AddOption(fullScreen, bool, false, "", 0, "Full Screen")
+AddOption(maximized, bool, false, "", 0, "Full Screen")
+AddOption(openGLCore, bool, false, "", 0, "Use renderer path for OpenGL core profile")
+AddOption(drawQualityMSAA, int, 0, "", 0, "MultiSample Anti Aliasing")
+AddOption(drawQualityDownsampleFSAA, int, 0, "", 0, "Downsampling Anti Aliasing")
+AddOption(drawQualityVSync, bool, false, "", 0, "Enable Vertical Sync")
+AddOption(maxFPSRate, int, 0, "", 0, "Do not limit FPS but run at maximum possible rate")
+AddOption(useGLIndirectDraw, bool, true, "", 0, "Use OpenGL indirect draws to reduce number of draw calls")
+AddOption(screenshotScaleFactor, int, 1, "", 0, "Resolution scale factor when taking screenshots")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -213,6 +246,7 @@ BeginSubConfig(GPUSettingsDisplay, display, configStandalone, "GL", 'g', "OpenGL
 AddOption(showTPCTracksFromO2Format, bool, false, "", 0, "Use TPC tracks in O2 output format instead of GPU format")
 AddSubConfig(GPUSettingsDisplayLight, light)
 AddSubConfig(GPUSettingsDisplayHeavy, heavy)
+AddSubConfig(GPUSettingsDisplayRenderer, renderer)
 AddHelp("help", 'h')
 EndConfig()
 
@@ -320,7 +354,7 @@ AddOption(zsFilter, int, -1, "", 0, "Apply Zero-Suppression when loading digits 
 AddOption(zs12bit, bool, true, "", 0, "Perform 12 bit zero-suppression encoding / filter")
 AddOption(dumpEvents, bool, false, "", 0, "Dump events (after transformation such as encodeZS")
 AddOption(stripDumpedEvents, bool, false, "", 0, "Remove redundant inputs (e.g. digits and ZS) before dumping")
-AddOption(printSettings, bool, false, "", 0, "Print all settings")
+AddOption(printSettings, int, 0, "", 0, "Print all settings", def(1))
 AddOption(memoryStat, bool, false, "", 0, "Print memory statistics")
 AddOption(testSyncAsync, bool, false, "syncAsync", 0, "Test first synchronous and then asynchronous processing")
 AddOption(testSync, bool, false, "sync", 0, "Test settings for synchronous phase")
@@ -335,7 +369,6 @@ AddOption(rundEdx, int, -1, "", 0, "Enable dEdx processing")
 AddOption(runCompression, int, 1, "", 0, "Enable TPC Compression")
 AddOption(runTransformation, int, 1, "", 0, "Enable TPC Transformation")
 AddOption(runRefit, bool, false, "", 0, "Enable final track refit")
-AddOption(memoryBufferScaleFactor, float, 1.f, "", 0, "Factor to scale buffer size estimations")
 AddHelp("help", 'h')
 AddHelpAll("helpall", 'H')
 AddSubConfig(GPUSettingsRec, rec)
@@ -364,8 +397,8 @@ AddOption(matLUTFile, std::string, "", "", 0, "File name of material LUT file")
 AddOption(gainCalibFile, std::string, "", "", 0, "File name of TPC pad gain calibration")
 AddOption(allocateOutputOnTheFly, bool, true, "", 0, "Allocate shm output buffers on the fly, instead of using preallocated buffer with upper bound size")
 AddOption(outputBufferSize, unsigned long, 200000000ul, "", 0, "Size of the output buffers to be allocated")
-AddOption(memoryBufferScaleFactor, float, 1.f, "", 0, "Factor to scale buffer size estimations")
 AddOption(mutexMemReg, bool, false, "", 0, "Global mutex to serialize GPU memory registration")
+AddOption(printSettings, int, 0, "", 0, "Print all settings", def(1))
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

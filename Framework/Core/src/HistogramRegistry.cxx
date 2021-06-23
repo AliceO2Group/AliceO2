@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,6 +15,46 @@
 
 namespace o2::framework
 {
+
+constexpr HistogramRegistry::HistName::HistName(char const* const name)
+  : str(name),
+    hash(compile_time_hash(name)),
+    idx(hash & REGISTRY_BITMASK)
+{
+}
+
+HistogramRegistry::HistogramRegistry(char const* const name, std::vector<HistogramSpec> histSpecs, OutputObjHandlingPolicy policy, bool sortHistos, bool createRegistryDir)
+  : mName(name), mPolicy(policy), mRegistryKey(), mRegistryValue(), mSortHistos(sortHistos), mCreateRegistryDir(createRegistryDir)
+{
+  mRegistryKey.fill(0u);
+  for (auto& histSpec : histSpecs) {
+    insert(histSpec);
+  }
+}
+
+// return the OutputSpec associated to the HistogramRegistry
+OutputSpec const HistogramRegistry::spec()
+{
+  header::DataDescription desc{};
+  auto lhash = compile_time_hash(mName.data());
+  std::memset(desc.str, '_', 16);
+  std::stringstream s;
+  s << std::hex << lhash;
+  s << std::hex << mTaskHash;
+  s << std::hex << reinterpret_cast<uint64_t>(this);
+  std::memcpy(desc.str, s.str().data(), 12);
+  return OutputSpec{OutputLabel{mName}, "ATSK", desc, 0};
+}
+
+OutputRef HistogramRegistry::ref()
+{
+  return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash}}};
+}
+
+void HistogramRegistry::setHash(uint32_t hash)
+{
+  mTaskHash = hash;
+}
 
 // create histogram from specification and insert it into the registry
 void HistogramRegistry::insert(const HistogramSpec& histSpec)

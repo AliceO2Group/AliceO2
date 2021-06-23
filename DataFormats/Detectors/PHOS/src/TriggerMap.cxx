@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,22 +23,42 @@ using namespace o2::phos;
 
 TriggerMap::TriggerMap(int param) : mVersion(param)
 {
-  if (mVersion >= mParamDescr.size()) {
-    LOG(ERROR) << "impossible parameterization " << mVersion;
-    LOG(ERROR) << "Available are:";
-    for (int i = 0; i < mParamDescr.size(); i++) {
-      LOG(ERROR) << i << " : " << mParamDescr[i];
-    }
-    return;
+  // create default object
+  // empty (all channels good) bad maps and
+  // uniform turn-on curves for DDLs
+  mParamDescr.emplace_back("TestDefault");
+  std::array<std::array<float, NMAXPAR>, NDDL> a;
+  for (int iDDL = 0; iDDL < NDDL; iDDL++) {
+    a[iDDL].fill(0);
+    a[iDDL][0] = 1.;  //only one step
+    a[iDDL][1] = 4.;  //threshold
+    a[iDDL][2] = 0.5; //width
   }
-  LOG(INFO) << "Will use parameterization " << mParamDescr[mVersion];
-  mCurrentSet = mParamSets[mVersion];
+  mParamSets.emplace_back(a);
+  mCurrentSet = mParamSets[0];
+  mVersion = 0;
 }
 
 void TriggerMap::addTurnOnCurvesParams(std::string_view versionName, std::array<std::array<float, 10>, 14>& params)
 {
   mParamDescr.emplace_back(versionName);
   mParamSets.emplace_back(params);
+}
+
+void TriggerMap::setTurnOnCurvesVestion(int v)
+{
+  if (v >= mParamDescr.size()) {
+    LOG(ERROR) << "impossible parameterization " << v;
+    LOG(ERROR) << "Available are:";
+    for (int i = 0; i < mParamDescr.size(); i++) {
+      LOG(ERROR) << i << " : " << mParamDescr[i];
+    }
+    LOG(ERROR) << " keep current " << mParamDescr[mVersion];
+    return;
+  }
+  mVersion = v;
+  LOG(INFO) << "Will use parameterization " << mParamDescr[mVersion];
+  mCurrentSet = mParamSets[mVersion];
 }
 
 bool TriggerMap::selectTurnOnCurvesParams(std::string_view versionName)

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,6 +19,7 @@
 #include <sstream>
 #include <SimConfig/SimConfig.h>
 #include <DetectorsBase/Detector.h>
+#include "DetectorsBase/Aligner.h"
 #include <CommonUtils/ShmManager.h>
 #include <cassert>
 #include <SimulationDataFormat/MCEventHeader.h>
@@ -136,7 +138,9 @@ bool O2MCApplicationBase::MisalignGeometry()
     }
   }
 
-  auto b = FairMCApplication::MisalignGeometry();
+  // RS We want to store ideal geometry to be able to apply different alignments on the fly
+  // auto b = FairMCApplication::MisalignGeometry();
+
   // we use this moment to stream our geometry (before other
   // VMC engine dependent modifications are done)
 
@@ -144,8 +148,12 @@ bool O2MCApplicationBase::MisalignGeometry()
   auto geomfile = o2::base::NameConf::getGeomFileName(confref.getOutPrefix());
   gGeoManager->Export(geomfile.c_str());
 
+  // apply alignment for included detectors AFTER exporting ideal geometry
+  auto& aligner = o2::base::Aligner::Instance();
+  aligner.applyAlignment(0);
+
   // return original return value of misalignment procedure
-  return b;
+  return true;
 }
 
 void O2MCApplicationBase::finishEventCommon()

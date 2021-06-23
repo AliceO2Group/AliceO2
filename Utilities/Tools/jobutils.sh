@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 #
 # author: Sandro Wenzel
 
@@ -111,7 +112,8 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "${command};" > ${SCRIPTNAME}
+  echo "export LIBC_FATAL_STDERR_=1" > ${SCRIPTNAME}        # <--- needed ... otherwise the LIBC fatal messages appear on a different tty
+  echo "${command};" >> ${SCRIPTNAME}
   echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
   chmod +x ${SCRIPTNAME}
 
@@ -173,15 +175,16 @@ taskwrapper() {
     # - segmentation violation
     # - there was a crash
     # - bus error (often occuring with shared mem)
-    pattern="-e \"xception\"                        \
+    pattern="-e \"\<[Ee]xception\"                  \
              -e \"segmentation violation\"          \
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
              -e \"Fatal in\"                        \
              -e \"libc++abi.*terminating\"          \
-             -e \"There was a crash.\""
-      
+             -e \"There was a crash.\"              \
+             -e \"\*\*\* Error in\""                  # <--- LIBC fatal error messages
+
     grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
     eval ${grepcommand}
     
@@ -210,7 +213,7 @@ taskwrapper() {
 
       sleep 2
 
-      taskwrapper_cleanup ${PID} SIGKILL
+      [ ! "${JOBUTILS_DEBUGMODE}" ] && taskwrapper_cleanup ${PID} SIGKILL
 
       RC_ACUM=$((RC_ACUM+1))
       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null

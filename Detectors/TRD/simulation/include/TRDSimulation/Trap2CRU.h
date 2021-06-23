@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -45,6 +46,8 @@ class Trap2CRU
   std::string getFilePer() { return mFilePer; };
   void setOutputDir(std::string outdir) { mOutputDir = outdir; };
   std::string getOutputDir() { return mOutputDir; };
+  void setDigitRate(int digitrate) { mDigitRate = digitrate; };
+  int getDigitRate() { return mDigitRate; };
   int getVerbosity() { return mVerbosity; }
   void setVerbosity(int verbosity) { mVerbosity = verbosity; }
   void sortDataToLinks();
@@ -55,7 +58,7 @@ class Trap2CRU
   void setTrackletHCHeader(bool tracklethcheader) { mUseTrackletHCHeader = tracklethcheader; }
   bool isTrackletOnLink(int link, int trackletpos); // is the current tracklet on the the current link
   bool isDigitOnLink(int link, int digitpos);       // is the current digit on the current link
-  int buildDigitRawData(const int digitindex, const std::array<int64_t, 21>& localParseDigits, const uint32_t triggercount);
+  int buildDigitRawData(const int digitstartindex, const int digitendindex, const int mcm, const int rob, const uint32_t triggercount);
   int buildTrackletRawData(const int trackletindex, const int linkid); // from the current position in the tracklet vector, build the outgoing data for the current mcm the tracklet is on.
   int writeDigitEndMarker();                                           // write the digit end marker 0x0 0x0
   int writeTrackletEndMarker();                                        // write the tracklet end maker 0x10001000 0x10001000
@@ -76,9 +79,11 @@ class Trap2CRU
   std::string mFilePer; // how to split up the raw data files, sm:per supermodule, halfcru: per half cru, cru: per cru, all: singular file.
   //  std::string mInputFileName;
   std::string mOutputFileName;
-  int mVerbosity = 0;
+  int mVerbosity{0};
   std::string mOutputDir;
   uint32_t mSuperPageSizeInB;
+  int mDigitRate = 1000;
+  int mEventDigitCount = 0;
   //HalfCRUHeader mHalfCRUHeader;
   //TrackletMCMHeader mTrackletMCMHeader;
   // TrackletMCMData mTrackletMCMData;
@@ -106,7 +111,6 @@ class Trap2CRU
   std::vector<uint32_t> mTrackletsIndex;
   std::vector<o2::trd::TriggerRecord> mTrackletTriggerRecords;
   std::vector<o2::trd::TriggerRecord>* mTrackletTriggerRecordsPtr = &mTrackletTriggerRecords;
-
   uint64_t mCurrentTracklet{0}; //the tracklet we are currently busy adding
   uint64_t mCurrentDigit{0};    //the digit we are currently busy adding
 

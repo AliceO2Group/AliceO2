@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -25,6 +26,7 @@
 #include <stdexcept>
 #include <vector>
 #include <sstream>
+#include <set>
 
 namespace o2::mch::raw
 {
@@ -336,10 +338,10 @@ void UserLogicElinkDecoder<CHARGESUM>::sendCluster(const SampaCluster& sc) const
   debugHeader() << (*this) << " --> "
                 << fmt::format(" calling channelHandler for {} ch {} = {}\n",
                                o2::mch::raw::asString(mDsId),
-                               channelNumber64(mSampaHeader),
+                               getDualSampaChannelId(mSampaHeader),
                                o2::mch::raw::asString(sc));
 #endif
-  mDecodedDataHandlers.sampaChannelHandler(mDsId, channelNumber64(mSampaHeader), sc);
+  mDecodedDataHandlers.sampaChannelHandler(mDsId, getDualSampaChannelId(mSampaHeader), sc);
 }
 
 template <typename CHARGESUM>
@@ -429,30 +431,6 @@ void UserLogicElinkDecoder<CHARGESUM>::sendHBPacket()
   if (handler) {
     handler(mDsId, mSampaHeader.chipAddress() % 2, mSampaHeader.bunchCrossingCounter());
   }
-}
-
-template <>
-void UserLogicElinkDecoder<SampleMode>::prepareAndSendCluster()
-{
-  if (mDecodedDataHandlers.sampaChannelHandler) {
-    SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), mSamples);
-    sendCluster(sc);
-  }
-  mSamples.clear();
-}
-
-template <>
-void UserLogicElinkDecoder<ChargeSumMode>::prepareAndSendCluster()
-{
-  if (mSamples.size() != 2) {
-    throw std::invalid_argument(fmt::format("expected sample size to be 2 but it is {}", mSamples.size()));
-  }
-  if (mDecodedDataHandlers.sampaChannelHandler) {
-    uint32_t q = (((static_cast<uint32_t>(mSamples[1]) & 0x3FF) << 10) | (static_cast<uint32_t>(mSamples[0]) & 0x3FF));
-    SampaCluster sc(mClusterTime, mSampaHeader.bunchCrossingCounter(), q, mClusterSize);
-    sendCluster(sc);
-  }
-  mSamples.clear();
 }
 
 template <typename CHARGESUM>

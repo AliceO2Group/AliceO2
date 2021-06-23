@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -84,6 +85,11 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                        monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
                        assert(registry.get<DeviceSpec const>().name.empty() == false);
                        monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().name);
+                       try {
+                         auto run = registry.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+                         monitoring->setRunNumber(stoul(run));
+                       } catch (...) {
+                       }
                        return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
                      },
                      noConfiguration(),
@@ -194,29 +200,34 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
       return;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::fatal)) {
       severity = InfoLogger::Severity::Fatal;
+      level = 1;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
       severity = InfoLogger::Severity::Error;
+      level = 3;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
       severity = InfoLogger::Severity::Warning;
+      level = 6;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
       severity = InfoLogger::Severity::Info;
-      level = 10;
+      level = 8;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
       severity = InfoLogger::Severity::Info;
+      level = 10;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
       severity = InfoLogger::Severity::Debug;
+      level = 11;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
       severity = InfoLogger::Severity::Debug;
-      level = 10;
+      level = 12;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
       severity = InfoLogger::Severity::Debug;
-      level = 20;
+      level = 13;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
       severity = InfoLogger::Severity::Debug;
-      level = 30;
+      level = 14;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
       severity = InfoLogger::Severity::Debug;
-      level = 40;
+      level = 15;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
       severity = InfoLogger::Severity::Debug;
       level = 50;
@@ -246,6 +257,7 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                        auto infoLoggerService = new InfoLogger;
                        auto infoLoggerContext = &services.get<InfoLoggerContext>();
                        infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
+                       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
                        infoLoggerService->setContext(*infoLoggerContext);
 
                        auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");

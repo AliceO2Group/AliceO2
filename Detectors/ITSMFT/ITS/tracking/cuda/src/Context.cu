@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -66,7 +67,7 @@ inline int getCudaCores(const int major, const int minor)
   return nGpuArchCoresPerSM[index - 1].Cores;
 }
 
-inline int getMaxThreadsPerSM(const int major, const int minor)
+inline int getMaxThreadsPerSM()
 {
   return 8;
 }
@@ -118,7 +119,7 @@ Context::Context(bool dumpDevices)
     mDeviceProperties[iDevice].registersPerBlock = deviceProperties.regsPerBlock;
     mDeviceProperties[iDevice].warpSize = deviceProperties.warpSize;
     mDeviceProperties[iDevice].maxThreadsPerBlock = deviceProperties.maxThreadsPerBlock;
-    mDeviceProperties[iDevice].maxBlocksPerSM = getMaxThreadsPerSM(major, minor);
+    mDeviceProperties[iDevice].maxBlocksPerSM = getMaxThreadsPerSM();
     mDeviceProperties[iDevice].maxThreadsDim = dim3{static_cast<unsigned int>(deviceProperties.maxThreadsDim[0]),
                                                     static_cast<unsigned int>(deviceProperties.maxThreadsDim[1]),
                                                     static_cast<unsigned int>(deviceProperties.maxThreadsDim[2])};

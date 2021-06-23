@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -52,6 +53,8 @@ class ElinkEncoder<BareFormat, CHARGESUM>
   /// \param data is a vector of SampaCluster representing the SampaCluster(s)
   /// of this channel within one Sampa time window.
   void addChannelData(uint8_t chId, const std::vector<SampaCluster>& data);
+
+  void addHeartbeat(uint20_t bunchCrossing);
 
   /// Empty the bit stream.
   void clear();
@@ -142,6 +145,14 @@ void ElinkEncoder<BareFormat, CHARGESUM>::addChannelData(uint8_t chId, const std
   }
 }
 
+template <typename CHARGESUM>
+void ElinkEncoder<BareFormat, CHARGESUM>::addHeartbeat(uint20_t bunchCrossing)
+{
+  uint8_t chipAddress = impl::computeChipAddress(mElinkId, 0);
+  SampaHeader sh = sampaHeartbeat(chipAddress, bunchCrossing);
+  append50(sh.uint64());
+}
+
 /// append the data of a SampaCluster
 template <typename CHARGESUM>
 void ElinkEncoder<BareFormat, CHARGESUM>::append(const SampaCluster& sc)
@@ -149,20 +160,6 @@ void ElinkEncoder<BareFormat, CHARGESUM>::append(const SampaCluster& sc)
   append10(sc.nofSamples());
   append10(sc.sampaTime);
   appendCharges(sc);
-}
-
-template <>
-void ElinkEncoder<BareFormat, ChargeSumMode>::appendCharges(const SampaCluster& sc)
-{
-  append20(sc.chargeSum);
-}
-
-template <>
-void ElinkEncoder<BareFormat, SampleMode>::appendCharges(const SampaCluster& sc)
-{
-  for (auto& s : sc.samples) {
-    append10(s);
-  }
 }
 
 /// append one bit (either set or unset)

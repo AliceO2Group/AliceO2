@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,6 +25,7 @@ namespace ft0
 struct ChannelData {
   static constexpr char sChannelNameDPL[] = "DIGITSCH";
   static constexpr char sDigitName[] = "ChannelData";
+  static constexpr char sDigitBranchName[] = "FT0DIGITSBCH";
   static constexpr uint8_t DUMMY_CHANNEL_ID = 0xff;
   static constexpr uint8_t DUMMY_CHAIN_QTC = 0xff;
   static constexpr int16_t DUMMY_CFD_TIME = -5000;
@@ -63,6 +65,7 @@ struct ChannelData {
   void printLog() const;
   [[nodiscard]] uint8_t getChannelID() const { return ChId; }
   [[nodiscard]] uint16_t getTime() const { return CFDTime; }
+  [[nodiscard]] uint16_t getAmp() const { return QTCAmpl; }
 
   bool operator==(ChannelData const& other) const
   {

@@ -14,7 +14,7 @@
 #include "DataFormatsFDD/Hit.h"
 #include "MCHSimulation/Hit.h"
 #include "MIDSimulation/Hit.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
 #include "DataFormatsZDC/Hit.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsParameters/GRPObject.h"

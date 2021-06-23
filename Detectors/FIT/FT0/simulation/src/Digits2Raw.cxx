@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -35,7 +36,7 @@ RDH + Event header + event data, 2 channels per 1 GBT word;
 if no data for this PM - only headers.
 
 Trigger mode : detector sends data to FLP at each trigger;
-Continueous mode  :   for only bunches with data at least in 1 channel.  
+Continueous mode  :   for only bunches with data at least in 1 channel.
 */
 
 #include "Headers/RAWDataHeader.h"
@@ -77,23 +78,6 @@ void Digits2Raw::readDigits(const std::string& outDir, const std::string& fileDi
   LOG(INFO) << "**********Digits2Raw::convertDigits" << std::endl;
   mWriter.setCarryOverCallBack(this);
 
-  /*
-  std::string inputDir;
-  const char* aliceO2env = std::getenv("O2_ROOT");
-  if (aliceO2env) {
-    inputDir = aliceO2env;
-  }
-  inputDir += "/share/Detectors/FT0/files/";
-
-  std::string lutPath = inputDir + "FT0ChannelsTable.txt";
-  lutPath = gSystem->ExpandPathName(lutPath.data()); // Expand $(ALICE_ROOT) into real system path
-
-  std::ifstream infile;
-  infile.open(lutPath.c_str());
-  if (!infile.is_open()) {
-    LOG(ERROR) << "!!!! no LUT";
-  }
-  */
   o2::ft0::LookUpTable lut{o2::ft0::LookUpTable::readTable()};
   mLinkTCM = lut.getLink(lut.getTCMchannel());
   LOG(INFO) << " ##### LookUp set, TCM " << mLinkTCM;
@@ -169,7 +153,7 @@ void Digits2Raw::convertDigits(o2::ft0::Digit bcdigits,
   for (int ich = 0; ich < nch; ich++) {
     int nlink = lut.getLink(pmchannels[ich].ChId);
     int ep = lut.getEP(pmchannels[ich].ChId);
-    if (nlink != oldlink) {
+    if (nlink != oldlink || ep != oldendpoint) {
       if (oldlink >= 0) {
         uint nGBTWords = uint((nchannels + 1) / 2);
         LOG(DEBUG) << " oldlink " << oldlink << " old EP " << oldendpoint << " nGBTWords " << nGBTWords << " new link " << nlink << " ep  " << ep;

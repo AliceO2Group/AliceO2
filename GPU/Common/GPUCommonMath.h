@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -57,6 +58,7 @@ class GPUCommonMath
   template <class T>
   GPUhd() static T Abs(T x);
   GPUd() static float ASin(float x);
+  GPUd() static float ACos(float x);
   GPUd() static float ATan(float x);
   GPUd() static float ATan2(float y, float x);
   GPUd() static float Sin(float x);
@@ -287,13 +289,9 @@ GPUdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
   // use builtin if available
   return CHOICE(__builtin_popcount(x), __popc(x), __builtin_popcount(x));
 #else
-  unsigned int retVal = 0;
-  for (int i = 0; i < 32; i++) {
-    if (x & (1 << i)) {
-      retVal++;
-    }
-  }
-  return retVal;
+  x = x - ((x >> 1) & 0x55555555);
+  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+  return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 #endif
 }
 
@@ -388,6 +386,8 @@ GPUhdi() int GPUCommonMath::Abs<int>(int x)
 }
 
 GPUdi() float GPUCommonMath::ASin(float x) { return CHOICE(asinf(x), asinf(x), asin(x)); }
+
+GPUdi() float GPUCommonMath::ACos(float x) { return CHOICE(acosf(x), acosf(x), acos(x)); }
 
 GPUdi() float GPUCommonMath::Log(float x) { return CHOICE(logf(x), logf(x), log(x)); }
 

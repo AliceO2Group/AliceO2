@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -27,6 +28,14 @@ using namespace o2::analysis;
 
 namespace o2::aod
 {
+namespace hf_selcollision
+{
+DECLARE_SOA_COLUMN(WhyRejectColl, whyRejectColl, int); //!
+} // namespace hf_selcollision
+
+DECLARE_SOA_TABLE(HFSelCollision, "AOD", "HFSELCOLLISION", //!
+                  hf_selcollision::WhyRejectColl);
+
 namespace hf_seltrack
 {
 DECLARE_SOA_COLUMN(IsSelProng, isSelProng, int); //!
@@ -601,7 +610,7 @@ auto InvMassXicToPiKP(const T& candidate)
   return InvMassLcpiKp(candidate);
 }
 
-// X → Jpsi π+ π-
+// X → Jpsi π+ π−
 // TODO: add pdg code for X (9920443), temporarily hardcode mass here:
 float massX = 3.872; // replace this with: "RecoDecay::getMassPDG(9920443)" when pdg is added
 template <typename T>
@@ -754,6 +763,26 @@ DECLARE_SOA_TABLE(HfCandXMCGen, "AOD", "HFCANDXMCGEN", //!
                   hf_cand_x::OriginMCGen,
                   hf_cand_x::FlagMCDecayChanGen);
 
+// definition of columns and tables for D-Dbar correlation pairs
+namespace hf_correlation_ddbar
+{
+DECLARE_SOA_COLUMN(DeltaPhi, deltaPhi, float);
+DECLARE_SOA_COLUMN(DeltaEta, deltaEta, float);
+DECLARE_SOA_COLUMN(PtD, ptD, float);
+DECLARE_SOA_COLUMN(PtDbar, ptDbar, float);
+DECLARE_SOA_COLUMN(MD, mD, float);
+DECLARE_SOA_COLUMN(MDbar, mDbar, float);
+DECLARE_SOA_COLUMN(SignalStatus, signalStatus, int);
+} // namespace hf_correlation_ddbar
+DECLARE_SOA_TABLE(DDbarPair, "AOD", "DDBARPAIR",
+                  aod::hf_correlation_ddbar::DeltaPhi,
+                  aod::hf_correlation_ddbar::DeltaEta,
+                  aod::hf_correlation_ddbar::PtD,
+                  aod::hf_correlation_ddbar::PtDbar);
+DECLARE_SOA_TABLE(DDbarRecoInfo, "AOD", "DDBARRECOINFO",
+                  aod::hf_correlation_ddbar::MD,
+                  aod::hf_correlation_ddbar::MDbar,
+                  aod::hf_correlation_ddbar::SignalStatus);
 } // namespace o2::aod
 
 #endif // O2_ANALYSIS_HFSECONDARYVERTEX_H_

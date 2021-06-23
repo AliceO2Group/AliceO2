@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -162,12 +163,12 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
   const int nDDL = 14;
   const int nxTRU = 8;
   const int nzTRU = 28;
-  float sum2x2[nxTRU][nzTRU];
-  float time2x2[nxTRU][nzTRU];
+  float sum2x2[nxTRU + 1][nzTRU + 1];
+  float time2x2[nxTRU + 1][nzTRU + 1];
   float tt = 0;
   for (char iTRU = 0; iTRU < nDDL; iTRU++) {
-    for (char ix = 0; ix < nxTRU; ix++) {
-      for (char iz = 0; iz < nzTRU; iz++) {
+    for (char ix = 1; ix <= nxTRU; ix++) {
+      for (char iz = 1; iz <= nzTRU; iz++) {
         char truRelId[3] = {iTRU, ix, iz};
         short tileId = Geometry::truRelToAbsNumbering(truRelId);
         if (!mTrigUtils->isGood2x2(tileId)) {
@@ -210,8 +211,8 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
     }
 
     if (mTrig4x4) {
-      for (char ix = 0; ix < nxTRU - 1; ix++) {
-        for (char iz = 0; iz < nzTRU - 1; iz++) {
+      for (char ix = 1; ix < nxTRU; ix++) {
+        for (char iz = 1; iz < nzTRU; iz++) {
           char truRelId[3] = {iTRU, ix, iz};
           short tileId = Geometry::truRelToAbsNumbering(truRelId);
           if (!mTrigUtils->isGood4x4(tileId)) {
@@ -240,7 +241,6 @@ void Digitizer::processHits(const std::vector<Hit>* hits, const std::vector<Digi
       }
     }
   }
-
   for (int i = 0; i < NCHANNELS; i++) {
     if (mArrayD[i].getAmplitude() > PHOSSimParams::Instance().mZSthreshold) {
       digitsOut.push_back(mArrayD[i]);

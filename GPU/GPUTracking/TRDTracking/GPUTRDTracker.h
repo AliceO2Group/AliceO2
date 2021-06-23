@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -108,9 +109,6 @@ class GPUTRDTracker_t : public GPUProcessor
   static GPUd() bool ConvertTrkltToSpacePoint(const GPUTRDGeometry& geo, GPUTRDTrackletWord& trklt, GPUTRDSpacePoint& sp);
   GPUd() bool CalculateSpacePoints(int iCollision = 0);
   GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId, int collisionId);
-  GPUd() int FillImpactAngleHistograms(PROP* prop, TRDTRK* t);
-  GPUd() void ResetImpactAngleHistograms();
-  GPUd() int PropagateToLayerAndUpdate(PROP* prop, TRDTRK* trkWork, int iLayer, bool doUpdate = true);
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
   GPUd() bool AdjustSector(PROP* prop, TRDTRK* t) const;
   GPUd() int GetSector(float alpha) const;
@@ -128,7 +126,6 @@ class GPUTRDTracker_t : public GPUProcessor
   // settings
   GPUd() void SetGenerateSpacePoints(bool flag) { mGenerateSpacePoints = flag; }
   GPUd() void SetProcessPerTimeFrame(bool flag) { mProcessPerTimeFrame = flag; }
-  GPUd() void SetDoImpactAngleHistograms(bool flag) { mDoImpactAngleHistograms = flag; }
   GPUd() void EnableDebugOutput() { mDebugOutput = true; }
   GPUd() void SetMaxEta(float maxEta) { mMaxEta = maxEta; }
   GPUd() void SetExtraRoadY(float extraRoadY) { mExtraRoadY = extraRoadY; }
@@ -145,8 +142,6 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() int NTracks() const { return mNTracks; }
   GPUd() GPUTRDSpacePoint* SpacePoints() const { return mSpacePoints; }
   GPUd() TRDTRK* Tracks() const { return mTracks; }
-  GPUd() float* AngleDiffSums() const { return mAngleDiffSums; }
-  GPUd() short* AngleDiffCounters() const { return mAngleDiffCounters; }
   GPUd() void DumpTracks();
 
   // utility
@@ -157,7 +152,6 @@ class GPUTRDTracker_t : public GPUProcessor
   bool mIsInitialized;                     // flag is set upon initialization
   bool mGenerateSpacePoints;               // if true, only tracklets are provided as input and they will be converted into space points by the tracker
   bool mProcessPerTimeFrame;               // if true, tracking is done per time frame instead of on a single events basis
-  bool mDoImpactAngleHistograms;           // if true, impact angle vs angle difference histograms are filled
   short mNAngleHistogramBins;              // number of bins per chamber for the angular difference histograms
   float mAngleHistogramRange;              // range of impact angles covered by each histogram
   short mMemoryPermanent;                  // size of permanent memory for the tracker
@@ -178,9 +172,6 @@ class GPUTRDTracker_t : public GPUProcessor
   Hypothesis* mHypothesis;                 // array with multiple track hypothesis
   TRDTRK* mCandidates;                     // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePoint* mSpacePoints;          // array with tracklet coordinates in global tracking frame
-  float* mAngleDiffSums;                   // array with sum of angular differences for a given bin
-  short* mAngleDiffCounters;               // array with number of entries for a given bin
-  int* mTrackletLabels;                    // array with MC tracklet labels
   TRD_GEOMETRY_CONST GPUTRDGeometry* mGeo; // TRD geometry
   /// ---- error parametrization depending on magnetic field ----
   float mRPhiA2;     // parameterization for tracklet position resolution

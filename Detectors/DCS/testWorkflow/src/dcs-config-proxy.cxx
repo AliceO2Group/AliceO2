@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -58,7 +59,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(ERROR) << "received " << parts.Size() << " instead of 2 expected";
-      sendAnswer("error: wrong number of messages", acknowledge, device);
+      sendAnswer("error0: wrong number of messages", acknowledge, device);
       return;
     }
     std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
@@ -67,7 +68,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     int dID = getDetID(filename);
     if (dID < 0) {
       LOG(ERROR) << "unknown detector for " << filename;
-      sendAnswer("error: unrecognized filename", acknowledge, device);
+      sendAnswer("error1: unrecognized filename", acknowledge, device);
       return;
     }
 
@@ -77,7 +78,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     auto channel = channelRetriever(outsp, *timesliceId);
     if (channel.empty()) {
       LOG(ERROR) << "No output channel found for OutputSpec " << outsp;
-      sendAnswer("error: no channel to send", acknowledge, device);
+      sendAnswer("error2: no channel to send", acknowledge, device);
       return;
     }
 

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -123,6 +124,30 @@ std::function<std::optional<uint16_t>(FeeLinkId)>
 {
   static std::map<uint32_t, uint16_t> feeLinkId2SolarId = impl::inverseMap(buildSolarId2FeeLinkIdMap());
   return impl::mapperFeeLink2Solar<ElectronicMapperGenerated>(feeLinkId2SolarId);
+}
+
+template <>
+std::set<uint16_t> getSolarUIDs<ElectronicMapperGenerated>(int deid)
+{
+  return impl::getSolarUIDs<ElectronicMapperGenerated>(deid);
+}
+
+template <>
+std::set<uint16_t> getSolarUIDs<ElectronicMapperGenerated>()
+{
+  return impl::getSolarUIDs<ElectronicMapperGenerated>();
+}
+
+template <>
+std::vector<std::string> solar2FeeLinkConsistencyCheck<ElectronicMapperGenerated>()
+{
+  return impl::solar2FeeLinkConsistencyCheck<ElectronicMapperGenerated>();
+}
+
+template <>
+std::set<DsElecId> getAllDs<ElectronicMapperGenerated>()
+{
+  return impl::getAllDs<ElectronicMapperGenerated>();
 }
 
 } // namespace o2::mch::raw

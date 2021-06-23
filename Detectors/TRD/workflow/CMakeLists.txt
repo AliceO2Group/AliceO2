@@ -1,14 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
-
-#add_compile_options(-O0 -pg -fPIC)
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 add_subdirectory(io)
 
@@ -21,10 +20,9 @@ o2_add_library(TRDWorkflow
                        src/TRDTrackingWorkflow.cxx
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
+                       src/TrackBasedCalibSpec.cxx
+                       include/TRDWorkflow/VdAndExBCalibSpec.h
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::Steer O2::Algorithm O2::DataFormatsTRD O2::TRDSimulation O2::TRDReconstruction O2::DetectorsBase O2::SimulationDataFormat O2::TRDBase O2::TRDCalibration O2::GPUTracking O2::GlobalTrackingWorkflowReaders O2::GPUWorkflowHelper O2::ReconstructionDataFormats O2::TPCWorkflow O2::TRDWorkflowIO)
-
-                   #o2_target_root_dictionary(TRDWorkflow
-                   # HEADERS include/TRDWorkflow/TRDTrapSimulatorSpec.h)
 
 o2_add_executable(trap-sim
                   COMPONENT_NAME trd
@@ -46,7 +44,15 @@ o2_add_executable(tracklet-transformer
                   SOURCES src/TRDTrackletTransformerWorkflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
 
+o2_add_executable(trd-vdrift-exb
+                  COMPONENT_NAME calibration
+                  SOURCES src/trd-calib-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::TRDCalibration O2::TRDWorkflow O2::DetectorsCalibration)
 
+o2_add_executable(entropy-encoder-workflow
+                  SOURCES src/entropy-encoder-workflow.cxx
+                  COMPONENT_NAME trd
+                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflow)
 
 if (OpenMP_CXX_FOUND)
     target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

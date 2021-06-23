@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -127,11 +128,9 @@ class TrackTPC : public o2::track::TrackParCov
   GPUd() void setdEdx(const dEdxInfo& v) { mdEdx = v; }
 
  private:
-  float mTime0 = 0.f;                 ///< Reference Z of the track assumed for the vertex, scaled with pseudo
-                                      ///< VDrift and reference timeframe length, unless it was moved to be on the
-                                      ///< side of TPC compatible with edge clusters sides.
-  float mDeltaTFwd = 0;               ///< max possible increment to track time
-  float mDeltaTBwd = 0;               ///< max possible decrement to track time
+  float mTime0 = 0.f;                 ///< Assumed time of the vertex that created the track in TPC time bins, 0 for triggered data
+  float mDeltaTFwd = 0;               ///< max possible increment to mTime0
+  float mDeltaTBwd = 0;               ///< max possible decrement to mTime0
   short mFlags = 0;                   ///< various flags, see Flags enum
   float mChi2 = 0.f;                  // Chi2 of the track
   o2::track::TrackParCov mOuterParam; // Track parameters at outer end of TPC.

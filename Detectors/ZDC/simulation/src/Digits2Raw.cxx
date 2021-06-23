@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,7 +20,7 @@
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCSimulation/ZDCSimParam.h"
 #include "CommonUtils/StringUtils.h"
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 
 using namespace o2::zdc;
 
@@ -98,7 +99,9 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
     return;
   }
 
-  digiTree->SetBranchStatus("ZDCDigitLabel*", 0);
+  if (digiTree->GetBranchStatus("ZDCDigitLabels")) {
+    digiTree->SetBranchStatus("ZDCDigitLabel*", 0);
+  }
 
   for (int ient = 0; ient < digiTree->GetEntries(); ient++) {
     digiTree->GetEntry(ient);

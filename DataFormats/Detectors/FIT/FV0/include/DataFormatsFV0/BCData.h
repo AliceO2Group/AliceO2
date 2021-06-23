@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -40,7 +41,6 @@ struct Triggers {
   int8_t nChanA = 0;          // number of fired channels [A side]
   int32_t amplA = -1000;      // sum amplitude [A side]
   Triggers() = default;
-
   Triggers(uint8_t signals, int8_t chanA, int32_t amplASum)
   {
     triggerSignals = signals;
@@ -74,6 +74,7 @@ struct Triggers {
 struct DetTrigInput {
   static constexpr char sChannelNameDPL[] = "TRIGGERINPUT";
   static constexpr char sDigitName[] = "DetTrigInput";
+  static constexpr char sDigitBranchName[] = "FV0TRIGGERINPUT";
   o2::InteractionRecord mIntRecord; // bc/orbit of the intpur
   std::bitset<5> mInputs;           // pattern of inputs.
   DetTrigInput() = default;
@@ -92,12 +93,11 @@ struct DetTrigInput {
 struct BCData {
   static constexpr char sChannelNameDPL[] = "DIGITSBC";
   static constexpr char sDigitName[] = "BCData";
-  static constexpr char sSubDetName[] = "fv0";
+  static constexpr char sDigitBranchName[] = "FV0DigitBC";
   /// we are going to refer to at most 48 channels, so 6 bits for the number of channels and 26 for the reference
   o2::dataformats::RangeRefComp<6> ref;
   o2::InteractionRecord ir; //FV0 is detected by using this field!!!
   Triggers mTriggers;
-
   BCData() = default;
   BCData(int first, int ne, o2::InteractionRecord iRec, const Triggers& chTrig)
   {
@@ -110,6 +110,7 @@ struct BCData {
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
   const o2::InteractionRecord& getIntRecord() const { return ir; };
   Triggers getTriggers() const { return mTriggers; }
+  void setIntRecord(const o2::InteractionRecord& intRec) { ir = intRec; }
   void setTriggers(Triggers triggers) { mTriggers = triggers; };
   void print() const;
   bool operator==(const BCData& other) const
@@ -131,6 +132,7 @@ struct TriggersExt {
   TriggersExt() = default;
   static constexpr char sChannelNameDPL[] = "DIGITSTRGEXT";
   static constexpr char sDigitName[] = "TriggersExt";
+  static constexpr char sDigitBranchName[] = "FV0DIGITSTRGEXT";
   o2::InteractionRecord mIntRecord;
   void setTrgWord(uint32_t trgWord, std::size_t pos) { mTriggerWords[pos] = trgWord; }
   std::array<uint32_t, 20> mTriggerWords;

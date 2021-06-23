@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,7 +16,9 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "FT0Calibration/FT0DummyCalibrationObject.h" //delete this when example not needed anymore
+#include "FT0Calibration/FT0CalibTimeSlewing.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/BasicCCDBManager.h"
 #include <vector>
 
 namespace o2::fit
@@ -130,6 +133,11 @@ inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0ChannelTimeCalib
 {
   return "FT0/Calibration/ChannelTimeOffset";
 }
+template <>
+inline const char* FITCalibrationApi::getObjectPath<o2::ft0::FT0CalibTimeSlewing>()
+{
+  return "FT0/Calibration/SlewingCorrection";
+}
 
 template <>
 inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0ChannelTimeCalibrationObject>(const o2::ft0::FT0ChannelTimeCalibrationObject& calibrationObject)
@@ -139,6 +147,13 @@ inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::p
   return result;
 }
 
+template <>
+inline std::vector<FITCalibrationApi::CalibObjWithInfoType> FITCalibrationApi::prepareCalibrationObjectToSend<o2::ft0::FT0CalibTimeSlewing>(const o2::ft0::FT0CalibTimeSlewing& calibrationObject)
+{
+  std::vector<CalibObjWithInfoType> result;
+  result.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject));
+  return result;
+}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DUMMY STUFF DELETE IT WHEN EXAMPLE NOT NEEDED ANYMORE

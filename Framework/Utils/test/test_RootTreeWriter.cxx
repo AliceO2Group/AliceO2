@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -21,6 +22,7 @@
 #include <fairmq/FairMQTransportFactory.h>
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputRecord.h"
+#include "Framework/InputSpan.h"
 #include "Framework/DataRef.h"
 #include "Framework/DataRefUtils.h"
 #include "DPLUtils/RootTreeWriter.h"
@@ -218,10 +220,10 @@ BOOST_AUTO_TEST_CASE(test_RootTreeWriter)
   auto getter = [&store](size_t i) -> DataRef {
     return DataRef{nullptr, static_cast<char const*>(store[2 * i]->GetData()), static_cast<char const*>(store[2 * i + 1]->GetData())};
   };
-
+  InputSpan span{getter, store.size() / 2};
   InputRecord inputs{
     schema,
-    InputSpan{getter, store.size() / 2}};
+    span};
 
   writer(inputs);
   writer.close();

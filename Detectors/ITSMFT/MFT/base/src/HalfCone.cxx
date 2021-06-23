@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -2146,9 +2147,10 @@ void HalfCone::makeReadoutCables(TGeoVolumeAssembly* HalfConeVolume, Int_t half,
   Double_t mRO1[3];
   mRO1[0] = {14.0};                                                                 //width
   mRO1[1] = (16 * section_ROcable_48pairs + 6 * section_ROcable_16pairs) / mRO1[0]; // thickness
-  mRO1[2] = {5.0};                                                                  // length
+  mRO1[2] = {6.5};                                                                  // length
   TGeoVolume* vRO1 = gGeoManager->MakeBox("vRO1", mCu, mRO1[0] / 2, mRO1[1] / 2, mRO1[2] / 2);
-  auto* t_RO1 = new TGeoTranslation("translation_RO1", 0.0, -signe * 28.0, -79.45);
+  Double_t zRO1 = -80.20;
+  auto* t_RO1 = new TGeoTranslation("translation_RO1", 0.0, -signe * 28.0, zRO1);
   t_RO1->RegisterYourself();
 
   Double_t mRO2[3];
@@ -2156,7 +2158,7 @@ void HalfCone::makeReadoutCables(TGeoVolumeAssembly* HalfConeVolume, Int_t half,
   mRO2[1] = (14 * section_ROcable_48pairs + 5 * section_ROcable_16pairs) / mRO2[0];
   mRO2[2] = {3.0};
   TGeoVolume* vRO2 = gGeoManager->MakeBox("vRO2", mCu, mRO2[0] / 2, mRO2[1] / 2, mRO2[2] / 2);
-  auto* t_RO2 = new TGeoTranslation("translation_RO2", 0.0, -signe * 28.0, -79.45 + mRO1[2] / 2 + mRO2[2] / 2);
+  auto* t_RO2 = new TGeoTranslation("translation_RO2", 0.0, -signe * 28.0, zRO1 + mRO1[2] / 2 + mRO2[2] / 2);
   t_RO2->RegisterYourself();
 
   Double_t mRO3[3];
@@ -2164,7 +2166,7 @@ void HalfCone::makeReadoutCables(TGeoVolumeAssembly* HalfConeVolume, Int_t half,
   mRO3[1] = (12 * section_ROcable_48pairs + 4 * section_ROcable_16pairs) / mRO3[0];
   mRO3[2] = {3.6};
   TGeoVolume* vRO3 = gGeoManager->MakeBox("vRO3", mCu, mRO3[0] / 2, mRO3[1] / 2, mRO3[2] / 2);
-  auto* t_RO3 = new TGeoTranslation("translation_RO3", 0.0, -signe * 28.0, -79.45 + mRO1[2] / 2 + mRO2[2] + mRO3[2] / 2);
+  auto* t_RO3 = new TGeoTranslation("translation_RO3", 0.0, -signe * 28.0, zRO1 + mRO1[2] / 2 + mRO2[2] + mRO3[2] / 2);
   t_RO3->RegisterYourself();
 
   Double_t eRO4 = 12 * section_ROcable_48pairs / mRO1[0];

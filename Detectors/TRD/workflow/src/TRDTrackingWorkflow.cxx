@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,6 +21,8 @@
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDWorkflowIO/TRDTrackWriterSpec.h"
 #include "TRDWorkflow/TRDTrackingWorkflow.h"
+#include "TRDWorkflow/TrackBasedCalibSpec.h"
+#include "TRDWorkflowIO/TRDCalibWriterSpec.h"
 
 using GTrackID = o2::dataformats::GlobalTrackID;
 
@@ -45,6 +48,8 @@ framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disable
   specs.emplace_back(o2::trd::getTRDTrackletTransformerSpec());
   specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD));
 
+  specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec());
+
   if (!disableRootOut) {
     if (GTrackID::includesSource(GTrackID::Source::ITSTPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDGlobalTrackWriterSpec(useMC));
@@ -52,6 +57,7 @@ framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disable
     if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC));
     }
+    specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
   }
   return specs;
 }

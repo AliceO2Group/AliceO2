@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -107,7 +108,7 @@ const uint64_t CruPageBadN10bitWords[] = {
 
 SampaChannelHandler handlePacket(std::string& result)
 {
-  return [&result](DsElecId dsId, uint8_t channel, SampaCluster sc) {
+  return [&result](DsElecId dsId, DualSampaChannelId channel, SampaCluster sc) {
     result += fmt::format("{}-ch-{}-ts-{}-q", asString(dsId), channel, sc.sampaTime);
     if (sc.isClusterSum()) {
       result += fmt::format("-{}-cs-{}", sc.chargeSum, sc.clusterSize);
@@ -175,18 +176,19 @@ std::string decodeBuffer(int feeId, gsl::span<const std::byte> buffer)
 
 template <typename CHARGESUM, int VERSION>
 std::string testPayloadDecode(DsElecId ds1,
-                              int ch1,
+                              DualSampaChannelId ch1,
                               const std::vector<SampaCluster>& clustersFirstChannel,
                               DsElecId ds2 = DsElecId{0, 0, 0},
-                              int ch2 = 47,
+                              DualSampaChannelId ch2 = 47,
                               const std::vector<SampaCluster>& clustersSecondChannel = {},
                               std::optional<size_t> insertSync = std::nullopt)
 {
-  auto encoder = createPayloadEncoder<UserLogicFormat, CHARGESUM, true, VERSION>();
-
-  encoder->startHeartbeatFrame(0, 0);
 
   auto solar2feelink = createSolar2FeeLinkMapper<ElectronicMapperGenerated>();
+
+  auto encoder = createPayloadEncoder(solar2feelink, true, VERSION, isChargeSumMode<CHARGESUM>::value);
+
+  encoder->startHeartbeatFrame(0, 0);
 
   uint16_t feeId{0};
 

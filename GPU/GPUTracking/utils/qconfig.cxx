@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -31,12 +32,6 @@
 
 namespace qConfig
 {
-#define qon_mcat(a, b) a##b
-#define qon_mxcat(a, b) qon_mcat(a, b)
-#define qon_mcat3(a, b, c) a##b##c
-#define qon_mxcat3(a, b, c) qon_mcat3(a, b, c)
-#define qon_mstr(a) #a
-#define qon_mxstr(a) qon_mstr(a)
 #define QCONFIG_SETTING(name, type)                     \
   struct qon_mxcat3(q, name, _t)                        \
   {                                                     \
@@ -506,6 +501,11 @@ static inline int qConfigParse(int argc, const char** argv, const char* /*filena
   }
   return (0);
 }
+
+std::vector<std::function<void()>> qprint_global;
+#define QCONFIG_PRINT
+#include "qconfig.h"
+#undef QCONFIG_PRINT
 } // end namespace qConfig
 
 // Main parse function called from outside
@@ -513,8 +513,7 @@ int qConfigParse(int argc, const char** argv, const char* filename) { return (qC
 
 void qConfigPrint()
 {
-  std::string blockName;
-#define QCONFIG_PRINT
-#include "qconfig.h"
-#undef QCONFIG_PRINT
+  for (auto& f : qConfig::qprint_global) {
+    f();
+  }
 }

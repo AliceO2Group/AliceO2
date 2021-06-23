@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,7 +19,8 @@
 #include "CPVSimulation/RawWriter.h"
 #include "CPVBase/CPVSimParams.h"
 #include "CPVBase/Geometry.h"
-#include "CCDB/CcdbApi.h"
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::cpv;
 
@@ -34,55 +36,63 @@ void RawWriter::init()
 
   //ddl,crorc, link,...
   mRawWriter->registerLink(0, 0, 0, 0, rawfilename.data());
+
+  //CCDB setup
+  LOG(INFO) << "CCDB Url: " << mCcdbUrl;
+  auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbMgr.setURL(mCcdbUrl);
+  bool isCcdbReachable = ccdbMgr.isHostReachable(); //if host is not reachable we can use only dummy calibration
+  if (!isCcdbReachable) {
+    if (mCcdbUrl.compare("localtest") != 0) {
+      LOG(ERROR) << "Host " << mCcdbUrl << " is not reachable!!!";
+    }
+    LOG(INFO) << "Using dummy calibration";
+    mCalibParamsTst = std::make_unique<o2::cpv::CalibParams>(1);
+    mCalibParams = mCalibParamsTst.get();
+    //mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
+    mPedestalsTst = std::make_unique<o2::cpv::Pedestals>(1);
+    mPedestals = mPedestalsTst.get();
+  } else {
+    ccdbMgr.setCaching(true);                     //make local cache of remote objects
+    ccdbMgr.setLocalObjectValidityChecking(true); //query objects from remote site only when local one is not valid
+    LOG(INFO) << "Successfully initializated BasicCCDBManager with caching option";
+
+    //read calibration from ccdb (for now do it only at the beginning of dataprocessing)
+    //TODO: setup timestam according to anchors
+    ccdbMgr.setTimestamp(o2::ccdb::getCurrentTimestamp());
+
+    LOG(INFO) << "CCDB: Reading o2::cpv::CalibParams from CPV/Calib/Gains";
+    mCalibParams = ccdbMgr.get<o2::cpv::CalibParams>("CPV/Calib/Gains");
+    if (!mCalibParams) {
+      LOG(ERROR) << "Cannot get o2::cpv::CalibParams from CCDB. using dummy calibration!";
+      mCalibParamsTst = std::make_unique<o2::cpv::CalibParams>(1);
+      mCalibParams = mCalibParamsTst.get();
+    }
+
+    /*
+    LOG(INFO) << "CCDB: Reading o2::cpv::BadChannelMap from CPV/Calib/BadChannelMap";
+    mBadMap.reset(ccdbMgr.get<o2::cpv::BadChannelMap>("CPV/Calib/BadChannelMap"));
+    if (!mBadMap) {
+      LOG(ERROR) << "Cannot get o2::cpv::BadChannelMap from CCDB. using dummy calibration!";
+      mBadMap = std::make_unique<o2::cpv::BadChannelMap>(1);
+    }
+    */
+
+    LOG(INFO) << "CCDB: Reading o2::cpv::Pedestals from CPV/Calib/Pedestals";
+    mPedestals = ccdbMgr.get<o2::cpv::Pedestals>("CPV/Calib/Pedestals");
+    if (!mPedestals) {
+      LOG(ERROR) << "Cannot get o2::cpv::Pedestals from CCDB. using dummy calibration!";
+      mPedestalsTst = std::make_unique<o2::cpv::Pedestals>(1);
+      mPedestals = mPedestalsTst.get();
+    }
+    LOG(INFO) << "Task configuration is done.";
+  }
 }
 
 void RawWriter::digitsToRaw(gsl::span<o2::cpv::Digit> digitsbranch, gsl::span<o2::cpv::TriggerRecord> triggerbranch)
 {
   if (triggerbranch.begin() == triggerbranch.end()) { //do we have any data?
     return;
-  }
-  if (!mCalibParams) {
-    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mCalibParams = std::make_unique<o2::cpv::CalibParams>(1); // test default calibration
-      LOG(INFO) << "[RawWriter] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(INFO) << "[RawWriter] getting calibration object from ccdb";
-      o2::ccdb::CcdbApi ccdb;
-      std::map<std::string, std::string> metadata;
-      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
-      auto tr = triggerbranch.begin();
-      double eventTime = -1;
-      // if(tr!=triggerbranch.end()){
-      //   eventTime = (*tr).getBCData().getTimeNS() ;
-      // }
-      //add copy constructor if necessary
-      //      mCalibParams = std::make_unique<o2::cpv::CalibParams>(ccdb.retrieveFromTFileAny<o2::cpv::CalibParams>("CPV/Calib", metadata, eventTime));
-      if (!mCalibParams) {
-        LOG(FATAL) << "[RawWriter] can not get calibration object from ccdb";
-      }
-    }
-  }
-
-  if (!mPedestals) {
-    if (o2::cpv::CPVSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
-      mPedestals = std::make_unique<o2::cpv::Pedestals>(1); // test default calibration
-      LOG(INFO) << "[RawWriter] No reading calibration from ccdb requested, set default";
-    } else {
-      LOG(INFO) << "[RawWriter] getting calibration object from ccdb";
-      o2::ccdb::CcdbApi ccdb;
-      std::map<std::string, std::string> metadata;
-      ccdb.init("http://ccdb-test.cern.ch:8080"); // or http://localhost:8080 for a local installation
-      auto tr = triggerbranch.begin();
-      double eventTime = -1;
-      // if(tr!=triggerbranch.end()){
-      //   eventTime = (*tr).getBCData().getTimeNS() ;
-      // }
-      //add copy constructor if necessary
-      //      mPedestals = std::make_unique<o2::cpv::Pedestals>(ccdb.retrieveFromTFileAny<o2::cpv::Pedestals>("CPV/Calib", metadata, eventTime));
-      if (!mPedestals) {
-        LOG(FATAL) << "[RawWriter] can not get calibration object from ccdb";
-      }
-    }
   }
 
   //process digits which belong to same orbit

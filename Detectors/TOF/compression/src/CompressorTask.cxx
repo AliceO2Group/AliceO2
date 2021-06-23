@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -29,8 +30,8 @@ namespace o2
 namespace tof
 {
 
-template <typename RDH, bool verbose>
-void CompressorTask<RDH, verbose>::init(InitContext& ic)
+template <typename RDH, bool verbose, bool paranoid>
+void CompressorTask<RDH, verbose, paranoid>::init(InitContext& ic)
 {
   LOG(INFO) << "Compressor init";
 
@@ -52,8 +53,8 @@ void CompressorTask<RDH, verbose>::init(InitContext& ic)
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
-template <typename RDH, bool verbose>
-void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
+template <typename RDH, bool verbose, bool paranoid>
+void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
 {
   LOG(DEBUG) << "Compressor run";
 
@@ -100,6 +101,7 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
     auto dataProcessingHeaderOut = *DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(firstPart);
     headerOut.dataDescription = "CRAWDATA";
     headerOut.payloadSize = 0;
+    headerOut.splitPayloadParts = 1;
 
     /** initialise output message **/
     auto bufferSize = mOutputBufferSize >= 0 ? mOutputBufferSize + subspecBufferSize[subspec] : std::abs(mOutputBufferSize);
@@ -144,10 +146,10 @@ void CompressorTask<RDH, verbose>::run(ProcessingContext& pc)
   device->Send(partsOut, fairMQChannel);
 }
 
-template class CompressorTask<o2::header::RAWDataHeaderV4, true>;
-template class CompressorTask<o2::header::RAWDataHeaderV4, false>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, true>;
-template class CompressorTask<o2::header::RAWDataHeaderV6, false>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, false, false>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, false, true>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, true, false>;
+template class CompressorTask<o2::header::RAWDataHeaderV6, true, true>;
 
 } // namespace tof
 } // namespace o2

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -37,8 +38,10 @@
 #include "O2Version.h"
 #include <cstdio>
 #include <unordered_map>
+#include <filesystem>
 
 #include "SimPublishChannelHelper.h"
+#include <CommonUtils/FileSystemUtils.h>
 
 std::string getServerLogName()
 {
@@ -68,9 +71,13 @@ void remove_tmp_files()
 {
   // remove all (known) socket files in /tmp
   // using the naming convention /tmp/o2sim-.*PID
-  std::stringstream command;
-  command << "rm /tmp/o2sim-*" << getpid();
-  auto rc = system(command.str().c_str()); // a solution based on std::filesystem may be preferred but is longer
+  std::stringstream searchstr;
+  searchstr << "o2sim-.*-" << getpid() << "$";
+  auto filenames = o2::utils::listFiles("/tmp/", searchstr.str());
+  // remove those files
+  for (auto& fn : filenames) {
+    std::filesystem::remove(std::filesystem::path(fn));
+  }
 }
 
 void cleanup()
@@ -164,11 +171,11 @@ void sighandler(int signal)
 {
   if (signal == SIGINT || signal == SIGTERM) {
     LOG(INFO) << "o2-sim driver: Signal caught ... clean up and exit";
-    cleanup();
     // forward signal to all children
     for (auto& pid : gChildProcesses) {
-      kill(pid, signal);
+      killpg(pid, signal);
     }
+    cleanup();
     exit(0);
   }
 }
@@ -446,6 +453,7 @@ int main(int argc, char* argv[])
     return r;
   } else {
     gChildProcesses.push_back(pid);
+    setpgid(pid, pid);
     close(pipe_serverdriver_fd[1]);
     std::cout << "Spawning particle server on PID " << pid << "; Redirect output to " << getServerLogName() << "\n";
 
@@ -487,6 +495,7 @@ int main(int argc, char* argv[])
       return 0;
     } else {
       gChildProcesses.push_back(pid);
+      setpgid(pid, pid); // the worker processes will form their own group
       std::cout << "Spawning sim worker " << id << " on PID " << pid
                 << "; Redirect output to " << workerlogss.str() << "\n";
     }
@@ -514,6 +523,7 @@ int main(int argc, char* argv[])
     return 0;
   } else {
     std::cout << "Spawning hit merger on PID " << pid << "; Redirect output to " << getMergerLogName() << "\n";
+    setpgid(pid, pid);
     gChildProcesses.push_back(pid);
     close(pipe_mergerdriver_fd[1]);
 
@@ -529,7 +539,7 @@ int main(int argc, char* argv[])
         if (!conf.asService()) {
           LOG(INFO) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
           for (auto p : gChildProcesses) {
-            kill(p, SIGTERM);
+            killpg(p, SIGTERM);
           }
         } else {
           LOG(INFO) << "SIMULATION DONE. STAYING AS DAEMON.";
@@ -545,40 +555,42 @@ int main(int argc, char* argv[])
 
   int status, cpid;
   // wait just blocks and waits until any child returns; but we make sure to wait until merger is here
+  bool errored = false;
   while ((cpid = wait(&status)) != mergerpid) {
-    if (WIFSIGNALED(status)) {
+    if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
       LOG(INFO) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
                 << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
-    }
-    // we bring down all processes if one of them aborts
-    if (WTERMSIG(status) == SIGABRT) {
-      LOG(INFO) << "Problem detected ";
+
+      // we bring down all processes if one of them had problems or got a termination signal
+      // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
+      LOG(INFO) << "Problem detected (or child received termination signal) ... shutting down whole system ";
       for (auto p : gChildProcesses) {
-        LOG(INFO) << "KILLING " << p;
-        kill(p, SIGTERM);
+        LOG(INFO) << "TERMINATING " << p;
+        killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
       }
-      cleanup();
-      LOG(FATAL) << "ABORTING DUE TO ABORT IN COMPONENT";
+      LOG(ERROR) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+      errored = true;
     }
   }
   // This marks the actual end of the computation (since results are available)
   LOG(INFO) << "Merger process " << mergerpid << " returned";
   LOG(INFO) << "Simulation process took " << timer.RealTime() << " s";
 
-  // make sure the rest shuts down
-  for (auto p : gChildProcesses) {
-    if (p != mergerpid) {
-      LOG(INFO) << "SHUTTING DOWN CHILD PROCESS " << p;
-      kill(p, SIGTERM);
+  if (!errored) {
+    // ordinary shutdown of the rest
+    for (auto p : gChildProcesses) {
+      if (p != mergerpid) {
+        LOG(INFO) << "SHUTTING DOWN CHILD PROCESS " << p;
+        killpg(p, SIGTERM);
+      }
     }
   }
 
   LOG(DEBUG) << "ShmManager operation " << o2::utils::ShmManager::Instance().isOperational() << "\n";
-  cleanup();
 
   // do a quick check to see if simulation produced something reasonable
   // (mainly useful for continuous integration / automated testing suite)
-  auto returncode = checkresult();
+  auto returncode = errored ? 1 : checkresult();
   if (returncode == 0) {
     // Extract a single file for MCEventHeaders
     // This file will be small and can quickly unblock start of signal transport (in embedding).
@@ -595,5 +607,6 @@ int main(int argc, char* argv[])
     LOG(INFO) << "SIMULATION RETURNED SUCCESFULLY";
   }
 
+  cleanup();
   return returncode;
 }

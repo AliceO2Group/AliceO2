@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,9 +24,9 @@ namespace mch
 namespace raw
 {
 /// A SampaChannelHandler is a function that takes a pair to identify
-/// a readout sampa channel and a SampaCluster containing the channel data.
+/// a readout dual sampa channel and a SampaCluster containing the channel data.
 using SampaChannelHandler = std::function<void(DsElecId dsId,
-                                               uint8_t channel,
+                                               DualSampaChannelId channel,
                                                SampaCluster)>;
 
 /// A SampaHeartBeatHandler is a function that takes a chip index and

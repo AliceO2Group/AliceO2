@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 if (ENABLE_UPGRADES)
 o2_add_executable(digitizer-workflow
@@ -47,7 +48,7 @@ o2_add_executable(digitizer-workflow
                                         O2::ITSMFTWorkflow
                                         O2::MCHSimulation
                                         O2::MCHBase
-					O2::DataFormatsMCH
+                                        O2::DataFormatsMCH
                                         O2::MFTSimulation
                                         O2::MIDSimulation
                                         O2::PHOSSimulation
@@ -55,15 +56,15 @@ o2_add_executable(digitizer-workflow
                                         O2::TOFSimulation
                                         O2::TOFCalibration
                                         O2::TOFReconstruction
-                                        O2::TOFWorkflowUtils
+                                        O2::TOFWorkflowIO
                                         O2::TPCSimulation
                                         O2::TRDSimulation
                                         O2::TRDWorkflow
                                         O2::TRDWorkflowIO
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation
-					O2::ZDCWorkflow
-					O2::DetectorsRaw
+                                        O2::ZDCWorkflow
+                                        O2::DetectorsRaw
                                         O2::ITS3Simulation
                                         O2::ITS3Workflow
                                         )
@@ -112,14 +113,14 @@ o2_add_executable(digitizer-workflow
                                         O2::TOFSimulation
                                         O2::TOFCalibration
                                         O2::TOFReconstruction
-                                        O2::TOFWorkflowUtils
+                                        O2::TOFWorkflowIO
                                         O2::TPCSimulation
                                         O2::TRDSimulation
                                         O2::TRDWorkflow
                                         O2::DataFormatsTRD
                                         O2::ZDCSimulation
-					O2::ZDCWorkflow
-					O2::DetectorsRaw
+                                        O2::ZDCWorkflow
+                                        O2::DetectorsRaw
                                         )
 endif()
 
@@ -127,7 +128,7 @@ endif()
 o2_add_executable(mctruth-testworkflow
                   COMPONENT_NAME sim
                   SOURCES src/MCTruthTestWorkflow.cxx
-	                  src/MCTruthSourceSpec.cxx
-	                  src/MCTruthWriterSpec.cxx
+                          src/MCTruthSourceSpec.cxx
+                          src/MCTruthWriterSpec.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::SimulationDataFormat)

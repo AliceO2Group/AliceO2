@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -74,7 +75,6 @@ void TRDGlobalTracking::init(InitContext& ic)
   mTracker->SetNCandidates(mRec->GetProcessingSettings().trdNCandidates); // must be set before initialization
   mTracker->SetProcessPerTimeFrame(true);
   mTracker->SetGenerateSpacePoints(false); // set to true to force space point calculation by the TRD tracker itself
-  //mTracker->SetDoImpactAngleHistograms(true);
 
   mRec->RegisterGPUProcessor(mTracker, false);
   mChainTracking->SetTRDGeometry(std::move(mFlatGeo));
@@ -133,7 +133,6 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   LOGF(INFO, "As input seeds are available: %i ITS-TPC matched tracks and %i TPC tracks", mChainTracking->mIOPtrs.nTracksTPCITSO2, mChainTracking->mIOPtrs.nOutputTracksTPCO2);
 
   mTracker->Reset();
-  mTracker->ResetImpactAngleHistograms();
   updateTimeDependentParams();
   mRec->PrepareEvent();
   mRec->SetupGPUProcessor(mTracker, true);
@@ -208,11 +207,6 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
 
   LOGF(INFO, "The TRD tracker found %lu tracks from TPC seeds and %lu tracks from ITS-TPC seeds and attached in total %i tracklets out of %i",
        tracksOutTPC.size(), tracksOutITSTPC.size(), nTrackletsAttached, mChainTracking->mIOPtrs.nTRDTracklets);
-
-  // Temporary until it is transferred to its own DPL device for calibrations
-  mCalibVDrift.setAngleDiffSums(mTracker->AngleDiffSums());
-  mCalibVDrift.setAngleDiffCounters(mTracker->AngleDiffCounters());
-  mCalibVDrift.process();
 
   if (inputTracks.isTrackSourceLoaded(GTrackID::Source::ITSTPC)) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "MATCHTRD_GLO", 0, Lifetime::Timeframe}, tracksOutITSTPC);

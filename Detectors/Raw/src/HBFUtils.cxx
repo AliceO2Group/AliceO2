@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -46,4 +47,14 @@ int HBFUtils::fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& t
     dst.emplace_back(getIRHBF(ihb));
   }
   return dst.size();
+}
+
+//_________________________________________________
+void HBFUtils::checkConsistency() const
+{
+  if (orbitFirstSampled < orbitFirst) {
+    auto s = fmt::format("1st sampled orbit ({}) < 1st orbit of run ({})", orbitFirstSampled, orbitFirst);
+    LOG(ERROR) << s;
+    throw std::runtime_error(s);
+  }
 }

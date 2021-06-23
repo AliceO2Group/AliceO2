@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -152,20 +153,20 @@ void ReadRaw::readData(const std::string fileRaw, const o2::ft0::LookUpTable& lu
           LOG(INFO) << "read TCM  " << (int)mEventHeader.nGBTWords << " orbit " << int(mEventHeader.orbit) << " BC " << int(mEventHeader.bc) << " pos " << pos << " posinfile " << posInFile;
         } else {
           if (mIsPadded) {
-            pos += CRUWordSize - o2::ft0::EventHeader::PayloadSize;
+            pos += CRUWordSize - o2::ft0::RawEventData::sPayloadSize;
           }
           for (int i = 0; i < mEventHeader.nGBTWords; ++i) {
-            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::EventData::PayloadSizeFirstWord);
+            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i]), o2::ft0::RawEventData::sPayloadSizeFirstWord);
             chDgDataArr->emplace_back(lut.getChannel(link, int(mEventData[2 * i].channelID), ep),
                                       int(mEventData[2 * i].time),
                                       int(mEventData[2 * i].charge),
                                       int(mEventData[2 * i].numberADC));
 
-            pos += o2::ft0::EventData::PayloadSizeFirstWord;
+            pos += o2::ft0::RawEventData::sPayloadSizeFirstWord;
             LOG(INFO) << " read 1st word channelID " << int(mEventData[2 * i].channelID) << " charge " << mEventData[2 * i].charge << " time " << mEventData[2 * i].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i].channelID), ep) << " pos " << pos;
 
-            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), EventData::PayloadSizeSecondWord);
-            pos += o2::ft0::EventData::PayloadSizeSecondWord;
+            mFileDest.read(reinterpret_cast<char*>(&mEventData[2 * i + 1]), o2::ft0::RawEventData::sPayloadSizeSecondWord);
+            pos += o2::ft0::RawEventData::sPayloadSizeSecondWord;
             LOG(INFO) << "read 2nd word channel " << int(mEventData[2 * i + 1].channelID) << " charge " << int(mEventData[2 * i + 1].charge) << " time " << mEventData[2 * i + 1].time << " PM " << link << " lut channel " << lut.getChannel(link, int(mEventData[2 * i + 1].channelID), ep) << " pos " << pos;
             if (mEventData[2 * i + 1].charge <= 0 && mEventData[2 * i + 1].channelID <= 0 && mEventData[2 * i + 1].time <= 0) {
               continue;

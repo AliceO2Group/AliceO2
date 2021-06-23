@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -64,7 +65,7 @@ class RawReaderBase
       refDataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += refDataBlock.mSize;
       if (!refDataBlock.isCorrect()) {
-        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size" << refDataBlock.mSize;
+        LOG(WARNING) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size: " << refDataBlock.mSize;
         refDataBlock.print();
         vecDataBlocks.pop_back();
         return srcPos;
@@ -92,7 +93,7 @@ class RawReaderBase
   {
     int digitCounter = mMapDigits.size();
     for (auto& digit : mMapDigits) {
-      digit.second.pop(vecDigit...);
+      digit.second.getDigits(vecDigit...);
     }
     mMapDigits.clear();
     return digitCounter;
