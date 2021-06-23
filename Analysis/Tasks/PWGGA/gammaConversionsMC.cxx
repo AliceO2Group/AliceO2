@@ -59,10 +59,10 @@ struct GammaConversionsMc {
     {
       {"IsPhotonSelected", "IsPhotonSelected", {HistType::kTH1F, {{13, -0.5f, 11.5f}}}},
 
-      {"beforeCuts/hPtRec_before", "hPtRec_before", {HistType::kTH1F, {{100, 0.0f, 25.0f}}}},
-      {"beforeCuts/hEtaRec_before", "hEtaRec_before", {HistType::kTH1F, {{1000, -2.f, 2.f}}}},
-      {"beforeCuts/hPhiRec_before", "hEtaRec_before", {HistType::kTH1F, {{1000, 0.f, 2.f * M_PI}}}},
-      {"beforeCuts/hConvPointR_before", "hConvPointR_before", {HistType::kTH1F, {{800, 0.f, 200.f}}}},
+      {"beforeCuts/hPtRec", "hPtRec_before", {HistType::kTH1F, {{100, 0.0f, 25.0f}}}},
+      {"beforeCuts/hEtaRec", "hEtaRec_before", {HistType::kTH1F, {{1000, -2.f, 2.f}}}},
+      {"beforeCuts/hPhiRec", "hEtaRec_before", {HistType::kTH1F, {{1000, 0.f, 2.f * M_PI}}}},
+      {"beforeCuts/hConvPointR", "hConvPointR_before", {HistType::kTH1F, {{800, 0.f, 200.f}}}},
 
       {"hPtRec", "hPtRec", {HistType::kTH1F, {{100, 0.0f, 25.0f}}}},
       {"hEtaRec", "hEtaRec", {HistType::kTH1F, {{1000, -2.f, 2.f}}}},
@@ -164,10 +164,10 @@ struct GammaConversionsMc {
   void fillHistogramsBeforeCuts(const T& theV0)
   {
     // fill some QA histograms before any cuts
-    registry.fill(HIST("beforeCuts/hPtRec_before"), theV0.pt());
-    registry.fill(HIST("beforeCuts/hEtaRec_before"), theV0.eta());
-    registry.fill(HIST("beforeCuts/hPhiRec_before"), theV0.phi());
-    registry.fill(HIST("beforeCuts/hConvPointR_before"), theV0.v0radius());
+    registry.fill(HIST("beforeCuts/hPtRec"), theV0.pt());
+    registry.fill(HIST("beforeCuts/hEtaRec"), theV0.eta());
+    registry.fill(HIST("beforeCuts/hPhiRec"), theV0.phi());
+    registry.fill(HIST("beforeCuts/hConvPointR"), theV0.v0radius());
     registry.fill(HIST("IsPhotonSelected"), kPhotonIn);
   }
 
