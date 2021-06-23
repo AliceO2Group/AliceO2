@@ -114,7 +114,7 @@ struct HfFilter {
         std::array<float, 3> pVecThird = {track.px(), track.py(), track.pz()};
 
         if(!keepEvent[kBeauty]) {
-          auto massCandB = RecoDecay::M(std::array{pVec2Prong, pVecThird}, std::array{massD0, massPi});
+          auto massCandB = RecoDecay::M(std::array{pVec2Prong, pVecThird}, std::array{massD0, massPi}); // TODO: retrieve D0-D0bar hypothesis to pair with proper signed track
           if(abs(massCandB - massBPlus) <= deltaMassBPlus) {
             keepEvent[kBeauty] = true;
           }
@@ -141,6 +141,8 @@ struct HfFilter {
       std::array<float, 3> pVecSecond = {trackSecond.px(), trackSecond.py(), trackSecond.pz()};
       std::array<float, 3> pVecThird = {trackThird.px(), trackThird.py(), trackThird.pz()};
 
+      float sign3Prong = trackFirst.signed1Pt() * trackSecond.signed1Pt() * trackThird.signed1Pt();
+
       auto pVec3Prong = RecoDecay::PVec(pVecFirst, pVecSecond, pVecThird);
       auto pt3Prong = RecoDecay::Pt(pVec3Prong);
       if(pt3Prong >= ptThreshold3Prong) {
@@ -160,14 +162,16 @@ struct HfFilter {
         float massCharmHypos[3] = {massDPlus, massDs, massLc};
         float massBeautyHypos[3] = {massB0, massBs, massLb};
         float deltaMassHypos[3] = {deltaMassB0, deltaMassBs, deltaMassLb};
-        while(!keepEvent[kBeauty] && iHypo < 3) {
-          if(specieCharmHypos[iHypo]) {
-            auto massCandB = RecoDecay::M(std::array{pVec3Prong, pVecFourth}, std::array{massCharmHypos[iHypo], massPi});
-            if(abs(massCandB - massBeautyHypos[iHypo]) <= deltaMassHypos[iHypo]) {
-              keepEvent[kBeauty] = true;
+        if(track.signed1Pt() * sign3Prong < 0) {
+          while(!keepEvent[kBeauty] && iHypo < 3) {
+            if(specieCharmHypos[iHypo]) {
+              auto massCandB = RecoDecay::M(std::array{pVec3Prong, pVecFourth}, std::array{massCharmHypos[iHypo], massPi});
+              if(abs(massCandB - massBeautyHypos[iHypo]) <= deltaMassHypos[iHypo]) {
+                keepEvent[kBeauty] = true;
+              }
             }
+            iHypo++;
           }
-          iHypo++;
         }
 
         // TODO: add momentum correlation with a track for femto
