@@ -83,7 +83,7 @@ struct gpuState {
   std::vector<std::vector<T>> gpuBuffersHost; // Host-based vector-ized data
 
   // Test-specific containers
-  T* deviceReadingResultsPtr;       // Results of the reading test (single variable) on GPU
+  T* deviceReadingResultsPtr;              // Results of the reading test (single variable) on GPU
   std::vector<T> hostReadingResultsVector; // Results of the reading test (single variable) on host
 
   // Static info

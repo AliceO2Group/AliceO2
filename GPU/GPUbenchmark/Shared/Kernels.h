@@ -25,7 +25,6 @@
 // #define PARTITION_SIZE_GB 1
 // #define FREE_MEMORY_FRACTION_TO_ALLOCATE 0.95f
 
-
 namespace o2
 {
 namespace benchmark
@@ -36,8 +35,8 @@ class GPUbenchmark final
 {
  public:
   GPUbenchmark() = delete; // need for a configuration
-  GPUbenchmark(benchmarkOpts& opts) : mOptions{opts} {
-
+  GPUbenchmark(benchmarkOpts& opts) : mOptions{opts}
+  {
   }
   virtual ~GPUbenchmark() = default;
   template <typename... T>
