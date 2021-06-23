@@ -40,6 +40,7 @@ struct benchmarkOpts {
 
   float partitionSizeGB = 1.f;
   float freeMemoryFractionToAllocate = 0.95f;
+  size_t iterations = 1;
 };
 
 template <class T>
@@ -72,8 +73,12 @@ struct gpuState {
     return gpuBuffersHost;
   }
 
+  size_t getNiterations() { return iterations; }
+
   // Configuration
   size_t nMaxThreadsPerDimension;
+  size_t iterations;
+
   float partitionSizeGB; // Size of each partition (GB)
 
   // General containers and state
