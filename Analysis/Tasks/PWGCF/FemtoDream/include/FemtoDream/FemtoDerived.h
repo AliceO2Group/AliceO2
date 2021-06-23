@@ -38,12 +38,22 @@ using FemtoDreamCollision = FemtoDreamCollisions::iterator;
 
 namespace femtodreamparticle
 {
+  enum ParticleType {
+    kTrack,
+    kV0,
+    kV0Child,
+    kCascade,
+    kCascadeBachelor
+  };
+
 DECLARE_SOA_INDEX_COLUMN(FemtoDreamCollision, femtoDreamCollision);
 DECLARE_SOA_COLUMN(Pt, pt, float);
 DECLARE_SOA_COLUMN(Eta, eta, float);
 DECLARE_SOA_COLUMN(Phi, phi, float);
+DECLARE_SOA_COLUMN(PartType, partType, uint8_t);
 DECLARE_SOA_COLUMN(Cut, cut, uint64_t);
 DECLARE_SOA_COLUMN(TempFitVar, tempFitVar, float);
+DECLARE_SOA_COLUMN(Indices, indices, int[2]);
 
 DECLARE_SOA_DYNAMIC_COLUMN(Theta, theta,
                            [](float eta) -> float {
@@ -81,8 +91,10 @@ DECLARE_SOA_TABLE(FemtoDreamParticles, "AOD", "FEMTODREAMPARTS",
                   femtodreamparticle::Pt,
                   femtodreamparticle::Eta,
                   femtodreamparticle::Phi,
+		  femtodreamparticle::PartType,
                   femtodreamparticle::Cut,
                   femtodreamparticle::TempFitVar,
+		  femtodreamparticle::Indices,
                   femtodreamparticle::Theta<femtodreamparticle::Eta>,
                   femtodreamparticle::Px<femtodreamparticle::Pt, femtodreamparticle::Phi>,
                   femtodreamparticle::Py<femtodreamparticle::Pt, femtodreamparticle::Phi>,
