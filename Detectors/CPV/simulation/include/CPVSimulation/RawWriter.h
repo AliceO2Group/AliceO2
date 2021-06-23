@@ -81,9 +81,13 @@ class RawWriter
   FileFor_t mFileFor = FileFor_t::kFullDet;                       ///< Granularity of the output files
   std::string mOutputLocation = "./";                             ///< Rawfile name
   std::string mCcdbUrl = "http://ccdb-test.cern.ch:8080";         ///< CCDB Url
-  std::unique_ptr<CalibParams> mCalibParams;                      ///< CPV calibration
-  std::unique_ptr<Pedestals> mPedestals;                          ///< CPV pedestals
-  std::unique_ptr<BadChannelMap> mBadMap;                         ///< CPV bad channel map
+  std::unique_ptr<CalibParams> mCalibParamsTst;                   ///< CPV calibration
+  std::unique_ptr<Pedestals> mPedestalsTst;                       ///< CPV pedestals
+  std::unique_ptr<BadChannelMap> mBadMapTst;                      ///< CPV bad channel map
+  CalibParams* mCalibParams = nullptr;                            ///< CPV calibration
+  Pedestals* mPedestals = nullptr;                                ///< CPV pedestals
+  BadChannelMap* mBadMap = nullptr;                               ///< CPV bad channel map
+
   std::vector<char> mPayload;                                     ///< Payload to be written
   gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format including the time response
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer
