@@ -30,23 +30,23 @@ class DigitRecoSpec : public o2::framework::Task
 {
  public:
   DigitRecoSpec();
-  DigitRecoSpec(const int verbosity, const bool debugOut, const std::string& ccdbURL);
+  DigitRecoSpec(const int verbosity, const bool debugOut);
   ~DigitRecoSpec() override = default;
   void run(o2::framework::ProcessingContext& pc) final;
   void init(o2::framework::InitContext& ic) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  DigiReco mDR;              // Reconstruction object
-  std::string mccdbHost;     // Alternative ccdb server
-  int mVerbosity = 0;        // Verbosity level during recostruction
-  bool mDebugOut = false;    // Save temporary reconstruction structures on root file
-  bool mInitialized = false; // Connect once to CCDB during initialization
+  DigiReco mDR;                                           // Reconstruction object
+  std::string mccdbHost{"http://ccdb-test.cern.ch:8080"}; // Alternative ccdb server
+  int mVerbosity = 0;                                     // Verbosity level during recostruction
+  bool mDebugOut = false;                                 // Save temporary reconstruction structures on root file
+  bool mInitialized = false;                              // Connect once to CCDB during initialization
   TStopwatch mTimer;
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getDigitRecoSpec(const int verbosity, const bool enableDebugOut, const std::string ccdbURL);
+framework::DataProcessorSpec getDigitRecoSpec(const int verbosity, const bool enableDebugOut);
 
 } // namespace zdc
 } // namespace o2
