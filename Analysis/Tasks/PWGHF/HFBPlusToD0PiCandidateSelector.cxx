@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFBPlusToD0PiCandidateSelector.cxx
-/// \brief B+ to D0barPi candidate selector
+/// \brief B± → D0bar(D0) π± candidate selector
 ///
 /// \author Antonio Palasciano <antonio.palasciano@cern.ch>, Università degli Studi di Bari & INFN, Sezione di Bari
 /// \author Deepa Thomas <deepa.thomas@cern.ch>, UT Austin
@@ -29,7 +29,7 @@ using namespace o2::analysis;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_bplus_tod0pi;
 
-struct HFBPlusToD0PiCandidateSelector {
+struct HfBplusTod0piCandidateSelector {
 
   Produces<aod::HFSelBPlusToD0PiCandidate> hfSelBPlusToD0PiCandidate;
 
@@ -52,22 +52,9 @@ struct HFBPlusToD0PiCandidateSelector {
   Configurable<int> d_selectionFlagD0{"d_selectionFlagD0", 1, "Selection Flag for D0"};
   Configurable<int> d_selectionFlagD0bar{"d_selectionFlagD0bar", 1, "Selection Flag for D0bar"};
 
-  // return true if track is good
-  template <typename T>
-  bool daughterSelection(const T& track)
-  {
-    if (track.sign() == 0) {
-      return false;
-    }
-    /*if (track.tpcNClsFound() == 0) {
-      return false; //is it clusters findable or found - need to check
-      }*/
-    return true;
-  }
-
   // Apply topological cuts as defined in HFSelectorCuts.h; return true if candidate passes all cuts
   template <typename T1, typename T2, typename T3>
-  bool selectionTopol(const T1& hfCandBPlus, const T2& hfCandD0, const T3& trackPos)
+  bool selectionTopol(const T1& hfCandBPlus, const T2& hfCandD0, const T3& trackPi)
   {
     auto candpT = hfCandBPlus.pt();
     int pTBin = findBin(pTBins, candpT);
@@ -77,7 +64,7 @@ struct HFBPlusToD0PiCandidateSelector {
     }
 
     //pi pt
-    if (trackPos.pt() < cuts->get(pTBin, "pT Pi")) {
+    if (trackPi.pt() < cuts->get(pTBin, "pT Pi")) {
       return false;
     }
 
@@ -87,19 +74,19 @@ struct HFBPlusToD0PiCandidateSelector {
     }
 
     //D0 mass
-    if (trackPos.sign() > 0) {
-      if (TMath::Abs(InvMassD0bar(hfCandD0) - RecoDecay::getMassPDG(421)) > cuts->get(pTBin, "DeltaMD0")) {
+    if (trackPi.sign() > 0) {
+      if (std::abs(InvMassD0bar(hfCandD0) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "DeltaMD0")) {
         return false;
       }
     }
-    if (trackPos.sign() < 0) {
-      if (TMath::Abs(InvMassD0(hfCandD0) - RecoDecay::getMassPDG(421)) > cuts->get(pTBin, "DeltaMD0")) {
+    if (trackPi.sign() < 0) {
+      if (std::abs(InvMassD0(hfCandD0) - RecoDecay::getMassPDG(pdg::Code::kD0)) > cuts->get(pTBin, "DeltaMD0")) {
         return false;
       }
     }
 
     //B Decay length
-    if (TMath::Abs(hfCandBPlus.decayLength()) < cuts->get(pTBin, "B decLen")) {
+    if (hfCandBPlus.decayLength() < cuts->get(pTBin, "B decLen")) {
       return false;
     }
 
@@ -114,18 +101,18 @@ struct HFBPlusToD0PiCandidateSelector {
     // }
 
     //B+ mass cut
-    //if (TMath::Abs(InvMassBplus(hfCandBPlus) - RecoDecay::getMassPDG(521)) > cuts->get(pTBin, "m")) {
+    //if (std::abs(InvMassBplus(hfCandBPlus) - RecoDecay::getMassPDG(521)) > cuts->get(pTBin, "m")) {
     // Printf("B+ topol selection failed at mass diff check");
     //  return false;
     // }
 
     //d0 of D0 and pi
-    //if ((TMath::Abs(hfCandBPlus.impactParameter0()) > cuts->get(pTBin, "d0 D0")) ||
-    //    (TMath::Abs(hfCandBPlus.impactParameter1()) > cuts->get(pTBin, "d0 Pi"))){
+    //if ((std::abs(hfCandBPlus.impactParameter0()) > cuts->get(pTBin, "d0 D0")) ||
+    //    (std::abs(hfCandBPlus.impactParameter1()) > cuts->get(pTBin, "d0 Pi"))){
     //  return false;
     //}
     //D0 CPA
-    // if (TMath::Abs(hfCandD0.cpa()) < cuts->get(pTBin, "CPA D0")){
+    // if (std::abs(hfCandD0.cpa()) < cuts->get(pTBin, "CPA D0")){
     //  return false;
     //}
     return true;
@@ -135,7 +122,7 @@ struct HFBPlusToD0PiCandidateSelector {
   template <typename T>
   bool validTPCPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTPCMinpT || TMath::Abs(track.pt()) >= d_pidTPCMaxpT) {
+    if (std::abs(track.pt()) < d_pidTPCMinpT || std::abs(track.pt()) >= d_pidTPCMaxpT) {
       return false;
     }
     //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
@@ -146,7 +133,7 @@ struct HFBPlusToD0PiCandidateSelector {
   template <typename T>
   bool validTOFPID(const T& track)
   {
-    if (TMath::Abs(track.pt()) < d_pidTOFMinpT || TMath::Abs(track.pt()) >= d_pidTOFMaxpT) {
+    if (std::abs(track.pt()) < d_pidTOFMinpT || std::abs(track.pt()) >= d_pidTOFMaxpT) {
       return false;
     }
     return true;
@@ -247,36 +234,30 @@ struct HFBPlusToD0PiCandidateSelector {
   void process(aod::HfCandBPlus const& hfCandBs, soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>, aod::BigTracksPID const& tracks)
   {
     for (auto& hfCandB : hfCandBs) { //looping over Bplus candidates
-      // D0 is always index0 and pi is index1 by default
-      auto candD0 = hfCandB.index0_as<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>>();
-      auto trackPos = hfCandB.index1_as<aod::BigTracksPID>();
 
       int statusBplus = 0;
 
       // check if flagged as B+ --> D0bar Pi
-      if (!(hfCandB.hfflag() & 1 << DecayType::BPlusToD0Pi)) {
+      if (!(hfCandB.hfflag() & 1 << hf_cand_bplus::DecayType::BPlusToD0Pi)) {
         hfSelBPlusToD0PiCandidate(statusBplus);
         // Printf("B+ candidate selection failed at hfflag check");
         continue;
       }
 
-      // daughter track validity selection
-      if (!daughterSelection(trackPos)) {
-        hfSelBPlusToD0PiCandidate(statusBplus);
-        // Printf("B+ candidate selection failed at daughter selection");
-        continue;
-      }
+      // D0 is always index0 and pi is index1 by default
+      auto candD0 = hfCandB.index0_as<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>>();
+      auto trackPi = hfCandB.index1_as<aod::BigTracksPID>();
 
       //topological cuts
-      if (!selectionTopol(hfCandB, candD0, trackPos)) {
+      if (!selectionTopol(hfCandB, candD0, trackPi)) {
         hfSelBPlusToD0PiCandidate(statusBplus);
         // Printf("B+ candidate selection failed at selection topology");
         continue;
       }
 
       /*      //Pion PID
-      //if (selectionPID(trackPos, kPiPlus) == 0) {
-      if (selectionPID(trackPos, kPiPlus) != 1) {
+      //if (selectionPID(trackPi, kPiPlus) == 0) {
+      if (selectionPID(trackPi, kPiPlus) != 1) {
         hfSelBPlusToD0PiCandidate(statusBplus);
         // Printf("B+ candidate selection failed at selection PID");
         continue;
@@ -290,6 +271,7 @@ struct HFBPlusToD0PiCandidateSelector {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
-    adaptAnalysisTask<HFBPlusToD0PiCandidateSelector>(cfgc, TaskName{"hf-bplus-tod0pi-candidate-selector"})};
+  WorkflowSpec workflow{};
+  workflow.push_back(adaptAnalysisTask<HfBplusTod0piCandidateSelector>(cfgc));
+  return workflow;
 }

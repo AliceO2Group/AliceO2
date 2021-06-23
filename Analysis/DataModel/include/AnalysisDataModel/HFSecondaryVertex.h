@@ -218,7 +218,6 @@ DECLARE_SOA_COLUMN(OriginMCGen, originMCGen, int8_t);       //! particle origin,
 // mapping of decay types
 enum DecayType { D0ToPiK = 0,
                  JpsiToEE,
-                 BPlusToD0Pi,
                  N2ProngDecays }; //always keep N2ProngDecays at the end
 
 // functions for specific particles
@@ -472,6 +471,40 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Index0, index0, int, HfCandProng2, "_0"); // D0 in
 // MC matching result:
 DECLARE_SOA_COLUMN(FlagMCMatchRec, flagMCMatchRec, int8_t); // reconstruction level
 DECLARE_SOA_COLUMN(FlagMCMatchGen, flagMCMatchGen, int8_t); // generator level
+
+enum DecayType { BPlusToD0Pi = 0 };
+
+// B± → D0bar(D0) π±
+
+template <typename T>
+auto CtBplus(const T& candidate)
+{
+  return candidate.ct(RecoDecay::getMassPDG(pdg::Code::kBPlus));
+}
+
+template <typename T>
+auto YBplus(const T& candidate)
+{
+  return candidate.y(RecoDecay::getMassPDG(pdg::Code::kBPlus));
+}
+
+template <typename T>
+auto EBplus(const T& candidate)
+{
+  return candidate.e(RecoDecay::getMassPDG(pdg::Code::kBPlus));
+}
+
+template <typename T>
+auto InvMassBplus(const T& candidate)
+{
+  return candidate.m(array{RecoDecay::getMassPDG(pdg::Code::kD0), RecoDecay::getMassPDG(kPiPlus)});
+}
+
+template <typename T>
+auto CosThetaStarBplus(const T& candidate)
+{
+  return candidate.cosThetaStar(array{RecoDecay::getMassPDG(pdg::Code::kD0), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(pdg::Code::kBPlus), 1);
+}
 } // namespace hf_cand_bplus
 
 // declare dedicated BPlus decay candidate table
@@ -521,38 +554,6 @@ DECLARE_SOA_TABLE(HfCandBPMCRec, "AOD", "HFCANDBPMCREC",
 // table with results of generator level MC matching
 DECLARE_SOA_TABLE(HfCandBPMCGen, "AOD", "HFCANDBPMCGEN",
                   hf_cand_bplus::FlagMCMatchGen);
-
-// B± → D0bar(D0) π±
-
-template <typename T>
-auto CtBplus(const T& candidate)
-{
-  return candidate.ct(RecoDecay::getMassPDG(521));
-}
-
-template <typename T>
-auto YBplus(const T& candidate)
-{
-  return candidate.y(RecoDecay::getMassPDG(521));
-}
-
-template <typename T>
-auto EBplus(const T& candidate)
-{
-  return candidate.e(RecoDecay::getMassPDG(521));
-}
-
-template <typename T>
-auto InvMassBplus(const T& candidate)
-{
-  return candidate.m(array{RecoDecay::getMassPDG(421), RecoDecay::getMassPDG(kPiPlus)});
-}
-
-template <typename T>
-auto CosThetaStarBplus(const T& candidate)
-{
-  return candidate.cosThetaStar(array{RecoDecay::getMassPDG(421), RecoDecay::getMassPDG(kPiPlus)}, RecoDecay::getMassPDG(521), 1);
-}
 
 // specific 3-prong decay properties
 namespace hf_cand_prong3

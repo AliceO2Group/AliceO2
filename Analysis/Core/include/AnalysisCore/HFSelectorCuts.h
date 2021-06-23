@@ -402,7 +402,7 @@ constexpr double pTBins[npTBins + 1] = {
 auto pTBins_v = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
-//                                           Deltam    CPA      d0D0     d0Pi    pTD0    pTPi    Bdeclen    ImpParProduct    DeltaMD0    CthetaStr
+// DeltaM CPA d0D0 d0Pi pTD0 pTPi BDecayLength IPProd DeltaMD0 CthetaStr
 constexpr double cuts[npTBins][nCutVars] = {{1., 0.8, 0.01, 0.01, 1.0, 0.15, 0.05, 0., 0.1, 0.7},  /* 0<pt<0.5 */
                                             {1., 0.8, 0.01, 0.01, 1.0, 0.15, 0.05, 0., 0.1, 0.7},  /* 0.5<pt<1 */
                                             {1., 0.8, 0.01, 0.01, 1.0, 0.15, 0.05, 0., 0.1, 0.7},  /* 1<pt<2   */
