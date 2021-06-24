@@ -61,9 +61,9 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   mCruID = uint16_t(0);
   mEndPointID = uint32_t(0);
   for (int ilink = 0; ilink < NLinks; ilink++) {
-    mFeeID = uint64_t(ilink);
+    uint64_t FeeID = uint64_t(ilink);
     std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "zdc_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "zdc.raw");
-    mWriter.registerLink(mFeeID, mCruID, mLinkID, mEndPointID, outFileLink);
+    mWriter.registerLink(FeeID, mCruID, mLinkID, mEndPointID, outFileLink);
   }
 
   std::unique_ptr<TFile> digiFile(TFile::Open(fileDigitsName.c_str()));
@@ -451,16 +451,19 @@ void Digits2Raw::writeDigits()
     // Condition to write GBT data
     if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
       for (uint32_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
+        uint64_t FeeID = 2*im+ic/2;
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
             gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
-            mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, payload);
+            mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
           }
-        } else {
-          // All links are registered, we add explicitly zero payload
-          mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, empty);
         }
       }
+    } else {
+      // All links are registered, we add explicitly zero payload
+      uint64_t FeeID = 2*im;
+      mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, empty);
+      mWriter.addData(FeeID+1, mCruID, mLinkID, mEndPointID, ir, empty);
     }
     if (mVerbosity > 1) {
       if (tcond_continuous) {
