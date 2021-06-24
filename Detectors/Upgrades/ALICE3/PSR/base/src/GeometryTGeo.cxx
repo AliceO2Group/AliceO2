@@ -49,10 +49,10 @@ ClassImp(o2::psr::GeometryTGeo);
 
 std::unique_ptr<o2::psr::GeometryTGeo> GeometryTGeo::sInstance;
 
-std::string GeometryTGeo::sVolumeName = "PSRV";      ///< Mother volume name
-std::string GeometryTGeo::sLayerName = "PSRLayer";   ///< Layer name
-std::string GeometryTGeo::sChipName = "PSRChip";     ///< Chip name
-std::string GeometryTGeo::sSensorName = "PSRSensor"; ///< Sensor name
+std::string GeometryTGeo::sVolumeName = "PSRV";                ///< Mother volume name
+std::string GeometryTGeo::sLayerName = "PSRLayer";             ///< Layer name
+std::string GeometryTGeo::sChipName = "PSRChip";               ///< Chip name
+std::string GeometryTGeo::sSensorName = "PSRSensor";           ///< Sensor name
 std::string GeometryTGeo::sShowerlayerName = "PSRShowerlayer"; ///< Showerlayer name
 
 //__________________________________________________________________________
@@ -96,7 +96,7 @@ const char* GeometryTGeo::composeSymNameLayer(Int_t d, Int_t lr)
 const char* GeometryTGeo::composeSymNameShowerlayer(Int_t d, Int_t lr)
 {
   LOG(INFO) << "composenamelayer works_0";
-  return Form("%s/%s%d", composeSymNameShowerlayer(d,lr), getPSRShowerlayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameShowerlayer(d, lr), getPSRShowerlayerPattern(), lr);
   LOG(INFO) << "composenamelayer works_1";
 }
 

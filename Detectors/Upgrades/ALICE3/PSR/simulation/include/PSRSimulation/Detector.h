@@ -37,7 +37,7 @@ namespace o2
 namespace psr
 {
 class GeometryTGeo;
-} // namespace preshower (psr)
+} // namespace psr
 } // namespace o2
 namespace o2
 {
@@ -115,12 +115,12 @@ class Detector : public o2::base::DetImpl<Detector>
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
-  protected:
+ protected:
   std::vector<std::vector<Int_t>> mLayerID;
   std::vector<std::vector<TString>> mLayerName;
   Int_t mNumberOfLayers;
 
-  private:
+ private:
   /// this is transient data about track passing the sensor
   struct TrackData {               // this is transient
     bool mHitStarted;              //! hit creation started
@@ -146,13 +146,13 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Detector& operator=(const Detector&);
 
-  std::vector<std::vector<PSRLayer>> mLayers; 
+  std::vector<std::vector<PSRLayer>> mLayers;
   template <typename Det>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
 
-} // namespace preshower(psr)
+} // namespace psr
 } // namespace o2
 
 #ifdef USESHM
