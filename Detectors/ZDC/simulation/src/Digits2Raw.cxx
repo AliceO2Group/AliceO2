@@ -429,6 +429,7 @@ void Digits2Raw::convertDigits(int ibc)
 void Digits2Raw::writeDigits()
 {
   constexpr static int data_size = sizeof(uint32_t) * NWPerGBTW;
+  constexpr static gsl::span<char> empty;
   // Local interaction record (true and empty bunches)
   o2::InteractionRecord ir(mZDC.data[0][0].f.bc, mZDC.data[0][0].f.orbit);
   for (uint32_t im = 0; im < o2::zdc::NModules; im++) {
@@ -455,8 +456,9 @@ void Digits2Raw::writeDigits()
             gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
             mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, payload);
           }
-        }else{
-          mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, nullptr);
+        } else {
+          // All links are registered, we add explicitly zero payload
+          mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, empty);
         }
       }
     }
