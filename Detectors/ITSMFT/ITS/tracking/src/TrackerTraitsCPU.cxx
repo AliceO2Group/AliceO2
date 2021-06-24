@@ -134,12 +134,6 @@ void TrackerTraitsCPU::computeLayerTracklets()
       }
     }
   }
-#ifdef CA_DEBUG
-  std::cout << "+++ Number of tracklets per layer: ";
-  for (int iLayer{0}; iLayer < mTrkParams.TrackletsPerRoad(); ++iLayer) {
-    std::cout << primaryVertexContext->getTracklets()[iLayer].size() << "\t";
-  }
-#endif
 }
 
 void TrackerTraitsCPU::computeLayerCells()
@@ -197,7 +191,7 @@ void TrackerTraitsCPU::computeLayerCells()
           bool deltaZflag{false};
           gsl::span<const Vertex> primaryVertices{tf->getPrimaryVertices(romin, romax)};
           for (const auto& primaryVertex : primaryVertices)
-            deltaZflag = std::abs(directionZIntersection - primaryVertex.getZ()) < mTrkParams.CellMaxDeltaZ[iLayer];
+            deltaZflag |= std::abs(directionZIntersection - primaryVertex.getZ()) < mTrkParams.CellMaxDeltaZ[iLayer];
 
           if (deltaZflag) {
 
