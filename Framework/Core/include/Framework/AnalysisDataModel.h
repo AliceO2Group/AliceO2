@@ -806,6 +806,16 @@ DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL", //! Table joined to the 
                   mctracklabel::McParticleId, mctracklabel::McMask);
 using McTrackLabel = McTrackLabels::iterator;
 
+namespace mcmfttracklabel
+{
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle
+DECLARE_SOA_COLUMN(McMask, mcMask, uint8_t);
+} // namespace mcmfttracklabel
+
+DECLARE_SOA_TABLE(McMFTTrackLabels, "AOD", "MCMFTTRACKLABEL", //! Table joined to the mft track table containing the MC index
+                  mcmfttracklabel::McParticleId, mcmfttracklabel::McMask);
+using McMFTTrackLabel = McMFTTrackLabels::iterator;
+
 namespace mccalolabel
 {
 DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle

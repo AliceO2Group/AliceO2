@@ -23,7 +23,7 @@
 /process/optical/processActivation Scintillation 0
 /process/optical/processActivation OpWLS 0
 /process/optical/processActivation OpMieHG 0
-/process/optical/setTrackSecondariesFirst Cerenkov 0
+/process/optical/cerenkov/setTrackSecondariesFirst false
 /mcMagField/stepperType NystromRK4
 
 # PAI for TRD
