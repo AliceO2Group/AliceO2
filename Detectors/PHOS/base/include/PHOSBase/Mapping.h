@@ -47,8 +47,8 @@ class Mapping
   static constexpr short NTRUReadoutChannels = 3136;      ///< Total number of TRU readout channels
   static constexpr short TRUFinalProductionChannel = 123; // The last channel of production bits, contains markesr to choose between 2x2 and 4x4 algorithm
 
-  enum CaloFlag { kHighGain,
-                  kLowGain,
+  enum CaloFlag { kLowGain,
+                  kHighGain,
                   kTRU };
 
   ~Mapping() = default;
