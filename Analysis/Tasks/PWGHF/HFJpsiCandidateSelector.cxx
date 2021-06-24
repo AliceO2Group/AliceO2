@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFJpsiCandidateSelector.cxx
-/// \brief J/ψ → e+ e− selection task
+/// \brief J/ψ → e+ e−, μ+ μ− selection task
 ///
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
@@ -48,7 +48,7 @@ struct Alice3PidIndexBuilder {
   void init(o2::framework::InitContext&) {}
 };
 
-/// Struct for applying J/ψ → e+ e− selection cuts
+/// Struct for applying J/ψ → e+ e−, μ+ μ− selection cuts
 struct HfJpsiCandidateSelector {
   Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
