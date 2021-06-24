@@ -118,9 +118,9 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   mMatcher.run(recoData);
 
   if (isTPCused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFOS_TPC", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
     }
 
     auto nmatch = mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC).size();
@@ -134,9 +134,9 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   }
 
   if (isITSTPCused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
     if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFO_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMATCHINFOS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPC));
     }
   }
 
@@ -162,13 +162,13 @@ DataProcessorSpec getTOFMatcherSpec(GTrackID::mask_t src, bool useMC, bool useFI
 
   std::vector<OutputSpec> outputs;
 
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_0", 0, Lifetime::Timeframe);
-  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_1", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS_TPC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFOS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_2", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHINFO_3", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_0", 0, Lifetime::Timeframe);
-    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_1", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFOS_TPC", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFOS", 0, Lifetime::Timeframe);
     outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_2", 0, Lifetime::Timeframe);
     outputs.emplace_back(o2::header::gDataOriginTOF, "MCMATCHINFO_3", 0, Lifetime::Timeframe);
   }

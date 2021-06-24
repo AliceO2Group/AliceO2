@@ -128,6 +128,8 @@ WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --disable-root-input --disable-root-
 
 # Workflows disabled in sync mode
 if [ $SYNCMODE == 0 ]; then
+  WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --track-sources \"TPC,ITS-TPC\" | "
+
   WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output | "
@@ -139,6 +141,8 @@ fi
 
 # Workflows disabled in async mode
 if [ $CTFINPUT == 0 ]; then
+  WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --track-sources \"ITS-TPC\" | "
+    
   WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC --pipeline EMCALRawToCellConverterSpec:$N_EMC | "
