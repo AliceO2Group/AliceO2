@@ -28,47 +28,8 @@ using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_jpsi_toee;
 
-/*
 namespace o2::aod
 {
-
-namespace indices_rich
-{
-DECLARE_SOA_INDEX_COLUMN(Track, track);
-DECLARE_SOA_INDEX_COLUMN(RICH, rich);
-} // namespace indices_rich
-
-DECLARE_SOA_INDEX_TABLE_USER(RICHTracksIndex, Tracks, "RICHTRK",
-                             indices_rich::TrackId, indices_rich::RICHId);
-} // namespace o2::aod
-
-struct RICHindexbuilder {
-  Builds<o2::aod::RICHTracksIndex> ind;
-  void init(o2::framework::InitContext&) {}
-};
-
-namespace o2::aod
-{
-
-namespace indices_mid
-{
-DECLARE_SOA_INDEX_COLUMN(Track, track);
-DECLARE_SOA_INDEX_COLUMN(MID, mid);
-} // namespace indices_mid
-
-DECLARE_SOA_INDEX_TABLE_USER(MIDTracksIndex, Tracks, "MIDTRK",
-                             indices_mid::TrackId, indices_mid::MIDId);
-} // namespace o2::aod
-
-struct MidIndexBuilder {
-  Builds<o2::aod::MIDTracksIndex> ind;
-  void init(o2::framework::InitContext&) {}
-};
-*/
-
-namespace o2::aod
-{
-
 namespace hf_track_index_alice3_pid
 {
 DECLARE_SOA_INDEX_COLUMN(Track, track); //!
@@ -260,8 +221,6 @@ struct HFJpsiCandidateSelector {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    //adaptAnalysisTask<RICHindexbuilder>(cfgc),
-    //adaptAnalysisTask<MidIndexBuilder>(cfgc),
     adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc),
     adaptAnalysisTask<HFJpsiCandidateSelector>(cfgc, TaskName{"hf-jpsi-candidate-selector"})};
 }
