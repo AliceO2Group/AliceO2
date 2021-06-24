@@ -27,7 +27,7 @@ namespace math_utils
 namespace detail
 {
 // fast bit count
-inline int numberOfBitsSet(unsigned int x)
+inline int numberOfBitsSet(uint32_t x)
 {
   // count number of non-0 bits in 32bit word
   x = x - ((x >> 1) & 0x55555555);
@@ -37,13 +37,13 @@ inline int numberOfBitsSet(unsigned int x)
 
 // recursive creation of bitmask
 template <typename T>
-constexpr unsigned int bit2Mask(T v)
+constexpr uint32_t bit2Mask(T v)
 {
   return 0x1 << v;
 }
 
 template <typename T, typename... Args>
-constexpr unsigned int bit2Mask(T first, Args... args)
+constexpr uint32_t bit2Mask(T first, Args... args)
 {
   return (0x1 << first) | bit2Mask(args...);
 }
