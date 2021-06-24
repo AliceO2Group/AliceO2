@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -243,7 +244,7 @@ bool AlignParam::createLocalMatrix(TGeoHMatrix& m) const
 }
 
 //_____________________________________________________________________________
-bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler) const
+bool AlignParam::applyToGeometry() const
 {
   /// Apply the current alignment object to the TGeo geometry
   /// This method returns FALSE if the symname of the object was not
@@ -298,20 +299,7 @@ bool AlignParam::applyToGeometry(bool ovlpcheck, double ovlToler) const
 
   LOG(DEBUG) << "Aligning volume " << symname;
 
-  if (ovlpcheck) {
-    node->Align(ginv, nullptr, true, ovlToler);
-    TObjArray* ovlpArray = gGeoManager->GetListOfOverlaps();
-    Int_t nOvlp = ovlpArray->GetEntriesFast();
-    if (nOvlp) {
-      LOG(INFO) << "Misalignment of node " << node->GetName() << " generated the following " << nOvlp
-                << "overlaps/extrusions:";
-      for (int i = 0; i < nOvlp; i++) {
-        ((TGeoOverlap*)ovlpArray->UncheckedAt(i))->PrintInfo();
-      }
-    }
-  } else {
-    node->Align(ginv, nullptr, false, ovlToler);
-  }
+  node->Align(ginv);
 
   return true;
 }

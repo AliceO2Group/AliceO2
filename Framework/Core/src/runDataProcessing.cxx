@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -507,6 +508,7 @@ struct ControlWebSocketHandler : public WebSocketHandler {
     : mContext{context}
   {
   }
+  ~ControlWebSocketHandler() override = default;
 
   /// Invoked at the end of the headers.
   /// as a special header we have "x-dpl-pid" which devices can use
@@ -1107,7 +1109,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
   // when the runner is done.
   std::unique_ptr<SimpleRawDeviceService> simpleRawDeviceService;
   std::unique_ptr<DeviceState> deviceState;
-  ComputingQuotaEvaluator quotaEvaluator{loop};
+  std::unique_ptr<ComputingQuotaEvaluator> quotaEvaluator;
 
   auto afterConfigParsingCallback = [&simpleRawDeviceService,
                                      &runningWorkflow,
@@ -1118,16 +1120,18 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &deviceState,
                                      &errorPolicy,
                                      &loop](fair::mq::DeviceRunner& r) {
+    simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
+
     deviceState = std::make_unique<DeviceState>();
     deviceState->loop = loop;
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
-    simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
+    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRegistry);
+    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RawDeviceService>(simpleRawDeviceService.get()));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(&quotaEvaluator));
-    serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
@@ -1759,6 +1763,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           performanceMetrics.push_back("aod-bytes-read-uncompressed");
           performanceMetrics.push_back("aod-bytes-read-compressed");
           performanceMetrics.push_back("aod-file-read-info");
+          performanceMetrics.push_back("table-bytes-.*");
           ResourcesMonitoringHelper::dumpMetricsToJSON(metricsInfos, driverInfo.metrics, runningWorkflow.devices, performanceMetrics);
         }
         // This is a clean exit. Before we do so, if required,

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,6 +40,7 @@ class RangeReference
   }
   GPUd() void clear() { set(0, 0); }
   GPUd() FirstEntry getFirstEntry() const { return mFirstEntry; }
+  GPUd() FirstEntry getEntriesBound() const { return mFirstEntry + mEntries; }
   GPUd() NElem getEntries() const { return mEntries; }
   GPUd() void setFirstEntry(FirstEntry ent) { mFirstEntry = ent; }
   GPUd() void setEntries(NElem n) { mEntries = n; }
@@ -83,6 +85,7 @@ class RangeRefComp
   GPUd() static constexpr Base getMaxEntries() { return MaskN; }
   GPUhd() int getFirstEntry() const { return mData >> NBitsN; }
   GPUhd() int getEntries() const { return mData & ((0x1 << NBitsN) - 1); }
+  GPUhd() int getEntriesBound() const { return getFirstEntry() + getEntries(); }
   GPUhd() void setFirstEntry(int ent) { mData = (Base(ent) << NBitsN) | (mData & MaskN); }
   GPUhd() void setEntries(int n) { mData = (mData & MaskR) | (Base(n) & MaskN); }
   GPUhd() void changeEntriesBy(int inc) { setEntries(getEntries() + inc); }

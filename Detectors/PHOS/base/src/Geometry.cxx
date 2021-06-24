@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,12 +25,12 @@ ClassImp(Geometry);
 //  56   112   3584
 //  ...  ...    ...
 //  1    57 ...3529
-//  relid[3]: (module number[0...3], iphi[1...64], iz[1...56])
+//  relid[3]: (module number[1...4], iphi[1...64], iz[1...56])
 //
-//  Then TRU channels go 112 per branch, 2 branches per ddl
+//  Then TRU channels go from 1 to 112 per branch, 2 branches per ddl
 //  absId = getTotalNCells() + TRUabsId ;
 //  relId for TRU
-//  relid: [DDL id=0..13] [x in 2x2 system: 0..7] [z in 2x2 system 0..27] TODO: verify with real TRU data!!!
+//  relid: [DDL id=0..13] [x in 2x2 system: 1..8] [z in 2x2 system 1..28] TODO: verify with real TRU data!!!
 
 // these initialisations are needed for a singleton
 Geometry* Geometry::sGeom = nullptr;
@@ -71,36 +72,37 @@ bool Geometry::absToRelNumbering(short absId, char* relid)
   //  relid[2] = Column number inside a PHOS module (Phi coordinate)
   const short nZ = 56;   // nStripZ * nCellsZInStrip
   const short nPhi = 64; // nStripZ * nCellsZInStrip
-
-  short phosmodulenumber = (absId - 1) / (nZ * nPhi);
+  absId--;
+  short phosmodulenumber = absId / (nZ * nPhi);
 
   relid[0] = phosmodulenumber + 1;
   absId -= phosmodulenumber * nPhi * nZ;
-  relid[1] = 1 + (absId - 1) / nZ;
-  relid[2] = absId - (relid[1] - 1) * nZ;
+  relid[1] = 1 + absId / nZ;
+  relid[2] = absId - (relid[1] - 1) * nZ + 1;
 
   return true;
 }
 bool Geometry::truAbsToRelNumbering(short truId, char* relid)
 {
   //convert trigger cell Id to
+  truId--;
   relid[0] = truId / 224; //2*112 channels // DDL id
   truId = truId % 224;
-  relid[1] = truId % 8; // x index in TRU internal 2x2 coordinate system
-  relid[2] = truId / 8; // z index in TRU internal 2x2 coordinate system
+  relid[1] = 1 + truId % 8; // x index in TRU internal 2x2 coordinate system
+  relid[2] = 1 + truId / 8; // z index in TRU internal 2x2 coordinate system
   return true;
 }
 short Geometry::truRelToAbsNumbering(const char* relId)
 {
-  return relId[0] * 224 + // the offset of PHOS modules
-         relId[1] +       // the offset along phi
-         relId[2] * 8;    // the offset along z
+  return relId[0] * 224 +    // the offset of PHOS modules
+         relId[1] - 1 +      // the offset along phi
+         (relId[2] - 1) * 8; // the offset along z
 }
 bool Geometry::truRelId2RelId(const char* truRelId, char* relId)
 {
   relId[0] = 1 + (truRelId[0] + 2) / 4;
-  relId[1] = ((truRelId[0] + 2) % 4) * 16 + truRelId[1] * 2 + 1;
-  relId[2] = truRelId[2] * 2 + 1;
+  relId[1] = ((truRelId[0] + 2) % 4) * 16 + truRelId[1] * 2 - 1;
+  relId[2] = truRelId[2] * 2 - 1;
   return true;
 }
 short Geometry::relPosToTruId(char mod, float x, float z, short& ddl)
@@ -108,7 +110,7 @@ short Geometry::relPosToTruId(char mod, float x, float z, short& ddl)
   //tranform local cluster coordinates to truId
   char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
   ddl = (mod - 1) * 4 + relid[1] / 16 - 2;
-  char truid[3] = {static_cast<char>(ddl), static_cast<char>((relid[1] % 16) / 2), static_cast<char>(relid[2] / 2)};
+  char truid[3] = {static_cast<char>(ddl), static_cast<char>(1 + ((relid[1] - 1) % 16) / 2), static_cast<char>(1 + (relid[2] - 1) / 2)};
   return truRelToAbsNumbering(truid);
 }
 

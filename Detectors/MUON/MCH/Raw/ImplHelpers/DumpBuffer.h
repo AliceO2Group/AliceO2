@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -51,9 +52,6 @@ inline void append(std::vector<std::byte>& buffer, uint64_t w)
   buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0x00FF000000000000)) >> 48)});
   buffer.emplace_back(std::byte{static_cast<uint8_t>((w & UINT64_C(0xFF00000000000000)) >> 56)});
 }
-
-template <typename FORMAT>
-void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max());
 
 template <typename FORMAT>
 void dumpWord(std::ostream& out, uint64_t w);
@@ -138,7 +136,7 @@ void dumpWordInfo<o2::mch::raw::UserLogicFormat, 1>(std::ostream& out, uint64_t 
 }
 
 template <typename FORMAT, int VERSION>
-void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out, size_t maxbytes)
+void dumpBuffer(gsl::span<const std::byte> buffer, std::ostream& out = std::cout, size_t maxbytes = std::numeric_limits<size_t>::max())
 {
   int i{0};
   int inRDH{-1};

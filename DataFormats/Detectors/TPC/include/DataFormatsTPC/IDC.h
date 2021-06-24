@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -32,6 +33,8 @@ static constexpr uint32_t DataWordSizeBits = 256;                               
 static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8;             ///< size of header word and data words in bytes
 static constexpr uint32_t IDCvalueBits = 25;                                    ///< number of bits used for one IDC value
 static constexpr uint32_t IDCvalueBitsMask = (uint32_t(1) << IDCvalueBits) - 1; ///< bitmask for 25 bit word
+static constexpr uint32_t SignificantBits = 2;                                  ///< number of bits used for floating point precision
+static constexpr float FloatConversion = 1.f / float(1 << SignificantBits);     ///< conversion factor from integer representation to float
 
 /// header definition of the IDCs
 /// The header is a 256 bit word
@@ -105,6 +108,11 @@ struct Container {
   Header header;              ///< IDC data header
   Data channelData[Channels]; ///< data values for all channels in each link
 
+  bool hasLink(const uint32_t link)
+  {
+    return (header.linkMask & (1 << link));
+  }
+
   uint32_t getChannelValue(const uint32_t link, const uint32_t channel) const
   {
     return channelData[channel].getLinkValue(link);
@@ -113,6 +121,16 @@ struct Container {
   void setChannelValue(const uint32_t link, const uint32_t channel, uint32_t value)
   {
     channelData[channel].setLinkValue(link, value);
+  }
+
+  float getChannelValueFloat(const uint32_t link, const uint32_t channel) const
+  {
+    return float(channelData[channel].getLinkValue(link)) * FloatConversion;
+  }
+
+  void setChannelValueFloat(const uint32_t link, const uint32_t channel, float value)
+  {
+    channelData[channel].setLinkValue(link, uint32_t((value + 0.5f * FloatConversion) / FloatConversion));
   }
 };
 } // namespace o2::tpc::idc

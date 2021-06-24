@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,6 +40,7 @@
 #include <atomic>
 #include "PrimaryServerState.h"
 #include "SimPublishChannelHelper.h"
+#include <chrono>
 
 namespace o2
 {
@@ -319,53 +321,60 @@ class O2PrimaryServerDevice final : public FairMQDevice
     return true;
   }
 
-  void Run() override
+  bool ConditionalRun() override
   {
-    while (mState != O2PrimaryServerState::Stopped) {
-      // we might come here in IDLE mode
-      if (mState == O2PrimaryServerState::Idle) {
-        if (mWaitingControlInput.load() == 0) {
-          if (mControlThread.joinable()) {
-            mControlThread.join();
-          }
-          mControlThread = std::thread(&O2PrimaryServerDevice::waitForControlInput, this);
+    // we might come here in IDLE mode
+    if (mState == O2PrimaryServerState::Idle) {
+      if (mWaitingControlInput.load() == 0) {
+        if (mControlThread.joinable()) {
+          mControlThread.join();
         }
+        mControlThread = std::thread(&O2PrimaryServerDevice::waitForControlInput, this);
       }
-
-      auto& channel = fChannels.at("primary-get").at(0);
-      PrimaryChunkRequest requestpayload;
-      std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(requestpayload));
-      auto bytes = channel.Receive(request);
-
-      auto& r = *((PrimaryChunkRequest*)(request->GetData()));
-      LOG(INFO) << "PARTICLE REQUEST IN STATE " << PrimStateToString[(int)mState.load()] << " from " << r.workerid << ":" << r.requestid;
-
-      TStopwatch timer;
-      timer.Start();
-
-      if (bytes < 0) {
-        LOG(ERROR) << "Some error occurred on socket during receive";
-        // return true; // keep going
-      }
-      auto prestate = mState.load();
-      auto more = HandleRequest(request, 0, channel);
-      if (!more) {
-        if (mAsService) {
-          if (prestate == O2PrimaryServerState::ReadyToServe || prestate == O2PrimaryServerState::WaitingEvent) {
-            stateTransition(O2PrimaryServerState::Idle, "CONDRUN");
-          }
-        } else {
-          stateTransition(O2PrimaryServerState::Stopped, "CONDRUN");
-        }
-      }
-      timer.Stop();
-      auto time = timer.CpuTime();
-      LOG(INFO) << "COND-RUN TOOK " << time << " s";
     }
-    // wait for info thread
+
+    auto& channel = fChannels.at("primary-get").at(0);
+    PrimaryChunkRequest requestpayload;
+    std::unique_ptr<FairMQMessage> request(channel.NewSimpleMessage(requestpayload));
+    auto bytes = channel.Receive(request);
+    if (bytes < 0) {
+      LOG(ERROR) << "Some error/interrupt occurred on socket during receive";
+      if (NewStatePending()) { // new state is typically pending if (term) signal was received
+        WaitForNextState();
+        // ask ourselves for termination of this loop
+        stateTransition(O2PrimaryServerState::Stopped, "CONDRUN");
+      }
+      return false;
+    }
+
+    TStopwatch timer;
+    timer.Start();
+    auto& r = *((PrimaryChunkRequest*)(request->GetData()));
+    LOG(INFO) << "PARTICLE REQUEST IN STATE " << PrimStateToString[(int)mState.load()] << " from " << r.workerid << ":" << r.requestid;
+
+    auto prestate = mState.load();
+    auto more = HandleRequest(request, 0, channel);
+    if (!more) {
+      if (mAsService) {
+        if (prestate == O2PrimaryServerState::ReadyToServe || prestate == O2PrimaryServerState::WaitingEvent) {
+          stateTransition(O2PrimaryServerState::Idle, "CONDRUN");
+        }
+      } else {
+        stateTransition(O2PrimaryServerState::Stopped, "CONDRUN");
+      }
+    }
+    timer.Stop();
+    auto time = timer.CpuTime();
+    LOG(INFO) << "COND-RUN TOOK " << time << " s";
+    return mState != O2PrimaryServerState::Stopped;
+  }
+
+  void PostRun() override
+  {
     while (!mInfoThreadStopped) {
       LOG(INFO) << "Waiting info thread";
-      sleep(1);
+      using namespace std::chrono_literals;
+      std::this_thread::sleep_for(100ms);
     }
   }
 

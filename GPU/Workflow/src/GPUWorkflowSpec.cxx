@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -298,7 +299,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       if (info.size) {
         int fd = 0;
         if (confParam.mutexMemReg) {
-          fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR);
+          fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
           if (fd == -1) {
             throw std::runtime_error("Error opening lock file");
           }
@@ -392,7 +393,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
           recv = true;
         }
         if (!recv || !recvsizes) {
-          throw std::runtime_error("TPC ZS data not received");
+          throw std::runtime_error("TPC ZS on the fly data not received");
         }
 
         unsigned int offset = 0;
@@ -403,7 +404,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
             offset += tpcZSonTheFlySizes[i * NEndpoints + j];
           }
           if (verbosity >= 1) {
-            LOG(INFO) << "GOT ZS pages FOR SECTOR " << i << " ->  pages: " << pageSector;
+            LOG(INFO) << "GOT ZS on the fly pages FOR SECTOR " << i << " ->  pages: " << pageSector;
           }
         }
       }
@@ -654,35 +655,74 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
 
       const auto& holdData = TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, processAttributes->config.get());
       int retVal = tracker->RunTracking(&ptrs, &outputRegions);
-      gsl::span<const o2::tpc::TrackTPC> spanOutputTracks = {ptrs.outputTracksTPCO2, ptrs.nOutputTracksTPCO2};
-      gsl::span<const uint32_t> spanOutputClusRefs = {ptrs.outputClusRefsTPCO2, ptrs.nOutputClusRefsTPCO2};
-      gsl::span<const o2::MCCompLabel> spanOutputTracksMCTruth = {ptrs.outputTracksTPCO2MC, ptrs.outputTracksTPCO2MC ? ptrs.nOutputTracksTPCO2 : 0};
 
       tracker->Clear(false);
 
       if (processAttributes->suppressOutput) {
         return;
       }
+      bool createEmptyOutput = false;
       if (retVal != 0) {
-        throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
-      }
-
-      if (!processAttributes->allocateOutputOnTheFly) {
-        for (unsigned int i = 0; i < outputRegions.count(); i++) {
-          if (outputRegions.asArray()[i].ptrBase) {
-            if (outputRegions.asArray()[i].size == 1) {
-              throw std::runtime_error("Preallocated buffer size exceeded");
-            }
-            outputRegions.asArray()[i].checkCurrent();
-            downSizeBuffer(outputBuffers[i], (char*)outputRegions.asArray()[i].ptrCurrent - (char*)outputBuffers[i].second);
-          }
+        if (retVal == 3 && processAttributes->config->configProcessing.ignoreNonFatalGPUErrors) {
+          LOG(ERROR) << "GPU Reconstruction aborted with non fatal error code, ignoring";
+          createEmptyOutput = true;
+        } else {
+          throw std::runtime_error("tracker returned error code " + std::to_string(retVal));
         }
       }
-      downSizeBufferToSpan(outputRegions.tpcTracksO2, spanOutputTracks);
-      downSizeBufferToSpan(outputRegions.tpcTracksO2ClusRefs, spanOutputClusRefs);
-      downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, spanOutputTracksMCTruth);
 
-      LOG(INFO) << "found " << spanOutputTracks.size() << " track(s)";
+      std::unique_ptr<ClusterNativeAccess> tmpEmptyClNative;
+      if (createEmptyOutput) {
+        memset(&ptrs, 0, sizeof(ptrs));
+        for (unsigned int i = 0; i < outputRegions.count(); i++) {
+          if (outputBuffers[i].first) {
+            size_t toSize = 0;
+            if (i == outputRegions.getIndex(outputRegions.compressedClusters)) {
+              toSize = sizeof(*ptrs.tpcCompressedClusters);
+            } else if (i == outputRegions.getIndex(outputRegions.clustersNative)) {
+              toSize = sizeof(ClusterCountIndex);
+            }
+            outputBuffers[i].first->get().resize(toSize);
+            outputBuffers[i].second = outputBuffers[i].first->get().data();
+            if (toSize) {
+              memset(outputBuffers[i].second, 0, toSize);
+            }
+          }
+        }
+        tmpEmptyClNative = std::make_unique<ClusterNativeAccess>();
+        memset(tmpEmptyClNative.get(), 0, sizeof(*tmpEmptyClNative));
+        ptrs.clustersNative = tmpEmptyClNative.get();
+        if (specconfig.processMC) {
+          MCLabelContainer cont;
+          cont.flatten_to(clustersMCBuffer.first);
+          clustersMCBuffer.second = clustersMCBuffer.first;
+          tmpEmptyClNative->clustersMCTruth = &clustersMCBuffer.second;
+        }
+      } else {
+        gsl::span<const o2::tpc::TrackTPC> spanOutputTracks = {ptrs.outputTracksTPCO2, ptrs.nOutputTracksTPCO2};
+        gsl::span<const uint32_t> spanOutputClusRefs = {ptrs.outputClusRefsTPCO2, ptrs.nOutputClusRefsTPCO2};
+        gsl::span<const o2::MCCompLabel> spanOutputTracksMCTruth = {ptrs.outputTracksTPCO2MC, ptrs.outputTracksTPCO2MC ? ptrs.nOutputTracksTPCO2 : 0};
+        if (!processAttributes->allocateOutputOnTheFly) {
+          for (unsigned int i = 0; i < outputRegions.count(); i++) {
+            if (outputRegions.asArray()[i].ptrBase) {
+              if (outputRegions.asArray()[i].size == 1) {
+                throw std::runtime_error("Preallocated buffer size exceeded");
+              }
+              outputRegions.asArray()[i].checkCurrent();
+              downSizeBuffer(outputBuffers[i], (char*)outputRegions.asArray()[i].ptrCurrent - (char*)outputBuffers[i].second);
+            }
+          }
+        }
+        downSizeBufferToSpan(outputRegions.tpcTracksO2, spanOutputTracks);
+        downSizeBufferToSpan(outputRegions.tpcTracksO2ClusRefs, spanOutputClusRefs);
+        downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, spanOutputTracksMCTruth);
+
+        if (processAttributes->clusterOutputIds.size() > 0 && (void*)ptrs.clustersNative->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
+          throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
+        }
+      }
+
+      LOG(INFO) << "found " << ptrs.nOutputTracksTPCO2 << " track(s)";
 
       if (specconfig.outputCompClusters) {
         CompressedClustersROOT compressedClusters = *ptrs.tpcCompressedClusters;
@@ -690,10 +730,6 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
 
       if (processAttributes->clusterOutputIds.size() > 0) {
-        if ((void*)ptrs.clustersNative->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
-          throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
-        }
-
         ClusterNativeAccess const& accessIndex = *ptrs.clustersNative;
         if (specconfig.sendClustersPerSector) {
           // Clusters are shipped by sector, we are copying into per-sector buffers (anyway only for ROOT output)
@@ -735,9 +771,10 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
       }
       if (specconfig.outputQA) {
         TObjArray out;
-        std::vector<TH1F> copy1 = *outputRegions.qa.hist1; // Internally, this will also be used as output, so we need a non-const copy
-        std::vector<TH2F> copy2 = *outputRegions.qa.hist2;
-        std::vector<TH1D> copy3 = *outputRegions.qa.hist3;
+        auto getoutput = [createEmptyOutput](auto ptr) { return ptr && !createEmptyOutput ? *ptr : std::decay_t<decltype(*ptr)>(); };
+        std::vector<TH1F> copy1 = getoutput(outputRegions.qa.hist1); // Internally, this will also be used as output, so we need a non-const copy
+        std::vector<TH2F> copy2 = getoutput(outputRegions.qa.hist2);
+        std::vector<TH1D> copy3 = getoutput(outputRegions.qa.hist3);
         processAttributes->qa->postprocessExternal(copy1, copy2, copy3, out, processAttributes->qaTaskMask ? processAttributes->qaTaskMask : -1);
         pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
         processAttributes->qa->cleanup();

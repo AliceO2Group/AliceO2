@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -104,7 +105,6 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
     for (int iv = ivStart; iv < nv; iv++) {
       const auto& vto = vtxOrdBrack[iv];
       auto res = tro.tBracket.isOutside(vto.tBracket);
-
       if (res == TBracket::Below) {                                       // vertex preceeds the track
         if (tro.tBracket.getMin() > vto.tBracket.getMin() + maxVtxSpan) { // all following vertices will be preceeding all following tracks times
           ivStart = ++iv;
@@ -118,16 +118,16 @@ void VertexTrackMatcher::process(const o2::globaltracking::RecoContainer& recoDa
       // track matches to vertex, register
       vtxList.push_back(vto.origID); // flag matching vertex
     }
-    if (vtxList.size() > 1) { // did track match to multiple vertices?
-      nAmbiguous++;
+    if (vtxList.size()) {
+      nAssigned++;
       for (auto v : vtxList) {
         tmpMap[v].emplace_back(tro.origID).setAmbiguous();
       }
-    }
-    if (vtxList.empty()) {
-      orphans.emplace_back(tro.origID); // register unassigned track
+      if (vtxList.size() > 1) { // did track match to multiple vertices?
+        nAmbiguous++;
+      }
     } else {
-      nAssigned++;
+      orphans.emplace_back(tro.origID); // register unassigned track
     }
   }
 

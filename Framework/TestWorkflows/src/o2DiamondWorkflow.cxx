@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -33,13 +34,6 @@ struct WorkflowOptions {
   Configurable<bool> aBool{"aBool", true, {"a boolean option"}};
 };
 
-// This completion policy will only be applied to the device called `D` and
-// will process an InputRecord which had any of its constituent updated.
-void customize(std::vector<CompletionPolicy>& policies)
-{
-  policies.push_back(CompletionPolicyHelpers::defineByName("D", CompletionPolicy::CompletionOp::Process));
-}
-
 #include "Framework/runDataProcessing.h"
 
 AlgorithmSpec simplePipe(std::string const& what, int minDelay)
@@ -48,7 +42,7 @@ AlgorithmSpec simplePipe(std::string const& what, int minDelay)
     srand(getpid());
     LOG(INFO) << "There are " << runningWorkflow.devices.size() << "  devices in the workflow";
     return adaptStateless([what, minDelay](DataAllocator& outputs, RawDeviceService& device) {
-      device.device()->WaitFor(std::chrono::seconds(rand() % 2));
+      device.device()->WaitFor(std::chrono::milliseconds(minDelay));
       auto& bData = outputs.make<int>(OutputRef{what}, 1);
     });
   })};
@@ -73,16 +67,20 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
     {"B",
      {InputSpec{"x", "TST", "A1", Lifetime::Timeframe, {ConfigParamSpec{"somestring", VariantType::String, "", {"Some input param"}}}}},
      {OutputSpec{{"b1"}, "TST", "B1"}},
-     simplePipe("b1", 0)},
+     simplePipe("b1", 100)},
     {"C",
      Inputs{InputSpec{"x", "TST", "A2"}},
      Outputs{OutputSpec{{"c1"}, "TST", "C1"}},
-     simplePipe("c1", 5)},
+     simplePipe("c1", 5000)},
     {"D",
      Inputs{
        InputSpec{"b", "TST", "B1"},
        InputSpec{"c", "TST", "C1"},
      },
      Outputs{},
-     AlgorithmSpec{adaptStateless([]() {})}}};
+     AlgorithmSpec{adaptStateless([](InputRecord& inputs) {
+       auto ref = inputs.get("b");
+       auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
+       LOG(INFO) << header->startTime;
+     })}}};
 }

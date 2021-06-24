@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -171,7 +172,6 @@ class GPUTRDTracker_t : public GPUProcessor
   Hypothesis* mHypothesis;                 // array with multiple track hypothesis
   TRDTRK* mCandidates;                     // array of tracks for multiple hypothesis tracking
   GPUTRDSpacePoint* mSpacePoints;          // array with tracklet coordinates in global tracking frame
-  int* mTrackletLabels;                    // array with MC tracklet labels
   TRD_GEOMETRY_CONST GPUTRDGeometry* mGeo; // TRD geometry
   /// ---- error parametrization depending on magnetic field ----
   float mRPhiA2;     // parameterization for tracklet position resolution

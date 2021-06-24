@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -123,7 +124,7 @@ void CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& channelVec)
 #define DECODEFT0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   DECODEFT0(cd.trigger,   CTF::BLC_trigger);
-  DECODEFT0(cd.bcInc,     CTF::BLC_bcInc); 
+  DECODEFT0(cd.bcInc,     CTF::BLC_bcInc);
   DECODEFT0(cd.orbitInc,  CTF::BLC_orbitInc);
   DECODEFT0(cd.nChan,     CTF::BLC_nChan);
   DECODEFT0(cd.eventFlags,     CTF::BLC_flags);
@@ -158,15 +159,16 @@ void CTFCoder::decompress(const CompressedDigits& cd, VDIG& digitVec, VCHAN& cha
     }
     Triggers trig;
     trig.triggersignals = cd.trigger[idig];
-
+    const auto& params = DigitizationParameters::Instance();
+    int triggerGate = params.mTime_trg_gate;
     firstEntry = channelVec.size();
     uint8_t chID = 0;
     int amplA = 0, amplC = 0, timeA = 0, timeC = 0;
+
     for (uint8_t ic = 0; ic < cd.nChan[idig]; ic++) {
       auto icc = channelVec.size();
       const auto& chan = channelVec.emplace_back((chID += cd.idChan[icc]), cd.cfdTime[icc], cd.qtcAmpl[icc], cd.qtcChain[icc]);
-      //
-      if (std::abs(chan.CFDTime) < cd.header.triggerGate) {
+      if (std::abs(chan.CFDTime) < triggerGate) {
         if (chan.ChId < 4 * uint8_t(Geometry::NCellsA)) { // A side
           amplA += chan.QTCAmpl;
           timeA += chan.CFDTime;

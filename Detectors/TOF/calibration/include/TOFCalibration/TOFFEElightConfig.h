@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -40,7 +41,7 @@ struct TOFFEEchannelConfig {
 
 struct TOFFEEtriggerConfig {
 
-  uint64_t mStatusMap = 0; // status // can it be uint32?
+  unsigned int mStatusMap = 0; // status // can it be uint32?
   TOFFEEtriggerConfig() = default;
 
   ClassDefNV(TOFFEEtriggerConfig, 1);
@@ -56,12 +57,13 @@ struct TOFFEElightConfig {
   int mVersion = 0;   // version
   int mRunNumber = 0; // run number
   int mRunType = 0;   // run type
+
   // std::array<TOFFEEchannelConfig, NCHANNELS> mChannelConfig;
-  TOFFEEchannelConfig mChannelConfig[Geo::kNCrate][Geo::kNTRM][Geo::kNChain][Geo::kNTdc][Geo::kNCh];
-  std::array<TOFFEEtriggerConfig, NTRIGGERMAPS> mTriggerConfig;
+  TOFFEEchannelConfig mChannelConfig[Geo::kNCrate][Geo::kNTRM - 2][Geo::kNChain][Geo::kNTdc][Geo::kNCh]; // in O2, the number of TRMs is 12, but in the FEE world it is 10
+  TOFFEEtriggerConfig mTriggerConfig[NTRIGGERMAPS];
   TOFFEElightConfig() = default;
-  TOFFEEchannelConfig* getChannelConfig(int icrate, int itrm, int ichain, int itdc, int ich);
-  TOFFEEtriggerConfig* getTriggerConfig(int idx) { return idx < NTRIGGERMAPS ? &mTriggerConfig[idx] : nullptr; }
+  const TOFFEEchannelConfig* getChannelConfig(int icrate, int itrm, int ichain, int itdc, int ich) const;
+  const TOFFEEtriggerConfig* getTriggerConfig(int idx) const { return idx < NTRIGGERMAPS ? &mTriggerConfig[idx] : nullptr; }
 
   ClassDefNV(TOFFEElightConfig, 1);
 };

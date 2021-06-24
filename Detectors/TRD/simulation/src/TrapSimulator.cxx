@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -961,6 +962,9 @@ int TrapSimulator::packData(std::vector<uint32_t>& rawdata, uint32_t offset)
 
 int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, unsigned int iEv) const
 {
+  //
+  // This is simply a copy of fix to compile from run2
+  // TODO needs to possibly be updated changed thrown away ??? problem for later, worry about tracklets now.
   //
   // Produce raw data stream from this MCM and put in buf
   // Returns number of words filled, or negative value

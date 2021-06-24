@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,6 +11,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
 
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DataProcessingHeader.h"
@@ -194,8 +196,16 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
 }
 
 DataRelayer::RelayChoice
-  DataRelayer::relay(std::unique_ptr<FairMQMessage>&& header,
-                     std::unique_ptr<FairMQMessage>&& payload)
+  DataRelayer::relay(std::unique_ptr<FairMQMessage>& header,
+                     std::unique_ptr<FairMQMessage>& payload)
+{
+  return relay(header, &payload, 1);
+}
+
+DataRelayer::RelayChoice
+  DataRelayer::relay(std::unique_ptr<FairMQMessage>& firstPart,
+                     std::unique_ptr<FairMQMessage>* restOfParts,
+                     size_t restOfPartsSize)
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
   // STATE HOLDING VARIABLES
@@ -214,14 +224,14 @@ DataRelayer::RelayChoice
   // This returns the identifier for the given input. We use a separate
   // function because while it's trivial now, the actual matchmaking will
   // become more complicated when we will start supporting ranges.
-  auto getInputTimeslice = [& matchers = mInputMatchers,
+  auto getInputTimeslice = [&matchers = mInputMatchers,
                             &distinctRoutes = mDistinctRoutesIndex,
-                            &header,
+                            &firstPart,
                             &index](VariableContext& context)
     -> std::tuple<int, TimesliceId> {
     /// FIXME: for the moment we only use the first context and reset
     /// between one invokation and the other.
-    auto input = matchToContext(header->GetData(), matchers, distinctRoutes, context);
+    auto input = matchToContext(firstPart->GetData(), matchers, distinctRoutes, context);
 
     if (input == INVALID_INPUT) {
       return {
@@ -263,9 +273,10 @@ DataRelayer::RelayChoice
   };
 
   // Actually save the header / payload in the slot
-  auto saveInSlot = [&header,
+  auto saveInSlot = [&firstPart,
                      &cachedStateMetrics = mCachedStateMetrics,
-                     &payload,
+                     &restOfParts,
+                     &restOfPartsSize,
                      &cache,
                      &numInputTypes,
                      &metrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
@@ -274,9 +285,13 @@ DataRelayer::RelayChoice
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
     // TODO: make sure that multiple parts can only be added within the same call of
     // DataRelayer::relay
-    PartRef entry{std::move(header), std::move(payload)};
+    PartRef entry{std::move(firstPart), std::move(restOfParts[0])};
     parts.emplace_back(std::move(entry));
-    assert(header.get() == nullptr && payload.get() == nullptr);
+    auto rest = restOfParts + 1;
+    for (size_t pi = 0; pi < (restOfPartsSize - 1) / 2; ++pi) {
+      PartRef entry{std::move(rest[pi * 2]), std::move(rest[pi * 2 + 1])};
+      parts.emplace_back(std::move(entry));
+    }
   };
 
   auto updateStatistics = [& stats = mStats](TimesliceIndex::ActionTaken action) {
@@ -295,6 +310,8 @@ DataRelayer::RelayChoice
       case TimesliceIndex::ActionTaken::ReplaceObsolete:
         stats.droppedComputations++;
         stats.relayedMessages++;
+        break;
+      case TimesliceIndex::ActionTaken::Wait:
         break;
     }
   };
@@ -355,9 +372,9 @@ DataRelayer::RelayChoice
   VariableContext pristineContext;
   std::tie(input, timeslice) = getInputTimeslice(pristineContext);
 
-  auto DataHeaderInfo = [&header]() {
+  auto DataHeaderInfo = [&firstPart]() {
     std::string error;
-    const auto* dh = o2::header::get<o2::header::DataHeader*>(header->GetData());
+    const auto* dh = o2::header::get<o2::header::DataHeader*>(firstPart->GetData());
     if (dh) {
       error += fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     } else {
@@ -370,14 +387,24 @@ DataRelayer::RelayChoice
     LOG(ERROR) << "Could not match incoming data to any input route: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
-    return WillNotRelay;
+    firstPart.reset(nullptr);
+    for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
+      auto& payload = restOfParts[pi];
+      payload.reset(nullptr);
+    }
+    return Invalid;
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
     LOG(ERROR) << "Could not determine the timeslice for input: " << DataHeaderInfo();
     mStats.malformedInputs++;
     mStats.droppedIncomingMessages++;
-    return WillNotRelay;
+    firstPart.reset(nullptr);
+    for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
+      auto& payload = restOfParts[pi];
+      payload.reset(nullptr);
+    }
+    return Invalid;
   }
 
   TimesliceIndex::ActionTaken action;
@@ -385,31 +412,40 @@ DataRelayer::RelayChoice
 
   updateStatistics(action);
 
-  if (action == TimesliceIndex::ActionTaken::DropObsolete) {
-    static std::atomic<size_t> obsoleteCount = 0;
-    static std::atomic<size_t> mult = 1;
-    if ((obsoleteCount++ % (1 * mult)) == 0) {
-      LOGP(WARNING, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
-      if (obsoleteCount > mult * 10) {
-        mult = mult * 10;
+  switch (action) {
+    case TimesliceIndex::ActionTaken::Wait:
+      return Backpressured;
+    case TimesliceIndex::ActionTaken::DropObsolete:
+      static std::atomic<size_t> obsoleteCount = 0;
+      static std::atomic<size_t> mult = 1;
+      if ((obsoleteCount++ % (1 * mult)) == 0) {
+        LOGP(WARNING, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
+        if (obsoleteCount > mult * 10) {
+          mult = mult * 10;
+        }
       }
-    }
-    return WillNotRelay;
+      return Dropped;
+    case TimesliceIndex::ActionTaken::DropInvalid:
+      LOG(WARNING) << "Incoming data is invalid, not relaying.";
+      mStats.malformedInputs++;
+      mStats.droppedIncomingMessages++;
+      firstPart.reset(nullptr);
+      for (size_t pi = 0; pi < restOfPartsSize; ++pi) {
+        auto& payload = restOfParts[pi];
+        payload.reset(nullptr);
+      }
+      return Invalid;
+    case TimesliceIndex::ActionTaken::ReplaceUnused:
+    case TimesliceIndex::ActionTaken::ReplaceObsolete:
+      // At this point the variables match the new input but the
+      // cache still holds the old data, so we prune it.
+      pruneCache(slot);
+      saveInSlot(timeslice, input, slot);
+      index.publishSlot(slot);
+      index.markAsDirty(slot, true);
+      return WillRelay;
   }
-
-  if (action == TimesliceIndex::ActionTaken::DropInvalid) {
-    LOG(WARNING) << "Incoming data is invalid, not relaying.";
-    return WillNotRelay;
-  }
-
-  // At this point the variables match the new input but the
-  // cache still holds the old data, so we prune it.
-  pruneCache(slot);
-  saveInSlot(timeslice, input, slot);
-  index.publishSlot(slot);
-  index.markAsDirty(slot, true);
-
-  return WillRelay;
+  O2_BUILTIN_UNREACHABLE();
 }
 
 void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& completed)

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,8 +21,8 @@
 #include <type_traits>
 #include <fairlogger/Logger.h>
 
-#include "helper.h"
-#include "SymbolStatistics.h"
+#include "rANS/internal/helper.h"
+#include "rANS/internal/SymbolStatistics.h"
 
 namespace o2
 {
@@ -33,30 +34,26 @@ namespace internal
 class ReverseSymbolLookupTable
 {
  public:
-  ReverseSymbolLookupTable(size_t probabilityBits,
-                           const SymbolStatistics& stats) : mLut()
+  using symbol_t = SymbolStatistics::symbol_t;
+  using count_t = SymbolStatistics::count_t;
+  using iterator_t = const symbol_t*;
+
+  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  ReverseSymbolLookupTable() noexcept {}; //NOLINT
+
+  explicit ReverseSymbolLookupTable(const SymbolStatistics& symbolStats)
   {
     LOG(trace) << "start building reverse symbol lookup table";
 
-    mLut.resize(bitsToRange(probabilityBits));
+    mLut.resize(pow2(symbolStats.getSymbolTablePrecision()));
     // go over all symbols
-    for (auto symbolIT = std::begin(stats); symbolIT != std::end(stats); ++symbolIT) {
-      auto symbol = stats.getMinSymbol() + std::distance(std::begin(stats), symbolIT);
-      const auto [symFrequency, symCumulated] = *symbolIT;
-      for (auto cumulative = symCumulated;
-           cumulative < symCumulated + symFrequency; cumulative++) {
+    for (size_t index = 0; index < symbolStats.size(); ++index) {
+      const symbol_t symbol = symbolStats.getMinSymbol() + index;
+      const auto [symFrequency, symCumulated] = symbolStats.at(index);
+      for (count_t cumulative = symCumulated; cumulative < symCumulated + symFrequency; cumulative++) {
         mLut[cumulative] = symbol;
       }
     }
-
-//    for (int symbol = stats.getMinSymbol(); symbol <= stats.getMaxSymbol();
-//         symbol++) {
-//      for (uint32_t cumulative = stats[symbol].second;
-//           cumulative < stats[symbol].second + stats[symbol].first; cumulative++) {
-//        mLut[cumulative] = symbol;
-//      }
-//    }
-
 // advanced diagnostics for debug builds
 #if !defined(NDEBUG)
     LOG(debug2) << "reverseSymbolLookupTableProperties: {"
@@ -64,20 +61,24 @@ class ReverseSymbolLookupTable
                 << "sizeB: " << mLut.size() * sizeof(typename std::decay_t<decltype(mLut)>::value_type) << "}";
 #endif
 
-    if (stats.size() == 1) {
+    if (symbolStats.size() == 1) {
       LOG(warning) << "SymbolStatistics of empty message passed to " << __func__;
     }
 
     LOG(trace) << "done building reverse symbol lookup table";
   };
 
-  inline int32_t operator[](size_t cummulative) const
+  inline size_t size() const noexcept { return mLut.size(); };
+  inline symbol_t operator[](count_t cumul) const noexcept
   {
-    return mLut[cummulative];
+    assert(cumul < size());
+    return mLut[cumul];
   };
+  inline iterator_t begin() const noexcept { return mLut.data(); };
+  inline iterator_t end() const noexcept { return mLut.data() + size(); };
 
  private:
-  std::vector<int32_t> mLut;
+  std::vector<symbol_t> mLut{};
 };
 
 } // namespace internal

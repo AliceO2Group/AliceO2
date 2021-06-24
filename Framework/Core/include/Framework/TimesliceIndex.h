@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -12,6 +13,7 @@
 #define O2_FRAMEWORK_TIMESLICEINDEX_H_
 
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/CompilerBuiltins.h"
 #include "Framework/ServiceHandle.h"
 
 #include <cstdint>
@@ -48,10 +50,19 @@ class TimesliceIndex
   /// TimesliceIndex is threadsafe because it's accessed only by the
   /// DataRelayer.
   constexpr static ServiceKind service_kind = ServiceKind::Global;
+
+  /// What to do when there is backpressure
+  enum struct BackpressureOp {
+    Wait,        // Do nothing and wait for the oldest slot to complete
+    DropAncient, // Drop the message with the least recent timestamp
+    DropRecent   // Drop the message with the most recent timestamp
+  };
+
   /// The outcome for the processing of a given timeslot
   enum struct ActionTaken {
     ReplaceUnused,   /// An unused / invalid slot is used to hold the new context
     ReplaceObsolete, /// An obsolete slot is used to hold the new context and the old one is dropped
+    Wait,            /// We wait for the oldest slot to complete.
     DropInvalid,     /// An invalid context is not inserted in the index and dropped
     DropObsolete     /// An obsolete context is not inserted in the index and dropped
   };
@@ -110,6 +121,9 @@ class TimesliceIndex
   /// This keeps track whether or not something was relayed
   /// since last time we called getReadyToProcess()
   std::vector<bool> mDirty;
+
+  /// What to do in case of backpressure
+  BackpressureOp mBackpressurePolicy = BackpressureOp::Wait;
 };
 
 } // namespace o2::framework

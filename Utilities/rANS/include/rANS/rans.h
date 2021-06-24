@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,14 +17,14 @@
 #ifndef RANS_RANS_H
 #define RANS_RANS_H
 
-#include "FrequencyTable.h"
-#include "Encoder.h"
-#include "Decoder.h"
-#include "DedupEncoder.h"
-#include "DedupDecoder.h"
-#include "LiteralEncoder.h"
-#include "LiteralDecoder.h"
-#include "internal/helper.h"
+#include "rANS/FrequencyTable.h"
+#include "rANS/Encoder.h"
+#include "rANS/Decoder.h"
+#include "rANS/DedupEncoder.h"
+#include "rANS/DedupDecoder.h"
+#include "rANS/LiteralEncoder.h"
+#include "rANS/LiteralDecoder.h"
+#include "rANS/internal/helper.h"
 
 namespace o2
 {

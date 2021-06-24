@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -33,6 +34,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"pedestal", o2::framework::VariantType::Bool, false, {"pedestal run? if true then don't subtract pedestals from digits"}},
+    {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
+    //{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"path to CCDB like http://ccdb-test.cern.ch:8080"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -59,8 +63,8 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
 
   return o2::cpv::reco_workflow::getWorkflow(cfgc.options().get<bool>("disable-root-input"),
                                              cfgc.options().get<bool>("disable-root-output"),
-                                             !cfgc.options().get<bool>("disable-mc"),       //
-                                             cfgc.options().get<std::string>("input-type"), //
-                                             cfgc.options().get<std::string>("output-type") //
-  );
+                                             !cfgc.options().get<bool>("disable-mc"),
+                                             !cfgc.options().get<bool>("ignore-dist-stf"),
+                                             cfgc.options().get<std::string>("input-type"),
+                                             cfgc.options().get<std::string>("output-type"));
 }

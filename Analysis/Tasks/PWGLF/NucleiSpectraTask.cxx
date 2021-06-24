@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -45,13 +46,12 @@ struct NucleiSpecraTask {
 
     spectra.add("fCollZpos", "collision z position", HistType::kTH1F, {{600, -20., +20., "z position (cm)"}});
     spectra.add("fKeepEvent", "skimming histogram", HistType::kTH1F, {{2, -0.5, +1.5, "true: keep event, false: reject event"}});
-    spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, 0., 3, "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
+    spectra.add("fTPCsignal", "Specific energy loss", HistType::kTH2F, {{600, -3., 3, "#it{p} (GeV/#it{c})"}, {1400, 0, 1400, "d#it{E} / d#it{X} (a. u.)"}});
     spectra.add("fTPCcounts", "n-sigma TPC", HistType::kTH2F, {ptAxis, {200, -100., +100., "n#sigma_{He} (a. u.)"}});
   }
 
   Configurable<float> yMin{"yMin", -0.8, "Maximum rapidity"};
   Configurable<float> yMax{"yMax", 0.8, "Minimum rapidity"};
-  Configurable<float> yBeam{"yBeam", 0., "Beam rapidity"};
 
   Configurable<float> cfgCutVertex{"cfgCutVertex", 10.0f, "Accepted z-vertex range"};
   Configurable<float> cfgCutEta{"cfgCutEta", 0.8f, "Eta range for tracks"};
@@ -63,18 +63,12 @@ struct NucleiSpecraTask {
 
   using TrackCandidates = soa::Filtered<soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCFullHe, aod::pidTOFFullHe, aod::TrackSelection>>;
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, aod::BCsWithTimestamps const&, TrackCandidates const& tracks)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision, TrackCandidates const& tracks)
   {
     //
     // collision process loop
     //
     bool keepEvent = kFALSE;
-    if (!collision.alias()[kINT7]) {
-      return;
-    }
-    if (!collision.sel7()) {
-      return;
-    }
     //
     spectra.fill(HIST("fCollZpos"), collision.posZ());
     //
@@ -82,13 +76,13 @@ struct NucleiSpecraTask {
 
       TLorentzVector cutVector{};
       cutVector.SetPtEtaPhiM(track.pt() * 2.0, track.eta(), track.phi(), constants::physics::MassHelium3);
-      if (cutVector.Rapidity() < yMin + yBeam || cutVector.Rapidity() > yMax + yBeam) {
+      if (cutVector.Rapidity() < yMin || cutVector.Rapidity() > yMax) {
         continue;
       }
       //
       // fill QA histograms
       //
-      spectra.fill(HIST("fTPCsignal"), track.tpcInnerParam(), track.tpcSignal());
+      spectra.fill(HIST("fTPCsignal"), track.tpcInnerParam() * track.sign(), track.tpcSignal());
       spectra.fill(HIST("fTPCcounts"), track.tpcInnerParam(), track.tpcNSigmaHe());
       //
       // check offline-trigger (skimming) condidition
