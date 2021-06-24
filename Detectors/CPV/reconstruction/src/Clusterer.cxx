@@ -36,7 +36,7 @@ void Clusterer::initialize()
 
 //____________________________________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
-                        const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
+                        const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
                         std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
                         o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC)
 {
@@ -314,7 +314,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
 
 //____________________________________________________________________________
 void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
-                                  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
+                                  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
                                   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC)
 {
 
@@ -356,7 +356,7 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
             ++ll;
             continue;
           }
-          gsl::span<const o2::MCCompLabel> spDigList = dmc.getLabels(i);
+          gsl::span<const o2::MCCompLabel> spDigList = dmc->getLabels(i);
           gsl::span<o2::MCCompLabel> spCluList = cluMC->getLabels(labelIndex); //get updated list
           auto digL = spDigList.begin();
           while (digL != spDigList.end()) {
