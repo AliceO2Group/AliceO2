@@ -27,42 +27,42 @@ namespace dcs
 typedef std::vector<char> DCSconfigObject_t;
 
 template <typename T>
-inline void addConfigItem(DCSconfigObject_t* configVector, std::string key, const T value)
+inline void addConfigItem(DCSconfigObject_t& configVector, std::string key, const T value)
 {
   std::string keyValue = key + ":" + std::to_string(value) + ",";
-  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(*configVector));
+  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(configVector));
 }
 
 // explicit specialization for std::string
 template <>
-inline void addConfigItem(DCSconfigObject_t* configVector, std::string key, const std::string value)
+inline void addConfigItem(DCSconfigObject_t& configVector, std::string key, const std::string value)
 {
   std::string keyValue = key + ":" + value + ",";
-  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(*configVector));
+  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(configVector));
 }
 
 // explicit specialization for char
 template <>
-inline void addConfigItem(DCSconfigObject_t* configVector, std::string key, const char value)
+inline void addConfigItem(DCSconfigObject_t& configVector, std::string key, const char value)
 {
   std::string keyValue = key + ":" + value + ",";
-  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(*configVector));
+  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(configVector));
 }
 
 // explicit specialization for char*
 template <>
-inline void addConfigItem(DCSconfigObject_t* configVector, std::string key, const char* value)
+inline void addConfigItem(DCSconfigObject_t& configVector, std::string key, const char* value)
 {
   std::string keyValue = key + ":" + value + ",";
-  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(*configVector));
+  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(configVector));
 }
 
 // explicit specialization for TString
 template <>
-inline void addConfigItem(DCSconfigObject_t* configVector, std::string key, const TString value)
+inline void addConfigItem(DCSconfigObject_t& configVector, std::string key, const TString value)
 {
   std::string keyValue = key + ":" + value.Data() + ",";
-  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(*configVector));
+  std::copy(keyValue.begin(), keyValue.end(), std::back_inserter(configVector));
 }
 
 inline void printDCSConfig(const DCSconfigObject_t& configVector)
