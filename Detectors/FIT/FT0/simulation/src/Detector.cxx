@@ -68,7 +68,6 @@ void Detector::InitializeO2Detector()
   if (v == nullptr) {
     LOG(WARN) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
   } else {
-
     AddSensitiveVolume(v);
   }
 
@@ -91,8 +90,8 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating FT0 geometry\n";
   CreateMaterials();
 
-  TGeoVolumeAssembly* stlinA = new TGeoVolumeAssembly("0STL"); // A side mother
-  TGeoVolumeAssembly* stlinC = new TGeoVolumeAssembly("0STR"); // C side mother
+  TGeoVolumeAssembly* stlinA = new TGeoVolumeAssembly("FT0A"); // A side mother
+  TGeoVolumeAssembly* stlinC = new TGeoVolumeAssembly("FT0C"); // C side mother
 
   Geometry geometry;
   Float_t zdetA = geometry.ZdetA;
@@ -106,8 +105,8 @@ void Detector::ConstructGeometry()
   }
 
   // FIT interior
-  TVirtualMC::GetMC()->Gsvolu("0INS", "BOX", getMediumID(kAir), mInStart, 3);
-  TGeoVolume* ins = gGeoManager->GetVolume("0INS");
+  TVirtualMC::GetMC()->Gsvolu("0MOD", "BOX", getMediumID(kAir), mInStart, 3);
+  TGeoVolume* ins = gGeoManager->GetVolume("0MOD");
   //
   TGeoTranslation* tr[nCellsA + nCellsC];
   TString nameTr;
@@ -124,7 +123,7 @@ void Detector::ConstructGeometry()
   //Add FT0-A support Structure to the geometry
   stlinA->AddNode(constructFrameGeometry(), 1, new TGeoTranslation(0, 0, -mStartA[2] + mInStart[2]));
 
-  // C Side 
+  // C Side
   TGeoRotation* rot[nCellsC];
   TString nameRot;
   TGeoCombiTrans* com[nCellsC];
@@ -343,6 +342,58 @@ TGeoVolume* Detector::SetCablesSize(int mod)
   //  vol->Print();
   //  vol->Weight();
   return vol;
+}
+
+void Detector::addAlignableVolumes() const
+{
+  //
+  // Creates entries for alignable volumes associating the symbolic volume
+  // name with the corresponding volume path.
+  //
+  //  First version (mainly ported from AliRoot)
+  //
+
+  LOG(INFO) << "Add FT0 alignable volumes";
+
+  if (!gGeoManager) {
+    LOG(FATAL) << "TGeoManager doesn't exist !";
+    return;
+  }
+
+  TString volPath = Form("/cave_1/barrel_1");
+  TString symName = Form("/cave_1/barrel_1");
+  LOG(INFO) << symName << " <-> " << volPath;
+  //set A side
+  TString volPathA = volPath + Form("/FT0A_1");
+  TString symNameA = symName + Form("/FT0A_1");
+  LOG(INFO) << symNameA << " <-> " << volPathA;
+  if (!gGeoManager->SetAlignableEntry(symNameA.Data(), volPathA.Data())) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
+  }
+  //set C side
+  TString volPathC = volPath + Form("/FT0C_1");
+  TString symNameC = symName + Form("/FT0C_1");
+  LOG(INFO) << symNameC << " <-> " << volPathC;
+  if (!gGeoManager->SetAlignableEntry(symNameC.Data(), volPathC.Data())) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
+  }
+  TString volPathMod, symNameMod;
+  for (Int_t imod = 0; imod < 24; imod++) {
+    volPathMod = volPathA + Form("/0MOD_%d", imod);
+    symNameMod = symNameA + Form("/0MOD_%d", imod);
+    if (!gGeoManager->SetAlignableEntry(symNameMod.Data(), volPathMod.Data())) {
+      LOG(FATAL) << (Form("Alignable entry %s not created. Volume path %s not valid", symNameMod.Data(), volPathMod.Data()));
+    }
+  }
+
+  for (Int_t imod = 24; imod < 52; imod++) {
+    volPathMod = volPathC + Form("/0MOD_%d", imod);
+    symNameMod = symNameC + Form("/0MOD_%d", imod);
+    if (!gGeoManager->SetAlignableEntry(symNameMod.Data(), volPathMod.Data())) {
+      LOG(FATAL) << (Form("Alignable entry %s not created. Volume path %s not valid", symNameMod.Data(), volPathMod.Data()));
+    }
+  }
+  return;
 }
 
 // Class wrapper for construction of FT0-A support structure

@@ -11,7 +11,7 @@
 
 o2_add_library(FT0Base
                SOURCES src/Geometry.cxx
-               PUBLIC_LINK_LIBRARIES ROOT::Physics FairRoot::Base O2::FrameworkLogger)
+               PUBLIC_LINK_LIBRARIES ROOT::Physics FairRoot::Base O2::DetectorsBase O2::DetectorsCommonDataFormats O2::FrameworkLogger)
 
 o2_target_root_dictionary(FT0Base HEADERS include/FT0Base/Geometry.h)
 
