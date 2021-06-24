@@ -49,7 +49,7 @@ struct Alice3PidIndexBuilder {
 };
 
 /// Struct for applying J/ψ → e+ e− selection cuts
-struct HFJpsiCandidateSelector {
+struct HfJpsiCandidateSelector {
   Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
   Configurable<bool> isALICE3{"isALICE3", false, "Switch between ALICE 2 and ALICE 3 detector setup"};
@@ -222,5 +222,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
     adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc),
-    adaptAnalysisTask<HFJpsiCandidateSelector>(cfgc, TaskName{"hf-jpsi-candidate-selector"})};
+    adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc)};
 }
