@@ -26,11 +26,11 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   std::vector<ConfigParamSpec> options{
-    {"eff-el", VariantType::Int, 0, {"Efficiency for the Electron PDG code"}},
-    {"eff-mu", VariantType::Int, 0, {"Efficiency for the Muon PDG code"}},
+    {"eff-el", VariantType::Int, 1, {"Efficiency for the Electron PDG code"}},
+    {"eff-mu", VariantType::Int, 1, {"Efficiency for the Muon PDG code"}},
     {"eff-pi", VariantType::Int, 1, {"Efficiency for the Pion PDG code"}},
-    {"eff-ka", VariantType::Int, 0, {"Efficiency for the Kaon PDG code"}},
-    {"eff-pr", VariantType::Int, 0, {"Efficiency for the Proton PDG code"}}};
+    {"eff-ka", VariantType::Int, 1, {"Efficiency for the Kaon PDG code"}},
+    {"eff-pr", VariantType::Int, 1, {"Efficiency for the Proton PDG code"}}};
   std::swap(workflowOptions, options);
 }
 
