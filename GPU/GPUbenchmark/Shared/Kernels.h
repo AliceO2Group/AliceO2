@@ -16,10 +16,11 @@
 #define GPU_BENCHMARK_KERNELS_H
 
 #include "GPUCommonDef.h"
-#include "Common.h"
+#include "Utils.h"
 #include <vector>
 #include <iostream>
 #include <iomanip>
+#include <memory>
 #include <chrono>
 
 // #define PARTITION_SIZE_GB 1
@@ -35,7 +36,7 @@ class GPUbenchmark final
 {
  public:
   GPUbenchmark() = delete; // need for a configuration
-  GPUbenchmark(benchmarkOpts& opts) : mOptions{opts}
+  GPUbenchmark(benchmarkOpts& opts, std::shared_ptr<ResultStreamer> streamer) : mStreamer{streamer}, mOptions{opts}
   {
   }
   virtual ~GPUbenchmark() = default;
@@ -57,6 +58,7 @@ class GPUbenchmark final
 
  private:
   gpuState<buffer_type> mState;
+  std::shared_ptr<ResultStreamer> mStreamer;
   benchmarkOpts mOptions;
 };
 

@@ -18,6 +18,7 @@ if(CUDA_ENABLED)
                           cuda/Kernels.cu
                   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                         Boost::program_options
+                                        O2::CommonUtils
                   TARGETVARNAME targetName)
 endif()
 
@@ -49,6 +50,7 @@ if(HIP_ENABLED)
                     PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                           hip::host
                                           Boost::program_options
+                                          O2::CommonUtils
                     TARGETVARNAME targetName)
 
   if(HIP_AMDGPUTARGET)

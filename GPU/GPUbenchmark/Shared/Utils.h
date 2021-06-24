@@ -12,13 +12,14 @@
 /// \file Common.h
 /// \author: mconcas@cern.ch
 
-#ifndef GPU_BENCHMARK_COMMON_H
-#define GPU_BENCHMARK_COMMON_H
+#ifndef GPU_BENCHMARK_UTILS_H
+#define GPU_BENCHMARK_UTILS_H
 
 #include <iostream>
 #include <iomanip>
 #include <typeinfo>
 #include <boost/program_options.hpp>
+#include "CommonUtils/TreeStreamRedirector.h"
 
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
@@ -96,6 +97,39 @@ struct gpuState {
   size_t nMultiprocessors;
   size_t nMaxThreadsPerBlock;
 };
+
+// Interface class to stream results to root file
+class ResultStreamer
+{
+ public:
+  explicit ResultStreamer(const std::string debugTreeFileName = "benchmark_results.root");
+  ~ResultStreamer();
+  void storeBenchmarkEntry(std::string benchmarkName, float entry);
+
+ private:
+  std::string mDebugTreeFileName = "benchmark_results.root"; // output filename
+  o2::utils::TreeStreamRedirector* mTreeStream;              // observer
+};
+
+inline ResultStreamer::ResultStreamer(const std::string debugTreeFileName)
+{
+  mDebugTreeFileName = debugTreeFileName;
+  mTreeStream = new o2::utils::TreeStreamRedirector(debugTreeFileName.data(), "recreate");
+}
+
+inline ResultStreamer::~ResultStreamer()
+{
+  delete mTreeStream;
+}
+
+inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, float entry)
+{
+  (*mTreeStream)
+    << "Benchmarks"
+    << benchmarkName.data()
+    << "elapsed=" << entry
+    << "\n";
+}
 
 } // namespace benchmark
 } // namespace o2

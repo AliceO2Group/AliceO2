@@ -25,6 +25,24 @@
 double bytesToKB(size_t s) { return (double)s / (1024.0); }
 double bytesToGB(size_t s) { return (double)s / GB; }
 
+template <class T>
+char* getType()
+{
+  if (typeid(T).name() == typeid(char).name()) {
+    return const_cast<char*>("\e[1mchar\e[0m");
+  }
+  if (typeid(T).name() == typeid(size_t).name()) {
+    return const_cast<char*>("\e[1msize_t\e[0m");
+  }
+  if (typeid(T).name() == typeid(int).name()) {
+    return const_cast<char*>("\e[1mint\e[0m");
+  }
+  if (typeid(T).name() == typeid(int4).name()) {
+    return const_cast<char*>("\e[1mint4\e[0m");
+  }
+  return const_cast<char*>("\e[1m unknown\e[0m");
+}
+
 namespace o2
 {
 namespace benchmark
@@ -44,40 +62,21 @@ template <class buffer_type>
 GPUg() void readerKernel(
   buffer_type* results,
   buffer_type* scratch,
-  size_t iterations,
+  size_t innerIterations,
   size_t bufferSize,
   float partitionSize = 1.f)
 {
   for (size_t i = threadIdx.x; i < bufferSize; i += blockDim.x) {
-    buffer_type tmpResult{0};
-    for (size_t j{0}; j < iterations; ++j) {
-      tmpResult += getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i];
+    for (size_t j{0}; j < innerIterations; ++j) {
+      if (getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i] == static_cast<buffer_type>(1)) {
+        results[blockIdx.x] += getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i]; // should never happen threads and should be always in sync
+      }
     }
-    results[blockIdx.x] += tmpResult; // FIXME: do something with data w/o data racing condition (avoid compiler optimizations)
-    // atomicAdd(reinterpret_cast<int*>(&(results[blockIdx.x])), tmpResult); // Does not work in CUDA
   }
 }
 ///////////////////
 
 } // namespace gpu
-
-template <class T>
-char* getType()
-{
-  if (typeid(T).name() == typeid(char).name()) {
-    return const_cast<char*>("\e[1mchar\e[0m");
-  }
-  if (typeid(T).name() == typeid(size_t).name()) {
-    return const_cast<char*>("\e[1msize_t\e[0m");
-  }
-  if (typeid(T).name() == typeid(int).name()) {
-    return const_cast<char*>("\e[1mint\e[0m");
-  }
-  if (typeid(T).name() == typeid(int4).name()) {
-    return const_cast<char*>("\e[1mint4\e[0m");
-  }
-  return const_cast<char*>("\e[1m unknown\e[0m");
-}
 
 void printDeviceProp(int deviceId)
 {
@@ -242,13 +241,13 @@ void GPUbenchmark<buffer_type>::generalInit(const int deviceId)
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
   mState.scratchSize = static_cast<long int>(mOptions.freeMemoryFractionToAllocate * free);
-  std::cout << ">>> Running on : " << props.name << std::endl;
+  std::cout << ">>> Running on: \e[1m" << props.name << "\e[0m" << std::endl;
 
   // Allocate scratch on GPU
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.scratchSize));
 
   mState.computeScratchPtrs();
-  GPUCHECK(cudaMemset(mState.scratchPtr, 1, mState.scratchSize))
+  GPUCHECK(cudaMemset(mState.scratchPtr, 0, mState.scratchSize))
 
   std::cout << "    ├ Buffer type: " << getType<buffer_type>() << std::endl
             << "    ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
@@ -283,9 +282,6 @@ void GPUbenchmark<buffer_type>::readingFinalize()
 {
 
   GPUCHECK(cudaMemcpy(mState.hostReadingResultsVector.data(), mState.deviceReadingResultsPtr, mState.getMaxSegments() * sizeof(buffer_type), cudaMemcpyDeviceToHost));
-  for (auto r : mState.hostReadingResultsVector) {
-    // std::cout << "Result " << r << std::endl;
-  }
 }
 
 template <class buffer_type>
@@ -301,7 +297,8 @@ void GPUbenchmark<buffer_type>::run()
   generalInit(0);
 
   readingInit();
-  measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark", mState.getNiterations());
+  auto result = measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark", mState.getNiterations());
+  mStreamer.get()->storeBenchmarkEntry("readingBenchmark", result);
   readingFinalize();
   GPUbenchmark<buffer_type>::generalFinalize();
 }
