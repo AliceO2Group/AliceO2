@@ -567,8 +567,13 @@ bool DataProcessingDevice::ConditionalRun()
       stream.id = streamRef;
       stream.running = true;
       stream.context = &mDataProcessorContexes.at(0);
+#ifdef DPL_ENABLE_THREADING
+      stream.task.data = &handle;
+      uv_queue_work(mState.loop, &stream.task, run_callback, run_completion);
+#else
       run_callback(&handle);
       run_completion(&handle, 0);
+#endif
     } else {
       mWasActive = false;
     }
