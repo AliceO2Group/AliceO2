@@ -159,12 +159,7 @@ if [ "$doreco" == "1" ]; then
   echo "Running TOF reco flow to produce clusters"
   #needs results of TOF digitized data and results of o2-tpcits-match-workflow
   taskwrapper tofReco.log o2-tof-reco-workflow $gloOpt
-  echo "Return status of its-tpc-tof match: $?"
-
-  echo "Running primary vertex finding flow"
-  #needs results of TPC-ITS matching and FIT workflows
-  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt
-  echo "Return status of primary vertexing: $?"
+  echo "Return status of tof cluster reco : $?"
 
   echo "Running Track-TOF macthing flow"
   #needs results of TOF clusters data from o2-tof-reco-workflow and results of o2-tpc-reco-workflow and ITS-TPC matching
@@ -176,6 +171,16 @@ if [ "$doreco" == "1" ]; then
   taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
   echo "Return status of TOF matching qa: $?"
 
+  echo "Running primary vertex finding flow"
+  #needs results of TPC-ITS matching and FIT workflows
+  taskwrapper pvfinder.log o2-primary-vertexing-workflow $gloOpt
+  echo "Return status of primary vertexing: $?"
+
+  echo "Running secondary vertex finding flow"
+  #needs results of all trackers + P.Vertexer
+  taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
+  echo "Return status of secondary vertexing: $?"
+ 
   echo "Running ZDC reconstruction"
   #need ZDC digits
   taskwrapper zdcreco.log o2-zdc-digits-reco $gloOpt

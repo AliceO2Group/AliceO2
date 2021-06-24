@@ -47,8 +47,8 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
   auto loggerTofLabels = [](LabelsType const& labeltof) {
     LOG(INFO) << "TOF LABELS GOT " << labeltof.size() << " LABELS ";
   };
-  o2::header::DataDescription ddMatchInfo{"MATCHINFO_1"}, ddMatchInfo_tpc{"MATCHINFO_0"},
-    ddMCMatchTOF{"MCMATCHINFO_1"}, ddMCMatchTOF_tpc{"MCMATCHINFO_0"};
+  o2::header::DataDescription ddMatchInfo{"MATCHINFOS"}, ddMatchInfo_tpc{"MATCHINFOS_TPC"},
+    ddMCMatchTOF{"MCMATCHINFOS"}, ddMCMatchTOF_tpc{"MCMATCHINFOS_TPC"};
 
   return MakeRootTreeWriterSpec(writeTOFTPC ? "TOFMatchedWriter_TPC" : "TOFMatchedWriter",
                                 outdef,
