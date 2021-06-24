@@ -108,7 +108,7 @@ void Geometry::setCsideModules()
     ac[i] *= 180 / TMath::Pi();
     bc[i] *= 180 / TMath::Pi();
     gc[i] = -1 * ac[i];
-    mAngels[i].SetXYZ(ac[i], bc[i], gc[i]);
+    mAngles[i].SetXYZ(ac[i], bc[i], gc[i]);
     mMCP[i + NCellsA].SetXYZ(xc2[i], yc2[i], zc2[i]);
   }
 }

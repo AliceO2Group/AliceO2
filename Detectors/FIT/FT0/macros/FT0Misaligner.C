@@ -32,11 +32,11 @@ void FT0Misaligner(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080"
 
   // FT0 detector
   //set A side
-  std::string symNameA = "/cave_1/barrel_1/FT0A_1";
+  std::string symNameA = "FT0A";
   pars = generateMisalignment(xA, yA, zA, psiA, thetaA, phiA);
   params.emplace_back(symNameA.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
   //set C side
-  std::string symNameC = "/cave_1/barrel_1/FT0C_1";
+  std::string symNameC = "FT0C";
   pars = generateMisalignment(xC, yC, zC, psiC, thetaC, phiC);
   params.emplace_back(symNameC.c_str(), -1, pars[0], pars[1], pars[2], pars[3], pars[4], pars[5], glo);
 
@@ -47,7 +47,7 @@ void FT0Misaligner(const std::string& ccdbHost = "http://ccdb-test.cern.ch:8080"
     map<string, string> metadata; // can be empty
     api.init(ccdbHost.c_str());   // or http://localhost:8080 for a local installation
     // store abitrary user object in strongly typed manner
-    //  api.storeAsTFileAny(&params, path, metadata, tmin, tmax);
+    api.storeAsTFileAny(&params, path, metadata, tmin, tmax);
   }
 
   if (!fileName.empty()) {

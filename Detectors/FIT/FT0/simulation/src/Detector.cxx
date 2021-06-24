@@ -361,39 +361,29 @@ void Detector::addAlignableVolumes() const
   }
 
   TString volPath = Form("/cave_1/barrel_1");
-  TString symName = Form("/cave_1/barrel_1");
-  LOG(INFO) << symName << " <-> " << volPath;
   //set A side
   TString volPathA = volPath + Form("/FT0A_1");
-  TString symNameA = symName + Form("/FT0A_1");
+  TString symNameA = "FT0A";
   LOG(INFO) << symNameA << " <-> " << volPathA;
   if (!gGeoManager->SetAlignableEntry(symNameA.Data(), volPathA.Data())) {
     LOG(FATAL) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
   }
   //set C side
   TString volPathC = volPath + Form("/FT0C_1");
-  TString symNameC = symName + Form("/FT0C_1");
+  TString symNameC = "FT0C";
   LOG(INFO) << symNameC << " <-> " << volPathC;
   if (!gGeoManager->SetAlignableEntry(symNameC.Data(), volPathC.Data())) {
     LOG(FATAL) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
   }
   TString volPathMod, symNameMod;
-  for (Int_t imod = 0; imod < 24; imod++) {
-    volPathMod = volPathA + Form("/0MOD_%d", imod);
-    symNameMod = symNameA + Form("/0MOD_%d", imod);
+  for (Int_t imod = 0; imod < Geometry::NCellsA + Geometry::NCellsC; imod++) {
+    TString volPath = (imod < Geometry::NCellsA) ? volPathA : volPathC;
+    volPathMod = volPath + Form("/0MOD_%d", imod);
+    symNameMod = Form("0MOD_%d", imod);
     if (!gGeoManager->SetAlignableEntry(symNameMod.Data(), volPathMod.Data())) {
       LOG(FATAL) << (Form("Alignable entry %s not created. Volume path %s not valid", symNameMod.Data(), volPathMod.Data()));
     }
   }
-
-  for (Int_t imod = 24; imod < 52; imod++) {
-    volPathMod = volPathC + Form("/0MOD_%d", imod);
-    symNameMod = symNameC + Form("/0MOD_%d", imod);
-    if (!gGeoManager->SetAlignableEntry(symNameMod.Data(), volPathMod.Data())) {
-      LOG(FATAL) << (Form("Alignable entry %s not created. Volume path %s not valid", symNameMod.Data(), volPathMod.Data()));
-    }
-  }
-  return;
 }
 
 // Class wrapper for construction of FT0-A support structure

@@ -43,7 +43,7 @@ class Geometry
 
   ///
   TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
-  TVector3 tiltMCP(int imcp) { return mAngels[imcp]; }
+  TVector3 tiltMCP(int imcp) { return mAngles[imcp]; }
 
   static constexpr int Nchannels = 229;                     // number of LUT channels
   static constexpr int Nsensors = 208;                      // number of channels
@@ -56,12 +56,6 @@ class Geometry
   static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::FT0; }
   void setAsideModules();
   void setCsideModules();
-  const char* getSymbolicName(int index) const
-  {
-    /// return symbolic name of sensor
-    LOG(INFO) << o2::base::GeometryManager::getSymbolicName(getDetID(), index);
-    return o2::base::GeometryManager::getSymbolicName(getDetID(), index);
-  }
   TGeoPNEntry* getPNEntry(int index) const
   {
     /// Get a pointer to the TGeoPNEntry of a chip identified by 'index'
@@ -71,8 +65,7 @@ class Geometry
 
  private:
   TVector3 mMCP[52];
-  TVector3 mAngels[28];
-  static std::string sSensorName; ///< Sensor name
+  TVector3 mAngles[28];
 
   ClassDefNV(Geometry, 2);
 };
