@@ -99,7 +99,6 @@ int main(int argc, char* argv[])
         auto metaDataCurrentFile = (TMap*)inputFile->Get("metaData");
         if (metaData == nullptr) {
           metaData = metaDataCurrentFile;
-          // outputFile->WriteObject(&metaData, "metaData");
           outputFile->cd();
           metaData->Write("metaData", TObject::kSingleKey);
         } else {
