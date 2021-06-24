@@ -448,22 +448,28 @@ void Digits2Raw::writeDigits()
     bool tcond_continuous = T0 || T1;
     bool tcond_triggered = A0 || A1 || (A2 && (T0 || TM)) || (A3 && T0);
     bool tcond_last = mZDC.data[im][0].f.bc == 3563;
+    // Need to call addData for all links
+    bool addedData[NChPerModule];
     // Condition to write GBT data
     if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
       for (uint32_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
-        uint64_t FeeID = 2*im+ic/2;
+        uint64_t FeeID = 2 * im + ic / 2;
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
             gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
             mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
           }
+          addedData[ic] = true;
         }
       }
-    } else {
-      // All links are registered, we add explicitly zero payload
-      uint64_t FeeID = 2*im;
+    }
+    // All links are registered, we add explicitly zero payload
+    uint64_t FeeID = 2 * im;
+    if (addedData[0] == false && addedData[1] == false) {
       mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, empty);
-      mWriter.addData(FeeID+1, mCruID, mLinkID, mEndPointID, ir, empty);
+    }
+    if (addedData[2] == false && addedData[3] == false) {
+      mWriter.addData(FeeID + 1, mCruID, mLinkID, mEndPointID, ir, empty);
     }
     if (mVerbosity > 1) {
       if (tcond_continuous) {
