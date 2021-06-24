@@ -196,8 +196,10 @@ struct HfCorrelatorD0D0barMcRec {
   void init(o2::framework::InitContext&)
   {
     registry.add("hMassD0MCRecSig", "D0 signal candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hMassD0barMCRecSig", "D0bar signal candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0MCRecRefl", "D0 reflection candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hMassD0MCRecBkg", "D0 background candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0barMCRecSig", "D0bar signal candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0barMCRecRefl", "D0bar reflection candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
     registry.add("hMassD0barMCRecBkg", "D0bar background candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
@@ -233,6 +235,8 @@ struct HfCorrelatorD0D0barMcRec {
       if (candidate1.isSelD0() >= selectionFlagD0) {                  //only reco as D0
         if (candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) { //also matched as D0
           registry.fill(HIST("hMassD0MCRecSig"), InvMassD0(candidate1), candidate1.pt());
+        } else if (candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) {
+          registry.fill(HIST("hMassD0MCRecRefl"), InvMassD0(candidate1), candidate1.pt());
         } else {
           registry.fill(HIST("hMassD0MCRecBkg"), InvMassD0(candidate1), candidate1.pt());
         }
@@ -240,6 +244,8 @@ struct HfCorrelatorD0D0barMcRec {
       if (candidate1.isSelD0bar() >= selectionFlagD0bar) {               //only reco as D0bar
         if (candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) { //also matched as D0bar
           registry.fill(HIST("hMassD0barMCRecSig"), InvMassD0bar(candidate1), candidate1.pt());
+        } else if (candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) {
+          registry.fill(HIST("hMassD0barMCRecRefl"), InvMassD0bar(candidate1), candidate1.pt());
         } else {
           registry.fill(HIST("hMassD0barMCRecBkg"), InvMassD0bar(candidate1), candidate1.pt());
         }
