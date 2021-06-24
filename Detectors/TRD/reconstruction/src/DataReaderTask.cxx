@@ -43,12 +43,14 @@ void DataReaderTask::init(InitContext& ic)
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
 }
 
-void DataReaderTask::sendData(ProcessingContext& pc)
+void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
 {
   // mReader.getParsedObjects(mTracklets,mDigits,mTriggers);
-  mReader.getParsedObjects(mTracklets, mDigits, mTriggers);
+  if (!blankframe) {
+    mReader.getParsedObjects(mTracklets, mDigits, mTriggers);
+  }
 
-  LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets and " << mTriggers.size() << " Triggers";
+  LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets and " << mTriggers.size() << " Triggers and blankframe:" << blankframe;
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggers);
@@ -65,34 +67,31 @@ void DataReaderTask::run(ProcessingContext& pc)
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
-  int inputcount = 0;
-  std::vector<InputSpec> dummy{InputSpec{"filter", ConcreteDataTypeMatcher{"FLP", "DISTSUBTIMEFRAME"}, Lifetime::Timeframe}};
+  mDataSpec = o2::header::gDataDescriptionRawData;
+
+  std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TRD", mDataSpec, 0xDEADBEEF}}};
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   //   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
 
   for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-    if (dh->payloadSize == 16) {
+    if (dh->payloadSize == 16 || dh->payloadSize == 0) {
       LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
            dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
-      sendData(pc); //send the empty tf data.
+      sendData(pc, true); //send the empty tf data.
       return;
     }
     LOG(info) << " matched DEADBEEF";
   }
   //TODO combine the previous and subsequent loops.
-  int inputcounts = 0;
   /* loop over inputs routes */
   for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    LOG(info) << " looping over inputs " << inputcounts;
-    inputcounts++;
     if (!iit.isValid()) {
       continue;
     }
     /* loop over input parts */
     int inputpartscount = 0;
     for (auto const& ref : iit) {
-      LOG(info) << " looping over parts " << inputpartscount;
       if (mVerbose) {
         const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
         LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
@@ -135,10 +134,9 @@ void DataReaderTask::run(ProcessingContext& pc)
         mTriggers = mCompressedReader.getIR();
         //get the payload of trigger and digits out.
       }
-      /* output */
-      //sendData(pc); //TODO do we ever have to not post the data. i.e. can we get here mid event? I dont think so.
     }
-    sendData(pc); //TODO do we ever have to not post the data. i.e. can we get here mid event? I dont think so.
+    /* output */
+    sendData(pc, false); //TODO do we ever have to not post the data. i.e. can we get here mid event? I dont think so.
   }
 
   auto dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;

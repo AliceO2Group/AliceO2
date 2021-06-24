@@ -92,7 +92,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   //  LOG(info) << "expected incoming data definition : " << inputspec;
   // this is probably never going to be used but would to nice to know hence here.
   auto orig = o2::header::gDataOriginTRD;
-  std::vector<InputSpec> inputs{{"stf", ConcreteDataTypeMatcher{orig, "RAWDATA"}, Lifetime::Optional}};
+  auto inputs = o2::framework::select(inputspec.c_str());
+  for (auto& inp : inputs) {
+    // take care of case where our data is not in the time frame
+    inp.lifetime = Lifetime::Optional;
+  }
   if (askSTFDist) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
