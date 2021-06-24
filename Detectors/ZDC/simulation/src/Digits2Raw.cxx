@@ -455,6 +455,8 @@ void Digits2Raw::writeDigits()
             gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
             mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, payload);
           }
+        }else{
+          mWriter.addData(mFeeID, mCruID, mLinkID, mEndPointID, ir, nullptr);
         }
       }
     }
