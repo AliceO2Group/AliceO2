@@ -52,7 +52,7 @@ TimeFrame::TimeFrame(int nLayers)
   mClusterLabels.resize(nLayers);
   mClusterExternalIndices.resize(nLayers);
   mUsedClusters.resize(nLayers);
-  mROframesClusters.resize(nLayers);
+  mROframesClusters.resize(nLayers, {0}); ///TBC: if resetting the timeframe is required, then this has to be done
 }
 
 void TimeFrame::addPrimaryVertices(const std::vector<Vertex>& vertices)

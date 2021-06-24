@@ -187,7 +187,7 @@ inline int TimeFrame::getPrimaryVerticesNum(int rofID) const
 
 inline bool TimeFrame::empty() const { return getTotalClusters() == 0; }
 
-inline int TimeFrame::getSortedIndex(int rof, int layer, int index) const { return rof == 0 ? index : mROframesClusters[layer][rof - 1] + index; }
+inline int TimeFrame::getSortedIndex(int rof, int layer, int index) const { return mROframesClusters[layer][rof] + index; }
 
 inline int TimeFrame::getNrof() const { return mNrof; };
 
@@ -200,8 +200,8 @@ inline gsl::span<Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId)
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<Cluster>();
   }
-  int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
-  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId] - startIdx)};
+  int startIdx{mROframesClusters[layerId][rofId]};
+  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId + 1] - startIdx)};
 }
 
 inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int layerId) const
@@ -209,13 +209,13 @@ inline gsl::span<const Cluster> TimeFrame::getClustersOnLayer(int rofId, int lay
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<const Cluster>();
   }
-  int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
-  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId] - startIdx)};
+  int startIdx{mROframesClusters[layerId][rofId]};
+  return {&mClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId + 1] - startIdx)};
 }
 
 inline int TimeFrame::getClusterROF(int iLayer, int iCluster)
 {
-  return std::max(std::lower_bound(mROframesClusters[iLayer].begin(), mROframesClusters[iLayer].end(), iCluster + 1) - mROframesClusters[iLayer].begin() - 1, 0l);
+  return std::lower_bound(mROframesClusters[iLayer].begin(), mROframesClusters[iLayer].end(), iCluster + 1) - mROframesClusters[iLayer].begin() - 1;
 }
 
 inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId, int layerId) const
@@ -223,8 +223,8 @@ inline gsl::span<const Cluster> TimeFrame::getUnsortedClustersOnLayer(int rofId,
   if (rofId < 0 || rofId >= mNrof) {
     return gsl::span<const Cluster>();
   }
-  int startIdx{rofId == 0 ? 0 : mROframesClusters[layerId][rofId - 1]};
-  return {&mUnsortedClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId] - startIdx)};
+  int startIdx{mROframesClusters[layerId][rofId]};
+  return {&mUnsortedClusters[layerId][startIdx], static_cast<gsl::span<Cluster>::size_type>(mROframesClusters[layerId][rofId + 1] - startIdx)};
 }
 
 inline const std::vector<TrackingFrameInfo>& TimeFrame::getTrackingFrameInfoOnLayer(int layerId) const

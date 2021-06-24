@@ -212,28 +212,25 @@ void TrackerDPL::run(ProcessingContext& pc)
       // prepare in advance output ROFRecords, even if this ROF to be rejected
       int first = allTracks.size();
 
-      if (nclUsed) {
-        LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
+      LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
 
-        // for vertices output
-        auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
-        vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
-        vtxROF.setNEntries(0);
+      // for vertices output
+      auto& vtxROF = vertROFvec.emplace_back(rof); // register entry and number of vertices in the
+      vtxROF.setFirstEntry(vertices.size());       // dedicated ROFRecord
+      vtxROF.setNEntries(0);
 
-        std::vector<Vertex> vtxVecLoc;
-        if (mRunVertexer) {
-          mVertexer->clustersToVertices(event, false, logger);
-          vtxVecLoc = mVertexer->exportVertices();
-        }
-
-        mTimeFrame.addPrimaryVertices(vtxVecLoc);
-
-        vtxROF.setNEntries(vtxVecLoc.size());
-        for (const auto& vtx : vtxVecLoc) {
-          vertices.push_back(vtx);
-        }
-        savedROF.push_back(roFrame);
+      std::vector<Vertex> vtxVecLoc;
+      if (mRunVertexer) {
+        mVertexer->clustersToVertices(event, false, logger);
+        vtxVecLoc = mVertexer->exportVertices();
       }
+      mTimeFrame.addPrimaryVertices(vtxVecLoc);
+
+      vtxROF.setNEntries(vtxVecLoc.size());
+      for (const auto& vtx : vtxVecLoc) {
+        vertices.push_back(vtx);
+      }
+      savedROF.push_back(roFrame);
       roFrame++;
     }
     mTracker->clustersToTracks(logger);
@@ -252,7 +249,6 @@ void TrackerDPL::run(ProcessingContext& pc)
       if (tracks.size()) {
         irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1);
       }
-
       std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
       // Some conversions that needs to be moved in the tracker internals
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
