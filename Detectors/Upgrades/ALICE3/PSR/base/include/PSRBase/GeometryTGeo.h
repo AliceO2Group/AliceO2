@@ -95,21 +95,20 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static const char* getPSRSensorPattern() { return sSensorName.c_str(); }
   static const char* getPSRShowerlayerPattern() { return sShowerlayerName.c_str(); }
 
-  static const char* composeSymNamePSR(Int_t d) { return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::PSR).getName(),d); } 
+  static const char* composeSymNamePSR(Int_t d) { return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::PSR).getName(), d); }
   static const char* composeSymNameLayer(Int_t d, Int_t lr);
   static const char* composeSymNameChip(Int_t d, Int_t lr);
   static const char* composeSymNameSensor(Int_t d, Int_t lr);
   static const char* composeSymNameShowerlayer(Int_t d, Int_t lr);
 
-
  protected:
   static constexpr int MAXLAYERS = 15; ///< max number of active layers
 
-  Int_t mNumberOfLayers;          ///< number of layers
-  static std::string sVolumeName; ///< Mother volume name
-  static std::string sLayerName;  ///< Layer name
-  static std::string sChipName;   ///< Chip name
-  static std::string sSensorName; ///< Sensor name
+  Int_t mNumberOfLayers;               ///< number of layers
+  static std::string sVolumeName;      ///< Mother volume name
+  static std::string sLayerName;       ///< Layer name
+  static std::string sChipName;        ///< Chip name
+  static std::string sSensorName;      ///< Sensor name
   static std::string sShowerlayerName; ///< Showerlayer name
 
  private:
