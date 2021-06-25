@@ -62,14 +62,14 @@ template <class buffer_type>
 GPUg() void readerKernel(
   buffer_type* results,
   buffer_type* scratch,
-  size_t innerIterations,
   size_t bufferSize,
-  float partitionSize = 1.f)
+  float partitionSize = 1.f,
+  size_t innerLoops = 1)
 {
   for (size_t i = threadIdx.x; i < bufferSize; i += blockDim.x) {
-    for (size_t j{0}; j < innerIterations; ++j) {
+    for (size_t j{0}; j < innerLoops; ++j) {
       if (getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i] == static_cast<buffer_type>(1)) {
-        results[blockIdx.x] += getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i]; // should never happen threads and should be always in sync
+        results[blockIdx.x] += getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i]; // should never happen and threads should be always in sync
       }
     }
   }
@@ -236,7 +236,6 @@ void GPUbenchmark<buffer_type>::generalInit(const int deviceId)
   GPUCHECK(cudaMemGetInfo(&free, &mState.totalMemory));
 
   mState.partitionSizeGB = mOptions.partitionSizeGB;
-  mState.iterations = mOptions.iterations;
   mState.nMultiprocessors = props.multiProcessorCount;
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
@@ -253,26 +252,25 @@ void GPUbenchmark<buffer_type>::generalInit(const int deviceId)
             << "    ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
             << "    ├ Number of scratch partitions: " << mState.getMaxSegments() << " of " << mOptions.partitionSizeGB << "GB each\n"
-            << "    ├ Each partition can store up to: " << mState.getPartitionCapacity() << " elements" << std::endl
-            << "    └ Memory buffers copied from host to device"
+            << "    └ Each partition can store up to: " << mState.getPartitionCapacity() << " elements" << std::endl
             << std::endl;
 }
 
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::readingInit()
 {
-  std::cout << ">>> Initializing reading benchmark with \e[1m" << mState.iterations << "\e[0m iterations." << std::endl;
+  std::cout << ">>> Initializing reading benchmark with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
   mState.hostReadingResultsVector.resize(mState.getMaxSegments());
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&(mState.deviceReadingResultsPtr)), mState.getMaxSegments() * sizeof(buffer_type)));
 }
 
 template <class buffer_type>
-void GPUbenchmark<buffer_type>::readingBenchmark(size_t iterations)
+void GPUbenchmark<buffer_type>::readingBenchmark(size_t kernelLaunches)
 {
   auto nBlocks{mState.getMaxSegments()};
   auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-  for (auto iteration{iterations}; iteration--;) {
-    gpu::readerKernel<buffer_type><<<nBlocks, nThreads>>>(mState.deviceReadingResultsPtr, mState.scratchPtr, 1, mState.getPartitionCapacity(), mState.partitionSizeGB);
+  for (auto launch{kernelLaunches}; launch--;) {
+    gpu::readerKernel<buffer_type><<<nBlocks, nThreads>>>(mState.deviceReadingResultsPtr, mState.scratchPtr, mState.getPartitionCapacity(), mState.partitionSizeGB);
   }
   GPUCHECK(cudaDeviceSynchronize());
 }
@@ -297,8 +295,10 @@ void GPUbenchmark<buffer_type>::run()
   // Test calls go here
   // - Reading
   readingInit();
-  auto result = measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark", mState.getNiterations());
-  mStreamer.get()->storeBenchmarkEntry("readingBenchmark", getType<buffer_type>(), result);
+  for (auto measures{mOptions.nTests}; measures--;) {
+    auto result = measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark", mState.getNiterations());
+    mStreamer.get()->storeBenchmarkEntry("readingBenchmark", getType<buffer_type>(), result);
+  }
   readingFinalize();
 
   GPUbenchmark<buffer_type>::generalFinalize();

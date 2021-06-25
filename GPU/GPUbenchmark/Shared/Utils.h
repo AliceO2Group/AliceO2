@@ -41,7 +41,8 @@ struct benchmarkOpts {
 
   float partitionSizeGB = 1.f;
   float freeMemoryFractionToAllocate = 0.95f;
-  size_t iterations = 1;
+  size_t kernelLaunches = 1;
+  size_t nTests = 1;
 };
 
 template <class T>
