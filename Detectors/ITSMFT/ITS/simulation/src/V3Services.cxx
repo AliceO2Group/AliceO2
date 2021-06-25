@@ -633,8 +633,8 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   static const Double_t sEndWCStepHoleZdist = 4.0 * sMm;
 
   static const Double_t sEndWCStepHolePhi[3] = {30.0, 22.5, 18.0}; // Deg
-  static const Double_t sEndWCStepHolePhi0[2] = {9.5, 10.5}; // Deg - Lay 1-2
-  static const Double_t sEndWCStepYlow = 7.0 * sMm; // Lay 0 only
+  static const Double_t sEndWCStepHolePhi0[2] = {9.5, 10.5};       // Deg - Lay 1-2
+  static const Double_t sEndWCStepYlow = 7.0 * sMm;                // Lay 0 only
 
   // Local variables
   Double_t xlen, ylen, zlen;
