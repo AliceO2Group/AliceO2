@@ -180,7 +180,7 @@ if [ "$doreco" == "1" ]; then
   #needs results of all trackers + P.Vertexer
   taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
   echo "Return status of secondary vertexing: $?"
- 
+
   echo "Running ZDC reconstruction"
   #need ZDC digits
   taskwrapper zdcreco.log o2-zdc-digits-reco $gloOpt
