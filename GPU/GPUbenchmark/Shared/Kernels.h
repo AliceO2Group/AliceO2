@@ -54,7 +54,7 @@ class GPUbenchmark final
   void readingFinalize();
 
   // Benchmark kernel callbacks
-  void readingBenchmark(size_t iterations);
+  void readingBenchmark(int iterations);
 
  private:
   gpuState<buffer_type> mState;

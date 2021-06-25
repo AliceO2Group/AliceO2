@@ -63,14 +63,11 @@ GPUg() void readerKernel(
   buffer_type* results,
   buffer_type* scratch,
   size_t bufferSize,
-  float partitionSize = 1.f,
-  size_t innerLoops = 1)
+  float partitionSize = 1.f)
 {
   for (size_t i = threadIdx.x; i < bufferSize; i += blockDim.x) {
-    for (size_t j{0}; j < innerLoops; ++j) {
-      if (getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i] == static_cast<buffer_type>(1)) {
-        results[blockIdx.x] += getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i]; // should never happen and threads should be always in sync
-      }
+    if (getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i] == static_cast<buffer_type>(1)) {
+      results[blockIdx.x] += getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i]; // should never happen and threads should be always in sync
     }
   }
 }
@@ -236,6 +233,7 @@ void GPUbenchmark<buffer_type>::generalInit(const int deviceId)
   GPUCHECK(cudaMemGetInfo(&free, &mState.totalMemory));
 
   mState.partitionSizeGB = mOptions.partitionSizeGB;
+  mState.iterations = mOptions.kernelLaunches;
   mState.nMultiprocessors = props.multiProcessorCount;
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
@@ -265,11 +263,11 @@ void GPUbenchmark<buffer_type>::readingInit()
 }
 
 template <class buffer_type>
-void GPUbenchmark<buffer_type>::readingBenchmark(size_t kernelLaunches)
+void GPUbenchmark<buffer_type>::readingBenchmark(int kernelLaunches)
 {
   auto nBlocks{mState.getMaxSegments()};
   auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-  for (auto launch{kernelLaunches}; launch--;) {
+  for (auto launch{0}; launch < kernelLaunches; ++launch) {
     gpu::readerKernel<buffer_type><<<nBlocks, nThreads>>>(mState.deviceReadingResultsPtr, mState.scratchPtr, mState.getPartitionCapacity(), mState.partitionSizeGB);
   }
   GPUCHECK(cudaDeviceSynchronize());
@@ -278,7 +276,6 @@ void GPUbenchmark<buffer_type>::readingBenchmark(size_t kernelLaunches)
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::readingFinalize()
 {
-
   GPUCHECK(cudaMemcpy(mState.hostReadingResultsVector.data(), mState.deviceReadingResultsPtr, mState.getMaxSegments() * sizeof(buffer_type), cudaMemcpyDeviceToHost));
 }
 
