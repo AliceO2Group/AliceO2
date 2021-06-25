@@ -26,21 +26,21 @@ double bytesToKB(size_t s) { return (double)s / (1024.0); }
 double bytesToGB(size_t s) { return (double)s / GB; }
 
 template <class T>
-char* getType()
+std::string getType()
 {
   if (typeid(T).name() == typeid(char).name()) {
-    return const_cast<char*>("\e[1mchar\e[0m");
+    return std::string{"char"};
   }
   if (typeid(T).name() == typeid(size_t).name()) {
-    return const_cast<char*>("\e[1msize_t\e[0m");
+    return std::string{"unsigned long"};
   }
   if (typeid(T).name() == typeid(int).name()) {
-    return const_cast<char*>("\e[1mint\e[0m");
+    return std::string{"int"};
   }
   if (typeid(T).name() == typeid(int4).name()) {
-    return const_cast<char*>("\e[1mint4\e[0m");
+    return std::string{"int4"};
   }
-  return const_cast<char*>("\e[1m unknown\e[0m");
+  return std::string{"unknown"};
 }
 
 namespace o2
@@ -249,7 +249,7 @@ void GPUbenchmark<buffer_type>::generalInit(const int deviceId)
   mState.computeScratchPtrs();
   GPUCHECK(cudaMemset(mState.scratchPtr, 0, mState.scratchSize))
 
-  std::cout << "    ├ Buffer type: " << getType<buffer_type>() << std::endl
+  std::cout << "    ├ Buffer type: \e[1m" << getType<buffer_type>() << "\e[0m" << std::endl
             << "    ├ Allocated: " << std::setprecision(2) << bytesToGB(mState.scratchSize) << "/" << std::setprecision(2) << bytesToGB(mState.totalMemory)
             << "(GB) [" << std::setprecision(3) << (100.f) * (mState.scratchSize / (float)mState.totalMemory) << "%]\n"
             << "    ├ Number of scratch partitions: " << mState.getMaxSegments() << " of " << mOptions.partitionSizeGB << "GB each\n"
@@ -293,13 +293,14 @@ void GPUbenchmark<buffer_type>::generalFinalize()
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::run()
 {
-  // printDevices();
   generalInit(0);
-
+  // Test calls go here
+  // - Reading
   readingInit();
   auto result = measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark", mState.getNiterations());
-  mStreamer.get()->storeBenchmarkEntry("readingBenchmark", result);
+  mStreamer.get()->storeBenchmarkEntry("readingBenchmark", getType<buffer_type>(), result);
   readingFinalize();
+
   GPUbenchmark<buffer_type>::generalFinalize();
 }
 

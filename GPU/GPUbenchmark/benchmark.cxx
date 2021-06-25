@@ -21,7 +21,9 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   bpo::options_description options("Benchmark options");
   options.add_options()(
     "help,h", "Print help message.")(
-    "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")("freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")("iterations,i", bpo::value<size_t>()->default_value(50), "Number of iterations in reading kernels.");
+    "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
+    "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
+    "iterations,i", bpo::value<int>()->default_value(50), "Number of iterations in reading kernels.");
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
     if (vm.count("help")) {
@@ -40,7 +42,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
 
   conf.freeMemoryFractionToAllocate = vm["freeMemFraction"].as<float>();
   conf.partitionSizeGB = vm["chunkSize"].as<float>();
-  conf.iterations = vm["iterations"].as<size_t>();
+  conf.iterations = vm["iterations"].as<int>();
 
   return true;
 }
@@ -51,20 +53,19 @@ int main(int argc, const char* argv[])
 {
 
   o2::benchmark::benchmarkOpts opts;
-  if (argc > 1) {
+
     if (!parseArgs(opts, argc, argv)) {
       return -1;
     }
-  }
 
   std::shared_ptr<ResultStreamer> streamer = std::make_shared<ResultStreamer>();
 
   o2::benchmark::GPUbenchmark<char> bm_char{opts, streamer};
   bm_char.run();
-  o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, streamer};
-  bm_size_t.run();
-  o2::benchmark::GPUbenchmark<int> bm_int{opts, streamer};
-  bm_int.run();
+  // o2::benchmark::GPUbenchmark<int> bm_int{opts, streamer};
+  // bm_int.run();
+  // o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, streamer};
+  // bm_size_t.run();
 
   return 0;
 }

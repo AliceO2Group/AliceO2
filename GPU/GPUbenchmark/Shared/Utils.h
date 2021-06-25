@@ -104,7 +104,7 @@ class ResultStreamer
  public:
   explicit ResultStreamer(const std::string debugTreeFileName = "benchmark_results.root");
   ~ResultStreamer();
-  void storeBenchmarkEntry(std::string benchmarkName, float entry);
+  void storeBenchmarkEntry(std::string benchmarkName, std::string type, float entry);
 
  private:
   std::string mDebugTreeFileName = "benchmark_results.root"; // output filename
@@ -122,11 +122,10 @@ inline ResultStreamer::~ResultStreamer()
   delete mTreeStream;
 }
 
-inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, float entry)
+inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::string type, float entry)
 {
   (*mTreeStream)
-    << "Benchmarks"
-    << benchmarkName.data()
+    << (benchmarkName + type).data()
     << "elapsed=" << entry
     << "\n";
 }
