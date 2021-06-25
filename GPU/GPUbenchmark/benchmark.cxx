@@ -24,8 +24,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
     "launches,l", bpo::value<int>()->default_value(50), "Number of iterations in reading kernels.")(
-    "ntests,n", bpo::value<int>()->default_value(1), "Number of times each test is run."
-    );
+    "ntests,n", bpo::value<int>()->default_value(1), "Number of times each test is run.");
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
     if (vm.count("help")) {
@@ -57,9 +56,9 @@ int main(int argc, const char* argv[])
 
   o2::benchmark::benchmarkOpts opts;
 
-    if (!parseArgs(opts, argc, argv)) {
-      return -1;
-    }
+  if (!parseArgs(opts, argc, argv)) {
+    return -1;
+  }
 
   std::shared_ptr<ResultStreamer> streamer = std::make_shared<ResultStreamer>();
 
