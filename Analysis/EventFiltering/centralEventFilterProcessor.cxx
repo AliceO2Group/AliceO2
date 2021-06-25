@@ -15,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include <Framework/Logger.h>
 #include "Framework/TableConsumer.h"
 
 #include <TFile.h>
@@ -33,12 +34,16 @@ namespace
 {
 Document readJsonFile(std::string& config)
 {
+  Document d;
   FILE* fp = fopen(config.data(), "rb");
+  if (fp == NULL) {
+    LOG(ERROR) << "Missing configuration json file: " << config;
+    return d;
+  }
 
   char readBuffer[65536];
   FileReadStream is(fp, readBuffer, sizeof(readBuffer));
 
-  Document d;
   d.ParseStream(is);
   fclose(fp);
   return d;
@@ -62,7 +67,7 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
   //     }
   //   }
   // }
-  std::cout << "Start init" << std::endl;
+  LOG(INFO) << "Start init";
   Document d = readJsonFile(mConfigFile);
   int nCols{0};
   for (auto& workflow : d["workflows"].GetArray()) {
@@ -82,7 +87,7 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
       break;
     }
   }
-  std::cout << "Middle init" << std::endl;
+  LOG(INFO) << "Middle init" << std::endl;
   mScalers = new TH1D("mScalers", ";;Number of events", nCols + 1, -0.5, 0.5 + nCols);
   mScalers->GetXaxis()->SetBinLabel(1, "Total number of events");
 
@@ -112,7 +117,7 @@ void CentralEventFilterProcessor::run(ProcessingContext& pc)
     int64_t nRows{tablePtr->num_rows()};
     nEvents = nEvents < 0 ? nRows : nEvents;
     if (nEvents != nRows) {
-      std::cerr << "Inconsistent number of rows across trigger tables, fatal" << std::endl; ///TODO: move it to real fatal
+      LOG(FATAL) << "Inconsistent number of rows across trigger tables, fatal" << std::endl; ///TODO: move it to real fatal
     }
 
     auto schema{tablePtr->schema()};
@@ -167,7 +172,7 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
     for (unsigned int iFilter{0}; iFilter < AvailableFilters.size(); ++iFilter) {
       if (std::string_view(workflow["subwagon_name"].GetString()) == std::string_view(AvailableFilters[iFilter])) {
         inputs.emplace_back(std::string(AvailableFilters[iFilter]), "AOD", FilterDescriptions[iFilter], 0, Lifetime::Timeframe);
-        std::cout << "Adding input " << std::string_view(AvailableFilters[iFilter]) << std::endl;
+        LOG(INFO) << "Adding input " << std::string_view(AvailableFilters[iFilter]) << std::endl;
         break;
       }
     }
