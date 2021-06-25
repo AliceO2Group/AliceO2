@@ -74,6 +74,7 @@ int main(int argc, char* argv[])
   in.open(inputCollection);
   TString line;
   bool connectedToAliEn = false;
+  TMap* metaData = nullptr;
   int mergedDFs = 0;
   while (in.good()) {
     in >> line;
@@ -95,6 +96,29 @@ int main(int argc, char* argv[])
     keyList->Sort();
 
     for (auto key1 : *keyList) {
+      if (((TObjString*)key1)->GetString().EqualTo("metaData")) {
+        auto metaDataCurrentFile = (TMap*)inputFile->Get("metaData");
+        if (metaData == nullptr) {
+          metaData = metaDataCurrentFile;
+          outputFile->cd();
+          metaData->Write("metaData", TObject::kSingleKey);
+        } else {
+          for (auto metaDataPair : *metaData) {
+            auto metaDataKey = ((TPair*)metaDataPair)->Key();
+            if (metaDataCurrentFile->Contains(((TObjString*)metaDataKey)->GetString())) {
+              auto value = (TObjString*)metaData->GetValue(((TObjString*)metaDataKey)->GetString());
+              auto valueCurrentFile = (TObjString*)metaDataCurrentFile->GetValue(((TObjString*)metaDataKey)->GetString());
+              if (!value->GetString().EqualTo(valueCurrentFile->GetString())) {
+                printf("WARNING: Metadata differs between input files. Key %s : %s vs. %s\n", ((TObjString*)metaDataKey)->GetString().Data(),
+                       value->GetString().Data(), valueCurrentFile->GetString().Data());
+              }
+            } else {
+              printf("WARNING: Metadata differs between input files. Key %s is not present in current file\n", ((TObjString*)metaDataKey)->GetString().Data());
+            }
+          }
+        }
+      }
+
       if (!((TObjString*)key1)->GetString().BeginsWith("DF_")) {
         continue;
       }
