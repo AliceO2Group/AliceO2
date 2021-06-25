@@ -60,6 +60,7 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   mLinkID = uint32_t(0);
   mCruID = uint16_t(0);
   mEndPointID = uint32_t(0);
+  // TODO: assign FeeID from configuration object
   for (int ilink = 0; ilink < NLinks; ilink++) {
     uint64_t FeeID = uint64_t(ilink);
     std::string outFileLink = mOutputPerLink ? o2::utils::Str::concat_string(outd, "zdc_link", std::to_string(ilink), ".raw") : o2::utils::Str::concat_string(outd, "zdc.raw");
@@ -448,9 +449,8 @@ void Digits2Raw::writeDigits()
     bool tcond_continuous = T0 || T1;
     bool tcond_triggered = A0 || A1 || (A2 && (T0 || TM)) || (A3 && T0);
     bool tcond_last = mZDC.data[im][0].f.bc == 3563;
-    // Need to call addData for all links
-    bool addedData[NChPerModule];
     // Condition to write GBT data
+    bool addedChData[NChPerModule] = {false, false, false, false};
     if (tcond_triggered || (mIsContinuous && tcond_continuous) || (mZDC.data[im][0].f.bc == 3563)) {
       for (uint32_t ic = 0; ic < o2::zdc::NChPerModule; ic++) {
         uint64_t FeeID = 2 * im + ic / 2;
@@ -459,17 +459,18 @@ void Digits2Raw::writeDigits()
             gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
             mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
           }
-          addedData[ic] = true;
+          addedChData[ic] = true;
         }
       }
     }
     // All links are registered, we add explicitly zero payload
-    uint64_t FeeID = 2 * im;
-    if (addedData[0] == false && addedData[1] == false) {
+    if (addedChData[0] == false && addedChData[1] == false) {
+      uint64_t FeeID = 2 * im;
       mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, empty);
     }
-    if (addedData[2] == false && addedData[3] == false) {
-      mWriter.addData(FeeID + 1, mCruID, mLinkID, mEndPointID, ir, empty);
+    if (addedChData[2] == false && addedChData[3] == false) {
+      uint64_t FeeID = 2 * im + 1;
+      mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, empty);
     }
     if (mVerbosity > 1) {
       if (tcond_continuous) {
