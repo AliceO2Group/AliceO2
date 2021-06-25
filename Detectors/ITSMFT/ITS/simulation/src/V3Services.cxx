@@ -763,10 +763,11 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   endWheel->AddNode(endWheelCVol, 1, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 0, 180, 0)));
 
   // The position of the Steps is given wrt the holes (see eg. ALIITSUP0187)
-  if (iLay == 0)
+  if (iLay == 0) {
     dphi = (sEndWCStepYlow / sEndWCStepYdispl[iLay]) * TMath::RadToDeg();
-  else
+  } else {
     dphi = sEndWCStepHolePhi0[iLay - 1];
+  }
 
   Int_t numberOfStaves = GeometryTGeo::Instance()->getNumberOfStaves(iLay);
   zpos += (static_cast<TGeoBBox*>(stepCVol->GetShape()))->GetDZ();
