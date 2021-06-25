@@ -19,6 +19,7 @@
 #include "TDirectory.h"
 #include "TObjString.h"
 #include <TGrid.h>
+#include <TMap.h>
 
 // AOD merger with correct index rewriting
 // No need to know the datamodel because the branch names follow a canonical standard (identified by fIndex)
