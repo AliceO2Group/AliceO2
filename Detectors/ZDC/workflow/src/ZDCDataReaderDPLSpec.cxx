@@ -33,6 +33,21 @@ void ZDCDataReaderDPLSpec::init(InitContext& ic)
 
 void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
 {
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  {
+    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{o2::header::gDataOriginFT0, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
+    for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
+      const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (dh->payloadSize == 0) {
+        LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+        mRawReader.makeSnapshot(pc); // send empty output
+        return;
+      }
+    }
+  }
+
   DPLRawParser parser(pc.inputs());
   mRawReader.clear();
 
@@ -66,14 +81,18 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   mRawReader.makeSnapshot(pc);
 }
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger)
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger, const bool askSTFDist)
 {
   LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
   RawReaderZDC::prepareOutputSpec(outputSpec);
+  std::vector<InputSpec> inputSpec{{"STF", ConcreteDataTypeMatcher{o2::header::gDataOriginZDC, "RAWDATA"}, Lifetime::Optional}};
+  if (askSTFDist) {
+    inputSpec.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  }
   return DataProcessorSpec{
     "zdc-datareader-dpl",
-    o2::framework::select("TF:ZDC/RAWDATA"),
+    inputSpec,
     outputSpec,
     adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, verifyTrigger),
     Options{{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}}}};
