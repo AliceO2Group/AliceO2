@@ -15,7 +15,7 @@
 #define O2_TOF_MATCHER_SPEC
 
 #include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
 using namespace o2::framework;
 
@@ -25,7 +25,7 @@ namespace globaltracking
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT);
+framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool highpur);
 
 } // namespace globaltracking
 } // namespace o2

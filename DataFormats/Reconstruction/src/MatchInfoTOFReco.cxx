@@ -9,20 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef TOF_RECOWORKFLOWWITHTPC_H_
-#define TOF_RECOWORKFLOWWITHTPC_H_
+/// \file MatchInfoTOFReco.cxx
+/// \brief Class to temporary store the output of the matching to TOF in reconstruction
 
-#include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
-namespace o2
-{
-namespace tof
-{
+using namespace o2::dataformats;
 
-o2::framework::DataProcessorSpec getTOFRecoWorkflowWithTPCSpec(bool useMC, bool useFIT, bool doTPCRefit, bool iscosmics);
-
-} // end namespace tof
-} // end namespace o2
-
-#endif /* TOF_RECOWORKFLOWWITHTPC_H_ */
+ClassImp(o2::dataformats::MatchInfoTOFReco);
