@@ -11,14 +11,14 @@
 
 // jet finder task
 //
-// Author: Jochen Klein, Nima Zardoshti
+// Author: Jochen Klein, Nima Zardoshti, Raymond Ehlers
 
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ASoA.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
 #include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/EMCALClusters.h"
 
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/ClusterSequenceArea.hh"
@@ -30,7 +30,18 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-struct JetFinderTaskBase {
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  ConfigParamSpec centspec = {"jet-type",
+                              VariantType::String,
+                              "charged",
+                              {"Jet type (charged or full)"}};
+  workflowOptions.push_back(centspec);
+}
+
+#include "Framework/runDataProcessing.h"
+
+struct JetFinderTask {
   Produces<o2::aod::Jets> jetsTable;
   Produces<o2::aod::JetConstituents> constituentsTable;
   Produces<o2::aod::JetConstituentsSub> constituentsSubTable;
@@ -74,7 +85,7 @@ struct JetFinderTaskBase {
     jetFinder.jetR = jetR;
   }
 
-  void processBase()
+  void processImpl(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision)
   {
     fastjet::ClusterSequenceArea clusterSeq(jetFinder.findJets(inputParticles, jets));
 
@@ -86,102 +97,112 @@ struct JetFinderTaskBase {
       hJetEta->Fill(jet.eta());
       hJetN->Fill(jet.constituents().size());
       for (const auto& constituent : jet.constituents()) { //event or jetwise
-        if (DoConstSub) {
-          constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
-                               constituent.E(), constituent.m());
+        if (constituent.user_index() < 0) {
+          // Cluster
+          // TODO: Implement cluster constituents...
         }
-        constituentsTable(jetsTable.lastIndex(), constituent.user_index());
+        else {
+          if (DoConstSub) {
+            constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
+                                constituent.E(), constituent.m());
+          }
+          constituentsTable(jetsTable.lastIndex(), constituent.user_index());
+        }
       }
     }
   }
 
-  void processBegin()
-  {
-    jets.clear();
-    inputParticles.clear();
-  }
-
-};
-
-struct JetFinderTaskCharged : public JetFinderTaskBase {
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
-               soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
+  bool processInit(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision)
   {
     if (!collision.alias()[kINT7]) {
-      return; //remove hard code
+      return false; //remove hard code
     }
     if (!collision.sel7()) {
-      return; //remove hard code
+      return false; //remove hard code
     }
-    processBegin();
+
+    jets.clear();
+    inputParticles.clear();
+
+    return true;
+  }
+
+  void processChargedJets(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
+               soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
+  {
+    bool accepted = processInit(collision);
+    if (!accepted) {
+      return;
+    }
 
     for (auto& track : tracks) {
-      /*  auto energy = std::sqrt(track.p() * track.p() + mPion*mPion);
-      inputParticles.emplace_back(track.px(), track.py(), track.pz(), energy);
-      inputParticles.back().set_user_index(track.globalIndex());*/
       fillConstituents(track, inputParticles);
       inputParticles.back().set_user_index(track.globalIndex());
     }
 
-    processBase();
-  }
-};
-
-struct JetFinderTaskFull : public JetFinderTaskBase {
-  void Init()
-  {
-    JetFinderTaskBase::Init();
+    processImpl(collision);
   }
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
+  void processFullJets(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
                soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks,
                aod::EMCALClusters const & clusters)
   {
-    if (!collision.alias()[kINT7]) {
-      return; //remove hard code
+    bool accepted = processInit(collision);
+    if (!accepted) {
+      return;
     }
-    if (!collision.sel7()) {
-      return; //remove hard code
-    }
-    processBegin();
 
     for (auto& track : tracks) {
       fillConstituents(track, inputParticles);
       inputParticles.back().set_user_index(track.globalIndex());
     }
-    for (auto & cluster : clusters) {
+    for (auto& cluster : clusters) {
       // The right thing to do here would be to fully calculate the momentum correcting for the vertex position.
       // However, it's not clear that this functionality exists yet (21 June 2021)
-      double pt = cluster.E() / std::cosh(cluster.Eta());
+      double pt = cluster.energy() / std::cosh(cluster.eta());
       inputParticles.emplace_back(
         fastjet::PseudoJet(
-          pt * std::cos(cluster.Phi()),
-          pt * std::sin(cluster.Phi()),
-          pt * std::sinh(cluster.Eta()),
-          cluster.E()
+          pt * std::cos(cluster.phi()),
+          pt * std::sin(cluster.phi()),
+          pt * std::sinh(cluster.eta()),
+          cluster.energy()
         )
       );
-      inputParticles.back().set_user_index(cluster.globalIndex());
+      // Clusters are denoted with negative indices.
+      inputParticles.back().set_user_index(-1 * cluster.globalIndex());
     }
 
-    processBase();
+    processImpl(collision);
   }
+
+};
+
+enum class JetType_t {
+  charged,
+  full,
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   // TODO: Is there a better way to do this?
-  auto jetType = cfgc.options().get<str>("jet-type");
+  const std::map<std::string, JetType_t> jetTypeMap = {
+    {"charged", JetType_t::charged},
+    {"full", JetType_t::full},
+  };
+  auto jetTypeStr = cfgc.options().get<std::string>("jet-type");
+  auto jetType = jetTypeMap.at(jetTypeStr);
   switch (jetType) {
-    case "full":
+    case JetType_t::full:
       return WorkflowSpec{
-        adaptAnalysisTask<JetFinderTaskFull>(cfgc, TaskName{"jet-finder-full"})};
+        adaptAnalysisTask<JetFinderTask>(cfgc, Processes{&JetFinderTask::processFullJets}, TaskName{"jet-finder-full"})};
       break;
-    case "charged":
+    case JetType_t::charged:
       return WorkflowSpec{
-        adaptAnalysisTask<JetFinderTaskCharged>(cfgc, TaskName{"jet-finder-charged"})};
+        adaptAnalysisTask<JetFinderTask>(cfgc, Processes{&JetFinderTask::processChargedJets}, TaskName{"jet-finder-charged"})};
       break;
     default:
+      break;
   }
+  LOG(FATAL) << "Jet type unsupported: " << static_cast<int>(jetType) << ", input string: " << jetTypeStr << "\n";
 }
 

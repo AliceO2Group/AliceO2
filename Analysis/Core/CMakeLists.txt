@@ -30,7 +30,6 @@ o2_add_executable(merger
 if(FastJet_FOUND)
 o2_add_library(AnalysisJets
                SOURCES  src/JetFinder.cxx
-                        src/JetUtilities.cxx
                PUBLIC_LINK_LIBRARIES O2::AnalysisCore FastJet::FastJet FastJet::Contrib)
 
 o2_target_root_dictionary(AnalysisJets
