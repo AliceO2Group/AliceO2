@@ -33,7 +33,7 @@ using namespace o2::framework::expressions;
 
 struct JetFinderHFTask {
   Produces<o2::aod::Jets> jetsTable;
-  Produces<o2::aod::JetConstituents> constituents;
+  Produces<o2::aod::JetTrackConstituents> trackConstituents;
   OutputObj<TH1F> hJetPt{"h_jet_pt"};
   OutputObj<TH1F> hD0Pt{"h_D0_pt"};
 
@@ -95,7 +95,7 @@ struct JetFinderHFTask {
           jetsTable(collision, jet.eta(), jet.phi(), jet.pt(),
                     jet.area(), jet.E(), jet.m(), -1);
           for (const auto& constituent : jet.constituents()) {
-            constituents(jetsTable.lastIndex(), constituent.user_index());
+            trackConstituents(jetsTable.lastIndex(), constituent.user_index());
           }
           hJetPt->Fill(jet.pt());
           std::cout << "Filling" << std::endl;

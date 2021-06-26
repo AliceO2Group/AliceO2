@@ -43,7 +43,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 struct JetFinderTask {
   Produces<o2::aod::Jets> jetsTable;
-  Produces<o2::aod::JetConstituents> constituentsTable;
+  Produces<o2::aod::JetTrackConstituents> trackConstituentsTable;
+  Produces<o2::aod::JetClusterConstituents> clusterConstituentsTable;
   Produces<o2::aod::JetConstituentsSub> constituentsSubTable;
   OutputObj<TH1F> hJetPt{"h_jet_pt"};
   OutputObj<TH1F> hJetPhi{"h_jet_phi"};
@@ -97,16 +98,20 @@ struct JetFinderTask {
       hJetEta->Fill(jet.eta());
       hJetN->Fill(jet.constituents().size());
       for (const auto& constituent : jet.constituents()) { //event or jetwise
+        if (DoConstSub) {
+          // Since we're copying the consituents, we can combine the tracks and clusters together
+          // We only have to keep them separated due to technical constraints.
+          constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
+                              constituent.E(), constituent.m());
+        }
         if (constituent.user_index() < 0) {
           // Cluster
-          // TODO: Implement cluster constituents...
+          // -1 to account for the convention of negative indices for clusters.
+          clusterConstituentsTable(jetsTable.lastIndex(), -1 * constituent.user_index());
         }
         else {
-          if (DoConstSub) {
-            constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
-                                constituent.E(), constituent.m());
-          }
-          constituentsTable(jetsTable.lastIndex(), constituent.user_index());
+          // Tracks
+          trackConstituentsTable(jetsTable.lastIndex(), constituent.user_index());
         }
       }
     }

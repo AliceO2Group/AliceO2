@@ -17,6 +17,7 @@
 #define O2_ANALYSIS_DATAMODEL_JET_H
 
 #include "Framework/AnalysisDataModel.h"
+#include "AnalysisDataModel/EMCALClusters.h"
 #include <cmath>
 
 namespace o2::aod
@@ -64,13 +65,18 @@ namespace constituents
 {
 DECLARE_SOA_INDEX_COLUMN(Jet, jet);     //!
 DECLARE_SOA_INDEX_COLUMN(Track, track); //!
+DECLARE_SOA_INDEX_COLUMN(EMCALCluster, cluster); //!
 } // namespace constituents
 
-DECLARE_SOA_TABLE(JetConstituents, "AOD", "CONSTITUENTS", //!
+DECLARE_SOA_TABLE(JetTrackConstituents, "AOD", "TRKCONSTITS", //!
                   constituents::JetId,
                   constituents::TrackId);
+DECLARE_SOA_TABLE(JetClusterConstituents, "AOD", "CLUSCONSTITS", //!
+                  constituents::JetId,
+                  constituents::EMCALClusterId);
 
-using JetConstituent = JetConstituents::iterator;
+using JetTrackConstituent = JetTrackConstituents::iterator;
+using JetClusterConstituent = JetClusterConstituents::iterator;
 
 namespace constituentssub
 {
