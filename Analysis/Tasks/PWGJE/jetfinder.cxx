@@ -128,22 +128,8 @@ struct JetFinderTaskCharged : public JetFinderTaskBase {
 };
 
 struct JetFinderTaskFull : public JetFinderTaskBase {
-  o2::emcal::Geometry* geometry
   void Init()
   {
-    // Setup geometry for EMCal
-    // This would be a candidate to be moved elsewhere, but it depends on what is stored in the cluster table.
-    // NOTE: The geometry manager isn't necessary just to load the EMCAL geometry.
-    //       However, it _is_ necessary for loading the misalignment matrices as of September 2020
-    //       Eventually, those matrices will be moved to the CCDB, but it's not yet ready.
-    // FIXME: Hardcoded for run 2
-    o2::base::GeometryManager::loadGeometry(); // for generating full clusters
-    LOG(DEBUG) << "After load geometry!";
-    o2::emcal::Geometry* geometry = o2::emcal::Geometry::GetInstanceFromRunNumber(223409);
-    if (!geometry) {
-      LOG(ERROR) << "Failure accessing geometry";
-    }
-
     JetFinderTaskBase::Init();
   }
 
@@ -164,11 +150,17 @@ struct JetFinderTaskFull : public JetFinderTaskBase {
       inputParticles.back().set_user_index(track.globalIndex());
     }
     for (auto & cluster : clusters) {
-      // The right thing to do here would be to fully calculate the momentum depending on the position.
+      // The right thing to do here would be to fully calculate the momentum correcting for the vertex position.
       // However, it's not clear that this functionality exists yet (21 June 2021)
-      inputParticles.emplace_back(fastjet::PseudoJet());
-      // TODO: This isn't right, but it's the best that can be done at the moment (21 June 2021)
-      inputParticles.back().reset_PtYPhiM(cluster.E(), cluster.Eta(), cluster.Phi(), JetFinder::mPion);
+      double pt = cluster.E() / std::cosh(cluster.Eta());
+      inputParticles.emplace_back(
+        fastjet::PseudoJet(
+          pt * std::cos(cluster.Phi()),
+          pt * std::sin(cluster.Phi()),
+          pt * std::sinh(cluster.Eta()),
+          cluster.E()
+        )
+      );
       inputParticles.back().set_user_index(cluster.globalIndex());
     }
 
@@ -180,11 +172,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   // TODO: Is there a better way to do this?
   auto jetType = cfgc.options().get<str>("jet-type");
-  if (jetType == "full") {
-    return WorkflowSpec{
-      adaptAnalysisTask<JetFinderTaskFull>(cfgc, TaskName{"jet-finder-full"})};
+  switch (jetType) {
+    case "full":
+      return WorkflowSpec{
+        adaptAnalysisTask<JetFinderTaskFull>(cfgc, TaskName{"jet-finder-full"})};
+      break;
+    case "charged":
+      return WorkflowSpec{
+        adaptAnalysisTask<JetFinderTaskCharged>(cfgc, TaskName{"jet-finder-charged"})};
+      break;
+    default:
   }
-  return WorkflowSpec{
-    adaptAnalysisTask<JetFinderTaskCharged>(cfgc, TaskName{"jet-finder-charged"})};
 }
 

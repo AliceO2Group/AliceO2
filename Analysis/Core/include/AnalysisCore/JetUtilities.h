@@ -45,7 +45,7 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometrically(
   std::vector<T> jetsTagPhi,
   std::vector<T> jetsTagEta,
   double maxMatchingDistance
-)
+);
 
 /**
  * Implementation of geometrical jet matching.
@@ -83,7 +83,7 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
     std::vector<T> jetsTagEtaForMatching,
     const std::vector<std::size_t> jetMapTagToJetIndex,
     double maxMatchingDistance
-    )
+    );
 
 /**
  * Duplicates jets around the phi boundary which are within the matching distance.
@@ -101,7 +101,7 @@ std::tuple<std::vector<std::size_t>, std::vector<T>, std::vector<T>> DuplicateJe
   double maxMatchingDistance,
   // TODO: Remove additional margin after additional testing.
   double additionalMargin = 0.05
-)
+);
 };
 
 #endif
