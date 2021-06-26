@@ -33,15 +33,6 @@ using namespace o2::framework;
 using namespace o2::soa;
 using namespace o2::framework::expressions;
 
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-  ConfigParamSpec centspec = {"centralities",
-                              VariantType::String,
-                              "00-05,05-10,10-20,20-30,30-40,40-50,50-60,60-70,70-80",
-                              {"Centrality/multiplicity ranges in min-max separated by commas"}};
-  workflowOptions.push_back(centspec);
-}
-
 #include "Framework/runDataProcessing.h"
 
 namespace o2
@@ -399,10 +390,6 @@ struct DptDptCorrelationsFilterAnalysisTask {
 
 // Task for building <dpt,dpt> correlations
 struct DptDptCorrelationsTask {
-  /* the data memebers for this task */
-  /* the centrality / multiplicity limits for collecting data in this task instance */
-  float fCentMultMin;
-  float fCentMultMax;
 
   /* the data collecting engine */
   struct DataCollectingEngine {
@@ -603,26 +590,6 @@ struct DptDptCorrelationsTask {
     {
       using namespace correlationstask;
 
-      /* incorporate configuration parameters to the output */
-      fOutputList->Add(new TParameter<Int_t>("NoBinsVertexZ", zvtxbins, 'f'));
-      fOutputList->Add(new TParameter<Int_t>("NoBinsPt", ptbins, 'f'));
-      fOutputList->Add(new TParameter<Int_t>("NoBinsEta", etabins, 'f'));
-      fOutputList->Add(new TParameter<Int_t>("NoBinsPhi", phibins, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("MinVertexZ", zvtxlow, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("MaxVertexZ", zvtxup, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("MinPt", ptlow, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("MaxPt", ptup, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("MinEta", etalow, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("MaxEta", etaup, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("MinPhi", philow, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("MaxPhi", phiup, 'f'));
-      fOutputList->Add(new TParameter<Double_t>("PhiBinShift", phibinshift, 'f'));
-      fOutputList->Add(new TParameter<Bool_t>("DifferentialOutput", true, 'f'));
-
-      /* after the parameters dump the proper phi limits are set according to the phi shift */
-      phiup = phiup - phibinwidth * phibinshift;
-      philow = philow - phibinwidth * phibinshift;
-
       /* create the histograms */
       Bool_t oldstatus = TH1::AddDirectoryStatus();
       TH1::AddDirectory(kFALSE);
@@ -734,10 +701,17 @@ struct DptDptCorrelationsTask {
     }
   }; // DataCollectingEngine
 
-  /* the data collecting engine instance */
-  DataCollectingEngine* dataCE;
+  /* the data memebers for this task */
+  /* the centrality / multiplicity limits for collecting data in this task instance */
+  int ncmranges = 0;
+  float* fCentMultMin = nullptr;
+  float* fCentMultMax = nullptr;
+
+  /* the data collecting engine instances */
+  DataCollectingEngine** dataCE;
 
   Configurable<bool> cfgProcessPairs{"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"};
+  Configurable<std::string> cfgCentSpec{"centralities", "00-05,05-10,10-20,20-30,30-40,40-50,50-60,60-70,70-80", "Centrality/multiplicity ranges in min-max separated by commas"};
 
   Configurable<o2::analysis::DptDptBinningCuts> cfgBinning{"binning",
                                                            {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.5},
@@ -750,31 +724,6 @@ struct DptDptCorrelationsTask {
 
   Partition<aod::FilteredTracks> Tracks1 = aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true;
   Partition<aod::FilteredTracks> Tracks2 = aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true;
-
-  DptDptCorrelationsTask(float cmmin,
-                         float cmmax,
-                         DataCollectingEngine* ce = nullptr,
-                         Configurable<bool> _cfgProcessPairs = {"processpairs", false, "Process pairs: false = no, just singles, true = yes, process pairs"},
-                         Configurable<o2::analysis::DptDptBinningCuts> _cfgBinning = {"binning",
-                                                                                      {28, -7.0, 7.0, 18, 0.2, 2.0, 16, -0.8, 0.8, 72, 0.5},
-                                                                                      "triplets - nbins, min, max - for z_vtx, pT, eta and phi, binning plus bin fraction of phi origin shift"},
-                         OutputObj<TList> _fOutput = {"DptDptCorrelationsData", OutputObjHandlingPolicy::AnalysisObject},
-                         Filter _onlyacceptedevents = (aod::dptdptcorrelations::eventaccepted == (uint8_t) true),
-                         Filter _onlyacceptedtracks = ((aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true) or (aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true)),
-                         Partition<aod::FilteredTracks> _Tracks1 = aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true,
-                         Partition<aod::FilteredTracks> _Tracks2 = aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true)
-    : fCentMultMin(cmmin),
-      fCentMultMax(cmmax),
-      dataCE(nullptr),
-      cfgProcessPairs(_cfgProcessPairs),
-      cfgBinning(_cfgBinning),
-      fOutput(_fOutput),
-      onlyacceptedevents((aod::dptdptcorrelations::eventaccepted == (uint8_t) true) and (aod::dptdptcorrelations::centmult > fCentMultMin) and (aod::dptdptcorrelations::centmult < fCentMultMax)),
-      onlyacceptedtracks((aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true) or (aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true)),
-      Tracks1(aod::dptdptcorrelations::trackacceptedasone == (uint8_t) true),
-      Tracks2(aod::dptdptcorrelations::trackacceptedastwo == (uint8_t) true)
-  {
-  }
 
   void init(InitContext const&)
   {
@@ -808,36 +757,95 @@ struct DptDptCorrelationsTask {
     deltaphilow = 0.0 - deltaphibinwidth / 2.0;
     deltaphiup = M_PI * 2 - deltaphibinwidth / 2.0;
 
-    /* create the data collecting engine instance */
-    dataCE = new DataCollectingEngine();
+    /* create the output directory which will own the task output */
+    TList* fGlobalOutputList = new TList();
+    fGlobalOutputList->SetName("CorrelationsDataReco");
+    fGlobalOutputList->SetOwner(true);
+    fOutput.setObject(fGlobalOutputList);
 
-    /* create the output list which will own the task output */
-    TList* fOutputList = new TList();
-    fOutputList->SetOwner(true);
-    fOutput.setObject(fOutputList);
+    /* incorporate configuration parameters to the output */
+    fGlobalOutputList->Add(new TParameter<Int_t>("NoBinsVertexZ", zvtxbins, 'f'));
+    fGlobalOutputList->Add(new TParameter<Int_t>("NoBinsPt", ptbins, 'f'));
+    fGlobalOutputList->Add(new TParameter<Int_t>("NoBinsEta", etabins, 'f'));
+    fGlobalOutputList->Add(new TParameter<Int_t>("NoBinsPhi", phibins, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("MinVertexZ", zvtxlow, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("MaxVertexZ", zvtxup, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("MinPt", ptlow, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("MaxPt", ptup, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("MinEta", etalow, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("MaxEta", etaup, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("MinPhi", philow, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("MaxPhi", phiup, 'f'));
+    fGlobalOutputList->Add(new TParameter<Double_t>("PhiBinShift", phibinshift, 'f'));
+    fGlobalOutputList->Add(new TParameter<Bool_t>("DifferentialOutput", true, 'f'));
 
-    /* init the data collection instance */
-    dataCE->init(fOutputList);
+    /* after the parameters dump the proper phi limits are set according to the phi shift */
+    phiup = phiup - phibinwidth * phibinshift;
+    philow = philow - phibinwidth * phibinshift;
+
+    /* create the data collecting engine instances according to the configured centrality/multiplicity ranges */
+    {
+      TObjArray* tokens = TString(cfgCentSpec.value.c_str()).Tokenize(",");
+      ncmranges = tokens->GetEntries();
+      fCentMultMin = new float[ncmranges];
+      fCentMultMax = new float[ncmranges];
+      dataCE = new DataCollectingEngine*[ncmranges];
+
+      for (int i = 0; i < ncmranges; ++i) {
+        float cmmin = 0.0f;
+        float cmmax = 0.0f;
+        sscanf(tokens->At(i)->GetName(), "%f-%f", &cmmin, &cmmax);
+        fCentMultMin[i] = cmmin;
+        fCentMultMax[i] = cmmax;
+        dataCE[i] = new DataCollectingEngine();
+
+        /* crete the output list for the current centrality range */
+        TList* fOutputList = new TList();
+        fOutputList->SetName(TString::Format("DptDptCorrelationsData-%s", tokens->At(i)->GetName()));
+        fOutputList->SetOwner(true);
+        /* init the data collection instance */
+        dataCE[i]->init(fOutputList);
+        fGlobalOutputList->Add(fOutputList);
+      }
+      delete tokens;
+      for (int i = 0; i < ncmranges; ++i) {
+        LOGF(INFO, " centrality/multipliicty range: %d, low limit: %f, up limit: %f", i, fCentMultMin[i], fCentMultMax[i]);
+      }
+    }
   }
 
   void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents, aod::AcceptedEvents>>::iterator const& collision, aod::FilteredTracks const& tracks)
   {
     using namespace correlationstask;
 
-    if (not processpairs) {
-      /* process single tracks */
-      dataCE->processSingles(Tracks1, 0, collision.posZ()); /* track one */
-      dataCE->processSingles(Tracks2, 1, collision.posZ()); /* track two */
-    } else {
-      /* process track magnitudes */
-      /* TODO: the centrality should be chosen non detector dependent */
-      dataCE->processTracks(Tracks1, 0, collision.centmult()); /* track one */
-      dataCE->processTracks(Tracks2, 1, collision.centmult()); /* track one */
-      /* process pair magnitudes */
-      dataCE->processTrackPairs(Tracks1, Tracks1, kOO, collision.centmult());
-      dataCE->processTrackPairs(Tracks1, Tracks2, kOT, collision.centmult());
-      dataCE->processTrackPairs(Tracks2, Tracks1, kTO, collision.centmult());
-      dataCE->processTrackPairs(Tracks2, Tracks2, kTT, collision.centmult());
+    /* locate the data collecting engine for the collision centrality/multiplicity */
+    int ixDCE = 0;
+    float cm = collision.centmult();
+    bool rgfound = false;
+    for (int i = 0; i < ncmranges; ++i) {
+      if (cm < fCentMultMax[i]) {
+        rgfound = true;
+        ixDCE = i;
+        break;
+      }
+    }
+
+    if (rgfound) {
+      if (not processpairs) {
+        /* process single tracks */
+        dataCE[ixDCE]->processSingles(Tracks1, 0, collision.posZ()); /* track one */
+        dataCE[ixDCE]->processSingles(Tracks2, 1, collision.posZ()); /* track two */
+      } else {
+        /* process track magnitudes */
+        /* TODO: the centrality should be chosen non detector dependent */
+        dataCE[ixDCE]->processTracks(Tracks1, 0, collision.centmult()); /* track one */
+        dataCE[ixDCE]->processTracks(Tracks2, 1, collision.centmult()); /* track one */
+        /* process pair magnitudes */
+        dataCE[ixDCE]->processTrackPairs(Tracks1, Tracks1, kOO, collision.centmult());
+        dataCE[ixDCE]->processTrackPairs(Tracks1, Tracks2, kOT, collision.centmult());
+        dataCE[ixDCE]->processTrackPairs(Tracks2, Tracks1, kTO, collision.centmult());
+        dataCE[ixDCE]->processTrackPairs(Tracks2, Tracks2, kTT, collision.centmult());
+      }
     }
   }
 };
@@ -910,19 +918,9 @@ struct TracksAndEventClassificationQA {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  std::string myoptcentralities = cfgc.options().get<std::string>("centralities");
-  TObjArray* tokens = TString(myoptcentralities.c_str()).Tokenize(",");
-  int nranges = tokens->GetEntries();
-
   WorkflowSpec workflow{
     adaptAnalysisTask<DptDptCorrelationsFilterAnalysisTask>(cfgc),
-    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc)};
-  for (int i = 0; i < nranges; ++i) {
-    float cmmin = 0.0f;
-    float cmmax = 0.0f;
-    sscanf(tokens->At(i)->GetName(), "%f-%f", &cmmin, &cmmax);
-    workflow.push_back(adaptAnalysisTask<DptDptCorrelationsTask>(cfgc, TaskName{Form("DptDptCorrelationsTask-%s", tokens->At(i)->GetName())}, cmmin, cmmax));
-  }
-  delete tokens;
+    adaptAnalysisTask<TracksAndEventClassificationQA>(cfgc),
+    adaptAnalysisTask<DptDptCorrelationsTask>(cfgc)};
   return workflow;
 }
