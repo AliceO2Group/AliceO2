@@ -481,8 +481,9 @@ struct DptDptCorrelationsTask {
 
       int deltaeta_ix = etaix_1 - etaix_2 + etabins - 1;
       int deltaphi_ix = phiix_1 - phiix_2;
-      if (deltaphi_ix < 0)
+      if (deltaphi_ix < 0) {
         deltaphi_ix += phibins;
+      }
 
       return fhN2_vsDEtaDPhi[kOO]->GetBin(deltaeta_ix + 1, deltaphi_ix + 1);
     }
