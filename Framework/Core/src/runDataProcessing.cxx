@@ -2143,6 +2143,8 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
 {
   O2_SIGNPOST_INIT();
   std::vector<std::string> currentArgs;
+  std::vector<PluginInfo> plugins;
+
   for (size_t ai = 1; ai < argc; ++ai) {
     currentArgs.push_back(argv[ai]);
   }
