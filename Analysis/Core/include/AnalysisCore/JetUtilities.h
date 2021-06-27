@@ -29,60 +29,55 @@
 namespace JetUtilities
 {
 /**
- * Geometrical jet matching.
+ * Duplicates jets around the phi boundary which are within the matching distance.
  *
- * Match jets in the "base" collection with those in the "tag" collection. Jets are matched within
- * the provided matching distance. Jets are required to match uniquely - namely: base <-> tag.
- * Only one direction of matching isn't enough.
+ * NOTE: Assumes, but does not validate, that 0 <= phi < 2pi.
  *
- * If no unique match was found for a jet, an index of -1 is stored.
- *
- * @param jetsBasePhi Base jet collection phi.
- * @param jetsBaseEta Base jet collection eta.
- * @param jetsTagPhi Tag jet collection phi.
- * @param jetsTagEta Tag jet collection eta.
- * @param maxMatchingDistance Maximum matching distance.
- *
- * @returns (Base to tag index map, tag to base index map) for uniquely matched jets.
+ * @param jetsPhi Jets phi
+ * @param jetsEta Jets eta
+ * @param maxMatchingDistance Maximum matching distance. Only duplicate jets within this distance of the boundary.
  */
 template<typename T>
-std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometrically(
-  std::vector<T> jetsBasePhi,
-  std::vector<T> jetsBaseEta,
-  std::vector<T> jetsTagPhi,
-  std::vector<T> jetsTagEta,
-  double maxMatchingDistance
+std::tuple<std::vector<std::size_t>, std::vector<T>, std::vector<T>> DuplicateJetsAroundPhiBoundary(
+  std::vector<T> & jetsPhi,
+  std::vector<T> & jetsEta,
+  double maxMatchingDistance,
+  // TODO: Remove additional margin after additional testing.
+  double additionalMargin = 0.05
 )
 {
-  // Validation
-  const std::size_t nJetsBase = jetsBaseEta.size();
-  const std::size_t nJetsTag = jetsTagEta.size();
-  if(!(nJetsBase && nJetsTag)) {
-    // There are no jets, so nothing to be done.
-    return std::make_tuple(std::vector<int>(nJetsBase), std::vector<int>(nJetsTag));
-  }
-  // Input sizes must match
-  if (jetsBasePhi.size() != jetsBaseEta.size()) {
-    throw std::invalid_argument("Base collection eta and phi sizes don't match. Check the inputs.");
-  }
-  if (jetsTagPhi.size() != jetsTagEta.size()) {
-    throw std::invalid_argument("Tag collection eta and phi sizes don't match. Check the inputs.");
+  const std::size_t nJets = jetsPhi.size();
+  std::vector<std::size_t> jetsMapToJetIndex(nJets);
+  // We need to keep track of the map from the duplicated vector to the existing jets.
+  // To start, we fill this map (practically, it maps from vector index to an index, so we
+  // just use a standard vector) with the existing jet indices, which range from 0..nJets.
+  std::iota(jetsMapToJetIndex.begin(), jetsMapToJetIndex.end(), 0);
+
+  // The full duplicated jets will be stored in a new vector to avoid disturbing the input data.
+  std::vector<T> jetsPhiComparison(jetsPhi);
+  std::vector<T> jetsEtaComparison(jetsEta);
+
+  // Duplicate the jets
+  // When a jet is outside of the desired phi range, we make a copy of the jet, shifting it by 2pi
+  // as necessary. The eta value is copied directly, as is the index of the original jet, so we can
+  // map from index in duplicated data -> index in original collection.
+  // NOTE: Assumes, but does not validate, that 0 <= phi < 2pi.
+  for (std::size_t i = 0; i < nJets; i++) {
+    // Handle lower edge
+    if (jetsPhi[i] <= (maxMatchingDistance + additionalMargin)) {
+      jetsPhiComparison.emplace_back(jetsPhi[i] + 2 * M_PI);
+      jetsEtaComparison.emplace_back(jetsEta[i]);
+      jetsMapToJetIndex.emplace_back(jetsMapToJetIndex[i]);
+    }
+    // Handle upper edge
+    if (jetsPhi[i] >= (2 * M_PI - (maxMatchingDistance + additionalMargin))) {
+      jetsPhiComparison.emplace_back(jetsPhi[i] - 2 * M_PI);
+      jetsEtaComparison.emplace_back(jetsEta[i]);
+      jetsMapToJetIndex.emplace_back(jetsMapToJetIndex[i]);
+    }
   }
 
-  // To perform matching with periodic boundary conditions (ie. phi) with a KDTree, we need
-  // to duplicate data up to maxMatchingDistance in phi because phi is periodic.
-  // NOTE: vectors are modified in place to avoid copies.
-  auto && [jetMapBaseToJetIndex, jetsBasePhiComparison, jetsBaseEtaComparison] = DuplicateJetsAroundPhiBoundary(jetsBasePhi, jetsBaseEta, maxMatchingDistance);
-  auto && [jetMapTagToJetIndex, jetsTagPhiComparison, jetsTagEtaComparison] = DuplicateJetsAroundPhiBoundary(jetsTagPhi, jetsTagEta, maxMatchingDistance);
-
-  // Finally, perform the actual matching.
-  auto && [baseToTagMap, tagToBaseMap] = MatchJetsGeometricallyImpl(
-    jetsBasePhi, jetsBaseEta, jetsBasePhiComparison, jetsBaseEtaComparison, jetMapBaseToJetIndex,
-    jetsTagPhi, jetsTagEta, jetsTagPhiComparison, jetsTagEtaComparison, jetMapTagToJetIndex,
-    maxMatchingDistance
-  );
-
-  return std::make_tuple(baseToTagMap, tagToBaseMap);
+  return std::move(std::make_tuple(jetsMapToJetIndex, jetsPhiComparison, jetsEtaComparison));
 }
 
 /**
@@ -227,58 +222,63 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
   return std::make_tuple(baseToTagMap, tagToBaseMap);
 }
 
-
 /**
- * Duplicates jets around the phi boundary which are within the matching distance.
+ * Geometrical jet matching.
  *
- * NOTE: Assumes, but does not validate, that 0 <= phi < 2pi.
+ * Match jets in the "base" collection with those in the "tag" collection. Jets are matched within
+ * the provided matching distance. Jets are required to match uniquely - namely: base <-> tag.
+ * Only one direction of matching isn't enough.
  *
- * @param jetsPhi Jets phi
- * @param jetsEta Jets eta
- * @param maxMatchingDistance Maximum matching distance. Only duplicate jets within this distance of the boundary.
+ * If no unique match was found for a jet, an index of -1 is stored.
+ *
+ * @param jetsBasePhi Base jet collection phi.
+ * @param jetsBaseEta Base jet collection eta.
+ * @param jetsTagPhi Tag jet collection phi.
+ * @param jetsTagEta Tag jet collection eta.
+ * @param maxMatchingDistance Maximum matching distance.
+ *
+ * @returns (Base to tag index map, tag to base index map) for uniquely matched jets.
  */
 template<typename T>
-std::tuple<std::vector<std::size_t>, std::vector<T>, std::vector<T>> DuplicateJetsAroundPhiBoundary(
-  std::vector<T> & jetsPhi,
-  std::vector<T> & jetsEta,
-  double maxMatchingDistance,
-  // TODO: Remove additional margin after additional testing.
-  double additionalMargin = 0.05
+std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometrically(
+  std::vector<T> jetsBasePhi,
+  std::vector<T> jetsBaseEta,
+  std::vector<T> jetsTagPhi,
+  std::vector<T> jetsTagEta,
+  double maxMatchingDistance
 )
 {
-  const std::size_t nJets = jetsPhi.size();
-  std::vector<std::size_t> jetsMapToJetIndex(nJets);
-  // We need to keep track of the map from the duplicated vector to the existing jets.
-  // To start, we fill this map (practically, it maps from vector index to an index, so we
-  // just use a standard vector) with the existing jet indices, which range from 0..nJets.
-  std::iota(jetsMapToJetIndex.begin(), jetsMapToJetIndex.end(), 0);
-
-  // The full duplicated jets will be stored in a new vector to avoid disturbing the input data.
-  std::vector<T> jetsPhiComparison(jetsPhi);
-  std::vector<T> jetsEtaComparison(jetsEta);
-
-  // Duplicate the jets
-  // When a jet is outside of the desired phi range, we make a copy of the jet, shifting it by 2pi
-  // as necessary. The eta value is copied directly, as is the index of the original jet, so we can
-  // map from index in duplicated data -> index in original collection.
-  // NOTE: Assumes, but does not validate, that 0 <= phi < 2pi.
-  for (std::size_t i = 0; i < nJets; i++) {
-    // Handle lower edge
-    if (jetsPhi[i] <= (maxMatchingDistance + additionalMargin)) {
-      jetsPhiComparison.emplace_back(jetsPhi[i] + 2 * M_PI);
-      jetsEtaComparison.emplace_back(jetsEta[i]);
-      jetsMapToJetIndex.emplace_back(jetsMapToJetIndex[i]);
-    }
-    // Handle upper edge
-    if (jetsPhi[i] >= (2 * M_PI - (maxMatchingDistance + additionalMargin))) {
-      jetsPhiComparison.emplace_back(jetsPhi[i] - 2 * M_PI);
-      jetsEtaComparison.emplace_back(jetsEta[i]);
-      jetsMapToJetIndex.emplace_back(jetsMapToJetIndex[i]);
-    }
+  // Validation
+  const std::size_t nJetsBase = jetsBaseEta.size();
+  const std::size_t nJetsTag = jetsTagEta.size();
+  if(!(nJetsBase && nJetsTag)) {
+    // There are no jets, so nothing to be done.
+    return std::make_tuple(std::vector<int>(nJetsBase), std::vector<int>(nJetsTag));
+  }
+  // Input sizes must match
+  if (jetsBasePhi.size() != jetsBaseEta.size()) {
+    throw std::invalid_argument("Base collection eta and phi sizes don't match. Check the inputs.");
+  }
+  if (jetsTagPhi.size() != jetsTagEta.size()) {
+    throw std::invalid_argument("Tag collection eta and phi sizes don't match. Check the inputs.");
   }
 
-  return std::move(std::make_tuple(jetsMapToJetIndex, jetsPhiComparison, jetsEtaComparison));
+  // To perform matching with periodic boundary conditions (ie. phi) with a KDTree, we need
+  // to duplicate data up to maxMatchingDistance in phi because phi is periodic.
+  // NOTE: vectors are modified in place to avoid copies.
+  auto && [jetMapBaseToJetIndex, jetsBasePhiComparison, jetsBaseEtaComparison] = DuplicateJetsAroundPhiBoundary(jetsBasePhi, jetsBaseEta, maxMatchingDistance);
+  auto && [jetMapTagToJetIndex, jetsTagPhiComparison, jetsTagEtaComparison] = DuplicateJetsAroundPhiBoundary(jetsTagPhi, jetsTagEta, maxMatchingDistance);
+
+  // Finally, perform the actual matching.
+  auto && [baseToTagMap, tagToBaseMap] = MatchJetsGeometricallyImpl(
+    jetsBasePhi, jetsBaseEta, jetsBasePhiComparison, jetsBaseEtaComparison, jetMapBaseToJetIndex,
+    jetsTagPhi, jetsTagEta, jetsTagPhiComparison, jetsTagEtaComparison, jetMapTagToJetIndex,
+    maxMatchingDistance
+  );
+
+  return std::make_tuple(baseToTagMap, tagToBaseMap);
 }
+
 
 };
 

@@ -35,5 +35,10 @@ o2_add_dpl_workflow(jet-skimmer
                     SOURCES jetskimming.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
+
+o2_add_dpl_workflow(jet-matching
+                    SOURCES jetmatching.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisJets O2::AnalysisDataModel
+                    COMPONENT_NAME Analysis)
 endif()
 
