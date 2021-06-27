@@ -39,11 +39,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"Jet data type. Options include Data, MCParticleLevel, MCDetectorLevel, and HybridIntermediate."},
   };
   workflowOptions.push_back(jetData);
-  ConfigParamSpec jetType = {"jet-type",
-                             VariantType::String,
-                             "full",
-                             {"Jet type (charged, neutral, or full)"}};
-  workflowOptions.push_back(jetType);
 }
 
 #include "Framework/runDataProcessing.h"
@@ -273,9 +268,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     default:
       break;
   }
-  //return WorkflowSpec{
-  //  adaptAnalysisTask<JetFinderData>(cfgc, Processes{&JetFinderData::processData}, TaskName{"jet-finder-data"})};
-
+  // Default to data
   return WorkflowSpec{
     adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, Processes{&JetFinderHybridIntermediate::processData}, TaskName{"jet-finder-hybrid-intermedaite"})};
 }
