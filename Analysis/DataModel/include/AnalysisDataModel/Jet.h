@@ -51,17 +51,50 @@ DECLARE_SOA_TABLE(Jets, "AOD", "JET", //!
                   jet::Energy,
                   jet::Mass,
                   jet::Area,
-                  jet::MatchedJetIndex,
                   jet::Px<jet::Pt, jet::Phi>,
                   jet::Py<jet::Pt, jet::Phi>,
                   jet::Pz<jet::Pt, jet::Eta>,
                   jet::P<jet::Pt, jet::Eta>);
 
-using Jet = Jets::iterator;
+DECLARE_SOA_EXTENDED_TABLE(JetsMatched, Jets, "JETMATCHED", //!
+                            jet::MatchedJetIndex);
 
+using Jet = Jets::iterator;
+using JetMatched = JetsMatched::iterator;
+
+// MC particle level
 DECLARE_SOA_EXTENDED_TABLE(JetsMCParticleLevel, Jets, "JETMCPART"); //!
+DECLARE_SOA_EXTENDED_TABLE(JetsMatchedMCParticleLevel, JetsMCParticleLevel, "JETMCPARTMATCH", //!
+                            jet::MatchedJetIndex);
+using JetMCParticleLevel = JetsMCParticleLevel::iterator;
+using JetMCParticleLevelMatched = JetsMatchedMCParticleLevel::iterator;
+
+// MC detector level
 DECLARE_SOA_EXTENDED_TABLE(JetsMCDetectorLevel, Jets, "JETMCDET"); //!
-DECLARE_SOA_EXTENDED_TABLE(JetsHybridIntermediate, Jets, "JETHYBRDIINTERM"); //!
+DECLARE_SOA_EXTENDED_TABLE(JetsMatchedMCDetectorLevel, JetsMCDetectorLevel, "JETMCDETMATCH", //!
+                            jet::MatchedJetIndex);
+using JetMCDetectorLevel = JetsMCDetectorLevel::iterator;
+using JetMCDetectorLevelMatched = JetsMatchedMCDetectorLevel::iterator;
+
+// Hybrid intermediate level
+DECLARE_SOA_TABLE(JetsHybridIntermediate, "AOD", "JETHYBINT", //!
+                  o2::soa::Index<>,
+                  jet::CollisionId,
+                  jet::Pt,
+                  jet::Eta,
+                  jet::Phi,
+                  jet::Energy,
+                  jet::Mass,
+                  jet::Area,
+                  jet::Px<jet::Pt, jet::Phi>,
+                  jet::Py<jet::Pt, jet::Phi>,
+                  jet::Pz<jet::Pt, jet::Eta>,
+                  jet::P<jet::Pt, jet::Eta>);
+//DECLARE_SOA_EXTENDED_TABLE(JetsHybridIntermediate, Jets, "JETHYBINT"); //!
+DECLARE_SOA_EXTENDED_TABLE(JetsMatchedHybridIntermediate, JetsHybridIntermediate, "JETHYBINTMATCH", //!
+                            jet::MatchedJetIndex);
+using JetHybridIntermediate = JetsHybridIntermediate::iterator;
+using JetHybridIntermediateMatched = JetsMatchedHybridIntermediate::iterator;
 
 // TODO: absorb in jet table
 // when list of references available
@@ -81,6 +114,18 @@ DECLARE_SOA_TABLE(JetClusterConstituents, "AOD", "CLUSCONSTITS", //!
 
 using JetTrackConstituent = JetTrackConstituents::iterator;
 using JetClusterConstituent = JetClusterConstituents::iterator;
+
+// MC particle level. TODO. It doesn't match so nicely because it doesn't have a concept of clusters...
+// MC detector level
+DECLARE_SOA_EXTENDED_TABLE(JetMCDetectorLevelTrackConstituents, JetTrackConstituents, "JETMCDETTRKS"); //!
+DECLARE_SOA_EXTENDED_TABLE(JetMCDetectorLevelClusterConstituents, JetClusterConstituents, "JETMCDETCLUS"); //!
+using JetMCDetectorLevelTrackConstituent = JetMCDetectorLevelTrackConstituents::iterator;
+using JetMCDetectorLevelClusterConstituent = JetMCDetectorLevelClusterConstituents::iterator;
+// Hybrid intermediate
+DECLARE_SOA_EXTENDED_TABLE(JetHybridIntermediateTrackConstituents, JetTrackConstituents, "JETHYBINTTRKS"); //!
+DECLARE_SOA_EXTENDED_TABLE(JetHybridIntermediateClusterConstituents, JetClusterConstituents, "JETHYBINTCLUS"); //!
+using JetHybridIntermediateTrackConstituent = JetHybridIntermediateTrackConstituents::iterator;
+using JetHybridIntermediateClusterConstituent = JetHybridIntermediateClusterConstituents::iterator;
 
 namespace constituentssub
 {
@@ -113,6 +158,16 @@ DECLARE_SOA_TABLE(JetConstituentsSub, "AOD", "CONSTITUENTSSUB", //!
                   constituentssub::Pz<constituentssub::Pt, constituentssub::Eta>,
                   constituentssub::P<constituentssub::Pt, constituentssub::Eta>);
 using JetConstituentSub = JetConstituentsSub::iterator;
+
+// MC is a bit off here because they don't have a concept of subtracted constituents. However,
+// any empty table also doesn't cause any issues, and it will never be filled.
+// MC particle level. TODO. It doesn't match so nicely because it doesn't have a concept of clusters...
+// MC detector level
+DECLARE_SOA_EXTENDED_TABLE(JetMCDetectorLevelConstituentsSub, JetConstituentsSub, "JETMCDETSTRKS"); //!
+using JetMCDetectorLevelConstituentSub = JetMCDetectorLevelConstituentsSub::iterator;
+// Hybrid intermediate
+DECLARE_SOA_EXTENDED_TABLE(JetHybridIntermediateConstituentsSub, JetConstituentsSub, "JETHYBINTSTRKS"); //!
+using JetHybridIntermediateConstituentSub = JetHybridIntermediateConstituentsSub::iterator;
 
 } // namespace o2::aod
 
