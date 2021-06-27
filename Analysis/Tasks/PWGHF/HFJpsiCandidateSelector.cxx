@@ -9,13 +9,12 @@
 // or submit itself to any jurisdiction.
 
 /// \file HFJpsiCandidateSelector.cxx
-/// \brief J/ψ → e+ e− selection task
+/// \brief J/ψ → e+ e−, μ+ μ− selection task
 ///
 /// \author Biao Zhang <biao.zhang@cern.ch>, CCNU
 /// \author Nima Zardoshti <nima.zardoshti@cern.ch>, CERN
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
 
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
@@ -28,47 +27,8 @@ using namespace o2::framework;
 using namespace o2::aod::hf_cand_prong2;
 using namespace o2::analysis::hf_cuts_jpsi_toee;
 
-/*
 namespace o2::aod
 {
-
-namespace indices_rich
-{
-DECLARE_SOA_INDEX_COLUMN(Track, track);
-DECLARE_SOA_INDEX_COLUMN(RICH, rich);
-} // namespace indices_rich
-
-DECLARE_SOA_INDEX_TABLE_USER(RICHTracksIndex, Tracks, "RICHTRK",
-                             indices_rich::TrackId, indices_rich::RICHId);
-} // namespace o2::aod
-
-struct RICHindexbuilder {
-  Builds<o2::aod::RICHTracksIndex> ind;
-  void init(o2::framework::InitContext&) {}
-};
-
-namespace o2::aod
-{
-
-namespace indices_mid
-{
-DECLARE_SOA_INDEX_COLUMN(Track, track);
-DECLARE_SOA_INDEX_COLUMN(MID, mid);
-} // namespace indices_mid
-
-DECLARE_SOA_INDEX_TABLE_USER(MIDTracksIndex, Tracks, "MIDTRK",
-                             indices_mid::TrackId, indices_mid::MIDId);
-} // namespace o2::aod
-
-struct MidIndexBuilder {
-  Builds<o2::aod::MIDTracksIndex> ind;
-  void init(o2::framework::InitContext&) {}
-};
-*/
-
-namespace o2::aod
-{
-
 namespace hf_track_index_alice3_pid
 {
 DECLARE_SOA_INDEX_COLUMN(Track, track); //!
@@ -87,11 +47,18 @@ struct Alice3PidIndexBuilder {
   void init(o2::framework::InitContext&) {}
 };
 
-/// Struct for applying J/ψ → e+ e− selection cuts
-struct HFJpsiCandidateSelector {
+void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
+{
+  ConfigParamSpec isAlice3{"isAlice3", VariantType::Bool, false, {"Switch between ALICE 2 and ALICE 3 detector setup"}};
+  workflowOptions.push_back(isAlice3);
+}
+
+#include "Framework/runDataProcessing.h"
+
+/// Struct for applying J/ψ → e+ e−, μ+ μ− selection cuts
+struct HfJpsiCandidateSelector {
   Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
-  Configurable<bool> isALICE3{"isALICE3", false, "Switch between ALICE 2 and ALICE 3 detector setup"};
   Configurable<bool> selectENotPi{"selectENotPi", true, "Apply combined TOF + RICH e/π selection"};
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
@@ -170,7 +137,60 @@ struct HFJpsiCandidateSelector {
 
   using TracksPID = soa::Join<aod::BigTracksPID, aod::HfTrackIndexALICE3PID>;
 
-  void process(aod::HfCandProng2 const& candidates, TracksPID const&, aod::RICHs const&, aod::MIDs const&)
+  void processAlice2(aod::HfCandProng2 const& candidates, aod::BigTracksPID const&)
+  {
+    TrackSelectorPID selectorElectron(kElectron);
+    selectorElectron.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
+    selectorElectron.setRangeNSigmaTPC(-d_nSigmaTPC, d_nSigmaTPC);
+    selectorElectron.setRangePtTOF(d_pidTOFMinpT, d_pidTOFMaxpT);
+    selectorElectron.setRangeNSigmaTOF(-d_nSigmaTOF, d_nSigmaTOF);
+    selectorElectron.setRangeNSigmaTOFCondTPC(-d_nSigmaTOFCombined, d_nSigmaTOFCombined);
+    selectorElectron.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
+    selectorElectron.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
+    selectorElectron.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
+
+    // looping over 2-prong candidates
+    for (auto& candidate : candidates) {
+
+      if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE) && !(candidate.hfflag() & 1 << DecayType::JpsiToMuMu)) {
+        hfSelJpsiCandidate(0, 0);
+        continue;
+      }
+
+      auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
+      auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
+
+      int selectedEE = 1;
+      int selectedMuMu = 1;
+
+      // track selection level need to add special cuts (additional cuts on decay length and d0 norm)
+
+      if (!selectionTopol(candidate, trackPos, trackNeg, selectedEE, selectedMuMu)) {
+        hfSelJpsiCandidate(0, 0);
+        continue;
+      }
+
+      // track-level electron PID TOF selection
+      if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+        selectedEE = 0;
+        if (selectedMuMu == 0) {
+          hfSelJpsiCandidate(0, 0);
+          continue;
+        }
+      }
+
+      // track-level electron PID TPC selection
+      if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+        selectedEE = 0;
+      }
+
+      hfSelJpsiCandidate(selectedEE, selectedMuMu);
+    }
+  }
+
+  void processAlice3(aod::HfCandProng2 const& candidates, TracksPID const&, aod::RICHs const&, aod::MIDs const&)
   {
     TrackSelectorPID selectorElectron(kElectron);
     selectorElectron.setRangePtTPC(d_pidTPCMinpT, d_pidTPCMaxpT);
@@ -205,10 +225,26 @@ struct HFJpsiCandidateSelector {
         continue;
       }
 
-      if (!(isALICE3 && selectENotPi)) {
+      if (selectENotPi) {
+        // combined TOF + RICH e selection with π rejection
+        if (!selectorElectron.isElectronAndNotPion(trackPos) ||
+            !selectorElectron.isElectronAndNotPion(trackNeg)) {
+          selectedEE = 0;
+        }
+      } else {
         // track-level electron PID TOF selection
         if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
             selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+          selectedEE = 0;
+          if (selectedMuMu == 0) {
+            hfSelJpsiCandidate(0, 0);
+            continue;
+          }
+        }
+
+        // track-level electron PID RICH selection
+        if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+            selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
           selectedEE = 0;
         }
       }
@@ -218,38 +254,10 @@ struct HFJpsiCandidateSelector {
         continue;
       }
 
-      if (isALICE3) { // ALICE 3 detectors
-        if (selectENotPi) {
-          // combined TOF + RICH e selection with π rejection
-          if (!selectorElectron.isElectronAndNotPion(trackPos) ||
-              !selectorElectron.isElectronAndNotPion(trackNeg)) {
-            selectedEE = 0;
-          }
-        } else {
-          // track-level electron PID RICH selection
-          if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-              selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-            selectedEE = 0;
-          }
-        }
-
-        if (selectedEE == 0 && selectedMuMu == 0) {
-          hfSelJpsiCandidate(0, 0);
-          continue;
-        }
-
-        // track-level muon PID MID selection
-        if (selectorMuon.getStatusTrackPIDMID(trackPos) != TrackSelectorPID::Status::PIDAccepted ||
-            selectorMuon.getStatusTrackPIDMID(trackNeg) != TrackSelectorPID::Status::PIDAccepted) {
-          selectedMuMu = 0;
-        }
-
-      } else { // ALICE 2 detectors
-        // track-level electron PID TPC selection
-        if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-            selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-          selectedEE = 0;
-        }
+      // track-level muon PID MID selection
+      if (selectorMuon.getStatusTrackPIDMID(trackPos) != TrackSelectorPID::Status::PIDAccepted ||
+          selectorMuon.getStatusTrackPIDMID(trackNeg) != TrackSelectorPID::Status::PIDAccepted) {
+        selectedMuMu = 0;
       }
 
       hfSelJpsiCandidate(selectedEE, selectedMuMu);
@@ -259,9 +267,13 @@ struct HFJpsiCandidateSelector {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
-    //adaptAnalysisTask<RICHindexbuilder>(cfgc),
-    //adaptAnalysisTask<MidIndexBuilder>(cfgc),
-    adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc),
-    adaptAnalysisTask<HFJpsiCandidateSelector>(cfgc, TaskName{"hf-jpsi-candidate-selector"})};
+  WorkflowSpec workflow{};
+  const bool isAlice3 = cfgc.options().get<bool>("isAlice3");
+  if (isAlice3) {
+    workflow.push_back(adaptAnalysisTask<Alice3PidIndexBuilder>(cfgc));
+    workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc, Processes{&HfJpsiCandidateSelector::processAlice3}));
+  } else {
+    workflow.push_back(adaptAnalysisTask<HfJpsiCandidateSelector>(cfgc, Processes{&HfJpsiCandidateSelector::processAlice2}));
+  }
+  return workflow;
 }
