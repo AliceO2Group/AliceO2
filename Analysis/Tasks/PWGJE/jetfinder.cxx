@@ -100,9 +100,9 @@ struct JetFinderTask {
       for (const auto& constituent : jet.constituents()) { //event or jetwise
         if (DoConstSub) {
           // Since we're copying the consituents, we can combine the tracks and clusters together
-          // We only have to keep them separated due to technical constraints.
+          // We only have to keep the uncopied versions separated due to technical constraints.
           constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
-                              constituent.E(), constituent.m());
+                              constituent.E(), constituent.m(), constituent.user_index());
         }
         if (constituent.user_index() < 0) {
           // Cluster
