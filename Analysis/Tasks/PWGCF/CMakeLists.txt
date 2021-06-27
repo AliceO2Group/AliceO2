@@ -24,8 +24,8 @@ o2_add_dpl_workflow(dptdptcorrelations
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel O2::PWGCFCore
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(dptdptcorrelations_simchl
-                    SOURCES dptdptcorrelations_simchl.cxx
+o2_add_dpl_workflow(dptdptcorrelations-simchl
+                    SOURCES dptdptcorrelations-simchl.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel O2::PWGCFCore
                     COMPONENT_NAME Analysis)
 
