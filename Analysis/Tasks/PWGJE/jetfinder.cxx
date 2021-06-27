@@ -32,15 +32,17 @@ using namespace o2::framework::expressions;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec dataType = {"particle-level-jet-finding",
-                              VariantType::Bool,
-                              false,
-                              {"If true, perform particle level jet finding"}};
-  workflowOptions.push_back(dataType);
+  ConfigParamSpec jetData = {
+    "jet-input-data",
+    VariantType::String,
+    "",
+    {"Jet data type. Options include Data, MCParticleLevel, MCDetectorLevel, and HybridIntermediate."},
+  };
+  workflowOptions.push_back(jetData);
   ConfigParamSpec jetType = {"jet-type",
-                              VariantType::String,
-                              "full",
-                              {"Jet type (charged, neutral, or full)"}};
+                             VariantType::String,
+                             "full",
+                             {"Jet type (charged, neutral, or full)"}};
   workflowOptions.push_back(jetType);
 }
 
@@ -122,7 +124,7 @@ struct JetFinderTask {
 
     for (const auto& jet : jets) {
       jetsTable(collision, jet.pt(), jet.eta(), jet.phi(),
-                jet.E(), jet.m(), jet.area(), -1);
+                jet.E(), jet.m(), jet.area());
       hJetPt->Fill(jet.pt());
       hJetPhi->Fill(jet.phi());
       hJetEta->Fill(jet.eta());
@@ -231,16 +233,50 @@ struct JetFinderTask {
   }
 };
 
-using StandardJetFinder = JetFinderTask<o2::aod::Jets, o2::aod::JetTrackConstituents, o2::aod::JetClusterConstituents, o2::aod::JetConstituentsSub>;
+using JetFinderData = JetFinderTask<o2::aod::Jets, o2::aod::JetTrackConstituents, o2::aod::JetClusterConstituents, o2::aod::JetConstituentsSub>;
+using JetFinderMCParticleLevel = JetFinderTask<o2::aod::MCParticleLevelJets, o2::aod::MCParticleLevelJetTrackConstituents, o2::aod::MCParticleLevelJetClusterConstituents, o2::aod::MCParticleLevelJetConstituentsSub>;
+using JetFinderMCDetectorLevel = JetFinderTask<o2::aod::MCDetectorLevelJets, o2::aod::MCDetectorLevelJetTrackConstituents, o2::aod::MCDetectorLevelJetClusterConstituents, o2::aod::MCDetectorLevelJetConstituentsSub>;
+using JetFinderHybridIntermediate = JetFinderTask<o2::aod::HybridIntermediateJets, o2::aod::HybridIntermediateJetTrackConstituents, o2::aod::HybridIntermediateJetClusterConstituents, o2::aod::HybridIntermediateJetConstituentsSub>;
+
+enum class JetInputData_t {
+  Data,
+  MCParticleLevel,
+  MCDetectorLevel,
+  HybridIntermediate
+};
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  auto particleLevelJetFinding = cfgc.options().get<bool>("particle-level-jet-finding");
-  if (particleLevelJetFinding) {
+  auto jetInputData = cfgc.options().get<std::string>("jet-input-data");
+  const std::map<std::string, JetInputData_t> jetInputDataTypes = {
+    {"Data", JetInputData_t::Data},
+    {"MCParticleLevel", JetInputData_t::MCParticleLevel},
+    {"MCDetectorLevel", JetInputData_t::MCDetectorLevel},
+    {"HybridIntermediate", JetInputData_t::HybridIntermediate},
+    {"", JetInputData_t::Data}, // Default to data
+  };
+  auto jetData = jetInputDataTypes.at(jetInputData);
+  switch (jetData) {
+    case JetInputData_t::MCParticleLevel:
       return WorkflowSpec{
-        adaptAnalysisTask<StandardJetFinder>(cfgc, Processes{&StandardJetFinder::processParticleLevel}, TaskName{"jet-finder-MC"})};
+        adaptAnalysisTask<JetFinderMCParticleLevel>(cfgc, Processes{&JetFinderMCParticleLevel::processParticleLevel}, TaskName{"jet-finder-MC"})};
+      break;
+    case JetInputData_t::MCDetectorLevel:
+      return WorkflowSpec{
+        adaptAnalysisTask<JetFinderMCDetectorLevel>(cfgc, Processes{&JetFinderMCDetectorLevel::processData}, TaskName{"jet-finder-MC-detector-level"})};
+      break;
+    case JetInputData_t::HybridIntermediate:
+      return WorkflowSpec{
+        adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, Processes{&JetFinderHybridIntermediate::processData}, TaskName{"jet-finder-hybrid-intermedaite"})};
+      break;
+    case JetInputData_t::Data: // intentionally fall through to the default which is outside of the switch.
+    default:
+      break;
   }
+  //return WorkflowSpec{
+  //  adaptAnalysisTask<JetFinderData>(cfgc, Processes{&JetFinderData::processData}, TaskName{"jet-finder-data"})};
+
   return WorkflowSpec{
-    adaptAnalysisTask<StandardJetFinder>(cfgc, Processes{&StandardJetFinder::processData}, TaskName{"jet-finder-data"})};
+    adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, Processes{&JetFinderHybridIntermediate::processData}, TaskName{"jet-finder-hybrid-intermedaite"})};
 }
 
