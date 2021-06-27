@@ -41,11 +41,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
 #include "Framework/runDataProcessing.h"
 
+template <typename JetTable, typename TrackConstituentTable, typename ClusterConstituentTable, typename ConstituentSubTable>
 struct JetFinderTask {
-  Produces<o2::aod::Jets> jetsTable;
-  Produces<o2::aod::JetTrackConstituents> trackConstituentsTable;
-  Produces<o2::aod::JetClusterConstituents> clusterConstituentsTable;
-  Produces<o2::aod::JetConstituentsSub> constituentsSubTable;
+  Produces<JetTable> jetsTable;
+  Produces<TrackConstituentTable> trackConstituentsTable;
+  Produces<ClusterConstituentTable> clusterConstituentsTable;
+  Produces<ConstituentSubTable> constituentsSubTable;
   OutputObj<TH1F> hJetPt{"h_jet_pt"};
   OutputObj<TH1F> hJetPhi{"h_jet_phi"};
   OutputObj<TH1F> hJetEta{"h_jet_eta"};
@@ -187,6 +188,8 @@ enum class JetType_t {
   full,
 };
 
+using StandardJetFinder = JetFinderTask<o2::aod::Jets, o2::aod::JetTrackConstituents, o2::aod::JetClusterConstituents, o2::aod::JetConstituentsSub>;
+
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   // TODO: Is there a better way to do this?
@@ -199,11 +202,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   switch (jetType) {
     case JetType_t::full:
       return WorkflowSpec{
-        adaptAnalysisTask<JetFinderTask>(cfgc, Processes{&JetFinderTask::processFullJets}, TaskName{"jet-finder-full"})};
+        adaptAnalysisTask<StandardJetFinder>(cfgc, Processes{&StandardJetFinder::processFullJets}, TaskName{"jet-finder-full"})};
       break;
     case JetType_t::charged:
       return WorkflowSpec{
-        adaptAnalysisTask<JetFinderTask>(cfgc, Processes{&JetFinderTask::processChargedJets}, TaskName{"jet-finder-charged"})};
+        adaptAnalysisTask<StandardJetFinder>(cfgc, Processes{&StandardJetFinder::processChargedJets}, TaskName{"jet-finder-charged"})};
       break;
     default:
       break;
