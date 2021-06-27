@@ -59,6 +59,10 @@ DECLARE_SOA_TABLE(Jets, "AOD", "JET", //!
 
 using Jet = Jets::iterator;
 
+DECLARE_SOA_EXTENDED_TABLE(JetsMCParticleLevel, Jets, "JETMCPART"); //!
+DECLARE_SOA_EXTENDED_TABLE(JetsMCDetectorLevel, Jets, "JETMCDET"); //!
+DECLARE_SOA_EXTENDED_TABLE(JetsHybridIntermediate, Jets, "JETHYBRDIINTERM"); //!
+
 // TODO: absorb in jet table
 // when list of references available
 namespace constituents

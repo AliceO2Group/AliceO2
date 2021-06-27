@@ -32,14 +32,25 @@ using namespace o2::framework::expressions;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec centspec = {"jet-type",
+  ConfigParamSpec dataType = {"particle-level-jet-finding",
+                              VariantType::Bool,
+                              false,
+                              {"If true, perform particle level jet finding"}};
+  workflowOptions.push_back(dataType);
+  ConfigParamSpec jetType = {"jet-type",
                               VariantType::String,
-                              "charged",
-                              {"Jet type (charged or full)"}};
-  workflowOptions.push_back(centspec);
+                              "full",
+                              {"Jet type (charged, neutral, or full)"}};
+  workflowOptions.push_back(jetType);
 }
 
 #include "Framework/runDataProcessing.h"
+
+enum class JetType_t {
+  full = 0,
+  charged = 1,
+  neutral = 2,
+};
 
 template <typename JetTable, typename TrackConstituentTable, typename ClusterConstituentTable, typename ConstituentSubTable>
 struct JetFinderTask {
@@ -59,6 +70,7 @@ struct JetFinderTask {
   Configurable<bool> DoConstSub{"DoConstSub", false, "do constituent subtraction"};
   Configurable<float> jetPtMin{"jetPtMin", 10.0, "minimum jet pT"};
   Configurable<float> jetR{"jetR", 0.4, "jet resolution"};
+  Configurable<int> jetType{"jetType", 0, "Type of stored jets. 0 = full, 1 = charged, 2 = neutral"};
 
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
   Filter trackFilter = (nabs(aod::track::eta) < trackEtaCut) && (aod::track::isGlobalTrack == (uint8_t) true) && (aod::track::pt > trackPtCut);
@@ -87,7 +99,24 @@ struct JetFinderTask {
     jetFinder.jetR = jetR;
   }
 
-  void processImpl(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision)
+  template <typename T>
+  bool processInit(T const& collision)
+  {
+    if (!collision.alias()[kINT7]) {
+      return false; //remove hard code
+    }
+    if (!collision.sel7()) {
+      return false; //remove hard code
+    }
+
+    jets.clear();
+    inputParticles.clear();
+
+    return true;
+  }
+
+  template <typename T>
+  void processImpl(T const& collision)
   {
     fastjet::ClusterSequenceArea clusterSeq(jetFinder.findJets(inputParticles, jets));
 
@@ -118,99 +147,100 @@ struct JetFinderTask {
     }
   }
 
-  bool processInit(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision)
+  void processParticleLevel(aod::McCollision const& collision, aod::McParticles const& particles)
   {
-    if (!collision.alias()[kINT7]) {
-      return false; //remove hard code
-    }
-    if (!collision.sel7()) {
-      return false; //remove hard code
-    }
+    // Setup
+    // As of June 2021, I don't think enums are supported as configurables, so we have to handle the conversion here.
+    // TODO: Double cast is to work around conversion failure.
+    auto _jetType = static_cast<JetType_t>(static_cast<int>(jetType));
 
+    // Initialziation and event selection
+    // TODO: MC event selection?
     jets.clear();
     inputParticles.clear();
 
-    return true;
-  }
+    // As of June 2021, how best to check for charged particles? It doesn't seem to be in
+    // the McParticles table, so for now we select by PID.
+    // charged hadron (e-, mu-, pi+, K+, p+, Sigma+, Sigma-, Xi-, Omega-)
+    // We define full jets as taking everything, and neutral jets as not charged.
+    std::vector <unsigned int> selectedPIDs{11, 13, 211, 321, 2212, 3222, 3112, 3312, 3334};
+    auto selectedBegin = selectedPIDs.begin();
+    auto selectedEnd = selectedPIDs.end();
+    for (auto& particle : particles) {
+      if (_jetType != JetType_t::full) {
+        bool foundChargedParticle = (std::find(selectedBegin, selectedEnd, particle.pdgCode()) == selectedEnd);
+        if (_jetType == JetType_t::charged && foundChargedParticle == false) {
+          continue;
+        }
+        if (_jetType == JetType_t::neutral && foundChargedParticle == true) {
+          continue;
+        }
+      }
 
-  void processChargedJets(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
-               soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
-  {
-    bool accepted = processInit(collision);
-    if (!accepted) {
-      return;
-    }
-
-    for (auto& track : tracks) {
-      fillConstituents(track, inputParticles);
-      inputParticles.back().set_user_index(track.globalIndex());
-    }
-
-    processImpl(collision);
-  }
-
-  void processFullJets(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
-               soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks,
-               aod::EMCALClusters const & clusters)
-  {
-    bool accepted = processInit(collision);
-    if (!accepted) {
-      return;
-    }
-
-    for (auto& track : tracks) {
-      fillConstituents(track, inputParticles);
-      inputParticles.back().set_user_index(track.globalIndex());
-    }
-    for (auto& cluster : clusters) {
-      // The right thing to do here would be to fully calculate the momentum correcting for the vertex position.
-      // However, it's not clear that this functionality exists yet (21 June 2021)
-      double pt = cluster.energy() / std::cosh(cluster.eta());
       inputParticles.emplace_back(
         fastjet::PseudoJet(
-          pt * std::cos(cluster.phi()),
-          pt * std::sin(cluster.phi()),
-          pt * std::sinh(cluster.eta()),
-          cluster.energy()
+          particle.px(), particle.py(), particle.pz(), particle.e()
         )
       );
-      // Clusters are denoted with negative indices.
-      inputParticles.back().set_user_index(-1 * cluster.globalIndex());
+      inputParticles.back().set_user_index(particle.globalIndex());
     }
 
     processImpl(collision);
   }
 
-};
+  void processData(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
+                   soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks,
+                   aod::EMCALClusters const & clusters)
+  {
+    // Setup
+    // As of June 2021, I don't think enums are supported as configurables, so we have to handle the conversion here.
+    // FIXME: Double cast is to work around conversion failure.
+    auto _jetType = static_cast<JetType_t>(static_cast<int>(jetType));
 
-enum class JetType_t {
-  charged,
-  full,
+    // Initialziation and event selection
+    bool accepted = processInit(collision);
+    if (!accepted) {
+      return;
+    }
+
+    if (_jetType == JetType_t::full || _jetType == JetType_t::charged) {
+      for (auto& track : tracks) {
+        fillConstituents(track, inputParticles);
+        inputParticles.back().set_user_index(track.globalIndex());
+      }
+    }
+    if (_jetType == JetType_t::full || _jetType == JetType_t::neutral) {
+      for (auto& cluster : clusters) {
+        // The right thing to do here would be to fully calculate the momentum correcting for the vertex position.
+        // However, it's not clear that this functionality exists yet (21 June 2021)
+        double pt = cluster.energy() / std::cosh(cluster.eta());
+        inputParticles.emplace_back(
+          fastjet::PseudoJet(
+            pt * std::cos(cluster.phi()),
+            pt * std::sin(cluster.phi()),
+            pt * std::sinh(cluster.eta()),
+            cluster.energy()
+          )
+        );
+        // Clusters are denoted with negative indices.
+        inputParticles.back().set_user_index(-1 * cluster.globalIndex());
+      }
+    }
+
+    processImpl(collision);
+  }
 };
 
 using StandardJetFinder = JetFinderTask<o2::aod::Jets, o2::aod::JetTrackConstituents, o2::aod::JetClusterConstituents, o2::aod::JetConstituentsSub>;
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  // TODO: Is there a better way to do this?
-  const std::map<std::string, JetType_t> jetTypeMap = {
-    {"charged", JetType_t::charged},
-    {"full", JetType_t::full},
-  };
-  auto jetTypeStr = cfgc.options().get<std::string>("jet-type");
-  auto jetType = jetTypeMap.at(jetTypeStr);
-  switch (jetType) {
-    case JetType_t::full:
+  auto particleLevelJetFinding = cfgc.options().get<bool>("particle-level-jet-finding");
+  if (particleLevelJetFinding) {
       return WorkflowSpec{
-        adaptAnalysisTask<StandardJetFinder>(cfgc, Processes{&StandardJetFinder::processFullJets}, TaskName{"jet-finder-full"})};
-      break;
-    case JetType_t::charged:
-      return WorkflowSpec{
-        adaptAnalysisTask<StandardJetFinder>(cfgc, Processes{&StandardJetFinder::processChargedJets}, TaskName{"jet-finder-charged"})};
-      break;
-    default:
-      break;
+        adaptAnalysisTask<StandardJetFinder>(cfgc, Processes{&StandardJetFinder::processParticleLevel}, TaskName{"jet-finder-MC"})};
   }
-  LOG(FATAL) << "Jet type unsupported: " << static_cast<int>(jetType) << ", input string: " << jetTypeStr << "\n";
+  return WorkflowSpec{
+    adaptAnalysisTask<StandardJetFinder>(cfgc, Processes{&StandardJetFinder::processData}, TaskName{"jet-finder-data"})};
 }
 
