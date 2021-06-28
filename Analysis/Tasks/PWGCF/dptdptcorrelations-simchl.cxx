@@ -424,7 +424,7 @@ struct DptDptCorrelationsTask {
     /// \brief Returns the potentially phi origin shifted phi
     /// \param phi the track azimuthal angle
     /// \return the track phi origin shifted azimuthal angle
-    inline float GetShiftedPhi(float phi)
+    float GetShiftedPhi(float phi)
     {
       if (not(phi < phiup)) {
         return phi - M_PI * 2;
@@ -446,7 +446,7 @@ struct DptDptCorrelationsTask {
     /// the track has been accepted and it is within that ranges
     /// IF THAT IS NOT THE CASE THE ROUTINE WILL PRODUCE NONSENSE RESULTS
     template <typename TrackObject>
-    inline int GetEtaPhiIndex(TrackObject const& t)
+    int GetEtaPhiIndex(TrackObject const& t)
     {
       int etaix = int((t.eta() - etalow) / etabinwidth);
       /* consider a potential phi origin shift */
@@ -465,7 +465,7 @@ struct DptDptCorrelationsTask {
     /// the tracks have been accepted and they are within that ranges
     /// IF THAT IS NOT THE CASE THE ROUTINE WILL PRODUCE NONSENSE RESULTS
     template <typename TrackObject>
-    inline int GetDEtaDPhiGlobalIndex(TrackObject const& t1, TrackObject const& t2)
+    int GetDEtaDPhiGlobalIndex(TrackObject const& t1, TrackObject const& t2)
     {
       using namespace correlationstask;
 
