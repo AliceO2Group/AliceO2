@@ -9,7 +9,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file jetmatching.cxx
-/// \brief Jet matching
+/// \brief Matching jets between different jet tables
 ///
 /// \author Raymond Ehlers <raymond.ehlers@cern.ch>, ORNL
 
@@ -29,27 +29,29 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   ConfigParamSpec jetMatching = {"jet-matching",
                                VariantType::String,
-                               "",
+                               // NOTE: Even though this may not be the most sensible default, one
+                               // must be set to avoid a segfault during compilation due to an empty workflow.
+                               "MCDetectorLevel-MCParticleLevel",
                                {"Jet collections to match, separated by commas. Example: \"MCDetectorLevel-MCParticleLevel\". Possible components: MCParticleLevel, MCDetectorLevel, HybridIntermediate, Hybrid"}};
   workflowOptions.push_back(jetMatching);
 }
 
 #include "Framework/runDataProcessing.h"
 
-//template<typename BaseJetCollection, typename TagJetCollection, typename Collision>
-template<typename BaseJetCollection, typename BaseJetCollectionMatching, typename TagJetCollection, typename TagJetCollectionMatching>
+template<typename CollisionType, typename BaseJetCollection, typename BaseJetCollectionMatching, typename TagJetCollection, typename TagJetCollectionMatching>
 struct JetMatching {
   Configurable<float> maxMatchingDistance{"maxMatchingDistance", 0.4f, "Max matching distance"};
   Produces<BaseJetCollectionMatching> jetsBaseMatching;
-  Produces<TagJetCollectionMatching> jetsBaseMatching;
+  Produces<TagJetCollectionMatching> jetsTagMatching;
 
   void init(InitContext const&)
   {
   }
 
   void process(
-    soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
-    //Collision const& collision,
+    //soa::Filtered<CollisionType>::iterator const& collision,
+    CollisionType const& collision,
+    //aod::Collision const& collision,
     BaseJetCollection const& jetsBase,
     TagJetCollection const& jetsTag)
   {
@@ -70,19 +72,13 @@ struct JetMatching {
     unsigned int i = 0;
     for (auto & jet : jetsBase) {
       // Store results
-      //jetsBaseMatching(jet.lastIndex(), baseToTagIndexMap[i]);
-      //jet.MatchedJetIndex(baseToTagIndexMap[i]);
+      jetsBaseMatching(jet.globalIndex(), baseToTagIndexMap[i]);
       ++i;
     }
-    /*for (std::size_t i; i < baseToTagIndexMap.size(); ++i) {
-      jetsBase[i].MatchedJetIndex = baseToTagIndexMap[i];
-    }*/
     i = 0;
-    //for (std::size_t i; i < tagToBaseIndexMap.size(); ++i) {
     for (auto & jet : jetsTag) {
-      // Store results...
-      //jetsTag[i].MatchedJetIndex = tagToBaseIndexMap[i];
-      //jet.MatchedJetIndex(tagToBaseIndexMap[i]);
+      // Store results
+      jetsBaseMatching(jet.globalIndex(), tagToBaseIndexMap[i]);
       ++i;
     }
   }
@@ -91,6 +87,7 @@ struct JetMatching {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   // TODO: Is there a better way to do this?
+  // TODO: String validation and normalization. There's too much room for error with enumerations.
   auto jetMatching = cfgc.options().get<std::string>("jet-matching");
   // Tokenize using stringstream
   std::vector<std::string> matchingOptions;
@@ -102,36 +99,35 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     matchingOptions.push_back(substring);
   }
   std::vector<o2::framework::DataProcessorSpec> tasks;
-  /*for (auto opt : matchingOptions) {
+  // NOTE: soa::Filtered must be applied here. It would have been nicer to apply in process, but it doesn't
+  //       appear to get recognized as a type in that case (reason is unclear).
+  for (auto opt : matchingOptions) {
     // If there is a hybrid subtracted jet collection.
     if (opt == "Hybrid-HybridIntermediate") {
-      //tasks.emplace_back(adaptAnalysisTask<
-        //JetMatching<o2::aod::Jets, o2::aod::JetsHybridIntermediate, o2::aod::Collisions::iterator>(
-        WorkflowSpec{
-        JetMatching<o2::aod::Jets, o2::aod::JetsHybridIntermediate>(
-          cfgc, TaskName{"jet-matching-hybrid-sub-to-hybrid-intermedaite"}
-        )};
-        //);
+      tasks.emplace_back(
+        adaptAnalysisTask<JetMatching<soa::Filtered<o2::aod::Collisions>::iterator, o2::aod::Jets, o2::aod::MatchedJets,
+                    o2::aod::HybridIntermediateJets, o2::aod::MatchedHybridIntermediateJets>>(
+          cfgc, TaskName{"jet-matching-hybrid-sub-to-hybrid-intermedaite"}));
     }
     // If there are two classes of hybrid jets, this will match from the second class to the detector level
     if (opt == "HybridIntermediate-MCDetectorLevel") {
-      tasks.emplace_back(adaptAnalysisTask<JetMatching<o2::aod::JetsHybridIntermediate, o2::aod::JetsMCDetectorLevel>(cfgc, TaskName{"jet-matching-hybrid-intermediate-to-MC-detector-level"}));
+      tasks.emplace_back(
+        adaptAnalysisTask<JetMatching<soa::Filtered<o2::aod::Collisions>::iterator, o2::aod::HybridIntermediateJets, o2::aod::MatchedHybridIntermediateJets,
+         o2::aod::MCDetectorLevelJets, o2::aod::MatchedMCDetectorLevelJets>>(cfgc, TaskName{"jet-matching-hybrid-intermediate-to-MC-detector-level"}));
     }
     // If there is just a single standard hybrid jet collection, it can be matched directly to MC detector level.
     if (opt == "Hybrid-MCDetectorLevel") {
-      tasks.emplace_back(adaptAnalysisTask<JetMatching<o2::aod::Jets, o2::aod::JetsMCDetectorLevel>(cfgc, TaskName{"jet-matching-hybrid-to-MC-detector-level"}));
+      tasks.emplace_back(
+        adaptAnalysisTask<JetMatching<soa::Filtered<o2::aod::Collisions>::iterator, o2::aod::Jets,
+         o2::aod::MatchedJets, o2::aod::MCDetectorLevelJets, o2::aod::MatchedMCDetectorLevelJets>>(cfgc, TaskName{"jet-matching-hybrid-to-MC-detector-level"}));
     }
     // Finally, match MC detector level to MC particle level.
-    if (opt == "MCParticleLevel-MCDetectorLevel") {
-      tasks.emplace_back(adaptAnalysisTask<JetMatching<o2::aod::JetsMCDetectorLevel, o2::aod::JetsMCParticleLevel>(cfgc, TaskName{"jet-matching-MC"}));
+    if (opt == "MCDetectorLevel-MCParticleLevel") {
+      tasks.emplace_back(
+        adaptAnalysisTask<JetMatching<soa::Filtered<soa::Join<aod::Collisions, aod::McCollisionLabels>>::iterator,
+        o2::aod::MCDetectorLevelJets, o2::aod::MatchedMCDetectorLevelJets, o2::aod::MCParticleLevelJets, o2::aod::MatchedMCParticleLevelJets>>(cfgc, TaskName{"jet-matching-MC-detector-level-to-MC-particle-level"}));
     }
-
   }
-  return WorkflowSpec{tasks};*/
-  return WorkflowSpec{
-      adaptAnalysisTask<JetMatching<o2::aod::Jets, o2::aod::MatchedJets, o2::aod::HybridIntermediateJets, o2::aod::MatchedHybridIntermediateJets>>(
-        cfgc, TaskName{"jet-matching-hybrid-sub-to-hybrid-intermedaite"})};
-  /*return WorkflowSpec{
-    adaptAnalysisTask<JetFinderTaskCharged>(cfgc, TaskName{"jet-finder-charged"})};*/
+  return WorkflowSpec{tasks};
 }
 
