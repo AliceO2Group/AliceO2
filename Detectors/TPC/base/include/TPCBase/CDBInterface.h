@@ -40,6 +40,7 @@ enum class CDBType {
   CalPedestal,        ///< Pedestal calibration
   CalNoise,           ///< Noise calibration
   CalPulser,          ///< Pulser calibration
+  CalCE,              ///< Laser CE calibration
   CalPadGainFull,     ///< Full pad gain calibration
   CalPadGainResidual, ///< ResidualpPad gain calibration (e.g. from tracks)
                       ///
@@ -60,6 +61,7 @@ const std::unordered_map<CDBType, std::string> CDBTypeMap{
   {CDBType::CalPedestal, "TPC/Calib/Pedestal"},
   {CDBType::CalNoise, "TPC/Calib/Noise"},
   {CDBType::CalPulser, "TPC/Calib/Pulser"},
+  {CDBType::CalCE, "TPC/Calib/CE"},
   {CDBType::CalPadGainFull, "TPC/Calib/PadGainFull"},
   {CDBType::CalPadGainResidual, "TPC/Calib/PadGainResidual"},
   //
@@ -294,7 +296,7 @@ class CDBStorage
 
   void uploadNoiseAndPedestal(std::string_view fileName, long first = -1, long last = -1);
   void uploadGainMap(std::string_view fileName, bool isFull = true, long first = -1, long last = -1);
-  void uploadPulserData(std::string_view fileName, long first = -1, long last = -1);
+  void uploadPulserOrCEData(CDBType type, std::string_view fileName, long first = -1, long last = -1);
 
  private:
   bool checkMetaData(MetaData_t metaData) const;
