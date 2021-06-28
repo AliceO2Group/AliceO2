@@ -55,10 +55,10 @@ struct JetFinderTask {
   Produces<TrackConstituentTable> trackConstituentsTable;
   Produces<ClusterConstituentTable> clusterConstituentsTable;
   Produces<ConstituentSubTable> constituentsSubTable;
-  OutputObj<TH1F> hJetPt{"h_jet_pt"};
-  OutputObj<TH1F> hJetPhi{"h_jet_phi"};
-  OutputObj<TH1F> hJetEta{"h_jet_eta"};
-  OutputObj<TH1F> hJetN{"h_jet_n"};
+  OutputObj<TH2F> hJetPt{"h_jet_pt"};
+  OutputObj<TH2F> hJetPhi{"h_jet_phi"};
+  OutputObj<TH2F> hJetEta{"h_jet_eta"};
+  OutputObj<TH2F> hJetN{"h_jet_n"};
 
   Configurable<float> vertexZCut{"vertexZCut", 10.0f, "Accepted z-vertex range"};
   Configurable<float> trackPtCut{"trackPtCut", 0.1, "minimum constituent pT"};
@@ -66,7 +66,7 @@ struct JetFinderTask {
   Configurable<bool> DoRhoAreaSub{"DoRhoAreaSub", false, "do rho area subtraction"};
   Configurable<bool> DoConstSub{"DoConstSub", false, "do constituent subtraction"};
   Configurable<float> jetPtMin{"jetPtMin", 10.0, "minimum jet pT"};
-  Configurable<float> jetR{"jetR", 0.4, "jet resolution"};
+  Configurable<std::vector<double>> jetR{"jetR", {0.4}, "jet resolution parameters"};
   Configurable<int> jetType{"jetType", 0, "Type of stored jets. 0 = full, 1 = charged, 2 = neutral"};
 
   Filter collisionFilter = nabs(aod::collision::posZ) < vertexZCut;
@@ -78,14 +78,14 @@ struct JetFinderTask {
 
   void init(InitContext const&)
   {
-    hJetPt.setObject(new TH1F("h_jet_pt", "jet p_{T};p_{T} (GeV/#it{c})",
-                              100, 0., 100.));
-    hJetPhi.setObject(new TH1F("h_jet_phi", "jet #phi;#phi",
-                               80, -1., 7.));
-    hJetEta.setObject(new TH1F("h_jet_eta", "jet #eta;#eta",
-                               70, -0.7, 0.7));
-    hJetN.setObject(new TH1F("h_jet_n", "jet n;n constituents",
-                             30, 0., 30.));
+    hJetPt.setObject(new TH2F("h_jet_pt", "jet p_{T};p_{T} (GeV/#it{c})",
+                              100, 0., 100., 10, 0.05, 1.05));
+    hJetPhi.setObject(new TH2F("h_jet_phi", "jet #phi;#phi",
+                               80, -1., 7., 10, 0.05, 1.05));
+    hJetEta.setObject(new TH2F("h_jet_eta", "jet #eta;#eta",
+                               70, -0.7, 0.7, 10, 0.05, 1.05));
+    hJetN.setObject(new TH2F("h_jet_n", "jet n;n constituents",
+                             30, 0., 30., 10, 0.05, 1.05));
     if (DoRhoAreaSub) {
       jetFinder.setBkgSubMode(JetFinder::BkgSubMode::rhoAreaSub);
     }
@@ -93,7 +93,8 @@ struct JetFinderTask {
       jetFinder.setBkgSubMode(JetFinder::BkgSubMode::constSub);
     }
     jetFinder.jetPtMin = jetPtMin;
-    jetFinder.jetR = jetR;
+    // Start with the first jet R
+    //jetFinder.jetR = jetR[0];
   }
 
   template <typename T>
@@ -115,30 +116,35 @@ struct JetFinderTask {
   template <typename T>
   void processImpl(T const& collision)
   {
-    fastjet::ClusterSequenceArea clusterSeq(jetFinder.findJets(inputParticles, jets));
+    auto jetRValues = static_cast<std::vector<double>>(jetR);
+    for (auto R : jetRValues) {
+      // Update jet finder R and find jets
+      jetFinder.jetR = R;
+      fastjet::ClusterSequenceArea clusterSeq(jetFinder.findJets(inputParticles, jets));
 
-    for (const auto& jet : jets) {
-      jetsTable(collision, jet.pt(), jet.eta(), jet.phi(),
-                jet.E(), jet.m(), jet.area());
-      hJetPt->Fill(jet.pt());
-      hJetPhi->Fill(jet.phi());
-      hJetEta->Fill(jet.eta());
-      hJetN->Fill(jet.constituents().size());
-      for (const auto& constituent : jet.constituents()) { //event or jetwise
-        if (DoConstSub) {
-          // Since we're copying the consituents, we can combine the tracks and clusters together
-          // We only have to keep the uncopied versions separated due to technical constraints.
-          constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
-                              constituent.E(), constituent.m(), constituent.user_index());
-        }
-        if (constituent.user_index() < 0) {
-          // Cluster
-          // -1 to account for the convention of negative indices for clusters.
-          clusterConstituentsTable(jetsTable.lastIndex(), -1 * constituent.user_index());
-        }
-        else {
-          // Tracks
-          trackConstituentsTable(jetsTable.lastIndex(), constituent.user_index());
+      for (const auto& jet : jets) {
+        jetsTable(collision, jet.pt(), jet.eta(), jet.phi(),
+                  jet.E(), jet.m(), jet.area(), std::round(R * 100));
+        hJetPt->Fill(jet.pt(), R);
+        hJetPhi->Fill(jet.phi(), R);
+        hJetEta->Fill(jet.eta(), R);
+        hJetN->Fill(jet.constituents().size(), R);
+        for (const auto& constituent : jet.constituents()) { //event or jetwise
+          if (DoConstSub) {
+            // Since we're copying the consituents, we can combine the tracks and clusters together
+            // We only have to keep the uncopied versions separated due to technical constraints.
+            constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
+                                constituent.E(), constituent.m(), constituent.user_index());
+          }
+          if (constituent.user_index() < 0) {
+            // Cluster
+            // -1 to account for the convention of negative indices for clusters.
+            clusterConstituentsTable(jetsTable.lastIndex(), -1 * constituent.user_index());
+          }
+          else {
+            // Tracks
+            trackConstituentsTable(jetsTable.lastIndex(), constituent.user_index());
+          }
         }
       }
     }

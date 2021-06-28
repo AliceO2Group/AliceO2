@@ -42,6 +42,7 @@
                   jet::Energy, \
                   jet::Mass, \
                   jet::Area, \
+                  jet::R, \
                   jet::Px<jet::Pt, jet::Phi>, \
                   jet::Py<jet::Pt, jet::Phi>, \
                   jet::Pz<jet::Pt, jet::Eta>, \
@@ -98,6 +99,7 @@ DECLARE_SOA_COLUMN(Phi, phi, float);            //!
 DECLARE_SOA_COLUMN(Energy, energy, float);      //!
 DECLARE_SOA_COLUMN(Mass, mass, float);          //!
 DECLARE_SOA_COLUMN(Area, area, float);          //!
+DECLARE_SOA_COLUMN(R, r, int);                  //!
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px,              //!
                            [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!

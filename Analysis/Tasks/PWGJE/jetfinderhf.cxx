@@ -93,7 +93,7 @@ struct JetFinderHFTask {
         }
         if (isHFJet) {
           jetsTable(collision, jet.eta(), jet.phi(), jet.pt(),
-                    jet.area(), jet.E(), jet.m());
+                    jet.area(), jet.E(), jet.m(), jetFinder.jetR);
           for (const auto& constituent : jet.constituents()) {
             trackConstituents(jetsTable.lastIndex(), constituent.user_index());
           }
