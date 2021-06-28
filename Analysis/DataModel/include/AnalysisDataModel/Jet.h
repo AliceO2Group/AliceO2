@@ -28,10 +28,15 @@
 #include <cmath>
 
 // Defines the jet table definition
-#define JET_TABLE_DEF(_Name_,_Origin_,_Description_,_dummy_name_) \
-    DECLARE_SOA_TABLE(_Name_, _Origin_, _Description_, \
+#define JET_TABLE_DEF(_collision_name_,_jet_type_,_name_,_description_) \
+    namespace _name_##util { \
+        DECLARE_SOA_INDEX_COLUMN(_collision_name_, collision); \
+        DECLARE_SOA_DYNAMIC_COLUMN(Dummy##_jet_type_##s, dummy##_jet_type##s, \
+                            []() -> int { return 0; }); \
+    } \
+    DECLARE_SOA_TABLE(_jet_type_##s, "AOD", _description_, \
                   o2::soa::Index<>, \
-                  jet::CollisionId, \
+                  _name_##util::_collision_name_##Id, \
                   jet::Pt, \
                   jet::Eta, \
                   jet::Phi, \
@@ -42,9 +47,14 @@
                   jet::Py<jet::Pt, jet::Phi>, \
                   jet::Pz<jet::Pt, jet::Eta>, \
                   jet::P<jet::Pt, jet::Eta>, \
-                  jet::Dummy##_dummy_name_<>); \
-    DECLARE_SOA_EXTENDED_TABLE(Matched##_Name_, _Name_, _Description_"MATCH", \
-                                jet::MatchedJetIndex); \
+                  _name_##util::Dummy##_jet_type_##s<>); \
+    namespace _name_##matching { \
+        DECLARE_SOA_INDEX_COLUMN(_jet_type_, jet); \
+        DECLARE_SOA_COLUMN(MatchedJetIndex, matchedJetIndex, int); \
+    } \
+    DECLARE_SOA_TABLE(Matched##_jet_type_##s, "AOD", _description_"MATCH", \
+                      _name_##matching::_jet_type_##Id, \
+                      _name_##matching::MatchedJetIndex);
 
 // Defines the jet constituent table
 #define JET_CONSTITUENTS_TABLE_DEF(_jet_type_,_name_,_Description_,_track_type_) \
@@ -61,49 +71,33 @@
                       _name_##constituents::EMCALClusterId);
 
 // Defines the jet constituent sub table
+// NOTE: This relies on eth jet index column being defined in the constiteunts namespace.
+//       Since these are always paired together, there's no point in redefining them.
 #define JET_CONSTITUENTS_SUB_TABLE_DEF(_jet_type_,_name_,_Description_) \
-    namespace _name_##constituentssub {  \
-    DECLARE_SOA_INDEX_COLUMN(_jet_type_, jet); \
-    DECLARE_SOA_COLUMN(Pt, pt, float); \
-    DECLARE_SOA_COLUMN(Eta, eta, float); \
-    DECLARE_SOA_COLUMN(Phi, phi, float); \
-    DECLARE_SOA_COLUMN(Energy, energy, float); \
-    DECLARE_SOA_COLUMN(Mass, mass, float); \
-    DECLARE_SOA_COLUMN(Source, source, int); \
-    DECLARE_SOA_DYNAMIC_COLUMN(Px, px, \
-                            [](float pt, float phi) -> float { return pt * std::cos(phi); }); \
-    DECLARE_SOA_DYNAMIC_COLUMN(Py, py, \
-                            [](float pt, float phi) -> float { return pt * std::sin(phi); }); \
-    DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, \
-                            [](float pt, float eta) -> float { return pt * std::sinh(eta); }); \
-    DECLARE_SOA_DYNAMIC_COLUMN(P, p, \
-                            [](float pt, float eta) -> float { return pt * std::cosh(eta); }); \
-    } \
     DECLARE_SOA_TABLE(_jet_type_##ConstituentsSub, "AOD", _Description_"CONSTSUB", \
-                    _name_##constituentssub::_jet_type_##Id, \
-                    _name_##constituentssub::Pt, \
-                    _name_##constituentssub::Eta, \
-                    _name_##constituentssub::Phi, \
-                    _name_##constituentssub::Energy, \
-                    _name_##constituentssub::Mass, \
-                    _name_##constituentssub::Source, \
-                    _name_##constituentssub::Px<_name_##constituentssub::Pt, _name_##constituentssub::Phi>, \
-                    _name_##constituentssub::Py<_name_##constituentssub::Pt, _name_##constituentssub::Phi>, \
-                    _name_##constituentssub::Pz<_name_##constituentssub::Pt, _name_##constituentssub::Eta>, \
-                    _name_##constituentssub::P<_name_##constituentssub::Pt, _name_##constituentssub::Eta>);
+                    _name_##constituents::_jet_type_##Id, \
+                    constituentssub::Pt, \
+                    constituentssub::Eta, \
+                    constituentssub::Phi, \
+                    constituentssub::Energy, \
+                    constituentssub::Mass, \
+                    constituentssub::Source, \
+                    constituentssub::Px<constituentssub::Pt, constituentssub::Phi>, \
+                    constituentssub::Py<constituentssub::Pt, constituentssub::Phi>, \
+                    constituentssub::Pz<constituentssub::Pt, constituentssub::Eta>, \
+                    constituentssub::P<constituentssub::Pt, constituentssub::Eta>);
 
 namespace o2::aod
 {
 namespace jet
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
+// The index column is defined separately.
 DECLARE_SOA_COLUMN(Pt, pt, float);              //!
 DECLARE_SOA_COLUMN(Eta, eta, float);            //!
 DECLARE_SOA_COLUMN(Phi, phi, float);            //!
 DECLARE_SOA_COLUMN(Energy, energy, float);      //!
 DECLARE_SOA_COLUMN(Mass, mass, float);          //!
 DECLARE_SOA_COLUMN(Area, area, float);          //!
-DECLARE_SOA_COLUMN(MatchedJetIndex, matchedJetIndex, int);  //!
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px,              //!
                            [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
@@ -112,19 +106,28 @@ DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
                            [](float pt, float eta) -> float { return pt * std::sinh(eta); });
 DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! absolute p
                            [](float pt, float eta) -> float { return pt * std::cosh(eta); });
-// NOTE: These dummy values are required so that each table isn't considered to be identical.
-//       They need a unique column, so we add one for each that does nothing and isn't accessed,
-//       but makes it unique. Note that although the value is incremented, there is not reason
-//       that this is required.
-DECLARE_SOA_DYNAMIC_COLUMN(DummyData, dummyData,  //! Dummy for unique data table.
-                            []() -> int { return 1; });
-DECLARE_SOA_DYNAMIC_COLUMN(DummyMCParticleLevel, dummyMCParticleLevel,  //! Dummy for unique MC particle level table.
-                            []() -> int { return 2; });
-DECLARE_SOA_DYNAMIC_COLUMN(DummyMCDetectorLevel, dummyMCDetectorLevel,  //! Dummy for unique MC detector level table.
-                            []() -> int { return 3; });
-DECLARE_SOA_DYNAMIC_COLUMN(DummyHybridIntermediate, dummyHybridIntermediate,  //! Dummy for unique hybrid intermediate table.
-                            []() -> int { return 4; });
 } // namespace jet
+
+// The standard constituents table is more simply defined fully via macros.
+
+// Constituent sub
+namespace constituentssub {
+// Jet index column will be added in the macro
+DECLARE_SOA_COLUMN(Pt, pt, float);
+DECLARE_SOA_COLUMN(Eta, eta, float);
+DECLARE_SOA_COLUMN(Phi, phi, float);
+DECLARE_SOA_COLUMN(Energy, energy, float);
+DECLARE_SOA_COLUMN(Mass, mass, float);
+DECLARE_SOA_COLUMN(Source, source, int);
+DECLARE_SOA_DYNAMIC_COLUMN(Px, px,
+                        [](float pt, float phi) -> float { return pt * std::cos(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Py, py,
+                        [](float pt, float phi) -> float { return pt * std::sin(phi); });
+DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz,
+                        [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+DECLARE_SOA_DYNAMIC_COLUMN(P, p,
+                        [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+}
 
 // Data jets
 // As an example, the expanded macros which are used to define the table is shown below.
@@ -206,7 +209,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(DummyHybridIntermediate, dummyHybridIntermediate,  //
 // Defining the tables via the macors.
 // The using statements are kept separate for visbility.
 // Data jets
-JET_TABLE_DEF(Jets, "AOD", "JET", Data);
+JET_TABLE_DEF(Collision, Jet, jet, "JET");
 using Jet = Jets::iterator;
 using MatchedJet = MatchedJets::iterator;
 JET_CONSTITUENTS_TABLE_DEF(Jet, jet, "JET", Track);
@@ -223,29 +226,29 @@ using JetConstituentSub = JetConstituentsSub::iterator;
 //       it causes no harm. Perhaps better would be making this std::optional,
 //       but for now, we keep it simple.
 // NOTE: The same condition applies to subtracted constituents.
-JET_TABLE_DEF(MCParticleLevelJets, "AOD", "JETMCPART", MCParticleLevel);
+JET_TABLE_DEF(McCollision, MCParticleLevelJet, mcparticleleveljet, "JETMCPART");
 using MCParticleLevelJet = MCParticleLevelJets::iterator;
 using MatchedMCParticleLevelJet = MatchedMCParticleLevelJets::iterator;
-JET_CONSTITUENTS_TABLE_DEF(MCParticleLevelJet, mcparticlelevel, "MCP", McParticle);
+JET_CONSTITUENTS_TABLE_DEF(MCParticleLevelJet, mcparticleleveljet, "MCP", McParticle);
 using MCParticleLevelJetTrackConstituent = MCParticleLevelJetTrackConstituents::iterator;
 using MCParticleLevelJetClusterConstituent = MCParticleLevelJetClusterConstituents::iterator;
-JET_CONSTITUENTS_SUB_TABLE_DEF(MCParticleLevelJet, mcparticlelevel, "MCP");
+JET_CONSTITUENTS_SUB_TABLE_DEF(MCParticleLevelJet, mcparticleleveljet, "MCP");
 using MCParticleLevelJetConstituentSub = MCParticleLevelJetConstituentsSub::iterator;
 
 // MC Detector Level Jets
 // NOTE: The same condition as describe for particle leve jets also applies here
 //       to subtracted constituents.
-JET_TABLE_DEF(MCDetectorLevelJets, "AOD", "JETMCDET", MCDetectorLevel);
+JET_TABLE_DEF(Collision, MCDetectorLevelJet, mcdetectorleveljet, "JETMCDET");
 using MCDetectorLevelJet = MCDetectorLevelJets::iterator;
 using MatchedMCDetectorLevelJet = MatchedMCDetectorLevelJets::iterator;
-JET_CONSTITUENTS_TABLE_DEF(MCDetectorLevelJet, mcdetectorlevel, "MCD", Track);
+JET_CONSTITUENTS_TABLE_DEF(MCDetectorLevelJet, mcdetectorleveljet, "MCD", Track);
 using MCDetectorLevelJetTrackConstituent = MCDetectorLevelJetTrackConstituents::iterator;
 using MCDetectorLevelJetClusterConstituent = MCDetectorLevelJetClusterConstituents::iterator;
-JET_CONSTITUENTS_SUB_TABLE_DEF(MCDetectorLevelJet, mcdetectorlevel, "MCD");
+JET_CONSTITUENTS_SUB_TABLE_DEF(MCDetectorLevelJet, mcdetectorleveljet, "MCD");
 using MCDetectorLevelJetConstituentSub = MCDetectorLevelJetConstituentsSub::iterator;
 
 // Hybrid intermediate
-JET_TABLE_DEF(HybridIntermediateJets, "AOD", "JETHYBINT", HybridIntermediate);
+JET_TABLE_DEF(Collision, HybridIntermediateJet, hybridintermediatejet, "JETHYBINT");
 using HybridIntermediateJet = HybridIntermediateJets::iterator;
 using MatchedHybridIntermediateJet = MatchedHybridIntermediateJets::iterator;
 JET_CONSTITUENTS_TABLE_DEF(HybridIntermediateJet, hybridintermediate, "HYBINT", Track);
@@ -253,119 +256,6 @@ using HybridIntermediateJetTrackConstituent = HybridIntermediateJetTrackConstitu
 using HybridIntermediateJetClusterConstituent = HybridIntermediateJetClusterConstituents::iterator;
 JET_CONSTITUENTS_SUB_TABLE_DEF(HybridIntermediateJet, hybridintermediate, "HYBINT");
 using HybridIntermediateJetConstituentSub = HybridIntermediateJetConstituentsSub::iterator;
-
-/*
-
-DECLARE_SOA_TABLE(MCParticleLevelJets, "AOD", "JETMCPART", //!
-                  o2::soa::Index<>,
-                  jet::CollisionId,
-                  jet::Pt,
-                  jet::Eta,
-                  jet::Phi,
-                  jet::Energy,
-                  jet::Mass,
-                  jet::Area,
-                  jet::Px<jet::Pt, jet::Phi>,
-                  jet::Py<jet::Pt, jet::Phi>,
-                  jet::Pz<jet::Pt, jet::Eta>,
-                  jet::P<jet::Pt, jet::Eta>,
-                  jet::DummyData<>);
-
-DECLARE_SOA_EXTENDED_TABLE(MCParticleLevelMatchedJets, MCParticleLevelJets, "JETMCPARTMATCH", //!
-                            jet::MatchedJetIndex);
-
-using MCParticleLevelJet = MCParticleLevelJets::iterator;
-using MatchedMCParticleLevelJet = MCParticleLevelMatchedJets::iterator;
-
-// TODO: absorb in jet table
-// when list of references available
-namespace mcparticlelevelconstituents
-{
-DECLARE_SOA_INDEX_COLUMN(MCParticleLevelJet, jet); //!
-DECLARE_SOA_INDEX_COLUMN(Track, track); //!
-DECLARE_SOA_INDEX_COLUMN(EMCALCluster, cluster); //!
-} // namespace constituents
-
-DECLARE_SOA_TABLE(MCParticleLevelJetTrackConstituents, "AOD", "MCPTRKCONSTS", //!
-                  mcparticlelevelconstituents::MCParticleLevelJetId,
-                  mcparticlelevelconstituents::TrackId);
-DECLARE_SOA_TABLE(MCParticleLevelJetClusterConstituents, "AOD", "MCPCLUSCONSTS", //!
-                  mcparticlelevelconstituents::MCParticleLevelJetId,
-                  mcparticlelevelconstituents::EMCALClusterId);
-
-using MCParticleLevelJetTrackConstituent = MCParticleLevelJetTrackConstituents::iterator;
-using MCParticleLevelJetClusterConstituent = MCParticleLevelJetClusterConstituents::iterator;
-
-// MC detector level
-DECLARE_SOA_EXTENDED_TABLE(JetsMCDetectorLevel, Jets, "JETMCDET"); //!
-DECLARE_SOA_EXTENDED_TABLE(JetsMatchedMCDetectorLevel, JetsMCDetectorLevel, "JETMCDETMATCH", //!
-                            jet::MatchedJetIndex);
-using JetMCDetectorLevel = JetsMCDetectorLevel::iterator;
-using JetMCDetectorLevelMatched = JetsMatchedMCDetectorLevel::iterator;
-
-// Hybrid intermediate level
-DECLARE_SOA_EXTENDED_TABLE(JetsHybridIntermediate, Jets, "JETHYBINT"); //!
-DECLARE_SOA_EXTENDED_TABLE(JetsMatchedHybridIntermediate, JetsHybridIntermediate, "JETHYBINTMATCH", //!
-                            jet::MatchedJetIndex);
-using JetHybridIntermediate = JetsHybridIntermediate::iterator;
-using JetHybridIntermediateMatched = JetsMatchedHybridIntermediate::iterator;
-
-// MC particle level. TODO: It doesn't match so nicely because it doesn't have a concept of clusters...
-// MC detector level
-DECLARE_SOA_EXTENDED_TABLE(JetMCDetectorLevelTrackConstituents, JetTrackConstituents, "JETMCDETTRKS"); //!
-DECLARE_SOA_EXTENDED_TABLE(JetMCDetectorLevelClusterConstituents, JetClusterConstituents, "JETMCDETCLUS"); //!
-using JetMCDetectorLevelTrackConstituent = JetMCDetectorLevelTrackConstituents::iterator;
-using JetMCDetectorLevelClusterConstituent = JetMCDetectorLevelClusterConstituents::iterator;
-// Hybrid intermediate
-DECLARE_SOA_EXTENDED_TABLE(JetHybridIntermediateTrackConstituents, JetTrackConstituents, "JETHYBINTTRKS"); //!
-DECLARE_SOA_EXTENDED_TABLE(JetHybridIntermediateClusterConstituents, JetClusterConstituents, "JETHYBINTCLUS"); //!
-using JetHybridIntermediateTrackConstituent = JetHybridIntermediateTrackConstituents::iterator;
-using JetHybridIntermediateClusterConstituent = JetHybridIntermediateClusterConstituents::iterator;
-
-namespace constituentssub
-{
-DECLARE_SOA_INDEX_COLUMN(Jet, jet);        //!
-DECLARE_SOA_COLUMN(Pt, pt, float);         //!
-DECLARE_SOA_COLUMN(Eta, eta, float);       //!
-DECLARE_SOA_COLUMN(Phi, phi, float);       //!
-DECLARE_SOA_COLUMN(Energy, energy, float); //!
-DECLARE_SOA_COLUMN(Mass, mass, float);     //!
-DECLARE_SOA_COLUMN(Source, source, int);   //!
-DECLARE_SOA_DYNAMIC_COLUMN(Px, px,         //!
-                           [](float pt, float phi) -> float { return pt * std::cos(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Py, py, //!
-                           [](float pt, float phi) -> float { return pt * std::sin(phi); });
-DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz, //!
-                           [](float pt, float eta) -> float { return pt * std::sinh(eta); });
-DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! absolute p
-                           [](float pt, float eta) -> float { return pt * std::cosh(eta); });
-} //namespace constituentssub
-
-//DECLARE_SOA_TABLE(JetConstituentsSub, "AOD", "CONSTITUENTSSUB", //!
-//                  constituentssub::JetId,
-//                  constituentssub::Pt,
-//                  constituentssub::Eta,
-//                  constituentssub::Phi,
-//                  constituentssub::Energy,
-//                  constituentssub::Mass,
-//                  constituentssub::Source,
-//                  constituentssub::Px<constituentssub::Pt, constituentssub::Phi>,
-//                  constituentssub::Py<constituentssub::Pt, constituentssub::Phi>,
-//                  constituentssub::Pz<constituentssub::Pt, constituentssub::Eta>,
-//                  constituentssub::P<constituentssub::Pt, constituentssub::Eta>);
-//using JetConstituentSub = JetConstituentsSub::iterator;
-
-// MC is a bit off here because they don't have a concept of subtracted constituents. However,
-// any empty table also doesn't cause any issues, and it will never be filled.
-// MC particle level. TODO. It doesn't match so nicely because it doesn't have a concept of clusters...
-//// MC detector level
-//DECLARE_SOA_EXTENDED_TABLE(JetMCDetectorLevelConstituentsSub, JetConstituentsSub, "JETMCDETSTRKS"); //!
-//using JetMCDetectorLevelConstituentSub = JetMCDetectorLevelConstituentsSub::iterator;
-//// Hybrid intermediate
-//DECLARE_SOA_EXTENDED_TABLE(JetHybridIntermediateConstituentsSub, JetConstituentsSub, "JETHYBINTSTRKS"); //!
-//using JetHybridIntermediateConstituentSub = JetHybridIntermediateConstituentsSub::iterator;
-
-*/
 
 } // namespace o2::aod
 
