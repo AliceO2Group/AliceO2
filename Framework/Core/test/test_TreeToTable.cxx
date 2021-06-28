@@ -35,11 +35,12 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   Float_t px, py, pz;
   Double_t random;
   Int_t ev;
+  uint8_t b;
   const Int_t nelem = 9;
   Double_t ij[nelem] = {0};
   TString leaflist = Form("ij[%i]/D", nelem);
 
-  Int_t ncols = 8;
+  Int_t ncols = 9;
   t1.Branch("ok", &ok, "ok/O");
   t1.Branch("px", &px, "px/F");
   t1.Branch("py", &py, "py/F");
@@ -48,6 +49,7 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
   t1.Branch("ev", &ev, "ev/I");
   t1.Branch("ij", ij, leaflist.Data());
   t1.Branch("tests", ts, "tests[5]/O");
+  t1.Branch("small", &b, "small/b");
 
   //fill the tree
   int ntruein[2] = {0};
@@ -60,6 +62,7 @@ BOOST_AUTO_TEST_CASE(TreeToTableConversion)
     pz = px * px + py * py;
     random = gRandom->Rndm();
     ev = i + 1;
+    b = i % 3;
     for (Int_t jj = 0; jj < nelem; jj++) {
       ij[jj] = i + 100 * jj;
     }
