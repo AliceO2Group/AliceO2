@@ -137,8 +137,8 @@ class LookUpTable
   void printFullMap() const
   {
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      std::cout << channel << "\t :  PM \t" << mTopoVector[channel].mPM
-                << " MCP \t" << mTopoVector[channel].mMCP << " EP \t " << mTopoVector[channel].mEP << std::endl;
+      LOG(INFO) << channel << "\t :  PM \t" << mTopoVector[channel].mPM
+                << " MCP \t" << mTopoVector[channel].mMCP << " EP \t " << mTopoVector[channel].mEP;
     }
   }
 
@@ -226,7 +226,7 @@ class LookUpTable
       o2::ft0::Topo topo = chan.pm;
       lut_data[chan.channel] = topo;
     }
-    std::cout << "lut_data.size " << lut_data.size() << std::endl;
+    LOG(INFO) << "lut_data.size " << lut_data.size();
     return o2::ft0::LookUpTable{lut_data};
   }
   bool isTCM(int link, int ep) const { return getChannel(link, 1, ep) == TCM_channel; }
