@@ -97,6 +97,8 @@ struct TaskStreamInfo {
   TaskStreamRef id;
   /// The context of the DataProcessor being run by this task
   DataProcessorContext* context;
+  /// The libuv task handle
+  uv_work_t task;
   /// Wether or not this task is running
   bool running = false;
 };
