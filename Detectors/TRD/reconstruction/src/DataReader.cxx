@@ -76,23 +76,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   WorkflowSpec workflow;
 
-  /*
-   * This is originally replicated from TOF
-     We define at run time the number of devices to be attached
-     to the workflow and the input matching string of the device.
-     This is is done with a configuration string like the following
-     one, where the input matching for each device is provide in
-     comma-separated strings. For instance
-  */
-
-  //  std::stringstream ssconfig(inputspec);
   std::string iconfig;
   std::string inputDescription;
   int idevice = 0;
-  //  LOG(info) << "expected incoming data definition : " << inputspec;
-  // this is probably never going to be used but would to nice to know hence here.
   auto orig = o2::header::gDataOriginTRD;
-  auto inputs = o2::framework::select(inputspec.c_str());
+  auto inputs = o2::framework::select(std::string("x:TRD/" + inputspec).c_str());
   for (auto& inp : inputs) {
     // take care of case where our data is not in the time frame
     inp.lifetime = Lifetime::Optional;

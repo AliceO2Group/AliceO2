@@ -47,14 +47,15 @@ void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
 {
   // mReader.getParsedObjects(mTracklets,mDigits,mTriggers);
   if (!blankframe) {
-    mReader.getParsedObjects(mTracklets, mDigits, mTriggers);
+    mReader.buildDPLOutputs(pc); //getParsedObjectsandClear(mTracklets, mDigits, mTriggers);
+  } else {
+    //ensure the objects we are sending back are indeed blank.
+    LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets and " << mTriggers.size() << " Triggers and blankframe:" << blankframe;
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggers);
+    //    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD,"STATS",0,Lifetime::Timerframe},mStats);
   }
-
-  LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets and " << mTriggers.size() << " Triggers and blankframe:" << blankframe;
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggers);
-  //    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD,"STATS",0,Lifetime::Timerframe},mStats);
 }
 
 void DataReaderTask::run(ProcessingContext& pc)
@@ -67,16 +68,16 @@ void DataReaderTask::run(ProcessingContext& pc)
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
-  mDataSpec = o2::header::gDataDescriptionRawData;
 
-  std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TRD", mDataSpec, 0xDEADBEEF}}};
-  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TRD", "RAWDATA", 0xDEADBEEF}}};
+  //std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TRD","RAWDATA"/* mDataDesc.c_str()*/, 0xDEADBEEF}}};
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this mecans that the "delayed message"
   //   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
 
   for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-    if (dh->payloadSize == 16 || dh->payloadSize == 0) {
-      LOGP(WARNING, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+    if (dh->payloadSize == 0) { //}|| dh->payloadSize==16) {
+      LOGP(WARNING, "Found blank input input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
            dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
       sendData(pc, true); //send the empty tf data.
       return;
@@ -94,49 +95,50 @@ void DataReaderTask::run(ProcessingContext& pc)
     for (auto const& ref : iit) {
       if (mVerbose) {
         const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-        LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : assuming no payload for all links in this TF",
+        LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
              dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
       }
       const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
-      if (!mCompressedData) { //we have raw data coming in from flp
-        if (mVerbose) {
-          LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
+      if (std::string(headerIn->dataDescription.str) != std::string("DISTSUBTIMEFRAMEFLP")) {
+        if (!mCompressedData) { //we have raw data coming in from flp
+          if (mVerbose) {
+            LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
+          }
+          mReader.setDataBuffer(payloadIn);
+          mReader.setDataBufferSize(payloadInSize);
+          mReader.configure(mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
+          if (mVerbose) {
+            LOG(info) << "%%% about to run " << loopcounter << " %%%";
+          }
+          mReader.run();
+          if (mVerbose) {
+            LOG(info) << "%%% finished running " << loopcounter << " %%%";
+          }
+          loopcounter++;
+          // mTracklets.insert(std::end(mTracklets), std::begin(mReader.getTracklets()), std::end(mReader.getTracklets()));
+          // mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
+          //mReader.clearall();
+          if (mVerbose) {
+            LOG(info) << "from parsing received: " << mTracklets.size() << " tracklets and " << mDigits.size() << " compressed digits";
+            LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
+          }
+          //  mTriggers = mReader.getIR();
+          //get the payload of trigger and digits out.
+        } else { // we have compressed data coming in from flp.
+          mCompressedReader.setDataBuffer(payloadIn);
+          mCompressedReader.setDataBufferSize(payloadInSize);
+          mCompressedReader.configure(mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
+          mCompressedReader.run();
+          //get the payload of trigger and digits out.
         }
-        mReader.setDataBuffer(payloadIn);
-        mReader.setDataBufferSize(payloadInSize);
-        mReader.configure(mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
-        if (mVerbose) {
-          LOG(info) << "%%% about to run " << loopcounter << " %%%";
-        }
-        mReader.run();
-        if (mVerbose) {
-          LOG(info) << "%%% finished running " << loopcounter << " %%%";
-        }
-        loopcounter++;
-        // mTracklets.insert(std::end(mTracklets), std::begin(mReader.getTracklets()), std::end(mReader.getTracklets()));
-        // mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
-        //mReader.clearall();
-        if (mVerbose) {
-          LOG(info) << "from parsing received: " << mTracklets.size() << " tracklets and " << mDigits.size() << " compressed digits";
-          LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
-        }
-        //  mTriggers = mReader.getIR();
-        //get the payload of trigger and digits out.
-      } else { // we have compressed data coming in from flp.
-        mCompressedReader.setDataBuffer(payloadIn);
-        mCompressedReader.setDataBufferSize(payloadInSize);
-        mCompressedReader.configure(mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
-        mCompressedReader.run();
-        mTracklets = mCompressedReader.getTracklets();
-        mDigits = mCompressedReader.getDigits();
-        mTriggers = mCompressedReader.getIR();
-        //get the payload of trigger and digits out.
+        /* output */
+        sendData(pc, false); //TODO do we ever have to not post the data. i.e. can we get here mid event? I dont think so.
+      } else {
+        sendData(pc, true);
       }
     }
-    /* output */
-    sendData(pc, false); //TODO do we ever have to not post the data. i.e. can we get here mid event? I dont think so.
   }
 
   auto dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;

@@ -18,6 +18,7 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "FairLogger.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "Framework/ProcessingContext.h"
 
 namespace o2::trd
 {
@@ -93,6 +94,9 @@ class EventStorage
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& tracklets);
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end);
   void unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits);
+  void sendData(o2::framework::ProcessingContext& pc);
+  //this could replace by keeing a running total on addition TODO
+  void sumTrackletsDigitsTriggers(uint64_t& tracklets, uint64_t& digits, uint64_t& triggers);
   int sumTracklets();
   int sumDigits();
   std::vector<Tracklet64>& getTracklets(InteractionRecord& ir);
