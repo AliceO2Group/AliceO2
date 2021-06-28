@@ -47,7 +47,7 @@ enum struct RateLimitingState {
 };
 
 struct RateLimitConfig {
-  int64_t maxMemory = 0;
+  int64_t maxMemory = 2000;
 };
 
 static int64_t memLimit = 0;
@@ -59,37 +59,6 @@ struct MetricIndices {
   size_t arrowMessagesCreated = 0;
   size_t arrowMessagesDestroyed = 0;
 };
-
-/// Service for common handling of rate limiting
-o2::framework::ServiceSpec ArrowSupport::rateLimitingSpec()
-{
-  return ServiceSpec{"aod-rate-limiting",
-                     [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) {
-                       return ServiceHandle{TypeIdHelpers::uniqueId<RateLimitConfig>(), new RateLimitConfig{}};
-                     },
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     [](ServiceRegistry& registry, boost::program_options::variables_map const& vm) {
-                       if (!vm["aod-memory-rate-limit"].defaulted()) {
-                         memLimit = std::stoll(vm["aod-memory-rate-limit"].as<std::string const>());
-                         // registry.registerService(ServiceRegistryHelpers::handleForService<RateLimitConfig>(new RateLimitConfig{memLimit}));
-                       }
-                     },
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     nullptr,
-                     ServiceKind::Serial};
-}
 
 std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& allDevicesMetrics)
 {
@@ -104,6 +73,11 @@ std::vector<MetricIndices> createDefaultIndices(std::vector<DeviceMetricsInfo>& 
     results.push_back(indices);
   }
   return results;
+}
+
+uint64_t calculateAvailableSharedMemory(ServiceRegistry& registry)
+{
+  return registry.get<RateLimitConfig>().maxMemory;
 }
 
 o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
@@ -230,8 +204,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        now = uv_hrtime();
                        static RateLimitingState lastReportedState = RateLimitingState::UNKNOWN;
                        static uint64_t lastReportTime = 0;
-                       constexpr int64_t MAX_SHARED_MEMORY = 2000;
+                       static int64_t MAX_SHARED_MEMORY = calculateAvailableSharedMemory(registry);
                        constexpr int64_t QUANTUM_SHARED_MEMORY = 500;
+
                        static int64_t availableSharedMemory = MAX_SHARED_MEMORY;
                        static int64_t offeredSharedMemory = 0;
                        static int64_t lastDeviceOffered = 0;
@@ -301,7 +276,22 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                      },
                      nullptr,
                      nullptr,
-                     ServiceKind::Serial};
+                     [](ServiceRegistry& registry, boost::program_options::variables_map const& vm) {
+                       auto config = new RateLimitConfig{};
+		       int readers = std::stoll(vm["readers"].as<std::string>());
+		       long long int minReaderMemory = readers*1000;
+                       if (vm.count("aod-memory-rate-limit")) {
+                         config->maxMemory = std::max(minReaderMemory, std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000);
+                       }
+                       static bool once = false;
+                       // Until we guarantee this is called only once...
+                       if (!once) {
+                         LOGP(INFO, "Rate limiting set up at {}MB distributed over {} readers", config->maxMemory, readers);
+                         registry.registerService(ServiceRegistryHelpers::handleForService<RateLimitConfig>(config));
+                         once = true;
+                       }
+                     },
+                     ServiceKind::Global};
 }
 
 } // namespace o2::framework

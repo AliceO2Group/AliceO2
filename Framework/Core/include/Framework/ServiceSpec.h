@@ -87,6 +87,9 @@ using ServiceMetricHandling = std::function<void(ServiceRegistry&,
 /// Callback executed in the child after dispatching happened.
 using ServicePostDispatching = std::function<void(ProcessingContext&, void*)>;
 
+/// Callback invoked when the driver enters the init phase.
+using ServiceDriverInit = std::function<void(ServiceRegistry&, boost::program_options::variables_map const&)>;
+
 /// A specification for a Service.
 /// A Service is a utility class which does not perform
 /// data processing itself, but it can be used by the data processor
@@ -119,8 +122,7 @@ struct ServiceSpec {
   /// Callback executed after forking a given device in the driver,
   /// but before doing exec / starting the device.
   ServicePostForkChild postForkChild = nullptr;
-  /// Callback executed after forking a given device in the driver,
-  /// but before doing exec / starting the device.
+  /// Callback executed after forking a given device in the driver.
   ServicePostForkParent postForkParent = nullptr;
 
   /// Callback executed before and after we schedule a topology
@@ -138,6 +140,8 @@ struct ServiceSpec {
   ServiceStartCallback start = nullptr;
   /// Callback invoked on exit
   ServiceExitCallback exit = nullptr;
+  /// Callback invoked on driver entering the INIT state
+  ServiceDriverInit driverInit = nullptr;
 
   /// Kind of service being specified.
   ServiceKind kind;
