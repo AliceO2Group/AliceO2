@@ -21,7 +21,7 @@
 //////////////////////////////////////////////
 
 #include "CCDB/BasicCCDBManager.h"
-
+#include "FT0Base/Constants.h"
 #include <Rtypes.h>
 #include <cassert>
 #include <exception>
@@ -107,8 +107,8 @@ class LookUpTable
 {
   using CcdbManager = o2::ccdb::BasicCCDBManager;
   using CcdbApi = o2::ccdb::CcdbApi;
-  static constexpr int NUMBER_OF_MCPs = 12;
-  static constexpr int NUMBER_OF_PMs = 19;
+  static constexpr int NUMBER_OF_MCPs = o2::ft0::Constants::sNCHANNELS_PER_PM;
+  static constexpr int NUMBER_OF_PMs = o2::ft0::Constants::sNTOTAL_PM;
   static constexpr int TCM_channel = 228;
 
  public:

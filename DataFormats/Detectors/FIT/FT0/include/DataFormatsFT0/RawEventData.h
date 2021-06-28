@@ -20,6 +20,7 @@
 #include "TList.h" //temporary for QC-FT0 (ChannelTimeCalibrationCheck.cxx), should be moved
 #include "DataFormatsFIT/RawEventData.h"
 #include "FT0Base/Geometry.h"
+#include "FT0Base/Constants.h"
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
 #include <utility>
@@ -32,8 +33,6 @@ namespace o2
 namespace ft0
 {
 constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
-constexpr int Nchannels_PM = 12;
-constexpr int NPMs = 20;
 using EventHeader = o2::fit::EventHeader;
 using EventData = o2::fit::EventData;
 using TCMdata = o2::fit::TCMdata;
@@ -96,9 +95,9 @@ class RawEventData
   }
 
  public:
-  EventHeader mEventHeader;           //!
-  EventData mEventData[Nchannels_PM]; //!
-  TCMdata mTCMdata;                   //!
+  EventHeader mEventHeader;                                    //!
+  EventData mEventData[o2::ft0::Constants::sNCHANNELS_PER_PM]; //!
+  TCMdata mTCMdata;                                            //!
   bool mIsPadded = true;
   /////////////////////////////////////////////////
   ClassDefNV(RawEventData, 2);
