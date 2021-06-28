@@ -13,9 +13,9 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "TPCQC/TrackCuts.h"
+#include "DataFormatsTPC/TrackCuts.h"
 
 BOOST_AUTO_TEST_CASE(ReadWriteROOTFile)
 {
-  o2::tpc::qc::TrackCuts trackcuts;
+  o2::tpc::TrackCuts trackcuts;
 }
