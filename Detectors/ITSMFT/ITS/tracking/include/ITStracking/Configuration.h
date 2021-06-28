@@ -54,6 +54,7 @@ struct TrackingParameters {
   int TrackletsPerRoad() const { return NLayers - 1; }
 
   int NLayers = 7;
+  int DeltaROF = 1;
   std::vector<float> LayerZ = {16.333f + 1, 16.333f + 1, 16.333f + 1, 42.140f + 1, 42.140f + 1, 73.745f + 1, 73.745f + 1};
   std::vector<float> LayerRadii = {2.33959f, 3.14076f, 3.91924f, 19.6213f, 24.5597f, 34.388f, 39.3329f};
   int ZBins{256};

@@ -72,8 +72,8 @@ void TrackerTraitsCPU::computeLayerTracklets()
             phiBinsNum += mTrkParams.PhiBins;
           }
 
-          int minRof = (rof0 > 0) ? rof0 - 1 : 0;
-          int maxRof = (rof0 == tf->getNrof() - 1) ? rof0 : rof0 + 1;
+          int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF: 0;
+          int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
           for (int rof1{minRof}; rof1 < maxRof; ++rof1) {
             gsl::span<const Cluster> layer1 = tf->getClustersOnLayer(rof1, iLayer + 1);
             if (layer1.empty()) {
@@ -203,8 +203,7 @@ void TrackerTraitsCPU::computeLayerCells()
 
             const float3 secondDeltaVector{thirdCellCluster.xCoordinate - cellClus0.xCoordinate,
                                            thirdCellCluster.yCoordinate - cellClus0.yCoordinate,
-                                           thirdCellClusterR2 -
-                                             cellClus0R2};
+                                           thirdCellClusterR2 - cellClus0R2};
 
             float3 cellPlaneNormalVector{math_utils::crossProduct(firstDeltaVector, secondDeltaVector)};
 
