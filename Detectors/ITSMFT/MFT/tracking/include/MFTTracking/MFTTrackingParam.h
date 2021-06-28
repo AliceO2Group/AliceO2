@@ -26,7 +26,7 @@ enum MFTTrackModel {
   Helix,
   Quadratic,
   Linear,
-  Optimized
+  Optimized // Parameter propagation with helix model; covariance propagation with quadratic model
 };
 
 // **
@@ -34,7 +34,7 @@ enum MFTTrackModel {
 // **
 struct MFTTrackingParam : public o2::conf::ConfigurableParamHelper<MFTTrackingParam> {
   Int_t trackmodel = MFTTrackModel::Optimized;
-  double MFTRadLength = 1.0; // MFT average material budget within acceptance. Should be 0.041
+  double MFTRadLength = 0.042; // MFT average material budget within acceptance
   bool verbose = false;
 
   /// tracking algorithm (LTF and CA) parameters

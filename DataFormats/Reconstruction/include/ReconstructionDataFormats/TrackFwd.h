@@ -62,16 +62,9 @@ class TrackParFwd
   Double_t getInvQPt() const { return mParameters(4); } // return Inverse charged pt
   Double_t getPt() const { return TMath::Abs(1.f / mParameters(4)); }
   Double_t getInvPt() const { return TMath::Abs(mParameters(4)); }
-
   Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
-  Double_t getInvPx() const { return 1. / getPx(); }                // return invpx
-
   Double_t getPy() const { return TMath::Sin(getPhi()) * getPt(); } // return py
-  Double_t getInvPy() const { return 1. / getPx(); }                // return invpy
-
   Double_t getPz() const { return getTanl() * getPt(); } // return pz
-  Double_t getInvPz() const { return 1. / getPz(); }     // return invpz
-
   Double_t getP() const { return getPt() * TMath::Sqrt(1. + getTanl() * getTanl()); } // return total momentum
   Double_t getInverseMomentum() const { return 1.f / getP(); }
 
@@ -127,7 +120,7 @@ class TrackParCovFwd : public TrackParFwd
   TrackParCovFwd() = default;
   ~TrackParCovFwd() = default;
   TrackParCovFwd& operator=(const TrackParCovFwd& tpf) = default;
-  TrackParCovFwd(const Double_t z, const SMatrix5 parameters, const SMatrix55Sym covariances, const Double_t chi2);
+  TrackParCovFwd(const Double_t z, const SMatrix5& parameters, const SMatrix55Sym& covariances, const Double_t chi2);
 
   const SMatrix55Sym& getCovariances() const { return mCovariances; }
   void setCovariances(const SMatrix55Sym& covariances) { mCovariances = covariances; }

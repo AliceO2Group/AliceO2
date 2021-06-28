@@ -57,6 +57,7 @@ class TrackFitter
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
+  bool propagateToZ(TrackLTF& track, double z);
   bool propagateToNextClusterWithMCS(TrackLTF& track, double z);
   bool computeCluster(TrackLTF& track, int cluster);
 

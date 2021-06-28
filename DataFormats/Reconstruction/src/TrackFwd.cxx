@@ -19,7 +19,7 @@ namespace track
 using namespace std;
 
 //_________________________________________________________________________
-TrackParCovFwd::TrackParCovFwd(const Double_t z, const SMatrix5 parameters, const SMatrix55Sym covariances, const Double_t chi2)
+TrackParCovFwd::TrackParCovFwd(const Double_t z, const SMatrix5& parameters, const SMatrix55Sym& covariances, const Double_t chi2)
 {
   setZ(z);
   setParameters(parameters);
@@ -322,7 +322,37 @@ bool TrackParCovFwd::update(const std::array<float, 2>& p, const std::array<floa
   mParameters = mParameters + K_k * r_k_kminus1;
 
   // Update covariances Matrix
-  SMatrix55Std updatedCov = (I - K_k * H_k) * mCovariances;
+  SMatrix55Std updatedCov;
+  auto& CP = mCovariances;
+  auto& sigmax2 = cov[0];
+  auto& sigmay2 = cov[1];
+  auto A = 1. / (sigmax2 * sigmay2 + sigmax2 * CP(1, 1) + sigmay2 * CP(0, 0) + CP(0, 0) * CP(1, 1) - CP(0, 1) * CP(0, 1));
+  auto AX = A * sigmax2;
+  auto AY = A * sigmay2;
+  auto B = sigmax2 * sigmay2;
+  auto C = (sigmax2 + CP(0, 0)) * (sigmay2 + CP(1, 1));
+  auto D = 1 / (-C + CP(0, 1) * CP(0, 1));
+  auto E = sigmax2 + CP(0, 0);
+  auto F = sigmay2 + CP(1, 1);
+  auto G = -C + CP(0, 1) * CP(0, 1);
+
+  // Explicit evaluation of "updatedCov = (I - K_k * H_k) * mCovariances"
+  updatedCov(0, 0) = AX * (sigmay2 * CP(0, 0) + CP(0, 0) * CP(1, 1) - CP(0, 1) * CP(0, 1));
+  updatedCov(0, 1) = AX * sigmay2 * CP(0, 1);
+  updatedCov(0, 2) = AX * (sigmay2 * CP(0, 2) - CP(0, 1) * CP(1, 2) + CP(0, 2) * CP(1, 1));
+  updatedCov(0, 3) = AX * (sigmay2 * CP(0, 3) - CP(0, 1) * CP(1, 3) + CP(0, 3) * CP(1, 1));
+  updatedCov(0, 4) = AX * (sigmay2 * CP(0, 4) - CP(0, 1) * CP(1, 4) + CP(0, 4) * CP(1, 1));
+  updatedCov(1, 1) = AY * (sigmax2 * CP(1, 1) + CP(0, 0) * CP(1, 1) - CP(0, 1) * CP(0, 1));
+  updatedCov(1, 2) = AY * (sigmax2 * CP(1, 2) + CP(0, 0) * CP(1, 2) - CP(0, 1) * CP(0, 2));
+  updatedCov(1, 3) = AY * (sigmax2 * CP(1, 3) + CP(0, 0) * CP(1, 3) - CP(0, 1) * CP(0, 3));
+  updatedCov(1, 4) = AY * (sigmax2 * CP(1, 4) + CP(0, 0) * CP(1, 4) - CP(0, 1) * CP(0, 4));
+  updatedCov(2, 2) = D * (G * CP(2, 2) - CP(0, 2) * (-F * CP(0, 2) + CP(0, 1) * CP(1, 2)) - CP(1, 2) * (-E * CP(1, 2) + CP(0, 1) * CP(0, 2)));
+  updatedCov(2, 3) = D * (G * CP(2, 3) - CP(0, 2) * (-F * CP(0, 3) + CP(0, 1) * CP(1, 3)) - CP(1, 2) * (-E * CP(1, 3) + CP(0, 1) * CP(0, 3)));
+  updatedCov(2, 4) = D * (G * CP(2, 4) - CP(0, 2) * (-F * CP(0, 4) + CP(0, 1) * CP(1, 4)) - CP(1, 2) * (-E * CP(1, 4) + CP(0, 1) * CP(0, 4)));
+  updatedCov(3, 3) = D * (G * CP(3, 3) - CP(0, 3) * (-F * CP(0, 3) + CP(0, 1) * CP(1, 3)) - CP(1, 3) * (-E * CP(1, 3) + CP(0, 1) * CP(0, 3)));
+  updatedCov(3, 4) = D * (G * CP(3, 4) - CP(0, 3) * (-F * CP(0, 4) + CP(0, 1) * CP(1, 4)) - CP(1, 3) * (-E * CP(1, 4) + CP(0, 1) * CP(0, 4)));
+  updatedCov(4, 4) = D * (G * CP(4, 4) - CP(0, 4) * (-F * CP(0, 4) + CP(0, 1) * CP(1, 4)) - CP(1, 4) * (-E * CP(1, 4) + CP(0, 1) * CP(0, 4)));
+
   mCovariances(0, 0) = updatedCov(0, 0);
   mCovariances(0, 1) = updatedCov(0, 1);
   mCovariances(0, 2) = updatedCov(0, 2);
@@ -352,6 +382,10 @@ void TrackParCovFwd::addMCSEffect(double x_over_X0)
   ///  Only angular and pt MCS effects are evaluated.
   ///  * x_over_X0 is the fraction of the radiation lenght (x/X0).
   ///  * No energy loss correction.
+
+  if (x_over_X0 == 0) { // Nothing to do
+    return;
+  }
 
   auto phi0 = getPhi();
   auto tanl0 = getTanl();
