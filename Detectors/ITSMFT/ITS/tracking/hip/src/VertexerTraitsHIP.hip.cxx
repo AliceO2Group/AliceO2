@@ -49,9 +49,9 @@ GPUhd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInd
                                const float z1, float maxdeltaz, float maxdeltaphi)
 {
   const float zRangeMin = z1 - maxdeltaz;
-  const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
+  const float phiRangeMin = currentCluster.phi - maxdeltaphi;
   const float zRangeMax = z1 + maxdeltaz;
-  const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
+  const float phiRangeMax = currentCluster.phi + maxdeltaphi;
 
   if (zRangeMax < -LayersZCoordinate()[layerIndex + 1] ||
       zRangeMin > LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
