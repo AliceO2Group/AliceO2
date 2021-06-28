@@ -30,13 +30,12 @@
 // Defines the jet table definition
 #define JET_TABLE_DEF(_collision_name_,_jet_type_,_name_,_description_) \
     namespace _name_##util { \
-        DECLARE_SOA_INDEX_COLUMN(_collision_name_, collision); \
         DECLARE_SOA_DYNAMIC_COLUMN(Dummy##_jet_type_##s, dummy##_jet_type##s, \
                             []() -> int { return 0; }); \
     } \
     DECLARE_SOA_TABLE(_jet_type_##s, "AOD", _description_, \
                   o2::soa::Index<>, \
-                  _name_##util::_collision_name_##Id, \
+                  jet::_collision_name_##Id, \
                   jet::Pt, \
                   jet::Eta, \
                   jet::Phi, \
@@ -91,7 +90,8 @@ namespace o2::aod
 {
 namespace jet
 {
-// The index column is defined separately.
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision);
 DECLARE_SOA_COLUMN(Pt, pt, float);              //!
 DECLARE_SOA_COLUMN(Eta, eta, float);            //!
 DECLARE_SOA_COLUMN(Phi, phi, float);            //!
