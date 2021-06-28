@@ -72,7 +72,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
             phiBinsNum += mTrkParams.PhiBins;
           }
 
-          int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF: 0;
+          int minRof = (rof0 >= mTrkParams.DeltaROF) ? rof0 - mTrkParams.DeltaROF : 0;
           int maxRof = (rof0 == tf->getNrof() - mTrkParams.DeltaROF) ? rof0 : rof0 + mTrkParams.DeltaROF;
           for (int rof1{minRof}; rof1 < maxRof; ++rof1) {
             gsl::span<const Cluster> layer1 = tf->getClustersOnLayer(rof1, iLayer + 1);
