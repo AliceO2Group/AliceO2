@@ -594,18 +594,26 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
       } else {
         // changed SM Type, redefine the [2*i+1] Boundaries
         tmpSMType = GetSMType(2 * i);
-        if (GetSMType(2 * i) == EMCAL_STANDARD) {
-          mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + kfSupermodulePhiWidth;
-        } else if (GetSMType(2 * i) == EMCAL_HALF) {
-          mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 2, mIPDistance);
-        } else if (GetSMType(2 * i) == EMCAL_THIRD) {
-          mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 3, mIPDistance);
-        } else if (GetSMType(2 * i) == DCAL_STANDARD) { // jump the gap
-          mPhiBoundariesOfSM[2 * i] = (mDCALPhiMin - mArm1PhiMin) * TMath::DegToRad() + mPhiBoundariesOfSM[0];
-          mPhiBoundariesOfSM[2 * i + 1] = (mDCALPhiMin - mArm1PhiMin) * TMath::DegToRad() + mPhiBoundariesOfSM[1];
-        } else if (GetSMType(2 * i) == DCAL_EXT) {
-          mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 3, mIPDistance);
-        }
+        switch (GetSMType(2 * i)) {
+          case EMCAL_STANDARD:
+            mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + kfSupermodulePhiWidth;
+            break;
+          case EMCAL_HALF:
+            mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 2, mIPDistance);
+            break;
+          case EMCAL_THIRD:
+            mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 3, mIPDistance);
+            break;
+          case DCAL_STANDARD:
+            mPhiBoundariesOfSM[2 * i] = (mDCALPhiMin - mArm1PhiMin) * TMath::DegToRad() + mPhiBoundariesOfSM[0];
+            mPhiBoundariesOfSM[2 * i + 1] = (mDCALPhiMin - mArm1PhiMin) * TMath::DegToRad() + mPhiBoundariesOfSM[1];
+            break;
+          case DCAL_EXT:
+            mPhiBoundariesOfSM[2 * i + 1] = mPhiBoundariesOfSM[2 * i] + 2. * TMath::ATan2((mParSM[1]) / 3, mIPDistance);
+            break;
+          default:
+            break;
+        };
       }
       mPhiCentersOfSM[i] = (mPhiBoundariesOfSM[2 * i] + mPhiBoundariesOfSM[2 * i + 1]) / 2.;
       mPhiCentersOfSMSec[i] = mPhiBoundariesOfSM[2 * i] + TMath::ATan2(mParSM[1], mIPDistance);
@@ -614,7 +622,7 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
 
   // inner extend in eta (same as outer part) for DCal (0.189917), //calculated from the smallest gap (1# cell to the
   // 80-degree-edge),
-  Double_t innerExtandedPhi =
+  const double INNNER_EXTENDED_PHI =
     1.102840997; // calculated from the smallest gap (1# cell to the 80-degree-edge), too complicatd to explain...
   mDCALInnerExtandedEta = -TMath::Log(
     TMath::Tan((TMath::Pi() / 2. - 8 * mTrd1Angle * TMath::DegToRad() +
@@ -624,20 +632,27 @@ void Geometry::DefineEMC(std::string_view mcname, std::string_view mctitle)
   mEMCALPhiMax = mArm1PhiMin;
   mDCALPhiMax = mDCALPhiMin; // DCAl extention will not be included
   for (Int_t i = 0; i < mNumberOfSuperModules; i += 2) {
-    if (GetSMType(i) == EMCAL_STANDARD) {
-      mEMCALPhiMax += 20.;
-    } else if (GetSMType(i) == EMCAL_HALF) {
-      mEMCALPhiMax += mPhiSuperModule / 2. + innerExtandedPhi;
-    } else if (GetSMType(i) == EMCAL_THIRD) {
-      mEMCALPhiMax += mPhiSuperModule / 3. + 4.0 * innerExtandedPhi / 3.0;
-    } else if (GetSMType(i) == DCAL_STANDARD) {
-      mDCALPhiMax += 20.;
-      mDCALStandardPhiMax = mDCALPhiMax;
-    } else if (GetSMType(i) == DCAL_EXT) {
-      mDCALPhiMax += mPhiSuperModule / 3. + 4.0 * innerExtandedPhi / 3.0;
-    } else {
-      LOG(ERROR) << "Unkown SM Type!!\n";
-    }
+    switch (GetSMType(i)) {
+      case EMCAL_STANDARD:
+        mEMCALPhiMax += 20.;
+        break;
+      case EMCAL_HALF:
+        mEMCALPhiMax += mPhiSuperModule / 2. + INNNER_EXTENDED_PHI;
+        break;
+      case EMCAL_THIRD:
+        mEMCALPhiMax += mPhiSuperModule / 3. + 4.0 * INNNER_EXTENDED_PHI / 3.0;
+        break;
+      case DCAL_STANDARD:
+        mDCALPhiMax += 20.;
+        mDCALStandardPhiMax = mDCALPhiMax;
+        break;
+      case DCAL_EXT:
+        mDCALPhiMax += mPhiSuperModule / 3. + 4.0 * INNNER_EXTENDED_PHI / 3.0;
+        break;
+      default:
+        LOG(ERROR) << "Unkown SM Type!!\n";
+        break;
+    };
   }
   // for compatible reason
   // if(fNumberOfSuperModules == 4) {fEMCALPhiMax = fArm1PhiMax ;}
@@ -716,26 +731,33 @@ int Geometry::GetAbsCellId(int supermoduleID, int moduleID, int phiInModule, int
   // 0 <= absid   < fNCells
   int cellid = 0; // have to change from 0 to fNCells-1
   for (int i = 0; i < supermoduleID; i++) {
-    if (GetSMType(i) == EMCAL_STANDARD) {
-      cellid += mNCellsInSupMod;
-    } else if (GetSMType(i) == EMCAL_HALF) {
-      cellid += mNCellsInSupMod / 2;
-    } else if (GetSMType(i) == EMCAL_THIRD) {
-      cellid += mNCellsInSupMod / 3;
-    } else if (GetSMType(i) == DCAL_STANDARD) {
-      cellid += 2 * mNCellsInSupMod / 3;
-    } else if (GetSMType(i) == DCAL_EXT) {
-      cellid += mNCellsInSupMod / 3;
-    } else {
-      throw InvalidSupermoduleTypeException();
-    }
+    switch (GetSMType(i)) {
+      case EMCAL_STANDARD:
+        cellid += mNCellsInSupMod;
+        break;
+      case EMCAL_HALF:
+        cellid += mNCellsInSupMod / 2;
+        break;
+      case EMCAL_THIRD:
+        cellid += mNCellsInSupMod / 3;
+        break;
+      case DCAL_STANDARD:
+        cellid += 2 * mNCellsInSupMod / 3;
+        break;
+      case DCAL_EXT:
+        cellid += mNCellsInSupMod / 3;
+        break;
+      default:
+        throw InvalidSupermoduleTypeException();
+    };
   }
 
   cellid += mNCellsInModule * moduleID;
   cellid += mNPHIdiv * phiInModule;
   cellid += etaInModule;
-  if (!CheckAbsCellId(cellid))
+  if (!CheckAbsCellId(cellid)) {
     throw InvalidCellIDException(cellid);
+  }
 
   return cellid;
 }
@@ -749,9 +771,8 @@ std::tuple<int, int, int> Geometry::GetModuleIndexesFromCellIndexesInSModule(int
       moduleID = moduleEta * nModulesInSMPhi + modulePhi;
   int etaInModule = etaInSupermodule % mNETAdiv,
       phiInModule = phiInSupermodule % mNPHIdiv;
-  phiInModule = phiInSupermodule % mNPHIdiv;
-  return std::make_tuple(modulePhi, moduleEta, moduleID);
-  //return std::make_tuple(phiInModule, etaInModule, moduleID);
+  //return std::make_tuple(modulePhi, moduleEta, moduleID);
+  return std::make_tuple(phiInModule, etaInModule, moduleID);
 }
 
 Int_t Geometry::GetAbsCellIdFromCellIndexes(Int_t nSupMod, Int_t iphi, Int_t ieta) const
@@ -903,13 +924,17 @@ Int_t Geometry::GetAbsCellIdFromEtaPhi(Double_t eta, Double_t phi) const
   phi = TVector2::Phi_0_2pi(phi);
   Double_t phiLoc = phi - mPhiCentersOfSMSec[nSupMod / 2];
   Int_t nphi = mPhiCentersOfCells.size();
-  if (GetSMType(nSupMod) == EMCAL_HALF) {
-    nphi /= 2;
-  } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
-    nphi /= 3;
-  } else if (GetSMType(nSupMod) == DCAL_EXT) {
-    nphi /= 3;
-  }
+  switch (GetSMType(nSupMod)) {
+    case EMCAL_HALF:
+      nphi /= 2;
+    case EMCAL_THIRD:
+    case DCAL_EXT:
+      nphi /= 3;
+      break;
+    default:
+      // All other supermodules have full number of cells in phi
+      break;
+  };
 
   Double_t dmin = TMath::Abs(mPhiCentersOfCells[0] - phiLoc),
            d = 0.;
@@ -973,19 +998,23 @@ std::tuple<int, int, int, int> Geometry::CalculateCellIndex(Int_t absId) const
   for (nSupMod = -1; test >= 0;) {
     nSupMod++;
     tmp = test;
-    if (GetSMType(nSupMod) == EMCAL_STANDARD) {
-      test -= mNCellsInSupMod;
-    } else if (GetSMType(nSupMod) == EMCAL_HALF) {
-      test -= mNCellsInSupMod / 2;
-    } else if (GetSMType(nSupMod) == EMCAL_THIRD) {
-      test -= mNCellsInSupMod / 3;
-    } else if (GetSMType(nSupMod) == DCAL_STANDARD) {
-      test -= 2 * mNCellsInSupMod / 3;
-    } else if (GetSMType(nSupMod) == DCAL_EXT) {
-      test -= mNCellsInSupMod / 3;
-    } else {
-      throw InvalidSupermoduleTypeException();
-    }
+    switch (GetSMType(nSupMod)) {
+      case EMCAL_STANDARD:
+        test -= mNCellsInSupMod;
+        break;
+      case EMCAL_HALF:
+        test -= mNCellsInSupMod / 2;
+        break;
+      case DCAL_STANDARD:
+        test -= 2 * mNCellsInSupMod / 3;
+        break;
+      case EMCAL_THIRD:
+      case DCAL_EXT:
+        test -= mNCellsInSupMod / 3;
+        break;
+      default:
+        throw InvalidSupermoduleTypeException();
+    };
   }
 
   Int_t nModule = tmp / mNCellsInModule;
@@ -1007,16 +1036,18 @@ Int_t Geometry::GetSuperModuleNumber(Int_t absId) const { return std::get<0>(Get
 std::tuple<int, int> Geometry::GetModulePhiEtaIndexInSModule(int supermoduleID, int moduleID) const
 {
   int nModulesInPhi = -1;
-  if (GetSMType(supermoduleID) == EMCAL_HALF) {
-    nModulesInPhi = mNPhi / 2; // halfSM
-  } else if (GetSMType(supermoduleID) == EMCAL_THIRD) {
-    nModulesInPhi = mNPhi / 3; // 1/3 SM
-  } else if (GetSMType(supermoduleID) == DCAL_EXT) {
-    nModulesInPhi = mNPhi / 3; // 1/3 SM
-  } else {
-    nModulesInPhi = mNPhi; // full SM
-  }
-
+  switch (GetSMType(supermoduleID)) {
+    case EMCAL_HALF:
+      nModulesInPhi = mNPhi / 2; // halfSM
+      break;
+    case EMCAL_THIRD:
+    case DCAL_EXT:
+      nModulesInPhi = mNPhi / 3; // 1/3 SM
+      break;
+    default:
+      nModulesInPhi = mNPhi; // full SM
+      break;
+  };
   return std::make_tuple(int(moduleID % nModulesInPhi), int(moduleID / nModulesInPhi));
 }
 
