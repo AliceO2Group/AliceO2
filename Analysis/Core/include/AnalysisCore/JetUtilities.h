@@ -37,14 +37,13 @@ namespace JetUtilities
  * @param jetsEta Jets eta
  * @param maxMatchingDistance Maximum matching distance. Only duplicate jets within this distance of the boundary.
  */
-template<typename T>
+template <typename T>
 std::tuple<std::vector<std::size_t>, std::vector<T>, std::vector<T>> DuplicateJetsAroundPhiBoundary(
-  std::vector<T> & jetsPhi,
-  std::vector<T> & jetsEta,
+  std::vector<T>& jetsPhi,
+  std::vector<T>& jetsEta,
   double maxMatchingDistance,
   // TODO: Remove additional margin after additional testing.
-  double additionalMargin = 0.05
-)
+  double additionalMargin = 0.05)
 {
   const std::size_t nJets = jetsPhi.size();
   std::vector<std::size_t> jetsMapToJetIndex(nJets);
@@ -103,26 +102,25 @@ std::tuple<std::vector<std::size_t>, std::vector<T>, std::vector<T>> DuplicateJe
  *
  * @returns (Base to tag index map, tag to base index map) for uniquely matched jets.
  */
-template<typename T>
+template <typename T>
 std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
-  const std::vector<T> & jetsBasePhi,
-  const std::vector<T> & jetsBaseEta,
+  const std::vector<T>& jetsBasePhi,
+  const std::vector<T>& jetsBaseEta,
   std::vector<T> jetsBasePhiForMatching,
   std::vector<T> jetsBaseEtaForMatching,
   const std::vector<std::size_t> jetMapBaseToJetIndex,
-  const std::vector<T> & jetsTagPhi,
-  const std::vector<T> & jetsTagEta,
+  const std::vector<T>& jetsTagPhi,
+  const std::vector<T>& jetsTagEta,
   std::vector<T> jetsTagPhiForMatching,
   std::vector<T> jetsTagEtaForMatching,
   const std::vector<std::size_t> jetMapTagToJetIndex,
-  double maxMatchingDistance
-)
+  double maxMatchingDistance)
 {
   // Validation
   // If no jets in either collection, then return immediately.
   const std::size_t nJetsBase = jetsBaseEta.size();
   const std::size_t nJetsTag = jetsTagEta.size();
-  if(!(nJetsBase && nJetsTag)) {
+  if (!(nJetsBase && nJetsTag)) {
     return std::make_tuple(std::vector<int>(nJetsBase), std::vector<int>(nJetsTag));
   }
   // Require that the comparison vectors are greater than or equal to the standard collections.
@@ -161,7 +159,8 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
   // Find the tag jet closest to each base jet.
   for (std::size_t iBase = 0; iBase < nJetsBase; iBase++) {
     Double_t point[2] = {jetsBaseEta[iBase], jetsBasePhi[iBase]};
-    Int_t index(-1); Double_t distance(-1);
+    Int_t index(-1);
+    Double_t distance(-1);
     treeTag.FindNearestNeighbors(point, 1, &index, &distance);
     // test whether indices are matching:
     if (index >= 0 && distance < maxMatchingDistance) {
@@ -175,9 +174,10 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
   // Find the base jet closest to each tag jet
   for (std::size_t iTag = 0; iTag < nJetsTag; iTag++) {
     Double_t point[2] = {jetsTagEta[iTag], jetsTagPhi[iTag]};
-    Int_t index(-1); Double_t distance(-1);
+    Int_t index(-1);
+    Double_t distance(-1);
     treeBase.FindNearestNeighbors(point, 1, &index, &distance);
-    if(index >= 0 && distance < maxMatchingDistance) {
+    if (index >= 0 && distance < maxMatchingDistance) {
       LOG(DEBUG) << "Found closest base jet for " << iTag << " with match index " << index << " and distance " << distance << std::endl;
       matchIndexBase[iTag] = index;
     } else {
@@ -187,7 +187,7 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
 
   // Convert indices in the duplicated jet vectors into the original jet indices.
   // First for the base -> tag map.
-  for (auto & v : matchIndexTag) {
+  for (auto& v : matchIndexTag) {
     // If it's -1, it means that it didn't find a matching jet.
     // We have to explicitly check for it here because it would be an invalid index.
     if (v != -1) {
@@ -195,7 +195,7 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
     }
   }
   // Then for the index -> base map.
-  for (auto & v : matchIndexBase) {
+  for (auto& v : matchIndexBase) {
     if (v != -1) {
       v = jetMapBaseToJetIndex[v];
     }
@@ -209,7 +209,7 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
   LOG(DEBUG) << "Starting true jet loop: nbase(" << nJetsBase << "), ntag(" << nJetsTag << ")\n";
   for (std::size_t iBase = 0; iBase < nJetsBase; iBase++) {
     LOG(DEBUG) << "base jet " << iBase << ": match index in tag jet container " << matchIndexTag[iBase] << "\n";
-    if (matchIndexTag[iBase] > -1){
+    if (matchIndexTag[iBase] > -1) {
       LOG(DEBUG) << "tag jet " << matchIndexTag[iBase] << ": matched base jet " << matchIndexBase[matchIndexTag[iBase]] << "\n";
     }
     if (matchIndexTag[iBase] > -1 && matchIndexBase[matchIndexTag[iBase]] == iBase) {
@@ -239,19 +239,18 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometricallyImpl(
  *
  * @returns (Base to tag index map, tag to base index map) for uniquely matched jets.
  */
-template<typename T>
+template <typename T>
 std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometrically(
   std::vector<T> jetsBasePhi,
   std::vector<T> jetsBaseEta,
   std::vector<T> jetsTagPhi,
   std::vector<T> jetsTagEta,
-  double maxMatchingDistance
-)
+  double maxMatchingDistance)
 {
   // Validation
   const std::size_t nJetsBase = jetsBaseEta.size();
   const std::size_t nJetsTag = jetsTagEta.size();
-  if(!(nJetsBase && nJetsTag)) {
+  if (!(nJetsBase && nJetsTag)) {
     // There are no jets, so nothing to be done.
     return std::make_tuple(std::vector<int>(nJetsBase), std::vector<int>(nJetsTag));
   }
@@ -266,20 +265,18 @@ std::tuple<std::vector<int>, std::vector<int>> MatchJetsGeometrically(
   // To perform matching with periodic boundary conditions (ie. phi) with a KDTree, we need
   // to duplicate data up to maxMatchingDistance in phi because phi is periodic.
   // NOTE: vectors are modified in place to avoid copies.
-  auto && [jetMapBaseToJetIndex, jetsBasePhiComparison, jetsBaseEtaComparison] = DuplicateJetsAroundPhiBoundary(jetsBasePhi, jetsBaseEta, maxMatchingDistance);
-  auto && [jetMapTagToJetIndex, jetsTagPhiComparison, jetsTagEtaComparison] = DuplicateJetsAroundPhiBoundary(jetsTagPhi, jetsTagEta, maxMatchingDistance);
+  auto&& [jetMapBaseToJetIndex, jetsBasePhiComparison, jetsBaseEtaComparison] = DuplicateJetsAroundPhiBoundary(jetsBasePhi, jetsBaseEta, maxMatchingDistance);
+  auto&& [jetMapTagToJetIndex, jetsTagPhiComparison, jetsTagEtaComparison] = DuplicateJetsAroundPhiBoundary(jetsTagPhi, jetsTagEta, maxMatchingDistance);
 
   // Finally, perform the actual matching.
-  auto && [baseToTagMap, tagToBaseMap] = MatchJetsGeometricallyImpl(
+  auto&& [baseToTagMap, tagToBaseMap] = MatchJetsGeometricallyImpl(
     jetsBasePhi, jetsBaseEta, jetsBasePhiComparison, jetsBaseEtaComparison, jetMapBaseToJetIndex,
     jetsTagPhi, jetsTagEta, jetsTagPhiComparison, jetsTagEtaComparison, jetMapTagToJetIndex,
-    maxMatchingDistance
-  );
+    maxMatchingDistance);
 
   return std::make_tuple(baseToTagMap, tagToBaseMap);
 }
 
-
-};
+}; // namespace JetUtilities
 
 #endif

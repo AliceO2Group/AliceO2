@@ -134,14 +134,13 @@ struct JetFinderTask {
             // Since we're copying the consituents, we can combine the tracks and clusters together
             // We only have to keep the uncopied versions separated due to technical constraints.
             constituentsSubTable(jetsTable.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi(),
-                                constituent.E(), constituent.m(), constituent.user_index());
+                                 constituent.E(), constituent.m(), constituent.user_index());
           }
           if (constituent.user_index() < 0) {
             // Cluster
             // -1 to account for the convention of negative indices for clusters.
             clusterConstituentsTable(jetsTable.lastIndex(), -1 * constituent.user_index());
-          }
-          else {
+          } else {
             // Tracks
             trackConstituentsTable(jetsTable.lastIndex(), constituent.user_index());
           }
@@ -166,7 +165,7 @@ struct JetFinderTask {
     // the McParticles table, so for now we select by PID.
     // charged hadron (e-, mu-, pi+, K+, p+, Sigma+, Sigma-, Xi-, Omega-)
     // We define full jets as taking everything, and neutral jets as not charged.
-    std::vector <unsigned int> selectedPIDs{11, 13, 211, 321, 2212, 3222, 3112, 3312, 3334};
+    std::vector<unsigned int> selectedPIDs{11, 13, 211, 321, 2212, 3222, 3112, 3312, 3334};
     auto selectedBegin = selectedPIDs.begin();
     auto selectedEnd = selectedPIDs.end();
     for (auto& particle : particles) {
@@ -182,9 +181,7 @@ struct JetFinderTask {
 
       inputParticles.emplace_back(
         fastjet::PseudoJet(
-          particle.px(), particle.py(), particle.pz(), particle.e()
-        )
-      );
+          particle.px(), particle.py(), particle.pz(), particle.e()));
       inputParticles.back().set_user_index(particle.globalIndex());
     }
 
@@ -193,7 +190,7 @@ struct JetFinderTask {
 
   void processData(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels>>::iterator const& collision,
                    soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks,
-                   aod::EMCALClusters const & clusters)
+                   aod::EMCALClusters const& clusters)
   {
     // Setup
     // As of June 2021, I don't think enums are supported as configurables, so we have to handle the conversion here.
@@ -222,9 +219,7 @@ struct JetFinderTask {
             pt * std::cos(cluster.phi()),
             pt * std::sin(cluster.phi()),
             pt * std::sinh(cluster.eta()),
-            cluster.energy()
-          )
-        );
+            cluster.energy()));
         // Clusters are denoted with negative indices.
         inputParticles.back().set_user_index(-1 * cluster.globalIndex());
       }
@@ -278,4 +273,3 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   return WorkflowSpec{
     adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, Processes{&JetFinderHybridIntermediate::processData}, TaskName{"jet-finder-hybrid-intermedaite"})};
 }
-

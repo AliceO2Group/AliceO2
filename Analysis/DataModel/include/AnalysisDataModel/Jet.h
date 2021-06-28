@@ -28,60 +28,63 @@
 #include <cmath>
 
 // Defines the jet table definition
-#define JET_TABLE_DEF(_collision_name_,_jet_type_,_name_,_description_) \
-    namespace _name_##util { \
-        DECLARE_SOA_DYNAMIC_COLUMN(Dummy##_jet_type_##s, dummy##_jet_type##s, \
-                            []() -> int { return 0; }); \
-    } \
-    DECLARE_SOA_TABLE(_jet_type_##s, "AOD", _description_, \
-                  o2::soa::Index<>, \
-                  jet::_collision_name_##Id, \
-                  jet::Pt, \
-                  jet::Eta, \
-                  jet::Phi, \
-                  jet::Energy, \
-                  jet::Mass, \
-                  jet::Area, \
-                  jet::R, \
-                  jet::Px<jet::Pt, jet::Phi>, \
-                  jet::Py<jet::Pt, jet::Phi>, \
-                  jet::Pz<jet::Pt, jet::Eta>, \
-                  jet::P<jet::Pt, jet::Eta>, \
-                  _name_##util::Dummy##_jet_type_##s<>); \
-    namespace _name_##matching { \
-        DECLARE_SOA_INDEX_COLUMN(_jet_type_, jet); \
-        DECLARE_SOA_COLUMN(MatchedJetIndex, matchedJetIndex, int); \
-    } \
-    DECLARE_SOA_TABLE(Matched##_jet_type_##s, "AOD", _description_"MATCH", \
-                      _name_##matching::_jet_type_##Id, \
-                      _name_##matching::MatchedJetIndex);
+#define JET_TABLE_DEF(_collision_name_, _jet_type_, _name_, _description_) \
+  namespace _name_##util                                                   \
+  {                                                                        \
+    DECLARE_SOA_DYNAMIC_COLUMN(Dummy##_jet_type_##s, dummy##_jet_type##s,  \
+                               []() -> int { return 0; });                 \
+  }                                                                        \
+  DECLARE_SOA_TABLE(_jet_type_##s, "AOD", _description_,                   \
+                    o2::soa::Index<>,                                      \
+                    jet::_collision_name_##Id,                             \
+                    jet::Pt,                                               \
+                    jet::Eta,                                              \
+                    jet::Phi,                                              \
+                    jet::Energy,                                           \
+                    jet::Mass,                                             \
+                    jet::Area,                                             \
+                    jet::R,                                                \
+                    jet::Px<jet::Pt, jet::Phi>,                            \
+                    jet::Py<jet::Pt, jet::Phi>,                            \
+                    jet::Pz<jet::Pt, jet::Eta>,                            \
+                    jet::P<jet::Pt, jet::Eta>,                             \
+                    _name_##util::Dummy##_jet_type_##s<>);                 \
+  namespace _name_##matching                                               \
+  {                                                                        \
+    DECLARE_SOA_INDEX_COLUMN(_jet_type_, jet);                             \
+    DECLARE_SOA_COLUMN(MatchedJetIndex, matchedJetIndex, int);             \
+  }                                                                        \
+  DECLARE_SOA_TABLE(Matched##_jet_type_##s, "AOD", _description_ "MATCH",  \
+                    _name_##matching::_jet_type_##Id,                      \
+                    _name_##matching::MatchedJetIndex);
 
 // Defines the jet constituent table
-#define JET_CONSTITUENTS_TABLE_DEF(_jet_type_,_name_,_Description_,_track_type_) \
-    namespace _name_##constituents { \
-    DECLARE_SOA_INDEX_COLUMN(_jet_type_, jet);     \
-    DECLARE_SOA_INDEX_COLUMN(_track_type_, track); \
-    DECLARE_SOA_INDEX_COLUMN(EMCALCluster, cluster); \
-    } \
-    DECLARE_SOA_TABLE(_jet_type_##TrackConstituents, "AOD", _Description_"TRKCONSTS", \
-                      _name_##constituents::_jet_type_##Id, \
-                      _name_##constituents::_track_type_##Id); \
-    DECLARE_SOA_TABLE(_jet_type_##ClusterConstituents, "AOD", _Description_"CLSCONSTS", \
-                      _name_##constituents::_jet_type_##Id, \
-                      _name_##constituents::EMCALClusterId);
+#define JET_CONSTITUENTS_TABLE_DEF(_jet_type_, _name_, _Description_, _track_type_)    \
+  namespace _name_##constituents                                                       \
+  {                                                                                    \
+    DECLARE_SOA_INDEX_COLUMN(_jet_type_, jet);                                         \
+    DECLARE_SOA_INDEX_COLUMN(_track_type_, track);                                     \
+    DECLARE_SOA_INDEX_COLUMN(EMCALCluster, cluster);                                   \
+  }                                                                                    \
+  DECLARE_SOA_TABLE(_jet_type_##TrackConstituents, "AOD", _Description_ "TRKCONSTS",   \
+                    _name_##constituents::_jet_type_##Id,                              \
+                    _name_##constituents::_track_type_##Id);                           \
+  DECLARE_SOA_TABLE(_jet_type_##ClusterConstituents, "AOD", _Description_ "CLSCONSTS", \
+                    _name_##constituents::_jet_type_##Id,                              \
+                    _name_##constituents::EMCALClusterId);
 
 // Defines the jet constituent sub table
 // NOTE: This relies on eth jet index column being defined in the constiteunts namespace.
 //       Since these are always paired together, there's no point in redefining them.
-#define JET_CONSTITUENTS_SUB_TABLE_DEF(_jet_type_,_name_,_Description_) \
-    DECLARE_SOA_TABLE(_jet_type_##ConstituentsSub, "AOD", _Description_"CONSTSUB", \
-                    _name_##constituents::_jet_type_##Id, \
-                    constituentssub::Pt, \
-                    constituentssub::Eta, \
-                    constituentssub::Phi, \
-                    constituentssub::Energy, \
-                    constituentssub::Mass, \
-                    constituentssub::Source, \
+#define JET_CONSTITUENTS_SUB_TABLE_DEF(_jet_type_, _name_, _Description_)           \
+  DECLARE_SOA_TABLE(_jet_type_##ConstituentsSub, "AOD", _Description_ "CONSTSUB",   \
+                    _name_##constituents::_jet_type_##Id,                           \
+                    constituentssub::Pt,                                            \
+                    constituentssub::Eta,                                           \
+                    constituentssub::Phi,                                           \
+                    constituentssub::Energy,                                        \
+                    constituentssub::Mass,                                          \
+                    constituentssub::Source,                                        \
                     constituentssub::Px<constituentssub::Pt, constituentssub::Phi>, \
                     constituentssub::Py<constituentssub::Pt, constituentssub::Phi>, \
                     constituentssub::Pz<constituentssub::Pt, constituentssub::Eta>, \
@@ -113,7 +116,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! absolute p
 // The standard constituents table is more simply defined fully via macros.
 
 // Constituent sub
-namespace constituentssub {
+namespace constituentssub
+{
 // Jet index column will be added in the macro
 DECLARE_SOA_COLUMN(Pt, pt, float);
 DECLARE_SOA_COLUMN(Eta, eta, float);
@@ -122,14 +126,14 @@ DECLARE_SOA_COLUMN(Energy, energy, float);
 DECLARE_SOA_COLUMN(Mass, mass, float);
 DECLARE_SOA_COLUMN(Source, source, int);
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px,
-                        [](float pt, float phi) -> float { return pt * std::cos(phi); });
+                           [](float pt, float phi) -> float { return pt * std::cos(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Py, py,
-                        [](float pt, float phi) -> float { return pt * std::sin(phi); });
+                           [](float pt, float phi) -> float { return pt * std::sin(phi); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pz, pz,
-                        [](float pt, float eta) -> float { return pt * std::sinh(eta); });
+                           [](float pt, float eta) -> float { return pt * std::sinh(eta); });
 DECLARE_SOA_DYNAMIC_COLUMN(P, p,
-                        [](float pt, float eta) -> float { return pt * std::cosh(eta); });
-}
+                           [](float pt, float eta) -> float { return pt * std::cosh(eta); });
+} // namespace constituentssub
 
 // Data jets
 // As an example, the expanded macros which are used to define the table is shown below.
