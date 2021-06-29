@@ -48,7 +48,7 @@ o2_add_executable(digit-reader-workflow
 o2_add_executable(flp-dpl-workflow
                   COMPONENT_NAME fdd
                   SOURCES src/fdd-flp-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow O2::FDDRaw O2::FITWorkflow
                   TARGETVARNAME fddflpexe)
 
 if(NOT APPLE)
