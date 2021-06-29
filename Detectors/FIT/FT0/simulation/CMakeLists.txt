@@ -19,7 +19,7 @@ o2_add_library(FT0Simulation
   O2::DataFormatsFT0
   O2::DetectorsRaw
   O2::CCDB
-	O2::DetectorsCalibration
+  O2::DetectorsCalibration
   O2::Headers)
 
 o2_target_root_dictionary(FT0Simulation HEADERS
