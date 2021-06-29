@@ -144,7 +144,7 @@ class LookUpTable
 
   int getChannel(int link, int mcp, int ep) const
   {
-    if ((ep == 0 && (link > 7 && link < 11)) ||
+    if ((ep == 0 && (link > 7 && link < 11 && link != 9)) ||
         (ep == 1 && link == 8 && mcp > 8) ||
         (ep == 1 && link == 9 && mcp > 8)) {
       LOG(INFO) << " channel is not conneted "
