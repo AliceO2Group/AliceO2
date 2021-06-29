@@ -34,9 +34,10 @@ o2_target_root_dictionary(FT0Simulation HEADERS
 
  o2_add_executable(digi2raw
                   COMPONENT_NAME ft0
-                  SOURCES src/digi2raw.cxx
+                  SOURCES src/digit2raw.cxx
                   PUBLIC_LINK_LIBRARIES O2::FT0Simulation
                                         O2::DetectorsRaw
                                         O2::DetectorsCommonDataFormats
                                         O2::CommonUtils
-                                        Boost::program_options)
+                                        Boost::program_options
+                                        O2::FT0Raw)

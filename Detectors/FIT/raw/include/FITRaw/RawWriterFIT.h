@@ -75,11 +75,9 @@ class RawWriterFIT
     };
     //Registering links
     for (const auto& metadataPair : mMapTopo2FEEmetadata) {
-      auto& rdh = metadataPair.second;
-      auto outputFilename = makeFilename(rdh);
+      const auto& rdh = metadataPair.second;
+      const auto outputFilename = makeFilename(rdh);
       mWriter.registerLink(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), outputFilename);
-      LOG(INFO) << "Registering link | "
-                << "LinkID: " << static_cast<uint16_t>(RDHUtils::getLinkID(rdh)) << " | EndPointID: " << static_cast<uint16_t>(RDHUtils::getEndPointID(rdh)) << " | Output filename: " << outputFilename;
     }
     //Processing digits into raw data
     TFile* inputFile = TFile::Open(filenameDigits.c_str());

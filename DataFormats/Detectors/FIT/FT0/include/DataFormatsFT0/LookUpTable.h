@@ -329,7 +329,7 @@ class SingleLUT : public LookUpTable
     }
     //TCM
     {
-      auto pairInserted = mapResult.insert({makeGlobalTopo(Instance().getTopoTCM()), RDHtype{}});
+      auto pairInserted = mapResult.insert({Instance().getTopoTCM(), RDHtype{}});
       if (pairInserted.second) {
         auto& rdhObj = pairInserted.first->second;
         const auto& topoObj = pairInserted.first->first;
