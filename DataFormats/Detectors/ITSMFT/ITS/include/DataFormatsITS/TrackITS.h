@@ -18,6 +18,7 @@
 
 #include <vector>
 
+#include "GPUCommonDef.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "CommonDataFormat/RangeReference.h"
 
@@ -40,13 +41,13 @@ class TrackITS : public o2::track::TrackParCov
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors
   static constexpr int MaxClusters = 16;
 
-  TrackITS() = default;
-  TrackITS(const TrackITS& t) = default;
-  TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
-  TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
+  GPUdDefault() TrackITS() = default;
+  GPUdDefault() TrackITS(const TrackITS& t) = default;
+  GPUd() TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
+  GPUd() TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
     : o2::track::TrackParCov{parCov}, mParamOut{outer}, mChi2{chi2} {}
-  TrackITS& operator=(const TrackITS& tr) = default;
-  ~TrackITS() = default;
+  GPUdDefault() TrackITS& operator=(const TrackITS& tr) = default;
+  GPUdDefault() ~TrackITS() = default;
 
   // These functions must be provided
   bool propagate(float alpha, float x, float bz);
@@ -109,8 +110,8 @@ class TrackITSExt : public TrackITS
   static constexpr int MaxClusters = 16; /// Prepare for overlaps and new detector configurations
   using TrackITS::TrackITS; // inherit base constructors
 
-  TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
-              o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
+  GPUd() TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
+                     o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
     : TrackITS(parCov, chi2, outer), mIndex{cls}
   {
     setNumberOfClusters(ncl);
