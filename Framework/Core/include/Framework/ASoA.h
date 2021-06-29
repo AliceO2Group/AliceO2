@@ -1377,7 +1377,7 @@ constexpr auto is_binding_compatible_v()
     {                                                                                                                                                                                        \
       assert(mBinding != nullptr);                                                                                                                                                           \
       auto t = T{static_cast<T*>(mBinding)->asArrowTable()->Slice((*mColumnIterator)[0], (*mColumnIterator)[1] - (*mColumnIterator)[0] + 1u), static_cast<uint64_t>((*mColumnIterator)[0])}; \
-      static_cast<T*>(mBinding)->copyIndexBindings(&t);                                                                                                                                      \
+      static_cast<T*>(mBinding)->copyIndexBindings(t);                                                                                                                                       \
       return t;                                                                                                                                                                              \
     }                                                                                                                                                                                        \
                                                                                                                                                                                              \
