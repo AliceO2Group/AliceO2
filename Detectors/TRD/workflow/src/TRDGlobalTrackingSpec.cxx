@@ -144,13 +144,17 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   // load ITS-TPC matched tracks
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
-    GPUTRDTrack trkLoad(trkITSTPC, mTPCVdrift);
+    GPUTRDTracker::HelperTrackAttributes trkAttribs;
+    trkAttribs.mTime = trkITSTPC.getTimeMUS().getTimeStamp();
+    trkAttribs.mTimeAddMax = trkITSTPC.getTimeMUS().getTimeStampError();
+    trkAttribs.mTimeSubMax = trkITSTPC.getTimeMUS().getTimeStampError();
+    GPUTRDTrack trkLoad(trkITSTPC);
     auto trackGID = GTrackID(iTrk, GTrackID::ITSTPC);
-    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
+    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw(), true, &trkAttribs)) {
       continue;
     }
     ++nTracksLoadedITSTPC;
-    LOGF(DEBUG, "Loaded ITS-TPC track %i with time %f", nTracksLoadedITSTPC, trkLoad.getTime());
+    LOGF(DEBUG, "Loaded ITS-TPC track %i with time %f", nTracksLoadedITSTPC, trkAttribs.mTime);
   }
   // load TPC-only tracks
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nOutputTracksTPCO2; ++iTrk) {
@@ -159,13 +163,22 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       continue;
     }
     const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
-    GPUTRDTrack trkLoad(trkTpc, mTPCTBinMUS, mTPCVdrift);
+    GPUTRDTracker::HelperTrackAttributes trkAttribs;
+    trkAttribs.mTime = trkTpc.getTime0() * mTPCTBinMUS;
+    trkAttribs.mTimeAddMax = trkTpc.getDeltaTFwd() * mTPCTBinMUS;
+    trkAttribs.mTimeSubMax = trkTpc.getDeltaTBwd() * mTPCTBinMUS;
+    if (trkTpc.hasASideClustersOnly()) {
+      trkAttribs.mSide = -1;
+    } else if (trkTpc.hasCSideClustersOnly()) {
+      trkAttribs.mSide = 1;
+    }
+    GPUTRDTrack trkLoad(trkTpc);
     auto trackGID = GTrackID(iTrk, GTrackID::TPC);
-    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
+    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw(), true, &trkAttribs)) {
       continue;
     }
     ++nTracksLoadedTPC;
-    LOGF(DEBUG, "Loaded TPC track %i with time %f", nTracksLoadedTPC, trkLoad.getTime());
+    LOGF(DEBUG, "Loaded TPC track %i with time %f", nTracksLoadedTPC, trkAttribs.mTime);
   }
   LOGF(INFO, "%i tracks are loaded into the TRD tracker. Out of those %i ITS-TPC tracks and %i TPC tracks", nTracksLoadedITSTPC + nTracksLoadedTPC, nTracksLoadedITSTPC, nTracksLoadedTPC);
 
