@@ -25,6 +25,8 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/Task.h"
 
+#include "DataSampling/DataSamplingHeader.h"
+
 class FairMQDevice;
 
 namespace o2::monitoring
@@ -63,12 +65,13 @@ class Dispatcher : public framework::Task
   framework::Options getOptions();
 
  private:
-  DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy, const framework::DeviceSpec& spec);
+  DataSamplingHeader prepareDataSamplingHeader(const DataSamplingPolicy& policy);
   header::Stack extractAdditionalHeaders(const char* inputHeaderStack) const;
   void reportStats(monitoring::Monitoring& monitoring) const;
-  void send(framework::DataAllocator& dataAllocator, const framework::DataRef& inputData, framework::Output&& output) const;
+  void send(framework::DataAllocator& dataAllocator, const framework::DataRef& inputData, const framework::Output& output) const;
 
   std::string mName;
+  DataSamplingHeader::DeviceIDType mDeviceID = "invalid";
   std::string mReconfigurationSource;
   // policies should be shared between all pipeline threads
   std::vector<std::shared_ptr<DataSamplingPolicy>> mPolicies;

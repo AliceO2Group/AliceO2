@@ -73,7 +73,7 @@ class DataSamplingPolicy
   void setFairMQOutputChannel(std::string);
 
   /// \brief Returns true if this policy requires data with given InputSpec.
-  bool match(const framework::ConcreteDataMatcher& input) const;
+  const framework::OutputSpec* match(const framework::ConcreteDataMatcher& input) const;
   /// \brief Returns true if user-defined conditions of sampling are fulfilled.
   bool decide(const o2::framework::DataRef&);
   /// \brief Returns Output for given InputSpec to pass data forward.
