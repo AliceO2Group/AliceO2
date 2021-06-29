@@ -118,119 +118,6 @@ struct HfBplusTod0piCandidateSelector {
     return true;
   }
 
-  /// Check if track is ok for TPC PID
-  template <typename T>
-  bool validTPCPID(const T& track)
-  {
-    if (std::abs(track.pt()) < d_pidTPCMinpT || std::abs(track.pt()) >= d_pidTPCMaxpT) {
-      return false;
-    }
-    //if (track.TPCNClsFindable() < d_TPCNClsFindablePIDCut) return false;
-    return true;
-  }
-
-  /// Check if track is ok for TOF PID
-  template <typename T>
-  bool validTOFPID(const T& track)
-  {
-    if (std::abs(track.pt()) < d_pidTOFMinpT || std::abs(track.pt()) >= d_pidTOFMaxpT) {
-      return false;
-    }
-    return true;
-  }
-
-  /// Check if track is compatible with given TPC Nsigma cut for the pion hypothesis
-  template <typename T>
-  bool selectionPIDTPC(const T& track, int nPDG, double nSigmaCut)
-  {
-    double nSigma = 100.0; //arbitarily large value
-    nPDG = std::abs(nPDG);
-    if (nPDG == kPiPlus) {
-      nSigma = track.tpcNSigmaPi();
-    } else {
-      return false;
-    }
-    if (std::abs(nSigma) < nSigmaCut)
-      return true;
-    else
-      return false;
-    //return std::abs(nSigma) < nSigmaCut;
-  }
-
-  /// Check if track is compatible with given TOF NSigma cut for a given flavour hypothesis
-  template <typename T>
-  bool selectionPIDTOF(const T& track, int nPDG, double nSigmaCut)
-  {
-    double nSigma = 100.0; //arbitarily large value
-    nPDG = std::abs(nPDG);
-    if (nPDG == kPiPlus) {
-      nSigma = track.tofNSigmaPi();
-    } else {
-      return false;
-    }
-    if (std::abs(nSigma) < nSigmaCut)
-      return true;
-    else
-      return false;
-    //  return std::abs(nSigma) < nSigmaCut;
-  }
-
-  /// TPC and TOF PID selection on daughter track
-  /// return 1 if successful PID match, 0 if successful PID rejection, -1 if no PID info
-  template <typename T>
-  int selectionPID(const T& track, int nPDG)
-  {
-    int statusTPC = -1;
-    int statusTOF = -1;
-
-    if (validTPCPID(track)) {
-      if (!selectionPIDTPC(track, nPDG, d_nSigmaTPC)) {
-        if (!selectionPIDTPC(track, nPDG, d_nSigmaTPCCombined)) {
-          statusTPC = 0; //rejected by PID
-        } else {
-          statusTPC = 1; //potential to be acceepted if combined with TOF
-        }
-      } else {
-        statusTPC = 2; //positive PID
-      }
-    } else {
-      statusTPC = -1; //no PID info
-    }
-
-    if (validTOFPID(track)) {
-      if (!selectionPIDTOF(track, nPDG, d_nSigmaTOF)) {
-        if (!selectionPIDTOF(track, nPDG, d_nSigmaTOFCombined)) {
-          statusTOF = 0; //rejected by PID
-        } else {
-          statusTOF = 1; //potential to be acceepted if combined with TOF
-        }
-      } else {
-        statusTOF = 2; //positive PID
-      }
-    } else {
-      statusTOF = -1; //no PID info
-    }
-
-    //question on the logic of this??
-    /*
-    if (statusTPC == 2 || statusTOF == 2) {
-      return 1; //what if we have 2 && 0 ?
-    } else if (statusTPC == 1 && statusTOF == 1) {
-      return 1;
-    } else if (statusTPC == 0 || statusTOF == 0) {
-      return 0;
-    } else {
-      return -1;
-    }
-    */
-    //temporary till I understand
-    if (statusTPC == 2 || statusTOF == 2) {
-      return 1;
-    } else {
-      return -1;
-    }
-  }
-
   void process(aod::HfCandBPlus const& hfCandBs, soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>, aod::BigTracksPID const& tracks)
   {
     for (auto& hfCandB : hfCandBs) { //looping over Bplus candidates
@@ -255,14 +142,6 @@ struct HfBplusTod0piCandidateSelector {
         continue;
       }
 
-      /*      //Pion PID
-      //if (selectionPID(trackPi, kPiPlus) == 0) {
-      if (selectionPID(trackPi, kPiPlus) != 1) {
-        hfSelBPlusToD0PiCandidate(statusBplus);
-        // Printf("B+ candidate selection failed at selection PID");
-        continue;
-      }
-*/
       hfSelBPlusToD0PiCandidate(1);
       // Printf("B+ candidate selection successful, candidate should be selected");
     }
