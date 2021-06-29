@@ -267,12 +267,12 @@ struct HfCorrelatorDplusDminusMcRec {
           continue;
         }
         //choice of options (Dplus/Dminus signal/bkg)
-        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/sig, 2 = sig/bkg, 3 = sig/sig
+        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/ref, 2 = bkg/sig, 3 = ref/bkg, 4 = ref/ref, 5 = ref/sig, 6 = sig/bkg, 7 = sig/ref, 8 = sig/sig. Of course only 0,2,6,8 are relevant for D+D-
         if (flagDplusSignal) {
-          pairSignalStatus += 2;
+          pairSignalStatus += 6;
         }
         if (flagDminusSignal) {
-          pairSignalStatus += 1;
+          pairSignalStatus += 2;
         }
         entryDplusDminusPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),
                              candidate2.eta() - candidate1.eta(),
