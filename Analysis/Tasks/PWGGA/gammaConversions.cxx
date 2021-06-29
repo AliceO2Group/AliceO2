@@ -43,7 +43,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 }
 #include "Framework/runDataProcessing.h"
 
-struct GammaConversionsMc {
+struct GammaConversions {
 
   Configurable<float> fSinglePtCut{"fSinglePtCut", 0.04, "minimum daughter track pt"};
 
@@ -384,10 +384,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   if (!cfgc.options().get<bool>("doMC")) {
     return WorkflowSpec{
-      adaptAnalysisTask<GammaConversionsMc>(cfgc, Processes{&GammaConversionsMc::processData}),
+      adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processData}),
     };
   }
   return WorkflowSpec{
-    adaptAnalysisTask<GammaConversionsMc>(cfgc, Processes{&GammaConversionsMc::processMC}),
+    adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processMC}),
   };
 }
