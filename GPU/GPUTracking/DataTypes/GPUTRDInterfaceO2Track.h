@@ -35,6 +35,7 @@ struct GPUTPCOuterParam;
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/TrackLTIntegral.h"
 #include "GPUTRDO2BaseTrack.h"
 
 namespace GPUCA_NAMESPACE
@@ -65,6 +66,8 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
   GPUd() trackInterface<GPUTRDO2BaseTrack>(const GPUTPCGMMergedTrack& trk);
   GPUd() trackInterface<GPUTRDO2BaseTrack>(const gputpcgmmergertypes::GPUTPCOuterParam& param);
   GPUd() void updateCovZ2(float addZerror) { updateCov(addZerror, o2::track::CovLabels::kSigZ2); }
+  GPUd() o2::track::TrackLTIntegral& getLTIntegralOut() { return mLTOut; }
+  GPUd() const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mLTOut; }
 
   GPUdi() const float* getPar() const { return getParams(); }
 
@@ -72,6 +75,8 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
 
   typedef GPUTRDO2BaseTrack baseClass;
 
+ private:
+  o2::track::TrackLTIntegral mLTOut;
 
   ClassDefNV(trackInterface, 1);
 };
