@@ -209,7 +209,9 @@ struct HfCorrelatorD0D0barMcRec {
   {
     //MC reco level
     bool flagD0Signal = false;
+    bool flagD0Reflection = false;
     bool flagD0barSignal = false;
+    bool flagD0barReflection = false;
     for (auto& candidate1 : candidates) {
       //check decay channel flag for candidate1
       if (!(candidate1.hfflag() & 1 << DecayType::D0ToPiK)) {
@@ -256,7 +258,8 @@ struct HfCorrelatorD0D0barMcRec {
       if (candidate1.isSelD0() < selectionFlagD0) { //discard candidates not selected as D0 in outer loop
         continue;
       }
-      flagD0Signal = candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK; //flagD0Signal 'true' if candidate1 matched to D0 (particle)
+      flagD0Signal = candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK;        //flagD0Signal 'true' if candidate1 matched to D0 (particle)
+      flagD0Reflection = candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0Reflection 'true' if candidate1, selected as D0 (particle), is matched to D0bar (antiparticle)
       for (auto& candidate2 : candidates) {
         if (!(candidate2.hfflag() & 1 << DecayType::D0ToPiK)) { //check decay channel flag for candidate2
           continue;
@@ -264,7 +267,8 @@ struct HfCorrelatorD0D0barMcRec {
         if (candidate2.isSelD0bar() < selectionFlagD0bar) { //discard candidates not selected as D0bar in inner loop
           continue;
         }
-        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0barSignal 'true' if candidate2 matched to D0bar (antiparticle)
+        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK);  //flagD0barSignal 'true' if candidate2 matched to D0bar (antiparticle)
+        flagD0barReflection = candidate2.flagMCMatchRec() == 1 << DecayType::D0ToPiK; //flagD0barReflection 'true' if candidate2, selected as D0bar (antiparticle), is matched to D0 (particle)
         if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
           continue;
         }
@@ -276,11 +280,17 @@ struct HfCorrelatorD0D0barMcRec {
           continue;
         }
         //choice of options (D0/D0bar signal/bkg)
-        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/sig, 2 = sig/bkg, 3 = sig/sig
+        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/ref, 2 = bkg/sig, 3 = ref/bkg, 4 = ref/ref, 5 = ref/sig, 6 = sig/bkg, 7 = sig/ref, 8 = sig/sig
         if (flagD0Signal) {
-          pairSignalStatus += 2;
+          pairSignalStatus += 6;
+        }
+        if (flagD0Reflection) {
+          pairSignalStatus += 3;
         }
         if (flagD0barSignal) {
+          pairSignalStatus += 2;
+        }
+        if (flagD0barReflection) {
           pairSignalStatus += 1;
         }
         entryD0D0barPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),
