@@ -159,7 +159,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       continue;
     }
     const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
-    GPUTRDTrack trkLoad(trkTpc, mTPCTBinMUS, mTPCVdrift, iTrk);
+    GPUTRDTrack trkLoad(trkTpc, mTPCTBinMUS, mTPCVdrift);
     auto trackGID = GTrackID(iTrk, GTrackID::TPC);
     if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
       continue;

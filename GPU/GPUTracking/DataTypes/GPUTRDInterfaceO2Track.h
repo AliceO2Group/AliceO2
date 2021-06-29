@@ -53,14 +53,11 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
     mTime = trkItsTpc.getTimeMUS().getTimeStamp();
     mTimeAddMax = trkItsTpc.getTimeMUS().getTimeStampError();
     mTimeSubMax = trkItsTpc.getTimeMUS().getTimeStampError();
-    mRefITS = trkItsTpc.getRefITS();
-    mRefTPC = trkItsTpc.getRefTPC();
     float tmp = trkItsTpc.getTimeMUS().getTimeStampError() * vDrift;
     updateCov(tmp * tmp, o2::track::CovLabels::kSigZ2); // account for time uncertainty by increasing sigmaZ2
   }
-  GPUd() trackInterface<GPUTRDO2BaseTrack>(const o2::tpc::TrackTPC& trkTpc, float tbWidth, float vDrift, unsigned int iTrk) : GPUTRDO2BaseTrack(trkTpc.getParamOut())
+  GPUd() trackInterface<GPUTRDO2BaseTrack>(const o2::tpc::TrackTPC& trkTpc, float tbWidth, float vDrift) : GPUTRDO2BaseTrack(trkTpc.getParamOut())
   {
-    mRefTPC = {iTrk, o2::dataformats::GlobalTrackID::TPC};
     mTime = trkTpc.getTime0() * tbWidth;
     mTimeAddMax = trkTpc.getDeltaTFwd() * tbWidth;
     mTimeSubMax = trkTpc.getDeltaTBwd() * tbWidth;
@@ -103,8 +100,6 @@ class trackInterface<GPUTRDO2BaseTrack> : public GPUTRDO2BaseTrack
   typedef GPUTRDO2BaseTrack baseClass;
 
  private:
-  o2::dataformats::GlobalTrackID mRefTPC; // reference on TPC track entry in its original container
-  o2::dataformats::GlobalTrackID mRefITS; // reference on ITS track entry in its original container
   float mTime{-1.f};                      // time estimate for this track in us
   float mTimeAddMax{0.f};                 // max. time that can be added to this track in us
   float mTimeSubMax{0.f};                 // max. time that can be subtracted to this track in us

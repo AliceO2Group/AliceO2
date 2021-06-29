@@ -100,7 +100,7 @@ GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t, fl
 }
 
 template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth, float vDrift, unsigned int iTrk) : T(t, tbWidth, vDrift, iTrk)
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth, float vDrift) : T(t, tbWidth, vDrift)
 {
   initialize();
 }
