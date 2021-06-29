@@ -428,7 +428,11 @@ taskwrapper() {
 getNumberOfPhysicalCPUCores() {
   if [ "$(uname)" == "Darwin" ]; then
     CORESPERSOCKET=`system_profiler SPHardwareDataType | grep "Total Number of Cores:" | awk '{print $5}'`
-    SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
+    if [ "$(uname -m)" == "arm64" ]; then
+	SOCKETS=1
+    else
+	SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
+    fi
   else
     # Do something under GNU/Linux platform
     CORESPERSOCKET=`lscpu | grep "Core(s) per socket" | awk '{print $4}'`
