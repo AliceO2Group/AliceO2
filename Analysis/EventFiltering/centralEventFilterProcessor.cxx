@@ -36,7 +36,7 @@ Document readJsonFile(std::string& config)
 {
   Document d;
   FILE* fp = fopen(config.data(), "rb");
-  if (fp == NULL) {
+  if (!fp) {
     LOG(ERROR) << "Missing configuration json file: " << config;
     return d;
   }
@@ -75,12 +75,13 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
       auto& config = workflow["configuration"];
       for (auto& filter : AvailableFilters) {
         auto& filterConfig = config[filter];
-        if (config.IsObject()) {
+        if (filterConfig.IsObject()) {
           std::unordered_map<std::string, float> tableMap;
           for (auto& node : filterConfig.GetObject()) {
             tableMap[node.name.GetString()] = node.value.GetDouble();
             nCols++;
           }
+          LOG(INFO) << "Enabling downscaling map for filter: " << filter;
           mDownscaling[filter] = tableMap;
         }
       }
@@ -191,5 +192,3 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
 }
 
 } // namespace o2::aod::filtering
-
-/// o2-analysis-cefp --config  /Users/stefano.trogolo/alice/run3/O2/Analysis/EventFiltering/sample.json | o2-analysis-nuclei-filter --aod-file @listOfFiles.txt | o2-analysis-trackselection  | o2-analysis-trackextension  | o2-analysis-pid-tpc | o2-analysis-pid-tof | o2-analysis-event-selection | o2-analysis
