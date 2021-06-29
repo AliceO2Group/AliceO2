@@ -187,12 +187,12 @@ taskwrapper() {
 
     grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
     eval ${grepcommand}
-    
+
     grepcommand="grep -a -h --count ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} 2>/dev/null"
     # using eval here since otherwise the pattern is translated to a
     # a weirdly quoted stringlist
     RC=$(eval ${grepcommand})
-    
+
     # if we see an exception we will bring down the DPL workflow
     # after having given it some chance to shut-down itself
     # basically --> send kill to all children
@@ -429,9 +429,9 @@ getNumberOfPhysicalCPUCores() {
   if [ "$(uname)" == "Darwin" ]; then
     CORESPERSOCKET=`system_profiler SPHardwareDataType | grep "Total Number of Cores:" | awk '{print $5}'`
     if [ "$(uname -m)" == "arm64" ]; then
-	SOCKETS=1
+  SOCKETS=1
     else
-	SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
+  SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
     fi
   else
     # Do something under GNU/Linux platform
