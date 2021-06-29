@@ -52,10 +52,10 @@ void run_trd_tracker(std::string path = "./",
   // different settings are defined in GPUSettingsList.h
   GPUSettingsGRP cfgGRP;                     // defaults should be ok
   GPUSettingsRec cfgRec;                     // settings concerning reconstruction
-  cfgRec.trdMinTrackPt = .5f;
-  cfgRec.trdMaxChi2 = 15.f;
-  cfgRec.trdPenaltyChi2 = 12.f;
-  cfgRec.trdStopTrkAfterNMissLy = 6;
+  cfgRec.trd.minTrackPt = .5f;
+  cfgRec.trd.maxChi2 = 15.f;
+  cfgRec.trd.penaltyChi2 = 12.f;
+  cfgRec.trd.stopTrkAfterNMissLy = 6;
   GPUSettingsProcessing cfgDeviceProcessing; // also keep defaults here, or adjust debug level
   cfgDeviceProcessing.debugLevel = 5;
   GPURecoStepConfiguration cfgRecoStep;
@@ -140,8 +140,12 @@ void run_trd_tracker(std::string path = "./",
   // load everything into the tracker
   for (unsigned int iTrk = 0; iTrk < nTracks; ++iTrk) {
     const auto& trkITSTPC = tracksInArrayPtr->at(iTrk);
-    GPUTRDTrack trkLoad(trkITSTPC, tpcVdrift);
-    tracker->LoadTrack(trkLoad, iTrk);
+    GPUTRDTracker::HelperTrackAttributes trkAttribs;
+    trkAttribs.mTime = trkITSTPC.getTimeMUS().getTimeStamp();
+    trkAttribs.mTimeAddMax = trkITSTPC.getTimeMUS().getTimeStampError();
+    trkAttribs.mTimeSubMax = trkITSTPC.getTimeMUS().getTimeStampError();
+    GPUTRDTrack trkLoad(trkITSTPC);
+    tracker->LoadTrack(trkLoad, iTrk, true, &trkAttribs);
   }
 
   tracker->DumpTracks();

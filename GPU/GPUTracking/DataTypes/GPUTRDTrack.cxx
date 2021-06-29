@@ -94,13 +94,13 @@ GPUd() void GPUTRDTrack_t<T>::ConvertFrom(const GPUTRDTrackDataRecord& t)
 #include "DataFormatsTPC/TrackTPC.h"
 
 template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t, float vDrift) : T(t, vDrift)
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t) : T(t)
 {
   initialize();
 }
 
 template <typename T>
-GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth, float vDrift) : T(t, tbWidth, vDrift)
+GPUd() GPUTRDTrack_t<T>::GPUTRDTrack_t(const o2::tpc::TrackTPC& t) : T(t)
 {
   initialize();
 }

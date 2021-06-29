@@ -70,8 +70,8 @@ class GPUTRDTrack_t : public T
   GPUd() GPUTRDTrack_t(const GPUTRDTrack_t& t);
   GPUd() GPUTRDTrack_t(const AliHLTExternalTrackParam& t);
 #ifndef GPUCA_GPUCODE
-  GPUd() GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t, float vDrift);
-  GPUd() GPUTRDTrack_t(const o2::tpc::TrackTPC& t, float tbWidth, float vDrift);
+  GPUd() GPUTRDTrack_t(const o2::dataformats::TrackTPCITS& t);
+  GPUd() GPUTRDTrack_t(const o2::tpc::TrackTPC& t);
 #endif
   GPUd() GPUTRDTrack_t(const T& t);
   GPUd() GPUTRDTrack_t& operator=(const GPUTRDTrack_t& t);
