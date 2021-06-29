@@ -9,10 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_IO_H
-#define O2_MCH_DEVIO_DIGITS_DIGIT_IO_H
+/// \file DigitWriterSpec.h
+/// \author Roman Lietava
 
-#include "DigitReader.h"
-#include "DigitWriter.h"
+#ifndef O2_CTPDIGITWRITERSPEC_H
+#define O2_CTPDIGITWRITERSPEC_H
 
-#endif
+#include "Framework/DataProcessorSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "Framework/InputSpec.h"
+#include "DataFormatsCTP/Digits.h"
+
+using namespace o2::framework;
+namespace o2
+{
+namespace ctp
+{
+framework::DataProcessorSpec getDigitWriterSpec(bool raw = true);
+}
+} // namespace o2
+
+#endif //O2_CTPDIGITWRITERSPEC_H

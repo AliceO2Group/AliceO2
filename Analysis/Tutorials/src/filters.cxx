@@ -83,10 +83,10 @@ struct SpawnExtendedTables {
   void process(soa::Filtered<aod::Collisions>::iterator const& collision, soa::Filtered<soa::Join<aod::Tracks, aod::TPhi>> const& tracks)
   {
     LOGF(INFO, "Collision: %d [N = %d out of %d], -%.1f < %.3f < %.1f",
-         collision.globalIndex(), tracks.size(), tracks.tableSize(), vtxZ, collision.posZ(), vtxZ);
+         collision.globalIndex(), tracks.size(), tracks.tableSize(), (float)vtxZ, collision.posZ(), (float)vtxZ);
     for (auto& track : tracks) {
       LOGF(INFO, "id = %d; eta:  %.3f < %.3f < %.3f; phi: %.3f < %.3f < %.3f; pt: %.3f < %.3f < %.3f",
-           track.collisionId(), etalow, track.eta(), etaup, philow, track.nphi(), phiup, ptlow, track.pt(), ptup);
+           track.collisionId(), (float)etalow, track.eta(), (float)etaup, philow, track.nphi(), phiup, (float)ptlow, track.pt(), (float)ptup);
     }
   }
 };

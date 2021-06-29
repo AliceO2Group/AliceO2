@@ -164,7 +164,7 @@ int CTPConfiguration::processConfigurationLine(std::string& line, int& level)
           //CTPInput *inp = const_cast<CTPInput*> (isInputInConfig(item));
           CTPInput* inp = isInputInConfig(item);
           if (inp == nullptr) {
-            LOG(FATAL) << "DESCRIPTOR:" << tokens[0] << ": input not in INPUTD:" << item;
+            LOG(FATAL) << "DESCRIPTOR: input not in INPUTS:" << item << " LINE:" << line;
           } else {
             desc.inputs.push_back(inp);
           }

@@ -133,11 +133,12 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT
   std::bitset<NGBT> gbtword;
   // if not zero suppressed add (bcid,0)
   for (auto const& dig : digits) {
-    if (makeGBTWord(dig, gbtword, size_gbt, Npld) == true) {
+    std::bitset<NGBT> gbtsend;
+    if (makeGBTWord(dig, gbtword, size_gbt, Npld, gbtsend) == true) {
       for (uint32_t i = 0; i < NGBT; i += 8) {
         uint32_t w = 0;
         for (uint32_t j = 0; j < 8; j++) {
-          w += (1 << j) * gbtword[i + j];
+          w += (1 << j) * gbtsend[i + j];
         }
         char c = w;
         toAdd.push_back(c);
@@ -152,7 +153,9 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT
   }
   return std::move(toAdd);
 }
-bool Digits2Raw::makeGBTWord(const std::bitset<NGBT>& pld, std::bitset<NGBT>& gbtword, uint32_t& size_gbt, uint32_t Npld) const
+// Adding payload of size<NGBT to GBT words of size NGBT
+// gbtsend valid only when return 1
+bool Digits2Raw::makeGBTWord(const gbtword80_t& pld, gbtword80_t& gbtword, uint32_t& size_gbt, uint32_t Npld, gbtword80_t& gbtsend) const
 {
   bool valid = false;
   //printBitset(gbtword,"GBTword");
@@ -162,6 +165,7 @@ bool Digits2Raw::makeGBTWord(const std::bitset<NGBT>& pld, std::bitset<NGBT>& gb
   } else {
     // sendData
     //printBitset(gbtword,"Sending");
+    gbtsend = gbtword;
     gbtword = pld >> (NGBT - size_gbt);
     size_gbt = size_gbt + Npld - NGBT;
     valid = true;

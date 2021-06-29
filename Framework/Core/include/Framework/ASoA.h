@@ -1259,28 +1259,29 @@ constexpr auto is_binding_compatible_v()
     using metadata = std::void_t<T>; \
   }
 
-#define DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                                                                                                                \
-  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                                                                                                               \
-    static constexpr const char* mLabel = _Label_;                                                                                                                                \
-    static_assert(!((*(mLabel + 1) == 'I' && *(mLabel + 2) == 'n' && *(mLabel + 3) == 'd' && *(mLabel + 4) == 'e' && *(mLabel + 5) == 'x')), "Index is not a valid column name"); \
-    using base = o2::soa::Column<_Type_, _Name_>;                                                                                                                                 \
-    using type = _Type_;                                                                                                                                                          \
-    using column_t = _Name_;                                                                                                                                                      \
-    _Name_(arrow::ChunkedArray const* column)                                                                                                                                     \
-      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column))                                                                                                    \
-    {                                                                                                                                                                             \
-    }                                                                                                                                                                             \
-                                                                                                                                                                                  \
-    _Name_() = default;                                                                                                                                                           \
-    _Name_(_Name_ const& other) = default;                                                                                                                                        \
-    _Name_& operator=(_Name_ const& other) = default;                                                                                                                             \
-                                                                                                                                                                                  \
-    decltype(auto) _Getter_() const                                                                                                                                               \
-    {                                                                                                                                                                             \
-      return *mColumnIterator;                                                                                                                                                    \
-    }                                                                                                                                                                             \
-  };                                                                                                                                                                              \
-  static const o2::framework::expressions::BindingNode _Getter_ { _Label_, typeid(_Name_).hash_code(),                                                                            \
+// TODO HACK && *(mLabel + 6) != 'M' && *(mLabel + 7) != 'c' four lines below is a hack until we have self-indexing columns and then should be removed.
+#define DECLARE_SOA_COLUMN_FULL(_Name_, _Getter_, _Type_, _Label_)                                                                                                                                                                \
+  struct _Name_ : o2::soa::Column<_Type_, _Name_> {                                                                                                                                                                               \
+    static constexpr const char* mLabel = _Label_;                                                                                                                                                                                \
+    static_assert(!((*(mLabel + 1) == 'I' && *(mLabel + 2) == 'n' && *(mLabel + 3) == 'd' && *(mLabel + 4) == 'e' && *(mLabel + 5) == 'x' && *(mLabel + 6) != 'M' && *(mLabel + 7) != 'c')), "Index is not a valid column name"); \
+    using base = o2::soa::Column<_Type_, _Name_>;                                                                                                                                                                                 \
+    using type = _Type_;                                                                                                                                                                                                          \
+    using column_t = _Name_;                                                                                                                                                                                                      \
+    _Name_(arrow::ChunkedArray const* column)                                                                                                                                                                                     \
+      : o2::soa::Column<_Type_, _Name_>(o2::soa::ColumnIterator<type>(column))                                                                                                                                                    \
+    {                                                                                                                                                                                                                             \
+    }                                                                                                                                                                                                                             \
+                                                                                                                                                                                                                                  \
+    _Name_() = default;                                                                                                                                                                                                           \
+    _Name_(_Name_ const& other) = default;                                                                                                                                                                                        \
+    _Name_& operator=(_Name_ const& other) = default;                                                                                                                                                                             \
+                                                                                                                                                                                                                                  \
+    decltype(auto) _Getter_() const                                                                                                                                                                                               \
+    {                                                                                                                                                                                                                             \
+      return *mColumnIterator;                                                                                                                                                                                                    \
+    }                                                                                                                                                                                                                             \
+  };                                                                                                                                                                                                                              \
+  static const o2::framework::expressions::BindingNode _Getter_ { _Label_, typeid(_Name_).hash_code(),                                                                                                                            \
                                                                   o2::framework::expressions::selectArrowType<_Type_>() }
 
 #define DECLARE_SOA_COLUMN(_Name_, _Getter_, _Type_) \
