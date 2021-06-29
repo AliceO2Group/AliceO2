@@ -261,7 +261,7 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
     float tmp = param.getTimeMUS().getTimeStampError() * 2.58f; // TPCvDrift = 2.58 cm/us fixed for now, should come from CCDB
     Cov()[2] += tmp * tmp;                                      // account for time uncertainty by increasing sigmaZ2
   }
-  trackInterface<GPUTPCGMTrackParam>(const o2::tpc::TrackTPC& param, float, float, unsigned int) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
+  trackInterface<GPUTPCGMTrackParam>(const o2::tpc::TrackTPC& param, float, float) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
   {
     SetX(param.getParamOut().getX());
     SetPar(0, param.getParamOut().getY());
