@@ -4,7 +4,11 @@
 # --configKeyValues "NameConf.mDirGRP=<dirname1>;NameConf.mDirGeom=<dirname2>;NameConf.mDirMatLUT=<dirname3>;"
 # All workflows currently running in the FST parce the configKeyValues option, so the NameConf.mDirXXX keys can be added via global env.var.
 
-MYDIR="$(dirname $(readlink -f $0))"
+# Get this script's directory : use zsh first (e.g. on Mac) and fallback
+# on `readlink -f` if zsh is not there
+command -v zsh > /dev/null 2>&1 && MYDIR=$(dirname $(zsh -c 'echo ${0:A}' "$0"))
+test -z ${MYDIR+x} && MYDIR="$(dirname $(readlink -f $0))"
+
 source $MYDIR/setenv.sh
 
 if [ "0$O2_ROOT" == "0" ]; then
