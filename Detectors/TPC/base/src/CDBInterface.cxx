@@ -365,7 +365,7 @@ void CDBStorage::uploadGainMap(std::string_view fileName, bool isFull, long firs
 }
 
 //______________________________________________________________________________
-void CDBStorage::uploadPulserData(std::string_view fileName, long first, long last)
+void CDBStorage::uploadPulserOrCEData(CDBType type, std::string_view fileName, long first, long last)
 {
   std::unique_ptr<TFile> f(TFile::Open(fileName.data()));
   CalDet<float>*t0 = nullptr, *width = nullptr, *qtot = nullptr;
@@ -382,7 +382,7 @@ void CDBStorage::uploadPulserData(std::string_view fileName, long first, long la
   pulserCalib["Width"] = *width;
   pulserCalib["Qtot"] = *qtot;
 
-  storeObject(&pulserCalib, CDBType::CalPulser, first, last);
+  storeObject(&pulserCalib, type, first, last);
 }
 
 //______________________________________________________________________________
