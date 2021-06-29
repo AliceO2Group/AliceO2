@@ -9,24 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CTPDigitWriterSpec.h
-/// \author Roman Lietava
-
-#ifndef O2_CTPDIGITWRITERSPEC_H
-#define O2_CTPDIGITWRITERSPEC_H
-
 #include "Framework/DataProcessorSpec.h"
-#include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "Framework/InputSpec.h"
-#include "DataFormatsCTP/Digits.h"
+#include "Framework/OutputSpec.h"
+#include <string>
+#include <vector>
 
-using namespace o2::framework;
 namespace o2
 {
+
 namespace ctp
 {
-framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw = true);
-}
-} // namespace o2
 
-#endif //O2_CTPDIGITWRITERSPEC_H
+using OutputSpec = framework::OutputSpec;
+
+framework::DataProcessorSpec getDigitsReaderSpec(bool propagateMC = true);
+
+} // namespace ctp
+} // end namespace o2

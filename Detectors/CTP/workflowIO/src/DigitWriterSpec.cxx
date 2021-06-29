@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CTPDigitWriterSpec.cxx
+/// \file DigitWriterSpec.cxx
 /// \author Roman Lietava
 
-#include "CTPWorkflow/CTPDigitWriterSpec.h"
+#include "CTPWorkflowIO/DigitWriterSpec.h"
 
 namespace o2
 {
@@ -21,7 +21,7 @@ namespace ctp
 template <typename T>
 using BranchDefinition = framework::MakeRootTreeWriterSpec::BranchDefinition<T>;
 
-framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw)
+framework::DataProcessorSpec getDigitWriterSpec(bool raw)
 {
   using InputSpec = framework::InputSpec;
   using MakeRootTreeWriterSpec = framework::MakeRootTreeWriterSpec;

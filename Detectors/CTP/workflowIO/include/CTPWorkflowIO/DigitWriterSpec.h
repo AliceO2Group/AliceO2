@@ -9,28 +9,24 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file Digits.cxx
+/// \file DigitWriterSpec.h
 /// \author Roman Lietava
 
+#ifndef O2_CTPDIGITWRITERSPEC_H
+#define O2_CTPDIGITWRITERSPEC_H
+
+#include "Framework/DataProcessorSpec.h"
+#include "DPLUtils/MakeRootTreeWriterSpec.h"
+#include "Framework/InputSpec.h"
 #include "DataFormatsCTP/Digits.h"
-#include <iostream>
 
-using namespace o2::ctp;
+using namespace o2::framework;
+namespace o2
+{
+namespace ctp
+{
+framework::DataProcessorSpec getDigitWriterSpec(bool raw = true);
+}
+} // namespace o2
 
-void CTPDigit::printStream(std::ostream& stream) const
-{
-  stream << "CTP Digit:  BC " << intRecord.bc << " orbit " << intRecord.orbit << std::endl;
-  stream << "Input Mask: " << CTPInputMask << std::endl;
-}
-void CTPDigit::setInputMask(gbtword80_t mask)
-{
-  for (int i = 0; i < CTP_NINPUTS; i++) {
-    CTPInputMask[i] = mask[i];
-  }
-}
-void CTPDigit::setClassMask(gbtword80_t mask)
-{
-  for (int i = 0; i < CTP_NCLASSES; i++) {
-    CTPClassMask[i] = mask[i];
-  }
-}
+#endif //O2_CTPDIGITWRITERSPEC_H
