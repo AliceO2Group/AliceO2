@@ -59,13 +59,43 @@ static const float massLb = RecoDecay::getMassPDG(5122);
 
 } // namespace
 
+namespace o2::aod
+{
+namespace extra2Prong
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+} // namespace extra2Prong
+namespace extra3Prong
+{
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);
+} // namespace extra3Prong
+DECLARE_SOA_TABLE(Colls2Prong, "AOD", "COLLSID2P", o2::aod::extra2Prong::CollisionId);
+DECLARE_SOA_TABLE(Colls3Prong, "AOD", "COLLSID3P", o2::aod::extra3Prong::CollisionId);
+} // namespace o2::aod
+
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 using namespace o2::aod::hf_cand;
-using namespace o2::aod::hf_cand_prong2;
-using namespace o2::aod::hf_cand_prong3;
-using namespace o2::analysis::hf_cuts_single_track;
+using namespace hf_cuts_single_track;
+
+struct AddCollisionId {
+
+  Produces<o2::aod::Colls2Prong> colls2Prong;
+  Produces<o2::aod::Colls3Prong> colls3Prong;
+
+  void process(aod::HfTrackIndexProng2 const& cand2Prongs,
+               aod::HfTrackIndexProng3 const& cand3Prongs,
+               aod::Tracks const&)
+  {
+    for (const auto& cand2Prong : cand2Prongs) {
+      colls2Prong(cand2Prong.index0_as<aod::Tracks>().collisionId());
+    }
+    for (const auto& cand3Prong : cand3Prongs) {
+      colls3Prong(cand3Prong.index0_as<aod::Tracks>().collisionId());
+    }
+  }
+};
 
 struct HfFilter {
 
@@ -80,9 +110,9 @@ struct HfFilter {
   Configurable<float> deltaMassB0{"deltaMassB0", 0.3, "invariant-mass delta with respect to the B0 mass"};
   Configurable<float> deltaMassBs{"deltaMassBs", 0.3, "invariant-mass delta with respect to the Bs mass"};
   Configurable<float> deltaMassLb{"deltaMassLb", 0.3, "invariant-mass delta with respect to the Lb mass"};
-  Configurable<std::vector<double>> pTBinsTrack{"pTBinsTrack", std::vector<double>{hf_cuts_single_track::pTBinsTrack_v}, "track pT bin limits for DCAXY pT-depentend cut"};
-  Configurable<LabeledArray<double>> cutsTrackBeauty3Prong{"cutsTrackBeauty3Prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 3-prong beauty candidates"};
-  Configurable<LabeledArray<double>> cutsTrackBeauty4Prong{"cutsTrackBeauty4Prong", {hf_cuts_single_track::cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 4-prong beauty candidates"};
+  Configurable<std::vector<double>> pTBinsTrack{"pTBinsTrack", std::vector<double>{pTBinsTrack_v}, "track pT bin limits for DCAXY pT-depentend cut"};
+  Configurable<LabeledArray<double>> cutsTrackBeauty3Prong{"cutsTrackBeauty3Prong", {cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 3-prong beauty candidates"};
+  Configurable<LabeledArray<double>> cutsTrackBeauty4Prong{"cutsTrackBeauty4Prong", {cutsTrack[0], npTBinsTrack, nCutVarsTrack, pTBinLabelsTrack, cutVarLabelsTrack}, "Single-track selections per pT bin for 4-prong beauty candidates"};
 
   // array of single-track cuts for pion
   std::array<LabeledArray<double>, 2> cutsSingleTrackBeauty;
@@ -94,8 +124,8 @@ struct HfFilter {
 
     cutsSingleTrackBeauty = {cutsTrackBeauty3Prong, cutsTrackBeauty4Prong};
 
-    registry.add("fProcessedEvents", "HF - event filtered", HistType::kTH1F, {{4, -0.5, 4.5, "Event counter"}});
-    std::array<std::string, 4> eventTitles = {"rejected", "w/ high-#it{p}_{T} candidate", "w/ beauty candidate", "w/ femto candidate"};
+    registry.add("fProcessedEvents", "HF - event filtered;;events", HistType::kTH1F, {{5, -0.5, 4.5}});
+    std::array<std::string, 5> eventTitles = {"all", "rejected", "w/ high-#it{p}_{T} candidate", "w/ beauty candidate", "w/ femto candidate"};
     for (size_t iBin = 0; iBin < eventTitles.size(); iBin++) {
       registry.get<TH1>(HIST("fProcessedEvents"))->GetXaxis()->SetBinLabel(iBin + 1, eventTitles[iBin].data());
     }
@@ -121,11 +151,16 @@ struct HfFilter {
     return true;
   }
 
+  using HfTrackIndexProng2withColl = soa::Join<aod::HfTrackIndexProng2, aod::Colls2Prong>;
+  using HfTrackIndexProng3withColl = soa::Join<aod::HfTrackIndexProng3, aod::Colls3Prong>;
+
   void process(aod::Collision const& collision,
-               aod::HfTrackIndexProng2 const& cand2Prongs,
-               aod::HfTrackIndexProng3 const& cand3Prongs,
+               HfTrackIndexProng2withColl const& cand2Prongs,
+               HfTrackIndexProng3withColl const& cand3Prongs,
                aod::BigTracks const& tracks)
   {
+    registry.get<TH1>(HIST("fProcessedEvents"))->Fill(0);
+
     // collision process loop
     bool keepEvent[kNtriggersHF]{false};
     //
@@ -158,7 +193,7 @@ struct HfFilter {
         if (!keepEvent[kBeauty]) {
           if (isSelectedTrack(track, kBeauty3Prong)) {
             auto massCandB = RecoDecay::M(std::array{pVec2Prong, pVecThird}, std::array{massD0, massPi}); // TODO: retrieve D0-D0bar hypothesis to pair with proper signed track
-            if (abs(massCandB - massBPlus) <= deltaMassBPlus) {
+            if (std::abs(massCandB - massBPlus) <= deltaMassBPlus) {
               keepEvent[kBeauty] = true;
             }
           }
@@ -210,7 +245,7 @@ struct HfFilter {
           while (!keepEvent[kBeauty] && iHypo < 3) {
             if (specieCharmHypos[iHypo]) {
               auto massCandB = RecoDecay::M(std::array{pVec3Prong, pVecFourth}, std::array{massCharmHypos[iHypo], massPi});
-              if (abs(massCandB - massBeautyHypos[iHypo]) <= deltaMassHypos[iHypo]) {
+              if (std::abs(massCandB - massBeautyHypos[iHypo]) <= deltaMassHypos[iHypo]) {
                 keepEvent[kBeauty] = true;
               }
             }
@@ -240,5 +275,6 @@ struct HfFilter {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfg)
 {
   return WorkflowSpec{
+    adaptAnalysisTask<AddCollisionId>(cfg),
     adaptAnalysisTask<HfFilter>(cfg)};
 }
