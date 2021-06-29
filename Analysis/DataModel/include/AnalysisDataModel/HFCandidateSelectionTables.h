@@ -39,11 +39,25 @@ DECLARE_SOA_TABLE(HFSelLcCandidate, "AOD", "HFSELLCCAND", //!
 namespace hf_selcandidate_jpsi
 {
 DECLARE_SOA_COLUMN(IsSelJpsiToEE, isSelJpsiToEE, int); //!
-DECLARE_SOA_COLUMN(IsSelJpsiToMuMu, isSelJpsiToMuMu, int); //!
+DECLARE_SOA_COLUMN(IsSelJpsiToMuMu, isSelJpsiToMuMu, int);           //!
+DECLARE_SOA_COLUMN(IsSelJpsiToEETopol, isSelJpsiToEETopol, int);     //!
+DECLARE_SOA_COLUMN(IsSelJpsiToEETpc, isSelJpsiToEETpc, int);         //!
+DECLARE_SOA_COLUMN(IsSelJpsiToEETof, isSelJpsiToEETof, int);         //!
+DECLARE_SOA_COLUMN(IsSelJpsiToEERich, isSelJpsiToEERich, int);       //!
+DECLARE_SOA_COLUMN(IsSelJpsiToEETofRich, isSelJpsiToEETofRich, int); //!
+DECLARE_SOA_COLUMN(IsSelJpsiToMuMuTopol, isSelJpsiToMuMuTopol, int); //!
+DECLARE_SOA_COLUMN(IsSelJpsiToMuMuMid, isSelJpsiToMuMuMid, int);     //!
 } // namespace hf_selcandidate_jpsi
 DECLARE_SOA_TABLE(HFSelJpsiCandidate, "AOD", "HFSELJPSICAND", //!
                   hf_selcandidate_jpsi::IsSelJpsiToEE,
-                  hf_selcandidate_jpsi::IsSelJpsiToMuMu);
+                  hf_selcandidate_jpsi::IsSelJpsiToMuMu,
+                  hf_selcandidate_jpsi::IsSelJpsiToEETopol,
+                  hf_selcandidate_jpsi::IsSelJpsiToEETpc,
+                  hf_selcandidate_jpsi::IsSelJpsiToEETof,
+                  hf_selcandidate_jpsi::IsSelJpsiToEERich,
+                  hf_selcandidate_jpsi::IsSelJpsiToEETofRich,
+                  hf_selcandidate_jpsi::IsSelJpsiToMuMuTopol,
+                  hf_selcandidate_jpsi::IsSelJpsiToMuMuMid);
 
 namespace hf_selcandidate_lc_k0sp
 {
