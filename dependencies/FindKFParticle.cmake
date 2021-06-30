@@ -14,13 +14,16 @@
 
 find_package(KFParticle NO_MODULE)
 if(NOT KFParticle_FOUND)
-return()
+        return()
 endif()
-add_library(KFParticle IMPORTED INTERFACE)
-set_target_properties(KFParticle
-PROPERTIES
-INTERFACE_LINK_LIBRARIES “${KFPARTICLE_LIBRARIES}”
-INTERFACE_INCLUDE_DIRECTORIES “${KFPARTICLE_INCLUDE_DIR}”)
 
+add_library(KFParticle IMPORTED INTERFACE)
+
+set_target_properties(KFParticle
+        PROPERTIES
+        INTERFACE_LINK_LIBRARIES "${KFPARTICLE_LIBRARIES}"
+        INTERFACE_INCLUDE_DIRECTORIES "${KFPARTICLE_INCLUDE_DIR}")
+
+# Promote the imported target to global visibility (so we can alias it)
 set_target_properties(KFParticle PROPERTIES IMPORTED_GLOBAL TRUE)
 add_library(KFParticle::KFParticle ALIAS KFParticle)
