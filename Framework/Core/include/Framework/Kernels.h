@@ -68,28 +68,20 @@ auto sliceByColumn(
   auto v = values.Value(0);
   auto vprev = v;
   auto vnext = v;
+  auto nzeros = 0;
   for (auto i = 0; i < size - 1; ++i) {
+    nzeros = 0;
     vprev = v;
     v = values.Value(i);
     count = counts.Value(i);
     if (v < 0) {
       vnext = values.Value(i + 1);
-      while (vnext - vprev > 1) {
-        makeSlice(offset, 0);
-        ++vprev;
-      }
-      makeSlice(offset, count);
-      offset += count;
-      continue;
+      nzeros = vnext - vprev - 1;
+    } else if (vprev >= 0 && (v - vprev) != 1) {
+      nzeros = v - vprev - 1;
     }
-    if (vprev < 0 || (v - vprev) == 1) {
-      makeSlice(offset, count);
-      offset += count;
-      continue;
-    }
-    while (v - vprev > 1) {
+    for (auto z = 0; z < nzeros; ++z) {
       makeSlice(offset, 0);
-      ++vprev;
     }
     makeSlice(offset, count);
     offset += count;
