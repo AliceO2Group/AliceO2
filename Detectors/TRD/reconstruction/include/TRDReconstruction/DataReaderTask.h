@@ -59,6 +59,7 @@ class DataReaderTask : public Task
   bool mByteSwap{true};        // whether we are to byteswap the incoming data, mc is not byteswapped, raw data is (too be changed in cru at some point)
                                //  o2::header::DataDescription mDataDesc; // Data description of the incoming data
   std::string mDataDesc;
+  o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
 };
 
 } // namespace o2::trd

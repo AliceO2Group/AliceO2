@@ -41,6 +41,11 @@ void DataReaderTask::init(InitContext& ic)
   };
 
   ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  if (ic.options().isSet("trd-datareader-inputspec")) {
+    mDataDesc = ic.options().get<std::string>("trd-datareader-inputspec");
+  } else {
+    mDataDesc = "RAWDATA";
+  }
 }
 
 void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
@@ -68,11 +73,11 @@ void DataReaderTask::run(ProcessingContext& pc)
   auto device = pc.services().get<o2::framework::RawDeviceService>().device();
   auto outputRoutes = pc.services().get<o2::framework::RawDeviceService>().spec().outputs;
   auto fairMQChannel = outputRoutes.at(0).channel;
-
-  std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TRD", "RAWDATA", 0xDEADBEEF}}};
-  //std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TRD","RAWDATA"/* mDataDesc.c_str()*/, 0xDEADBEEF}}};
+  //auto datadesc = (mUserDataDescription == o2::header::gDataDescriptionInvalid) ? o2::header::gDataDescriptionRawData : mUserDataDescription;
+  auto datadesc = (mDataDesc == o2::header::gDataDescriptionInvalid.str) ? o2::header::gDataDescriptionRawData : mUserDataDescription;
+  std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{o2::header::gDataOriginTRD, "RAWDATA", 0xDEADBEEF}}};
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this mecans that the "delayed message"
-  //   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
 
   for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
     const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
@@ -93,19 +98,19 @@ void DataReaderTask::run(ProcessingContext& pc)
     /* loop over input parts */
     int inputpartscount = 0;
     for (auto const& ref : iit) {
-      if (mVerbose) {
-        const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-        LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
-             dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
-      }
+      //      if (mVerbose) {
+      const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      LOGP(info, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{} Payload {} : ",
+           dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, dh->payloadSize);
+      //     }
       const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = headerIn->payloadSize;
       if (std::string(headerIn->dataDescription.str) != std::string("DISTSUBTIMEFRAMEFLP")) {
         if (!mCompressedData) { //we have raw data coming in from flp
-          if (mVerbose) {
-            LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
-          }
+                                //        if (mVerbose) {
+          LOG(info) << " parsing non compressed data in the data reader task with a payload of " << payloadInSize << " payload size";
+          //       }
           mReader.setDataBuffer(payloadIn);
           mReader.setDataBufferSize(payloadInSize);
           mReader.configure(mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
