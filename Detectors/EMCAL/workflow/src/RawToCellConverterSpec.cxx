@@ -199,7 +199,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           continue;
         };
 
-        int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, iRow, iCol);
+        auto [phishift, etashift] = mGeometry->ShiftOnlineToOfflineCellIndexes(iSM, iRow, iCol);
+        int CellID = mGeometry->GetAbsCellIdFromCellIndexes(iSM, phishift, etashift);
 
         // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
         CaloFitResults fitResults;
