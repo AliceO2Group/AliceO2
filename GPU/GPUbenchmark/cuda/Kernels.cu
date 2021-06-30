@@ -9,10 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 ///
-/// \file Kernels.cu
+/// \file Kernels.{cu, hip.cxx}
 /// \author: mconcas@cern.ch
 
 #include "../Shared/Kernels.h"
+#if defined(__HIPCC__)
+#include "hip/hip_runtime.h"
+#endif
 #include <stdio.h>
 
 #define GPUCHECK(error)                                                                        \
@@ -58,16 +61,41 @@ GPUhd() buffer_type* getPartPtrOnScratch(buffer_type* scratchPtr, float partSize
   return reinterpret_cast<buffer_type*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * partSizeGB) * partNumber);
 }
 
+GPUhd() int getCorrespondingSplitId(int blockId, int nPartitions, int nSplits = 1)
+{
+  return blockId * nSplits / nPartitions;
+}
+
 template <class buffer_type>
-GPUg() void readerKernel(
+GPUg() void read_single_segment_k(
+  int segmentId,
   buffer_type* results,
   buffer_type* scratch,
   size_t bufferSize,
   float partitionSize = 1.f)
 {
-  for (size_t i = threadIdx.x; i < bufferSize; i += blockDim.x) {
-    if (getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i] == static_cast<buffer_type>(1)) {
-      results[blockIdx.x] += getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i]; // should never happen and threads should be always in sync
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < bufferSize; i += blockDim.x * gridDim.x) {
+    if (getPartPtrOnScratch(scratch, partitionSize, segmentId)[i] == static_cast<buffer_type>(1)) {
+      results[segmentId] += getPartPtrOnScratch(scratch, partitionSize, segmentId)[i]; // should never happen and threads should be always in sync
+    }
+  }
+}
+
+template <class buffer_type>
+GPUg() void split_read_k(
+  int split, // Id of split partition
+  int nsplits,
+  int npartitions,
+  buffer_type* results,
+  buffer_type* scratch,
+  size_t bufferSize,
+  float partitionSize = 1.f)
+{
+  if (split == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
+    for (size_t i = threadIdx.x; i < bufferSize; i += blockDim.x) {
+      if (getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i] == static_cast<buffer_type>(1)) {
+        results[blockIdx.x] += getPartPtrOnScratch(scratch, partitionSize, blockIdx.x)[i]; // should never happen and threads should be always in sync
+      }
     }
   }
 }
@@ -211,6 +239,55 @@ float GPUbenchmark<buffer_type>::measure(void (GPUbenchmark<buffer_type>::*task)
 }
 
 template <class buffer_type>
+template <typename... T>
+float GPUbenchmark<buffer_type>::benchmarkSynchExecution(void (*kernel)(T...), int nLaunches, int blocks, int threads, T&... args)
+{
+  cudaEvent_t start, stop;
+  GPUCHECK(cudaEventCreate(&start));
+  GPUCHECK(cudaEventCreate(&stop));
+
+  GPUCHECK(cudaEventRecord(start));
+  for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {
+    (*kernel)<<<blocks, threads, 0, 0>>>(args...); // Stream is 0 by default, so that we don't have to convert cudaStream_t it in HIP header
+  }
+  GPUCHECK(cudaEventRecord(stop));
+
+  GPUCHECK(cudaEventSynchronize(stop));
+  float milliseconds{0.f};
+  GPUCHECK(cudaEventElapsedTime(&milliseconds, start, stop));
+
+  return milliseconds;
+}
+
+template <class buffer_type>
+template <typename... T>
+std::vector<float> GPUbenchmark<buffer_type>::benchmarkAsynchExecution(void (*kernel)(int, int, T...), int nStreams, int nLaunches, int blocks, int threads, T&... args)
+{
+  std::vector<cudaEvent_t> splitStarts(nStreams), splitStops(nStreams);
+  std::vector<cudaStream_t> streams(nStreams);
+  std::vector<float> splitResults(nStreams);
+
+  for (auto iStream{0}; iStream < nStreams; ++iStream) {
+    GPUCHECK(cudaStreamCreate(&(streams.at(iStream))));
+    GPUCHECK(cudaEventCreate(&(splitStarts[iStream])));
+    GPUCHECK(cudaEventCreate(&(splitStops[iStream])));
+    GPUCHECK(cudaEventRecord(splitStarts[iStream], streams[iStream]));
+
+    for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) { // consecutive lanuches on the same stream
+      (*kernel)<<<blocks, threads, 0, streams[iStream]>>>(iStream, nStreams, args...);
+    }
+    GPUCHECK(cudaEventRecord(splitStops[iStream], streams[iStream]));
+  }
+
+  for (auto iStream{0}; iStream < nStreams; ++iStream) {
+    GPUCHECK(cudaEventSynchronize(splitStops[iStream]));
+    GPUCHECK(cudaEventElapsedTime(&(splitResults.at(iStream)), splitStarts[iStream], splitStops[iStream]));
+  }
+
+  return splitResults;
+}
+
+template <class buffer_type>
 void GPUbenchmark<buffer_type>::printDevices()
 {
   int deviceCnt;
@@ -223,7 +300,7 @@ void GPUbenchmark<buffer_type>::printDevices()
 }
 
 template <class buffer_type>
-void GPUbenchmark<buffer_type>::generalInit(const int deviceId)
+void GPUbenchmark<buffer_type>::globalInit(const int deviceId)
 {
   cudaDeviceProp props;
   size_t free;
@@ -257,30 +334,69 @@ void GPUbenchmark<buffer_type>::generalInit(const int deviceId)
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::readingInit()
 {
-  std::cout << ">>> Initializing reading benchmark with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
+  std::cout << ">>> Initializing read benchmarks with \e[1m" << mOptions.nTests << "\e[0m runs and \e[1m" << mOptions.kernelLaunches << "\e[0m kernel launches" << std::endl;
   mState.hostReadingResultsVector.resize(mState.getMaxSegments());
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&(mState.deviceReadingResultsPtr)), mState.getMaxSegments() * sizeof(buffer_type)));
 }
 
 template <class buffer_type>
-void GPUbenchmark<buffer_type>::readingBenchmark(int kernelLaunches)
+void GPUbenchmark<buffer_type>::readingSequential(SplitLevel sl)
 {
-  auto nBlocks{mState.getMaxSegments()};
-  auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
-  for (auto launch{0}; launch < kernelLaunches; ++launch) {
-    gpu::readerKernel<buffer_type><<<nBlocks, nThreads>>>(mState.deviceReadingResultsPtr, mState.scratchPtr, mState.getPartitionCapacity(), mState.partitionSizeGB);
+  switch (sl) {
+    case SplitLevel::Blocks:
+      break;
+    case SplitLevel::Threads: {
+      auto nBlocks{mState.nMultiprocessors};
+      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
+      auto capacity{mState.getPartitionCapacity()};
+
+      for (auto measurements{mOptions.nTests}; measurements--;) { // loop on the number of times we perform same measurement
+        std::cout << std::setw(2) << ">>> Sequential read benchmark, splitting on threads";
+        for (auto iSegment{0}; iSegment < mState.getMaxSegments(); ++iSegment) { // loop over single segments separately
+          auto result = benchmarkSynchExecution(&gpu::read_single_segment_k<buffer_type>, mState.getNKernelLaunches(), nBlocks, nThreads, iSegment, mState.deviceReadingResultsPtr, mState.scratchPtr, capacity, mState.partitionSizeGB);
+          mStreamer.get()->storeBenchmarkEntry("readSequentialSplitThreads", std::to_string(iSegment), getType<buffer_type>(), result);
+        }
+      }
+      break;
+    }
   }
-  GPUCHECK(cudaDeviceSynchronize());
+  std::cout << " completed." << std::endl;
+}
+
+template <class buffer_type>
+void GPUbenchmark<buffer_type>::readingConcurrent(SplitLevel sl)
+{
+  switch (sl) {
+    case SplitLevel::Blocks: {
+      auto nBlocks{mState.nMultiprocessors};
+      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
+      auto segments{mState.getMaxSegments()};
+      auto capacity{mState.getPartitionCapacity()};
+
+      for (auto measurements{mOptions.nTests}; measurements--;) {
+        std::cout << std::setw(2) << ">>> Concurrent read benchmark, splitting on blocks";
+        auto results = benchmarkAsynchExecution(&gpu::split_read_k<buffer_type>, mState.getMaxSegments(), mState.getNKernelLaunches(), nBlocks, nThreads, segments, mState.deviceReadingResultsPtr, mState.scratchPtr, capacity, mState.partitionSizeGB);
+        for (auto iResult{0}; iResult < results.size(); ++iResult) {
+          mStreamer.get()->storeBenchmarkEntry("readConcurrentSplitBlocks", std::to_string(iResult), getType<buffer_type>(), results[iResult]);
+        }
+      }
+      break;
+    }
+    case SplitLevel::Threads:
+      break;
+  }
+  std::cout << " completed." << std::endl;
 }
 
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::readingFinalize()
 {
   GPUCHECK(cudaMemcpy(mState.hostReadingResultsVector.data(), mState.deviceReadingResultsPtr, mState.getMaxSegments() * sizeof(buffer_type), cudaMemcpyDeviceToHost));
+  GPUCHECK(cudaFree(mState.deviceReadingResultsPtr));
 }
 
 template <class buffer_type>
-void GPUbenchmark<buffer_type>::generalFinalize()
+void GPUbenchmark<buffer_type>::globalFinalize()
 {
   GPUCHECK(cudaFree(mState.scratchPtr));
 }
@@ -288,17 +404,16 @@ void GPUbenchmark<buffer_type>::generalFinalize()
 template <class buffer_type>
 void GPUbenchmark<buffer_type>::run()
 {
-  generalInit(0);
-  // Test calls go here
-  // - Reading
+  globalInit(0);
+  // Test calls go here:
   readingInit();
-  for (auto measures{mOptions.nTests}; measures--;) {
-    auto result = measure(&GPUbenchmark<buffer_type>::readingBenchmark, "Reading benchmark", mState.getNiterations());
-    mStreamer.get()->storeBenchmarkEntry("readingBenchmark", getType<buffer_type>(), result);
-  }
+  // - Reading
+  readingSequential(SplitLevel::Threads);
+  // - Split reading
+  readingConcurrent(SplitLevel::Blocks);
   readingFinalize();
 
-  GPUbenchmark<buffer_type>::generalFinalize();
+  GPUbenchmark<buffer_type>::globalFinalize();
 }
 
 template class GPUbenchmark<char>;

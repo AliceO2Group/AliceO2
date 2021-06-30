@@ -36,6 +36,12 @@ namespace o2
 {
 namespace benchmark
 {
+
+enum class SplitLevel {
+  Blocks,
+  Threads
+};
+
 struct benchmarkOpts {
   benchmarkOpts() = default;
 
@@ -75,7 +81,7 @@ struct gpuState {
     return gpuBuffersHost;
   }
 
-  int getNiterations() { return iterations; }
+  int getNKernelLaunches() { return iterations; }
 
   // Configuration
   size_t nMaxThreadsPerDimension;
@@ -105,7 +111,7 @@ class ResultStreamer
  public:
   explicit ResultStreamer(const std::string debugTreeFileName = "benchmark_results.root");
   ~ResultStreamer();
-  void storeBenchmarkEntry(std::string benchmarkName, std::string type, float entry);
+  void storeBenchmarkEntry(std::string benchmarkName, std::string split, std::string type, float entry);
 
  private:
   std::string mDebugTreeFileName = "benchmark_results.root"; // output filename
@@ -123,10 +129,10 @@ inline ResultStreamer::~ResultStreamer()
   delete mTreeStream;
 }
 
-inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::string type, float entry)
+inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::string split, std::string type, float entry)
 {
   (*mTreeStream)
-    << (benchmarkName + type).data()
+    << (benchmarkName + "_" + type + "_" + split).data()
     << "elapsed=" << entry
     << "\n";
 }

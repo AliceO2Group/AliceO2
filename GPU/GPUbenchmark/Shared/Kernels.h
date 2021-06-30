@@ -43,18 +43,25 @@ class GPUbenchmark final
   template <typename... T>
   float measure(void (GPUbenchmark::*)(T...), const char*, T&&... args);
 
+  template <typename... T>
+  float benchmarkSynchExecution(void (*kernel)(T...), int nLaunches, int blocks, int threads, T&... args);
+
+  template <typename... T>
+  std::vector<float> benchmarkAsynchExecution(void (*kernel)(int, int, T...), int nSplits, int nLaunches, int blocks, int threads, T&... args);
+
   // Main interface
-  void generalInit(const int deviceId); // Allocate scratch buffers and compute runtime parameters
-  void run();                           // Execute all specified callbacks
-  void generalFinalize();               // Cleanup
-  void printDevices();                  // Dump info
+  void globalInit(const int deviceId); // Allocate scratch buffers and compute runtime parameters
+  void run();                          // Execute all specified callbacks
+  void globalFinalize();               // Cleanup
+  void printDevices();                 // Dump info
 
   // Initializations/Finalizations of tests. Not to be measured, in principle used for report
   void readingInit();
   void readingFinalize();
 
   // Benchmark kernel callbacks
-  void readingBenchmark(int iterations);
+  void readingSequential(SplitLevel sl);
+  void readingConcurrent(SplitLevel sl);
 
  private:
   gpuState<buffer_type> mState;
