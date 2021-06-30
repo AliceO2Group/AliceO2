@@ -93,7 +93,6 @@ auto sliceByColumn(
     }
     makeSlice(offset, count);
     offset += count;
-    continue;
   }
 
   makeSlice(offset, counts.Value(size - 1));
