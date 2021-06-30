@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -290,21 +291,21 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
 
   // Initialize the merger
 
-  GPUSettingsEvent ev;
+  GPUSettingsGRP grp;
   GPUSettingsRec rec;
   GPUSettingsProcessing devProc;
-  ev.solenoidBz = fSolenoidBz;
+  grp.solenoidBz = fSolenoidBz;
   if (fClusterErrorCorrectionY > 1.e-4) {
-    rec.ClusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
+    rec.tpc.clusterError2CorrectionY = fClusterErrorCorrectionY * fClusterErrorCorrectionY;
   }
   if (fClusterErrorCorrectionZ > 1.e-4) {
-    rec.ClusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
+    rec.tpc.clusterError2CorrectionZ = fClusterErrorCorrectionZ * fClusterErrorCorrectionZ;
   }
-  rec.NWays = fNWays;
-  rec.NWaysOuter = fNWaysOuter;
-  rec.mergerInterpolateErrors = false;
-  rec.NonConsecutiveIDs = true;
-  rec.mergerReadFromTrackerDirectly = false;
+  rec.tpc.nWays = fNWays;
+  rec.tpc.nWaysOuter = fNWaysOuter;
+  rec.tpc.mergerInterpolateErrors = false;
+  rec.nonConsecutiveIDs = true;
+  rec.tpc.mergerReadFromTrackerDirectly = false;
   devProc.ompThreads = 1;
   devProc.ompKernels = false;
 
@@ -313,7 +314,7 @@ int GPUTPCGlobalMergerComponent::Configure(const char* cdbEntry, const char* cha
   steps.inputs.set(GPUDataTypes::InOutType::TPCSectorTracks);
   steps.outputs.set(GPUDataTypes::InOutType::TPCMergedTracks);
 
-  fRec->SetSettings(&ev, &rec, &devProc, &steps);
+  fRec->SetSettings(&grp, &rec, &devProc, &steps);
   fChain->LoadClusterErrors();
   if (fRec->Init()) {
     return -EINVAL;

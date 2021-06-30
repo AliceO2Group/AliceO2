@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,7 +12,7 @@
 #include "HTTPParser.h"
 #include "Framework/RuntimeError.h"
 #include <string_view>
-#include "SHA1.h"
+#include "Framework/SHA1.h"
 #include "Base64.h"
 #include <regex>
 #include <cassert>
@@ -188,7 +189,7 @@ std::string encode_websocket_handshake_request(const char* endpoint, const char*
 std::string HTTPParserHelpers::calculateAccept(const char* nonce)
 {
   std::string reply = std::string(nonce) + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-  char sha[20];
+  char sha[21];
   SHA1(sha, reply.data(), reply.size());
   char base[64];
   base64_encode(base, 64, (unsigned char*)sha, 20);

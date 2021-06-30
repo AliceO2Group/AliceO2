@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,6 +12,7 @@
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/ChannelMatching.h"
+#include "Framework/ConfigParamsHelper.h"
 #include "Framework/CommonDataProcessors.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/DeviceSpec.h"
@@ -22,6 +24,7 @@
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
+#include "ArrowSupport.h"
 
 #include "Headers/DataHeader.h"
 #include <algorithm>
@@ -32,9 +35,7 @@
 #include <climits>
 #include <thread>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 std::ostream& operator<<(std::ostream& out, TopoIndexInfo const& info)
@@ -250,7 +251,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     aodLifetime = Lifetime::Signal;
   }
   auto readerServices = CommonServices::defaultServices();
-  readerServices.push_back(CommonMessageBackends::rateLimitingSpec());
+  readerServices.push_back(ArrowSupport::rateLimitingSpec());
 
   DataProcessorSpec aodReader{
     "internal-dpl-aod-reader",
@@ -264,6 +265,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
      ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
      ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
+     ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
+     ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
      ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
      ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
      ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
@@ -278,8 +281,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   std::vector<OutputSpec> providedCCDBs;
   std::vector<OutputSpec> providedOutputObjHist;
 
-  outputTasks outTskMap;
-  outputObjects outObjHistMap;
+  std::vector<OutputTaskInfo> outTskMap;
+  std::vector<OutputObjectInfo> outObjHistMap;
 
   for (size_t wi = 0; wi < workflow.size(); ++wi) {
     auto& processor = workflow[wi];
@@ -290,6 +293,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     std::string prefix = "internal-dpl-";
     if (processor.inputs.empty() && processor.name.compare(0, prefix.size(), prefix) != 0) {
       processor.inputs.push_back(InputSpec{"enumeration", "DPL", "ENUM", static_cast<DataAllocator::SubSpecificationType>(compile_time_hash(processor.name.c_str())), Lifetime::Enumeration});
+      ConfigParamsHelper::addOptionIfMissing(processor.options, ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"1st injected orbit"}});
+      ConfigParamsHelper::addOptionIfMissing(processor.options, ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"orbits/TForbit"}});
       processor.options.push_back(ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}});
       processor.options.push_back(ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}});
       processor.options.push_back(ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}});
@@ -317,7 +322,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         case Lifetime::Condition: {
           if (hasConditionOption == false) {
             processor.options.emplace_back(ConfigParamSpec{"condition-backend", VariantType::String, "http://localhost:8080", {"URL for CCDB"}});
-            processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::String, "", {"Force timestamp for CCDB lookup"}});
+            processor.options.emplace_back(ConfigParamSpec{"condition-timestamp", VariantType::Int64, 0ll, {"Force timestamp for CCDB lookup"}});
             hasConditionOption = true;
           }
           requestedCCDBs.emplace_back(input);
@@ -356,11 +361,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
         providedAODs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
         providedOutputObjHist.emplace_back(output);
-        auto it = std::find_if(outObjHistMap.begin(), outObjHistMap.end(), [&](auto&& x) { return x.first == hash; });
+        auto it = std::find_if(outObjHistMap.begin(), outObjHistMap.end(), [&](auto&& x) { return x.id == hash; });
         if (it == outObjHistMap.end()) {
           outObjHistMap.push_back({hash, {output.binding.value}});
         } else {
-          it->second.push_back(output.binding.value);
+          it->bindings.push_back(output.binding.value);
         }
       }
       if (output.lifetime == Lifetime::Condition) {
@@ -410,7 +415,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   if (aodSpawner.outputs.empty() == false) {
-    extraSpecs.push_back(aodSpawner);
+    extraSpecs.push_back(timePipeline(aodSpawner, ctx.options().get<int64_t>("spawners")));
   }
 
   if (indexBuilder.outputs.empty() == false) {
@@ -516,17 +521,22 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   }
 
   std::vector<InputSpec> unmatched;
-  if (redirectedOutputsInputs.size() > 0 && ctx.options().get<std::string>("forwarding-destination") == "file") {
+  auto forwardingDestination = ctx.options().get<std::string>("forwarding-destination");
+  if (redirectedOutputsInputs.size() > 0 && forwardingDestination == "file") {
     auto fileSink = CommonDataProcessors::getGlobalFileSink(redirectedOutputsInputs, unmatched);
     if (unmatched.size() != redirectedOutputsInputs.size()) {
       extraSpecs.push_back(fileSink);
     }
-  } else if (redirectedOutputsInputs.size() > 0 && ctx.options().get<std::string>("forwarding-destination") == "fairmq") {
+  } else if (redirectedOutputsInputs.size() > 0 && forwardingDestination == "fairmq") {
     auto fairMQSink = CommonDataProcessors::getGlobalFairMQSink(redirectedOutputsInputs);
     extraSpecs.push_back(fairMQSink);
+  } else if (forwardingDestination != "drop") {
+    throw runtime_error_f("Unknown forwarding destination %s", forwardingDestination.c_str());
   }
-  if (unmatched.size() > 0) {
-    extraSpecs.push_back(CommonDataProcessors::getDummySink(unmatched));
+  if (unmatched.size() > 0 || redirectedOutputsInputs.size() > 0) {
+    std::vector<InputSpec> ignored = unmatched;
+    ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
+    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored));
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
@@ -648,7 +658,7 @@ void WorkflowHelpers::constructGraph(const WorkflowSpec& workflow,
     auto input = workflow[ci].inputs[ii];
     std::ostringstream str;
     str << "No matching output found for "
-        << DataSpecUtils::describe(input) << ". Candidates:\n";
+        << DataSpecUtils::describe(input) << " as requested by data processor \"" << workflow[ci].name << "\". Candidates:\n";
 
     for (auto& output : constOutputs) {
       str << "-" << DataSpecUtils::describe(output) << "\n";
@@ -805,6 +815,9 @@ WorkflowParsingState WorkflowHelpers::verifyWorkflow(const o2::framework::Workfl
   for (auto& spec : workflow) {
     if (spec.name.empty()) {
       throw std::runtime_error("Invalid DataProcessorSpec name");
+    }
+    if (strpbrk(spec.name.data(), ",;:\"'$") != nullptr) {
+      throw std::runtime_error("Cannot use any of ,;:\"'$ as DataProcessor name");
     }
     if (validNames.find(spec.name) != validNames.end()) {
       throw std::runtime_error("Name " + spec.name + " is used twice.");
@@ -1013,5 +1026,4 @@ std::vector<InputSpec> WorkflowHelpers::computeDanglingOutputs(WorkflowSpec cons
   return results;
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

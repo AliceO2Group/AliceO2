@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,10 +20,11 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 #include <gsl/span>
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHBase/PreCluster.h"
 
 namespace o2
@@ -48,6 +50,8 @@ class PreClusterFinder
   void loadDigits(gsl::span<const Digit> digits);
   void loadDigit(const Digit& digit);
 
+  int discardHighOccupancy(bool perDE, bool perEvent);
+
   int run();
 
   void getPreClusters(std::vector<o2::mch::PreCluster>& preClusters, std::vector<Digit>& digits);
@@ -62,6 +66,8 @@ class PreClusterFinder
     bool useMe;        // false if precluster already merged to another one
     bool storeMe;      // true if precluster to be saved (merging result)
   };
+
+  void reset(int deIndex);
 
   void preClusterizeRecursive();
   void addPad(DetectionElement& de, uint16_t iPad, PreCluster& cluster);

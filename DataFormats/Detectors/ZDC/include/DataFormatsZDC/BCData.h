@@ -1,15 +1,16 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef _ZDC_BC_DATA_H_
-#define _ZDC_BC_DATA_H_
+#ifndef O2_ZDC_BC_DATA_H_
+#define O2_ZDC_BC_DATA_H_
 
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
@@ -26,6 +27,25 @@ namespace o2
 namespace zdc
 {
 class ChannelData;
+
+struct __attribute__((__packed__)) ModuleTriggerMap {
+  unsigned Alice_0 : 1;
+  unsigned Alice_1 : 1;
+  unsigned Alice_2 : 1;
+  unsigned Alice_3 : 1;
+  unsigned Auto_m : 1;
+  unsigned Auto_0 : 1;
+  unsigned Auto_1 : 1;
+  unsigned Auto_2 : 1;
+  unsigned Auto_3 : 1;
+  unsigned empty : 7;
+};
+
+union ModuleTriggerMapData {
+  uint16_t w;
+  struct ModuleTriggerMap f;
+  void reset();
+};
 
 struct BCData {
   /// we are going to refer to at most 26 channels, so 5 bits for the NChannels and 27 for the reference
@@ -46,9 +66,10 @@ struct BCData {
     triggers = chTrig;
     ext_triggers = extTrig;
   }
+  BCData(const BCData&) = default;
 
   gsl::span<const ChannelData> getBunchChannelData(const gsl::span<const ChannelData> tfdata) const;
-  void print() const;
+  void print(uint32_t triggerMask = 0, int diff = 0) const;
 
   ClassDefNV(BCData, 2);
 };

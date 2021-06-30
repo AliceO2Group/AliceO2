@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -138,17 +139,17 @@ TObjArray* drawPulser(TString pulserFile, int mode = 0, std::string_view outDir 
     const auto medianWidth = TMath::Median(rocWidth.getData().size(), rocWidth.getData().data());
     const auto medianQtot = TMath::Median(rocQtot.getData().size(), rocQtot.getData().data());
 
-    const float rangeT0 = 1.5;
+    const float rangeT0 = 0.5;
     const float minT0 = medianT0 - rangeT0;
     const float maxT0 = medianT0 + rangeT0;
 
-    const float rangeWidth = 0.1;
+    const float rangeWidth = 0.5;
     const float minWidth = medianWidth - rangeWidth;
     const float maxWidth = medianWidth + rangeWidth;
 
-    const float rangeQtot = 150;
-    const float minQtot = medianQtot - 50;
-    const float maxQtot = medianQtot + rangeQtot;
+    //const float rangeQtot = 150;
+    const float minQtot = medianQtot / 2.;
+    const float maxQtot = medianQtot * 2.;
 
     // ===| histograms for calT0, calWidth and calQtot |===
     auto hT0 = new TH1F(Form("hT0%02d", iroc), Form("T0 distribution ROC %02d;time bins (0.2 #mus)", iroc), 100, minT0, maxT0);

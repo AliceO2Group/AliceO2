@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,9 +20,8 @@
 
 // for TRD
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
-#include "TRDWorkflow/TRDTrackletWriterSpec.h"
-#include "TRDWorkflow/TRDTrapRawWriterSpec.h"
-#include "TRDWorkflow/TRDDigitReaderSpec.h"
+#include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
+#include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 
 #include "DataFormatsParameters/GRPObject.h"
 
@@ -58,10 +58,21 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowoptions)
   //limit to a stack in a supermodule
   std::string trapsimstackhelp("Specify the specific stack to work on [0-5] within the supermodule");
   workflowoptions.push_back(ConfigParamSpec{"simStack", VariantType::Int, -1, {trapsimstackhelp}});
+
+  workflowoptions.push_back(ConfigParamSpec{"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}});
+  workflowoptions.push_back(ConfigParamSpec{"disable-root-input", o2::framework::VariantType::Bool, false, {"Disable root-files input readers"}});
+  workflowoptions.push_back(ConfigParamSpec{"disable-root-output", o2::framework::VariantType::Bool, false, {"Disable root-files output writers"}});
   //limit to a stack in a supermodule
   // the next one is now done inside the trapsim spec.
   //  std::string trapsimconfighelp("Specify the Trap config to use from CCDB yes those long names like cf_pg-fpnp32_zs-s16-deh_tb24_trkl-b2p-fs1e24-ht200-qs0e24s24e23-pidlinear-pt100_ptrg.r5585");
   //  workflowoptions.push_back(ConfigParamSpec{"trapconfigname", VariantType::Int, -1, {trapsimconfighelp}});
+
+  // option allowing to set parameters
+  std::string keyvaluehelp("Semicolon separated key=value strings (e.g.: 'TRDSimParams.digithreads=4;...')");
+  workflowoptions.push_back(
+    ConfigParamSpec{"configKeyValues", VariantType::String, "", {keyvaluehelp}});
+  workflowoptions.push_back(
+    ConfigParamSpec{"configFile", VariantType::String, "", {"configuration file for configurable parameters"}});
 
   // json output
   // run2 input
@@ -79,12 +90,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // at the end. This places the processor at the beginning of the
   // workflow in the upper left corner of the GUI.
   //
-  return WorkflowSpec{
-    //?? maybe a read spec to define the input in the case of my text run2 data and possible a proper data input reader.
-    o2::trd::getTRDDigitReaderSpec(1),
-    //o2::trd::getTRDDigitReaderSpec(1),
-    // connect the TRD digitization
-    o2::trd::getTRDTrapSimulatorSpec(),
-    // connect the TRD digit writer
-    o2::trd::getTRDTrackletWriterSpec()};
+  using namespace o2::conf;
+  ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  WorkflowSpec specs;
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto disableRootInput = configcontext.options().get<bool>("disable-root-input");
+  auto disableRootOutput = configcontext.options().get<bool>("disable-root-output");
+  if (!disableRootInput) {
+    specs.emplace_back(o2::trd::getTRDDigitReaderSpec(1, useMC));
+  }
+  specs.emplace_back(o2::trd::getTRDTrapSimulatorSpec(useMC));
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::trd::getTRDTrackletWriterSpec(useMC));
+  }
+  return std::move(specs);
 }

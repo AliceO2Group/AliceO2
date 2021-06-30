@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,6 +23,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 
+#include <limits>
+
 using namespace o2::framework;
 
 namespace o2
@@ -40,10 +43,12 @@ class TOFCalibCollectorDevice : public o2::framework::Task
     int maxEnt = ic.options().get<int>("max-number-hits-to-fill-tree");
     bool isTest = ic.options().get<bool>("running-in-test-mode");
     bool absMaxEnt = ic.options().get<bool>("is-max-number-hits-to-fill-tree-absolute");
+    int updateInterval = ic.options().get<int64_t>("update-interval");
     mCollector = std::make_unique<o2::tof::TOFCalibCollector>(isTFsendingPolicy, maxEnt);
     mCollector->setIsTest(isTest);
     mCollector->setIsMaxNumberOfHitsAbsolute(absMaxEnt);
-    mCollector->setSlotLength(1);
+    mCollector->setSlotLength(std::numeric_limits<long>::max());
+    mCollector->setCheckIntervalInfiniteSlot(updateInterval);
     mCollector->setMaxSlotsDelay(0);
   }
 
@@ -101,7 +106,6 @@ DataProcessorSpec getTOFCalibCollectorDeviceSpec()
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "COLLECTEDINFO", 0, Lifetime::Timeframe);
-  // or should I use the ConcreteDataTypeMatcher? e.g.: outputs.emplace_back(ConcreteDataTypeMatcher{clbUtils::gDataOriginCLB, clbUtils::gDataDescriptionCLBInfo});
   outputs.emplace_back(o2::header::gDataOriginTOF, "ENTRIESCH", 0, Lifetime::Timeframe);
 
   std::vector<InputSpec> inputs;
@@ -116,7 +120,8 @@ DataProcessorSpec getTOFCalibCollectorDeviceSpec()
       {"max-number-hits-to-fill-tree", VariantType::Int, 500, {"maximum number of entries in one channel to trigger teh filling of the tree"}},
       {"is-max-number-hits-to-fill-tree-absolute", VariantType::Bool, false, {"to decide if we want to multiply the max-number-hits-to-fill-tree by the number of channels (when set to true), or not (when set to false) for fast checks"}},
       {"tf-sending-policy", VariantType::Bool, false, {"if we are sending output at every TF; otherwise, we use the max-number-hits-to-fill-tree"}},
-      {"running-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}}}};
+      {"running-in-test-mode", VariantType::Bool, false, {"to run in test mode for simplification"}},
+      {"update-interval", VariantType::Int64, 10ll, {"number of TF after which to try to finalize calibration"}}}};
 }
 
 } // namespace framework

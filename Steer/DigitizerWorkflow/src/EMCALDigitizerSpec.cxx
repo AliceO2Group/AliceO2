@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -41,7 +42,9 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
   // to be adapted with run numbers at a later stage
   auto geom = o2::emcal::Geometry::GetInstance("EMCAL_COMPLETE12SMV1_DCAL_8SM", "Geant4", "EMV-EMCAL");
   // init digitizer
-  mDigitizer.setGeometry(geom);
+
+  mSumDigitizer.setGeometry(geom);
+
   mDigitizer.init();
 
   mFinished = false;
@@ -108,8 +111,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     // for each collision, loop over the constituents event and source IDs
     // (background signal merging is basically taking place here)
     for (auto& part : eventParts[collID]) {
-      mDigitizer.setCurrEvID(part.entryID);
-      mDigitizer.setCurrSrcID(part.sourceID);
+
+      mSumDigitizer.setCurrEvID(part.entryID);
+      mSumDigitizer.setCurrSrcID(part.sourceID);
 
       // get the hits for this event and this source
       mHits.clear();
@@ -117,8 +121,10 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
       LOG(INFO) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
+      std::vector<o2::emcal::LabeledDigit> summedDigits = mSumDigitizer.process(mHits);
+
       // call actual digitization procedure
-      mDigitizer.process(mHits);
+      mDigitizer.process(summedDigits);
     }
   }
 

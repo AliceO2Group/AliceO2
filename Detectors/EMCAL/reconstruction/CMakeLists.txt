@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(EMCALReconstruction
                SOURCES src/RawReaderMemory.cxx
@@ -20,8 +21,8 @@ o2_add_library(EMCALReconstruction
                        src/CaloRawFitter.cxx
                        src/CaloRawFitterStandard.cxx
                        src/CaloRawFitterGamma2.cxx
-		       src/ClusterizerParameters.cxx 
-                       src/Clusterizer.cxx 
+                       src/ClusterizerParameters.cxx
+                       src/Clusterizer.cxx
                        src/ClusterizerTask.cxx
                        src/DigitReader.cxx
                        src/CTFCoder.cxx
@@ -33,7 +34,7 @@ o2_add_library(EMCALReconstruction
                                      O2::DetectorsRaw
                                      O2::EMCALBase
                                      O2::rANS
-                                     ms_gsl::ms_gsl)
+                                     Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(
                           EMCALReconstruction
@@ -60,3 +61,8 @@ o2_add_executable(rawreader-file
 o2_add_test_root_macro(macros/RawFitterTESTs.C
             PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction O2::Headers
             LABELS emcal COMPILE_ONLY)
+
+o2_add_test_root_macro(macros/RawFitterTESTMulti.C
+            PUBLIC_LINK_LIBRARIES O2::EMCALReconstruction O2::Headers
+            LABELS emcal COMPILE_ONLY)
+

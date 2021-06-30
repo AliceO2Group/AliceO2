@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,6 +17,7 @@
 
 #include "GPUTPCDef.h"
 #include "GPUTPCGMMergedTrackHit.h"
+#include "GPUTPCGMMergerTypes.h"
 #include "GPUCommonMath.h"
 #include "GPUdEdxInfo.h"
 
@@ -47,12 +49,6 @@ class GPUTPCGMPropagator;
 class GPUTPCGMTrackParam
 {
  public:
-  struct GPUTPCOuterParam {
-    float X, alpha;
-    float P[5];
-    float C[15];
-  };
-
   GPUd() float& X()
   {
     return mX;
@@ -147,7 +143,7 @@ class GPUTPCGMTrackParam
   GPUd() bool CheckNumericalQuality(float overrideCovYY = -1.f) const;
   GPUd() bool CheckCov() const;
 
-  GPUd() bool Fit(const GPUTPCGMMerger* merger, int iTrk, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, int& N, int& NTolerated, float& Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, GPUTPCOuterParam* outerParam = nullptr, GPUdEdxInfo* dEdxOut = nullptr);
+  GPUd() bool Fit(GPUTPCGMMerger* merger, int iTrk, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, int& N, int& NTolerated, float& Alpha, int attempt = 0, float maxSinPhi = GPUCA_MAX_SIN_PHI, gputpcgmmergertypes::GPUTPCOuterParam* outerParam = nullptr);
   GPUd() void MoveToReference(GPUTPCGMPropagator& prop, const GPUParam& param, float& alpha);
   GPUd() void MirrorTo(GPUTPCGMPropagator& prop, float toY, float toZ, bool inFlyDirection, const GPUParam& param, unsigned char row, unsigned char clusterState, bool mirrorParameters);
   GPUd() int MergeDoubleRowClusters(int& ihit, int wayDirection, GPUTPCGMMergedTrackHit* clusters, GPUTPCGMMergedTrackHitXYZ* clustersXYZ, const GPUTPCGMMerger* merger, GPUTPCGMPropagator& prop, float& xx, float& yy, float& zz, int maxN, float clAlpha, unsigned char& clusterState, bool rejectChi2);
@@ -181,10 +177,10 @@ class GPUTPCGMTrackParam
   }
   GPUdi() static void NormalizeAlpha(float& alpha)
   {
-    if (alpha > M_PI) {
-      alpha -= 2 * M_PI;
-    } else if (alpha <= -M_PI) {
-      alpha += 2 * M_PI;
+    if (alpha > CAMath::Pi()) {
+      alpha -= CAMath::TwoPi();
+    } else if (alpha <= -CAMath::Pi()) {
+      alpha += CAMath::TwoPi();
     }
   }
 
@@ -244,7 +240,7 @@ struct GPUTPCGMLoopData {
   float toAlpha;
   unsigned char slice;
   unsigned char row;
-  unsigned char toSlice;
+  char toSlice;
   unsigned char toRow;
   unsigned char inFlyDirection;
 };

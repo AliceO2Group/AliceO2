@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,11 +17,7 @@
 #include "Framework/RuntimeError.h"
 #include <iostream>
 
-namespace o2
-{
-namespace framework
-{
-namespace data_matcher
+namespace o2::framework::data_matcher
 {
 
 ContextElement::Value const& VariableContext::get(size_t pos) const
@@ -101,7 +98,7 @@ bool SubSpecificationTypeValueMatcher::match(header::DataHeader const& header, V
 /// This will match the timing information which is currently in
 /// the DataProcessingHeader. Notice how we apply the scale to the
 /// actual values found.
-bool StartTimeValueMatcher::match(DataProcessingHeader const& dph, VariableContext& context) const
+bool StartTimeValueMatcher::match(header::DataHeader const& dh, DataProcessingHeader const& dph, VariableContext& context) const
 {
   if (auto ref = std::get_if<ContextRef>(&mValue)) {
     auto& variable = context.get(ref->index);
@@ -109,6 +106,10 @@ bool StartTimeValueMatcher::match(DataProcessingHeader const& dph, VariableConte
       return (dph.startTime / mScale) == *value;
     }
     context.put({ref->index, dph.startTime / mScale});
+    // We always put in 14 the tfCounter
+    context.put({TFCOUNTER_POS, dh.tfCounter});
+    // We always put in 15 the firstTForbit
+    context.put({FIRSTTFORBIT_POS, dh.firstTForbit});
     return true;
   } else if (auto v = std::get_if<uint64_t>(&mValue)) {
     return (dph.startTime / mScale) == *v;
@@ -262,11 +263,12 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
   } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&mLeft)) {
     leftValue = pval4->match();
   } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&mLeft)) {
+    auto dh = o2::header::get<header::DataHeader*>(d);
     auto dph = o2::header::get<DataProcessingHeader*>(d);
     if (dph == nullptr) {
       throw runtime_error("Cannot find DataProcessingHeader");
     }
-    leftValue = pval5->match(*dph, context);
+    leftValue = pval5->match(*dh, *dph, context);
   } else {
     throw runtime_error("Bad parsing tree");
   }
@@ -295,8 +297,9 @@ bool DataDescriptorMatcher::match(char const* d, VariableContext& context) const
   } else if (auto pval4 = std::get_if<ConstantValueMatcher>(&mRight)) {
     rightValue = pval4->match();
   } else if (auto pval5 = std::get_if<StartTimeValueMatcher>(&mRight)) {
+    auto dh = o2::header::get<header::DataHeader*>(d);
     auto dph = o2::header::get<DataProcessingHeader*>(d);
-    rightValue = pval5->match(*dph, context);
+    rightValue = pval5->match(*dh, *dph, context);
   }
   // There are cases in which not having a rightValue might be legitimate,
   // so we do not throw an exception.
@@ -478,6 +481,4 @@ std::ostream& operator<<(std::ostream& os, DataDescriptorMatcher::Op const& op)
   return os;
 }
 
-} // namespace data_matcher
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework::data_matcher

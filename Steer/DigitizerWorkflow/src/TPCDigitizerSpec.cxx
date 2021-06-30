@@ -1,13 +1,18 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+#include <cassert>
 #include "Framework/RootSerializationSupport.h"
 #include "TPCDigitizerSpec.h"
 #include "Framework/ControlService.h"
@@ -16,13 +21,15 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/Lifetime.h"
+#include "Framework/DeviceSpec.h"
+#include "DetectorsRaw/HBFUtils.h"
 #include "Headers/DataHeader.h"
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
-#include "TSystem.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/ConstMCTruthContainer.h>
+#include <SimulationDataFormat/IOMCTruthContainerView.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
@@ -31,9 +38,10 @@
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Detector.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
+#include "DetectorsBase/Detector.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "TPCSimulation/SAMPAProcessing.h"
 #include "SimConfig/DigiParams.h"
+#include <filesystem>
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
@@ -44,6 +52,40 @@ namespace o2
 {
 namespace tpc
 {
+
+template <typename T>
+void copyHelper(T const& origin, T& target)
+{
+  std::copy(origin.begin(), origin.end(), std::back_inserter(target));
+}
+template <>
+void copyHelper<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& origin, o2::dataformats::MCTruthContainer<o2::MCCompLabel>& target)
+{
+  target.mergeAtBack(origin);
+}
+
+template <typename T>
+void writeToBranchHelper(TTree& tree, const char* name, T* accum)
+{
+  auto targetbr = o2::base::getOrMakeBranch(tree, name, accum);
+  targetbr->Fill();
+  targetbr->ResetAddress();
+  targetbr->DropBaskets("all");
+}
+template <>
+void writeToBranchHelper<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>(TTree& tree,
+                                                                             const char* name, o2::dataformats::MCTruthContainer<o2::MCCompLabel>* accum)
+{
+  // we convert first of all to IOMCTruthContainer
+  std::vector<char> buffer;
+  accum->flatten_to(buffer);
+  accum->clear_andfreememory();
+  o2::dataformats::IOMCTruthContainerView view(buffer);
+  auto targetbr = o2::base::getOrMakeBranch(tree, name, &view);
+  targetbr->Fill();
+  targetbr->ResetAddress();
+  targetbr->DropBaskets("all");
+}
 
 std::string getBranchNameLeft(int sector)
 {
@@ -63,13 +105,15 @@ using namespace o2::base;
 class TPCDPLDigitizerTask : public BaseDPLDigitizer
 {
  public:
-  TPCDPLDigitizerTask() : BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM)
+  TPCDPLDigitizerTask(bool internalwriter) : mInternalWriter(internalwriter), BaseDPLDigitizer(InitServices::FIELD | InitServices::GEOM)
   {
   }
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
     LOG(INFO) << "Initializing TPC digitization";
+
+    mLaneId = ic.services().get<const o2::framework::DeviceSpec>().rank;
 
     mWithMCTruth = o2::conf::DigiParams::Instance().mctruth;
     auto useDistortions = ic.options().get<int>("distortionType");
@@ -90,7 +134,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
         readSpaceCharge.push_back(substr);
       }
       if (readSpaceCharge[0].size() != 0) { // use pre-calculated space-charge object
-        if (!gSystem->AccessPathName(readSpaceCharge[0].data())) {
+        if (std::filesystem::exists(readSpaceCharge[0])) {
           TFile fileSC(readSpaceCharge[0].data(), "READ");
           mDigitizer.setUseSCDistortions(fileSC);
         } else {
@@ -107,7 +151,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
           inputHisto.push_back(substr);
         }
         std::unique_ptr<TH3> hisSCDensity;
-        if (!gSystem->AccessPathName(inputHisto[0].data())) {
+        if (std::filesystem::exists(inputHisto[0])) {
           auto fileSCInput = std::unique_ptr<TFile>(TFile::Open(inputHisto[0].data()));
           if (fileSCInput->FindKey(inputHisto[1].data())) {
             hisSCDensity.reset((TH3*)fileSCInput->Get(inputHisto[1].data()));
@@ -131,6 +175,41 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     mWriteGRP = true;
   }
 
+  void writeToROOTFile()
+  {
+    if (!mInternalROOTFlushFile) {
+      std::stringstream tmp;
+      tmp << "tpc_driftime_digits_lane" << mLaneId << ".root";
+      mInternalROOTFlushFile = new TFile(tmp.str().c_str(), "UPDATE");
+      std::stringstream trname;
+      trname << mSector;
+      mInternalROOTFlushTTree = new TTree(trname.str().c_str(), "o2sim");
+    }
+    {
+      std::stringstream brname;
+      brname << "TPCDigit_" << mSector;
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mDigits);
+      br->Fill();
+      br->ResetAddress();
+    }
+    if (mWithMCTruth) {
+      // labels
+      std::stringstream brname;
+      brname << "TPCDigitMCTruth_" << mSector;
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mLabels);
+      br->Fill();
+      br->ResetAddress();
+    }
+    {
+      // common
+      std::stringstream brname;
+      brname << "TPCCommonMode_" << mSector;
+      auto br = o2::base::getOrMakeBranch(*mInternalROOTFlushTTree, brname.str().c_str(), &mCommonMode);
+      br->Fill();
+      br->ResetAddress();
+    }
+  }
+
   void run(framework::ProcessingContext& pc)
   {
     LOG(INFO) << "Processing TPC digitization";
@@ -138,7 +217,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     /// For the time being use the defaults for the CDB
     auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults();
-    if (!gSystem->AccessPathName("GainMap.root")) {
+    if (std::filesystem::exists("GainMap.root")) {
       LOG(INFO) << "TPC: Using gain map from 'GainMap.root'";
       cdb.setGainMapFromFile("GainMap.root");
     }
@@ -146,6 +225,17 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     for (auto it = pc.inputs().begin(), end = pc.inputs().end(); it != end; ++it) {
       for (auto const& inputref : it) {
         process(pc, inputref);
+        if (mInternalWriter) {
+          mInternalROOTFlushTTree->SetEntries(mFlushCounter);
+          mInternalROOTFlushFile->Write("", TObject::kOverwrite);
+          mInternalROOTFlushFile->Close();
+          // delete mInternalROOTFlushTTree; --> automatically done by ->Close()
+          delete mInternalROOTFlushFile;
+          mInternalROOTFlushFile = nullptr;
+        }
+        //TODO: make generic reset method?
+        mFlushCounter = 0;
+        mDigitCounter = 0;
       }
     }
   }
@@ -180,6 +270,8 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       return;
     }
     auto sector = sectorHeader->sector();
+    mSector = sector;
+    mListOfSectors.push_back(sector);
     LOG(INFO) << "TPC: Processing sector " << sector;
     // the active sectors need to be propagated
     uint64_t activeSectors = 0;
@@ -189,35 +281,46 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     auto makeDigitBuffer = [this, sector, &pc, activeSectors, &dh]() {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      return &pc.outputs().make<std::vector<o2::tpc::Digit>>(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
-                                                                    header});
+      if (mInternalWriter) {
+        using ContainerType = std::decay_t<decltype(pc.outputs().make<std::vector<o2::tpc::Digit>>(Output{"", "", 0}))>*;
+        return ContainerType(nullptr);
+      } else {
+        // default case
+        return &pc.outputs().make<std::vector<o2::tpc::Digit>>(Output{"TPC", "DIGITS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe, header});
+      }
     };
     // lambda that snapshots the common mode vector to be sent out; prepares and attaches header with sector information
     auto snapshotCommonMode = [this, sector, &pc, activeSectors, &dh](std::vector<o2::tpc::CommonMode> const& commonMode) {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      // note that snapshoting only works with non-const references (to be fixed?)
-      pc.outputs().snapshot(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
-                                   header},
-                            const_cast<std::vector<o2::tpc::CommonMode>&>(commonMode));
+      if (!mInternalWriter) {
+        // note that snapshoting only works with non-const references (to be fixed?)
+        pc.outputs().snapshot(Output{"TPC", "COMMONMODE", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
+                                     header},
+                              const_cast<std::vector<o2::tpc::CommonMode>&>(commonMode));
+      }
     };
     // lambda that snapshots labels to be sent out; prepares and attaches header with sector information
     auto snapshotLabels = [this, &sector, &pc, activeSectors, &dh](o2::dataformats::MCTruthContainer<o2::MCCompLabel> const& labels) {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
       if (mWithMCTruth) {
-        auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe, header});
-        labels.flatten_to(sharedlabels);
+        if (!mInternalWriter) {
+          auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe, header});
+          labels.flatten_to(sharedlabels);
+        }
       }
     };
     // lambda that snapshots digits grouping (triggers) to be sent out; prepares and attaches header with sector information
     auto snapshotEvents = [this, sector, &pc, activeSectors, &dh](const std::vector<DigiGroupRef>& events) {
       o2::tpc::TPCSectorHeader header{sector};
       header.activeSectors = activeSectors;
-      LOG(INFO) << "TPC: Send TRIGGERS for sector " << sector << " channel " << dh->subSpecification << " | size " << events.size();
-      pc.outputs().snapshot(Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
-                                   header},
-                            const_cast<std::vector<DigiGroupRef>&>(events));
+      if (!mInternalWriter) {
+        LOG(INFO) << "TPC: Send TRIGGERS for sector " << sector << " channel " << dh->subSpecification << " | size " << events.size();
+        pc.outputs().snapshot(Output{"TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(dh->subSpecification), Lifetime::Timeframe,
+                                     header},
+                              const_cast<std::vector<DigiGroupRef>&>(events));
+      }
     };
 
     auto digitsAccum = makeDigitBuffer();                          // accumulator for digits
@@ -244,21 +347,34 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     auto& eventParts = context->getEventParts();
 
     auto flushDigitsAndLabels = [this, digitsAccum, &labelAccum, &commonModeAccum](bool finalFlush = false) {
+      mFlushCounter++;
       // flush previous buffer
       mDigits.clear();
       mLabels.clear();
       mCommonMode.clear();
       mDigitizer.flush(mDigits, mLabels, mCommonMode, finalFlush);
       LOG(INFO) << "TPC: Flushed " << mDigits.size() << " digits, " << mLabels.getNElements() << " labels and " << mCommonMode.size() << " common mode entries";
-      std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(*digitsAccum));
-      if (mWithMCTruth) {
-        labelAccum.mergeAtBack(mLabels);
+
+      if (mInternalWriter) {
+        // the natural place to write out this independent datachunk immediately ...
+        writeToROOTFile();
+      } else {
+        // ... or to accumulate and later forward to next DPL proc
+        std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(*digitsAccum));
+        if (mWithMCTruth) {
+          labelAccum.mergeAtBack(mLabels);
+        }
+        std::copy(mCommonMode.begin(), mCommonMode.end(), std::back_inserter(commonModeAccum));
       }
-      std::copy(mCommonMode.begin(), mCommonMode.end(), std::back_inserter(commonModeAccum));
+      mDigitCounter += mDigits.size();
     };
 
-    static SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-    mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(irecords[0].getTimeNS() / 1000.f));
+    if (isContinuous) {
+      auto& hbfu = o2::raw::HBFUtils::Instance();
+      double time = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).bc2ns() / 1000.;
+      mDigitizer.setOutputDigitTimeOffset(time);
+      mDigitizer.setStartTime(irecords[0].getTimeNS() / 1000.f);
+    }
 
     TStopwatch timer;
     timer.Start();
@@ -266,13 +382,13 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-      const float eventTime = irecords[collID].getTimeNS() / 1000.f;
+      const double eventTime = irecords[collID].getTimeNS() / 1000.f;
       LOG(INFO) << "TPC: Event time " << eventTime << " us";
       mDigitizer.setEventTime(eventTime);
       if (!isContinuous) {
-        mDigitizer.setStartTime(sampaProcessing.getTimeBinFromTime(eventTime));
+        mDigitizer.setStartTime(eventTime);
       }
-      int startSize = digitsAccum->size();
+      size_t startSize = mDigitCounter; // digitsAccum->size();
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -293,7 +409,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
         flushDigitsAndLabels();
 
         if (!isContinuous) {
-          eventAccum.emplace_back(startSize, digitsAccum->size() - startSize);
+          eventAccum.emplace_back(startSize, mDigits.size());
         }
       }
     }
@@ -302,14 +418,16 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     if (isContinuous) {
       LOG(INFO) << "TPC: Final flush";
       flushDigitsAndLabels(true);
-      eventAccum.emplace_back(0, digitsAccum->size()); // all digits are grouped to 1 super-event pseudo-triggered mode
+      eventAccum.emplace_back(0, mDigitCounter); // all digits are grouped to 1 super-event pseudo-triggered mode
     }
 
-    // send out to next stage
-    snapshotEvents(eventAccum);
-    // snapshotDigits(digitsAccum); --> done automatically
-    snapshotCommonMode(commonModeAccum);
-    snapshotLabels(labelAccum);
+    if (!mInternalWriter) {
+      // send out to next stage
+      snapshotEvents(eventAccum);
+      // snapshotDigits(digitsAccum); --> done automatically
+      snapshotCommonMode(commonModeAccum);
+      snapshotLabels(labelAccum);
+    }
 
     timer.Stop();
     LOG(INFO) << "TPC: Digitization took " << timer.CpuTime() << "s";
@@ -321,11 +439,19 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
   std::vector<o2::tpc::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels;
   std::vector<o2::tpc::CommonMode> mCommonMode;
+  std::vector<int> mListOfSectors; //  a list of sectors treated by this task
+  TFile* mInternalROOTFlushFile = nullptr;
+  TTree* mInternalROOTFlushTTree = nullptr;
+  size_t mDigitCounter = 0;
+  size_t mFlushCounter = 0;
+  int mLaneId = 0; // the id of the current process within the parallel pipeline
+  int mSector = 0;
   bool mWriteGRP = false;
   bool mWithMCTruth = true;
+  bool mInternalWriter = false;
 };
 
-o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth)
+o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP, bool mctruth, bool internalwriter)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -337,12 +463,14 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
 
   std::vector<OutputSpec> outputs; // define channel by triple of (origin, type id of data to be sent on this channel, subspecification)
 
-  outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  outputs.emplace_back("TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
-  if (mctruth) {
-    outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  if (!internalwriter) {
+    outputs.emplace_back("TPC", "DIGITS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+    outputs.emplace_back("TPC", "DIGTRIGGERS", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+    if (mctruth) {
+      outputs.emplace_back("TPC", "DIGITSMCTR", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+    }
+    outputs.emplace_back("TPC", "COMMONMODE", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   }
-  outputs.emplace_back("TPC", "COMMONMODE", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   if (writeGRP) {
     outputs.emplace_back("TPC", "ROMode", 0, Lifetime::Timeframe);
     LOG(DEBUG) << "TPC: Channel " << channel << " will supply ROMode";
@@ -352,20 +480,20 @@ o2::framework::DataProcessorSpec getTPCDigitizerSpec(int channel, bool writeGRP,
     id.str().c_str(),
     Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>()},
+    AlgorithmSpec{adaptFromTask<TPCDPLDigitizerTask>(internalwriter)},
     Options{{"distortionType", VariantType::Int, 0, {"Distortion type to be used. 0 = no distortions (default), 1 = realistic distortions (not implemented yet), 2 = constant distortions"}},
             {"initialSpaceChargeDensity", VariantType::String, "", {"Path to root file containing TH3 with initial space-charge density and name of the TH3 (comma separated)"}},
             {"readSpaceCharge", VariantType::String, "", {"Path to root file containing pre-calculated space-charge object and name of the object (comma separated)"}},
             {"TPCtriggered", VariantType::Bool, false, {"Impose triggered RO mode (default: continuous)"}}}};
 }
 
-o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth)
+o2::framework::WorkflowSpec getTPCDigitizerSpec(int nLanes, std::vector<int> const& sectors, bool mctruth, bool internalwriter)
 {
   // channel parameter is deprecated in the TPCDigitizer processor, all descendants
   // are initialized not to publish GRP mode, but the channel will be added to the first
   // processor after the pipelines have been created. The processor will decide upon
   // the index in the ParallelContext whether to publish
-  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false, mctruth)};
+  WorkflowSpec pipelineTemplate{getTPCDigitizerSpec(0, false, mctruth, internalwriter)};
   // override the predefined name, index will be added by parallelPipeline method
   pipelineTemplate[0].name = "TPCDigitizer";
   WorkflowSpec pipelines = parallelPipeline(

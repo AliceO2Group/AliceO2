@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,6 +16,8 @@
 /// \brief Definition of O2 MergerConfig, v0.1
 ///
 /// \author Piotr Konopka, piotr.jan.konopka@cern.ch
+
+#include <string>
 
 namespace o2::mergers
 {
@@ -57,6 +60,7 @@ struct MergerConfig {
   ConfigEntry<MergedObjectTimespan> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
   ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::EachNSeconds, 10};
   ConfigEntry<TopologySize, int> topologySize = {TopologySize::NumberOfLayers, 1};
+  std::string monitoringUrl = "infologger:///debug?qc";
 };
 
 } // namespace o2::mergers

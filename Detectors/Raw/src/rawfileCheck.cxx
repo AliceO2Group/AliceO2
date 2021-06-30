@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -40,6 +41,7 @@ int main(int argc, char* argv[])
   desc_add_option("spsize,s", bpo::value<int>()->default_value(reader.getNominalSPageSize()), "nominal super-page size in bytes");
   desc_add_option("buffer-size,b", bpo::value<size_t>()->default_value(reader.getNominalSPageSize()), "buffer size for files preprocessing");
   desc_add_option("detect-tf0", "autodetect HBFUtils start Orbit/BC from 1st TF seen");
+  desc_add_option("calculate-tf-start", "calculate TF start instead of using TType");
   desc_add_option("rorc", "impose RORC as default detector mode");
   desc_add_option("configKeyValues", bpo::value(&configKeyValues)->default_value(""), "semicolon separated key=value strings");
   for (int i = 0; i < RawFileReader::NErrorsDefined; i++) {
@@ -91,6 +93,7 @@ int main(int argc, char* argv[])
   reader.setNominalSPageSize(vm["spsize"].as<int>());
   reader.setMaxTFToRead(vm["max-tf"].as<uint32_t>());
   reader.setBufferSize(vm["buffer-size"].as<size_t>());
+  reader.setPreferCalculatedTFStart(vm.count("calculate-tf-start"));
   reader.setDefaultReadoutCardType(rocard);
   reader.setTFAutodetect(vm.count("detect-tf0") ? RawFileReader::FirstTFDetection::Pending : RawFileReader::FirstTFDetection::Disabled);
   uint32_t errmap = 0;

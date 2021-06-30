@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 # allsim is not a real library (i.e. not something that is built) but a
 # convenient bag for all the deps needed in the executables below
@@ -14,6 +15,7 @@ add_library(allsim INTERFACE)
 
 target_link_libraries(allsim
                       INTERFACE O2::SimConfig
+                                O2::CommonUtils
                                 O2::Steer
                                 O2::SimSetup
                                 O2::SimulationDataFormat
@@ -25,7 +27,7 @@ target_link_libraries(allsim
                                 O2::Field
                                 O2::HMPIDSimulation
                                 O2::ITSSimulation
-				                        O2::MCHBase
+				O2::MCHBase
                                 O2::MCHSimulation
                                 O2::MFTSimulation
                                 O2::MIDSimulation
@@ -39,6 +41,7 @@ target_link_libraries(allsim
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::Alice3DetectorsPassive>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::ITS3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::FT3Simulation>
                                 O2::Generators)
 
 add_library(internal::allsim ALIAS allsim)
@@ -55,7 +58,9 @@ o2_add_executable(serial
 
 o2_add_executable(sim
                   SOURCES o2sim_parallel.cxx
-                  PUBLIC_LINK_LIBRARIES internal::allsim O2::Framework)
+                  PUBLIC_LINK_LIBRARIES internal::allsim O2::Version
+                  TARGETVARNAME simdriver)
+
 
 o2_add_executable(primary-server-device-runner
                   COMPONENT_NAME sim
@@ -71,7 +76,7 @@ o2_add_executable(hit-merger-runner
                   SOURCES O2HitMergerRunner.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim)
 
-o2_data_file(COPY o2simtopology.json DESTINATION config)
+o2_data_file(COPY o2simtopology_template.json DESTINATION config)
 
 # * # add a complex simulation as a unit test (if simulation was enabled)
 #   perform
@@ -234,3 +239,5 @@ o2_add_test_wrapper(NAME o2sim_G4_checklogs
 
 set_tests_properties(o2sim_G3_checklogs
                      PROPERTIES FIXTURES_REQUIRED G4)
+
+install(FILES o2-sim-client.py PERMISSIONS GROUP_READ GROUP_EXECUTE OWNER_EXECUTE OWNER_WRITE OWNER_READ WORLD_EXECUTE WORLD_READ DESTINATION ${CMAKE_INSTALL_BINDIR})

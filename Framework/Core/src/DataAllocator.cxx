@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,6 +24,7 @@
 #include <arrow/ipc/writer.h>
 #include <arrow/type.h>
 #include <arrow/io/memory.h>
+#include <arrow/util/config.h>
 
 #include <TClonesArray.h>
 
@@ -98,6 +100,8 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   dh.subSpecification = spec.subSpec;
   dh.payloadSize = payloadSize;
   dh.payloadSerializationMethod = method;
+  dh.tfCounter = mTimingInfo->tfCounter;
+  dh.firstTForbit = mTimingInfo->firstTFOrbit;
 
   DataProcessingHeader dph{mTimingInfo->timeslice, 1};
   auto& context = mRegistry->get<MessageContext>();
@@ -155,7 +159,11 @@ void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
     }
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+#if ARROW_VERSION_MAJOR < 3
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+#else
+    auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
+#endif
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
       if (outStatus.ok() == false) {
@@ -188,7 +196,11 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
     auto table = payload->finalize();
 
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+#if ARROW_VERSION_MAJOR < 3
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+#else
+    auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
+#endif
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
       if (outStatus.ok() == false) {
@@ -216,7 +228,11 @@ void DataAllocator::adopt(const Output& spec, std::shared_ptr<arrow::Table> ptr)
 
   auto writer = [table = ptr](std::shared_ptr<FairMQResizableBuffer> b) -> void {
     auto stream = std::make_shared<arrow::io::BufferOutputStream>(b);
+#if ARROW_VERSION_MAJOR < 3
     auto outBatch = arrow::ipc::NewStreamWriter(stream.get(), table->schema());
+#else
+    auto outBatch = arrow::ipc::MakeStreamWriter(stream.get(), table->schema());
+#endif
     if (outBatch.ok() == true) {
       auto outStatus = outBatch.ValueOrDie()->WriteTable(*table);
       if (outStatus.ok() == false) {

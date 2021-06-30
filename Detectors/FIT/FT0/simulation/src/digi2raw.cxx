@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -12,7 +13,7 @@
 /// \author ruben.shahoyan@cern.ch
 
 #include <boost/program_options.hpp>
-#include <TSystem.h>
+#include <filesystem>
 #include <TFile.h>
 #include <TStopwatch.h>
 #include "Framework/Logger.h"
@@ -52,6 +53,7 @@ int main(int argc, char** argv)
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
     add_option("rdh-version,r", bpo::value<uint32_t>()->default_value(defRDH), "RDH version to use");
     add_option("no-empty-hbf,e", bpo::value<bool>()->default_value(false)->implicit_value(true), "do not create empty HBF pages (except for HBF starting TF)");
+    add_option("hbfutils-config,u", bpo::value<std::string>()->default_value(std::string(o2::base::NameConf::DIGITIZATIONCONFIGFILE)), "config file for HBFUtils (or none)");
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -72,6 +74,11 @@ int main(int argc, char** argv)
     std::cerr << e.what() << ", application will now exit" << std::endl;
     exit(2);
   }
+
+  std::string confDig = vm["hbfutils-config"].as<std::string>();
+  if (!confDig.empty() && confDig != "none") {
+    o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
+  }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
   digi2raw(vm["input-file"].as<std::string>(),
            vm["output-dir"].as<std::string>(),
@@ -79,6 +86,8 @@ int main(int argc, char** argv)
            vm["file-per-link"].as<bool>(),
            vm["rdh-version"].as<uint32_t>(),
            vm["no-empty-hbf"].as<bool>());
+
+  o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }
@@ -98,21 +107,15 @@ void digi2raw(const std::string& inpName, const std::string& outDir, int verbosi
   wr.useRDHVersion(rdhV);
   wr.setDontFillEmptyHBF(noEmptyHBF);
 
+  o2::raw::assertOutputDirectory(outDir);
+
   std::string outDirName(outDir);
   if (outDirName.back() != '/') {
     outDirName += '/';
   }
-  // if needed, create output directory
-  if (gSystem->AccessPathName(outDirName.c_str())) {
-    if (gSystem->mkdir(outDirName.c_str(), kTRUE)) {
-      LOG(FATAL) << "could not create output directory " << outDirName;
-    } else {
-      LOG(INFO) << "created output directory " << outDirName;
-    }
-  }
 
   m2r.readDigits(outDirName, inpName);
-  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
+  wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //
   swTot.Stop();
   swTot.Print();

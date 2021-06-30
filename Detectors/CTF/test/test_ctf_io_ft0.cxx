@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,6 +15,7 @@
 #include <boost/test/unit_test.hpp>
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "FT0Reconstruction/CTFCoder.h"
+#include "FT0Simulation/DigitizationParameters.h"
 #include "Framework/Logger.h"
 #include <TFile.h>
 #include <TRandom.h>
@@ -30,7 +32,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   o2::InteractionRecord ir(0, 0);
 
-  int mTime_trg_gate = 192; // #channels
+  int trg_gate = DigitizationParameters::Instance().mTime_trg_gate;
   constexpr int MAXChan = 4 * (Geometry::NCellsA + Geometry::NCellsC);
   for (int idig = 0; idig < 1000; idig++) {
     ir += 1 + gRandom->Integer(200);
@@ -46,7 +48,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
       uint16_t q = gRandom->Integer(4096);
       uint8_t chain = gRandom->Rndm() > 0.5 ? 0 : 1;
       channels.emplace_back(ich, t, q, chain);
-      if (std::abs(t) < Geometry::mTime_trg_gate) {
+      if (std::abs(t) < trg_gate) {
         if (ich < 4 * uint8_t(Geometry::NCellsA)) {
           trig.nChanA++;
           ampTotA += q;

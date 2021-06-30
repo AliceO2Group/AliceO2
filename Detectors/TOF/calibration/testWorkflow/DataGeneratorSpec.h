@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -49,15 +50,32 @@ class TFDispatcher : public o2::framework::Task
         LOG(INFO) << "Data generator reached TF " << tfid << ", stopping";
         pc.services().get<o2::framework::ControlService>().endOfStream();
         pc.services().get<o2::framework::ControlService>().readyToQuit(o2::framework::QuitRequest::Me);
+        if (!acceptTF(tfid)) {
+          return;
+        }
         break;
       }
-      if (((tfid / mNLanes) % mNGen) != mSlot) {
+      if (!acceptTF(tfid)) {
         return;
       }
     }
     int size = 100 + gRandom->Integer(100); // push dummy output
     usleep(mLatency);
     pc.outputs().snapshot(o2::framework::OutputRef{"output", 0}, size);
+  }
+
+  bool acceptTF(int tfid)
+  {
+
+    // check if the current TF should be processed by this instance of the generator
+
+    int targetSlot = (tfid / mNLanes) % mNGen;
+    if (targetSlot != mSlot) {
+      LOG(INFO) << "tfid = " << tfid << ", mNLanes = " << mNLanes << ", mNGen = " << mNGen << ", mSlot = " << mSlot << " target slot = " << targetSlot << ": discarded";
+      return false;
+    }
+    LOG(INFO) << "tfid = " << tfid << ", mNLanes = " << mNLanes << ", mNGen = " << mNGen << ", mSlot = " << mSlot << " target slot = " << targetSlot << ": accepted";
+    return true;
   }
 
  private:

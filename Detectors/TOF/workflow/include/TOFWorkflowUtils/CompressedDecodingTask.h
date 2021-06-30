@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -36,15 +37,17 @@ using namespace compressed;
 class CompressedDecodingTask : public DecoderBase, public Task
 {
  public:
-  CompressedDecodingTask(bool conet = false)
+  CompressedDecodingTask(bool conet, o2::header::DataDescription dataDesc)
   {
     mConetMode = conet;
+    mDataDesc = dataDesc;
     setDecoderCONET(conet);
   }
 
   ~CompressedDecodingTask() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void decodeTF(ProcessingContext& pc);
   void endOfStream(EndOfStreamContext& ec) final;
   void postData(ProcessingContext& pc);
 
@@ -60,6 +63,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
 
   o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;
+  o2::header::DataDescription mDataDesc;
   int mNTF = 0;
   int mNCrateOpenTF = 0;
   int mNCrateCloseTF = 0;

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,6 +19,8 @@
 #include <string>
 #include <vector>
 #include <Rtypes.h>
+
+#include "ITSMFTBase/SegmentationAlpide.h"
 
 namespace o2
 {
@@ -93,8 +96,8 @@ class AlpideSimResponse
   int mNBinDpt = 0;                    /// number of bins in Z(sensor dept)
   int mMaxBinCol = 0;                  /// max allowed Xb (to avoid subtraction)
   int mMaxBinRow = 0;                  /// max allowed Yb (to avoid subtraction)
-  float mColMax = 14.62e-4;            /// upper boundary of Col
-  float mRowMax = 13.44e-4;            /// upper boundary of Row
+  float mColMax = SegmentationAlpide::PitchCol / 2.f; /// upper boundary of Col
+  float mRowMax = SegmentationAlpide::PitchRow / 2.f; /// upper boundary of Row
   float mDptMin = 0.f;                 /// lower boundary of Dpt
   float mDptMax = 0.f;                 /// upper boundary of Dpt
   float mDptShift = 0.f;               /// shift of the depth center wrt 0
@@ -116,6 +119,7 @@ class AlpideSimResponse
 
   bool getResponse(float vRow, float vCol, float cDepth, AlpideRespSimMat& dest) const;
   const AlpideRespSimMat* getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol) const;
+  const AlpideRespSimMat* getResponse(float vRow, float vCol, float vDepth, bool& flipRow, bool& flipCol, float rowMax, float colMax) const;
   static int constexpr getNPix() { return AlpideRespSimMat::getNPix(); }
   int getNBinCol() const { return mNBinCol; }
   int getNBinRow() const { return mNBinRow; }

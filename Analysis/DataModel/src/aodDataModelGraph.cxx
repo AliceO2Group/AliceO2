@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -67,21 +68,27 @@ enum StyleType : int {
 };
 
 static std::vector<std::pair<std::string, StyleType>> tableStyles = {
-  {"HfTrackIndexProng", StyleType::GREEN},
+  {"HfTrackIndexProng", StyleType::BLUE},
+  {"HfCandProng", StyleType::BLUE},
   {"pidResp", StyleType::GREEN},
   {"Mults", StyleType::GREEN},
   {"Cents", StyleType::GREEN},
+  {"Timestamps", StyleType::GREEN},
   {"Jet", StyleType::BLUE},
   {"Mc", StyleType::RED},
-  {"V0Data", StyleType::GREEN},
-  {"CascData", StyleType::GREEN}};
+  {"V0Datas", StyleType::GREEN},
+  {"CascData", StyleType::GREEN},
+  {"TrackSelection", StyleType::GREEN},
+  {"TracksExtended", StyleType::GREEN},
+  {"Transient", StyleType::GREEN},
+  {"Extension", StyleType::GREEN},
+};
 
 template <typename T>
 Style getStyleFor()
 {
   auto label = MetadataTrait<T>::metadata::tableLabel();
-  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) { return true; 
-
+  auto entry = std::find_if(tableStyles.begin(), tableStyles.end(), [&](auto&& x) { if (std::string(label).find(x.first) != std::string::npos) { return true;
 }return false; });
   if (entry != tableStyles.end()) {
     auto value = *entry;
@@ -238,6 +245,7 @@ int main(int, char**)
   displayEntity<FT0s>();
   displayEntity<FV0As>();
   displayEntity<FDDs>();
+  displayEntity<HMPIDs>();
 
   displayEntities<Collisions, Cents, Mults, Timestamps>();
   displayEntity<McCollisions>();
@@ -248,25 +256,32 @@ int main(int, char**)
   displayEntity<McCaloLabels>();
 
   displayEntity<FV0Cs>();
+  displayEntity<Run2BCInfos>();
 
-  displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection, pidRespTOF, pidRespTPC>();
-  displayEntity<UnassignedTracks>();
+  displayEntities<Tracks, TracksCov, TracksExtra, TracksExtended, TrackSelection,
+                  pidTOFFullEl, pidTOFFullMu, pidTOFFullPi,
+                  pidTOFFullKa, pidTOFFullPr, pidTOFFullDe,
+                  pidTOFFullTr, pidTOFFullHe, pidTOFFullAl,
+                  pidTPCFullEl, pidTPCFullMu, pidTPCFullPi,
+                  pidTPCFullKa, pidTPCFullPr, pidTPCFullDe,
+                  pidTPCFullTr, pidTPCFullHe, pidTPCFullAl>();
+  displayEntity<AmbiguousTracks>();
+  displayEntity<AmbiguousMFTTracks>();
 
   displayEntity<McParticles>();
   displayEntity<McTrackLabels>();
 
-  displayEntity<HfTrackIndexProng2>();
-  displayEntity<HfTrackIndexProng3>();
-
   displayEntity<Jets>();
   displayEntity<JetConstituents>();
 
-  displayEntities<V0s, V0DataFull>();
+  displayEntities<V0s, V0Datas>();
 
   displayEntities<Cascades, CascDataFull>();
 
-  displayEntity<Muons>();
-  displayEntity<MuonClusters>();
+  displayEntities<MFTTracks, FwdTracks, FwdTracksCov>();
+
+  displayEntities<HfTrackIndexProng2, HfCandProng2>();
+  displayEntities<HfTrackIndexProng3, HfCandProng3>();
 
   graphFooter();
   return 0;

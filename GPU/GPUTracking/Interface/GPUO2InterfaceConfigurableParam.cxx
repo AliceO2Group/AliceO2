@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -26,7 +27,7 @@ using namespace o2::gpu;
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
 #define AddSubConfig(name, instance)
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) O2ParamImpl(GPUCA_M_CAT(GPUConfigurableParam, name))
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix) O2ParamImpl(GPUCA_M_CAT(GPUConfigurableParam, name))
 #define BeginHiddenConfig(...)
 #define EndConfig()
 #define AddCustomCPP(...)
@@ -64,11 +65,11 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
   for (int i = 0; i < count; i++) {                                                  \
     dst.name[i] = src.name[i];                                                       \
   }
-#define AddSubConfig(name, instance)
-#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr) \
-  name instance;                                                                   \
-  {                                                                                \
-    auto& src = GPUCA_M_CAT(GPUConfigurableParam, name)::Instance();               \
+#define AddSubConfig(name, instance) dst.instance = instance;
+#define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix) \
+  name instance;                                                                             \
+  {                                                                                          \
+    auto& src = GPUCA_M_CAT(GPUConfigurableParam, name)::Instance();                         \
     name& dst = instance;
 #define BeginHiddenConfig(name, instance) {
 #define EndConfig() }
@@ -95,21 +96,38 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
 
   configProcessing = proc;
   configReconstruction = rec;
-  configDisplay = GL;
+  configDisplay = display;
   configQA = QA;
   if (global.continuousMaxTimeBin) {
-    configEvent.continuousMaxTimeBin = global.continuousMaxTimeBin;
+    configGRP.continuousMaxTimeBin = global.continuousMaxTimeBin;
   }
   if (global.solenoidBz > -1e6f) {
-    configEvent.solenoidBz = global.solenoidBz;
+    configGRP.solenoidBz = global.solenoidBz;
   }
   if (global.constBz) {
-    configEvent.constBz = global.constBz;
+    configGRP.constBz = global.constBz;
   }
-  if (configReconstruction.TrackReferenceX == 1000.f) {
-    configReconstruction.TrackReferenceX = 83.f;
+  if (configReconstruction.tpc.trackReferenceX == 1000.f) {
+    configReconstruction.tpc.trackReferenceX = 83.f;
   }
   configDeviceBackend.deviceType = GPUDataTypes::GetDeviceType(global.deviceType.c_str());
   configDeviceBackend.forceDeviceType = global.forceDeviceType;
   return global;
+}
+
+#include "utils/qconfig_helpers.h"
+
+namespace
+{
+GPUSettingsStandalone configStandalone;
+std::vector<std::function<void()>> qprint_global;
+#define QCONFIG_PRINT
+#include "utils/qconfig.h"
+#undef QCONFIG_PRINT
+} // namepsace
+
+void GPUO2InterfaceConfiguration::PrintParam_internal()
+{
+  qConfigPrint(configProcessing, "proc.");
+  qConfigPrint(configReconstruction, "rec.");
 }

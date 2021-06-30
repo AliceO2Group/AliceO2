@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -47,8 +48,8 @@ class VtxTrackRef : public RangeReference<int, int>
     }
   }
 
-  void print() const;
-  std::string asString() const;
+  void print(bool skipEmpty = true) const;
+  std::string asString(bool skipEmpty = true) const;
 
   // get 1st of entry of indices for given source
   int getFirstEntryOfSource(int s) const
@@ -73,15 +74,18 @@ class VtxTrackRef : public RangeReference<int, int>
     }
   }
 
+  void setVtxID(int i) { mVtxID = i; }
+  int getVtxID() const { return mVtxID; }
+
   // set the last +1 element index and finalize all references
   void setEnd(int end);
 
  private:
   using RangeReference<int, int>::RangeReference;
-
+  int mVtxID = -1; // vertex ID. The reference for unassigned tracks will have it negative!
   std::array<int, VtxTrackIndex::Source::NSources - 1> mFirstEntrySource{0};
 
-  ClassDefNV(VtxTrackRef, 1);
+  ClassDefNV(VtxTrackRef, 2);
 };
 
 std::ostream& operator<<(std::ostream& os, const o2::dataformats::VtxTrackRef& v);

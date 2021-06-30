@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,7 +14,7 @@
 #include "Framework/DataSpecUtils.h"
 #include "Framework/SimpleOptionsRetriever.h"
 #include "Framework/WorkflowCustomizationHelpers.h"
-#include "../src/WorkflowHelpers.h"
+#include "Framework/ChannelConfigurationPolicy.h"
 
 std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
 {
@@ -28,4 +29,22 @@ std::unique_ptr<o2::framework::ConfigContext> makeEmptyConfigContext()
   static ConfigParamRegistry registry(std::move(store));
   auto context = std::make_unique<ConfigContext>(registry, 0, nullptr);
   return context;
+}
+
+using namespace o2::framework;
+
+std::vector<ChannelConfigurationPolicy> makeTrivialChannelPolicies(ConfigContext const& configContext)
+{
+  ChannelConfigurationPolicy defaultPolicy;
+  FairMQChannelConfigSpec spec;
+  spec.rateLogging = 0;
+  spec.recvBufferSize = 1;
+  spec.sendBufferSize = 1;
+  spec.ipcPrefix = "@";
+
+  defaultPolicy.match = ChannelConfigurationPolicyHelpers::matchAny;
+  defaultPolicy.modifyInput = ChannelConfigurationPolicyHelpers::pullInput(spec);
+  defaultPolicy.modifyOutput = ChannelConfigurationPolicyHelpers::pushOutput(spec);
+
+  return {defaultPolicy};
 }

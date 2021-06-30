@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -62,8 +63,10 @@ namespace framework
 /// \par The processor spec is generated with the following options:
 ///
 ///     --outfile
+///     --output-dir
 ///     --treename
 ///     --nevents
+///     --autosave
 ///     --terminate
 ///
 /// \par
@@ -73,8 +76,10 @@ namespace framework
 /// \par Constructor arguments:
 /// Default file name can be configured alone, tree name can only be specified after
 /// file name. The default number of events can be specified at arbitrary place between
-/// process name and branch configuration. The process will signal to the DPL that it
-/// is ready for termination.
+/// process name and branch configuration. The number of events triggering autosaving
+/// (by default - off) can be also specified in the constructor as an integer argument
+/// coming after (not necessarilly immidiately) the number or events. The process will
+/// signal to the DPL that it is ready for termination.
 ///
 /// \par Termination policy:
 /// The configurable termination policy specifies what to signal to the DPL when the event
@@ -334,6 +339,8 @@ class MakeRootTreeWriterSpec
       std::vector<std::pair<std::string, std::string>> branchNameOptions;
       // number of events to be processed
       int nEvents = -1;
+      // autosave every nEventsAutoSave events
+      int nEventsAutoSave = -1;
       // starting with all inputs, every input which has been indicated 'ready' is removed
       std::unordered_set<std::string> activeInputs;
       // event counter
@@ -366,12 +373,14 @@ class MakeRootTreeWriterSpec
       auto filename = ic.options().get<std::string>("outfile");
       auto treename = ic.options().get<std::string>("treename");
       auto treetitle = ic.options().get<std::string>("treetitle");
+      auto outdir = ic.options().get<std::string>("output-dir");
       processAttributes->nEvents = ic.options().get<int>("nevents");
       if (processAttributes->nEvents > 0 && processAttributes->activeInputs.size() != processAttributes->nofBranches) {
         LOG(WARNING) << "the n inputs serve in total m branches with n != m, this means that there will be data for\n"
                      << "different branches on the same input. Be aware that the --nevents option might lead to incomplete\n"
                      << "data in the output file as the number of processed input sets is counted";
       }
+      processAttributes->nEventsAutoSave = ic.options().get<int>("autosave");
       try {
         processAttributes->terminationPolicy = TerminationPolicyMap.at(ic.options().get<std::string>("terminate"));
       } catch (std::out_of_range&) {
@@ -388,12 +397,18 @@ class MakeRootTreeWriterSpec
         auto branchName = ic.options().get<std::string>(branchNameOptions[branchIndex].first.c_str());
         processAttributes->writer->setBranchName(branchIndex, branchName.c_str());
       }
+      if (!outdir.empty() && outdir != "none") {
+        if (outdir.back() != '/') {
+          outdir += '/';
+        }
+        filename = outdir + filename;
+      }
       processAttributes->writer->init(filename.c_str(), treename.c_str(), treetitle.c_str());
-
       // the callback to be set as hook at stop of processing for the framework
       auto finishWriting = [processAttributes]() {
         processAttributes->writer->close();
       };
+
       ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishWriting);
 
       auto processingFct = [processAttributes](ProcessingContext& pc) {
@@ -404,6 +419,7 @@ class MakeRootTreeWriterSpec
         auto& activeInputs = processAttributes->activeInputs;
         auto& counter = processAttributes->counter;
         auto& nEvents = processAttributes->nEvents;
+        auto& nEventsAutoSave = processAttributes->nEventsAutoSave;
         if (writer->isClosed()) {
           return;
         }
@@ -459,6 +475,8 @@ class MakeRootTreeWriterSpec
         if ((nEvents >= 0 && counter == nEvents) || checkReady(pc.inputs())) {
           writer->close();
           pc.services().get<ControlService>().readyToQuit(terminationPolicy == TerminationPolicy::Workflow ? QuitRequest::All : QuitRequest::Me);
+        } else if (nEventsAutoSave > 0 && counter && (counter % nEventsAutoSave) == 0) {
+          writer->autoSave();
         }
       };
 
@@ -468,9 +486,11 @@ class MakeRootTreeWriterSpec
     Options options{
       // default options
       {"outfile", VariantType::String, mDefaultFileName.c_str(), {"Name of the output file"}},
+      {"output-dir", VariantType::String, mDefaultDir.c_str(), {"Output directory"}},
       {"treename", VariantType::String, mDefaultTreeName.c_str(), {"Name of tree"}},
       {"treetitle", VariantType::String, mDefaultTreeTitle.c_str(), {"Title of tree"}},
       {"nevents", VariantType::Int, mDefaultNofEvents, {"Number of events to execute"}},
+      {"autosave", VariantType::Int, mDefaultAutoSave, {"Autosave after number of events"}},
       {"terminate", VariantType::String, mDefaultTerminationPolicy.c_str(), {"Terminate the 'process' or 'workflow'"}},
     };
     for (size_t branchIndex = 0; branchIndex < mBranchNameOptions.size(); branchIndex++) {
@@ -521,8 +541,14 @@ class MakeRootTreeWriterSpec
   void parseConstructorArgs(int arg, Args&&... args)
   {
     static_assert(N == 0, "wrong argument order, default file and tree options must come before branch specs");
-    mDefaultNofEvents = arg;
-
+    if (mNIntArgCounter == 0) {
+      mDefaultNofEvents = arg;
+    } else if (mNIntArgCounter == 1) {
+      mDefaultAutoSave = arg;
+    } else {
+      throw std::logic_error("Too many integer arguments in the constructor");
+    }
+    mNIntArgCounter++;
     parseConstructorArgs<N>(std::forward<Args>(args)...);
   }
 
@@ -619,11 +645,14 @@ class MakeRootTreeWriterSpec
   std::string mDefaultFileName;
   std::string mDefaultTreeName;
   std::string mDefaultTreeTitle;
+  std::string mDefaultDir = "none";
   int mDefaultNofEvents = -1;
+  int mDefaultAutoSave = -1;
   std::string mDefaultTerminationPolicy = "process";
   TerminationCondition mTerminationCondition;
   Preprocessor mPreprocessor;
   size_t mNofBranches = 0;
+  int mNIntArgCounter = 0;
   CustomClose mCustomClose;
 };
 } // namespace framework

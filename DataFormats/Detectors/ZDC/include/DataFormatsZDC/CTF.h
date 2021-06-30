@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,7 +21,7 @@
 #include "DetectorsCommonDataFormats/EncodedBlocks.h"
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/BCData.h"
-#include "DataFormatsZDC/PedestalData.h"
+#include "DataFormatsZDC/OrbitData.h"
 
 namespace o2
 {
@@ -29,18 +30,18 @@ namespace zdc
 
 /// Header for a single CTF
 struct CTFHeader {
-  uint32_t nTriggers = 0;     /// number of triggers
-  uint32_t nChannels = 0;     /// number of referred channels
-  uint32_t nPedestals = 0;    /// number of pedestal objects
-  uint32_t firstOrbit = 0;    /// orbit of 1st trigger
-  uint32_t firstOrbitPed = 0; /// orbit of 1st pedestal
-  uint16_t firstBC = 0;       /// bc of 1st trigger
-
+  uint32_t nTriggers = 0;                        /// number of triggers
+  uint32_t nChannels = 0;                        /// number of referred channels
+  uint32_t nEOData = 0;                          /// number of end-of-orbit data objects (pedestal + scalers)
+  uint32_t firstOrbit = 0;                       /// orbit of 1st trigger
+  uint32_t firstOrbitEOData = 0;                 /// orbit of 1st end-of-orbit data
+  uint16_t firstBC = 0;                          /// bc of 1st trigger
+  std::array<uint16_t, NChannels> firstScaler{}; // inital scaler values
   ClassDefNV(CTFHeader, 1);
 };
 
 /// wrapper for the Entropy-encoded triggers and cells of the TF
-struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 11, uint32_t> {
+struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 12, uint32_t> {
 
   static constexpr size_t N = getNBlocks();
   enum Slots { BLC_bcIncTrig,
@@ -54,8 +55,9 @@ struct CTF : public o2::ctf::EncodedBlocks<CTFHeader, 11, uint32_t> {
                BLC_chanID,
                BLC_chanData,
                //
-               BLC_orbitIncPed,
-               BLC_pedData
+               BLC_orbitIncEOD,
+               BLC_pedData,
+               BLC_sclInc
   };
   ClassDefNV(CTF, 1);
 };

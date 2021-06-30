@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -26,7 +27,7 @@
 
 #include <TH2D.h>
 
-#include "MCHBase/Digit.h"
+#include "DataFormatsMCH/Digit.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
@@ -51,7 +52,7 @@ class ClusterFinderOriginal
   ClusterFinderOriginal(ClusterFinderOriginal&&) = delete;
   ClusterFinderOriginal& operator=(ClusterFinderOriginal&&) = delete;
 
-  void init();
+  void init(bool run2Config);
   void deinit();
   void reset();
 
@@ -63,13 +64,10 @@ class ClusterFinderOriginal
   const std::vector<Digit>& getUsedDigits() const { return mUsedDigits; }
 
  private:
-  static constexpr double SDistancePrecision = 1.e-3;                   ///< precision used to check overlaps and so on (cm)
-  static constexpr double SLowestPadCharge = 4.f * 0.22875f;            ///< minimum charge of a pad
-  static constexpr double SLowestPixelCharge = SLowestPadCharge / 12.;  ///< minimum charge of a pixel
-  static constexpr double SLowestClusterCharge = 2. * SLowestPadCharge; ///< minimum charge of a cluster
-  static constexpr int SNFitClustersMax = 3;                            ///< maximum number of clusters fitted at the same time
-  static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1;        ///< maximum number of fit parameters
-  static constexpr double SLowestCoupling = 1.e-2;                      ///< minimum coupling between clusters of pixels and pads
+  static constexpr double SDistancePrecision = 1.e-3;            ///< precision used to check overlaps and so on (cm)
+  static constexpr int SNFitClustersMax = 3;                     ///< maximum number of clusters fitted at the same time
+  static constexpr int SNFitParamMax = 3 * SNFitClustersMax - 1; ///< maximum number of fit parameters
+  static constexpr double SLowestCoupling = 1.e-2;               ///< minimum coupling between clusters of pixels and pads
 
   void resetPreCluster(gsl::span<const Digit>& digits);
   void simplifyPreCluster(std::vector<int>& removedDigits);
@@ -89,7 +87,6 @@ class ClusterFinderOriginal
   double mlem(const std::vector<double>& coef, const std::vector<double>& prob, int nIter);
   void findCOG(const TH2D& histMLEM, double xy[2]) const;
   void refinePixelArray(const double xyCOG[2], size_t nPixMax, double& xMin, double& xMax, double& yMin, double& yMax);
-  void shiftPixelsToKeep(double charge);
   void cleanPixelArray(double threshold, std::vector<double>& prob);
 
   int fit(const std::vector<const std::vector<int>*>& clustersOfPixels, const double fitRange[2][2], double fitParam[SNFitParamMax + 1]);
@@ -110,6 +107,15 @@ class ClusterFinderOriginal
   void merge(const std::vector<int>& clustersForFit, const std::vector<int>& coupledClusters, std::vector<std::vector<int>>& clustersOfPixels,
              std::vector<std::vector<double>>& couplingClCl, std::vector<std::vector<double>>& couplingClPad) const;
   void updatePads(const double fitParam[SNFitParamMax + 1], int nParamUsed);
+
+  void setClusterResolution(ClusterStruct& cluster) const;
+
+  /// function to reinterpret digit ADC as charge
+  std::function<double(uint32_t)> mADCToCharge = [](uint32_t adc) { return static_cast<double>(adc); };
+
+  double mLowestPadCharge = 0.;     ///< minimum charge of a pad
+  double mLowestPixelCharge = 0.;   ///< minimum charge of a pixel
+  double mLowestClusterCharge = 0.; ///< minimum charge of a cluster
 
   std::unique_ptr<MathiesonOriginal[]> mMathiesons; ///< Mathieson functions for station 1 and the others
   MathiesonOriginal* mMathieson = nullptr;          ///< pointer to the Mathieson function currently used

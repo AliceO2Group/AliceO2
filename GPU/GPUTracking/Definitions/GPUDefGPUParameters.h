@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -332,8 +333,14 @@
   #ifndef GPUCA_LB_GPUTPCGMMergerFinalize_step2
     #define GPUCA_LB_GPUTPCGMMergerFinalize_step2 256
   #endif
-  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers
-    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers 256
+  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers_step0
+    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers_step0 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers_step1
+    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers_step1 256
+  #endif
+  #ifndef GPUCA_LB_GPUTPCGMMergerMergeLoopers_step2
+    #define GPUCA_LB_GPUTPCGMMergerMergeLoopers_step2 256
   #endif
   #ifndef GPUCA_LB_GPUTPCGMO2Output_prepare
     #define GPUCA_LB_GPUTPCGMO2Output_prepare 256
@@ -404,6 +411,10 @@
 #define GPUCA_LB_GPUTPCCompressionGatherKernels_buffered64 GPUCA_LB_COMPRESSION_GATHER
 #define GPUCA_LB_GPUTPCCompressionGatherKernels_buffered128 GPUCA_LB_COMPRESSION_GATHER
 #define GPUCA_LB_GPUTPCCompressionGatherKernels_multiBlock GPUCA_LB_COMPRESSION_GATHER
+
+#if defined(__CUDACC__) || defined(__HIPCC__)
+#define GPUCA_SPECIALIZE_THRUST_SORTS
+#endif
 
 #ifndef GPUCA_NEIGHBORSFINDER_REGS
 #define GPUCA_NEIGHBORSFINDER_REGS NONE, 0

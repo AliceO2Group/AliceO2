@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -30,6 +31,7 @@
 #include "GPUTRDTrackletLabels.h"
 #include "GPUMemoryResource.h"
 #include "GPUConstantMem.h"
+#include "GPUMemorySizeScalers.h"
 #include <atomic>
 
 #define GPUCA_LOGGING_PRINTF
@@ -112,7 +114,7 @@ size_t GPUReconstructionCPU::GPUMemCpyAlways(bool onGpu, void* dst, const void* 
   return 0;
 }
 size_t GPUReconstructionCPU::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) { return 0; }
-int GPUReconstructionCPU::GPUDebug(const char* state, int stream) { return 0; }
+int GPUReconstructionCPU::GPUDebug(const char* state, int stream, bool force) { return 0; }
 size_t GPUReconstructionCPU::TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU)
 {
   int inc = toGPU ? GPUMemoryResource::MEMORY_INPUT_FLAG : GPUMemoryResource::MEMORY_OUTPUT_FLAG;
@@ -156,11 +158,11 @@ int GPUReconstructionCPU::GetThread()
 int GPUReconstructionCPU::InitDevice()
 {
   if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
-    if (mDeviceMemorySize > mHostMemorySize) {
-      mHostMemorySize = mDeviceMemorySize;
-    }
     if (mMaster == nullptr) {
-      mHostMemoryBase = operator new(mHostMemorySize);
+      if (mDeviceMemorySize > mHostMemorySize) {
+        mHostMemorySize = mDeviceMemorySize;
+      }
+      mHostMemoryBase = operator new(mHostMemorySize GPUCA_OPERATOR_NEW_ALIGNMENT);
     }
     mHostMemoryPermanent = mHostMemoryBase;
     ClearAllocatedMemory();
@@ -177,7 +179,7 @@ int GPUReconstructionCPU::ExitDevice()
 {
   if (mProcessingSettings.memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_GLOBAL) {
     if (mMaster == nullptr) {
-      operator delete(mHostMemoryBase);
+      operator delete(mHostMemoryBase GPUCA_OPERATOR_NEW_ALIGNMENT);
     }
     mHostMemoryPool = mHostMemoryBase = mHostMemoryPoolEnd = mHostMemoryPermanent = nullptr;
     mHostMemorySize = 0;
@@ -187,6 +189,7 @@ int GPUReconstructionCPU::ExitDevice()
 
 int GPUReconstructionCPU::RunChains()
 {
+  mMemoryScalers->temporaryFactor = 1.;
   mStatNEvents++;
   mNEventsProcessed++;
 

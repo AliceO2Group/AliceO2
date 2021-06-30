@@ -1,14 +1,15 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATAPROCESSINGHEADER_H
-#define FRAMEWORK_DATAPROCESSINGHEADER_H
+#ifndef O2_FRAMEWORK_DATAPROCESSINGHEADER_H_
+#define O2_FRAMEWORK_DATAPROCESSINGHEADER_H_
 
 #include "Headers/DataHeader.h"
 
@@ -17,9 +18,7 @@
 #include <cassert>
 #include <chrono>
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 //__________________________________________________________________________________________________
@@ -98,7 +97,6 @@ struct DataProcessingHeader : public header::BaseHeader {
   }
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_DATAPROCESSINGHEADER_H
+#endif // O2_FRAMEWORK_DATAPROCESSINGHEADER_H_

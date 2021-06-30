@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -21,6 +22,7 @@
 // Apparently needs to be on top of the arrow includes.
 #include <sstream>
 
+#include <arrow/chunked_array.h>
 #include <arrow/status.h>
 #include <arrow/memory_pool.h>
 #include <arrow/stl.h>
@@ -28,7 +30,6 @@
 #include <arrow/table.h>
 #include <arrow/builder.h>
 
-#include <functional>
 #include <vector>
 #include <string>
 #include <memory>
@@ -551,11 +552,36 @@ struct HolderTrait<int64_t> {
   using Holder = BuilderHolder<int64_t, CachedInsertion>;
 };
 
+/// Helper function to convert a brace-initialisable struct to
+/// a tuple.
+template <class T>
+auto constexpr to_tuple(T&& object) noexcept
+{
+  using type = std::decay_t<T>;
+  if constexpr (is_braces_constructible<type, any_type, any_type, any_type, any_type>{}) {
+    auto&& [p0, p1, p2, p3] = object;
+    return std::make_tuple(p0, p1, p2, p3);
+  } else if constexpr (is_braces_constructible<type, any_type, any_type, any_type>{}) {
+    auto&& [p0, p1, p2] = object;
+    return std::make_tuple(p0, p1, p2);
+  } else if constexpr (is_braces_constructible<type, any_type, any_type>{}) {
+    auto&& [p0, p1] = object;
+    return std::make_tuple(p0, p1);
+  } else if constexpr (is_braces_constructible<type, any_type>{}) {
+    auto&& [p0] = object;
+    return std::make_tuple(p0);
+  } else {
+    return std::make_tuple();
+  }
+}
+
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
 /// to build an arrow::Table from a TDataFrame.
 class TableBuilder
 {
+  static void throwError(RuntimeErrorRef const& ref);
+
   template <typename... ARGS>
   using HoldersTuple = typename std::tuple<typename HolderTrait<ARGS>::Holder...>;
 
@@ -567,17 +593,7 @@ class TableBuilder
     return (HoldersTuple<ARGS...>*)mHolders;
   }
 
-  template <typename... ARGS>
-  void validate(std::vector<std::string> const& columnNames)
-  {
-    constexpr int nColumns = sizeof...(ARGS);
-    if (nColumns != columnNames.size()) {
-      throw runtime_error("Mismatching number of column types and names");
-    }
-    if (mHolders != nullptr) {
-      throw runtime_error("TableBuilder::persist can only be invoked once per instance");
-    }
-  }
+  void validate(const int nColumns, std::vector<std::string> const& columnNames) const;
 
   template <typename... ARGS>
   auto makeBuilders(std::vector<std::string> const& columnNames, size_t nRows)
@@ -595,11 +611,8 @@ class TableBuilder
   template <typename... ARGS>
   auto makeFinalizer()
   {
-    mFinalizer = [schema = mSchema, &arrays = mArrays, holders = mHolders]() -> void {
-      auto status = TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<sizeof...(ARGS)>{});
-      if (status == false) {
-        throw runtime_error("Unable to finalize");
-      }
+    mFinalizer = [](std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders) -> bool {
+      return TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<sizeof...(ARGS)>{});
     };
   }
 
@@ -650,7 +663,7 @@ class TableBuilder
   auto persistTuple(framework::pack<ARGS...>, std::vector<std::string> const& columnNames)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate<ARGS...>(columnNames);
+    validate(nColumns, columnNames);
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, 1000);
     makeFinalizer<ARGS...>();
@@ -660,7 +673,7 @@ class TableBuilder
     return [holders = mHolders](unsigned int slot, FillTuple const& t) -> void {
       auto status = TableBuilderHelpers::append(*(HoldersTuple<ARGS...>*)holders, std::index_sequence_for<ARGS...>{}, t);
       if (status == false) {
-        throw runtime_error("Unable to append");
+        throwError(runtime_error("Unable to append"));
       }
     };
   }
@@ -687,7 +700,7 @@ class TableBuilder
   auto preallocatedPersist(std::vector<std::string> const& columnNames, int nRows)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate<ARGS...>(columnNames);
+    validate(nColumns, columnNames);
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
@@ -702,7 +715,7 @@ class TableBuilder
   auto bulkPersist(std::vector<std::string> const& columnNames, size_t nRows)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate<ARGS...>(columnNames);
+    validate(nColumns, columnNames);
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
@@ -716,7 +729,7 @@ class TableBuilder
   auto bulkPersistChunked(std::vector<std::string> const& columnNames, size_t nRows)
   {
     constexpr int nColumns = sizeof...(ARGS);
-    validate<ARGS...>(columnNames);
+    validate(nColumns, columnNames);
     mArrays.resize(nColumns);
     makeBuilders<ARGS...>(columnNames, nRows);
     makeFinalizer<ARGS...>();
@@ -764,7 +777,7 @@ class TableBuilder
     return this->template persist<E>(columnNames);
   }
 
-  std::function<void(void)> mFinalizer;
+  bool (*mFinalizer)(std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders);
   void* mHolders;
   arrow::MemoryPool* mMemoryPool;
   std::shared_ptr<arrow::Schema> mSchema;
@@ -781,14 +794,13 @@ auto makeEmptyTable()
 
 /// Expression-based column generator to materialize columns
 template <typename... C>
-auto spawner(framework::pack<C...> columns, arrow::Table* atable)
+auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* name)
 {
-  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
-  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
-
   if (atable->num_rows() == 0) {
     return makeEmptyTable<soa::Table<C...>>();
   }
+  static auto new_schema = o2::soa::createSchemaFromColumns(columns);
+  static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
 
   arrow::TableBatchReader reader(*atable);
   std::shared_ptr<arrow::RecordBatch> batch;
@@ -799,15 +811,20 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable)
   while (true) {
     auto s = reader.ReadNext(&batch);
     if (!s.ok()) {
-      throw runtime_error_f("Cannot read batches from table: %s", s.ToString().c_str());
+      throw runtime_error_f("Cannot read batches from table %s: %s", name, s.ToString().c_str());
     }
     if (batch == nullptr) {
       break;
     }
-    s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
-    if (!s.ok()) {
-      throw runtime_error_f("Cannot apply projector: %s", s.ToString().c_str());
+    try {
+      s = projectors->Evaluate(*batch, arrow::default_memory_pool(), &v);
+      if (!s.ok()) {
+        throw runtime_error_f("Cannot apply projector to table %s: %s", name, s.ToString().c_str());
+      }
+    } catch (std::exception& e) {
+      throw runtime_error_f("Cannot apply projector to table %s: exception caught: %s", name, e.what());
     }
+
     for (auto i = 0u; i < sizeof...(C); ++i) {
       chunks[i].emplace_back(v.at(i));
     }
@@ -845,7 +862,7 @@ void lowerBound(int32_t value, T& start)
   while (count > 0) {
     step = count / 2;
     start.moveByIndex(step);
-    if (start.template getId<Key>() < value) {
+    if (start.template getId<Key>() <= value) {
       count -= step + 1;
     } else {
       start.moveByIndex(-step);

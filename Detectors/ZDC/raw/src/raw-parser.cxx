@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,9 +17,11 @@
 #include "Framework/ConfigParamSpec.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "DataFormatsZDC/RawEventData.h"
 #include "ZDCSimulation/Digits2Raw.h"
 #include "ZDCRaw/DumpRaw.h"
+#include "CommonUtils/ConfigurableParam.h"
 #include <vector>
 #include <sstream>
 
@@ -28,16 +31,21 @@ using namespace o2::framework;
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(
+    ConfigParamSpec{"input-spec", VariantType::String, "A:ZDC/RAWDATA", {"selection string input specs"}});
+  workflowOptions.push_back(
     ConfigParamSpec{
-      "input-spec", VariantType::String, "A:ZDC/RAWDATA", {"selection string input specs"}});
+      "configKeyValues",
+      VariantType::String,
+      "",
+      {"Semicolon separated key=value strings"}});
 }
 
 #include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
-  printf("Ciao\n");
   WorkflowSpec workflow;
+  o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   workflow.emplace_back(DataProcessorSpec{
     "zdc-raw-parser",
     select(config.options().get<std::string>("input-spec").c_str()),
@@ -68,9 +76,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
               if (dh != lastDataHeader) {
                 // print the DataHeader information only for the first part or if we have high verbosity
                 if (loglevel > 1 || dh->splitPayloadIndex == 0) {
-                  rdhprintout << dh->dataOrigin.as<std::string>() << "/"
-                              << dh->dataDescription.as<std::string>() << "/"
-                              << dh->subSpecification << "  ";
+                  rdhprintout << fmt::format("{}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification)
+                              << "  ";
                   // at high verbosity print part number, otherwise only the total number of parts
                   if (loglevel > 1) {
                     rdhprintout << "part " + std::to_string(dh->splitPayloadIndex) + " of " + std::to_string(dh->splitPayloadParts);
@@ -85,9 +92,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                 }
               }
               if (payload != nullptr) {
-                for (Int_t ip = 0; ip < payloadSize; ip += 16) {
-                  //o2::zdc::Digits2Raw::print_gbt_word((const UInt_t*)&payload[ip]);
-                  zdc_dr.processWord((const UInt_t*)&payload[ip]);
+                for (int32_t ip = 0; ip < payloadSize; ip += 16) {
+                  //o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+                  zdc_dr.processWord((const uint32_t*)&payload[ip]);
                 }
               }
             }

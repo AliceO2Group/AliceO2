@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 if(NOT DEFINED ENABLE_CUDA)
   set(ENABLE_CUDA "AUTO")
@@ -27,7 +28,6 @@ string(TOUPPER "${ENABLE_HIP}" ENABLE_HIP)
 
 # Detect and enable CUDA
 if(ENABLE_CUDA)
-  set(CUDA_MINIMUM_VERSION "11.0")
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
   include(CheckLanguage)
@@ -50,6 +50,9 @@ if(ENABLE_CUDA)
     if(THRUST_INCLUDE_DIR STREQUAL "THRUST_INCLUDE_DIR-NOTFOUND")
       message(FATAL_ERROR "CUDA found but thrust not available")
     endif()
+    if (NOT CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL "11.3")
+      message(FATAL_ERROR "CUDA Version too old: ${CMAKE_CUDA_COMPILER_VERSION}, 11.3 required")
+    endif()
 
     # Forward CXX flags to CUDA C++ Host compiler (for warnings, gdb, etc.)
     STRING(REGEX REPLACE "\-std=[^ ]*" "" CMAKE_CXX_FLAGS_NOSTD ${CMAKE_CXX_FLAGS}) # Need to strip c++17 imposed by alidist defaults
@@ -62,9 +65,9 @@ if(ENABLE_CUDA)
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Werror=cross-execution-space-call")
     endif()
     if(CUDA_COMPUTETARGET)
-      set(CMAKE_CUDA_ARCHITECTURES ${CUDA_COMPUTETARGET})
+      set(CMAKE_CUDA_ARCHITECTURES ${CUDA_COMPUTETARGET} CACHE STRING "" FORCE)
     else()
-      set(CMAKE_CUDA_ARCHITECTURES 61-virtual)
+      set(CMAKE_CUDA_ARCHITECTURES 61-virtual CACHE STRING "" FORCE)
     endif()
 
     set(CUDA_ENABLED ON)
@@ -102,6 +105,7 @@ endif()
 
 # Detect and enable OpenCL 2.x
 if(ENABLE_OPENCL2)
+  find_package(OpenCL)
   find_package(LLVM)
   if(LLVM_FOUND)
     find_package(Clang)
@@ -116,7 +120,7 @@ if(ENABLE_OPENCL2)
   find_program(LLVM_SPIRV llvm-spirv)
   if(Clang_FOUND
      AND LLVM_FOUND
-     AND LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL 10.0)
+     AND LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL 13.0)
     set(OPENCL2_COMPATIBLE_CLANG_FOUND ON)
   endif()
   if(OpenCL_VERSION_STRING VERSION_GREATER_EQUAL 2.0
@@ -162,6 +166,10 @@ if(ENABLE_HIP)
 
   if(EXISTS "${HIP_PATH}")
     get_filename_component(hip_ROOT "${HIP_PATH}" ABSOLUTE)
+    if(HIP_AMDGPUTARGET)
+      set(AMDGPU_TARGETS "${HIP_AMDGPUTARGET}" CACHE STRING "AMD GPU targets to compile for" FORCE)
+      set(GPU_TARGETS "${HIP_AMDGPUTARGET}" CACHE STRING "AMD GPU targets to compile for" FORCE)
+    endif()
     find_package(hip)
     find_package(hipcub)
     find_package(rocprim)

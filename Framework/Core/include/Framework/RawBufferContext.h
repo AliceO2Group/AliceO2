@@ -1,34 +1,26 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file   RawBufferContext.h
-/// \brief  **********
-/// \author Gabriele G. Fronzé <gfronze at cern.ch>
-/// \date   31/07/2018
-
-#ifndef FRAMEWORK_RAWBUFFERCONTEXT_H
-#define FRAMEWORK_RAWBUFFERCONTEXT_H
+#ifndef O2_FRAMEWORK_RAWBUFFERCONTEXT_H_
+#define O2_FRAMEWORK_RAWBUFFERCONTEXT_H_
 
 #include "Framework/FairMQDeviceProxy.h"
 #include "CommonUtils/BoostSerializer.h"
 #include <vector>
-#include <cassert>
 #include <string>
 #include <memory>
-#include "boost/any.hpp"
 
 class FairMQMessage;
 
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 /// A context which holds bytes streams being passed around
@@ -40,10 +32,7 @@ class RawBufferContext
     : mProxy{proxy}
   {
   }
-  RawBufferContext(RawBufferContext&& other)
-    : mProxy{other.mProxy}, mMessages{std::move(other.mMessages)}
-  {
-  }
+  RawBufferContext(RawBufferContext&& other);
 
   struct MessageRef {
     std::unique_ptr<FairMQMessage> header;
@@ -59,10 +48,7 @@ class RawBufferContext
                     char* payload,
                     std::string channel,
                     std::function<std::ostringstream()> serialize,
-                    std::function<void()> destructor)
-  {
-    mMessages.push_back(std::move(MessageRef{std::move(header), std::move(payload), std::move(channel), std::move(serialize), std::move(destructor)}));
-  }
+                    std::function<void()> destructor);
 
   Messages::iterator begin()
   {
@@ -79,22 +65,7 @@ class RawBufferContext
     return mMessages.size();
   }
 
-  void clear()
-  {
-    // On send we move the header, but the payload remains
-    // there because what's really sent is the copy of the raw
-    // payload will be cleared by the mMessages.clear()
-    for (auto& m : mMessages) {
-      assert(m.header == nullptr);
-      // NOTE: payloads can be empty so m.payload == nullptr should
-      //       be an actual issue.
-      assert(m.payload != nullptr);
-      m.destroyPayload();
-      m.payload = nullptr;
-    }
-
-    mMessages.clear();
-  }
+  void clear();
 
   FairMQDeviceProxy& proxy()
   {
@@ -106,7 +77,6 @@ class RawBufferContext
   Messages mMessages;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif //FRAMEWORK_RAWBUFFERCONTEXT_H
+#endif // O2_FRAMEWORK_RAWBUFFERCONTEXT_H_

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,6 +19,7 @@
 #define ALICE_O2_EVENTVISUALISATION_BASE_VISUALISATIONTRACK_H
 
 #include "ConversionConstants.h"
+#include "rapidjson/document.h"
 
 #include <iosfwd>
 #include <string>
@@ -41,23 +43,34 @@ class VisualisationTrack
  public:
   // Default constructor
   VisualisationTrack();
+  // create track from their JSON representation
+  VisualisationTrack(rapidjson::Value& tree);
+  // create JSON representation of the track
+  rapidjson::Value jsonTree(rapidjson::Document::AllocatorType& allocator);
 
+  /// constructor parametrisation (Value Object) for VisualisationTrack class
+  ///
+  /// Simplifies passing parameters to constructor of VisualisationTrack
+  /// by providing their names
+  struct VisualisationTrackVO {
+    int charge;
+    double energy;
+    int ID;
+    int PID;
+    double mass;
+    double signedPT;
+    double startXYZ[3];
+    double endXYZ[3];
+    double pxpypz[3];
+    int parentID;
+    double phi;
+    double theta;
+    double helixCurvature;
+    int type;
+    ETrackSource source;
+  };
   // Constructor with properties initialisation
-  VisualisationTrack(
-    int charge,
-    double energy,
-    int ID,
-    int PID,
-    double mass,
-    double signedPT,
-    double startXYZ[],
-    double endXYZ[],
-    double pxpypz[],
-    int parentID,
-    double phi,
-    double theta,
-    double helixCurvature,
-    int type);
+  VisualisationTrack(const VisualisationTrackVO vo);
 
   // Add child particle (coming from decay of this particle)
   void addChild(int childID);
@@ -67,6 +80,7 @@ class VisualisationTrack
   void addPolyPoint(double xyz[3]);
   // Track type setter (standard track, V0, kink, cascade)
   void setTrackType(ETrackType type);
+  std::string getTrackType() { return this->mType; }
 
   // Vertex getter
   double* getVertex() { return mStartCoordinates; }
@@ -84,11 +98,11 @@ class VisualisationTrack
 
  private:
   // Set coordinates of the beginning of the track
-  void addStartCoordinates(double xyz[3]);
+  void addStartCoordinates(const double xyz[3]);
   // Set coordinates of the end of the track
-  void addEndCoordinates(double xyz[3]);
+  void addEndCoordinates(const double xyz[3]);
   /// Set momentum vector
-  void addMomentum(double pxpypz[3]);
+  void addMomentum(const double pxpypz[3]);
 
   int mID;                     /// Unique identifier of the track
   std::string mType;           /// Type (standard, V0 mother, daughter etc.)
@@ -106,6 +120,7 @@ class VisualisationTrack
   double mPhi;                 /// An angle from X-axis to the radius vector pointing to the particle
 
   std::vector<int> mChildrenIDs; /// Uniqe IDs of children particles
+  ETrackSource mSource;          /// data source of the track (debug)
 
   /// Polylines -- array of points along the trajectory of the track
   std::vector<double> mPolyX;

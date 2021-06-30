@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,11 +14,13 @@
 
 #include "Assertions.h"
 #include "GBTEncoder.h"
+#include "MCHRawCommon/SampaBunchCrossingCounter.h"
+#include "MCHRawElecMap/Mapper.h"
 #include "MCHRawEncoderPayload/DataBlock.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
-#include "MCHRawElecMap/Mapper.h"
 #include "MakeArray.h"
 #include <algorithm>
+#include <cassert>
 #include <cstdlib>
 #include <fmt/format.h>
 #include <functional>
@@ -27,9 +30,11 @@
 #include <memory>
 #include <optional>
 #include <set>
-#include <vector>
-#include <cassert>
 #include <stdexcept>
+#include <vector>
+#include "DetectorsRaw/HBFUtils.h"
+#include "NofBits.h"
+#include "Framework/Logger.h"
 
 namespace o2::mch::raw
 {
@@ -38,33 +43,39 @@ namespace o2::mch::raw
 ///
 /// \nosubgrouping
 
-template <typename FORMAT, typename CHARGESUM>
+template <typename FORMAT, typename CHARGESUM, int VERSION>
 class PayloadEncoderImpl : public PayloadEncoder
 {
  public:
   PayloadEncoderImpl(Solar2FeeLinkMapper solar2feelink);
 
-  void addChannelData(DsElecId dsId, uint8_t chId, const std::vector<SampaCluster>& data) override;
+  void addChannelData(DsElecId dsId, DualSampaChannelId dsChId,
+                      const std::vector<SampaCluster>& data) override;
 
   void startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing) override;
 
   size_t moveToBuffer(std::vector<std::byte>& buffer) override;
 
+  void addHeartbeatHeaders(const std::set<DsElecId>& dsids) override;
+
+  using ElementaryEncoder = GBTEncoder<FORMAT, CHARGESUM, VERSION>;
+
  private:
   void closeHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing);
   void gbts2buffer(uint32_t orbit, uint16_t bunchCrossing);
+  std::unique_ptr<ElementaryEncoder>& assertGBT(uint16_t solarId);
 
  private:
   uint32_t mOrbit;
   uint16_t mBunchCrossing;
   std::vector<std::byte> mBuffer;
-  std::map<uint16_t, std::unique_ptr<GBTEncoder<FORMAT, CHARGESUM>>> mGBTs;
+  std::map<uint16_t, std::unique_ptr<ElementaryEncoder>> mGBTs;
   bool mFirstHBFrame;
   Solar2FeeLinkMapper mSolar2FeeLink;
 };
 
-template <typename FORMAT, typename CHARGESUM>
-PayloadEncoderImpl<FORMAT, CHARGESUM>::PayloadEncoderImpl(Solar2FeeLinkMapper solar2feelink)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::PayloadEncoderImpl(Solar2FeeLinkMapper solar2feelink)
   : mOrbit{},
     mBunchCrossing{},
     mBuffer{},
@@ -74,24 +85,33 @@ PayloadEncoderImpl<FORMAT, CHARGESUM>::PayloadEncoderImpl(Solar2FeeLinkMapper so
 {
 }
 
-template <typename FORMAT, typename CHARGESUM>
-void PayloadEncoderImpl<FORMAT, CHARGESUM>::addChannelData(DsElecId dsId, uint8_t chId, const std::vector<SampaCluster>& data)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+std::unique_ptr<typename PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::ElementaryEncoder>&
+  PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::assertGBT(uint16_t solarId)
 {
-  auto solarId = dsId.solarId();
   auto gbt = mGBTs.find(solarId);
   if (gbt == mGBTs.end()) {
     auto f = mSolar2FeeLink(solarId);
     if (!f.has_value()) {
       throw std::invalid_argument(fmt::format("Could not get fee,link for solarId={}\n", solarId));
     }
-    mGBTs.emplace(solarId, std::make_unique<GBTEncoder<FORMAT, CHARGESUM>>(f->linkId()));
+    mGBTs.emplace(solarId, std::make_unique<ElementaryEncoder>(f->linkId()));
     gbt = mGBTs.find(solarId);
   }
-  gbt->second->addChannelData(dsId.elinkGroupId(), dsId.elinkIndexInGroup(), chId, data);
+  return gbt->second;
 }
 
-template <typename FORMAT, typename CHARGESUM>
-void PayloadEncoderImpl<FORMAT, CHARGESUM>::gbts2buffer(uint32_t orbit, uint16_t bunchCrossing)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::addChannelData(DsElecId dsId, DualSampaChannelId dsChId, const std::vector<SampaCluster>& data)
+{
+  auto solarId = dsId.solarId();
+  auto& gbt = assertGBT(solarId);
+  impl::assertNofBits("dualSampaChannelId", dsChId, 6);
+  gbt->addChannelData(dsId.elinkGroupId(), dsId.elinkIndexInGroup(), dsChId, data);
+}
+
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::gbts2buffer(uint32_t orbit, uint16_t bunchCrossing)
 {
   // append to our own buffer all the words buffers from all our gbts,
   // prepending each one with a corresponding payload header
@@ -110,8 +130,8 @@ void PayloadEncoderImpl<FORMAT, CHARGESUM>::gbts2buffer(uint32_t orbit, uint16_t
   }
 }
 
-template <typename FORMAT, typename CHARGESUM>
-size_t PayloadEncoderImpl<FORMAT, CHARGESUM>::moveToBuffer(std::vector<std::byte>& buffer)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+size_t PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::moveToBuffer(std::vector<std::byte>& buffer)
 {
   closeHeartbeatFrame(mOrbit, mBunchCrossing);
   buffer.insert(buffer.end(), mBuffer.begin(), mBuffer.end());
@@ -120,14 +140,14 @@ size_t PayloadEncoderImpl<FORMAT, CHARGESUM>::moveToBuffer(std::vector<std::byte
   return s;
 }
 
-template <typename FORMAT, typename CHARGESUM>
-void PayloadEncoderImpl<FORMAT, CHARGESUM>::closeHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::closeHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing)
 {
   gbts2buffer(orbit, bunchCrossing);
 }
 
-template <typename FORMAT, typename CHARGESUM>
-void PayloadEncoderImpl<FORMAT, CHARGESUM>::startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing)
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::startHeartbeatFrame(uint32_t orbit, uint16_t bunchCrossing)
 {
   impl::assertIsInRange("bunchCrossing", bunchCrossing, 0, 0xFFF);
   // build a buffer with the _previous_ (orbit,bx)
@@ -140,5 +160,24 @@ void PayloadEncoderImpl<FORMAT, CHARGESUM>::startHeartbeatFrame(uint32_t orbit, 
   mBunchCrossing = bunchCrossing;
 }
 
+/** addHeartbeatHeaders generate one hearbeat header for each dual sampa
+  * present in the mDsElecIds set. Might be called e.g. at the beginning
+  * of each time frame
+  */
+template <typename FORMAT, typename CHARGESUM, int VERSION>
+void PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>::addHeartbeatHeaders(const std::set<DsElecId>& dsids)
+{
+  if (dsids.empty()) {
+    return;
+  }
+  // get first orbit of the run
+  auto firstIR = o2::raw::HBFUtils::Instance().getFirstIR();
+  auto sampaBXCount = sampaBunchCrossingCounter(firstIR.orbit, firstIR.bc, firstIR.orbit);
+  for (auto dsElecId : dsids) {
+    auto solarId = dsElecId.solarId();
+    auto& gbt = assertGBT(solarId);
+    gbt->addHeartbeat(dsElecId.elinkGroupId(), dsElecId.elinkIndexInGroup(), sampaBXCount);
+  }
+}
 } // namespace o2::mch::raw
 #endif

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -92,11 +93,14 @@ class Digitizer
 
   /// Set the start time of the first event
   /// \param time Time of the first event
-  void setStartTime(TimeBin time) { mDigitContainer.setStartTime(time); }
+  void setStartTime(double time);
+
+  /// Set mOutputDigitTimeOffset
+  void setOutputDigitTimeOffset(double offset) { mOutputDigitTimeOffset = offset; }
 
   /// Set the time of the event to be processed
   /// \param time Time of the event
-  void setEventTime(float time) { mEventTime = time; }
+  void setEventTime(double time) { mEventTime = time; }
 
   /// Switch for triggered / continuous readout
   /// \param isContinuous - false for triggered readout, true for continuous readout
@@ -122,10 +126,11 @@ class Digitizer
   void setUseSCDistortions(TFile& finp);
 
  private:
-  DigitContainer mDigitContainer;   ///< Container for the Digits
-  std::unique_ptr<SC> mSpaceCharge; ///< Handler of space-charge distortions
-  Sector mSector = -1;              ///< ID of the currently processed sector
-  float mEventTime = 0.f;           ///< Time of the currently processed event
+  DigitContainer mDigitContainer;    ///< Container for the Digits
+  std::unique_ptr<SC> mSpaceCharge;  ///< Handler of space-charge distortions
+  Sector mSector = -1;               ///< ID of the currently processed sector
+  double mEventTime = 0.f;           ///< Time of the currently processed event
+  double mOutputDigitTimeOffset = 0; ///< Time of the first IR sampled in the digitizer
   // FIXME: whats the reason for hving this static?
   static bool mIsContinuous;      ///< Switch for continuous readout
   bool mUseSCDistortions = false; ///< Flag to switch on the use of space-charge distortions

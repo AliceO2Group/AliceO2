@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(ITSMFTReconstruction
                TARGETVARNAME targetName
@@ -23,17 +24,17 @@ o2_add_library(ITSMFTReconstruction
                        src/PayLoadCont.cxx
                        src/GBTWord.cxx
                        src/RUInfo.cxx
-		       src/GBTLink.cxx
-		       src/RUDecodeData.cxx
-		       src/RawPixelDecoder.cxx
+                       src/GBTLink.cxx
+                       src/RUDecodeData.cxx
+                       src/RawPixelDecoder.cxx
                        src/CTFCoder.cxx
                        src/DecodingStat.cxx
                PUBLIC_LINK_LIBRARIES O2::ITSMFTBase
                                      O2::CommonDataFormat
-	                             O2::DetectorsRaw
+                                     O2::DetectorsRaw
                                      O2::SimulationDataFormat 
                                      O2::DataFormatsITSMFT
-				     O2::DPLUtils
+                                     O2::DPLUtils
                                      O2::rANS
                                      O2::Headers)
 
@@ -42,7 +43,6 @@ o2_target_root_dictionary(
   HEADERS include/ITSMFTReconstruction/PixelReader.h
           include/ITSMFTReconstruction/GBTLink.h
           include/ITSMFTReconstruction/RUDecodeData.h
-	  include/ITSMFTReconstruction/RawPixelDecoder.h
           include/ITSMFTReconstruction/DigitPixelReader.h
           include/ITSMFTReconstruction/RawPixelReader.h
           include/ITSMFTReconstruction/PixelData.h

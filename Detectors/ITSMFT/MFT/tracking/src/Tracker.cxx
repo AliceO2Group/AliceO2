@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -40,16 +41,22 @@ void Tracker::setBz(Float_t bz)
 }
 
 //_________________________________________________________________________________________________
-void Tracker::initConfig(const MFTTrackingParam& trkParam)
+void Tracker::initConfig(const MFTTrackingParam& trkParam, bool printConfig)
 {
   /// initialize from MFTTrackingParam (command line configuration parameters)
+
+  mTrackFitter->setMFTRadLength(trkParam.MFTRadLength);
+  mTrackFitter->setVerbosity(trkParam.verbose);
+  mTrackFitter->setTrackModel(trkParam.trackmodel);
 
   mMinTrackPointsLTF = trkParam.MinTrackPointsLTF;
   mMinTrackPointsCA = trkParam.MinTrackPointsCA;
   mMinTrackStationsLTF = trkParam.MinTrackStationsLTF;
   mMinTrackStationsCA = trkParam.MinTrackStationsCA;
   mLTFclsRCut = trkParam.LTFclsRCut;
+  mLTFclsR2Cut = mLTFclsRCut * mLTFclsRCut;
   mROADclsRCut = trkParam.ROADclsRCut;
+  mROADclsR2Cut = mROADclsRCut * mROADclsRCut;
   mLTFseed2BinWin = trkParam.LTFseed2BinWin;
   mLTFinterBinWin = trkParam.LTFinterBinWin;
 
@@ -65,6 +72,20 @@ void Tracker::initConfig(const MFTTrackingParam& trkParam)
   }
   mRBinSize = (constants::index_table::RMax - constants::index_table::RMin) / mRBins;
   mPhiBinSize = (constants::index_table::PhiMax - constants::index_table::PhiMin) / mPhiBins;
+
+  if (printConfig) {
+    LOG(INFO) << "Configurable tracker parameters:";
+    LOG(INFO) << "MinTrackPointsLTF   = " << mMinTrackPointsLTF;
+    LOG(INFO) << "MinTrackPointsCA    = " << mMinTrackPointsCA;
+    LOG(INFO) << "MinTrackStationsLTF = " << mMinTrackStationsLTF;
+    LOG(INFO) << "MinTrackStationsCA  = " << mMinTrackStationsCA;
+    LOG(INFO) << "LTFclsRCut          = " << mLTFclsRCut;
+    LOG(INFO) << "ROADclsRCut         = " << mROADclsRCut;
+    LOG(INFO) << "RBins               = " << mRBins;
+    LOG(INFO) << "PhiBins             = " << mPhiBins;
+    LOG(INFO) << "LTFseed2BinWin      = " << mLTFseed2BinWin;
+    LOG(INFO) << "LTFinterBinWin      = " << mLTFinterBinWin;
+  }
 }
 
 //_________________________________________________________________________________________________
@@ -189,7 +210,7 @@ void Tracker::findTracksLTF(ROframe& event)
   Int_t binIndex, clsMinIndex, clsMaxIndex, clsMinIndexS, clsMaxIndexS;
   Int_t extClsIndex;
   Float_t dR2, dR2min, dR2cut = mLTFclsR2Cut;
-  Bool_t hasDisk[constants::mft::DisksNumber], newPoint, seed;
+  Bool_t hasDisk[constants::mft::DisksNumber], newPoint;
 
   Int_t clsInLayer1, clsInLayer2, clsInLayer;
 
@@ -197,10 +218,9 @@ void Tracker::findTracksLTF(ROframe& event)
   TrackElement trackPoints[constants::mft::LayersNumber];
 
   Int_t step = 0;
-  seed = kTRUE;
   layer1 = 0;
 
-  while (seed) {
+  while (true) {
 
     layer2 = (step == 0) ? (constants::mft::LayersNumber - 1) : (layer2 - 1);
     step++;
@@ -484,7 +504,7 @@ void Tracker::computeCellsInRoad(ROframe& event)
         if (nPtsInLayer2 > 1) {
           LOG(INFO) << "BV===== more than one point in road " << mRoad.getRoadId() << " in layer " << layer2 << " : " << nPtsInLayer2 << "\n";
         }
-	*/
+  */
         for (Int_t point2 = 0; point2 < nPtsInLayer2; ++point2) {
 
           clsInLayer2 = mRoad.getClustersIdInLayer(layer2)[point2];

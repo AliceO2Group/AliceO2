@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -28,9 +29,10 @@ constexpr short Ntriggers = 5;
 constexpr float IntTimeRes = 0.4;
 constexpr float PhotoCathodeEfficiency = 0.18;
 constexpr float ChargePerADC = 0.6e-12;
-constexpr float PMTransitTime = 6.0;   // PM response time (corresponds to 1.9 ns rise time)
-constexpr float PMTransparency = 0.25; // Transparency of the first dynode of the PM
-constexpr float PMNbOfSecElec = 6.0;   // Number of secondary electrons emitted from first dynode (per ph.e.)
+constexpr float TimePerTDC = 1. / 0.01302; // time conversion from ns to TDC channels
+constexpr float PMTransitTime = 6.0;       // PM response time (corresponds to 1.9 ns rise time)
+constexpr float PMTransparency = 0.25;     // Transparency of the first dynode of the PM
+constexpr float PMNbOfSecElec = 6.0;       // Number of secondary electrons emitted from first dynode (per ph.e.)
 
 constexpr int NTimeBinsPerBC = 256; // number of samples per BC
 

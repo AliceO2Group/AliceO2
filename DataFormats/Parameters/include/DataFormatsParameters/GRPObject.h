@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -52,6 +53,13 @@ class GRPObject
   timePoint getTimeEnd() const { return mTimeEnd; }
   void setTimeStart(timePoint t) { mTimeStart = t; }
   void setTimeEnd(timePoint t) { mTimeEnd = t; }
+
+  void setNHBFPerTF(uint32_t n) { mNHBFPerTF = n; }
+  uint32_t getNHBFPerTF() const { return mNHBFPerTF; }
+
+  void setFirstOrbit(uint32_t o) { mFirstOrbit = o; }
+  uint32_t getFirstOrbit() const { return mFirstOrbit; }
+
   /// getters/setters for beams crossing angle (deviation from 0)
   o2::units::AngleRad_t getCrossingAngle() const { return mCrossingAngle; }
   void setCrossingAngle(o2::units::AngleRad_t v) { mCrossingAngle = v; }
@@ -70,8 +78,10 @@ class GRPObject
   /// getters/setters for magnets currents
   o2::units::Current_t getL3Current() const { return mL3Current; }
   o2::units::Current_t getDipoleCurrent() const { return mDipoleCurrent; }
+  bool getFieldUniformity() const { return mUniformField; }
   void setL3Current(o2::units::Current_t v) { mL3Current = v; }
   void setDipoleCurrent(o2::units::Current_t v) { mDipoleCurrent = v; }
+  void setFieldUniformity(bool v) { mUniformField = v; }
   /// getter/setter for data taking period name
   const std::string& getDataPeriod() const { return mDataPeriod; }
   void setDataPeriod(const std::string v) { mDataPeriod = v; }
@@ -129,11 +139,14 @@ class GRPObject
   /// print itself
   void print() const;
 
-  static GRPObject* loadFrom(const std::string& grpFileName, const std::string& grpName = "GRP");
+  static GRPObject* loadFrom(const std::string& grpFileName = "", const std::string& grpName = "GRP");
 
  private:
-  timePoint mTimeStart = 0; ///< DAQ_time_start entry from DAQ logbook
-  timePoint mTimeEnd = 0;   ///< DAQ_time_end entry from DAQ logbook
+  timePoint mTimeStart = 0;      ///< DAQ_time_start entry from DAQ logbook
+  timePoint mTimeEnd = LONG_MAX; ///< DAQ_time_end entry from DAQ logbook
+
+  uint32_t mFirstOrbit = 0;  /// 1st orbit of the 1st TF, in the MC set at digitization // RS Not sure it will stay in GRP, may go to some CTP object
+  uint32_t mNHBFPerTF = 256; /// Number of HBFrames per TF
 
   DetID::mask_t mDetsReadout;      ///< mask of detectors which are read out
   DetID::mask_t mDetsContinuousRO; ///< mask of detectors read out in continuos mode
@@ -142,6 +155,7 @@ class GRPObject
   o2::units::AngleRad_t mCrossingAngle = 0.f; ///< crossing angle in radians (as deviation from pi)
   o2::units::Current_t mL3Current = 0.f;      ///< signed current in L3
   o2::units::Current_t mDipoleCurrent = 0.f;  ///< signed current in Dipole
+  bool mUniformField = false;                 ///< uniformity of magnetic field
   float mBeamEnergyPerZ = 0.f;                ///< beam energy per charge (i.e. sqrt(s)/2 for pp)
 
   int mBeamAZ[beamDirection::NBeamDirections] = {0, 0}; ///< A<<16+Z for each beam
@@ -151,7 +165,7 @@ class GRPObject
   std::string mDataPeriod = ""; ///< name of the period
   std::string mLHCState = "";   ///< machine state
 
-  ClassDefNV(GRPObject, 1);
+  ClassDefNV(GRPObject, 5);
 };
 
 //______________________________________________

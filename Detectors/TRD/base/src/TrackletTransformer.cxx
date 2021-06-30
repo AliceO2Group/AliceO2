@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,18 +25,15 @@ TrackletTransformer::TrackletTransformer()
 
   // 3 cm
   mXCathode = mGeo->cdrHght();
-  // 2.221
-  // mXAnode = mGeo->anodePos();
   // 3.35
   mXAnode = mGeo->cdrHght() + mGeo->camHght() / 2;
-  // 2.5
+  // 5mm below cathode plane to reduce error propogation from tracklet fit and driftV
   mXDrift = mGeo->cdrHght() - 0.5;
   mXtb0 = -100;
 
   // dummy values for testing. This will change in the future when values are pulled from CCDB
-  mt0Correction = -0.1;
-  mOldLorentzAngle = 0.16;
-  mLorentzAngle = -0.14;
+  mt0Correction = -0.279;
+  mLorentzAngle = 0.14;
   mDriftVRatio = 1.1;
 }
 
@@ -52,8 +50,17 @@ float TrackletTransformer::calculateY(int hcid, int column, int position)
   double padWidth = mPadPlane->getWidthIPad();
   int side = hcid % 2;
 
+  // the position calculated in TRAPsim is a signed integer
+  int positionUnsigned = 0;
+  if (position & (1 << (NBITSTRKLPOS - 1))) {
+    positionUnsigned = -((~(position - 1)) & ((1 << NBITSTRKLPOS) - 1));
+  } else {
+    positionUnsigned = position & ((1 << NBITSTRKLPOS) - 1);
+  }
+  positionUnsigned += 1 << (NBITSTRKLPOS - 1); // shift such that positionUnsigned = 1 << (NBITSTRKLPOS - 1) corresponds to the MCM center
+
   // slightly modified TDP eq 16.1 (appended -1 to the end to account for MCM shared pads)
-  double pad = float(position - (1 << (NBITSTRKLPOS - 1))) * GRANULARITYTRKLPOS + NCOLMCM * (4 * side + column) + 10.5 - 1;
+  double pad = float(positionUnsigned - (1 << (NBITSTRKLPOS - 1))) * GRANULARITYTRKLPOS + NCOLMCM * (4 * side + column) + 10. - 1.;
   float y = padWidth * (pad - 72);
 
   return y;
@@ -62,52 +69,39 @@ float TrackletTransformer::calculateY(int hcid, int column, int position)
 float TrackletTransformer::calculateZ(int padrow)
 {
   double rowPos = mPadPlane->getRowPos(padrow);
-  double rowWidth = mPadPlane->getRowSize(padrow);
+  double rowSize = mPadPlane->getRowSize(padrow);
   double middleRowPos = mPadPlane->getRowPos(mPadPlane->getNrows() / 2);
 
-  float z = rowPos - rowWidth / 2. - middleRowPos;
-
-  return z;
+  return rowPos - rowSize / 2. - middleRowPos;
 }
 
-float TrackletTransformer::calculateDy(int slope, double oldLorentzAngle, double lorentzAngle, double driftVRatio)
+float TrackletTransformer::calculateDy(int slope, double lorentzAngle, double driftVRatio)
 {
   double padWidth = mPadPlane->getWidthIPad();
 
   // temporary dummy value in cm/microsecond
-  float vDrift = 1.56;
-  float driftHeight = mGeo->cdrHght();
+  float vDrift = 1.5464f;
+
+  int slopeSigned = 0;
+  if (slope & (1 << (NBITSTRKLSLOPE - 1))) {
+    slopeSigned = -((~(slope - 1)) & ((1 << NBITSTRKLSLOPE) - 1));
+  } else {
+    slopeSigned = slope & ((1 << NBITSTRKLSLOPE) - 1);
+  }
 
   // dy = slope * nTimeBins * padWidth * GRANULARITYTRKLSLOPE;
   // nTimeBins should be number of timebins in drift region. 1 timebin is 100 nanosecond
-  double rawDy = slope * ((driftHeight / vDrift) / 0.1) * padWidth * GRANULARITYTRKLSLOPE;
+  double rawDy = slopeSigned * ((mXCathode / vDrift) * 10.) * padWidth * GRANULARITYTRKLSLOPE;
 
-  // driftDistance = 3.35
-  float driftDistance = mGeo->cdrHght() + mGeo->camHght();
+  // NOTE: check what drift height is used in calibration code to ensure consistency
+  // NOTE: check sign convention of Lorentz angle
+  // NOTE: confirm the direction in which vDrift is measured/determined. Is it in x or in direction of drift?
+  double lorentzCorrection = TMath::Tan(lorentzAngle) * mXAnode;
 
-  float cmSlope = rawDy / driftDistance;
+  // assuming angle in Bailhache, fig. 4.17 would be positive in our calibration code
+  double calibratedDy = rawDy - lorentzCorrection;
 
-  double calibratedDy = rawDy - (TMath::Tan(lorentzAngle) * driftDistance);
-  calibratedDy += (TMath::Tan(oldLorentzAngle) * driftDistance * driftVRatio) + cmSlope * (driftDistance * (1 - driftVRatio));
-
-  // ALTERNATIVE METHOD
-
-  // double x_anode_hit = driftDistance*driftVRatio/cmSlope;
-  // double y_anode_hit = driftDistance*driftVRatio;
-
-  // double x_Lorentz_drift_hit = TMath::Tan(oldLorentzAngle)*driftDistance*driftVRatio - TMath::Tan(lorentzAngle)*driftDistance;
-  // double y_Lorentz_drift_hit = driftDistance*driftVRatio - driftDistance;
-
-  // double Delta_x_Lorentz_drift_hit = x_anode_hit - x_Lorentz_drift_hit;
-  // double Delta_y_Lorentz_drift_hit = y_anode_hit - y_Lorentz_drift_hit;
-  // double impact_angle_rec = TMath::ATan2(Delta_y_Lorentz_drift_hit,Delta_x_Lorentz_drift_hit);
-
-  // float calibrationShift = TMath::Tan(impact_angle_rec) * driftDistance;
-
-  // LOG(info) << "ORIGINAL: " << calibratedDy;
-  // LOG(info) << "ALTERNATIVE: " << rawDy + calibrationShift;
-
-  return calibratedDy;
+  return rawDy;
 }
 
 float TrackletTransformer::calibrateX(double x, double t0Correction)
@@ -128,13 +122,10 @@ std::array<float, 3> TrackletTransformer::transformL2T(int hcid, std::array<doub
 
 CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
 {
-  uint64_t trackletWord = tracklet.getTrackletWord();
   uint64_t hcid = tracklet.getHCID();
   uint64_t padrow = tracklet.getPadRow();
   uint64_t column = tracklet.getColumn();
-  // 0-2048 | units:pad-widths | granularity=1/75 (measured from center pad 10) 1024 is 0/center of pad 10
   uint64_t position = tracklet.getPosition();
-  // 0-127 | units:pads/timebin | granularity=1/1000
   uint64_t slope = tracklet.getSlope();
 
   // calculate raw local chamber space point
@@ -143,16 +134,35 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet)
   float y = calculateY(hcid, column, position);
   float z = calculateZ(padrow);
 
-  float dy = calculateDy(slope, mOldLorentzAngle, mLorentzAngle, mDriftVRatio);
+  float dy = calculateDy(slope, mLorentzAngle, mDriftVRatio);
   float calibratedX = calibrateX(x, mt0Correction);
+  // NOTE: Correction to y position based on x calibration NOT YET implemented. Need t0.
 
-  std::array<float, 3> sectorSpacePoint = transformL2T(hcid, std::array<double, 3>{x, y, z});
+  std::array<float, 3> sectorSpacePoint = transformL2T(hcid, std::array<double, 3>{calibratedX, y, z});
 
   LOG(debug) << "x: " << sectorSpacePoint[0] << " | "
              << "y: " << sectorSpacePoint[1] << " | "
              << "z: " << sectorSpacePoint[2];
 
-  CalibratedTracklet calibratedTracklet = CalibratedTracklet(trackletWord, sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
+  return CalibratedTracklet(sectorSpacePoint[0], sectorSpacePoint[1], sectorSpacePoint[2], dy);
+}
 
-  return calibratedTracklet;
+double TrackletTransformer::getTimebin(double x)
+{
+  // calculate timebin from x position within chamber
+  // calibration parameters need to be extracted from CCDB in the future
+  double vDrift = 1.5625; // in cm/us
+  double t0 = 4.0;        // time (in timebins) of start of drift region
+
+  double timebin;
+  // x = 0 at anode plane and points toward pad plane.
+  if (x < -mGeo->camHght() / 2) {
+    // drift region
+    timebin = t0 - (x + mGeo->camHght() / 2) / (vDrift * 0.1);
+  } else {
+    // anode region: very rough guess
+    timebin = t0 - 1.0 + fabs(x);
+  }
+
+  return timebin;
 }

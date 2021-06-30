@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -28,7 +29,7 @@
 #include "fairlogger/Logger.h"
 
 //to pull in the digitzer incomnig data.
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "TRDSimulation/Digitizer.h"
 #include <SimulationDataFormat/MCCompLabel.h>
 #include <SimulationDataFormat/MCTruthContainer.h>
@@ -107,14 +108,7 @@ void TrapSimulator::reset()
   //clear the adc data
   std::fill(mADCR.begin(), mADCR.end(), 0);
   std::fill(mADCF.begin(), mADCF.end(), 0);
-
-  //clear the labels
-  for (auto& adcLabels : mADCLabels) {
-    adcLabels.clear();
-  }
-
-  mTrackletLabels.clear(); // as the name implies clear the stored labels
-  // OS: Should the hits be reset? mHits and mNHits? This is anyway done in calcFitReg(), maybe move it here?
+  std::fill(mADCDigitIndices.begin(), mADCDigitIndices.end(), -1);
 
   for (auto filterreg : mInternalFilterRegisters) {
     filterreg.ClearReg();
@@ -128,7 +122,7 @@ void TrapSimulator::reset()
   std::fill(mMCMT.begin(), mMCMT.end(), 0);
 
   filterPedestalInit();
-  filterGainInit();
+  //filterGainInit(); // we do not use the gain filter anyway, so disable it completely
   filterTailInit();
 
   for (auto& fitreg : mFitReg) {
@@ -136,8 +130,9 @@ void TrapSimulator::reset()
   }
   mADCFilled = 0;
 
-  mTrackletLabels.clear(); // clear the stored labels.
   mTrackletArray64.clear();
+  mTrackletDigitCount.clear();
+  mTrackletDigitIndices.clear();
 
   mDataIsSet = false;
 }
@@ -615,17 +610,6 @@ void TrapSimulator::noiseTest(int nsamples, int mean, int sigma, int inputGain, 
   hft->Draw();
 }
 
-bool TrapSimulator::checkInitialized() const
-{
-  //
-  // Check whether object is initialized
-  //
-
-  //  if (!mInitialized)
-  //   LOG(debug) << "TrapSimulator is not initialized but function other than Init() is called.";
-
-  return mInitialized;
-}
 
 void TrapSimulator::print(int choice) const
 {
@@ -762,7 +746,7 @@ void TrapSimulator::draw(int choice, int index)
   rootfile->Close();
 }
 
-void TrapSimulator::setData(int adc, const ArrayADC& data, std::vector<o2::MCCompLabel>& labels)
+void TrapSimulator::setData(int adc, const ArrayADC& data, unsigned int digitIdx)
 {
   //
   // Store ADC data into array of raw data
@@ -777,21 +761,15 @@ void TrapSimulator::setData(int adc, const ArrayADC& data, std::vector<o2::MCCom
     return;
   }
 
-  //  LOG(debug) <<  "Set Data : Det:Rob:MCM::"<< getDetector() <<":" <<getRobPos()<<":"<<getMcmPos() << " t:"<< mNTimeBin;
   // OS: in Run 2 zero was suppressed!!!
   for (int it = 0; it < mNTimeBin; it++) {
     mADCR[adc * mNTimeBin + it] = ((int)(data[it]) << mgkAddDigits) + (mgAddBaseline << mgkAddDigits);
     mADCF[adc * mNTimeBin + it] = ((int)(data[it]) << mgkAddDigits) + (mgAddBaseline << mgkAddDigits);
-    // mADCR[adc * mNTimeBin + it] = (unsigned int)(data[it]);
-    // mADCF[adc * mNTimeBin + it] = (unsigned int)(data[it]);
-    //    LOG(debug) << data[it] <<" at "<< adc << "*" << mNTimeBin <<"+"<<it <<"="<<  adc*mNTimeBin+it << " with data :"<<mADCR[adc*mNTimeBin+it] << ":" << mADCF[adc*mNTimeBin+it];
   }
   mDataIsSet = true;
   mADCFilled |= (1 << adc);
-  //for (auto& tmplabel : labels) mADCLabels[adc].push_back(tmplabel);
-  //  LOG(debug) << "setting data labels incoming of  : " << labels.size() << " with adc of " << adc;
-  mADCLabels[adc] = labels;
-  //  LOG(debug) << "setting data labels incoming of  : " << labels.size() << " with adc of " << adc << " now mADCLabels[adc] size is : " << mADCLabels[adc].size();
+
+  mADCDigitIndices[adc] = digitIdx;
 }
 
 void TrapSimulator::setData(int adc, int it, int data)
@@ -874,11 +852,6 @@ bool TrapSimulator::getHit(int index, int& channel, int& timebin, int& qtot, int
 
   return true;
 }
-//TrapSimualtor::Hit& TrapSimulator::getHit(int index, int& channel, int& timebin, int& qtot, int& ypos, float& y, std::vector<o2::MCCompLabel> &labels) const
-//{
-//    LOG(fatal) << "for now its not implemented";
-//    return nullptr;
-//}
 
 int TrapSimulator::getCol(int adc)
 {
@@ -990,6 +963,9 @@ int TrapSimulator::packData(std::vector<uint32_t>& rawdata, uint32_t offset)
 int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, unsigned int iEv) const
 {
   //
+  // This is simply a copy of fix to compile from run2
+  // TODO needs to possibly be updated changed thrown away ??? problem for later, worry about tracklets now.
+  //
   // Produce raw data stream from this MCM and put in buf
   // Returns number of words filled, or negative value
   // with -1 * number of overflowed words
@@ -1017,7 +993,7 @@ int TrapSimulator::getRawStream(std::vector<uint32_t>& buf, uint32_t offset, uns
   }
 
   // Produce ADC mask : nncc cccm mmmm mmmm mmmm mmmm mmmm 1100
-  // 				n : unused , c : ADC count, m : selected ADCs
+  // n : unused , c : ADC count, m : selected ADCs
   if (rawVer >= 3 &&
       (mTrapConfig->getTrapReg(TrapConfig::kC15CPUA, mDetector, mRobPos, mMcmPos) & (1 << 13))) { // check for zs flag in TRAP configuration
     int nActiveADC = 0;                                                                           // number numberOverFlowWordsWritten activated ADC bits in a word
@@ -1132,7 +1108,7 @@ void TrapSimulator::filter()
   LOG(debug) << "ENTER: " << __FILE__ << ":" << __func__ << ":" << __LINE__;
   // Non-linearity filter not implemented.
   filterPedestal();
-  filterGain();
+  //filterGain(); // we do not use the gain filter anyway, so disable it completely
   filterTail();
   // Crosstalk filter not implemented.
   LOG(debug) << "LEAVE: " << __FILE__ << ":" << __func__ << ":" << __LINE__;
@@ -1524,18 +1500,13 @@ void TrapSimulator::addHitToFitreg(int adc, unsigned short timebin, unsigned sho
   }
 
   // register hits (MC info)
-  //
+  // in contrast to AliRoot, labels are connected to the digits instead to the individual hits (at least for the tracklet label calculation only the digit labels are taken into account...)
   if (mNHits < mgkNHitsMC) {
     mHits[mNHits].mChannel = adc;
     mHits[mNHits].mQtot = qtot;
     mHits[mNHits].mYpos = ypos;
     mHits[mNHits].mTimebin = timebin;
-    //LOG(debug) << "in addhit to fit reg labels coming in are of " << labels.size() << " and labels assigned from [mNHits = "<<mNHits<<"] a size of  " << mHits[mNHits].mLabels.size();
-    // mHits[mNHits].mLabels = labels;
-    //LOG(debug) << "in addhit to fit reg labels coming in are of " << labels.size() << " and labels assigned from [mNHits = "<<mNHits<<"] a size of  " << mHits[mNHits].mLabels.size();
-    //TODO link to the labels.
     mNHits++;
-    //.emplace_back(adc, timebin, qtot, ypos); // TODO add label indexes into the labels container for all those labels pertaining to this hit.
   } else {
     LOG(warn) << "no space left to store the MC information for the hit >100   mNHits : " << mNHits;
     //print( PRINTRAW| PRINTFILTERED);
@@ -1768,9 +1739,8 @@ void TrapSimulator::calcFitreg()
         //      int a=qTotal[adcch] >> mgkAddDigits;
         //      LOG(debug) << "calling addHitToFitreg with :" << adcch << " :: " << timebin << " :: " << hex << qTotal[adcch] << dec << " :: shifted bits  :" << 2 << " :: " << ypos;
         //  addHitToFitreg(adcch, timebin, qTotal[adcch] >> 2, ypos);
-        LOG(debug) << __func__ << "ADDING HIT FOR in adclabels : " << mADCLabels[adcch].size() << " with adcch of " << adcch << " qtot : " << qTotal[adcch] << " timebin :" << timebin << " and ypos:" << ypos;
-        addHitToFitreg(adcch, timebin, qTotal[adcch] >> mgkAddDigits, ypos); //, mADCLabels[adcch]);
-                                                                             //     LOG(debug) << __FILE__ << ":" << __LINE__ << " :: added hit to fit re ";
+        LOG(debug) << __func__ << "ADDING HIT with adcch of " << adcch << " qtot : " << qTotal[adcch] << " timebin :" << timebin << " and ypos:" << ypos;
+        addHitToFitreg(adcch, timebin, qTotal[adcch] >> mgkAddDigits, ypos);
       }
     }
   }
@@ -1920,9 +1890,9 @@ void TrapSimulator::fitTracklet()
   yoffs = yoffs << decPlaces; // holds position of ADC channel 1
 
   // we need to scale the offset since we want to store it in units of 1/80 pad and the calculation is done in 1/256 pad width granularity
-  unsigned int scaleY = (unsigned int)(80. / 256. * shift);
+  unsigned int scaleY = (unsigned int)(PADGRANULARITYTRKLPOS / 256. * shift);
   // the slope is given in units of 1/1000 pads/timebin
-  unsigned long scaleD = (unsigned long)(1000. / 256. * shift);
+  unsigned long scaleD = (unsigned long)(PADGRANULARITYTRKLSLOPE / 256. * shift);
   LOG(debug) << "scaleY : " << scaleY << "  scaleD=" << scaleD << " shift:" << std::hex << shift << std::dec;
   int deflCorr = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCorr, mDetector, mRobPos, mMcmPos);
   int ndrift = (int)mTrapConfig->getDmemUnsigned(mgkDmemAddrNdrift, mDetector, mRobPos, mMcmPos);
@@ -1930,7 +1900,6 @@ void TrapSimulator::fitTracklet()
   // local variables for calculation
   long mult, temp, denom;
   unsigned int q0, q1, q2 = 23, pid; // charges in the two windows and total charge
-  float rawpid, rawz, rawy, rawslope, rawposition;
   unsigned short nHits;         // number of hits
   int slope, position;          // slope and position of the tracklet
   int sumX, sumY, sumXY, sumX2; // fit sums from fit registers
@@ -2071,18 +2040,11 @@ void TrapSimulator::fitTracklet()
         buildTrackletMCMData(trackletword, slope, position, q0, q1, q2);
         mMCMT[cpu] = trackletword.word;
 
-        rawz = padrow;
-        rawposition = position;
 
         // calculate number of hits and MC label
-        //        std::array<int, 3> mcLabel = {-1, -1, -1};
         std::array<int, 3> nHits{};
+        mTrackletDigitCount.push_back(0);
 
-        //        const int maxLabels = 30;
-        //        std::array<int, 30> label{}; // up to 30 different labels possible
-        //        std::array<int, 30> count{};
-        //        int nLabels = 0;
-        std::vector<o2::MCCompLabel> localTrackletLabels;
         //we have 21 adc so can fit into a 32bit bit pattern.
         uint32_t adchitbp = 0;
         for (int iHit = 0; iHit < mNHits; iHit++) {
@@ -2107,31 +2069,21 @@ void TrapSimulator::fitTracklet()
           //TODO nHits2 ???? to correspond to Q2 ???
           //
           LOG(debug) << "setting bit pattern for chanel : " << mHits[iHit].mChannel << " of hit  : " << iHit << std::hex << " bitp before : " << adchitbp << std::dec;
-          adchitbp |= (1 << mHits[iHit].mChannel);
+          adchitbp |= (1U << mHits[iHit].mChannel);
           LOG(debug) << "after setting bit pattern for chanel : " << mHits[iHit].mChannel << " of hit  : " << iHit << std::hex << " bitp after : " << adchitbp << std::dec;
-          // TODO label calculation only if there is a digitsmanager to get the labels froAm
         }
         bool printoutadcs = false;
-        //TODO these info statemetns are left in to info the labels later.
-        LOG(debug) << "adc bitpatterh is " << std::hex << adchitbp << std::dec;
         for (int i = 0; i < 21; i++) {
-          if (adchitbp & (1 << i)) {
-            LOG(debug) << "adding labels for adc " << i << "adc bitpatterh is " << std::hex << adchitbp << std::dec << " there are : " << mADCLabels[i].size() << " labels";
-
-            localTrackletLabels.insert(localTrackletLabels.end(), mADCLabels[i].begin(), mADCLabels[i].end()); // append the hit labels to this tracklets temp labels store.
-            if (mADCLabels[i].size() == 0) {
-              LOG(debug) << "BECAUSE THERE ARE NO LABELS LETS SEE WHICH ADC's DO HAVE LABELS";
-              for (int j = 0; j < 21; j++) {
-                LOG(debug) << "ADC : " << j << " has " << mADCLabels[j].size() << " labels";
-              }
-              printoutadcs = true;
-            }
+          // FIXME it can happen that there is a hit found in a channel where there is no digit provided as input. Is this expected?
+          if ((adchitbp & (1U << i)) && (mADCDigitIndices[i] >= 0)) {
+            mTrackletDigitCount.back() += 1;
+            mTrackletDigitIndices.push_back(mADCDigitIndices[i]);
           }
         }
         //if(printoutadcs) print(PRINTRAW|PRINTFILTERED);
         //labels come in via adc, now loop over ADC and see which contribute to the hits.
 
-        LOG(debug) << "TrapSim Trackletarray size is : " << mTrackletArray64.size() << "  :: adding a track at " << mMCMT[cpu] << ":" << mDetector * 2 + mRobPos % 2 << ":" << mRobPos << ":" << mMcmPos << " LABELS size: " << localTrackletLabels.size();
+        LOG(debug) << "TrapSim Trackletarray size is : " << mTrackletArray64.size() << "  :: adding a track at " << mMCMT[cpu] << ":" << mDetector * 2 + mRobPos % 2 << ":" << mRobPos << ":" << mMcmPos;
         uint64_t format = 1;
         uint64_t hcid = mDetector * 2 + mRobPos % 2;
         uint64_t col = mMcmPos % NMCMROBINCOL;
@@ -2139,163 +2091,6 @@ void TrapSimulator::fitTracklet()
         if (mdebugStream) {
           mTrackletDetails.emplace_back(position, slope, q0, q1, q2, nHits, fitError);
         }
-        //mTrackletArray[newtrackposition].setLabel(mcLabel);
-        LOG(debug) << "adding elements to mTrackletLabels of size " << mTrackletLabels.getIndexedSize() << "::" << mTrackletLabels.getNElements() << " labels for additional labels vector of :" << localTrackletLabels.size() << " labels";
-        mTrackletLabels.addElements(mTrackletLabels.getIndexedSize(), localTrackletLabels);
-        LOG(debug) << "elements in mTrackletLabels is size " << mTrackletLabels.getIndexedSize() << "::" << mTrackletLabels.getNElements() << " labels for additional labels vector of :" << localTrackletLabels.size() << " labels";
-        // store cluster information (if requested)
-        /*
-        if (mgStoreClusters && mdebugStream) {
-          std::vector<float> res(getNumberOfTimeBins());
-          std::vector<float> qtot(getNumberOfTimeBins());
-          for (int iTimebin = 0; iTimebin < getNumberOfTimeBins(); ++iTimebin) {
-            res[iTimebin] = 0;
-            qtot[iTimebin] = 0;
-          }
-          for (int iHit = 0; iHit < mNHits; iHit++) {
-            int timebin = mHits[iHit].mTimebin;
-
-            // check if hit contributes
-            if (mHits[iHit].mChannel == mFitPtr[cpu]) {
-              //             for (int i=0;i<mNHits;i++) LOG(debug) << "mHits.["<<i << "].mTimebin="<< mHits[i].mTimebin;
-              res[timebin] = mHits[iHit].mYpos - (fitSlope * timebin + fitOffset);
-              qtot[timebin] = mHits[iHit].mQtot;
-            } else if (mHits[iHit].mChannel == mFitPtr[cpu] + 1) {
-              res[timebin] = mHits[iHit].mYpos + 256 - (fitSlope * timebin + fitOffset);
-              qtot[timebin] = mHits[iHit].mQtot;
-            }
-
-            //     LOG(debug) << "slope : " << slope << " getDmemUnsigned " << mTrapConfig->getDmemUnsigned(mgkDmemAddrDeflCutStart + 2 * mFitPtr[cpu], mDetector, mRobPos, mMcmPos);
-
-            if (rejected && getApplyCut()) {
-              mMCMT[cpu] = 0x10001000; //??? FeeParam::getTrackletEndmarker();
-            } else {
-              if (slope > 127 || slope < -127) { // wrapping in TRAP!
-                LOG(debug) << "Overflow in slope: " << slope << ", tracklet discarded!";
-                mMCMT[cpu] = 0x10001000;
-                continue;
-              }
-
-              slope = slope & 0xff; // 8 bit
-
-              if (position > 0x7ff || position < -0x7ff) { // 11 bits.
-                LOG(warning) << "Overflow in position with position of " << position << " in hex 0x" << std::hex << position;
-              }
-              position = position & 0x7ff; // 13 bit
-
-              // assemble and store the tracklet word
-              TrackletMCMData trackletword;
-              buildTrackletMCMData(trackletword, slope, position, q0, q1, q2);
-              mMCMT[cpu] = trackletword.word;
-
-              rawz = padrow;
-              rawposition = position;
-
-              // calculate number of hits and MC label
-              //        std::array<int, 3> mcLabel = {-1, -1, -1};
-              std::array<int, 3> nHits{};
-
-              //        const int maxLabels = 30;
-              //        std::array<int, 30> label{}; // up to 30 different labels possible
-              //        std::array<int, 30> count{};
-              //        int nLabels = 0;
-              std::vector<o2::MCCompLabel> localTrackletLabels;
-              //we have 21 adc so can fit into a 32bit bit pattern.
-              uint32_t adchitbp = 0;
-              for (int iHit = 0; iHit < mNHits; iHit++) {
-                if ((mHits[iHit].mChannel - mFitPtr[cpu] < 0) ||
-                    (mHits[iHit].mChannel - mFitPtr[cpu] > 1)) {
-                  continue;
-                }
-
-                // counting contributing hits
-                if (mHits[iHit].mTimebin >= mTrapConfig->getTrapReg(TrapConfig::kTPQS0, mDetector, mRobPos, mMcmPos) &&
-                    mHits[iHit].mTimebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE0, mDetector, mRobPos, mMcmPos)) {
-                  nHits[0]++;
-                }
-                if (mHits[iHit].mTimebin >= mTrapConfig->getTrapReg(TrapConfig::kTPQS1, mDetector, mRobPos, mMcmPos) &&
-                    mHits[iHit].mTimebin < mTrapConfig->getTrapReg(TrapConfig::kTPQE1, mDetector, mRobPos, mMcmPos)) {
-                  nHits[1]++;
-                }
-                if (mHits[iHit].mTimebin >= 3 && mHits[iHit].mTimebin < 5) {
-                  nHits[2]++;
-                }
-                //TODO nHits2 ???? to correspond to Q2 ???
-                //
-                LOG(debug) << "setting bit pattern for chanel : " << mHits[iHit].mChannel << " of hit  : " << iHit << std::hex << " bitp before : " << adchitbp << std::dec;
-                adchitbp |= (1 << mHits[iHit].mChannel);
-                LOG(debug) << "after setting bit pattern for chanel : " << mHits[iHit].mChannel << " of hit  : " << iHit << std::hex << " bitp after : " << adchitbp << std::dec;
-                // TODO label calculation only if there is a digitsmanager to get the labels froAm
-              }
-              bool printoutadcs = false;
-              //TODO these info statemetns are left in to info the labels later.
-              LOG(debug) << "adc bitpatterh is " << std::hex << adchitbp << std::dec;
-              for (int i = 0; i < 21; i++) {
-                if (adchitbp & (1 << i)) {
-                  LOG(debug) << "adding labels for adc " << i << "adc bitpatterh is " << std::hex << adchitbp << std::dec << " there are : " << mADCLabels[i].size() << " labels";
-
-                  localTrackletLabels.insert(localTrackletLabels.end(), mADCLabels[i].begin(), mADCLabels[i].end()); // append the hit labels to this tracklets temp labels store.
-                  if (mADCLabels[i].size() == 0) {
-                    LOG(debug) << "BECAUSE THERE ARE NO LABELS LETS SEE WHICH ADC's DO HAVE LABELS";
-                    for (int j = 0; j < 21; j++) {
-                      LOG(debug) << "ADC : " << j << " has " << mADCLabels[j].size() << " labels";
-                    }
-                    printoutadcs = true;
-                  }
-                }
-              }
-              //if(printoutadcs) print(PRINTRAW|PRINTFILTERED);
-              //labels come in via adc, now loop over ADC and see which contribute to the hits.
-
-              LOG(debug) << "TrapSim Trackletarray size is : " << mTrackletArray64.size() << "  :: adding a track at " << mMCMT[cpu] << ":" << mDetector * 2 + mRobPos % 2 << ":" << mRobPos << ":" << mMcmPos << " LABELS size: " << localTrackletLabels.size();
-              uint32_t format = 0;
-              uint32_t hcid = mDetector * 2 + mRobPos % 2;
-              uint32_t padrow = ((mRobPos >> 1) << 2) | (mMcmPos >> 2);
-              uint32_t col = mFeeParam->getPadColFromADC(mRobPos, mMcmPos, 1);
-              //uint32_t position = rawoffset;
-              //uint32_t s
-              mTrackletArray64.emplace_back(format, hcid, padrow, col, position, slope, q0, q1, q2);
-              if (mdebugStream) {
-                mTrackletDetails.emplace_back(position, slope, q0, q1, q2, nHits, fitError);
-              }
-              //mTrackletArray[newtrackposition].setLabel(mcLabel);
-              LOG(debug) << "adding elements to mTrackletLabels of size " << mTrackletLabels.getIndexedSize() << "::" << mTrackletLabels.getNElements() << " labels for additional labels vector of :" << localTrackletLabels.size() << " labels";
-              mTrackletLabels.addElements(mTrackletLabels.getIndexedSize(), localTrackletLabels);
-              LOG(debug) << "elements in mTrackletLabels is size " << mTrackletLabels.getIndexedSize() << "::" << mTrackletLabels.getNElements() << " labels for additional labels vector of :" << localTrackletLabels.size() << " labels";
-              // store cluster information (if requested)
-              if (mgStoreClusters && mdebugStream) {
-                std::vector<float> res(getNumberOfTimeBins());
-                std::vector<float> qtot(getNumberOfTimeBins());
-                for (int iTimebin = 0; iTimebin < getNumberOfTimeBins(); ++iTimebin) {
-                  res[iTimebin] = 0;
-                  qtot[iTimebin] = 0;
-                }
-                for (int iHit = 0; iHit < mNHits; iHit++) {
-                  int timebin = mHits[iHit].mTimebin;
-
-                  // check if hit contributes
-                  if (mHits[iHit].mChannel == mFitPtr[cpu]) {
-                    //             for (int i=0;i<mNHits;i++) LOG(debug) << "mHits.["<<i << "].mTimebin="<< mHits[i].mTimebin;
-                    res[timebin] = mHits[iHit].mYpos - (fitSlope * timebin + fitOffset);
-                    qtot[timebin] = mHits[iHit].mQtot;
-                  } else if (mHits[iHit].mChannel == mFitPtr[cpu] + 1) {
-                    res[timebin] = mHits[iHit].mYpos + 256 - (fitSlope * timebin + fitOffset);
-                    qtot[timebin] = mHits[iHit].mQtot;
-                  }
-                }
-                mTrackletDetails[mTrackletDetails.size() - 1].setClusters(res, qtot, getNumberOfTimeBins());
-                // TODO we no longer store clusters in 64bit tracklets, put where?
-              }
-
-              if (fitError < 0) {
-                LOG(debug) << "fit slope: " << fitSlope << ", offset: " << fitOffset << ", error: " << TMath::Sqrt(TMath::Abs(fitError) / getNHits());
-
-                LOG(debug) << "Strange fit error: " << fitError << " from Sx: " << sumX << ", Sy: " << sumY << ", Sxy: " << sumXY << ", Sx2: " << sumX2 << ", Sy2: " << sumY2 << ", nHitssize: " << nHits.size();
-              }
-            }
-          }
-        }
-        */
         LOG(debug) << "LEAVING : " << __FILE__ << ":" << __func__ << ":" << __LINE__ << " :: " << getDetector() << ":" << getRobPos() << ":" << getMcmPos() << " and  Tracklet array size is : " << mTrackletArray64.size();
       }
     }
@@ -2321,14 +2116,6 @@ void TrapSimulator::tracklet()
   //print(15);
   LOG(debug) << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
   LOG(debug) << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^";
-}
-
-void TrapSimulator::getTracklet64s(std::vector<Tracklet64>& TrackletStore)
-{
-  // simply returns the found tracklets for the O2 dpl to then do its thing.
-  //
-  TrackletStore.insert(std::end(TrackletStore), std::begin(mTrackletArray64), std::end(mTrackletArray64));
-  //std::copy(mTrackletArray.begin(),mTrackletArray.end(),std::back_inserter(TrackletStore));
 }
 
 // ******************************

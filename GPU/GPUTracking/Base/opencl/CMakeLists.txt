@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 set(MODULE GPUTrackingOCL)
 enable_language(ASM)
@@ -68,7 +69,7 @@ add_custom_command(
 # cmake-format: off
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
-    COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl/g" | sed "s/FILENAMENORMAL/GPUReconstructionOCL1Code.bin/g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
+    COMMAND cat ${GPUDIR}/utils/include.S | sed "s/FILENAMEMOD/_makefile_opencl_program_Base_opencl_common_GPUReconstructionOCL_cl/g" | sed "s,FILENAMENORMAL,${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCL1Code.bin,g" > ${CMAKE_CURRENT_BINARY_DIR}/GPUReconstructionOCLCode.S
     MAIN_DEPENDENCY ${GPUDIR}/utils/include.S
 )
 # cmake-format: on

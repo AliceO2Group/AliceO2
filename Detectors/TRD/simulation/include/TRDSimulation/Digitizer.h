@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,10 +15,12 @@
 #include "TRDSimulation/Detector.h"
 
 #include "TRDBase/Calibrations.h"
-#include "TRDBase/Digit.h"
-#include "TRDBase/MCLabel.h"
 #include "TRDBase/CommonParam.h"
 #include "TRDBase/DiffAndTimeStructEstimator.h"
+#include "TRDSimulation/PileupTool.h"
+
+#include "DataFormatsTRD/Digit.h"
+#include "DataFormatsTRD/SignalArray.h"
 #include "DataFormatsTRD/Constants.h"
 
 #include "MathUtils/RandomRing.h"
@@ -39,16 +42,9 @@ class PadPlane;
 class TRDArraySignal;
 class PadResponse;
 
-struct SignalArray {
-  double firstTBtime;                               // first TB time
-  std::array<float, constants::TIMEBINS> signals{}; // signals
-  std::unordered_map<int, int> trackIds;            // tracks Ids associated to the signal
-  std::vector<MCLabel> labels;                      // labels associated to the signal
-  bool isDigit = false;                             // flag a signal converted to a digit
-};
-
 using DigitContainer = std::vector<Digit>;
 using SignalContainer = std::unordered_map<int, SignalArray>;
+using MCLabel = o2::MCCompLabel;
 
 class Digitizer
 {
@@ -57,21 +53,20 @@ class Digitizer
   ~Digitizer() = default;
   void init(); // setup everything
 
-  void process(std::vector<Hit> const&, DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void process(std::vector<Hit> const&);
   void flush(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
+  void dumpLabels(const SignalContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   void pileup();
   void setEventTime(double timeNS) { mTime = timeNS; }
+  void setTriggerTime(double t) { mCurrentTriggerTime = t; }
   void setEventID(int entryID) { mEventID = entryID; }
   void setSrcID(int sourceID) { mSrcID = sourceID; }
   void setCalibrations(Calibrations* calibrations) { mCalib = calibrations; }
+  void setCreateSharedDigits(bool flag) { mCreateSharedDigits = flag; }
   int getEventTime() const { return mTime; }
   int getEventID() const { return mEventID; }
   int getSrcID() const { return mSrcID; }
-
-  // Trigger parameters
-  static constexpr double READOUT_TIME = 3000;                  // the time the readout takes, as 30 TB = 3 micro-s.
-  static constexpr double DEAD_TIME = 200;                      // trigger deadtime, 2 micro-s
-  static constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; // the time for which no new trigger can be received in nanoseconds
+  bool getCreateSharedDigits() const { return mCreateSharedDigits; }
 
  private:
   Geometry* mGeo = nullptr;               // access to Geometry
@@ -79,6 +74,7 @@ class Digitizer
   SimParam* mSimParam = nullptr;          // access to SimParam instance
   CommonParam* mCommonParam = nullptr;    // access to CommonParam instance
   Calibrations* mCalib = nullptr;         // access to Calibrations in CCDB
+  PileupTool pileupTool;
 
   // number of digitizer threads
   int mNumThreads = 1;
@@ -89,18 +85,10 @@ class Digitizer
   std::vector<math_utils::RandomRing<>> mLogRandomRings;  // pre-generated exp distributed random number
   std::vector<DiffusionAndTimeStructEstimator> mDriftEstimators;
 
-  double mTime = 0.;               // time in nanoseconds
-  double mLastTime = -1;           // negative, by default to flag the first event
-  double mCurrentTriggerTime = -1; // negative, by default to flag the first event
-  int mEventID = 0;
-  int mSrcID = 0;
-
-  enum EventType {
-    kFirstEvent,
-    kPileupEvent,
-    kTriggerFired,
-    kEmbeddingEvent
-  };
+  double mTime = 0.;               // time in nanoseconds of the hits currently being processed
+  double mCurrentTriggerTime = 0.; // time in nanoseconds of the current trigger
+  int mEventID = 0;                // event id
+  int mSrcID = 0;                  // source id
 
   // Digitization parameters
   static constexpr float AmWidth = Geometry::amThick();    // Width of the amplification region
@@ -113,6 +101,7 @@ class Digitizer
   int mTimeBinTRFend = 0;                                  // time bin TRF ends
   int mMaxTimeBins = 30;                                   // Maximum number of time bins for processing signals, usually set at 30 tb = 3 microseconds
   int mMaxTimeBinsTRAP = 30;                               // Maximum number of time bins for processing adcs; should be read from the CCDB or the TRAP config
+  bool mCreateSharedDigits = true;                         // flag if copies should be created of digits from pads which are shared between MCMs
 
   // Digitization containers
   std::vector<Hit> mHitContainer;                                                // the container of hits in a given detector
@@ -127,9 +116,9 @@ class Digitizer
   int triggerEventProcessing(DigitContainer&, o2::dataformats::MCTruthContainer<MCLabel>&);
   SignalContainer addSignalsFromPileup();
   void clearContainers();
-  bool convertHits(const int, const std::vector<Hit>&, SignalContainer&, int thread = 0);     // True if hit-to-signal conversion is successful
-  bool convertSignalsToADC(SignalContainer&, DigitContainer&, int thread = 0);                // True if signal-to-ADC conversion is successful
-  void addLabel(const o2::trd::Hit& hit, std::vector<o2::trd::MCLabel>&, std::unordered_map<int, int>&);
+  bool convertHits(const int, const std::vector<Hit>&, SignalContainer&, int thread = 0);              // True if hit-to-signal conversion is successful
+  bool convertSignalsToADC(SignalContainer&, DigitContainer&, int thread = 0);                         // True if signal-to-ADC conversion is successful
+  void addLabel(const int&, std::vector<MCLabel>&, std::unordered_set<int>&);                          // add a MC label, check if trackId is already registered
   bool diffusion(float, float, float, float, float, float, double&, double&, double&, int thread = 0); // True if diffusion is applied successfully
 
   // Helpers for signal handling

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -37,6 +38,10 @@ class Digit : public DigitBase
   /// \param cell absId of a cell, amplitude energy deposited in a cell, time time measured in cell, label label of a
   /// particle in case of MC \return constructed Digit
   Digit(short cell, float amplitude, float time, int label);
+
+  /// \brief Contructor for TRU Digits
+  /// \param cell truId of a tile, amplitude energy deposited in a tile, time, triggerType 2x2 or 4x4, dummy label
+  Digit(short cell, float amplitude, float time, bool isTrigger2x2, int label);
 
   /// \brief Digit constructor from Hit
   /// \param PHOS Hit
@@ -94,9 +99,15 @@ class Digit : public DigitBase
 
   void addEnergyTime(float energy, float time);
 
+  // true if tru and not readount digit
+  bool isTRU() const { return mAbsId >= NREADOUTCHANNELS; }
+
   /// \brief Absolute sell id
   short getAbsId() const { return mAbsId; }
   void setAbsId(short cellId) { mAbsId = cellId; }
+
+  short getTRUId() const { return mAbsId - NREADOUTCHANNELS; }
+  void setTRUId(short cellId) { mAbsId = cellId + NREADOUTCHANNELS; }
 
   /// \brief Energy deposited in a cell
   float getAmplitude() const { return mAmplitude; }
@@ -109,6 +120,8 @@ class Digit : public DigitBase
   /// \brief Checks if this digit is produced in High Gain or Low Gain channels
   bool isHighGain() const { return mIsHighGain; }
   void setHighGain(Bool_t isHG) { mIsHighGain = isHG; }
+
+  bool is2x2Tile() { return isTRU() && isHighGain(); }
 
   /// \brief index of entry in MCLabels array
   /// \return ndex of entry in MCLabels array
@@ -127,7 +140,7 @@ class Digit : public DigitBase
   void PrintStream(std::ostream& stream) const;
 
  private:
-  // friend class boost::serialization::access;
+  static constexpr short NREADOUTCHANNELS = 14337; ///< Number of channels starting from 1
 
   bool mIsHighGain = true; ///< High Gain or Low Gain channel (for calibration)
   short mAbsId = 0;        ///< cell index (absolute cell ID)

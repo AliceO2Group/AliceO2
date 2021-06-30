@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -57,8 +58,10 @@ GPUCA_KRNL_LB((GPUTPCGMMergerPrepareClusters, step2         ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step0                ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step1                ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMMergerFinalize, step2                ), (simple), (), ())
-GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers                   ), (simple), (), ())
-#ifdef HAVE_O2HEADERS
+GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step0            ), (simple), (), ())
+GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step1            ), (simple), (), ())
+GPUCA_KRNL_LB((GPUTPCGMMergerMergeLoopers, step2            ), (simple), (), ())
+#ifdef GPUCA_HAVE_O2HEADERS
 GPUCA_KRNL_LB((GPUTPCGMO2Output, prepare                    ), (simple), (), ())
 GPUCA_KRNL((   GPUTPCGMO2Output, sort                       ), (simple), (), ())
 GPUCA_KRNL_LB((GPUTPCGMO2Output, output                     ), (simple), (), ())

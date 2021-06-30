@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,6 +21,7 @@
 
 #include "TPCSimulation/Detector.h"
 #include "AnalysisDataModel/PID/ParamBase.h"
+#include "ReconstructionDataFormats/PID.h"
 
 namespace o2::pid::tpc
 {
@@ -35,6 +37,17 @@ class BetheBloch : public Parametrization
   }
   ClassDef(BetheBloch, 1);
 };
+
+float BetheBlochParam(const float& momentum, const float& mass, const float& charge, const Parameters& parameters)
+{
+  return parameters[5] * o2::tpc::Detector::BetheBlochAleph(momentum / mass, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4]) * pow(charge, parameters[6]);
+}
+
+template <o2::track::PID::ID id, typename T>
+float BetheBlochParamTrack(const T& track, const Parameters& parameters)
+{
+  return BetheBlochParam(track.tpcInnerParam(), o2::track::pid_constants::sMasses[id], (float)o2::track::pid_constants::sCharges[id], parameters);
+}
 
 } // namespace o2::pid::tpc
 

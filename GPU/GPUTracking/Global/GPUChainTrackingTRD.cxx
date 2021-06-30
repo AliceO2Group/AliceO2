@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,42 +19,38 @@
 #include "GPUTRDTrackletLabels.h"
 #include "GPUTRDTrack.h"
 #include "GPUTRDTracker.h"
+#include "utils/strtag.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::trd;
 
 int GPUChainTracking::RunTRDTracking()
 {
-  if (!processors()->trdTracker.IsInitialized()) {
+  if (!processors()->trdTrackerGPU.IsInitialized()) {
     return 1;
   }
 
-  GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
+  GPUTRDTrackerGPU& Tracker = processors()->trdTrackerGPU;
   Tracker.Reset();
   if (mIOPtrs.nTRDTracklets == 0) {
     return 0;
   }
+  Tracker.SetGenerateSpacePoints(mIOPtrs.trdSpacePoints == nullptr);
 
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TRDTRACK"));
   SetupGPUProcessor(&Tracker, true);
-
-  for (unsigned int iTracklet = 0; iTracklet < mIOPtrs.nTRDTracklets; ++iTracklet) {
-    if (Tracker.LoadTracklet(mIOPtrs.trdTracklets[iTracklet], mIOPtrs.trdTrackletsMC ? mIOPtrs.trdTrackletsMC[iTracklet].mLabel : nullptr)) {
-      return 1;
-    }
-  }
 
   for (unsigned int i = 0; i < mIOPtrs.nMergedTracks; i++) {
     const GPUTPCGMMergedTrack& trk = mIOPtrs.mergedTracks[i];
     if (!Tracker.PreCheckTrackTRDCandidate(trk)) {
       continue;
     }
-    const GPUTRDTrackGPU& trktrd = param().rec.NWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
+    const GPUTRDTrackGPU& trktrd = param().rec.tpc.nWaysOuter ? (GPUTRDTrackGPU)trk.OuterParam() : (GPUTRDTrackGPU)trk;
     if (!Tracker.CheckTrackTRDCandidate(trktrd)) {
       continue;
     }
 
-    if (Tracker.LoadTrack(trktrd, -1, nullptr, -1, i, false)) {
+    if (Tracker.LoadTrack(trktrd, i, false)) {
       return 1;
     }
   }
@@ -62,23 +59,23 @@ int GPUChainTracking::RunTRDTracking()
 
   mIOPtrs.nTRDTracks = Tracker.NTracks();
   mIOPtrs.trdTracks = Tracker.Tracks();
-  mRec->PopNonPersistentMemory(RecoStep::TRDTracking);
+  mRec->PopNonPersistentMemory(RecoStep::TRDTracking, qStr2Tag("TRDTRACK"));
 
   return 0;
 }
 
 int GPUChainTracking::DoTRDGPUTracking()
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   bool doGPU = GetRecoStepsGPU() & RecoStep::TRDTracking;
-  GPUTRDTrackerGPU& Tracker = processors()->trdTracker;
-  GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTracker : Tracker;
+  GPUTRDTrackerGPU& Tracker = processors()->trdTrackerGPU;
+  GPUTRDTrackerGPU& TrackerShadow = doGPU ? processorsShadow()->trdTrackerGPU : Tracker;
 
   const auto& threadContext = GetThreadContext();
   SetupGPUProcessor(&Tracker, false);
   TrackerShadow.OverrideGPUGeometry(reinterpret_cast<GPUTRDGeometry*>(mFlatObjectsDevice.mCalibObjects.trdGeometry));
 
-  WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTracker - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
+  WriteToConstantMemory(RecoStep::TRDTracking, (char*)&processors()->trdTrackerGPU - (char*)processors(), &TrackerShadow, sizeof(TrackerShadow), 0);
   TransferMemoryResourcesToGPU(RecoStep::TRDTracking, &Tracker, 0);
 
   runKernel<GPUTRDTrackerKernels>(GetGridAuto(0), krnlRunRangeNone);

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -37,13 +38,13 @@ ColumnData& DecodedDataAggregator::FindColumnData(uint8_t deId, uint8_t columnId
   return mData.back();
 }
 
-void DecodedDataAggregator::addData(const LocalBoardRO& loc, size_t firstEntry)
+void DecodedDataAggregator::addData(const ROBoard& loc, size_t firstEntry)
 {
   /// Converts the local board data to ColumnData
   uint8_t uniqueLocId = loc.boardId;
-  uint8_t crateId = crateparams::getCrateId(uniqueLocId);
+  uint8_t crateId = raw::getCrateId(uniqueLocId);
   bool isRightSide = crateparams::isRightSide(crateId);
-  uint16_t deBoardId = mCrateMapper.roLocalBoardToDE(crateId, crateparams::getLocId(loc.boardId));
+  uint16_t deBoardId = mCrateMapper.roLocalBoardToDE(crateId, raw::getLocId(loc.boardId));
   auto rpcLineId = mCrateMapper.getRPCLine(deBoardId);
   auto columnId = mCrateMapper.getColumnId(deBoardId);
   auto lineId = mCrateMapper.getLineId(deBoardId);
@@ -58,7 +59,7 @@ void DecodedDataAggregator::addData(const LocalBoardRO& loc, size_t firstEntry)
   }
 }
 
-void DecodedDataAggregator::process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords)
+void DecodedDataAggregator::process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords)
 {
   /// Aggregates the decoded raw data
 

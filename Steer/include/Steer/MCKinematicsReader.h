@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -34,6 +35,9 @@ class MCKinematicsReader
 
   /// default constructor
   MCKinematicsReader() = default;
+
+  /// destructor
+  ~MCKinematicsReader();
 
   /// constructor taking a name and mode (either kDigiContext or kMCKine)
   /// In case of "context", the name is the filename of the digitization context.
@@ -72,6 +76,9 @@ class MCKinematicsReader
   /// variant returning all tracks for source and event at once
   std::vector<MCTrack> const& getTracks(int source, int event) const;
 
+  /// API to ask releasing tracks (freeing memory) for source + event
+  void releaseTracksForSourceAndEvent(int source, int event);
+
   /// variant returning all tracks for source and event at once
   std::vector<MCTrack> const& getTracks(int event) const;
 
@@ -103,7 +110,8 @@ class MCKinematicsReader
   }
 
  private:
-  void loadTracksForSource(int source) const;
+  void initTracksForSource(int source) const;
+  void loadTracksForSourceAndEvent(int source, int eventID) const;
   void loadHeadersForSource(int source) const;
   void loadTrackRefsForSource(int source) const;
   void initIndexedTrackRefs(std::vector<o2::TrackReference>& refs, o2::dataformats::MCTruthContainer<o2::TrackReference>& indexedrefs) const;
@@ -114,8 +122,8 @@ class MCKinematicsReader
   std::vector<TChain*> mInputChains;
 
   // a vector of tracks foreach source and each collision
-  mutable std::vector<std::vector<std::vector<o2::MCTrack>>> mTracks; // the in-memory track container
-  mutable std::vector<std::vector<o2::dataformats::MCEventHeader>> mHeaders; // the in-memory header container
+  mutable std::vector<std::vector<std::vector<o2::MCTrack>*>> mTracks;                                       // the in-memory track container
+  mutable std::vector<std::vector<o2::dataformats::MCEventHeader>> mHeaders;                                 // the in-memory header container
   mutable std::vector<std::vector<o2::dataformats::MCTruthContainer<o2::TrackReference>>> mIndexedTrackRefs; // the in-memory track ref container
 
   bool mInitialized = false; // whether initialized
@@ -131,10 +139,7 @@ inline MCTrack const* MCKinematicsReader::getTrack(o2::MCCompLabel const& label)
 
 inline MCTrack const* MCKinematicsReader::getTrack(int source, int event, int track) const
 {
-  if (mTracks[source].size() == 0) {
-    loadTracksForSource(source);
-  }
-  return &mTracks[source][event][track];
+  return &getTracks(source, event)[track];
 }
 
 inline MCTrack const* MCKinematicsReader::getTrack(int event, int track) const
@@ -145,9 +150,12 @@ inline MCTrack const* MCKinematicsReader::getTrack(int event, int track) const
 inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int source, int event) const
 {
   if (mTracks[source].size() == 0) {
-    loadTracksForSource(source);
+    initTracksForSource(source);
   }
-  return mTracks[source][event];
+  if (mTracks[source][event] == nullptr) {
+    loadTracksForSourceAndEvent(source, event);
+  }
+  return *mTracks[source][event];
 }
 
 inline std::vector<MCTrack> const& MCKinematicsReader::getTracks(int event) const
@@ -192,7 +200,7 @@ inline size_t MCKinematicsReader::getNSources() const
 inline size_t MCKinematicsReader::getNEvents(int source) const
 {
   if (mTracks[source].size() == 0) {
-    loadTracksForSource(source);
+    initTracksForSource(source);
   }
   return mTracks[source].size();
 }

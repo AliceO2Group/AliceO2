@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -50,6 +51,9 @@ class ChipMappingITS
 
   ///< total number of chips
   static constexpr int getNChips() { return NChipsSB[IB] + NChipsSB[MB] + NChipsSB[OB]; }
+
+  ///< number of chips per barrel
+  static constexpr int getNChips(int b) { return NChipsSB[b]; }
 
   ///< number of staves on layer
   static constexpr int getNStavesOnLr(int l) { return NStavesOnLr[l]; }
@@ -173,7 +177,7 @@ class ChipMappingITS
   uint8_t cableHW2SW(uint8_t ruType, uint8_t hwid) const { return mCableHW2SW[ruType][hwid]; }
 
   ///< convert cable iterator ID to the position on the ActiveLanes word in the GBT.header for given RU type; MFT lanes position compatible
-  uint8_t cablePos(uint8_t ruType, uint8_t id) const { return id; }
+  uint8_t cablePos(uint8_t ruType, uint8_t id) const { return mCablePos[ruType][id]; }
 
   ///< get number of chips served by single cable on given RU type
   int getNChipsPerCable(int ruType) { return NChipsPerCableSB[ruType]; }
@@ -297,7 +301,8 @@ class ChipMappingITS
   int mChipInfoEntrySB[NSubB] = {0};
 
   std::vector<uint8_t> mCableHW2SW[NSubB];       ///< table of cables HW to SW conversion for each RU type
-  std::vector<uint8_t> mCableHW2Pos[NSubB];      ///< table of cables positions in the ActiveLanes mask for each RU type
+  std::vector<uint8_t> mCableHW2Pos[NSubB];      ///< table of cables positions in the ActiveLanes mask for each RU type (HW numbering)
+  std::vector<uint8_t> mCablePos[NSubB];         ///< table of cables positions in the ActiveLanes mask for each RU type (sequential numbering)
   std::vector<uint8_t> mCableHWFirstChip[NSubB]; ///< 1st chip of module (relative to the 1st chip of the stave) served by each cable
 
   std::array<int, NSubB> mCablesOnStaveSB = {0}; ///< pattern of cables per stave of sub-barrel

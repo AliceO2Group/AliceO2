@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,11 +18,12 @@
 #pragma link C++ class o2::emcal::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::emcal::Detector> + ;
 #pragma link C++ class o2::emcal::Digitizer + ;
-#pragma link C++ class o2::emcal::DigitizerTask + ;
+#pragma link C++ class o2::emcal::SDigitizer + ;
+#pragma link C++ class o2::emcal::DigitsWriteoutBuffer + ;
 #pragma link C++ class o2::emcal::SimParam + ;
 #pragma link C++ class o2::emcal::LabeledDigit + ;
 #pragma link C++ class o2::emcal::RawWriter + ;
 
-#pragma link C++ class std::list < o2::emcal::LabeledDigit > +;
+#pragma link C++ class std::list < o2::emcal::LabeledDigit> + ;
 
 #endif

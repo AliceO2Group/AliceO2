@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Script performing a standard collection of 
-# simulation / reco / etc. tasks in order to collect benchmark 
+# Script performing a standard collection of
+# simulation / reco / etc. tasks in order to collect benchmark
 # metrics that can be fed into a time-series database for long term monitoring
 
 # In principle we'd like to take O2 from the last nightly
@@ -9,7 +9,7 @@
 # number of events / take from first argument or default
 NEVENTS=${1:-"2"}
 # generator / take from second argument or default
-GEN=${2:-"pythia8"}
+GEN=${2:-"pythia8pp"}
 
 # STARTSEED
 SEED=1234
@@ -59,7 +59,7 @@ INITTIME=`grep "Init: Real time" $LOGFILE | awk '//{print $5}'`
 # initialization memory
 INITMEM=`grep "Init: Memory" $LOGFILE | awk '//{print $5}'`
 
-# get the actual transport runtime 
+# get the actual transport runtime
 RUNTIME=`grep " Real time" $LOGFILE | grep -v "Init:" | awk '//{print $4}'`
 # initialization memory
 TOTALMEM=`grep " Memory used" $LOGFILE | grep -v "Init:" | awk '//{print $4}'`

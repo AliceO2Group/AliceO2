@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 # add_compile_options(-O0 -g -fPIC)
 
@@ -14,7 +15,6 @@ o2_add_library(
   DetectorsDCS
   TARGETVARNAME targetName
   SOURCES src/AliasExpander.cxx
-          src/DCSProcessor.cxx
           src/DataPointCompositeObject.cxx
           src/DataPointCreator.cxx
           src/DataPointGenerator.cxx
@@ -25,14 +25,13 @@ o2_add_library(
           src/StringUtils.cxx
           src/Clock.cxx
   PUBLIC_LINK_LIBRARIES O2::Headers O2::CommonUtils O2::CCDB
-                        O2::DetectorsCalibration ms_gsl::ms_gsl)
+                        O2::DetectorsCalibration Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(
   DetectorsDCS
   HEADERS include/DetectorsDCS/DataPointCompositeObject.h
           include/DetectorsDCS/DataPointIdentifier.h
-          include/DetectorsDCS/DataPointValue.h
-          include/DetectorsDCS/DCSProcessor.h)
+          include/DetectorsDCS/DataPointValue.h)
 
 if(OpenMP_CXX_FOUND)
   target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
@@ -58,7 +57,7 @@ if(BUILD_TESTING)
     COMPONENT_NAME dcs
     LABELS "dcs"
     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsDCS)
-  add_subdirectory(testWorkflow/macros)  
+  add_subdirectory(testWorkflow/macros)
 endif()
 
 add_subdirectory(testWorkflow)

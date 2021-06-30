@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -102,7 +103,7 @@ static void BM_RelaySingleSlot(benchmark::State& state)
     memcpy(header->GetData(), stack.data(), stack.size());
     //state.ResumeTiming();
 
-    relayer.relay(std::move(header), std::move(payload));
+    relayer.relay(header, payload);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -155,7 +156,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     memcpy(header->GetData(), stack.data(), stack.size());
     //state.ResumeTiming();
 
-    relayer.relay(std::move(header), std::move(payload));
+    relayer.relay(header, payload);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -223,13 +224,13 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     memcpy(header2->GetData(), stack2.data(), stack2.size());
     //state.ResumeTiming();
 
-    relayer.relay(std::move(header1), std::move(payload1));
+    relayer.relay(header1, payload1);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
-    relayer.relay(std::move(header2), std::move(payload2));
+    relayer.relay(header2, payload2);
     ready.clear();
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -243,5 +244,63 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
 }
 
 BENCHMARK(BM_RelayMultipleRoutes);
+
+/// In this case we have a record with two entries
+static void BM_RelaySplitParts(benchmark::State& state)
+{
+  Monitoring metrics;
+  InputSpec spec1{"clusters", "TPC", "CLUSTERS"};
+
+  std::vector<InputRoute> inputs = {
+    InputRoute{spec1, 0, "Fake1", 0},
+  };
+
+  std::vector<ForwardRoute> forwards;
+  TimesliceIndex index;
+
+  auto policy = CompletionPolicyHelpers::consumeWhenAny();
+  DataRelayer relayer(policy, inputs, metrics, index);
+  relayer.setPipelineLength(4);
+
+  // Let's create a dummy O2 Message with two headers in the stack:
+  // - DataHeader matching the one provided in the input
+  DataHeader dh1;
+  dh1.dataDescription = "CLUSTERS";
+  dh1.dataOrigin = "TPC";
+  dh1.subSpecification = 0;
+
+  auto transport = FairMQTransportFactory::CreateTransportFactory("zeromq");
+  size_t timeslice = 0;
+
+  for (auto _ : state) {
+    // FIXME: Understand why pausing the timer makes it slower..
+    state.PauseTiming();
+    std::vector<std::unique_ptr<FairMQMessage>> splitParts;
+
+    for (size_t i = 0; i < 100; ++i) {
+      DataProcessingHeader dph1{timeslice, 1};
+      dh1.splitPayloadIndex = i;
+      dh1.splitPayloadParts = 10;
+      Stack stack1{dh1, dph1};
+
+      FairMQMessagePtr header1 = transport->CreateMessage(stack1.size());
+      FairMQMessagePtr payload1 = transport->CreateMessage(100);
+
+      memcpy(header1->GetData(), stack1.data(), stack1.size());
+      splitParts.emplace_back(std::move(header1));
+      splitParts.emplace_back(std::move(payload1));
+    }
+    state.ResumeTiming();
+
+    relayer.relay(splitParts[0], &splitParts[1], splitParts.size() - 1);
+    std::vector<RecordAction> ready;
+    relayer.getReadyToProcess(ready);
+    assert(ready.size() == 1);
+    assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
+  }
+  // One for the header, one for the payload
+}
+
+BENCHMARK(BM_RelaySplitParts);
 
 BENCHMARK_MAIN();

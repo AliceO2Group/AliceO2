@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -36,11 +37,17 @@ int GPUDisplayBackendX11::GetKey(int key)
   if (key == 65505 || key == 65506) {
     return (KEY_SHIFT);
   }
-  if (key == 65513 || key == 65027) {
+  if (key == 65513 || key == 65511) {
     return (KEY_ALT);
   }
-  if (key == 65507 || key == 65508) {
+  if (key == 65027) {
+    return (KEY_RALT);
+  }
+  if (key == 65507) {
     return (KEY_CTRL);
+  }
+  if (key == 65508) {
+    return (KEY_RCTRL);
   }
   if (key == 65362) {
     return (KEY_UP);
@@ -129,7 +136,7 @@ void GPUDisplayBackendX11::GetKey(XEvent& event, int& keyOut, int& keyPressOut)
   }
   int specialKey = GetKey(sym);
   int localeKey = tmpString[0];
-  // GPUInfo("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)", event.xkey.keycode, (int) sym, (char) sym, (int) localeKey, localeKey, specialKey, (char) specialKey);
+  // GPUInfo("Key: keycode %d -> sym %d (%c) key %d (%c) special %d (%c)", (int)event.xkey.keycode, (int)sym, (char)sym, (int)localeKey, (char)localeKey, (int)specialKey, (char)specialKey);
 
   if (specialKey) {
     keyOut = keyPressOut = specialKey;
@@ -368,15 +375,13 @@ int GPUDisplayBackendX11::OpenGLMain()
           GetKey(event, handleKey, keyPress);
           mKeysShift[keyPress] = mKeys[KEY_SHIFT];
           mKeys[keyPress] = true;
+          HandleKey(handleKey);
           break;
         }
 
         case KeyRelease: {
           int handleKey = 0, keyPress = 0;
           GetKey(event, handleKey, keyPress);
-          if (mKeys[keyPress]) {
-            HandleKeyRelease(handleKey);
-          }
           mKeys[keyPress] = false;
           mKeysShift[keyPress] = false;
           break;

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -12,6 +13,7 @@
 #include "DataSampling/DataSampling.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include <vector>
+#include <filesystem>
 
 using namespace o2::framework;
 using namespace o2::utilities;
@@ -45,7 +47,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
 #include <memory>
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/functional/hash.hpp>
 #include <fairmq/FairMQDevice.h>
@@ -154,7 +155,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     "  ]\n"
     "}";
 
-  if (!boost::filesystem::exists(configurationPath)) {
+  if (!std::filesystem::exists(configurationPath)) {
     std::ofstream configurationFile(configurationPath);
     configurationFile << configuration;
     configurationFile.close();

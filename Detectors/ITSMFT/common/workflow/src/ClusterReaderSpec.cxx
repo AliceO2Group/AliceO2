@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,6 +20,7 @@
 #include "Framework/Logger.h"
 #include "ITSMFTWorkflow/ClusterReaderSpec.h"
 #include <cassert>
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -39,7 +41,8 @@ ClusterReader::ClusterReader(o2::detectors::DetID id, bool useMC, bool usePatter
 
 void ClusterReader::init(InitContext& ic)
 {
-  mFileName = ic.options().get<std::string>((mDetNameLC + "-cluster-infile").c_str());
+  mFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                            ic.options().get<std::string>((mDetNameLC + "-cluster-infile").c_str()));
   connectTree(mFileName);
 }
 
@@ -114,7 +117,8 @@ DataProcessorSpec getITSClusterReaderSpec(bool useMC, bool usePatterns)
     outputSpec,
     AlgorithmSpec{adaptFromTask<ITSClusterReader>(useMC, usePatterns)},
     Options{
-      {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}}}};
+      {"its-cluster-infile", VariantType::String, "o2clus_its.root", {"Name of the input cluster file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool usePatterns)
@@ -136,7 +140,8 @@ DataProcessorSpec getMFTClusterReaderSpec(bool useMC, bool usePatterns)
     outputSpec,
     AlgorithmSpec{adaptFromTask<MFTClusterReader>(useMC, usePatterns)},
     Options{
-      {"mft-cluster-infile", VariantType::String, "o2clus_mft.root", {"Name of the input cluster file"}}}};
+      {"mft-cluster-infile", VariantType::String, "o2clus_mft.root", {"Name of the input cluster file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace itsmft

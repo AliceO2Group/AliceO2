@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -33,6 +34,11 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
     BOOST_CHECK_THROW((void)WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
   };
 
+  auto checkSpecialChars = [](WorkflowSpec const& workflow) {
+    // Empty workflows should be invalid.
+    BOOST_CHECK_THROW((void)WorkflowHelpers::verifyWorkflow(workflow), std::runtime_error);
+  };
+
   auto checkOk = [](WorkflowSpec const& workflow) {
     // Empty workflows should be invalid.
     BOOST_CHECK_NO_THROW((void)WorkflowHelpers::verifyWorkflow(workflow));
@@ -50,6 +56,8 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
   checkIncompleteInput(WorkflowSpec{{"A", {InputSpec{"x", "", ""}}}});
   // missing description
   checkIncompleteInput(WorkflowSpec{{"A", {InputSpec{"x", "TST", ""}}}});
+  // comma is not allowed
+  checkSpecialChars(WorkflowSpec{{"A,B", {}}});
   // This is fine, since by default both subSpec == 0 and
   // Timeframe are assumed.
   checkOk(WorkflowSpec{{"A", {InputSpec{"x", "TST", "A"}}}});

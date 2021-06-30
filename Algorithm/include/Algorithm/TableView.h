@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -79,7 +80,7 @@ class TableView
 
   /// descriptor pointing to payload of one frame
   struct FrameData {
-    const byte* buffer = nullptr;
+    const std::byte* buffer = nullptr;
     size_t size = 0;
   };
 
@@ -94,7 +95,7 @@ class TableView
    * @param seqSize    Length of sequence
    * @return number of inserted elements
    */
-  size_t addRow(RowDescType rowData, byte* seqData, size_t seqSize)
+  size_t addRow(RowDescType rowData, std::byte* seqData, size_t seqSize)
   {
     unsigned nFrames = mFrames.size();
     unsigned currentRow = mRowData.size();
@@ -118,7 +119,7 @@ class TableView
 
         // insert frame descriptor under key composed from header and row
         auto result = mFrames.emplace(FrameIndex{*entry.header, currentRow},
-                                      FrameData{entry.payload, entry.length});
+                                      FrameData{(std::byte*)entry.payload, entry.length});
         return result.second;
       });
     auto insertedFrames = mFrames.size() - nFrames;

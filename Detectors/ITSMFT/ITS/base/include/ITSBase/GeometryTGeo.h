@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -53,10 +54,14 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static GeometryTGeo* Instance()
   {
     // get (create if needed) a unique instance of the object
+#ifdef GPUCA_STANDALONE
+    return nullptr; // TODO: DR: Obviously wrong, but to make it compile for now
+#else
     if (!sInstance) {
       sInstance = std::unique_ptr<GeometryTGeo>(new GeometryTGeo(true, 0));
     }
     return sInstance.get();
+#endif
   }
 
   // adopt the unique instance from external raw pointer (to be used only to read saved instance from file)
@@ -74,7 +79,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   );
 
   /// Default destructor
-  ~GeometryTGeo() override = default;
+  ~GeometryTGeo() override;
 
   GeometryTGeo(const GeometryTGeo& src) = delete;
   GeometryTGeo& operator=(const GeometryTGeo& geom) = delete;
@@ -345,7 +350,9 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   static std::string sWrapperVolumeName; ///< Wrapper volume name
 
  private:
+#ifndef GPUCA_STANDALONE
   static std::unique_ptr<o2::its::GeometryTGeo> sInstance; ///< singletone instance
+#endif
 
   ClassDefOverride(GeometryTGeo, 1); // ITS geometry based on TGeo
 };

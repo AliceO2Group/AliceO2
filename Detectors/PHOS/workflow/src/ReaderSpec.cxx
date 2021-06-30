@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,6 +17,7 @@
 #include "DPLUtils/RootTreeReader.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <memory>
 #include <utility>
 
@@ -42,7 +44,8 @@ DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
 
   auto initFunction = [propagateMC](InitContext& ic) {
     // get the option from the init context
-    auto filename = ic.options().get<std::string>("infile");
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                  ic.options().get<std::string>("infile"));
     auto treename = ic.options().get<std::string>("treename");
     auto nofEvents = ic.options().get<int>("nevents");
     auto publishingMode = nofEvents == -1 ? RootTreeReader::PublishingMode::Single : RootTreeReader::PublishingMode::Loop;
@@ -126,6 +129,7 @@ DataProcessorSpec getDigitsReaderSpec(bool propagateMC)
     AlgorithmSpec(initFunction),
     Options{
       {"infile", VariantType::String, "phosdigits.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"treename", VariantType::String, "o2sim", {"Name of input tree"}},
       {"nevents", VariantType::Int, -1, {"number of events to run, -1: inf loop"}},
       {"terminate-on-eod", VariantType::Bool, true, {"terminate on end-of-data"}},
@@ -139,7 +143,8 @@ DataProcessorSpec getCellReaderSpec(bool propagateMC)
 
   auto initFunction = [propagateMC](InitContext& ic) {
     // get the option from the init context
-    auto filename = ic.options().get<std::string>("infile");
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                  ic.options().get<std::string>("infile"));
     auto treename = ic.options().get<std::string>("treename");
     auto nofEvents = ic.options().get<int>("nevents");
     auto publishingMode = nofEvents == -1 ? RootTreeReader::PublishingMode::Single : RootTreeReader::PublishingMode::Loop;
@@ -225,6 +230,7 @@ DataProcessorSpec getCellReaderSpec(bool propagateMC)
     AlgorithmSpec(initFunction),
     Options{
       {"infile", VariantType::String, "phoscells.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"treename", VariantType::String, "o2sim", {"Name of input tree"}},
       {"nevents", VariantType::Int, -1, {"number of events to run, -1: inf loop"}},
       {"terminate-on-eod", VariantType::Bool, true, {"terminate on end-of-data"}},

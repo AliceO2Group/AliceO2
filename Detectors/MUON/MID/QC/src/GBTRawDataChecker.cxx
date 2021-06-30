@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -31,7 +32,7 @@ void GBTRawDataChecker::init(uint16_t feeId, uint8_t mask)
   mCrateMask = mask;
 }
 
-bool GBTRawDataChecker::checkLocalBoardSize(const LocalBoardRO& board)
+bool GBTRawDataChecker::checkLocalBoardSize(const ROBoard& board)
 {
   /// Checks that the board has the expected non-null patterns
 
@@ -52,7 +53,7 @@ bool GBTRawDataChecker::checkLocalBoardSize(const LocalBoardRO& board)
   return true;
 }
 
-bool GBTRawDataChecker::checkLocalBoardSize(const std::vector<LocalBoardRO>& boards)
+bool GBTRawDataChecker::checkLocalBoardSize(const std::vector<ROBoard>& boards)
 {
   /// Checks that the boards have the expected non-null patterns
   for (auto& board : boards) {
@@ -63,7 +64,7 @@ bool GBTRawDataChecker::checkLocalBoardSize(const std::vector<LocalBoardRO>& boa
   return true;
 }
 
-bool GBTRawDataChecker::checkConsistency(const LocalBoardRO& board)
+bool GBTRawDataChecker::checkConsistency(const ROBoard& board)
 {
   /// Checks that the event information is consistent
 
@@ -91,7 +92,7 @@ bool GBTRawDataChecker::checkConsistency(const LocalBoardRO& board)
   return true;
 }
 
-bool GBTRawDataChecker::checkConsistency(const std::vector<LocalBoardRO>& boards)
+bool GBTRawDataChecker::checkConsistency(const std::vector<ROBoard>& boards)
 {
   /// Checks that the event information is consistent
   for (auto& board : boards) {
@@ -105,7 +106,7 @@ bool GBTRawDataChecker::checkConsistency(const std::vector<LocalBoardRO>& boards
   return true;
 }
 
-bool GBTRawDataChecker::checkMasks(const std::vector<LocalBoardRO>& locs)
+bool GBTRawDataChecker::checkMasks(const std::vector<ROBoard>& locs)
 {
   /// Checks the masks
   for (auto loc : locs) {
@@ -132,12 +133,12 @@ bool GBTRawDataChecker::checkMasks(const std::vector<LocalBoardRO>& locs)
   return true;
 }
 
-bool GBTRawDataChecker::checkRegLocConsistency(const std::vector<LocalBoardRO>& regs, const std::vector<LocalBoardRO>& locs)
+bool GBTRawDataChecker::checkRegLocConsistency(const std::vector<ROBoard>& regs, const std::vector<ROBoard>& locs)
 {
   /// Checks consistency between local and regional info
   uint8_t regFired{0};
   for (auto& reg : regs) {
-    uint8_t ireg = crateparams::getLocId(reg.boardId) % 2;
+    uint8_t ireg = raw::getLocId(reg.boardId) % 2;
     auto busyItem = mBusyFlagSelfTrig.find(8 + ireg);
     if (reg.triggerWord == 0) {
       // Self-triggered event: check the decision
@@ -188,7 +189,7 @@ bool GBTRawDataChecker::checkRegLocConsistency(const std::vector<LocalBoardRO>& 
   return true;
 }
 
-std::string GBTRawDataChecker::printBoards(const std::vector<LocalBoardRO>& boards) const
+std::string GBTRawDataChecker::printBoards(const std::vector<ROBoard>& boards) const
 {
   /// Prints the boards
   std::stringstream ss;
@@ -198,7 +199,7 @@ std::string GBTRawDataChecker::printBoards(const std::vector<LocalBoardRO>& boar
   return ss.str();
 }
 
-bool GBTRawDataChecker::checkEvent(bool isTriggered, const std::vector<LocalBoardRO>& regs, const std::vector<LocalBoardRO>& locs)
+bool GBTRawDataChecker::checkEvent(bool isTriggered, const std::vector<ROBoard>& regs, const std::vector<ROBoard>& locs)
 {
   /// Checks the cards belonging to the same BC
   mEventDebugMsg.clear();
@@ -223,7 +224,7 @@ bool GBTRawDataChecker::checkEvent(bool isTriggered, const std::vector<LocalBoar
   return true;
 }
 
-uint8_t GBTRawDataChecker::getElinkId(const LocalBoardRO& board) const
+uint8_t GBTRawDataChecker::getElinkId(const ROBoard& board) const
 {
   /// Returns the e-link ID
   if (raw::isLoc(board.statusWord)) {
@@ -434,7 +435,7 @@ bool GBTRawDataChecker::checkEvents(bool isTriggered)
   return isOk;
 }
 
-bool GBTRawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords)
+bool GBTRawDataChecker::process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords)
 {
   /// Checks the raw data
   mDebugMsg.clear();

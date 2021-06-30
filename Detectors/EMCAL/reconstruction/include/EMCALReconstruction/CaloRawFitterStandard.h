@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -50,20 +51,27 @@ class CaloRawFitterStandard final : public CaloRawFitter
   ~CaloRawFitterStandard() final = default;
 
   /// \brief Approximate response function of the EMCal electronics.
-  /// \param x: bin
-  /// \param par: function parameters
+  /// \param x bin
+  /// \param par function parameters
   /// \return double with signal for a given time bin
   static double rawResponseFunction(double* x, double* par);
 
   /// \brief Evaluation Amplitude and TOF
-  /// return Container with the fit results (amp, time, chi2, ...)
-  CaloFitResults evaluate(const std::vector<Bunch>& bunchvector,
+  /// \param bunchvector Calo bunches for the tower and event
+  /// \param altrocfg1 ALTRO config register 1 from RCU trailer
+  /// \param altrocfg2 ALTRO config register 2 from RCU trailer
+  /// \return Container with the fit results (amp, time, chi2, ...)
+  /// \throw RawFitterError_t in case the fit failed (including all possible errors from upstream)
+  CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector,
                           std::optional<unsigned int> altrocfg1,
                           std::optional<unsigned int> altrocfg2) final;
 
-  /// \brief Fits the raw signal time distribution
-  /// \return the fit parameters: amplitude, time, chi2, fit status.
-  std::tuple<float, float, float, bool> fitRaw(int firstTimeBin, int lastTimeBin) const;
+  /// \brief Fits the raw signal time distribution using TMinuit
+  /// \param firstTimeBin First timebin of the ALTRO bunch
+  /// \param lastTimeBin Last timebin of the ALTRO bunch
+  /// \return the fit parameters: amplitude, time, chi2
+  /// \throw RawFitter_t::FIT_ERROR in case the fit failed (insufficient number of samples or fit error from MINUIT)
+  std::tuple<float, float, float> fitRaw(int firstTimeBin, int lastTimeBin) const;
 
  private:
   ClassDefNV(CaloRawFitterStandard, 1);

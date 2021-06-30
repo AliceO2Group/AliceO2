@@ -1,30 +1,32 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief These example tasks show how to access the ZDC and FV0A information which belongs to a collision.
+///        The association is made through the BC column (and in Run 3 may not be unique!)
+///        This example accesses the collisions and the related FV0A information.
+///        Note that one has to subscribe to aod::FV0As const& to load
+///        the relevant data even if you access the data itself through collisionMatched.fv0a().
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 
 using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-// These example tasks show how to access the ZDC and FV0A information which belongs to a collision
-// The association is made through the BC column (and in Run 3 may not be unique!)
-
-// This example accesses the collisions and the related FV0A information.
-// Note that one has to subscribe to aod::FV0As const& to load
-// the relevant data even if you access the data itself through collisionMatched.fv0a()
 // Here the "sparse" matcher is used which means, there can be collisions without FV0A information
 // To find out, collisionMatched.has_fv0a() has to be called. Otherwise collisionMatched.fv0a() will fail.
 // NOTE: subscribing to Collisions separately will lead to a circular dependency due to forwarding
-
 struct IterateV0 {
   void process(aod::CollisionMatchedRun2Sparse const& collisionMatched, aod::FV0As const&)
   {
@@ -86,12 +88,12 @@ struct IterateV0ZDC {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<IterateV0>("iterate-v0"),
-    adaptAnalysisTask<IterateV0Exclusive>("iterate-v0-exclusive"),
-    adaptAnalysisTask<IterateV0Tracks>("iterate-v0-tracks"),
-    adaptAnalysisTask<IterateV0ZDC>("iterate-v0-zdc"),
+    adaptAnalysisTask<IterateV0>(cfgc),
+    adaptAnalysisTask<IterateV0Exclusive>(cfgc),
+    adaptAnalysisTask<IterateV0Tracks>(cfgc),
+    adaptAnalysisTask<IterateV0ZDC>(cfgc),
   };
 }

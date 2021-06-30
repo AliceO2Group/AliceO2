@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -79,21 +80,21 @@ BOOST_AUTO_TEST_CASE(TestLRUReplacement)
     context.put({0, uint64_t{40}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
-    BOOST_CHECK_EQUAL(slot.index, 0);
-    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceObsolete);
+    BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
   {
     context.put({0, uint64_t{50}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
-    BOOST_CHECK_EQUAL(slot.index, 1);
-    BOOST_CHECK(action == TimesliceIndex::ActionTaken::ReplaceObsolete);
+    BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
   {
     context.put({0, uint64_t{10}});
     context.commit();
     auto [action, slot] = index.replaceLRUWith(context);
     BOOST_CHECK_EQUAL(slot.index, TimesliceSlot::INVALID);
-    BOOST_CHECK(action == TimesliceIndex::ActionTaken::DropObsolete);
+    BOOST_CHECK(action == TimesliceIndex::ActionTaken::Wait);
   }
 }

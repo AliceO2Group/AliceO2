@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,6 +11,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ControlService.h"
+#include "Framework/CCDBParamSpec.h"
 
 #include <chrono>
 #include <thread>
@@ -23,19 +25,17 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   return WorkflowSpec{
     {
       "A",
-      {InputSpec{"somecondition", "TST", "FOO", 0, Lifetime::Condition},
-       InputSpec{"sometimer", "TST", "BAR", 0, Lifetime::Timer}},
+      {InputSpec{"somecondition", "TOF", "LHCphase", 0, Lifetime::Condition, {ccdbParamSpec("TOF/LHCphase")}},
+       InputSpec{"sometimer", "TST", "BAR", 0, Lifetime::Timer, {startTimeParamSpec{1638548475371}}}},
       {OutputSpec{"TST", "A1", 0, Lifetime::Timeframe}},
       AlgorithmSpec{
         adaptStateless([](DataAllocator& outputs, InputRecord& inputs, ControlService& control) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
           DataRef condition = inputs.get("somecondition");
           auto* header = o2::header::get<const DataHeader*>(condition.header);
-          if (header->payloadSize != 1024) {
-            LOG(ERROR) << "Wrong size for condition payload (expected " << 1024 << ", found " << header->payloadSize;
+          if (header->payloadSize != 2048) {
+            LOGP(ERROR, "Wrong size for condition payload (expected {}, found {}", 2048, header->payloadSize);
           }
           header->payloadSize;
-          auto& aData = outputs.make<int>(Output{"TST", "A1", 0}, 1);
           control.readyToQuit(QuitRequest::All);
         })},
       Options{

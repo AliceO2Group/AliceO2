@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,7 +18,7 @@
 #include <deque>
 #include <memory>
 
-#include "Rtypes.h"  // for Digitizer::Class, Double_t, ClassDef, etc
+#include "Rtypes.h" // for Digitizer::Class
 #include "TObject.h" // for TObject
 
 #include "ITSMFTSimulation/ChipDigitsContainer.h"
@@ -71,7 +72,7 @@ class Digitizer : public TObject
 
   void setContinuous(bool v) { mParams.setContinuous(v); }
   bool isContinuous() const { return mParams.isContinuous(); }
-  void fillOutputContainer(UInt_t maxFrame = 0xffffffff);
+  void fillOutputContainer(uint32_t maxFrame = 0xffffffff);
 
   void setDigiParams(const o2::itsmft::DigiParams& par) { mParams = par; }
   const o2::itsmft::DigiParams& getDigitParams() const { return mParams; }
@@ -79,8 +80,8 @@ class Digitizer : public TObject
   // provide the common itsmft::GeometryTGeo to access matrices and segmentation
   void setGeometry(const o2::itsmft::GeometryTGeo* gm) { mGeometry = gm; }
 
-  UInt_t getEventROFrameMin() const { return mEventROFrameMin; }
-  UInt_t getEventROFrameMax() const { return mEventROFrameMax; }
+  uint32_t getEventROFrameMin() const { return mEventROFrameMin; }
+  uint32_t getEventROFrameMax() const { return mEventROFrameMax; }
   void resetEventROFrames()
   {
     mEventROFrameMin = 0xffffffff;
@@ -88,11 +89,11 @@ class Digitizer : public TObject
   }
 
  private:
-  void processHit(const o2::itsmft::Hit& hit, UInt_t& maxFr, int evID, int srcID);
-  void registerDigits(ChipDigitsContainer& chip, UInt_t roFrame, float tInROF, int nROF,
-                      UShort_t row, UShort_t col, int nEle, o2::MCCompLabel& lbl);
+  void processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID, int srcID);
+  void registerDigits(ChipDigitsContainer& chip, uint32_t roFrame, float tInROF, int nROF,
+                      uint16_t row, uint16_t col, int nEle, o2::MCCompLabel& lbl);
 
-  ExtraDig* getExtraDigBuffer(UInt_t roFrame)
+  ExtraDig* getExtraDigBuffer(uint32_t roFrame)
   {
     if (mROFrameMin > roFrame) {
       return nullptr; // nothing to do
@@ -108,13 +109,14 @@ class Digitizer : public TObject
 
   o2::itsmft::DigiParams mParams; ///< digitization parameters
   o2::InteractionTimeRecord mEventTime; ///< global event time and interaction record
+  o2::InteractionRecord mIRFirstSampledTF; ///< IR of the 1st sampled IR, noise-only ROFs will be inserted till this IR only
   double mCollisionTimeWrtROF;
-  UInt_t mROFrameMin = 0;         ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;         ///< highest RO frame of current digits
-  UInt_t mNewROFrame = 0;         ///< ROFrame corresponding to provided time
+  uint32_t mROFrameMin = 0; ///< lowest RO frame of current digits
+  uint32_t mROFrameMax = 0; ///< highest RO frame of current digits
+  uint32_t mNewROFrame = 0; ///< ROFrame corresponding to provided time
 
-  UInt_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
-  UInt_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
+  uint32_t mEventROFrameMin = 0xffffffff; ///< lowest RO frame for processed events (w/o automatic noise ROFs)
+  uint32_t mEventROFrameMax = 0;          ///< highest RO frame forfor processed events (w/o automatic noise ROFs)
 
   std::unique_ptr<o2::itsmft::AlpideSimResponse> mAlpSimResp; // simulated response
 

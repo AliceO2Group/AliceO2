@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -48,6 +49,7 @@ namespace gpu
 class GPUChain;
 struct GPUMemorySizeScalers;
 struct GPUReconstructionPipelineContext;
+class GPUROOTDumpCore;
 
 class GPUReconstruction
 {
@@ -100,9 +102,13 @@ class GPUReconstruction
                                          TPC_DIGIT = 13,
                                          TPC_ZS = 14,
                                          CLUSTER_NATIVE_MC = 15,
-                                         TPC_DIGIT_MC = 16 };
+                                         TPC_DIGIT_MC = 16,
+                                         TRD_SPACEPOINT = 17,
+                                         TRD_TRIGGERRECORDS = 18,
+                                         TF_SETTINGS = 19 };
   static constexpr const char* const IOTYPENAMES[] = {"TPC HLT Clusters", "TPC Slice Tracks", "TPC Slice Track Clusters", "TPC Cluster MC Labels", "TPC Track MC Informations", "TPC Tracks", "TPC Track Clusters", "TRD Tracks", "TRD Tracklets",
-                                                      "TPC Raw Clusters", "TPC Native Clusters", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page", "TPC Native Clusters MC Labels", "TPC Digit MC Labeels"};
+                                                      "TPC Raw Clusters", "TPC Native Clusters", "TRD Tracklet MC Labels", "TPC Compressed Clusters", "TPC Digit", "TPC ZS Page", "TPC Native Clusters MC Labels", "TPC Digit MC Labeels",
+                                                      "TRD Spacepoints", "TRD Triggerrecords", "TF Settings"};
   static unsigned int getNIOTypeMultiplicity(InOutPointerType type) { return (type == CLUSTER_DATA || type == SLICE_OUT_TRACK || type == SLICE_OUT_CLUSTER || type == RAW_CLUSTERS || type == TPC_DIGIT || type == TPC_DIGIT_MC) ? NSLICES : 1; }
 
   // Functionality to create an instance of GPUReconstruction for the desired device
@@ -201,8 +207,8 @@ class GPUReconstruction
   void FreeRegisteredMemory(short res);
   void ClearAllocatedMemory(bool clearOutputs = true);
   void ReturnVolatileDeviceMemory();
-  void PushNonPersistentMemory();
-  void PopNonPersistentMemory(RecoStep step);
+  void PushNonPersistentMemory(unsigned long tag);
+  void PopNonPersistentMemory(RecoStep step, unsigned long tag);
   void BlockStackedMemory(GPUReconstruction* rec);
   void UnblockStackedMemory();
   void ResetRegisteredMemoryPointers(GPUProcessor* proc);
@@ -223,15 +229,15 @@ class GPUReconstruction
   bool IsGPU() const { return GetDeviceType() != DeviceType::INVALID_DEVICE && GetDeviceType() != DeviceType::CPU; }
   const GPUParam& GetParam() const { return mHostConstantMem->param; }
   const GPUConstantMem& GetConstantMem() const { return *mHostConstantMem; }
-  const GPUSettingsEvent& GetEventSettings() const { return mEventSettings; }
+  const GPUSettingsGRP& GetGRPSettings() const { return mGRPSettings; }
   const GPUSettingsDeviceBackend& GetDeviceBackendSettings() { return mDeviceBackendSettings; }
   const GPUSettingsProcessing& GetProcessingSettings() const { return mProcessingSettings; }
   bool IsInitialized() const { return mInitialized; }
   void SetSettings(float solenoidBz, const GPURecoStepConfiguration* workflow = nullptr);
-  void SetSettings(const GPUSettingsEvent* settings, const GPUSettingsRec* rec = nullptr, const GPUSettingsProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
+  void SetSettings(const GPUSettingsGRP* grp, const GPUSettingsRec* rec = nullptr, const GPUSettingsProcessing* proc = nullptr, const GPURecoStepConfiguration* workflow = nullptr);
   void SetResetTimers(bool reset) { mProcessingSettings.resetTimers = reset; } // May update also after Init()
   void SetDebugLevelTmp(int level) { mProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
-  void UpdateEventSettings(const GPUSettingsEvent* e, const GPUSettingsProcessing* p = nullptr);
+  void UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   void SetInputControl(void* ptr, size_t size);
@@ -287,7 +293,7 @@ class GPUReconstruction
   virtual std::unique_ptr<GPUThreadContext> GetThreadContext();
 
   // Private helper functions for memory management
-  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend);
+  size_t AllocateRegisteredMemoryHelper(GPUMemoryResource* res, void*& ptr, void*& memorypool, void* memorybase, size_t memorysize, void* (GPUMemoryResource::*SetPointers)(void*), void*& memorypoolend, const char* device);
   size_t AllocateRegisteredPermanentMemory();
 
   // Private helper functions for reading / writing / allocating IO buffer from/to file
@@ -322,7 +328,7 @@ class GPUReconstruction
   GPUConstantMem* mDeviceConstantMem = nullptr;
 
   // Settings
-  GPUSettingsEvent mEventSettings;                      // Event Parameters
+  GPUSettingsGRP mGRPSettings;                          // Global Run Parameters
   GPUSettingsDeviceBackend mDeviceBackendSettings;      // Processing Parameters (at constructor level)
   GPUSettingsProcessing mProcessingSettings;            // Processing Parameters (at init level)
   GPUOutputControl mOutputControl;                      // Controls the output of the individual components
@@ -362,6 +368,7 @@ class GPUReconstruction
   unsigned int mNEventsProcessed = 0;
   double mStatKernelTime = 0.;
   double mStatWallTime = 0.;
+  std::shared_ptr<GPUROOTDumpCore> mROOTDump;
 
   int mMaxThreads = 0;    // Maximum number of threads that may be running, on CPU or GPU
   int mThreadId = -1;     // Thread ID that is valid for the local CUDA context
@@ -385,7 +392,7 @@ class GPUReconstruction
     std::vector<unsigned short> res;
   };
   std::unordered_map<GPUMemoryReuse::ID, MemoryReuseMeta> mMemoryReuse1to1;
-  std::vector<std::tuple<void*, void*, size_t>> mNonPersistentMemoryStack;
+  std::vector<std::tuple<void*, void*, size_t, unsigned long>> mNonPersistentMemoryStack;
   std::vector<GPUMemoryResource*> mNonPersistentIndividualAllocations;
 
   std::unique_ptr<GPUReconstructionPipelineContext> mPipelineContext;

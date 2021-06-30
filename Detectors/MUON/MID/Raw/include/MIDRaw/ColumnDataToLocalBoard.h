@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,7 +23,7 @@
 #include "DataFormatsMID/ColumnData.h"
 #include "MIDBase/Mapping.h"
 #include "MIDRaw/CrateMapper.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -33,17 +34,17 @@ class ColumnDataToLocalBoard
  public:
   void process(gsl::span<const ColumnData> data);
   /// Gets the output data per GBT link
-  const std::unordered_map<uint16_t, std::vector<LocalBoardRO>> getData() { return mGBTMap; }
+  const std::unordered_map<uint16_t, std::vector<ROBoard>> getData() { return mGBTMap; }
   /// Sets debug mode
   void setDebugMode(bool debugMode = true) { mDebugMode = debugMode; }
 
  private:
-  bool keepBoard(const LocalBoardRO& loc) const;
-  std::unordered_map<uint8_t, LocalBoardRO> mLocalBoardsMap{};       /// Map of data per board
-  std::unordered_map<uint16_t, std::vector<LocalBoardRO>> mGBTMap{}; /// Map of data per GBT link
-  CrateMapper mCrateMapper{};                                        /// Crate mapper
-  Mapping mMapping{};                                                /// Segmentation
-  bool mDebugMode{false};                                            /// Debug mode (no zero suppression)
+  bool keepBoard(const ROBoard& loc) const;
+  std::unordered_map<uint8_t, ROBoard> mLocalBoardsMap{};       /// Map of data per board
+  std::unordered_map<uint16_t, std::vector<ROBoard>> mGBTMap{}; /// Map of data per GBT link
+  CrateMapper mCrateMapper{};                                   /// Crate mapper
+  Mapping mMapping{};                                           /// Segmentation
+  bool mDebugMode{false};                                       /// Debug mode (no zero suppression)
 };
 
 } // namespace mid

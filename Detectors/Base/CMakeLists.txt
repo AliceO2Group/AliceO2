@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(DetectorsBase
                SOURCES src/Detector.cxx
@@ -16,9 +17,9 @@ o2_add_library(DetectorsBase
                        src/MatLayerCyl.cxx
                        src/MatLayerCylSet.cxx
                        src/Ray.cxx
-                       src/DCAFitter.cxx
                        src/BaseDPLDigitizer.cxx
                        src/CTFCoderBase.cxx
+                       src/Aligner.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base
                                      O2::CommonUtils
                                      O2::DetectorsCommonDataFormats
@@ -30,13 +31,13 @@ o2_add_library(DetectorsBase
                                      FairMQ::FairMQ
                                      O2::DataFormatsParameters
                                      O2::SimConfig
+                                     O2::CCDB
                                      ROOT::VMC
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger # Must not link to avoid cyclic dependency
                              )
 
 o2_target_root_dictionary(DetectorsBase
                           HEADERS include/DetectorsBase/Detector.h
-                                  include/DetectorsBase/DCAFitter.h
                                   include/DetectorsBase/GeometryManager.h
                                   include/DetectorsBase/MaterialManager.h
                                   include/DetectorsBase/Propagator.h
@@ -44,7 +45,8 @@ o2_target_root_dictionary(DetectorsBase
                                   include/DetectorsBase/MatCell.h
                                   include/DetectorsBase/MatLayerCyl.h
                                   include/DetectorsBase/MatLayerCylSet.h
-                                  include/DetectorsBase/CTFCoderBase.h)
+                                  include/DetectorsBase/CTFCoderBase.h
+                                  include/DetectorsBase/Aligner.h)
 
 if(BUILD_SIMULATION)
   o2_add_test(
@@ -56,15 +58,6 @@ if(BUILD_SIMULATION)
     ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
-
-o2_add_test(
-  DCAFitter
-  SOURCES test/testDCAFitter.cxx
-  COMPONENT_NAME DetectorsBase
-  PUBLIC_LINK_LIBRARIES O2::DetectorsBase
-  LABELS detectorsbase
-  ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
-  VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 
 o2_add_test_root_macro(test/buildMatBudLUT.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase

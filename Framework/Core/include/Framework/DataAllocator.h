@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -80,6 +81,11 @@ class DataAllocator
   using DataOrigin = o2::header::DataOrigin;
   using DataDescription = o2::header::DataDescription;
   using SubSpecificationType = o2::header::DataHeader::SubSpecificationType;
+  template <typename T>
+  struct UninitializedVector {
+    static_assert(std::is_fundamental<T>::value, "UninitializedVector only allowed for fundamental types");
+    using value_type = T;
+  };
 
   DataAllocator(TimingInfo* timingInfo,
                 ServiceRegistry* contextes,
@@ -100,7 +106,18 @@ class DataAllocator
   template <typename T, typename... Args>
   decltype(auto) make(const Output& spec, Args... args)
   {
-    if constexpr (is_specialization<T, std::vector>::value && has_messageable_value_type<T>::value) {
+    if constexpr (is_specialization<T, UninitializedVector>::value) {
+      // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
+      using ValueType = typename T::value_type;
+      std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+      auto& context = mRegistry->get<MessageContext>();
+
+      // Note: initial payload size is 0 and will be set by the context before sending
+      FairMQMessagePtr headerMessage = headerMessageFromOutput(spec, channel, o2::header::gSerializationMethodNone, 0);
+      return context.add<MessageContext::VectorObject<ValueType, MessageContext::ContainerRefObject<std::vector<ValueType, o2::pmr::NoConstructAllocator<ValueType>>>>>(
+                      std::move(headerMessage), channel, 0, std::forward<Args>(args)...)
+        .get();
+    } else if constexpr (is_specialization<T, std::vector>::value && has_messageable_value_type<T>::value) {
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
@@ -282,7 +299,9 @@ class DataAllocator
 
         if constexpr (std::is_pointer<typename T::value_type>::value == false) {
           // vector of elements
-          memcpy(payloadMessage->GetData(), object.data(), sizeInBytes);
+          if (object.data() && sizeInBytes) {
+            memcpy(payloadMessage->GetData(), object.data(), sizeInBytes);
+          }
         } else {
           // serialize vector of pointers to elements
           auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -364,7 +365,7 @@ void CDBStorage::uploadGainMap(std::string_view fileName, bool isFull, long firs
 }
 
 //______________________________________________________________________________
-void CDBStorage::uploadPulserData(std::string_view fileName, long first, long last)
+void CDBStorage::uploadPulserOrCEData(CDBType type, std::string_view fileName, long first, long last)
 {
   std::unique_ptr<TFile> f(TFile::Open(fileName.data()));
   CalDet<float>*t0 = nullptr, *width = nullptr, *qtot = nullptr;
@@ -381,7 +382,7 @@ void CDBStorage::uploadPulserData(std::string_view fileName, long first, long la
   pulserCalib["Width"] = *width;
   pulserCalib["Qtot"] = *qtot;
 
-  storeObject(&pulserCalib, CDBType::CalPulser, first, last);
+  storeObject(&pulserCalib, type, first, last);
 }
 
 //______________________________________________________________________________

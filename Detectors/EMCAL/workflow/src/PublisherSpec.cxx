@@ -1,13 +1,15 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include "DataFormatsEMCAL/EMCALBlockHeader.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -33,7 +35,8 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
 
   auto initFunction = [config, propagateMC, creator](o2::framework::InitContext& ic) {
     // get the option from the init context
-    auto filename = ic.options().get<std::string>("infile");
+    auto filename = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                  ic.options().get<std::string>("infile"));
     auto treename = ic.options().get<std::string>("treename");
     auto dtbrName = ic.options().get<std::string>(config.databranch.option.c_str());           // databranch name
     auto trgbrName = ic.options().get<std::string>(config.triggerrecordbranch.option.c_str()); // triggerbranch name
@@ -106,6 +109,7 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
     o2::framework::AlgorithmSpec(initFunction),
     o2::framework::Options{
       {"infile", o2::framework::VariantType::String, "", {"Name of the input file"}},
+      {"input-dir", o2::framework::VariantType::String, "none", {"Input directory"}},
       {"treename", o2::framework::VariantType::String, config.defaultTreeName.c_str(), {"Name of input tree"}},
       {dtb.option.c_str(), o2::framework::VariantType::String, dtb.defval.c_str(), {dtb.help.c_str()}},
       {trb.option.c_str(), o2::framework::VariantType::String, trb.defval.c_str(), {trb.help.c_str()}},

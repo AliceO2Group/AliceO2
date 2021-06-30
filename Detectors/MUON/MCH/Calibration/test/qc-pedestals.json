@@ -1,0 +1,35 @@
+{
+  "qc": {
+    "config": {
+      "database": {
+        "implementation": "CCDB",
+        "host": "ccdb-test.cern.ch:8080",
+        "username": "not_applicable",
+        "password": "not_applicable",
+        "name": "not_applicable"
+      },
+      "Activity": {
+        "number": "42",
+        "type": "2"
+      }
+    },
+    "tasks": {
+      "QcTaskMCHPreclusters": {
+        "active": "true",
+        "className": "o2::quality_control_modules::muonchambers::PedestalsTask",
+        "moduleName": "QcMuonChambers",
+        "detectorName": "MCH",
+        "cycleDurationSeconds": "100",
+        "maxNumberCycles": "-1",
+        "dataSource": {
+          "type": "direct",
+          "query" : "pedestals:MCH/PEDESTALS"
+        },
+        "location": "remote"
+      }
+    }
+  },
+  "dataSamplingPolicies": [
+
+  ]
+}

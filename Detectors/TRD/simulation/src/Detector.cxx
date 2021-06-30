@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -63,9 +64,9 @@ void Detector::InitializeO2Detector()
 
 void Detector::InitializeParams()
 {
-  if (CommonParam::Instance()->IsXenon()) {
+  if (CommonParam::instance()->isXenon()) {
     mWion = 23.53; // Ionization energy XeCO2 (85/15)
-  } else if (CommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::instance()->isArgon()) {
     mWion = 27.21; // Ionization energy ArCO2 (82/18)
   } else {
     LOG(FATAL) << "Wrong gas mixture";
@@ -232,9 +233,9 @@ void Detector::createTRhit(int det)
     // The absorbtion cross sections in the drift gas
     // Gas-mixture (Xe/CO2)
     double muNo = 0.0;
-    if (CommonParam::Instance()->IsXenon()) {
+    if (CommonParam::instance()->isXenon()) {
       muNo = mTR->getMuXe(energyMeV);
-    } else if (CommonParam::Instance()->IsArgon()) {
+    } else if (CommonParam::instance()->isArgon()) {
       muNo = mTR->getMuAr(energyMeV);
     }
     double muCO = mTR->getMuCO(energyMeV);
@@ -359,9 +360,9 @@ void Detector::createMaterials()
   float fac = 0.82;
   float dar = 0.00166; // at 20C
   float dgmAr = fac * dar + (1.0 - fac) * dco;
-  if (CommonParam::Instance()->IsXenon()) {
+  if (CommonParam::instance()->isXenon()) {
     Mixture(53, "XeCO2", aXeCO2, zXeCO2, dgmXe, -3, wXeCO2);
-  } else if (CommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::instance()->isArgon()) {
     LOG(INFO) << "Gas mixture: Ar C02 (80/20)";
     Mixture(53, "ArCO2", aArCO2, zArCO2, dgmAr, -3, wArCO2);
   } else {
@@ -492,10 +493,10 @@ void Detector::createMaterials()
   // Save the density values for the TRD absorbtion
   float dmy = 1.39;
   mFoilDensity = dmy;
-  if (CommonParam::Instance()->IsXenon()) {
+  if (CommonParam::instance()->isXenon()) {
     mGasDensity = dgmXe;
     mGasNobleFraction = fxc;
-  } else if (CommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::instance()->isArgon()) {
     mGasDensity = dgmAr;
     mGasNobleFraction = fac;
   }

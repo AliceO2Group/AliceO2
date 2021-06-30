@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,9 +21,8 @@
 #include "CCDB/CcdbApi.h"
 #include "PHOSBase/Mapping.h"
 #include "PHOSBase/PHOSSimParams.h"
-#include "PHOSReconstruction/Bunch.h"
 #include "PHOSReconstruction/CaloRawFitter.h"
-#include "PHOSReconstruction/AltroDecoder.h"
+#include "PHOSReconstruction/CaloRawFitterGS.h"
 #include "PHOSReconstruction/RawDecodingError.h"
 #include "PHOSWorkflow/RawToCellConverterSpec.h"
 
@@ -33,15 +33,7 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   LOG(DEBUG) << "Initialize converter ";
 
   auto path = ctx.options().get<std::string>("mappingpath");
-  if (!mMapping) {
-    mMapping = std::unique_ptr<o2::phos::Mapping>(new o2::phos::Mapping(path));
-    if (!mMapping) {
-      LOG(ERROR) << "Failed to initialize mapping";
-    }
-    if (mMapping->setMapping() != o2::phos::Mapping::kOK) {
-      LOG(ERROR) << "Failed to construct mapping";
-    }
-  }
+  Mapping::Instance(path);
 
   if (!mCalibParams) {
     if (o2::phos::PHOSSimParams::Instance().mCCDBPath.compare("localtest") == 0) {
@@ -68,9 +60,10 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
   if (fitmethod == "default") {
     LOG(INFO) << "Using default raw fitter";
     mRawFitter = std::unique_ptr<o2::phos::CaloRawFitter>(new o2::phos::CaloRawFitter);
-    //TODO: Configure parameters of fitter from options
-    // mRawFitter->setAmpCut(mNoiseThreshold);
-    // mRawFitter->setL1Phase(0.);
+  }
+  if (fitmethod == "semigaus") {
+    LOG(INFO) << "Using SemiGauss raw fitter";
+    mRawFitter = std::unique_ptr<o2::phos::CaloRawFitter>(new o2::phos::CaloRawFitterGS);
   }
 
   mFillChi2 = (ctx.options().get<std::string>("fillchi2").compare("on") == 0);
@@ -78,29 +71,58 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
     LOG(INFO) << "Fit quality output will be filled";
   }
 
-  mCombineGHLG = (ctx.options().get<std::string>("keepGHLG").compare("on") != 0);
-  if (!mCombineGHLG) {
-    LOG(INFO) << "Both HighGain and LowGain will be kept";
-  }
+  mDecoder = std::make_unique<AltroDecoder>();
 
   mPedestalRun = (ctx.options().get<std::string>("pedestal").find("on") != std::string::npos);
   if (mPedestalRun) {
     mRawFitter->setPedestal();
+    mDecoder->setPedestalRun(); //sets also keeping both HG and LG channels
     LOG(INFO) << "Pedestal run will be processed";
+  }
+
+  mCombineGHLG = (ctx.options().get<std::string>("keepHGLG").compare("on") != 0);
+  if (!mCombineGHLG) {
+    mDecoder->setCombineHGLG(false);
+    LOG(INFO) << "Both HighGain and LowGain will be kept";
   }
 }
 
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   // Cache cells from bunch crossings as the component reads timeframes from many links consecutively
-  std::map<o2::InteractionRecord, std::shared_ptr<std::vector<o2::phos::Cell>>> cellBuffer; // Internal cell buffer/
-  int firstEntry = 0;
+  std::vector<o2::InteractionRecord> irList;
+  std::vector<std::array<short, 56>> cellTRURanges; // start/end points for cells in mTmpCells[ddl] arrays
+  for (int iddl = 14; iddl--;) {
+    mTmpCells[iddl].clear();
+    mTmpTRU[iddl].clear();
+  }
   mOutputHWErrors.clear();
   if (mFillChi2) {
     mOutputFitChi.clear();
   }
 
-  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs())) {
+  // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
+  // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
+  std::vector<o2::framework::InputSpec> dummy{o2::framework::InputSpec{"dummy", o2::framework::ConcreteDataMatcher{"PHS", o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
+  for (const auto& ref : framework::InputRecordWalker(ctx.inputs(), dummy)) {
+    const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    if (dh->payloadSize == 0) { // send empty output
+      mOutputCells.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
+      mOutputTriggerRecords.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
+      mOutputHWErrors.clear();
+      ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
+      if (mFillChi2) {
+        mOutputFitChi.clear();
+        ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLFITQA", 0, o2::framework::Lifetime::Timeframe}, mOutputFitChi);
+      }
+      return; //empty TF, nothing to process
+    }
+  }
+
+  std::vector<o2::framework::InputSpec> inputFilter{o2::framework::InputSpec{"filter", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe}};
+  for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), inputFilter)) {
 
     o2::phos::RawReaderMemory rawreader(o2::framework::DataRefUtils::as<const char>(rawData));
 
@@ -126,101 +148,72 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(header);
       auto ddl = o2::raw::RDHUtils::getFEEID(header);
 
-      o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
-      std::shared_ptr<std::vector<o2::phos::Cell>> currentCellContainer;
-      auto found = cellBuffer.find(currentIR);
-      if (found == cellBuffer.end()) {
-        currentCellContainer = std::make_shared<std::vector<o2::phos::Cell>>();
-        cellBuffer[currentIR] = currentCellContainer;
-      } else {
-        currentCellContainer = found->second;
-      }
-      if (ddl > o2::phos::Mapping::NDDL) { //only 14 correct DDLs
+      if (ddl > o2::phos::Mapping::NDDL || ddl < 0) { //only 14 correct DDLs
         LOG(ERROR) << "DDL=" << ddl;
         mOutputHWErrors.emplace_back(15, 16, char(ddl)); //Add non-existing DDL as DDL 15
         continue;                                        //skip STU ddl
       }
-      // use the altro decoder to decode the raw data, and extract the RCU trailer
-      o2::phos::AltroDecoder decoder(rawreader);
-      AltroDecoderError::ErrorType_t err = decoder.decode();
 
-      if (err != AltroDecoderError::kOK) {
-        //TODO handle severe errors
-        //TODO: probably careful conversion of decoder errors to Fitter errors?
-        char e = (char)err;
-        mOutputHWErrors.emplace_back(ddl, 16, e); //assign general header errors to non-existing FEE 16
+      o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
+      auto irIter = irList.rbegin();
+      auto rangeIter = cellTRURanges.rbegin();
+      while (irIter != irList.rend() && *irIter != currentIR) {
+        irIter++;
+        rangeIter++;
       }
-      auto& rcu = decoder.getRCUTrailer();
-      auto& channellist = decoder.getChannels();
-      // Loop over all the channels for this RCU
-      for (auto& chan : channellist) {
-        short absId;
-        Mapping::CaloFlag caloFlag;
-        short fee;
-        char e2 = CheckHWAddress(ddl, chan.getHardwareAddress(), fee);
-        if (e2) {
-          mOutputHWErrors.emplace_back(ddl, fee, e2);
-          continue;
-        }
-        Mapping::ErrorStatus s = mMapping->hwToAbsId(ddl, chan.getHardwareAddress(), absId, caloFlag);
-        if (s != Mapping::ErrorStatus::kOK) {
-          mOutputHWErrors.emplace_back(ddl, 15, (char)s); //use non-existing FEE 15 for general errors
-          continue;
-        }
-        if (caloFlag != Mapping::kTRU) { //HighGain or LowGain
-          CaloRawFitter::FitStatus fitResults = mRawFitter->evaluate(chan.getBunches());
-          if (fitResults == CaloRawFitter::FitStatus::kNoTime) {
-            mOutputHWErrors.emplace_back(ddl, fee, (char)5); //Time evaluation error occured
-          }
-          if (mFillChi2) {
-            for (int is = 0; is < mRawFitter->getNsamples(); is++) {
-              if (!mRawFitter->isOverflow(is)) { //Overflow is will show wrong chi2
-                short chiAddr = absId;
-                chiAddr |= caloFlag << 14;
-                mOutputFitChi.emplace_back(chiAddr);
-                mOutputFitChi.emplace_back(short(mRawFitter->getChi2(is)));
-              }
-            }
-          }
-          if (fitResults == CaloRawFitter::FitStatus::kOK || fitResults == CaloRawFitter::FitStatus::kNoTime) {
-            //TODO: which results should be accepted? full configurable list
-            if (!mPedestalRun) {
-              for (int is = 0; is < mRawFitter->getNsamples(); is++) {
-                if (caloFlag == Mapping::kHighGain && !mRawFitter->isOverflow(is)) {
-                  currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is),
-                                                     mRawFitter->getTime(is) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
-                }
-                if (caloFlag == Mapping::kLowGain) {
-                  currentCellContainer->emplace_back(absId, mRawFitter->getAmp(is),
-                                                     mRawFitter->getTime(is) * o2::phos::PHOSSimParams::Instance().mTimeTick, (ChannelType_t)caloFlag);
-                }
-              }
-            } else { //pedestal, to store RMS, scale in by 1.e-7 to fit range
-              currentCellContainer->emplace_back(absId, mRawFitter->getAmp(0), 1.e-7 * mRawFitter->getTime(0), (ChannelType_t)caloFlag);
-            }
-          }
-        }
+      if (irIter != irList.rend()) {                      //found
+        (*rangeIter)[2 * ddl] = mTmpCells[ddl].size();    //start of the cell list
+        (*rangeIter)[28 + 2 * ddl] = mTmpTRU[ddl].size(); //start of the tru list
+      } else {                                            //create new entry
+        irList.push_back(currentIR);
+        cellTRURanges.emplace_back();
+        cellTRURanges.back().fill(0);
+        cellTRURanges.back()[2 * ddl] = mTmpCells[ddl].size();
+        cellTRURanges.back()[28 + 2 * ddl] = mTmpTRU[ddl].size();
+        rangeIter = cellTRURanges.rbegin();
       }
+      std::vector<Cell>& currentCellContainer = mTmpCells[ddl];
+      std::vector<Cell>& currentTRUContainer = mTmpTRU[ddl];
+
+      // use the altro decoder to decode the raw data, and extract the RCU trailer
+      mDecoder->decode(rawreader, mRawFitter.get(), currentCellContainer, currentTRUContainer);
+      const std::vector<o2::phos::RawReaderError>& errs = mDecoder->hwerrors();
+      for (auto a : errs) {
+        mOutputHWErrors.emplace_back(a);
+      }
+      // Sort cells according to cell ID
+      (*rangeIter)[2 * ddl + 1] = currentCellContainer.size();
+      auto itBegin = currentCellContainer.begin() + (*rangeIter)[2 * ddl];
+      std::sort(itBegin, currentCellContainer.end(), [](o2::phos::Cell& lhs, o2::phos::Cell& rhs) { return lhs.getAbsId() < rhs.getAbsId(); });
+      auto itTrBegin = currentTRUContainer.begin() + (*rangeIter)[28 + 2 * ddl];
+      (*rangeIter)[28 + 2 * ddl + 1] = currentTRUContainer.size();
+      std::sort(itTrBegin, currentTRUContainer.end(), [](o2::phos::Cell& lhs, o2::phos::Cell& rhs) { return lhs.getAbsId() < rhs.getAbsId(); });
     } //RawReader::hasNext
   }
 
   // Loop over BCs, sort cells with increasing cell ID and write to output containers
   mOutputCells.clear();
+  if (mLastSize > 0) {
+    mOutputCells.reserve(mLastSize);
+  }
   mOutputTriggerRecords.clear();
-  for (auto [bc, cells] : cellBuffer) {
+  auto rangeIter = cellTRURanges.begin();
+  for (auto irIter = irList.begin(); irIter != irList.end(); ++irIter, ++rangeIter) {
+    // find all DDLs for current BC
+    // sort separately then concatenate
     int prevCellSize = mOutputCells.size();
-    if (cells->size()) {
-      // Sort cells according to cell ID
-      std::sort(cells->begin(), cells->end(), [](o2::phos::Cell& lhs, o2::phos::Cell& rhs) { return lhs.getAbsId() < rhs.getAbsId(); });
+    for (int iddl = 0; iddl < 14; iddl++) {
+      auto cbegin = mTmpCells[iddl].begin() + (*rangeIter)[2 * iddl];
+      auto cend = mTmpCells[iddl].begin() + (*rangeIter)[2 * iddl + 1];
 
       if (mCombineGHLG && !mPedestalRun) { // combine for normal data, do not combine e.g. for LED run and pedestal
         //Combine HG and LG sells
         //Should be next to each other after sorting
-        auto it1 = cells->begin();
-        auto it2 = cells->begin();
+        auto it1 = cbegin;
+        auto it2 = cbegin;
         it2++;
-        while (it1 != cells->end()) {
-          if (it2 != cells->end()) {
+        while (it1 != cend) {
+          if (it2 != cend) {
             if ((*it1).getAbsId() == (*it2).getAbsId()) { //HG and LG channels, if both, copy only HG as more precise
               if ((*it1).getType() == o2::phos::HIGH_GAIN) {
                 mOutputCells.push_back(*it1);
@@ -239,17 +232,26 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           ++it2;
         }
       } else {
-        for (auto& cell : *cells) {
-          mOutputCells.push_back(cell);
+        mOutputCells.insert(mOutputCells.end(), cbegin, cend);
+      }
+    } //all readout cells
+    for (int iddl = 0; iddl < 14; iddl++) {
+      auto trbegin = mTmpTRU[iddl].begin() + (*rangeIter)[28 + 2 * iddl];
+      auto trend = mTmpTRU[iddl].begin() + (*rangeIter)[28 + 2 * iddl + 1];
+      //Move trigger cells
+      for (auto tri = trbegin; tri != trend; tri++) {
+        if (tri->getEnergy() > 0) {
+          mOutputCells.emplace_back(tri->getAbsId(), tri->getEnergy(), tri->getTime(), tri->getType());
         }
       }
     }
 
-    mOutputTriggerRecords.emplace_back(bc, prevCellSize, mOutputCells.size() - prevCellSize);
+    mOutputTriggerRecords.emplace_back(*irIter, prevCellSize, mOutputCells.size() - prevCellSize);
   }
-  cellBuffer.clear();
 
-  LOG(INFO) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
+  mLastSize = 1.1 * mOutputCells.size();
+
+  LOG(DEBUG) << "[PHOSRawToCellConverter - run] Writing " << mOutputCells.size() << " cells ...";
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe}, mOutputTriggerRecords);
   ctx.outputs().snapshot(o2::framework::Output{"PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe}, mOutputHWErrors);
@@ -258,48 +260,27 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   }
 }
 
-char RawToCellConverterSpec::CheckHWAddress(short ddl, short hwAddr, short& fee)
-{
-
-  if (ddl < 0 || ddl > o2::phos::Mapping::NDDL) {
-    return (char)4;
-  }
-  //  short chan = hwAddr & 0xf;
-  short chip = hwAddr >> 4 & 0x7;
-  short fec = hwAddr >> 7 & 0xf;
-  short branch = hwAddr >> 11 & 0x1;
-
-  if (branch < 0 || branch > 1) {
-    return (char)1;
-  }
-  if (fec < 0 || fec > 15) {
-    return (char)2;
-  }
-  if (fec != 0 && (chip < 0 || chip > 4 || chip == 1)) { //Do not check for TRU (fec=0)
-    return (char)3;
-  }
-  return (char)0;
-}
-
-o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec()
+o2::framework::DataProcessorSpec o2::phos::reco_workflow::getRawToCellConverterSpec(int flpId)
 {
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Timeframe);
+  inputs.emplace_back("RAWDATA", o2::framework::ConcreteDataTypeMatcher{"PHS", "RAWDATA"}, o2::framework::Lifetime::Optional);
+  //receive at least 1 guaranteed input (which will allow to acknowledge the TF)
+  inputs.emplace_back("STFDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "CELLTRIGREC", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "RAWHWERRORS", 0, o2::framework::Lifetime::Timeframe);
-  outputs.emplace_back("PHS", "CELLFITQA", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CELLS", flpId, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CELLTRIGREC", flpId, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "RAWHWERRORS", flpId, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back("PHS", "CELLFITQA", flpId, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"PHOSRawToCellConverterSpec",
                                           inputs, // o2::framework::select("A:PHS/RAWDATA"),
                                           outputs,
                                           o2::framework::adaptFromTask<o2::phos::reco_workflow::RawToCellConverterSpec>(),
                                           o2::framework::Options{
-                                            {"fitmethod", o2::framework::VariantType::String, "default", {"Fit method (default or fast)"}},
+                                            {"fitmethod", o2::framework::VariantType::String, "default", {"Fit method (default or semigaus)"}},
                                             {"mappingpath", o2::framework::VariantType::String, "", {"Path to mapping files"}},
                                             {"fillchi2", o2::framework::VariantType::String, "off", {"Fill sample qualities on/off"}},
-                                            {"keepGHLG", o2::framework::VariantType::String, "off", {"keep HighGain and Low Gain signals on/off"}},
+                                            {"keepHGLG", o2::framework::VariantType::String, "off", {"keep HighGain and Low Gain signals on/off"}},
                                             {"pedestal", o2::framework::VariantType::String, "off", {"Analyze as pedestal run on/off"}}}};
 }

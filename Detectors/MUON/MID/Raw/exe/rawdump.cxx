@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,31 +20,9 @@
 #include "DPLUtils/RawParser.h"
 #include "MIDRaw/Decoder.h"
 #include "MIDRaw/RawFileReader.h"
+#include "MIDRaw/Utils.h"
 
 namespace po = boost::program_options;
-
-std::string getOutFilename(const char* inFilename, const char* outDir)
-{
-  std::string basename(inFilename);
-  std::string fdir = "./";
-  auto pos = basename.find_last_of("/");
-  if (pos != std::string::npos) {
-    basename.erase(0, pos + 1);
-    fdir = inFilename;
-    fdir.erase(pos);
-  }
-  basename.insert(0, "dump_");
-  basename += ".txt";
-  std::string outputDir(outDir);
-  if (outputDir.empty()) {
-    outputDir = fdir;
-  }
-  if (outputDir.back() != '/') {
-    outputDir += "/";
-  }
-  std::string outFilename = outputDir + basename;
-  return outFilename;
-}
 
 template <class RDH>
 void decode(o2::mid::Decoder& decoder, gsl::span<const uint8_t> payload, const RDH& rdh, std::ostream& out)
@@ -103,7 +82,7 @@ int main(int argc, char* argv[])
 
   std::vector<std::string> inputfiles{vm["input"].as<std::vector<std::string>>()};
 
-  bool runDecoder = (vm.count("decode") > 0);
+  bool runDecoder = (vm.count("decode") > 0 && vm["decode"].as<bool>() == true);
   std::unique_ptr<o2::mid::Decoder> decoder{nullptr};
 
   std::ofstream outFile;
@@ -135,7 +114,7 @@ int main(int argc, char* argv[])
             }
             decode(*decoder, payload, *rdhPtr, out);
           } else if (!isRdhOnly) {
-            bool isBare = (o2::raw::RDHUtils::getLinkID(rdhPtr) != o2::mid::raw::sUserLogicLinkID);
+            bool isBare = o2::mid::raw::isBare(*rdhPtr);
             size_t wordLength = isBare ? 16 : 32;
             for (size_t iword = 0; iword < payload.size(); iword += wordLength) {
               auto word = payload.subspan(iword, wordLength);

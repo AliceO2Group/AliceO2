@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,6 +14,7 @@
 #include "Framework/DriverClient.h"
 #include "Framework/CallbackService.h"
 #include "Framework/TimesliceIndex.h"
+#include "Framework/DataTakingContext.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/LocalRootFileService.h"
@@ -22,12 +24,14 @@
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
 #include "Framework/EndOfStreamContext.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Tracing.h"
 #include "Framework/Monitoring.h"
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
 #include "../src/DataProcessingStatus.h"
+#include "ArrowSupport.h"
 #include "DPLMonitoringBackend.h"
 
 #include <Configuration/ConfigurationInterface.h>
@@ -35,6 +39,7 @@
 #include <Monitoring/MonitoringFactory.h>
 #include <InfoLogger/InfoLogger.hxx>
 
+#include <FairMQDevice.h>
 #include <options/FairMQProgOptions.h>
 
 #include <cstdlib>
@@ -80,9 +85,15 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                        monitoring->enableBuffering(MONITORING_QUEUE_SIZE);
                        assert(registry.get<DeviceSpec const>().name.empty() == false);
                        monitoring->addGlobalTag("dataprocessor_id", registry.get<DeviceSpec const>().name);
+                       try {
+                         auto run = registry.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+                         monitoring->setRunNumber(stoul(run));
+                       } catch (...) {
+                       }
                        return ServiceHandle{TypeIdHelpers::uniqueId<Monitoring>(), service};
                      },
                      noConfiguration(),
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -100,6 +111,51 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
                        Monitoring* monitoring = reinterpret_cast<Monitoring*>(service);
                        delete monitoring;
                      },
+                     ServiceKind::Serial};
+}
+
+o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
+{
+  return ServiceSpec{"datataking-contex",
+                     simpleServiceInit<DataTakingContext, DataTakingContext>(),
+                     noConfiguration(),
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     nullptr,
+                     [](ServiceRegistry& services, void* service) {
+                       auto& context = services.get<DataTakingContext>();
+                       context.runNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+                       // FIXME: we actually need to get the orbit, not only to know where it is
+                       std::string orbitResetTimeUrl = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("orbit-reset-time", "ccdb://CTP/Calib/OrbitResetTime");
+                       auto is_number = [](const std::string& s) -> bool {
+                         return !s.empty() && std::all_of(s.begin(), s.end(), ::isdigit);
+                       };
+
+                       if (orbitResetTimeUrl.rfind("file://") == 0) {
+                         // FIXME: read it from a file
+                         context.orbitResetTime = 490917600;
+                       } else if (orbitResetTimeUrl.rfind("http://") == 0) {
+                         // FIXME: read it from ccdb
+                         context.orbitResetTime = 490917600;
+                       } else if (is_number(orbitResetTimeUrl)) {
+                         context.orbitResetTime = std::stoull(orbitResetTimeUrl.data());
+                         // FIXME: specify it from the command line
+                       } else {
+                         context.orbitResetTime = 490917600;
+                       }
+                       context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128);
+                     },
+                     nullptr,
                      ServiceKind::Serial};
 }
 
@@ -121,6 +177,11 @@ o2::framework::ServiceSpec CommonServices::infologgerContextSpec()
                      nullptr,
                      nullptr,
                      nullptr,
+                     [](ServiceRegistry& services, void* service) {
+                       auto& infoLoggerContext = services.get<InfoLoggerContext>();
+                       auto run = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+                       infoLoggerContext.setField(InfoLoggerContext::FieldName::Run, run);
+                     },
                      nullptr,
                      ServiceKind::Serial};
 }
@@ -139,29 +200,34 @@ auto createInfoLoggerSinkHelper(InfoLogger* logger, InfoLoggerContext* ctx)
       return;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::fatal)) {
       severity = InfoLogger::Severity::Fatal;
+      level = 1;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::error)) {
       severity = InfoLogger::Severity::Error;
+      level = 3;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::warn)) {
       severity = InfoLogger::Severity::Warning;
+      level = 6;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::state)) {
       severity = InfoLogger::Severity::Info;
-      level = 10;
+      level = 8;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::info)) {
       severity = InfoLogger::Severity::Info;
+      level = 10;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug)) {
       severity = InfoLogger::Severity::Debug;
+      level = 11;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug1)) {
       severity = InfoLogger::Severity::Debug;
-      level = 10;
+      level = 12;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug2)) {
       severity = InfoLogger::Severity::Debug;
-      level = 20;
+      level = 13;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug3)) {
       severity = InfoLogger::Severity::Debug;
-      level = 30;
+      level = 14;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::debug4)) {
       severity = InfoLogger::Severity::Debug;
-      level = 40;
+      level = 15;
     } else if (metadata.severity_name == fair::Logger::SeverityName(fair::Severity::trace)) {
       severity = InfoLogger::Severity::Debug;
       level = 50;
@@ -186,11 +252,12 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                      [](ServiceRegistry& services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
                        auto infoLoggerMode = options.GetPropertyAsString("infologger-mode");
                        if (infoLoggerMode != "") {
-                         setenv("INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
+                         setenv("O2_INFOLOGGER_MODE", infoLoggerMode.c_str(), 1);
                        }
                        auto infoLoggerService = new InfoLogger;
                        auto infoLoggerContext = &services.get<InfoLoggerContext>();
-                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, services.get<DeviceSpec const>().name);
+                       infoLoggerContext->setField(InfoLoggerContext::FieldName::Facility, std::string("dpl/") + services.get<DeviceSpec const>().name);
+                       infoLoggerContext->setField(InfoLoggerContext::FieldName::System, std::string("DPL"));
                        infoLoggerService->setContext(*infoLoggerContext);
 
                        auto infoLoggerSeverity = options.GetPropertyAsString("infologger-severity");
@@ -200,6 +267,7 @@ o2::framework::ServiceSpec CommonServices::infologgerSpec()
                        return ServiceHandle{TypeIdHelpers::uniqueId<InfoLogger>(), infoLoggerService};
                      },
                      noConfiguration(),
+                     nullptr,
                      nullptr,
                      nullptr,
                      nullptr,
@@ -230,6 +298,7 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -276,6 +345,7 @@ o2::framework::ServiceSpec CommonServices::driverClientSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Global};
 }
 
@@ -302,6 +372,7 @@ o2::framework::ServiceSpec CommonServices::controlSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -311,6 +382,7 @@ o2::framework::ServiceSpec CommonServices::rootFileSpec()
     "localrootfile",
     simpleServiceInit<LocalRootFileService, LocalRootFileService>(),
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -352,6 +424,7 @@ o2::framework::ServiceSpec CommonServices::parallelSpec()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -375,6 +448,7 @@ o2::framework::ServiceSpec CommonServices::timesliceIndex()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -384,6 +458,7 @@ o2::framework::ServiceSpec CommonServices::callbacksSpec()
     "callbacks",
     simpleServiceInit<CallbackService, CallbackService>(),
     noConfiguration(),
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -428,6 +503,7 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -451,6 +527,7 @@ o2::framework::ServiceSpec CommonServices::tracingSpec()
       TracingInfrastructure* t = reinterpret_cast<TracingInfrastructure*>(service);
       t->processingCount += 1;
     },
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -501,6 +578,7 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -530,16 +608,19 @@ auto sendRelayerMetrics(ServiceRegistry& registry, DataProcessingStats& stats) -
   monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastTotalProcessedSize, "processed_input_size_byte"}
+  monitoring.send(Metric{stats.lastProcessedSize, "last_processed_input_size_byte"}
                     .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastTotalProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
+  monitoring.send(Metric{stats.totalProcessedSize, "total_processed_input_size_byte"}
+                    .addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{stats.totalSigusr1.load(), "total_sigusr1"}.addTag(Key::Subsystem, Value::DPL));
+  monitoring.send(Metric{(stats.lastProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
                          "processing_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastLatency.minLatency, "min_input_latency_ms"}
                     .addTag(Key::Subsystem, Value::DPL));
   monitoring.send(Metric{stats.lastLatency.maxLatency, "max_input_latency_ms"}
                     .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastTotalProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
+  monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
                     .addTag(Key::Subsystem, Value::DPL));
 
   stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
@@ -607,6 +688,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     nullptr,
     nullptr,
     nullptr,
+    nullptr,
     ServiceKind::Serial};
 }
 
@@ -616,6 +698,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     timesliceIndex(),
     driverClientSpec(),
     monitoringSpec(),
+    datatakingContextSpec(),
     infologgerContextSpec(),
     infologgerSpec(),
     configurationSpec(),
@@ -626,7 +709,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     dataRelayer(),
     dataProcessingStats(),
     CommonMessageBackends::fairMQBackendSpec(),
-    CommonMessageBackends::arrowBackendSpec(),
+    ArrowSupport::arrowBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
     CommonMessageBackends::rawBufferBackendSpec()};
   if (numThreads) {

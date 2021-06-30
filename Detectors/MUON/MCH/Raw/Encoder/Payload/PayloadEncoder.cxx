@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,6 +11,7 @@
 
 #include "BareElinkEncoder.h"
 #include "BareElinkEncoderMerger.h"
+#include "MCHRawCommon/DataFormats.h"
 #include "PayloadEncoderImpl.h"
 #include "MCHRawEncoderPayload/PayloadEncoder.h"
 #include "UserLogicElinkEncoder.h"
@@ -20,37 +22,48 @@ namespace o2::mch::raw
 {
 namespace impl
 {
-// cannot partially specialize a function, so create a struct (which can
-// be specialized) and use it within the function below.
-template <typename FORMAT, typename CHARGESUM, bool forceNoPhase>
+template <typename FORMAT, typename CHARGESUM, int VERSION, bool forceNoPhase>
 struct PayloadEncoderCreator {
   static std::unique_ptr<PayloadEncoder> _(Solar2FeeLinkMapper solar2feelink)
   {
-    GBTEncoder<FORMAT, CHARGESUM>::forceNoPhase = forceNoPhase;
-    return std::make_unique<PayloadEncoderImpl<FORMAT, CHARGESUM>>(solar2feelink);
+    GBTEncoder<FORMAT, CHARGESUM, VERSION>::forceNoPhase = forceNoPhase;
+    return std::make_unique<PayloadEncoderImpl<FORMAT, CHARGESUM, VERSION>>(solar2feelink);
   }
 };
 } // namespace impl
 
-template <typename FORMAT, typename CHARGESUM, bool forceNoPhase>
+template <typename FORMAT, typename CHARGESUM, int VERSION, bool forceNoPhase = true>
 std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper solar2feelink)
 {
-  return impl::PayloadEncoderCreator<FORMAT, CHARGESUM, forceNoPhase>::_(solar2feelink);
+  return impl::PayloadEncoderCreator<FORMAT, CHARGESUM, VERSION, forceNoPhase>::_(solar2feelink);
 }
-std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper);
 
-// define only the specializations we use
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<BareFormat, SampleMode, true>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<BareFormat, SampleMode, false>(Solar2FeeLinkMapper);
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<BareFormat, ChargeSumMode, true>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<BareFormat, ChargeSumMode, false>(Solar2FeeLinkMapper);
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, SampleMode, true>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, SampleMode, false>(Solar2FeeLinkMapper);
-
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, ChargeSumMode, true>(Solar2FeeLinkMapper);
-template std::unique_ptr<PayloadEncoder> createPayloadEncoder<UserLogicFormat, ChargeSumMode, false>(Solar2FeeLinkMapper);
-
+std::unique_ptr<PayloadEncoder> createPayloadEncoder(Solar2FeeLinkMapper solar2feelink,
+                                                     bool userLogic, int version, bool chargeSumMode)
+{
+  if (version != 0 && version != 1) {
+    throw std::invalid_argument("Only version 0 or 1 are supported");
+  }
+  if (userLogic) {
+    if (version == 0) {
+      if (chargeSumMode) {
+        return createPayloadEncoder<UserLogicFormat, ChargeSumMode, 0>(solar2feelink);
+      } else {
+        return createPayloadEncoder<UserLogicFormat, SampleMode, 0>(solar2feelink);
+      }
+    } else {
+      if (chargeSumMode) {
+        return createPayloadEncoder<UserLogicFormat, ChargeSumMode, 1>(solar2feelink);
+      } else {
+        return createPayloadEncoder<UserLogicFormat, SampleMode, 1>(solar2feelink);
+      }
+    }
+  } else {
+    if (chargeSumMode) {
+      return createPayloadEncoder<BareFormat, ChargeSumMode, 0>(solar2feelink);
+    } else {
+      return createPayloadEncoder<BareFormat, SampleMode, 0>(solar2feelink);
+    }
+  }
+}
 } // namespace o2::mch::raw

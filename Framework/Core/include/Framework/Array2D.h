@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,13 +11,12 @@
 #ifndef FRAMEWORK_ARRAY2D_H
 #define FRAMEWORK_ARRAY2D_H
 
-#include <Framework/RuntimeError.h>
-
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
 #include <memory>
 #include <string>
+extern template class std::unordered_map<std::string, u_int32_t>;
 
 namespace o2::framework
 {
@@ -123,36 +123,17 @@ struct Array2D {
 
 static constexpr const char* const labels_rows_str = "labels_rows";
 static constexpr const char* const labels_cols_str = "labels_cols";
-
 using labelmap_t = std::unordered_map<std::string, uint32_t>;
 struct LabelMap {
-  LabelMap()
-    : rowmap{},
-      colmap{},
-      labels_rows{},
-      labels_cols{}
-  {
-  }
-  LabelMap(uint32_t rows, uint32_t cols, std::vector<std::string> labels_rows_, std::vector<std::string> labels_cols_)
-    : rowmap{populate(rows, labels_rows_)},
-      colmap{populate(cols, labels_cols_)},
-      labels_rows{labels_rows_},
-      labels_cols{labels_cols_}
-  {
-  }
+  LabelMap();
+  LabelMap(uint32_t rows, uint32_t cols, std::vector<std::string> labels_rows_, std::vector<std::string> labels_cols_);
 
-  LabelMap(uint32_t size, std::vector<std::string> labels)
-    : rowmap{},
-      colmap{populate(size, labels)},
-      labels_rows{},
-      labels_cols{labels}
-  {
-  }
+  LabelMap(uint32_t size, std::vector<std::string> labels);
 
-  LabelMap(LabelMap const& other) = default;
-  LabelMap(LabelMap&& other) = default;
-  LabelMap& operator=(LabelMap const& other) = default;
-  LabelMap& operator=(LabelMap&& other) = default;
+  LabelMap(LabelMap const& other);
+  LabelMap(LabelMap&& other);
+  LabelMap& operator=(LabelMap const& other);
+  LabelMap& operator=(LabelMap&& other);
 
   labelmap_t rowmap;
   labelmap_t colmap;
@@ -160,29 +141,20 @@ struct LabelMap {
   std::vector<std::string> labels_rows;
   std::vector<std::string> labels_cols;
 
-  labelmap_t populate(uint32_t size, std::vector<std::string> labels)
-  {
-    labelmap_t map;
-    if (labels.empty() == false) {
-      if (labels.size() != size) {
-        throw runtime_error("labels array size != array dimension");
-      }
-      for (auto i = 0u; i < size; ++i) {
-        map.emplace(labels[i], (uint32_t)i);
-      }
-    }
-    return map;
-  }
+  static labelmap_t populate(uint32_t size, std::vector<std::string> labels);
 
-  auto getLabelsRows()
+  auto getLabelsRows() const
   {
     return labels_rows;
   }
 
-  auto getLabelsCols()
+  auto getLabelsCols() const
   {
     return labels_cols;
   }
+
+  void replaceLabelsRows(uint32_t size, std::vector<std::string> const& labels);
+  void replaceLabelsCols(uint32_t size, std::vector<std::string> const& labels);
 };
 
 template <typename T>
@@ -247,7 +219,12 @@ class LabeledArray : public LabelMap
     return values[0][x];
   }
 
-  T getRow(u_int32_t y) const
+  T get(const char* x) const
+  {
+    return values[0][colmap.find(x)->second];
+  }
+
+  T* getRow(uint32_t y) const
   {
     return values[y];
   }
@@ -257,19 +234,35 @@ class LabeledArray : public LabelMap
     return values[y];
   }
 
-  auto getData()
+  auto getData() const
   {
     return values;
   }
 
-  auto rows()
+  auto rows() const
   {
     return values.rows;
   }
 
-  auto cols()
+  auto cols() const
   {
     return values.cols;
+  }
+
+  auto copy() const
+  {
+    LabeledArray<T> copy = *this;
+    return copy;
+  }
+
+  void replaceLabelsRows(std::vector<std::string> const& labels)
+  {
+    LabelMap::replaceLabelsRows(values.rows, labels);
+  }
+
+  void replaceLabelsCols(std::vector<std::string> const& labels)
+  {
+    LabelMap::replaceLabelsCols(values.cols, labels);
   }
 
  private:

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -29,7 +30,8 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
   calib.setADCRange(adcMin, adcMax);
   calib.setTimeBinRange(firstTimeBin, lastTimeBin);
   calib.setDebugLevel();
-  calib.setQtotBinning(140, 22, 302);
+  //calib.setQtotBinning(140, 22, 302);
+  calib.setQtotBinning(500, 10, 1010);
   if (type == 1) {
     calib.setQtotBinning(150, 2, 302);
     calib.setMinQtot(8);
@@ -66,10 +68,8 @@ void runPulser(std::vector<std::string_view> fileInfos, TString outputFileName =
     for (Int_t i = 0; i < nevents; ++i) {
       status = calib.processEvent(i);
       std::cout << "Processing event " << i << " with status " << int(status) << '\n';
-      if (status == CalibRawBase::ProcessStatus::IncompleteEvent) {
-        continue;
-      } else if (status != CalibRawBase::ProcessStatus::Ok) {
-        //break;
+      if (status == CalibRawBase::ProcessStatus::LastEvent) {
+        break;
       }
     }
   }

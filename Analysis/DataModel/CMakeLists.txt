@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(AnalysisDataModel
                SOURCES src/ParamBase.cxx
@@ -20,6 +21,7 @@ o2_target_root_dictionary(AnalysisDataModel
                                   include/AnalysisDataModel/PID/DetectorResponse.h
                                   include/AnalysisDataModel/PID/PIDTOF.h
                                   include/AnalysisDataModel/PID/TOFReso.h
+                                  include/AnalysisDataModel/PID/TOFResoALICE3.h
                                   include/AnalysisDataModel/PID/PIDTPC.h
                                   include/AnalysisDataModel/PID/BetheBloch.h
                                   include/AnalysisDataModel/PID/TPCReso.h
@@ -38,5 +40,10 @@ o2_add_executable(pidparam-tpc-bethe-bloch
 
 o2_add_executable(pidparam-tof-reso
                   SOURCES src/handleParamTOFReso.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
+                 )
+
+o2_add_executable(pidparam-tof-reso-alice3
+                  SOURCES src/handleParamTOFResoALICE3.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel
                  )

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -93,8 +94,12 @@ class PadRegionInfo
   /// Return the row offset in the sector
   /// \return row offset in the sector
   unsigned char getGlobalRowOffset() const { return mGlobalRowOffset; }
-  //   const unsigned char  getRowOffset()        const { return mRowOffset;        }
-  //   const float          getXhelper()         const { return mXhelper;         }
+
+  /// Local row offset for geometry calculations
+  unsigned char getRowOffset() const { return mRowOffset; }
+
+  /// Helper variable for geometry calculations
+  float getXhelper() const { return mXhelper; }
 
   /// Return the number of pads for the row in `padPos` (row in the sector)
   /// \param padPos pad position in the sector

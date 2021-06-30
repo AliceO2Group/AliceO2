@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -21,7 +22,7 @@
 #include "DataFormatsMID/ColumnData.h"
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/CrateMapper.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -30,7 +31,7 @@ namespace mid
 class DecodedDataAggregator
 {
  public:
-  void process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords);
+  void process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords);
 
   /// Gets the vector of data
   const std::vector<ColumnData>& getData() { return mData; }
@@ -39,7 +40,7 @@ class DecodedDataAggregator
   const std::vector<ROFRecord>& getROFRecords() { return mROFRecords; }
 
  private:
-  void addData(const LocalBoardRO& col, size_t firstEntry);
+  void addData(const ROBoard& col, size_t firstEntry);
   ColumnData& FindColumnData(uint8_t deId, uint8_t columnId, size_t firstEntry);
 
   std::map<uint64_t, std::vector<size_t>> mOrderIndexes; /// Map for time ordering the entries

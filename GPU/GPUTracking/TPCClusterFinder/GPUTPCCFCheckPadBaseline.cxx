@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -63,6 +64,7 @@ GPUd() void GPUTPCCFCheckPadBaseline::Thread<0>(int nBlocks, int nThreads, int i
         maxConsecCharges = CAMath::Max(consecCharges, maxConsecCharges);
       }
     }
+    GPUbarrier();
   }
 
   GPUbarrier();
@@ -133,7 +135,7 @@ GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int& pad, const GPUTPC
   const GPUTPCGeometry& geo = clusterer.Param().tpcGeometry;
 
   int padOffset = 0;
-  for (Row r = 0; r < TPC_NUM_OF_ROWS; r++) {
+  for (Row r = 0; r < GPUCA_ROW_COUNT; r++) {
     int npads = geo.NPads(r);
     int padInRow = pad - padOffset;
     if (0 <= padInRow && padInRow < CAMath::nextMultipleOf<PadsPerCacheline, int>(npads)) {
@@ -150,8 +152,10 @@ GPUd() ChargePos GPUTPCCFCheckPadBaseline::padToChargePos(int& pad, const GPUTPC
 GPUd() void GPUTPCCFCheckPadBaseline::updatePadBaseline(int pad, const GPUTPCClusterFinder& clusterer, int totalCharges, int consecCharges)
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
-  int totalChargesBaseline = clusterer.Param().rec.maxTimeBinAboveThresholdIn1000Bin * fragment.lengthWithoutOverlap() / 1000;
-  int consecChargesBaseline = clusterer.Param().rec.maxConsecTimeBinAboveThreshold;
-  bool hasLostBaseline = (totalChargesBaseline > 0 && totalCharges >= totalChargesBaseline) || (consecChargesBaseline > 0 && consecCharges >= consecChargesBaseline);
-  clusterer.mPpadHasLostBaseline[pad] |= hasLostBaseline;
+  int totalChargesBaseline = clusterer.Param().rec.tpc.maxTimeBinAboveThresholdIn1000Bin * fragment.lengthWithoutOverlap() / 1000;
+  int consecChargesBaseline = clusterer.Param().rec.tpc.maxConsecTimeBinAboveThreshold;
+  bool isNoisy = (totalChargesBaseline > 0 && totalCharges >= totalChargesBaseline) || (consecChargesBaseline > 0 && consecCharges >= consecChargesBaseline);
+  if (isNoisy) {
+    clusterer.mPpadIsNoisy[pad] = true;
+  }
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,7 +18,10 @@ namespace o2::framework
 
 ServiceRegistry::ServiceRegistry()
 {
-  mServicesKey.fill(0L);
+  for (size_t i = 0; i < MAX_SERVICES; ++i) {
+    mServicesKey[i].store(0L);
+  }
+
   mServicesValue.fill(nullptr);
   for (size_t i = 0; i < mServicesBooked.size(); ++i) {
     mServicesBooked[i] = false;
@@ -96,6 +100,9 @@ void ServiceRegistry::bindService(ServiceSpec const& spec, void* service)
   if (spec.postDispatching) {
     mPostDispatchingHandles.push_back(ServiceDispatchingHandle{spec.postDispatching, service});
   }
+  if (spec.start) {
+    mPreStartHandles.push_back(ServiceStartHandle{spec.start, service});
+  }
   if (spec.exit) {
     mPreExitHandles.push_back(ServiceExitHandle{spec.exit, service});
   }
@@ -155,6 +162,16 @@ void ServiceRegistry::postDispatchingCallbacks(ProcessingContext& processContext
   }
 }
 
+/// Callbacks to be called in FairMQDevice::PreRun()
+void ServiceRegistry::preStartCallbacks()
+{
+  // FIXME: we need to call the callback only once for the global services
+  /// I guess...
+  for (auto startHandle = mPreStartHandles.begin(); startHandle != mPreStartHandles.end(); ++startHandle) {
+    startHandle->callback(*this, startHandle->service);
+  }
+}
+
 /// Invoke callback to be executed on exit, in reverse order.
 void ServiceRegistry::preExitCallbacks()
 {
@@ -163,6 +180,11 @@ void ServiceRegistry::preExitCallbacks()
   for (auto exitHandle = mPreExitHandles.rbegin(); exitHandle != mPreExitHandles.rend(); ++exitHandle) {
     exitHandle->callback(*this, exitHandle->service);
   }
+}
+
+void ServiceRegistry::throwError(RuntimeErrorRef const& ref) const
+{
+  throw ref;
 }
 
 } // namespace o2::framework

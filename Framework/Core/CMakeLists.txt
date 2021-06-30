@@ -1,21 +1,18 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
-
-# Given GCC 7.3 does not provide std::filesystem we use Boost instead
-# Drop this once we move to GCC 8.2+
-# if (NOT __APPLE__)
-  set(BOOST_FILESYSTEM Boost::filesystem)
-# endif()
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
+                       src/ArrowSupport.cxx
+                       src/AnalysisDataModel.cxx
                        src/ASoA.cxx
                        src/AnalysisHelpers.cxx
                        src/AnalysisDataModelHelpers.cxx
@@ -24,11 +21,13 @@ o2_add_library(Framework
                        src/ChannelMatching.cxx
                        src/ChannelConfigurationPolicyHelpers.cxx
                        src/ChannelSpecHelpers.cxx
+                       src/CommandInfo.cxx
                        src/CommonDataProcessors.cxx
                        src/CommonServices.cxx
                        src/CommonMessageBackends.cxx
                        src/CompletionPolicy.cxx
                        src/CompletionPolicyHelpers.cxx
+                       src/ComputingQuotaEvaluator.cxx
                        src/ComputingResourceHelpers.cxx
                        src/ConfigContext.cxx
                        src/ControlService.cxx
@@ -49,11 +48,15 @@ o2_add_library(Framework
                        src/DataRelayerHelpers.cxx
                        src/DataSpecUtils.cxx
                        src/DeviceConfigInfo.cxx
+                       src/DevicesManager.cxx
                        src/DeviceMetricsInfo.cxx
+                       src/DeviceMetricsHelper.cxx
                        src/DeviceSpec.cxx
+                       src/DeviceController.cxx
                        src/DeviceSpecHelpers.cxx
                        src/DPLMonitoringBackend.cxx
                        src/DriverControl.cxx
+                       src/DriverClient.cxx
                        src/DriverInfo.cxx
                        src/Expressions.cxx
                        src/FairMQDeviceProxy.cxx
@@ -64,21 +67,28 @@ o2_add_library(Framework
                        src/GraphvizHelpers.cxx
                        src/HTTPParser.cxx
                        src/InputRecord.cxx
+                       src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx
+                       src/RawBufferContext.cxx
+                       src/StringContext.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
                        src/Metric2DViewIndex.cxx
                        src/SimpleOptionsRetriever.cxx
                        src/O2ControlHelpers.cxx
+                       src/O2ControlLabels.cxx
                        src/OutputSpec.cxx
                        src/PropertyTreeHelpers.cxx
+                       src/Plugins.cxx
                        src/RCombinedDS.cxx
                        src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
+                       src/ResourcePolicy.cxx
+                       src/ResourcePolicyHelpers.cxx
                        src/ServiceRegistry.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
@@ -87,10 +97,12 @@ o2_add_library(Framework
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
                        src/TableTreeHelpers.cxx
+                       src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/DataInputDirector.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
+                       src/Array2D.cxx
                        src/Variant.cxx
                        src/WorkflowCustomizationHelpers.cxx
                        src/WorkflowHelpers.cxx
@@ -99,9 +111,9 @@ o2_add_library(Framework
                        src/WSDriverClient.cxx
                        src/runDataProcessing.cxx
                        src/ExternalFairMQDeviceProxy.cxx
+                       src/HistogramSpec.cxx
                        src/HistogramRegistry.cxx
                        src/StepTHn.cxx
-                       src/SHA1.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
                        test/TestClasses.cxx
@@ -120,7 +132,7 @@ o2_add_library(Framework
                                      O2::PCG
                                      RapidJSON::RapidJSON
                                      arrow::arrow_shared
-                                     ms_gsl::ms_gsl
+                                     Microsoft.GSL::GSL
                                      ROOT::ROOTDataFrame
                                      O2::FrameworkLogger
                                      Boost::serialization
@@ -144,6 +156,7 @@ foreach(t
         ConfigurationOptionsRetriever
         CallbackRegistry
         ChannelSpecHelpers
+        CheckTypes
         CompletionPolicy
         ComputingResourceHelpers
         ConfigParamStore
@@ -160,7 +173,9 @@ foreach(t
         ExternalFairMQDeviceProxy
         FairMQOptionsRetriever
         FairMQResizableBuffer
+        FairMQ
         FrameworkDataFlowToDDS
+        FrameworkDataFlowToO2Control
         Graphviz
         GroupSlicer
         HistogramRegistry
@@ -189,7 +204,7 @@ foreach(t
         WorkflowSerialization
         TreeToTable
         DataOutputDirector
-	DataInputDirector)
+    DataInputDirector)
 
   # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
   # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
@@ -245,11 +260,12 @@ foreach(b
         HistogramRegistry
         TableToTree
         TreeToTable
+        ExternalFairMQDeviceProxies
         )
   o2_add_executable(benchmark-${b}
                     SOURCES test/benchmark_${b}.cxx
                     COMPONENT_NAME Framework
-	            IS_BENCHMARK
+                    IS_BENCHMARK
                     PUBLIC_LINK_LIBRARIES O2::Framework benchmark::benchmark)
 endforeach()
 
@@ -266,7 +282,7 @@ foreach(w
         Forwarding
         ParallelPipeline
         ParallelProducer
-        SlowConsumer 
+        SlowConsumer
         SimpleDataProcessingDevice01
         SimpleRDataFrameProcessing
         SimpleStatefulProcessing01

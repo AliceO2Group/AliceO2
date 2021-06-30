@@ -9,6 +9,8 @@
 * [Raw to digits](#raw-to-digits)
 * [Preclustering](#preclustering)
 * [Clustering](#clustering)
+* [CTF encoding/decoding](#ctf-encodingdecoding)
+* [Local to global cluster transformation](#local-to-global-cluster-transformation)
 * [Tracking](#tracking)
   * [Original track finder](#original-track-finder)
   * [New track finder](#new-track-finder)
@@ -43,7 +45,7 @@ The workflow accepts the following options:
 Example of a DPL chain to go from a raw data file to a file of preclusters :
 
 ```shell
-o2-raw-file-reader-workflow --conf file-reader.cfg --loop 0  -b |
+o2-raw-file-sampler-workflow --input-conf file-reader.cfg --loop 0  -b |
 o2-mch-raw-to-digits-workflow -b |
 o2-mch-digits-to-preclusters-workflow -b |
 o2-mch-preclusters-sink-workflow -b
@@ -64,7 +66,7 @@ filePath = /home/data/data-de819-ped-raw.raw
 o2-mch-digits-to-preclusters-workflow
 ```
 
-Take as input the list of all digits ([Digit](../Base/include/MCHBase/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS". Send the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction in three separate messages with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively.
+Take as input the list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS". Send the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction in three separate messages with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively.
 
 Option `--check-no-leftover-digits xxx` allows to drop an error message (`xxx = "error"` (default)) or an exception (`xxx = "fatal"`) in case not all the input digits end up in a precluster, or to disable this check (`xxx = "off"`).
 
@@ -74,7 +76,61 @@ Option `--check-no-leftover-digits xxx` allows to drop an error message (`xxx = 
 o2-mch-preclusters-to-clusters-original-workflow
 ```
 
-Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
+Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively. Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction in three separate messages with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively.
+
+Option `--run2-config` allows to configure the clustering to process run2 data.
+
+Option `--config "file.json"` or `--config "file.ini"` allows to change the clustering parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
+
+* Example of configuration file in JSON format:
+```json
+{
+    "MCHClustering": {
+        "lowestPadCharge": "4.",
+        "defaultClusterResolution": "0.4"
+    }
+}
+```
+* Example of configuration file in INI format:
+```ini
+[MCHClustering]
+lowestPadCharge=4.
+defaultClusterResolution=0.4
+```
+
+Option `--configKeyValues "key1=value1;key2=value2;..."` allows to change the clustering parameters from the command line. The parameters changed from the command line will supersede the ones changed from a configuration file.
+
+* Example of parameters changed from the command line:
+```shell
+--configKeyValues "MCHClustering.lowestPadCharge=4.;MCHClustering.defaultClusterResolution=0.4"
+```
+
+## CTF encoding/decoding
+
+Entropy encoding is done be attaching the `o2-mch-entropy-encoder-workflow` to the output of `DIGITS` and `DIGITROF` data-descriptions, providing `Digit` and `ROFRecord` respectively. Afterwards the encoded data can be stored by the `o2-ctf-writer-workflow`.
+
+```shell
+o2-raw-file-reader-workflow --input-conf raw/MCH/MCHraw.cfg | o2-mch-raw-to-digits-workflow  | o2-mch-entropy-encoder-workflow | o2-ctf-writer-workflow --onlyDet MCH
+```
+
+The decoding is done automatically by the `o2-ctf-reader-workflow`.
+
+## Local to global cluster transformation
+
+The `o2-mch-clusters-transformer-workflow` takes as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)), in local reference frame, in the current time frame, with the data description "CLUSTERS".
+
+It sends the list of the same clusters, but converted in global reference frame, with the data description "GLOBALCLUSTERS".
+
+To test it one can use e.g. a sampler-transformer-sink pipeline as such :
+
+```
+o2-mch-clusters-sampler-workflow
+    -b --nEventsPerTF 1000 --infile someclusters.data |
+o2-mch-clusters-transformer-workflow
+    -b --geometry Detectors/MUON/MCH/Geometry/Test/ideal-geometry-o2.json |
+o2-mch-clusters-sink-workflow
+    -b --txt --outfile global-clusters.txt --no-digits --global
+```
 
 ## Tracking
 
@@ -88,9 +144,34 @@ Take as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/
 
 Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current in L3 and in the dipole to be used to set the magnetic field.
 
-Option `--moreCandidates` allows to enable the search for more track candidates in stations 4 & 5.
-
 Option `--debug x` allows to enable the debug level x (0 = no debug, 1 or 2).
+
+Option `--config "file.json"` or `--config "file.ini"` allows to change the tracking parameters from a configuration file. This file can be either in JSON or in INI format, as described below:
+
+* Example of configuration file in JSON format:
+```json
+{
+    "MCHTracking": {
+        "chamberResolutionY": "0.1",
+        "requestStation[1]": "false",
+        "moreCandidates": "true"
+    }
+}
+```
+* Example of configuration file in INI format:
+```ini
+[MCHTracking]
+chamberResolutionY=0.1
+requestStation[1]=false
+moreCandidates=true
+```
+
+Option `--configKeyValues "key1=value1;key2=value2;..."` allows to change the tracking parameters from the command line. The parameters changed from the command line will supersede the ones changed from a configuration file.
+
+* Example of parameters changed from the command line:
+```shell
+--configKeyValues "MCHTracking.chamberResolutionY=0.1;MCHTracking.requestStation[1]=false;MCHTracking.moreCandidates=true"
+```
 
 ### New track finder
 
@@ -134,15 +215,15 @@ Options `--l3Current xxx` and `--dipoleCurrent yyy` allow to specify the current
 ### Digit sampler
 
 ```shell
-o2-mch-digits-reader-workflow --infile "digits.in"
+o2-mch-digits-sampler-workflow --infile "digits.in"
 ```
 
 where `digits.in` is a binary file containing for each event:
 
 * number of digits (int)
-* list of digits ([Digit](../Base/include/MCHBase/Digit.h))
+* list of digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
 
-Send the list of all digits ([Digit](../Base/include/MCHBase/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS".
+Send the list of all digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) in the current time frame, with the data description "DIGITS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the digits associated to each interaction, with the data description "DIGITROFS".
 
 Option `--useRun2DigitUID` allows to specify that the input digits data member mPadID contains the digit UID in run2 format and need to be converted in the corresponding run3 pad ID.
 
@@ -157,7 +238,7 @@ Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records
 ### Cluster sampler
 
 ```shell
-o2-mch-clusters-sampler-workflow --infile "clusters.in"
+o2-mch-clusters-sampler-workflow --infile "clusters.in" [--global]
 ```
 
 where `clusters.in` is a binary file containing for each event:
@@ -165,9 +246,9 @@ where `clusters.in` is a binary file containing for each event:
 * number of clusters (int)
 * number of associated digits (int)
 * list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h))
-* list of associated digits ([Digit](../Base/include/MCHBase/Digit.h))
+* list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
 
-Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, with the data description "CLUSTERS", and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
+Send the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERROFS".
 
 Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1).
 
@@ -210,12 +291,12 @@ If no binary file is provided, the vertex is always set to (0,0,0).
 o2-mch-preclusters-sink-workflow --outfile "preclusters.out"
 ```
 
-Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively, and write them event-by-event in the binary file `preclusters.out` with the following format for each event:
+Take as input the list of all preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h)) in the current time frame, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the preclusters associated to each interaction, with the data description "PRECLUSTERS", "PRECLUSTERDIGITS" and "PRECLUSTERROFS", respectively, and write them event-by-event in the binary file `preclusters.out` with the following format for each event:
 
 * number of preclusters (int)
 * number of associated digits (int)
 * list of preclusters ([PreCluster](../Base/include/MCHBase/PreCluster.h))
-* list of associated digits ([Digit](../Base/include/MCHBase/Digit.h))
+* list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))
 
 Option `--txt` allows to write the preclusters in the output file in text format.
 
@@ -224,15 +305,15 @@ Option `--useRun2DigitUID` allows to convert the run3 pad ID stored in the digit
 ### Cluster sink
 
 ```shell
-o2-mch-clusters-sink-workflow --outfile "clusters.out"
+o2-mch-clusters-sink-workflow --outfile "clusters.out" [--txt] [--no-digits] [--global]
 ```
 
-Take as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, the list of all associated digits ([Digit](../Base/include/MCHBase/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERS", "CLUSTERDIGITS" and "CLUSTERROFS", respectively, and write them event-by-event in the binary file `clusters.out` with the following format for each event:
+Take as input the list of all clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h)) in the current time frame, and, optionnally, the list of all associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h)) and the list of ROF records ([ROFRecord](../../../../DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/ROFRecord.h)) pointing to the clusters associated to each interaction, with the data description "CLUSTERS" (or "GLOBALCLUSTERS" if `--global` option is used), "CLUSTERDIGITS" (unless `--no-digits` option is used) and "CLUSTERROFS", respectively, and write them event-by-event in the binary file `clusters.out` with the following format for each event:
 
 * number of clusters (int)
-* number of associated digits (int)
+* number of associated digits (int) (= 0 if `--no-digits` is used)
 * list of clusters ([ClusterStruct](../Base/include/MCHBase/ClusterBlock.h))
-* list of associated digits ([Digit](../Base/include/MCHBase/Digit.h))
+* list of associated digits ([Digit](/DataFormats/Detectors/MUON/MCH/include/DataFormatsMCH/Digit.h))(unless option `--no-digits` is used)
 
 Option `--txt` allows to write the clusters in the output file in text format.
 

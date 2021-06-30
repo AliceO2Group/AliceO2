@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -29,25 +30,26 @@ namespace event_visualisation
 class DataSourceOffline : public DataSource
 {
  protected:
-  static DataReader* instance[EVisualisationGroup::NvisualisationGroups];
+  Int_t mCurrentEvent = 0;
+  DataReader* mDataReaders[EVisualisationGroup::NvisualisationGroups];
+  VisualisationEvent getEventData(int no, EVisualisationGroup purpose, EVisualisationDataType dataType);
 
  public:
-  DataSourceOffline() = default;
+  DataSourceOffline();
 
   ~DataSourceOffline() override = default;
   DataSourceOffline(DataSourceOffline const&) = delete;
+  void setCurrentEvent(Int_t currentEvent) override;
+  Int_t getCurrentEvent() override;
 
   /// Deleted assigment operator
   void operator=(DataSourceOffline const&) = delete;
 
-  int GetEventCount() override;
+  int getEventCount() override;
 
-  void registerReader(DataReader* reader, EVisualisationGroup purpose)
-  {
-    instance[purpose] = reader;
-  }
+  void registerReader(DataReader* reader, EVisualisationGroup type);
 
-  TObject* getEventData(int no, EVisualisationGroup purpose) override;
+  std::vector<std::pair<VisualisationEvent, std::string>> getVisualisationList(int no) override;
 };
 
 } // namespace event_visualisation

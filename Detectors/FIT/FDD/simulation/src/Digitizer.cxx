@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,6 +18,7 @@
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <Vc/Vc>
 
 using namespace o2::math_utils;
 using namespace o2::fdd;
@@ -44,7 +46,7 @@ void Digitizer::process(const std::vector<o2::fdd::Hit>& hits,
   std::sort(sorted_hits.begin(), sorted_hits.end(), [](o2::fdd::Hit const& a, o2::fdd::Hit const& b) {
     return a.GetTrackID() < b.GetTrackID();
   });
-  LOG(INFO) << "Pulse";
+  //LOG(INFO) << "Pulse";
   //Conversion of hits to the analogue pulse shape
   for (auto& hit : sorted_hits) {
     if (hit.GetTime() > 20e3) {
@@ -138,7 +140,7 @@ void Digitizer::createPulse(int nPhE, int parID, double timeHit, std::array<o2::
         q += Vc::float_v::Size;
         Vc::prefetchForOneRead(q);
         workVc.load(p);
-        workVc += mRndGainVar.getNextValueVc() * charge * pmtVc;
+        workVc += mRndGainVar.getNextValueVc<Vc::float_v>() * charge * pmtVc;
         workVc.store(p);
         p += Vc::float_v::Size;
         Vc::prefetchForOneRead(p);
@@ -191,18 +193,24 @@ void Digitizer::storeBC(const BCCache& bc,
 {
   //LOG(INFO) << "Storing BC " << bc;
 
-  int first = digitsCh.size();
+  int first = digitsCh.size(), nStored = 0;
   for (int ic = 0; ic < Nchannels; ic++) {
-    digitsCh.emplace_back(ic, simulateTimeCFD(bc.pulse[ic]), integrateCharge(bc.pulse[ic]), 0);
+    float chargeADC = integrateCharge(bc.pulse[ic]);
+    if (chargeADC != 0) {
+      digitsCh.emplace_back(ic, int(simulateTimeCFD(bc.pulse[ic])), int(chargeADC), std::rand() % (1 << 8));
+      nStored++;
+    }
   }
   //bc.print();
 
-  int nBC = digitsBC.size();
-  digitsBC.emplace_back(first, 16, bc, mTriggers);
-  digitsTrig.emplace_back(bc, 0, 0, 0, 0, 0);
+  if (nStored != 0) {
+    int nBC = digitsBC.size();
+    digitsBC.emplace_back(first, nStored, bc, mTriggers);
+    digitsTrig.emplace_back(bc, 0, 0, 0, 0, 0);
 
-  for (const auto& lbl : bc.labels) {
-    labels.addElement(nBC, lbl);
+    for (const auto& lbl : bc.labels) {
+      labels.addElement(nBC, lbl);
+    }
   }
 }
 
@@ -214,7 +222,10 @@ float Digitizer::integrateCharge(const ChannelBCDataF& pulse)
     //pulse[iBin] /= ChargePerADC;
     chargeADC += pulse[iBin];
   }
-  //saturation if(chargeADC > )chargeADC = ;
+  //saturation
+  if (chargeADC > 4095) {
+    chargeADC = 4095;
+  }
 
   //LOG(INFO) <<" Charge " << chargeADC;
   return std::lround(chargeADC);
@@ -241,7 +252,8 @@ float Digitizer::simulateTimeCFD(const ChannelBCDataF& pulse)
     }
   }
   //LOG(INFO) <<" Time " << timeCFD;
-  return timeCFD;
+  timeCFD *= TimePerTDC; //ns -> counts
+  return std::lround(timeCFD);
 }
 //_____________________________________________________________________________
 o2::fdd::Digitizer::BCCache& Digitizer::setBCCache(const o2::InteractionRecord& ir)

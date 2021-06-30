@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -37,6 +38,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/ReadoutAdapter.h"
 
 #include "Framework/Logger.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include <vector>
 
@@ -65,9 +67,7 @@ DataProcessorSpec templateProcessor(std::string const& inputType)
                                size_t index = parallelInfo.index1D();
                                const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(values);
                                if (dh) {
-                                 LOG(INFO) << "some-processor" << index << ": "
-                                           << dh->dataOrigin.as<std::string>() << "/" << dh->dataDescription.as<std::string>() << "/"
-                                           << dh->subSpecification << " payload size " << dh->payloadSize;
+                                 LOGP(INFO, "some-processor {}: {}/{}/{} payload size {}", index, dh->dataOrigin, dh->dataDescription, dh->subSpecification, dh->payloadSize);
                                }
                                auto aData =
                                  outputs.make<int>(Output{"TST", "P", static_cast<o2::header::DataHeader::SubSpecificationType>(index)}, 1);

@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 #
 # author: Sandro Wenzel
 
@@ -111,7 +112,9 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "${command}" > ${SCRIPTNAME}
+  echo "export LIBC_FATAL_STDERR_=1" > ${SCRIPTNAME}        # <--- needed ... otherwise the LIBC fatal messages appear on a different tty
+  echo "${command};" >> ${SCRIPTNAME}
+  echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
   chmod +x ${SCRIPTNAME}
 
   # this gives some possibility to customize the wrapper
@@ -172,29 +175,31 @@ taskwrapper() {
     # - segmentation violation
     # - there was a crash
     # - bus error (often occuring with shared mem)
-    pattern="-e \"xception\"                        \
+    pattern="-e \"\<[Ee]xception\"                  \
              -e \"segmentation violation\"          \
              -e \"error while setting up workflow\" \
              -e \"bus error\"                       \
              -e \"Assertion.*failed\"               \
              -e \"Fatal in\"                        \
-             -e \"There was a crash.\""
-      
-    grepcommand="grep -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
+             -e \"libc++abi.*terminating\"          \
+             -e \"There was a crash.\"              \
+             -e \"\*\*\* Error in\""                  # <--- LIBC fatal error messages
+
+    grepcommand="grep -a -H ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} >> encountered_exceptions_list 2>/dev/null"
     eval ${grepcommand}
-    
-    grepcommand="grep -h --count ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} 2>/dev/null"
+
+    grepcommand="grep -a -h --count ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES} 2>/dev/null"
     # using eval here since otherwise the pattern is translated to a
     # a weirdly quoted stringlist
     RC=$(eval ${grepcommand})
-    
+
     # if we see an exception we will bring down the DPL workflow
     # after having given it some chance to shut-down itself
     # basically --> send kill to all children
     if [ "$RC" != "" -a "$RC" != "0" ]; then
       echo "Detected critical problem in logfile $logfile"
       if [ "${JOBUTILS_PRINT_ON_ERROR}" ]; then
-        grepcommand="grep -H -A 2 -B 2 ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES}"
+        grepcommand="grep -a -H -A 2 -B 2 ${pattern} $logfile ${JOBUTILS_JOB_SUPERVISEDFILES}"
         eval ${grepcommand}
       fi
 
@@ -208,7 +213,7 @@ taskwrapper() {
 
       sleep 2
 
-      taskwrapper_cleanup ${PID} SIGKILL
+      [ ! "${JOBUTILS_DEBUGMODE}" ] && taskwrapper_cleanup ${PID} SIGKILL
 
       RC_ACUM=$((RC_ACUM+1))
       [ ! "${JOBUTILS_KEEPJOBSCRIPT}" ] && rm ${SCRIPTNAME} 2> /dev/null
@@ -275,14 +280,14 @@ taskwrapper() {
         # echo "CPU last time window ${p} : ${thisCPU[$p]}"
       done
 
-      echo "${line}"
-      echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
+      # echo "${line}"
+      # echo "${cpucounter} totalCPU = ${totalCPU} -- without limitation ${totalCPU_unlimited}"
       # We can check if the total load is above a resource limit
       # And take corrective actions if we extend by 10%
       limitPIDs=""
       unset waslimited
       if [ ${JOBUTILS_LIMITLOAD} ]; then
-        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l) )); then
+        if (( $(echo "${totalCPU_unlimited} > 1.1*${JOBUTILS_LIMITLOAD}" | bc -l 2>/dev/null) )); then
           # we reduce each pid proportionally for the time until the next check and record the reduction factor in place
           oldreduction=${reduction_factor}
           reduction_factor=$(awk -v limit="${JOBUTILS_LIMITLOAD}" -v cur="${totalCPU_unlimited}" 'BEGIN{ print limit/cur;}')
@@ -308,7 +313,7 @@ taskwrapper() {
 
       let cpucounter=cpucounter+1
       # our condition for inactive
-      if (( $(echo "${totalCPU} < 5" | bc -l) )); then
+      if (( $(echo "${totalCPU} < 5" | bc -l 2> /dev/null) )); then
         let inactivitycounter=inactivitycounter+JOBUTILS_WRAPPER_SLEEP
       else
         inactivitycounter=0
@@ -371,9 +376,9 @@ taskwrapper() {
 
   # wait for PID and fetch return code
   # ?? should directly exit here?
-  wait $PID
-  # return code
-  RC=$?
+  wait $PID || QUERY_RC_FROM_LOG="ON"
+  # query return code from log (seems to be safer as sometimes the wait issues "PID" not a child of this shell)
+  RC=$(grep -a "TASK-EXIT-CODE:" ${logfile} | awk '//{print $2}')
   RC_ACUM=$((RC_ACUM+RC))
   if [ "${RC}" -eq "0" ]; then
     if [ ! "${JOBUTILS_JOB_SKIPCREATEDONE}" ]; then
@@ -423,7 +428,11 @@ taskwrapper() {
 getNumberOfPhysicalCPUCores() {
   if [ "$(uname)" == "Darwin" ]; then
     CORESPERSOCKET=`system_profiler SPHardwareDataType | grep "Total Number of Cores:" | awk '{print $5}'`
-    SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
+    if [ "$(uname -m)" == "arm64" ]; then
+  SOCKETS=1
+    else
+  SOCKETS=`system_profiler SPHardwareDataType | grep "Number of Processors:" | awk '{print $4}'`
+    fi
   else
     # Do something under GNU/Linux platform
     CORESPERSOCKET=`lscpu | grep "Core(s) per socket" | awk '{print $4}'`

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -157,6 +158,7 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
     }
     mChain->mIOPtrs.nMCLabelsTPC += ptr.nMCLabelsTPC;
     mChain->mIOPtrs.nMCInfosTPC += ptr.nMCInfosTPC;
+    mChain->mIOPtrs.nMCInfosTPCCol += ptr.nMCInfosTPCCol;
     SetDisplayInformation(i);
   }
   unsigned int nClustersTotal = 0;
@@ -179,6 +181,7 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
   mChain->mIOPtrs.clustersNative = nullptr;
 
   unsigned int nTrackOffset = 0;
+  unsigned int nColOffset = 0;
   unsigned int nClustersEventOffset[NSLICES] = {0};
   for (unsigned int i = 0; i < mShiftedEvents.size(); i++) {
     auto& ptr = std::get<0>(mShiftedEvents[i]);
@@ -208,7 +211,12 @@ void GPUReconstructionTimeframe::MergeShiftedEvents()
     }
 
     memcpy((void*)&mChain->mIOMem.mcInfosTPC[nTrackOffset], (void*)ptr.mcInfosTPC, ptr.nMCInfosTPC * sizeof(ptr.mcInfosTPC[0]));
+    for (unsigned int j = 0; j < ptr.nMCInfosTPCCol; j++) {
+      mChain->mIOMem.mcInfosTPCCol[nColOffset + j] = ptr.mcInfosTPCCol[j];
+      mChain->mIOMem.mcInfosTPCCol[nColOffset + j].first += nTrackOffset;
+    }
     nTrackOffset += ptr.nMCInfosTPC;
+    nColOffset += ptr.nMCInfosTPCCol;
   }
 
   GPUInfo("Merged %d events, %u clusters total", (int)mShiftedEvents.size(), nClustersTotal);

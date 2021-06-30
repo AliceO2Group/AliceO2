@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -531,7 +532,7 @@ bool DiffusionAndTimeStructEstimator::GetDiffCoeff(float& dl, float& dt, float v
   }
   mDiffLastVdrift = vdrift;
 
-  if (CommonParam::Instance()->IsXenon()) {
+  if (CommonParam::instance()->isXenon()) {
     //
     // Vd and B-field dependent diffusion and Lorentz angle
     //
@@ -541,7 +542,7 @@ bool DiffusionAndTimeStructEstimator::GetDiffCoeff(float& dl, float& dt, float v
 
     // If looking at compatibility with AliRoot:
     // ibL and ibT are calculated the same way so, just define ib = ibL = ibT
-    int ib = ((int)(10 * (CommonParam::Instance()->GetCachedField() - 0.15)));
+    int ib = ((int)(10 * (CommonParam::instance()->getCachedField() - 0.15)));
     ib = std::max(0, ib);
     ib = std::min(kNb - 1, ib);
 
@@ -564,7 +565,7 @@ bool DiffusionAndTimeStructEstimator::GetDiffCoeff(float& dl, float& dt, float v
     dl = mDiffusionL;
     dt = mDiffusionT;
     return true;
-  } else if (CommonParam::Instance()->IsArgon()) {
+  } else if (CommonParam::instance()->isArgon()) {
     //
     // Diffusion constants and Lorentz angle only for B = 0.5T
     //

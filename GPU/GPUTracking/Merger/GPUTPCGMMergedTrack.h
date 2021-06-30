@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,7 +17,6 @@
 
 #include "GPUTPCGMTrackParam.h"
 #include "GPUTPCGMMergedTrackHit.h"
-#include "GPUdEdxInfo.h"
 
 namespace GPUCA_NAMESPACE
 {
@@ -104,21 +104,12 @@ class GPUTPCGMMergedTrack
   GPUd() void SetLegs(unsigned char v) { mLegs = v; }
   GPUd() unsigned char Legs() const { return mLegs; }
 
-  GPUd() const GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam() const { return mOuterParam; }
-  GPUd() GPUTPCGMTrackParam::GPUTPCOuterParam& OuterParam()
-  {
-    return mOuterParam;
-  }
-  GPUd() const GPUdEdxInfo& dEdxInfo() const { return mdEdxInfo; }
-  GPUd() GPUdEdxInfo& dEdxInfo()
-  {
-    return mdEdxInfo;
-  }
+  GPUd() const gputpcgmmergertypes::GPUTPCOuterParam& OuterParam() const { return mOuterParam; }
+  GPUd() gputpcgmmergertypes::GPUTPCOuterParam& OuterParam() { return mOuterParam; }
 
  private:
   GPUTPCGMTrackParam mParam;                        //* fitted track parameters
-  GPUTPCGMTrackParam::GPUTPCOuterParam mOuterParam; //* outer param
-  GPUdEdxInfo mdEdxInfo;                            //* dEdx information
+  gputpcgmmergertypes::GPUTPCOuterParam mOuterParam; //* outer param
 
   float mAlpha;                  //* alpha angle
   float mLastX;                  //* outer X

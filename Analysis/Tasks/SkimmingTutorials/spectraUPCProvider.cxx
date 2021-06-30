@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -50,7 +51,7 @@ struct UPCSpectraProviderTask {
     }
     auto track1 = tracks.begin();
     auto track2 = track1 + 1;
-    if (track1.charge() * track2.charge() >= 0) {
+    if (track1.sign() * track2.sign() >= 0) {
       return;
     }
     UChar_t clustermap1 = track1.itsClusterMap();
@@ -69,8 +70,8 @@ struct UPCSpectraProviderTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<UPCSpectraProviderTask>("upcspectra-task-skim-provider")};
+    adaptAnalysisTask<UPCSpectraProviderTask>(cfgc, TaskName{"upcspectra-task-skim-provider"})};
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,11 +25,7 @@
 #include "MCHRawElecMap/FeeLinkId.h"
 #include "PayloadDecoder.h"
 #include "Debug.h"
-
-namespace
-{
-constexpr uint64_t FIFTYBITSATONE = (static_cast<uint64_t>(1) << 50) - 1;
-}
+#include "MCHRawCommon/DataFormats.h"
 
 namespace o2::mch::raw
 {
@@ -37,8 +34,8 @@ namespace o2::mch::raw
 /// @brief A UserLogicEndpointDecoder groups 12 x (40 UserLogicElinkDecoder objects)
 ///
 
-template <typename CHARGESUM>
-class UserLogicEndpointDecoder : public PayloadDecoder<UserLogicEndpointDecoder<CHARGESUM>>
+template <typename CHARGESUM, int VERSION>
+class UserLogicEndpointDecoder : public PayloadDecoder<UserLogicEndpointDecoder<CHARGESUM, VERSION>>
 {
  public:
   using ElinkDecoder = UserLogicElinkDecoder<CHARGESUM>;
@@ -50,11 +47,11 @@ class UserLogicEndpointDecoder : public PayloadDecoder<UserLogicEndpointDecoder<
                            std::function<std::optional<uint16_t>(FeeLinkId id)> fee2SolarMapper,
                            DecodedDataHandlers decodedDataHandlers);
 
-  /** @name Main interface 
+  /** @name Main interface
     */
   ///@{
 
-  /** @brief Append the equivalent n 64-bits words 
+  /** @brief Append the equivalent n 64-bits words
     * bytes size (=n) must be a multiple of 8
     *
     * @return the number of bytes used in the bytes span
@@ -82,11 +79,11 @@ class UserLogicEndpointDecoder : public PayloadDecoder<UserLogicEndpointDecoder<
 using namespace o2::mch::raw;
 using namespace boost::multiprecision;
 
-template <typename CHARGESUM>
-UserLogicEndpointDecoder<CHARGESUM>::UserLogicEndpointDecoder(uint16_t feeId,
-                                                              std::function<std::optional<uint16_t>(FeeLinkId id)> fee2SolarMapper,
-                                                              DecodedDataHandlers decodedDataHandlers)
-  : PayloadDecoder<UserLogicEndpointDecoder<CHARGESUM>>(decodedDataHandlers),
+template <typename CHARGESUM, int VERSION>
+UserLogicEndpointDecoder<CHARGESUM, VERSION>::UserLogicEndpointDecoder(uint16_t feeId,
+                                                                       std::function<std::optional<uint16_t>(FeeLinkId id)> fee2SolarMapper,
+                                                                       DecodedDataHandlers decodedDataHandlers)
+  : PayloadDecoder<UserLogicEndpointDecoder<CHARGESUM, VERSION>>(decodedDataHandlers),
     mFeeId{feeId},
     mFee2SolarMapper{fee2SolarMapper},
     mDecodedDataHandlers(decodedDataHandlers),
@@ -94,8 +91,8 @@ UserLogicEndpointDecoder<CHARGESUM>::UserLogicEndpointDecoder(uint16_t feeId,
 {
 }
 
-template <typename CHARGESUM>
-size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
+template <typename CHARGESUM, int VERSION>
+size_t UserLogicEndpointDecoder<CHARGESUM, VERSION>::append(Payload buffer)
 {
   if (buffer.size() % 8) {
     throw std::invalid_argument("buffer size should be a multiple of 8");
@@ -119,16 +116,26 @@ size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
       continue;
     }
 
-    // Get the GBT link associated to this word
-    int gbt = (word >> 59) & 0x1F;
+    ULHeaderWord<VERSION> ulword{word};
 
-    if (gbt < 0 || gbt > 11) {
-      SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
-      if (handler) {
-        DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
-        handler(dsId, -1, ErrorBadLinkID);
-      } else {
-        throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
+    int gbt = ulword.linkID;
+
+    // The User Logic uses the condition gbt=15 to identify special control and diagnostics words
+    // that are generated internally and do not contain data coming from the front-end electronics.
+    if (gbt == 15) {
+      // TODO: the exact format of the UL control words is still being defined and tested,
+      // hence proper decoding will be implemented once the format is finalized.
+      // For the moment we simply avoid throwing an exception when linkID is equal to 15
+      continue;
+    } else {
+      if (gbt < 0 || gbt > 11) {
+        SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
+        if (handler) {
+          DsElecId dsId{static_cast<uint16_t>(0), static_cast<uint8_t>(0), static_cast<uint8_t>(0)};
+          handler(dsId, -1, ErrorBadLinkID);
+        } else {
+          throw fmt::format("warning : out-of-range gbt {} word={:08X}\n", gbt, word);
+        }
       }
     }
 
@@ -159,8 +166,7 @@ size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
       d = mElinkDecoders.find(gbt);
     }
 
-    // in the 14 MSB(Most Significant Bits) 6 are used to specify the Dual Sampa index (0..39)
-    uint16_t dsid = (word >> 53) & 0x3F;
+    uint16_t dsid = ulword.dsID;
     if (dsid > 39) {
       SampaErrorHandler handler = mDecodedDataHandlers.sampaErrorHandler;
       if (handler) {
@@ -171,19 +177,18 @@ size_t UserLogicEndpointDecoder<CHARGESUM>::append(Payload buffer)
       }
     }
 
-    // bits 50..52 are error bits
-    int8_t error = static_cast<uint8_t>((word >> 50) & 0x7);
+    int8_t error = ulword.error;
+    bool incomplete = ulword.incomplete > 0;
+    uint64_t data50 = ulword.data;
 
-    // the remaining (LSB) 50 bits represents the actual data to passed to the ElinkDecoder
-    uint64_t data50 = word & FIFTYBITSATONE;
-    d->second.at(dsid).append(data50, error);
+    d->second.at(dsid).append(data50, error, incomplete);
     n += 8;
   }
   return n;
 }
 
-template <typename CHARGESUM>
-void UserLogicEndpointDecoder<CHARGESUM>::reset()
+template <typename CHARGESUM, int VERSION>
+void UserLogicEndpointDecoder<CHARGESUM, VERSION>::reset()
 {
   for (auto& arrays : mElinkDecoders) {
     for (auto& d : arrays.second) {

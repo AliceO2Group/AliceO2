@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -94,8 +95,13 @@ struct ServiceRegistry {
   std::vector<ServiceEOSHandle> mPostEOSHandles;
   /// Callbacks for services to be executed after every dispatching
   std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
+  /// Callbacks for services to be executed before Start
+  std::vector<ServiceStartHandle> mPreStartHandles;
   /// Callbacks for services to be executed on exit
   std::vector<ServiceExitHandle> mPreExitHandles;
+
+  /// To hide exception throwing from QC
+  void throwError(RuntimeErrorRef const& ref) const;
 
  public:
   using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
@@ -103,7 +109,9 @@ struct ServiceRegistry {
 
   ServiceRegistry(ServiceRegistry const& other)
   {
-    mServicesKey = other.mServicesKey;
+    for (size_t i = 0; i < MAX_SERVICES; ++i) {
+      mServicesKey[i].store(other.mServicesKey[i].load());
+    }
     mServicesValue = other.mServicesValue;
     mServicesMeta = other.mServicesMeta;
     for (size_t i = 0; i < other.mServicesBooked.size(); ++i) {
@@ -113,7 +121,9 @@ struct ServiceRegistry {
 
   ServiceRegistry& operator=(ServiceRegistry const& other)
   {
-    mServicesKey = other.mServicesKey;
+    for (size_t i = 0; i < MAX_SERVICES; ++i) {
+      mServicesKey[i].store(other.mServicesKey[i].load());
+    }
     mServicesValue = other.mServicesValue;
     mServicesMeta = other.mServicesMeta;
     for (size_t i = 0; i < other.mServicesBooked.size(); ++i) {
@@ -122,6 +132,8 @@ struct ServiceRegistry {
     return *this;
   }
 
+  /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
+  void preStartCallbacks();
   /// Invoke callbacks to be executed before every process method invokation
   void preProcessingCallbacks(ProcessingContext&);
   /// Invoke callbacks to be executed after every process method invokation
@@ -168,9 +180,8 @@ struct ServiceRegistry {
   int getPos(uint32_t typeHash, uint64_t threadId) const
   {
     auto threadHashId = (typeHash ^ threadId) & MAX_SERVICES_MASK;
-    std::atomic_thread_fence(std::memory_order_acquire);
     for (uint8_t i = 0; i < MAX_DISTANCE; ++i) {
-      if (mServicesKey[i + threadHashId] == typeHash) {
+      if (mServicesKey[i + threadHashId].load() == typeHash) {
         return i + threadHashId;
       }
     }
@@ -192,7 +203,14 @@ struct ServiceRegistry {
     // find it with getPos, but the value can still
     // be nullptr.
     auto pos = getPos(typeHash, threadId);
+    if (pos != -1 && mServicesMeta[pos].kind == ServiceKind::Stream && mServicesMeta[pos].threadId != threadId) {
+      throwError(runtime_error_f("Inconsistent registry for thread %d. Expected %d", threadId, mServicesMeta[pos].threadId));
+      O2_BUILTIN_UNREACHABLE();
+    }
+
     if (pos != -1) {
+      mServicesKey[pos].load();
+      std::atomic_thread_fence(std::memory_order_acquire);
       void* ptr = mServicesValue[pos];
       if (ptr) {
         return ptr;
@@ -204,9 +222,17 @@ struct ServiceRegistry {
     if (threadId != 0) {
       int pos = getPos(typeHash, 0);
       if (pos != -1 && kind != ServiceKind::Stream) {
+        mServicesKey[pos].load();
+        std::atomic_thread_fence(std::memory_order_acquire);
         registerService(typeHash, mServicesValue[pos], kind, threadId, name);
       }
-      return mServicesValue[pos];
+      if (pos != -1) {
+        mServicesKey[pos].load();
+        std::atomic_thread_fence(std::memory_order_acquire);
+        return mServicesValue[pos];
+      } else {
+        throwError(runtime_error_f("Unable to find requested service %s", name));
+      }
     }
     // If we are here it means we never registered a
     // service for the 0 thread (i.e. the main thread).
@@ -222,7 +248,7 @@ struct ServiceRegistry {
   }
 
   mutable std::vector<ServiceSpec> mSpecs;
-  mutable std::array<uint32_t, MAX_SERVICES + MAX_DISTANCE> mServicesKey;
+  mutable std::array<std::atomic<uint32_t>, MAX_SERVICES + MAX_DISTANCE> mServicesKey;
   mutable std::array<void*, MAX_SERVICES + MAX_DISTANCE> mServicesValue;
   mutable std::array<ServiceMeta, MAX_SERVICES + MAX_DISTANCE> mServicesMeta;
   mutable std::array<std::atomic<bool>, MAX_SERVICES + MAX_DISTANCE> mServicesBooked;
@@ -289,8 +315,8 @@ struct ServiceRegistry {
         return *reinterpret_cast<T*>(ptr);
       }
     }
-    throw runtime_error_f("Unable to find service of kind %s. Make sure you use const / non-const correctly.",
-                          typeid(T).name());
+    throwError(runtime_error_f("Unable to find service of kind %s. Make sure you use const / non-const correctly.", typeid(T).name()));
+    O2_BUILTIN_UNREACHABLE();
   }
 };
 

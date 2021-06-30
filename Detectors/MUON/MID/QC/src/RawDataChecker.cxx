@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -32,7 +33,7 @@ void RawDataChecker::init(const CrateMasks& crateMasks)
   }
 }
 
-bool RawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords)
+bool RawDataChecker::process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords)
 {
   /// Checks the raw data
 
@@ -41,9 +42,9 @@ bool RawDataChecker::process(gsl::span<const LocalBoardRO> localBoards, gsl::spa
   std::unordered_map<uint16_t, std::vector<ROFRecord>> rofs;
   for (auto& rof : rofRecords) {
     auto& loc = localBoards[rof.firstEntry];
-    auto crateId = crateparams::getCrateId(loc.boardId);
-    auto linkId = crateparams::getGBTIdFromBoardInCrate(crateparams::getLocId(loc.boardId));
-    auto feeId = crateparams::makeROId(crateId, linkId);
+    auto crateId = raw::getCrateId(loc.boardId);
+    auto linkId = crateparams::getGBTIdFromBoardInCrate(raw::getLocId(loc.boardId));
+    auto feeId = crateparams::makeGBTUniqueId(crateId, linkId);
     rofs[feeId].emplace_back(rof);
   }
 

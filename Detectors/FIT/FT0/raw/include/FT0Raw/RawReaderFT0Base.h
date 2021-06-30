@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,58 +19,18 @@
 
 #ifndef ALICEO2_FIT_RAWREADERFT0BASE_H_
 #define ALICEO2_FIT_RAWREADERFT0BASE_H_
-#include <iostream>
-#include <vector>
-#include <Rtypes.h>
 #include "FT0Raw/DataBlockFT0.h"
 #include "FT0Raw/DigitBlockFT0.h"
-#include "FITRaw/RawReaderBase.h"
+#include "FITRaw/RawReaderBaseFIT.h"
 
-#include <boost/mpl/inherit.hpp>
-#include <boost/mpl/vector.hpp>
-
-#include <CommonDataFormat/InteractionRecord.h>
-#include "Headers/RAWDataHeader.h"
-
-#include <gsl/span>
-
-using namespace o2::fit;
 namespace o2
 {
 namespace ft0
 {
-
-// Common raw reader for FT0
-template <class DigitBlockFT0type, class DataBlockPMtype, class DataBlockTCMtype>
-class RawReaderFT0Base : public RawReaderBase<DigitBlockFT0type>
-{
- public:
-  typedef RawReaderBase<DigitBlockFT0type> RawReaderBaseType;
-  RawReaderFT0Base() = default;
-  ~RawReaderFT0Base() = default;
-  //deserialize payload to raw data blocks and proccesss them to digits
-  void process(int linkID, gsl::span<const uint8_t> payload)
-  {
-    if (0 <= linkID && linkID < 19) {
-      //PM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockPMtype>(payload, linkID);
-    } else if (linkID == 19) {
-      //TCM data proccessing
-      RawReaderBaseType::template processBinaryData<DataBlockTCMtype>(payload, linkID);
-    } else {
-      //put here code in case of bad rdh.linkID value
-      LOG(INFO) << "WARNING! WRONG LINK ID! " << linkID;
-      return;
-    }
-
-    //
-  }
-};
 //Normal TCM mode
-using RawReaderFT0BaseNorm = RawReaderFT0Base<DigitBlockFT0, DataBlockPM, DataBlockTCM>;
+using RawReaderFT0BaseNorm = o2::fit::RawReaderBaseFIT<DigitBlockFT0, DataBlockPM, DataBlockTCM>;
 //Extended TCM mode
-using RawReaderFT0BaseExt = RawReaderFT0Base<DigitBlockFT0ext, DataBlockPM, DataBlockTCMext>;
-
+using RawReaderFT0BaseExt = o2::fit::RawReaderBaseFIT<DigitBlockFT0ext, DataBlockPM, DataBlockTCMext>;
 } // namespace ft0
 } // namespace o2
 

@@ -12,7 +12,6 @@
 #include "DataFormatsFV0/MCLabel.h"
 #include "DataFormatsZDC/MCLabel.h"
 #include "MIDSimulation/MCLabel.h"
-#include "TRDBase/MCLabel.h"
 
 #include <gsl/gsl> // for guideline support library; array_view
 #include <unordered_map>

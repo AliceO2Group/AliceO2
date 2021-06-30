@@ -1,27 +1,30 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+///
+/// \brief Accessing MC data and the related MC truth.
+/// \author
+/// \since
+
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include "AnalysisCore/MC.h"
-
-#include <TH1F.h>
-#include <cmath>
 
 using namespace o2;
 using namespace o2::framework;
 
 // Simple access to collision
-struct ATask {
+struct VertexDistribution {
   OutputObj<TH1F> vertex{TH1F("vertex", "vertex", 100, -10, 10)};
 
+  // loop over MC truth McCollisions
   void process(aod::McCollision const& mcCollision)
   {
     LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
@@ -30,16 +33,19 @@ struct ATask {
 };
 
 // Grouping between MC particles and collisions
-struct BTask {
+struct AccessMCData {
   OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
-  //  void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
-  void process(aod::McParticles& mcParticles)
+  // group according to McCollisions
+  void process(aod::McCollision const& mcCollision, aod::McParticles& mcParticles)
   {
-    //LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
+    // access MC truth information with mcCollision() and mcParticle() methods
+    LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     LOGF(info, "First: %d | Length: %d", mcParticles.begin().index(), mcParticles.size());
-    LOGF(info, "Particles mother: %d", (mcParticles.begin() + 1000).mother0());
+    if (mcParticles.size() > 0) {
+      LOGF(info, "Particles mother: %d", mcParticles.begin().mother0());
+    }
     for (auto& mcParticle : mcParticles) {
       if (MC::isPhysicalPrimary(mcParticles, mcParticle)) {
         phiH->Fill(mcParticle.phi());
@@ -50,20 +56,22 @@ struct BTask {
 };
 
 // Access from tracks to MC particle
-struct CTask {
+struct AccessMCTruth {
   OutputObj<TH1F> etaDiff{TH1F("etaDiff", ";eta_{MC} - eta_{Rec}", 100, -2, 2)};
   OutputObj<TH1F> phiDiff{TH1F("phiDiff", ";phi_{MC} - phi_{Rec}", 100, -M_PI, M_PI)};
 
+  // group according to reconstructed Collisions
   void process(soa::Join<aod::Collisions, aod::McCollisionLabels>::iterator const& collision, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcParticles, aod::McCollisions const& mcCollisions)
   {
-    LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.label().posZ());
+    // access MC truth information with mcCollision() and mcParticle() methods
+    LOGF(info, "vtx-z (data) = %f | vtx-z (MC) = %f", collision.posZ(), collision.mcCollision().posZ());
     for (auto& track : tracks) {
       //if (track.trackType() != 0)
       //  continue;
       //if (track.labelMask() != 0)
       //  continue;
-      etaDiff->Fill(track.label().eta() - track.eta());
-      auto delta = track.label().phi() - track.phi();
+      etaDiff->Fill(track.mcParticle().eta() - track.eta());
+      auto delta = track.mcParticle().phi() - track.phi();
       if (delta > M_PI) {
         delta -= 2 * M_PI;
       }
@@ -71,16 +79,16 @@ struct CTask {
         delta += 2 * M_PI;
       }
       phiDiff->Fill(delta);
-      //LOGF(info, "eta: %.2f %.2f \t phi: %.2f %.2f | %d", track.label().eta(), track.eta(), track.label().phi(), track.phi(), track.label().index());
+      //LOGF(info, "eta: %.2f %.2f \t phi: %.2f %.2f | %d", track.mcParticle().eta(), track.eta(), track.mcParticle().phi(), track.phi(), track.mcParticle().index());
     }
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<ATask>("vertex-histogram"),
-    adaptAnalysisTask<BTask>("etaphi-histogram"),
-    adaptAnalysisTask<CTask>("eta-resolution-histogram"),
+    adaptAnalysisTask<VertexDistribution>(cfgc),
+    adaptAnalysisTask<AccessMCData>(cfgc),
+    adaptAnalysisTask<AccessMCTruth>(cfgc),
   };
 }

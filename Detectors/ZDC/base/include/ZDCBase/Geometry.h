@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -50,9 +51,9 @@ class Geometry
   static constexpr double ZEMPOSITION[3] = {9.69, 0., 760.};
 
  private:
-  static Int_t getDetector(const Int_t det);
-  static Int_t getSector(const Int_t tow);
-  static Int_t getVolumeId(const Int_t* vol);
+  static int32_t getDetector(const int32_t det);
+  static int32_t getSector(const int32_t tow);
+  static int32_t getVolumeId(const int32_t* vol);
 
   ClassDefNV(Geometry, 1);
 };

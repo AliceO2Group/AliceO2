@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -138,11 +139,21 @@ size_t getSizeOfUnderlyingType(const TDataMember& dm)
 
 // ----------------------------------------------------------------------
 
-const char* asString(TDataMember const& dm, char* pointer)
+std::string asString(TDataMember const& dm, char* pointer)
 {
   // first check if this is a basic data type, in which case
   // we let ROOT do the work
   if (auto dt = dm.GetDataType()) {
+    // we put the numeric interpration for char / unsigned char
+    // instead of the string one
+    if (dt->GetType() == EDataType::kChar_t) {
+      auto c = (char)(*pointer);
+      return std::to_string((int)c).c_str();
+    } else if (dt->GetType() == EDataType::kUChar_t) {
+      auto u = (unsigned char)(*pointer);
+      return std::to_string((unsigned int)u).c_str();
+    }
+
     auto val = dt->AsString(pointer);
 
     // For enums we grab the string value of the member
@@ -156,13 +167,13 @@ const char* asString(TDataMember const& dm, char* pointer)
         for (int i = 0; i < constantlist->GetEntries(); ++i) {
           const auto e = (TEnumConstant*)(constantlist->At(i));
           if (val == std::to_string((int)e->GetValue())) {
-            return e->GetName();
+            return std::string(e->GetName());
           }
         }
       }
     }
 
-    return val;
+    return std::string(val);
   }
 
   // if data member is a std::string just return
@@ -186,7 +197,7 @@ std::vector<ParamDataMember>* _ParamHelper::getDataMembersImpl(std::string const
     auto TS = getSizeOfUnderlyingType(*dm);
     char* pointer = ((char*)obj) + dm->GetOffset() + index * TS;
     const std::string name = getName(dm, index, size);
-    const char* value = asString(*dm, pointer);
+    auto value = asString(*dm, pointer);
 
     std::string prov = "";
     auto iter = provmap->find(mainkey + "." + name);

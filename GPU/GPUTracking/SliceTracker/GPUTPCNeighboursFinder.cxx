@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -109,8 +110,8 @@ GPUdii() void GPUTPCNeighboursFinder::Thread<0>(int /*nBlocks*/, int nThreads, i
   const float stepYDn = rowDn.mHstepY;
   const float stepZDn = rowDn.mHstepZ;
 
-  const float kAngularMultiplier = tracker.mConstantMem->param.rec.SearchWindowDZDR;
-  const float kAreaSizeY = tracker.mConstantMem->param.rec.NeighboursSearchArea;
+  const float kAngularMultiplier = tracker.mConstantMem->param.rec.tpc.searchWindowDZDR;
+  const float kAreaSizeY = tracker.mConstantMem->param.rec.tpc.neighboursSearchArea;
   const float kAreaSizeZUp = kAngularMultiplier != 0.f ? (s.mUpDx * kAngularMultiplier) : kAreaSizeY;
   const float kAreaSizeZDn = kAngularMultiplier != 0.f ? (-s.mDnDx * kAngularMultiplier) : kAreaSizeY;
   const float kAreaSlopeZUp = kAngularMultiplier != 0.f ? 1.f : s.mUpTx;

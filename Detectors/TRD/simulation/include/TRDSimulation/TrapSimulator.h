@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,11 +25,10 @@
 #include <gsl/span>
 
 #include "TRDBase/FeeParam.h"
-#include "TRDBase/Digit.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/TrapConfig.h"
-#include "TRDBase/MCLabel.h"
-#include "SimulationDataFormat/MCTruthContainer.h"
+
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Constants.h"
@@ -57,6 +57,8 @@ class TrapSimulator
   // Initialize MCM by the position parameters
   void init(TrapConfig* trapconfig, int det, int rob, int mcm);
 
+  bool checkInitialized() const { return mInitialized; }
+
   // clears filter registers and internal data
   void reset();
   //  void setDebugStream(TTreeSRedirector* stream) { mDebugStream = stream; }
@@ -73,7 +75,7 @@ class TrapSimulator
   int getZeroSupressionMap(int iadc) const { return (mZSMap[iadc]); }
   bool isDataSet() { return mDataIsSet; };
   // set ADC data with array
-  void setData(int iadc, const ArrayADC& adc, std::vector<o2::MCCompLabel>& labels);
+  void setData(int iadc, const ArrayADC& adc, unsigned int digitIdx);
   // set ADC data with array
   //void setData(int iadc, const ArrayADC& adc, gsl::span<o2::MCCompLabel,-1>& labels);
   void setBaselines();                                                                                                              // set the baselines as done in setDataByPad which is bypassed due to using setData in line above.
@@ -139,7 +141,11 @@ class TrapSimulator
 
   int getNHits() const { return mHits.size(); }
   bool getHit(int index, int& channel, int& timebin, int& qtot, int& ypos, float& y) const;
-  //o2::trd::TrapSimulator::Hit& getHit(int index) const;
+
+  // getters for calculated tracklets + labels
+  std::vector<Tracklet64>& getTrackletArray64() { return mTrackletArray64; }
+  std::vector<unsigned short>& getTrackletDigitCount() { return mTrackletDigitCount; }
+  std::vector<unsigned int>& getTrackletDigitIndices() { return mTrackletDigitIndices; }
 
   // data display
   void print(int choice) const;     // print stored data to stdout
@@ -186,11 +192,6 @@ class TrapSimulator
   static constexpr int mQ2Startbin = 3;              // Start range of Q2, for now here. TODO pull from a revised TrapConfig?
   static constexpr int mQ2Endbin = 5;                // End range of Q2, also pull from a revised trapconfig at some point.
 
-  std::vector<Tracklet64>& getTrackletArray64() { return mTrackletArray64; }
-  void getTracklet64s(std::vector<Tracklet64>& TrackletStore); // place the trapsim 64 bit tracklets nto the incoming vector
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel>& getTrackletLabels() { return mTrackletLabels; }
-
-  bool checkInitialized() const;     // Check whether the class is initialized
   static const int mgkFormatIndex;   // index for format settings in stream
                                      //TODO should this change to 3 for the new format ????? I cant remember now, ask someone.
   static const int mgkAddDigits = 2; // additional digits used for internal representation of ADC data
@@ -339,10 +340,11 @@ class TrapSimulator
   //TODO adcr adcf labels zerosupressionmap can all go into their own class. Refactor when stable.
   std::vector<int> mADCR; // Array with MCM ADC values (Raw, 12 bit) 2d with dimension mNTimeBin
   std::vector<int> mADCF; // Array with MCM ADC values (Filtered, 12 bit) 2d with dimension mNTimeBin
-  std::array<std::vector<o2::MCCompLabel>, constants::NADCMCM> mADCLabels{}; // MC Labels sent in from the digits coming in.
+  std::array<unsigned int, constants::NADCMCM> mADCDigitIndices{}; // indices of the incoming digits, used to relate the tracklets to labels in TRDTrapSimulatorSpec
   std::vector<unsigned int> mMCMT;      // tracklet word for one mcm/trap-chip
   std::vector<Tracklet64> mTrackletArray64; // Array of 64 bit tracklets
-  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mTrackletLabels;
+  std::vector<unsigned short> mTrackletDigitCount; // Keep track of the number of digits contributing to the tracklet (for MC labels)
+  std::vector<unsigned int> mTrackletDigitIndices; // For each tracklet the up to two global indices of the digits which contributed (global digit indices are managed in the TRDDPLTrapSimulatorTask class)
   std::vector<TrackletDetail> mTrackletDetails; // store additional tracklet information for eventual debug output.
   std::vector<int> mZSMap;              // Zero suppression map (1 dimensional projection)
 

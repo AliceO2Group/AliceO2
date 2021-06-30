@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,6 +19,7 @@
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/PayLoadCont.h"
 #include "ITSMFTReconstruction/AlpideCoder.h"
+#include "DataFormatsITSMFT/GBTCalibData.h"
 
 namespace o2
 {
@@ -43,6 +45,8 @@ struct RUDecodeData {
   int nCables = 0;         // total number of cables decoded for single trigger
   int nChipsFired = 0;     // number of chips with data or with errors
   int lastChipChecked = 0; // last chips checked among nChipsFired
+  GBTCalibData calibData{}; // calibration info from GBT calibration word
+
   const RUInfo* ruInfo = nullptr;
 
   RUDecodeData()
@@ -57,7 +61,7 @@ struct RUDecodeData {
   int decodeROF(const Mapping& mp);
   void fillChipStatistics(int icab, const ChipPixelData* chipData);
 
-  ClassDefNV(RUDecodeData, 1);
+  ClassDefNV(RUDecodeData, 2);
 };
 
 ///_________________________________________________________________

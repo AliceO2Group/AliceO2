@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,6 +12,7 @@
 #define FRAMEWORK_DATAPROCESSING_DEVICE_H
 
 #include "Framework/AlgorithmSpec.h"
+#include "Framework/ComputingQuotaOffer.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataAllocator.h"
 #include "Framework/DataRelayer.h"
@@ -23,18 +25,21 @@
 #include "Framework/TimingInfo.h"
 #include "Framework/TerminationPolicy.h"
 #include "Framework/Tracing.h"
+#include "Framework/RunningWorkflowInfo.h"
 
 #include <fairmq/FairMQDevice.h>
 #include <fairmq/FairMQParts.h>
 
 #include <memory>
 #include <mutex>
+#include <uv.h>
 
 namespace o2::framework
 {
 
 struct InputChannelInfo;
 struct DeviceState;
+struct ComputingQuotaEvaluator;
 
 /// Context associated to a given DataProcessor.
 /// For the time being everything points to
@@ -44,6 +49,19 @@ struct DeviceState;
 /// thread instances for what makes sense to have
 /// per thread and relax the locks.
 class DataProcessingDevice;
+
+/// Context associated to a device. In principle
+/// multiple DataProcessors can run on a Device (even if we
+/// do not do it for now).
+struct DeviceContext {
+  // These are pointers to the one owned by the DataProcessingDevice
+  // and therefore require actual locking
+  DataProcessingDevice* device = nullptr;
+  DeviceSpec const* spec = nullptr;
+  DeviceState* state = nullptr;
+  ComputingQuotaEvaluator* quotaEvaluator = nullptr;
+  DataProcessingStats* stats = nullptr;
+};
 
 struct DataProcessorContext {
   // These are specific of a given context and therefore
@@ -56,13 +74,7 @@ struct DataProcessorContext {
   // be accessed without a lock.
 
   // FIXME: move stuff here from the list below... ;-)
-
-  // These are pointers to the one owned by the DataProcessingDevice
-  // and therefore require actual locking
-  DataProcessingDevice* device = nullptr;
-  DeviceSpec const* spec = nullptr;
-  DeviceState* state = nullptr;
-
+  DeviceContext* deviceContext = nullptr;
   DataRelayer* relayer = nullptr;
   ServiceRegistry* registry = nullptr;
   std::vector<DataRelayer::RecordAction>* completed = nullptr;
@@ -76,12 +88,27 @@ struct DataProcessorContext {
   std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)>* errorHandling = nullptr;
 };
 
+struct TaskStreamRef {
+  int index = -1;
+};
+
+struct TaskStreamInfo {
+  /// The id of this stream
+  TaskStreamRef id;
+  /// The context of the DataProcessor being run by this task
+  DataProcessorContext* context;
+  /// The libuv task handle
+  uv_work_t task;
+  /// Wether or not this task is running
+  bool running = false;
+};
+
 /// A device actually carrying out all the DPL
 /// Data Processing needs.
 class DataProcessingDevice : public FairMQDevice
 {
  public:
-  DataProcessingDevice(DeviceSpec const& spec, ServiceRegistry&, DeviceState& state);
+  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&);
   void Init() final;
   void InitTask() final;
   void PreRun() final;
@@ -94,15 +121,16 @@ class DataProcessingDevice : public FairMQDevice
   // Processing functions are now renetrant
   static void doRun(DataProcessorContext& context);
   static void doPrepare(DataProcessorContext& context);
-  static void handleData(DataProcessorContext& context, FairMQParts&, InputChannelInfo&);
+  static void handleData(DataProcessorContext& context, InputChannelInfo&);
   static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
   std::vector<DataProcessorContext> mDataProcessorContexes;
 
  protected:
   void error(const char* msg);
-  void fillContext(DataProcessorContext& context);
+  void fillContext(DataProcessorContext& context, DeviceContext& deviceContext);
 
  private:
+  DeviceContext mDeviceContext;
   /// The specification used to create the initial state of this device
   DeviceSpec const& mSpec;
   /// The current internal state of this device.
@@ -131,6 +159,9 @@ class DataProcessingDevice : public FairMQDevice
   std::mutex mRegionInfoMutex;
   enum TerminationPolicy mErrorPolicy = TerminationPolicy::WAIT; /// What to do when an error arises
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
+  std::vector<uv_work_t> mHandles;                               /// Handles to use to schedule work.
+  std::vector<TaskStreamInfo> mStreams;                          /// Information about the task running in the associated mHandle.
+  ComputingQuotaEvaluator& mQuotaEvaluator;                      /// The component which evaluates if the offer can be used to run a task
 };
 
 } // namespace o2::framework

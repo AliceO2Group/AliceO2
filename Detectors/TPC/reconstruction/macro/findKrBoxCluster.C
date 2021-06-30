@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -27,16 +28,16 @@
 #include <vector>
 #endif
 
-void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::string_view gainMapFile = "")
+void findKrBoxCluster(int lastTimeBin = 1000, int run = -1, int time = -1, std::string_view gainMapFile = "", std::string inputFile = "tpcdigits.root", std::string outputFile = "BoxClusters.root")
 {
   // Read the digits:
-  TFile* file = new TFile("tpcdigits.root");
+  TFile* file = new TFile(inputFile.c_str());
   TTree* tree = (TTree*)file->Get("o2sim");
   Long64_t nEntries = tree->GetEntries();
   std::cout << "The Tree has " << nEntries << " Entries." << std::endl;
 
   // Initialize File for later writing
-  TFile* fOut = new TFile("BoxClusters.root", "RECREATE");
+  TFile* fOut = new TFile(outputFile.c_str(), "RECREATE");
   TTree* tClusters = new TTree("Clusters", "Clusters");
 
   // Create a Branch for each sector:

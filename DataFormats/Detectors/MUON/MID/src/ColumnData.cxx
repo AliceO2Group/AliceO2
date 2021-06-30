@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -49,6 +50,23 @@ bool ColumnData::isStripFired(int istrip, int cathode, int line) const
 {
   /// Checks if the strip is fired
   return (cathode == 0) ? isBPStripFired(istrip, line) : isNBPStripFired(istrip);
+}
+
+bool ColumnData::operator==(const ColumnData& right) const
+{
+  /// Comparison operator
+  if (deId != right.deId) {
+    return false;
+  }
+  if (columnId != right.columnId) {
+    return false;
+  }
+  for (size_t ipat = 0; ipat < 5; ++ipat) {
+    if (patterns[ipat] != right.patterns[ipat]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 ColumnData& operator|=(ColumnData& col1, const ColumnData& col2)

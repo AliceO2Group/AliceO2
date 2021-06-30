@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,7 +24,7 @@
 #include "MIDBase/DetectorParameters.h"
 #include "MIDRaw/Decoder.h"
 #include "MIDRaw/Encoder.h"
-#include "MIDRaw/GBTDecoder.h"
+#include "MIDRaw/LinkDecoder.h"
 
 o2::mid::ColumnData getColData(uint8_t deId, uint8_t columnId, uint16_t nbp = 0, uint16_t bp1 = 0, uint16_t bp2 = 0, uint16_t bp3 = 0, uint16_t bp4 = 0)
 {
@@ -122,9 +123,9 @@ static void BM_Decoder(benchmark::State& state)
   state.counters["num"] = benchmark::Counter(num, benchmark::Counter::kIsRate);
 }
 
-static void BM_GBTDecoder(benchmark::State& state)
+static void BM_LinkDecoder(benchmark::State& state)
 {
-  auto decoder = o2::mid::createGBTDecoder(0);
+  auto decoder = o2::mid::createLinkDecoder(0);
 
   int nTF = state.range(0);
   int nEventPerTF = state.range(1);
@@ -132,7 +133,7 @@ static void BM_GBTDecoder(benchmark::State& state)
   double num{0};
 
   auto inputData = generateTestData(nTF, nEventPerTF, nFiredPerEvent, 1);
-  std::vector<o2::mid::LocalBoardRO> data;
+  std::vector<o2::mid::ROBoard> data;
   std::vector<o2::mid::ROFRecord> rofs;
 
   for (auto _ : state) {
@@ -164,7 +165,7 @@ static void CustomArguments(benchmark::internal::Benchmark* bench)
   bench->Args({1, 100, 4});
 }
 
-BENCHMARK(BM_GBTDecoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
+BENCHMARK(BM_LinkDecoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 BENCHMARK(BM_Decoder)->Apply(CustomArguments)->Unit(benchmark::kNanosecond);
 
 BENCHMARK_MAIN();

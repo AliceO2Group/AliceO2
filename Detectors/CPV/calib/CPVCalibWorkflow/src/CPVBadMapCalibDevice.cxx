@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -149,7 +150,6 @@ void CPVBadMapCalibDevice::sendOutput(DataAllocator& output)
 {
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
-  // using clbUtils = o2::calibration::Utils;
 
   if (mUpdateCCDB || mForceUpdate) {
     // prepare all info to be sent to CCDB
@@ -170,8 +170,8 @@ void CPVBadMapCalibDevice::sendOutput(DataAllocator& output)
     LOG(INFO) << "Sending object CPV/Calib/BadChannelMap";
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadChanMap", subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadChanMap", subSpec}, info);
   }
 
   output.snapshot(o2::framework::Output{"CPV", "BADMAPCHANGE", 0, o2::framework::Lifetime::Timeframe}, mMapDiff);
@@ -206,7 +206,9 @@ o2::framework::DataProcessorSpec o2::cpv::getBadMapCalibSpec(bool useCCDB, bool 
 {
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("CPV", "BADMAP", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_BadChanMap"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_BadChanMap"});
+
   outputs.emplace_back("CPV", "BADMAPCHANGE", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"BadMapCalibSpec",

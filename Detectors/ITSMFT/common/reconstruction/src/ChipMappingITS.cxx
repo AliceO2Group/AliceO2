@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -71,6 +72,7 @@ ChipMappingITS::ChipMappingITS()
   // IB: single cable per chip
   int ctrChip = 0;
   mChipInfoEntrySB[IB] = ctrChip;
+  mCablePos[IB].resize(NChipsPerStaveSB[IB], 0xff);
   mCableHW2SW[IB].resize(NChipsPerStaveSB[IB], 0xff);
   mCableHW2Pos[IB].resize(NChipsPerStaveSB[IB], 0xff);
   mCableHWFirstChip[IB].resize(NChipsPerStaveSB[IB], 0xff);
@@ -97,10 +99,10 @@ ChipMappingITS::ChipMappingITS()
   const int chipsOnCable = 7;
   for (int bid = MB; bid <= OB; bid++) { // MB and OB staves have similar layout
     mChipInfoEntrySB[bid] = ctrChip;
-    mCableHW2SW[bid].resize(0xff, 0xff);
-    mCableHW2Pos[bid].resize(0xff, 0xff);
-    mCableHWFirstChip[bid].resize(0xff, 0xff);
-
+    mCablePos[bid].resize(NChipsPerStaveSB[bid], 0xff);
+    mCableHW2SW[bid].resize(NChipsPerStaveSB[bid], 0xff);
+    mCableHW2Pos[bid].resize(NChipsPerStaveSB[bid], 0xff);
+    mCableHWFirstChip[bid].resize(NChipsPerStaveSB[bid], 0xff);
     for (int i = 0; i < NChipsPerStaveSB[bid]; i++) {
       auto& cInfo = mChipsInfo[ctrChip++];
       int hstave = i / (NChipsPerStaveSB[bid] / 2);
@@ -124,6 +126,17 @@ ChipMappingITS::ChipMappingITS()
       if (cInfo.chipOnCable == 0) {
         mCableHWFirstChip[bid][cInfo.cableHW] = cInfo.moduleSW * NChipsPerModuleSB[bid];
       }
+    }
+  }
+  for (int bid = 0; bid < NSubB; bid++) {
+    int pos = 0;
+    for (int ic = 0; ic < 32; ic++) {
+      if (mCablesOnStaveSB[bid] & (0x1 << ic)) {
+        mCablePos[bid][pos++] = ic;
+      }
+    }
+    if (pos != NCablesPerStaveSB[bid]) {
+      throw std::runtime_error(fmt::format("counted number of cables {} does not match expected {} on subBarel{}", pos, NCablesPerStaveSB[bid], bid));
     }
   }
 

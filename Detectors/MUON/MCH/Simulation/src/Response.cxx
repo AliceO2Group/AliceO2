@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -105,7 +106,7 @@ double Response::chargefrac1d(float min, float max, double k2, double sqrtk3, do
   return 2. * k4 * (TMath::ATan(u2) - TMath::ATan(u1));
 }
 //______________________________________________________________________
-unsigned long Response::response(unsigned long adc)
+uint32_t Response::response(uint32_t adc)
 {
   //DecalibrateTrackerDigit functionality from
   //AliMuonDigitizerV3 in aliroot

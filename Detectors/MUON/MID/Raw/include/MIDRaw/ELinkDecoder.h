@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,7 +20,7 @@
 #include <vector>
 #include <gsl/gsl>
 
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -28,6 +29,7 @@ namespace mid
 class ELinkDecoder
 {
  public:
+  void setBareDecoder(bool isBare);
   /// Adds a byte
   inline void add(const uint8_t byte) { mBytes.emplace_back(byte); }
   void addAndComputeSize(const uint8_t byte);
@@ -35,7 +37,7 @@ class ELinkDecoder
   bool addCore(ITERATOR& it, const ITERATOR& end)
   {
     /// Adds the first 5 bytes
-    auto remaining = sMinimumSize - mBytes.size();
+    auto remaining = mMinimumSize - mBytes.size();
     return add(it, end, remaining);
   }
   template <class ITERATOR>
@@ -44,7 +46,7 @@ class ELinkDecoder
     /// Adds the board bytes
     auto remaining = mTotalSize - mBytes.size();
     if (add(it, end, remaining)) {
-      if (mTotalSize == sMinimumSize) {
+      if (mTotalSize == mMinimumSize) {
         computeSize();
         remaining = mTotalSize - mBytes.size();
         if (remaining) {
@@ -57,7 +59,7 @@ class ELinkDecoder
   }
 
   /// Adds the first 5 bytes
-  inline bool addCore(size_t& idx, gsl::span<const uint8_t> payload, size_t step) { return add(idx, payload, sMinimumSize - mBytes.size(), step); }
+  inline bool addCore(size_t& idx, gsl::span<const uint8_t> payload, size_t step) { return add(idx, payload, mMinimumSize - mBytes.size(), step); }
 
   bool add(size_t& idx, gsl::span<const uint8_t> payload, size_t step);
 
@@ -76,6 +78,8 @@ class ELinkDecoder
   inline uint8_t getId() const { return (mBytes[4] >> 4) & 0xF; }
   /// Gets the inputs
   inline uint8_t getInputs() const { return (mBytes[4] & 0xF); }
+  /// Gets the crate ID when available
+  inline uint8_t getCrateId() const { return (mBytes[5] >> 4) & 0xF; }
   uint16_t getPattern(int cathode, int chamber) const;
   /// Gets the number of bytes read
   inline size_t getNBytes() const { return mBytes.size(); }
@@ -99,10 +103,10 @@ class ELinkDecoder
 
   void computeSize();
 
-  static constexpr size_t sMinimumSize{5};  /// Minimum size of the buffer
-  static constexpr size_t sMaximumSize{21}; /// Maximum size of the buffer
-  std::vector<uint8_t> mBytes{};            /// Vector with encoded information
-  size_t mTotalSize{sMinimumSize};          /// Expected size of the read-out buffer
+  size_t mMinimumSize{5};          /// Minimum size of the buffer
+  size_t mMaximumSize{21};         /// Maximum size of the buffer
+  std::vector<uint8_t> mBytes{};   /// Vector with encoded information
+  size_t mTotalSize{mMinimumSize}; /// Expected size of the read-out buffer
 };
 } // namespace mid
 } // namespace o2

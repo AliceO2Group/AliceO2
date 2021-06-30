@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -96,6 +97,14 @@ class V3Services : public V11Geometry
   void createOBConeSideC(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
  private:
+  /// Creates a single Foam Wedge (with carbon fleece and glue attached)
+  /// \param rIn  the inner radius
+  /// \param rOut  the outer radius
+  /// \param zlen  the half length along Z
+  /// \param phi  the angular aperture
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoVolume* createFoamWedge(const Double_t rIn, const Double_t rOut, const Double_t zLen, const Double_t phi, const TGeoManager* mgr = gGeoManager);
+
   /// Creates a single Inner Barrel End Wheel on Side A
   /// \param iLay  the layer number
   /// \param endWheel  the End Wheel volume assembly

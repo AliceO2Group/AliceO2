@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,11 +15,13 @@
 
 #include "EventVisualisationView/EventManager.h"
 #include "EventVisualisationView/MultiView.h"
+#include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "EventVisualisationBase/DataSource.h"
 #include "EventVisualisationBase/DataInterpreter.h"
 #include <EventVisualisationBase/DataSourceOffline.h>
+#include <EventVisualisationBase/DataSourceOnline.h>
 #include <EventVisualisationDetectors/DataReaderVSD.h>
 
 #include <TEveManager.h>
@@ -52,12 +55,6 @@ EventManager& EventManager::getInstance()
 EventManager::EventManager() : TEveEventManager("Event", "")
 {
   LOG(INFO) << "Initializing TEveManager";
-  for (unsigned int i = 0; i < elemof(dataInterpreters); i++) {
-    dataInterpreters[i] = nullptr;
-  }
-  for (unsigned int i = 0; i < elemof(dataReaders); i++) {
-    dataReaders[i] = nullptr;
-  }
   for (unsigned int i = 0; i < elemof(dataTypeLists); i++) {
     dataTypeLists[i] = nullptr;
   }
@@ -66,16 +63,12 @@ EventManager::EventManager() : TEveEventManager("Event", "")
 void EventManager::Open()
 {
   switch (mCurrentDataSourceType) {
-    case SourceOnline:
-      break;
+    case SourceOnline: {
+      DataSourceOnline* source = new DataSourceOnline(Options::Instance()->dataFolder());
+      setDataSource(source);
+    } break;
     case SourceOffline: {
       DataSourceOffline* source = new DataSourceOffline();
-      for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; i++) {
-        if (dataInterpreters[i] != nullptr) {
-          dataReaders[i]->open();
-          source->registerReader(dataReaders[i], static_cast<EVisualisationGroup>(i));
-        }
-      }
       setDataSource(source);
     } break;
     case SourceHLT:
@@ -83,47 +76,56 @@ void EventManager::Open()
   }
 }
 
-void EventManager::GotoEvent(Int_t no)
+void EventManager::displayCurrentEvent()
 {
-  if (no == -1) {
-    no = getDataSource()->GetEventCount() - 1;
-  }
-
-  this->currentEvent = no;
-
   MultiView::getInstance()->destroyAllEvents();
+  if (getDataSource()->getEventCount() > 0) {
+    int no = getDataSource()->getCurrentEvent();
 
-  for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
-    dataTypeLists[i] = new TEveElementList(gDataTypeNames[i].c_str());
-  }
+    for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
+      dataTypeLists[i] = new TEveElementList(gDataTypeNames[i].c_str());
+    }
 
-  for (int i = 0; i < EVisualisationGroup::NvisualisationGroups; ++i) {
-    for (int dataType = 0; dataType < EVisualisationDataType::NdataTypes; ++dataType) {
-      DataInterpreter* interpreter = dataInterpreters[i];
-      if (interpreter) {
-        TObject* data = getDataSource()->getEventData(no, (EVisualisationGroup)i);
-        std::unique_ptr<VisualisationEvent> event = interpreter->interpretDataForType(data, (EVisualisationDataType)dataType);
-        displayVisualisationEvent(*event, gVisualisationGroupName[i]);
-      }
+    auto displayList = getDataSource()->getVisualisationList(no);
+    for (auto it = displayList.begin(); it != displayList.end(); ++it) {
+      displayVisualisationEvent(it->first, it->second);
+    }
+
+    for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
+      MultiView::getInstance()->registerElement(dataTypeLists[i]);
     }
   }
-
-  for (int i = 0; i < EVisualisationDataType::NdataTypes; ++i) {
-    MultiView::getInstance()->registerElement(dataTypeLists[i]);
-  }
-
   MultiView::getInstance()->redraw3D();
+}
+
+void EventManager::GotoEvent(Int_t no)
+{
+  if (getDataSource()->getEventCount() > 0) {
+    if (no == -1) {
+      no = getDataSource()->getEventCount() - 1;
+    }
+    this->getDataSource()->setCurrentEvent(no);
+    displayCurrentEvent();
+  }
 }
 
 void EventManager::NextEvent()
 {
-  Int_t event = (this->currentEvent + 1) % getDataSource()->GetEventCount();
-  GotoEvent(event);
+  if (getDataSource()->getEventCount() > 0) {
+    if (this->getDataSource()->getCurrentEvent() < getDataSource()->getEventCount() - 1) {
+      Int_t event = (this->getDataSource()->getCurrentEvent() + 1) % getDataSource()->getEventCount();
+      GotoEvent(event);
+    }
+  }
 }
 
 void EventManager::PrevEvent()
 {
-  GotoEvent(this->currentEvent - 1);
+  if (getDataSource()->getEventCount() > 0) {
+    if (this->getDataSource()->getCurrentEvent() > 0) {
+      GotoEvent(this->getDataSource()->getCurrentEvent() - 1);
+    }
+  }
 }
 
 void EventManager::Close()
@@ -204,12 +206,6 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   if (clusterCount != 0) {
     dataTypeLists[EVisualisationDataType::Clusters]->AddElement(point_list);
   }
-}
-
-void EventManager::registerDetector(DataReader* reader, DataInterpreter* interpreter, EVisualisationGroup type)
-{
-  dataReaders[type] = reader;
-  dataInterpreters[type] = interpreter;
 }
 
 } // namespace event_visualisation

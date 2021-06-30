@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,10 +21,8 @@ namespace o2::mch::raw
 {
 namespace impl
 {
-uint16_t CRUID_MASK = 0xFF;
-uint16_t CHARGESUM_MASK = 0x100;
 
-template <typename FORMAT, typename CHARGESUM>
+template <typename FORMAT, typename CHARGESUM, int VERSION = 0>
 struct PayloadDecoderImpl {
 
   using type = struct PayloadDecoderImplReturnType {
@@ -33,31 +32,31 @@ struct PayloadDecoderImpl {
   type operator()(const FeeLinkId& feeLinkId, DecodedDataHandlers decodedDataHandlers, FeeLink2SolarMapper fee2solar);
 };
 
-template <typename CHARGESUM>
-struct PayloadDecoderImpl<UserLogicFormat, CHARGESUM> {
-  using type = UserLogicEndpointDecoder<CHARGESUM>;
+template <typename CHARGESUM, int VERSION>
+struct PayloadDecoderImpl<UserLogicFormat, CHARGESUM, VERSION> {
+  using type = UserLogicEndpointDecoder<CHARGESUM, VERSION>;
 
   type operator()(const FeeLinkId& feeLinkId, DecodedDataHandlers decodedDataHandlers, FeeLink2SolarMapper fee2solar)
   {
-    return std::move(UserLogicEndpointDecoder<CHARGESUM>(feeLinkId.feeId(), fee2solar, decodedDataHandlers));
+    return std::move(UserLogicEndpointDecoder<CHARGESUM, VERSION>(feeLinkId.feeId(), fee2solar, decodedDataHandlers));
   }
 };
 
 template <typename CHARGESUM>
-struct PayloadDecoderImpl<BareFormat, CHARGESUM> {
+struct PayloadDecoderImpl<BareFormat, CHARGESUM, 0> {
   using type = BareGBTDecoder<CHARGESUM>;
 
   type operator()(const FeeLinkId& feeLinkId, DecodedDataHandlers decodedDataHandlers, FeeLink2SolarMapper fee2solar)
   {
     auto solarId = fee2solar(feeLinkId);
     if (!solarId.has_value()) {
-      throw std::logic_error(fmt::format("{} could not get solarId from feelinkid={}\n", __PRETTY_FUNCTION__, feeLinkId));
+      throw std::logic_error(fmt::format("{} could not get solarId from feelinkid={}\n", __PRETTY_FUNCTION__, asString(feeLinkId)));
     }
     return std::move(BareGBTDecoder<CHARGESUM>(solarId.value(), decodedDataHandlers));
   }
 };
 
-template <typename FORMAT, typename CHARGESUM>
+template <typename FORMAT, typename CHARGESUM, int VERSION = 0>
 class PageDecoderImpl
 {
  public:
@@ -75,11 +74,12 @@ class PageDecoderImpl
 
     auto feeId = o2::raw::RDHUtils::getFEEID(rdhP);
     auto linkId = o2::raw::RDHUtils::getLinkID(rdhP);
-    FeeLinkId feeLinkId(feeId & CRUID_MASK, linkId);
+    FEEID f{feeId};
+    FeeLinkId feeLinkId(f.id, linkId);
 
     auto p = mPayloadDecoders.find(feeLinkId);
     if (p == mPayloadDecoders.end()) {
-      mPayloadDecoders.emplace(feeLinkId, PayloadDecoderImpl<FORMAT, CHARGESUM>()(feeLinkId, mDecodedDataHandlers, mFee2SolarMapper));
+      mPayloadDecoders.emplace(feeLinkId, PayloadDecoderImpl<FORMAT, CHARGESUM, VERSION>()(feeLinkId, mDecodedDataHandlers, mFee2SolarMapper));
       p = mPayloadDecoders.find(feeLinkId);
     }
 
@@ -95,7 +95,7 @@ class PageDecoderImpl
  private:
   DecodedDataHandlers mDecodedDataHandlers;
   FeeLink2SolarMapper mFee2SolarMapper;
-  std::map<FeeLinkId, typename PayloadDecoderImpl<FORMAT, CHARGESUM>::type> mPayloadDecoders;
+  std::map<FeeLinkId, typename PayloadDecoderImpl<FORMAT, CHARGESUM, VERSION>::type> mPayloadDecoders;
 };
 
 } // namespace impl
@@ -109,19 +109,32 @@ PageDecoder createPageDecoder(RawBuffer rdhBuffer, DecodedDataHandlers decodedDa
   }
   auto linkId = o2::raw::RDHUtils::getLinkID(rdhP);
   auto feeId = o2::raw::RDHUtils::getFEEID(rdhP);
+  FEEID f{feeId};
   if (linkId == 15) {
-    if (feeId & impl::CHARGESUM_MASK) {
-      return impl::PageDecoderImpl<UserLogicFormat, ChargeSumMode>(decodedDataHandlers, fee2solar);
+    if (f.ulFormatVersion != 0 && f.ulFormatVersion != 1) {
+      throw std::logic_error(fmt::format("ulFormatVersion {} is unknown", static_cast<int>(f.ulFormatVersion)));
+    }
+    if (f.chargeSum) {
+      if (f.ulFormatVersion == 0) {
+        return impl::PageDecoderImpl<UserLogicFormat, ChargeSumMode, 0>(decodedDataHandlers, fee2solar);
+      } else if (f.ulFormatVersion == 1) {
+        return impl::PageDecoderImpl<UserLogicFormat, ChargeSumMode, 1>(decodedDataHandlers, fee2solar);
+      }
     } else {
-      return impl::PageDecoderImpl<UserLogicFormat, SampleMode>(decodedDataHandlers, fee2solar);
+      if (f.ulFormatVersion == 0) {
+        return impl::PageDecoderImpl<UserLogicFormat, SampleMode, 0>(decodedDataHandlers, fee2solar);
+      } else if (f.ulFormatVersion == 1) {
+        return impl::PageDecoderImpl<UserLogicFormat, SampleMode, 1>(decodedDataHandlers, fee2solar);
+      }
     }
   } else {
-    if (feeId & impl::CHARGESUM_MASK) {
+    if (f.chargeSum) {
       return impl::PageDecoderImpl<BareFormat, ChargeSumMode>(decodedDataHandlers, fee2solar);
     } else {
       return impl::PageDecoderImpl<BareFormat, SampleMode>(decodedDataHandlers, fee2solar);
     }
   }
+  return nullptr;
 }
 
 PageDecoder createPageDecoder(RawBuffer rdhBuffer, DecodedDataHandlers decodedDataHandlers)

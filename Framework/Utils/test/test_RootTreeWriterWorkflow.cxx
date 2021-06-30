@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,6 +24,7 @@
 #include "DPLUtils/RootTreeWriter.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "../../Core/test/TestClasses.h"
 #include "Framework/Logger.h"
 #include <TSystem.h>
@@ -32,7 +34,7 @@
 #include <stdexcept>
 #include <iostream>
 // note: std filesystem is first supported in gcc 8
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 using namespace o2::framework;
 
@@ -76,7 +78,7 @@ class StaticChecker
         setError(std::string("inconsistent number of branches in 'testtree' of file ") + check.fileName + " expecting " + std::to_string(check.nBranches) + " got " + std::to_string(tree->GetNbranches()));
       }
       file->Close();
-      boost::filesystem::remove(check.fileName.c_str());
+      std::filesystem::remove(check.fileName.c_str());
     }
     mChecks.clear();
     if (mErrorMessage.empty() == false) {
@@ -163,7 +165,7 @@ template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  std::string fileName = boost::filesystem::temp_directory_path().string();
+  std::string fileName = std::filesystem::temp_directory_path().string();
   fileName += "/test_RootTreeWriter";
   std::string altFileName = fileName + "_alt.root";
   fileName += ".root";
@@ -195,11 +197,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
   auto preprocessor = [](ProcessingContext& ctx) {
     for (auto const& ref : InputRecordWalker(ctx.inputs())) {
       auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      std::cout << "got data: "
-                << dh->dataOrigin.as<std::string>() << "/"
-                << dh->dataDescription.as<std::string>() << "/"
-                << dh->subSpecification << "  "
-                << std::endl;
+      LOGP(INFO, "got data: {}/{}/{}", dh->dataOrigin, dh->dataDescription, dh->subSpecification);
     }
   };
 

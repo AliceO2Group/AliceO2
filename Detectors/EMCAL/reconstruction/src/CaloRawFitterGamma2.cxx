@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -12,6 +13,7 @@
 /// \author Martin Poghosyan (Martin.Poghosyan@cern.ch)
 
 #include "FairLogger.h"
+#include <cfloat>
 #include <random>
 
 // ROOT sytem
@@ -30,7 +32,7 @@ CaloRawFitterGamma2::CaloRawFitterGamma2() : CaloRawFitter("Chi Square ( Gamma2 
   mAlgo = FitAlgorithm::Gamma2;
 }
 
-CaloFitResults CaloRawFitterGamma2::evaluate(const std::vector<Bunch>& bunchlist,
+CaloFitResults CaloRawFitterGamma2::evaluate(const gsl::span<const Bunch> bunchlist,
                                              std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2)
 {
   float time = 0;
@@ -42,17 +44,20 @@ CaloFitResults CaloRawFitterGamma2::evaluate(const std::vector<Bunch>& bunchlist
   auto [nsamples, bunchIndex, ampEstimate,
         maxADC, timeEstimate, pedEstimate, first, last] = preFitEvaluateSamples(bunchlist, altrocfg1, altrocfg2, mAmpCut);
 
-  if (ampEstimate >= mAmpCut) {
+  if (bunchIndex >= 0 && ampEstimate >= mAmpCut) {
     time = timeEstimate;
-    int timebinOffset = bunchlist.at(bunchIndex).getStartTime() - (bunchlist.at(bunchIndex).getBunchLength() - 1);
+    int timebinOffset = bunchlist[bunchIndex].getStartTime() - (bunchlist[bunchIndex].getBunchLength() - 1);
     amp = ampEstimate;
 
     if (nsamples > 2 && maxADC < constants::OVERFLOWCUT) {
       std::tie(amp, time) = doParabolaFit(timeEstimate - 1);
       mNiter = 0;
-      std::tie(chi2, fitDone) = doFit_1peak(first, nsamples, amp, time);
-
-      if (!fitDone) {
+      try {
+        chi2 = doFit_1peak(first, nsamples, amp, time);
+        fitDone = true;
+      } catch (RawFitterError_t& e) {
+        // Fit has failed, set values to estimates
+        // TODO: Check whether we want to include cases in which the peak fit failed
         amp = ampEstimate;
         time = timeEstimate;
         chi2 = 1.e9;
@@ -85,20 +90,21 @@ CaloFitResults CaloRawFitterGamma2::evaluate(const std::vector<Bunch>& bunchlist
 
     return CaloFitResults(maxADC, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
   }
-  return CaloFitResults(-1, -1);
+  // Fit failed, rethrow error
+  throw RawFitterError_t::FIT_ERROR;
 }
 
-std::tuple<float, bool> CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int nSamples, float& ampl, float& time)
+float CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int nSamples, float& ampl, float& time)
 {
 
   float chi2(0.);
 
   // fit using gamma-2 function 	(ORDER =2 assumed)
   if (nSamples < 3) {
-    return std::make_tuple(chi2, false);
+    throw RawFitterError_t::FIT_ERROR;
   }
   if (mNiter > mNiterationsMax) {
-    return std::make_tuple(chi2, false);
+    throw RawFitterError_t::FIT_ERROR;
   }
 
   double D, dA, dt;
@@ -136,7 +142,7 @@ std::tuple<float, bool> CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int n
   D = c11 * c22 - c12 * c21;
 
   if (TMath::Abs(D) < DBL_EPSILON) {
-    return std::make_tuple(chi2, false);
+    throw RawFitterError_t::FIT_ERROR;
   }
 
   dt = (d1 * c22 - d2 * c12) / D * constants::TAU;
@@ -145,13 +151,11 @@ std::tuple<float, bool> CaloRawFitterGamma2::doFit_1peak(int firstTimeBin, int n
   time += dt;
   ampl += dA;
 
-  bool res = true;
-
   if (TMath::Abs(dA) > 1 || TMath::Abs(dt) > 0.01) {
-    std::tie(chi2, res) = doFit_1peak(firstTimeBin, nSamples, ampl, time);
+    chi2 = doFit_1peak(firstTimeBin, nSamples, ampl, time);
   }
 
-  return std::make_tuple(chi2, res);
+  return chi2;
 }
 
 std::tuple<float, float> CaloRawFitterGamma2::doParabolaFit(int maxTimeBin) const
@@ -163,7 +167,7 @@ std::tuple<float, float> CaloRawFitterGamma2::doParabolaFit(int maxTimeBin) cons
 
   double a = (getReversed(maxTimeBin + 2) + getReversed(maxTimeBin) - 2. * getReversed(maxTimeBin + 1)) / 2.;
 
-  if (TMath::Abs(a) < 1.e09) {
+  if (TMath::Abs(a) < DBL_EPSILON) {
     amp = getReversed(maxTimeBin + 1);
     time = maxTimeBin + 1;
     return std::make_tuple(amp, time);

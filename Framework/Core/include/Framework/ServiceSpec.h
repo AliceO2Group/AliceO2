@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -37,6 +38,9 @@ class DanglingContext;
 
 /// A callback to create a given Service.
 using ServiceInit = std::function<ServiceHandle(ServiceRegistry&, DeviceState&, fair::mq::ProgOptions&)>;
+/// A callback invoked whenever we start running, before the user callback.
+using ServiceStartCallback = std::function<void(ServiceRegistry&, void*)>;
+/// A callback invoked whenever we stop running, before we exit.
 using ServiceExitCallback = std::function<void(ServiceRegistry&, void*)>;
 
 /// A callback to configure a given Service. Notice that the
@@ -130,6 +134,8 @@ struct ServiceSpec {
   /// dispatched.
   ServicePostDispatching postDispatching = nullptr;
 
+  /// Callback invoked on Start
+  ServiceStartCallback start = nullptr;
   /// Callback invoked on exit
   ServiceExitCallback exit = nullptr;
 
@@ -162,9 +168,18 @@ struct ServiceDispatchingHandle {
   void* service;
 };
 
+struct ServiceStartHandle {
+  ServiceStartCallback callback;
+  void* service;
+};
+
 struct ServiceExitHandle {
   ServiceExitCallback callback;
   void* service;
+};
+
+struct ServicePlugin {
+  virtual ServiceSpec* create() = 0;
 };
 
 } // namespace o2::framework

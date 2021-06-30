@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,8 +25,9 @@
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/Hit.h"
-#include "TRDBase/Digit.h" // for the Digit type
+#include "DataFormatsTRD/Digit.h" // for the Digit type
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
@@ -74,11 +76,11 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     auto& eventParts = context->getEventParts();
     std::vector<o2::trd::Digit> digitsAccum; // accumulator for digits
-    o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labelsAccum;
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelsAccum;
     std::vector<TriggerRecord> triggers;
 
     std::vector<o2::trd::Digit> digits;                         // digits which get filled
-    o2::dataformats::MCTruthContainer<o2::trd::MCLabel> labels; // labels which get filled
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;  // labels which get filled
 
     o2::InteractionTimeRecord currentTime; // the current time
     o2::InteractionTimeRecord triggerTime; // the time at which the TRD start reading out a signal
@@ -91,13 +93,15 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     for (int collID = 0; collID < irecords.size(); ++collID) {
       currentTime = irecords[collID];
       // Trigger logic implemented here
+      bool isNewTrigger = true; // flag newly accepted readout trigger
       if (firstEvent) {
         triggerTime = currentTime;
         firstEvent = false;
       } else {
         double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
-        if (dT < o2::trd::Digitizer::BUSY_TIME) {
+        if (dT < o2::trd::constants::BUSY_TIME) {
           // BUSY_TIME = READOUT_TIME + DEAD_TIME, if less than that, pile up the signals and update the last time
+          isNewTrigger = false;
           mDigitizer.pileup();
         } else {
           // A new signal can be received, and the detector read it out:
@@ -117,7 +121,10 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         }
       }
 
-      mDigitizer.setEventTime(triggerTime.getTimeNS()); // do we need this?
+      mDigitizer.setEventTime(triggerTime.getTimeNS());
+      if (isNewTrigger) {
+        mDigitizer.setTriggerTime(triggerTime.getTimeNS());
+      }
 
       // for each collision, loop over the constituents event and source IDs
       // (background signal merging is basically taking place here)
@@ -127,7 +134,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         // get the hits for this event and this source and process them
         std::vector<o2::trd::Hit> hits;
         context->retrieveHits(mSimChains, "TRDHit", part.sourceID, part.entryID, &hits);
-        mDigitizer.process(hits, digits, labels);
+        mDigitizer.process(hits);
       }
     }
 
@@ -147,7 +154,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     if (mctruth) {
       LOG(INFO) << "TRD: Sending " << labelsAccum.getNElements() << " labels";
       // we are flattening the labels and write to managed shared memory container for further communication
-      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::trd::MCLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
+      auto& sharedlabels = pc.outputs().make<o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel>>(Output{"TRD", "LABELS", 0, Lifetime::Timeframe});
       labelsAccum.flatten_to(sharedlabels);
     }
     LOG(INFO) << "TRD: Sending ROMode= " << mROMode << " to GRPUpdater";

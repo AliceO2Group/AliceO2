@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,6 +18,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ChannelSpec.h"
 #include "Framework/Logger.h"
+#include "Framework/DeviceController.h"
 
 #include "DebugGUI/imgui.h"
 #include <csignal>
@@ -154,7 +156,11 @@ void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
       ImGui::NextColumn();
     }
     for (auto& service : services) {
-      ImGui::TextUnformatted(service.name.c_str());
+      if (!service.name.empty()) {
+        ImGui::TextUnformatted(service.name.c_str());
+      } else {
+        ImGui::TextUnformatted("unknown");
+      }
       ImGui::NextColumn();
       switch (service.kind) {
         case ServiceKind::Serial:
@@ -200,7 +206,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
 #ifdef __APPLE__
     std::string defaultAppleDebugCommand =
       "osascript -e 'tell application \"Terminal\" to activate'"
-      " -e 'tell application \"Terminal\" to do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\")'";
+      " -e 'tell application \"Terminal\" to do script \"lldb -p \" & (system attribute \"O2DEBUGGEDPID\") & \"; exit\"'";
     setenv("O2DPLDEBUG", defaultAppleDebugCommand.c_str(), 0);
 #else
     setenv("O2DPLDEBUG", "xterm -hold -e gdb attach $O2DEBUGGEDPID &", 0);
@@ -214,12 +220,15 @@ void displayDeviceInspector(DeviceSpec const& spec,
     std::string pid = std::to_string(info.pid);
     setenv("O2PROFILEDPID", pid.c_str(), 1);
 #ifdef __APPLE__
-    std::string defaultAppleProfileCommand =
-      "osascript -e 'tell application \"Terminal\" to activate'"
-      " -e 'tell application \"Terminal\" to do script \"instruments -D dpl-profile-" +
-      pid +
-      ".trace -l 30000 -t Time\\\\ Profiler -p " +
-      pid + " && open dpl-profile-" + pid + ".trace && exit\"'";
+    auto defaultAppleProfileCommand = fmt::format(
+      "osascript -e 'tell application \"Terminal\"'"
+      " -e 'activate'"
+      " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
+      " --time-limit 30s --template Time\\\\ Profiler --attach {0} "
+      " && open dpl-profile-{0}.trace && exit\"'"
+      " -e 'end tell'",
+      pid);
+
     setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
 #else
     setenv("O2DPLPROFILE", "xterm -hold -e perf record -a -g -p $O2PROFILEDPID > perf-$O2PROFILEDPID.data &", 0);
@@ -239,6 +248,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 #endif
+  if (control.controller) {
+    if (ImGui::Button("Offer SHM")) {
+      control.controller->write("/shm-offer 1000", strlen("/shm-offer 1000"));
+    }
+  }
 
   deviceInfoTable(info, metrics);
   for (auto& option : info.currentConfig) {

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,6 +15,7 @@
 #include "DetectorsCalibration/TimeSlotCalibration.h"
 #include "DetectorsCalibration/TimeSlot.h"
 #include "DataFormatsTOF/CalibInfoTOF.h"
+#include "DataFormatsTOF/CalibInfoCluster.h"
 #include "TOFBase/Geo.h"
 #include "DataFormatsTOF/CalibInfoTOFshort.h"
 
@@ -45,6 +47,7 @@ class TOFCalibInfoSlot
   void print() const;
   void printEntries() const;
   void fill(const gsl::span<const o2::dataformats::CalibInfoTOF> data);
+  void fill(const gsl::span<const o2::tof::CalibInfoCluster> data);
   void merge(const TOFCalibInfoSlot* prev);
 
   auto& getEntriesPerChannel() const { return mEntriesSlot; }

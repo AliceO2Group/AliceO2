@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -52,7 +53,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "GPUTPCSliceData.cxx"
 #include "GPUTPCCreateSliceData.cxx"
 
-#if defined(HAVE_O2HEADERS)
+#if defined(GPUCA_HAVE_O2HEADERS)
 // Files for propagation with material
 #include "MatLayerCylSet.cxx"
 #include "MatLayerCyl.cxx"
@@ -121,7 +122,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 #include "Utils.cu"
 #endif // !defined(GPUCA_O2_LIB) && defined(__CUDACC__) && !defined(GPUCA_NO_ITS_TRAITS)
 
-#endif // HAVE_O2HEADERS
+#endif // GPUCA_HAVE_O2HEADERS
 #endif // (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !defined(GPUCA_ALIROOT_LIB)
 
 #endif // GPURECONSTRUCTIONINCLUDESDEVICE_H

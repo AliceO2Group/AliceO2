@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -64,11 +65,14 @@ class CalDet
   ///
   ///
   const T getValue(const int sec, const int globalPadInSector) const;
+  void setValue(const int sec, const int globalPadInSector, const T& value);
+  void setValue(const int sec, const int rowInSector, const int padInRow, const T& value);
 
   /// \todo return value of T& not possible if a default value should be returned, e.g. T{}:
   ///       warning: returning reference to temporary
   const T getValue(const ROC roc, const size_t row, const size_t pad) const;
   const T getValue(const CRU cru, const size_t row, const size_t pad) const;
+  const T getValue(const Sector sec, const int rowInSector, const int padInRow) const;
 
   void setName(const std::string_view name) { mName = name.data(); }
   const std::string& getName() const { return mName; }
@@ -180,6 +184,48 @@ inline const T CalDet<T>::getValue(const CRU cru, const size_t row, const size_t
     }
   }
   return T{};
+}
+
+template <class T>
+inline void CalDet<T>::setValue(const int sec, const int globalPadInSector, const T& value)
+{
+  assert(mPadSubset == PadSubset::ROC);
+  int roc = sec;
+  int padInROC = globalPadInSector;
+  const int padsInIROC = Mapper::getPadsInIROC();
+  if (globalPadInSector >= padsInIROC) {
+    roc += Mapper::getNumberOfIROCs();
+    padInROC -= padsInIROC;
+  }
+  mData[roc].setValue(padInROC, value);
+}
+
+template <class T>
+inline void CalDet<T>::setValue(const int sec, const int rowInSector, const int padInRow, const T& value)
+{
+  assert(mPadSubset == PadSubset::ROC);
+  int roc = sec;
+  int rowInROC = rowInSector;
+  const int rowsInIROC = 63;
+  if (rowInSector >= rowsInIROC) {
+    roc += Mapper::getNumberOfIROCs();
+    rowInROC -= rowsInIROC;
+  }
+  mData[roc].setValue(rowInROC, padInRow, value);
+}
+
+template <class T>
+inline const T CalDet<T>::getValue(const Sector sec, const int rowInSector, const int padInRow) const
+{
+  assert(mPadSubset == PadSubset::ROC);
+  int roc = sec;
+  int rowInROC = rowInSector;
+  const int rowsInIROC = 63;
+  if (rowInSector >= rowsInIROC) {
+    roc += Mapper::getNumberOfIROCs();
+    rowInROC -= rowsInIROC;
+  }
+  return mData[roc].getValue(rowInROC, padInRow);
 }
 
 #ifndef GPUCA_ALIGPUCODE // hide from GPU standalone compilation

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,6 +18,7 @@
 #include "TPCQC/Clusters.h"
 #include "TPCBase/Painter.h"
 #include "TPCBase/ROC.h"
+#include "TPCBase/CRU.h"
 #include "TPCBase/Mapper.h"
 #include "DataFormatsTPC/ClusterNative.h"
 
@@ -57,6 +59,21 @@ bool Clusters::processCluster(const o2::tpc::ClusterNative& cluster, const o2::t
   mTimeBin.getCalArray(nROC).setValue(rocRow, pad, count + timeBin);
 
   return true;
+}
+
+//______________________________________________________________________________
+void Clusters::fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue)
+{
+  const CRU cruID(cru);
+  float val;
+  val = mNClusters.getValue(cruID.sector(), rowInSector, padInRow);
+  mNClusters.setValue(cruID.sector(), rowInSector, padInRow, val + 1);
+
+  val = mQMax.getValue(cruID.sector(), rowInSector, padInRow);
+  mQMax.setValue(cruID.sector(), rowInSector, padInRow, val + adcValue);
+
+  val = mTimeBin.getValue(cruID.sector(), rowInSector, padInRow);
+  mTimeBin.setValue(cruID.sector(), rowInSector, padInRow, val + timeBin);
 }
 
 //______________________________________________________________________________

@@ -2,3 +2,4 @@
 *.bc
 *.cl
 *.spv
+*.spirv

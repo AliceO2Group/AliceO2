@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -107,7 +108,7 @@ struct InteractionRecord {
   float differenceInBCMS(const InteractionRecord& other) const
   {
     // return difference in bunch-crossings in ms
-    return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingMS;
+    return differenceInBC(other) * o2::constants::lhc::LHCBunchSpacingMUS;
   }
 
   int64_t toLong() const
@@ -333,5 +334,18 @@ struct InteractionTimeRecord : public InteractionRecord {
   ClassDefNV(InteractionTimeRecord, 1);
 };
 } // namespace o2
+
+namespace std
+{
+// defining std::hash for InteractionRecord to be used with std containers
+template <>
+struct hash<o2::InteractionRecord> {
+ public:
+  size_t operator()(const o2::InteractionRecord& ir) const
+  {
+    return ir.toLong();
+  }
+};
+} // namespace std
 
 #endif

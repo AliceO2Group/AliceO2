@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,8 +15,9 @@
 #include "Framework/Task.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/CalibParams.h"
 #include "PHOSBase/Mapping.h"
-#include "PHOSCalib/CalibParams.h"
+#include "PHOSReconstruction/AltroDecoder.h"
 #include "PHOSReconstruction/CaloRawFitter.h"
 #include "PHOSReconstruction/RawReaderError.h"
 
@@ -58,16 +60,16 @@ class RawToCellConverterSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  protected:
-  /// \brief simple check of HW address
-  char CheckHWAddress(short ddl, short hwAddress, short& fee);
-
  private:
   bool mFillChi2 = false;                                     ///< Fill output with quality of samples
   bool mCombineGHLG = true;                                   ///< Combine or not HG and LG channels (def: combine, LED runs: not combine)
   bool mPedestalRun = false;                                  ///< Analyze pedestal run (calculate pedestal mean and RMS)
-  std::unique_ptr<Mapping> mMapping;                          ///< Mapping
+  int mLastSize = 0;                                          ///< size of last send list of cells to reserve same in next bunch
   std::unique_ptr<CalibParams> mCalibParams;                  ///!<! PHOS calibration
+  std::unique_ptr<AltroDecoder> mDecoder;                     ///!<! Raw decoder
   std::unique_ptr<CaloRawFitter> mRawFitter;                  ///!<! Raw fitter
+  std::array<std::vector<Cell>, 14> mTmpCells;                ///< Temporary cells storage to all 14 DLL
+  std::array<std::vector<Cell>, 14> mTmpTRU;                  ///< Temporary tru cells storage to all 14 DLL
   std::vector<o2::phos::Cell> mOutputCells;                   ///< Container with output cells
   std::vector<o2::phos::TriggerRecord> mOutputTriggerRecords; ///< Container with output cells
   std::vector<o2::phos::RawReaderError> mOutputHWErrors;      ///< Errors occured in reading data
@@ -77,7 +79,7 @@ class RawToCellConverterSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the PHOS Cell Converter Spec
 ///
 /// Refer to RawToCellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getRawToCellConverterSpec();
+framework::DataProcessorSpec getRawToCellConverterSpec(int flpId);
 
 } // namespace reco_workflow
 

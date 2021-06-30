@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 set(MODULE GPUTracking)
 
@@ -55,14 +56,18 @@ set(SRCS
     Merger/GPUTPCGMPhysicalTrackModel.cxx
     Merger/GPUTPCGMPolynomialField.cxx
     Merger/GPUTPCGMPolynomialFieldManager.cxx
-    TRDTracking/GPUTRDTrack.cxx
+    DataTypes/GPUTRDTrack.cxx
     TRDTracking/GPUTRDTracker.cxx
     TRDTracking/GPUTRDTrackletWord.cxx
     TRDTracking/GPUTRDTrackerKernels.cxx
     Base/GPUParam.cxx)
 
+set(SRCS_O2_DATATYPES
+    DataTypes/GPUTRDTrackO2.cxx)
+
 set(SRCS_NO_CINT
     DataTypes/GPUDataTypes.cxx
+    DataTypes/GPUMemorySizeScalers.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
     Base/GPUProcessor.cxx
@@ -76,6 +81,7 @@ set(SRCS_NO_CINT
     Global/GPUTrackingInputProvider.cxx
     Global/GPUErrors.cxx
     Merger/GPUTPCGMMergerGPU.cxx
+    Debug/GPUROOTDumpCore.cxx
     utils/timer.cxx)
 
 set(SRCS_NO_H SliceTracker/GPUTPCTrackerDump.cxx
@@ -106,7 +112,7 @@ set(HDRS_INSTALL
     DataTypes/GPUTRDDef.h
     DataTypes/GPUSettings.h
     TRDTracking/GPUTRDTrackPoint.h
-    TRDTracking/GPUTRDTrack.h
+    TRDTracking/GPUTRDSpacePoint.h
     TRDTracking/GPUTRDTrackData.h
     TRDTracking/GPUTRDTrackPoint.h
     TRDTracking/GPUTRDTrackletLabels.h
@@ -124,13 +130,12 @@ set(HDRS_INSTALL
     TPCConvert/GPUTPCConvertImpl.h
     Base/GPUReconstructionKernelMacros.h
     DataTypes/GPUO2FakeClasses.h
-    DataTypes/GPUSettingsList.h
+    Definitions/GPUSettingsList.h
     DataTypes/GPUOutputControl.h
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
-    DataTypes/GPUMemorySizeScalers.h
-    DataTypes/GPURawData.h
     DataTypes/GPUdEdxInfo.h
+    DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
     Merger/GPUTPCGMMergerTypes.h
     Global/GPUErrorCodes.h
@@ -138,19 +143,21 @@ set(HDRS_INSTALL
     qconfigoptions.h
     qa/GPUQAHelper.h
     DataCompression/GPUTPCClusterRejection.h
+    Refit/GPUTrackParamConvert.h
     Definitions/GPUDef.h
     Definitions/GPUDefConstantsAndSettings.h
     Definitions/GPUDefGPUParameters.h
     Definitions/GPUDefOpenCL12Templates.h
     Definitions/GPULogging.h
     Definitions/GPUDefMacros.h
+    Debug/GPUROOTDump.h
 )
 
 # Sources only for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   set(SRCS ${SRCS} Interface/GPUO2InterfaceConfigurableParam.cxx)
   set(HDRS_CINT_O2 ${HDRS_CINT_O2} DataTypes/TPCdEdxCalibrationSplines.h Interface/GPUO2InterfaceConfigurableParam.h)
-  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h DataTypes/GPUSettingsList.h DataTypes/GPUDataTypes.h TRDTracking/GPUTRDTrack.h) # Manual dependencies for ROOT dictionary generation
+  set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/GPUTRDO2BaseTrack.h) # Manual dependencies for ROOT dictionary generation
 endif()
 
 # Sources for O2 and for Standalone if requested in config file
@@ -185,7 +192,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFMCLabelFlattener.cxx
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
         TPCClusterFinder/GPUTPCCFGather.cxx
-        TPCClusterFinder/TPCPadGainCalib.cxx
+        DataTypes/TPCPadGainCalib.cxx
         Refit/GPUTrackingRefit.cxx
         Refit/GPUTrackingRefitKernel.cxx
         Merger/GPUTPCGMO2Output.cxx)
@@ -200,10 +207,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
                      TPCClusterFinder/CfFragment.h
                      TPCClusterFinder/CfUtils.h
                      TPCClusterFinder/ChargePos.h
-                     TPCClusterFinder/clusterFinderDefs.h
+                     Definitions/clusterFinderDefs.h
                      TPCClusterFinder/GPUTPCClusterFinderKernels.h
                      TPCClusterFinder/PackedCharge.h
-                     TPCClusterFinder/GPUTPCCFChainContext.h)
+                     TPCClusterFinder/GPUTPCCFChainContext.h
+                     DataTypes/GPUTRDO2BaseTrack.h)
 endif()
 
 # Sources only for AliRoot
@@ -261,13 +269,30 @@ if (TARGET AliceO2::DebugGUI)
 endif()
 # Main CMake part for O2
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
+  o2_add_library(GPUDataTypeHeaders
+                 TARGETVARNAME targetName
+                 PUBLIC_INCLUDE_DIRECTORIES .
+                                            Definitions
+                                            DataTypes
+                 PUBLIC_LINK_LIBRARIES O2::GPUCommon
+                                       O2::ReconstructionDataFormats
+                 PRIVATE_LINK_LIBRARIES O2::DataFormatsTPC
+                 SOURCES ${SRCS_O2_DATATYPES})
+target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
+                           GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
+                 
+
   o2_add_library(${MODULE}
                  TARGETVARNAME targetName
                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                        O2::GPUUtils
+                                       O2::GPUDataTypeHeaders
                                        O2::DataFormatsTPC
+                                       O2::DataFormatsTOF
                                        O2::TPCBase
                                        O2::TRDBase
+                                       O2::TOFBase
+                                       O2::ITSBase
                                        O2::ITStracking
                                        O2::TPCFastTransformation
                                        O2::DetectorsRaw
@@ -289,6 +314,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                                             Interface
                                             Merger
                                             Refit
+                                            Debug
                                             DataCompression
                                             TPCClusterFinder
                  TARGETVARNAME targetName
@@ -303,7 +329,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
                             LINKDEF GPUTrackingLinkDef_O2.h)
 
   target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB
-                             GPUCA_TPC_GEOMETRY_O2 HAVE_O2HEADERS)
+                             GPUCA_TPC_GEOMETRY_O2 GPUCA_HAVE_O2HEADERS)
 
   install(FILES ${HDRS_CINT_ALIROOT} ${HDRS_CINT_O2} ${HDRS_INSTALL}
           DESTINATION include/GPU)
@@ -324,7 +350,7 @@ endif()
 # Main CMake part for AliRoot
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
   set(HDRS_CINT_ALIROOT ${HDRS_CINT_ALIROOT}
-                        Base/GPUO2DataTypes.h)
+                        DataTypes/GPUO2DataTypes.h)
   add_definitions(-DGPUCA_ALIROOT_LIB)
   include_directories(display qa)
   include_directories(SYSTEM ${ROOT_INCLUDE_DIR})
@@ -345,6 +371,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/Common
                       ${CMAKE_SOURCE_DIR}/GPU/Utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Debug
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Definitions
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/DataTypes
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
@@ -354,7 +381,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/dEdx
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking
-                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Standalone
+                      ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/utils
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/hip
                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/opencl-common
@@ -452,28 +479,28 @@ endif()
 if(OPENCL1_ENABLED)
   target_compile_definitions(${targetName} PRIVATE OPENCL1_ENABLED)
 endif()
-if(OPENCL2_ENABLED)
-  target_compile_definitions(${targetName} PRIVATE OPENCL2_ENABLED)
+if(GPUCA_GPUCA_OPENCL2_ENABLED)
+  target_compile_definitions(${targetName} PRIVATE GPUCA_GPUCA_OPENCL2_ENABLED)
 endif()
 if(HIP_ENABLED)
   target_compile_definitions(${targetName} PRIVATE HIP_ENABLED)
 endif()
 
 # Add CMake recipes for GPU Tracking librararies
-if(CUDA_ENABLED OR OPENCL1_ENABLED OR OPENCL2_ENABLED OR HIP_ENABLED)
+if(CUDA_ENABLED OR OPENCL1_ENABLED OR GPUCA_GPUCA_OPENCL2_ENABLED OR HIP_ENABLED)
   if(CMAKE_SYSTEM_NAME MATCHES Darwin)
     message(WARNING "GPU Tracking disabled on MacOS")
   else()
     if(CUDA_ENABLED)
       add_subdirectory(Base/cuda)
     endif()
-    if(OPENCL1_ENABLED OR OPENCL2_ENABLED)
+    if(OPENCL1_ENABLED OR GPUCA_GPUCA_OPENCL2_ENABLED)
       add_subdirectory(Base/opencl-common)
     endif()
     if(OPENCL1_ENABLED)
       add_subdirectory(Base/opencl)
     endif()
-    if(OPENCL2_ENABLED)
+    if(GPUCA_GPUCA_OPENCL2_ENABLED)
       add_subdirectory(Base/opencl2)
     endif()
     if(HIP_ENABLED)

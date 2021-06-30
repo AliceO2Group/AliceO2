@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -70,6 +71,8 @@
 
 #include "DataFormatsTPC/Digit.h"
 #include "TPCReconstruction/KrCluster.h"
+#include "TPCReconstruction/KrBoxClusterFinderParam.h"
+
 #include "TPCBase/Mapper.h"
 
 #include "TPCBase/CalDet.h"
@@ -99,6 +102,8 @@ class KrBoxClusterFinder
   /// later filled with the recorded charges for each digit
   explicit KrBoxClusterFinder() = default;
 
+  explicit KrBoxClusterFinder(int sector) : mSector(sector){};
+
   /// If a gain map exists, the map can be loaded with this function
   /// The function expects a CalDet file with a gain map (gain entry for each pad).
   void loadGainMapFromFile(const std::string_view calDetFileName, const std::string_view gainMapName = "GainMap");
@@ -106,12 +111,57 @@ class KrBoxClusterFinder
   /// Function used in macro to fill the map with all recorded digits
   void fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSector, const int sector);
 
+  /// Function to fill single digi
+  void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
+
   /// After the map is created, we look for local maxima with this function:
-  std::vector<std::tuple<int, int, int>> findLocalMaxima();
+  std::vector<std::tuple<int, int, int>> findLocalMaxima(bool directFilling = false);
 
   /// After finding the local maxima, we can now build clusters around it.
   /// It works according to the explanation at the beginning of the header file.
-  KrCluster buildCluster(int clusterCenterPad, int clusterCenterRow, int clusterCenterTime);
+  KrCluster buildCluster(int clusterCenterPad, int clusterCenterRow, int clusterCenterTime, bool directFilling = false);
+
+  /// reset the ADC map
+  void resetADCMap();
+
+  /// reset cluster vector
+  void resetClusters() { mClusters.clear(); }
+
+  std::vector<KrCluster>& getClusters() { return mClusters; }
+  const std::vector<KrCluster>& getClusters() const { return mClusters; }
+
+  /// set sector of this instance
+  void setSector(int sector) { mSector = sector; }
+
+  /// ger sector of this instance
+  int getSector() const { return mSector; }
+
+  /// initialize the parameters from KrBoxClusterFinderParam
+  void init();
+
+  /// Set Function for minimum number of direct neighbours required
+  void setMinNumberOfNeighbours(int minNumberOfNeighbours) { mMinNumberOfNeighbours = minNumberOfNeighbours; }
+
+  /// Set Function for minimal charge required for maxCharge of a cluster
+  void setMinQTreshold(int minQThreshold) { mQThresholdMax = minQThreshold; }
+
+  /// Set Function for maximal cluster sizes in different ROCs
+  void setMaxClusterSize(int maxClusterSizeRowIROC, int maxClusterSizeRowOROC1, int maxClusterSizeRowOROC2, int maxClusterSizeRowOROC3,
+                         int maxClusterSizePadIROC, int maxClusterSizePadOROC1, int maxClusterSizePadOROC2, int maxClusterSizePadOROC3,
+                         int maxClusterSizeTime)
+  {
+    mMaxClusterSizeRowIROC = maxClusterSizeRowIROC;
+    mMaxClusterSizeRowOROC1 = maxClusterSizeRowOROC1;
+    mMaxClusterSizeRowOROC2 = maxClusterSizeRowOROC2;
+    mMaxClusterSizeRowOROC3 = maxClusterSizeRowOROC3;
+
+    mMaxClusterSizePadIROC = maxClusterSizePadIROC;
+    mMaxClusterSizePadOROC1 = maxClusterSizePadOROC1;
+    mMaxClusterSizePadOROC2 = maxClusterSizePadOROC2;
+    mMaxClusterSizePadOROC3 = maxClusterSizePadOROC3;
+
+    mMaxClusterSizeTime = maxClusterSizeTime;
+  }
 
  private:
   // These variables can be varied
@@ -130,23 +180,26 @@ class KrBoxClusterFinder
   int mMaxClusterSizePadOROC2 = 3; ///< The "radius" of a cluster in pad direction in OROC2
   int mMaxClusterSizePadOROC3 = 3; ///< The "radius" of a cluster in pad direction in OROC3
 
-  float mQThresholdMax = 10.0;    ///< the Maximum charge in a cluster must exceed this value or it is discarded
+  float mQThresholdMax = 30.0;    ///< the Maximum charge in a cluster must exceed this value or it is discarded
   float mQThreshold = 1.0;        ///< every charge which is added to a cluster must exceed this value or it is discarded
-  int mMinNumberOfNeighbours = 1; ///< amount of direct neighbours required for a cluster maximum
+  int mMinNumberOfNeighbours = 2; ///< amount of direct neighbours required for a cluster maximum
 
+  int mSector = -1;                 ///< sector being processed in this instance
   std::unique_ptr<CalPad> mGainMap; ///< Gain map object
 
   /// Maximum Map Dimensions
   /// Here is room for improvements
-  static constexpr size_t MaxPads = 138;  ///< Size of the map in pad-direction
-  static constexpr size_t MaxRows = 152;  ///< Size of the map in row-direction
-  static constexpr size_t MaxTimes = 550; ///< Size of the map in time-direction
+  static constexpr size_t MaxPads = 138;    ///< Size of the map in pad-direction
+  static constexpr size_t MaxRows = 152;    ///< Size of the map in row-direction
+  static constexpr size_t MaxTimes = 20000; ///< Size of the map in time-direction
 
   /// Values to define ROC boundaries
   static constexpr size_t MaxRowsIROC = 63;  ///< Amount of rows in IROC
   static constexpr size_t MaxRowsOROC1 = 34; ///< Amount of rows in OROC1
   static constexpr size_t MaxRowsOROC2 = 30; ///< Amount of rows in OROC2
   static constexpr size_t MaxRowsOROC3 = 25; ///< Amount of rows in OROC3
+
+  std::vector<o2::tpc::KrCluster> mClusters;
 
   /// Need an instance of Mapper to know position of pads
   const Mapper& mMapperInstance = o2::tpc::Mapper::instance();

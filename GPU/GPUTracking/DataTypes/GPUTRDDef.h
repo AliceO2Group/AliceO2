@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -28,13 +29,14 @@ class AliTrackerBase;
 #else
 namespace o2
 {
-namespace dataformats
+namespace gpu
 {
-class TrackTPCITS;
-} // namespace dataformats
+class GPUTRDO2BaseTrack;
+} // namespace gpu
 namespace base
 {
-class Propagator;
+template <typename>
+class PropagatorImpl;
 } // namespace base
 } // namespace o2
 #endif
@@ -55,7 +57,7 @@ typedef AliExternalTrackParam TRDBaseTrack;
 class GPUTPCGMTrackParam;
 typedef GPUTPCGMTrackParam TRDBaseTrackGPU;
 #elif defined(TRD_TRACK_TYPE_O2)
-typedef o2::dataformats::TrackTPCITS TRDBaseTrack;
+typedef o2::gpu::GPUTRDO2BaseTrack TRDBaseTrack;
 class GPUTPCGMTrackParam;
 typedef GPUTPCGMTrackParam TRDBaseTrackGPU;
 #endif
@@ -65,7 +67,7 @@ typedef AliTrackerBase TRDBasePropagator;
 class GPUTPCGMPropagator;
 typedef GPUTPCGMPropagator TRDBasePropagatorGPU;
 #else
-typedef o2::base::Propagator TRDBasePropagator;
+typedef o2::base::PropagatorImpl<float> TRDBasePropagator;
 class GPUTPCGMPropagator;
 typedef GPUTPCGMPropagator TRDBasePropagatorGPU;
 #endif
@@ -88,11 +90,6 @@ class GPUTRDTracker_t;
 typedef GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator> GPUTRDTracker;
 typedef GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU> GPUTRDTrackerGPU;
 
-#if defined(GPUCA_ALIGPUCODE) && !defined(GPUCA_ALIROOT_LIB) && !defined(__CLING__) && !defined(__ROOTCLING__) && !defined(G__ROOT)
-#define Error(...)
-#define Warning(...)
-#define Info(...)
-#endif
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

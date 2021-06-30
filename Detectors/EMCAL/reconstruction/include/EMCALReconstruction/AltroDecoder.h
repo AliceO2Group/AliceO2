@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -55,6 +56,18 @@ class AltroDecoderError : public std::exception
   /// \brief Access to error message cnnected to the error
   /// \return Error message
   const char* what() const noexcept override { return mErrorMessage.data(); }
+
+  /// \brief convert the error type from symoblic constant into int
+  /// \return the error number
+  static int errorTypeToInt(ErrorType_t errortype);
+
+  /// \brief convert the error from number into a type (symbolic constant)
+  /// \return the error type
+  static ErrorType_t intToErrorType(int errornumber);
+
+  /// \brief Get the number of error types handled by the AltroDecoderError
+  /// \return Number of error types
+  static constexpr int getNumberOfErrorTypes() noexcept { return 8; }
 
   /// \brief Access to the error type connected to the erro
   /// \return Error type

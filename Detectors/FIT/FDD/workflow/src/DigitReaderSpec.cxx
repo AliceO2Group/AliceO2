@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,6 +21,7 @@
 #include "FDDWorkflow/DigitReaderSpec.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/IOMCTruthContainerView.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 #include <vector>
 
 using namespace o2::framework;
@@ -37,13 +39,15 @@ DigitReader::DigitReader(bool useMC)
 
 void DigitReader::init(InitContext& ic)
 {
-  mInputFileName = ic.options().get<std::string>("fdd-digits-infile");
+  mInputFileName = o2::utils::Str::concat_string(o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("input-dir")),
+                                                 ic.options().get<std::string>("fdd-digits-infile"));
 }
 
 void DigitReader::run(ProcessingContext& pc)
 {
   std::vector<o2::fdd::Digit>* digitsBC = nullptr;
   std::vector<o2::fdd::ChannelData>* digitsCh = nullptr;
+  std::vector<o2::fdd::DetTrigInput>* digitsTrig = nullptr;
   o2::dataformats::IOMCTruthContainerView* mcTruthRootBuffer = nullptr;
 
   { // load data from files
@@ -58,8 +62,12 @@ void DigitReader::run(ProcessingContext& pc)
     LOG(INFO) << "Loaded FDD digits tree " << mDigitTreeName << " from " << mInputFileName;
 
     digTree->SetBranchAddress(mDigitBCBranchName.c_str(), &digitsBC);
-    digTree->SetBranchAddress(mDigitChBranchName.c_str(), &digitsCh);
+
+    digTree->SetBranchAddress(mTriggerBranchName.c_str(), &digitsTrig);
     if (mUseMC) {
+      if (digTree->GetBranch(mDigitChBranchName.c_str())) {
+        digTree->SetBranchAddress(mDigitChBranchName.c_str(), &digitsCh);
+      }
       if (digTree->GetBranch(mDigitMCTruthBranchName.c_str())) {
         digTree->SetBranchAddress(mDigitMCTruthBranchName.c_str(), &mcTruthRootBuffer);
         LOG(INFO) << "Will use MC-truth from " << mDigitMCTruthBranchName;
@@ -76,8 +84,11 @@ void DigitReader::run(ProcessingContext& pc)
   LOG(INFO) << "FDD DigitReader pushes " << digitsBC->size() << " digits";
   pc.outputs().snapshot(Output{mOrigin, "DIGITSBC", 0, Lifetime::Timeframe}, *digitsBC);
   pc.outputs().snapshot(Output{mOrigin, "DIGITSCH", 0, Lifetime::Timeframe}, *digitsCh);
+
   if (mUseMC) {
     // TODO: To be replaced with sending ConstMCTruthContainer as soon as reco workflow supports it
+    pc.outputs().snapshot(Output{mOrigin, "TRIGGERINPUT", 0, Lifetime::Timeframe}, *digitsTrig);
+
     std::vector<char> flatbuffer;
     mcTruthRootBuffer->copyandflatten(flatbuffer);
     o2::dataformats::MCTruthContainer<o2::fdd::MCLabel> mcTruth;
@@ -95,6 +106,7 @@ DataProcessorSpec getFDDDigitReaderSpec(bool useMC)
   outputSpec.emplace_back(o2::header::gDataOriginFDD, "DIGITSBC", 0, Lifetime::Timeframe);
   outputSpec.emplace_back(o2::header::gDataOriginFDD, "DIGITSCH", 0, Lifetime::Timeframe);
   if (useMC) {
+    outputSpec.emplace_back(o2::header::gDataOriginFDD, "TRIGGERINPUT", 0, Lifetime::Timeframe);
     outputSpec.emplace_back(o2::header::gDataOriginFDD, "DIGITLBL", 0, Lifetime::Timeframe);
   }
 
@@ -104,7 +116,8 @@ DataProcessorSpec getFDDDigitReaderSpec(bool useMC)
     outputSpec,
     AlgorithmSpec{adaptFromTask<DigitReader>()},
     Options{
-      {"fdd-digits-infile", VariantType::String, "fdddigits.root", {"Name of the input file"}}}};
+      {"fdd-digits-infile", VariantType::String, "fdddigits.root", {"Name of the input file"}},
+      {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 }
 
 } // namespace fdd

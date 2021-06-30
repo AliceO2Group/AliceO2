@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,7 +14,7 @@
 
 #include <vector>
 #include "DetectorsBase/Detector.h"
-#include "HMPIDBase/Hit.h"
+#include "DataFormatsHMP/Hit.h"
 
 class TGeoVolume;
 class TGeoHMatrix;
@@ -28,7 +29,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Detector(Bool_t active = true);
   ~Detector() override = default;
 
-  std::vector<HitType>* getHits(int iColl) const
+  std::vector<o2::hmpid::HitType>* getHits(int iColl) const
   {
     if (iColl == 0) {
       return mHits;
@@ -38,7 +39,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void InitializeO2Detector() override;
   bool ProcessHits(FairVolume* v) override;
-  HitType* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
+  o2::hmpid::HitType* AddHit(float x, float y, float z, float time, float energy, Int_t trackId, Int_t detId);
   void GenFee(float qtot);
   Bool_t IsLostByFresnel();
   float Fresnel(float ene, float pdoti, Bool_t pola);
@@ -61,7 +62,7 @@ class Detector : public o2::base::DetImpl<Detector>
   // copy constructor for CloneModule
   Detector(const Detector&);
 
-  std::vector<HitType>* mHits = nullptr; ///!< Collection of HMPID hits
+  std::vector<o2::hmpid::HitType>* mHits = nullptr; ///!< Collection of HMPID hits
   enum EMedia {
     kAir = 1,
     kRoha = 2,

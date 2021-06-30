@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,9 +16,9 @@
 #if 0
 #include <filesystem>
 namespace fs = std::filesystem;
-#elif __has_include(<boost/filesystem.hpp>)
-#include <boost/filesystem.hpp>
-namespace fs = boost::filesystem;
+#elif __has_include(<filesystem>)
+#include <filesystem>
+namespace fs = std::filesystem;
 #endif
 
 namespace
@@ -63,11 +64,25 @@ char const* ChannelSpecHelpers::methodAsString(enum ChannelMethod method)
   throw runtime_error("Unknown ChannelMethod");
 }
 
+namespace
+{
+std::string composeIPCName(std::string const& prefix, std::string const& hostname, short port)
+{
+  if (prefix == "@") {
+    return fmt::format("ipc://@{}_{},transport=shmem", hostname, port);
+  }
+  if (prefix.back() == '/') {
+    return fmt::format("ipc://{}{}_{},transport=shmem", prefix, hostname, port);
+  }
+  return fmt::format("ipc://{}/{}_{},transport=shmem", prefix, hostname, port);
+}
+} // namespace
+
 std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)
 {
   switch (channel.protocol) {
     case ChannelProtocol::IPC:
-      return fmt::format("ipc://{}/{}_{},transport=shmem", channel.ipcPrefix, channel.hostname, channel.port);
+      return composeIPCName(channel.ipcPrefix, channel.hostname, channel.port);
     default:
       return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
@@ -78,7 +93,7 @@ std::string ChannelSpecHelpers::channelUrl(InputChannelSpec const& channel)
 {
   switch (channel.protocol) {
     case ChannelProtocol::IPC:
-      return fmt::format("ipc://{}/{}_{},transport=shmem", channel.ipcPrefix, channel.hostname, channel.port);
+      return composeIPCName(channel.ipcPrefix, channel.hostname, channel.port);
     default:
       return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);

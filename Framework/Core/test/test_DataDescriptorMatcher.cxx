@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -604,44 +605,4 @@ BOOST_AUTO_TEST_CASE(DataQuery)
       << DataDescriptorMatcher::Op::Xor
       << DataDescriptorMatcher::Op::Just;
   BOOST_CHECK_EQUAL(ops.str(), "andorxorjust");
-}
-
-BOOST_AUTO_TEST_CASE(CheckOriginWildcard)
-{
-  auto result0 = DataDescriptorQueryBuilder::parse("x:TST");
-  BOOST_CHECK_EQUAL(result0.size(), 1);
-  DataDescriptorMatcher expectedMatcher00{
-    DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{"TST"},
-    std::make_unique<DataDescriptorMatcher>(
-      DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{ContextRef{1}},
-      std::make_unique<DataDescriptorMatcher>(
-        DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ContextRef{2}},
-        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
-                                                StartTimeValueMatcher{ContextRef{0}})))};
-  auto matcher = std::get_if<DataDescriptorMatcher>(&result0[0].matcher);
-  BOOST_REQUIRE(matcher != nullptr);
-  BOOST_CHECK_EQUAL(expectedMatcher00, *matcher);
-}
-
-BOOST_AUTO_TEST_CASE(CheckOriginDescriptionWildcard)
-{
-  auto result0 = DataDescriptorQueryBuilder::parse("x:TST/A");
-  BOOST_CHECK_EQUAL(result0.size(), 1);
-  DataDescriptorMatcher expectedMatcher00{
-    DataDescriptorMatcher::Op::And,
-    OriginValueMatcher{"TST"},
-    std::make_unique<DataDescriptorMatcher>(
-      DataDescriptorMatcher::Op::And,
-      DescriptionValueMatcher{"A"},
-      std::make_unique<DataDescriptorMatcher>(
-        DataDescriptorMatcher::Op::And,
-        SubSpecificationTypeValueMatcher{ContextRef{1}},
-        std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
-                                                StartTimeValueMatcher{ContextRef{0}})))};
-  auto matcher = std::get_if<DataDescriptorMatcher>(&result0[0].matcher);
-  BOOST_REQUIRE(matcher != nullptr);
-  BOOST_CHECK_EQUAL(expectedMatcher00, *matcher);
 }

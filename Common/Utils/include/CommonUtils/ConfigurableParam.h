@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -143,6 +144,12 @@ class ConfigurableParam
     /* can add more modes here */
   };
 
+  enum class EParamUpdateStatus {
+    Changed,   // param was successfully changed
+    Unchanged, // param was not changed: new value is the same as previous
+    Failed     // failed to update param
+  };
+
   static std::string toString(EParamProvenance p)
   {
     static std::array<std::string, 3> names = {"CODE", "CCDB", "RT"};
@@ -155,8 +162,19 @@ class ConfigurableParam
   // print the current keys and values to screen (optionally with provenance information)
   virtual void printKeyValues(bool showprov = true) const = 0;
 
+  // return the provenance of the member key
+  virtual EParamProvenance getMemberProvenance(const std::string& key) const = 0;
+
+  static EParamProvenance getProvenance(const std::string& key);
+
   static void printAllRegisteredParamNames();
   static void printAllKeyValuePairs();
+
+  static const std::string& getInputDir() { return sInputDir; }
+  static const std::string& getOutputDir() { return sOutputDir; }
+
+  static void setInputDir(const std::string& d) { sInputDir = d; }
+  static void setOutputDir(const std::string& d) { sOutputDir = d; }
 
   static boost::property_tree::ptree readINI(std::string const& filepath);
   static boost::property_tree::ptree readJSON(std::string const& filepath);
@@ -189,7 +207,7 @@ class ConfigurableParam
       if (sPtree->get_optional<std::string>(key).is_initialized()) {
         sPtree->put(key, x);
         auto changed = updateThroughStorageMap(mainkey, subkey, typeid(T), (void*)&x);
-        if (changed) {
+        if (changed != EParamUpdateStatus::Failed) {
           sValueProvenanceMap->find(key)->second = kRT; // set to runtime
         }
       }
@@ -210,7 +228,7 @@ class ConfigurableParam
       if (sPtree->get_optional<std::string>(key).is_initialized()) {
         sPtree->put(key, valuestring);
         auto changed = updateThroughStorageMapWithConversion(key, valuestring);
-        if (changed) {
+        if (changed != EParamUpdateStatus::Failed) {
           sValueProvenanceMap->find(key)->second = kRT; // set to runtime
         }
       }
@@ -240,7 +258,9 @@ class ConfigurableParam
   static void updateFromString(std::string const&);
 
   // provide a path to a configuration file with ConfigurableParam key/values
-  static void updateFromFile(std::string const&);
+  // If nonempty comma-separated paramsList is provided, only those params will
+  // be updated, absence of data for any of requested params will lead to fatal
+  static void updateFromFile(std::string const&, std::string const& paramsList = "", bool unchangedOnly = false);
 
  protected:
   // constructor is doing nothing else but
@@ -250,8 +270,8 @@ class ConfigurableParam
   friend std::ostream& operator<<(std::ostream& out, const ConfigurableParam& me);
 
   static void initPropertyTree();
-  static bool updateThroughStorageMap(std::string, std::string, std::type_info const&, void*);
-  static bool updateThroughStorageMapWithConversion(std::string const&, std::string const&);
+  static EParamUpdateStatus updateThroughStorageMap(std::string, std::string, std::type_info const&, void*);
+  static EParamUpdateStatus updateThroughStorageMapWithConversion(std::string const&, std::string const&);
 
   virtual ~ConfigurableParam() = default;
 
@@ -272,6 +292,9 @@ class ConfigurableParam
   // A registry of enum names and their allowed values
   // (stored as a vector of pairs <enumValueLabel, enumValueInt>)
   static EnumRegistry* sEnumRegistry;
+
+  static std::string sInputDir;
+  static std::string sOutputDir;
 
   void setRegisterMode(bool b) { sRegisterMode = b; }
   bool isInitialized() const { return sIsFullyInitialized; }

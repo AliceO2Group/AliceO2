@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,6 +20,7 @@
 #include "MCHClustering/ClusterFinderOriginal.h"
 
 #include <algorithm>
+#include <cstring>
 #include <iterator>
 #include <limits>
 #include <numeric>
@@ -33,6 +35,7 @@
 
 #include <FairMQLogger.h>
 
+#include "MCHClustering/ClusterizerParam.h"
 #include "PadOriginal.h"
 #include "ClusterOriginal.h"
 #include "MathiesonOriginal.h"
@@ -48,26 +51,59 @@ ClusterFinderOriginal::ClusterFinderOriginal()
     mPreCluster(std::make_unique<ClusterOriginal>())
 {
   /// default constructor
-
-  // Mathieson function for station 1
-  mMathiesons[0].setPitch(0.21);
-  mMathiesons[0].setSqrtKx3AndDeriveKx2Kx4(0.7000);
-  mMathiesons[0].setSqrtKy3AndDeriveKy2Ky4(0.7550);
-
-  // Mathieson function for other stations
-  mMathiesons[1].setPitch(0.25);
-  mMathiesons[1].setSqrtKx3AndDeriveKx2Kx4(0.7131);
-  mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(0.7642);
 }
 
 //_________________________________________________________________________________________________
 ClusterFinderOriginal::~ClusterFinderOriginal() = default;
 
 //_________________________________________________________________________________________________
-void ClusterFinderOriginal::init()
+void ClusterFinderOriginal::init(bool run2Config)
 {
-  /// initialize the clustering
+  /// initialize the clustering for run2 or run3 data
+
   mPreClusterFinder.init();
+
+  if (run2Config) {
+
+    // function to reinterpret digit ADC as calibrated charge
+    mADCToCharge = [](uint32_t adc) {
+      float charge(0.);
+      std::memcpy(&charge, &adc, sizeof(adc));
+      return static_cast<double>(charge);
+    };
+
+    // minimum charge of pad, pixel and cluster
+    mLowestPadCharge = 4.f * 0.22875f;
+    mLowestPixelCharge = mLowestPadCharge / 12.;
+    mLowestClusterCharge = 2. * mLowestPadCharge;
+
+    // Mathieson function for station 1
+    mMathiesons[0].setPitch(0.21);
+    mMathiesons[0].setSqrtKx3AndDeriveKx2Kx4(0.7000);
+    mMathiesons[0].setSqrtKy3AndDeriveKy2Ky4(0.7550);
+
+    // Mathieson function for other stations
+    mMathiesons[1].setPitch(0.25);
+    mMathiesons[1].setSqrtKx3AndDeriveKx2Kx4(0.7131);
+    mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(0.7642);
+
+  } else {
+
+    // minimum charge of pad, pixel and cluster
+    mLowestPadCharge = ClusterizerParam::Instance().lowestPadCharge;
+    mLowestPixelCharge = mLowestPadCharge / 12.;
+    mLowestClusterCharge = 2. * mLowestPadCharge;
+
+    // Mathieson function for station 1
+    mMathiesons[0].setPitch(ClusterizerParam::Instance().pitchSt1);
+    mMathiesons[0].setSqrtKx3AndDeriveKx2Kx4(ClusterizerParam::Instance().mathiesonSqrtKx3St1);
+    mMathiesons[0].setSqrtKy3AndDeriveKy2Ky4(ClusterizerParam::Instance().mathiesonSqrtKy3St1);
+
+    // Mathieson function for other stations
+    mMathiesons[1].setPitch(ClusterizerParam::Instance().pitchSt2345);
+    mMathiesons[1].setSqrtKx3AndDeriveKx2Kx4(ClusterizerParam::Instance().mathiesonSqrtKx3St2345);
+    mMathiesons[1].setSqrtKy3AndDeriveKy2Ky4(ClusterizerParam::Instance().mathiesonSqrtKy3St2345);
+  }
 }
 
 //_________________________________________________________________________________________________
@@ -123,11 +159,12 @@ void ClusterFinderOriginal::findClusters(gsl::span<const Digit> digits)
       }
       int nNewDigits = mUsedDigits.size() - iFirstNewDigit;
 
-      // give the new clusters a unique ID and make them point to these digits
+      // give the new clusters a unique ID, make them point to these digits then set their resolution
       for (; iNewCluster < mClusters.size(); ++iNewCluster) {
         mClusters[iNewCluster].uid = ClusterStruct::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), iNewCluster);
         mClusters[iNewCluster].firstDigit = iFirstNewDigit;
         mClusters[iNewCluster].nDigits = nNewDigits;
+        setClusterResolution(mClusters[iNewCluster]);
       }
     }
   }
@@ -173,8 +210,8 @@ void ClusterFinderOriginal::resetPreCluster(gsl::span<const Digit>& digits)
     double y = mSegmentation->padPositionY(padID);
     double dx = mSegmentation->padSizeX(padID) / 2.;
     double dy = mSegmentation->padSizeY(padID) / 2.;
-    double charge = static_cast<double>(digit.getADC()) / static_cast<double>(std::numeric_limits<unsigned long>::max()) * 1024;
-    bool isSaturated = digit.getTime().time > 0;
+    double charge = mADCToCharge(digit.getADC());
+    bool isSaturated = digit.isSaturated();
     int plane = mSegmentation->isBendingPad(padID) ? 0 : 1;
 
     if (charge <= 0.) {
@@ -194,7 +231,7 @@ void ClusterFinderOriginal::simplifyPreCluster(std::vector<int>& removedDigits)
   /// return true if the precluster has been simplified
 
   // discard small clusters (leftovers from splitting or noise)
-  if (mPreCluster->multiplicity() < 3 && mPreCluster->charge() < SLowestClusterCharge) {
+  if (mPreCluster->multiplicity() < 3 && mPreCluster->charge() < mLowestClusterCharge) {
     mPreCluster->clear();
     return;
   }
@@ -237,7 +274,7 @@ void ClusterFinderOriginal::simplifyPreCluster(std::vector<int>& removedDigits)
         continue;
       }
       const auto& pad = mPreCluster->pad(i);
-      if (nNotOverlapping == 1 && pad.charge() < SLowestPadCharge) {
+      if (nNotOverlapping == 1 && pad.charge() < mLowestPadCharge) {
         break; // there is only one
       }
       int cathPadIdx = cathSeg[1 - pad.plane()]->findPadByPosition(pad.x(), pad.y());
@@ -546,7 +583,7 @@ void ClusterFinderOriginal::findLocalMaxima(std::unique_ptr<TH2D>& histAnode,
   std::vector<std::vector<int>> isLocalMax(nBinsX, std::vector<int>(nBinsY, 0));
   for (int j = 1; j <= nBinsY; ++j) {
     for (int i = 1; i <= nBinsX; ++i) {
-      if (isLocalMax[i - 1][j - 1] == 0 && histAnode->GetBinContent(i, j) >= SLowestPixelCharge) {
+      if (isLocalMax[i - 1][j - 1] == 0 && histAnode->GetBinContent(i, j) >= mLowestPixelCharge) {
         flagLocalMaxima(*histAnode, i, j, isLocalMax);
       }
     }
@@ -559,7 +596,7 @@ void ClusterFinderOriginal::findLocalMaxima(std::unique_ptr<TH2D>& histAnode,
     for (int i = 1; i <= nBinsX; ++i) {
       if (isLocalMax[i - 1][j - 1] > 0) {
         localMaxima.emplace(histAnode->GetBinContent(i, j), std::make_pair(i, j));
-        auto itPixel = findPad(mPixels, xAxis->GetBinCenter(i), yAxis->GetBinCenter(j), SLowestPixelCharge);
+        auto itPixel = findPad(mPixels, xAxis->GetBinCenter(i), yAxis->GetBinCenter(j), mLowestPixelCharge);
         itPixel->setStatus(PadOriginal::kMustKeep);
         if (localMaxima.size() > 99) {
           break;
@@ -638,7 +675,7 @@ void ClusterFinderOriginal::restrictPreCluster(const TH2D& histAnode, int i0, in
   for (int j = jMin; j <= jMax; ++j) {
     for (int i = iMin; i <= iMax; ++i) {
       double charge = histAnode.GetBinContent(i, j);
-      if (charge >= SLowestPixelCharge && charge <= charge0) {
+      if (charge >= mLowestPixelCharge && charge <= charge0) {
         mPixels.emplace_back(xAxis->GetBinCenter(i), yAxis->GetBinCenter(j), dx, dy, charge);
       }
     }
@@ -682,7 +719,7 @@ void ClusterFinderOriginal::processSimple()
   double qTot = mlem(coef, prob, 15);
 
   // abort if the total charge of the pixels is too low
-  if (qTot < 1.e-4 || (mPreCluster->multiplicity() < 3 && qTot < SLowestClusterCharge)) {
+  if (qTot < 1.e-4 || (mPreCluster->multiplicity() < 3 && qTot < mLowestClusterCharge)) {
     return;
   }
 
@@ -760,7 +797,7 @@ void ClusterFinderOriginal::process()
     double qTot = mlem(coef, prob, 15);
 
     // abort if the total charge of the pixels is too low
-    if (qTot < 1.e-4 || (npadOK < 3 && qTot < SLowestClusterCharge)) {
+    if (qTot < 1.e-4 || (npadOK < 3 && qTot < mLowestClusterCharge)) {
       return;
     }
 
@@ -788,14 +825,14 @@ void ClusterFinderOriginal::process()
   }
 
   // discard pixels with low visibility by moving their charge to their nearest neighbour (cuts are empirical !!!)
-  double threshold = TMath::Min(TMath::Max(histMLEM->GetMaximum() / 100., 2.0 * SLowestPixelCharge), 100.0 * SLowestPixelCharge);
+  double threshold = TMath::Min(TMath::Max(histMLEM->GetMaximum() / 100., 2.0 * mLowestPixelCharge), 100.0 * mLowestPixelCharge);
   cleanPixelArray(threshold, prob);
 
   // re-run the MLEM algorithm with 2 iterations
   double qTot = mlem(coef, prob, 2);
 
   // abort if the total charge of the pixels is too low
-  if (qTot < 2. * SLowestPixelCharge) {
+  if (qTot < 2. * mLowestPixelCharge) {
     return;
   }
 
@@ -907,7 +944,7 @@ void ClusterFinderOriginal::addVirtualPad()
       }
 
       // add the virtual pad
-      double charge = TMath::Max(TMath::Min(chargeMax[i] / chargeReduction[ixy], SLowestPadCharge), 2. * SLowestPixelCharge);
+      double charge = TMath::Max(TMath::Min(chargeMax[i] / chargeReduction[ixy], mLowestPadCharge), 2. * mLowestPixelCharge);
       mPreCluster->addPad(cathSeg[iPlaneXY[ixy]]->padPositionX(cathPadIdx), cathSeg[iPlaneXY[ixy]]->padPositionY(cathPadIdx),
                           cathSeg[iPlaneXY[ixy]]->padSizeX(cathPadIdx) / 2., cathSeg[iPlaneXY[ixy]]->padSizeY(cathPadIdx) / 2.,
                           charge, false, iPlaneXY[ixy], -1, pad.status());
@@ -1114,20 +1151,19 @@ void ClusterFinderOriginal::refinePixelArray(const double xyCOG[2], size_t nPixM
   /// shift the pixels to align the array with the center of gravity around the
   /// maximum pixel charge and update the current pixel array and its limits.
   /// nPixMax is the maximum number of new pixels that can be produced.
-  /// all pixels have the same charge (SLowestPadCharge) in the end
+  /// all pixels have the same charge (mLowestPadCharge) in the end
 
   xMin = std::numeric_limits<double>::max();
   xMax = -std::numeric_limits<double>::max();
   yMin = std::numeric_limits<double>::max();
   yMax = -std::numeric_limits<double>::max();
 
-  // sort pixels according to the charge and move all pixels that must be kept at the begining
-  shiftPixelsToKeep(10000.);
+  // sort pixels according to the charge and move all pixels that must be kept at the beginning
   std::stable_sort(mPixels.begin(), mPixels.end(), [](const PadOriginal& pixel1, const PadOriginal& pixel2) {
-    return pixel1.charge() > pixel2.charge();
+    return (pixel1.status() == PadOriginal::kMustKeep && pixel2.status() != PadOriginal::kMustKeep) ||
+           (pixel1.status() == pixel2.status() && pixel1.charge() > pixel2.charge());
   });
-  shiftPixelsToKeep(-10000.);
-  double pixMinCharge = TMath::Min(0.01 * mPixels.front().charge(), 100. * SLowestPixelCharge);
+  double pixMinCharge = TMath::Min(0.01 * mPixels.front().charge(), 100. * mLowestPixelCharge);
 
   // define the half-size and shift of the new pixels depending on the direction of splitting
   double width[2] = {mPixels.front().dx(), mPixels.front().dy()};
@@ -1164,7 +1200,7 @@ void ClusterFinderOriginal::refinePixelArray(const double xyCOG[2], size_t nPixM
     pixel.sety(pixel.y() + shift[1] - shiftToCOG[1]);
     pixel.setdx(width[0]);
     pixel.setdy(width[1]);
-    pixel.setCharge(SLowestPadCharge);
+    pixel.setCharge(mLowestPadCharge);
     xMin = TMath::Min(xMin, pixel.x());
     yMin = TMath::Min(yMin, pixel.y());
     ++nNewPixels;
@@ -1211,19 +1247,6 @@ void ClusterFinderOriginal::refinePixelArray(const double xyCOG[2], size_t nPixM
     mPixels.emplace_back(mPixels.front());
     mPixels.back().setx(xMin);
     mPixels.back().sety(xyCOG[1]);
-  }
-}
-
-//_________________________________________________________________________________________________
-void ClusterFinderOriginal::shiftPixelsToKeep(double charge)
-{
-  /// add the given charge to the pixels tagged as kMustKeep
-  /// (just a trick to put them in front when sorting pixels by charge)
-
-  for (auto& pixel : mPixels) {
-    if (pixel.status() == PadOriginal::kMustKeep) {
-      pixel.setCharge(pixel.charge() + charge);
-    }
   }
 }
 
@@ -1423,7 +1446,7 @@ int ClusterFinderOriginal::fit(const std::vector<const std::vector<int>*>& clust
   double chargeFraction[SNFitClustersMax] = {0.};
   param2ChargeFraction(fitParam, nParamUsed, chargeFraction);
   for (int iParam = 0; iParam < nParamUsed; iParam += 3) {
-    if (chargeFraction[iParam / 3] * fitParam[SNFitParamMax] >= SLowestClusterCharge) {
+    if (chargeFraction[iParam / 3] * fitParam[SNFitParamMax] >= mLowestClusterCharge) {
       mClusters.push_back({static_cast<float>(fitParam[iParam]), static_cast<float>(fitParam[iParam + 1]), 0., 0., 0., 0, 0, 0});
     }
   }
@@ -1693,7 +1716,7 @@ void ClusterFinderOriginal::split(const TH2D& histMLEM, const std::vector<double
   std::vector<std::vector<bool>> isUsed(nBinsX, std::vector<bool>(nBinsY, false));
   for (int j = 1; j <= nBinsY; ++j) {
     for (int i = 1; i <= nBinsX; ++i) {
-      if (!isUsed[i - 1][j - 1] && histMLEM.GetBinContent(i, j) >= SLowestPixelCharge) {
+      if (!isUsed[i - 1][j - 1] && histMLEM.GetBinContent(i, j) >= mLowestPixelCharge) {
         // add a new cluster of pixels and the associated pixels recursively
         clustersOfPixels.emplace_back();
         addPixel(histMLEM, i, j, clustersOfPixels.back(), isUsed);
@@ -1811,9 +1834,9 @@ void ClusterFinderOriginal::split(const TH2D& histMLEM, const std::vector<double
 void ClusterFinderOriginal::addPixel(const TH2D& histMLEM, int i0, int j0, std::vector<int>& pixels, std::vector<std::vector<bool>>& isUsed)
 {
   /// add a pixel to the cluster of pixels then add recursively its neighbours,
-  /// if their charge is higher than SLowestPixelCharge and excluding corners
+  /// if their charge is higher than mLowestPixelCharge and excluding corners
 
-  auto itPixel = findPad(mPixels, histMLEM.GetXaxis()->GetBinCenter(i0), histMLEM.GetYaxis()->GetBinCenter(j0), SLowestPixelCharge);
+  auto itPixel = findPad(mPixels, histMLEM.GetXaxis()->GetBinCenter(i0), histMLEM.GetYaxis()->GetBinCenter(j0), mLowestPixelCharge);
   pixels.push_back(std::distance(mPixels.begin(), itPixel));
   isUsed[i0 - 1][j0 - 1] = true;
 
@@ -1823,7 +1846,7 @@ void ClusterFinderOriginal::addPixel(const TH2D& histMLEM, int i0, int j0, std::
   int jMax = TMath::Min(histMLEM.GetNbinsY(), j0 + 1);
   for (int j = jMin; j <= jMax; ++j) {
     for (int i = iMin; i <= iMax; ++i) {
-      if (!isUsed[i - 1][j - 1] && (i == i0 || j == j0) && histMLEM.GetBinContent(i, j) >= SLowestPixelCharge) {
+      if (!isUsed[i - 1][j - 1] && (i == i0 || j == j0) && histMLEM.GetBinContent(i, j) >= mLowestPixelCharge) {
         addPixel(histMLEM, i, j, pixels, isUsed);
       }
     }
@@ -2026,8 +2049,46 @@ void ClusterFinderOriginal::updatePads(const double fitParam[SNFitParamMax + 1],
       }
 
       // reset the pad status to further use it if its charge is high enough
-      pad.setStatus((pad.charge() > SLowestPadCharge) ? PadOriginal::kZero : PadOriginal::kOver);
+      pad.setStatus((pad.charge() > mLowestPadCharge) ? PadOriginal::kZero : PadOriginal::kOver);
     }
+  }
+}
+
+//_________________________________________________________________________________________________
+void ClusterFinderOriginal::setClusterResolution(ClusterStruct& cluster) const
+{
+  /// set the cluster resolution in both directions depending on whether its position
+  /// lies on top of a fired digit in both planes or not (e.g. mono-cathode)
+
+  if (cluster.getChamberId() < 4) {
+
+    // do not consider mono-cathode clusters in stations 1 and 2
+    cluster.ex = ClusterizerParam::Instance().defaultClusterResolution;
+    cluster.ey = ClusterizerParam::Instance().defaultClusterResolution;
+
+  } else {
+
+    // find pads below the cluster
+    int padIDNB(-1), padIDB(-1);
+    bool padsFound = mSegmentation->findPadPairByPosition(cluster.x, cluster.y, padIDB, padIDNB);
+
+    // look for these pads (if any) in the list of digits associated to this cluster
+    auto itPadNB = mUsedDigits.end();
+    if (padsFound || mSegmentation->isValid(padIDNB)) {
+      itPadNB = std::find_if(mUsedDigits.begin() + cluster.firstDigit, mUsedDigits.end(),
+                             [padIDNB](const Digit& digit) { return digit.getPadID() == padIDNB; });
+    }
+    auto itPadB = mUsedDigits.end();
+    if (padsFound || mSegmentation->isValid(padIDB)) {
+      itPadB = std::find_if(mUsedDigits.begin() + cluster.firstDigit, mUsedDigits.end(),
+                            [padIDB](const Digit& digit) { return digit.getPadID() == padIDB; });
+    }
+
+    // set the cluster resolution accordingly
+    cluster.ex = (itPadNB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolution
+                                                : ClusterizerParam::Instance().defaultClusterResolution;
+    cluster.ey = (itPadB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolution
+                                               : ClusterizerParam::Instance().defaultClusterResolution;
   }
 }
 

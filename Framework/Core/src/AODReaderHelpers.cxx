@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -30,7 +31,6 @@
 
 #include <Monitoring/Monitoring.h>
 
-#include <ROOT/RDataFrame.hxx>
 #include <TGrid.h>
 #include <TFile.h>
 #include <TTreeCache.h>
@@ -86,7 +86,6 @@ static inline auto extractOriginalsTuple(framework::pack<Os...>, ProcessingConte
 AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -135,6 +134,8 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCSparseMetadata{}));
         } else if (description == header::DataDescription{"MA_RN3_BC_EX"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::Run3MatchedToBCExclusiveMetadata{}));
+        } else if (description == header::DataDescription{"MA_RN2_BC_SP"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::Run2MatchedToBCSparseMetadata{}));
         } else {
           throw std::runtime_error("Not an index table");
         }
@@ -146,7 +147,6 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec> requ
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> requested)
 {
   return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
-
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -167,15 +167,19 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec> reques
           using metadata_t = decltype(metadata);
           using expressions = typename metadata_t::expression_pack_t;
           auto original_table = pc.inputs().get<TableConsumer>(input.binding)->asArrowTable();
-          return o2::framework::spawner(expressions{}, original_table.get());
+          return o2::framework::spawner(expressions{}, original_table.get(), input.binding.c_str());
         };
 
-        if (description == header::DataDescription{"TRACK:PAR"}) {
+        if (description == header::DataDescription{"TRACK"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksExtensionMetadata{}));
-        } else if (description == header::DataDescription{"TRACK:PARCOV"}) {
+        } else if (description == header::DataDescription{"TRACKCOV"}) {
           outputs.adopt(Output{origin, description}, maker(o2::aod::TracksCovExtensionMetadata{}));
-        } else if (description == header::DataDescription{"MUON"}) {
-          outputs.adopt(Output{origin, description}, maker(o2::aod::MuonsExtensionMetadata{}));
+        } else if (description == header::DataDescription{"MFTTRACK"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::MFTTracksExtensionMetadata{}));
+        } else if (description == header::DataDescription{"FWDTRACK"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksExtensionMetadata{}));
+        } else if (description == header::DataDescription{"FWDTRACKCOV"}) {
+          outputs.adopt(Output{origin, description}, maker(o2::aod::FwdTracksCovExtensionMetadata{}));
         } else {
           throw runtime_error("Not an extended table");
         }

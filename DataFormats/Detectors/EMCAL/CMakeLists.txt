@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(DataFormatsEMCAL
                SOURCES src/EMCALBlockHeader.cxx 
@@ -18,6 +19,7 @@ o2_add_library(DataFormatsEMCAL
                        src/Digit.cxx
                        src/EventHandler.cxx
                        src/CTF.cxx
+                       src/ErrorTypeFEE.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonDataFormat 
                                      O2::Headers 
                                      O2::MathUtils 
@@ -35,7 +37,8 @@ o2_target_root_dictionary(DataFormatsEMCAL
                                   include/DataFormatsEMCAL/AnalysisCluster.h
                                   include/DataFormatsEMCAL/EventHandler.h
                                   include/DataFormatsEMCAL/MCLabel.h
-                                  include/DataFormatsEMCAL/CTF.h)
+                                  include/DataFormatsEMCAL/CTF.h
+                                  include/DataFormatsEMCAL/ErrorTypeFEE.h)
 
 o2_add_test(Cell
             SOURCES test/testCell.cxx

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,6 +14,7 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 #include <boost/variant.hpp>
 
@@ -75,12 +77,16 @@ class CalibTreeDump
   /// Dump the registered calibration data to file
   void dumpToFile(const std::string filename = "CalibTree.root");
 
+  /// Add complementary information
+  void addInfo(const std::string_view name, float value) { mAddInfo[name.data()] = value; }
+
  private:
-  std::vector<DataTypes*> mCalDetObjects{};   ///< array of CalDet objects
-  std::vector<DataTypes*> mCalArrayObjects{}; ///< array of CalArray objects
-  bool mAddFEEInfo{false};                   ///< add front end electronics mappings
-  std::vector<float> mTraceLengthIROC;       ///< trace lengths IROC
-  std::vector<float> mTraceLengthOROC;       ///< trace lengths OROC
+  std::unordered_map<std::string, float> mAddInfo{}; ///< additional common information to be added to the output tree
+  std::vector<DataTypes*> mCalDetObjects{};          ///< array of CalDet objects
+  std::vector<DataTypes*> mCalArrayObjects{};        ///< array of CalArray objects
+  bool mAddFEEInfo{false};                           ///< add front end electronics mappings
+  std::vector<float> mTraceLengthIROC;               ///< trace lengths IROC
+  std::vector<float> mTraceLengthOROC;               ///< trace lengths OROC
 
   /// add default mapping like local, global x/y positions
   void addDefaultMapping(TTree* tree);

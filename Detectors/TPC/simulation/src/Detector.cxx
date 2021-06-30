@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -1436,11 +1437,11 @@ void Detector::ConstructTPCGeometry()
   //
   auto* cflv = new TGeoVolume("TPC_CDR", cfl, m3);
   // sandwich
-  auto* cd1 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 0.2, 119.95);
-  auto* cd2 = new TGeoTubeSeg(60.6262, 61.1862, 69.8, 0.2, 119.95);
-  auto* cd3 = new TGeoTubeSeg(60.6462, 61.1662, 69.8, 0.2, 119.95);
-  auto* cd4 = new TGeoTubeSeg(60.6562, 61.1562, 69.8, 0.2, 119.95);
-  auto* tepox4 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 359.8, 0.8);
+  auto* cd1 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 0.05, 119.95);
+  auto* cd2 = new TGeoTubeSeg(60.6262, 61.1862, 69.8, 0.05, 119.95);
+  auto* cd3 = new TGeoTubeSeg(60.6462, 61.1662, 69.8, 0.05, 119.95);
+  auto* cd4 = new TGeoTubeSeg(60.6562, 61.1562, 69.8, 0.05, 119.95);
+  auto* tepox4 = new TGeoTubeSeg(60.6224, 61.19, 69.8, 359.95, 0.05); //epoxy glue 0.01 deg
   //
   TGeoMedium* sm6 = gGeoManager->GetMedium("TPC_Prepreg1");
   TGeoMedium* sm8 = gGeoManager->GetMedium("TPC_Epoxyfm");

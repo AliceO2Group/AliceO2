@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -59,6 +60,10 @@ class CTFCoderBase
   template <typename S>
   void createCoder(OpType op, const o2::rans::FrequencyTable& freq, uint8_t probabilityBits, int slot)
   {
+    if (!freq.size()) {
+      LOG(WARNING) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
+    }
+
     switch (op) {
       case OpType::Encoder:
         mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(freq, probabilityBits));
@@ -77,7 +82,7 @@ class CTFCoderBase
   }
 
  protected:
-  std::string getPrefix() const { return o2::utils::concat_string(mDet.getName(), "_CTF: "); }
+  std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
 
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;

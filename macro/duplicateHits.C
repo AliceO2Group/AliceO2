@@ -8,15 +8,23 @@
 #include "TRDSimulation/Detector.h" // For TRD Hit
 #include "FT0Simulation/Detector.h" // for Fit Hit
 #include "DataFormatsFV0/Hit.h"
-#include "HMPIDBase/Hit.h"
+#include "DataFormatsHMP/Hit.h"
 #include "TPCSimulation/Point.h"
 #include "PHOSBase/Hit.h"
 #include "DataFormatsFDD/Hit.h"
 #include "MCHSimulation/Hit.h"
 #include "MIDSimulation/Hit.h"
-#include "CPVBase/Hit.h"
+#include "DataFormatsCPV/Hit.h"
 #include "DataFormatsZDC/Hit.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/SimTraits.h"
+
+#ifdef ENABLE_UPGRADES
+#include "EndCapsSimulation/Hit.h"
+#endif
+
 #endif
 
 template <typename T>
@@ -37,7 +45,7 @@ void duplicate(TTree* tr, const char* brname, TTree* outtree, int factor)
 
   for (int i = 0; i < entries; ++i) {
     br->GetEntry(i);
-    for (int i = 0; i < factor; ++i) {
+    for (int j = 0; j < factor; ++j) {
       outbranch->Fill();
     }
   }
@@ -168,10 +176,10 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   auto kintree = getKinematicsTree(filebase);
   auto newkintree = getKinematicsTree(newfilebase, "RECREATE");
   // duplicate meta branches
-  duplicate<o2::MCTrack>(kintree, "MCTrack", newkintree, factor);
+  duplicate<std::vector<o2::MCTrack>>(kintree, "MCTrack", newkintree, factor);
   duplicate<o2::dataformats::MCEventHeader>(kintree, "MCEventHeader.", newkintree, factor);
   // TODO: fix EventIDs in the newly created MCEventHeaders
-  duplicate<o2::TrackReference>(kintree, "TrackRefs", newkintree, factor);
+  duplicate<std::vector<o2::TrackReference>>(kintree, "TrackRefs", newkintree, factor);
   newkintree->Write();
 
   // duplicating hits
@@ -180,7 +188,7 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   duplicateV<o2::itsmft::Hit>(grp, filebase, DetID::MFT, newfilebase, factor);
   duplicateV<o2::tof::HitType>(grp, filebase, DetID::TOF, newfilebase, factor);
   duplicateV<o2::emcal::Hit>(grp, filebase, DetID::EMC, newfilebase, factor);
-  duplicateV<o2::trd::HitType>(grp, filebase, DetID::TRD, newfilebase, factor);
+  duplicateV<o2::trd::Hit>(grp, filebase, DetID::TRD, newfilebase, factor);
   duplicateV<o2::phos::Hit>(grp, filebase, DetID::PHS, newfilebase, factor);
   duplicateV<o2::cpv::Hit>(grp, filebase, DetID::CPV, newfilebase, factor);
   duplicateV<o2::zdc::Hit>(grp, filebase, DetID::ZDC, newfilebase, factor);
@@ -191,6 +199,11 @@ void duplicateHits(const char* filebase = "o2sim", const char* newfilebase = "o2
   duplicateV<o2::mid::Hit>(grp, filebase, DetID::MID, newfilebase, factor);
   duplicateV<o2::mch::Hit>(grp, filebase, DetID::MCH, newfilebase, factor);
   duplicateV<o2::tpc::HitGroup>(grp, filebase, DetID::TPC, newfilebase, factor);
+
+#ifdef ENABLE_UPGRADES
+  duplicateV<o2::itsmft::Hit>(grp, filebase, DetID::FT3, newfilebase, factor);
+#endif
+
   // duplicateACO(reftree);
   // outfile.Write();
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -36,6 +37,28 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
  protected:
   GPUReconstructionCUDABackend(const GPUSettingsDeviceBackend& cfg);
 
+  void* GetBackendConstSymbolAddress();
+  void PrintKernelOccupancies() override;
+
+  template <class T, int I = 0, typename... Args>
+  int runKernelBackend(krnlSetup& _xyz, Args... args);
+  template <class T, int I = 0, typename... Args>
+  void runKernelBackendInternal(krnlSetup& _xyz, const Args&... args);
+  template <class T, int I = 0>
+  const krnlProperties getKernelPropertiesBackend();
+  template <class T, int I>
+  class backendInternal;
+
+  GPUReconstructionCUDAInternals* mInternals;
+};
+
+class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionCUDABackend>
+{
+ public:
+  ~GPUReconstructionCUDA() override;
+  GPUReconstructionCUDA(const GPUSettingsDeviceBackend& cfg);
+
+ protected:
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
   void UpdateSettings() override;
@@ -53,7 +76,7 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
   std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   bool CanQueryMaxMemory() override { return true; }
   void SynchronizeGPU() override;
-  int GPUDebug(const char* state = "UNKNOWN", int stream = -1) override;
+  int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override;
   void SynchronizeStream(int stream) override;
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
   void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) override;
@@ -73,22 +96,11 @@ class GPUReconstructionCUDABackend : public GPUReconstructionDeviceBase
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
 
-  void PrintKernelOccupancies() override;
-
-  template <class T, int I = 0, typename... Args>
-  int runKernelBackend(krnlSetup& _xyz, const Args&... args);
-  template <class T, int I = 0, typename... Args>
-  void runKernelBackendInternal(krnlSetup& _xyz, const Args&... args);
-  template <class T, int I = 0>
-  const krnlProperties getKernelPropertiesBackend();
-  template <class T, int I>
-  class backendInternal;
-
  private:
-  GPUReconstructionCUDAInternals* mInternals;
+  std::vector<void*> mDeviceConstantMemRTC;
+  int genRTC();
 };
 
-using GPUReconstructionCUDA = GPUReconstructionKernels<GPUReconstructionCUDABackend>;
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
 

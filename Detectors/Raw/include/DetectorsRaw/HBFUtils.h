@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -27,14 +28,14 @@ namespace raw
 {
 /*
     In the MC->Raw conversion we have to make sure that
-    1) The HB and TF starts are in sync for all detectors regardless on time (bc/orbir)
+    1) The HB and TF starts are in sync for all detectors regardless on time (0/orbit)
     distribution of its signal.
     2) All HBF and TF (RAWDataHeaders with corresponding HB and TF trigger flags) are present
     in the emulated raw data, even if some of them had no data in particular detector.
-    
+
     The HBFUtils class provides tools for interaction record -> HBF conversion and sampling
     of IRs for which the HBF RDH should be added to the raw data from the CRU.
-    
+
     See testHBFUtils.cxx for the outline of generating HBF frames for simulated data.
   */
 
@@ -42,8 +43,7 @@ namespace raw
 struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   using IR = o2::InteractionRecord;
 
-
-  IR getFirstIR() const { return {bcFirst, orbitFirst}; }
+  IR getFirstIR() const { return {0, orbitFirst}; }
 
   int getNOrbitsPerTF() const { return nHBFPerTF; }
 
@@ -69,6 +69,9 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   ///< get 1st IR of the TF corresponding to provided interaction record
   IR getFirstIRofTF(const IR& rec) const { return getIRTF(getTF(rec)); }
 
+  ///< get 1st IR of TF corresponding to the 1st sampled orbit (in MC)
+  IR getFirstSampledTFIR() const { return getFirstIRofTF({0, orbitFirstSampled}); }
+
   ///< get TF and HB (abs) for this IR
   std::pair<int, int> getTFandHB(const IR& rec) const
   {
@@ -85,8 +88,8 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
   void updateRDH(H& rdh, const IR& rec, bool setHBTF = true) const;
 
   /*//-------------------------------------------------------------------------------------
-    Fill provided vector (cleaned) by interaction records (bc/orbit) for HBFs, considering 
-    BCs between interaction records "fromIR"  and "toIR" (inclusive). 
+    Fill provided vector (cleaned) by interaction records (bc/orbit) for HBFs, considering
+    BCs between interaction records "fromIR"  and "toIR" (inclusive).
     This method provides the IRs for RDHs to add obligatory for the MC->raw conversion,
     in order to avoid missing HBFs (or even TFs)
     Typical use case: assume we are converting to RAW data the digits corresponding to triggers
@@ -123,9 +126,14 @@ struct HBFUtils : public o2::conf::ConfigurableParamHelper<HBFUtils> {
 
   void print() const { printKeyValues(true); }
 
-  int nHBFPerTF = 1 + 0xff; // number of orbits per BC
-  uint16_t bcFirst = 0;     ///< BC of 1st TF
-  uint32_t orbitFirst = 0;  ///< orbit of 1st TF
+  void checkConsistency() const;
+
+  int nHBFPerTF = 256;     ///< number of orbits per BC
+  uint32_t orbitFirst = 0; ///< orbit of 1st TF of the run
+
+  // used for MC
+  uint32_t orbitFirstSampled = 0;   ///< 1st orbit sampled in the MC
+  uint32_t maxNOrbits = 0xffffffff; ///< max number of orbits to accept, used in digit->raw conversion
 
   O2ParamDef(HBFUtils, "HBFUtils");
 };
@@ -139,10 +147,10 @@ void HBFUtils::updateRDH(H& rdh, const IR& rec, bool setHBTF) const
 
   if (setHBTF) { // need to set the HBF IR and HB / TF trigger flags
     auto tfhb = getTFandHBinTF(rec);
-    RDHUtils::setHeartBeatBC(rdh, bcFirst);
+    RDHUtils::setHeartBeatBC(rdh, 0);
     RDHUtils::setHeartBeatOrbit(rdh, rec.orbit);
 
-    if (rec.bc == bcFirst) { // if we are starting new HB, set the HB trigger flag
+    if (rec.bc == 0) { // if we are starting new HB, set the HB trigger flag
       auto trg = RDHUtils::getTriggerType(rdh) | (o2::trigger::ORBIT | o2::trigger::HB);
       if (tfhb.second == 0) { // if we are starting new TF, set the TF trigger flag
         trg |= o2::trigger::TF;

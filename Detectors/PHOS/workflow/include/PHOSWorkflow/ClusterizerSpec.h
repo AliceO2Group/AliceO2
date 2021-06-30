@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,7 +40,7 @@ class ClusterizerSpec : public framework::Task
 {
  public:
   /// \brief Constructor
-  ClusterizerSpec(bool propagateMC, bool scanDigits) : framework::Task(), mPropagateMC(propagateMC), mUseDigits(scanDigits) {}
+  ClusterizerSpec(bool propagateMC, bool scanDigits, bool outputFullClu) : framework::Task(), mPropagateMC(propagateMC), mUseDigits(scanDigits), mFullCluOutput(outputFullClu) {}
 
   /// \brief Destructor
   ~ClusterizerSpec() override = default;
@@ -57,10 +58,12 @@ class ClusterizerSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
 
  private:
-  bool mPropagateMC = false; ///< Switch whether to process MC true labels
-  bool mUseDigits = false;
+  bool mPropagateMC = false;        ///< Switch whether to process MC true labels
+  bool mUseDigits = false;          ///< Make clusters from digits or cells
+  bool mFullCluOutput = false;      ///< Write full of reduced (no contributed digits) clusters
   o2::phos::Clusterer mClusterizer; ///< Clusterizer object
   std::vector<o2::phos::Cluster> mOutputClusters;
+  std::vector<o2::phos::CluElement> mOutputCluElements;
   std::vector<o2::phos::TriggerRecord> mOutputClusterTrigRecs;
   o2::dataformats::MCTruthContainer<o2::phos::MCLabel> mOutputTruthCont;
 };
@@ -68,8 +71,8 @@ class ClusterizerSpec : public framework::Task
 /// \brief Creating DataProcessorSpec for the PHOS Clusterizer Spec
 ///
 /// Refer to ClusterizerSpec::run for input and output specs
-framework::DataProcessorSpec getClusterizerSpec(bool propagateMC);
-framework::DataProcessorSpec getCellClusterizerSpec(bool propagateMC);
+framework::DataProcessorSpec getClusterizerSpec(bool propagateMC, bool fillFullClu);
+framework::DataProcessorSpec getCellClusterizerSpec(bool propagateMC, bool fillFullClu);
 
 } // namespace reco_workflow
 

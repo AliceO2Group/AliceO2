@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,7 +23,7 @@
 #include <TObject.h> // for TObject
 #include <string_view>
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "FairLogger.h" // for LOG
+#include "GPUCommonLogger.h" // for LOG
 #include "MathUtils/Cartesian.h"
 #include "DetectorsBase/MatCell.h"
 #include <mutex>
@@ -48,7 +49,7 @@ class GeometryManager : public TObject
 {
  public:
   ///< load geometry from file
-  static void loadGeometry(std::string_view geomFilePath = "");
+  static void loadGeometry(std::string_view geomFilePath = "", bool applyMisalignment = true);
   static bool isGeometryLoaded() { return gGeoManager != nullptr; }
 
   ///< Get the global transformation matrix (ideal geometry) for a given alignable volume
@@ -72,7 +73,8 @@ class GeometryManager : public TObject
   ~GeometryManager() override = default;
 
   /// misalign geometry with alignment objects from the array, optionaly check overlaps
-  static bool applyAlignment(TObjArray& alObjArray, bool ovlpcheck = false, double ovlToler = 1e-3);
+  static bool applyAlignment(const std::vector<o2::detectors::AlignParam>& algPars);
+  static bool applyAlignment(const std::vector<const std::vector<o2::detectors::AlignParam>*> algPars);
 
   struct MatBudgetExt {
     double meanRho = 0.;  // mean density: sum(x_i*rho_i)/sum(x_i) [g/cm3]

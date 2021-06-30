@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,6 +40,7 @@ enum struct InputType { Digitizer,        // directly read digits from channel {
                         Clusters,         // read native clusters from file
                         CompClusters,     // read compressed cluster container
                         CompClustersCTF,  // compressed clusters from CTF, as flat format
+                        CompClustersFlat, // compressed clusters in flat format, used as input for the entropy encoder
                         EncodedClusters,  // read encoded clusters
                         ZSRaw,
 };
@@ -69,45 +71,15 @@ using CompletionPolicyData = std::vector<framework::InputSpec>;
 /// create the workflow for TPC reconstruction
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
                                     std::vector<int> const& tpcSectors,           //
+                                    unsigned long tpcSectorMask,                  //
                                     std::vector<int> const& laneConfiguration,    //
                                     bool propagateMC = true, unsigned nLanes = 1, //
                                     std::string const& cfgInput = "digitizer",    //
                                     std::string const& cfgOutput = "tracks",      //
+                                    bool disableRootInput = false,                //
                                     int caClusterer = 0,                          //
                                     int zsOnTheFly = 0,
-                                    int zs10bit = 0,
-                                    float zsThreshold = 2.0f);
-
-static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
-                                                  std::vector<int> const& tpcSectors,           //
-                                                  bool propagateMC = true, unsigned nLanes = 1, //
-                                                  std::string const& cfgInput = "digitizer",    //
-                                                  std::string const& cfgOutput = "tracks",      //
-                                                  int caClusterer = 0,                          //
-                                                  int zsOnTheFly = 0,
-                                                  int zs10bit = 0,
-                                                  float zsThreshold = 2.0f)
-{
-  // create a default lane configuration with ids [0, nLanes-1]
-  std::vector<int> laneConfiguration(nLanes);
-  std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(policyData, tpcSectors, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold);
-}
-
-static inline framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,             //
-                                                  bool propagateMC = true, unsigned nLanes = 1, //
-                                                  std::string const& cfgInput = "digitizer",    //
-                                                  std::string const& cfgOutput = "tracks",      //
-                                                  int caClusterer = 0,                          //
-                                                  int zsOnTheFly = 0,
-                                                  int zs10bit = 0,
-                                                  float zsThreshold = 2.0f)
-{
-  // create a default lane configuration with ids [0, nLanes-1]
-  std::vector<int> laneConfiguration(nLanes);
-  std::iota(laneConfiguration.begin(), laneConfiguration.end(), 0);
-  return getWorkflow(policyData, {}, laneConfiguration, propagateMC, nLanes, cfgInput, cfgOutput, caClusterer, zsOnTheFly, zs10bit, zsThreshold);
-}
+                                    bool askDISTSTF = true);
 
 } // end namespace reco_workflow
 } // end namespace tpc

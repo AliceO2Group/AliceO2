@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,7 +14,6 @@
 
 //Forwards to standard header with protection for GPU compilation
 #include "GPUCommonRtypes.h" // for ClassDef
-
 #include "GPUCommonDef.h"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -61,19 +61,44 @@ class PadPlane
   };
   void setLength(double l) { mLength = l; };
   void setWidth(double w) { mWidth = w; };
-  void setLengthOPad(double l) { mLengthOPad = l; };
-  void setWidthOPad(double w) { mWidthOPad = w; };
-  void setLengthIPad(double l) { mLengthIPad = l; };
-  void setWidthIPad(double w) { mWidthIPad = w; };
+  void setLengthOPad(double l)
+  {
+    mLengthOPad = l;
+    mInverseLengthOPad = 1.0 / l;
+  };
+  void setWidthOPad(double w)
+  {
+    mWidthOPad = w;
+    mInverseWidthOPad = 1.0 / w;
+  };
+  void setLengthIPad(double l)
+  {
+    mLengthIPad = l;
+    mInverseLengthIPad = 1.0 / l;
+  };
+  void setWidthIPad(double w)
+  {
+    mWidthIPad = w;
+    mInverseWidthIPad = 1.0 / w;
+  };
   void setPadRowSMOffset(double o) { mPadRowSMOffset = o; };
   void setAnodeWireOffset(float o) { mAnodeWireOffset = o; };
   void setTiltingAngle(double t);
 
   GPUd() int getPadRowNumber(double z) const;
   GPUd() int getPadRowNumberROC(double z) const;
+  GPUd() double getPadRow(double z) const;
   GPUd() int getPadColNumber(double rphi) const;
+  GPUd() double getPad(double y, double z) const;
 
-  GPUd() double getTiltOffset(double rowOffset) const { return mTiltingTan * (rowOffset - 0.5 * mLengthIPad); };
+  GPUd() double getTiltOffset(int row, double rowOffset) const
+  {
+    if (row == 0 || row == mNrows - 1) {
+      return mTiltingTan * (rowOffset - 0.5 * mLengthOPad);
+    } else {
+      return mTiltingTan * (rowOffset - 0.5 * mLengthIPad);
+    }
+  };
   GPUd() double getPadRowOffset(int row, double z) const
   {
     if ((row < 0) || (row >= mNrows)) {
@@ -173,6 +198,12 @@ class PadPlane
   double mPadRowSMOffset; //  To be added to translate local ROC system to local SM system
 
   double mAnodeWireOffset; //  Distance of first anode wire from pad edge
+
+  double mInverseLengthIPad; // 1 / mLengthIPad
+  double mInverseLengthOPad; // 1 / mLengthOPad
+
+  double mInverseWidthIPad; // 1 / mWidthIPad
+  double mInverseWidthOPad; // 1 / mWidthOPad
 
  private:
   ClassDefNV(PadPlane, 1); //  TRD ROC pad plane

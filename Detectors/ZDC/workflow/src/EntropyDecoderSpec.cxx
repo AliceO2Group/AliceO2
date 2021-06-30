@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -31,7 +32,7 @@ EntropyDecoderSpec::EntropyDecoderSpec()
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>("zdc-ctf-dictionary");
+  std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
   }
@@ -46,7 +47,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
 
   auto& bcdata = pc.outputs().make<std::vector<o2::zdc::BCData>>(OutputRef{"trig"});
   auto& chans = pc.outputs().make<std::vector<o2::zdc::ChannelData>>(OutputRef{"chan"});
-  auto& peds = pc.outputs().make<std::vector<o2::zdc::PedestalData>>(OutputRef{"ped"});
+  auto& peds = pc.outputs().make<std::vector<o2::zdc::OrbitData>>(OutputRef{"peds"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   const auto ctfImage = o2::zdc::CTF::getImage(buff.data());
@@ -74,7 +75,7 @@ DataProcessorSpec getEntropyDecoderSpec()
     Inputs{InputSpec{"ctf", "ZDC", "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>()},
-    Options{{"zdc-ctf-dictionary", VariantType::String, "ctf_dictionary.root", {"File of CTF decoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 
 } // namespace zdc

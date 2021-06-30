@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -129,11 +130,12 @@ auto array2DFromBranch(boost::property_tree::ptree const& ptree)
   return basicArray2DFromBranch<T>(ptree.get_child("values"));
 }
 
+std::pair<std::vector<std::string>, std::vector<std::string>> extractLabels(boost::property_tree::ptree const& tree);
+
 template <typename T>
 auto labeledArrayFromBranch(boost::property_tree::ptree const& tree)
 {
-  auto labels_rows = basicVectorFromBranch<std::string>(tree.get_child(labels_rows_str));
-  auto labels_cols = basicVectorFromBranch<std::string>(tree.get_child(labels_cols_str));
+  auto [labels_rows, labels_cols] = extractLabels(tree);
   auto values = basicArray2DFromBranch<T>(tree.get_child("values"));
 
   return LabeledArray<T>{values, labels_rows, labels_cols};

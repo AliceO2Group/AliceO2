@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -67,7 +68,7 @@ struct lambdakzeroQA {
     },
   };
 
-  void process(aod::Collision const& collision, aod::V0DataExt const& fullV0s)
+  void process(aod::Collision const& collision, aod::V0Datas const& fullV0s)
   {
 
     for (auto& v0 : fullV0s) {
@@ -109,7 +110,7 @@ struct lambdakzeroanalysis {
 
   Filter preFilterV0 = nabs(aod::v0data::dcapostopv) > dcapostopv&& nabs(aod::v0data::dcanegtopv) > dcanegtopv&& aod::v0data::dcaV0daughters < dcav0dau;
 
-  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::V0DataExt> const& fullV0s)
+  void process(soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator const& collision, soa::Filtered<aod::V0Datas> const& fullV0s)
   {
     if (!collision.alias()[kINT7]) {
       return;
@@ -140,9 +141,9 @@ struct lambdakzeroanalysis {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<lambdakzeroanalysis>("lf-lambdakzeroanalysis"),
-    adaptAnalysisTask<lambdakzeroQA>("lf-lambdakzeroQA")};
+    adaptAnalysisTask<lambdakzeroanalysis>(cfgc, TaskName{"lf-lambdakzeroanalysis"}),
+    adaptAnalysisTask<lambdakzeroQA>(cfgc, TaskName{"lf-lambdakzeroQA"})};
 }

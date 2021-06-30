@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,7 +24,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "MathUtils/Primitive2D.h"
-#include "GlobalTracking/RecoContainer.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 namespace o2
 {
@@ -51,29 +52,21 @@ class VertexTrackMatcher
   };
 
   void init();
-  void process(const gsl::span<const PVertex>& vertices,  // vertices
-               const gsl::span<const VTIndex>& v2tfitIDs, // IDs of contributor tracks used in fit
-               const gsl::span<const VRef>& v2tfitRefs,   // references on these tracks (we used special reference with multiple sources, but currently only TPCITS used)
-               const o2::globaltracking::RecoContainer& recoData,
+  void process(const o2::globaltracking::RecoContainer& recoData,
                std::vector<VTIndex>& trackIndex, // Global ID's for associated tracks
                std::vector<VRef>& vtxRefs);      // references on these tracks
 
-  ///< set InteractionRecods for the beginning of the TF
-  void setStartIR(const o2::InteractionRecord& ir) { mStartIR = ir; }
-
  private:
-  void updateTPCTimeDependentParams();
+  void updateTimeDependentParams();
   void extractTracks(const o2::globaltracking::RecoContainer& data, const std::unordered_map<GIndex, bool>& vcont);
 
   std::vector<TrackTBracket> mTBrackets;
-
-  o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
   float mITSROFrameLengthMUS = 0;       ///< ITS RO frame in mus
+  float mMFTROFrameLengthMUS = 0;       ///< MFT RO frame in mus
   float mMaxTPCDriftTimeMUS = 0;
   float mTPCBin2MUS = 0;
   const o2::vertexing::PVertexerParams* mPVParams = nullptr;
 
-  ClassDefNV(VertexTrackMatcher, 1);
 };
 
 } // namespace vertexing

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -439,12 +440,12 @@ FileAndFolder DataOutputDirector::getFileFolder(DataOutputDescriptor* dodesc, ui
     int ind = std::distance(mfilenameBases.begin(), it);
     if (!mfilePtrs[ind]->IsOpen()) {
       auto fn = mfilenameBases[ind] + ".root";
-      mfilePtrs[ind] = new TFile(fn.c_str(), mfileMode.c_str());
+      mfilePtrs[ind] = new TFile(fn.c_str(), mfileMode.c_str(), "", 501);
     }
     fileAndFolder.file = mfilePtrs[ind];
 
-    // check if folder TF_* exists
-    fileAndFolder.folderName = "TF_" + std::to_string(folderNumber) + "/";
+    // check if folder DF_* exists
+    fileAndFolder.folderName = "DF_" + std::to_string(folderNumber) + "/";
     auto key = fileAndFolder.file->GetKey(fileAndFolder.folderName.c_str());
     if (!key) {
       fileAndFolder.file->mkdir(fileAndFolder.folderName.c_str());

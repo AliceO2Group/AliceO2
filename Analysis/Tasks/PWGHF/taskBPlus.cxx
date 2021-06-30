@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,34 +23,16 @@
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong2;
 using namespace o2::framework::expressions;
+using namespace o2::aod::hf_cand_prong2;
 
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Fill MC histograms."}};
+  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, true, {"Fill MC histograms."}};
   workflowOptions.push_back(optionDoMC);
 }
 
 #include "Framework/runDataProcessing.h"
-
-namespace o2::aod
-{
-namespace extra
-{
-DECLARE_SOA_INDEX_COLUMN(Collision, collision);
-}
-DECLARE_SOA_TABLE(Colls, "AOD", "COLLSID", o2::aod::extra::CollisionId);
-} // namespace o2::aod
-struct AddCollisionId {
-  Produces<o2::aod::Colls> colls;
-  void process(aod::HfCandProng2 const& candidates, aod::Tracks const&)
-  {
-    for (auto& candidate : candidates) {
-      colls(candidate.index0_as<aod::Tracks>().collisionId());
-    }
-  }
-};
 
 /// B+ analysis task
 struct TaskBplus {
@@ -63,12 +46,13 @@ struct TaskBplus {
   Configurable<double> cutEtaCandMax{"cutEtaCandMax", -1., "max. cand. pseudorapidity"};
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= d_selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= d_selectionFlagD0bar);
+
   Partition<aod::BigTracks> positiveTracks = aod::track::signed1Pt >= 0.f;
 
-  void process(aod::Collision const&, aod::BigTracks const&, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate, aod::Colls>> const& candidates)
+  void process(aod::Collision const&, aod::BigTracks const&, soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelD0Candidate>> const& candidates)
   {
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << D0ToPiK)) {
+      if (!(candidate.hfflag() & 1 << DecayType::D0ToPiK)) {
         continue;
       }
       if (cutEtaCandMax >= 0. && std::abs(candidate.eta()) > cutEtaCandMax) {
@@ -89,10 +73,9 @@ struct TaskBplus {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<AddCollisionId>("hf-task-add-collisionId"),
-    adaptAnalysisTask<TaskBplus>("hf-task-bplus")};
+    adaptAnalysisTask<TaskBplus>(cfgc, TaskName{"hf-task-bplus"})};
   return workflow;
 }

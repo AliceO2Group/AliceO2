@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(ITSSimulation
                SOURCES src/V11Geometry.cxx src/V1Layer.cxx src/V3Layer.cxx
@@ -25,6 +26,7 @@ o2_data_file(COPY data  DESTINATION Detectors/ITS/simulation)
 
 o2_add_executable(digi2raw
                   COMPONENT_NAME its
+		  TARGETVARNAME itsdigi2raw_exe
                   SOURCES src/digi2raw.cxx
                   PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
                                         O2::DataFormatsITSMFT
@@ -34,3 +36,9 @@ o2_add_executable(digi2raw
                                         O2::DetectorsCommonDataFormats
                                         O2::CommonUtils
                                         Boost::program_options)
+
+if(NOT APPLE)
+
+ set_property(TARGET ${itsdigi2raw_exe} PROPERTY LINK_WHAT_YOU_USE ON)
+
+endif()

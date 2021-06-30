@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,7 +20,7 @@
 #include "GPUCommonMath.h"
 #include "GPUParam.h"
 
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
 #include "DataFormatsTPC/CompressedClusters.h"
 #else
 namespace o2::tpc
@@ -65,9 +66,9 @@ class GPUTPCCompression : public GPUProcessor
   static constexpr unsigned int P_MAX_FLAGS = 1 << 8;
   static constexpr unsigned int P_MAX_QPT = 1 << 8;
 
-  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpcSigBitsCharge, P_MAX_QTOT); }
-  GPUd() static void truncateSignificantBitsChargeMax(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpcSigBitsCharge, P_MAX_QMAX); }
-  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpcSigBitsWidth, P_MAX_SIGMA); }
+  GPUd() static void truncateSignificantBitsCharge(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QTOT); }
+  GPUd() static void truncateSignificantBitsChargeMax(unsigned short& charge, const GPUParam& param) { truncateSignificantBits(charge, param.rec.tpc.sigBitsCharge, P_MAX_QMAX); }
+  GPUd() static void truncateSignificantBitsWidth(unsigned char& width, const GPUParam& param) { truncateSignificantBits(width, param.rec.tpc.sigBitsWidth, P_MAX_SIGMA); }
 
  protected:
   struct memory {
@@ -90,7 +91,8 @@ class GPUTPCCompression : public GPUProcessor
   unsigned int mMaxTracks = 0;
   unsigned int mMaxClusters = 0;
   unsigned int mMaxTrackClusters = 0;
-  unsigned int mNMaxClusterSliceRow = 0;
+  unsigned int mMaxClustersInCache = 0;
+  size_t mMaxClusterFactorBase1024 = 0;
 
   template <class T>
   void SetPointersCompressedClusters(void*& mem, T& c, unsigned int nClA, unsigned int nTr, unsigned int nClU, bool reducedClA);

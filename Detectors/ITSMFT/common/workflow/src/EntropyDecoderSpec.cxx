@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -34,7 +35,7 @@ EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig)
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
-  std::string dictPath = ic.options().get<std::string>((mOrigin == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary");
+  std::string dictPath = ic.options().get<std::string>("ctf-dict");
   if (!dictPath.empty() && dictPath != "none") {
     mCTFCoder.createCoders(dictPath, o2::ctf::CTFCoderBase::OpType::Decoder);
   }
@@ -72,14 +73,12 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig)
     OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe},
     OutputSpec{{"ROframes"}, orig, "CLUSTERSROF", 0, Lifetime::Timeframe}};
 
-  std::string dictOptName = (orig == o2::header::gDataOriginITS) ? "its-ctf-dictionary" : "mft-ctf-dictionary";
-
   return DataProcessorSpec{
     orig == o2::header::gDataOriginITS ? "its-entropy-decoder" : "mft-entropy-decoder",
     Inputs{InputSpec{"ctf", orig, "CTFDATA", 0, Lifetime::Timeframe}},
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(orig)},
-    Options{{dictOptName, VariantType::String, "ctf_dictionary.root", {"File of CTF decoding dictionary"}}}};
+    Options{{"ctf-dict", VariantType::String, o2::base::NameConf::getCTFDictFileName(), {"File of CTF decoding dictionary"}}}};
 }
 
 } // namespace itsmft

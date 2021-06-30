@@ -1,26 +1,19 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 include_guard()
 
-include("${CMAKE_CURRENT_LIST_DIR}/O2RecipeAdapter.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/O2TestsAdapter.cmake")
 
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_MODULE_PATH})
-
-if(ALIBUILD_BASEDIR)
-  # try autodetecting external packages from an alibuild installation zone
-  include(O2FindDependenciesFromAliBuild)
-  o2_find_dependencies_from_alibuild(${ALIBUILD_BASEDIR} LABEL ${ALIBUILD_LABEL}
-                                     QUIET)
-endif()
 
 # Required packages
 #
@@ -44,6 +37,8 @@ set_package_properties(Vc PROPERTIES TYPE REQUIRED)
 
 find_package(ROOT 6.20.02)
 set_package_properties(ROOT PROPERTIES TYPE REQUIRED)
+
+find_package(VMC)
 
 find_package(fmt)
 set_package_properties(fmt PROPERTIES TYPE REQUIRED)
@@ -73,8 +68,8 @@ set_package_properties(FairLogger PROPERTIES TYPE REQUIRED)
 find_package(FairRoot MODULE)
 set_package_properties(FairRoot PROPERTIES TYPE REQUIRED)
 
-find_package(ms_gsl MODULE)
-set_package_properties(ms_gsl
+find_package(Microsoft.GSL CONFIG)
+set_package_properties(Microsoft.GSL
                        PROPERTIES
                        TYPE REQUIRED
                        PURPOSE "Mainly for its span")
@@ -82,8 +77,8 @@ set_package_properties(ms_gsl
 find_package(FairMQ CONFIG)
 set_package_properties(FairMQ PROPERTIES TYPE REQUIRED)
 
-find_package(protobuf CONFIG)
-set_package_properties(protobuf PROPERTIES TYPE REQUIRED PURPOSE "For CCDB API")
+# find_package(protobuf CONFIG)
+# set_package_properties(protobuf PROPERTIES TYPE REQUIRED PURPOSE "For CCDB API")
 
 find_package(InfoLogger CONFIG NAMES InfoLogger libInfoLogger)
 set_package_properties(InfoLogger PROPERTIES TYPE REQUIRED)

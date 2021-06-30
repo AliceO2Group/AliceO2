@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,13 +20,16 @@ namespace o2::framework::expressions
 {
 /// a map between BasicOp and gandiva node definitions
 /// note that logical 'and' and 'or' are created separately
-static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
+static std::array<std::string, BasicOp::BitwiseNot + 1> basicOperationsMap = {
   "and",
   "or",
   "add",
   "subtract",
   "divide",
   "multiply",
+  "bitwise_and",
+  "bitwise_or",
+  "bitwise_xor",
   "less_than",
   "less_than_or_equal_to",
   "greater_than",
@@ -43,16 +47,19 @@ static std::array<std::string, BasicOp::Abs + 1> binaryOperationsMap = {
   "asinf",
   "acosf",
   "atanf",
-  "absf"};
+  "absf",
+  "bitwise_not"};
 
 struct DatumSpec {
   /// datum spec either contains an index, a value of a literal or a binding label
   using datum_t = std::variant<std::monostate, size_t, LiteralNode::var_t, std::string>;
   datum_t datum = std::monostate{};
+  size_t hash = 0;
   atype::type type = atype::NA;
+
   explicit DatumSpec(size_t index, atype::type type_) : datum{index}, type{type_} {}
   explicit DatumSpec(LiteralNode::var_t literal, atype::type type_) : datum{literal}, type{type_} {}
-  explicit DatumSpec(std::string binding, atype::type type_) : datum{binding}, type{type_} {}
+  explicit DatumSpec(std::string binding, size_t hash_, atype::type type_) : datum{binding}, hash{hash_}, type{type_} {}
   DatumSpec() = default;
   DatumSpec(DatumSpec const&) = default;
   DatumSpec(DatumSpec&&) = default;

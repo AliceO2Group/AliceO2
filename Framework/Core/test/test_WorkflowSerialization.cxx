@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -48,7 +49,9 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
                   DataProcessorSpec{"D", {InputSpec{"foo", {"C", "D"}}},                                                                                                                        //
                                     {OutputSpec{{"bar"}, {"I", "L"}}},                                                                                                                          //
                                     AlgorithmSpec{[](ProcessingContext& ctx) {}},                                                                                                               //
-                                    {}}};                                                                                                                                                       //
+                                    {},                                                                                                                                                         //
+                                    CommonServices::defaultServices(),                                                                                                                          //
+                                    {{"label a"}, {"label \"b\""}}}};
 
   std::vector<DataProcessorInfo> metadataOut{
     {"A", "test_Framework_test_SerializationWorkflow", {"foo"}, {ConfigParamSpec{"aBool", VariantType::Bool, true, {"A Bool"}}}},
@@ -57,19 +60,23 @@ BOOST_AUTO_TEST_CASE(TestVerifyWorkflow)
     {"D", "test_Framework_test_SerializationWorkflow", {}},
   };
 
+  CommandInfo commandInfoOut{"o2-dpl-workflow -b --option 1 --option 2"};
+
   std::vector<DataProcessorInfo> metadataIn{};
+  CommandInfo commandInfoIn;
 
   std::ostringstream firstDump;
-  WorkflowSerializationHelpers::dump(firstDump, w0, metadataOut);
+  WorkflowSerializationHelpers::dump(firstDump, w0, metadataOut, commandInfoOut);
   std::istringstream is;
   is.str(firstDump.str());
   WorkflowSpec w1;
-  WorkflowSerializationHelpers::import(is, w1, metadataIn);
+  WorkflowSerializationHelpers::import(is, w1, metadataIn, commandInfoIn);
 
   std::ostringstream secondDump;
-  WorkflowSerializationHelpers::dump(secondDump, w1, metadataIn);
+  WorkflowSerializationHelpers::dump(secondDump, w1, metadataIn, commandInfoIn);
 
   BOOST_REQUIRE_EQUAL(w0.size(), 4);
   BOOST_REQUIRE_EQUAL(w0.size(), w1.size());
   BOOST_CHECK_EQUAL(firstDump.str(), secondDump.str());
+  BOOST_CHECK_EQUAL(commandInfoIn.command, commandInfoOut.command);
 }

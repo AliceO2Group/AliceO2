@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,11 +15,10 @@
 #include <string>
 #include <gsl/span>
 
+#include "CommonConstants/MathConstants.h"
 #include "ReconstructionDataFormats/Track.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 /// \class LaserTrack
 /// This is the definition of the TPC Laser Track
@@ -26,10 +26,14 @@ namespace tpc
 class LaserTrack : public o2::track::TrackPar
 {
  public:
-  static constexpr int NumberOfTracks = 336; ///< Total number of laser tracks
-  static constexpr int RodsPerSide = 6;      ///< Number of laser rods per side
-  static constexpr int BundlesPerRod = 4;    ///< number of micro-mirror bundle per laser rod
-  static constexpr int TracksPerBundle = 7;  ///< number of micro-mirrors per bundle
+  static constexpr int NumberOfTracks = 336;                                                   ///< Total number of laser tracks
+  static constexpr int RodsPerSide = 6;                                                        ///< Number of laser rods per side
+  static constexpr int BundlesPerRod = 4;                                                      ///< number of micro-mirror bundle per laser rod
+  static constexpr int TracksPerBundle = 7;                                                    ///< number of micro-mirrors per bundle
+  static constexpr float SectorSpanRad = o2::constants::math::SectorSpanRad;                   ///< secotor width in rad
+  static constexpr std::array<float, 2> FirstRodPhi{2.f * SectorSpanRad, 1.f * SectorSpanRad}; ///< phi pos of first laser rod, A-, C-Side
+  static constexpr float RodDistancePhi = 3.f * SectorSpanRad;                                 ///< phi distance of laser Rods
+  static constexpr std::array<float, 4> CoarseBundleZPos{243.5, 165.5, 82, 11.5};              ///< coarse z-position of the laser bundles
 
   LaserTrack() = default;
   LaserTrack(int id, float x, float alpha, const std::array<float, o2::track::kNParams>& par) : mID(id), o2::track::TrackPar(x, alpha, par) { ; }
@@ -99,6 +103,5 @@ class LaserTrackContainer
   ClassDefNV(LaserTrackContainer, 1);
 };
 
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 #endif

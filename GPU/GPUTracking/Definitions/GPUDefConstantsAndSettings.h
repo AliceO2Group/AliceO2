@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -58,12 +59,15 @@
 
 #define GPUCA_TPC_COMP_CHUNK_SIZE 1024                // Chunk size of sorted unattached TPC cluster in compression
 
-#if defined(HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216)
-  //Use definitions from the O2 headers if available for nicer code and type safety
-  #include "DataFormatsTPC/Constants.h"
-  #define GPUCA_NSLICES o2::tpc::constants::MAXSECTOR
-  #define GPUCA_ROW_COUNT o2::tpc::constants::MAXGLOBALPADROW
-#else
+#if defined(GPUCA_HAVE_O2HEADERS) && (!defined(__OPENCL__) || defined(__OPENCLCPP__)) && !(defined(ROOT_VERSION_CODE) && ROOT_VERSION_CODE < 393216) && defined(__has_include)
+  #if __has_include("DataFormatsTPC/Constants.h")
+    //Use definitions from the O2 headers if available for nicer code and type safety
+    #include "DataFormatsTPC/Constants.h"
+    #define GPUCA_NSLICES o2::tpc::constants::MAXSECTOR
+    #define GPUCA_ROW_COUNT o2::tpc::constants::MAXGLOBALPADROW
+  #endif
+#endif
+#ifndef GPUCA_NSLICES
   //Define it manually, if O2 headers not available, ROOT5, and OpenCL 1.2, which do not know C++11.
   #define GPUCA_NSLICES 36
   #ifdef GPUCA_TPC_GEOMETRY_O2

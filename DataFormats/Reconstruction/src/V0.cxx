@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -12,11 +13,21 @@
 
 using namespace o2::dataformats;
 
-V0::V0(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz,
+V0::V0(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz,
        const o2::track::TrackParCov& trPos, const o2::track::TrackParCov& trNeg,
-       GIndex trPosID, GIndex trNegID)
-  : o2::track::TrackParCov{xyz, pxyz, 0, false}, mProngIDs{trPosID, trNegID}, mProngs{trPos, trNeg}
+       GIndex trPosID, GIndex trNegID, o2::track::PID pid)
+  : mProngIDs{trPosID, trNegID}, mProngs{trPos, trNeg}
 {
+  std::array<float, 21> covV{}, covN{};
+  trPos.getCovXYZPxPyPzGlo(covV);
+  trPos.getCovXYZPxPyPzGlo(covN);
+  for (int i = 0; i < 21; i++) {
+    covV[i] += covN[i];
+  }
+  for (int i = 0; i < 6; i++) {
+    covV[i] = covxyz[i];
+  }
+  this->set(xyz, pxyz, covV, trPos.getCharge() + trNeg.getCharge(), true, pid);
 }
 
 float V0::calcMass2(float massPos2, float massNeg2) const

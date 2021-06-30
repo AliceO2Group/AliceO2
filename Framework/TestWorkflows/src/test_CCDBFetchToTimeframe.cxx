@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,6 +11,7 @@
 #include "Framework/runDataProcessing.h"
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
+#include "Framework/CCDBParamSpec.h"
 
 #include <chrono>
 #include <thread>
@@ -22,26 +24,17 @@ using namespace o2::header;
 WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
   return WorkflowSpec{
-    {"A",
-     {},
-     {OutputSpec{"TST", "A1", 0, Lifetime::Timeframe}},
-     AlgorithmSpec{
-       adaptStateless([](DataAllocator& outputs, InputRecord& inputs, ControlService& control) {
-         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-         auto aData = outputs.make<int>(Output{"TST", "A1", 0}, 1);
-       })}},
     {
-      "B",
-      {InputSpec{"somecondition", "TST", "textfile", 0, Lifetime::Condition},
-       InputSpec{"somedata", "TST", "A1", 0, Lifetime::Timeframe}},
+      "A",
+      {InputSpec{"somecondition", "TST", "textfile", 0, Lifetime::Condition, {ccdbParamSpec("TOF/LHCphase")}},
+       InputSpec{"somedata", "TST", "A1", 0, Lifetime::Timer, {startTimeParamSpec(1638548475370)}}},
       {},
       AlgorithmSpec{
         adaptStateless([](DataAllocator& outputs, InputRecord& inputs, ControlService& control) {
-          std::this_thread::sleep_for(std::chrono::milliseconds(1000));
           DataRef condition = inputs.get("somecondition");
           auto* header = o2::header::get<const DataHeader*>(condition.header);
-          if (header->payloadSize != 1509) {
-            LOG(ERROR) << "Wrong size for condition payload (expected " << 1509 << ", found " << header->payloadSize;
+          if (header->payloadSize != 2048) {
+            LOGP(ERROR, "Wrong size for condition payload (expected {}, found {})", 2048, header->payloadSize);
           }
           control.readyToQuit(QuitRequest::All);
         })},

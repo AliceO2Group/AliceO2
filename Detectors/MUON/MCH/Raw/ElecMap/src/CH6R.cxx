@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -641,21 +642,21 @@ void fillSolar2FeeLinkCH6R(std::map<uint16_t, uint32_t>& s2f)
   add_cru(s2f, 27, 9, 363);
   add_cru(s2f, 27, 10, 364);
   add_cru(s2f, 27, 11, 365);
-  add_cru(s2f, 29, 0, 216);
-  add_cru(s2f, 29, 1, 217);
-  add_cru(s2f, 29, 2, 218);
-  add_cru(s2f, 29, 3, 219);
-  add_cru(s2f, 29, 4, 220);
-  add_cru(s2f, 29, 5, 221);
-  add_cru(s2f, 28, 0, 432);
-  add_cru(s2f, 28, 1, 433);
-  add_cru(s2f, 28, 2, 434);
-  add_cru(s2f, 28, 3, 435);
-  add_cru(s2f, 28, 4, 436);
-  add_cru(s2f, 28, 5, 437);
-  add_cru(s2f, 28, 6, 408);
-  add_cru(s2f, 28, 7, 409);
-  add_cru(s2f, 28, 8, 410);
-  add_cru(s2f, 28, 9, 411);
-  add_cru(s2f, 28, 10, 412);
+  add_cru(s2f, 28, 0, 216);
+  add_cru(s2f, 28, 1, 217);
+  add_cru(s2f, 28, 2, 218);
+  add_cru(s2f, 28, 3, 219);
+  add_cru(s2f, 28, 4, 220);
+  add_cru(s2f, 28, 5, 221);
+  add_cru(s2f, 29, 0, 432);
+  add_cru(s2f, 29, 1, 433);
+  add_cru(s2f, 29, 2, 434);
+  add_cru(s2f, 29, 3, 435);
+  add_cru(s2f, 29, 4, 436);
+  add_cru(s2f, 29, 5, 437);
+  add_cru(s2f, 29, 6, 408);
+  add_cru(s2f, 29, 7, 409);
+  add_cru(s2f, 29, 8, 410);
+  add_cru(s2f, 29, 9, 411);
+  add_cru(s2f, 29, 10, 412);
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -29,7 +30,6 @@
 #include "AnalysisDataModel/TrackSelectionTables.h"
 #include <TH1F.h>
 #include <TH2I.h>
-#include <TMath.h>
 #include <THashList.h>
 #include <TString.h>
 #include <iostream>
@@ -60,15 +60,24 @@ DECLARE_SOA_TABLE(DQBarrelTrackCuts, "AOD", "DQBARRELCUTS", dqppfilter::IsBarrel
 
 using MyEvents = soa::Join<aod::Collisions, aod::EvSels>;
 using MyEventsSelected = soa::Join<aod::Collisions, aod::EvSels, aod::DQEventCuts>;
-using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta>;
-using MyBarrelTracksSelected = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection, aod::pidRespTPC, aod::pidRespTOF, aod::pidRespTOFbeta, aod::DQBarrelTrackCuts>;
+using MyBarrelTracks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection,
+                                 aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                 aod::pidTPCFullKa, aod::pidTPCFullPr,
+                                 aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
+                                 aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta>;
+using MyBarrelTracksSelected = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::TracksExtended, aod::TrackSelection,
+                                         aod::pidTPCFullEl, aod::pidTPCFullMu, aod::pidTPCFullPi,
+                                         aod::pidTPCFullKa, aod::pidTPCFullPr,
+                                         aod::pidTOFFullEl, aod::pidTOFFullMu, aod::pidTOFFullPi,
+                                         aod::pidTOFFullKa, aod::pidTOFFullPr, aod::pidTOFbeta,
+                                         aod::DQBarrelTrackCuts>;
 
 constexpr static uint32_t gkEventFillMap = VarManager::ObjTypes::BC | VarManager::ObjTypes::Collision;
 constexpr static uint32_t gkTrackFillMap = VarManager::ObjTypes::Track | VarManager::ObjTypes::TrackExtra | VarManager::ObjTypes::TrackDCA | VarManager::ObjTypes::TrackSelection | VarManager::ObjTypes::TrackCov | VarManager::ObjTypes::TrackPID;
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses);
 
-struct EventSelectionTask {
+struct DQEventSelectionTask {
   Produces<aod::DQEventCuts> eventSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -125,7 +134,7 @@ struct EventSelectionTask {
   }
 };
 
-struct BarrelTrackSelectionTask {
+struct DQBarrelTrackSelectionTask {
   Produces<aod::DQBarrelTrackCuts> trackSel;
   OutputObj<THashList> fOutputList{"output"};
   HistogramManager* fHistMan;
@@ -197,7 +206,7 @@ struct BarrelTrackSelectionTask {
   }
 };
 
-struct FilterPPTask {
+struct DQFilterPPTask {
   Produces<aod::DQEventFilter> eventFilter;
   OutputObj<THashList> fOutputList{"output"};
   OutputObj<TH2I> fStats{"stats"};
@@ -318,12 +327,12 @@ struct FilterPPTask {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<EventSelectionTask>("dq-event-selection"),
-    adaptAnalysisTask<BarrelTrackSelectionTask>("dq-barrel-track-selection"),
-    adaptAnalysisTask<FilterPPTask>("dq-ppFilter")};
+    adaptAnalysisTask<DQEventSelectionTask>(cfgc),
+    adaptAnalysisTask<DQBarrelTrackSelectionTask>(cfgc),
+    adaptAnalysisTask<DQFilterPPTask>(cfgc)};
 }
 
 void DefineHistograms(HistogramManager* histMan, TString histClasses)

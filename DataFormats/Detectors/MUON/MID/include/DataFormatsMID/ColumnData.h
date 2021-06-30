@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -26,9 +27,9 @@ namespace mid
 {
 /// Column data structure for MID
 struct ColumnData {
-  uint8_t deId = 0;                 ///< Index of the detection element
-  uint8_t columnId = 0;             ///< Column in DE
-  std::array<uint16_t, 5> patterns; ///< Strip patterns
+  uint8_t deId = 0;                   ///< Index of the detection element
+  uint8_t columnId = 0;               ///< Column in DE
+  std::array<uint16_t, 5> patterns{}; ///< Strip patterns
 
   /// Sets the bending plane pattern
   void setBendPattern(uint16_t pattern, int line) { patterns[line] = pattern; }
@@ -51,6 +52,8 @@ struct ColumnData {
   bool isBPStripFired(int istrip, int line) const { return patterns[line] & (1 << istrip); }
 
   bool isStripFired(int istrip, int cathode, int line) const;
+
+  bool operator==(const ColumnData& right) const;
 };
 
 ColumnData operator|(const ColumnData& col1, const ColumnData& col2);

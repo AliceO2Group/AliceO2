@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -52,8 +53,12 @@ class CaloRawFitterGamma2 final : public CaloRawFitter
   int getNiterationsMax() { return mNiterationsMax; }
 
   /// \brief Evaluation Amplitude and TOF
-  /// return Container with the fit results (amp, time, chi2, ...)
-  CaloFitResults evaluate(const std::vector<Bunch>& bunchvector,
+  /// \param bunchvector ALTRO bunches for the current channel
+  /// \param altrocfg1 ALTRO config register 1 from RCU trailer
+  /// \param altrocfg2 ALTRO config register 2 from RCU trailer
+  /// \throw RawFitterError_t::FIT_ERROR in case the peak fit failed
+  /// \return Container with the fit results (amp, time, chi2, ...)
+  CaloFitResults evaluate(const gsl::span<const Bunch> bunchvector,
                           std::optional<unsigned int> altrocfg1,
                           std::optional<unsigned int> altrocfg2) final;
 
@@ -62,12 +67,22 @@ class CaloRawFitterGamma2 final : public CaloRawFitter
   int mNiterationsMax = 15; ///< max number of iteraions
 
   /// \brief Fits the raw signal time distribution
-  /// \return chi2, fit status.
-  std::tuple<float, bool> doFit_1peak(int firstTimeBin, int nSamples, float& ampl, float& time);
+  /// \param firstTimeBin First timebin in the ALTRO bunch
+  /// \param nSamples Number of time samples of the ALTRO bunch
+  /// \param[in] ampl Initial guess of the amplitude for the fit
+  /// \param[out] ampl Amplitude result of the peak fit
+  /// \param[in] time Initial guess of the time for the fit
+  /// \param[out] time Time result of the peak fit
+  /// \return chi2 of the fit
+  /// \throw RawFitterError_t::FIT_ERROR in case of fit errors (insufficient number of time samples, matrix diagonalization error, ...)
+  float doFit_1peak(int firstTimeBin, int nSamples, float& ampl, float& time);
 
   /// \brief Fits the raw signal time distribution
+  /// \param maxTimeBin Time bin of the max. amplitude
   /// \return the fit parameters: amplitude, time.
-  std::tuple<float, float> doParabolaFit(int x) const;
+  ///
+  /// Fit performed as parabola fit to the signal
+  std::tuple<float, float> doParabolaFit(int maxTimeBin) const;
 
   ClassDefNV(CaloRawFitterGamma2, 1);
 }; // End of CaloRawFitterGamma2

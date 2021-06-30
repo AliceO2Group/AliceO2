@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -94,14 +95,14 @@ GPUd() void GPUTPCGMSliceTrack::SetParam2(const GPUTPCGMTrackParam& trk)
 GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int iSlice, float maxSinPhi, float sinPhiMargin)
 {
   float lastX;
-  if (merger->Param().par.earlyTpcTransform && !merger->Param().rec.mergerReadFromTrackerDirectly) {
+  if (merger->Param().par.earlyTpcTransform && !merger->Param().rec.tpc.mergerReadFromTrackerDirectly) {
     lastX = mOrigTrack->OutTrackCluster(mOrigTrack->NHits() - 1).GetX(); // TODO: Why is this needed, Row2X should work, but looses some tracks
   } else {
     //float lastX = merger->Param().tpcGeometry.Row2X(mOrigTrack->Cluster(mOrigTrack->NClusters() - 1).GetRow()); // TODO: again, why does this reduce efficiency?
     float y, z;
     const GPUTPCSliceOutCluster* clo;
     int row, index;
-    if (merger->Param().rec.mergerReadFromTrackerDirectly) {
+    if (merger->Param().rec.tpc.mergerReadFromTrackerDirectly) {
       const GPUTPCTracker& trk = merger->GetConstantMem()->tpcTrackers[iSlice];
       const GPUTPCHitId& ic = trk.TrackHits()[mOrigTrack->FirstHitID() + mOrigTrack->NHits() - 1];
       index = trk.Data().ClusterDataIndex(trk.Data().Row(ic.RowIndex()), ic.HitIndex()) + merger->GetConstantMem()->ioPtrs.clustersNative->clusterOffset[iSlice][0];
@@ -117,7 +118,7 @@ GPUd() bool GPUTPCGMSliceTrack::FilterErrors(const GPUTPCGMMerger* merger, int i
 
   const int N = 3;
 
-  float bz = -merger->Param().par.ConstBz;
+  float bz = -merger->Param().par.constBz;
 
   float k = mParam.mQPt * bz;
   float dx = (1.f / N) * (lastX - mParam.mX);

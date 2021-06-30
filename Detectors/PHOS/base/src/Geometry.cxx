@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,7 +25,12 @@ ClassImp(Geometry);
 //  56   112   3584
 //  ...  ...    ...
 //  1    57 ...3529
-//  relid[3]: (module number[0...3], iphi[1...64], iz[1...56])
+//  relid[3]: (module number[1...4], iphi[1...64], iz[1...56])
+//
+//  Then TRU channels go from 1 to 112 per branch, 2 branches per ddl
+//  absId = getTotalNCells() + TRUabsId ;
+//  relId for TRU
+//  relid: [DDL id=0..13] [x in 2x2 system: 1..8] [z in 2x2 system 1..28] TODO: verify with real TRU data!!!
 
 // these initialisations are needed for a singleton
 Geometry* Geometry::sGeom = nullptr;
@@ -54,7 +60,7 @@ short Geometry::relToAbsId(char moduleNumber, int strip, int cell)
   short row = nStrpZ - (strip - 1) % nStrpZ;
   short col = (int)std::ceil((float)strip / (nStrpZ)) - 1;
 
-  return moduleNumber * nCrystalsInModule + row * 2 + (col * nCellsXInStrip + (cell - 1) / 2) * nZ -
+  return (moduleNumber - 1) * nCrystalsInModule + row * 2 + (col * nCellsXInStrip + (cell - 1) / 2) * nZ -
          (cell & 1 ? 1 : 0);
 }
 
@@ -66,22 +72,54 @@ bool Geometry::absToRelNumbering(short absId, char* relid)
   //  relid[2] = Column number inside a PHOS module (Phi coordinate)
   const short nZ = 56;   // nStripZ * nCellsZInStrip
   const short nPhi = 64; // nStripZ * nCellsZInStrip
+  absId--;
+  short phosmodulenumber = absId / (nZ * nPhi);
 
-  short phosmodulenumber = (absId - 1) / (nZ * nPhi);
-
-  relid[0] = phosmodulenumber;
+  relid[0] = phosmodulenumber + 1;
   absId -= phosmodulenumber * nPhi * nZ;
-  relid[1] = 1 + (absId - 1) / nZ;
-  relid[2] = absId - (relid[1] - 1) * nZ;
+  relid[1] = 1 + absId / nZ;
+  relid[2] = absId - (relid[1] - 1) * nZ + 1;
 
   return true;
 }
+bool Geometry::truAbsToRelNumbering(short truId, char* relid)
+{
+  //convert trigger cell Id to
+  truId--;
+  relid[0] = truId / 224; //2*112 channels // DDL id
+  truId = truId % 224;
+  relid[1] = 1 + truId % 8; // x index in TRU internal 2x2 coordinate system
+  relid[2] = 1 + truId / 8; // z index in TRU internal 2x2 coordinate system
+  return true;
+}
+short Geometry::truRelToAbsNumbering(const char* relId)
+{
+  return relId[0] * 224 +    // the offset of PHOS modules
+         relId[1] - 1 +      // the offset along phi
+         (relId[2] - 1) * 8; // the offset along z
+}
+bool Geometry::truRelId2RelId(const char* truRelId, char* relId)
+{
+  relId[0] = 1 + (truRelId[0] + 2) / 4;
+  relId[1] = ((truRelId[0] + 2) % 4) * 16 + truRelId[1] * 2 - 1;
+  relId[2] = truRelId[2] * 2 - 1;
+  return true;
+}
+short Geometry::relPosToTruId(char mod, float x, float z, short& ddl)
+{
+  //tranform local cluster coordinates to truId
+  char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
+  ddl = (mod - 1) * 4 + relid[1] / 16 - 2;
+  char truid[3] = {static_cast<char>(ddl), static_cast<char>(1 + ((relid[1] - 1) % 16) / 2), static_cast<char>(1 + (relid[2] - 1) / 2)};
+  return truRelToAbsNumbering(truid);
+}
+
 char Geometry::absIdToModule(short absId)
 {
   const short nZ = 56;
   const short nPhi = 64;
 
-  return (absId - 1) / (nZ * nPhi);
+  return 1 + (absId - 1) / (nZ * nPhi);
 }
 
 int Geometry::areNeighbours(short absId1, short absId2)
@@ -126,13 +164,11 @@ int Geometry::areNeighbours(short absId1, short absId2)
 void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
 {
 
-  const float cellStep = 2.25;
-
   char relid[3];
   absToRelNumbering(absId, relid);
 
-  x = (relid[1] - 32 - 0.5) * cellStep;
-  z = (relid[2] - 28 - 0.5) * cellStep;
+  x = (relid[1] - 32 - 0.5) * CELLSTEP;
+  z = (relid[2] - 28 - 0.5) * CELLSTEP;
 }
 bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 {
@@ -140,19 +176,23 @@ bool Geometry::relToAbsNumbering(const char* relId, short& absId)
   const short nPhi = 64; // nStripZ * nCellsZInStrip
 
   absId =
-    relId[0] * nPhi * nZ + // the offset of PHOS modules
-    (relId[1] - 1) * nZ +  // the offset along phi
-    relId[2];              // the offset along z
+    (relId[0] - 1) * nPhi * nZ + // the offset of PHOS modules
+    (relId[1] - 1) * nZ +        // the offset along phi
+    relId[2];                    // the offset along z
 
   return true;
 }
 //local position to absId
 void Geometry::relPosToAbsId(char module, float x, float z, short& absId)
 {
-  const float cellStep = 2.25;
-
-  char relid[3] = {module, static_cast<char>(ceil(x / cellStep + 32.5)), static_cast<char>(ceil(z / cellStep + 28.5))};
+  char relid[3] = {module, static_cast<char>(ceil(x / CELLSTEP + 32.5)), static_cast<char>(ceil(z / CELLSTEP + 28.5))};
   relToAbsNumbering(relid, absId);
+}
+void Geometry::relPosToRelId(short module, float x, float z, char* relId)
+{
+  relId[0] = module;
+  relId[1] = static_cast<char>(ceil(x / CELLSTEP + 32.5));
+  relId[2] = static_cast<char>(ceil(z / CELLSTEP + 28.5));
 }
 
 // convert local position in module to global position in ALICE
@@ -160,7 +200,7 @@ void Geometry::local2Global(char module, float x, float z, TVector3& globaPos) c
 {
   // constexpr float shiftY=-10.76; Run2
   constexpr float shiftY = -1.26; //Depth-optimized
-  Double_t posL[3] = {x, shiftY, -z};
+  Double_t posL[3] = {x, z, shiftY};
   Double_t posG[3];
   mPHOS[module].LocalToMaster(posL, posG);
   globaPos.SetXYZ(posG[0], posG[1], posG[2]);

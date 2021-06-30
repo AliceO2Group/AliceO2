@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,13 +12,17 @@
 #include <string>
 #include <algorithm>
 #include <fmt/format.h>
+#include <cmath>
 
-#include "TString.h"
 #include "TAxis.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TH2Poly.h"
 #include "TCanvas.h"
+#include "TLine.h"
+#include "TLatex.h"
 
+#include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/Sector.h"
 #include "TPCBase/Mapper.h"
@@ -28,6 +33,48 @@
 
 using namespace o2::tpc;
 
+std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
+{
+  std::vector<painter::PadCoordinates> padCoords;
+
+  const auto& regInf = Mapper::instance().getMapPadRegionInfo();
+
+  for (const auto& padReg : regInf) {
+    const auto npr = padReg.getNumberOfPadRows();
+    const auto ro = padReg.getRowOffset();
+    const auto xm = padReg.getXhelper();
+    const auto ph = padReg.getPadHeight();
+    const auto pw = padReg.getPadWidth();
+    const auto yro = padReg.getRadiusFirstRow();
+    const auto ks = ph / pw * std::tan(1.74532925199432948e-01);
+
+    for (int irow = 0; irow < npr; ++irow) {
+      const auto npads = std::floor(ks * (irow + ro) + xm);
+      for (int ipad = -npads; ipad < npads; ++ipad) {
+        const auto xPadBottomRight = yro + ph * irow;
+        const auto xPadTopRight = yro + ph * (irow + 1);
+        const auto ri = xPadBottomRight;
+        const auto yPadBottomRight = pw * ipad * xPadBottomRight / (ri + ph / 2);
+        const auto yPadTopRight = pw * ipad * xPadTopRight / (ri + ph / 2);
+        const auto yPadBottomLeft = pw * (ipad + 1) * xPadBottomRight / (ri + ph / 2);
+        const auto yPadTopLeft = pw * (ipad + 1) * xPadTopRight / (ri + ph / 2);
+        auto& padCoord = padCoords.emplace_back();
+        padCoord.xVals = {xPadBottomRight, xPadTopRight, xPadTopRight, xPadBottomRight};
+        padCoord.yVals = {yPadBottomRight, yPadTopRight, yPadTopLeft, yPadBottomLeft};
+      }
+    }
+  }
+
+  return padCoords;
+}
+
+std::string painter::getROCTitle(const int rocNumber)
+{
+  const std::string_view type = (rocNumber < 36) ? "IROC" : "OROC";
+  const std::string_view side = ((rocNumber % 36) < 18) ? "A" : "C";
+  return fmt::format("{} {}{:02}", type, side, rocNumber % 18);
+}
+
 template <class T>
 TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float xMax1D, TCanvas* outputCanvas)
 {
@@ -37,9 +84,10 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   static const Mapper& mapper = Mapper::instance();
 
   // ===| name and title |======================================================
-  const auto title = calDet.getName().c_str();
+  std::string title = calDet.getName();
   std::string name = calDet.getName();
   std::replace(name.begin(), name.end(), ' ', '_');
+  std::replace(title.begin(), title.end(), '_', ' ');
 
   // ===| define histograms |===================================================
   // TODO: auto scaling of ranges based on mean and variance?
@@ -49,16 +97,16 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   const int bufferSize = TH1::GetDefaultBufferSize();
   TH1::SetDefaultBufferSize(Sector::MAXSECTOR * mapper.getPadsInSector());
 
-  auto hAside1D = new TH1F(Form("h_Aside_1D_%s", name.c_str()), Form("%s (A-Side)", title),
+  auto hAside1D = new TH1F(fmt::format("h_Aside_1D_{}", name).data(), fmt::format("{} (A-Side)", title).data(),
                            nbins1D, xMin1D, xMax1D); //TODO: modify ranges
 
-  auto hCside1D = new TH1F(Form("h_Cside_1D_%s", name.c_str()), Form("%s (C-Side)", title),
+  auto hCside1D = new TH1F(fmt::format("h_Cside_1D_{}", name).data(), fmt::format("{} (C-Side)", title).data(),
                            nbins1D, xMin1D, xMax1D); //TODO: modify ranges
 
-  auto hAside2D = new TH2F(Form("h_Aside_2D_%s", name.c_str()), Form("%s (A-Side);x (cm);y (cm)", title),
+  auto hAside2D = new TH2F(fmt::format("h_Aside_2D_{}", name).data(), fmt::format("{} (A-Side);x (cm);y (cm)", title).data(),
                            300, -300, 300, 300, -300, 300);
 
-  auto hCside2D = new TH2F(Form("h_Cside_2D_%s", name.c_str()), Form("%s (C-Side);x (cm);y (cm)", title),
+  auto hCside2D = new TH2F(fmt::format("h_Cside_2D_{}", name).data(), fmt::format("{} (C-Side);x (cm);y (cm)", title).data(),
                            300, -300, 300, 300, -300, 300);
 
   for (ROC roc; !roc.looped(); ++roc) {
@@ -95,16 +143,20 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
   // ===| Draw histograms |=====================================================
   auto c = outputCanvas;
   if (!c) {
-    c = new TCanvas(Form("c_%s", name.c_str()), title, 1000, 1000);
+    c = new TCanvas(fmt::format("c_{}", name).data(), title.data(), 1000, 1000);
   }
   c->Clear();
   c->Divide(2, 2);
 
   c->cd(1);
   hAside2D->Draw("colz");
+  hAside2D->SetStats(0);
+  drawSectorsXY(Side::A);
 
   c->cd(2);
   hCside2D->Draw("colz");
+  hCside2D->SetStats(0);
+  drawSectorsXY(Side::C);
 
   c->cd(3);
   hAside1D->Draw();
@@ -122,12 +174,11 @@ TCanvas* painter::draw(const CalDet<T>& calDet, int nbins1D, float xMin1D, float
 template <class T>
 TCanvas* painter::draw(const CalArray<T>& calArray)
 {
-  const auto title = calArray.getName().c_str();
-  std::string name = calArray.getName();
-  std::replace(name.begin(), name.end(), ' ', '_');
-  auto c = new TCanvas(Form("c_%s", name.c_str()), title);
-
   auto hist = getHistogram2D(calArray);
+  std::string name = hist->GetName();
+  name[0] = 'c';
+  auto c = new TCanvas(fmt::format("c_{}", name).data(), hist->GetTitle());
+
   hist->Draw("colz");
 
   return c;
@@ -185,13 +236,14 @@ void painter::fillHistogram2D(TH2& h2D, const CalArray<T>& calArray)
 template <class T>
 TH2* painter::getHistogram2D(const CalDet<T>& calDet, Side side)
 {
-  const auto title = calDet.getName().c_str();
+  std::string title = calDet.getName();
   std::string name = calDet.getName();
   std::replace(name.begin(), name.end(), ' ', '_');
+  std::replace(title.begin(), title.end(), '_', ' ');
   const char side_name = (side == Side::A) ? 'A' : 'C';
 
-  auto h2D = new TH2F(Form("h_%cside_2D_%s", side_name, name.c_str()),
-                      Form("%s (%c-Side);x (cm);y (cm)", title, side_name),
+  auto h2D = new TH2F(fmt::format("h_{}side_2D_{}", side_name, name).data(),
+                      fmt::format("{} ({}-Side);x (cm);y (cm)", title, side_name).data(),
                       300, -300, 300, 300, -300, 300);
 
   fillHistogram2D(*h2D, calDet, side);
@@ -213,11 +265,17 @@ TH2* painter::getHistogram2D(const CalArray<T>& calArray)
   const int npads = mapper.getNumberOfPadsInRow(padSubset, position, nrows - 1) + 6;
 
   // ===| create histogram |====================================================
-  const auto title = calArray.getName().c_str();
+  std::string title = calArray.getName();
   std::string name = calArray.getName();
+  std::replace(title.begin(), title.end(), '_', ' ');
   std::replace(name.begin(), name.end(), ' ', '_');
-  auto hist = new TH2F(Form("h_%s", name.c_str()),
-                       Form("%s;pad row;pad", title),
+
+  if (padSubset == PadSubset::ROC) {
+    title += fmt::format(" ({})", getROCTitle(position));
+  }
+
+  auto hist = new TH2F(fmt::format("h_{}", name).data(),
+                       fmt::format("{};pad row;pad", title).data(),
                        nrows, 0., nrows,
                        npads, -npads / 2, npads / 2);
 
@@ -302,7 +360,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
     }
 
     // ===| 1D histogram |===
-    auto h1D = new TH1F(fmt::format("h_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d};ADC value", calName, iroc).data(), nbins1D, xMin1D, xMax1D);
+    auto h1D = new TH1F(fmt::format("h_{}_{:02d}", calName, iroc).data(), fmt::format("{} distribution ROC {:02d} ({});ADC value", calName, iroc, getROCTitle(iroc)).data(), nbins1D, xMin1D, xMax1D);
     for (const auto& val : roc.getData()) {
       h1D->Fill(val);
     }
@@ -328,7 +386,7 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const CalDet<T>& calDet, int 
   return vecCanvases;
 }
 
-//==============================================================================
+//______________________________________________________________________________
 std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileName, const std::string_view calPadNames, int nbins1D, float xMin1D, float xMax1D, bool onlyFilled)
 {
   using namespace o2::tpc;
@@ -347,6 +405,160 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const std::string_view fileNa
   return vecCanvases;
 }
 
+//______________________________________________________________________________
+TH2Poly* painter::makeSectorHist(const std::string_view name, const std::string_view title)
+{
+  auto poly = new TH2Poly(name.data(), title.data(), 83.65, 247.7, -43.7, 43.7);
+
+  auto coords = painter::getPadCoordinatesSector();
+  for (const auto& coord : coords) {
+    poly->AddBin(coord.xVals.size(), coord.xVals.data(), coord.yVals.data());
+  }
+
+  return poly;
+}
+
+//______________________________________________________________________________
+TH2Poly* painter::makeSideHist(Side side)
+{
+  const auto s = (side == Side::A) ? "A" : "C";
+  auto poly = new TH2Poly(fmt::format("hSide_{}", s).data(), fmt::format("{}-Side;#it{{x}} (cm);#it{{y}} (cm)", s).data(), -270., 270., -270., 270.);
+
+  auto coords = painter::getPadCoordinatesSector();
+  for (int isec = 0; isec < 18; ++isec) {
+    const float angDeg = 10.f + isec * 20;
+    for (auto coord : coords) {
+      coord.rotate(angDeg);
+      poly->AddBin(coord.xVals.size(), coord.xVals.data(), coord.yVals.data());
+    }
+  }
+
+  return poly;
+}
+
+//______________________________________________________________________________
+template <class T>
+void painter::fillPoly2D(TH2Poly& h2D, const CalDet<T>& calDet, Side side)
+{
+  static const Mapper& mapper = Mapper::instance();
+
+  int bin = 1;
+  for (const auto& calROC : calDet.getData()) {
+    ROC roc(calROC.getPadSubsetNumber());
+    if (roc.side() != side) {
+      continue;
+    }
+
+    const int nrows = mapper.getNumberOfRowsROC(roc);
+    for (int irow = 0; irow < nrows; ++irow) {
+      const int padMax = mapper.getNumberOfPadsInRowROC(roc, irow) - 1;
+      for (int ipad = 0; ipad <= padMax; ++ipad) {
+        const auto val = calDet.getValue(roc, irow, (side == Side::A) ? ipad : padMax - ipad); // C-Side is mirrored
+        h2D.SetBinContent(bin++, val);
+      }
+    }
+  }
+}
+
+//______________________________________________________________________________
+void painter::drawSectorsXY(Side side, int sectorLineColor, int sectorTextColor)
+{
+  TLine l;
+  l.SetLineColor(sectorLineColor);
+
+  TLine l2;
+  l2.SetLineColor(sectorLineColor);
+  l2.SetLineStyle(kDotted);
+
+  TLatex latSide;
+  latSide.SetTextColor(sectorTextColor);
+  latSide.SetTextAlign(22);
+  latSide.SetTextSize(0.08);
+  latSide.DrawLatex(0, 0, (side == Side::C) ? "C" : "A");
+
+  TLatex lat;
+  lat.SetTextAlign(22);
+  lat.SetTextSize(0.03);
+  lat.SetTextColor(sectorLineColor);
+
+  constexpr float phiWidth = float(SECPHIWIDTH);
+  const float rFactor = std::cos(phiWidth / 2.);
+  const float rLow = 83.65 / rFactor;
+  const float rIROCup = 133.3 / rFactor;
+  const float rOROClow = 133.5 / rFactor;
+  const float rOROC12 = 169.75 / rFactor;
+  const float rOROC23 = 207.85 / rFactor;
+  const float rOut = 247.7 / rFactor;
+  const float rText = rLow * rFactor * 3. / 4.;
+
+  for (Int_t isector = 0; isector < 18; ++isector) {
+    const float sinR = std::sin(phiWidth * isector);
+    const float cosR = std::cos(phiWidth * isector);
+
+    const float sinL = std::sin(phiWidth * ((isector + 1) % 18));
+    const float cosL = std::cos(phiWidth * ((isector + 1) % 18));
+
+    const float sinText = std::sin(phiWidth * (isector + 0.5));
+    const float cosText = std::cos(phiWidth * (isector + 0.5));
+
+    const float xR1 = rLow * cosR;
+    const float yR1 = rLow * sinR;
+    const float xR2 = rOut * cosR;
+    const float yR2 = rOut * sinR;
+
+    const float xL1 = rLow * cosL;
+    const float yL1 = rLow * sinL;
+    const float xL2 = rOut * cosL;
+    const float yL2 = rOut * sinL;
+
+    const float xOROCmup1 = rOROClow * cosR;
+    const float yOROCmup1 = rOROClow * sinR;
+    const float xOROCmup2 = rOROClow * cosL;
+    const float yOROCmup2 = rOROClow * sinL;
+
+    const float xIROCmup1 = rIROCup * cosR;
+    const float yIROCmup1 = rIROCup * sinR;
+    const float xIROCmup2 = rIROCup * cosL;
+    const float yIROCmup2 = rIROCup * sinL;
+
+    const float xO121 = rOROC12 * cosR;
+    const float yO121 = rOROC12 * sinR;
+    const float xO122 = rOROC12 * cosL;
+    const float yO122 = rOROC12 * sinL;
+
+    const float xO231 = rOROC23 * cosR;
+    const float yO231 = rOROC23 * sinR;
+    const float xO232 = rOROC23 * cosL;
+    const float yO232 = rOROC23 * sinL;
+
+    const float xText = rText * cosText;
+    const float yText = rText * sinText;
+
+    // left side line
+    l.DrawLine(xR1, yR1, xR2, yR2);
+
+    // IROC inner line
+    l.DrawLine(xR1, yR1, xL1, yL1);
+
+    // IROC end line
+    l.DrawLine(xIROCmup1, yIROCmup1, xIROCmup2, yIROCmup2);
+
+    // OROC start line
+    l.DrawLine(xOROCmup1, yOROCmup1, xOROCmup2, yOROCmup2);
+
+    // OROC1 - OROC2 line
+    l.DrawLine(xO121, yO121, xO122, yO122);
+
+    // OROC2 - OROC3 line
+    l.DrawLine(xO231, yO231, xO232, yO232);
+
+    // IROC inner line
+    l.DrawLine(xR2, yR2, xL2, yL2);
+
+    // sector numbers
+    lat.DrawLatex(xText, yText, fmt::format("{}", isector).data());
+  }
+}
 // ===| explicit instantiations |===============================================
 // this is required to force the compiler to create instances with the types
 // we usually would like to deal with
@@ -354,6 +566,7 @@ template TCanvas* painter::draw<float>(const CalDet<float>& calDet, int, float, 
 template std::vector<TCanvas*> painter::makeSummaryCanvases<float>(const CalDet<float>& calDet, int, float, float, bool, std::vector<TCanvas*>*);
 template TCanvas* painter::draw<float>(const CalArray<float>& calArray);
 template void painter::fillHistogram2D<float>(TH2& h2D, const CalDet<float>& calDet, Side side);
+template void painter::fillPoly2D<float>(TH2Poly& h2D, const CalDet<float>& calDet, Side side);
 template void painter::fillHistogram2D<float>(TH2& h2D, const CalArray<float>& calArray);
 template TH2* painter::getHistogram2D<float>(const CalDet<float>& calDet, Side side);
 template TH2* painter::getHistogram2D<float>(const CalArray<float>& calArray);

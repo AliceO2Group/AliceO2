@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,6 +18,7 @@
 #include "DataFormatsParameters/GRPObject.h"
 #include <cmath>
 #include "CommonConstants/PhysicsConstants.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 using namespace o2::parameters;
 using namespace o2::constants::physics;
@@ -50,6 +52,7 @@ void GRPObject::print() const
   printf("Start: %s", std::ctime(&t));
   t = mTimeEnd; // system_clock::to_time_t(mTimeEnd);
   printf("End  : %s", std::ctime(&t));
+  printf("1st orbit: %u, %u orbits per TF\n", mFirstOrbit, mNHBFPerTF);
   printf("Beam0: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamClockWise), getBeamA(BeamClockWise),
          getBeamEnergyPerNucleon(BeamClockWise));
   printf("Beam1: Z:A = %3d:%3d, Energy = %.3f\n", getBeamZ(BeamAntiClockWise), getBeamA(BeamAntiClockWise),
@@ -111,9 +114,10 @@ GRPObject::ROMode GRPObject::getDetROMode(o2::detectors::DetID id) const
 GRPObject* GRPObject::loadFrom(const std::string& grpFileName, const std::string& grpName)
 {
   // load object from file
-  TFile flGRP(grpFileName.data());
+  auto fname = o2::base::NameConf::getGRPFileName(grpFileName);
+  TFile flGRP(fname.c_str());
   if (flGRP.IsZombie()) {
-    LOG(ERROR) << "Failed to open " << grpFileName;
+    LOG(ERROR) << "Failed to open " << fname;
     throw std::runtime_error("Failed to open GRP file");
   }
   auto grp = reinterpret_cast<o2::parameters::GRPObject*>(

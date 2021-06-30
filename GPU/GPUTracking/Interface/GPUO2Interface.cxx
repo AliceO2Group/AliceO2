@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,6 +21,8 @@
 #include "GPUParam.inc"
 #include "GPUQA.h"
 #include "GPUOutputControl.h"
+#include "TPCPadGainCalib.h"
+#include "TPCdEdxCalibrationSplines.h"
 #include <iostream>
 #include <fstream>
 
@@ -37,7 +40,7 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
     return (1);
   }
   mConfig.reset(new GPUO2InterfaceConfiguration(config));
-  mContinuous = mConfig->configEvent.continuousMaxTimeBin != 0;
+  mContinuous = mConfig->configGRP.continuousMaxTimeBin != 0;
   mRec.reset(GPUReconstruction::CreateInstance(mConfig->configDeviceBackend));
   if (mRec == nullptr) {
     GPUError("Error obtaining instance of GPUReconstruction");
@@ -47,9 +50,9 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   mChain->mConfigDisplay = &mConfig->configDisplay;
   mChain->mConfigQA = &mConfig->configQA;
   if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCRaw)) {
-    mConfig->configEvent.needsClusterer = 1;
+    mConfig->configGRP.needsClusterer = 1;
   }
-  mRec->SetSettings(&mConfig->configEvent, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
+  mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetCalibObjects(mConfig->configCalib);
   mOutputRegions.reset(new GPUTrackingOutputs);
   if (mConfig->configInterface.outputToExternalBuffers) {
@@ -67,7 +70,6 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   if (!mRec->IsGPU() && mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
     mRec->MemoryScalers()->factor *= 2;
   }
-  mRec->MemoryScalers()->factor *= mConfig->configInterface.memoryBufferScaleFactor;
   mInitialized = true;
   return (0);
 }
@@ -89,9 +91,7 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
   if (mConfig->configInterface.dumpEvents) {
     static int nEvent = 0;
     mChain->ClearIOPointers();
-    mChain->mIOPtrs.clustersNative = data->clustersNative;
-    mChain->mIOPtrs.tpcPackedDigits = data->tpcPackedDigits;
-    mChain->mIOPtrs.tpcZS = data->tpcZS;
+    mChain->mIOPtrs = *data;
 
     char fname[1024];
     sprintf(fname, "event.%d.dump", nEvent);
@@ -159,4 +159,19 @@ int GPUO2Interface::registerMemoryForGPU(const void* ptr, size_t size)
 int GPUO2Interface::unregisterMemoryForGPU(const void* ptr)
 {
   return mRec->unregisterMemoryForGPU(ptr);
+}
+
+std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalibDefault()
+{
+  return std::make_unique<TPCPadGainCalib>();
+}
+
+std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalib(const o2::tpc::CalDet<float>& in)
+{
+  return std::make_unique<TPCPadGainCalib>(in);
+}
+
+std::unique_ptr<TPCdEdxCalibrationSplines> GPUO2Interface::getdEdxCalibrationSplinesDefault()
+{
+  return std::make_unique<TPCdEdxCalibrationSplines>();
 }

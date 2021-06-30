@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -305,7 +306,6 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
       HLTInfo("There are %i tracklets in this event\n", nTracklets);
       for (int iTracklet = 0; iTracklet < nTracklets; ++iTracklet) {
         GPUTRDTrackletWord trkl = *((AliTRDtrackletWord*)fTrackletArray->At(iTracklet));
-        trkl.SetId(iTracklet);
         outputTrkls.push_back(trkl);
       }
       LogDebug("pushing data for sectors: 0x%05x", sourceSectors);
@@ -373,7 +373,6 @@ int GPUTRDTrackletReaderComponent::DoEvent(const AliHLTComponentEventData& hltEv
           continue;
         }
         GPUTRDTrackletWord hltTrkl = *trkl;
-        hltTrkl.SetId(iTracklet);
         outputTrkls.push_back(hltTrkl);
         GPUTRDTrackletLabels trklMC;
         trklMC.mLabel[0] = trkl->GetLabel(0);

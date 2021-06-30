@@ -1,15 +1,14 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-namespace o2
-{
-namespace framework
+namespace o2::framework
 {
 
 inline bool TimesliceId::isValid(TimesliceId const& timeslice) { return timeslice.value != INVALID; }
@@ -110,11 +109,34 @@ inline TimesliceSlot TimesliceIndex::findOldestSlot() const
 inline TimesliceId TimesliceIndex::getTimesliceForSlot(TimesliceSlot slot) const
 {
   assert(mVariables.size() > slot.index);
+  // timeslice is always at register 0
   auto pval = std::get_if<uint64_t>(&mVariables[slot.index].get(0));
   if (pval == nullptr) {
     return TimesliceId{TimesliceId::INVALID};
   }
   return TimesliceId{*pval};
+}
+
+inline uint32_t TimesliceIndex::getFirstTFOrbitForSlot(TimesliceSlot slot) const
+{
+  assert(mVariables.size() > slot.index);
+  // firstTForbit is always at register 15
+  auto pval = std::get_if<uint32_t>(&mVariables[slot.index].get(data_matcher::FIRSTTFORBIT_POS));
+  if (pval == nullptr) {
+    return -1;
+  }
+  return *pval;
+}
+
+inline uint32_t TimesliceIndex::getFirstTFCounterForSlot(TimesliceSlot slot) const
+{
+  assert(mVariables.size() > slot.index);
+  // tfCounter is always at register 14
+  auto pval = std::get_if<uint32_t>(&mVariables[slot.index].get(14));
+  if (pval == nullptr) {
+    return -1;
+  }
+  return *pval;
 }
 
 inline data_matcher::VariableContext& TimesliceIndex::getVariablesForSlot(TimesliceSlot slot)
@@ -148,11 +170,27 @@ inline std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::re
   }
 
   if (*newTimestamp > *oldTimestamp) {
-    mVariables[oldestSlot.index] = newContext;
-    return std::make_tuple(ActionTaken::ReplaceObsolete, oldestSlot);
+    switch (mBackpressurePolicy) {
+      case BackpressureOp::DropAncient:
+        mVariables[oldestSlot.index] = newContext;
+        return std::make_tuple(ActionTaken::ReplaceObsolete, oldestSlot);
+      case BackpressureOp::DropRecent:
+        return std::make_tuple(ActionTaken::DropObsolete, TimesliceSlot{TimesliceSlot::INVALID});
+      case BackpressureOp::Wait:
+        return std::make_tuple(ActionTaken::Wait, TimesliceSlot{TimesliceSlot::INVALID});
+    }
+  } else {
+    switch (mBackpressurePolicy) {
+      case BackpressureOp::DropRecent:
+        mVariables[oldestSlot.index] = newContext;
+        return std::make_tuple(ActionTaken::ReplaceObsolete, oldestSlot);
+      case BackpressureOp::DropAncient:
+        return std::make_tuple(ActionTaken::DropObsolete, TimesliceSlot{TimesliceSlot::INVALID});
+      case BackpressureOp::Wait:
+        return std::make_tuple(ActionTaken::Wait, TimesliceSlot{TimesliceSlot::INVALID});
+    }
   }
-  return std::make_tuple(ActionTaken::DropObsolete, TimesliceSlot{TimesliceSlot::INVALID});
+  O2_BUILTIN_UNREACHABLE();
 }
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework

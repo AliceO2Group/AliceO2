@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,11 +24,16 @@
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationBase/VisualisationConstants.h"
 #include "EventVisualisationBase/DataSourceOffline.h"
-#include "EventVisualisationDetectors/DataReaderTPC.h"
-#include "EventVisualisationDetectors/DataInterpreterTPC.h"
-#include "EventVisualisationDetectors/DataReaderITS.h"
-#include "EventVisualisationDetectors/DataInterpreterITS.h"
 #include "EventVisualisationView/EventManagerFrame.h"
+#include "EventVisualisationView/Options.h"
+
+#include "EventVisualisationDetectors/DataInterpreterITS.h"
+#include "EventVisualisationDetectors/DataReaderITS.h"
+#include "EventVisualisationDetectors/DataInterpreterTPC.h"
+#include "EventVisualisationDetectors/DataReaderTPC.h"
+
+#include "EventVisualisationDetectors/DataReaderJSON.h"
+
 #include "FairLogger.h"
 
 #include <TGTab.h>
@@ -37,7 +43,6 @@
 #include <TRegexp.h>
 #include <TSystem.h>
 #include <TEveWindowManager.h>
-#include <TFile.h>
 using namespace std;
 
 namespace o2
@@ -45,7 +50,7 @@ namespace o2
 namespace event_visualisation
 {
 
-void Initializer::setup(const Options options, EventManager::EDataSource defaultDataSource)
+void Initializer::setup(EventManager::EDataSource defaultDataSource)
 {
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
@@ -55,18 +60,25 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
   LOG(INFO) << "Initializer -- OCDB path:" << ocdbStorage;
 
   auto& eventManager = EventManager::getInstance();
-  eventManager.setDataSourceType(defaultDataSource);
   eventManager.setCdbPath(ocdbStorage);
 
-  eventManager.registerDetector(new DataReaderTPC(), new DataInterpreterTPC(), EVisualisationGroup::TPC);
-  eventManager.registerDetector(new DataReaderITS(), new DataInterpreterITS(), EVisualisationGroup::ITS);
-
-  eventManager.setDataSourceType(EventManager::EDataSource::SourceOffline);
+  eventManager.setDataSourceType(defaultDataSource);
   eventManager.Open();
+  if (Options::Instance()->tpc()) {
+    eventManager.getDataSource()->registerDetector(new DataReaderTPC(new DataInterpreterTPC()), EVisualisationGroup::TPC);
+  }
+  if (Options::Instance()->its()) {
+    eventManager.getDataSource()->registerDetector(new DataReaderITS(new DataInterpreterITS()), EVisualisationGroup::ITS);
+  }
+  if (Options::Instance()->json()) {
+    eventManager.getDataSource()->registerDetector(new DataReaderJSON(nullptr), EVisualisationGroup::JSON);
+  }
+
 
   GeometryManager::getInstance().setR2Geometry(std::string(settings.GetValue("simple.geom.default", "R3")).compare("R2") == 0);
 
   setupGeometry();
+
   gSystem->ProcessEvents();
   gEve->Redraw3D(true);
 
@@ -94,8 +106,9 @@ void Initializer::setup(const Options options, EventManager::EDataSource default
   // For the time being we draw single random event on startup.
   // Later this will be triggered by button, and finally moved to configuration.
   gEve->AddEvent(&EventManager::getInstance());
-
+  eventManager.getDataSource()->refresh();
   frame->DoFirstEvent();
+  frame->StartTimer();
 }
 
 void Initializer::setupGeometry()
@@ -106,13 +119,16 @@ void Initializer::setupGeometry()
 
   // get geometry from Geometry Manager and register in multiview
   auto multiView = MultiView::getInstance();
+
   //auto geometry_enabled = GeometryManager::getInstance().getR2Geometry()? R2Visualisation:R3Visualisation;
   for (int iDet = 0; iDet < NvisualisationGroups; ++iDet) {
+
     if (GeometryManager::getInstance().getR2Geometry()) {
       if (!R2Visualisation[iDet]) {
         continue;
       }
     }
+
     if (!GeometryManager::getInstance().getR2Geometry()) {
       if (!R3Visualisation[iDet]) {
         continue;
@@ -121,15 +137,19 @@ void Initializer::setupGeometry()
 
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
+    LOG(INFO) << detName;
+
     if (settings.GetValue((detName + ".draw").c_str(), false)) {
-      if (detName == "TPC" || detName == "MCH" || detName == "MTR" || detName == "MID" || detName == "MFT" || detName == "AD0" || detName == "FMD") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
+      if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
 
         multiView->drawGeometryForDetector(detName, true, false);
       } else if (detName == "RPH") { // special TPC geom from R-Phi view
 
         multiView->drawGeometryForDetector(detName, false, true, false);
       } else { // default
-        multiView->drawGeometryForDetector(detName);
+        if (detName != "ACO") {
+          multiView->drawGeometryForDetector(detName);
+        }
       }
     }
   }

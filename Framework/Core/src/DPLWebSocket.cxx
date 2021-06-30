@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,6 +12,10 @@
 #include "DPLWebSocket.h"
 #include "Framework/RuntimeError.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DeviceController.h"
+#include "Framework/DevicesManager.h"
+#include "DriverServerContext.h"
+#include "DriverClientContext.h"
 #include "HTTPParser.h"
 #include <algorithm>
 #include <atomic>
@@ -84,8 +89,9 @@ void ws_handshake_done_callback(uv_write_t* h, int status)
   uv_read_start((uv_stream_t*)h->handle, (uv_alloc_cb)my_alloc_cb, websocket_server_callback);
 }
 
-WSDPLHandler::WSDPLHandler(uv_stream_t* s, std::unique_ptr<WebSocketHandler> h)
+WSDPLHandler::WSDPLHandler(uv_stream_t* s, DriverServerContext* context, std::unique_ptr<WebSocketHandler> h)
   : mStream{s},
+    mServerContext{context},
     mHandler{std::move(h)}
 {
 }
@@ -149,12 +155,74 @@ void WSDPLHandler::endHeaders()
   uv_buf_t bfr = uv_buf_init(strdup(reply.data()), reply.size());
   uv_write_t* info_req = (uv_write_t*)malloc(sizeof(uv_write_t));
   uv_write(info_req, (uv_stream_t*)mStream, &bfr, 1, ws_handshake_done_callback);
+  auto header = mHeaders.find("x-dpl-pid");
+  if (header != mHeaders.end()) {
+    LOG(debug) << "Driver connected to PID : " << header->second;
+    for (size_t i = 0; i < mServerContext->infos->size(); ++i) {
+      if (std::to_string((*mServerContext->infos)[i].pid) == header->second) {
+        (*mServerContext->controls)[i].controller = new DeviceController{this};
+        break;
+      }
+    }
+  } else {
+    LOG(INFO) << "Connection not bound to a PID";
+  }
 }
 
 /// Actual handling of WS frames happens inside here.
 void WSDPLHandler::body(char* data, size_t s)
 {
   decode_websocket(data, s, *mHandler.get());
+}
+
+void ws_server_write_callback(uv_write_t* h, int status)
+{
+  if (status) {
+    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    free(h);
+    return;
+  }
+  if (h->data) {
+    free(h->data);
+  }
+  free(h);
+}
+
+void ws_server_bulk_write_callback(uv_write_t* h, int status)
+{
+  if (status) {
+    LOG(ERROR) << "uv_write error: " << uv_err_name(status);
+    free(h);
+    return;
+  }
+  std::vector<uv_buf_t>* buffers = (std::vector<uv_buf_t>*)h->data;
+  if (buffers) {
+    for (auto& b : *buffers) {
+      free(b.base);
+    }
+  }
+  delete buffers;
+  free(h);
+}
+
+void WSDPLHandler::write(char const* message, size_t s)
+{
+  uv_buf_t bfr = uv_buf_init(strdup(message), s);
+  uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  write_req->data = bfr.base;
+  uv_write(write_req, (uv_stream_t*)mStream, &bfr, 1, ws_server_write_callback);
+}
+
+void WSDPLHandler::write(std::vector<uv_buf_t>& outputs)
+{
+  if (outputs.empty()) {
+    return;
+  }
+  uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  std::vector<uv_buf_t>* buffers = new std::vector<uv_buf_t>;
+  buffers->swap(outputs);
+  write_req->data = buffers;
+  uv_write(write_req, (uv_stream_t*)mStream, &buffers->at(0), buffers->size(), ws_server_bulk_write_callback);
 }
 
 /// Helper to return an error
@@ -176,8 +244,9 @@ void close_client_websocket(uv_handle_t* stream)
 
 void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
-  WSDPLClient* client = (WSDPLClient*)stream->data;
-  assert(client);
+  DriverClientContext* context = (DriverClientContext*)stream->data;
+  context->state->loopReason |= DeviceState::WS_COMMUNICATION;
+  assert(context->client);
   if (nread == 0) {
     return;
   }
@@ -196,8 +265,8 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
     return;
   }
   try {
-    LOG(INFO) << "Data received from server";
-    parse_http_request(buf->base, nread, client);
+    LOG(debug) << "Data received from server";
+    parse_http_request(buf->base, nread, context->client);
   } catch (RuntimeErrorRef& ref) {
     auto& err = o2::framework::error_from_ref(ref);
     LOG(ERROR) << "Error while parsing request: " << err.what;
@@ -205,13 +274,15 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
 }
 
 // FIXME: mNonce should be random
-WSDPLClient::WSDPLClient(uv_stream_t* s, DeviceSpec const& spec, std::function<void()> handshake)
+WSDPLClient::WSDPLClient(uv_stream_t* s, std::unique_ptr<DriverClientContext> context, std::function<void()> handshake, std::unique_ptr<WebSocketHandler> handler)
   : mStream{s},
     mNonce{"dGhlIHNhbXBsZSBub25jZQ=="},
-    mSpec{spec},
-    mHandshake{handshake}
+    mContext{std::move(context)},
+    mHandshake{handshake},
+    mHandler{std::move(handler)}
 {
-  s->data = this;
+  mContext->client = this;
+  s->data = mContext.get();
   uv_read_start((uv_stream_t*)s, (uv_alloc_cb)my_alloc_cb, websocket_client_callback);
 }
 
@@ -219,8 +290,8 @@ void WSDPLClient::sendHandshake()
 {
   std::vector<std::pair<std::string, std::string>> headers = {
     {{"x-dpl-pid"}, std::to_string(getpid())},
-    {{"x-dpl-id"}, mSpec.id},
-    {{"x-dpl-name"}, mSpec.name}};
+    {{"x-dpl-id"}, mContext->spec.id},
+    {{"x-dpl-name"}, mContext->spec.name}};
   std::string handShakeString = encode_websocket_handshake_request("/", "dpl", 13, mNonce.c_str(), headers);
   this->write(handShakeString.c_str(), handShakeString.size());
 }
@@ -275,41 +346,65 @@ void WSDPLClient::endHeaders()
   mHandshake();
 }
 
+struct WriteRequestContext {
+  uv_buf_t buf;
+  DeviceState* state;
+};
+
+struct BulkWriteRequestContext {
+  std::vector<uv_buf_t> buffers;
+  DeviceState* state;
+};
+
 void ws_client_write_callback(uv_write_t* h, int status)
 {
+  WriteRequestContext* context = (WriteRequestContext*)h->data;
   if (status) {
     LOG(ERROR) << "uv_write error: " << uv_err_name(status);
     free(h);
     return;
   }
-  if (h->data) {
-    free(h->data);
+  context->state->loopReason |= DeviceState::WS_COMMUNICATION;
+  if (context->buf.base) {
+    free(context->buf.base);
   }
+  delete context;
+  free(h);
 }
 
 void ws_client_bulk_write_callback(uv_write_t* h, int status)
 {
-  if (status) {
+  BulkWriteRequestContext* context = (BulkWriteRequestContext*)h->data;
+  context->state->loopReason |= DeviceState::WS_COMMUNICATION;
+  if (status < 0) {
     LOG(ERROR) << "uv_write error: " << uv_err_name(status);
     free(h);
     return;
   }
-  std::vector<uv_buf_t>* buffers = (std::vector<uv_buf_t>*)h->data;
-  if (buffers) {
-    for (auto& b : *buffers) {
+  if (context->buffers.size()) {
+    for (auto& b : context->buffers) {
       free(b.base);
     }
   }
-  delete buffers;
+  delete context;
+  free(h);
+}
+
+/// Actual handling of WS frames happens inside here.
+void WSDPLClient::body(char* data, size_t s)
+{
+  decode_websocket(data, s, *mHandler.get());
 }
 
 /// Helper to return an error
 void WSDPLClient::write(char const* message, size_t s)
 {
-  uv_buf_t bfr = uv_buf_init(strdup(message), s);
+  WriteRequestContext* context = new WriteRequestContext;
+  context->buf = uv_buf_init(strdup(message), s);
+  context->state = mContext->state;
   uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-  write_req->data = bfr.base;
-  uv_write(write_req, (uv_stream_t*)mStream, &bfr, 1, ws_client_write_callback);
+  write_req->data = context;
+  uv_write(write_req, (uv_stream_t*)mStream, &context->buf, 1, ws_client_write_callback);
 }
 
 void WSDPLClient::write(std::vector<uv_buf_t>& outputs)
@@ -318,10 +413,12 @@ void WSDPLClient::write(std::vector<uv_buf_t>& outputs)
     return;
   }
   uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-  std::vector<uv_buf_t>* buffers = new std::vector<uv_buf_t>;
-  buffers->swap(outputs);
-  write_req->data = buffers;
-  uv_write(write_req, (uv_stream_t*)mStream, &buffers->at(0), buffers->size(), ws_client_bulk_write_callback);
+  BulkWriteRequestContext* context = new BulkWriteRequestContext;
+  context->buffers.swap(outputs);
+  context->state = mContext->state;
+  write_req->data = context;
+  uv_write(write_req, (uv_stream_t*)mStream, &context->buffers.at(0),
+           context->buffers.size(), ws_client_bulk_write_callback);
 }
 
 } // namespace o2::framework

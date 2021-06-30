@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,7 +11,7 @@
 
 #include <vector>
 
-#include "PHOSCalib/BadChannelMap.h"
+#include "DataFormatsPHOS/BadChannelsMap.h"
 #include "DataFormatsPHOS/MCLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsPHOS/Cell.h"
@@ -75,7 +76,7 @@ class CellConverterSpec : public framework::Task
   std::vector<Cell> mOutputCells;                              ///< Container with output cells
   std::vector<TriggerRecord> mOutputCellTrigRecs;              ///< Container with trigger records for output cells
   o2::dataformats::MCTruthContainer<MCLabel> mOutputTruthCont; ///< output MC labels
-  o2::phos::BadChannelMap* mBadMap = nullptr;                  ///< Bad channels map
+  o2::phos::BadChannelsMap* mBadMap = nullptr;                 ///< Bad channels map
 };
 
 /// \brief Creating DataProcessorSpec for the PHOS Cell Converter Spec

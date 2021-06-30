@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -35,12 +36,10 @@ namespace GPUCA_NAMESPACE
 {
 namespace gpu
 {
-class GPUChainTracking;
-
 class GPUQA
 {
  public:
-  GPUQA(GPUChainTracking* chain) {}
+  GPUQA(void* chain) {}
   ~GPUQA() = default;
 
   int InitQA(int tasks = 0) { return 1; }
@@ -106,6 +105,7 @@ class GPUQA
   int HitAttachStatus(int iHit) const;
   int GetMCTrackLabel(unsigned int trackId) const;
   bool clusterRemovable(int attach, bool prot) const;
+  void InitO2MCData(GPUTrackingInOutPointers* updateIOPtr = nullptr);
   void DumpO2MCData(const char* filename) const;
   int ReadO2MCData(const char* filename);
   static bool QAAvailable() { return true; }
@@ -144,10 +144,9 @@ class GPUQA
   };
 
   int InitQACreateHistograms();
-  void InitO2MCData();
   int DoClusterCounts(unsigned long long int* attachClusterCounts, int mode = 0);
   void PrintClusterCount(int mode, int& num, const char* name, unsigned long long int n, unsigned long long int normalization);
-
+  void CopyO2MCtoIOPtr(GPUTrackingInOutPointers* ptr);
   void SetAxisSize(TH1F* e);
   void SetLegend(TLegend* l);
   double* CreateLogAxis(int nbins, float xmin, float xmax);
@@ -158,11 +157,12 @@ class GPUQA
   template <class T>
   T* GetHist(T*& ee, std::vector<std::unique_ptr<TFile>>& tin, int k, int nNewInput);
 
+  using mcInfo_t = GPUTPCMCInfo;
 #ifdef GPUCA_TPC_GEOMETRY_O2
   using mcLabels_t = gsl::span<const o2::MCCompLabel>;
   using mcLabel_t = o2::MCCompLabel;
   using mcLabelI_t = mcLabel_t;
-  using mcInfo_t = GPUTPCMCInfo;
+
   mcLabels_t GetMCLabel(unsigned int i);
   mcLabel_t GetMCLabel(unsigned int i, unsigned int j);
 #else
@@ -183,7 +183,6 @@ class GPUQA
     mcLabelI_t(const mcLabel_t& l);
     int track = MC_LABEL_INVALID;
   };
-  using mcInfo_t = GPUTPCMCInfo;
   const mcLabels_t& GetMCLabel(unsigned int i);
   const mcLabel_t& GetMCLabel(unsigned int i, unsigned int j);
   const mcInfo_t& GetMCTrack(const mcLabelI_t& label);
@@ -233,7 +232,8 @@ class GPUQA
   std::vector<int> mFakeTracks[1];
   std::vector<additionalMCParameters> mMCParam[1];
 #endif
-  std::vector<std::vector<mcInfo_t>> mMCInfos;
+  std::vector<mcInfo_t> mMCInfos;
+  std::vector<GPUTPCMCInfoCol> mMCInfosCol;
   std::vector<additionalClusterParameters> mClusterParam;
   int mNTotalFakes = 0;
 
@@ -303,6 +303,7 @@ class GPUQA
 
   int mNEvents = 0;
   bool mQAInitialized = false;
+  bool mO2MCDataLoaded = false;
   int mQATasks = 0;
   std::vector<std::vector<int>> mcEffBuffer;
   std::vector<std::vector<int>> mcLabelBuffer;

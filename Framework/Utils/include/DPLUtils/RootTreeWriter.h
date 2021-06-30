@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,6 +40,39 @@ namespace o2
 {
 namespace framework
 {
+
+/// Helper to get the corresponding std::function type for a callable object
+/// the default is void
+template <typename T>
+struct get_function {
+  using type = void;
+};
+
+/// the matching specialization builds the function type from the return type
+/// and types in the argument pack
+template <typename Ret, typename Class, typename... Args>
+struct get_function<Ret (Class::*)(Args...) const> {
+  using type = std::function<Ret(Args...)>;
+};
+
+/// check if a lambda can be assigned to concrete std::function
+/// default is false
+template <typename From, typename To, typename _ = void>
+struct can_assign : public std::false_type {
+};
+
+/// specialize for callable types, i.e. having operator(), the 'From' type can be
+/// assigned if its corresponding function type is the same as 'To' type
+/// a direct comparison is not possible because lambdas are their own type
+template <typename From, typename To>
+struct can_assign<
+  From, To,
+  std::conditional_t<
+    false,
+    class_member_checker<
+      decltype(&From::operator())>,
+    void>> : public std::is_same<typename get_function<decltype(&From::operator())>::type, To> {
+};
 
 /// @class RootTreeWriter
 /// @brief A generic writer interface for ROOT TTree objects.
@@ -328,6 +362,17 @@ class RootTreeWriter
     // automatically
     mTree.release();
     mFile.reset(nullptr);
+  }
+
+  /// autosave the tree
+  void autoSave()
+  {
+    if (mIsClosed || !mFile) {
+      return;
+    }
+    mTree->SetEntries();
+    LOG(INFO) << "Autosaving " << mTree->GetName() << " at entry " << mTree->GetEntries();
+    mTree->AutoSave("overwrite");
   }
 
   bool isClosed() const

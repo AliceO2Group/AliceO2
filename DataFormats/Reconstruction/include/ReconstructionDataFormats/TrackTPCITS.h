@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -30,37 +31,37 @@ class TrackTPCITS : public o2::track::TrackParCov
   using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 
  public:
-  TrackTPCITS() = default;
-  ~TrackTPCITS() = default;
-  TrackTPCITS(const TrackTPCITS& src) = default;
-  TrackTPCITS(const o2::track::TrackParCov& src) : o2::track::TrackParCov(src) {}
-  TrackTPCITS(const o2::track::TrackParCov& srcIn, const o2::track::TrackParCov& srcOut) : o2::track::TrackParCov(srcIn), mParamOut(srcOut) {}
+  GPUdDefault() TrackTPCITS() = default;
+  GPUdDefault() ~TrackTPCITS() = default;
+  GPUdDefault() TrackTPCITS(const TrackTPCITS& src) = default;
+  GPUd() TrackTPCITS(const o2::track::TrackParCov& src) : o2::track::TrackParCov(src) {}
+  GPUd() TrackTPCITS(const o2::track::TrackParCov& srcIn, const o2::track::TrackParCov& srcOut) : o2::track::TrackParCov(srcIn), mParamOut(srcOut) {}
 
-  GlobalTrackID getRefTPC() const { return mRefTPC; }
-  GlobalTrackID getRefITS() const { return mRefITS; }
-  void setRefTPC(GlobalTrackID id) { mRefTPC = id; }
-  void setRefITS(GlobalTrackID id) { mRefITS = id; }
+  GPUd() GlobalTrackID getRefTPC() const { return mRefTPC; }
+  GPUd() GlobalTrackID getRefITS() const { return mRefITS; }
+  GPUd() void setRefTPC(GlobalTrackID id) { mRefTPC = id; }
+  GPUd() void setRefITS(GlobalTrackID id) { mRefITS = id; }
 
-  const timeEst& getTimeMUS() const { return mTimeMUS; }
-  timeEst& getTimeMUS() { return mTimeMUS; }
-  void setTimeMUS(const timeEst& t) { mTimeMUS = t; }
-  void setTimeMUS(float t, float te)
+  GPUd() const timeEst& getTimeMUS() const { return mTimeMUS; }
+  GPUd() timeEst& getTimeMUS() { return mTimeMUS; }
+  GPUd() void setTimeMUS(const timeEst& t) { mTimeMUS = t; }
+  GPUd() void setTimeMUS(float t, float te)
   {
     mTimeMUS.setTimeStamp(t);
     mTimeMUS.setTimeStampError(te);
   }
 
-  void setChi2Refit(float v) { mChi2Refit = v; }
-  float getChi2Refit() const { return mChi2Refit; }
+  GPUd() void setChi2Refit(float v) { mChi2Refit = v; }
+  GPUd() float getChi2Refit() const { return mChi2Refit; }
 
-  void setChi2Match(float v) { mChi2Match = v; }
-  float getChi2Match() const { return mChi2Match; }
+  GPUd() void setChi2Match(float v) { mChi2Match = v; }
+  GPUd() float getChi2Match() const { return mChi2Match; }
 
-  o2::track::TrackParCov& getParamOut() { return mParamOut; }
-  const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
+  GPUd() o2::track::TrackParCov& getParamOut() { return mParamOut; }
+  GPUd() const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
-  o2::track::TrackLTIntegral& getLTIntegralOut() { return mLTOut; }
-  const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mLTOut; }
+  GPUd() o2::track::TrackLTIntegral& getLTIntegralOut() { return mLTOut; }
+  GPUd() const o2::track::TrackLTIntegral& getLTIntegralOut() const { return mLTOut; }
 
   void print() const;
 

@@ -1,26 +1,21 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
-// jet analysis tasks (subscribing to jet finder task)
-//
-// Author: Jochen Klein
-//
-// o2-analysis-jetfinder --aod-file <aod> -b | o2-analysistutorial-jet-analysis -b
-
-#include "TH1F.h"
+///
+/// \brief jet analysis tasks (subscribing to jet finder task).
+///        o2-analysis-jetfinder --aod-file AO2D.root | o2-analysistutorial-jet-analysis
+/// \author Jochen Klein
+/// \since
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/ASoA.h"
-
 #include "AnalysisDataModel/Jet.h"
 
 using namespace o2;
@@ -38,6 +33,7 @@ struct JetAnalysis {
                                 100, 0., 100.));
   }
 
+  // Jet and JetConstituents are tables which are filled by executable o2-analysis-jetfinder
   void process(aod::Jet const& jet,
                aod::JetConstituents const& constituents, aod::Tracks const& tracks)
   {
@@ -49,8 +45,9 @@ struct JetAnalysis {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<JetAnalysis>("jet-analysis")};
+    adaptAnalysisTask<JetAnalysis>(cfgc),
+  };
 }

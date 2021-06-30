@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -44,7 +45,10 @@ class TrackFitter
   TrackFitter(TrackFitter&&) = delete;
   TrackFitter& operator=(TrackFitter&&) = delete;
 
-  void setBz(float bZ);
+  void setBz(float bZ) { mBZField = bZ; }
+  void setMFTRadLength(float x2X0) { mMFTRadLength = x2X0; }
+  void setVerbosity(float v) { mVerbose = v; }
+  void setTrackModel(float m) { mTrackModel = m; }
 
   bool initTrack(TrackLTF& track, bool outward = false);
   bool fit(TrackLTF& track, bool outward = false);
@@ -55,13 +59,16 @@ class TrackFitter
  private:
   bool computeCluster(TrackLTF& track, int cluster);
 
-  Float_t mBZField;                         // kiloGauss.
+  bool mFieldON = true;
+  Float_t mBZField; // kiloGauss.
+  Float_t mMFTRadLength = 0.1;
+  Int_t mTrackModel = MFTTrackModel::Helix;
+
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
   /// default layer thickness in X0 for reconstruction  //FIXME: set values for the MFT
   static constexpr double SLayerThicknessInX0[10] = {0.065, 0.065, 0.075, 0.075, 0.035,
                                                      0.035, 0.035, 0.035, 0.035, 0.035};
-
-  bool mFieldON = true;
+  bool mVerbose = false;
 };
 
 // Functions to estimate momentum and charge from track curvature

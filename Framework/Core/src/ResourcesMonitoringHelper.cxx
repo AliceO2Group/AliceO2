@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,6 +16,7 @@
 #include <string_view>
 #include <algorithm>
 #include <cassert>
+#include <regex>
 
 using namespace o2::framework;
 
@@ -68,10 +70,15 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
     const auto& deviceMetrics = metrics[idx];
     boost::property_tree::ptree deviceRoot;
 
-    for (const auto& metricLabel : deviceMetrics.metricLabelsIdx) {
+    for (size_t mi = 0; mi < deviceMetrics.metricLabels.size(); mi++) {
+      std::string metricLabel = deviceMetrics.metricLabels[mi].label;
 
+      auto same = [metricLabel](std::string const& matcher) -> bool {
+        std::regex r{matcher};
+        return std::regex_match(metricLabel, r);
+      };
       //check if we are interested
-      if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), metricLabel.label) == std::end(performanceMetrics)) {
+      if (std::find_if(std::begin(performanceMetrics), std::end(performanceMetrics), same) == performanceMetrics.end()) {
         continue;
       }
 
@@ -79,41 +86,38 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
 
       boost::property_tree::ptree metricNode;
 
-      switch (deviceMetrics.metrics[metricLabel.index].type) {
+      switch (deviceMetrics.metrics[mi].type) {
         case MetricType::Int:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.intMetrics,
-                                         metricLabel.index, deviceMetrics.metrics[metricLabel.index].storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.intMetrics, mi, deviceMetrics.metrics[mi].storeIdx);
           break;
 
         case MetricType::Float:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.floatMetrics,
-                                         metricLabel.index, deviceMetrics.metrics[metricLabel.index].storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.floatMetrics, mi, deviceMetrics.metrics[mi].storeIdx);
           break;
 
         case MetricType::String:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.stringMetrics,
-                                         metricLabel.index, deviceMetrics.metrics[metricLabel.index].storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.stringMetrics, mi, deviceMetrics.metrics[mi].storeIdx);
           break;
 
         case MetricType::Uint64:
-          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.uint64Metrics,
-                                         metricLabel.index, deviceMetrics.metrics[metricLabel.index].storeIdx);
+          metricNode = fillNodeWithValue(deviceMetrics, deviceMetrics.uint64Metrics, mi, deviceMetrics.metrics[mi].storeIdx);
           break;
 
         default:
           continue;
       }
-      deviceRoot.add_child(metricLabel.label, metricNode);
+      deviceRoot.add_child(metricLabel, metricNode);
     }
 
     root.add_child(specs[idx].id, deviceRoot);
   }
 
   boost::property_tree::ptree driverRoot;
-  for (const auto& metricLabel : driverMetrics.metricLabelsIdx) {
+  for (size_t mi = 0; mi < driverMetrics.metricLabels.size(); mi++) {
+    const char* metricLabel = driverMetrics.metricLabels[mi].label;
 
     //check if we are interested
-    if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), metricLabel.label) == std::end(performanceMetrics)) {
+    if (std::find(std::begin(performanceMetrics), std::end(performanceMetrics), metricLabel) == std::end(performanceMetrics)) {
       continue;
     }
 
@@ -121,31 +125,31 @@ bool ResourcesMonitoringHelper::dumpMetricsToJSON(const std::vector<DeviceMetric
 
     boost::property_tree::ptree metricNode;
 
-    switch (driverMetrics.metrics[metricLabel.index].type) {
+    switch (driverMetrics.metrics[mi].type) {
       case MetricType::Int:
         metricNode = fillNodeWithValue(driverMetrics, driverMetrics.intMetrics,
-                                       metricLabel.index, driverMetrics.metrics[metricLabel.index].storeIdx);
+                                       mi, driverMetrics.metrics[mi].storeIdx);
         break;
 
       case MetricType::Float:
         metricNode = fillNodeWithValue(driverMetrics, driverMetrics.floatMetrics,
-                                       metricLabel.index, driverMetrics.metrics[metricLabel.index].storeIdx);
+                                       mi, driverMetrics.metrics[mi].storeIdx);
         break;
 
       case MetricType::String:
         metricNode = fillNodeWithValue(driverMetrics, driverMetrics.stringMetrics,
-                                       metricLabel.index, driverMetrics.metrics[metricLabel.index].storeIdx);
+                                       mi, driverMetrics.metrics[mi].storeIdx);
         break;
 
       case MetricType::Uint64:
         metricNode = fillNodeWithValue(driverMetrics, driverMetrics.uint64Metrics,
-                                       metricLabel.index, driverMetrics.metrics[metricLabel.index].storeIdx);
+                                       mi, driverMetrics.metrics[mi].storeIdx);
         break;
 
       default:
         continue;
     }
-    driverRoot.add_child(metricLabel.label, metricNode);
+    driverRoot.add_child(metricLabel, metricNode);
   }
 
   root.add_child("driver", driverRoot);

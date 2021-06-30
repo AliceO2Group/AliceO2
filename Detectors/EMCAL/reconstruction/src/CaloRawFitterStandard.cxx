@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -49,7 +50,7 @@ double CaloRawFitterStandard::rawResponseFunction(double* x, double* par)
   return signal;
 }
 
-CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchlist,
+CaloFitResults CaloRawFitterStandard::evaluate(const gsl::span<const Bunch> bunchlist,
                                                std::optional<unsigned int> altrocfg1, std::optional<unsigned int> altrocfg2)
 {
 
@@ -64,11 +65,11 @@ CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchli
 
   if (bunchIndex >= 0 && ampEstimate >= mAmpCut) {
     time = timeEstimate;
-    int timebinOffset = bunchlist.at(bunchIndex).getStartTime() - (bunchlist.at(bunchIndex).getBunchLength() - 1);
+    int timebinOffset = bunchlist[bunchIndex].getStartTime() - (bunchlist[bunchIndex].getBunchLength() - 1);
     amp = ampEstimate;
 
     if (nsamples > 1 && maxADC < constants::OVERFLOWCUT) {
-      std::tie(amp, time, chi2, fitDone) = fitRaw(first, last);
+      std::tie(amp, time, chi2) = fitRaw(first, last);
       time += timebinOffset;
       timeEstimate += timebinOffset;
       ndf = nsamples - 2;
@@ -95,19 +96,17 @@ CaloFitResults CaloRawFitterStandard::evaluate(const std::vector<Bunch>& bunchli
 
     return CaloFitResults(maxADC, pedEstimate, mAlgo, amp, time, (int)time, chi2, ndf);
   }
-  return CaloFitResults(-1, -1);
+  throw RawFitterError_t::FIT_ERROR;
 }
 
-std::tuple<float, float, float, bool> CaloRawFitterStandard::fitRaw(int firstTimeBin, int lastTimeBin) const
+std::tuple<float, float, float> CaloRawFitterStandard::fitRaw(int firstTimeBin, int lastTimeBin) const
 {
 
   float amp(0), time(0), chi2(0);
-  bool fitDone(false);
 
   int nsamples = lastTimeBin - firstTimeBin + 1;
-  fitDone = kFALSE;
   if (nsamples < 3) {
-    return std::make_tuple(amp, time, chi2, fitDone);
+    throw RawFitterError_t::FIT_ERROR;
   }
 
   TGraph gSig(nsamples);
@@ -134,10 +133,9 @@ std::tuple<float, float, float, bool> CaloRawFitterStandard::fitRaw(int firstTim
     amp = signalF.GetParameter(0);
     time = signalF.GetParameter(1);
     chi2 = signalF.GetChisquare();
-    fitDone = kTRUE;
   } else {
-    fitDone = kFALSE;
+    throw RawFitterError_t::FIT_ERROR;
   }
 
-  return std::make_tuple(amp, time, chi2, fitDone);
+  return std::make_tuple(amp, time, chi2);
 }

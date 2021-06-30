@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,7 +17,9 @@
 
 #include "EventVisualisationView/Initializer.h"
 #include "EventVisualisationBase/ConfigurationManager.h"
+
 #include "EventVisualisationBase/DataInterpreter.h"
+#include "EventVisualisationView/Options.h"
 
 #include "FairLogger.h"
 
@@ -25,67 +28,16 @@
 #include <TEveManager.h>
 #include <TEnv.h>
 
-#include <unistd.h>
 #include <ctime>
 
 using namespace std;
 using namespace o2::event_visualisation;
 
-std::string printOptions(Options* o)
-{
-  std::string res;
-  res.append(std::string("randomTracks: ") + (o->randomTracks ? "true" : "false") + "\n");
-  res.append(std::string("vds         : ") + (o->vsd ? "true" : "false") + "\n");
-  res.append(std::string("itc         : ") + (o->itc ? "true" : "false") + "\n");
-  return res;
-}
-
-Options* processCommandLine(int argc, char* argv[])
-{
-  static Options options;
-  int opt;
-
-  // put ':' in the starting of the
-  // string so that program can
-  //distinguish between '?' and ':'
-  while ((opt = getopt(argc, argv, ":if:rv")) != -1) {
-    switch (opt) {
-      case 'r':
-        options.randomTracks = true;
-        break;
-      case 'i':
-        options.itc = true;
-        break;
-      case 'v':
-        options.vsd = true;
-        break;
-      case 'f':
-        options.fileName = optarg;
-        break;
-      case ':':
-        printf("option needs a value\n");
-        return nullptr;
-      case '?':
-        printf("unknown option: %c\n", optopt);
-        return nullptr;
-    }
-  }
-
-  // optind is for the extra arguments
-  // which are not parsed
-  for (; optind < argc; optind++) {
-    printf("extra arguments: %s\n", argv[optind]);
-    return nullptr;
-  }
-
-  return &options;
-}
-
 int main(int argc, char** argv)
 {
   LOG(INFO) << "Welcome in O2 event visualisation tool";
-  Options* options = processCommandLine(argc, argv);
-  if (options == nullptr) {
+
+  if (!Options::Instance()->processCommandLine(argc, argv)) {
     exit(-1);
   }
 
@@ -112,13 +64,15 @@ int main(int argc, char** argv)
     exit(0);
   }
 
+  //gEve->SpawnNewViewer("3D View", "");  exit(0);
+
   // Initialize o2 Event Visualisation
-  Initializer::setup(*options);
+  Initializer::setup(Options::Instance()->online() ? EventManager::SourceOnline : EventManager::SourceOffline);
 
   // Start the application
   app->Run(kTRUE);
 
-  DataInterpreter::removeInstances();
+  //DataInterpreter::removeInstances();
   // Terminate application
   TEveManager::Terminate();
   app->Terminate(0);

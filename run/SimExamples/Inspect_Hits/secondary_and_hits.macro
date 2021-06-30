@@ -1,0 +1,49 @@
+#include "left_trace.macro"
+
+void
+secondary_and_hits(const char *fname, std::string where = "barrel")
+{
+
+  if (where.compare("golden") == 0) leftTrace_selected = leftTrace_golden;
+  if (where.compare("barrel") == 0) leftTrace_selected = leftTrace_barrel;
+  if (where.compare("muon") == 0)   leftTrace_selected = leftTrace_muon;
+  if (where.compare("any") == 0)    leftTrace_selected = leftTrace_any;
+
+  auto fin = TFile::Open(fname);
+  auto tin = (TTree*)fin->Get("o2sim");
+  auto tracks = new vector<o2::MCTrack>;
+  tin->SetBranchAddress("MCTrack", &tracks);
+  auto nev = tin->GetEntries();
+
+  std::map<int, TH2F*> hZRGen, hZRHit;
+
+  for (int iev = 0; iev < nev; ++iev) {
+    tin->GetEntry(iev);
+    for (int itr = 0; itr < tracks->size(); ++itr) {
+      auto& t = tracks->at(itr);
+      if (!t.isTransported()) continue;
+      auto pdg = std::abs(t.GetPdgCode());
+      if (hZRGen.count(pdg) == 0) {
+	hZRGen[pdg] = new TH2F(Form("hZRGen_%d", pdg), "", 4000, -2000., 2000., 1000, 0., 1000.);
+	hZRHit[pdg] = new TH2F(Form("hZRHit_%d", pdg), "", 4000, -2000., 2000., 1000, 0., 1000);
+      }
+
+      auto z = t.GetStartVertexCoordinatesZ();
+      auto R = std::hypot(t.GetStartVertexCoordinatesX(), t.GetStartVertexCoordinatesY());
+      hZRGen[pdg]->Fill(z, R);
+
+      if (!leftTrace(t, tracks)) continue;
+
+      hZRHit[pdg]->Fill(z, R);
+
+    }
+  }
+
+  std::string foutname = "secondary_and_hits." + where + ".root";
+  auto fout = TFile::Open(foutname.c_str(), "RECREATE");
+  for (auto& h : hZRGen) h.second->Write();
+  for (auto& h : hZRHit) h.second->Write();
+  fout->Close();
+  fin->Close();
+  
+}

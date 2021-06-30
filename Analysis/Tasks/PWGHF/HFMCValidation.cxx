@@ -1,15 +1,17 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
 /// \file HFMCValidation.cxx
-/// \brief MonteCarlo Validation Code -- Gen and Rec Level validation
+/// \brief Monte Carlo validation task
+/// \note Gen. and rec. level validation
 ///
 /// \author Antonio Palasciano <antonio.palasciano@cern.ch>, Università degli Studi di Bari & INFN, Sezione di Bari
 /// \author Vít Kučera <vit.kucera@cern.ch>, CERN
@@ -22,9 +24,8 @@
 
 using namespace o2;
 using namespace o2::framework;
-using namespace o2::aod::hf_cand_prong2;
-using namespace o2::aod::hf_cand_prong3;
 using namespace o2::framework::expressions;
+using namespace o2::aod;
 
 /// Gen Level Validation
 ///
@@ -47,10 +48,10 @@ struct ValidationGenLevel {
      {"hCountAverageB", "Event counter - Average Number Beauty quark; Events Per Collision; entries", {HistType::kTH1F, {{20, 0., 20.}}}},
      {"hCountAverageCbar", "Event counter - Average Number Anti-Charm quark; Events Per Collision; entries", {HistType::kTH1F, {{20, 0., 20.}}}},
      {"hCountAverageBbar", "Event counter - Average Number Anti-Beauty quark; Events Per Collision; entries", {HistType::kTH1F, {{20, 0., 20.}}}},
-     {"hCouterPerCollisionDzero", "Event counter - D0; Events Per Collision; entries", {HistType::kTH1F, {{10, -0.5, +9.5}}}},
-     {"hCouterPerCollisionDplus", "Event counter - DPlus; Events Per Collision; entries", {HistType::kTH1F, {{10, -0.5, +9.5}}}},
-     {"hCouterPerCollisionDstar", "Event counter - Dstar; Events Per Collision; entries", {HistType::kTH1F, {{10, -0.5, +9.5}}}},
-     {"hCouterPerCollisionLambdaC", "Event counter - LambdaC; Events Per Collision; entries", {HistType::kTH1F, {{10, -0.5, +9.5}}}}}};
+     {"hCounterPerCollisionDzero", "Event counter - D0; Events Per Collision; entries", {HistType::kTH1F, {{10, -0.5, +9.5}}}},
+     {"hCounterPerCollisionDplus", "Event counter - DPlus; Events Per Collision; entries", {HistType::kTH1F, {{10, -0.5, +9.5}}}},
+     {"hCounterPerCollisionDstar", "Event counter - Dstar; Events Per Collision; entries", {HistType::kTH1F, {{10, -0.5, +9.5}}}},
+     {"hCounterPerCollisionLambdaC", "Event counter - LambdaC; Events Per Collision; entries", {HistType::kTH1F, {{10, -0.5, +9.5}}}}}};
 
   void process(aod::McCollision const& mccollision, aod::McParticles const& particlesMC)
   {
@@ -63,8 +64,8 @@ struct ValidationGenLevel {
     double pxDiff, pyDiff, pzDiff;
 
     //Particles and their decay checked in the second part of the task
-    std::array<int, 4> PDGArrayParticle = {411, 413, 421, 4122};
-    std::array<std::array<int, 3>, 4> arrPDGFinal = {{{211, 211, -321}, {211, 211, -321}, {-321, 211, 0}, {2212, -321, 211}}};
+    std::array<int, 4> PDGArrayParticle = {pdg::Code::kDPlus, 413, pdg::Code::kD0, pdg::Code::kLambdaCPlus};
+    std::array<std::array<int, 3>, 4> arrPDGFinal = {{{kPiPlus, kPiPlus, -kKPlus}, {kPiPlus, kPiPlus, -kKPlus}, {-kKPlus, kPiPlus, 0}, {kProton, -kKPlus, kPiPlus}}};
     int counter[4] = {0, 0, 0, 0};
     std::vector<int> listDaughters;
 
@@ -76,16 +77,16 @@ struct ValidationGenLevel {
       auto mother = particlesMC.iteratorAt(particle.mother0());
       if (particlePdgCode != mother.pdgCode()) {
         switch (particlePdgCode) {
-          case 4:
+          case kCharm:
             cPerCollision++;
             break;
-          case -4:
+          case kCharmBar:
             cBarPerCollision++;
             break;
-          case 5:
+          case kBottom:
             bPerCollision++;
             break;
-          case -5:
+          case kBottomBar:
             bBarPerCollision++;
             break;
         }
@@ -100,7 +101,7 @@ struct ValidationGenLevel {
       // Checking the decay of the particles and the momentum conservation
       for (int iD = 0; iD < PDGArrayParticle.size(); iD++) {
         if (std::abs(particlePdgCode) == PDGArrayParticle[iD]) {
-          RecoDecay::getDaughters(particlesMC, particle.globalIndex(), &listDaughters, arrPDGFinal[iD], -1);
+          RecoDecay::getDaughters(particlesMC, particle, &listDaughters, arrPDGFinal[iD], -1);
           int arrayPDGsize = arrPDGFinal[iD].size() - std::count(arrPDGFinal[iD].begin(), arrPDGFinal[iD].end(), 0);
           if (listDaughters.size() == arrayPDGsize) {
             counter[iD]++;
@@ -133,10 +134,10 @@ struct ValidationGenLevel {
     registry.fill(HIST("hCountAverageB"), bPerCollision);
     registry.fill(HIST("hCountAverageCbar"), cBarPerCollision);
     registry.fill(HIST("hCountAverageBbar"), bBarPerCollision);
-    registry.fill(HIST("hCouterPerCollisionDplus"), counter[0]);
-    registry.fill(HIST("hCouterPerCollisionDstar"), counter[1]);
-    registry.fill(HIST("hCouterPerCollisionDzero"), counter[2]);
-    registry.fill(HIST("hCouterPerCollisionLambdaC"), counter[3]);
+    registry.fill(HIST("hCounterPerCollisionDplus"), counter[0]);
+    registry.fill(HIST("hCounterPerCollisionDstar"), counter[1]);
+    registry.fill(HIST("hCounterPerCollisionDzero"), counter[2]);
+    registry.fill(HIST("hCounterPerCollisionLambdaC"), counter[3]);
   }
 };
 
@@ -168,11 +169,11 @@ struct ValidationRecLevel {
     double pxDiff, pyDiff, pzDiff, pDiff;
     double decayLength;
     for (auto& candidate : candidates) {
-      if (!(candidate.hfflag() & 1 << D0ToPiK)) {
+      if (!(candidate.hfflag() & 1 << hf_cand_prong2::DecayType::D0ToPiK)) {
         continue;
       }
-      if (std::abs(candidate.flagMCMatchRec()) == 1 << D0ToPiK) {
-        indexParticle = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().label(), 421, true);
+      if (std::abs(candidate.flagMCMatchRec()) == 1 << hf_cand_prong2::DecayType::D0ToPiK) {
+        indexParticle = RecoDecay::getMother(particlesMC, candidate.index0_as<aod::BigTracksMC>().mcParticle(), pdg::Code::kD0, true);
         auto mother = particlesMC.iteratorAt(indexParticle);
         registry.fill(HIST("histPt"), candidate.pt() - mother.pt());
         registry.fill(HIST("histPx"), candidate.px() - mother.px());
@@ -196,7 +197,7 @@ struct ValidationRecLevel {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec workflow{
-    adaptAnalysisTask<ValidationGenLevel>("hf-mc-validation-gen"),
-    adaptAnalysisTask<ValidationRecLevel>("hf-mc-validation-rec")};
+    adaptAnalysisTask<ValidationGenLevel>(cfgc, TaskName{"hf-mc-validation-gen"}),
+    adaptAnalysisTask<ValidationRecLevel>(cfgc, TaskName{"hf-mc-validation-rec"})};
   return workflow;
 }

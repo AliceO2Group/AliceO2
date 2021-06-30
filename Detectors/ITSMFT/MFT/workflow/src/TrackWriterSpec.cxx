@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,6 +23,8 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::framework;
+using LabelsType = std::vector<o2::MCCompLabel>;
+using ROFRecLblT = std::vector<o2::itsmft::MC2ROFRecord>;
 
 namespace o2
 {
@@ -51,17 +54,17 @@ DataProcessorSpec getTrackWriterSpec(bool useMC)
                                                                                  tracksSizeGetter},
                                 BranchDefinition<std::vector<int>>{InputSpec{"trackClIdx", "MFT", "TRACKCLSID", 0},
                                                                    "MFTTrackClusIdx"},
-                                BranchDefinition<o2::dataformats::MCTruthContainer<o2::MCCompLabel>>{InputSpec{"labels", "MFT", "TRACKSMCTR", 0},
-                                                                                                     "MFTTrackMCTruth",
-                                                                                                     (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                                                                     ""},
-                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "MFT", "TRACKSROF", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"labels", "MFT", "TRACKSMCTR", 0},
+                                                             "MFTTrackMCTruth",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""},
+                                BranchDefinition<std::vector<o2::itsmft::ROFRecord>>{InputSpec{"ROframes", "MFT", "MFTTrackROF", 0},
                                                                                      "MFTTracksROF",
                                                                                      logger},
-                                BranchDefinition<std::vector<o2::itsmft::MC2ROFRecord>>{InputSpec{"MC2ROframes", "MFT", "TRACKSMC2ROF", 0},
-                                                                                        "MFTTracksMC2ROF",
-                                                                                        (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                                                        ""})();
+                                BranchDefinition<ROFRecLblT>{InputSpec{"MC2ROframes", "MFT", "TRACKSMC2ROF", 0},
+                                                             "MFTTracksMC2ROF",
+                                                             (useMC ? 1 : 0), // one branch if mc labels enabled
+                                                             ""})();
 }
 
 } // namespace mft

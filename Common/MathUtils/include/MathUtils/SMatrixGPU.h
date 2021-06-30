@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -259,14 +260,6 @@ struct meta_matrix_dot<0> {
 
 namespace row_offsets_utils
 {
-template <unsigned int D>
-struct proxy_offset {
-  static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
-  static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
-  static constexpr int off1(int i) { return off2(i / D, i % D); }
-  int operator()(int i) const { return off1(i); }
-};
-
 template <int...>
 struct indices {
 };
@@ -361,10 +354,13 @@ class MatRepSymGPU
     kSize = D * (D + 1) / 2 // rows*columns
   };
 
+  static constexpr int off0(int i) { return i == 0 ? 0 : off0(i - 1) + i; }
+  static constexpr int off2(int i, int j) { return j < i ? off0(i) + j : off0(j) + i; }
+  static constexpr int off1(int i) { return off2(i / D, i % D); }
+
   static GPUdi() int off(int i)
   {
-    row_offsets_utils::proxy_offset<D> proxy;
-    static constexpr auto v = row_offsets_utils::make<D * D>(proxy);
+    static constexpr auto v = row_offsets_utils::make<D * D>(off1);
     return v[i];
   }
 
@@ -401,8 +397,9 @@ class MatRepStdGPU
   template <class R>
   GPUdi() MatRepStdGPU<T, D1, D2>& operator=(const R& rhs)
   {
-    for (unsigned int i = 0; i < kSize; ++i)
+    for (unsigned int i = 0; i < kSize; ++i) {
       mArray[i] = rhs[i];
+    }
     return *this;
   }
   template <class R>
@@ -436,8 +433,8 @@ class Expr
 {
  public:
   typedef T value_type;
-  GPUd() Expr(const ExprType& rhs) : mRhs(rhs) {}
-  GPUd() ~Expr() {}
+  GPUd() Expr(const ExprType& rhs) : mRhs(rhs) {} // NOLINT: False positive
+  GPUdDefault() ~Expr() = default;
   GPUdi() T apply(unsigned int i) const
   {
     return mRhs.apply(i);

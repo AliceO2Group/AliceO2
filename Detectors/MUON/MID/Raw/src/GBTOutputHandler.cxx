@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -20,7 +21,7 @@ namespace o2
 namespace mid
 {
 
-void GBTOutputHandler::set(uint32_t orbit, std::vector<LocalBoardRO>& data, std::vector<ROFRecord>& rofs)
+void GBTOutputHandler::set(uint32_t orbit, std::vector<ROBoard>& data, std::vector<ROFRecord>& rofs)
 {
   /// Sets the orbit and the output data vectors
   mOrbit = orbit;
@@ -126,7 +127,7 @@ void GBTOutputHandler::addLoc(size_t ilink, const ELinkDecoder& decoder, EventTy
 {
   /// Adds the local board to the output data vector
   auto firstEntry = mData->size();
-  mData->push_back({decoder.getStatusWord(), decoder.getTriggerWord(), crateparams::makeUniqueLocID(crateparams::getCrateIdFromROId(mFeeId), decoder.getId()), decoder.getInputs()});
+  mData->push_back({decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateparams::getCrateIdFromGBTUniqueId(mFeeId), decoder.getId()), decoder.getInputs()});
   InteractionRecord intRec(mIRs[ilink].bc + correctedClock, mIRs[ilink].orbit);
   mROFRecords->emplace_back(intRec, eventType, firstEntry, 1);
   for (int ich = 0; ich < 4; ++ich) {
@@ -170,7 +171,7 @@ void GBTOutputHandler::onDoneRegDebug(size_t ilink, const ELinkDecoder& decoder)
   processTrigger(ilink, decoder, eventType, correctedClock);
   // If we want to distinguish the two regional e-links, we can use the link ID instead
   auto firstEntry = mData->size();
-  mData->push_back({decoder.getStatusWord(), decoder.getTriggerWord(), crateparams::makeUniqueLocID(crateparams::getCrateIdFromROId(mFeeId), ilink + 8 * (crateparams::getGBTIdInCrate(mFeeId) - 1)), decoder.getInputs()});
+  mData->push_back({decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateparams::getCrateIdFromGBTUniqueId(mFeeId), ilink + 8 * (crateparams::getGBTIdInCrate(mFeeId) - 1)), decoder.getInputs()});
 
   auto orbit = (decoder.getTriggerWord() & raw::sORB) ? mIRs[ilink].orbit - 1 : mIRs[ilink].orbit;
 

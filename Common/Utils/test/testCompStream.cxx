@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,12 +15,12 @@
 /// @brief  unit tests for iostreams with compression filter
 
 #include "CommonUtils/CompStream.h"
-
+#include "CommonUtils/StringUtils.h"
 #define BOOST_TEST_MODULE CompStream unit test
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -28,8 +29,7 @@ BOOST_AUTO_TEST_CASE(test_compstream_filesink)
 {
   const int range = 100;
   std::stringstream filename;
-  filename << boost::filesystem::temp_directory_path().string() << "/" << boost::filesystem::unique_path().string()
-           << "_testCompStream.gz";
+  filename << o2::utils::Str::create_unique_path(std::filesystem::temp_directory_path().native()) << "_testCompStream.gz";
   {
     o2::io::ocomp_stream stream(filename.str().c_str(), o2::io::CompressionMethod::Gzip);
     for (int i = 0; i < range; i++) {
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_compstream_filesink)
     BOOST_CHECK(expected == range);
   }
 
-  boost::filesystem::remove(filename.str());
+  std::filesystem::remove(filename.str());
 }
 
 BOOST_AUTO_TEST_CASE(test_compstream_methods)

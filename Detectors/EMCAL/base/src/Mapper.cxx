@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -117,6 +118,17 @@ Mapper& MappingHandler::getMappingForDDL(int ddl)
   int ddlInSM = ddl % NDDLSM,
       sideID = (ddl / NDDLSM) % NSIDES;
   return mMappings[sideID * NDDLSM + ddlInSM];
+}
+
+int MappingHandler::getFEEForChannelInDDL(int ddl, int channelFEC, int branch)
+{
+  int ddlInSupermodule = ddl % 2;
+  int fecID = ddlInSupermodule ? 20 : 0;
+  if (branch) {
+    fecID += 10;
+  }
+  fecID += channelFEC;
+  return fecID;
 }
 
 std::ostream& o2::emcal::operator<<(std::ostream& stream, const Mapper::ChannelID& channel)

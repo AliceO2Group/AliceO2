@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,6 +16,7 @@
 #include "FairLogger.h" // for LOG
 #include "DataFormatsFT0/RecPoints.h"
 #include "FT0Base/Geometry.h"
+#include "FT0Simulation/DigitizationParameters.h"
 #include <DataFormatsFT0/ChannelData.h>
 #include <DataFormatsFT0/Digit.h>
 #include <cmath>
@@ -40,15 +42,18 @@ o2::ft0::RecPoints CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
 
   Float_t sideAtime = 0, sideCtime = 0;
 
-  auto timeStamp = o2::InteractionRecord::bc2ns(bcd.mIntRecord.bc, bcd.mIntRecord.orbit);
+  // auto timeStamp = o2::InteractionRecord::bc2ns(bcd.mIntRecord.bc, bcd.mIntRecord.orbit);
 
-  LOG(DEBUG) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
+  // LOG(DEBUG) << " event time " << timeStamp << " orbit " << bcd.mIntRecord.orbit << " bc " << bcd.mIntRecord.bc;
 
   int nch = inChData.size();
+  const auto parInv = DigitizationParameters::Instance().mMV_2_NchannelsInverse;
   for (int ich = 0; ich < nch; ich++) {
+    int offsetChannel = getOffset(ich, inChData[ich].QTCAmpl);
+
     outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
-                                               inChData[ich].CFDTime * Geometry::ChannelWidth,
-                                               (double)inChData[ich].QTCAmpl * Geometry::MV_2_NchannelsInverse,
+                                               (inChData[ich].CFDTime - offsetChannel) * Geometry::ChannelWidth,
+                                               (double)inChData[ich].QTCAmpl * parInv,
                                                inChData[ich].ChainQTC};
 
     //  only signals with amplitude participate in collision time
@@ -85,4 +90,16 @@ void CollisionTimeRecoTask::FinishTask()
 {
   // finalize digitization, if needed, flash remaining digits
   // if (!mContinuous)   return;
+}
+//______________________________________________________
+int CollisionTimeRecoTask::getOffset(int channel, int amp)
+{
+  if (!mCalibSlew || !mCalibOffset) {
+    return 0;
+  }
+  int offsetChannel = mCalibOffset->mTimeOffsets[channel];
+  TGraph& gr = mCalibSlew->at(channel);
+  double slewoffset = gr.Eval(amp);
+  LOG(DEBUG) << "@@@CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
+  return offsetChannel + int(slewoffset);
 }

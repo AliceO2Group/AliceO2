@@ -41,12 +41,14 @@ HBFUtil::fillHBIRvector(std::vector<IR>& dst, const IR& fromIR, const IR& payLoa
 will fill the provided `dst` vector with the IR's (between `fromIR` and `payLoadIR`) for which the HBFs should be
 generated and flushed to raw data **before** filling the payload of `payLoadIR`.
 
+Extra data member `HBFUtil.maxNOrbits` (= highest possible orbit by default) is used only in the RawFileWriter as a maximum orbit number (with respect to 1st orbit) for which detector payload is considered.
+
 See `Detectors/Raw/test/testHBFUtils.cxx` for details of usage of this class (also check the jira ticket about the [MC->Raw conversion](https://alice.its.cern.ch/jira/browse/O2-972)).
 
 ## RawFileWriter
 
 A class to facilitate writing to files the MC data converted to raw data payload. Payload will be formatted according to CRU data
-specifications and should be simular to produced by the readout.exe (and can be pumped into the DPL workflows)
+specifications and should be simular to produced by the o2-readout-exe (and can be pumped into the DPL workflows)
 
 The detector code for MC to raw conversion should instatiate the RawFileWriter object and:
 
@@ -80,13 +82,16 @@ If needed, user may set manually the non-mutable (for given link) fields of the 
 The data must be provided as a `gsl::span<char>`` and contain only detector GBT (16 bytes words) payload. The annotation by RDH,
 formatting to CRU pages and eventual splitting of the large payload to multiple pages will be done by the `RawFileWriter`.
 ```cpp
-writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size) );
+writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size), <optional arguments> );
 ...
 o2::InteractionRecord ir{bc, orbit};
-writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ));
+writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), <optional arguments>);
 ```
+where <optional arguments> are currently: `bool preformatted = false, uint32_t trigger = 0, uint32_t detField = 0` (see below for the meaning).
 
 By default the data will be written using o2::header::RAWDataHeader. User can request particular RDH version via `writer.useRDHVersion(v)`.
+
+Note that the `addData` will have no effect if its `{bc, orbit}` exceeds the `HBFUtils.getFirstIR()` by more than `HBFUtils.maxNOrbits`.
 
 The `RawFileWriter` will take care of writing created CRU data to file in `super-pages` whose size can be set using
 `writer.setSuperPageSize(size_in_bytes)` (default in 1 MB).
@@ -160,7 +165,17 @@ void newRDHMethod(const RDHAny* rdh, bool prevEmpty, std::vector<char>& toAdd) c
 ```
 It proveds the ``RDH`` of the page for which it is called, information if the previous had some payload and buffer to be filled by the used algorithm.
 
-The behaviour described above can be modified by providing an extra argument in the `addData` method
+Some detectors signal the end of the HBF by adding an empty CRU page containing just a header with ``RDH.stop=1`` while others may simply set the ``RDH.stop=1`` in the last CRU page of the HBF (it may appear to be also the 1st and the only page of the HBF and may or may not contain the payload).
+This behaviour is steered by ``writer.setAddSeparateHBFStopPage(bool v)`` switch. By default end of the HBF is signaled on separate page.
+
+RawFileWriter will check for every bc/orbit for which at least 1 link was filled by the detector if all other registered links also got `addData` call.
+If not, it will be enforced internally with 0 payload and `trigger` and `detField` RDH fields provided in the 1st addData call of this IR.
+This may be pose a problem in case detector needs to insert some header even for 0-size payloads.
+In this case it is detector's responsibility to make sure that all links receive their proper `addData` call for every IR.
+
+Extra arguments:
+
+* `preformatted` (default: false): The behaviour described above can be modified by providing an extra argument in the `addData` method
 ```cpp
 bool preformatted = true;
 writer.addData(cru_0, link_0, endpoint_0, {bc, orbit}, gsl::span( (char*)payload_0, payload_0_size ), preformatted );
@@ -172,8 +187,9 @@ writer.addData(rdh, ir, gsl::span( (char*)payload_f, payload_f_size ), preformat
 In this case provided span is interpretted as a fully formatted CRU page payload (i.e. it lacks the RDH which will be added by the writer) of the maximum size `8192-sizeof(RDH) = 8128` bytes.
 The writer will create a new CRU page with provided payload equipping it with the proper RDH: copying already stored RDH of the current HBF, if the interaction record `ir` belongs to the same HBF or generating new RDH for new HBF otherwise (and filling all missing HBFs in-between). In case the payload size exceeds maximum, an exception will be thrown w/o any attempt to split the page.
 
-Some detectors signal the end of the HBF by adding an empty CRU page containing just a header with ``RDH.stop=1`` while others may simply set the ``RDH.stop=1`` in the last CRU page of the HBF (it may appear to be also the 1st and the only page of the HBF and may or may not contain the payload).
-This behaviour is steered by ``writer.setAddSeparateHBFStopPage(bool v)`` switch. By default end of the HBF is signaled on separate page.
+* `trigger` (default 0): optionally detector may provide a trigger word for this payload, this word will be OR-ed with the current RDH.triggerType
+
+* `detField` (default 0): optionally detector may provide a custom 32-bit word which will be assigned to RDH.detectorField.
 
 For further details see  ``ITSMFT/common/simulation/MC2RawEncoder`` class and the macro
 `Detectors/ITSMFT/ITS/macros/test/run_digi2rawVarPage_its.C` to steer the MC to raw data conversion.
@@ -318,7 +334,9 @@ o2-raw-file-reader-workflow
   --part-per-hbf                        FMQ parts per superpage (default) of HBF
   --raw-channel-config arg              optional raw FMQ channel for non-DPL output
   --cache-data                          cache data at 1st reading, may require excessive memory!!!
-  --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen
+  --detect-tf0                          autodetect HBFUtils start Orbit/BC from 1st TF seen (at SOX)
+  --calculate-tf-start                  calculate TF start from orbit instead of using TType
+  --drop-tf arg (=none)                Drop each TFid%(1)==(2) of detector, e.g. ITS,2,4;TPC,4[,0];...
   --configKeyValues arg                 semicolon separated key=value strings
 
   # to suppress various error checks / reporting
@@ -331,6 +349,9 @@ o2-raw-file-reader-workflow
   --nocheck-tf-per-link                 ignore /Number of TFs is less than expected/
   --nocheck-hbf-jump                    ignore /Wrong HBF orbit increment/
   --nocheck-no-spage-for-tf             ignore /TF does not start by new superpage/
+  --nocheck-no-sox                      ignore /No SOX found on 1st page/
+  --nocheck-tf-start-mismatch           ignore /Mismatch between TType-flagged and calculated new TF start/
+
 ```
 
 The workflow takes an input from the configuration file (as described in `RawFileReader` section), reads the data and sends them as DPL messages
@@ -358,6 +379,8 @@ To inject such a data to DPL one should use a parallel process starting with `o2
 [Terminal 2]> o2-raw-file-reader-workflow  --session default --loop 1000 --delay 3 --input-conf raw/rawAll.cfg --raw-channel-config "name=raw-reader,type=push,method=bind,address=ipc://@rr-to-dpl,transport=shmem,rateLogging=1" --shm-segment-size 16000000000
 ```
 
+For testing reason one can request dropping of some fraction of the TFs for particular detector. With option `--drop-tf "ITS,3,2;TPC,10"` the reader will not send the output for ITS in TFs with `(TFid%3)==2` and for TPC in TFs with `(TFid%10)==0`. Note that in order to acknowledge the TF, the message `{FLP/DISTSUBTIMEFRAME/0}` will still be sent even if all detector's data was dropped for a given TF.
+
 ## Raw data file checker (standalone executable)
 
 ```cpp
@@ -369,6 +392,7 @@ Options:
   -v [ --verbosity ] arg (=0)    1: long report, 2 or 3: print or dump all RDH
   -s [ --spsize ]    arg (=1048576) nominal super-page size in bytes
   --detect-tf0                      autodetect HBFUtils start Orbit/BC from 1st TF seen
+  --calculate-tf-start              calculate TF start from orbit instead of using TType
   --rorc                            impose RORC as default detector mode
   --configKeyValues arg             semicolon separated key=value strings
   --nocheck-packet-increment        ignore /Wrong RDH.packetCounter increment/
@@ -380,6 +404,8 @@ Options:
   --nocheck-tf-per-link             ignore /Number of TFs is less than expected/
   --nocheck-hbf-jump                ignore /Wrong HBF orbit increment/
   --nocheck-no-spage-for-tf         ignore /TF does not start by new superpage/
+  --nocheck-no-sox                  ignore /No SOX found on 1st page/
+  --nocheck-tf-start-mismatch       ignore /Mismatch between TType-flagged and calculated new TF start/
   (input files are optional if config file was provided)
 ```
 

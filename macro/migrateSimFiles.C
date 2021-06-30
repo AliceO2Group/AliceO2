@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -65,7 +66,7 @@ void migrateSimFiles(const char* filebase = "o2sim")
 {
 
   // READ GRP AND ITERATE OVER DETECTED PARTS
-  auto grp = o2::parameters::GRPObject::loadFrom(o2::base::NameConf::getGRPFileName(filebase).c_str());
+  auto grp = o2::parameters::GRPObject::loadFrom(filebase);
   if (!grp) {
     std::cerr << "No GRP found. Exiting\n";
   }
@@ -74,6 +75,11 @@ void migrateSimFiles(const char* filebase = "o2sim")
   std::string originalfilename = std::string(filebase) + std::string(".root");
   auto kinematicsfile = o2::base::NameConf::getMCKinematicsFileName(filebase);
   copyBranch(originalfilename.c_str(), kinematicsfile.c_str(), o2::detectors::SimTraits::KINEMATICSBRANCHES);
+
+  // split off additional MCHeaders file
+  std::vector<std::string> headerbranches = {"MCEventHeader"};
+  auto headersfile = o2::base::NameConf::getMCHeadersFileName(filebase);
+  copyBranch(originalfilename.c_str(), headersfile.c_str(), headerbranches);
 
   // loop over all possible detectors
   for (auto detid = o2::detectors::DetID::First; detid <= o2::detectors::DetID::Last; ++detid) {

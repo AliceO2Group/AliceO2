@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 # setup files to be installed (only ROOT macros for the moment) NOT using GLOB,
 # as we should be mindful of what we install. if we have lot of files here, it's
@@ -46,14 +47,14 @@ install(FILES CheckDigits_mft.C
               run_cmp2digit_tof.C
               compareTOFDigits.C
               compareTOFClusters.C
-              run_match_tof.C
               run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
               run_rawdecoding_mft.C
               run_trac_ca_its.C
               run_trac_its.C
               run_trac_alice3.C
-	      CreateBCPattern.C
+              CreateBCPattern.C
+              UploadDummyAlignment.C
         DESTINATION share/macro/)
 
 # FIXME: a lot of macros that are here should really be elsewhere. Those which
@@ -81,34 +82,34 @@ o2_add_test_root_macro(analyzeHits.C
                                              O2::FDDSimulation
                                              O2::MCHSimulation
                                              O2::MIDSimulation
-					     O2::ZDCSimulation
-					     O2::CPVBase)
+                                             O2::ZDCSimulation
+                                             O2::DataFormatsCPV)
 
 o2_add_test_root_macro(duplicateHits.C
-		PUBLIC_LINK_LIBRARIES O2::ITSMFTSimulation
-		O2::TOFSimulation
-		O2::EMCALBase
-		O2::TRDSimulation
-		O2::FT0Simulation
-		O2::DataFormatsFV0
-		O2::HMPIDBase
-		O2::TPCSimulation
-		O2::PHOSBase
-		O2::FDDSimulation
-		O2::MCHSimulation
-		O2::MIDSimulation
-		O2::ZDCSimulation
-		O2::CPVBase)
+  PUBLIC_LINK_LIBRARIES O2::ITSMFTSimulation
+  O2::TOFSimulation
+  O2::EMCALBase
+  O2::TRDSimulation
+  O2::FT0Simulation
+  O2::DataFormatsFV0
+  O2::DataFormatsHMP
+  O2::TPCSimulation
+  O2::PHOSBase
+  O2::FDDSimulation
+  O2::MCHSimulation
+  O2::MIDSimulation
+  O2::ZDCSimulation
+  O2::DataFormatsCPV COMPILE_ONLY)
 
 o2_add_test_root_macro(migrateSimFiles.C
-		PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats)
+  PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats)
 
 o2_add_test_root_macro(analyzeOriginHits.C
                        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
                                              O2::DetectorsCommonDataFormats)
 
 if(ENABLE_UPGRADES)
-  set(upgradeTargets O2::Alice3DetectorsPassive O2::ITS3Simulation O2::TRKSimulation)
+  set(upgradeTargets O2::Alice3DetectorsPassive O2::ITS3Simulation O2::TRKSimulation O2::FT3Simulation)
 endif()
 
 o2_add_test_root_macro(build_geometry.C
@@ -145,13 +146,12 @@ o2_add_test_root_macro(compareTopologyDistributions.C
 # FIXME: what's the point of this one ?
 o2_add_test_root_macro(eventDisplay.C PUBLIC_LINK_LIBRARIES FairRoot::Base)
 
-o2_add_test_root_macro(
-  initSimGeomAndField.C
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field O2::DetectorsBase)
+o2_add_test_root_macro(initSimGeomAndField.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field O2::DetectorsBase)
 
-o2_add_test_root_macro(
-        analyzeDigitLabels.C
-        PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat O2::ITSMFTSimulation
+o2_add_test_root_macro(analyzeDigitLabels.C
+                       PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat
+                                             O2::ITSMFTSimulation
                                              O2::TOFSimulation
                                              O2::EMCALBase
                                              O2::TRDSimulation
@@ -165,8 +165,8 @@ o2_add_test_root_macro(
                                              O2::FDDSimulation
                                              O2::MCHSimulation
                                              O2::MIDSimulation
-					     O2::ZDCSimulation
-					     O2::CPVBase
+                                             O2::ZDCSimulation
+                                             O2::CPVBase
                                              O2::CPVSimulation
                                              O2::ZDCSimulation)
 
@@ -297,20 +297,13 @@ o2_add_test_root_macro(compareTOFClusters.C
                        LABELS tof)
 
 # FIXME: move to subsystem dir
-o2_add_test_root_macro(run_match_tof.C
-                       PUBLIC_LINK_LIBRARIES O2::Field O2::DataFormatsParameters
-                                             O2::DetectorsBase
-                                             O2::GlobalTracking
-                       LABELS tof)
-
-# FIXME: move to subsystem dir
 o2_add_test_root_macro(run_primary_vertexer_ITS.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
                                              O2::DataFormatsParameters
                                              O2::GPUTracking
                                              O2::SimulationDataFormat
                                              O2::ITSBase O2::ITStracking
-					     O2::DetectorsBase
+          O2::DetectorsBase
                        LABELS its COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
@@ -329,6 +322,11 @@ o2_add_test_root_macro(run_rawdecoding_mft.C
 
 o2_add_test_root_macro(CreateBCPattern.C
                       PUBLIC_LINK_LIBRARIES O2::CommonDataFormat)
+
+o2_add_test_root_macro(UploadDummyAlignment.C
+                      PUBLIC_LINK_LIBRARIES O2::CCDB
+                                            O2::DetectorsCommonDataFormats
+                                            O2::CommonDataFormat)
 
 # FIXME: move to subsystem dir + check compilation o2_add_test_root_macro(
 # run_rec_ca.C PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats

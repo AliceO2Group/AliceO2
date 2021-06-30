@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -40,10 +41,10 @@ template <typename T, typename E>
 class TimeStampWithError : public TimeStamp<T>
 {
  public:
-  TimeStampWithError() = default;
-  TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
-  E getTimeStampError() const { return mTimeStampError; }
-  void setTimeStampError(E te) { mTimeStampError = te; }
+  GPUdDefault() TimeStampWithError() = default;
+  GPUd() TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
+  GPUdi() E getTimeStampError() const { return mTimeStampError; }
+  GPUdi() void setTimeStampError(E te) { mTimeStampError = te; }
 
  private:
   E mTimeStampError = 0;

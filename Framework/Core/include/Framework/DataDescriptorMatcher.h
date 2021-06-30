@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,6 +40,13 @@ struct ContextRef {
   /// Two context refs are the same if they point to the
   /// same element in the context
   inline bool operator==(ContextRef const& other) const;
+};
+
+/// Special positions for variables in context.
+enum ContextPos {
+  STARTTIME_POS = 0,    /// The DataProcessingHeader::startTime associated to the timeslice
+  TFCOUNTER_POS = 14,   /// The DataHeader::tfCounter associated to the timeslice
+  FIRSTTFORBIT_POS = 15 /// The DataHeader::firstTFOrbit associated to the timeslice
 };
 
 /// An element of the matching context. Context itself is really a vector of
@@ -189,7 +197,7 @@ class StartTimeValueMatcher : public ValueHolder<uint64_t>
   /// This will match the timing information which is currently in
   /// the DataProcessingHeader. Notice how we apply the scale to the
   /// actual values found.
-  bool match(DataProcessingHeader const& dph, VariableContext& context) const;
+  bool match(header::DataHeader const& dh, DataProcessingHeader const& dph, VariableContext& context) const;
 
  private:
   uint64_t mScale;

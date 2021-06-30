@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -80,6 +81,7 @@ MultiView::MultiView()
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
   const bool showAxes = settings.GetValue("axes.show", false);
+
   if (showAxes) {
     for (int i = 0; i < NumberOfProjections; ++i) {
       TEveProjectionAxes axes(mProjections[static_cast<EProjections>(i)]);
@@ -92,7 +94,6 @@ MultiView::MultiView()
       mScenes[getSceneOfProjection(static_cast<EProjections>(i))]->AddElement(&axes);
     }
   }
-
   setupMultiview();
   sInstance = this;
 }
@@ -119,8 +120,8 @@ void MultiView::setupMultiview()
   pack->SetElementName("Multi View");
   pack->SetHorizontal();
   pack->SetShowTitleBar(kFALSE);
-
   pack->NewSlotWithWeight(2)->MakeCurrent(); // new slot is created from pack
+
   mViews[View3d] = gEve->SpawnNewViewer("3D View", "");
   mViews[View3d]->AddScene(mScenes[Scene3dGeom]);
   mViews[View3d]->AddScene(mScenes[Scene3dEvent]);

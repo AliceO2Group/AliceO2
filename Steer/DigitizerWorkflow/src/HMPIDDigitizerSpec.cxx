@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,7 +23,8 @@
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "Framework/Task.h"
 #include "DataFormatsParameters/GRPObject.h"
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDSimulation/HMPIDDigitizer.h"
 #include "HMPIDSimulation/Detector.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
@@ -61,7 +63,6 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     context->initSimChains(o2::detectors::DetID::HMP, mSimChains);
 
     auto& irecords = context->getEventRecords();
-
     for (auto& record : irecords) {
       LOG(INFO) << "HMPID TIME RECEIVED " << record.getTimeNS();
     }
@@ -69,6 +70,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto& eventParts = context->getEventParts();
     std::vector<o2::hmpid::Digit> digitsAccum;                     // accumulator for digits
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelAccum; // timeframe accumulator for labels
+    mIntRecord.clear();
 
     auto flushDigitsAndLabels = [this, &digitsAccum, &labelAccum]() {
       // flush previous buffer
@@ -77,20 +79,23 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       mDigitizer.flush(mDigits);
       LOG(INFO) << "HMPID flushed " << mDigits.size() << " digits at this time ";
       LOG(INFO) << "NUMBER OF LABEL OBTAINED " << mLabels.getNElements();
+      int32_t first = digitsAccum.size(); // this is the first
       std::copy(mDigits.begin(), mDigits.end(), std::back_inserter(digitsAccum));
       labelAccum.mergeAtBack(mLabels);
+
+      // save info for the triggers accepted
+      LOG(INFO) << "Trigger  Orbit :" << mDigitizer.getOrbit() << "  BC:" << mDigitizer.getBc();
+      mIntRecord.push_back(o2::hmpid::Trigger(o2::InteractionRecord(mDigitizer.getBc(), mDigitizer.getOrbit()), first, digitsAccum.size() - first));
     };
 
     // loop over all composite collisions given from context
     // (aka loop over all the interaction records)
     for (int collID = 0; collID < irecords.size(); ++collID) {
-
       // try to start new readout cycle by setting the trigger time
       auto triggeraccepted = mDigitizer.setTriggerTime(irecords[collID].getTimeNS());
       if (triggeraccepted) {
         flushDigitsAndLabels(); // flush previous readout cycle
       }
-
       auto withinactivetime = mDigitizer.setEventTime(irecords[collID].getTimeNS());
       if (withinactivetime) {
         // for each collision, loop over the constituents event and source IDs
@@ -110,6 +115,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
           mDigitizer.process(hits, mDigits);
         }
+
       } else {
         LOG(INFO) << "COLLISION " << collID << "FALLS WITHIN A DEAD TIME";
       }
@@ -119,6 +125,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 
     // send out to next stage
     pc.outputs().snapshot(Output{"HMP", "DIGITS", 0, Lifetime::Timeframe}, digitsAccum);
+    pc.outputs().snapshot(Output{"HMP", "INTRECORDS", 0, Lifetime::Timeframe}, mIntRecord);
     if (pc.outputs().isAllowed({"HMP", "DIGITLBL", 0})) {
       pc.outputs().snapshot(Output{"HMP", "DIGITLBL", 0, Lifetime::Timeframe}, labelAccum);
     }
@@ -135,6 +142,7 @@ class HMPIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   std::vector<TChain*> mSimChains;
   std::vector<o2::hmpid::Digit> mDigits;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> mLabels; // labels which get filled
+  std::vector<o2::hmpid::Trigger> mIntRecord;
 
   // RS: at the moment using hardcoded flag for continuous readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::CONTINUOUS; // readout mode
@@ -149,6 +157,7 @@ o2::framework::DataProcessorSpec getHMPIDDigitizerSpec(int channel, bool mctruth
   //  options that can be used for this processor (here: input file names where to take the hits)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("HMP", "DIGITS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("HMP", "INTRECORDS", 0, Lifetime::Timeframe);
   if (mctruth) {
     outputs.emplace_back("HMP", "DIGITLBL", 0, Lifetime::Timeframe);
   }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -173,6 +174,12 @@ struct DataSpecUtils {
   /// Create an InputSpec which is able to match all the outputs of the given
   /// OutputSpec
   static InputSpec matchingInput(OutputSpec const& spec);
+
+  /// Get the origin, if available
+  static std::optional<header::DataOrigin> getOptionalOrigin(InputSpec const& spec);
+
+  /// Get the description, if available
+  static std::optional<header::DataDescription> getOptionalDescription(InputSpec const& spec);
 
   /// Get the subspec, if available
   static std::optional<header::DataHeader::SubSpecificationType> getOptionalSubSpec(OutputSpec const& spec);

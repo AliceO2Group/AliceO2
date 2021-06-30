@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -140,21 +141,4 @@ BOOST_AUTO_TEST_CASE(TestIsSpan)
   BOOST_REQUIRE_EQUAL(is_span<decltype(a)>::value, true);
   BOOST_REQUIRE_EQUAL(is_span<decltype(b)>::value, false);
   BOOST_REQUIRE_EQUAL(is_span<decltype(c)>::value, false);
-}
-
-BOOST_AUTO_TEST_CASE(TestCanAssign)
-{
-  using Callback = std::function<bool(int, float)>;
-  auto matching = [](int, float) -> bool {
-    return true;
-  };
-  auto otherReturn = [](int, float) -> int {
-    return 0;
-  };
-  auto otherParam = [](int, int) -> bool {
-    return true;
-  };
-  BOOST_REQUIRE((can_assign<decltype(matching), Callback>::value == true));
-  BOOST_REQUIRE((can_assign<decltype(otherReturn), Callback>::value == false));
-  BOOST_REQUIRE((can_assign<decltype(otherParam), Callback>::value == false));
 }

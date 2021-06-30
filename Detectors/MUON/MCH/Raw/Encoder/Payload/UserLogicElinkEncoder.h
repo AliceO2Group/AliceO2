@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -22,17 +23,20 @@
 #include <cstdlib>
 #include <fmt/printf.h>
 #include <vector>
+#include "Framework/Logger.h"
 
 namespace o2::mch::raw
 {
 
-template <typename CHARGESUM>
-class ElinkEncoder<UserLogicFormat, CHARGESUM>
+template <typename CHARGESUM, int VERSION>
+class ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>
 {
  public:
   explicit ElinkEncoder(uint8_t elinkId, int phase = 0);
 
   void addChannelData(uint8_t chId, const std::vector<SampaCluster>& data);
+
+  void addHeartbeat(uint20_t bunchCrossing);
 
   size_t moveToBuffer(std::vector<uint64_t>& buffer, uint16_t gbtId);
 
@@ -44,9 +48,9 @@ class ElinkEncoder<UserLogicFormat, CHARGESUM>
   std::vector<uint10_t> mBuffer;
 };
 
-template <typename CHARGESUM>
-ElinkEncoder<UserLogicFormat, CHARGESUM>::ElinkEncoder(uint8_t elinkId,
-                                                       int phase)
+template <typename CHARGESUM, int VERSION>
+ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::ElinkEncoder(uint8_t elinkId,
+                                                                int phase)
   : mElinkId{elinkId},
     mHasSync{false},
     mBuffer{}
@@ -54,9 +58,9 @@ ElinkEncoder<UserLogicFormat, CHARGESUM>::ElinkEncoder(uint8_t elinkId,
   impl::assertIsInRange("elinkId", elinkId, 0, 39);
 }
 
-template <typename CHARGESUM>
-void ElinkEncoder<UserLogicFormat, CHARGESUM>::addChannelData(uint8_t chId,
-                                                              const std::vector<SampaCluster>& data)
+template <typename CHARGESUM, int VERSION>
+void ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::addChannelData(uint8_t chId,
+                                                                       const std::vector<SampaCluster>& data)
 {
   if (data.empty()) {
     throw std::invalid_argument("cannot add empty data");
@@ -73,29 +77,45 @@ void ElinkEncoder<UserLogicFormat, CHARGESUM>::addChannelData(uint8_t chId,
   }
 }
 
-template <typename CHARGESUM>
-void ElinkEncoder<UserLogicFormat, CHARGESUM>::clear()
+template <typename CHARGESUM, int VERSION>
+void ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::addHeartbeat(uint20_t bunchCrossing)
+{
+  if (!mHasSync) {
+    impl::appendSync(mBuffer);
+    mHasSync = true;
+  }
+  for (auto chipAddress : std::array<uint8_t, 2>{0, 1}) {
+    SampaHeader sh = sampaHeartbeat(chipAddress, bunchCrossing);
+    impl::addPadding(mBuffer);
+    impl::append(mBuffer, sh.uint64());
+  }
+}
+
+template <typename CHARGESUM, int VERSION>
+void ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::clear()
 {
   mBuffer.clear();
   mHasSync = false;
 }
 
-template <typename CHARGESUM>
-size_t ElinkEncoder<UserLogicFormat, CHARGESUM>::moveToBuffer(std::vector<uint64_t>& buffer, uint16_t gbtId)
+template <typename CHARGESUM, int VERSION>
+size_t ElinkEncoder<UserLogicFormat, CHARGESUM, VERSION>::moveToBuffer(std::vector<uint64_t>& buffer, uint16_t gbtId)
 {
   if (mBuffer.empty()) {
     return 0;
   }
 
-  int error{0}; // FIXME: what to do with error ?
-  uint16_t b9{0};
+  ULHeaderWord<VERSION> header{0};
 
-  b9 |= static_cast<uint64_t>(gbtId & 0x1F) << 9;
-  b9 |= static_cast<uint64_t>(mElinkId & 0x3F) << 3;
-  b9 |= static_cast<uint64_t>(error & 0x3);
+  header.linkID = gbtId;
+  header.dsID = mElinkId;
+  header.incomplete = 0; // FIXME: what to do with incomplete ?
+  header.error = 0;      // FIXME: what to do with error ?
+
+  uint16_t b14 = static_cast<uint16_t>((header.word >> 50) & 0xFFFF); // keep only 14 most significant bits of header word
 
   auto n = buffer.size();
-  impl::b10to64(mBuffer, buffer, b9);
+  impl::b10to64(mBuffer, buffer, b14);
   clear();
   return buffer.size() - n;
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,6 +12,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "Mocking.h"
 #include "TestClasses.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
@@ -59,7 +61,7 @@ struct ATask {
 // FIXME: for the moment we do not derive from AnalysisTask as
 // we need GCC 7.4+ to fix a bug.
 struct BTask {
-  void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::UnassignedTracks const&, o2::soa::Join<o2::aod::Calos, o2::aod::CaloTriggers> const&)
+  void process(o2::aod::Collision const&, o2::soa::Join<o2::aod::Tracks, o2::aod::TracksExtra, o2::aod::TracksCov> const&, o2::aod::AmbiguousTracks const&, o2::soa::Join<o2::aod::Calos, o2::aod::CaloTriggers> const&)
   {
   }
 };
@@ -145,54 +147,56 @@ struct JTask {
 
 BOOST_AUTO_TEST_CASE(AdaptorCompilation)
 {
-  auto task1 = adaptAnalysisTask<ATask>("test1");
+  auto cfgc = makeEmptyConfigContext();
+
+  auto task1 = adaptAnalysisTask<ATask>(*cfgc, TaskName{"test1"});
   BOOST_CHECK_EQUAL(task1.inputs.size(), 2);
   BOOST_CHECK_EQUAL(task1.outputs.size(), 1);
-  BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("TracksExtension"));
-  BOOST_CHECK_EQUAL(task1.inputs[1].binding, std::string("Tracks"));
+  BOOST_CHECK_EQUAL(task1.inputs[1].binding, std::string("TracksExtension"));
+  BOOST_CHECK_EQUAL(task1.inputs[0].binding, std::string("Tracks"));
   BOOST_CHECK_EQUAL(task1.outputs[0].binding.value, std::string("FooBars"));
 
-  auto task2 = adaptAnalysisTask<BTask>("test2");
+  auto task2 = adaptAnalysisTask<BTask>(*cfgc, TaskName{"test2"});
   BOOST_CHECK_EQUAL(task2.inputs.size(), 9);
-  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "Collisions");
-  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Tracks");
-  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "TracksExtra");
-  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "TracksCovExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[1].binding, "CaloTriggers");
+  BOOST_CHECK_EQUAL(task2.inputs[2].binding, "Calos");
+  BOOST_CHECK_EQUAL(task2.inputs[3].binding, "Collisions");
+  BOOST_CHECK_EQUAL(task2.inputs[4].binding, "Tracks");
   BOOST_CHECK_EQUAL(task2.inputs[5].binding, "TracksCov");
-  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "UnassignedTracks");
-  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "Calos");
-  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "CaloTriggers");
+  BOOST_CHECK_EQUAL(task2.inputs[6].binding, "TracksCovExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[7].binding, "TracksExtension");
+  BOOST_CHECK_EQUAL(task2.inputs[8].binding, "TracksExtra");
+  BOOST_CHECK_EQUAL(task2.inputs[0].binding, "AmbiguousTracks");
 
-  auto task3 = adaptAnalysisTask<CTask>("test3");
+  auto task3 = adaptAnalysisTask<CTask>(*cfgc, TaskName{"test3"});
   BOOST_CHECK_EQUAL(task3.inputs.size(), 3);
   BOOST_CHECK_EQUAL(task3.inputs[0].binding, "Collisions");
-  BOOST_CHECK_EQUAL(task3.inputs[1].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task3.inputs[2].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task3.inputs[2].binding, "TracksExtension");
+  BOOST_CHECK_EQUAL(task3.inputs[1].binding, "Tracks");
 
-  auto task4 = adaptAnalysisTask<DTask>("test4");
+  auto task4 = adaptAnalysisTask<DTask>(*cfgc, TaskName{"test4"});
   BOOST_CHECK_EQUAL(task4.inputs.size(), 2);
-  BOOST_CHECK_EQUAL(task4.inputs[0].binding, "TracksExtension");
-  BOOST_CHECK_EQUAL(task4.inputs[1].binding, "Tracks");
+  BOOST_CHECK_EQUAL(task4.inputs[1].binding, "TracksExtension");
+  BOOST_CHECK_EQUAL(task4.inputs[0].binding, "Tracks");
 
-  auto task5 = adaptAnalysisTask<ETask>("test5");
+  auto task5 = adaptAnalysisTask<ETask>(*cfgc, TaskName{"test5"});
   BOOST_CHECK_EQUAL(task5.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task5.inputs[0].binding, "FooBars");
 
-  auto task6 = adaptAnalysisTask<FTask>("test6");
+  auto task6 = adaptAnalysisTask<FTask>(*cfgc, TaskName{"test6"});
   BOOST_CHECK_EQUAL(task6.inputs.size(), 1);
   BOOST_CHECK_EQUAL(task6.inputs[0].binding, "FooBars");
 
-  auto task7 = adaptAnalysisTask<GTask>("test7");
+  auto task7 = adaptAnalysisTask<GTask>(*cfgc, TaskName{"test7"});
   BOOST_CHECK_EQUAL(task7.inputs.size(), 3);
 
-  auto task8 = adaptAnalysisTask<HTask>("test8");
+  auto task8 = adaptAnalysisTask<HTask>(*cfgc, TaskName{"test8"});
   BOOST_CHECK_EQUAL(task8.inputs.size(), 3);
 
-  auto task9 = adaptAnalysisTask<ITask>("test9");
+  auto task9 = adaptAnalysisTask<ITask>(*cfgc, TaskName{"test9"});
   BOOST_CHECK_EQUAL(task9.inputs.size(), 4);
 
-  auto task10 = adaptAnalysisTask<JTask>("test10");
+  auto task10 = adaptAnalysisTask<JTask>(*cfgc, TaskName{"test10"});
 }
 
 BOOST_AUTO_TEST_CASE(TestPartitionIteration)

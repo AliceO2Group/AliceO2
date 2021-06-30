@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 include_guard()
 
@@ -100,6 +101,7 @@ function(o2_add_test_wrapper)
 
   # For now, we enforce 3 max attempts for all tests.
   # No need to ignore time out, since we have 3 attempts
+  # PH The line below should be removed - no need to force three attempts
   set(A_MAX_ATTEMPTS 3)
   set(A_DONT_FAIL_ON_TIMEOUT "")
 
@@ -131,7 +133,7 @@ function(o2_add_test_wrapper)
                    ${testExe}
                    ${A_COMMAND_LINE_ARGS}
            WORKING_DIRECTORY "${A_WORKING_DIRECTORY}"
-           CONFIGURATIONS "${A_CONFIGURATIONS}")
+           CONFIGURATIONS ${A_CONFIGURATIONS})
 
   set_tests_properties(${testName} PROPERTIES TIMEOUT ${ctestTimeout})
   if(A_LABELS)

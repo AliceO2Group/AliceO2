@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -34,8 +35,7 @@ namespace o2
 namespace mft
 {
 
-int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict,
-                             const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker* tracker)
+int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, gsl::span<const itsmft::CompClusterExt> clusters, gsl::span<const unsigned char>::iterator& pattIt, const itsmft::TopologyDictionary& dict, const dataformats::MCTruthContainer<MCCompLabel>* mcLabels, const o2::mft::Tracker* tracker)
 {
   event.clear();
   GeometryTGeo* geom = GeometryTGeo::Instance();
@@ -44,27 +44,24 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
   for (auto& c : clusters_in_frame) {
-    int layer = geom->getLayer(c.getSensorID());
+    auto sensorID = c.getSensorID();
+    int layer = geom->getLayer(sensorID);
     auto pattID = c.getPatternID();
     o2::math_utils::Point3D<float> locXYZ;
     float sigmaX2 = ioutils::DefClusError2Row, sigmaY2 = ioutils::DefClusError2Col; //Dummy COG errors (about half pixel size)
     if (pattID != itsmft::CompCluster::InvalidPatternID) {
-      //sigmaX2 = dict.getErr2X(pattID); // ALPIDE local X coordinate => MFT global X coordinate (ALPIDE rows)
-      //sigmaY2 = dict.getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
-      // temporary, until ITS bug fix
-      sigmaX2 = dict.getErrX(pattID) * dict.getErrX(pattID);
-      sigmaY2 = dict.getErrZ(pattID) * dict.getErrZ(pattID);
+      sigmaX2 = dict.getErr2X(pattID); // ALPIDE local X coordinate => MFT global X coordinate (ALPIDE rows)
+      sigmaY2 = dict.getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
       if (!dict.isGroup(pattID)) {
         locXYZ = dict.getClusterCoordinates(c);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locXYZ = dict.getClusterCoordinates(c, patt, false);
+        locXYZ = dict.getClusterCoordinates(c, patt);
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
-      locXYZ = dict.getClusterCoordinates(c, patt);
+      locXYZ = dict.getClusterCoordinates(c, patt, false);
     }
-    auto sensorID = c.getSensorID();
     // Transformation to the local --> global
     auto gloXYZ = geom->getMatrixL2G(sensorID) * locXYZ;
 
@@ -75,7 +72,6 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
     int rBinIndex = tracker->getRBinIndex(rCoord);
     int phiBinIndex = tracker->getPhiBinIndex(phiCoord);
     int binIndex = tracker->getBinIndex(rBinIndex, phiBinIndex);
-    // TODO: Check consistency of sigmaX2 and sigmaY2
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex, sigmaX2, sigmaY2, sensorID);
     if (mcLabels) {
       event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));

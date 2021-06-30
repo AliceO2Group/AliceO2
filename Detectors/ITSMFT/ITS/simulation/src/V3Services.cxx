@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -632,8 +633,8 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   static const Double_t sEndWCStepHoleZdist = 4.0 * sMm;
 
   static const Double_t sEndWCStepHolePhi[3] = {30.0, 22.5, 18.0}; // Deg
-  static const Double_t sEndWCStepHolePhi0[2] = {9.5, 10.5};       // Deg
-  static const Double_t sEndWCStepYlow = 7.0 * sMm;
+  static const Double_t sEndWCStepHolePhi0[2] = {9.5, 10.5};       // Deg - Lay 1-2
+  static const Double_t sEndWCStepYlow = 7.0 * sMm;                // Lay 0 only
 
   // Local variables
   Double_t xlen, ylen, zlen;
@@ -762,7 +763,11 @@ void V3Services::ibEndWheelSideC(const Int_t iLay, TGeoVolume* endWheel, const T
   endWheel->AddNode(endWheelCVol, 1, new TGeoCombiTrans(0, 0, -zpos, new TGeoRotation("", 0, 180, 0)));
 
   // The position of the Steps is given wrt the holes (see eg. ALIITSUP0187)
-  dphi = sEndWCStepHolePhi0[iLay];
+  if (iLay == 0) {
+    dphi = (sEndWCStepYlow / sEndWCStepYdispl[iLay]) * TMath::RadToDeg();
+  } else {
+    dphi = sEndWCStepHolePhi0[iLay - 1];
+  }
 
   Int_t numberOfStaves = GeometryTGeo::Instance()->getNumberOfStaves(iLay);
   zpos += (static_cast<TGeoBBox*>(stepCVol->GetShape()))->GetDZ();

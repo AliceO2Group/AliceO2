@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -106,7 +107,7 @@ bool DataInputDescriptor::setFile(int counter)
 
   // get the directory names
   if (mfilenames[counter]->numberOfTimeFrames <= 0) {
-    std::regex TFRegex = std::regex("TF_[0-9]+");
+    std::regex TFRegex = std::regex("DF_[0-9]+");
     TList* keyList = mcurrentFile->GetListOfKeys();
 
     // extract TF numbers and sort accordingly
@@ -119,7 +120,7 @@ bool DataInputDescriptor::setFile(int counter)
     std::sort(mfilenames[counter]->listOfTimeFrameNumbers.begin(), mfilenames[counter]->listOfTimeFrameNumbers.end());
 
     for (auto folderNumber : mfilenames[counter]->listOfTimeFrameNumbers) {
-      auto folderName = "TF_" + std::to_string(folderNumber);
+      auto folderName = "DF_" + std::to_string(folderNumber);
       mfilenames[counter]->listOfTimeFrameKeys.emplace_back(folderName);
     }
     mfilenames[counter]->numberOfTimeFrames = mfilenames[counter]->listOfTimeFrameKeys.size();

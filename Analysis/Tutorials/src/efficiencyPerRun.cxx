@@ -1,13 +1,13 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 ///
 /// \brief A tutorial task to retrieve objects from CCDB given a run number.
 ///        This example demonstrates how the CCDB can be used to store an efficiency object which is valid only for a specific time
@@ -15,16 +15,15 @@
 ///        The objects are uploaded with https://alimonitor.cern.ch/ccdb/upload.jsp
 ///        Different timestamps intervals can be given.
 ///        You need to run this with the o2-analysis-timestamp task
-///        NOTE If only one efficiency object for all runs is needed, this code is not optimal. In this case please check the example:
-///        efficiencyGlobal.cxx
-///
-
-#include <chrono>
+///        NOTE If only one efficiency object for all runs is needed, this code is not optimal.
+///        In this case please check the example: efficiencyGlobal.cxx
+/// \author
+/// \since
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/AnalysisDataModel.h"
 #include <CCDB/BasicCCDBManager.h>
+#include <chrono>
 
 using namespace o2::framework;
 using namespace o2;
@@ -64,7 +63,9 @@ struct EfficiencyPerRun {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<EfficiencyPerRun>("EfficiencyPerRun")};
+  return WorkflowSpec{
+    adaptAnalysisTask<EfficiencyPerRun>(cfgc),
+  };
 }

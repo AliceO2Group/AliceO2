@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,7 +18,7 @@
 
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_GPUCODE)
+#if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 #include <Math/SMatrix.h>
 #include <Math/SVector.h>
 #include <Math/GenVector/DisplacementVector3D.h>
@@ -33,8 +34,8 @@
 #include "GPUCommonMath.h"
 #include "CartesianGPU.h"
 #include "SMatrixGPU.h"
-#endif
 
+#endif
 #include "GPUROOTCartesianFwd.h"
 #include "GPUROOTSMatrixFwd.h"
 
@@ -150,7 +151,7 @@ class Rotation2D
 using Rotation2Df_t = Rotation2D<float>;
 using Rotation2Dd_t = Rotation2D<double>;
 
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIGPUCODE)
+#if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 
 class Transform3D : public ROOT::Math::Transform3D
 {
@@ -249,7 +250,7 @@ class Transform3D : public ROOT::Math::Transform3D
 } // namespace math_utils
 } // namespace o2
 
-#if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIGPUCODE)
+#if (!defined(GPUCA_STANDALONE) || !defined(DGPUCA_NO_ROOT)) && !defined(GPUCA_GPUCODE) && !defined(GPUCOMMONRTYPES_H_ACTIVE)
 std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Df_t& t);
 std::ostream& operator<<(std::ostream& os, const o2::math_utils::Rotation2Dd_t& t);
 

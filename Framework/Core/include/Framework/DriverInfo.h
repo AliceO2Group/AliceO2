@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,7 +24,9 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/DispatchPolicy.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/LogParsingHelpers.h"
 #include "DataProcessorInfo.h"
+#include "ResourcePolicy.h"
 
 namespace o2::framework
 {
@@ -95,6 +98,10 @@ struct DriverInfo {
   /// These are the policies which can be applied to decide when complete
   /// objects/messages are sent out
   std::vector<DispatchPolicy> dispatchPolicies;
+
+  /// These are the policies which can be applied to decide when there
+  /// is enough resources to process data.
+  std::vector<ResourcePolicy> resourcePolicies;
   /// The argc with which the driver was started.
   int argc;
   /// The argv with which the driver was started.
@@ -141,6 +148,9 @@ struct DriverInfo {
   unsigned short port = 0;
   /// Last port used for tracy
   short tracyPort = 8086;
+  /// The minimum level after which the device will exit with 1
+  LogParsingHelpers::LogLevel minFailureLevel = LogParsingHelpers::LogLevel::Fatal;
+
   /// Aggregate metrics calculated in the driver itself
   DeviceMetricsInfo metrics;
   /// Skip shared memory cleanup if set

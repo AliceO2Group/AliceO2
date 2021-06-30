@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,6 +15,7 @@
 #include "GPUTPCCompression.h"
 #include "GPUReconstruction.h"
 #include "GPUO2DataTypes.h"
+#include "GPUMemorySizeScalers.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -39,7 +41,7 @@ void* GPUTPCCompression::SetPointersScratch(void* mem)
     computePointerWithAlignment(mem, mAttachedClusterFirstIndex, mMaxTracks);
   }
   if (mRec->GetProcessingSettings().tpcCompressionGatherMode != 1) {
-    SetPointersCompressedClusters(mem, mPtrs, mMaxTrackClusters, mMaxTracks, mMaxClusters, false);
+    SetPointersCompressedClusters(mem, mPtrs, mMaxTrackClusters, mMaxTracks, mMaxClustersInCache, false);
   }
   return mem;
 }
@@ -48,7 +50,7 @@ void* GPUTPCCompression::SetPointersOutput(void* mem)
 {
   computePointerWithAlignment(mem, mAttachedClusterFirstIndex, mMaxTrackClusters);
   if (mRec->GetProcessingSettings().tpcCompressionGatherMode == 1) {
-    SetPointersCompressedClusters(mem, mPtrs, mMaxTrackClusters, mMaxTracks, mMaxClusters, false);
+    SetPointersCompressedClusters(mem, mPtrs, mMaxTrackClusters, mMaxTracks, mMaxClustersInCache, false);
   }
   return mem;
 }
@@ -67,7 +69,7 @@ void GPUTPCCompression::SetPointersCompressedClusters(void*& mem, T& c, unsigned
 
   unsigned int nClAreduced = reducedClA ? nClA - nTr : nClA;
 
-  if (!(mRec->GetParam().rec.tpcCompressionModes & GPUSettings::CompressionTrackModel)) {
+  if (!(mRec->GetParam().rec.tpc.compressionTypeMask & GPUSettings::CompressionTrackModel)) {
     return; // Track model disabled, do not allocate memory
   }
   computePointerWithAlignment(mem, c.qTotA, nClA);
@@ -115,6 +117,8 @@ void GPUTPCCompression::RegisterMemoryAllocation()
 void GPUTPCCompression::SetMaxData(const GPUTrackingInOutPointers& io)
 {
   mMaxClusters = io.clustersNative->nClustersTotal;
+  mMaxClusterFactorBase1024 = mMaxClusters > 100000000 ? mRec->MemoryScalers()->tpcCompressedUnattachedHitsBase1024[mRec->GetParam().rec.tpc.rejectionStrategy] : 1024;
+  mMaxClustersInCache = mMaxClusters * mMaxClusterFactorBase1024 / 1024;
   mMaxTrackClusters = mRec->GetConstantMem().tpcMerger.NOutputTrackClusters();
   mMaxTracks = mRec->GetConstantMem().tpcMerger.NOutputTracks();
   if (mMaxClusters % 16) {

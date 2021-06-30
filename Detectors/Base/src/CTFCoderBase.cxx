@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,7 +15,7 @@
 
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "TSystem.h"
+#include <filesystem>
 
 using namespace o2::ctf;
 
@@ -35,7 +36,7 @@ bool readFromTree(TTree& tree, const std::string brname, T& dest, int ev = 0)
 std::unique_ptr<TFile> CTFCoderBase::loadDictionaryTreeFile(const std::string& dictPath, bool mayFail)
 {
   TDirectory* curd = gDirectory;
-  std::unique_ptr<TFile> fileDict(gSystem->AccessPathName(dictPath.c_str()) ? nullptr : TFile::Open(dictPath.c_str()));
+  std::unique_ptr<TFile> fileDict(!std::filesystem::exists(dictPath) ? nullptr : TFile::Open(dictPath.c_str()));
   if (!fileDict || fileDict->IsZombie()) {
     if (mayFail) {
       LOG(INFO) << "CTF dictionary file " << dictPath << " for detector " << mDet.getName() << " is absent, will use dictionaries stored in CTF";

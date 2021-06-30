@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,7 +20,7 @@ using namespace o2::framework;
 struct IndexV0s {
   Produces<aod::TransientV0s> transientV0s;
 
-  void process(aod::StoredV0s const& v0s, aod::FullTracks const& tracks)
+  void process(aod::StoredV0s const& v0s, aod::Tracks const& tracks)
   {
     for (auto& v0 : v0s) {
       if (v0.posTrack().collisionId() != v0.negTrack().collisionId()) {
@@ -34,7 +35,7 @@ struct IndexV0s {
 struct IndexCascades {
   Produces<aod::TransientCascades> transientCascades;
 
-  void process(aod::V0s const& v0s, aod::StoredCascades const& cascades, aod::FullTracks const& tracks)
+  void process(aod::V0s const& v0s, aod::StoredCascades const& cascades, aod::Tracks const& tracks)
   {
     for (auto& cascade : cascades) {
       if (cascade.bachelor().collisionId() != cascade.v0().posTrack().collisionId() || cascade.v0().posTrack().collisionId() != cascade.v0().negTrack().collisionId()) {
@@ -45,10 +46,10 @@ struct IndexCascades {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<IndexV0s>("weak-decay-indices-v0"),
-    adaptAnalysisTask<IndexCascades>("weak-decay-indices-cascades"),
+    adaptAnalysisTask<IndexV0s>(cfgc, TaskName{"weak-decay-indices-v0"}),
+    adaptAnalysisTask<IndexCascades>(cfgc, TaskName{"weak-decay-indices-cascades"}),
   };
 }

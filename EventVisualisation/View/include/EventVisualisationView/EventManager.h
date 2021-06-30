@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -65,7 +66,6 @@ class EventManager final : public TEveEventManager, public TQObject
     ccdbApi.init(path.Data());
   }
 
-  Int_t getCurrentEvent() const { return currentEvent; }
   DataSource* getDataSource() { return dataSource; }
   void setDataSource(DataSource* dataSource) { this->dataSource = dataSource; }
 
@@ -74,6 +74,7 @@ class EventManager final : public TEveEventManager, public TQObject
   void NextEvent() override;
   void PrevEvent() override;
   void Close() override;
+  void displayCurrentEvent();
 
   void AfterNewEventLoaded() override;
 
@@ -81,19 +82,15 @@ class EventManager final : public TEveEventManager, public TQObject
   void RemoveNewEventCommand(const TString& cmd) override;
   void ClearNewEventCommands() override;
 
-  void registerDetector(DataReader* reader, DataInterpreter* interpreter, EVisualisationGroup type);
   void DropEvent();
 
  private:
   static EventManager* instance;
   o2::ccdb::CcdbApi ccdbApi;
-  DataInterpreter* dataInterpreters[EVisualisationGroup::NvisualisationGroups];
-  DataReader* dataReaders[EVisualisationGroup::NvisualisationGroups];
   TEveElementList* dataTypeLists[EVisualisationDataType::NdataTypes];
   EDataSource mCurrentDataSourceType = EDataSource::SourceOffline;
   DataSource* dataSource = nullptr;
   TString dataPath = "";
-  Int_t currentEvent = 0;
 
   /// Default constructor
   EventManager();

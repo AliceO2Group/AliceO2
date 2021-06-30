@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -12,6 +13,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DeviceMetricsHelper.h"
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <regex>
@@ -38,9 +40,10 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   // Add the first metric to the store
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 1);
-  BOOST_CHECK(strncmp(info.metricLabelsIdx[0].label, "bkey", 4) == 0);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx[0].index, 0);
+  BOOST_CHECK_EQUAL(info.metricLabelsAlphabeticallySortedIdx.size(), 1);
+  BOOST_CHECK_EQUAL(info.metricLabels.size(), 1);
+  BOOST_CHECK(strncmp(info.metricLabels[0].label, "bkey", 4) == 0);
+  BOOST_CHECK_EQUAL(info.metricLabelsAlphabeticallySortedIdx[0].index, 0);
   BOOST_CHECK_EQUAL(info.intMetrics.size(), 1);
   BOOST_CHECK_EQUAL(info.floatMetrics.size(), 0);
   BOOST_CHECK_EQUAL(info.timestamps.size(), 1);
@@ -60,7 +63,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(match.intValue, 13);
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 1);
+  BOOST_CHECK_EQUAL(info.metricLabels.size(), 1);
   BOOST_CHECK_EQUAL(info.intMetrics.size(), 1);
   BOOST_CHECK_EQUAL(info.intMetrics[0][0], 12);
   BOOST_CHECK_EQUAL(info.intMetrics[0][1], 13);
@@ -73,7 +76,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(result, true);
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 2);
+  BOOST_CHECK_EQUAL(info.metricLabels.size(), 2);
   BOOST_CHECK_EQUAL(info.intMetrics.size(), 2);
   BOOST_CHECK_EQUAL(info.intMetrics[0][0], 12);
   BOOST_CHECK_EQUAL(info.intMetrics[0][1], 13);
@@ -90,7 +93,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(result, true);
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 3);
+  BOOST_CHECK_EQUAL(info.metricLabels.size(), 3);
   BOOST_CHECK_EQUAL(info.intMetrics.size(), 2);
   BOOST_CHECK_EQUAL(info.floatMetrics.size(), 1);
   BOOST_CHECK_EQUAL(info.metrics.size(), 3);
@@ -106,7 +109,7 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(result, true);
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 3);
+  BOOST_CHECK_EQUAL(info.metricLabels.size(), 3);
   BOOST_CHECK_EQUAL(info.intMetrics.size(), 2);
   BOOST_CHECK_EQUAL(info.floatMetrics.size(), 1);
   BOOST_CHECK_EQUAL(info.metrics.size(), 3);
@@ -128,7 +131,8 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(result, true);
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 4);
+  BOOST_CHECK_EQUAL(info.metricLabels.size(), 4);
+  BOOST_CHECK_EQUAL(info.metricLabelsAlphabeticallySortedIdx.size(), 4);
   BOOST_CHECK_EQUAL(info.metrics.size(), 4);
   BOOST_CHECK_EQUAL(info.stringMetrics.size(), 1);
   BOOST_CHECK_EQUAL(info.metrics[3].type, MetricType::String);
@@ -142,7 +146,8 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo)
   BOOST_CHECK_EQUAL(result, true);
   result = DeviceMetricsHelper::processMetric(match, info);
   BOOST_CHECK_EQUAL(result, true);
-  BOOST_CHECK_EQUAL(info.metricLabelsIdx.size(), 5);
+  BOOST_CHECK_EQUAL(info.metricLabels.size(), 5);
+  BOOST_CHECK_EQUAL(info.metricLabelsAlphabeticallySortedIdx.size(), 5);
   BOOST_CHECK_EQUAL(info.metrics.size(), 5);
   BOOST_CHECK_EQUAL(info.stringMetrics.size(), 2);
   BOOST_CHECK_EQUAL(info.metrics[4].type, MetricType::String);
@@ -205,4 +210,16 @@ BOOST_AUTO_TEST_CASE(TestDeviceMetricsInfo2)
   BOOST_CHECK_EQUAL(info.uint64Metrics[0][0], 1024);
   BOOST_CHECK_EQUAL(info.uint64Metrics[0][1], 1025);
   BOOST_CHECK_EQUAL(info.uint64Metrics[0][2], 2);
+}
+
+BOOST_AUTO_TEST_CASE(TestHelpers)
+{
+  using namespace o2::framework;
+  DeviceMetricsInfo info;
+  auto metric1 = DeviceMetricsHelper::bookMetricInfo(info, "bkey");
+  auto metric2 = DeviceMetricsHelper::bookMetricInfo(info, "bkey");
+  auto metric3 = DeviceMetricsHelper::bookMetricInfo(info, "akey");
+  BOOST_CHECK_EQUAL(metric1, 0);
+  BOOST_CHECK_EQUAL(metric2, 0);
+  BOOST_CHECK_EQUAL(metric3, 1);
 }

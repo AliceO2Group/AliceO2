@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -26,11 +27,11 @@ namespace ft0
 
 /// Header for a single CTF
 struct CTFHeader {
-  uint32_t nTriggers = 0;  /// number of triggers in TF
-  uint32_t firstOrbit = 0; /// 1st orbit of TF
-  uint16_t firstBC = 0;    /// 1st BC of TF
-
-  ClassDefNV(CTFHeader, 1);
+  uint32_t nTriggers = 0;     /// number of triggers in TF
+  uint32_t firstOrbit = 0;    /// 1st orbit of TF
+  uint16_t firstBC = 0;       /// 1st BC of TF
+  uint16_t triggerGate = 192; // trigger gate used at encoding
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// Intermediate, compressed but not yet entropy-encoded digits
@@ -39,10 +40,10 @@ struct CompressedDigits {
   CTFHeader header;
 
   // trigger data
-  std::vector<uint8_t> trigger;   // trigger bits
-  std::vector<uint16_t> bcInc;    // increment in BC if the same orbit, otherwise abs bc
-  std::vector<uint32_t> orbitInc; // increment in orbit
-  std::vector<uint8_t> nChan;     // number of fired channels
+  std::vector<uint8_t> trigger;    // trigger bits
+  std::vector<uint16_t> bcInc;     // increment in BC if the same orbit, otherwise abs bc
+  std::vector<uint32_t> orbitInc;  // increment in orbit
+  std::vector<uint8_t> nChan;      // number of fired channels
   std::vector<uint8_t> eventFlags; // special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
 
   // channel data

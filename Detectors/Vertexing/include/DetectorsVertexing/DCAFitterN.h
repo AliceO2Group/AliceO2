@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -104,6 +105,11 @@ class DCAFitterN
   //=========================================================================
   ///< return PCA candidate, by default best on is provided (no check for the index validity)
   const Vec3D& getPCACandidate(int cand = 0) const { return mPCA[mOrder[cand]]; }
+  const auto getPCACandidatePos(int cand = 0) const
+  {
+    const auto& vd = mPCA[mOrder[cand]];
+    return std::array<float, 3>{float(vd[0]), float(vd[1]), float(vd[2])};
+  }
 
   ///< return Chi2 at PCA candidate (no check for its validity)
   float getChi2AtPCACandidate(int cand = 0) const { return mChi2[mOrder[cand]]; }
@@ -117,6 +123,14 @@ class DCAFitterN
 
   ///< track param propagated to V0 candidate (no check for the candidate validity)
   ///  propagateTracksToVertex must be called in advance
+  Track& getTrack(int i, int cand = 0)
+  {
+    if (!mTrPropDone[mOrder[cand]]) {
+      throw std::runtime_error("propagateTracksToVertex was not called yet");
+    }
+    return mCandTr[mOrder[cand]][i];
+  }
+
   const Track& getTrack(int i, int cand = 0) const
   {
     if (!mTrPropDone[mOrder[cand]]) {
@@ -136,6 +150,12 @@ class DCAFitterN
 
   MatSym3D calcPCACovMatrix(int cand = 0) const;
 
+  std::array<float, 6> calcPCACovMatrixFlat(int cand = 0) const
+  {
+    auto m = calcPCACovMatrix(cand);
+    return {float(m(0, 0)), float(m(1, 0)), float(m(1, 1)), float(m(2, 0)), float(m(2, 1)), float(m(2, 2))};
+  }
+
   const Track* getOrigTrackPtr(int i) const { return mOrigTrPtr[i]; }
 
   ///< return number of iterations during minimization (no check for its validity)
@@ -144,6 +164,7 @@ class DCAFitterN
   void setMaxIter(int n = 20) { mMaxIter = n > 2 ? n : 2; }
   void setMaxR(float r = 200.) { mMaxR2 = r * r; }
   void setMaxDZIni(float d = 4.) { mMaxDZIni = d; }
+  void setMaxDXYIni(float d = 4.) { mMaxDXYIni = d > 0 ? d : 1e9; }
   void setMaxChi2(float chi2 = 999.) { mMaxChi2 = chi2; }
   void setBz(float bz) { mBz = std::abs(bz) > o2::constants::math::Almost0 ? bz : 0.f; }
   void setMinParamChange(float x = 1e-3) { mMinParamChange = x > 1e-4 ? x : 1.e-4; }
@@ -155,6 +176,7 @@ class DCAFitterN
   int getMaxIter() const { return mMaxIter; }
   float getMaxR() const { return std::sqrt(mMaxR2); }
   float getMaxDZIni() const { return mMaxDZIni; }
+  float getMaxDXYIni() const { return mMaxDXYIni; }
   float getMaxChi2() const { return mMaxChi2; }
   float getMinParamChange() const { return mMinParamChange; }
   float getBz() const { return mBz; }
@@ -272,6 +294,7 @@ class DCAFitterN
   float mBz = 0;                    // bz field, to be set by user
   float mMaxR2 = 200. * 200.;       // reject PCA's above this radius
   float mMaxDZIni = 4.;             // reject (if>0) PCA candidate if tracks DZ exceeds threshold
+  float mMaxDXYIni = 4.;            // reject (if>0) PCA candidate if tracks dXY exceeds threshold
   float mMinParamChange = 1e-3;     // stop iterations if largest change of any X is smaller than this
   float mMinRelChi2Change = 0.9;    // stop iterations is chi2/chi2old > this
   float mMaxChi2 = 100;             // abs cut on chi2 or abs distance
@@ -292,7 +315,7 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
   for (int i = 0; i < N; i++) {
     mTrAux[i].set(*mOrigTrPtr[i], mBz);
   }
-  if (!mCrossings.set(mTrAux[0], *mOrigTrPtr[0], mTrAux[1], *mOrigTrPtr[1])) { // even for N>2 it should be enough to test just 1 loop
+  if (!mCrossings.set(mTrAux[0], *mOrigTrPtr[0], mTrAux[1], *mOrigTrPtr[1], mMaxDXYIni)) { // even for N>2 it should be enough to test just 1 loop
     return 0;                                                                  // no crossing
   }
   if (mUseAbsDCA) {
@@ -889,7 +912,6 @@ o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand,
 {
   const auto& trP = getTrack(0, cand);
   const auto& trN = getTrack(1, cand);
-  const auto& wvtx = getPCACandidate(cand);
   std::array<float, 21> covV = {0.};
   std::array<float, 3> pvecV = {0.};
   int q = 0;
@@ -915,8 +937,7 @@ o2::track::TrackParCov DCAFitterN<N, Args...>::createParentTrackParCov(int cand,
   covV[3] = covVtxV(2, 0);
   covV[4] = covVtxV(2, 1);
   covV[5] = covVtxV(2, 2);
-  const std::array<float, 3> vertex = {(float)wvtx[0], (float)wvtx[1], (float)wvtx[2]};
-  return std::move(o2::track::TrackParCov(vertex, pvecV, covV, q, sectorAlpha));
+  return std::move(o2::track::TrackParCov(getPCACandidatePos(cand), pvecV, covV, q, sectorAlpha));
 }
 
 //___________________________________________________________________

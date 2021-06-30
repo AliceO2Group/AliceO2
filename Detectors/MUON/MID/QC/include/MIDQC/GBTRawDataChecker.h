@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,7 +24,7 @@
 #include <gsl/gsl>
 #include "DataFormatsMID/ROFRecord.h"
 #include "MIDRaw/ElectronicsDelay.h"
-#include "MIDRaw/LocalBoardRO.h"
+#include "DataFormatsMID/ROBoard.h"
 
 namespace o2
 {
@@ -33,7 +34,7 @@ class GBTRawDataChecker
 {
  public:
   void init(uint16_t feeId, uint8_t mask);
-  bool process(gsl::span<const LocalBoardRO> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords);
+  bool process(gsl::span<const ROBoard> localBoards, gsl::span<const ROFRecord> rofRecords, gsl::span<const ROFRecord> pageRecords);
   /// Gets the number of processed events
   unsigned int getNEventsProcessed() const { return mStatistics[0]; }
   /// Gets the number of faulty events
@@ -57,30 +58,30 @@ class GBTRawDataChecker
   };
 
   struct GBT {
-    std::vector<LocalBoardRO> regs{}; /// Regional boards
-    std::vector<LocalBoardRO> locs{}; /// Local boards
-    std::vector<long int> pages{};    /// Pages information
+    std::vector<ROBoard> regs{};   /// Regional boards
+    std::vector<ROBoard> locs{};   /// Local boards
+    std::vector<long int> pages{}; /// Pages information
   };
 
   struct BoardInfo {
-    LocalBoardRO board{};
+    ROBoard board{};
     o2::InteractionRecord interactionRecord{};
     long int page{-1};
   };
 
   void clearChecked(bool isTriggered, bool clearTrigEvents);
-  bool checkEvent(bool isTriggered, const std::vector<LocalBoardRO>& regs, const std::vector<LocalBoardRO>& locs);
+  bool checkEvent(bool isTriggered, const std::vector<ROBoard>& regs, const std::vector<ROBoard>& locs);
   bool checkEvents(bool isTriggered);
-  bool checkConsistency(const LocalBoardRO& board);
-  bool checkConsistency(const std::vector<LocalBoardRO>& boards);
-  bool checkMasks(const std::vector<LocalBoardRO>& locs);
-  bool checkLocalBoardSize(const LocalBoardRO& board);
-  bool checkLocalBoardSize(const std::vector<LocalBoardRO>& boards);
-  bool checkRegLocConsistency(const std::vector<LocalBoardRO>& regs, const std::vector<LocalBoardRO>& locs);
-  uint8_t getElinkId(const LocalBoardRO& board) const;
+  bool checkConsistency(const ROBoard& board);
+  bool checkConsistency(const std::vector<ROBoard>& boards);
+  bool checkMasks(const std::vector<ROBoard>& locs);
+  bool checkLocalBoardSize(const ROBoard& board);
+  bool checkLocalBoardSize(const std::vector<ROBoard>& boards);
+  bool checkRegLocConsistency(const std::vector<ROBoard>& regs, const std::vector<ROBoard>& locs);
+  uint8_t getElinkId(const ROBoard& board) const;
   unsigned int getLastCompleteTrigEvent();
   bool isCompleteSelfTrigEvent(const o2::InteractionRecord& ir) const;
-  std::string printBoards(const std::vector<LocalBoardRO>& boards) const;
+  std::string printBoards(const std::vector<ROBoard>& boards) const;
   bool runCheckEvents(unsigned int completeMask);
   void sortEvents(bool isTriggered);
 

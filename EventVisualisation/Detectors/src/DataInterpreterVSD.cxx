@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -25,8 +26,6 @@
 #include <TEveTrackPropagator.h>
 #include <TGListTree.h>
 
-using namespace std;
-
 namespace o2
 {
 namespace event_visualisation
@@ -41,7 +40,7 @@ DataInterpreterVSD::~DataInterpreterVSD()
   }
 }
 
-std::unique_ptr<VisualisationEvent> DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisationDataType type)
+VisualisationEvent DataInterpreterVSD::interpretDataForType(TObject* data, EVisualisationDataType type)
 {
   if (mVSD == nullptr) {
     mVSD = new TEveVSD;
@@ -54,16 +53,17 @@ std::unique_ptr<VisualisationEvent> DataInterpreterVSD::interpretDataForType(TOb
 
   this->AttachEvent();
 
-  auto ret_event = std::make_unique<VisualisationEvent>(0, 0, 0, 0, "", 0);
+  VisualisationEvent ret_event({.eventNumber = 0,
+                                .runNumber = 0,
+                                .energy = 0,
+                                .multiplicity = 0,
+                                .collidingSystem = "",
+                                .timeStamp = 0});
+
   // Load event data into visualization structures.
 
-  //        this->LoadClusters(this->fITSClusters, "ITS", 0);
-  //        this->LoadClusters(this->fTPCClusters, "TPC", 1);
-  //        this->LoadClusters(this->fTRDClusters, "TRD", 2);
-  //        this->LoadClusters(this->fTOFClusters, "TOF", 3);
-
   if (type == ESD) {
-    LoadEsdTracks(*ret_event);
+    LoadEsdTracks(ret_event);
   }
 
   return ret_event;

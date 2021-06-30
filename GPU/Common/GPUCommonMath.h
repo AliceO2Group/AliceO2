@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,7 +17,7 @@
 
 #include "GPUCommonDef.h"
 
-#if defined(__CUDACC__) && !defined(__clang__) && !defined(GPUCA_GPUCODE_GENRTC)
+#if defined(__CUDACC__) && !defined(__clang__) && !defined(GPUCA_GPUCODE_GENRTC) && !defined(GPUCA_GPUCODE_HOSTONLY)
 #include <sm_20_atomic_functions.h>
 #endif
 
@@ -57,6 +58,7 @@ class GPUCommonMath
   template <class T>
   GPUhd() static T Abs(T x);
   GPUd() static float ASin(float x);
+  GPUd() static float ACos(float x);
   GPUd() static float ATan(float x);
   GPUd() static float ATan2(float y, float x);
   GPUd() static float Sin(float x);
@@ -65,10 +67,10 @@ class GPUCommonMath
   GPUhdni() static void SinCosd(double x, double& s, double& c);
   GPUd() static float Tan(float x);
   GPUhdni() static float Copysign(float x, float y);
-  GPUhdni() static double Copysignd(double x, double y);
-  GPUd() static float TwoPi() { return 6.28319f; }
-  GPUd() static float Pi() { return 3.1415926535897f; }
+  GPUd() static float TwoPi() { return 6.2831853f; }
+  GPUd() static float Pi() { return 3.1415927f; }
   GPUd() static int Nint(float x);
+  GPUd() static float Modf(float x, float y);
   GPUd() static bool Finite(float x);
   GPUd() static unsigned int Clz(unsigned int val);
   GPUd() static unsigned int Popcount(unsigned int val);
@@ -161,6 +163,7 @@ class GPUCommonMath
     } else {
       return w * w + Sum2(args...);
     }
+    return 0;
   }
 #endif
 
@@ -179,6 +182,7 @@ class GPUCommonMath
 
 typedef GPUCommonMath CAMath;
 
+// CHOICE Syntax: CHOISE(Host, CUDA&HIP, OpenCL)
 #if defined(GPUCA_GPUCODE_DEVICE) && (defined(__CUDACC__) || defined(__HIPCC__)) // clang-format off
     #define CHOICE(c1, c2, c3) (c2) // Select second option for CUDA and HIP
 #elif defined(GPUCA_GPUCODE_DEVICE) && defined (__OPENCL__)
@@ -228,6 +232,8 @@ GPUdi() int GPUCommonMath::Nint(float x)
   }
   return i;
 }
+
+GPUdi() float GPUCommonMath::Modf(float x, float y) { return CHOICE(fmodf(x, y), fmodf(x, y), fmod(x, y)); }
 
 GPUdi() bool GPUCommonMath::Finite(float x) { return CHOICE(std::isfinite(x), true, true); }
 
@@ -283,13 +289,9 @@ GPUdi() unsigned int GPUCommonMath::Popcount(unsigned int x)
   // use builtin if available
   return CHOICE(__builtin_popcount(x), __popc(x), __builtin_popcount(x));
 #else
-  unsigned int retVal = 0;
-  for (int i = 0; i < 32; i++) {
-    if (x & (1 << i)) {
-      retVal++;
-    }
-  }
-  return retVal;
+  x = x - ((x >> 1) & 0x55555555);
+  x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+  return (((x + (x >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
 #endif
 }
 
@@ -385,6 +387,8 @@ GPUhdi() int GPUCommonMath::Abs<int>(int x)
 
 GPUdi() float GPUCommonMath::ASin(float x) { return CHOICE(asinf(x), asinf(x), asin(x)); }
 
+GPUdi() float GPUCommonMath::ACos(float x) { return CHOICE(acosf(x), acosf(x), acos(x)); }
+
 GPUdi() float GPUCommonMath::Log(float x) { return CHOICE(logf(x), logf(x), log(x)); }
 
 GPUhdi() float GPUCommonMath::Copysign(float x, float y)
@@ -395,20 +399,6 @@ GPUhdi() float GPUCommonMath::Copysign(float x, float y)
   return copysignf(x, y);
 #elif defined(__cplusplus) && __cplusplus >= 201103L
   return std::copysignf(x, y);
-#else
-  x = GPUCommonMath::Abs(x);
-  return (y >= 0) ? x : -x;
-#endif // GPUCA_GPUCODE
-}
-
-GPUhdi() double GPUCommonMath::Copysignd(double x, double y)
-{
-#if defined(__OPENCLCPP__)
-  return copysign(x, y);
-#elif defined(GPUCA_GPUCODE) && !defined(__OPENCL__)
-  return copysignf(x, y);
-#elif defined(__cplusplus) && __cplusplus >= 201103L
-  return std::copysign(x, y);
 #else
   x = GPUCommonMath::Abs(x);
   return (y >= 0) ? x : -x;

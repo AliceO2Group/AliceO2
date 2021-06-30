@@ -1,23 +1,25 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DEVICECONTROL_H
-#define FRAMEWORK_DEVICECONTROL_H
+#ifndef O2_FRAMEWORK_DEVICECONTROL_H_
+#define O2_FRAMEWORK_DEVICECONTROL_H_
+
+#include "Framework/LogParsingHelpers.h"
 
 #include <map>
 #include <string>
-#include "Framework/LogParsingHelpers.h"
 
-namespace o2
+namespace o2::framework
 {
-namespace framework
-{
+
+struct DeviceController;
 
 constexpr int MAX_USER_FILTER_SIZE = 256;
 
@@ -42,9 +44,10 @@ struct DeviceControl {
   char logStopTrigger[MAX_USER_FILTER_SIZE] = {0};
   /// Where the GUI should store the options it wants.
   std::map<std::string, std::string> options;
+  /// Handler used to communicate with the device (if available)
+  DeviceController* controller = nullptr;
 };
 
-} // namespace framework
-} // namespace o2
+} // namespace o2::framework
 
-#endif // FRAMEWORK_DEVICECONTROL_H
+#endif // O2_FRAMEWORK_DEVICECONTROL_H_

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,6 +16,7 @@
 
 #include "TNamed.h"
 #include "TString.h"
+#include "Framework/HistogramSpec.h"
 
 class TH1;
 class TH1F;
@@ -33,7 +35,7 @@ class CorrelationContainer : public TNamed
 {
  public:
   CorrelationContainer();
-  CorrelationContainer(const char* name, const char* objTitle, const char* reqHist = "", const char* binning = nullptr);
+  CorrelationContainer(const char* name, const char* objTitle, const std::vector<o2::framework::AxisSpec>& axisList);
   virtual ~CorrelationContainer(); // NOLINT: Making this override breaks compilation for unknown reason
 
   static const Int_t fgkCFSteps;
@@ -123,8 +125,6 @@ class CorrelationContainer : public TNamed
   void setWeightPerEvent(Bool_t flag) { mWeightPerEvent = flag; }
   void setSkipScaleMixedEvent(Bool_t flag) { mSkipScaleMixedEvent = flag; }
 
-  void setHistogramType(const char* histogramType) { mHistogramType = histogramType; }
-
   void countEmptyBins(CorrelationContainer::CFStep step, Float_t ptTriggerMin, Float_t ptTriggerMax);
   void symmetrizepTBins();
 
@@ -142,10 +142,7 @@ class CorrelationContainer : public TNamed
   void Reset();
   THnBase* changeToThn(THnBase* sparse);
 
-  static TString combineBinning(TString defaultBinning, TString customBinning);
-
  protected:
-  std::vector<Double_t> getBinning(const char* configuration, const char* tag, Int_t& nBins);
   void weightHistogram(TH3* hist1, TH1* hist2);
   void multiplyHistograms(THnBase* grid, THnBase* target, TH1* histogram, Int_t var1, Int_t var2);
 
@@ -175,8 +172,6 @@ class CorrelationContainer : public TNamed
 
   Bool_t mGetMultCacheOn; //! cache for getHistsZVtxMult function active
   THnBase* mGetMultCache; //! cache for getHistsZVtxMult function
-
-  TString mHistogramType; // what is stored in this histogram
 
   ClassDef(CorrelationContainer, 1) // underlying event histogram container
 };

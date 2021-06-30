@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -92,7 +93,7 @@ class DigitDump : public CalibRawBase
   void setNoiseThreshold(float noiseThreshold) { mNoiseThreshold = noiseThreshold; }
 
   /// set the adc range
-  void setADCRange(int minADC, int maxADC)
+  void setADCRange(float minADC, float maxADC)
   {
     mADCMin = minADC;
     mADCMax = maxADC;
@@ -137,6 +138,9 @@ class DigitDump : public CalibRawBase
   /// End event function
   void endEvent() final;
 
+  /// check duplicates and remove the if removeDuplicates is true
+  void checkDuplicates(bool removeDuplicates = false);
+
  private:
   std::unique_ptr<CalPad> mPedestal{}; ///< CalDet object with pedestal information
   std::unique_ptr<CalPad> mNoise{};    ///< CalDet object with noise
@@ -152,8 +156,8 @@ class DigitDump : public CalibRawBase
 
   int mFirstTimeBin{0};      ///< first time bin used in analysis
   int mLastTimeBin{1000};    ///< first time bin used in analysis
-  int mADCMin{-100};         ///< minimum adc value
-  int mADCMax{1024};         ///< maximum adc value
+  float mADCMin{-100};       ///< minimum adc value
+  float mADCMax{1024};       ///< maximum adc value
   float mNoiseThreshold{-1}; ///< zero suppression threshold in noise sigma
   bool mInMemoryOnly{false}; ///< if processing is only done in memory, no file writing
   bool mInitialized{false};  ///< if init was called

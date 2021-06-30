@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -554,6 +555,44 @@ InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)
                     spec.matcher);
 }
 
+std::optional<header::DataOrigin> DataSpecUtils::getOptionalOrigin(InputSpec const& spec)
+{
+  // FIXME: try to address at least a few cases.
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) -> std::optional<header::DataOrigin> {
+                        return std::make_optional(concrete.origin);
+                      },
+                      [](DataDescriptorMatcher const& matcher) -> std::optional<header::DataOrigin> {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueOrigin) {
+                          return std::make_optional(state.origin);
+                        } else if (state.hasError) {
+                          throw runtime_error("Could not extract origin from query");
+                        }
+                        return {};
+                      }},
+                    spec.matcher);
+}
+
+std::optional<header::DataDescription> DataSpecUtils::getOptionalDescription(InputSpec const& spec)
+{
+  // FIXME: try to address at least a few cases.
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) -> std::optional<header::DataDescription> {
+                        return std::make_optional(concrete.description);
+                      },
+                      [](DataDescriptorMatcher const& matcher) -> std::optional<header::DataDescription> {
+                        auto state = extractMatcherInfo(matcher);
+                        if (state.hasUniqueDescription) {
+                          return std::make_optional(state.description);
+                        } else if (state.hasError) {
+                          throw runtime_error("Could not extract description from query");
+                        }
+                        return {};
+                      }},
+                    spec.matcher);
+}
+
 std::optional<header::DataHeader::SubSpecificationType> DataSpecUtils::getOptionalSubSpec(OutputSpec const& spec)
 {
   return std::visit(overloaded{
@@ -605,7 +644,7 @@ bool DataSpecUtils::includes(const InputSpec& left, const InputSpec& right)
               auto leftInfo = extractMatcherInfo(leftMatcher);
               return (!leftInfo.hasOrigin || (rightInfo.hasOrigin && leftInfo.origin == rightInfo.origin)) &&
                      (!leftInfo.hasDescription || (rightInfo.hasDescription && leftInfo.description == rightInfo.description)) &&
-                     (!leftInfo.hasSubSpec || (rightInfo.hasSubSpec && leftInfo.subSpec == rightInfo.hasSubSpec));
+                     (!leftInfo.hasSubSpec || (rightInfo.hasSubSpec && leftInfo.subSpec == rightInfo.subSpec));
             }},
           left.matcher);
       }},

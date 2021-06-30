@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,11 +15,9 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputRoute.h"
 #include "Framework/TypeTraits.h"
-#include "Framework/InputSpan.h"
 #include "Framework/TableConsumer.h"
 #include "Framework/Traits.h"
 #include "Framework/RuntimeError.h"
-#include "MemoryResources/Types.h"
 #include "Headers/DataHeader.h"
 
 #include "CommonUtils/BoostSerializer.h"
@@ -41,6 +40,7 @@ namespace framework
 {
 
 struct InputSpec;
+struct InputSpan;
 
 /// @class InputRecord
 /// @brief The input API of the Data Processing Layer
@@ -99,7 +99,7 @@ class InputRecord
   using DataHeader = o2::header::DataHeader;
 
   InputRecord(std::vector<InputRoute> const& inputs,
-              InputSpan&& span);
+              InputSpan& span);
 
   /// A deleter type to be used with unique_ptr, which can be marked that
   /// it does not own the underlying resource and thus should not delete it.
@@ -177,30 +177,9 @@ class InputRecord
   int getPos(const char* name) const;
   int getPos(const std::string& name) const;
 
-  DataRef getByPos(int pos, int part = 0) const
-  {
-    if (pos >= mSpan.size() || pos < 0) {
-      throw runtime_error_f("Unknown message requested at position %d", pos);
-    }
-    if (part > 0 && part >= getNofParts(pos)) {
-      throw runtime_error_f("Invalid message part index at %d:%d", pos, part);
-    }
-    if (pos >= mInputsSchema.size()) {
-      throw runtime_error_f("Unknown schema at position %d", pos);
-    }
-    auto ref = mSpan.get(pos, part);
-    ref.spec = &mInputsSchema[pos].matcher;
-    return ref;
-  }
+  DataRef getByPos(int pos, int part = 0) const;
 
-  size_t getNofParts(int pos) const
-  {
-    if (pos < 0 || pos >= mSpan.size()) {
-      return 0;
-    }
-    return mSpan.getNofParts(pos);
-  }
-
+  size_t getNofParts(int pos) const;
   /// Get the object of specified type T for the binding R.
   /// If R is a string like object, we look up by name the InputSpec and
   /// return the data associated to the given label.
@@ -216,13 +195,14 @@ class InputRecord
   decltype(auto) get(R binding, int part = 0) const
   {
     DataRef ref{nullptr, nullptr};
+    using decayed = std::decay_t<R>;
     // Get the actual dataref
-    if constexpr (std::is_same_v<std::decay_t<R>, char const*> ||
-                  std::is_same_v<std::decay_t<R>, char*> ||
-                  std::is_same_v<std::decay_t<R>, std::string>) {
+    if constexpr (std::is_same_v<decayed, char const*> ||
+                  std::is_same_v<decayed, char*> ||
+                  std::is_same_v<decayed, std::string>) {
       try {
         int pos = -1;
-        if constexpr (std::is_same_v<std::decay_t<R>, std::string>) {
+        if constexpr (std::is_same_v<decayed, std::string>) {
           pos = getPos(binding.c_str());
         } else {
           pos = getPos(binding);
@@ -232,13 +212,13 @@ class InputRecord
         }
         ref = this->getByPos(pos, part);
       } catch (const std::exception& e) {
-        if constexpr (std::is_same_v<std::decay_t<R>, std::string>) {
+        if constexpr (std::is_same_v<decayed, std::string>) {
           throw runtime_error_f("Unknown argument requested %s - %s", binding.c_str(), e.what());
         } else {
           throw runtime_error_f("Unknown argument requested %s - %s", binding, e.what());
         }
       }
-    } else if constexpr (std::is_same_v<std::decay_t<R>, DataRef>) {
+    } else if constexpr (std::is_same_v<decayed, DataRef>) {
       ref = binding;
     } else {
       static_assert(always_static_assert_v<R>, "Unknown binding type");
@@ -459,10 +439,7 @@ class InputRecord
   /// @return the total number of inputs in the InputRecord. Notice that these will include
   /// both valid and invalid inputs (i.e. inputs which have not arrived yet), depending
   /// on the CompletionPolicy you have (using the default policy all inputs will be valid).
-  size_t size() const
-  {
-    return mSpan.size();
-  }
+  size_t size() const;
 
   /// @return the total number of valid inputs in the InputRecord.
   /// Invalid inputs might happen if the CompletionPolicy allows
@@ -650,7 +627,7 @@ class InputRecord
 
  private:
   std::vector<InputRoute> const& mInputsSchema;
-  InputSpan mSpan;
+  InputSpan& mSpan;
 };
 
 } // namespace framework

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -35,8 +36,8 @@ class SimTraits
   // initialization fragile since depends on correct order. Can we do better?
 
   // clang-format off
-  static inline const std::array<std::vector<std::string>, DetID::nDetectors> DETECTORBRANCHNAMES = 
-    { /*ITS*/ VS{ "ITSHit" }, 
+  static inline const std::array<std::vector<std::string>, DetID::nDetectors> DETECTORBRANCHNAMES =
+    { /*ITS*/ VS{ "ITSHit" },
       /*TPC*/ VS{ "TPCHitsShiftedSector0",
                   "TPCHitsShiftedSector1",
                   "TPCHitsShiftedSector2",
@@ -86,11 +87,13 @@ class SimTraits
       /*FT0*/ VS{ "FT0Hit" },
       /*FV0*/ VS{ "FV0Hit" },
       /*FDD*/ VS{ "FDDHit" },
-      /*ACO*/ VS{ "ACOHit" }
+      /*ACO*/ VS{ "ACOHit" },
+      /*CTP*/ VS{ "CTPHit" }
 #ifdef ENABLE_UPGRADES
       ,
       /*IT3*/ VS{ "IT3Hit" },
-      /*TRK*/ VS{ "TRKHit" }
+      /*TRK*/ VS{ "TRKHit" },
+      /*FT3*/ VS{ "FT3Hit" }
 #endif
     };
   // clang-format on
@@ -108,7 +111,7 @@ class SimTraits
 // forward declares the HitTypes
 namespace trd
 {
-class HitType;
+class Hit;
 }
 namespace itsmft
 {
@@ -172,7 +175,7 @@ struct DetIDToHitTypes {
 // specialize for detectors
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::TRD> {
-  using HitType = o2::trd::HitType;
+  using HitType = o2::trd::Hit;
 };
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::ITS> {
@@ -227,9 +230,12 @@ template <>
 struct DetIDToHitTypes<o2::detectors::DetID::IT3> {
   using HitType = o2::itsmft::Hit;
 };
-
 template <>
 struct DetIDToHitTypes<o2::detectors::DetID::TRK> {
+  using HitType = o2::itsmft::Hit;
+};
+template <>
+struct DetIDToHitTypes<o2::detectors::DetID::FT3> {
   using HitType = o2::itsmft::Hit;
 };
 #endif

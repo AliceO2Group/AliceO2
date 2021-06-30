@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 # FIXME Is this one supposed to be a header only library (in which case the .h
 # to be installed should be in include/TestWorkflows) or not a library at all ?
@@ -96,6 +97,18 @@ o2_add_dpl_workflow(aodreader
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(tableio-write
+                  SOURCES src/tableIOout.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(tableio-read
+                  SOURCES src/tableIOin.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(outputs
                   SOURCES src/outputs.cxx
                   JOB_POOL analysis
@@ -143,16 +156,16 @@ o2_add_dpl_workflow(extended-columns
                   PUBLIC_LINK_LIBRARIES O2::Framework
                   COMPONENT_NAME AnalysisTutorial)
 
+o2_add_dpl_workflow(extended-tables
+                  SOURCES src/extendedTables.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                  COMPONENT_NAME AnalysisTutorial)
+
 o2_add_dpl_workflow(zdc-vzero-iteration
                   SOURCES src/ZDCVZeroIteration.cxx
                   JOB_POOL analysis
                   COMPONENT_NAME AnalysisTutorial)
-
-o2_add_dpl_workflow(hist-helpers-test
-                    SOURCES src/histHelpersTest.cxx
-                    JOB_POOL analysis
-                    PUBLIC_LINK_LIBRARIES O2::AnalysisDataModel O2::AnalysisCore
-                    COMPONENT_NAME AnalysisTutorial)
 
 o2_add_dpl_workflow(histogram-registry
                   SOURCES src/histogramRegistry.cxx
@@ -206,6 +219,12 @@ o2_add_dpl_workflow(compatible-bcs
 
 o2_add_dpl_workflow(multiplicity-event-track-selection
                   SOURCES src/multiplicityEventTrackSelection.cxx
+                  JOB_POOL analysis
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
+                  COMPONENT_NAME AnalysisTutorial)
+
+o2_add_dpl_workflow(multiprocess-example
+                  SOURCES src/multiProcess.cxx
                   JOB_POOL analysis
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                   COMPONENT_NAME AnalysisTutorial)

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -46,18 +47,22 @@ struct FilterCF {
   {
   }
 
-  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>::iterator const& collision, aod::BCs const&, soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
+  void process(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::Cents>>::iterator const& collision, aod::BCsWithTimestamps const&, soa::Filtered<soa::Join<aod::Tracks, aod::TrackSelection>> const& tracks)
   {
-    LOGF(info, "Tracks for collision: %d | Vertex: %.1f | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.sel7(), collision.centV0M());
+    LOGF(info, "Tracks for collision: %d | Vertex: %.1f (%d) | INT7: %d | V0M: %.1f", tracks.size(), collision.posZ(), collision.flags(), collision.sel7(), collision.centV0M());
 
-    if (!collision.alias()[kINT7]) {
-      return;
-    }
-    if (!collision.sel7()) {
+    if (!collision.alias()[kINT7] || !collision.sel7()) {
       return;
     }
 
-    outputCollisions(collision.bc().runNumber(), collision.posZ(), collision.centV0M());
+    // vertex range already checked as filter, but bitwise operations not yet supported
+    // TODO (collision.flags() != 0) can be removed with next conversion (AliPhysics >= 20210305)
+    if ((collision.flags() != 0) && ((collision.flags() & aod::collision::CollisionFlagsRun2::Run2VertexerTracks) != aod::collision::CollisionFlagsRun2::Run2VertexerTracks)) {
+      return;
+    }
+
+    auto bc = collision.bc_as<aod::BCsWithTimestamps>();
+    outputCollisions(bc.runNumber(), collision.posZ(), collision.centV0M(), bc.timestamp());
 
     for (auto& track : tracks) {
       uint8_t trackType = 0;
@@ -67,7 +72,7 @@ struct FilterCF {
         trackType = 2;
       }
 
-      outputTracks(outputCollisions.lastIndex(), track.pt(), track.eta(), track.phi(), track.charge(), trackType);
+      outputTracks(outputCollisions.lastIndex(), track.pt(), track.eta(), track.phi(), track.sign(), trackType);
 
       yields->Fill(collision.centV0M(), track.pt(), track.eta());
       etaphi->Fill(collision.centV0M(), track.eta(), track.phi());
@@ -75,8 +80,8 @@ struct FilterCF {
   }
 };
 
-WorkflowSpec defineDataProcessing(ConfigContext const&)
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
-    adaptAnalysisTask<FilterCF>("filter-cf")};
+    adaptAnalysisTask<FilterCF>(cfgc)};
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,20 +18,18 @@
 #include "GPUDef.h"
 #include "GPUDataTypes.h"
 
-#if defined(__HIPCC__)
-#define GPUCA_CUB hipcub
-#else
-#define GPUCA_CUB cub
-#endif
-
-#ifndef GPUCA_GPUCODE_GENRTC
-#ifdef GPUCA_GPUCODE
-#ifdef __CUDACC__
+#if defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_GENRTC) && !defined(GPUCA_GPUCODE_HOSTONLY)
+#if defined(__CUDACC__)
 #include <cub/cub.cuh>
 #elif defined(__HIPCC__)
 #include <hipcub/hipcub.hpp>
 #endif
 #endif
+
+#if defined(__HIPCC__)
+#define GPUCA_CUB hipcub
+#else
+#define GPUCA_CUB cub
 #endif
 
 namespace GPUCA_NAMESPACE
@@ -58,7 +57,7 @@ class GPUKernelTemplate
   template <class T, int I>
   struct GPUSharedMemoryScan64 {
     // Provides the shared memory resources for CUB collectives
-#if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE)
+#if (defined(__CUDACC__) || defined(__HIPCC__)) && defined(GPUCA_GPUCODE) && !defined(GPUCA_GPUCODE_HOSTONLY)
     typedef GPUCA_CUB::BlockScan<T, I> BlockScan;
     typedef GPUCA_CUB::BlockReduce<T, I> BlockReduce;
     typedef GPUCA_CUB::WarpScan<T> WarpScan;

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -104,7 +105,14 @@ class Geometry
   static bool absToRelNumbering(short absId, char* relid);
   static char absIdToModule(short absId);
   static void absIdToRelPosInModule(short absId, float& x, float& z);
+  static void relPosToRelId(short module, float x, float z, char* relId);
   static bool relToAbsNumbering(const char* RelId, short& AbsId);
+
+  //Converters for TRU digits
+  static bool truAbsToRelNumbering(short truId, char* relid);
+  static short truRelToAbsNumbering(const char* relId);
+  static bool truRelId2RelId(const char* truRelId, char* relId);
+  static short relPosToTruId(char mod, float x, float z, short& ddl);
 
   //local position to absId
   static void relPosToAbsId(char module, float x, float z, short& absId);
@@ -120,7 +128,11 @@ class Geometry
 
   const std::string& GetName() const { return mGeoName; }
 
+  const TGeoHMatrix* getAlignmentMatrix(int mod) const { return &(mPHOS[mod]); }
+
  private:
+  static constexpr float CELLSTEP = 2.25;
+
   static Geometry* sGeom;           // Pointer to the unique instance of the singleton
   std::array<TGeoHMatrix, 5> mPHOS; //Rotation/shift matrices
 

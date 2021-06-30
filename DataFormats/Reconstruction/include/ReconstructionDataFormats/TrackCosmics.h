@@ -1,14 +1,15 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file TrackTPCITS.h
+/// \file TrackCosmics.h
 /// \brief Result of top-bottom cosmic tracks leg matching
 /// \author ruben.shahoyan@cern.ch
 
@@ -32,8 +33,8 @@ class TrackCosmics : public o2::track::TrackParCov
   TrackCosmics() = default;
   ~TrackCosmics() = default;
   TrackCosmics(const TrackCosmics& src) = default;
-  TrackCosmics(GlobalTrackID btm, GlobalTrackID top, const o2::track::TrackParCov& srcCent, const o2::track::TrackParCov& srcOut, float chi2Ref, float chi2Match, int ncl)
-    : o2::track::TrackParCov(srcCent), mParamOut(srcOut), mRefBottom(btm), mRefTop(top), mChi2Refit(chi2Ref), mChi2Match(chi2Match), mNClusters(ncl) {}
+  TrackCosmics(GlobalTrackID btm, GlobalTrackID top, const o2::track::TrackParCov& srcCent, const o2::track::TrackParCov& srcOut, float chi2Ref, float chi2Match, int ncl, float t, float tErr)
+    : o2::track::TrackParCov(srcCent), mParamOut(srcOut), mRefBottom(btm), mRefTop(top), mChi2Refit(chi2Ref), mChi2Match(chi2Match), mNClusters(ncl), mTimeMUS{t, tErr} {}
 
   GlobalTrackID getRefBottom() const { return mRefBottom; }
   GlobalTrackID getRefTop() const { return mRefTop; }

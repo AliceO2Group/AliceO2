@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -217,7 +218,7 @@ class MessageContext
     using value_type = typename T::value_type;
     using return_type = T;
     using buffer_type = return_type;
-    static_assert(std::is_same<typename T::allocator_type, o2::pmr::polymorphic_allocator<value_type>>::value, "container must have polymorphic allocator");
+    static_assert(std::is_base_of<o2::pmr::polymorphic_allocator<value_type>, typename T::allocator_type>::value, "container must have polymorphic allocator");
     /// default contructor forbidden, object always has to control message instances
     ContainerRefObject() = delete;
     /// constructor taking header message by move and creating the paypload message

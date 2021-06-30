@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -13,23 +14,25 @@
 /// \author Torsten Alt (Torsten.Alt@cern.ch)
 
 #include <fmt/format.h>
-
+#include <filesystem>
 #include "TSystem.h"
 #include "TObjArray.h"
 
+#include "Headers/DataHeader.h"
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCBase/Mapper.h"
 #include "Framework/Logger.h"
 #include "DetectorsRaw/RDHUtils.h"
 
 #define CHECK_BIT(var, pos) ((var) & (1 << (pos)))
-using RDH = o2::header::RAWDataHeader;
-//using namespace o2::tpc;
+
 using namespace o2::tpc::rawreader;
-using RDHUtils = o2::raw::RDHUtils;
 
 std::ostream& operator<<(std::ostream& output, const RDH& rdh);
-std::istream& operator>>(std::istream& input, RDH& rdh);
+
+template <typename DataType>
+std::istream& operator>>(std::istream& input, DataType& data);
+
 void printHeader();
 void printHorizontal(const RDH& rdh);
 
@@ -43,10 +46,8 @@ RawReaderCRUEventSync::LinkInfo& RawReaderCRUEventSync::getLinkInfo(uint32_t hea
 }
 */
 
-RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& rdh, DataType dataType)
+RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const uint32_t heartbeatOrbit, DataType dataType)
 {
-  const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
-
   // TODO: might be that reversing the loop below has the same effect as using mLastEvent
   if (mLastEvent && mLastEvent->hasHearbeatOrbit(heartbeatOrbit)) {
     return *mLastEvent;
@@ -54,11 +55,13 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& 
 
   for (auto& ev : mEventInformation) {
     const auto hbMatch = ev.hasHearbeatOrbit(heartbeatOrbit);
+    const long hbDiff = long(heartbeatOrbit) - long(ev.HeartbeatOrbits.front());
     if (hbMatch) {
       mLastEvent = &ev;
       return ev;
-    } else if (ev.HeartbeatOrbits.back() == heartbeatOrbit - 1) {
+    } else if ((hbDiff >= 0) && (hbDiff < 256)) {
       ev.HeartbeatOrbits.emplace_back(heartbeatOrbit);
+      std::sort(ev.HeartbeatOrbits.begin(), ev.HeartbeatOrbits.end());
       mLastEvent = &ev;
       return ev;
     }
@@ -68,7 +71,7 @@ RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& 
   return ev;
 }
 
-void RawReaderCRUEventSync::analyse()
+void RawReaderCRUEventSync::analyse(RAWDataType rawDataType)
 {
   //expected number of packets in one HBorbit
   const size_t numberOfPackets = ExpectedNumberOfPacketsPerHBFrame;
@@ -81,6 +84,7 @@ void RawReaderCRUEventSync::analyse()
       const auto& cruInfo = event.CRUInfoArray[iCRU];
       if (!cruInfo.isPresent()) {
         if (mCRUSeen[iCRU] >= 0) {
+          LOGP(info, "CRU {} missing in event {}", iCRU, iEvent);
           event.IsComplete = false;
           break;
         }
@@ -90,7 +94,7 @@ void RawReaderCRUEventSync::analyse()
         totalPayloadSize += cruInfo.totalPayloadSize();
       }
 
-      if (!cruInfo.isComplete()) {
+      if (!cruInfo.isComplete(rawDataType)) {
         event.IsComplete = false;
         break;
       }
@@ -149,6 +153,7 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
       std::cout << orbit << " ";
     }
     std::cout << "\n"
+              << "    firstOrbit: " << event.getFirstOrbit() << "\n"
               << "    Is complete: " << isComplete << "\n";
 
     // cru loop
@@ -208,18 +213,15 @@ int RawReaderCRU::scanFile()
   //const uint64_t RDH_HEADERWORD0 = 0x00004003;
   const uint64_t RDH_HEADERWORD0 = 0x00004000; // + RDHUtils::getVersion<o2::header::RAWDataHeader>();
 
-  std::ifstream& file = mFileHandle;
-  if (!file.is_open()) {
-    file.open(mInputFileName, std::ifstream::binary);
-    if (!file.good()) {
-      throw std::runtime_error("Unable to open or access file " + mInputFileName);
-    }
-  }
+  auto& file = getFileHandle();
 
+  LOGP(info, "scanning file {}", mInputFileName);
   // get length of file in bytes
   file.seekg(0, file.end);
   mFileSize = file.tellg();
   file.seekg(0, file.beg);
+
+  const bool isTFfile = (mInputFileName.rfind(".tf") == mInputFileName.size() - 3);
 
   // the file is supposed to contain N x 8kB packets. So the number of packets
   // can be determined by the file-size. Ideally, this is not required but the
@@ -229,17 +231,55 @@ int RawReaderCRU::scanFile()
 
   // read in the RDH, then jump to the next RDH position
   RDH rdh;
+  o2::header::DataHeader dh;
   uint32_t currentPacket = 0;
   uint32_t lastHeartbeatOrbit = 0;
-  size_t currentPos = 0;
+
+  if (isTFfile) {
+    // skip the StfBuilder meta data information
+    file >> dh;
+    file.seekg(dh.payloadSize, std::ios::cur);
+    file >> dh;
+    file.seekg(dh.payloadSize, std::ios::cur);
+  }
+
+  size_t currentPos = file.tellg();
+  size_t dhPayloadSize{};
+  size_t dhPayloadSizeSeen{};
 
   while ((currentPos < mFileSize) && !file.eof()) {
+    // ===| in case of TF data file read data header |===
+    if (isTFfile && (!dhPayloadSize || (dhPayloadSizeSeen == dhPayloadSize))) {
+      file >> dh;
+      dhPayloadSize = dh.payloadSize;
+      dhPayloadSizeSeen = 0;
+      currentPos = file.tellg();
+    }
 
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
 
     const size_t packetSize = RDHUtils::getOffsetToNext(rdh);
     const size_t offset = packetSize - RDHUtils::getHeaderSize(rdh);
+    const auto memorySize = RDHUtils::getMemorySize(rdh);
+    const auto payloadSize = memorySize - RDHUtils::getHeaderSize(rdh);
+    dhPayloadSizeSeen += packetSize;
+
+    // ===| check for truncated file |==========================================
+    const size_t curPos = file.tellg();
+    if ((curPos + offset) > mFileSize) {
+      LOGP(error, "File truncated at {}, offset {} would exceed file size of {}", curPos, offset, mFileSize);
+      break;
+    }
+
+    // ===| skip IDC data |=====================================================
+    const auto detField = o2::raw::RDHUtils::getDetectorField(rdh);
+    if (((detField != 0xdeadbeef) && (detField > 1)) || (payloadSize == 0)) {
+      file.seekg(offset, file.cur);
+      ++currentPacket;
+      currentPos = file.tellg();
+      continue;
+    }
 
     // ===| try to detect data type if not already set |========================
     //
@@ -255,12 +295,13 @@ int RawReaderCRU::scanFile()
         const uint64_t pageCnt = RDHUtils::getPageCounter(rdh);
         const uint64_t linkID = RDHUtils::getLinkID(rdh);
 
-        if (pageCnt == 0) {
-          if (linkID == 15) {
-            mManager->mRawDataType = RAWDataType::LinkZS;
-            mManager->mDetectDataType = false;
-          }
+        //if (pageCnt == 0) {
+        if ((linkID == 15) || (detField == 0x1)) {
+          mManager->mRawDataType = RAWDataType::LinkZS;
+          LOGP(info, "Detected LinkZS data");
+          mManager->mDetectDataType = false;
         }
+        //}
 
         if (pageCnt == 1) {
           if (triggerType == triggerTypeForTriggeredData) {
@@ -276,17 +317,25 @@ int RawReaderCRU::scanFile()
     }
 
     // ===| get relavant data information |=====================================
-    const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
-    const auto dataWrapperID = RDHUtils::getEndPointID(rdh);
-    const auto linkID = RDHUtils::getLinkID(rdh);
-    const auto globalLinkID = linkID + dataWrapperID * 12;
-    //const auto blockLength = rdh.blockLength;
-    const auto memorySize = RDHUtils::getMemorySize(rdh);
-    const auto payloadSize = memorySize - RDHUtils::getHeaderSize(rdh);
+    auto feeId = RDHUtils::getFEEID(rdh);
+    // treat old RDH where feeId was not set properly
+    if (feeId == 4844) {
+      const rdh_utils::FEEIDType cru = RDHUtils::getCRUID(rdh);
+      const rdh_utils::FEEIDType link = RDHUtils::getLinkID(rdh);
+      const rdh_utils::FEEIDType endPoint = RDHUtils::getEndPointID(rdh);
+      feeId = rdh_utils::getFEEID(cru, endPoint, link);
+
+      RDHUtils::setFEEID(rdh, feeId);
+    }
+    const auto heartbeatOrbit = isTFfile ? dh.firstTForbit : RDHUtils::getHeartBeatOrbit(rdh);
+    const auto endPoint = rdh_utils::getEndPoint(feeId);
+    const auto linkID = rdh_utils::getLink(feeId);
+    const auto globalLinkID = linkID + endPoint * 12;
 
     // ===| check if cru should be forced |=====================================
     if (!mForceCRU) {
-      mCRU = RDHUtils::getCRUID(rdh);
+      mCRU = rdh_utils::getCRU(feeId);
+      //mCRU = RDHUtils::getCRUID(rdh); // work-around for MW2 data
     } else {
       //overwrite cru id in rdh for further processing
       RDHUtils::setCRUID(rdh, mCRU);
@@ -297,13 +346,12 @@ int RawReaderCRU::scanFile()
     if (mManager) {
       // in case of triggered mode, we use the first heartbeat orbit as event identifier
       if ((lastHeartbeatOrbit == 0) || (heartbeatOrbit != lastHeartbeatOrbit)) {
-        mManager->mEventSync.createEvent(rdh, mManager->getDataType());
+        mManager->mEventSync.createEvent(heartbeatOrbit, mManager->getDataType());
         lastHeartbeatOrbit = heartbeatOrbit;
       }
       linkInfo = &mManager->mEventSync.getLinkInfo(rdh, mManager->getDataType());
       mManager->mEventSync.setCRUSeen(mCRU, mReaderNumber);
     }
-    //std::cout << "block length: " << blockLength << '\n';
 
     // ===| set up packet descriptor map for GBT frames |=======================
     //
@@ -313,8 +361,8 @@ int RawReaderCRU::scanFile()
     //
     if ((rdh.word0 & 0x0000FFF0) == RDH_HEADERWORD0) {
       // non 0 stop bit means data with payload
-      if (RDHUtils::getStop(rdh) == 0) {
-        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, dataWrapperID, memorySize, packetSize);
+      if (payloadSize) {
+        mPacketDescriptorMaps[globalLinkID].emplace_back(currentPos, mCRU, linkID, endPoint, memorySize, packetSize, heartbeatOrbit);
         mLinkPresent[globalLinkID] = true;
         mPacketsPerLink[globalLinkID]++;
         if (linkInfo) {
@@ -322,31 +370,28 @@ int RawReaderCRU::scanFile()
           linkInfo->IsPresent = true;
           linkInfo->PayloadSize += payloadSize;
         }
-      } else if (RDHUtils::getStop(rdh) == 1) {
+      }
+      if (RDHUtils::getStop(rdh) == 1) {
         // stop bit 1 means we hit the HB end frame without payload.
         // This marks the end of an "event" in HB scaling mode.
         if (linkInfo) {
           linkInfo->HBEndSeen = true;
         }
-      } else {
-        O2ERROR("Unknown stop code: %lu", (unsigned long)RDHUtils::getStop(rdh));
       }
-      //std::cout << dataWrapperID << "." << linkID << " (" << globalLinkID << ")\n";
     } else {
-      O2ERROR("Found header word %x and required header word %x don't match", rdh.word0, RDH_HEADERWORD0);
-    };
+      O2ERROR("Found header word %x and required header word %x don't match, at %zu, stopping file scan", rdh.word0, RDH_HEADERWORD0, currentPos);
+      break;
+    }
 
     // debug output
     if (mVerbosity && CHECK_BIT(mDebugLevel, DebugLevel::RDHDump)) {
-      //std::cout << "Packet " << std::setw(5) << currentPacket << " - Link " << int(linkID) << "\n";
-      //std::cout << rdh;
       printHorizontal(rdh);
       if (RDHUtils::getStop(rdh)) {
         std::cout << "\n";
         printHeader();
       }
-    };
-    // std::cout << "Position after read : " << std::dec << file.tellg() << std::endl;
+    }
+
     file.seekg(offset, file.cur);
     ++currentPacket;
     currentPos = file.tellg();
@@ -398,13 +443,7 @@ int RawReaderCRU::scanFile()
 
 void RawReaderCRU::findSyncPositions()
 {
-  std::ifstream& file = mFileHandle;
-  if (!file.is_open()) {
-    file.open(mInputFileName, std::ifstream::binary);
-    if (!file.good()) {
-      throw std::runtime_error("Unable to open or access file " + mInputFileName);
-    }
-  }
+  auto& file = getFileHandle();
 
   // loop over the MaxNumberOfLinks potential links in the data
   // only if data from the link is present and selected
@@ -461,13 +500,7 @@ void RawReaderCRU::findSyncPositions()
 int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t size, ADCRawData& rawData)
 {
   // open the data file
-  std::ifstream& file = mFileHandle;
-  if (!file.is_open()) {
-    file.open(mInputFileName, std::ifstream::binary);
-    if (!file.good()) {
-      throw std::runtime_error("Unable to open or access file " + mInputFileName);
-    }
-  }
+  auto& file = getFileHandle();
 
   // jump to the start position of the packet
   file.seekg(startPos, file.beg);
@@ -495,7 +528,7 @@ int RawReaderCRU::processPacket(GBTFrame& gFrame, uint32_t startPos, uint32_t si
   return 0;
 }
 
-int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& rawData)
+int RawReaderCRU::processMemory(const std::vector<std::byte>& data, ADCRawData& rawData)
 {
   GBTFrame gFrame;
 
@@ -511,7 +544,7 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
     // reinterpret_cast<const uint32_t*>(data.data() + iFrame * 16), so it could be accessed the
     // same way as the mData array.
     // however, this was ~5% slower in execution time. I suspect due to cache misses
-    gFrame.readFromMemory(gsl::span<const o2::byte>(data.data() + iFrame * 16, 16));
+    gFrame.readFromMemory(gsl::span<const std::byte>(data.data() + iFrame * 16, 16));
 
     // extract the half words from the 4 32-bit words
     gFrame.getFrameHalfWords();
@@ -537,7 +570,7 @@ int RawReaderCRU::processMemory(const std::vector<o2::byte>& data, ADCRawData& r
       auto& syncPos = syncPositions[s];
       if (syncPos.synched()) {
         file << mEventNumber << "\t"
-             << mCRU << "\t"
+             << mCRU.number() << "\t"
              << mLink << "\t"
              << s << "\t"
              << syncPos.getPacketNumber() << "\t"
@@ -706,7 +739,8 @@ void RawReaderCRU::processDataMemory()
   //dataSize = 4000 * 16;
   //}
 
-  std::vector<o2::byte> data(dataSize);
+  std::vector<std::byte> data;
+  data.reserve(dataSize);
   collectGBTData(data);
 
   ADCRawData rawData;
@@ -716,35 +750,26 @@ void RawReaderCRU::processDataMemory()
   if (mFillADCdataMap) {
     fillADCdataMap(rawData);
   }
-  if (mManager && mManager->mADCDataCallback) {
+  if (mManager->mADCDataCallback) {
     runADCDataCallback(rawData);
   }
 }
 
-void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
+void RawReaderCRU::collectGBTData(std::vector<std::byte>& data)
 {
-  const int link = mLink;
-
-  const auto& mapper = Mapper::instance();
-
   const auto& linkInfoArray = mManager->mEventSync.getLinkInfoArrayForEvent(mEventNumber, mCRU);
-  std::ifstream& file = mFileHandle;
-  if (!file.is_open()) {
-    file.open(mInputFileName, std::ios::binary);
-    if (!file.good()) {
-      throw std::runtime_error("Unable to open or access file " + mInputFileName);
-    }
-  }
+  auto& file = getFileHandle();
 
   size_t presentDataPosition = 0;
 
   // loop over the packets for each link and process them
   //for (const auto& packet : mPacketDescriptorMaps[link]) {
-  for (auto packetNumber : linkInfoArray[link].PacketPositions) {
-    const auto& packet = mPacketDescriptorMaps[link][packetNumber];
+  for (auto packetNumber : linkInfoArray[mLink].PacketPositions) {
+    const auto& packet = mPacketDescriptorMaps[mLink][packetNumber];
 
     const auto payloadStart = packet.getPayloadOffset();
-    const auto payloadSize = std::min(size_t(packet.getPayloadSize()), data.size() - presentDataPosition);
+    const auto payloadSize = size_t(packet.getPayloadSize());
+    data.insert(data.end(), payloadSize, (std::byte)0);
     // jump to the start position of the packet
     file.seekg(payloadStart, std::ios::beg);
 
@@ -752,18 +777,48 @@ void RawReaderCRU::collectGBTData(std::vector<o2::byte>& data)
     file.read(((char*)data.data()) + presentDataPosition, payloadSize);
 
     presentDataPosition += payloadSize;
-  };
+  }
+}
+
+void RawReaderCRU::processLinkZS()
+{
+  const auto& eventInfo = mManager->mEventSync.getEventInfo(mEventNumber);
+  const auto& linkInfoArray = eventInfo.CRUInfoArray[mCRU].LinkInformation;
+  const auto firstOrbitInEvent = eventInfo.getFirstOrbit();
+
+  auto& file = getFileHandle();
+
+  char buffer[8192];
+
+  // loop over the packets for each link and process them
+  for (const auto packetNumber : linkInfoArray[mLink].PacketPositions) {
+    const auto& packet = mPacketDescriptorMaps[mLink][packetNumber];
+    const size_t payloadOffset = packet.getPayloadOffset();
+    const size_t payloadSize = packet.getPayloadSize();
+    if ((payloadOffset + payloadSize) > mFileSize) {
+      LOGP(error, "File truncated at {}, size {} would exceed file size of {}", payloadOffset, payloadSize, mFileSize);
+      break;
+    }
+    file.seekg(payloadOffset, file.beg);
+    file.read(buffer, payloadSize);
+    o2::tpc::raw_processing_helpers::processZSdata(buffer, payloadSize, packet.getFEEID(), packet.getHeartBeatOrbit(), firstOrbitInEvent, mManager->mLinkZSCallback, false); // last parameter should be true for MW2 data
+  }
 }
 
 void RawReaderCRU::processLinks(const uint32_t linkMask)
 {
+  if (!mManager) {
+    LOGP(error, "cannont run without manager");
+    return;
+  }
+
   try {
     // read the input data from file, create the packet descriptor map
     // and the mLinkPresent map.
     scanFile();
 
     // check if selected event is valid
-    if (mManager && mEventNumber >= mManager->mEventSync.getNumberOfEvents()) {
+    if (mEventNumber >= mManager->mEventSync.getNumberOfEvents()) {
       O2ERROR("Selected event number %u is larger then the events in the file %lu", mEventNumber, mManager->mEventSync.getNumberOfEvents());
       return;
     }
@@ -773,24 +828,20 @@ void RawReaderCRU::processLinks(const uint32_t linkMask)
     // for decoding it will be decoded.
     for (int lnk = 0; lnk < MaxNumberOfLinks; lnk++) {
       // all links have been selected
-      if (linkMask == 0 && checkLinkPresent(lnk) == true) {
+      if (((linkMask == 0) || ((linkMask >> lnk) & 1)) && checkLinkPresent(lnk) == true) {
         // set the active link variable and process the data
         if (mDebugLevel) {
           fmt::print("Processing link {}\n", lnk);
         }
         setLink(lnk);
-        //processDataFile();
-        processDataMemory();
-      } else if (((linkMask >> lnk) & 0x1) == 0x1 && checkLinkPresent(lnk) == true) {
-        // set the active link variable and process the data
-        if (mDebugLevel) {
-          fmt::print("Processing link {}\n", lnk);
+        if (mManager->mRawDataType == RAWDataType::GBT) {
+          //processDataFile();
+          processDataMemory();
+        } else {
+          processLinkZS();
         }
-        setLink(lnk);
-        //processDataFile();
-        processDataMemory();
-      };
-    };
+      }
+    }
 
   } catch (const RawReaderCRU::Error& e) {
     std::cout << e.what() << std::endl;
@@ -859,13 +910,7 @@ void RawReaderCRU::copyEvents(const std::vector<uint32_t>& eventNumbers, std::st
   std::ofstream outputFile(outputFileName, std::ios_base::binary | mode);
 
   // open the input file
-  std::ifstream& file = mFileHandle;
-  if (!file.is_open()) {
-    file.open(mInputFileName, std::ifstream::binary);
-    if (!file.good()) {
-      throw std::runtime_error("Unable to open or access file " + mInputFileName);
-    }
-  }
+  auto& file = getFileHandle();
 
   // data buffer. Maximum size is 8k
   char buffer[8192];
@@ -893,13 +938,7 @@ void RawReaderCRU::copyEvents(const std::vector<uint32_t>& eventNumbers, std::st
 void RawReaderCRU::writeGBTDataPerLink(std::string_view outputDirectory, int maxEvents)
 {
   // open the input file
-  std::ifstream& file = mFileHandle;
-  if (!file.is_open()) {
-    file.open(mInputFileName, std::ifstream::binary);
-    if (!file.good()) {
-      throw std::runtime_error("Unable to open or access file " + mInputFileName);
-    }
-  }
+  auto& file = getFileHandle();
 
   // data buffer. Maximum size is 8k
   char buffer[8192];
@@ -1079,11 +1118,12 @@ void printHorizontal(const RDH& rdh)
              (uint64_t)RDHUtils::getStop(rdh));
 }
 
-std::istream& operator>>(std::istream& input, RDH& rdh)
+template <typename DataType>
+std::istream& operator>>(std::istream& input, DataType& data)
 {
-  const int headerSize = sizeof(rdh);
-  auto charPtr = reinterpret_cast<char*>(&rdh);
-  input.read(charPtr, headerSize);
+  const int dataTypeSize = sizeof(data);
+  auto charPtr = reinterpret_cast<char*>(&data);
+  input.read(charPtr, dataTypeSize);
   return input;
 }
 
@@ -1099,7 +1139,7 @@ void RawReaderCRUManager::init()
   }
 
   mEventSync.sortEvents();
-  mEventSync.analyse();
+  mEventSync.analyse(mRawDataType);
 
   O2INFO("Event information:");
   O2INFO("    Number of all events:      %lu", getNumberOfEvents());
@@ -1174,8 +1214,12 @@ void RawReaderCRUManager::writeGBTDataPerLink(std::string_view outputDirectory, 
 
 void RawReaderCRUManager::writeGBTDataPerLink(const std::string_view inputFileNames, std::string_view outputDirectory, int maxEvents)
 {
-  if (gSystem->AccessPathName(outputDirectory.data())) {
-    gSystem->mkdir(outputDirectory.data(), kTRUE);
+  if (!std::filesystem::exists(outputDirectory)) {
+    if (!std::filesystem::create_directories(outputDirectory)) {
+      LOG(FATAL) << "could not create output directory " << outputDirectory;
+    } else {
+      LOG(INFO) << "created output directory " << outputDirectory;
+    }
   }
 
   RawReaderCRUManager manager;

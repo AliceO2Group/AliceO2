@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -141,7 +142,7 @@ void GPUTPCGMMerger::DumpFitPrepare(std::ostream& out)
       out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
     }
   }
-  unsigned int maxId = mRec->GetParam().rec.NonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   for (unsigned int i = 0; i < maxId; i++) {
     out << "    Cluster attachment " << i << ": " << getTrackOrderReverse(mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
   }
@@ -154,11 +155,12 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out)
   out << "\nTPC Merger Refit\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[trackOrder[i]];
+    const auto& trkdEdx = mOutputTracksdEdx[trackOrder[i]];
     const auto& p = trk.GetParam();
     const auto& po = trk.OuterParam();
     out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
-#ifdef HAVE_O2HEADERS
-        << " dEdx " << trk.dEdxInfo().dEdxTotTPC << "/" << trk.dEdxInfo().dEdxMaxTPC
+#ifdef GPUCA_HAVE_O2HEADERS
+        << " dEdx " << trkdEdx.dEdxTotTPC << "/" << trkdEdx.dEdxMaxTPC
 #endif
         << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4] << "\n";
   }
@@ -174,7 +176,7 @@ void GPUTPCGMMerger::DumpFinal(std::ostream& out)
       out << "    Cluster state " << j << "/" << (i - trk.FirstClusterRef()) << ": " << (int)mClusters[i].state << "\n";
     }
   }
-  unsigned int maxId = mRec->GetParam().rec.NonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
+  unsigned int maxId = mRec->GetParam().rec.nonConsecutiveIDs ? mMemory->nOutputTrackClusters : mNMaxClusters;
   for (unsigned int i = 0; i < maxId; i++) {
     out << "    Cluster attachment " << i << ": " << getTrackOrderReverse(mClusterAttachment[i] & attachTrackMask) << " / " << (mClusterAttachment[i] & attachFlagMask) << "\n";
   }

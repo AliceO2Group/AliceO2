@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -84,7 +85,38 @@ class Detector : public o2::base::DetImpl<Detector>
   void PreTrack() override { ; }
   void ConstructGeometry() override; // inherited from FairModule
 
-  //
+  /// Add alignable top volumes
+  void addAlignableVolumes() const override;
+
+  /// Add alignable Half volumes
+  /// \param hf Half number
+  /// \param parent path of the parent volume
+  /// \param lastUID on output, UID of the last volume
+  void addAlignableVolumesHalf(Int_t hf, TString& parent, Int_t& lastUID) const;
+
+  /// Add alignable Disk volumes
+  /// \param hf half number
+  /// \param dk disk number
+  /// \param parent path of the parent volume
+  /// \param lastUID on output, UID of the last volume
+  void addAlignableVolumesDisk(Int_t hf, Int_t dk, TString& parent, Int_t& lastUID) const;
+
+  /// Add alignable Ladder volumes
+  /// \param hf half number
+  /// \param dk disk number
+  /// \param lr ladder stave number
+  /// \param parent path of the parent volume
+  /// \param lastUID on output, UID of the last volume
+  void addAlignableVolumesLadder(Int_t hf, Int_t dk, Int_t lr, TString& parent, Int_t& lastUID) const;
+
+  /// Add alignable Sensor volumes
+  /// \param hf half number
+  /// \param dk disk number
+  /// \param lr ladder number
+  /// \param ms sensor number
+  /// \param parent path of the parent volume
+  /// \param lastUID on output, UID of the last volume
+  void addAlignableVolumesChip(Int_t hf, Int_t dk, Int_t lr, Int_t ms, TString& parent, Int_t& lastUID) const;
 
   Int_t isVersion() const { return mVersion; }
   /// Creating materials for the detector

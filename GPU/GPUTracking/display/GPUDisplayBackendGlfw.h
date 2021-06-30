@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -41,6 +42,7 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
 
   static void error_callback(int error, const char* description);
   static void key_callback(GLFWwindow* mWindow, int key, int scancode, int action, int mods);
+  static void char_callback(GLFWwindow* window, unsigned int codepoint);
   static void mouseButton_callback(GLFWwindow* mWindow, int button, int action, int mods);
   static void scroll_callback(GLFWwindow* mWindow, double x, double y);
   static void cursorPos_callback(GLFWwindow* mWindow, double x, double y);
@@ -56,6 +58,8 @@ class GPUDisplayBackendGlfw : public GPUDisplayBackend
   int mWindowY = 0;
   int mWindowWidth = INIT_WIDTH;
   int mWindowHeight = INIT_HEIGHT;
+  char mKeyDownMap[256] = {0};
+  unsigned char mLastKeyDown = 0;
 };
 } // namespace GPUCA_NAMESPACE::gpu
 

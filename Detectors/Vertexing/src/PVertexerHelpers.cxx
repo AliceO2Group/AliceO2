@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -24,4 +25,25 @@ void VertexSeed::print() const
   double dZP, rmsZP, dZN, rmsZN, dTP, rmsTP, dTN, rmsTN;
   double dZ, rmsZ, dT, rmsT;
   PVertex::print();
+}
+
+int SeedHistoTZ::findPeakBin()
+{
+  if (nEntries < 2) {
+    return -1;
+  }
+  int maxBin = -1, ib = filledBins.size(), last = ib;
+  float maxv = 0.;
+  while (ib--) {
+    auto bin = filledBins[ib];
+    auto v = getBinContent(bin);
+    if (v > maxv) {
+      maxv = v;
+      maxBin = bin;
+    } else if (v <= 0.) {                  // bin was emptied
+      filledBins[ib] = filledBins[--last]; // move last non-empty bin in place of emptied one
+    }
+  }
+  filledBins.resize(last);
+  return maxBin;
 }

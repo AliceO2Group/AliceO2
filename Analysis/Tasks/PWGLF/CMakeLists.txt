@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_dpl_workflow(mc-spectra-efficiency
                     SOURCES mcspectraefficiency.cxx
@@ -18,13 +19,8 @@ o2_add_dpl_workflow(spectra-tof
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(spectra-tof-split
-                    SOURCES spectraTOF_split.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
-                    COMPONENT_NAME Analysis)
-
 o2_add_dpl_workflow(spectra-tof-tiny
-                    SOURCES spectraTOF_tiny.cxx
+                    SOURCES spectraTOFtiny.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
@@ -33,18 +29,13 @@ o2_add_dpl_workflow(spectra-tpc
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
-o2_add_dpl_workflow(spectra-tpc-split
-                    SOURCES spectraTPC_split.cxx
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
-                    COMPONENT_NAME Analysis)
-
-o2_add_dpl_workflow(spectra-tpc-split-pikapr
-                    SOURCES spectraTPCsplitPiKaPr.cxx
+o2_add_dpl_workflow(spectra-tpc-pikapr
+                    SOURCES spectraTPCPiKaPr.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(spectra-tpc-tiny
-                    SOURCES spectraTPC_tiny.cxx
+                    SOURCES spectraTPCtiny.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
 
@@ -59,32 +50,32 @@ o2_add_dpl_workflow(nuclei-spectra
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(lambdakzerobuilder
-                    SOURCES lambdakzerobuilder
-                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
+                    SOURCES lambdakzerobuilder.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing O2::AnalysisTasksUtils
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(lambdakzeroanalysis
-                    SOURCES lambdakzeroanalysis
+                    SOURCES lambdakzeroanalysis.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(lambdakzerofinder
-                    SOURCES lambdakzerofinder
+                    SOURCES lambdakzerofinder.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(cascadebuilder
-                    SOURCES cascadebuilder
+                    SOURCES cascadebuilder.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(cascadeanalysis
-                    SOURCES cascadeanalysis
+                    SOURCES cascadeanalysis.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(cascadefinder
-                    SOURCES cascadefinder
+                    SOURCES cascadefinder.cxx
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsBase O2::AnalysisDataModel O2::AnalysisCore O2::DetectorsVertexing
                     COMPONENT_NAME Analysis)
 

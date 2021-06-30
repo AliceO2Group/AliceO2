@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -71,29 +72,10 @@ struct FooMax {
 
 BOOST_AUTO_TEST_CASE(TestStructToTuple)
 {
-  Foo foo;
-  //auto t1 = o2::framework::to_tuple(foo);
-  //#BOOST_CHECK_EQUAL(std::get<0>(t1), 1);
-  // Expand a struct which inherits from
-  // another..
-  Bar bar{4, 5};
-  BOOST_CHECK_EQUAL(bar.foo, 4);
-  BOOST_CHECK_EQUAL(bar.bar, 5);
-  auto t2 = o2::framework::to_tuple(bar);
-  BOOST_CHECK_EQUAL(std::get<0>(t2), 4);
-  BOOST_CHECK_EQUAL(std::get<1>(t2), 5);
-  std::get<0>(t2) = 10;
-  BOOST_CHECK_EQUAL(std::get<0>(t2), 10);
-  BOOST_CHECK_EQUAL(bar.foo, 4);
-
-  auto t3 = o2::framework::to_tuple_refs(bar);
-  BOOST_CHECK_EQUAL(std::get<0>(t3), 4);
-  BOOST_CHECK_EQUAL(std::get<1>(t3), 5);
-
-  std::get<0>(t3) = 10;
-  BOOST_CHECK_EQUAL(std::get<0>(t3), 10);
-  BOOST_CHECK_EQUAL(bar.foo, 10);
-
   FooMax fooMax;
-  auto t4 = o2::framework::to_tuple_refs(fooMax);
+
+  auto t5 = o2::framework::homogeneous_apply_refs([](auto i) -> bool { return i > 20; }, fooMax);
+  BOOST_CHECK_EQUAL(t5[0], false);
+  BOOST_CHECK_EQUAL(t5[19], false);
+  BOOST_CHECK_EQUAL(t5[20], true);
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -97,10 +98,14 @@ void RawFitterTESTs(const char* filename = "")
           std::cout << "processing next channel idx " << chan.getChannelIndex() << ", " << chan.getHardwareAddress() << std::endl;
           // define the conatiner for the fit results, and perform the raw fitting using the stadnard raw fitter
           continue;
-          o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
+          try {
+            o2::emcal::CaloFitResults fitResults = RawFitter.evaluate(chan.getBunches(), 0, 0);
 
-          // print the fit output
-          std::cout << "The Time is : " << fitResults.getTime() << " And the Amplitude is : " << fitResults.getAmp() << std::endl;
+            // print the fit output
+            std::cout << "The Time is : " << fitResults.getTime() << " And the Amplitude is : " << fitResults.getAmp() << std::endl;
+          } catch (o2::emcal::CaloRawFitter::RawFitterError_t& fiterror) {
+            std::cerr << "Error processing raw fit: " << o2::emcal::CaloRawFitter::createErrorMessage(fiterror) << std::endl;
+          }
         }
       }
     }

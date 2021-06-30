@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -47,9 +48,9 @@ class Tracker : public TrackerConfig
   void setBz(Float_t bz);
   const Float_t getBz() const { return mBz; }
 
-  std::vector<TrackMFTExt>& getTracks() { return mTracks; }
-  std::vector<TrackLTF>& getTracksLTF() { return mTracksLTF; }
-  o2::dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels() { return mTrackLabels; }
+  auto& getTracks() { return mTracks; }
+  auto& getTracksLTF() { return mTracksLTF; }
+  auto& getTrackLabels() { return mTrackLabels; }
 
   void clustersToTracks(ROframe&, std::ostream& = std::cout);
 
@@ -60,7 +61,7 @@ class Tracker : public TrackerConfig
   std::uint32_t getROFrame() const { return mROFrame; }
 
   void initialize();
-  void initConfig(const MFTTrackingParam& trkParam);
+  void initConfig(const MFTTrackingParam& trkParam, bool printConfig = false);
 
  private:
   void findTracks(ROframe&);
@@ -86,7 +87,7 @@ class Tracker : public TrackerConfig
   std::vector<TrackMFTExt> mTracks;
   std::vector<TrackLTF> mTracksLTF;
   std::vector<Cluster> mClusters;
-  o2::dataformats::MCTruthContainer<MCCompLabel> mTrackLabels;
+  std::vector<MCCompLabel> mTrackLabels;
   std::unique_ptr<o2::mft::TrackFitter> mTrackFitter = nullptr;
 
   Int_t mMaxCellLevel = 0;
@@ -210,7 +211,7 @@ inline void Tracker::computeTracksMClabels(const T& tracks)
       isFakeTrack = true;
       maxOccurrencesValue.setFakeFlag();
     }
-    mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
+    mTrackLabels.emplace_back(maxOccurrencesValue);
   }
 }
 

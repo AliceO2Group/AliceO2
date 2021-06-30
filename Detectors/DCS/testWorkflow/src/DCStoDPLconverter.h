@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -115,8 +116,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
         memcpy(plMessage->GetData(), it.second.data(), hdr.payloadSize);
         if (verbose) {
-          LOG(INFO) << "Pushing " << it.second.size() << " DPs to output " << it.first.as<std::string>() << " for TimeSlice " << *timesliceId;
-          hdr.print();
+          LOGP(INFO, "Pushing {} DPs to output for TimeSlice", it.second.size(), it.first, *timesliceId, hdr);
         }
         it.second.clear();
         FairMQParts outParts;

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -51,9 +52,7 @@ void CPVPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
       } catch (RawErrorType_t e) {
         LOG(ERROR) << "Raw decoding error " << (int)e;
         //if problem in header, abandon this page
-        if (e == RawErrorType_t::kPAGE_NOTFOUND ||
-            e == RawErrorType_t::kHEADER_DECODING ||
-            e == RawErrorType_t::kHEADER_INVALID) {
+        if (e == RawErrorType_t::kRDH_DECODING) {
           break;
         }
         //if problem in payload, try to continue
@@ -70,7 +69,7 @@ void CPVPedestalCalibDevice::run(o2::framework::ProcessingContext& ctx)
         continue;
       }
       // Loop over all the channels
-      for (uint32_t adch : decoder.getDigits()) {
+      for (auto adch : decoder.getDigits()) {
         AddressCharge ac = {adch};
         unsigned short absId = ac.Address;
         mMean->Fill(absId, ac.Charge);
@@ -114,8 +113,8 @@ void CPVPedestalCalibDevice::sendOutput(DataAllocator& output)
     LOG(INFO) << "Sending object CPV/Calib/Pedestals";
 
     header::DataHeader::SubSpecificationType subSpec{(header::DataHeader::SubSpecificationType)0};
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBPayload, subSpec}, *image.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCLB, o2::calibration::Utils::gDataDescriptionCLBInfo, subSpec}, info);
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PEDESTALS", subSpec}, *image.get());
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PEDESTALS", subSpec}, info);
   }
   //Anyway send change to QC
   LOG(INFO) << "[CPVPedestalCalibDevice - run] Writing ";
@@ -172,7 +171,9 @@ o2::framework::DataProcessorSpec o2::cpv::getPedestalCalibSpec(bool useCCDB, boo
 {
 
   std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back("CPV", "PEDCALIBS", 0, o2::framework::Lifetime::Timeframe);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CPV_PEDESTALS"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CPV_PEDESTALS"});
+
   outputs.emplace_back("CPV", "PEDDIFF", 0, o2::framework::Lifetime::Timeframe);
 
   return o2::framework::DataProcessorSpec{"PedestalCalibSpec",

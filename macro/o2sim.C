@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -27,6 +28,7 @@
 #include <DetectorsBase/MaterialManager.h>
 #include <CCDB/BasicCCDBManager.h>
 #include <DetectorsCommonDataFormats/NameConf.h>
+#include "DetectorsBase/Aligner.h"
 #include <unistd.h>
 #include <sstream>
 #endif
@@ -91,6 +93,7 @@ FairRunSim* o2sim_init(bool asservice)
 
   // construct geometry / including magnetic field
   build_geometry(run);
+
   // setup generator
   auto embedinto_filename = confref.getEmbedIntoFileName();
   auto primGen = new o2::eventgen::PrimaryGenerator();
@@ -106,8 +109,26 @@ FairRunSim* o2sim_init(bool asservice)
   TStopwatch timer;
   timer.Start();
 
+  o2::detectors::DetID::mask_t detMask{};
+  {
+    auto& modulelist = o2::conf::SimConfig::Instance().getActiveDetectors();
+    for (const auto& md : modulelist) {
+      int id = o2::detectors::DetID::nameToID(md.c_str());
+      if (id >= o2::detectors::DetID::First) {
+        detMask |= o2::detectors::DetID::getMask(id);
+      }
+    }
+    // somewhat ugly, but this is the most straighforward way to make sure the detectors to align
+    // don't include detectors which are not activated
+    auto& aligner = o2::base::Aligner::Instance();
+    if (aligner.getDetectorsMask().any()) {
+      aligner.setValue(fmt::format("{}.mDetectors", aligner.getName()), o2::detectors::DetID::getNames(detMask, ','));
+    }
+  }
+
   // run init
   run->Init();
+
   std::time_t runStart = std::time(nullptr);
 
   // runtime database
@@ -134,22 +155,12 @@ FairRunSim* o2sim_init(bool asservice)
     grp.setRun(run->GetRunId());
     grp.setTimeStart(runStart);
     grp.setTimeEnd(std::time(nullptr));
-    TObjArray* modArr = run->GetListOfModules();
-    TIter next(modArr);
-    FairModule* module = nullptr;
-    while ((module = (FairModule*)next())) {
-      o2::base::Detector* det = dynamic_cast<o2::base::Detector*>(module);
-      if (!det) {
-        continue; // not a detector
-      }
-      if (det->GetDetId() < o2::detectors::DetID::First) {
-        continue; // passive
-      }
-      if (det->GetDetId() > o2::detectors::DetID::Last) {
-        continue; // passive
-      }
-      grp.addDetReadOut(o2::detectors::DetID(det->GetDetId()));
+    grp.setDetsReadOut(detMask);
+    // CTP is not a physical detector, just flag in the GRP if requested
+    if (isActivated("CTP")) {
+      grp.addDetReadOut(o2::detectors::DetID::CTP);
     }
+
     grp.print();
     printf("VMC: %p\n", TVirtualMC::GetMC());
     auto field = dynamic_cast<o2::field::MagneticField*>(run->GetField());
@@ -158,12 +169,14 @@ FairRunSim* o2sim_init(bool asservice)
       o2::units::Current_t currL3 = field->getCurrentSolenoid();
       grp.setL3Current(currL3);
       grp.setDipoleCurrent(currDip);
+      grp.setFieldUniformity(field->IsUniform());
     }
     // save
     std::string grpfilename = o2::base::NameConf::getGRPFileName(confref.getOutPrefix());
     TFile grpF(grpfilename.c_str(), "recreate");
     grpF.WriteObjectAny(&grp, grp.Class(), "GRP");
   }
+
   // todo: save beam information in the grp
 
   // print summary about cuts and processes used

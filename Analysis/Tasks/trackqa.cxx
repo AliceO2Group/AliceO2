@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -181,12 +182,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   const int add_cut_qa = cfgc.options().get<int>("add-cut-qa");
 
   WorkflowSpec workflow;
-  workflow.push_back(adaptAnalysisTask<TrackQATask>("track-qa-histograms"));
+  workflow.push_back(adaptAnalysisTask<TrackQATask>(cfgc, TaskName{"track-qa-histograms"}));
   if (add_cut_qa) {
-    workflow.push_back(adaptAnalysisTask<TrackCutQATask>("track-cut-qa-histograms"));
+    workflow.push_back(adaptAnalysisTask<TrackCutQATask>(cfgc, TaskName{"track-cut-qa-histograms"}));
   }
   if (isMC) {
-    workflow.push_back(adaptAnalysisTask<TrackQATaskMC>("track-qa-histograms-mc"));
+    workflow.push_back(adaptAnalysisTask<TrackQATaskMC>(cfgc, TaskName{"track-qa-histograms-mc"}));
   }
   return workflow;
 }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -37,6 +38,8 @@ DataProcessorSpec getTrackCosmicsWriterSpec(bool useMC)
   return MakeRootTreeWriterSpec("cosmic-track-writer",
                                 "cosmics.root",
                                 "cosmics",
+                                -1,  // do not limit number of events to store
+                                100, // periodically autosave
                                 BranchDefinition<TracksType>{InputSpec{"tracks", "GLO", "COSMICTRC", 0},
                                                              "tracks",
                                                              "tracks-branch-name",

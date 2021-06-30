@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 set(MODULE GPUTrackingHIP)
 
@@ -22,7 +23,7 @@ endif()
 message(STATUS "Building GPUTracking with HIP support ${TMP_TARGET}")
 
 set(SRCS GPUReconstructionHIP.hip.cxx)
-set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h)
+set(HDRS GPUReconstructionHIP.h GPUReconstructionHIPInternals.h GPUReconstructionHIPIncludes.h HIPThrustHelpers.h)
 
 if(ALIGPU_BUILD_TYPE STREQUAL "O2")
   o2_add_library(
@@ -40,11 +41,11 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2")
 
   install(FILES ${HDRS} DESTINATION include/GPU)
 
-  o2_add_test(GPUsortHIP NAME test_GPUsortHIP
-                  SOURCES test/testGPUsortHIP.hip.cxx
-                  PUBLIC_LINK_LIBRARIES O2::GPUCommon hip::host hip::device hip::hipcub roc::rocthrust
-                  COMPONENT_NAME GPU
-                  LABELS gpu)
+#  o2_add_test(GPUsortHIP NAME test_GPUsortHIP
+#                  SOURCES test/testGPUsortHIP.hip.cxx
+#                  PUBLIC_LINK_LIBRARIES O2::GPUCommon hip::host hip::device hip::hipcub roc::rocthrust
+#                  COMPONENT_NAME GPU
+#                  LABELS gpu)
 endif()
 
 if(ALIGPU_BUILD_TYPE STREQUAL "ALIROOT")

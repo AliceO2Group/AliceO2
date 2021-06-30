@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,6 +11,7 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSINGSTATS_H_
 #define O2_FRAMEWORK_DATAPROCESSINGSTATS_H_
 
+#include <atomic>
 #include <cstdint>
 
 namespace o2::framework
@@ -31,7 +33,9 @@ struct DataProcessingStats {
   std::atomic<int> incomplete = 0;
   std::atomic<int> inputParts = 0;
   std::atomic<int> lastElapsedTimeMs = 0;
-  std::atomic<int> lastTotalProcessedSize = 0;
+  std::atomic<int> lastProcessedSize = 0;
+  std::atomic<int> totalProcessedSize = 0;
+  std::atomic<int> totalSigusr1 = 0;
 
   std::atomic<uint64_t> lastSlowMetricSentTimestamp = 0; /// The timestamp of the last time we sent slow metrics
   std::atomic<uint64_t> lastMetricFlushedTimestamp = 0;  /// The timestamp of the last time we actually flushed metrics

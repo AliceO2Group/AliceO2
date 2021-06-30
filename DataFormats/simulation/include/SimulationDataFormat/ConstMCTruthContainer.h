@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -132,17 +133,10 @@ class ConstMCTruthContainerView
   ConstMCTruthContainerView(gsl::span<const char> const bufferview) : mStorage(bufferview){};
   ConstMCTruthContainerView(ConstMCTruthContainer<TruthElement> const& cont) : mStorage(gsl::span<const char>(cont)){};
   // be explicit that we want nullptr / 0 for an uninitialized container (needs (void)0 to avoid false codechecker warning)
-#ifdef MS_GSL_V3
   ConstMCTruthContainerView() : mStorage{nullptr, static_cast<gsl::span<const char>::size_type>(0)}
   {
     (void)0;
   }
-#else
-  ConstMCTruthContainerView() : mStorage{nullptr, static_cast<gsl::span<const char>::index_type>(0)}
-  {
-    (void)0;
-  }
-#endif
   ConstMCTruthContainerView(const ConstMCTruthContainerView&) = default;
 
   // const data access

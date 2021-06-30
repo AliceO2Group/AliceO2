@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -40,7 +41,7 @@ class GPUTPCCompressionKernels : public GPUKernelTemplate
   };
 
   template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 
   template <int I>
   class GPUTPCCompressionKernels_Compare
@@ -97,7 +98,7 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
   };
 
   template <int iKernel = defaultKernel>
-  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors);
+  GPUd() static void Thread(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 
   template <typename T, typename S>
   GPUdi() static bool isAlignedTo(const S* ptr);
@@ -112,15 +113,15 @@ class GPUTPCCompressionGatherKernels : public GPUKernelTemplate
   GPUdi() static void compressorMemcpyBasic(T* dst, const T* src, unsigned int size, int nThreads, int iThread, int nBlocks = 1, int iBlock = 0);
 
   template <typename V, typename T, typename S>
-  GPUdi() static void compressorMemcpyBuffered(V* buf, T* dst, const T* src, const S* nums, const unsigned int* srcOffets, unsigned int nTracks, int nLanes, int iLane, int diff = 0);
+  GPUdi() static void compressorMemcpyBuffered(V* buf, T* dst, const T* src, const S* nums, const unsigned int* srcOffets, unsigned int nEntries, int nLanes, int iLane, int diff = 0, size_t scaleBase1024 = 1024);
 
   template <typename T>
   GPUdi() static unsigned int calculateWarpOffsets(GPUSharedMemory& smem, T* nums, unsigned int start, unsigned int end, int nWarps, int iWarp, int nLanes, int iLane);
 
   template <typename V>
-  GPUdii() static void gatherBuffered(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors);
+  GPUdii() static void gatherBuffered(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 
-  GPUdii() static void gatherMulti(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& GPUrestrict() smem, processorType& GPUrestrict() processors);
+  GPUdii() static void gatherMulti(int nBlocks, int nThreads, int iBlock, int iThread, GPUsharedref() GPUSharedMemory& smem, processorType& GPUrestrict() processors);
 };
 
 } // namespace GPUCA_NAMESPACE::gpu

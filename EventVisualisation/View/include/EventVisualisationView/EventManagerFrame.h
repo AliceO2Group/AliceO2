@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -32,6 +33,11 @@ namespace event_visualisation
 class EventManagerFrame : public TGMainFrame
 {
  private:
+  Float_t mTime;  // Auto-load time in seconds
+  TTimer* mTimer; // Timer for automatic event loading
+  bool mTimerRunning;
+  bool inTick = false;
+
   static TGTextButton* makeButton(TGCompositeFrame* p, const char* txt, Int_t width = 0,
                                   Int_t lo = 0, Int_t ro = 0, Int_t to = 0, Int_t bo = 0);
 
@@ -40,7 +46,7 @@ class EventManagerFrame : public TGMainFrame
   TGNumberEntry* mEventId;                              // Display/edit current event id
  public:
   EventManagerFrame(o2::event_visualisation::EventManager& eventManager);
-  ~EventManagerFrame() override = default;
+  ~EventManagerFrame() override;
   ClassDefOverride(EventManagerFrame, 0); // GUI window for AliEveEventManager.
 
  public: // slots
@@ -50,6 +56,9 @@ class EventManagerFrame : public TGMainFrame
   void DoLastEvent();
   void DoSetEvent();
   void DoScreenshot();
+  void DoTimeTick();
+  void StopTimer();
+  void StartTimer();
 };
 
 } // namespace event_visualisation

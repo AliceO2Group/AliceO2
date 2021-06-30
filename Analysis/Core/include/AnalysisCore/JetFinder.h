@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -100,41 +101,41 @@ class JetFinder
   fastjet::Selector selRho;
 
   /// Default constructor
-  JetFinder(float eta_Min = -0.9, float eta_Max = 0.9, float phi_Min = 0.0, float phi_Max = 2 * TMath::Pi()) : phiMin(phi_Min),
-                                                                                                               phiMax(phi_Max),
-                                                                                                               etaMin(eta_Min),
-                                                                                                               etaMax(eta_Max),
-                                                                                                               jetR(0.4),
-                                                                                                               jetPtMin(0.0),
-                                                                                                               jetPtMax(1000.0),
-                                                                                                               jetPhiMin(phi_Min),
-                                                                                                               jetPhiMax(phi_Max),
-                                                                                                               jetEtaMin(eta_Min),
-                                                                                                               jetEtaMax(eta_Max),
-                                                                                                               ghostEtaMin(eta_Min),
-                                                                                                               ghostEtaMax(eta_Max),
-                                                                                                               ghostArea(0.005),
-                                                                                                               ghostRepeatN(1),
-                                                                                                               ghostktMean(1e-100), //is float precise enough?
-                                                                                                               gridScatter(1.0),
-                                                                                                               ktScatter(0.1),
-                                                                                                               jetBkgR(0.2),
-                                                                                                               bkgPhiMin(phi_Min),
-                                                                                                               bkgPhiMax(phi_Max),
-                                                                                                               bkgEtaMin(eta_Min),
-                                                                                                               bkgEtaMax(eta_Max),
-                                                                                                               algorithm(fastjet::antikt_algorithm),
-                                                                                                               recombScheme(fastjet::E_scheme),
-                                                                                                               strategy(fastjet::Best),
-                                                                                                               areaType(fastjet::active_area),
-                                                                                                               algorithmBkg(fastjet::JetAlgorithm(fastjet::kt_algorithm)),
-                                                                                                               recombSchemeBkg(fastjet::RecombinationScheme(fastjet::E_scheme)),
-                                                                                                               strategyBkg(fastjet::Best),
-                                                                                                               areaTypeBkg(fastjet::active_area),
-                                                                                                               bkgSubMode(BkgSubMode::none),
-                                                                                                               constSubAlpha(1.0),
-                                                                                                               constSubRMax(0.6),
-                                                                                                               isReclustering(false)
+  JetFinder(float eta_Min = -0.9, float eta_Max = 0.9, float phi_Min = 0.0, float phi_Max = 2 * M_PI) : phiMin(phi_Min),
+                                                                                                        phiMax(phi_Max),
+                                                                                                        etaMin(eta_Min),
+                                                                                                        etaMax(eta_Max),
+                                                                                                        jetR(0.4),
+                                                                                                        jetPtMin(0.0),
+                                                                                                        jetPtMax(1000.0),
+                                                                                                        jetPhiMin(phi_Min),
+                                                                                                        jetPhiMax(phi_Max),
+                                                                                                        jetEtaMin(eta_Min),
+                                                                                                        jetEtaMax(eta_Max),
+                                                                                                        ghostEtaMin(eta_Min),
+                                                                                                        ghostEtaMax(eta_Max),
+                                                                                                        ghostArea(0.005),
+                                                                                                        ghostRepeatN(1),
+                                                                                                        ghostktMean(1e-100), //is float precise enough?
+                                                                                                        gridScatter(1.0),
+                                                                                                        ktScatter(0.1),
+                                                                                                        jetBkgR(0.2),
+                                                                                                        bkgPhiMin(phi_Min),
+                                                                                                        bkgPhiMax(phi_Max),
+                                                                                                        bkgEtaMin(eta_Min),
+                                                                                                        bkgEtaMax(eta_Max),
+                                                                                                        algorithm(fastjet::antikt_algorithm),
+                                                                                                        recombScheme(fastjet::E_scheme),
+                                                                                                        strategy(fastjet::Best),
+                                                                                                        areaType(fastjet::active_area),
+                                                                                                        algorithmBkg(fastjet::JetAlgorithm(fastjet::kt_algorithm)),
+                                                                                                        recombSchemeBkg(fastjet::RecombinationScheme(fastjet::E_scheme)),
+                                                                                                        strategyBkg(fastjet::Best),
+                                                                                                        areaTypeBkg(fastjet::active_area),
+                                                                                                        bkgSubMode(BkgSubMode::none),
+                                                                                                        constSubAlpha(1.0),
+                                                                                                        constSubRMax(0.6),
+                                                                                                        isReclustering(false)
 
   {
 

@@ -28,6 +28,7 @@ if [ -z "$EPNPIPELINES" ];  then export EPNPIPELINES=0; fi             # Set def
 if [ -z "$SEVERITY" ];      then export SEVERITY="info"; fi            # Log verbosity
 if [ -z "$SHMTHROW" ];      then export SHMTHROW=1; fi                 # Throw exception when running out of SHM
 if [ -z "$NORATELOG" ];     then export NORATELOG=1; fi                # Disable FairMQ Rate Logging
+if [ -z "$INRAWCHANNAME" ]; then export INRAWCHANNAME=stfb-to-dpl; fi  # Raw channel name used to communicate with DataDistribution
 
 SEVERITY_TPC="info" # overrides severity for the tpc workflow
 DISABLE_MC="--disable-mc"

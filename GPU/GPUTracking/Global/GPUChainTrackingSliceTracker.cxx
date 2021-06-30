@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,6 +17,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUTPCClusterData.h"
+#include "utils/strtag.h"
 #include <fstream>
 
 using namespace GPUCA_NAMESPACE::gpu;
@@ -79,7 +81,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     int offset = 0;
     for (unsigned int i = 0; i < NSLICES; i++) {
       processors()->tpcTrackers[i].Data().SetClusterData(mIOPtrs.clusterData[i], mIOPtrs.nClusterData[i], offset);
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
       if (doGPU && GetRecoSteps().isSet(RecoStep::TPCConversion)) {
         processorsShadow()->tpcTrackers[i].Data().SetClusterData(processorsShadow()->tpcConverter.mClusters + processors()->tpcTrackers[i].Data().ClusterIdOffset(), processors()->tpcTrackers[i].NHitsTotal(), processors()->tpcTrackers[i].Data().ClusterIdOffset());
       }
@@ -99,7 +101,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     mRec->AllocateRegisteredMemory(processors()->tpcTrackers[iSlice].MemoryResSliceScratch());
     mRec->AllocateRegisteredMemory(processors()->tpcTrackers[iSlice].MemoryResSliceInput());
   }
-  mRec->PushNonPersistentMemory();
+  mRec->PushNonPersistentMemory(qStr2Tag("TPCSLTRK"));
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     SetupGPUProcessor(&processors()->tpcTrackers[iSlice], true);             // Now we allocate
     mRec->ResetRegisteredMemoryPointers(&processors()->tpcTrackers[iSlice]); // TODO: The above call breaks the GPU ptrs to already allocated memory. This fixes them. Should actually be cleaned up at the source.
@@ -146,9 +148,6 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   bool error = false;
   GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, NSLICES)))
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-    if (mRec->GetDeviceType() == GPUReconstruction::DeviceType::HIP) {
-      SynchronizeGPU(); // BUG: Workaround for probable bug in AMD runtime, crashes randomly if not synchronized here
-    }
     GPUTPCTracker& trk = processors()->tpcTrackers[iSlice];
     GPUTPCTracker& trkShadow = doGPU ? processorsShadow()->tpcTrackers[iSlice] : trk;
     int useStream = (iSlice % mRec->NStreams());
@@ -279,8 +278,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         for (int i = 0; i < mRec->NStreams(); i++) {
           ReleaseEvent(&mEvents->stream[i]);
         }
-        SynchronizeEvents(&mEvents->single);
-        ReleaseEvent(&mEvents->single);
+        SynchronizeEventAndRelease(&mEvents->single);
       }
 
       if (GetProcessingSettings().debugLevel >= 4) {
@@ -321,7 +319,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     std::array<bool, NSLICES> transferRunning;
     transferRunning.fill(true);
     if ((GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) || (doGPU && !(GetRecoStepsGPU() & RecoStep::TPCMerging))) {
-      if (param().rec.GlobalTracking) {
+      if (param().rec.tpc.globalTracking) {
         mWriteOutputDone.fill(0);
       }
       RunHelperThreads(&GPUChainTracking::HelperOutput, this, NSLICES);
@@ -371,7 +369,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
         }
         mSliceSelectorReady = iSlice;
 
-        if (param().rec.GlobalTracking) {
+        if (param().rec.tpc.globalTracking) {
           for (unsigned int tmpSlice2a = 0; tmpSlice2a <= iSlice; tmpSlice2a += GetProcessingSettings().nDeviceHelperThreads + 1) {
             unsigned int tmpSlice2 = GPUTPCGlobalTracking::GlobalTrackingSliceOrder(tmpSlice2a);
             unsigned int sliceLeft, sliceRight;
@@ -391,7 +389,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
       }
       WaitForHelperThreads();
     }
-    if (!(GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) && param().rec.GlobalTracking) {
+    if (!(GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) && param().rec.tpc.globalTracking) {
       std::vector<bool> blocking(NSLICES * mRec->NStreams());
       for (int i = 0; i < NSLICES; i++) {
         for (int j = 0; j < mRec->NStreams(); j++) {
@@ -424,7 +422,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     mSliceSelectorReady = NSLICES;
     GPUCA_OPENMP(parallel for if(!doGPU && GetProcessingSettings().ompKernels != 1) num_threads(mRec->SetAndGetNestedLoopOmpFactor(!doGPU, NSLICES)))
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
-      if (param().rec.GlobalTracking) {
+      if (param().rec.tpc.globalTracking) {
         GlobalTracking(iSlice, 0);
       }
       if (GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCSectorTracks) {
@@ -434,7 +432,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
     mRec->SetNestedLoopOmpFactor(1);
   }
 
-  if (param().rec.GlobalTracking && GetProcessingSettings().debugLevel >= 3) {
+  if (param().rec.tpc.globalTracking && GetProcessingSettings().debugLevel >= 3) {
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       GPUInfo("Slice %d - Tracks: Local %d Global %d - Hits: Local %d Global %d", iSlice,
               processors()->tpcTrackers[iSlice].CommonMemory()->nLocalTracks, processors()->tpcTrackers[iSlice].CommonMemory()->nTracks, processors()->tpcTrackers[iSlice].CommonMemory()->nLocalTrackHits, processors()->tpcTrackers[iSlice].CommonMemory()->nTrackHits);
@@ -462,7 +460,7 @@ int GPUChainTracking::RunTPCTrackingSlices_internal()
   if (GetProcessingSettings().debugLevel >= 2) {
     GPUInfo("TPC Slice Tracker finished");
   }
-  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking);
+  mRec->PopNonPersistentMemory(RecoStep::TPCSliceTracking, qStr2Tag("TPCSLTRK"));
   return 0;
 }
 

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -110,19 +111,19 @@ class GPUTPCTracker : public GPUProcessor
   GPUdi() static void GetErrors2Seeding(const MEM_CONSTANT(GPUParam) & param, int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2)
   {
     // param.GetClusterErrors2( iRow, param.GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
-    param.GetClusterRMS2(iRow, param.par.ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
+    param.GetClusterRMS2(iRow, param.par.continuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
   }
 
   MEM_CLASS_PRE2()
   GPUdi() void GetErrors2Seeding(int iRow, const MEM_LG2(GPUTPCTrackParam) & t, float& ErrY2, float& ErrZ2) const
   {
     // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2 );
-    Param().GetClusterRMS2(iRow, Param().par.ContinuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
+    Param().GetClusterRMS2(iRow, Param().par.continuousTracking != 0.f ? 125.f : t.Z(), t.SinPhi(), t.DzDs(), ErrY2, ErrZ2);
   }
   GPUdi() void GetErrors2Seeding(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
   {
     // Param().GetClusterErrors2( iRow, Param().GetContinuousTracking() != 0. ? 125. : z, sinPhi, DzDs, ErrY2, ErrZ2 );
-    Param().GetClusterRMS2(iRow, Param().par.ContinuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2);
+    Param().GetClusterRMS2(iRow, Param().par.continuousTracking != 0.f ? 125.f : z, sinPhi, DzDs, ErrY2, ErrZ2);
   }
 
   void SetupCommonMemory();

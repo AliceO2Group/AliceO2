@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -56,7 +57,9 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
                                         bool disableRootOut,
                                         bool propagateMC,
                                         std::string const& cfgInput,
-                                        std::string const& cfgOutput)
+                                        std::string const& cfgOutput,
+                                        bool fullCluOut,
+                                        int ddlId)
 {
   InputType inputType;
 
@@ -82,16 +85,16 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     //no explicit raw reader ??
 
     if (isEnabled(OutputType::Cells)) {
-      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec());
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(ddlId));
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getCellWriterSpec(false));
       }
     }
     if (isEnabled(OutputType::Clusters)) {
-      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec());
-      specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(false)); //no MC propagation
+      specs.emplace_back(o2::phos::reco_workflow::getRawToCellConverterSpec(ddlId));
+      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(false, fullCluOut)); //no MC propagation
       if (!disableRootOut) {
-        specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
+        specs.emplace_back(o2::phos::getClusterWriterSpec(false));
       }
     }
   }
@@ -109,7 +112,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
       }
     } else {
       if (isEnabled(OutputType::Clusters)) {
-        specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(propagateMC));
+        specs.emplace_back(o2::phos::reco_workflow::getClusterizerSpec(propagateMC, fullCluOut));
         if (!disableRootOut) {
           specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
         }
@@ -124,7 +127,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
     }
     if (isEnabled(OutputType::Clusters)) {
       // add clusterizer
-      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(propagateMC));
+      specs.emplace_back(o2::phos::reco_workflow::getCellClusterizerSpec(propagateMC, fullCluOut));
       if (!disableRootOut) {
         specs.emplace_back(o2::phos::getClusterWriterSpec(propagateMC));
       }

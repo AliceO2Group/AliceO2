@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -40,6 +41,8 @@ struct ServiceRegistryHelpers {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
     // advance
+    static_assert(std::is_const_v<I> == false,
+                  "Service interface must not be const if service object is not const");
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
     constexpr auto typeHash = TypeIdHelpers::uniqueId<I>();
@@ -53,9 +56,11 @@ struct ServiceRegistryHelpers {
     // This only works for concrete implementations of the type T.
     // We need type elision as we do not want to know all the services in
     // advance
+    static_assert(std::is_const_v<I> == true,
+                  "Service interface must be const if service object is const");
     static_assert(std::is_base_of<I, C>::value == true,
                   "Registered service is not derived from declared interface");
-    constexpr auto typeHash = TypeIdHelpers::uniqueId<I const>();
+    constexpr auto typeHash = TypeIdHelpers::uniqueId<I>();
     return ServiceHandle{typeHash, reinterpret_cast<void*>(const_cast<C*>(service)), K, typeid(C).name()};
   }
 };

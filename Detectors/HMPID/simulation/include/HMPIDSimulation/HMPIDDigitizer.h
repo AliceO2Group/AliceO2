@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,7 +12,8 @@
 #ifndef DETECTORS_HMPID_SIMULATION_INCLUDE_HMPIDSIMULATION_HMPIDDIGITIZER_H_
 #define DETECTORS_HMPID_SIMULATION_INCLUDE_HMPIDSIMULATION_HMPIDDIGITIZER_H_
 
-#include "HMPIDBase/Digit.h"
+#include "DataFormatsHMP/Digit.h"
+#include "DataFormatsHMP/Trigger.h"
 #include "HMPIDSimulation/Detector.h" // for the hit
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -44,12 +46,12 @@ class HMPIDDigitizer
       // for the first trigger no busy check necessary
       mCurrentTriggerTime = timeNS;
       mReadoutCounter++;
-      Digit::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+      mBc = o2::InteractionRecord::ns2bc(mCurrentTriggerTime, mOrbit);
       return true;
     } else {
       if ((timeNS - mCurrentTriggerTime) > BUSYTIME) {
         mCurrentTriggerTime = timeNS;
-        Digit::TimeNsToOrbitBc(mCurrentTriggerTime, mOrbit, mBc);
+        mBc = o2::InteractionRecord::ns2bc(mCurrentTriggerTime, mOrbit);
         mReadoutCounter++;
         return true;
       } else {
@@ -57,6 +59,9 @@ class HMPIDDigitizer
       }
     }
   }
+
+  uint32_t getOrbit() { return mOrbit; };
+  uint16_t getBc() { return mBc; };
 
   void setEventID(int eventID) { mEventID = eventID; }
   void setSrcID(int sID) { mSrcID = sID; }

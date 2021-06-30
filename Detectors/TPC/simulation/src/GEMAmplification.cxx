@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,6 +20,7 @@
 #include "TPCBase/CDBInterface.h"
 #include <fstream>
 #include "FairLogger.h"
+#include <filesystem>
 
 using namespace o2::tpc;
 using namespace o2::math_utils;
@@ -37,15 +39,9 @@ GEMAmplification::GEMAmplification()
   const float kappa = 1 / (sigmaOverMu * sigmaOverMu);
   boost::format polya("1/(TMath::Gamma(%1%)*%2%) * TMath::Power(x/%3%, %4%) * TMath::Exp(-x/%5%)");
 
-  // to be replaced by std::filesystem::exists once we have C++17
-  auto fileexists = [](const char* fileName) -> bool {
-    std::ifstream infile(fileName);
-    return infile.good();
-  };
-
   const char* polyaFileName = "tpc_polya.root";
   TFile* outfile;
-  auto cacheexists = fileexists(polyaFileName);
+  auto cacheexists = std::filesystem::exists(polyaFileName);
   if (cacheexists) {
     LOG(INFO) << "TPC: GEM setup from existing cache";
     outfile = TFile::Open(polyaFileName);

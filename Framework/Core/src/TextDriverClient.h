@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -29,8 +30,6 @@ class TextDriverClient : public DriverClient
   /// The text based client simply sends a message on stdout which is
   /// (potentially) captured by the driver.
   void tell(char const* msg, size_t s, bool flush = true) final;
-  /// Half duplex communication
-  void observe(const char* event, std::function<void(char const*)> callback) final{};
   void flushPending() final;
 };
 

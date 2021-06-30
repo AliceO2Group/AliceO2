@@ -25,7 +25,6 @@
 #include "TRDBase/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Constants.h"
-#include "TRDBase/MCLabel.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 
@@ -49,7 +48,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
 {
   vector<Digit> run3Digits;
   vector<TriggerRecord> triggerRecords;
-  o2::dataformats::MCTruthContainer<MCLabel> mcLabels;
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel> mcLabels;
 
   TH1F* hAdc = new TH1F("hADC", "ADC spectrum", 1024, -0.5, 1023.5);
   TH1F* hTBsum = new TH1F("hTBsum", "TBsum", 3000, -0.5, 2999.5);
@@ -132,7 +131,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
       }
       trkl.Clear();
       recordSize = run3Digits.size() - triggerRecordsStart;
-      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize);
+      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize, 0, 0);
       triggerRecordsStart = run3Digits.size();
       ievent++;
     }
@@ -248,7 +247,7 @@ void convertRun2ToRun3Digits(TString qaOutPath = "",
         }
       }
       recordSize = run3Digits.size() - triggerRecordsStart;
-      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize);
+      triggerRecords.emplace_back(ievent, triggerRecordsStart, recordSize, 0, 0);
       triggerRecordsStart = run3Digits.size();
       ievent++;
     }

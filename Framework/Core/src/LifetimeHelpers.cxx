@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,12 +12,14 @@
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputSpec.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/DataDescriptorMatcher.h"
 #include "Framework/Logger.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/TimesliceIndex.h"
 
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 #include "Headers/Stack.h"
 #include "MemoryResources/MemoryResources.h"
 #include <curl/curl.h>
@@ -106,6 +109,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::chrono::micr
         break;
       case TimesliceIndex::ActionTaken::DropInvalid:
       case TimesliceIndex::ActionTaken::DropObsolete:
+      case TimesliceIndex::ActionTaken::Wait:
         break;
     }
     return slot;
@@ -142,7 +146,7 @@ ExpirationHandler::Checker LifetimeHelpers::expireTimed(std::chrono::microsecond
 /// expires via this mechanism).
 ExpirationHandler::Handler LifetimeHelpers::doNothing()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void { return; };
+  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void { return; };
 }
 
 // We simply put everything in a stringstream and read it afterwards.
@@ -170,7 +174,7 @@ size_t readToMessage(void* p, size_t size, size_t nmemb, void* userdata)
 /// \todo this should really be done in the common fetcher.
 /// \todo provide a way to customize the namespace from the ProcessingContext
 ExpirationHandler::Handler
-  LifetimeHelpers::fetchFromCCDBCache(ConcreteDataMatcher const& matcher,
+  LifetimeHelpers::fetchFromCCDBCache(InputSpec const& spec,
                                       std::string const& prefix,
                                       std::string const& overrideTimestamp,
                                       std::string const& sourceChannel)
@@ -183,7 +187,11 @@ ExpirationHandler::Handler
   if (overrideTimestampMilliseconds) {
     LOGP(info, "fetchFromCCDBCache: forcing timestamp for conditions to {} milliseconds from epoch UTC", overrideTimestampMilliseconds);
   }
-  return [matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  auto matcher = std::get_if<ConcreteDataMatcher>(&spec.matcher);
+  if (matcher == nullptr) {
+    throw runtime_error("InputSpec for Conditions must be fully qualified");
+  }
+  return [spec, matcher, sourceChannel, serverUrl = prefix, overrideTimestampMilliseconds](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext&) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -203,8 +211,17 @@ ExpirationHandler::Handler
     if (overrideTimestampMilliseconds) {
       timestamp = overrideTimestampMilliseconds;
     }
-    auto path = std::string("/") + matcher.origin.as<std::string>() + "/" + matcher.description.as<std::string>() + "/" + std::to_string(timestamp / 1000);
-    auto url = serverUrl + path;
+
+    std::string path = "";
+    for (auto& meta : spec.metadata) {
+      if (meta.name == "ccdb-path") {
+        path = meta.defaultValue.get<std::string>();
+      }
+    }
+    if (path.empty()) {
+      path = fmt::format("{}/{}", matcher->origin, matcher->description);
+    }
+    auto url = fmt::format("{}/{}/{}", serverUrl, path, timestamp / 1000);
     LOG(INFO) << "fetchFromCCDBCache: Fetching " << url;
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -226,9 +243,9 @@ ExpirationHandler::Handler
     curl_easy_cleanup(curl);
 
     DataHeader dh;
-    dh.dataOrigin = matcher.origin;
-    dh.dataDescription = matcher.description;
-    dh.subSpecification = matcher.subSpec;
+    dh.dataOrigin = matcher->origin;
+    dh.dataDescription = matcher->description;
+    dh.subSpecification = matcher->subSpec;
     // FIXME: should use curl_off_t and CURLINFO_SIZE_DOWNLOAD_T, but
     //        apparently not there on some platforms.
     double dl;
@@ -251,7 +268,7 @@ ExpirationHandler::Handler
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
+  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromQARegistry: Not yet implemented");
     return;
   };
@@ -262,18 +279,19 @@ ExpirationHandler::Handler LifetimeHelpers::fetchFromQARegistry()
 /// FIXME: provide a way to customise the histogram from the configuration.
 ExpirationHandler::Handler LifetimeHelpers::fetchFromObjectRegistry()
 {
-  return [](ServiceRegistry&, PartRef& ref, uint64_t) -> void {
+  return [](ServiceRegistry&, PartRef& ref, uint64_t, data_matcher::VariableContext&) -> void {
     throw runtime_error("fetchFromObjectRegistry: Not yet implemented");
     return;
   };
 }
 
 /// Enumerate entries on every invokation.
-ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const& matcher, std::string const& sourceChannel)
+ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const& matcher, std::string const& sourceChannel,
+                                                      int64_t orbitOffset, int64_t orbitMultiplier)
 {
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
-  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  return [matcher, counter, sourceChannel, orbitOffset, orbitMultiplier](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext& variables) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -285,6 +303,10 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     dh.subSpecification = matcher.subSpec;
     dh.payloadSize = sizeof(counter_t);
     dh.payloadSerializationMethod = gSerializationMethodNone;
+    dh.tfCounter = timestamp;
+    dh.firstTForbit = timestamp * orbitMultiplier + orbitOffset;
+    variables.put({data_matcher::FIRSTTFORBIT_POS, dh.firstTForbit});
+    variables.put({data_matcher::TFCOUNTER_POS, dh.tfCounter});
 
     DataProcessingHeader dph{timestamp, 1};
 
@@ -298,7 +320,6 @@ ExpirationHandler::Handler LifetimeHelpers::enumerate(ConcreteDataMatcher const&
     ref.payload = std::move(payload);
     (*counter)++;
   };
-  return f;
 }
 
 /// Create a dummy message with the provided ConcreteDataMatcher
@@ -306,7 +327,7 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
 {
   using counter_t = int64_t;
   auto counter = std::make_shared<counter_t>(0);
-  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp) -> void {
+  auto f = [matcher, counter, sourceChannel](ServiceRegistry& services, PartRef& ref, uint64_t timestamp, data_matcher::VariableContext& variables) -> void {
     // We should invoke the handler only once.
     assert(!ref.header);
     assert(!ref.payload);
@@ -318,6 +339,23 @@ ExpirationHandler::Handler LifetimeHelpers::dummy(ConcreteDataMatcher const& mat
     dh.subSpecification = matcher.subSpec;
     dh.payloadSize = 0;
     dh.payloadSerializationMethod = gSerializationMethodNone;
+
+    {
+      auto pval = std::get_if<uint32_t>(&variables.get(data_matcher::FIRSTTFORBIT_POS));
+      if (pval == nullptr) {
+        dh.firstTForbit = -1;
+      } else {
+        dh.firstTForbit = *pval;
+      }
+    }
+    {
+      auto pval = std::get_if<uint32_t>(&variables.get(data_matcher::TFCOUNTER_POS));
+      if (pval == nullptr) {
+        dh.tfCounter = timestamp;
+      } else {
+        dh.tfCounter = *pval;
+      }
+    }
 
     DataProcessingHeader dph{timestamp, 1};
 

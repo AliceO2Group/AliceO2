@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,10 +20,13 @@
   #ifdef GPUCA_OPENCLCPP_NO_CONSTANT_MEMORY
     #define GPUCA_NO_CONSTANT_MEMORY
   #endif
-  #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+  #pragma OPENCL EXTENSION cl_khr_fp64 : enable // Allow double precision variables
+  #pragma OPENCL EXTENSION cl_khr_fp16 : enable // Allow half precision
   #ifdef __clang__
-    #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable
-    #pragma OPENCL EXTENSION __cl_clang_function_pointers : enable
+    #pragma OPENCL EXTENSION cl_clang_storage_class_specifiers : enable          //
+    #pragma OPENCL EXTENSION __cl_clang_function_pointers : enable               // Allow function pointers
+    #pragma OPENCL EXTENSION __cl_clang_non_portable_kernel_param_types : enable // Allow pointers to non-standard types as kernel arguments
+    #pragma OPENCL EXTENSION __cl_clang_bitfields : enable                       // Allow usage of bitfields
     #define global __global
     #define local __local
     #define constant __constant
@@ -56,9 +60,14 @@
   #define nullptr NULL
   #define NULL (0x0)
 #endif
+#define uint64_t unsigned long
 #define uint32_t unsigned int
 #define uint16_t unsigned short
 #define uint8_t unsigned char
+#define int64_t long
+#define int32_t int
+#define int16_t short
+#define int8_t char
 
 // Disable assertions since they produce errors in GPU Code
 #ifdef assert

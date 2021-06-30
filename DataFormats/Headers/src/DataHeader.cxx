@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -52,21 +53,6 @@ void o2::header::BaseHeader::throwInconsistentStackError() const
 }
 
 //__________________________________________________________________________________________________
-void o2::header::DataHeader::print() const
-{
-  printf("Data header version %u, flags: %u\n", headerVersion, flags);
-  printf("  origin       : %s\n", dataOrigin.str);
-  printf("  serialization: %s\n", payloadSerializationMethod.str);
-  printf("  description  : %s\n", dataDescription.str);
-  printf("  sub spec.    : %llu\n", (long long unsigned int)subSpecification);
-  printf("  header size  : %d\n", headerSize);
-  printf("  payloadSize  : %llu\n", (long long unsigned int)payloadSize);
-  printf("  firstTFOrbit : %u\n", firstTForbit);
-  printf("  tfCounter    : %u\n", tfCounter);
-  printf("  runNumber    : %u\n", runNumber);
-}
-
-//__________________________________________________________________________________________________
 bool o2::header::DataHeader::operator==(const DataOrigin& that) const
 {
   return (that == gDataOriginAny ||
@@ -99,18 +85,6 @@ bool o2::header::DataHeader::operator==(const DataHeader& that) const
 }
 
 //__________________________________________________________________________________________________
-void o2::header::printDataDescription::operator()(const char* str) const
-{
-  printf("Data description  : %s\n", str);
-}
-
-//__________________________________________________________________________________________________
-void o2::header::printDataOrigin::operator()(const char* str) const
-{
-  printf("Data origin  : %s\n", str);
-}
-
-//__________________________________________________________________________________________________
 o2::header::DataIdentifier::DataIdentifier()
   : dataDescription(), dataOrigin()
 {
@@ -130,19 +104,12 @@ bool o2::header::DataIdentifier::operator==(const DataIdentifier& other) const
 }
 
 //__________________________________________________________________________________________________
-void o2::header::DataIdentifier::print() const
-{
-  dataOrigin.print();
-  dataDescription.print();
-}
-
-//__________________________________________________________________________________________________
 void o2::header::hexDump(const char* desc, const void* voidaddr, size_t len, size_t max)
 {
   size_t i;
   unsigned char buff[17]; // stores the ASCII data
   memset(&buff[0], '\0', 17);
-  const byte* addr = reinterpret_cast<const byte*>(voidaddr);
+  const std::byte* addr = reinterpret_cast<const std::byte*>(voidaddr);
 
   // Output description if given.
   if (desc != nullptr) {
@@ -177,13 +144,13 @@ void o2::header::hexDump(const char* desc, const void* voidaddr, size_t len, siz
     }
 
     // Now the hex code for the specific character.
-    printf(" %02x", addr[i]);
+    printf(" %02x", (char)addr[i]);
 
     // And store a printable ASCII character for later.
-    if ((addr[i] < 0x20) || (addr[i] > 0x7e)) {
+    if (((char)addr[i] < 0x20) || ((char)addr[i] > 0x7e)) {
       buff[i % 16] = '.';
     } else {
-      buff[i % 16] = addr[i];
+      buff[i % 16] = (char)addr[i];
     }
     buff[(i % 16) + 1] = '\0';
     fflush(stdout);

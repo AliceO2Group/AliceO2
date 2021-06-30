@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -121,7 +122,7 @@ GPUd() int GPUTPCGMPropagator::RotateToAlpha(float newAlpha)
   CAMath::SinCos(newAlpha, newSinAlpha, newCosAlpha);
 
   float cc = newCosAlpha * mCosAlpha + newSinAlpha * mSinAlpha; // cos(newAlpha - mAlpha);
-  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; //sin(newAlpha - mAlpha);
+  float ss = newSinAlpha * mCosAlpha - newCosAlpha * mSinAlpha; // sin(newAlpha - mAlpha);
 
   GPUTPCGMPhysicalTrackModel t0 = mT0;
 
@@ -940,12 +941,12 @@ GPUd() void GPUTPCGMPropagator::Rotate180()
   mT->QPt() = -mT->QPt();
   mT->DzDs() = -mT->DzDs();
 
-  mAlpha = mAlpha + M_PI;
-  while (mAlpha >= M_PI) {
-    mAlpha -= 2 * M_PI;
+  mAlpha = mAlpha + CAMath::Pi();
+  while (mAlpha >= CAMath::Pi()) {
+    mAlpha -= CAMath::TwoPi();
   }
-  while (mAlpha < -M_PI) {
-    mAlpha += 2 * M_PI;
+  while (mAlpha < -CAMath::Pi()) {
+    mAlpha += CAMath::TwoPi();
   }
   mCosAlpha = -mCosAlpha;
   mSinAlpha = -mSinAlpha;
@@ -1064,7 +1065,7 @@ GPUd() void GPUTPCGMPropagator::Mirror(bool inFlyDirection)
 
 GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, const float* p2)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   return mMatLUT->getMatBudget(p1[0], p1[1], p1[2], p2[0], p2[1], p2[2]);
 #else
   return o2::base::MatBudget();
@@ -1073,7 +1074,7 @@ GPUd() o2::base::MatBudget GPUTPCGMPropagator::getMatBudget(const float* p1, con
 
 GPUdic(0, 1) void GPUTPCGMPropagator::UpdateMaterial(const GPUTPCGMPhysicalTrackModel& GPUrestrict() t0e)
 {
-#ifdef HAVE_O2HEADERS
+#ifdef GPUCA_HAVE_O2HEADERS
   float xyz1[3] = {getGlobalX(mT0.GetX(), mT0.GetY()), getGlobalY(mT0.GetX(), mT0.GetY()), mT0.GetZ()};
   float xyz2[3] = {getGlobalX(t0e.GetX(), t0e.GetY()), getGlobalY(t0e.GetX(), t0e.GetY()), t0e.GetZ()};
   o2::base::MatBudget mat = getMatBudget(xyz1, xyz2);

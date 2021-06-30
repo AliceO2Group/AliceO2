@@ -26,7 +26,7 @@ MODULES="PIPE ITS TPC"
 EVENTS=100
 NWORKERS=8
 
-o2-sim -j ${NWORKERS} -n ${EVENTS} -g pythia8 -m ${MODULES} -o step1 \
+o2-sim -j ${NWORKERS} -n ${EVENTS} -g pythia8pp -m ${MODULES} -o step1 \
        --configFile sim.ini \
        > logstep1 2>&1
 

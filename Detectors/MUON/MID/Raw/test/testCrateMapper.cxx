@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,6 +19,7 @@
 
 #include <boost/test/data/test_case.hpp>
 #include <iostream>
+#include "DataFormatsMID/ROBoard.h"
 #include "MIDBase/Mapping.h"
 #include "MIDBase/DetectorParameters.h"
 #include "MIDRaw/CrateMapper.h"
@@ -80,8 +82,8 @@ BOOST_AUTO_TEST_CASE(Consistency)
     for (int icol = mapping.getFirstColumn(ide); icol < 7; ++icol) {
       for (int iline = mapping.getFirstBoardBP(icol, ide); iline <= mapping.getLastBoardBP(icol, ide); ++iline) {
         auto uniqueLocId = crateMapper.deLocalBoardToRO(ide, icol, iline);
-        auto crateId = o2::mid::crateparams::getCrateId(uniqueLocId);
-        auto deBoardId = crateMapper.roLocalBoardToDE(crateId, o2::mid::crateparams::getLocId(uniqueLocId));
+        auto crateId = o2::mid::raw::getCrateId(uniqueLocId);
+        auto deBoardId = crateMapper.roLocalBoardToDE(crateId, o2::mid::raw::getLocId(uniqueLocId));
         BOOST_TEST(static_cast<int>(crateMapper.getColumnId(deBoardId)) == icol);
         BOOST_TEST(static_cast<int>(crateMapper.getLineId(deBoardId)) == iline);
         int rpcLineId = crateMapper.getRPCLine(deBoardId);
