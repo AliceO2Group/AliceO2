@@ -106,9 +106,9 @@ struct lambdakzeroanalysis {
     AxisSpec massAxisK0Short = {200, 0.450f, 0.550f, "Inv. Mass (GeV)"};
     AxisSpec massAxisLambda = {200, 1.015f, 1.215f, "Inv. Mass (GeV)"};
 
-    registry.add("h3dMassK0ShortDca", "h3dMassK0ShortDca", {HistType::kTH3F, {dcaAxis,ptAxis,massAxisK0Short}});
-    registry.add("h3dMassLambdaDca", "h3dMassLambdaDca", {HistType::kTH3F, {dcaAxis,ptAxis,massAxisLambda}});
-    registry.add("h3dMassAntiLambdaDca", "h3dMassAntiLambdaDca", {HistType::kTH3F, {dcaAxis,ptAxis,massAxisLambda}});
+    registry.add("h3dMassK0ShortDca", "h3dMassK0ShortDca", {HistType::kTH3F, {dcaAxis, ptAxis, massAxisK0Short}});
+    registry.add("h3dMassLambdaDca", "h3dMassLambdaDca", {HistType::kTH3F, {dcaAxis, ptAxis, massAxisLambda}});
+    registry.add("h3dMassAntiLambdaDca", "h3dMassAntiLambdaDca", {HistType::kTH3F, {dcaAxis, ptAxis, massAxisLambda}});
   }
 
   //Selection criteria
