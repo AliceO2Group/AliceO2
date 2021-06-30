@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file digit2raw.cxx
-/// \author ruben.shahoyan@cern.ch
+/// \author ruben.shahoyan@cern.ch afurs@cern.ch
 
 #include <boost/program_options.hpp>
 #include <filesystem>
