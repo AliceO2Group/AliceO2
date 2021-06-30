@@ -10,7 +10,6 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(EMCALCalibration
-               SOURCES src/EMCALChannelCalibrator.cxx src/EMCALSlotCalib.cxx
                PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase
                                      O2::EMCALCalib
                                      O2::CommonUtils
