@@ -422,7 +422,7 @@ void CruRawReader::getParsedObjects(std::vector<Tracklet64>& tracklets, std::vec
 {
   int digitcountsum = 0;
   int trackletcountsum = 0;
-  mEventRecords.unpackDataForSending(triggers, tracklets, digits);
+  mEventRecords.unpackData(triggers, tracklets, digits);
 }
 
 void CruRawReader::getParsedObjectsandClear(std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits, std::vector<TriggerRecord>& triggers)

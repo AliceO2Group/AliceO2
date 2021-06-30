@@ -33,7 +33,7 @@
 #include "DataFormatsTRD/Constants.h"
 #include "TRDBase/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsTRD/EventRecord.h"
+#include "TRDReconstruction/EventRecord.h"
 
 namespace o2::trd
 {

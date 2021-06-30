@@ -29,7 +29,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
 
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"trd-datareader-inputspec", VariantType::String, "RAWDATA", {"TRD raw data spec"}},
     {"trd-datareader-output-desc", VariantType::String, "TRDTLT", {"Output specs description string"}},
     {"trd-datareader-verbose", VariantType::Bool, false, {"Enable verbose epn data reading"}},
     {"trd-datareader-headerverbose", VariantType::Bool, false, {"Enable verbose header info"}},
@@ -56,7 +55,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   //  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   // o2::conf::ConfigurableParam::writeINI("o2trdrawreader-workflow_configuration.ini");
 
-  auto inputspec = cfgc.options().get<std::string>("trd-datareader-inputspec");
   //auto outputspec = cfgc.options().get<std::string>("trd-datareader-outputspec");
   auto verbose = cfgc.options().get<bool>("trd-datareader-verbose");
   auto byteswap = cfgc.options().get<bool>("trd-datareader-enablebyteswapdata");
@@ -69,7 +67,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
   //outputs.emplace_back("TRD", "FLPSTAT", 0, Lifetime::Timeframe);
-  LOG(info) << "input spec is:" << inputspec;
   LOG(info) << "enablebyteswap :" << byteswap;
   AlgorithmSpec algoSpec;
   algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(compresseddata, byteswap, verbose, headerverbose, dataverbose)};
@@ -80,7 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::string inputDescription;
   int idevice = 0;
   auto orig = o2::header::gDataOriginTRD;
-  auto inputs = o2::framework::select(std::string("x:TRD/" + inputspec).c_str());
+  auto inputs = o2::framework::select(std::string("x:TRD/RAWDATA").c_str());
   for (auto& inp : inputs) {
     // take care of case where our data is not in the time frame
     inp.lifetime = Lifetime::Optional;

@@ -19,7 +19,7 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Digit.h"
-#include "DataFormatsTRD/EventRecord.h"
+#include "TRDReconstruction/EventRecord.h"
 #include "DataFormatsTRD/Constants.h"
 
 #include "Framework/Output.h"
@@ -121,7 +121,6 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& 
     if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addTracklets(tracklets); //mTracklets.insert(mTracklets.back(),start,end);
-                                                    // LOG(info) << "adding " << tracklets.size()  << " tracklets and tracklet sum:  " << sumTracklets() << " IR count : "<< mEventRecords.size();;
       added = true;
     }
   }
@@ -129,7 +128,6 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& 
     // unseen ir so add it
     mEventRecords.push_back(ir);
     mEventRecords.back().addTracklets(tracklets);
-    // hLOG(info) << "unknown ir adding " << tracklets.size()  << " tracklets and sum of : "<< sumTracklets() << " IR count : "<< mEventRecords.size();
   }
 }
 void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end)
@@ -139,7 +137,6 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::
     if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addTracklets(start, end); //mTracklets.insert(mTracklets.back(),start,end);
-      //  LOG(info) << "x iknown ir adding " << std::distance(start,end)<< " tracklets";
       added = true;
     }
   }
@@ -150,7 +147,7 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::
     //  LOG(info) << "x unknown ir adding " << std::distance(start,end)<< " tracklets";
   }
 }
-void EventStorage::unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits)
+void EventStorage::unpackData(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits)
 {
   int digitcount = 0;
   int trackletcount = 0;
@@ -166,8 +163,6 @@ void EventStorage::unpackDataForSending(std::vector<TriggerRecord>& triggers, st
 void EventStorage::sendData(o2::framework::ProcessingContext& pc)
 {
   //at this point we know the total number of tracklets and digits and triggers.
-  //hence we can create the relevant objects inside the message as opposed to creating a local object and snapshotting it(copying) it
-  //into the message.
   uint64_t trackletcount = 0;
   uint64_t digitcount = 0;
   uint64_t triggercount = 0;

@@ -19,6 +19,7 @@ o2_add_library(TRDReconstruction
                        src/CompressedRawReader.cxx
                        src/DataReaderTask.cxx
                        src/CruCompressorTask.cxx
+                       src/EventRecord.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
                                      O2::DataFormatsTPC

@@ -18,7 +18,11 @@
 #include "CommonDataFormat/RangeReference.h"
 #include "FairLogger.h"
 #include "DataFormatsTRD/Tracklet64.h"
-#include "Framework/ProcessingContext.h"
+
+namespace o2::framework
+{
+class ProcessingContext;
+}
 
 namespace o2::trd
 {
@@ -93,7 +97,7 @@ class EventStorage
   void addTracklet(InteractionRecord& ir, Tracklet64& tracklet);
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& tracklets);
   void addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end);
-  void unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits);
+  void unpackData(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits);
   void sendData(o2::framework::ProcessingContext& pc);
   //this could replace by keeing a running total on addition TODO
   void sumTrackletsDigitsTriggers(uint64_t& tracklets, uint64_t& digits, uint64_t& triggers);
@@ -108,7 +112,6 @@ class EventStorage
   //these 2 are hacks to be able to send bak a blank vector if interaction record is not found.
   std::vector<Tracklet64> mDummyTracklets;
   std::vector<Digit> mDummyDigits;
-  ClassDefNV(EventStorage, 1);
 };
 std::ostream& operator<<(std::ostream& stream, const EventRecord& trg);
 
