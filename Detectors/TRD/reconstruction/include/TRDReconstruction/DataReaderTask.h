@@ -35,7 +35,7 @@ namespace o2::trd
 class DataReaderTask : public Task
 {
  public:
-  DataReaderTask(bool compresseddata, bool byteswap, bool verbose, bool headerverbose, bool dataverbose) : mCompressedData(compresseddata), mByteSwap(byteswap), mVerbose(verbose), mHeaderVerbose(headerverbose), mDataVerbose(dataverbose) {}
+  DataReaderTask(bool compresseddata, bool byteswap, bool fixdigitendcorruption, bool verbose, bool headerverbose, bool dataverbose) : mCompressedData(compresseddata), mByteSwap(byteswap), mFixDigitEndCorruption(fixdigitendcorruption), mVerbose(verbose), mHeaderVerbose(headerverbose), mDataVerbose(dataverbose) {}
   ~DataReaderTask() override = default;
   void init(InitContext& ic) final;
   void sendData(ProcessingContext& pc, bool blankframe = false);
@@ -57,6 +57,7 @@ class DataReaderTask : public Task
                                //  o2::header::DataDescription mDataDesc; // Data description of the incoming data
   std::string mDataDesc;
   o2::header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
+  bool mFixDigitEndCorruption{false};                                                     // fix the parsing of corrupt end of digit data. bounce over it.
 };
 
 } // namespace o2::trd
