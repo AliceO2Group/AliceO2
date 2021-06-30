@@ -444,8 +444,8 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
                   ang_in_scut2, ang_fin_scut2);
 
   // new TGeoTubeSeg("S_ARM", radin_arm, radout_arm, high_arm / 2, angin_arm,
-  // angfin_arm); new TGeoTubeSeg("S_ARM_R", radin_armR, radout_armR, high_armR /
-  // 2, angin_armR, angfin_armR);
+  // angfin_arm); new TGeoTubeSeg("S_ARM_R", radin_armR, radout_armR, high_armR
+  // / 2, angin_armR, angfin_armR);
 
   new TGeoBBox("Abox", x_Abox / 2, y_Abox / 2, z_Abox / 2);
 
@@ -818,7 +818,8 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   auto* patchpanel_Volume =
     new TGeoVolume("patchpanel_Volume", patchpanel_Shape, kMedAlu);
 
-  //====== Contents of the patch panel (cables, pipes, cards) coded as plates ======
+  //====== Contents of the patch panel (cables, pipes, cards) coded as plates
+  //======
   Double_t radin_pl0 = 33;   // inner radius
   Double_t radout_pl0 = 45;  // outer radius
   Double_t high_pl0 = 0.15;  // thickness
@@ -863,21 +864,113 @@ TGeoVolumeAssembly* PatchPanel::createPatchPanel()
   Double_t angin_pl6 = 150;
   Double_t angfin_pl6 = 160;
 
-  auto* plate_0 = new TGeoTubeSeg("plate_0", radin_pl0, radout_pl0, high_pl0 / 2, 180. + angin_pl0, 180. + angfin_pl0);
-  auto* plate_1 = new TGeoTubeSeg("plate_1", radin_pl1, radout_pl1, high_pl1 / 2, 180. + angin_pl1, 180. + angfin_pl1);
-  auto* plate_2 = new TGeoTubeSeg("plate_2", radin_pl2, radout_pl2, high_pl2 / 2, 180. + angin_pl2, 180. + angfin_pl2);
-  auto* plate_3 = new TGeoTubeSeg("plate_3", radin_pl3, radout_pl3, high_pl3 / 2, 180. + angin_pl3, 180. + angfin_pl3);
-  auto* plate_4 = new TGeoTubeSeg("plate_4", radin_pl4, radout_pl4, high_pl4 / 2, 180. + angin_pl4, 180. + angfin_pl4);
-  auto* plate_5 = new TGeoTubeSeg("plate_5", radin_pl5, radout_pl5, high_pl5 / 2, 180. + angin_pl5, 180. + angfin_pl5);
-  auto* plate_6 = new TGeoTubeSeg("plate_6", radin_pl6, radout_pl6, high_pl6 / 2, 180. + angin_pl6, 180. + angfin_pl6);
-
-  auto* plate_Shape = new TGeoCompositeShape("plate_Shape", "plate_0 + plate_1 + plate_2 + plate_3 + plate_4 + plate_5 + plate_6");
+  auto* plate_0 =
+    new TGeoTubeSeg("plate_0", radin_pl0, radout_pl0, high_pl0 / 2,
+                    180. + angin_pl0, 180. + angfin_pl0);
+  auto* plate_1 =
+    new TGeoTubeSeg("plate_1", radin_pl1, radout_pl1, high_pl1 / 2,
+                    180. + angin_pl1, 180. + angfin_pl1);
+  auto* plate_2 =
+    new TGeoTubeSeg("plate_2", radin_pl2, radout_pl2, high_pl2 / 2,
+                    180. + angin_pl2, 180. + angfin_pl2);
+  auto* plate_3 =
+    new TGeoTubeSeg("plate_3", radin_pl3, radout_pl3, high_pl3 / 2,
+                    180. + angin_pl3, 180. + angfin_pl3);
+  auto* plate_4 =
+    new TGeoTubeSeg("plate_4", radin_pl4, radout_pl4, high_pl4 / 2,
+                    180. + angin_pl4, 180. + angfin_pl4);
+  auto* plate_5 =
+    new TGeoTubeSeg("plate_5", radin_pl5, radout_pl5, high_pl5 / 2,
+                    180. + angin_pl5, 180. + angfin_pl5);
+  auto* plate_6 =
+    new TGeoTubeSeg("plate_6", radin_pl6, radout_pl6, high_pl6 / 2,
+                    180. + angin_pl6, 180. + angfin_pl6);
+  auto* plate_Shape = new TGeoCompositeShape(
+    "plate_Shape",
+    "plate_0 + plate_1 + plate_2 + plate_3 + plate_4 + plate_5 + plate_6");
   auto* plate_Volume = new TGeoVolume("plate_Volume", plate_Shape, kMedCu);
   auto* tr_pl = new TGeoTranslation("tr_pl", 0, 0, -2.4);
   tr_pl->RegisterYourself();
+  plate_Volume->SetLineColor(kGray + 2);
 
   auto* tr_fin = new TGeoTranslation("tr_fin", 0, 0, -0.2);
   tr_fin->RegisterYourself();
+
+  //====== Connection to the C-Side, along the hadronic absorber
+
+  Double_t xcable = 12.0; // width
+  Double_t ycable = 0.28; // thickness
+  Double_t zcable = 20.0;
+  TGeoVolume* v_cable0 = gGeoManager->MakeBox("v_cable0", kMedCu, xcable / 2,
+                                              ycable / 2, zcable / 2);
+  auto* r_cable0 = new TGeoRotation("rotation_cable0", 24., 8., 0.);
+  r_cable0->RegisterYourself();
+  Double_t Xcable = 18.5;
+  Double_t Ycable = -42.5;
+  Double_t Zcable = -(zcable / 2. + 4.);
+  auto* p_cable0 = new TGeoCombiTrans(Xcable, Ycable, Zcable, r_cable0);
+  p_cable0->RegisterYourself();
+  PatchPanelVolume->AddNode(v_cable0, 1, p_cable0);
+
+  TGeoVolume* v_cable1 = gGeoManager->MakeBox("v_cable1", kMedCu, xcable / 2,
+                                              ycable / 2, zcable / 2);
+  auto* r_cable1 = new TGeoRotation("rotation_cable1", -24., 8., 0.);
+  r_cable1->RegisterYourself();
+  Xcable = -18.5;
+  auto* p_cable1 = new TGeoCombiTrans(Xcable, Ycable, Zcable, r_cable1);
+  p_cable1->RegisterYourself();
+  PatchPanelVolume->AddNode(v_cable1, 1, p_cable1);
+
+  zcable = 170.;
+  TGeoVolume* v_cable2 = gGeoManager->MakeBox("v_cable2", kMedCu, xcable / 2,
+                                              ycable / 2, zcable / 2);
+  auto* r_cable2 = new TGeoRotation("rotation_cable2", 24., -5., 0.);
+  r_cable2->RegisterYourself();
+  Xcable = 21.;
+  Ycable = -48.;
+  Zcable = -108.8;
+  auto* p_cable2 = new TGeoCombiTrans(Xcable, Ycable, Zcable, r_cable2);
+  p_cable2->RegisterYourself();
+  PatchPanelVolume->AddNode(v_cable2, 1, p_cable2);
+
+  TGeoVolume* v_cable3 = gGeoManager->MakeBox("v_cable3", kMedCu, xcable / 2,
+                                              ycable / 2, zcable / 2);
+  auto* r_cable3 = new TGeoRotation("rotation_cable3", -24., -5., 0.);
+  r_cable3->RegisterYourself();
+  Xcable = -21.;
+  auto* p_cable3 = new TGeoCombiTrans(Xcable, Ycable, Zcable, r_cable3);
+  p_cable3->RegisterYourself();
+  PatchPanelVolume->AddNode(v_cable3, 1, p_cable3);
+
+  zcable = 170.;
+  TGeoVolume* v_cable4 = gGeoManager->MakeBox("v_cable4", kMedCu, xcable / 2,
+                                              ycable / 2, zcable / 2);
+  auto* r_cable4 = new TGeoRotation("rotation_cable4", 24., -10., 0.);
+  r_cable4->RegisterYourself();
+  Xcable = 30.5;
+  Ycable = -68.5;
+  Zcable = -278.;
+  auto* p_cable4 = new TGeoCombiTrans(Xcable, Ycable, Zcable, r_cable4);
+  p_cable4->RegisterYourself();
+  PatchPanelVolume->AddNode(v_cable4, 1, p_cable4);
+
+  TGeoVolume* v_cable5 = gGeoManager->MakeBox("v_cable5", kMedCu, xcable / 2,
+                                              ycable / 2, zcable / 2);
+  auto* r_cable5 = new TGeoRotation("rotation_cable5", -24., -10., 0.);
+  r_cable5->RegisterYourself();
+  Xcable = -30.5;
+  auto* p_cable5 = new TGeoCombiTrans(Xcable, Ycable, Zcable, r_cable5);
+  p_cable5->RegisterYourself();
+  PatchPanelVolume->AddNode(v_cable5, 1, p_cable5);
+
+  v_cable0->SetLineColor(kGray + 2);
+  v_cable1->SetLineColor(kGray + 2);
+  v_cable2->SetLineColor(kGray + 2);
+  v_cable3->SetLineColor(kGray + 2);
+  v_cable4->SetLineColor(kGray + 2);
+  v_cable5->SetLineColor(kGray + 2);
+
+  //===========================================================
 
   patchpanel_Volume->SetLineColor(kGreen - 9);
   PatchPanelVolume->AddNode(patchpanel_Volume, 1, tr_fin);
