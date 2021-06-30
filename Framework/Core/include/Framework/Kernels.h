@@ -72,23 +72,22 @@ auto sliceByColumn(
     vprev = v;
     v = values.Value(i);
     count = counts.Value(i);
-    if (v >= 0) {
-      if (vprev < 0 || (v - vprev) == 1) {
-        makeSlice(offset, count);
-        offset += count;
-        continue;
-      } else {
-        while (v - vprev > 1) {
-          makeSlice(offset, 0);
-          ++vprev;
-        }
-        makeSlice(offset, count);
-        offset += count;
-        continue;
-      }
-    } else {
+    if (v < 0) {
       vnext = values.Value(i + 1);
       while (vnext - vprev > 1) {
+        makeSlice(offset, 0);
+        ++vprev;
+      }
+      makeSlice(offset, count);
+      offset += count;
+      continue;
+    }
+    if (vprev < 0 || (v - vprev) == 1) {
+      makeSlice(offset, count);
+      offset += count;
+      continue;
+    } else {
+      while (v - vprev > 1) {
         makeSlice(offset, 0);
         ++vprev;
       }
