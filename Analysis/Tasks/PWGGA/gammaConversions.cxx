@@ -30,7 +30,6 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-using collisionIt = aod::Collisions::iterator;
 using collisionEvSelIt = soa::Join<aod::Collisions, aod::EvSels>::iterator;
 
 using tracksAndTPCInfo = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi>;
@@ -220,14 +219,14 @@ struct GammaConversions {
     }
   }
 
-  void processMC(collisionIt const& theCollision,
+  void processMC(collisionEvSelIt const& theCollision,
                  aod::V0Datas const& theV0s,
                  tracksAndTPCInfoMC const& theTracks,
                  aod::McParticles const& theMcParticles)
   {
-    //~ if (!theCollision.sel7()) {
-    //~ return;
-    //~ }
+    if (!theCollision.sel7()) {
+      return;
+    }
 
     for (auto& lV0 : theV0s) {
       if (!processPhoton<tracksAndTPCInfoMC>(theCollision, lV0)) {
