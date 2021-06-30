@@ -29,6 +29,8 @@ struct Output {
   header::DataOrigin origin;
   header::DataDescription description;
   header::DataHeader::SubSpecificationType subSpec = 0;
+  header::DataHeader::SplitPayloadIndexType splitIndex = 0;
+  header::DataHeader::SplitPayloadPartsType splitTotal = 1;
   enum Lifetime lifetime = Lifetime::Timeframe;
   header::Stack metaHeader = {};
 
@@ -47,6 +49,12 @@ struct Output {
   Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s, Lifetime l,
          header::Stack&& stack)
     : origin(o), description(d), subSpec(s), lifetime(l), metaHeader(std::move(stack))
+  {
+  }
+
+  Output(header::DataOrigin o, header::DataDescription d, header::DataHeader::SubSpecificationType s, Lifetime l,
+         header::Stack&& stack, header::DataHeader::SplitPayloadIndexType si, header::DataHeader::SplitPayloadPartsType st)
+    : origin(o), description(d), subSpec(s), lifetime(l), metaHeader(std::move(stack)), splitIndex(si), splitTotal(st)
   {
   }
 

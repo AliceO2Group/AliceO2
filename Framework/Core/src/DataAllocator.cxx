@@ -101,6 +101,8 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
   dh.payloadSerializationMethod = method;
   dh.tfCounter = mTimingInfo->tfCounter;
   dh.firstTForbit = mTimingInfo->firstTFOrbit;
+  dh.splitPayloadParts = spec.splitTotal;
+  dh.splitPayloadIndex = spec.splitIndex;
 
   DataProcessingHeader dph{mTimingInfo->timeslice, 1};
   auto& context = mRegistry->get<MessageContext>();
@@ -112,7 +114,14 @@ FairMQMessagePtr DataAllocator::headerMessageFromOutput(Output const& spec,     
 void DataAllocator::addPartToContext(FairMQMessagePtr&& payloadMessage, const Output& spec,
                                      o2::header::SerializationMethod serializationMethod)
 {
-  std::string const& channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  // fixme: this will break if user calls it in the following way:
+  //  1) part 0 to channel A
+  //  2) part 0 to channel B
+  //  3) part 1 to channel A
+  static std::string channel;
+  if (spec.splitIndex == 0) {
+    channel = matchDataHeader(spec, mTimingInfo->timeslice);
+  } // else: use the previously established channel
   auto headerMessage = headerMessageFromOutput(spec, channel, serializationMethod, 0);
 
   // FIXME: this is kind of ugly, we know that we can change the content of the
