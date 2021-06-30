@@ -86,15 +86,14 @@ auto sliceByColumn(
       makeSlice(offset, count);
       offset += count;
       continue;
-    } else {
-      while (v - vprev > 1) {
-        makeSlice(offset, 0);
-        ++vprev;
-      }
-      makeSlice(offset, count);
-      offset += count;
-      continue;
     }
+    while (v - vprev > 1) {
+      makeSlice(offset, 0);
+      ++vprev;
+    }
+    makeSlice(offset, count);
+    offset += count;
+    continue;
   }
 
   makeSlice(offset, counts.Value(size - 1));
