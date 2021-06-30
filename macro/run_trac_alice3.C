@@ -175,7 +175,7 @@ void run_trac_alice3(const string hitsFileName = "o2sim_HitsTRK.root")
       event.addTrackingFrameInfoToLayer(layer, xyz[0], xyz[1], xyz[2], r, phi, std::array<float, 2>{0.f, xyz[2]},
                                         std::array<float, 3>{0.0005f * 0.0005f, 0.f, 0.0005f * 0.0005f});
       event.addClusterToLayer(layer, xyz[0], xyz[1], xyz[2], event.getClustersOnLayer(layer).size());
-      event.addClusterLabelToLayer(layer, o2::MCCompLabel(hit.GetTrackID(), iEvent, iEvent, false));
+      // event.addClusterLabelToLayer(layer, o2::MCCompLabel(hit.GetTrackID(), iEvent, iEvent, false));
       event.addClusterExternalIndexToLayer(layer, id++);
       if (mapPDG.find(hit.GetTrackID()) == mapPDG.end()) {
         mapPDG[hit.GetTrackID()] = particle();
