@@ -67,22 +67,54 @@ GPUhd() int getCorrespondingSplitId(int blockId, int nPartitions, int nSplits = 
 }
 
 template <class buffer_type>
-GPUg() void read_single_segment_k(
+GPUd() void read_segment_singleblock(size_t threadId,
+                                     buffer_type* scratch,
+                                     buffer_type* results,
+                                     size_t blockDim,
+                                     size_t bufferSize,
+                                     float partSizeGB,
+                                     size_t segmentId)
+{
+  for (size_t i = threadId; i < bufferSize; i += blockDim) {
+    if (getPartPtrOnScratch(scratch, partSizeGB, segmentId)[i] == static_cast<buffer_type>(1)) { // actual read operation is performed here
+      results[segmentId] += getPartPtrOnScratch(scratch, partSizeGB, segmentId)[i];              // this case should never happen and waves should be always in sync
+    }
+  }
+}
+
+template <class buffer_type>
+GPUd() void read_segment_multiblock(size_t threadId,
+                                    size_t blockId,
+                                    buffer_type* scratch,
+                                    buffer_type* results,
+                                    size_t blockDim,
+                                    size_t gridDim,
+                                    size_t bufferSize,
+                                    float partSizeGB,
+                                    size_t segmentId)
+{
+  for (int i = blockId * blockDim + threadId; i < bufferSize; i += blockDim * gridDim) {
+    if (getPartPtrOnScratch(scratch, partSizeGB, segmentId)[i] == static_cast<buffer_type>(1)) { // actual read operation is performed here
+      results[segmentId] += getPartPtrOnScratch(scratch, partSizeGB, segmentId)[i];              // this case should never happen and waves should be always in sync
+    }
+  }
+}
+
+template <class buffer_type>
+GPUg() void read_segment_singleblock_k(
   int segmentId,
   buffer_type* results,
   buffer_type* scratch,
   size_t bufferSize,
   float partitionSize = 1.f)
 {
-  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < bufferSize; i += blockDim.x * gridDim.x) {
-    if (getPartPtrOnScratch(scratch, partitionSize, segmentId)[i] == static_cast<buffer_type>(1)) {
-      results[segmentId] += getPartPtrOnScratch(scratch, partitionSize, segmentId)[i]; // should never happen and threads should be always in sync
-    }
+  if (segmentId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
+    read_segment_singleblock(threadIdx.x, scratch, results, blockDim.x, bufferSize, partitionSize, segmentId);
   }
 }
 
 template <class buffer_type>
-GPUg() void split_read_k(
+GPUg() void split_read_singleblock_k(
   int split, // Id of split partition
   int nsplits,
   int npartitions,
@@ -99,6 +131,18 @@ GPUg() void split_read_k(
     }
   }
 }
+
+template <class buffer_type>
+GPUg() void read_single_segment_multiblock_k(
+  int segmentId,
+  buffer_type* results,
+  buffer_type* scratch,
+  size_t bufferSize,
+  float partitionSize = 1.f)
+{
+  read_segment_multiblock(threadIdx.x, blockIdx.x, scratch, results, blockDim.x, gridDim.x, bufferSize, partitionSize, segmentId);
+}
+
 ///////////////////
 
 } // namespace gpu
@@ -315,7 +359,7 @@ void GPUbenchmark<buffer_type>::globalInit(const int deviceId)
   mState.nMaxThreadsPerBlock = props.maxThreadsPerMultiProcessor;
   mState.nMaxThreadsPerDimension = props.maxThreadsDim[0];
   mState.scratchSize = static_cast<long int>(mOptions.freeMemoryFractionToAllocate * free);
-  std::cout << ">>> Running on: \e[1m" << props.name << "\e[0m" << std::endl;
+  std::cout << ">>> Running on: \033[1;31m" << props.name << "\e[0m" << std::endl;
 
   // Allocate scratch on GPU
   GPUCHECK(cudaMalloc(reinterpret_cast<void**>(&mState.scratchPtr), mState.scratchSize));
@@ -343,24 +387,38 @@ template <class buffer_type>
 void GPUbenchmark<buffer_type>::readingSequential(SplitLevel sl)
 {
   switch (sl) {
-    case SplitLevel::Blocks:
+    case SplitLevel::Blocks: {
+      auto nBlocks{mState.nMultiprocessors};
+      auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
+      auto capacity{mState.getPartitionCapacity()};
+
+      for (auto measurements{mOptions.nTests}; measurements--;) { // loop on the number of times we perform same measurement
+        std::cout << std::setw(2) << ">>> Sequential read benchmark, splitting on blocks:";
+        for (auto iSegment{0}; iSegment < mState.getMaxSegments(); ++iSegment) { // loop over single segments separately
+          auto result = benchmarkSynchExecution(&gpu::read_segment_singleblock_k<buffer_type>, mState.getNKernelLaunches(), nBlocks, nThreads, iSegment, mState.deviceReadingResultsPtr, mState.scratchPtr, capacity, mState.partitionSizeGB);
+          mStreamer.get()->storeBenchmarkEntry("readSequentialSplitBlocks", std::to_string(iSegment), getType<buffer_type>(), result);
+        }
+        std::cout << "\033[1;32m complete\033[0m" << std::endl;
+      }
       break;
+    }
+
     case SplitLevel::Threads: {
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurements{mOptions.nTests}; measurements--;) { // loop on the number of times we perform same measurement
-        std::cout << std::setw(2) << ">>> Sequential read benchmark, splitting on threads";
+        std::cout << std::setw(2) << ">>> Sequential read benchmark, splitting on threads:";
         for (auto iSegment{0}; iSegment < mState.getMaxSegments(); ++iSegment) { // loop over single segments separately
-          auto result = benchmarkSynchExecution(&gpu::read_single_segment_k<buffer_type>, mState.getNKernelLaunches(), nBlocks, nThreads, iSegment, mState.deviceReadingResultsPtr, mState.scratchPtr, capacity, mState.partitionSizeGB);
+          auto result = benchmarkSynchExecution(&gpu::read_single_segment_multiblock_k<buffer_type>, mState.getNKernelLaunches(), nBlocks, nThreads, iSegment, mState.deviceReadingResultsPtr, mState.scratchPtr, capacity, mState.partitionSizeGB);
           mStreamer.get()->storeBenchmarkEntry("readSequentialSplitThreads", std::to_string(iSegment), getType<buffer_type>(), result);
         }
+        std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
     }
   }
-  std::cout << " completed." << std::endl;
 }
 
 template <class buffer_type>
@@ -375,7 +433,7 @@ void GPUbenchmark<buffer_type>::readingConcurrent(SplitLevel sl)
 
       for (auto measurements{mOptions.nTests}; measurements--;) {
         std::cout << std::setw(2) << ">>> Concurrent read benchmark, splitting on blocks";
-        auto results = benchmarkAsynchExecution(&gpu::split_read_k<buffer_type>, mState.getMaxSegments(), mState.getNKernelLaunches(), nBlocks, nThreads, segments, mState.deviceReadingResultsPtr, mState.scratchPtr, capacity, mState.partitionSizeGB);
+        auto results = benchmarkAsynchExecution(&gpu::split_read_singleblock_k<buffer_type>, mState.getMaxSegments(), mState.getNKernelLaunches(), nBlocks, nThreads, segments, mState.deviceReadingResultsPtr, mState.scratchPtr, capacity, mState.partitionSizeGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
           mStreamer.get()->storeBenchmarkEntry("readConcurrentSplitBlocks", std::to_string(iResult), getType<buffer_type>(), results[iResult]);
         }
@@ -409,8 +467,10 @@ void GPUbenchmark<buffer_type>::run()
   readingInit();
   // - Reading
   readingSequential(SplitLevel::Threads);
+  readingSequential(SplitLevel::Blocks);
+
   // - Split reading
-  readingConcurrent(SplitLevel::Blocks);
+  // readingConcurrent(SplitLevel::Blocks);
   readingFinalize();
 
   GPUbenchmark<buffer_type>::globalFinalize();
