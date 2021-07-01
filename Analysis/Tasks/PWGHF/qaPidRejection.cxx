@@ -160,7 +160,7 @@ struct QaTrackingRejection {
     auto selectorProton(selectorElectron);
     selectorProton.setPDG(kProton);
 
-    TrackSelectorPID selectorMuon(kMuonPlus);
+    TrackSelectorPID selectorMuon(kMuonMinus);
 
     std::vector<int64_t> recoEvt(collisions.size());
     std::vector<int64_t> recoTracks(tracks.size());
@@ -352,7 +352,7 @@ struct QaRejectionGeneral {
     auto selectorProton(selectorElectron);
     selectorProton.setPDG(kProton);
 
-    TrackSelectorPID selectorMuon(kMuonPlus);
+    TrackSelectorPID selectorMuon(kMuonMinus);
 
     for (const auto& track : tracks) {
 
@@ -362,7 +362,7 @@ struct QaRejectionGeneral {
       histos.fill(HIST("hAllNoSel/pteta"), track.pt(), track.eta());
       if (std::abs(mcParticle.pdgCode()) == kElectron)
         histos.fill(HIST("hElectronNoSel/pteta"), track.pt(), track.eta());
-      if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
+      if (std::abs(mcParticle.pdgCode()) == kMuonMinus)
         histos.fill(HIST("hMuonNoSel/pteta"), track.pt(), track.eta());
       if (std::abs(mcParticle.pdgCode()) == kPiPlus)
         histos.fill(HIST("hPionNoSel/pteta"), track.pt(), track.eta());
@@ -403,7 +403,7 @@ struct QaRejectionGeneral {
         histos.fill(HIST("hAllRICHSelHpElLoose/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonMinus)
           histos.fill(HIST("hMuonRICHSelHpElLoose/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionRICHSelHpElLoose/pteta"), track.pt(), track.eta());
@@ -414,7 +414,7 @@ struct QaRejectionGeneral {
         histos.fill(HIST("hAllRICHSelHpElTight/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonMinus)
           histos.fill(HIST("hMuonRICHSelHpElTight/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionRICHSelHpElTight/pteta"), track.pt(), track.eta());
@@ -425,7 +425,7 @@ struct QaRejectionGeneral {
         histos.fill(HIST("hAllRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonMinus)
           histos.fill(HIST("hMuonRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
@@ -436,7 +436,7 @@ struct QaRejectionGeneral {
         histos.fill(HIST("hAllRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonMinus)
           histos.fill(HIST("hMuonRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
@@ -447,7 +447,7 @@ struct QaRejectionGeneral {
         histos.fill(HIST("hAllMID/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronMID/pteta"), track.pt(), track.eta());
-        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonMinus)
           histos.fill(HIST("hMuonMID/pteta"), track.pt(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionMID/pteta"), track.pt(), track.eta());
@@ -457,7 +457,7 @@ struct QaRejectionGeneral {
         histos.fill(HIST("hAllMID/peta"), track.p(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronMID/peta"), track.p(), track.eta());
-        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonMinus)
           histos.fill(HIST("hMuonMID/peta"), track.p(), track.eta());
         if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionMID/peta"), track.p(), track.eta());
