@@ -153,40 +153,64 @@ struct HfJpsiCandidateSelector {
     for (auto& candidate : candidates) {
 
       if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE) && !(candidate.hfflag() & 1 << DecayType::JpsiToMuMu)) {
-        hfSelJpsiCandidate(0, 0);
+        hfSelJpsiCandidate(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        //hfSelJpsiCandidate(0, 0);
         continue;
       }
 
       auto trackPos = candidate.index0_as<aod::BigTracksPID>(); // positive daughter
       auto trackNeg = candidate.index1_as<aod::BigTracksPID>(); // negative daughter
 
+      int selectedEETopol = 1;
+      int selectedEETpc = 1;
+      int selectedEETof = 1;
+      int selectedEERich = 1;
+      int selectedEETofRich = 1;
+      int selectedMuMuTopol = 1;
+      int selectedMuMuMid = 1;
       int selectedEE = 1;
       int selectedMuMu = 1;
 
       // track selection level need to add special cuts (additional cuts on decay length and d0 norm)
 
-      if (!selectionTopol(candidate, trackPos, trackNeg, selectedEE, selectedMuMu)) {
-        hfSelJpsiCandidate(0, 0);
-        continue;
+      if (!selectionTopol(candidate, trackPos, trackNeg, selectedEETopol, selectedMuMuTopol)) {
+        selectedEETopol = 0;
+        selectedMuMuTopol = 0;
+        selectedEE = 0;
+        selectedMuMu = 0;
+        //if (!selectionTopol(candidate, trackPos, trackNeg, selectedEE, selectedMuMu)) {
+        //hfSelJpsiCandidate(0, 0);
+        //continue;
       }
 
       // track-level electron PID TOF selection
       if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
           selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+        selectedEETof = 0;
         selectedEE = 0;
-        if (selectedMuMu == 0) {
-          hfSelJpsiCandidate(0, 0);
-          continue;
-        }
+        //if (selectedMuMu == 0) {
+        //  hfSelJpsiCandidate(0, 0);
+        //  continue;
+        //}
       }
 
       // track-level electron PID TPC selection
       if (selectorElectron.getStatusTrackPIDTPC(trackPos) == TrackSelectorPID::Status::PIDRejected ||
           selectorElectron.getStatusTrackPIDTPC(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+        selectedEETpc = 0;
         selectedEE = 0;
       }
 
-      hfSelJpsiCandidate(selectedEE, selectedMuMu);
+      hfSelJpsiCandidate(selectedEE,
+                         selectedMuMu,
+                         selectedEETopol,
+                         selectedEETpc,
+                         selectedEETof,
+                         selectedEERich,
+                         selectedEETofRich,
+                         selectedMuMuTopol,
+                         selectedMuMuMid);
+      //hfSelJpsiCandidate(selectedEE, selectedMuMu);
     }
   }
 
@@ -208,59 +232,85 @@ struct HfJpsiCandidateSelector {
     for (auto& candidate : candidates) {
 
       if (!(candidate.hfflag() & 1 << DecayType::JpsiToEE) && !(candidate.hfflag() & 1 << DecayType::JpsiToMuMu)) {
-        hfSelJpsiCandidate(0, 0);
+        hfSelJpsiCandidate(0, 0, 0, 0, 0, 0, 0, 0, 0);
+        //hfSelJpsiCandidate(0, 0);
         continue;
       }
 
       auto trackPos = candidate.index0_as<TracksPID>(); // positive daughter
       auto trackNeg = candidate.index1_as<TracksPID>(); // negative daughter
 
+      int selectedEETopol = 1;
+      int selectedEETpc = 1;
+      int selectedEETof = 1;
+      int selectedEERich = 1;
+      int selectedEETofRich = 1;
+      int selectedMuMuTopol = 1;
+      int selectedMuMuMid = 1;
       int selectedEE = 1;
       int selectedMuMu = 1;
 
       // track selection level need to add special cuts (additional cuts on decay length and d0 norm)
 
-      if (!selectionTopol(candidate, trackPos, trackNeg, selectedEE, selectedMuMu)) {
-        hfSelJpsiCandidate(0, 0);
-        continue;
+      if (!selectionTopol(candidate, trackPos, trackNeg, selectedEETopol, selectedMuMuTopol)) {
+        selectedEETopol = 0;
+        selectedMuMuTopol = 0;
+        selectedEE = 0;
+        selectedMuMu = 0;
+        //if (!selectionTopol(candidate, trackPos, trackNeg, selectedEE, selectedMuMu)) {
+        //hfSelJpsiCandidate(0, 0);
+        //continue;
       }
 
-      if (selectENotPi) {
-        // combined TOF + RICH e selection with π rejection
-        if (!selectorElectron.isElectronAndNotPion(trackPos) ||
-            !selectorElectron.isElectronAndNotPion(trackNeg)) {
-          selectedEE = 0;
-        }
-      } else {
-        // track-level electron PID TOF selection
-        if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-            selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-          selectedEE = 0;
-          if (selectedMuMu == 0) {
-            hfSelJpsiCandidate(0, 0);
-            continue;
-          }
-        }
-
-        // track-level electron PID RICH selection
-        if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
-            selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
-          selectedEE = 0;
-        }
+      //if (selectENotPi) {
+      // combined TOF + RICH e selection with π rejection
+      if (!selectorElectron.isElectronAndNotPion(trackPos) ||
+          !selectorElectron.isElectronAndNotPion(trackNeg)) {
+        selectedEETofRich = 0;
+        selectedEE = 0;
+      }
+      //} else {
+      // track-level electron PID TOF selection
+      if (selectorElectron.getStatusTrackPIDTOF(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorElectron.getStatusTrackPIDTOF(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+        selectedEETof = 0;
+        selectedEE = 0;
+        //if (selectedMuMu == 0) {
+        //  hfSelJpsiCandidate(0, 0);
+        //  continue;
+        //}
       }
 
-      if (selectedEE == 0 && selectedMuMu == 0) {
-        hfSelJpsiCandidate(0, 0);
-        continue;
+      // track-level electron PID RICH selection
+      if (selectorElectron.getStatusTrackPIDRICH(trackPos) == TrackSelectorPID::Status::PIDRejected ||
+          selectorElectron.getStatusTrackPIDRICH(trackNeg) == TrackSelectorPID::Status::PIDRejected) {
+        selectedEERich = 0;
+        selectedEE = 0;
       }
+      //}
+
+      //if (selectedEE == 0 && selectedMuMu == 0) {
+      //  hfSelJpsiCandidate(0, 0);
+      //  continue;
+      //}
 
       // track-level muon PID MID selection
       if (selectorMuon.getStatusTrackPIDMID(trackPos) != TrackSelectorPID::Status::PIDAccepted ||
           selectorMuon.getStatusTrackPIDMID(trackNeg) != TrackSelectorPID::Status::PIDAccepted) {
+        selectedMuMuMid = 0;
         selectedMuMu = 0;
       }
 
-      hfSelJpsiCandidate(selectedEE, selectedMuMu);
+      hfSelJpsiCandidate(selectedEE,
+                         selectedMuMu,
+                         selectedEETopol,
+                         selectedEETpc,
+                         selectedEETof,
+                         selectedEERich,
+                         selectedEETofRich,
+                         selectedMuMuTopol,
+                         selectedMuMuMid);
+      //hfSelJpsiCandidate(selectedEE, selectedMuMu);
     }
   }
 };

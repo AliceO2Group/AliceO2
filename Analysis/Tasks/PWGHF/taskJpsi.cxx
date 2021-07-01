@@ -66,7 +66,7 @@ struct TaskJpsi {
     registry.add("hDecLenXYErr", "2-prong candidates;decay length xy error (cm);entries", {HistType::kTH2F, {{100, 0., 0.01}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi || aod::hf_selcandidate_jpsi::isSelJpsiToMuMu >= d_selectionFlagJpsi);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEETopol >= d_selectionFlagJpsi || aod::hf_selcandidate_jpsi::isSelJpsiToMuMuTopol >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate>> const& candidates)
   {
@@ -79,10 +79,10 @@ struct TaskJpsi {
       }
       if (d_selectionFlagJpsi > 0) {
         if (d_modeJpsiToMuMu) {
-          if (candidate.isSelJpsiToMuMu() <= 0)
+          if (candidate.isSelJpsiToMuMuTopol() <= 0)
             continue;
         } else {
-          if (candidate.isSelJpsiToEE() <= 0)
+          if (candidate.isSelJpsiToEETopol() <= 0)
             continue;
         }
       }
@@ -163,7 +163,7 @@ struct TaskJpsiMC {
     registry.add("hPtGenProng1", "2-prong candidates (gen. matched);prong 1 #it{p}_{T} (GeV/#it{c});entries", {HistType::kTH2F, {{100, 0., 10.}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
-  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEE >= d_selectionFlagJpsi || aod::hf_selcandidate_jpsi::isSelJpsiToMuMu >= d_selectionFlagJpsi);
+  Filter filterSelectCandidates = (aod::hf_selcandidate_jpsi::isSelJpsiToEETopol >= d_selectionFlagJpsi || aod::hf_selcandidate_jpsi::isSelJpsiToMuMuTopol >= d_selectionFlagJpsi);
 
   void process(soa::Filtered<soa::Join<aod::HfCandProng2, aod::HFSelJpsiCandidate, aod::HfCandProng2MCRec>> const& candidates,
                soa::Join<aod::McParticles, aod::HfCandProng2MCGen> const& particlesMC, aod::BigTracksMC const& tracks)
@@ -179,10 +179,10 @@ struct TaskJpsiMC {
       }
       if (d_selectionFlagJpsi > 0) {
         if (d_modeJpsiToMuMu) {
-          if (candidate.isSelJpsiToMuMu() <= 0)
+          if (candidate.isSelJpsiToMuMuTopol() <= 0)
             continue;
         } else {
-          if (candidate.isSelJpsiToEE() <= 0)
+          if (candidate.isSelJpsiToEETopol() <= 0)
             continue;
         }
       }
