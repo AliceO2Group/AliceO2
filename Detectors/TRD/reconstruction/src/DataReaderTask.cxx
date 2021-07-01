@@ -51,11 +51,14 @@ void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
     mReader.buildDPLOutputs(pc); //getParsedObjectsandClear(mTracklets, mDigits, mTriggers);
   } else {
     //ensure the objects we are sending back are indeed blank.
-    LOG(info) << "Sending data onwards with " << mDigits.size() << " Digits and " << mTracklets.size() << " Tracklets and " << mTriggers.size() << " Triggers and blankframe:" << blankframe;
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, mDigits);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, mTracklets);
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, mTriggers);
-    //    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD,"STATS",0,Lifetime::Timerframe},mStats);
+    //TODO maybe put this in buildDPLOutputs so sending all done in 1 place, not now though.
+    std::vector<Tracklet64> tracklets;
+    std::vector<Digit> digits;
+    std::vector<o2::trd::TriggerRecord> triggers;
+    LOG(info) << "Sending data onwards with " << digits.size() << " Digits and " << tracklets.size() << " Tracklets and " << triggers.size() << " Triggers and blankframe:" << blankframe;
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe}, digits);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe}, tracklets);
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe}, triggers);
   }
 }
 
@@ -120,7 +123,6 @@ void DataReaderTask::run(ProcessingContext& pc)
           // mCompressedDigits.insert(std::end(mCompressedDigits), std::begin(mReader.getCompressedDigits()), std::end(mReader.getCompressedDigits()));
           //mReader.clearall();
           if (mVerbose) {
-            LOG(info) << "from parsing received: " << mTracklets.size() << " tracklets and " << mDigits.size() << " compressed digits";
             LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
           }
           //  mTriggers = mReader.getIR();
@@ -144,10 +146,8 @@ void DataReaderTask::run(ProcessingContext& pc)
   LOG(info) << "Processing time for Data reading  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
   if (!mCompressedData) {
     LOG(info) << "Digits found : " << mReader.getDigitsFound();
-    LOG(info) << "Digits returned : " << mDigits.size();
 
     LOG(info) << "Tracklets found : " << mReader.getTrackletsFound();
-    LOG(info) << "Tracklets returned : " << mTracklets.size();
   }
 }
 

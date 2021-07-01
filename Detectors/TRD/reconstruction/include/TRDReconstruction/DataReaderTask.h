@@ -47,10 +47,6 @@ class DataReaderTask : public Task
                                          // in both cases we pull the data from the vectors build message and pass on.
                                          // they will internally produce a vector of digits and a vector tracklets and associated indexing.
                                          // TODO templatise this and 2 versions of datareadertask, instantiated with the relevant parser.
-  std::vector<Tracklet64> mTracklets;
-  std::vector<Digit> mDigits;
-  std::vector<o2::trd::TriggerRecord> mTriggers;
-  //  std::vector<o2::trd::FlpStats> mStats;
 
   bool mVerbose{false};        // verbos output general debuggign and info output.
   bool mDataVerbose{false};    // verbose output of data unpacking
