@@ -79,11 +79,11 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::
 {
   tcmData.orA = digit.mTriggers.getOrA();
   tcmData.orC = digit.mTriggers.getOrC();
-  tcmData.sCen = digit.mTriggers.getVertex();
+  tcmData.sCen = digit.mTriggers.getSCen();
   tcmData.cen = digit.mTriggers.getCen();
-  tcmData.vertex = digit.mTriggers.getSCen();
-  tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
-  tcmData.dataIsValid = bool(digit.mTriggers.triggerSignals & (1 << 6));
+  tcmData.vertex = digit.mTriggers.getVertex();
+  tcmData.laser = bool(digit.mTriggers.triggersignals & (1 << 5));
+  tcmData.dataIsValid = bool(digit.mTriggers.triggersignals & (1 << 6));
   //tcmData.laser = digit.mTriggers.getLaserBit(); //Turned off for FDD
   tcmData.nChanA = digit.mTriggers.nChanA;
   tcmData.nChanC = digit.mTriggers.nChanC;

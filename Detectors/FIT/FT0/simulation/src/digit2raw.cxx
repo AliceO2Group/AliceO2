@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 /// \file digit2raw.cxx
-/// \author ruben.shahoyan@cern.ch
+/// \author ruben.shahoyan@cern.ch afurs@cern.ch
 
 #include <boost/program_options.hpp>
 #include <filesystem>
@@ -23,7 +23,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
-#include "FDDRaw/RawWriterFDD.h"
+#include "FT0Raw/RawWriterFT0.h"
 #include "DataFormatsParameters/GRPObject.h"
 
 /// MC->raw conversion for FT0
@@ -37,7 +37,7 @@ int main(int argc, char** argv)
 {
   bpo::variables_map vm;
   bpo::options_description opt_general("Usage:\n  " + std::string(argv[0]) +
-                                       "Convert FDD digits to CRU raw data\n");
+                                       "Convert FT0 digits to CRU raw data\n");
   bpo::options_description opt_hidden("");
   bpo::options_description opt_all;
   bpo::positional_options_description opt_pos;
@@ -46,8 +46,8 @@ int main(int argc, char** argv)
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
     add_option("verbosity,v", bpo::value<int>()->default_value(0), "verbosity level");
-    //    add_option("input-file,i", bpo::value<std::string>()->default_value(o2::base::NameConf::getDigitsFileName(o2::detectors::DetID::FDD)),"input FDD digits file"); // why not used?
-    add_option("input-file,i", bpo::value<std::string>()->default_value("fdddigits.root"), "input FDD digits file");
+    //    add_option("input-file,i", bpo::value<std::string>()->default_value(o2::base::NameConf::getDigitsFileName(o2::detectors::DetID::FT0)),"input FT0 digits file"); // why not used?
+    add_option("input-file,i", bpo::value<std::string>()->default_value("ft0digits.root"), "input FT0 digits file");
     add_option("file-per-link,l", bpo::value<bool>()->default_value(false)->implicit_value(true), "create output file per CRU (default: per layer)");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
@@ -96,13 +96,13 @@ void digit2raw(const std::string& inpName, const std::string& outDir, int verbos
 {
   TStopwatch swTot;
   swTot.Start();
-  o2::fdd::RawWriterFDD m2r;
+  o2::ft0::RawWriterFT0 m2r;
   m2r.setFilePerLink(filePerLink);
   m2r.setVerbosity(verbosity);
   auto& wr = m2r.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
-  wr.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::FDD)); // must be set explicitly
+  wr.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::FT0)); // must be set explicitly
   wr.setSuperPageSize(superPageSizeInB);
   wr.useRDHVersion(rdhV);
   wr.setDontFillEmptyHBF(noEmptyHBF);

@@ -10,7 +10,12 @@
 // or submit itself to any jurisdiction.
 
 #include "CommonUtils/ConfigurableParam.h"
-#include "FDDWorkflow/RawWorkflow.h"
+#include "FITWorkflow/FITDataReaderDPLSpec.h"
+#include "FITWorkflow/FITDigitWriterSpec.h"
+#include "FITWorkflow/RawReaderFIT.h"
+#include "DataFormatsFDD/MCLabel.h"
+#include "FDDRaw/RawReaderFDDBase.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 using namespace o2::framework;
 
@@ -21,15 +26,12 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   workflowOptions.push_back(
-    ConfigParamSpec{"use-process",
+    ConfigParamSpec{"tcm-extended-mode",
                     o2::framework::VariantType::Bool,
                     false,
-                    {"enable processor for data taking/dumping"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{"dump-blocks-process",
-                    o2::framework::VariantType::Bool,
-                    false,
-                    {"enable dumping of event blocks at processor side"}});
+                    {"in case of extended TCM mode (1 header + 1 TCMdata + 8 "
+                     "TCMdataExtended)"}});
+
   workflowOptions.push_back(
     ConfigParamSpec{"dump-blocks-reader",
                     o2::framework::VariantType::Bool,
@@ -41,11 +43,15 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                     false,
                     {"disable root-files output writers"}});
   workflowOptions.push_back(
-    ConfigParamSpec{
-      "configKeyValues",
-      o2::framework::VariantType::String,
-      "",
-      {"Semicolon separated key=value strings"}});
+    ConfigParamSpec{"configKeyValues",
+                    o2::framework::VariantType::String,
+                    "",
+                    {"Semicolon separated key=value strings"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{"ignore-dist-stf",
+                    o2::framework::VariantType::Bool,
+                    false,
+                    {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
 }
 
 // ------------------------------------------------------------------
@@ -55,13 +61,30 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   LOG(INFO) << "WorkflowSpec defineDataProcessing";
-  o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  auto useProcessor = configcontext.options().get<bool>("use-process");
-  auto dumpProcessor = configcontext.options().get<bool>("dump-blocks-process");
   auto dumpReader = configcontext.options().get<bool>("dump-blocks-reader");
-  auto disableRootOut =
-    configcontext.options().get<bool>("disable-root-output");
+  auto isExtendedMode = configcontext.options().get<bool>("tcm-extended-mode");
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
   LOG(INFO) << "WorkflowSpec FLPWorkflow";
-  return std::move(o2::fdd::getFDDRawWorkflow(
-    useProcessor, dumpProcessor, dumpReader, disableRootOut));
+  //Type aliases
+  //using RawReaderFDDtrgInput = o2::fit::RawReaderFIT<o2::fdd::RawReaderFV0BaseNorm,true>;
+  using RawReaderFDD = o2::fit::RawReaderFIT<o2::fdd::RawReaderFDDBaseNorm, false>;
+  //using RawReaderFDDtrgInputExt = o2::fit::RawReaderFIT<o2::fdd::RawReaderFDDBaseExt,true>;
+  using RawReaderFDDext = o2::fit::RawReaderFIT<o2::fdd::RawReaderFDDBaseExt, false>;
+  using MCLabelCont = o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>;
+  o2::header::DataOrigin dataOrigin = o2::header::gDataOriginFDD;
+  //
+  WorkflowSpec specs;
+  if (isExtendedMode) {
+    specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFDDext{dataOrigin, dumpReader}, askSTFDist));
+    if (!disableRootOut) {
+      specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFDDext, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
+    }
+  } else {
+    specs.emplace_back(o2::fit::getFITDataReaderDPLSpec(RawReaderFDD{dataOrigin, dumpReader}, askSTFDist));
+    if (!disableRootOut) {
+      specs.emplace_back(o2::fit::FITDigitWriterSpecHelper<RawReaderFDD, MCLabelCont>::getFITDigitWriterSpec(false, false, dataOrigin));
+    }
+  }
+  return std::move(specs);
 }
