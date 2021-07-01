@@ -193,6 +193,7 @@ foreach(t
         RootConfigParamHelpers
         Services
         StringHelpers
+        StaticFor
         SuppressionGenerator
         TMessageSerializer
         TableBuilder
