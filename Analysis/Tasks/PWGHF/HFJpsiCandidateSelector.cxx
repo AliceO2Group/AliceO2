@@ -60,6 +60,7 @@ struct HfJpsiCandidateSelector {
   Produces<aod::HFSelJpsiCandidate> hfSelJpsiCandidate;
 
   Configurable<bool> selectENotPi{"selectENotPi", true, "Apply combined TOF + RICH e/π selection"};
+  Configurable<bool> useDilepton{"useDilepton", true, "Apply combined TOF + RICH e/π selection reference dilepton's setting"};
   Configurable<double> d_pTCandMin{"d_pTCandMin", 0., "Lower bound of candidate pT"};
   Configurable<double> d_pTCandMax{"d_pTCandMax", 50., "Upper bound of candidate pT"};
   // TPC
@@ -75,6 +76,7 @@ struct HfJpsiCandidateSelector {
   Configurable<double> d_pidRICHMinpT{"d_pidRICHMinpT", 0.15, "Lower bound of track pT for RICH PID"};
   Configurable<double> d_pidRICHMaxpT{"d_pidRICHMaxpT", 10., "Upper bound of track pT for RICH PID"};
   Configurable<double> d_nSigmaRICH{"d_nSigmaRICH", 3., "Nsigma cut on RICH only"};
+  Configurable<double> d_nSigmaPiRej{"d_nSigmaPiRej", 3., "Nsigma cut on Pion rejection only"};
   Configurable<double> d_nSigmaRICHCombinedTOF{"d_nSigmaRICHCombinedTOF", 5., "Nsigma cut on RICH combined with TOF"};
   // topological cuts
   Configurable<std::vector<double>> pTBins{"pTBins", std::vector<double>{hf_cuts_jpsi_toee::pTBins_v}, "pT bin limits"};
@@ -225,7 +227,7 @@ struct HfJpsiCandidateSelector {
     selectorElectron.setRangePtRICH(d_pidRICHMinpT, d_pidRICHMaxpT);
     selectorElectron.setRangeNSigmaRICH(-d_nSigmaRICH, d_nSigmaRICH);
     selectorElectron.setRangeNSigmaRICHCondTOF(-d_nSigmaRICHCombinedTOF, d_nSigmaRICHCombinedTOF);
-
+    selectorElectron.setRangeNSigmaPiRej(d_nSigmaPiRej);
     TrackSelectorPID selectorMuon(kMuonMinus);
 
     // looping over 2-prong candidates
@@ -264,8 +266,8 @@ struct HfJpsiCandidateSelector {
 
       //if (selectENotPi) {
       // combined TOF + RICH e selection with π rejection
-      if (!selectorElectron.isElectronAndNotPion(trackPos) ||
-          !selectorElectron.isElectronAndNotPion(trackNeg)) {
+      if (!selectorElectron.isElectronAndNotPion(trackPos, 1, 1, useDilepton) ||
+          !selectorElectron.isElectronAndNotPion(trackNeg, 1, 1, useDilepton)) {
         selectedEETofRich = 0;
         selectedEE = 0;
       }

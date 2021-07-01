@@ -266,7 +266,13 @@ class TrackSelectorPID
     mNSigmaRICHMin = nsMin;
     mNSigmaRICHMax = nsMax;
   }
-
+  
+  /// Set nσ pion in which a track should be accepted.
+  void setRangeNSigmaPiRej( float nsMax)
+  {
+    mNSigmaPiRej = nsMax;
+  }
+  
   /// Set RICH nσ range in which a track should be conditionally accepted if combined with TOF.
   void setRangeNSigmaRICHCondTOF(float nsMin, float nsMax)
   {
@@ -429,7 +435,7 @@ class TrackSelectorPID
   /// \return true if track is selected by TOF or RICH
   /// \note Ported from https://github.com/feisenhu/ALICE3-LoI-LMee/blob/main/efficiency/macros/anaEEstudy.cxx
   template <typename T>
-  bool isElectronAndNotPion(const T& track, bool useTOF = true, bool useRICH = true)
+  bool isElectronAndNotPion(const T& track, bool useTOF = true, bool useRICH = true, bool useDilepton = true)
   {
     bool isSelTOF = false;
     bool isSelRICH = false;
@@ -452,7 +458,7 @@ class TrackSelectorPID
       } else {
         isSelTOF = false; // This is rejecting all the heavier particles which do not have a RICH signal in the p area of 0.4-0.6 GeV/c
       }
-      if (std::abs(nSigmaTOFPi) < mNSigmaTOFMax) {
+      if (std::abs(nSigmaTOFPi) < mNSigmaPiRej) {
         isSelTOF = false; // is selected as pion by TOF
       }
     } else {
@@ -464,10 +470,15 @@ class TrackSelectorPID
       if (std::abs(nSigmaRICHEl) < mNSigmaRICHMax) {
         isSelRICH = true; // is selected as electron by RICH
       }
-      if ((std::abs(nSigmaRICHPi) < mNSigmaRICHMax) && (p > 1.0) && (p < 2.0)) {
+      if(useDilepton) {
+      if ((std::abs(nSigmaRICHPi) < mNSigmaPiRej) && (p > 1.0)) {
+        isSelRICH = false; // is selected as pion by RICH for dilepton group's setting
+      }
+      } else{
+      if ((std::abs(nSigmaRICHPi) < mNSigmaPiRej) && (p > 1.0) && (p < 2.0)) {
         isSelRICH = false; // is selected as pion by RICH
       }
-    } else {
+    }} else {
       isSelRICH = false;
     }
 
@@ -498,6 +509,7 @@ class TrackSelectorPID
   float mPtRICHMax = 100.;              ///< maximum pT for RICH PID [GeV/c]
   float mNSigmaRICHMin = -3.;           ///< minimum number of RICH σ
   float mNSigmaRICHMax = 3.;            ///< maximum number of RICH σ
+  float mNSigmaPiRej = 3.;            ///< maximum number of σ π rejection
   float mNSigmaRICHMinCondTOF = -1000.; ///< minimum number of RICH σ if combined with TOF
   float mNSigmaRICHMaxCondTOF = 1000.;  ///< maximum number of RICH σ if combined with TOF
 };

@@ -167,7 +167,7 @@ struct QaTrackingRejection {
     LOGF(info, "%d", particlePDG);
     for (const auto& track : tracks) {
       const auto mcParticle = track.mcParticle();
-      if (particlePDG != 0 && mcParticle.pdgCode() != particlePDG) { // Checking PDG code
+      if (particlePDG != 0 && std::abs(mcParticle.pdgCode()) != particlePDG) { // Checking PDG code
         continue;
       }
       bool isTOFhpElectron = !(selectorElectron.getStatusTrackPIDTOF(track) == TrackSelectorPID::Status::PIDRejected);
@@ -246,8 +246,8 @@ struct QaTrackingRejection {
 struct QaRejectionGeneral {
   static constexpr PDG_t PDGs[5] = {kElectron, kMuonMinus, kPiPlus, kKPlus, kProton};
   // Cuts
-  Configurable<float> etaMaxSel{"etaMaxSel", 1.44, "Max #eta single track"};
-  Configurable<float> ptMinSel{"ptMinSel", 0.6, "p_{T} min single track"};
+  Configurable<float> etaMaxSel{"etaMaxSel", 1.1, "Max #eta single track"};
+  Configurable<float> ptMinSel{"ptMinSel", 0.08, "p_{T} min single track"};
   // Particle selection
   Configurable<int> etaBins{"etaBins", 40, "Number of eta bins"};
   Configurable<float> etaMin{"etaMin", -2.f, "Lower limit in eta"};
@@ -360,13 +360,13 @@ struct QaRejectionGeneral {
         continue;
       const auto mcParticle = track.mcParticle();
       histos.fill(HIST("hAllNoSel/pteta"), track.pt(), track.eta());
-      if (mcParticle.pdgCode() == kElectron)
+      if (std::abs(mcParticle.pdgCode()) == kElectron)
         histos.fill(HIST("hElectronNoSel/pteta"), track.pt(), track.eta());
-      if (mcParticle.pdgCode() == kMuonPlus)
+      if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
         histos.fill(HIST("hMuonNoSel/pteta"), track.pt(), track.eta());
-      if (mcParticle.pdgCode() == kPiPlus)
+      if (std::abs(mcParticle.pdgCode()) == kPiPlus)
         histos.fill(HIST("hPionNoSel/pteta"), track.pt(), track.eta());
-      if (mcParticle.pdgCode() == kKPlus)
+      if (std::abs(mcParticle.pdgCode()) == kKPlus)
         histos.fill(HIST("hKaonNoSel/pteta"), track.pt(), track.eta());
 
       bool isRICHhpElectron = !(selectorElectron.getStatusTrackPIDRICH(track) == TrackSelectorPID::Status::PIDRejected);
@@ -401,67 +401,67 @@ struct QaRejectionGeneral {
 
       if (isRICHElLoose) {
         histos.fill(HIST("hAllRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
           histos.fill(HIST("hMuonRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionRICHSelHpElLoose/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        if (std::abs(mcParticle.pdgCode()) == kKPlus)
           histos.fill(HIST("hKaonRICHSelHpElLoose/pteta"), track.pt(), track.eta());
       }
       if (isRICHElTight) {
         histos.fill(HIST("hAllRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
           histos.fill(HIST("hMuonRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionRICHSelHpElTight/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        if (std::abs(mcParticle.pdgCode()) == kKPlus)
           histos.fill(HIST("hKaonRICHSelHpElTight/pteta"), track.pt(), track.eta());
       }
       if (isRICHElTightAlt) {
         histos.fill(HIST("hAllRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
           histos.fill(HIST("hMuonRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        if (std::abs(mcParticle.pdgCode()) == kKPlus)
           histos.fill(HIST("hKaonRICHSelHpElTightAlt/pteta"), track.pt(), track.eta());
       }
       if (isRICHElTightAlt != isRICHElTight) {
         histos.fill(HIST("hAllRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
           histos.fill(HIST("hMuonRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        if (std::abs(mcParticle.pdgCode()) == kKPlus)
           histos.fill(HIST("hKaonRICHSelHpElTightAltDiff/pteta"), track.pt(), track.eta());
       }
       if (isMIDhpMuon) {
         histos.fill(HIST("hAllMID/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronMID/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
           histos.fill(HIST("hMuonMID/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionMID/pteta"), track.pt(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        if (std::abs(mcParticle.pdgCode()) == kKPlus)
           histos.fill(HIST("hKaonMID/pteta"), track.pt(), track.eta());
 
         histos.fill(HIST("hAllMID/peta"), track.p(), track.eta());
-        if (mcParticle.pdgCode() == kElectron)
+        if (std::abs(mcParticle.pdgCode()) == kElectron)
           histos.fill(HIST("hElectronMID/peta"), track.p(), track.eta());
-        if (mcParticle.pdgCode() == kMuonPlus)
+        if (std::abs(mcParticle.pdgCode()) == kMuonPlus)
           histos.fill(HIST("hMuonMID/peta"), track.p(), track.eta());
-        if (mcParticle.pdgCode() == kPiPlus)
+        if (std::abs(mcParticle.pdgCode()) == kPiPlus)
           histos.fill(HIST("hPionMID/peta"), track.p(), track.eta());
-        if (mcParticle.pdgCode() == kKPlus)
+        if (std::abs(mcParticle.pdgCode()) == kKPlus)
           histos.fill(HIST("hKaonMID/peta"), track.p(), track.eta());
       }
     }
