@@ -266,13 +266,13 @@ class TrackSelectorPID
     mNSigmaRICHMin = nsMin;
     mNSigmaRICHMax = nsMax;
   }
-  
+
   /// Set nσ pion in which a track should be accepted.
-  void setRangeNSigmaPiRej( float nsMax)
+  void setRangeNSigmaPiRej(float nsMax)
   {
     mNSigmaPiRej = nsMax;
   }
-  
+
   /// Set RICH nσ range in which a track should be conditionally accepted if combined with TOF.
   void setRangeNSigmaRICHCondTOF(float nsMin, float nsMax)
   {
@@ -470,15 +470,16 @@ class TrackSelectorPID
       if (std::abs(nSigmaRICHEl) < mNSigmaRICHMax) {
         isSelRICH = true; // is selected as electron by RICH
       }
-      if(useDilepton) {
-      if ((std::abs(nSigmaRICHPi) < mNSigmaPiRej) && (p > 1.0)) {
-        isSelRICH = false; // is selected as pion by RICH for dilepton group's setting
+      if (useDilepton) {
+        if ((std::abs(nSigmaRICHPi) < mNSigmaPiRej) && (p > 1.0)) {
+          isSelRICH = false; // is selected as pion by RICH for dilepton group's setting
+        }
+      } else {
+        if ((std::abs(nSigmaRICHPi) < mNSigmaPiRej) && (p > 1.0) && (p < 2.0)) {
+          isSelRICH = false; // is selected as pion by RICH
+        }
       }
-      } else{
-      if ((std::abs(nSigmaRICHPi) < mNSigmaPiRej) && (p > 1.0) && (p < 2.0)) {
-        isSelRICH = false; // is selected as pion by RICH
-      }
-    }} else {
+    } else {
       isSelRICH = false;
     }
 
@@ -509,7 +510,7 @@ class TrackSelectorPID
   float mPtRICHMax = 100.;              ///< maximum pT for RICH PID [GeV/c]
   float mNSigmaRICHMin = -3.;           ///< minimum number of RICH σ
   float mNSigmaRICHMax = 3.;            ///< maximum number of RICH σ
-  float mNSigmaPiRej = 3.;            ///< maximum number of σ π rejection
+  float mNSigmaPiRej = 3.;              ///< maximum number of σ π rejection
   float mNSigmaRICHMinCondTOF = -1000.; ///< minimum number of RICH σ if combined with TOF
   float mNSigmaRICHMaxCondTOF = 1000.;  ///< maximum number of RICH σ if combined with TOF
 };
