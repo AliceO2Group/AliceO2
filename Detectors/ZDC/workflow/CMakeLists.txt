@@ -49,5 +49,5 @@ o2_add_executable(digits-reco
 
 o2_add_executable(write-reco
                   COMPONENT_NAME zdc
-                  SOURCES src/ZDCRecoWriterDPLSpec.cxx
+                  SOURCES src/reco-writer-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::ZDCWorkflow)

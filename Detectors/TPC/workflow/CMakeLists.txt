@@ -20,7 +20,6 @@ o2_add_library(TPCWorkflow
                        src/ZSSpec.cxx
                        src/CalibProcessingHelper.cxx
                        src/ClusterSharingMapSpec.cxx
-                       src/FileReaderWorkflow.cxx
                        src/CalDetMergerPublisherSpec.cxx
                        src/KryptonClustererSpec.cxx
                        src/IDCToVectorSpec.cxx
