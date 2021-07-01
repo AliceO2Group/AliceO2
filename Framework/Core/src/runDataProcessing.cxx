@@ -1286,6 +1286,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   std::vector<ServiceMetricHandling> metricProcessingCallbacks;
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
+  std::vector<ServiceDriverInit> driverInitCallbacks;
 
   serviceRegistry.registerService(ServiceRegistryHelpers::handleForService<DevicesManager>(devicesManager));
 
@@ -1413,6 +1414,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         /// there and back into running. This is because the general case
         /// would be that we start an application and then we wait for
         /// resource offers from DDS or whatever resource manager we use.
+        for (auto& callback : driverInitCallbacks) {
+          callback(serviceRegistry, varmap);
+        }
         driverInfo.states.push_back(DriverState::RUNNING);
         //        driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
         LOG(INFO) << "O2 Data Processing Layer initialised. We brake for nobody.";
@@ -1485,6 +1489,14 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             for (auto& service : device.services) {
               if (service.postSchedule) {
                 postScheduleCallbacks.push_back(service.postSchedule);
+              }
+            }
+          }
+          driverInitCallbacks.clear();
+          for (auto& device : runningWorkflow.devices) {
+            for (auto& service : device.services) {
+              if (service.driverInit) {
+                driverInitCallbacks.push_back(service.driverInit);
               }
             }
           }
