@@ -42,10 +42,7 @@ class GPUTPCGMPolynomialField;
 #include "TDatabasePDG.h"
 #include "AliMCParticle.h"
 #include "AliMCEvent.h"
-//static const float piMass = TDatabasePDG::Instance()->GetParticle(211)->Mass();
-#else  // GPUCA_ALIROOT_LIB
-//static const float piMass = 0.139f;
-#endif // !GPUCA_ALIROOT_LIB
+#endif // GPUCA_ALIROOT_LIB
 
 #include "GPUChainTracking.h"
 
@@ -208,6 +205,10 @@ void GPUTRDTracker_t<TRDTRK, PROP>::PrepareTracking(GPUChainTracking* chainTrack
   // this function on the host prior to GPU processing
   //--------------------------------------------------------------------
   for (unsigned int iColl = 0; iColl < GetConstantMem()->ioPtrs.nTRDTriggerRecords; ++iColl) {
+    if (GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
+      // this trigger is masked as there is no ITS information available for it
+      continue;
+    }
     int nTrklts = 0;
     int idxOffset = 0;
     if (mProcessPerTimeFrame) {
@@ -413,6 +414,9 @@ GPUd() int GPUTRDTracker_t<TRDTRK, PROP>::GetCollisionIDs(int iTrk, int* collisi
   //--------------------------------------------------------------------
   int nColls = 0;
   for (unsigned int iColl = 0; iColl < GetConstantMem()->ioPtrs.nTRDTriggerRecords; ++iColl) {
+    if (GetConstantMem()->ioPtrs.trdTrigRecMask[iColl] == 0) {
+      continue;
+    }
     if (GetConstantMem()->ioPtrs.trdTriggerTimes[iColl] > mTrackAttribs[iTrk].GetTimeMin() && GetConstantMem()->ioPtrs.trdTriggerTimes[iColl] < mTrackAttribs[iTrk].GetTimeMax()) {
       if (nColls == 20) {
         GPUError("Found too many collision candidates for track with tMin(%f) and tMax(%f)", mTrackAttribs[iTrk].GetTimeMin(), mTrackAttribs[iTrk].GetTimeMax());
