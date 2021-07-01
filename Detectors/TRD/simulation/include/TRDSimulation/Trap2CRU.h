@@ -62,7 +62,8 @@ class Trap2CRU
   int buildTrackletRawData(const int trackletindex, const int linkid); // from the current position in the tracklet vector, build the outgoing data for the current mcm the tracklet is on.
   int writeDigitEndMarker();                                           // write the digit end marker 0x0 0x0
   int writeTrackletEndMarker();                                        // write the tracklet end maker 0x10001000 0x10001000
-  int writeHCHeader(const int eventcount, uint32_t linkid);            // write the HalfChamberHeader into the stream, after the tracklet endmarker and before the digits.
+  int writeDigitHCHeader(const int eventcount, uint32_t linkid);       // write the Digit HalfChamberHeader into the stream, after the tracklet endmarker and before the digits.
+  int writeTrackletHCHeader(const int eventcount, uint32_t linkid);    // write the Tracklet HalfChamberHeader into the stream, at the beginning of data iff there is tracklet data.
 
   bool digitindexcompare(const o2::trd::Digit& A, const o2::trd::Digit& B);
   //boohhl digitindexcompare(const unsigned int A, const unsigned int B);
