@@ -31,8 +31,8 @@ o2::framework::DataProcessorSpec getTRDCalibratedTrackletWriterSpec()
   return MakeRootTreeWriterSpec("calibrated-tracklet-writer",
                                 "trdcalibratedtracklets.root",
                                 "ctracklets",
-                                BranchDefinition<std::vector<CalibratedTracklet>>{InputSpec{"ctracklets", "TRD", "CTRACKLETS"}, "CTracklets"})();
-  // BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"tracklettrigs", "TRD", "TRKTRGRD"}, "TrackTrg"})();
+                                BranchDefinition<std::vector<CalibratedTracklet>>{InputSpec{"ctracklets", "TRD", "CTRACKLETS"}, "CTracklets"},
+                                BranchDefinition<std::vector<char>>{InputSpec{"trigrecmask", "TRD", "TRIGRECMASK"}, "TrigRecMask"})();
 };
 
 } // end namespace trd

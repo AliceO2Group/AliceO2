@@ -28,6 +28,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
     {"tracking-sources", VariantType::String, std::string{o2::dataformats::GlobalTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
+    {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -48,9 +49,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::writeINI("o2trdtracking-workflow_configuration.ini");
   auto disableRootInp = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
   o2::dataformats::GlobalTrackID::mask_t srcTRD = allowedSources & o2::dataformats::GlobalTrackID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
 
-  auto wf = o2::trd::getTRDTrackingWorkflow(disableRootInp, disableRootOut, srcTRD);
+  auto wf = o2::trd::getTRDTrackingWorkflow(disableRootInp, disableRootOut, srcTRD, trigRecFilterActive);
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

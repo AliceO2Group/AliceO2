@@ -295,6 +295,7 @@ struct GPUTrackingInOutPointers {
   unsigned int nTRDTracks = 0;
   const float* trdTriggerTimes = nullptr;
   const int* trdTrackletIdxFirst = nullptr;
+  const char* trdTrigRecMask = nullptr;
   unsigned int nTRDTriggerRecords = 0;
   const GPUTRDTrack* trdTracksITSTPCTRD = nullptr;
   unsigned int nTRDTracksITSTPCTRD = 0;

@@ -23,6 +23,7 @@
 #include "TRDWorkflow/TRDTrackingWorkflow.h"
 #include "TRDWorkflow/TrackBasedCalibSpec.h"
 #include "TRDWorkflowIO/TRDCalibWriterSpec.h"
+#include "ITSWorkflow/IRFrameReaderSpec.h"
 
 using GTrackID = o2::dataformats::GlobalTrackID;
 
@@ -31,7 +32,7 @@ namespace o2
 namespace trd
 {
 
-framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, GTrackID::mask_t srcTRD)
+framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, GTrackID::mask_t srcTRD, bool trigRecFilterActive)
 {
   framework::WorkflowSpec specs;
   bool useMC = false;
@@ -43,11 +44,13 @@ framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disable
       specs.emplace_back(o2::tpc::getTPCTrackReaderSpec(useMC));
     }
     specs.emplace_back(o2::trd::getTRDTrackletReaderSpec(useMC, false));
+    if (trigRecFilterActive) {
+      specs.emplace_back(o2::its::getIRFrameReaderSpec());
+    }
   }
 
-  specs.emplace_back(o2::trd::getTRDTrackletTransformerSpec());
-  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD));
-
+  specs.emplace_back(o2::trd::getTRDTrackletTransformerSpec(trigRecFilterActive));
+  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive));
   specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec());
 
   if (!disableRootOut) {
