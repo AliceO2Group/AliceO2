@@ -13,6 +13,7 @@
 #include "Framework/AnalysisDataModel.h"
 
 #include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/Centrality.h"
 
 #include "AnalysisDataModel/StrangenessTables.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h" // for BigTracks
@@ -31,6 +32,7 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 using collisionEvSelIt = soa::Join<aod::Collisions, aod::EvSels>::iterator;
+using collisionEvCentSelIt = soa::Join<aod::Collisions, aod::EvSels, aod::Cents>::iterator;
 
 using tracksAndTPCInfo = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi>;
 using tracksAndTPCInfoMC = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi, aod::McTrackLabels>;
@@ -39,10 +41,15 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Use MC info"}};
   workflowOptions.push_back(optionDoMC);
+  ConfigParamSpec optionDoCentSel{"doCentSel", VariantType::Bool, false, {"do centrality selection"}};
+  workflowOptions.push_back(optionDoCentSel);
 }
 #include "Framework/runDataProcessing.h"
 
 struct GammaConversions {
+
+  Configurable<float> fCentMin{"fCentMin", 0.0, "lower bound of centrality selection"};
+  Configurable<float> fCentMax{"fCentMax", 100.0, "upper bound of centrality selection"};
 
   Configurable<float> fSinglePtCut{"fSinglePtCut", 0.04, "minimum daughter track pt"};
 
@@ -78,6 +85,7 @@ struct GammaConversions {
   HistogramRegistry registry{
     "registry",
     {
+      {"hEvents", "hEvents", {HistType::kTH1F, {{13, -0.5f, 11.5f}}}},
       {"IsPhotonSelected", "IsPhotonSelected", {HistType::kTH1F, {{13, -0.5f, 11.5f}}}},
 
       {"beforeCuts/hPtRec", "hPtRec_before", {HistType::kTH1F, {{100, 0.0f, 25.0f}}}},
@@ -149,6 +157,12 @@ struct GammaConversions {
     for (size_t i = 0; i < fPhotCutsLabels.size(); ++i) {
       lXaxis->SetBinLabel(i + 1, fPhotCutsLabels[i]);
     }
+
+    lXaxis = registry.get<TH1>(HIST("hEvents"))->GetXaxis();
+    lXaxis->SetBinLabel(1, "in");
+    lXaxis->SetBinLabel(2, "int7||sel7");
+    lXaxis->SetBinLabel(3, "cent");
+    lXaxis->SetBinLabel(4, "out");
   }
 
   template <typename TTRACKS, typename TCOLL, typename TV0>
@@ -208,9 +222,35 @@ struct GammaConversions {
                    aod::V0Datas const& theV0s,
                    tracksAndTPCInfo const& theTracks)
   {
+    registry.fill(HIST("hEvents"), 0);
     if (!theCollision.alias()[kINT7] || !theCollision.sel7()) {
+      registry.fill(HIST("hEvents"), 1);
       return;
     }
+    registry.fill(HIST("hEvents"), 3);
+
+    for (auto& lV0 : theV0s) {
+      if (!processPhoton<tracksAndTPCInfo>(theCollision, lV0)) {
+        continue;
+      }
+    }
+  }
+
+  void processDataCentSel(collisionEvCentSelIt const& theCollision,
+                          aod::V0Datas const& theV0s,
+                          tracksAndTPCInfo const& theTracks)
+  {
+    registry.fill(HIST("hEvents"), 0);
+    if (!theCollision.alias()[kINT7] || !theCollision.sel7()) {
+      registry.fill(HIST("hEvents"), 1);
+      return;
+    }
+
+    if (theCollision.centV0M() < fCentMin || theCollision.centV0M() > fCentMax) {
+      registry.fill(HIST("hEvents"), 2);
+      return;
+    }
+    registry.fill(HIST("hEvents"), 3);
 
     for (auto& lV0 : theV0s) {
       if (!processPhoton<tracksAndTPCInfo>(theCollision, lV0)) {
@@ -224,9 +264,37 @@ struct GammaConversions {
                  tracksAndTPCInfoMC const& theTracks,
                  aod::McParticles const& theMcParticles)
   {
+    registry.fill(HIST("hEvents"), 0);
     if (!theCollision.sel7()) {
+      registry.fill(HIST("hEvents"), 1);
       return;
     }
+    registry.fill(HIST("hEvents"), 3);
+
+    for (auto& lV0 : theV0s) {
+      if (!processPhoton<tracksAndTPCInfoMC>(theCollision, lV0)) {
+        continue;
+      }
+      processTruePhoton(lV0, theMcParticles);
+    }
+  }
+
+  void processMCCentSel(collisionEvCentSelIt const& theCollision,
+                        aod::V0Datas const& theV0s,
+                        tracksAndTPCInfoMC const& theTracks,
+                        aod::McParticles const& theMcParticles)
+  {
+    registry.fill(HIST("hEvents"), 0);
+    if (!theCollision.sel7()) {
+      registry.fill(HIST("hEvents"), 1);
+      return;
+    }
+
+    if (theCollision.centV0M() < fCentMin || theCollision.centV0M() > fCentMax) {
+      registry.fill(HIST("hEvents"), 2);
+      return;
+    }
+    registry.fill(HIST("hEvents"), 3);
 
     for (auto& lV0 : theV0s) {
       if (!processPhoton<tracksAndTPCInfoMC>(theCollision, lV0)) {
@@ -382,8 +450,18 @@ struct GammaConversions {
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   if (!cfgc.options().get<bool>("doMC")) {
+    if (cfgc.options().get<bool>("doCentSel")) {
+      return WorkflowSpec{
+        adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processDataCentSel}),
+      };
+    }
     return WorkflowSpec{
       adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processData}),
+    };
+  }
+  if (cfgc.options().get<bool>("doCentSel")) {
+    return WorkflowSpec{
+      adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processMCCentSel}),
     };
   }
   return WorkflowSpec{
