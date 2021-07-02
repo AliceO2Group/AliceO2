@@ -35,8 +35,9 @@ auto sliceByColumn(
   std::shared_ptr<arrow::Table> const& input,
   T fullSize,
   std::vector<arrow::Datum>* slices,
-  std::vector<int32_t>* vals = nullptr,
-  std::vector<uint64_t>* offsets = nullptr)
+  std::vector<uint64_t>* offsets = nullptr,
+  std::vector<arrow::Datum>* unassignedSlices = nullptr,
+  std::vector<uint64_t>* unassignedOffsets = nullptr)
 {
   arrow::Datum value_counts;
   auto options = arrow::compute::CountOptions::Defaults();
@@ -49,46 +50,48 @@ auto sliceByColumn(
 
   // create slices and offsets
   uint64_t offset = 0;
+  uint64_t unassignedOffset = 0;
   auto count = 0;
-
   auto size = values.length();
-  if (vals != nullptr) {
-    for (auto i = 0; i < size; ++i) {
-      vals->push_back(values.Value(i));
-    }
-  }
 
-  auto makeSlice = [&](uint64_t offset_, T count) {
-    slices->emplace_back(arrow::Datum{input->Slice(offset_, count)});
+  auto makeSlice = [&](uint64_t offset_, T count_) {
+    slices->emplace_back(arrow::Datum{input->Slice(offset_, count_)});
     if (offsets) {
       offsets->emplace_back(offset_);
     }
   };
 
-  auto v = values.Value(0);
-  auto vprev = v;
-  auto vnext = v;
-  auto nzeros = 0;
-  for (auto i = 0; i < size - 1; ++i) {
-    nzeros = 0;
-    vprev = v;
-    v = values.Value(i);
-    count = counts.Value(i);
-    if (v < 0) {
-      vnext = values.Value(i + 1);
-      nzeros = vnext - vprev - 1;
-    } else if (vprev >= 0 && (v - vprev) != 1) {
-      nzeros = v - vprev - 1;
+  auto makeUnassignedSlice = [&](uint64_t offset_, T count_) {
+    if (unassignedSlices) {
+      unassignedSlices->emplace_back(arrow::Datum{input->Slice(offset_, count_)});
     }
+    if (unassignedOffsets) {
+      unassignedOffsets->emplace_back(offset_);
+    }
+  };
+
+  auto v = 0;
+  auto vprev = v;
+  auto nzeros = 0;
+
+  for (auto i = 0; i < size; ++i) {
+    count = counts.Value(i);
+    if (v >= 0) {
+      vprev = v;
+    }
+    v = values.Value(i);
+    if (v < 0) {
+      makeUnassignedSlice(offset, count);
+      offset += count;
+      continue;
+    }
+    nzeros = v - vprev - ((i == 0) ? 0 : 1);
     for (auto z = 0; z < nzeros; ++z) {
       makeSlice(offset, 0);
     }
     makeSlice(offset, count);
     offset += count;
   }
-
-  makeSlice(offset, counts.Value(size - 1));
-  offset += counts.Value(size - 1);
 
   if (values.Value(size - 1) < fullSize - 1) {
     for (auto v = values.Value(size - 1) + 1; v < fullSize; ++v) {
@@ -98,7 +101,6 @@ auto sliceByColumn(
 
   return arrow::Status::OK();
 }
-
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_KERNELS_H_
