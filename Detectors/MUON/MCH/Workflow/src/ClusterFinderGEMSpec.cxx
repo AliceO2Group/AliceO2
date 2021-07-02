@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,7 +12,6 @@
 /// \file ClusterFinderGEMSpec.cxx
 /// \brief Implementation of a data processor to run the GEM MLEM cluster finder
 ///
-/// \author Philippe Pillot, Subatech
 
 #include "MCHWorkflow/ClusterFinderGEMSpec.h"
 
@@ -39,6 +39,8 @@
 #include "MCHClustering/ClusterFinderOriginal.h"
 #include "MCHClustering/ClusterFinderGEM.h"
 #include "MCHClustering/ClusterDump.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "CommonUtils/ConfigurableParam.h"
 
 namespace o2
 {
@@ -84,33 +86,41 @@ class ClusterFinderGEMTask
   //_________________________________________________________________________________________________
   void init(framework::InitContext& ic)
   {
-    // mode = DoOriginal + DumpOriginal + GEMOutputStream;
-    mode = DoGEM | DumpGEM;
-    mode = DoOriginal | DumpOriginal;
-    mode = DoOriginal;
+    auto config = ic.options().get<std::string>("config");
+    if (!config.empty()) {
+      o2::conf::ConfigurableParam::updateFromFile(config, "MCHClustering", true);
+    }
+    bool run2Config = ic.options().get<bool>("run2-config");
+
+    auto mode = ic.options().get<int>("mode");
+
     /// Prepare the clusterizer
     LOG(INFO) << "initializing cluster finder";
 
-    if (isOriginalDumped() && !isOriginalActivated())
+    if (isOriginalDumped() && !isOriginalActivated()) {
       mode = mode & (~DumpOriginal);
-    if (isGEMDumped() && !isGEMActivated())
+    }
+    if (isGEMDumped() && !isGEMActivated()) {
       mode = mode & (~DumpGEM);
-    if (isOriginalDumped())
+    }
+    if (isOriginalDumped()) {
       mOriginalDump = new ClusterDump("OrigRun2.dat", 0);
-    if (isGEMDumped())
+    }
+    if (isGEMDumped()) {
       mGEMDump = new ClusterDump("GEMRun2.dat", 0);
+    }
 
     //
-    std::cout << "Configuration" << std::endl;
-    std::cout << "  Original: " << isOriginalActivated() << std::endl;
-    std::cout << "  GEM     : " << isGEMActivated() << std::endl;
-    std::cout << "  Dump Original: " << isOriginalDumped() << std::endl;
-    std::cout << "  Dump GEM     : " << isGEMDumped() << std::endl;
-    std::cout << "  GEM stream output: " << isGEMOutputStream() << std::endl;
+    LOG(INFO) << "Configuration" << std::endl;
+    LOG(INFO) << "  Original: " << isOriginalActivated() << std::endl;
+    LOG(INFO) << "  GEM     : " << isGEMActivated() << std::endl;
+    LOG(INFO) << "  Dump Original: " << isOriginalDumped() << std::endl;
+    LOG(INFO) << "  Dump GEM     : " << isGEMDumped() << std::endl;
+    LOG(INFO) << "  GEM stream output: " << isGEMOutputStream() << std::endl;
 
     // mClusterFinder.init( ClusterFinderGEM::DoGEM );
     if (isOriginalActivated()) {
-      mClusterFinderOriginal.init();
+      mClusterFinderOriginal.init(run2Config);
     } else if (isGEMActivated()) {
       mClusterFinderGEM.init(mode);
     }
@@ -253,7 +263,9 @@ o2::framework::DataProcessorSpec getClusterFinderGEMSpec()
             OutputSpec{{"clusters"}, "MCH", "CLUSTERS", 0, Lifetime::Timeframe},
             OutputSpec{{"clusterdigits"}, "MCH", "CLUSTERDIGITS", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<ClusterFinderGEMTask>()},
-    Options{}};
+    Options{{"config", VariantType::String, "", {"JSON or INI file with clustering parameters"}},
+            {"run2-config", VariantType::Bool, false, {"Setup for run2 data"}},
+            {"mode", VariantType::Int, ClusterFinderGEMTask::DoOriginal, {"Running mode"}}}};
 }
 
 } // end namespace mch
