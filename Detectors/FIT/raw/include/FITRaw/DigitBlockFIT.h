@@ -87,13 +87,14 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::
   //tcmData.laser = digit.mTriggers.getLaserBit(); //Turned off for FDD
   tcmData.nChanA = digit.mTriggers.nChanA;
   tcmData.nChanC = digit.mTriggers.nChanC;
-  if (digit.mTriggers.amplA > 131071) {
-    tcmData.amplA = 131071; //2^17
+  const int64_t thresholdSignedInt17bit = 65535; //pow(2,17)/2-1
+  if (digit.mTriggers.amplA > thresholdSignedInt17bit) {
+    tcmData.amplA = thresholdSignedInt17bit;
   } else {
     tcmData.amplA = digit.mTriggers.amplA;
   }
-  if (digit.mTriggers.amplC > 131071) {
-    tcmData.amplC = 131071; //2^17
+  if (digit.mTriggers.amplC > thresholdSignedInt17bit) {
+    tcmData.amplC = thresholdSignedInt17bit;
   } else {
     tcmData.amplC = digit.mTriggers.amplC;
   }
