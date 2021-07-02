@@ -94,6 +94,9 @@ struct AxisSpec {
       title(title_),
       name(name_)
   {
+    if (binMin_ > binMax_) {
+      LOG(FATAL) << "Defined ill-defined axis";
+    }
   }
 
   // first entry is assumed to be the number of bins; in case of variable size binning it must be set to zero
