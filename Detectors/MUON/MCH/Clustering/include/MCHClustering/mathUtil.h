@@ -1,10 +1,11 @@
-#ifndef _MATHUTIL_H
-#define _MATHUTIL_H
+#ifndef O2_MCH_CLUSTERING_MATHUTIL_H
+#define O2_MCH_CLUSTERING_MATHUTIL_H
 
-#include <math.h>
-#include <limits.h>
-#include <float.h>
-#include <stddef.h>
+#include <cmath>
+#include <climits>
+#include <cfloat>
+#include <cstddef>
+#include <algorithm>
 
 typedef short Mask_t;
 

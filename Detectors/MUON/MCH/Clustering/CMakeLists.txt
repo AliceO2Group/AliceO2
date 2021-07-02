@@ -12,29 +12,36 @@
 find_package(GSL REQUIRED)
 
 o2_add_library(MCHClustering
-               SOURCES src/ClusterOriginal.cxx
-                       src/ClusterFinderOriginal.cxx
-                       src/MathiesonOriginal.cxx
-                       src/ClusterizerParam.cxx
-               PUBLIC_LINK_LIBRARIES O2::MCHMappingInterface O2::MCHBase O2::MCHPreClustering
-                                     O2::Framework O2::CommonUtils)
+               SOURCES
+                 src/ClusterFinderOriginal.cxx
+                 src/ClusterOriginal.cxx
+                 src/ClusterizerParam.cxx
+                 src/MathiesonOriginal.cxx
+               PUBLIC_LINK_LIBRARIES
+                 O2::CommonUtils
+                 O2::Framework
+                 O2::MCHBase
+                 O2::MCHMappingInterface
+                 O2::MCHPreClustering)
 
 o2_target_root_dictionary(MCHClustering
                           HEADERS include/MCHClustering/ClusterizerParam.h)
 
 o2_add_library(MCHClusteringGEM
-               SOURCES src/MathiesonOriginal.cxx
-                       src/ClusterOriginal.cxx
-                       src/ClusterFinderOriginal.cxx
-                       src/ClusterDump.cxx
-                       src/ClusterFinderGEM.cxx
-                       src/dataStructure.cxx
-                       src/mathUtil.cxx
-                       src/padProcessing.cxx
-                       src/mathiesonFit.cxx
-                       src/mathieson.cxx
-                       src/gaussianEM.cxx
-                       src/clusterProcessing.cxx
+               SOURCES
+                 src/ClusterDump.cxx
+                 src/ClusterFinderGEM.cxx
+                 src/ClusterFinderOriginal.cxx
+                 src/ClusterOriginal.cxx
+                 src/ClusterizerParam.cxx
+                 src/MathiesonOriginal.cxx
+                 src/clusterProcessing.cxx
+                 src/dataStructure.cxx
+                 src/gaussianEM.cxx
+                 src/mathUtil.cxx
+                 src/mathieson.cxx
+                 src/mathiesonFit.cxx
+                 src/padProcessing.cxx
                PUBLIC_LINK_LIBRARIES
                  GSL::gsl
                  O2::Framework
