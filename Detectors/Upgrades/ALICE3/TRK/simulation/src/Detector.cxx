@@ -126,7 +126,6 @@ void Detector::configITS(Detector* its)
 
   std::array<float, 12> sensorThicknesses = {100.e-4, 100.e-4, 100.e-4, 100.e-4, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3};
   its->setStaveModelOB(o2::trk::Detector::kOBModel2);
-  // its->createOuterBarrel(false);
 
   auto idLayer{0};
   for (auto& layerData : layers) {
