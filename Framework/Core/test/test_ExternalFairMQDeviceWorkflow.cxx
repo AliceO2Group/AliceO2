@@ -32,6 +32,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(
     ConfigParamSpec{
       "number-of-events,n", VariantType::Int, 10, {"number of events to process"}});
+  workflowOptions.push_back(
+    ConfigParamSpec{
+      "output-proxy-only", VariantType::Bool, false, {"create only the workflow up to output proxy"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -201,5 +204,10 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     channelConfig.c_str(),
     converter));
 
+  if (config.options().get<bool>("output-proxy-only")) {
+    // remove the input proxy and checker from the workflow
+    workflow.pop_back();
+    workflow.pop_back();
+  }
   return workflow;
 }
