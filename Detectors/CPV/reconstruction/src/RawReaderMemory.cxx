@@ -95,7 +95,7 @@ RawErrorType_t RawReaderMemory::nextPage()
     mCurrentPosition += RDHDecoder::getOffsetToNext(rawHeader); //moving on
     return RawErrorType_t::kNOT_CPV_RDH;
   }
-  if (mCurrentHBFOrbit != 0 || mStopBitWasNotFound) { //reading first time after init() or stopbit was not found
+  if (mCurrentHBFOrbit == 0 || mStopBitWasNotFound) { //reading first time after init() or stopbit was not found
     mCurrentHBFOrbit = RDHDecoder::getHeartBeatOrbit(rawHeader);
     mRawHeader = rawHeader; //save RDH of first page as mRawHeader
     mRawHeaderInitialized = true;

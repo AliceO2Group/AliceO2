@@ -63,14 +63,16 @@ RawErrorType_t RawDecoder::readChannels()
       }
       skipUntilNextHeader = false;
       currentBC = header.bc();
+      currentOrbit = header.orbit();
       wordCountFromLastHeader = 0;
       nDigitsAddedFromLastHeader = 0;
-      if (currentOrbit != header.orbit()) { //bad cpvheader
-        LOG(ERROR) << "RawDecoder::readChannels() : "
-                   << "currentOrbit != header.orbit()";
-        mErrors.emplace_back(5, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
-        skipUntilNextHeader = true;
-      }
+      // // There is no requirement that event orbit be equal to HBF orbit.
+      // if (currentOrbit != header.orbit()) { //bad cpvheader
+      //   LOG(ERROR) << "RawDecoder::readChannels() : "
+      //              << "currentOrbit="<< currentOrbit<< "  != header.orbit() = "<< header.orbit();
+      //   mErrors.emplace_back(5, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
+      //   skipUntilNextHeader = true;
+      // }
     } else {
       if (skipUntilNextHeader) {
         b += 16;

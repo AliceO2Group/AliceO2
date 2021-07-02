@@ -86,7 +86,7 @@ class CpvHeader
     mBytes[1] = ((0x010 & 0xf00) >> 8)                                         //bits 11 - 0 trigger id (0x010 = physics trigger)
                 + 0b00100000 * isNoDataExpected + 0b0100000 * isDataContinued; //bit 13 (no data for this trigger) + bit 14 (payload continues from previous page)
     mBytes[2] = (orbitBC.bc & 0x00ff);                                         //bits 27 - 16 bunch crossing
-    mBytes[3] = (orbitBC.bc & 0x0f00) >> 8;                                    //bits 27 - 16 bunch crossing
+    mBytes[3] = (orbitBC.bc & 0xff00) >> 8;                                    //bits 27 - 16 bunch crossing
     mBytes[4] = (orbitBC.orbit & 0x000000ff);                                  //bits 63 - 32 orbit
     mBytes[5] = (orbitBC.orbit & 0x0000ff00) >> 8;                             //bits 63 - 32 orbit
     mBytes[6] = (orbitBC.orbit & 0x00ff0000) >> 16;                            //bits 63 - 32 orbit
@@ -101,7 +101,7 @@ class CpvHeader
   bool isOK() const { return (mBytes[9] == 0xe0) && (mBytes[10] == 0) && (mBytes[11] == 0) && (mBytes[12] == 0) && (mBytes[13] == 0) && (mBytes[14] == 0) && (mBytes[15] == 0); }
   bool isNoDataExpected() const { return mBytes[1] & 0b00100000; }
   bool isDataContinued() const { return mBytes[1] & 0b0100000; }
-  uint16_t bc() const { return mBytes[2] + ((mBytes[3] & 0x0f) << 8); }
+  uint16_t bc() const { return static_cast<uint16_t>(mBytes[2]) + static_cast<uint16_t>(mBytes[3] << 8); }
   uint32_t orbit() const { return mBytes[4] + (mBytes[5] << 8) + (mBytes[6] << 16) + (mBytes[7] << 24); }
 
  public:

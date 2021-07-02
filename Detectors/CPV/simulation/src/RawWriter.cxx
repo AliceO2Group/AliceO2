@@ -29,6 +29,7 @@ void RawWriter::init()
   mRawWriter = std::make_unique<o2::raw::RawFileWriter>(o2::header::gDataOriginCPV, true); //true = cru detector
   mRawWriter->setCarryOverCallBack(this);
   mRawWriter->setApplyCarryOverToLastPage(true);
+  mRawWriter->setContinuousReadout(true); // must be set explicitly
 
   // Set output file and register link
   std::string rawfilename = mOutputLocation;
