@@ -210,7 +210,11 @@ bool TrackFitter::propagateToNextClusterWithMCS(TrackLTF& track, double z)
     }
   }
 
-  int direction = (newLayerID - startingLayerID) / std::abs(newLayerID - startingLayerID);
+  //https://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
+  auto signum = [](auto a) {
+    return (0 < a) - (a < 0);
+  };
+  int direction = signum(newLayerID - startingLayerID); // takes values +1, 0, -1
   auto currentLayer = startingLayerID;
 
   if (mVerbose) {
