@@ -151,6 +151,7 @@ void run_completion(uv_work_t* handle, int status)
     context.deviceContext->quotaEvaluator->consume(task->id.index, consumer);
   }
   context.deviceContext->state->offerConsumers.clear();
+  context.deviceContext->quotaEvaluator->handleExpired();
   context.deviceContext->quotaEvaluator->dispose(task->id.index);
   task->running = false;
   ZoneScopedN("run_completion");
@@ -575,6 +576,7 @@ bool DataProcessingDevice::ConditionalRun()
       run_completion(&handle, 0);
 #endif
     } else {
+      mDataProcessorContexes.at(0).deviceContext->quotaEvaluator->handleExpired();
       mWasActive = false;
     }
   } else {

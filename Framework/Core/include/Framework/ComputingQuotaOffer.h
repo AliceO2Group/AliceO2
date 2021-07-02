@@ -51,7 +51,8 @@ struct ComputingQuotaOffer {
   int user = -1;
   /// The score for the given offer
   OfferScore score = OfferScore::Unneeded;
-  /// Whether or not the offer is valid
+  /// Whether or not the offer is valid, invalid offers can
+  /// be reused whe we get some more quota from the system.
   bool valid = false;
 };
 
