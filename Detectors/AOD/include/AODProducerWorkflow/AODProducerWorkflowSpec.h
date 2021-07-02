@@ -242,7 +242,7 @@ class AODProducerWorkflowDPL : public Task
                             gsl::span<const o2::MCCompLabel>& mcTruthITS, std::vector<bool>& isStoredITS,
                             gsl::span<const o2::MCCompLabel>& mcTruthMFT, std::vector<bool>& isStoredMFT,
                             gsl::span<const o2::MCCompLabel>& mcTruthTPC, std::vector<bool>& isStoredTPC,
-                            TripletsMap_t& toStore);
+                            TripletsMap_t& toStore, std::vector<std::pair<int, int>> const& mccolidtoeventsource);
 };
 
 /// create a processor spec
