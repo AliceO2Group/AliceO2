@@ -26,11 +26,11 @@
 #include "Headers/RAWDataHeader.h"
 #include "Headers/RDHAny.h"
 #include "DetectorsRaw/RDHUtils.h"
+#include "DataFormatsTRD/CompressedDigit.h"
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
-#include "DataFormatsTRD/CompressedDigit.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 
 namespace o2
 {

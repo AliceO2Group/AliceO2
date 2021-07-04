@@ -22,7 +22,7 @@
 #include <AliTRDfeeParam.h>
 
 // O2
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Constants.h"
 #include "SimulationDataFormat/MCCompLabel.h"
