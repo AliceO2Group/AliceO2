@@ -22,7 +22,7 @@
 #include "TRDReconstruction/CompressedRawReader.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 //#include "DataFormatsTRD/FlpStats.h"
 
 #include <fstream>

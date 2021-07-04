@@ -29,7 +29,7 @@
 #include "TRDReconstruction/DigitsParser.h"
 #include "TRDReconstruction/TrackletsParser.h"
 #include "DataFormatsTRD/Constants.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "TRDReconstruction/EventRecord.h"
 

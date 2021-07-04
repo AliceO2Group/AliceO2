@@ -16,7 +16,7 @@
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/CompressedDigit.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 
 #include "fairlogger/Logger.h"
 
