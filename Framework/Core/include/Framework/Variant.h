@@ -28,6 +28,10 @@ namespace o2::framework
 
 enum class VariantType : int { Int = 0,
                                Int64,
+                               UInt8,
+                               UInt16,
+                               UInt32,
+                               UInt64,
                                Float,
                                Double,
                                String,
@@ -76,6 +80,11 @@ struct variant_trait : std::integral_constant<VariantType, VariantType::Unknown>
 DECLARE_VARIANT_TRAIT(int, Int);
 DECLARE_VARIANT_TRAIT(long int, Int64);
 DECLARE_VARIANT_TRAIT(long long int, Int64);
+DECLARE_VARIANT_TRAIT(uint8_t, UInt8);
+DECLARE_VARIANT_TRAIT(uint16_t, UInt16);
+DECLARE_VARIANT_TRAIT(uint32_t, UInt32);
+DECLARE_VARIANT_TRAIT(uint64_t, UInt64);
+
 DECLARE_VARIANT_TRAIT(float, Float);
 DECLARE_VARIANT_TRAIT(double, Double);
 DECLARE_VARIANT_TRAIT(bool, Bool);
@@ -152,6 +161,10 @@ struct variant_type {
 
 DECLARE_VARIANT_TYPE(int, Int);
 DECLARE_VARIANT_TYPE(int64_t, Int64);
+DECLARE_VARIANT_TYPE(uint8_t, UInt8);
+DECLARE_VARIANT_TYPE(uint16_t, UInt16);
+DECLARE_VARIANT_TYPE(uint32_t, UInt32);
+DECLARE_VARIANT_TYPE(uint64_t, UInt64);
 DECLARE_VARIANT_TYPE(float, Float);
 DECLARE_VARIANT_TYPE(double, Double);
 DECLARE_VARIANT_TYPE(const char*, String);
@@ -236,7 +249,8 @@ struct variant_helper<S, std::string> {
 /// Variant for configuration parameter storage. Owns stored data.
 class Variant
 {
-  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool,
+  using storage_t = std::aligned_union<8, int, int64_t, uint8_t, uint16_t, uint32_t, uint64_t,
+                                       const char*, float, double, bool,
                                        int*, float*, double*, bool*,
                                        Array2D<int>, Array2D<float>, Array2D<double>,
                                        LabeledArray<int>, LabeledArray<float>, LabeledArray<double>>::type;
