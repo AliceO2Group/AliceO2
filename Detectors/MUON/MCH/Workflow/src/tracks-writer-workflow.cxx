@@ -9,15 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "MCHWorkflow/TrackWriterSpec.h"
+#include "Framework/runDataProcessing.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+using namespace o2::framework;
 
-#pragma link C++ namespace o2;
-#pragma link C++ namespace o2::mch;
-#pragma link C++ class o2::mch::ClusterStruct + ;
-#pragma link C++ class std::vector < o2::mch::ClusterStruct> + ;
-
-#endif
+WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
+{
+  bool useMC{false};
+  return WorkflowSpec{o2::mch::getTrackWriterSpec(useMC)};
+}

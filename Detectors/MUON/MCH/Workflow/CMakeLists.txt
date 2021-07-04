@@ -12,10 +12,13 @@
 # MCHWorkflow library is (at least) needed by Detectors/CTF/workflow
 o2_add_library(MCHWorkflow
                SOURCES
-                   src/EntropyDecoderSpec.cxx
-                   src/DataDecoderSpec.cxx
-                   src/PreClusterFinderSpec.cxx
                    src/ClusterFinderOriginalSpec.cxx
+                   src/DataDecoderSpec.cxx
+                   src/EntropyDecoderSpec.cxx
+                   src/PreClusterFinderSpec.cxx
+                   src/TrackReaderSpec.cxx
+                   src/TrackTreeReader.cxx
+                   src/TrackWriterSpec.cxx
                PUBLIC_LINK_LIBRARIES
                    O2::CommonUtils
                    O2::DPLUtils
@@ -144,6 +147,18 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
 
 o2_add_executable(
+        tracks-writer-workflow
+        SOURCES src/tracks-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        tracks-reader-workflow
+        SOURCES src/tracks-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
         tracks-sampler-workflow
         SOURCES src/TrackSamplerSpec.cxx src/tracks-sampler-workflow.cxx
         COMPONENT_NAME mch
@@ -177,6 +192,6 @@ o2_add_executable(
         )
 
 o2_add_executable(tracks-file-dumper
-  SOURCES src/tracks-file-dumper.cxx
-  COMPONENT_NAME mch
-  PUBLIC_LINK_LIBRARIES fmt::fmt Boost::program_options O2::MCHBase)
+        SOURCES src/tracks-file-dumper.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES Boost::program_options O2::MCHWorkflow)
