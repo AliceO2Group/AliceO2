@@ -263,7 +263,7 @@ int32_t DataDecoder::getMergerChannelId(const DsElecId& dsElecId, DualSampaChann
 {
   auto solarId = dsElecId.solarId();
   uint32_t dsId = static_cast<uint32_t>(dsElecId.elinkGroupId()) * 5 + dsElecId.elinkIndexInGroup();
-  if (solarId > DataDecoder::sMaxSolarId || dsId >= 40) {
+  if (solarId > DataDecoder::sMaxSolarId || dsId >= 40 || channel >= 64) {
     return -1;
   }
 
