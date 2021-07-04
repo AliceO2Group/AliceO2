@@ -9,15 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_MCH_WORKFLOW_TRACK_WRITER_SPEC_H
+#define O2_MCH_WORKFLOW_TRACK_WRITER_SPEC_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include "Framework/DataProcessorSpec.h"
 
-#pragma link C++ namespace o2;
-#pragma link C++ namespace o2::mch;
-#pragma link C++ class o2::mch::ClusterStruct + ;
-#pragma link C++ class std::vector < o2::mch::ClusterStruct> + ;
+namespace o2::mch
+{
+o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC, const char* name = "mch-tracks-writer");
+}
 
 #endif

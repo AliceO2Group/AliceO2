@@ -9,21 +9,29 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "boost/program_options.hpp"
-#include <iostream>
-#include <fstream>
-#include <fmt/format.h>
-#include "TrackAtVtxStruct.h"
-#include "MCHBase/TrackBlock.h"
-#include <gsl/span>
+#include "DataFormatsMCH/ROFRecord.h"
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/ClusterBlock.h"
+#include "MCHBase/TrackBlock.h"
+#include "TrackAtVtxStruct.h"
+#include "TrackTreeReader.h"
+#include "boost/program_options.hpp"
+#include <TFile.h>
+#include <TTree.h>
+#include <filesystem>
+#include <fmt/format.h>
+#include <fstream>
+#include <gsl/span>
+#include <iostream>
 
 namespace po = boost::program_options;
+namespace fs = std::filesystem;
 
 using o2::mch::ClusterStruct;
+using o2::mch::ROFRecord;
 using o2::mch::TrackAtVtxStruct;
 using o2::mch::TrackMCH;
+using o2::mch::TrackTreeReader;
 
 template <typename T>
 bool readBinaryStruct(std::istream& in, int nitems, std::vector<T>& items, const char* itemName)
@@ -62,42 +70,14 @@ void dump(std::ostream& os, gsl::span<o2::mch::TrackAtVtxStruct> tracksAtVertex)
   }
 }
 
-/**
- * o2-mch-tracks-file-dumper is a small helper program to inspect
- * track binary files (mch custom binary format for debug only)
- */
-
-int main(int argc, char* argv[])
+void dump(std::ostream& os, const o2::mch::TrackMCH& t)
 {
-  std::string inputFile;
-  po::variables_map vm;
-  po::options_description options("options");
+  auto pt = std::sqrt(t.getPx() * t.getPx() + t.getPy() * t.getPy());
+  os << fmt::format("({:s}) p {:7.2f} pt {:7.2f} nclusters: {} \n", t.getSign() == -1 ? "-" : "+", t.getP(), pt, t.getNClusters());
+}
 
-  // clang-format off
-  // clang-format off
-  options.add_options()
-      ("help,h", "produce help message")
-      ("infile,i", po::value<std::string>(&inputFile)->required(), "input file name")
-      ;
-  // clang-format on
-
-  po::options_description cmdline;
-  cmdline.add(options);
-
-  po::store(po::command_line_parser(argc, argv).options(cmdline).run(), vm);
-
-  if (vm.count("help")) {
-    std::cout << options << "\n";
-    return 2;
-  }
-
-  try {
-    po::notify(vm);
-  } catch (boost::program_options::error& e) {
-    std::cout << "Error: " << e.what() << "\n";
-    exit(1);
-  }
-
+int dumpBinary(std::string inputFile)
+{
   std::ifstream in(inputFile.c_str());
   if (!in.is_open()) {
     std::cerr << "cannot open input file " << inputFile << "\n";
@@ -140,22 +120,68 @@ int main(int argc, char* argv[])
   return 0;
 }
 
-//     for (const auto& rof : rofs) {
-//
-//       // get the MCH tracks, attached clusters and corresponding tracks at vertex (if any)
-//       auto eventClusters = getEventTracksAndClusters(rof, tracks, clusters, eventTracks);
-//       auto eventTracksAtVtx = getEventTracksAtVtx(tracksAtVtx, tracksAtVtxOffset);
-//
-//       // write the number of tracks at vertex, MCH tracks and attached clusters
-//       int nEventTracksAtVtx = eventTracksAtVtx.size() / sizeof(TrackAtVtxStruct);
-//       mOutputFile.write(reinterpret_cast<char*>(&nEventTracksAtVtx), sizeof(int));
-//       int nEventTracks = eventTracks.size();
-//       mOutputFile.write(reinterpret_cast<char*>(&nEventTracks), sizeof(int));
-//       int nEventClusters = eventClusters.size();
-//       mOutputFile.write(reinterpret_cast<char*>(&nEventClusters), sizeof(int));
-//
-//       // write the tracks at vertex, MCH tracks and attached clusters
-//       mOutputFile.write(eventTracksAtVtx.data(), eventTracksAtVtx.size());
-//       mOutputFile.write(reinterpret_cast<const char*>(eventTracks.data()), eventTracks.size() * sizeof(TrackMCH));
-//       mOutputFile.write(reinterpret_cast<const char*>(eventClusters.data()), eventClusters.size_bytes());
-//     }
+int dumpRoot(std::string inputFile)
+{
+  std::unique_ptr<TFile> fin(TFile::Open(inputFile.c_str()));
+  TTree* tree = static_cast<TTree*>(fin->Get("o2sim"));
+
+  TrackTreeReader tr(tree);
+
+  ROFRecord rof;
+  std::vector<TrackMCH> tracks;
+  std::vector<ClusterStruct> clusters;
+
+  while (tr.next(rof, tracks, clusters)) {
+    std::cout << rof << "\n";
+    for (const auto& t : tracks) {
+      std::cout << "   ";
+      dump(std::cout, t);
+    }
+  }
+  return 0;
+}
+
+/**
+ * o2-mch-tracks-file-dumper is a small helper program to inspect
+ * track binary files (mch custom binary format for debug only)
+ */
+
+int main(int argc, char* argv[])
+{
+  std::string inputFile;
+  po::variables_map vm;
+  po::options_description options("options");
+
+  // clang-format off
+  // clang-format off
+  options.add_options()
+      ("help,h", "produce help message")
+      ("infile,i", po::value<std::string>(&inputFile)->required(), "input file name")
+      ;
+  // clang-format on
+
+  po::options_description cmdline;
+  cmdline.add(options);
+
+  po::store(po::command_line_parser(argc, argv).options(cmdline).run(), vm);
+
+  if (vm.count("help")) {
+    std::cout << options << "\n";
+    return 2;
+  }
+
+  try {
+    po::notify(vm);
+  } catch (boost::program_options::error& e) {
+    std::cout << "Error: " << e.what() << "\n";
+    exit(1);
+  }
+
+  std::string ext = fs::path(inputFile).extension();
+  std::transform(ext.begin(), ext.begin(), ext.end(), [](unsigned char c) { return std::tolower(c); });
+
+  if (ext == ".root") {
+    return dumpRoot(inputFile);
+  }
+  return dumpBinary(inputFile);
+}

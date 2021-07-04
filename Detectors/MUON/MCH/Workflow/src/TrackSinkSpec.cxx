@@ -35,6 +35,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"
+#include "TrackAtVtxStruct.h"
 
 namespace o2
 {
@@ -139,14 +140,6 @@ class TrackSinkTask
       throw length_error("empty time frame");
     }
   }
-
- private:
-  struct TrackAtVtxStruct {
-    TrackParamStruct paramAtVertex{};
-    double dca = 0.;
-    double rAbs = 0.;
-    int mchTrackIdx = 0;
-  };
 
   //_________________________________________________________________________________________________
   gsl::span<const ClusterStruct> getEventTracksAndClusters(const ROFRecord& rof, gsl::span<const TrackMCH> tracks,
