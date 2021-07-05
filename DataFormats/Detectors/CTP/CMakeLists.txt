@@ -19,5 +19,6 @@ o2_add_library(DataFormatsCTP
                         O2::DataFormatsFT0)
 o2_target_root_dictionary(DataFormatsCTP
                           HEADERS include/DataFormatsCTP/Digits.h
-                                  include/DataFormatsCTP/Configuration.h)
+                                  include/DataFormatsCTP/Configuration.h
+                                  include/DataFormatsCTP/Scalers.h)
 
