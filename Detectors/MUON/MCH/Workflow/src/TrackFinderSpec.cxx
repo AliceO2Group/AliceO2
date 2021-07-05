@@ -160,10 +160,10 @@ class TrackFinderTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackFinderSpec()
+o2::framework::DataProcessorSpec getTrackFinderSpec(const char* name)
 {
   return DataProcessorSpec{
-    "TrackFinder",
+    name,
     Inputs{InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
            InputSpec{"clusters", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
