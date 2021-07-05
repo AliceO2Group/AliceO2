@@ -84,11 +84,11 @@ bool isStableCharged(int pdg)
   return false;
 }
 
-// temporary
+// temporary before we get properly filled particle info
 template <typename T>
-bool isPhysicalPrimaryChargedRun3(T const& p)
+bool isPhysicalPrimaryRun3(T const& p)
 {
-  if (!isStableCharged(std::abs(p.pdgCode()))) {
+  if (!isStable(std::abs(p.pdgCode()))) {
     return false;
   };
   return true;

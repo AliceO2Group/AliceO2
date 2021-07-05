@@ -15,6 +15,6 @@ o2_add_dpl_workflow(run2-dndeta
                     COMPONENT_NAME Analysis)
 
 o2_add_dpl_workflow(dndeta
-                    SOURCES dndeta.cxx
+                    SOURCES dndeta.cxx dndeta.h
                     PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisCore O2::AnalysisDataModel
                     COMPONENT_NAME Analysis)
