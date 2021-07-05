@@ -1803,7 +1803,7 @@ void V3Services::mbEndWheelSideC(const Int_t iLay, TGeoVolume* mother, const TGe
   ringUpperVol->SetFillColor(kBlue);
   ringUpperVol->SetLineColor(kBlue);
 
-  TGeoVolume* shelfVol = new TGeoVolume(Form("OBEndWheelAShelf%d", nLay), shelfSh, medCarbon);
+  TGeoVolume* shelfVol = new TGeoVolume(Form("OBEndWheelCShelf%d", nLay), shelfSh, medCarbon);
   shelfVol->SetFillColor(kBlue);
   shelfVol->SetLineColor(kBlue);
 
