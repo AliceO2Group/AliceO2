@@ -53,19 +53,41 @@ enum class VariantType : int { Int = 0,
 template <VariantType V>
 constexpr auto isArray()
 {
-  return (V == VariantType::ArrayBool || V == VariantType::ArrayDouble || V == VariantType::ArrayFloat || V == VariantType::ArrayInt || V == VariantType::ArrayString);
+  return (V == VariantType::ArrayBool ||
+          V == VariantType::ArrayDouble ||
+          V == VariantType::ArrayFloat ||
+          V == VariantType::ArrayInt ||
+          V == VariantType::ArrayString);
 }
 
 template <VariantType V>
 constexpr auto isArray2D()
 {
-  return (V == VariantType::Array2DInt || V == VariantType::Array2DFloat || V == VariantType::Array2DDouble);
+  return (V == VariantType::Array2DInt ||
+          V == VariantType::Array2DFloat ||
+          V == VariantType::Array2DDouble);
 }
 
 template <VariantType V>
 constexpr auto isLabeledArray()
 {
-  return (V == VariantType::LabeledArrayInt || V == VariantType::LabeledArrayFloat || V == VariantType::LabeledArrayDouble);
+  return (V == VariantType::LabeledArrayInt ||
+          V == VariantType::LabeledArrayFloat ||
+          V == VariantType::LabeledArrayDouble);
+}
+
+template <VariantType V>
+constexpr auto isSimpleVariant()
+{
+  return (V == VariantType::Int) ||
+         (V == VariantType::Int64) ||
+         (V == VariantType::UInt8) ||
+         (V == VariantType::UInt16) ||
+         (V == VariantType::UInt32) ||
+         (V == VariantType::UInt64) ||
+         (V == VariantType::Float) ||
+         (V == VariantType::Double) ||
+         (V == VariantType::Bool);
 }
 
 template <typename T>
@@ -285,10 +307,10 @@ class Variant
   }
 
   Variant(const Variant& other);
-  Variant(Variant&& other);
+  Variant(Variant&& other) noexcept;
   ~Variant();
   Variant& operator=(const Variant& other);
-  Variant& operator=(Variant&& other);
+  Variant& operator=(Variant&& other) noexcept;
 
   template <typename T>
   T get() const
