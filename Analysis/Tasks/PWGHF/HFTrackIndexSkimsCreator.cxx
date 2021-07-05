@@ -1082,9 +1082,15 @@ struct HfTrackIndexSkimsCreatorCascades {
   // quality cut
   Configurable<bool> doCutQuality{"doCutQuality", true, "apply quality cuts"};
 
+  // track cuts for bachelor
+  Configurable<bool> TPCRefitBach{"TPCRefitBach", true, "request TPC refit bachelor"};
+  Configurable<int> minCrossedRowsBach{"minCrossedRowsBach", 50, "min crossed rows bachelor"};
+
   // track cuts for V0 daughters
-  Configurable<bool> TPCRefit{"TPCRefit", true, "request TPC refit V0 daughters"};
-  Configurable<int> i_minCrossedRows{"i_minCrossedRows", 50, "min crossed rows V0 daughters"};
+  Configurable<bool> TPCRefitV0Daugh{"TPCRefitV0Daugh", true, "request TPC refit V0 daughters"};
+  Configurable<int> minCrossedRowsV0Daugh{"minCrossedRowsV0Daugh", 50, "min crossed rows V0 daughters"};
+
+  // track cuts for V0 daughters
   Configurable<double> etaMax{"etaMax", 1.1, "max. pseudorapidity V0 daughters"};
   Configurable<double> ptMin{"ptMin", 0.05, "min. pT V0 daughters"};
 
@@ -1095,11 +1101,11 @@ struct HfTrackIndexSkimsCreatorCascades {
   // v0 cuts
   Configurable<double> cosPAV0{"cosPAV0", .995, "CosPA V0"};                  // as in the task that create the V0s
   Configurable<double> dcaXYNegToPV{"dcaXYNegToPV", .1, "DCA_XY Neg To PV"};  // check: in HF Run 2, it was 0 at filtering
-  Configurable<double> dcaXYPosToPV{"dcaXYPosToPVS", .1, "DCA_XY Pos To PV"}; // check: in HF Run 2, it was 0 at filtering
+  Configurable<double> dcaXYPosToPV{"dcaXYPosToPV", .1, "DCA_XY Pos To PV"};  // check: in HF Run 2, it was 0 at filtering
   Configurable<double> cutInvMassV0{"cutInvMassV0", 0.05, "V0 candidate invariant mass difference wrt PDG"};
 
   // cascade cuts
-  Configurable<double> cutCascPtCandMin{"cutCascPtCandMin", -1., "min. pT of the 2-prong candidate"};              // PbPb 2018: use 1
+  Configurable<double> cutCascPtCandMin{"cutCascPtCandMin", -1., "min. pT of the cascade candidate"};              // PbPb 2018: use 1
   Configurable<double> cutCascInvMassLc{"cutCascInvMassLc", 1., "Lc candidate invariant mass difference wrt PDG"}; // for PbPb 2018: use 0.2
   //Configurable<double> cutCascDCADaughters{"cutCascDCADaughters", .1, "DCA between V0 and bachelor in cascade"};
 
@@ -1174,14 +1180,14 @@ struct HfTrackIndexSkimsCreatorCascades {
         continue;
       }
 
-      if (TPCRefit) {
+      if (TPCRefitBach) {
         if (!(bach.trackType() & o2::aod::track::TPCrefit)) {
           MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << ": rejected due to TPCrefit");
           continue;
         }
       }
-      if (bach.tpcNClsCrossedRows() < i_minCrossedRows) {
-        MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << ": rejected due to minNUmberOfCrossedRows " << bach.tpcNClsCrossedRows() << " (cut " << i_minCrossedRows << ")");
+      if (bach.tpcNClsCrossedRows() < minCrossedRowsBach) {
+        MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << ": rejected due to minNUmberOfCrossedRows " << bach.tpcNClsCrossedRows() << " (cut " << minCrossedRowsBach << ")");
         continue;
       }
       MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "KEPT! proton from Lc with daughters " << indexBach);
@@ -1209,15 +1215,15 @@ struct HfTrackIndexSkimsCreatorCascades {
 
         MY_DEBUG_MSG(isLc, LOG(INFO) << "Combination of K0S and p which correspond to a Lc found!");
 
-        if (TPCRefit) {
+        if (TPCRefitV0Daugh) {
           if (!(trackV0DaughPos.trackType() & o2::aod::track::TPCrefit) ||
               !(trackV0DaughNeg.trackType() & o2::aod::track::TPCrefit)) {
             MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg << ": rejected due to TPCrefit");
             continue;
           }
         }
-        if (trackV0DaughPos.tpcNClsCrossedRows() < i_minCrossedRows ||
-            trackV0DaughNeg.tpcNClsCrossedRows() < i_minCrossedRows) {
+        if (trackV0DaughPos.tpcNClsCrossedRows() < minCrossedRowsV0Daugh ||
+            trackV0DaughNeg.tpcNClsCrossedRows() < minCrossedRowsV0Daugh) {
           MY_DEBUG_MSG(isK0SfromLc, LOG(INFO) << "K0S with daughters " << indexV0DaughPos << " and " << indexV0DaughNeg << ": rejected due to minCrossedRows");
           continue;
         }
