@@ -49,12 +49,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
-  specs.emplace_back(o2::mch::getPreClusterFinderSpec());
-  specs.emplace_back(o2::mch::getClusterFinderOriginalSpec());
+  specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder"));
+  specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
   specs.emplace_back(o2::mch::getClusterTransformerSpec());
-  specs.emplace_back(o2::mch::getTrackFinderSpec());
-  specs.emplace_back(o2::mch::getVertexSamplerSpec());
-  specs.emplace_back(o2::mch::getTrackAtVertexSpec());
+  specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder"));
+  specs.emplace_back(o2::mch::getVertexSamplerSpec("mch-vertex-sampler"));
+  specs.emplace_back(o2::mch::getTrackAtVertexSpec("mch-track-at-vertex"));
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
