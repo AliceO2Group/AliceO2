@@ -282,7 +282,8 @@ struct AnalysisDataProcessorBuilder {
                                                        x.asArrowTable(),
                                                        static_cast<int32_t>(gt.tableSize()),
                                                        &groups[index],
-                                                       &offsets[index]);
+                                                       &offsets[index],
+                                                       &sizes[index]);
             if (result.ok() == false) {
               throw runtime_error("Cannot split collection");
             }
@@ -394,7 +395,7 @@ struct AnalysisDataProcessorBuilder {
 
             // for each grouping element we need to slice the selection vector
             auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), (offsets[index])[pos]);
-            auto stop_iterator = std::lower_bound(start_iterator, selections[index]->end(), (offsets[index])[pos + 1]);
+            auto stop_iterator = std::lower_bound(start_iterator, selections[index]->end(), (offsets[index])[pos] + (sizes[index])[pos]);
             starts[index] = stop_iterator;
             soa::SelectionVector slicedSelection{start_iterator, stop_iterator};
             std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
@@ -421,6 +422,7 @@ struct AnalysisDataProcessorBuilder {
       soa::SelectionVector const* groupSelection = nullptr;
       std::array<std::vector<arrow::Datum>, sizeof...(A)> groups;
       std::array<std::vector<uint64_t>, sizeof...(A)> offsets;
+      std::array<std::vector<int>, sizeof...(A)> sizes;
       std::array<soa::SelectionVector const*, sizeof...(A)> selections;
       std::array<soa::SelectionVector::const_iterator, sizeof...(A)> starts;
     };

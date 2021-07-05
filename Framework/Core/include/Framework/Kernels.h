@@ -36,6 +36,7 @@ auto sliceByColumn(
   T fullSize,
   std::vector<arrow::Datum>* slices,
   std::vector<uint64_t>* offsets = nullptr,
+  std::vector<int>* sizes = nullptr,
   std::vector<arrow::Datum>* unassignedSlices = nullptr,
   std::vector<uint64_t>* unassignedOffsets = nullptr)
 {
@@ -50,7 +51,6 @@ auto sliceByColumn(
 
   // create slices and offsets
   uint64_t offset = 0;
-  uint64_t unassignedOffset = 0;
   auto count = 0;
   auto size = values.length();
 
@@ -58,6 +58,9 @@ auto sliceByColumn(
     slices->emplace_back(arrow::Datum{input->Slice(offset_, count_)});
     if (offsets) {
       offsets->emplace_back(offset_);
+    }
+    if (sizes) {
+      sizes->emplace_back(count_);
     }
   };
 
@@ -85,7 +88,7 @@ auto sliceByColumn(
       offset += count;
       continue;
     }
-    nzeros = v - vprev - ((i == 0) ? 0 : 1);
+    nzeros = v - vprev - ((i == 0 || slices->empty() == true) ? 0 : 1);
     for (auto z = 0; z < nzeros; ++z) {
       makeSlice(offset, 0);
     }
