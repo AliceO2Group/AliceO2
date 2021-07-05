@@ -264,8 +264,8 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        if (lastCandidate >= 0) {
                          lastDeviceOffered = lastCandidate + 1;
                        }
-
-                       int unusedOfferedMemory = (offeredSharedMemory - readerBytesCreated / 1000000);
+                       // Memory which was offered, but was actually used by the reader or expired.
+                       int unusedOfferedMemory = (offeredSharedMemory - (totalBytesExpired + readerBytesCreated) / 1000000);
                        availableSharedMemory = MAX_SHARED_MEMORY + ((totalBytesDestroyed + totalBytesExpired - totalBytesCreated) / 1000000) - unusedOfferedMemory;
                        availableSharedMemoryMetric(driverMetrics, availableSharedMemory, timestamp);
                        unusedOfferedMemoryMetric(driverMetrics, unusedOfferedMemory, timestamp);
