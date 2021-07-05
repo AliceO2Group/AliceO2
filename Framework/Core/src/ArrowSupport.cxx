@@ -236,7 +236,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        for (size_t di = 0; di < specs.size(); di++) {
                          if (availableSharedMemory < possibleOffer) {
                            if (lowSharedMemoryCount == 0) {
-                             LOGP(ERROR, "We do not have enough shared memory ({}MB) to offer {}MB", availableSharedMemory, possibleOffer);
+                             LOGP(INFO, "We do not have enough shared memory ({}MB) to offer {}MB", availableSharedMemory, possibleOffer);
                            }
                            lowSharedMemoryCount++;
                            enoughSharedMemoryCount = 0;
