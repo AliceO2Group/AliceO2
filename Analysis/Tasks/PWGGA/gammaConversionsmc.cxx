@@ -32,13 +32,13 @@ using namespace o2::framework;
 using namespace o2::framework::expressions;
 
 using collisionEvSelIt = soa::Join<aod::Collisions, aod::EvSels>::iterator;
-using tracksAndTPCInfo = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi>;
+using tracksAndTPCInfoMC = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi, aod::McTrackLabels>;
 
 #include "Framework/runDataProcessing.h"
 
-struct GammaConversions {
+struct GammaConversionsmc {
 
-  Configurable<bool> fDoEventSel{"fDoEventSel", 0, "demand kINT7 and sel7 for events"};
+  Configurable<bool> fDoEventSel{"fDoEventSel", 0, "demand sel7 for events"};
 
   Configurable<float> fCentMin{"fCentMin", 0.0, "lower bound of centrality selection"};
   Configurable<float> fCentMax{"fCentMax", 100.0, "upper bound of centrality selection"};
@@ -182,21 +182,51 @@ struct GammaConversions {
     return kTRUE;
   }
 
-  void processData(collisionEvSelIt const& theCollision,
-                   aod::V0Datas const& theV0s,
-                   tracksAndTPCInfo const& theTracks)
+  template <typename TV0, typename TMC>
+  void processTruePhoton(const TV0& theV0, const TMC& theMcParticles)
+  {
+    auto lTrackPos = theV0.template posTrack_as<tracksAndTPCInfoMC>(); //positive daughter
+    auto lTrackNeg = theV0.template negTrack_as<tracksAndTPCInfoMC>(); //negative daughter
+
+    // todo: verify it is enough to check only mother0 being equal
+    if (lTrackPos.mcParticle().mother0() > -1 &&
+        lTrackPos.mcParticle().mother0() == lTrackNeg.mcParticle().mother0()) {
+      auto lMother = theMcParticles.iteratorAt(lTrackPos.mcParticle().mother0());
+
+      if (lMother.pdgCode() == 22) {
+
+        registry.fill(HIST("resolutions/hPtRes"), theV0.pt() - lMother.pt());
+        registry.fill(HIST("resolutions/hEtaRes"), theV0.eta() - lMother.eta());
+        registry.fill(HIST("resolutions/hPhiRes"), theV0.phi() - lMother.phi());
+
+        TVector3 lConvPointRec(theV0.x(), theV0.y(), theV0.z());
+        TVector3 lPosTrackVtxMC(lTrackPos.mcParticle().vx(), lTrackPos.mcParticle().vy(), lTrackPos.mcParticle().vz());
+        // take the origin of the positive mc track as conversion point (should be identical with negative, verified this on a few photons)
+        TVector3 lConvPointMC(lPosTrackVtxMC);
+
+        registry.fill(HIST("resolutions/hConvPointRRes"), lConvPointRec.Perp() - lConvPointMC.Perp());
+        registry.fill(HIST("resolutions/hConvPointAbsoluteDistanceRes"), TVector3(lConvPointRec - lConvPointMC).Mag());
+      }
+    }
+  }
+
+  void processMC(collisionEvSelIt const& theCollision,
+                 aod::V0Datas const& theV0s,
+                 tracksAndTPCInfoMC const& theTracks,
+                 aod::McParticles const& theMcParticles)
   {
     registry.fill(HIST("hEvents"), 0);
-    if (fDoEventSel && (!theCollision.alias()[kINT7] || !theCollision.sel7())) {
+    if (fDoEventSel && !theCollision.sel7()) {
       registry.fill(HIST("hEvents"), 1);
       return;
     }
     registry.fill(HIST("hEvents"), 3);
 
     for (auto& lV0 : theV0s) {
-      if (!processPhoton<tracksAndTPCInfo>(theCollision, lV0)) {
+      if (!processPhoton<tracksAndTPCInfoMC>(theCollision, lV0)) {
         continue;
       }
+      processTruePhoton(lV0, theMcParticles);
     }
   }
 
@@ -345,5 +375,5 @@ struct GammaConversions {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processData})};
+  return WorkflowSpec{adaptAnalysisTask<GammaConversionsmc>(cfgc, Processes{&GammaConversionsmc::processMC})};
 }
