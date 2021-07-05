@@ -76,8 +76,8 @@ struct PseudorapidityDensity {
       auto z = collision.posZ();
       registry.fill(HIST("EventsNtrkZvtx"), tracks.size(), z);
       for (auto& track : tracks) {
-          registry.fill(HIST("TracksEtaZvtx"), track.eta(), z);
-          registry.fill(HIST("TracksPhiEta"), track.phi(), track.eta());
+        registry.fill(HIST("TracksEtaZvtx"), track.eta(), z);
+        registry.fill(HIST("TracksPhiEta"), track.phi(), track.eta());
       }
     } else {
       registry.fill(HIST("EventSelection"), 3.);
@@ -129,13 +129,13 @@ struct PseudorapidityDensityMc {
 
   void processGen(soa::Filtered<aod::McCollisions>::iterator const& collision, soa::Filtered<Particles> const& primaries)
   {
-      registry.fill(HIST("EventEfficiency"), 1.);
-      for (auto& particle : primaries) {
-        if ((particle.eta() < etaMax) && (particle.eta() > etaMin)) {
-          registry.fill(HIST("TracksEtaZvtxGen"), particle.eta(), collision.posZ());
-          registry.fill(HIST("TracksPhiEtaGen"), particle.phi(), particle.eta());
-        }
+    registry.fill(HIST("EventEfficiency"), 1.);
+    for (auto& particle : primaries) {
+      if ((particle.eta() < etaMax) && (particle.eta() > etaMin)) {
+        registry.fill(HIST("TracksEtaZvtxGen"), particle.eta(), collision.posZ());
+        registry.fill(HIST("TracksPhiEtaGen"), particle.phi(), particle.eta());
       }
+    }
   }
 
   void processMatching(soa::Filtered<soa::Join<aod::Collisions, aod::EvSels, aod::McCollisionLabels>>::iterator const& collision, soa::Filtered<aod::Tracks> const& tracks, aod::McCollisions const&)
