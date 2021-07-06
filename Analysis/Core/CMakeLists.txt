@@ -14,6 +14,7 @@ o2_add_library(AnalysisCore
                         src/TrackSelection.cxx
                         src/TriggerAliases.cxx
                         src/HFConfigurables.cxx
+                        src/BasicPDGManager.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework O2::AnalysisDataModel)
 
 o2_target_root_dictionary(AnalysisCore
@@ -23,6 +24,7 @@ o2_target_root_dictionary(AnalysisCore
                       include/AnalysisCore/TriggerAliases.h
                       include/AnalysisCore/MC.h
                       include/AnalysisCore/HFConfigurables.h
+                      include/AnalysisCore/BasicPDGManager.h
               LINKDEF src/AnalysisCoreLinkDef.h)
 
 o2_add_executable(merger
