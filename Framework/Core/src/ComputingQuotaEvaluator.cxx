@@ -15,6 +15,8 @@
 #include "Framework/DriverClient.h"
 #include "Framework/Monitoring.h"
 #include "Framework/Logger.h"
+#include <Monitoring/Monitoring.h>
+
 #include <vector>
 #include <uv.h>
 #include <cassert>
@@ -162,7 +164,18 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
 
 void ComputingQuotaEvaluator::consume(int id, ComputingQuotaConsumer& consumer)
 {
-  consumer(id, mOffers);
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+  // This will report how much of the offers has to be considered consumed.
+  // Notice that actual memory usage might be larger, because we can over 
+  // allocate.
+  auto reportConsumedOffer = [&totalDisposedMemory = mTotalDisposedSharedMemory, &monitoring = mRegistry.get<Monitoring>()](ComputingQuotaOffer const&accumulatedConsumed) {
+    totalDisposedMemory += accumulatedConsumed.sharedMemory;
+    monitoring.send(Metric{(uint64_t)totalDisposedMemory, "shm-offer-consumed"}.addTag(Key::Subsystem, Value::DPL));
+  };
+  consumer(id, mOffers, reportConsumedOffer);
 }
 
 void ComputingQuotaEvaluator::dispose(int taskId)
