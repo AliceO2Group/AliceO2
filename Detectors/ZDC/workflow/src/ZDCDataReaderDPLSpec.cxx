@@ -66,7 +66,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     }
     mRawReader.setModuleConfig(moduleConfig);
     mRawReader.setTriggerMask();
-    mRawReader.mVerifyTrigger = mVerifyTrigger;
+    mRawReader.setVerifyTrigger(mVerifyTrigger);
     LOG(INFO) << "Check of trigger condition during conversion is " << (mVerifyTrigger ? "ON" : "OFF");
   }
   uint64_t count = 0;

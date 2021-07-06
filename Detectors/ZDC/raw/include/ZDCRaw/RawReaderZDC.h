@@ -57,6 +57,8 @@ class RawReaderZDC
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
   void setTriggerMask();
+  void setVerifyTrigger(const bool verifyTrigger) { mVerifyTrigger = verifyTrigger; };
+  bool getVerifyTrigger() { return mVerifyTrigger; };
 
   void clear();
 
