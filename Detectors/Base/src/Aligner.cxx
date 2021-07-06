@@ -47,8 +47,9 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
   ccdbmgr.setURL(getCCDB());
   ccdbmgr.setTimestamp(timestamp);
   LOGP(INFO, "applying geometry alignment from {} for timestamp {}", getCCDB(), timestamp);
+  DetID::mask_t detGeoMask(gGeoManager->GetUniqueID());
   for (auto id = DetID::First; id <= DetID::Last; id++) {
-    if (!msk[id]) {
+    if (!msk[id] || (detGeoMask.any() && !detGeoMask[id])) {
       continue;
     }
     std::string path = o2::base::NameConf::getAlignmentPath({id});
