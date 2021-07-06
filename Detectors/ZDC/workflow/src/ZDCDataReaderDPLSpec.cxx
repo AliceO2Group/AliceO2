@@ -33,10 +33,12 @@ void ZDCDataReaderDPLSpec::init(InitContext& ic)
 
 void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
 {
+  mRawReader.clear();
+
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {
-    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{o2::header::gDataOriginFT0, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
+    std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{o2::header::gDataOriginZDC, o2::header::gDataDescriptionRawData, 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(pc.inputs(), dummy)) {
       const auto dh = o2::framework::DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       if (dh->payloadSize == 0) {
@@ -49,7 +51,6 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   }
 
   DPLRawParser parser(pc.inputs());
-  mRawReader.clear();
 
   //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
   if (!mRawReader.getModuleConfig()) {
