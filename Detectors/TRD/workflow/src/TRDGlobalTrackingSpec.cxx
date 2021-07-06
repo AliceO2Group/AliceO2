@@ -146,8 +146,8 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
     GPUTRDTracker::HelperTrackAttributes trkAttribs;
     trkAttribs.mTime = trkITSTPC.getTimeMUS().getTimeStamp();
-    trkAttribs.mTimeAddMax = trkITSTPC.getTimeMUS().getTimeStampError();
-    trkAttribs.mTimeSubMax = trkITSTPC.getTimeMUS().getTimeStampError();
+    trkAttribs.mTimeAddMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC;
+    trkAttribs.mTimeSubMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC;
     GPUTRDTrack trkLoad(trkITSTPC);
     auto trackGID = GTrackID(iTrk, GTrackID::ITSTPC);
     if (mTracker->LoadTrack(trkLoad, trackGID.getRaw(), true, &trkAttribs)) {

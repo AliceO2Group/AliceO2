@@ -47,7 +47,7 @@ void TRDTrackletReader::connectTreeCTracklet()
   mTreeCTrklt.reset((TTree*)mFileCTrklt->Get("ctracklets"));
   assert(mTreeCTrklt);
   mTreeCTrklt->SetBranchAddress("CTracklets", &mTrackletsCalPtr);
-  mTreeCTrklt->SetBranchAddress("TRIGRECMASK", &mTrigRecMaskPtr);
+  mTreeCTrklt->SetBranchAddress("TrigRecMask", &mTrigRecMaskPtr);
   LOG(INFO) << "Loaded tree from trdcalibratedtracklets.root with " << mTreeCTrklt->GetEntries() << " entries";
 }
 
@@ -78,6 +78,7 @@ void TRDTrackletReader::run(ProcessingContext& pc)
     assert(mTreeTrklt->GetEntries() == mTreeCTrklt->GetEntries());
     mTreeCTrklt->GetEntry(currEntry);
     LOG(INFO) << "Pushing " << mTrackletsCal.size() << " calibrated TRD tracklets for these trigger records";
+    LOG(INFO) << "Pushing " << mTrigRecMask.size() << " flags for the given TRD trigger records";
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe}, mTrackletsCal);
     pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "TRIGRECMASK", 0, Lifetime::Timeframe}, mTrigRecMask);
   }
