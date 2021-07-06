@@ -1037,18 +1037,13 @@ void Detector::addAlignableVolumesLayer(int lr, TString& parent, Int_t& lastUID)
   // Add alignable volumes for a Layer and its daughters
   //
   // Created:      06 Mar 2018  Mario Sitta First version (mainly ported from AliRoot)
+  // Updated:      06 Jul 2021  Mario Sitta Do not set Layer as alignable volume
   //
 
   TString wrpV =
     mWrapperLayerId[lr] != -1 ? Form("%s%d_1", GeometryTGeo::getITSWrapVolPattern(), mWrapperLayerId[lr]) : "";
   TString path = Form("%s/%s/%s%d_1", parent.Data(), wrpV.Data(), GeometryTGeo::getITSLayerPattern(), lr);
   TString sname = GeometryTGeo::composeSymNameLayer(lr);
-
-  LOG(DEBUG) << "Add " << sname << " <-> " << path;
-
-  if (!gGeoManager->SetAlignableEntry(sname.Data(), path.Data())) {
-    LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
-  }
 
   const V3Layer* lrobj = mGeometry[lr];
   Int_t nhbarrel = lrobj->getNumberOfHalfBarrelsPerParent();
