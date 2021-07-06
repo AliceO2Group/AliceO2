@@ -78,7 +78,7 @@ struct JetMatching {
     i = 0;
     for (auto& jet : jetsTag) {
       // Store results
-      jetsBaseMatching(jet.globalIndex(), tagToBaseIndexMap[i]);
+      jetsTagMatching(jet.globalIndex(), tagToBaseIndexMap[i]);
       ++i;
     }
   }

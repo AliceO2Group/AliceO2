@@ -76,7 +76,7 @@ std::tuple<std::vector<std::size_t>, std::vector<T>, std::vector<T>> DuplicateJe
     }
   }
 
-  return std::move(std::make_tuple(jetsMapToJetIndex, jetsPhiComparison, jetsEtaComparison));
+  return {jetsMapToJetIndex, jetsPhiComparison, jetsEtaComparison};
 }
 
 /**

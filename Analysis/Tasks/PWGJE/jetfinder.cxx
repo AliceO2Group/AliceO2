@@ -271,5 +271,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   }
   // Default to data
   return WorkflowSpec{
-    adaptAnalysisTask<JetFinderHybridIntermediate>(cfgc, Processes{&JetFinderHybridIntermediate::processData}, TaskName{"jet-finder-hybrid-intermedaite"})};
+    adaptAnalysisTask<JetFinderData>(cfgc, Processes{&JetFinderData::processData}, TaskName{"jet-finder-data"})};
 }
