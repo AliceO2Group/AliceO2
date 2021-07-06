@@ -41,14 +41,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto fillSVertices = configcontext.options().get<bool>("fill-svertices");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
 
-  GID::mask_t src = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,FT0"); // asking only for currently processed sources
-  GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy;
+  GID::mask_t src = GID::getSourcesMask("ITS,MFT,TPC,ITS-TPC,ITS-TPC-TOF,TPC-TOF,FT0,TPC-TRD,ITS-TPC-TRD");
 
   WorkflowSpec specs;
-
   specs.emplace_back(o2::aodproducer::getAODProducerWorkflowSpec(src, useMC, fillSVertices));
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClus, src, src, useMC, srcClus);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC, src);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
   if (fillSVertices) {
     o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);

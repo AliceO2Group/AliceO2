@@ -18,6 +18,7 @@
 #include "DataFormatsTPC/TrackTPC.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -47,10 +48,10 @@
 using namespace o2::framework;
 using namespace o2::math_utils::detail;
 using PVertex = o2::dataformats::PrimaryVertex;
-using V2TRef = o2::dataformats::VtxTrackRef;
 using GIndex = o2::dataformats::VtxTrackIndex;
 using DataRequest = o2::globaltracking::DataRequest;
 using GID = o2::dataformats::GlobalTrackID;
+using TPCClRefElem = uint32_t;
 
 namespace o2::aodproducer
 {
@@ -196,10 +197,11 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
 
 template <typename MCParticlesCursorType>
 void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthITS, std::vector<bool>& isStoredITS,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthMFT, std::vector<bool>& isStoredMFT,
-                                                  gsl::span<const o2::MCCompLabel>& mcTruthTPC, std::vector<bool>& isStoredTPC,
-                                                  TripletsMap_t& toStore, std::vector<std::pair<int, int>> const& mccolid_to_eventandsource)
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthITS,
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthMFT,
+                                                  gsl::span<const o2::MCCompLabel>& mcTruthTPC,
+                                                  TripletsMap_t& toStore,
+                                                  std::vector<std::pair<int, int>> const& mccolid_to_eventandsource)
 {
   // mark reconstructed MC particles to store them into the table
   for (int i = 0; i < mcTruthITS.size(); i++) {
@@ -335,6 +337,41 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
   }
 }
 
+uint8_t AODProducerWorkflowDPL::countTPCSharedCl(const o2::tpc::TrackTPC& track,
+                                                 const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
+                                                 const gsl::span<const unsigned char>& tpcClusShMap,
+                                                 const o2::tpc::ClusterNativeAccess& tpcClusAcc)
+{
+  constexpr int maxRows = 152;
+  std::array<bool, maxRows> shMap{};
+  uint8_t sectorIndex;
+  uint8_t rowIndex;
+  uint32_t clusterIndex;
+  uint8_t shared = 0;
+  for (int i = 0; i < track.getNClusterReferences(); i++) {
+    o2::tpc::TrackTPC::getClusterReference(tpcClusRefs, i, sectorIndex, rowIndex, clusterIndex, track.getClusterRef());
+    unsigned int absoluteIndex = tpcClusAcc.clusterOffset[sectorIndex][rowIndex] + clusterIndex;
+    if (tpcClusShMap[absoluteIndex] > 1) {
+      if (!shMap[rowIndex]) {
+        shared++;
+      }
+      shMap[rowIndex] = true;
+    }
+  }
+  return shared;
+}
+
+uint8_t AODProducerWorkflowDPL::getTRDPattern(const o2::trd::TrackTRD& track)
+{
+  uint8_t pattern = 0;
+  for (int il = o2::trd::TrackTRD::EGPUTRDTrack::kNLayers; il >= 0; il--) {
+    if (track.getTrackletIndex(il) != -1) {
+      pattern |= 0x1 << il;
+    }
+  }
+  return pattern;
+}
+
 void AODProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
@@ -422,16 +459,16 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto tracksMFT = recoData.getMFTTracks();
   auto tracksTPC = recoData.getTPCTracks();
   auto tracksITSTPC = recoData.getTPCITSTracks();
+  auto tracksITSTPCTRD = recoData.getITSTPCTRDTracks<o2::trd::TrackTRD>();
+  auto tracksTPCTRD = recoData.getTPCTRDTracks<o2::trd::TrackTRD>();
 
   auto tracksTPCMCTruth = recoData.getTPCTracksMCLabels();
   auto tracksITSMCTruth = recoData.getITSTracksMCLabels();
   auto tracksMFTMCTruth = recoData.getMFTTracksMCLabels();
 
-  // using vectors to mark referenced tracks
-  // todo: should not use these (?), to be removed, when all track types are processed
-  std::vector<bool> isStoredTPC(tracksTPC.size(), false);
-  std::vector<bool> isStoredITS(tracksITS.size(), false);
-  std::vector<bool> isStoredMFT(tracksMFT.size(), false);
+  const auto& tpcClusRefs = recoData.getTPCTracksClusterRefs();
+  const auto& tpcClusShMap = recoData.clusterShMapTPC;
+  const auto& tpcClusAcc = recoData.getTPCClusters();
 
   LOG(DEBUG) << "FOUND " << primVertices.size() << " primary vertices";
   LOG(DEBUG) << "FOUND " << tracksTPC.size() << " TPC tracks";
@@ -671,7 +708,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       auto& trackIndex = primVerGIs[ti];
       if (src == GIndex::Source::ITS && mFillTracksITS) {
         const auto& track = tracksITS[trackIndex.getIndex()];
-        isStoredITS[trackIndex.getIndex()] = true;
         // extra info
         extraInfoHolder.itsClusterMap = track.getPattern();
         // track
@@ -680,11 +716,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       }
       if (src == GIndex::Source::TPC && mFillTracksTPC) {
         const auto& track = tracksTPC[trackIndex.getIndex()];
-        isStoredTPC[trackIndex.getIndex()] = true;
         // extra info
+        extraInfoHolder.tpcInnerParam = track.getP();
         extraInfoHolder.tpcChi2NCl = track.getNClusters() ? track.getChi2() / track.getNClusters() : 0;
         extraInfoHolder.tpcSignal = track.getdEdx().dEdxTotTPC;
-        extraInfoHolder.tpcNClsFindable = track.getNClusters();
+        extraInfoHolder.tpcNClsShared = countTPCSharedCl(track, tpcClusRefs, tpcClusShMap, tpcClusAcc);
         // track
         addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
         addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
@@ -694,16 +730,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
         // extra info from sub-tracks
         if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
-          isStoredITS[track.getRefITS()] = true;
           const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
           extraInfoHolder.itsClusterMap = itsOrig.getPattern();
         }
         if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-          isStoredTPC[track.getRefTPC()] = true;
           const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+          extraInfoHolder.tpcInnerParam = tpcOrig.getP();
           extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
           extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
-          extraInfoHolder.tpcNClsFindable = tpcOrig.getNClusters();
+          extraInfoHolder.tpcNClsShared = countTPCSharedCl(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc);
         }
         addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
         addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
@@ -718,23 +753,57 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         extraInfoHolder.length = tofInt.getL();
         // extra info from sub-tracks
         if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
-          isStoredITS[track.getRefITS()] = true;
           const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
           extraInfoHolder.itsClusterMap = itsOrig.getPattern();
         }
         if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-          isStoredTPC[track.getRefTPC()] = true;
           const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+          extraInfoHolder.tpcInnerParam = tpcOrig.getP();
           extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
           extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
-          extraInfoHolder.tpcNClsFindable = tpcOrig.getNClusters();
+          extraInfoHolder.tpcNClsShared = countTPCSharedCl(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc);
+        }
+        addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
+        addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
+      }
+      if (src == GIndex::Source::TPCTRD && mFillTracksTPC) {
+        const auto& track = tracksTPCTRD[trackIndex.getIndex()];
+        extraInfoHolder.trdChi2 = track.getChi2();
+        extraInfoHolder.trdPattern = getTRDPattern(track);
+        // extra info from sub-tracks
+        auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+        if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+          const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+          extraInfoHolder.tpcInnerParam = tpcOrig.getP();
+          extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+          extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+          extraInfoHolder.tpcNClsShared = countTPCSharedCl(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc);
+        }
+        addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
+        addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
+      }
+      if (src == GIndex::Source::ITSTPCTRD && mFillTracksITSTPC) {
+        const auto& track = tracksITSTPCTRD[trackIndex.getIndex()];
+        extraInfoHolder.trdChi2 = track.getChi2();
+        extraInfoHolder.trdPattern = getTRDPattern(track);
+        // extra info from sub-tracks
+        auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+        if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+          const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
+          extraInfoHolder.itsClusterMap = itsOrig.getPattern();
+        }
+        if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+          const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+          extraInfoHolder.tpcInnerParam = tpcOrig.getP();
+          extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+          extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+          extraInfoHolder.tpcNClsShared = countTPCSharedCl(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc);
         }
         addToTracksTable(tracksCursor, tracksCovCursor, track, -1, src);
         addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
       }
       if (src == GIndex::Source::MFT && mFillTracksMFT) {
         const auto& track = tracksMFT[trackIndex.getIndex()];
-        isStoredMFT[trackIndex.getIndex()] = true;
         addToMFTTracksTable(mftTracksCursor, track, -1);
       }
     }
@@ -805,7 +874,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         auto& trackIndex = primVerGIs[ti];
         if (src == GIndex::Source::ITS && mFillTracksITS) {
           const auto& track = tracksITS[trackIndex.getIndex()];
-          isStoredITS[trackIndex.getIndex()] = true;
           // extra info
           extraInfoHolder.itsClusterMap = track.getPattern();
           // track
@@ -814,11 +882,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         }
         if (src == GIndex::Source::TPC && mFillTracksTPC) {
           const auto& track = tracksTPC[trackIndex.getIndex()];
-          isStoredTPC[trackIndex.getIndex()] = true;
           // extra info
+          extraInfoHolder.tpcInnerParam = track.getP();
           extraInfoHolder.tpcChi2NCl = track.getNClusters() ? track.getChi2() / track.getNClusters() : 0;
           extraInfoHolder.tpcSignal = track.getdEdx().dEdxTotTPC;
-          extraInfoHolder.tpcNClsFindable = track.getNClusters();
+          extraInfoHolder.tpcNClsShared = countTPCSharedCl(track, tpcClusRefs, tpcClusShMap, tpcClusAcc);
           // track
           addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
@@ -828,16 +896,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
           auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
           // extra info from sub-tracks
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
-            isStoredITS[track.getRefITS()] = true;
             const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
             extraInfoHolder.itsClusterMap = itsOrig.getPattern();
           }
           if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            isStoredTPC[track.getRefTPC()] = true;
             const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+            extraInfoHolder.tpcInnerParam = tpcOrig.getP();
             extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
             extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
-            extraInfoHolder.tpcNClsFindable = tpcOrig.getNClusters();
+            extraInfoHolder.tpcNClsShared = countTPCSharedCl(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc);
           }
           addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
@@ -852,23 +919,57 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
           extraInfoHolder.length = tofInt.getL();
           // extra info from sub-tracks
           if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
-            isStoredITS[track.getRefITS()] = true;
             const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
             extraInfoHolder.itsClusterMap = itsOrig.getPattern();
           }
           if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
-            isStoredTPC[track.getRefTPC()] = true;
             const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+            extraInfoHolder.tpcInnerParam = tpcOrig.getP();
             extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
             extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
-            extraInfoHolder.tpcNClsFindable = tpcOrig.getNClusters();
+            extraInfoHolder.tpcNClsShared = countTPCSharedCl(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc);
+          }
+          addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
+          addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
+        }
+        if (src == GIndex::Source::TPCTRD && mFillTracksTPC) {
+          const auto& track = tracksTPCTRD[trackIndex.getIndex()];
+          extraInfoHolder.trdChi2 = track.getChi2();
+          extraInfoHolder.trdPattern = getTRDPattern(track);
+          // extra info from sub-tracks
+          auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+          if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+            extraInfoHolder.tpcInnerParam = tpcOrig.getP();
+            extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+            extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+            extraInfoHolder.tpcNClsShared = countTPCSharedCl(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc);
+          }
+          addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
+          addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
+        }
+        if (src == GIndex::Source::ITSTPCTRD && mFillTracksITSTPC) {
+          const auto& track = tracksITSTPCTRD[trackIndex.getIndex()];
+          extraInfoHolder.trdChi2 = track.getChi2();
+          extraInfoHolder.trdPattern = getTRDPattern(track);
+          // extra info from sub-tracks
+          auto contributorsGID = recoData.getSingleDetectorRefs(trackIndex);
+          if (contributorsGID[GIndex::Source::ITS].isIndexSet()) {
+            const auto& itsOrig = recoData.getITSTrack(contributorsGID[GIndex::ITS]);
+            extraInfoHolder.itsClusterMap = itsOrig.getPattern();
+          }
+          if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
+            const auto& tpcOrig = recoData.getTPCTrack(contributorsGID[GIndex::TPC]);
+            extraInfoHolder.tpcInnerParam = tpcOrig.getP();
+            extraInfoHolder.tpcChi2NCl = tpcOrig.getNClusters() ? tpcOrig.getChi2() / tpcOrig.getNClusters() : 0;
+            extraInfoHolder.tpcSignal = tpcOrig.getdEdx().dEdxTotTPC;
+            extraInfoHolder.tpcNClsShared = countTPCSharedCl(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc);
           }
           addToTracksTable(tracksCursor, tracksCovCursor, track, collisionID, src);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
         }
         if (src == GIndex::Source::MFT && mFillTracksMFT) {
           const auto& track = tracksMFT[trackIndex.getIndex()];
-          isStoredMFT[trackIndex.getIndex()] = true;
           addToMFTTracksTable(mftTracksCursor, track, collisionID);
         }
       }
@@ -892,14 +993,11 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // filling mc particles table
   TripletsMap_t toStore;
   fillMCParticlesTable(mcReader, mcParticlesCursor,
-                       tracksITSMCTruth, isStoredITS,
-                       tracksMFTMCTruth, isStoredMFT,
-                       tracksTPCMCTruth, isStoredTPC,
-                       toStore, mccolid_to_eventandsource);
-
-  isStoredITS.clear();
-  isStoredMFT.clear();
-  isStoredTPC.clear();
+                       tracksITSMCTruth,
+                       tracksMFTMCTruth,
+                       tracksTPCMCTruth,
+                       toStore,
+                       mccolid_to_eventandsource);
 
   // ------------------------------------------------------
   // filling track labels
@@ -960,7 +1058,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                              labelID,
                              labelMask);
         }
-        // its-tpc labels and its-tpc-tof labels
+        // its-tpc and its-tpc-tof labels
         // todo:
         //  probably need to store both its and tpc labels
         //  for now filling only TPC label
@@ -1039,6 +1137,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool f
     dataRequest->requestSecondaryVertertices(useMC);
   }
   dataRequest->requestFT0RecPoints(false);
+  dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);

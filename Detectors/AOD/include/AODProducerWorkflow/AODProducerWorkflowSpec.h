@@ -29,6 +29,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 
 #include <string>
@@ -40,6 +41,7 @@
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
 using DataRequest = o2::globaltracking::DataRequest;
+using TPCClRefElem = uint32_t;
 
 namespace o2::aodproducer
 {
@@ -239,10 +241,20 @@ class AODProducerWorkflowDPL : public Task
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS, std::vector<bool>& isStoredITS,
-                            gsl::span<const o2::MCCompLabel>& mcTruthMFT, std::vector<bool>& isStoredMFT,
-                            gsl::span<const o2::MCCompLabel>& mcTruthTPC, std::vector<bool>& isStoredTPC,
-                            TripletsMap_t& toStore, std::vector<std::pair<int, int>> const& mccolidtoeventsource);
+                            gsl::span<const o2::MCCompLabel>& mcTruthITS,
+                            gsl::span<const o2::MCCompLabel>& mcTruthMFT,
+                            gsl::span<const o2::MCCompLabel>& mcTruthTPC,
+                            TripletsMap_t& toStore,
+                            std::vector<std::pair<int, int>> const& mccolidtoeventsource);
+
+  // helper for tpc shared clusters
+  uint8_t countTPCSharedCl(const o2::tpc::TrackTPC& track,
+                           const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
+                           const gsl::span<const unsigned char>& tpcClusShMap,
+                           const o2::tpc::ClusterNativeAccess& tpcClusAcc);
+
+  // helper for trd pattern
+  uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 };
 
 /// create a processor spec
