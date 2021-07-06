@@ -250,13 +250,6 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
     for (int i = 0; i < 15; i++) {
       SetCov(i, param.getParamOut().getCov()[i]);
     }
-    /*
-    mTime = param.getTimeMUS().getTimeStamp();
-    mTimeAddMax = param.getTimeMUS().getTimeStampError();
-    mTimeSubMax = param.getTimeMUS().getTimeStampError();
-    float tmp = param.getTimeMUS().getTimeStampError() * 2.58f; // TPCvDrift = 2.58 cm/us fixed for now, should come from CCDB
-    Cov()[2] += tmp * tmp;                                      // account for time uncertainty by increasing sigmaZ2
-    */
   }
   trackInterface<GPUTPCGMTrackParam>(const o2::tpc::TrackTPC& param) : GPUTPCGMTrackParam(), mAlpha(param.getParamOut().getAlpha())
   {
@@ -269,22 +262,6 @@ class trackInterface<GPUTPCGMTrackParam> : public GPUTPCGMTrackParam
     for (int i = 0; i < 15; i++) {
       SetCov(i, param.getParamOut().getCov()[i]);
     }
-    /*
-    const float tpcZBinWidth = 0.199606f;
-    mTime = param.getTime0() * tpcZBinWidth;
-    mTimeAddMax = param.getDeltaTFwd() * tpcZBinWidth;
-    mTimeSubMax = param.getDeltaTBwd() * tpcZBinWidth;
-    if (param.hasASideClustersOnly()) {
-      mSide = -1;
-    } else if (param.hasCSideClustersOnly()) {
-      mSide = 1;
-    } else {
-      // CE-crossing tracks are not shifted along z, but the time uncertainty is taken into account by increasing sigmaZ2
-      float timeWindow = (mTimeAddMax + mTimeSubMax) * .5f;
-      float tmp = timeWindow * 2.58f; // TPCvDrift = 2.58 cm/us fixed for now, should come from CCDB
-      Cov()[2] += tmp * tmp;
-    }
-    */
   }
 #endif
 

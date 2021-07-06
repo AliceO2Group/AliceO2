@@ -12,7 +12,7 @@
 #include "TRDWorkflow/TRDTrackletTransformerSpec.h"
 #include "TRDWorkflowIO/TRDCalibratedTrackletWriterSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
-#include "ITSWorkflow/IRFrameReaderSpec.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
@@ -41,10 +41,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   WorkflowSpec spec;
 
   if (!configcontext.options().get<bool>("disable-root-input")) {
+    // cannot use InputHelper here, since we have to create the calibrated tracklets first
     spec.emplace_back(o2::trd::getTRDTrackletReaderSpec(false, false));
-    if (trigRecFilterActive) {
-      spec.emplace_back(o2::its::getIRFrameReaderSpec());
-    }
+  }
+
+  if (trigRecFilterActive) {
+    o2::globaltracking::InputHelper::addInputSpecsIRFramesITS(configcontext, spec);
   }
 
   spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec(trigRecFilterActive));
