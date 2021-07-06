@@ -290,7 +290,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          LOGP(INFO, "Unused offer {}", unusedOfferedMemory);
                          lastUnusedOfferedMemory = unusedOfferedMemory;
                        }
-                       // availableSharedMemory is the amount of memory which we know is available to be offered. 
+                       // availableSharedMemory is the amount of memory which we know is available to be offered.
                        // We subtract the amount which we know was already offered but it's unused and we then balance how
                        // much was created with how much was destroyed.
                        availableSharedMemory = MAX_SHARED_MEMORY + ((totalBytesDestroyed - totalBytesCreated) / 1000000) - unusedOfferedMemory;
@@ -325,12 +325,12 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            LOGP(INFO, "Message {}/{} is forwarded so we are not returning its memory.", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
-                         LOGP(INFO, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, dh->payloadSize/1000000.);
+                         LOGP(INFO, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, dh->payloadSize / 1000000.);
                          totalBytes += dh->payloadSize;
                          totalMessages += 1;
                        }
                        arrow->updateBytesDestroyed(totalBytes);
-                       LOGP(INFO, "{}MB bytes being given back to reader, totaling {}MB", totalBytes/1000000., arrow->bytesDestroyed()/1000000.);
+                       LOGP(INFO, "{}MB bytes being given back to reader, totaling {}MB", totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& monitoring = ctx.services().get<Monitoring>();
                        monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));

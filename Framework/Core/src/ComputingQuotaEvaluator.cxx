@@ -169,9 +169,9 @@ void ComputingQuotaEvaluator::consume(int id, ComputingQuotaConsumer& consumer)
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
   // This will report how much of the offers has to be considered consumed.
-  // Notice that actual memory usage might be larger, because we can over 
+  // Notice that actual memory usage might be larger, because we can over
   // allocate.
-  auto reportConsumedOffer = [&totalDisposedMemory = mTotalDisposedSharedMemory, &monitoring = mRegistry.get<Monitoring>()](ComputingQuotaOffer const&accumulatedConsumed) {
+  auto reportConsumedOffer = [&totalDisposedMemory = mTotalDisposedSharedMemory, &monitoring = mRegistry.get<Monitoring>()](ComputingQuotaOffer const& accumulatedConsumed) {
     totalDisposedMemory += accumulatedConsumed.sharedMemory;
     monitoring.send(Metric{(uint64_t)totalDisposedMemory, "shm-offer-consumed"}.addTag(Key::Subsystem, Value::DPL));
   };
