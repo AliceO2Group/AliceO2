@@ -93,6 +93,9 @@ class Detector : public o2::base::DetImpl<Detector>
     Titanium
   }; // media IDs used in createMaterials()
 
+  /// Add alignable  volumes
+  void addAlignableVolumes() const override;
+
  private:
   /// Container for hits
   std::vector<o2::fv0::Hit>* mHits = nullptr;
