@@ -11,20 +11,8 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         persist-credentials: false
-        # We need the history of the dev branch all the way back to where the PR
-        # diverged. We're fetching everything here, as we don't know how many
-        # commits back that point is.
-        fetch-depth: 0
 
-    - name: Install prerequisites
-      env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo apt update -y
-        sudo apt install -y git
     - name: Run pragma check
       id: pragma_check
-      env:
-        ALIBUILD_GITHUB_TOKEN: ${{secrets.ALIBUILD_GITHUB_TOKEN}}
       run: |
-        git grep "#pragma once" | grep "\.h"; if [ $? -eq "0" ]; then exit 1; fi; exit 0
+        git grep -l '#pragma once' -- '*.h' && exit 1
