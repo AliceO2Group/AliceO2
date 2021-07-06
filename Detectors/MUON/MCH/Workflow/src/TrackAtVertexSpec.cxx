@@ -21,10 +21,14 @@
 #include <list>
 
 #include <gsl/span>
+#include <filesystem>
 
 #include <TMath.h>
 #include <TGeoManager.h>
 #include <TGeoGlobalMagField.h>
+
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -33,6 +37,7 @@
 #include "Framework/Output.h"
 #include "Framework/Task.h"
 
+#include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "MathUtils/Cartesian.h"
 #include "Field/MagneticField.h"
@@ -41,6 +46,7 @@
 #include "MCHBase/TrackBlock.h"
 #include "MCHTracking/TrackParam.h"
 #include "MCHTracking/TrackExtrap.h"
+#include "TrackAtVtxStruct.h"
 
 namespace o2
 {
@@ -53,13 +59,16 @@ using namespace o2::framework;
 class TrackAtVertexTask
 {
  public:
-  //_________________________________________________________________________________________________
-  void init(framework::InitContext& ic)
+  void initFromGRP(std::string grpFile)
   {
-    /// Prepare the track extrapolation tools
+    const auto grp = o2::parameters::GRPObject::loadFrom(grpFile);
+    base::Propagator::initFieldFromGRP(grp);
+    TrackExtrap::setField();
+    base::GeometryManager::loadGeometry();
+  }
 
-    LOG(INFO) << "initializing track extrapolation to vertex";
-
+  void initCustom(framework::InitContext& ic)
+  {
     if (!gGeoManager) {
       o2::base::GeometryManager::loadGeometry("O2geometry.root");
       if (!gGeoManager) {
@@ -75,6 +84,21 @@ class TrackAtVertexTask
       TGeoGlobalMagField::Instance()->SetField(field);
       TGeoGlobalMagField::Instance()->Lock();
       TrackExtrap::setField();
+    }
+  }
+
+  //_________________________________________________________________________________________________
+  void init(framework::InitContext& ic)
+  {
+    /// Prepare the track extrapolation tools
+
+    LOG(INFO) << "initializing track extrapolation to vertex";
+
+    auto grpFile = ic.options().get<std::string>("grp-file");
+    if (std::filesystem::exists(grpFile)) {
+      initFromGRP(grpFile);
+    } else {
+      initCustom(ic);
     }
 
     auto stop = [this]() {
@@ -117,13 +141,6 @@ class TrackAtVertexTask
   }
 
  private:
-  struct TrackAtVtxStruct {
-    TrackParamStruct paramAtVertex{};
-    double dca = 0.;
-    double rAbs = 0.;
-    int mchTrackIdx = 0;
-  };
-
   //_________________________________________________________________________________________________
   int extrapTracksToVertex(gsl::span<const TrackMCH> tracks, const math_utils::Point3D<double>& vertex)
   {
@@ -212,8 +229,10 @@ o2::framework::DataProcessorSpec getTrackAtVertexSpec()
            InputSpec{"clusters", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"tracksatvertex"}, "MCH", "TRACKSATVERTEX", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<TrackAtVertexTask>()},
-    Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
-            {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}}}};
+    Options{
+      {"grp-file", VariantType::String, o2::base::NameConf::getGRPFileName(), {"Name of the grp file"}},
+      {"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
+      {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}}}};
 }
 
 } // namespace mch

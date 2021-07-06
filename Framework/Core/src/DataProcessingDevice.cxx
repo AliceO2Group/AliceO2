@@ -151,6 +151,7 @@ void run_completion(uv_work_t* handle, int status)
     context.deviceContext->quotaEvaluator->consume(task->id.index, consumer);
   }
   context.deviceContext->state->offerConsumers.clear();
+  context.deviceContext->quotaEvaluator->handleExpired();
   context.deviceContext->quotaEvaluator->dispose(task->id.index);
   task->running = false;
   ZoneScopedN("run_completion");
@@ -567,9 +568,15 @@ bool DataProcessingDevice::ConditionalRun()
       stream.id = streamRef;
       stream.running = true;
       stream.context = &mDataProcessorContexes.at(0);
+#ifdef DPL_ENABLE_THREADING
+      stream.task.data = &handle;
+      uv_queue_work(mState.loop, &stream.task, run_callback, run_completion);
+#else
       run_callback(&handle);
       run_completion(&handle, 0);
+#endif
     } else {
+      mDataProcessorContexes.at(0).deviceContext->quotaEvaluator->handleExpired();
       mWasActive = false;
     }
   } else {
@@ -1192,9 +1199,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 
     uint64_t tStart = uv_hrtime();
     preUpdateStats(action, record, tStart);
-    try {
-      if (context.deviceContext->state->quitRequested == false) {
 
+    static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
+
+    auto runNoCatch = [&context, &processContext]() {
+      if (context.deviceContext->state->quitRequested == false) {
         if (*context.statefulProcess) {
           ZoneScopedN("statefull process");
           (*context.statefulProcess)(processContext);
@@ -1209,16 +1218,24 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
           context.registry->postProcessingCallbacks(processContext);
         }
       }
-    } catch (std::exception& ex) {
-      ZoneScopedN("error handling");
-      /// Convert a standatd exception to a RuntimeErrorRef
-      /// Notice how this will lose the backtrace information
-      /// and report the exception coming from here.
-      auto e = runtime_error(ex.what());
-      (*context.errorHandling)(e, record);
-    } catch (o2::framework::RuntimeErrorRef e) {
-      ZoneScopedN("error handling");
-      (*context.errorHandling)(e, record);
+    };
+
+    if (noCatch) {
+      runNoCatch();
+    } else {
+      try {
+        runNoCatch();
+      } catch (std::exception& ex) {
+        ZoneScopedN("error handling");
+        /// Convert a standard exception to a RuntimeErrorRef
+        /// Notice how this will lose the backtrace information
+        /// and report the exception coming from here.
+        auto e = runtime_error(ex.what());
+        (*context.errorHandling)(e, record);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        (*context.errorHandling)(e, record);
+      }
     }
 
     postUpdateStats(action, record, tStart);

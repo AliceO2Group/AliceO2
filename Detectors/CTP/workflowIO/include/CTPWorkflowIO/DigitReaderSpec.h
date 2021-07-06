@@ -9,20 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef TOF_RECOWORKFLOW_H_
-#define TOF_RECOWORKFLOW_H_
-
 #include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "Framework/OutputSpec.h"
+#include <string>
+#include <vector>
 
 namespace o2
 {
-namespace tof
+
+namespace ctp
 {
 
-o2::framework::DataProcessorSpec getTOFRecoWorkflowSpec(bool useMC, bool useFIT);
+using OutputSpec = framework::OutputSpec;
 
-} // end namespace tof
+framework::DataProcessorSpec getDigitsReaderSpec(bool propagateMC = true);
+
+} // namespace ctp
 } // end namespace o2
-
-#endif /* TOF_RECOWORKFLOW_H_ */

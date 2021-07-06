@@ -71,6 +71,23 @@ inline T* relocatePointer(const char* oldBase, char* newBase, const T* ptr)
   return (ptr != nullptr) ? reinterpret_cast<T*>(newBase + (reinterpret_cast<const char*>(ptr) - oldBase)) : nullptr;
 }
 
+template <typename source_T, typename dest_T, std::enable_if_t<(sizeof(dest_T) >= sizeof(source_T)), bool> = true>
+inline size_t calculateNDestTElements(size_t sourceElems) noexcept
+{
+  const size_t sizeOfSourceArray = sourceElems * sizeof(source_T);
+  return sizeOfSourceArray / sizeof(dest_T) + (sizeOfSourceArray % sizeof(dest_T) != 0);
+};
+
+template <typename source_T, typename dest_T, std::enable_if_t<(sizeof(dest_T) >= sizeof(source_T)), bool> = true>
+inline size_t calculatePaddedSize(size_t nElems) noexcept
+{
+  const size_t sizeOfSourceT = sizeof(source_T);
+  const size_t sizeOfDestT = sizeof(dest_T);
+
+  // this is equivalent to (sizeOfSourceT / sizeOfDestT) * std::ceil(sizeOfSourceArray/ sizeOfDestT)
+  return (sizeOfDestT / sizeOfSourceT) * calculateNDestTElements<source_T, dest_T>(nElems);
+};
+
 ///>>======================== Auxiliary classes =======================>>
 
 struct ANSHeader {
@@ -373,8 +390,8 @@ class EncodedBlocks
   size_t getFreeSize() const { return mRegistry.getFreeSize(); }
 
   /// expand the storage to new size in bytes
-  template <typename VB>
-  static auto expand(VB& buffer, size_t newsizeBytes);
+  template <typename buffer_T>
+  static auto expand(buffer_T& buffer, size_t newsizeBytes);
 
   /// copy itself to flat buffer created on the fly from the vector
   template <typename V>
@@ -394,15 +411,15 @@ class EncodedBlocks
   static void readFromTree(VD& vec, TTree& tree, const std::string& name, int ev = 0);
 
   /// encode vector src to bloc at provided slot
-  template <typename VE, typename VB>
-  inline void encode(const VE& src, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr, const void* encoderExt = nullptr)
+  template <typename VE, typename buffer_T>
+  inline void encode(const VE& src, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr)
   {
-    encode(std::begin(src), std::end(src), slot, probabilityBits, opt, buffer, encoderExt);
+    encode(std::begin(src), std::end(src), slot, symbolTablePrecision, opt, buffer, encoderExt);
   }
 
   /// encode vector src to bloc at provided slot
-  template <typename S_IT, typename VB>
-  void encode(const S_IT srcBegin, const S_IT srcEnd, int slot, uint8_t probabilityBits, Metadata::OptStore opt, VB* buffer = nullptr, const void* encoderExt = nullptr);
+  template <typename input_IT, typename buffer_T>
+  void encode(const input_IT srcBegin, const input_IT srcEnd, int slot, uint8_t symbolTablePrecision, Metadata::OptStore opt, buffer_T* buffer = nullptr, const void* encoderExt = nullptr);
 
   /// decode block at provided slot to destination vector (will be resized as needed)
   template <class container_T, class container_IT = typename container_T::iterator>
@@ -582,8 +599,8 @@ size_t EncodedBlocks<H, N, W>::estimateSizeFromMetadata() const
 ///_____________________________________________________________________________
 /// expand the storage to new size in bytes
 template <typename H, int N, typename W>
-template <typename VB>
-auto EncodedBlocks<H, N, W>::expand(VB& buffer, size_t newsizeBytes)
+template <typename buffer_T>
+auto EncodedBlocks<H, N, W>::expand(buffer_T& buffer, size_t newsizeBytes)
 {
 
   auto buftypesize = sizeof(typename std::remove_reference<decltype(buffer)>::type::value_type);
@@ -756,20 +773,29 @@ void EncodedBlocks<H, N, W>::decode(D_IT dest,                    // iterator to
 
 ///_____________________________________________________________________________
 template <typename H, int N, typename W>
-template <typename S_IT, typename VB>
-void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin of source message
-                                    const S_IT srcEnd,       // iterator end of source message
-                                    int slot,                // slot in encoded data to fill
-                                    uint8_t probabilityBits, // encoding into
-                                    Metadata::OptStore opt,  // option for data compression
-                                    VB* buffer,              // optional buffer (vector) providing memory for encoded blocks
-                                    const void* encoderExt)  // optional external encoder
+template <typename input_IT, typename buffer_T>
+void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator begin of source message
+                                    const input_IT srcEnd,        // iterator end of source message
+                                    int slot,                     // slot in encoded data to fill
+                                    uint8_t symbolTablePrecision, // encoding into
+                                    Metadata::OptStore opt,       // option for data compression
+                                    buffer_T* buffer,             // optional buffer (vector) providing memory for encoded blocks
+                                    const void* encoderExt)       // optional external encoder
 {
+
+  using storageBuffer_t = W;
+  using input_t = typename std::iterator_traits<input_IT>::value_type;
+  using ransEncoder_t = typename rans::LiteralEncoder64<input_t>;
+  using ransState_t = typename ransEncoder_t::coder_t;
+  using ransStream_t = typename ransEncoder_t::stream_t;
+
+  // assert at compile time that output types align so that padding is not necessary.
+  static_assert(std::is_same_v<storageBuffer_t, ransStream_t>);
+  static_assert(std::is_same_v<storageBuffer_t, typename rans::FrequencyTable::count_t>);
+
   // fill a new block
   assert(slot == mRegistry.nFilledBlocks);
   mRegistry.nFilledBlocks++;
-  using STYP = typename std::iterator_traits<S_IT>::value_type;
-  using stream_t = typename o2::rans::Encoder64<STYP>::stream_t;
 
   const size_t messageLength = std::distance(srcBegin, srcEnd);
   // cover three cases:
@@ -779,25 +805,23 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
 
   // case 1: empty source message
   if (messageLength == 0) {
-    mMetadata[slot] = Metadata{0, 0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, Metadata::OptStore::NODATA, 0, 0, 0, 0, 0};
+    mMetadata[slot] = Metadata{0, 0, sizeof(ransState_t), sizeof(ransStream_t), symbolTablePrecision, Metadata::OptStore::NODATA, 0, 0, 0, 0, 0};
     return;
   }
-  static_assert(std::is_same<W, stream_t>());
 
-  Metadata md;
-  auto* bl = &mBlocks[slot];
-  auto* meta = &mMetadata[slot];
+  auto* thisBlock = &mBlocks[slot];
+  auto* thisMetadata = &mMetadata[slot];
 
   // resize underlying buffer of block if necessary and update all pointers.
-  auto expandStorage = [&](int nElems) {
-    auto eeb = get(bl->registry->head);           // extract pointer from the block, as "this" might be invalid
-    auto szNeed = eeb->estimateBlockSize(nElems); // size in bytes!!!
-    if (szNeed >= bl->registry->getFreeSize()) {
-      LOG(INFO) << "Slot " << slot << ": free size: " << bl->registry->getFreeSize() << ", need " << szNeed << " for " << nElems << " words";
+  auto expandStorage = [&](int additionalElements) {
+    auto* const blockHead = get(thisBlock->registry->head);                         // extract pointer from the block, as "this" might be invalid
+    const size_t additionalSize = blockHead->estimateBlockSize(additionalElements); // size in bytes!!!
+    if (additionalSize >= thisBlock->registry->getFreeSize()) {
+      LOG(INFO) << "Slot " << slot << ": free size: " << thisBlock->registry->getFreeSize() << ", need " << additionalSize << " for " << additionalElements << " words";
       if (buffer) {
-        eeb->expand(*buffer, size() + (szNeed - getFreeSize()));
-        meta = &(get(buffer->data())->mMetadata[slot]);
-        bl = &(get(buffer->data())->mBlocks[slot]); // in case of resizing this and any this.xxx becomes invalid
+        blockHead->expand(*buffer, size() + (additionalSize - getFreeSize()));
+        thisMetadata = &(get(buffer->data())->mMetadata[slot]);
+        thisBlock = &(get(buffer->data())->mBlocks[slot]); // in case of resizing this and any this.xxx becomes invalid
       } else {
         throw std::runtime_error("no room for encoded block in provided container");
       }
@@ -809,61 +833,80 @@ void EncodedBlocks<H, N, W>::encode(const S_IT srcBegin,     // iterator begin o
     // build symbol statistics
     constexpr size_t SizeEstMarginAbs = 10 * 1024;
     constexpr float SizeEstMarginRel = 1.05;
-    const o2::rans::LiteralEncoder64<STYP>* encoder = reinterpret_cast<const o2::rans::LiteralEncoder64<STYP>*>(encoderExt);
-    std::unique_ptr<o2::rans::LiteralEncoder64<STYP>> encoderLoc;
-    std::unique_ptr<o2::rans::FrequencyTable> frequencies = nullptr;
-    int dictSize = 0;
-    if (!encoder) { // no external encoder provide, create one on spot
-      frequencies = std::make_unique<o2::rans::FrequencyTable>();
-      frequencies->addSamples(srcBegin, srcEnd);
-      encoderLoc = std::make_unique<o2::rans::LiteralEncoder64<STYP>>(*frequencies, probabilityBits);
-      encoder = encoderLoc.get();
-      dictSize = frequencies->size();
-    }
+
+    const auto [inplaceEncoder, frequencyTable] = [&]() {
+      if (encoderExt) {
+        return std::make_tuple(ransEncoder_t{}, rans::FrequencyTable{});
+      } else {
+        rans::FrequencyTable frequencyTable{};
+        frequencyTable.addSamples(srcBegin, srcEnd);
+        return std::make_tuple(ransEncoder_t{frequencyTable, symbolTablePrecision}, frequencyTable);
+      }
+    }();
+    ransEncoder_t const* const encoder = encoderExt ? reinterpret_cast<ransEncoder_t const* const>(encoderExt) : &inplaceEncoder;
 
     // estimate size of encode buffer
-    int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(STYP)); // size in bytes
+    int dataSize = rans::calculateMaxBufferSize(messageLength, encoder->getAlphabetRangeBits(), sizeof(input_t)); // size in bytes
     // preliminary expansion of storage based on dict size + estimated size of encode buffer
-    dataSize = SizeEstMarginAbs + int(SizeEstMarginRel * (dataSize / sizeof(W))) + (sizeof(STYP) < sizeof(W)); // size in words of output stream
-    expandStorage(dictSize + dataSize);
+    dataSize = SizeEstMarginAbs + int(SizeEstMarginRel * (dataSize / sizeof(storageBuffer_t))) + (sizeof(input_t) < sizeof(storageBuffer_t)); // size in words of output stream
+    expandStorage(frequencyTable.size() + dataSize);
     //store dictionary first
-    if (dictSize) {
-      bl->storeDict(dictSize, frequencies->data());
+    if (frequencyTable.size()) {
+      thisBlock->storeDict(frequencyTable.size(), frequencyTable.data());
     }
     // vector of incompressible literal symbols
-    std::vector<STYP> literals;
+    std::vector<input_t> literals;
     // directly encode source message into block buffer.
-    auto blIn = bl->getCreateData();
-    auto frSize = bl->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
-    const auto encodedMessageEnd = encoder->process(srcBegin, srcEnd, blIn, literals);
-    rans::utils::checkBounds(encodedMessageEnd, blIn + frSize);
-    dataSize = encodedMessageEnd - bl->getData();
-    bl->setNData(dataSize);
-    bl->realignBlock();
+    storageBuffer_t* const blockBufferBegin = thisBlock->getCreateData();
+    const size_t maxBufferSize = thisBlock->registry->getFreeSize(); // note: "this" might be not valid after expandStorage call!!!
+    const auto encodedMessageEnd = encoder->process(srcBegin, srcEnd, blockBufferBegin, literals);
+    rans::utils::checkBounds(encodedMessageEnd, blockBufferBegin + maxBufferSize);
+    dataSize = encodedMessageEnd - thisBlock->getData();
+    thisBlock->setNData(dataSize);
+    thisBlock->realignBlock();
     // update the size claimed by encode message directly inside the block
+
     // store incompressible symbols if any
+    const size_t nLiteralSymbols = [&]() {
+      const size_t nSymbols = literals.size();
+      if (!literals.empty()) {
+        // introduce padding in case literals don't align;
+        const size_t nSourceElemsPadded = calculatePaddedSize<input_t, storageBuffer_t>(literals.size());
+        literals.resize(nSourceElemsPadded, {});
 
-    int literalSize = 0;
-    if (literals.size()) {
-      literalSize = (literals.size() * sizeof(STYP)) / sizeof(stream_t) + (sizeof(STYP) < sizeof(stream_t));
-      expandStorage(literalSize);
-      bl->storeLiterals(literalSize, reinterpret_cast<const stream_t*>(literals.data()));
-    }
-    *meta = Metadata{messageLength, literals.size(), sizeof(uint64_t), sizeof(stream_t), static_cast<uint8_t>(encoder->getSymbolTablePrecision()), opt,
-                     encoder->getMinSymbol(), encoder->getMaxSymbol(), dictSize, dataSize, literalSize};
+        const size_t nLiteralStorageElems = calculateNDestTElements<input_t, storageBuffer_t>(nSymbols);
+        expandStorage(nLiteralStorageElems);
+        thisBlock->storeLiterals(nLiteralStorageElems, reinterpret_cast<const storageBuffer_t*>(literals.data()));
+      }
+      return nSymbols;
+    }();
 
+    *thisMetadata = Metadata{messageLength,
+                             literals.size(),
+                             sizeof(ransState_t),
+                             sizeof(ransStream_t),
+                             static_cast<uint8_t>(encoder->getSymbolTablePrecision()),
+                             opt,
+                             encoder->getMinSymbol(),
+                             encoder->getMaxSymbol(),
+                             static_cast<int32_t>(frequencyTable.size()),
+                             dataSize,
+                             static_cast<int32_t>(nLiteralSymbols)};
   } else { // store original data w/o EEncoding
-    const size_t szb = messageLength * sizeof(STYP);
-    const int dataSize = szb / sizeof(stream_t) + (sizeof(STYP) < sizeof(stream_t));
-    // no dictionary needed
-    expandStorage(dataSize);
-    *meta = Metadata{messageLength, 0, sizeof(uint64_t), sizeof(stream_t), probabilityBits, opt, 0, 0, 0, dataSize, 0};
-    //FIXME: no we don't need an intermediate vector.
+    //FIXME(milettri): we should be able to do without an intermediate vector;
     // provided iterator is not necessarily pointer, need to use intermediate vector!!!
-    std::vector<STYP> vtmp(srcBegin, srcEnd);
-    bl->storeData(meta->nDataWords, reinterpret_cast<const W*>(vtmp.data()));
+
+    // introduce padding in case literals don't align;
+    const size_t nSourceElemsPadded = calculatePaddedSize<input_t, storageBuffer_t>(messageLength);
+    std::vector<input_t> tmp(nSourceElemsPadded, {});
+    std::copy(srcBegin, srcEnd, std::begin(tmp));
+
+    const size_t nBufferElems = calculateNDestTElements<input_t, storageBuffer_t>(messageLength);
+    expandStorage(nBufferElems);
+    thisBlock->storeData(thisMetadata->nDataWords, reinterpret_cast<const storageBuffer_t*>(tmp.data()));
+
+    *thisMetadata = Metadata{messageLength, 0, sizeof(ransState_t), sizeof(storageBuffer_t), symbolTablePrecision, opt, 0, 0, 0, static_cast<int>(nBufferElems), 0};
   }
-  // resize block if necessary
 }
 
 /// create a special EncodedBlocks containing only dictionaries made from provided vector of frequency tables

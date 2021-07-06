@@ -27,7 +27,10 @@ namespace o2
 {
 namespace fdd
 {
+//Normal TCM mode
 using RawReaderFDDBaseNorm = o2::fit::RawReaderBaseFIT<DigitBlockFDD, DataBlockPM, DataBlockTCM>;
+//Extended TCM mode
+using RawReaderFDDBaseExt = o2::fit::RawReaderBaseFIT<DigitBlockFDDext, DataBlockPM, DataBlockTCMext>;
 } // namespace fdd
 } // namespace o2
 

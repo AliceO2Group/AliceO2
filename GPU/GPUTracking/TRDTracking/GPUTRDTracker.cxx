@@ -261,7 +261,7 @@ void GPUTRDTracker_t<TRDTRK, PROP>::DoTracking(GPUChainTracking* chainTracking)
     chainTracking->DoTRDGPUTracking();
   } else {
 #ifdef WITH_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for num_threads(mRec->GetProcessingSettings().ompThreads)
     for (int iTrk = 0; iTrk < mNTracks; ++iTrk) {
       if (omp_get_num_threads() > mMaxThreads) {
         GPUError("Number of parallel threads too high, aborting tracking");

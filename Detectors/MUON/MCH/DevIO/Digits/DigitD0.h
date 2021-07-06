@@ -9,7 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_D0_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_D0_H
 
 #include <fstream>
 #include <vector>
@@ -31,3 +32,5 @@ struct DigitD0 {
 };
 
 } // namespace o2::mch::io::impl
+
+#endif

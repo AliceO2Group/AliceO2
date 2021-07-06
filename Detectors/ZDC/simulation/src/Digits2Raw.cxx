@@ -24,7 +24,6 @@
 
 using namespace o2::zdc;
 
-//ClassImp(Digits2Raw);
 //______________________________________________________________________________
 void Digits2Raw::processDigits(const std::string& outDir, const std::string& fileDigitsName)
 {

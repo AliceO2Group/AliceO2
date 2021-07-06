@@ -164,8 +164,8 @@ void Trap2CRU::sortDataToLinks()
                     << " mcm=" << mDigits[mDigitsIndex[digitcount]].getMCM()
                     << " rob=" << mDigits[mDigitsIndex[digitcount]].getROB()
                     << " channel=" << mDigits[mDigitsIndex[digitcount]].getChannel()
-                    << " col=" << mDigits[mDigitsIndex[digitcount]].getRow()
-                    << " pad=" << mDigits[mDigitsIndex[digitcount]].getPad()
+                    << " col=" << mDigits[mDigitsIndex[digitcount]].getPadRow()
+                    << " pad=" << mDigits[mDigitsIndex[digitcount]].getPadCol()
                     << " adcsum=" << mDigits[mDigitsIndex[digitcount]].getADCsum()
                     << " hcid=" << mDigits[mDigitsIndex[digitcount]].getHCId();
           LOG(info) << "DDDDD " << mDigits[mDigitsIndex[digitcount]].getDetector() << ":" << mDigits[mDigitsIndex[digitcount]].getROB() << ":" << mDigits[mDigitsIndex[digitcount]].getMCM() << ":" << mDigits[mDigitsIndex[digitcount]].getChannel() << ":" << mDigits[mDigitsIndex[digitcount]].getADCsum() << ":" << mDigits[mDigitsIndex[digitcount]].getADC()[0] << ":" << mDigits[mDigitsIndex[digitcount]].getADC()[1] << ":" << mDigits[mDigitsIndex[digitcount]].getADC()[2] << "::" << mDigits[mDigitsIndex[digitcount]].getADC()[27] << ":" << mDigits[mDigitsIndex[digitcount]].getADC()[28] << ":" << mDigits[mDigitsIndex[digitcount]].getADC()[29];

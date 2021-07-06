@@ -9,20 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef TOF_RECOWORKFLOWWITHTPC_H_
-#define TOF_RECOWORKFLOWWITHTPC_H_
+#ifndef O2_MCH_TRACK_AT_VTX_STRUCT_H
+#define O2_MCH_TRACK_AT_VTX_STRUCT_H
 
-#include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "MCHBase/TrackBlock.h"
 
-namespace o2
+namespace o2::mch
 {
-namespace tof
-{
+struct TrackAtVtxStruct {
+  TrackParamStruct paramAtVertex{};
+  double dca = 0.;
+  double rAbs = 0.;
+  int mchTrackIdx = 0;
+};
+} // namespace o2::mch
 
-o2::framework::DataProcessorSpec getTOFRecoWorkflowWithTPCSpec(bool useMC, bool useFIT, bool doTPCRefit, bool iscosmics);
-
-} // end namespace tof
-} // end namespace o2
-
-#endif /* TOF_RECOWORKFLOWWITHTPC_H_ */
+#endif

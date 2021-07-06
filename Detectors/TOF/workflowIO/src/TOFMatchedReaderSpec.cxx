@@ -104,7 +104,7 @@ DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, bool tpcmatch, bool readTr
     outputs,
     AlgorithmSpec{adaptFromTask<TOFMatchedReader>(useMC, tpcmatch, readTracks)},
     Options{
-      {"tof-matched-infile", VariantType::String, tpcmatch ? "o2match_toftpc.root" : "o2match_tof.root", {"Name of the input file"}},
+      {"tof-matched-infile", VariantType::String, tpcmatch ? "o2match_tof_tpc.root" : "o2match_tof_itstpc.root", {"Name of the input file"}},
       {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"treename", VariantType::String, "matchTOF", {"Name of top-level TTree"}},
     }};

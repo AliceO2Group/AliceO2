@@ -4,7 +4,11 @@
 # --configKeyValues "NameConf.mDirGRP=<dirname1>;NameConf.mDirGeom=<dirname2>;NameConf.mDirMatLUT=<dirname3>;"
 # All workflows currently running in the FST parce the configKeyValues option, so the NameConf.mDirXXX keys can be added via global env.var.
 
-MYDIR="$(dirname $(readlink -f $0))"
+# Get this script's directory : use zsh first (e.g. on Mac) and fallback
+# on `readlink -f` if zsh is not there
+command -v zsh > /dev/null 2>&1 && MYDIR=$(dirname $(zsh -c 'echo ${0:A}' "$0"))
+test -z ${MYDIR+x} && MYDIR="$(dirname $(readlink -f $0))"
+
 source $MYDIR/setenv.sh
 
 if [ "0$O2_ROOT" == "0" ]; then
@@ -36,14 +40,14 @@ GPU_OUTPUT=tracks,clusters
 GPU_CONFIG=
 GPU_CONFIG_KEY=
 TOF_INPUT=raw
-TOF_OUTPUT=clusters,matching-info
+TOF_OUTPUT=clusters
 ITS_CONFIG=
 ITS_CONFIG_KEY=
 TRD_CONFIG=
 if [ $SYNCMODE == 1 ]; then
   ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
-  TRD_CONFIG+=" --tracking-sources ITS-TPC"
+  TRD_CONFIG+=" --tracking-sources ITS-TPC --configKeyValues 'GPU_proc.ompThreads=1;'"
 else
   TRD_CONFIG+=" --tracking-sources TPC,ITS-TPC"
 fi
@@ -84,13 +88,11 @@ if [ $EPNPIPELINES != 0 ]; then
   N_TPCITS=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_ITSDEC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_EMC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_CPV=$(($(expr 5 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 5 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
 else
   N_TPCENT=1
   N_TPCITS=1
   N_ITSDEC=1
   N_EMC=1
-  N_CPV=1
 fi
 
 # Input workflow
@@ -130,7 +132,9 @@ WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --disable-root-input --disable-root-
 
 # Workflows disabled in sync mode
 if [ $SYNCMODE == 0 ]; then
-  WORKFLOW+="o2-tof-matcher-tpc $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
+  WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --track-sources \"TPC,ITS-TPC\" | "
+
+  WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output | "
   WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
@@ -141,8 +145,10 @@ fi
 
 # Workflows disabled in async mode
 if [ $CTFINPUT == 0 ]; then
+  WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --track-sources \"ITS-TPC\" | "
+
   WORKFLOW+="o2-phos-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-input --disable-root-output $DISABLE_MC | "
-  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC --pipeline CPVClusterizerSpec:$N_CPV | "
+  WORKFLOW+="o2-cpv-reco-workflow $ARGS_ALL --input-type raw --output-type clusters --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-emcal-reco-workflow $ARGS_ALL --input-type raw --output-type cells --disable-root-output $DISABLE_MC --pipeline EMCALRawToCellConverterSpec:$N_EMC | "
   WORKFLOW+="o2-zdc-raw2digits $ARGS_ALL --disable-root-output | "
   WORKFLOW+="o2-hmpid-raw-to-digits-stream-workflow $ARGS_ALL | "

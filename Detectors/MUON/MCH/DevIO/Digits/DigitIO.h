@@ -9,7 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_IO_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_IO_H
 
 #include "DigitReader.h"
 #include "DigitWriter.h"
+
+#endif

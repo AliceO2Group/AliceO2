@@ -5,10 +5,10 @@ if [ $(ls | grep GPU | wc -l) != "1" ]; then
     exit 1
 fi
 
-git grep -l "^// Copyright CERN and copyright holders of ALICE O2. This software is" | \
+git grep -l "^// Copyright 2019-2020 CERN and copyright holders of ALICE O2." | \
     grep "^GPU/Common/\|^GPU/GPUTracking/\|^GPU/TPCFastTransformation|^GPU/TPCSpaceChargeBase\|^cmake" | \
     xargs -r -n 1 \
-    sed -i -e '/Copyright CERN and copyright holders of ALICE O2. This software is/,/or submit itself to any jurisdiction/c\
+    sed -i -e '/Copyright 2019-2020 CERN and copyright holders of ALICE O2./,/or submit itself to any jurisdiction/c\
 //**************************************************************************\
 //* This file is property of and copyright by the ALICE Project            *\
 //* ALICE Experiment at CERN, All rights reserved.                         *\

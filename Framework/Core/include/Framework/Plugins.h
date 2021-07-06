@@ -13,6 +13,9 @@
 
 #include "Framework/AlgorithmSpec.h"
 #include <cstring>
+#include <string>
+#include <functional>
+#include <uv.h>
 
 namespace o2::framework
 {
@@ -38,6 +41,14 @@ struct DPLPluginHandle {
   char const* name;
   enum o2::framework::DplPluginKind kind;
   DPLPluginHandle* previous;
+};
+
+// Struct to hold live plugin information which the plugin itself cannot
+// know and that is owned by the framework.
+struct PluginInfo {
+  uv_lib_t* dso = nullptr;
+  std::string name;
+  DPLPluginHandle* instance = nullptr;
 };
 
 #define DEFINE_DPL_PLUGIN(NAME, KIND)                                                                    \
@@ -75,7 +86,12 @@ struct PluginManager {
     }
     return nullptr;
   }
+  /// Load a DSO called @a dso and insert its handle in @a infos
+  /// On successfull completion @a onSuccess is called passing
+  /// the DPLPluginHandle provided by the library.
+  static void load(std::vector<PluginInfo>& infos, const char* dso, std::function<void(DPLPluginHandle*)>& onSuccess);
 };
+
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_PLUGINS_H_

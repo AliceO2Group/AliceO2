@@ -24,7 +24,7 @@ void checkTOFMatching(bool batchMode = true)
   // macro to check the matching TOF-ITSTPC tracks
 
   // getting TOF info
-  TFile* fmatchTOF = new TFile("o2match_tof.root");
+  TFile* fmatchTOF = new TFile("o2match_tof_itstpc.root");
   TTree* matchTOF = (TTree*)fmatchTOF->Get("matchTOF");
   std::vector<o2::dataformats::MatchInfoTOF>* TOFMatchInfo;
   TOFMatchInfo = new std::vector<o2::dataformats::MatchInfoTOF>;

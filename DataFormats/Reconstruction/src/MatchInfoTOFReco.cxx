@@ -9,24 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CTPDigitWriterSpec.h
-/// \author Roman Lietava
+/// \file MatchInfoTOFReco.cxx
+/// \brief Class to temporary store the output of the matching to TOF in reconstruction
 
-#ifndef O2_CTPDIGITWRITERSPEC_H
-#define O2_CTPDIGITWRITERSPEC_H
+#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
-#include "Framework/DataProcessorSpec.h"
-#include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "Framework/InputSpec.h"
-#include "DataFormatsCTP/Digits.h"
+using namespace o2::dataformats;
 
-using namespace o2::framework;
-namespace o2
-{
-namespace ctp
-{
-framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw = true);
-}
-} // namespace o2
-
-#endif //O2_CTPDIGITWRITERSPEC_H
+ClassImp(o2::dataformats::MatchInfoTOFReco);

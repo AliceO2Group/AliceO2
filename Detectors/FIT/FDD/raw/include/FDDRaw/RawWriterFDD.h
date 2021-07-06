@@ -27,7 +27,7 @@ namespace fdd
 //Normal TCM mode
 using RawWriterFDD = o2::fit::RawWriterFIT<DigitBlockFDD, DataBlockPM, DataBlockTCM>;
 //Extended TCM mode
-//using RawWriterFDDext = o2::fit::RawWriterFIT<DigitBlockFDD, DataBlockPM, DataBlockTCMext>;
+//using RawWriterFDDext = o2::fit::RawWriterFIT<DigitBlockFDDext, DataBlockPM, DataBlockTCMext>;
 } // namespace fdd
 } // namespace o2
 

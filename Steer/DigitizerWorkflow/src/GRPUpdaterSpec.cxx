@@ -61,25 +61,29 @@ class GRPDPLUpdatedTask
     // (the user enables this via O2_USEGRP_SEMA environment)
     bool use_sema = false;
     boost::interprocess::named_semaphore* sem = nullptr;
-    if (auto semaname = getenv("O2_USEGRP_SEMA")) {
-      try {
-        const auto semname = std::filesystem::current_path().string() + mGRPFileName;
-        std::hash<std::string> hasher;
-        const auto semhashedstring = "alice_grp_" + std::to_string(hasher(semname));
-        sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
-      } catch (std::exception e) {
-        LOG(WARN) << "Exception occurred during GRP semaphore setup; Continuing without";
-        sem = nullptr;
-      }
+    std::string semhashedstring;
+    try {
+      const auto semname = std::filesystem::current_path().string() + mGRPFileName;
+      std::hash<std::string> hasher;
+      semhashedstring = "alice_grp_" + std::to_string(hasher(semname)).substr(0, 16);
+      sem = new boost::interprocess::named_semaphore(boost::interprocess::open_or_create_t{}, semhashedstring.c_str(), 1);
+    } catch (std::exception e) {
+      LOG(WARN) << "Could not setup GRP semaphore; Continuing without";
+      sem = nullptr;
     }
     try {
       if (sem) {
         sem->wait(); // wait until we can enter (no one else there)
       }
 
-      auto postSem = [sem] {
+      auto postSem = [sem, &semhashedstring] {
         if (sem) {
           sem->post();
+          if (sem->try_wait()) {
+            // if nobody else is waiting remove the semaphore resource
+            sem->post();
+            boost::interprocess::named_semaphore::remove(semhashedstring.c_str());
+          }
           delete sem;
         }
       };

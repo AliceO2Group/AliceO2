@@ -55,6 +55,7 @@ compile_commands.json
 
 # IDEs files
 .cproject
+.devcontainer*
 .project
 .idea
 .settings

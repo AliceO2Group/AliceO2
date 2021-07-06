@@ -43,7 +43,7 @@ class TrackletTransformer
 
   float calculateZ(int padrow);
 
-  float calculateDy(int slope, double oldLorentzAngle, double lorentzAngle, double driftVRatio);
+  float calculateDy(int slope, double lorentzAngle, double driftVRatio);
 
   float calibrateX(double x, double t0Correction);
 
@@ -63,7 +63,6 @@ class TrackletTransformer
   float mXtb0;
 
   float mt0Correction;
-  float mOldLorentzAngle;
   float mLorentzAngle;
   float mDriftVRatio;
 };

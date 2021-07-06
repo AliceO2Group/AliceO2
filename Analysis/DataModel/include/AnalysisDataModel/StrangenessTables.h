@@ -73,6 +73,18 @@ DECLARE_SOA_DYNAMIC_COLUMN(QtArm, qtarm, //!
                              return std::sqrt(RecoDecay::P2(pxneg, pyneg, pzneg) - dp * dp / momTot); //qtarm
                            });
 
+// Psi pair angle: angle between the plane defined by the electron and positron momenta and the xy plane
+DECLARE_SOA_DYNAMIC_COLUMN(PsiPair, psipair, //!
+                           [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) {
+                             auto clipToPM1 = [](float x) { return x < -1.f ? -1.f : (x > 1.f ? 1.f : x); };
+                             float ptot2 = RecoDecay::P2(pxpos, pypos, pzpos) * RecoDecay::P2(pxneg, pyneg, pzneg);
+                             float argcos = RecoDecay::dotProd(array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}) / std::sqrt(ptot2);
+                             float thetaPos = std::atan2(RecoDecay::sqrtSumOfSquares(pxpos, pypos), pzpos);
+                             float thetaNeg = std::atan2(RecoDecay::sqrtSumOfSquares(pxneg, pyneg), pzneg);
+                             float argsin = (thetaNeg - thetaPos) / std::acos(clipToPM1(argcos));
+                             return std::asin(clipToPM1(argsin));
+                           });
+
 //Calculated on the fly with mass assumption + dynamic tables
 DECLARE_SOA_DYNAMIC_COLUMN(MLambda, mLambda, //!
                            [](float pxpos, float pypos, float pzpos, float pxneg, float pyneg, float pzneg) -> float { return RecoDecay::M(array{array{pxpos, pypos, pzpos}, array{pxneg, pyneg, pzneg}}, array{RecoDecay::getMassPDG(kProton), RecoDecay::getMassPDG(kPiPlus)}); });
@@ -115,6 +127,7 @@ DECLARE_SOA_TABLE_FULL(StoredV0Datas, "V0Datas", "AOD", "V0DATA", //!
                        v0data::DCAV0ToPV<v0data::X, v0data::Y, v0data::Z, v0data::Px, v0data::Py, v0data::Pz>,
                        v0data::Alpha<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
                        v0data::QtArm<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
+                       v0data::PsiPair<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,
 
                        //Invariant masses
                        v0data::MLambda<v0data::PxPos, v0data::PyPos, v0data::PzPos, v0data::PxNeg, v0data::PyNeg, v0data::PzNeg>,

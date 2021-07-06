@@ -44,8 +44,8 @@ int main()
   std::vector<Digit>* ptrVecDigits = &vecDigits;
   std::vector<ChannelData> vecChannelData;
   std::vector<ChannelData>* ptrVecChannelData = &vecChannelData;
-  treeInput->SetBranchAddress("FDDDigit", &ptrVecDigits);
-  treeInput->SetBranchAddress("FDDDigitCh", &ptrVecChannelData);
+  treeInput->SetBranchAddress(Digit::sDigitBranchName, &ptrVecDigits);
+  treeInput->SetBranchAddress(ChannelData::sDigitBranchName, &ptrVecChannelData);
   std::cout << "Tree nEntries:" << treeInput->GetEntries() << std::endl;
   for (int iEvent = 0; iEvent < treeInput->GetEntries(); iEvent++) { //Iterating TFs in tree
     treeInput->GetEntry(iEvent);
@@ -73,8 +73,8 @@ int main()
   std::unique_ptr<TTree> treeInput2((TTree*)flIn2.Get("o2sim"));
   std::cout << "Reconstruction completed!" << std::endl;
 
-  treeInput2->SetBranchAddress("FDDDigit", &ptrVecDigits);
-  treeInput2->SetBranchAddress("FDDDigitCh", &ptrVecChannelData);
+  treeInput2->SetBranchAddress(Digit::sDigitBranchName, &ptrVecDigits);
+  treeInput2->SetBranchAddress(ChannelData::sDigitBranchName, &ptrVecChannelData);
   std::cout << "Tree nEntries: " << treeInput2->GetEntries() << std::endl;
   for (int iEvent = 0; iEvent < treeInput2->GetEntries(); iEvent++) { //Iterating TFs in tree
     treeInput2->GetEntry(iEvent);
