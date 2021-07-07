@@ -42,7 +42,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   }
 
   conf.freeMemoryFractionToAllocate = vm["freeMemFraction"].as<float>();
-  conf.partitionSizeGB = vm["chunkSize"].as<float>();
+  conf.chunkReservedGB = vm["chunkSize"].as<float>();
   conf.kernelLaunches = vm["launches"].as<int>();
   conf.nTests = vm["ntests"].as<int>();
 

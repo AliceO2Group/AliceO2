@@ -23,15 +23,12 @@
 #include <memory>
 #include <chrono>
 
-// #define PARTITION_SIZE_GB 1
-// #define FREE_MEMORY_FRACTION_TO_ALLOCATE 0.95f
-
 namespace o2
 {
 namespace benchmark
 {
 
-template <class buffer_type>
+template <class chunk_type>
 class GPUbenchmark final
 {
  public:
@@ -43,12 +40,20 @@ class GPUbenchmark final
   template <typename... T>
   float measure(void (GPUbenchmark::*)(T...), const char*, T&&... args);
 
+  // Single stream synchronous (sequential kernels) execution
   template <typename... T>
-  float benchmarkSynchExecution(void (*kernel)(T...), int nLaunches, int blocks, int threads, T&... args);
+  float benchmarkSync(void (*kernel)(T...),
+                       int nLaunches, int blocks, int threads, T&... args);
 
+  // Multi-streams asynchronous executions on whole memory
   template <typename... T>
-  std::vector<float> benchmarkAsynchExecution(void (*kernel)(int, int, T...), int nSplits, int nLaunches, int blocks, int threads, T&... args);
+  std::vector<float> benchmarkAsync(void (*kernel)(int, T...),
+                                     int nStreams, int nLaunches, int blocks, int threads, T&... args);
 
+  // Per-memory region benchmarking
+  template <typename... T>
+  std::vector<float> benchmarkAsyncVsRegion(void (*kernel)(int, int, T...),
+                                             int nRegions, int nStreams, int nLaunches, int blocks, int threads, T&... args);
   // Main interface
   void globalInit(const int deviceId); // Allocate scratch buffers and compute runtime parameters
   void run();                          // Execute all specified callbacks
@@ -61,10 +66,10 @@ class GPUbenchmark final
 
   // Benchmark kernel callbacks
   void readingSequential(SplitLevel sl);
-  void readingConcurrent(SplitLevel sl);
+  void readingConcurrent(SplitLevel sl, int nRegions = 2);
 
  private:
-  gpuState<buffer_type> mState;
+  gpuState<chunk_type> mState;
   std::shared_ptr<ResultStreamer> mStreamer;
   benchmarkOpts mOptions;
 };

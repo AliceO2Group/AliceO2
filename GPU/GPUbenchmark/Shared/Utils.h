@@ -45,7 +45,7 @@ enum class SplitLevel {
 struct benchmarkOpts {
   benchmarkOpts() = default;
 
-  float partitionSizeGB = 1.f;
+  float chunkReservedGB = 1.f;
   float freeMemoryFractionToAllocate = 0.95f;
   int kernelLaunches = 1;
   int nTests = 1;
@@ -53,22 +53,22 @@ struct benchmarkOpts {
 
 template <class T>
 struct gpuState {
-  int getMaxSegments()
+  int getMaxChunks()
   {
-    return (double)scratchSize / (partitionSizeGB * GB);
+    return (double)scratchSize / (chunkReservedGB * GB);
   }
 
   void computeScratchPtrs()
   {
-    partAddrOnHost.resize(getMaxSegments());
-    for (size_t iBuffAddress{0}; iBuffAddress < getMaxSegments(); ++iBuffAddress) {
-      partAddrOnHost[iBuffAddress] = reinterpret_cast<T*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * partitionSizeGB) * iBuffAddress);
+    partAddrOnHost.resize(getMaxChunks());
+    for (size_t iBuffAddress{0}; iBuffAddress < getMaxChunks(); ++iBuffAddress) {
+      partAddrOnHost[iBuffAddress] = reinterpret_cast<T*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * iBuffAddress);
     }
   }
 
   size_t getPartitionCapacity()
   {
-    return static_cast<size_t>(GB * partitionSizeGB / sizeof(T));
+    return static_cast<size_t>(GB * chunkReservedGB / sizeof(T));
   }
 
   std::vector<T*> getScratchPtrs()
@@ -87,7 +87,7 @@ struct gpuState {
   size_t nMaxThreadsPerDimension;
   int iterations;
 
-  float partitionSizeGB; // Size of each partition (GB)
+  float chunkReservedGB; // Size of each partition (GB)
 
   // General containers and state
   T* scratchPtr;                              // Pointer to scratch buffer
@@ -111,7 +111,7 @@ class ResultStreamer
  public:
   explicit ResultStreamer(const std::string debugTreeFileName = "benchmark_results.root");
   ~ResultStreamer();
-  void storeBenchmarkEntry(std::string benchmarkName, std::string split, std::string type, float entry);
+  void storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry);
 
  private:
   std::string mDebugTreeFileName = "benchmark_results.root"; // output filename
@@ -129,10 +129,10 @@ inline ResultStreamer::~ResultStreamer()
   delete mTreeStream;
 }
 
-inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::string split, std::string type, float entry)
+inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry)
 {
   (*mTreeStream)
-    << (benchmarkName + "_" + type + "_" + split).data()
+    << (benchmarkName + "_" + type + "_" + chunk).data()
     << "elapsed=" << entry
     << "\n";
 }
