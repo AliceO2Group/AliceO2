@@ -628,6 +628,43 @@ BOOST_AUTO_TEST_CASE(TestNestedFiltering)
   BOOST_CHECK_EQUAL(i, 1);
 }
 
+DECLARE_SOA_TABLE(Origins, "TST", "ORIG", o2::soa::Index<>, test::X, test::SomeBool);
+namespace test
+{
+DECLARE_SOA_INDEX_COLUMN(Origin, origin);
+}
+DECLARE_SOA_TABLE(References, "TST", "REFS", o2::soa::Index<>, test::OriginId);
+
+BOOST_AUTO_TEST_CASE(TestIndexToFiltered)
+{
+  TableBuilder b;
+  auto writer = b.cursor<Origins>();
+  for (auto i = 0; i < 20; ++i) {
+    writer(0, i, i % 3 == 0);
+  }
+  auto origins = b.finalize();
+  Origins o{origins};
+
+  TableBuilder w;
+  auto writer_w = w.cursor<References>();
+  for (auto i = 0; i < 5 * 20; ++i) {
+    writer_w(0, i % 20);
+  }
+  auto refs = w.finalize();
+  References r{refs};
+  expressions::Filter flt = test::someBool == true;
+  using Flt = o2::soa::Filtered<Origins>;
+  Flt f{{o.asArrowTable()}, expressions::createSelection(o.asArrowTable(), flt)};
+  r.bindExternalIndices(&f);
+  auto it = r.begin();
+  it.moveByIndex(23);
+  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 3);
+  it++;
+  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 4);
+  it++;
+  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 5);
+}
+
 BOOST_AUTO_TEST_CASE(TestEmptyTables)
 {
   TableBuilder bPoints;

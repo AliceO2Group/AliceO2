@@ -1370,7 +1370,7 @@ constexpr auto is_binding_compatible_v()
     auto _Getter_##_as() const                                                                                                    \
     {                                                                                                                             \
       assert(mBinding != nullptr);                                                                                                \
-      return static_cast<T*>(mBinding)->begin() + *mColumnIterator;                                                               \
+      return static_cast<T*>(mBinding)->iteratorAt(*mColumnIterator);                                                             \
     }                                                                                                                             \
                                                                                                                                   \
     auto _Getter_() const                                                                                                         \
@@ -1589,6 +1589,8 @@ struct Join : JoinBase<Ts...> {
   using persistent_columns_t = typename table_t::persistent_columns_t;
   using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
   using const_iterator = iterator;
+  using unfiltered_iterator = iterator;
+  using unfiltered_const_iterator = const_iterator;
   using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
   using filtered_const_iterator = filtered_iterator;
 };
@@ -1661,6 +1663,8 @@ class FilteredPolicy : public T
   }
   using iterator = decltype(make_it<FilteredPolicy<T>>(originals{}));
   using const_iterator = iterator;
+  using unfiltered_iterator = typename table_t::iterator;
+  using unfiltered_const_iterator = typename table_t::const_iterator;
 
   FilteredPolicy(std::vector<std::shared_ptr<arrow::Table>>&& tables, SelectionVector&& selection, uint64_t offset = 0)
     : T{std::move(tables), offset},
