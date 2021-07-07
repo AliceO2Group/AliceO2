@@ -436,14 +436,14 @@ void GPUbenchmark<chunk_type>::readingConcurrent(SplitLevel sl, int nChunks)
       for (auto measurements{mOptions.nTests}; measurements--;) {
         std::cout << std::setw(2) << ">>> Concurrent read benchmark, one block per chunk";
         auto results = benchmarkAsync(&gpu::readChunkSBKernel<chunk_type>,
-                                       mState.getMaxChunks(), // nStreams
-                                       mState.getNKernelLaunches(),
-                                       nBlocks,
-                                       nThreads,
-                                       mState.deviceReadingResultsPtr,  // kernel arguments (chunkId is passed by wrapper)
-                                       mState.scratchPtr,
-                                       capacity,
-                                       mState.chunkReservedGB);
+                                      mState.getMaxChunks(), // nStreams
+                                      mState.getNKernelLaunches(),
+                                      nBlocks,
+                                      nThreads,
+                                      mState.deviceReadingResultsPtr, // kernel arguments (chunkId is passed by wrapper)
+                                      mState.scratchPtr,
+                                      capacity,
+                                      mState.chunkReservedGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
           mStreamer.get()->storeBenchmarkEntry("readConcurrentSplitBlocks", std::to_string(iResult), getType<chunk_type>(), results[iResult]);
         }
