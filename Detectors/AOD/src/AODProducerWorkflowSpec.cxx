@@ -236,6 +236,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             uint8_t shared, found, crossed; // fixme: need to switch from these placeholders to something more reasonable
             countTPCClusters(tpcOrig, tpcClusRefs, tpcClusShMap, tpcClusAcc, shared, found, crossed);
             extraInfoHolder.tpcNClsFindable = tpcOrig.getNClusters();
+            extraInfoHolder.tpcNClsFindableMinusFound = tpcOrig.getNClusters() - found;
             extraInfoHolder.tpcNClsFindableMinusCrossedRows = tpcOrig.getNClusters() - crossed;
             extraInfoHolder.tpcNClsShared = shared;
           }
