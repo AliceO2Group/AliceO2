@@ -136,7 +136,7 @@ def gs_read_sheet_cru(credential_file, workbook, sheet_name):
 
     data = wks.get_all_values()
 
-# LINK ID	CRU ID	CRU LINK	DWP	CRU ADDR	DW ADDR   FEE ID
+# LINK ID  CRU ID  CRU LINK  DWP  CRU ADDR  DW ADDR   FEE ID
 
     cols = np.array([0, 1, 2, 3, 4, 5,6,7])
     df = pd.DataFrame(np.asarray(data)[:, cols],
