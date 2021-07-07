@@ -367,13 +367,6 @@ int DigiReco::reconstruct(int ibeg, int iend)
       }
     }
 
-#ifdef O2_ZDC_DEBUG
-    // Debug dump of pedestal
-    for (int ich = 0; ich < NChannels; ich++) {
-      LOG(INFO) << "bunch: " << ibun << " ch: " << ich << " " << ChannelNames[ich] << " offset: " << pbun[ich];
-    }
-#endif
-
     auto& rec = mReco[ibun];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
 #ifdef O2_ZDC_DEBUG
@@ -435,7 +428,8 @@ int DigiReco::reconstruct(int ibeg, int iend)
         fired[ich] = true;
       }
     }
-
+    // TODO: option to use a less restrictive definition of "fired" using for example
+    // just the autotrigger bits instead of using TDCs
     if (mVerbosity >= DbgFull) {
       printf("%d FIRED ", ibun);
       printf("ZNA:%d%d%d%d%d%d ZPA:%d%d%d%d%d%d ZEM:%d%d ZNC:%d%d%d%d%d%d ZPC:%d%d%d%d%d%d\n",
@@ -451,20 +445,68 @@ int DigiReco::reconstruct(int ibeg, int iend)
         // Check if channel data are present in payload
         auto ref = mReco[ibun].ref[ich];
         if (ref < ZDCRefInitVal) {
-          float sum = 0;
-          for (int is = ropt.beg_int[ich]; is <= ropt.end_int[ich]; is++) {
-            // TODO: fallback if offset is missing
-            // TODO: fallback if channel has pile-up
-            // TODO: manage signal positioned across boundary
-            sum += (pbun[ich] - float(mChData[ref].data[is]));
+          // TODO: get failover pedestal from QC
+          bool hasQCPed = false;
+          float QCPed = std::numeric_limits<float>::infinity();
+          // Orbit pedestal
+          bool hasOrPed = pbun[ich] < std::numeric_limits<float>::infinity();
+          // Compute event by event pedestal
+          bool hasEvPed = false;
+          float evPed = 0;
+          if (ibun > ibeg) {
+            auto ref_m = mReco[ibun - 1].ref[ich];
+            if (ropt.beg_ped_int[ich] >= 0 || ref < ZDCRefInitVal) {
+              for (int is = ropt.beg_ped_int[ich]; is <= ropt.end_ped_int[ich]; is++) {
+                if (is < 0) {
+                  // Sample is in previous BC
+                  evPed += float(mChData[ref_m].data[is + NTimeBinsPerBC]);
+                } else {
+                  // Sample is in current BC
+                  evPed += float(mChData[ref].data[is]);
+                }
+              }
+              evPed /= float(ropt.end_ped_int[ich] - ropt.beg_ped_int[ich] + 1);
+              hasEvPed = true;
+            }
           }
+          float myPed = std::numeric_limits<float>::infinity();
+          // TODO: compare orbit pedestal with orbit pedestal to detect pile-up
+          // from previous bunch. If this is the case we use orbit pedestal
+          // instead of event pedestal
+          if (hasEvPed) {
+            myPed = evPed;
+          } else if (hasOrPed) {
+            myPed = pbun[ich];
+            rec.ped[ich] = PedOr;
+          } else if (hasQCPed) {
+            // TODO: use QC pedestal
+            //rec.ped[ich]=PedQC;
+          } else {
+            rec.ped[ich] = PedMissing;
+          }
+          if (myPed < std::numeric_limits<float>::infinity()) {
+            float sum = 0;
+            for (int is = ropt.beg_int[ich]; is <= ropt.end_int[ich]; is++) {
+              // TODO: pile-up correction
+              // TODO: manage signal positioned across boundary
+              sum += (myPed - float(mChData[ref].data[is]));
+            }
 #ifdef O2_ZDC_DEBUG
-          printf("CH %2d %s: %f\n", ich, ChannelNames[ich].data(), sum);
+            printf("CH %2d %s: %8.3f %sped=%8.3f %soff=%8.3f %sQC=%8.3f\n", ich, ChannelNames[ich].data(), sum,
+                   rec.ped[ich] == PedEv ? "*" : "", evPed,
+                   rec.ped[ich] == PedOr ? "*" : "", pbun[ich],
+                   rec.ped[ich] == PedQC ? "*" : "", QCPed);
 #endif
-          rec.ezdc[ich] = sum * ropt.energy_calib[ich];
+            rec.ezdc[ich] = sum * ropt.energy_calib[ich];
+          } else {
+            LOGF(WARN, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data(), rec.ped[ich]);
+          }
+        } else {
+          LOG(FATAL) << "Serious mess in reconstruction code";
+          rec.err[ich] = true;
         }
       }
-    }
+    } // Loop on channels
     if (mTreeDbg) {
       mRec = rec;
       mTDbg->Fill();

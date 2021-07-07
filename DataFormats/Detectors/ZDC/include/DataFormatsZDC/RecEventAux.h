@@ -41,6 +41,8 @@ struct RecEventAux {
   uint16_t fired[NTDCChannels] = {0};                    /// Position at which the trigger algorithm is fired
   float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
   uint32_t ref[NChannels];                               /// Cache of references
+  std::array<bool, NChannels> err;              /// Generic error condition
+  std::array<uint8_t, NChannels> ped;           /// Pedestal subtraction employed
 
   // Functions
   RecEventAux()

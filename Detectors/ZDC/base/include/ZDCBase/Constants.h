@@ -21,7 +21,7 @@
 #include <type_traits>
 
 // Enable debug output in reconstruction
-//#define O2_ZDC_DEBUG
+#define O2_ZDC_DEBUG
 
 namespace o2
 {
@@ -209,6 +209,13 @@ const std::string CCDBPathRecoConfigZDC = "ZDC/Calib/RecoConfigZDC";
 const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
+
+enum Msg { PedEv = 0,
+           PedOr = 1,
+           PedQC = 2,
+           PedMissing = 3 };
+
+
 
 // List of channels that can be calibrated
 constexpr std::array<int, 10> ChEnergyCalib{IdZNAC, IdZNASum, IdZPAC, IdZPASum,
