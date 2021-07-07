@@ -182,7 +182,7 @@ def _simplify_dataframe(df):
     solar_map = {}
 
     for row in df.itertuples():
-        # print(row)
+        #print(row)
         crate = int(str(row.crate).strip('C '))
         solar_pos = int(row.solar.split('-')[2].strip('S '))-1
         group_id = int(row.solar.split('-')[3].strip('J '))-1
@@ -254,6 +254,7 @@ if args.excel_filename:
 
 if args.gs_name:
     df = df.append(gs_read_sheet(args.credentials, args.gs_name, args.sheet))
+    print(df)
     df, solar_map = _simplify_dataframe(df)
     df_cru = df_cru.append(gs_read_sheet_cru(args.credentials, args.gs_name,
                                              args.sheet+" CRU map"))
