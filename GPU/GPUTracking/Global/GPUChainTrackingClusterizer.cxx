@@ -378,6 +378,16 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     mRec->SetNOMPThreads(mRec->MemoryScalers()->nTPCdigits / 20000);
   }
 
+  mRec->MemoryScalers()->nTPCHits = mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
+  if (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasNHBFPerTF) {
+    unsigned int nHitsBase = mRec->MemoryScalers()->nTPCHits;
+    unsigned int threshold = 30000000 * mIOPtrs.settingsTF->nHBFPerTF / 256;
+    mRec->MemoryScalers()->nTPCHits = std::max<unsigned int>(nHitsBase, std::min<unsigned int>(threshold, nHitsBase * 3)); // Increase the buffer size for low occupancy data to compensate for noisy pads creating exceiive clusters
+    if (nHitsBase < threshold) {
+      float maxFactor = mRec->MemoryScalers()->nTPCHits < threshold ? 2.0 : 1.5;
+      mRec->MemoryScalers()->temporaryFactor *= std::min(maxFactor, (float)threshold / nHitsBase);
+    }
+  }
   for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
     processors()->tpcClusterer[iSlice].SetMaxData(mIOPtrs); // First iteration to set data sizes
   }
@@ -411,14 +421,6 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
   bool buildNativeGPU = (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCConversion) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCSliceTracking) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCMerging) || (mRec->GetRecoStepsGPU() & GPUDataTypes::RecoStep::TPCCompression);
   bool buildNativeHost = mRec->GetRecoStepsOutputs() & GPUDataTypes::InOutType::TPCClusters; // TODO: Should do this also when clusters are needed for later steps on the host but not requested as output
-  mRec->MemoryScalers()->nTPCHits = mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
-  if (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasNHBFPerTF) {
-    unsigned int threshold = 20000000 * mIOPtrs.settingsTF->nHBFPerTF / 256;
-    mRec->MemoryScalers()->nTPCHits = std::max<unsigned int>(mRec->MemoryScalers()->nTPCHits, std::min<unsigned int>(threshold, mRec->MemoryScalers()->nTPCHits * 3)); // Increase the buffer size for low occupancy data to compensate for noisy pads creating exceiive clusters
-    if (mRec->MemoryScalers()->nTPCHits < threshold) {
-      mRec->MemoryScalers()->temporaryFactor *= std::min(1.5, (double)threshold / mRec->MemoryScalers()->nTPCHits);
-    }
-  }
 
   mInputsHost->mNClusterNative = mInputsShadow->mNClusterNative = mRec->MemoryScalers()->nTPCHits;
   if (buildNativeGPU) {
