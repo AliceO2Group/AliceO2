@@ -1934,7 +1934,7 @@ class FilteredPolicy : public T
     doCopyIndexBindings(external_index_columns_t{}, dest);
   }
 
-  auto Slice(uint64_t start, uint64_t end)
+  auto slice(uint64_t start, uint64_t end)
   {
     auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
     auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
