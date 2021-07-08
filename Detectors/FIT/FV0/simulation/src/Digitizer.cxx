@@ -422,6 +422,7 @@ bool Digitizer::isRing5(int detID)
 {
   if (detID > 31) {
     return true;
-  } else
+  } else {
     return false;
+  }
 }
