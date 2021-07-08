@@ -143,7 +143,7 @@ if [ "$doreco" == "1" ]; then
   echo "Return status of mftreco: $?"
 
   echo "Running MCH reco flow"
-  taskwrapper mchreco.log o2-mch-reco-workflow $gloOpt 
+  taskwrapper mchreco.log o2-mch-reco-workflow $gloOpt
   echo "Return status of mchreco: $?"
 
   echo "Running FT0 reco flow"

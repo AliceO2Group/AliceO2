@@ -74,6 +74,18 @@ void DataRequest::requestMFTTracks(bool mc)
   requestMap["trackMFT"] = mc;
 }
 
+void DataRequest::requestMCHTracks(bool mc)
+{
+  addInput({"trackMCH", "MCH", "TRACKS", 0, Lifetime::Timeframe});
+  addInput({"trackMCHROF", "MCH", "TRACKROFS", 0, Lifetime::Timeframe});
+  // FIXME-LA : add trackclusters and labels
+  // addInput({"trackMCHTRACKCLUSTERS", "MCH", "TRACKCLUSTERS", 0, Lifetime::Timeframe});
+  // if (mc) {
+  //   addInput({"trackMFTMCTR", "MFT", "TRACKSMCTR", 0, Lifetime::Timeframe});
+  // }
+  requestMap["trackMCH"] = mc;
+}
+
 void DataRequest::requestTPCTracks(bool mc)
 {
   addInput({"trackTPC", "TPC", "TRACKS", 0, Lifetime::Timeframe});
@@ -245,6 +257,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (src[GTrackID::MFT]) {
     requestMFTTracks(useMC);
   }
+  if (src[GTrackID::MCH]) {
+    requestMCHTracks(useMC);
+  }
   if (src[GTrackID::TPC]) {
     requestTPCTracks(useMC);
   }
@@ -302,6 +317,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   req = reqMap.find("trackMFT");
   if (req != reqMap.end()) {
     addMFTTracks(pc, req->second);
+  }
+
+  req = reqMap.find("trackMCH");
+  if (req != reqMap.end()) {
+    addMCHTracks(pc, req->second);
   }
 
   req = reqMap.find("trackTPC");
@@ -458,6 +478,17 @@ void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
   if (mc) {
     commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMFTMCTR"), MCLABELS);
   }
+}
+
+//____________________________________________________________
+void RecoContainer::addMCHTracks(ProcessingContext& pc, bool mc)
+{
+  commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::TrackMCH>>("trackMCH"), TRACKS);
+  commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("trackMCHROF"), TRACKREFS);
+  // FIXME-LA : add track labels and track clusters:
+  // if (mc) {
+  //   commonPool[GTrackID::MCH].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("trackMCHMC"), MCLABELS);
+  // }
 }
 
 //____________________________________________________________
