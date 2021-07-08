@@ -649,6 +649,43 @@ BOOST_AUTO_TEST_CASE(TestEmptyTables)
   BOOST_CHECK_EQUAL(spawned.size(), 0);
 }
 
+DECLARE_SOA_TABLE(Origins, "TST", "ORIG", o2::soa::Index<>, test::X, test::SomeBool);
+namespace test
+{
+DECLARE_SOA_INDEX_COLUMN(Origin, origin);
+}
+DECLARE_SOA_TABLE(References, "TST", "REFS", o2::soa::Index<>, test::OriginId);
+
+BOOST_AUTO_TEST_CASE(TestIndexToFiltered)
+{
+  TableBuilder b;
+  auto writer = b.cursor<Origins>();
+  for (auto i = 0; i < 20; ++i) {
+    writer(0, i, i % 3 == 0);
+  }
+  auto origins = b.finalize();
+  Origins o{origins};
+
+  TableBuilder w;
+  auto writer_w = w.cursor<References>();
+  for (auto i = 0; i < 5 * 20; ++i) {
+    writer_w(0, i % 20);
+  }
+  auto refs = w.finalize();
+  References r{refs};
+  expressions::Filter flt = test::someBool == true;
+  using Flt = o2::soa::Filtered<Origins>;
+  Flt f{{o.asArrowTable()}, expressions::createSelection(o.asArrowTable(), flt)};
+  r.bindExternalIndices(&f);
+  auto it = r.begin();
+  it.moveByIndex(23);
+  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 3);
+  it++;
+  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 4);
+  it++;
+  BOOST_CHECK_EQUAL(it.origin().globalIndex(), 5);
+}
+
 namespace test
 {
 DECLARE_SOA_ARRAY_INDEX_COLUMN(Points3D, pointGroup, 3);
@@ -684,10 +721,8 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   auto s1 = it.pointSlice();
   auto g1 = it.pointGroup();
   auto bb = std::is_same_v<decltype(s1), Points3Ds>;
-
   BOOST_CHECK(bb);
   BOOST_CHECK_EQUAL(s1.size(), 2);
-
   aa = {2, 3, 4};
   for (int i = 0; i < 3; ++i) {
     BOOST_CHECK_EQUAL(g1[i].globalIndex(), aa[i]);
@@ -697,9 +732,31 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   auto s2 = it.pointSlice();
   auto g2 = it.pointGroup();
   BOOST_CHECK_EQUAL(s2.size(), 7);
-
   aa = {12, 2, 19};
   for (int i = 0; i < 3; ++i) {
     BOOST_CHECK_EQUAL(g2[i].globalIndex(), aa[i]);
+  }
+
+  using Flt = o2::soa::Filtered<Points3Ds>;
+  expressions::Filter flt = test::x <= -6;
+  Flt f{{pt.asArrowTable()}, expressions::createSelection(pt.asArrowTable(), flt)};
+  prt.bindExternalIndices(&f);
+
+  auto it2 = prt.begin();
+  auto s1f = it2.pointSlice_as<Flt>();
+  auto g1f = it2.pointGroup_as<Flt>();
+  BOOST_CHECK_EQUAL(s1f.size(), 2);
+  aa = {2, 3, 4};
+  for (int i = 0; i < 3; ++i) {
+    BOOST_CHECK_EQUAL(g1f[i].globalIndex(), aa[i]);
+  }
+
+  ++it2;
+  auto s2f = it2.pointSlice_as<Flt>();
+  auto g2f = it2.pointGroup_as<Flt>();
+  BOOST_CHECK_EQUAL(s2f.size(), 7);
+  aa = {12, 2, 19};
+  for (int i = 0; i < 3; ++i) {
+    BOOST_CHECK_EQUAL(g2f[i].globalIndex(), aa[i]);
   }
 }
