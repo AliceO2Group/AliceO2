@@ -40,7 +40,6 @@ void Digitizer::init()
   LOG(INFO) << "V0Digitizer::init -> start = ";
   mNBins = FV0DigParam::Instance().waveformNbins;      //Will be computed using detector set-up from CDB
   mBinSize = FV0DigParam::Instance().waveformBinWidth; //Will be set-up from CDB
-
   mNTimeBinsPerBC = std::lround(o2::constants::lhc::LHCBunchSpacingNS / mBinSize); // 1920 bins/BC
 
   for (Int_t detID = 0; detID < Constants::nFv0Channels; detID++) {
@@ -48,19 +47,17 @@ void Digitizer::init()
     mLastBCCache.mPmtChargeVsTime[detID].resize(mNBins);
   }
 
-
-  // set up PMT response function [avg] for ring 1 to 4
+  /// set up PMT response function [avg] for ring 1 to 4
   TF1Convolution convolutionRingA1ToA4("expo","landau",5.e-09,90.e-09,false);
   TF1 convolutionRingA1ToA4Fn("convolutionFn",convolutionRingA1ToA4, 5.e-09, 90.e-09, convolutionRingA1ToA4.GetNpar());
   convolutionRingA1ToA4Fn.SetParameters(FV0DigParam::Instance().constRingA1ToA4,FV0DigParam::Instance().slopeRingA1ToA4,
                                    FV0DigParam::Instance().mpvRingA1ToA4,FV0DigParam::Instance().sigmaRingA1ToA4);
 
-  // set up PMT response function [avg] for ring 5
+  /// set up PMT response function [avg] for ring 5
   TF1Convolution convolutionRing5("expo","landau",5.e-09,90.e-09,false);
   TF1 convolutionRing5Fn("convolutionFn",convolutionRing5, 5.e-09, 90.e-09, convolutionRing5.GetNpar());
   convolutionRing5Fn.SetParameters(FV0DigParam::Instance().constRing5,FV0DigParam::Instance().slopeRing5,
                               FV0DigParam::Instance().mpvRing5,FV0DigParam::Instance().sigmaRing5);
-
   /// PMT response per hit [Global] for ring 1 to 4
   mPmtResponseGlobalRingA1ToA4.resize(mNBins);
   const float binSizeInNs = mBinSize * 1.e-09; // to convert ns into sec
@@ -70,7 +67,6 @@ void Digitizer::init()
         * convolutionRingA1ToA4Fn.Eval(x+FV0DigParam::Instance().offsetRingA1ToA4); //offset to adjust mean position of waveform
     x += binSizeInNs;
   }
-
    /// PMT response per hit [Global] for ring 5
   mPmtResponseGlobalRing5.resize(mNBins);
   x = (binSizeInNs) / 2.0;
@@ -79,10 +75,8 @@ void Digitizer::init()
         * convolutionRing5Fn.Eval(x+FV0DigParam::Instance().offsetRing5); //offset to adjust mean position of waveform
     x += binSizeInNs;
   }
-
   mLastBCCache.clear();
   mCfdStartIndex.fill(0);
-
   LOG(INFO) << "V0Digitizer::init -> finished";
 }
 
@@ -251,17 +245,17 @@ void Digitizer::storeBC(const BCCache& bc,
       continue;
     }
     float totalCharge = IntegrateCharge(bc.mPmtChargeVsTime[iPmt]);
-    if(totalCharge > (4095*(1./DP::INV_CHARGE_PER_ADC)) && FV0DigParam::Instance().useMaxChInAdc)
+    if(totalCharge > (FV0DigParam::Instance().maxCountInAdc*(1./DP::INV_CHARGE_PER_ADC)) && FV0DigParam::Instance().useMaxChInAdc)
     {
-      totalChargeAllRing += 4095*(1./DP::INV_CHARGE_PER_ADC);
+      totalChargeAllRing += FV0DigParam::Instance().maxCountInAdc*(1./DP::INV_CHARGE_PER_ADC);
     }
     else {
       totalChargeAllRing += totalCharge;
     }
     totalCharge *= DP::INV_CHARGE_PER_ADC; //convert coulomb to adc
-    if(totalCharge > 4095 && FV0DigParam::Instance().useMaxChInAdc)
+    if(totalCharge > FV0DigParam::Instance().maxCountInAdc && FV0DigParam::Instance().useMaxChInAdc)
     {
-      totalCharge = 4095; //max adc channel for one PMT
+      totalCharge = FV0DigParam::Instance().maxCountInAdc; //max adc channel for one PMT
     }
     cfdZero *= DP::INV_TIME_PER_TDCCHANNEL;
 
@@ -322,7 +316,6 @@ Float_t Digitizer::IntegrateCharge(const ChannelBCDataF& pulse) const
   if (chargeIntMin < 0 || chargeIntMin > mNTimeBinsPerBC || chargeIntMax > mNTimeBinsPerBC) {
     LOG(FATAL) << "invalid indicess: chargeInMin=" << chargeIntMin << " chargeIntMax=" << chargeIntMax;
   }
-
   Float_t totalCharge = 0.0f;
   for (int iTimeBin = chargeIntMin; iTimeBin < chargeIntMax; iTimeBin++) {
     totalCharge += pulse[iTimeBin];
@@ -405,7 +398,6 @@ o2::fv0::Digitizer::BCCache& Digitizer::setBCCache(const o2::InteractionRecord& 
     cb = ir;
     return cb;
   }
-
   for (auto cb = mCache.begin(); cb != mCache.end(); cb++) {
     if ((*cb) == ir) {
       return *cb;
