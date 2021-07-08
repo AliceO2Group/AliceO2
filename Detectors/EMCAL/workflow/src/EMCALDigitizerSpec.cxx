@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "EMCALDigitizerSpec.h"
+#include "EMCALWorkflow/EMCALDigitizerSpec.h"
 #include "CommonConstants/Triggers.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
@@ -20,6 +20,7 @@
 #include "TStopwatch.h"
 #include "Steer/HitProcessingManager.h" // for DigitizationContext
 #include "TChain.h"
+#include <TGeoManager.h>
 
 #include "CommonDataFormat/EvIndex.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -161,7 +162,7 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   mFinished = true;
 }
 
-DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth)
+o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth)
 {
   // create the full data processor spec using
   //  a name identifier

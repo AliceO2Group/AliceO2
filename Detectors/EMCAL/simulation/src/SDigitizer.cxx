@@ -71,13 +71,6 @@ std::vector<o2::emcal::LabeledDigit> SDigitizer::process(const std::vector<Hit>&
         label.setAmplitudeFraction(0);
       }
 
-      // Check whether the digit is high gain or low gain
-      if (digit.getAmplitude() > constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY) {
-        digit.setLowGain();
-      } else {
-        digit.setHighGain();
-      }
-
       LabeledDigit d(digit, label);
       digitsPerTower[tower].push_back(d);
 
@@ -88,29 +81,19 @@ std::vector<o2::emcal::LabeledDigit> SDigitizer::process(const std::vector<Hit>&
 
   std::vector<LabeledDigit> digitsVector;
 
-  // Assigning a channel type LG or HG
-  for (auto t : digitsPerTower) {
-    std::vector<LabeledDigit> digitsList = t.second;
+  // Sum all digits in one tower
+  for (auto [towerID, labeledDigits] : digitsPerTower) {
 
-    bool channelLowGain = false;
+    o2::emcal::LabeledDigit Sdigit = std::accumulate(std::next(labeledDigits.begin()), labeledDigits.end(), labeledDigits.front());
 
-    // If the channel type is LG only keep low gain digits and discard the rest
-    for (auto digit : digitsList) {
-      if (digit.getLowGain()) {
-        channelLowGain = true;
-        break;
-      }
+    // Check whether the Sdigit is high gain or low gain
+    if (Sdigit.getAmplitude() > constants::EMCAL_HGLGTRANSITION * constants::EMCAL_ADCENERGY) {
+      Sdigit.setLowGain();
+    } else {
+      Sdigit.setHighGain();
     }
 
-    for (auto digit : digitsList) {
-      if (digit.getAmplitude() < 0) {
-        continue;
-      }
-
-      if (digit.getLowGain() == channelLowGain) {
-        digitsVector.push_back(digit);
-      }
-    }
+    digitsVector.push_back(Sdigit);
   }
 
   digitsPerTower.clear();
