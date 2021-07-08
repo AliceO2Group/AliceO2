@@ -63,8 +63,8 @@
 #include "FDDWorkflow/DigitWriterSpec.h"
 
 // for EMCal
-#include "EMCALDigitizerSpec.h"
-#include "EMCALDigitWriterSpec.h"
+#include "EMCALWorkflow/EMCALDigitizerSpec.h"
+#include "EMCALWorkflow/EMCALDigitWriterSpec.h"
 
 // for HMPID
 #include "HMPIDDigitizerSpec.h"
