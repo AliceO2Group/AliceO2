@@ -310,7 +310,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          }
                          auto dh = o2::header::get<DataHeader*>(input.header);
                          if (dh->serialization != o2::header::gSerializationMethodArrow) {
-                           LOGP(INFO, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
+                           LOGP(DEBUG, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
                          auto dph = o2::header::get<DataProcessingHeader*>(input.header);
@@ -322,15 +322,15 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            }
                          }
                          if (forwarded) {
-                           LOGP(INFO, "Message {}/{} is forwarded so we are not returning its memory.", dh->dataOrigin, dh->dataDescription);
+                           LOGP(DEBUG, "Message {}/{} is forwarded so we are not returning its memory.", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
-                         LOGP(INFO, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, dh->payloadSize / 1000000.);
+                         LOGP(DEBUG, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, dh->payloadSize / 1000000.);
                          totalBytes += dh->payloadSize;
                          totalMessages += 1;
                        }
                        arrow->updateBytesDestroyed(totalBytes);
-                       LOGP(INFO, "{}MB bytes being given back to reader, totaling {}MB", totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
+                       LOGP(DEBUG, "{}MB bytes being given back to reader, totaling {}MB", totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& monitoring = ctx.services().get<Monitoring>();
                        monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
