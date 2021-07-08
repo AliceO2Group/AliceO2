@@ -48,31 +48,31 @@ void Digitizer::init()
   }
 
   /// set up PMT response function [avg] for ring 1 to 4
-  TF1Convolution convolutionRingA1ToA4("expo","landau",5.e-09,90.e-09,false);
-  TF1 convolutionRingA1ToA4Fn("convolutionFn",convolutionRingA1ToA4, 5.e-09, 90.e-09, convolutionRingA1ToA4.GetNpar());
-  convolutionRingA1ToA4Fn.SetParameters(FV0DigParam::Instance().constRingA1ToA4,FV0DigParam::Instance().slopeRingA1ToA4,
-                                   FV0DigParam::Instance().mpvRingA1ToA4,FV0DigParam::Instance().sigmaRingA1ToA4);
+  TF1Convolution convolutionRingA1ToA4("expo", "landau", 5.e-09, 90.e-09, false);
+  TF1 convolutionRingA1ToA4Fn("convolutionFn", convolutionRingA1ToA4, 5.e-09, 90.e-09, convolutionRingA1ToA4.GetNpar());
+  convolutionRingA1ToA4Fn.SetParameters(FV0DigParam::Instance().constRingA1ToA4, FV0DigParam::Instance().slopeRingA1ToA4,
+                                        FV0DigParam::Instance().mpvRingA1ToA4, FV0DigParam::Instance().sigmaRingA1ToA4);
 
   /// set up PMT response function [avg] for ring 5
-  TF1Convolution convolutionRing5("expo","landau",5.e-09,90.e-09,false);
-  TF1 convolutionRing5Fn("convolutionFn",convolutionRing5, 5.e-09, 90.e-09, convolutionRing5.GetNpar());
-  convolutionRing5Fn.SetParameters(FV0DigParam::Instance().constRing5,FV0DigParam::Instance().slopeRing5,
-                              FV0DigParam::Instance().mpvRing5,FV0DigParam::Instance().sigmaRing5);
+  TF1Convolution convolutionRing5("expo", "landau", 5.e-09, 90.e-09, false);
+  TF1 convolutionRing5Fn("convolutionFn", convolutionRing5, 5.e-09, 90.e-09, convolutionRing5.GetNpar());
+  convolutionRing5Fn.SetParameters(FV0DigParam::Instance().constRing5, FV0DigParam::Instance().slopeRing5,
+                                   FV0DigParam::Instance().mpvRing5, FV0DigParam::Instance().sigmaRing5);
   /// PMT response per hit [Global] for ring 1 to 4
   mPmtResponseGlobalRingA1ToA4.resize(mNBins);
   const float binSizeInNs = mBinSize * 1.e-09; // to convert ns into sec
   double x = (binSizeInNs) / 2.0;
   for (auto& y : mPmtResponseGlobalRingA1ToA4) {
-    y = FV0DigParam::Instance().normRingA1ToA4 // normalisation to have MIP adc at 16
-        * convolutionRingA1ToA4Fn.Eval(x+FV0DigParam::Instance().offsetRingA1ToA4); //offset to adjust mean position of waveform
+    y = FV0DigParam::Instance().normRingA1ToA4                                        // normalisation to have MIP adc at 16
+        * convolutionRingA1ToA4Fn.Eval(x + FV0DigParam::Instance().offsetRingA1ToA4); //offset to adjust mean position of waveform
     x += binSizeInNs;
   }
-   /// PMT response per hit [Global] for ring 5
+  /// PMT response per hit [Global] for ring 5
   mPmtResponseGlobalRing5.resize(mNBins);
   x = (binSizeInNs) / 2.0;
   for (auto& y : mPmtResponseGlobalRing5) {
-    y = FV0DigParam::Instance().normRing5 // normalisation to have MIP adc at 16
-        * convolutionRing5Fn.Eval(x+FV0DigParam::Instance().offsetRing5); //offset to adjust mean position of waveform
+    y = FV0DigParam::Instance().normRing5                                   // normalisation to have MIP adc at 16
+        * convolutionRing5Fn.Eval(x + FV0DigParam::Instance().offsetRing5); //offset to adjust mean position of waveform
     x += binSizeInNs;
   }
   mLastBCCache.clear();
@@ -165,19 +165,18 @@ void Digitizer::createPulse(float mipFraction, int parID, const double hitTime,
 
   if (NBinShift >= 0 && NBinShift < FV0DigParam::Instance().waveformNbins) {
     mPmtResponseTemp.resize(FV0DigParam::Instance().waveformNbins, 0.);
-    if(isRing5(detId)) {
-    std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobalRing5[0],
-                sizeof(double) * (FV0DigParam::Instance().waveformNbins - NBinShift));
-    }
-   else {
+    if (isRing5(detId)) {
+      std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobalRing5[0],
+                  sizeof(double) * (FV0DigParam::Instance().waveformNbins - NBinShift));
+    } else {
       std::memcpy(&mPmtResponseTemp[NBinShift], &mPmtResponseGlobalRingA1ToA4[0],
                   sizeof(double) * (FV0DigParam::Instance().waveformNbins - NBinShift));
     }
   } else {
-    if(isRing5(detId)) {
+    if (isRing5(detId)) {
       mPmtResponseTemp = mPmtResponseGlobalRing5;
       mPmtResponseTemp.erase(mPmtResponseTemp.begin(), mPmtResponseTemp.begin() + abs(NBinShift));
-    } else{
+    } else {
       mPmtResponseTemp = mPmtResponseGlobalRingA1ToA4;
       mPmtResponseTemp.erase(mPmtResponseTemp.begin(), mPmtResponseTemp.begin() + abs(NBinShift));
     }
@@ -245,16 +244,13 @@ void Digitizer::storeBC(const BCCache& bc,
       continue;
     }
     float totalCharge = IntegrateCharge(bc.mPmtChargeVsTime[iPmt]);
-    if(totalCharge > (FV0DigParam::Instance().maxCountInAdc*(1./DP::INV_CHARGE_PER_ADC)) && FV0DigParam::Instance().useMaxChInAdc)
-    {
-      totalChargeAllRing += FV0DigParam::Instance().maxCountInAdc*(1./DP::INV_CHARGE_PER_ADC);
-    }
-    else {
+    if (totalCharge > (FV0DigParam::Instance().maxCountInAdc * (1. / DP::INV_CHARGE_PER_ADC)) && FV0DigParam::Instance().useMaxChInAdc) {
+      totalChargeAllRing += FV0DigParam::Instance().maxCountInAdc * (1. / DP::INV_CHARGE_PER_ADC);
+    } else {
       totalChargeAllRing += totalCharge;
     }
     totalCharge *= DP::INV_CHARGE_PER_ADC; //convert coulomb to adc
-    if(totalCharge > FV0DigParam::Instance().maxCountInAdc && FV0DigParam::Instance().useMaxChInAdc)
-    {
+    if (totalCharge > FV0DigParam::Instance().maxCountInAdc && FV0DigParam::Instance().useMaxChInAdc) {
       totalCharge = FV0DigParam::Instance().maxCountInAdc; //max adc channel for one PMT
     }
     cfdZero *= DP::INV_TIME_PER_TDCCHANNEL;

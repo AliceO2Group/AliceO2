@@ -36,9 +36,7 @@ class Digitizer
 
  public:
   Digitizer()
-    : mTimeStamp(0), mIntRecord(), mEventId(-1), mSrcId(-1), mMCLabels(), mCache(),
-    mPmtChargeVsTime(), mNBins(), mNTimeBinsPerBC(), mPmtResponseGlobalRing5(),
-    mPmtResponseGlobalRingA1ToA4()  , mPmtResponseTemp(), mLastBCCache(), mCfdStartIndex()
+    : mTimeStamp(0), mIntRecord(), mEventId(-1), mSrcId(-1), mMCLabels(), mCache(), mPmtChargeVsTime(), mNBins(), mNTimeBinsPerBC(), mPmtResponseGlobalRing5(), mPmtResponseGlobalRingA1ToA4(), mPmtResponseTemp(), mLastBCCache(), mCfdStartIndex()
   {
   }
 

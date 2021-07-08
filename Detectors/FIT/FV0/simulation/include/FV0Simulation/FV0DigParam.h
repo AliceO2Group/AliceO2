@@ -31,7 +31,7 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   /// Parameter for the FV0 waveform [Conv. of expo. with Landau]
   // For ring 1-4
   float offsetRingA1ToA4 = 15.87e-09;
-  float normRingA1ToA4 =  7.9061033e-13;
+  float normRingA1ToA4 = 7.9061033e-13;
   float constRingA1ToA4 = -25.6165;
   float slopeRingA1ToA4 = 4.7942e+08;
   float mpvRingA1ToA4 = -6.38203e-08;
@@ -56,9 +56,9 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   float mCFDdeadTime = 15.6;                                                  // ns
   float mCFD_trsh = 3.;                                                       // [mV]
   ///Parameters for trigger simulation
-  bool useMaxChInAdc = true;                                                  // default = true
+  bool useMaxChInAdc = true; // default = true
   int adcChargeHighMultTh = 3 * 498;
-  int maxCountInAdc = 4095;                                                   // threshold value of ADC charge for high multiplicity trigger
+  int maxCountInAdc = 4095; // threshold value of ADC charge for high multiplicity trigger
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };
 } // namespace fv0
