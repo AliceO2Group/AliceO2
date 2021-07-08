@@ -464,8 +464,8 @@ void GPUbenchmark<chunk_type>::run()
   // Test calls go here:
   readingInit();
   // - Reading whole memory
-  readingSequential(SplitLevel::Threads);
   readingSequential(SplitLevel::Blocks);
+  readingSequential(SplitLevel::Threads);
 
   // - Reading memory partitions
   readingConcurrent(SplitLevel::Blocks);
