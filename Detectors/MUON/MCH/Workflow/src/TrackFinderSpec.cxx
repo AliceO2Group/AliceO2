@@ -133,6 +133,9 @@ class TrackFinderTask
       trackROFs.emplace_back(clusterROF.getBCData(), mchTracks.size(), tracks.size());
       writeTracks(tracks, mchTracks, usedClusters);
     }
+
+    LOGP(info, "Found {:3d} MCH tracks from {:4d} clusters in {:2d} ROFs",
+         mchTracks.size(), clustersIn.size(), clusterROFs.size());
   }
 
  private:

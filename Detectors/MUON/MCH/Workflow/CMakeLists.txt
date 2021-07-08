@@ -180,6 +180,7 @@ o2_add_executable(
         reco-workflow
         SOURCES
             src/ClusterTransformerSpec.cxx
+            src/DigitReaderSpec.cxx
             src/TrackAtVertexSpec.cxx
             src/TrackFinderSpec.cxx
             src/VertexSamplerSpec.cxx
@@ -189,6 +190,7 @@ o2_add_executable(
             O2::MCHGeometryTransformer
             O2::MCHTracking
             O2::MCHWorkflow
+            O2::SimulationDataFormat
         )
 
 o2_add_executable(tracks-file-dumper

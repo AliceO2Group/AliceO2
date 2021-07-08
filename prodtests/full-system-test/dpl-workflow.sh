@@ -144,7 +144,7 @@ WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --disable-root-input --disable-root-
 if [ $SYNCMODE == 0 ]; then
   WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --track-sources \"TPC,ITS-TPC\" | "
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
-  WORKFLOW+="o2-mch-reco-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-mch-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output | "
   WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
   WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --disable-root-input --disable-root-output | "
