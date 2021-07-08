@@ -13,8 +13,10 @@
     "mft-dcs-data-processor": {
         "ccdb-path": "http:\/\/localhost:8080",
         "use-ccdb-to-configure": "false",
-        "use-verbose-mode": "false",
+        "use-verbose-mode": "true",
         "DPs-update-interval": "600"
     },
-    "internal-dpl-injected-dummy-sink": ""
+    "ccdb-populator": {
+        "ccdb-path": "http:\/\/ccdb-test.cern.ch:8080"
+    }
 }

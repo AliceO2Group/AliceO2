@@ -86,6 +86,8 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
   //mUpdateHVStatus = false;   // by default, we do not foresee a new entry in the CCDB for the HV
 
   mUpdateCurrentAnalogStatus = false;
+  mUpdateCurrentDigitalStatus = false;
+  mUpdateCurrentBackBiasStatus = false;
 
   // now we process all DPs, one by one
   for (const auto& it : dps) {
@@ -470,14 +472,14 @@ void MFTDCSProcessor::updateCurrentAnalogCCDB()
         }
       }
       if (mVerbose) {
-        LOG(INFO) << "PID = " << it.first.get_alias();
+        LOG(INFO) << "Sending PID = " << it.first.get_alias();
         mftdcs.print();
       }
     }
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Satoshi Yano";
-  prepareCCDBobjectInfo(mMFTDCS, mccdbDPsInfo, "MFT/Condition/CurrentAnalog", mTF, md);
+  prepareCCDBobjectInfo(mMFTDCS, mccdbDPsInfo, "MFT/Condition/Current", mTF, md);
 
   return;
 }

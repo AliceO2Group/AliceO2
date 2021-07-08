@@ -81,7 +81,9 @@ namespace mft
       else {
 	LOG(INFO) << "Configuring via hardcoded strings";
 	//std::vector<std::string> aliases = {"mft_currentBB_[00..837]","mft_currentITHR_[00..837]","mft_currentVCASN_[00..837]","mft_currentAnalog_[00..80]", "mft_currentDigit_[00..80]"};
-	std::vector<std::string> aliases = {"mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.Analog"};
+	std::vector<std::string> aliases = {"mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.Analog",
+					    "mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.Digital",
+					    "mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.BackBias"};
 	std::vector<std::string> expaliases = o2::dcs::expandAliases(aliases);
 	for (const auto& i : expaliases) {
 	  vect.emplace_back(i, o2::dcs::RAW_DOUBLE);
@@ -219,6 +221,12 @@ namespace framework
 
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CurrentAnalog"});
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CurrentAnalog"});
+
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CurrentDigital"});
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CurrentDigital"});
+
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CurrentBackBias"});
+    outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CurrentBackBias"});
 
     /*  
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_LVStatus"});
