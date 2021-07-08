@@ -198,6 +198,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
 
 template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename mftTracksCursorType>
 void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
+                                                         double interactionTime,
                                                          const o2::dataformats::VtxTrackRef& trackRef,
                                                          gsl::span<const GIndex>& GIndices,
                                                          o2::globaltracking::RecoContainer& data,
@@ -246,14 +247,14 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             const auto& tofInt = tofMatch.getLTIntegralOut();
             float intLen = tofInt.getL();
             extraInfoHolder.length = intLen;
-            float mom = trackPar.getP();
             float mass = o2::constants::physics::MassPionCharged; // default pid = pion
-            float expSig = mom > 0 ? std::sqrt(mom * mom + mass * mass) : 0.f;
+            float expSig = tofMatch.getSignal();
             extraInfoHolder.tofSignal = expSig;
             float expMom = 0.f;
             if (expSig > 0) {
-              float expBeta = (intLen / expSig / cSpeed);
-              expMom = mass * expBeta * cSpeed / std::sqrt(1.f - (expBeta * expBeta));
+              float tof = expSig - interactionTime;
+              float expBeta = (intLen / tof / cSpeed);
+              expMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
             }
             extraInfoHolder.tofExpMom = expMom;
           }
@@ -751,9 +752,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRefU = primVer2TRefs.back(); // references to unassigned tracks are at the end
-  fillTrackTablesPerCollision(-1, trackRefU, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
+  // fixme: interaction time is undefined for unassigned tracks (?)
+  fillTrackTablesPerCollision(-1, -1, trackRefU, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
 
-  // filling collisions table
+  // filling collisions and tracks into tables
   int collisionID = 0;
   for (auto& vertex : primVertices) {
     auto& cov = vertex.getCov();
@@ -790,7 +792,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      truncateFloatFraction(timeStamp.getTimeStampError() * 1E3, mCollisionPositionCov),
                      collisionTimeMask);
     auto& trackRef = primVer2TRefs[collisionID];
-    fillTrackTablesPerCollision(collisionID, trackRefU, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
+    // passing interaction time in [ps]
+    fillTrackTablesPerCollision(collisionID, tsTimeStamp * 1E3, trackRefU, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
     collisionID++;
   }
 

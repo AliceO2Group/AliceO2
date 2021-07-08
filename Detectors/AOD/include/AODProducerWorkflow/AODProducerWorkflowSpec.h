@@ -250,8 +250,10 @@ class AODProducerWorkflowDPL : public Task
 
   // helper for track tables
   // fills tables collision by collision
+  // interaction time is for TOF information
   template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename mftTracksCursorType>
   void fillTrackTablesPerCollision(int collisionID,
+                                   double interactionTime,
                                    const o2::dataformats::VtxTrackRef& trackRef,
                                    gsl::span<const GIndex>& GIndices,
                                    o2::globaltracking::RecoContainer& data,
