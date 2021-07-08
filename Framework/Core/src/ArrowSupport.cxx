@@ -286,6 +286,9 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          lastShmOfferConsumed = shmOfferConsumed;
                        }
                        int unusedOfferedMemory = (offeredSharedMemory - (totalBytesExpired + shmOfferConsumed) / 1000000);
+                       if (unusedOfferedMemory < 0) {
+                         unusedOfferedMemory = 0;
+                       }
                        if (lastUnusedOfferedMemory != unusedOfferedMemory) {
                          LOGP(INFO, "Unused offer {}", unusedOfferedMemory);
                          lastUnusedOfferedMemory = unusedOfferedMemory;
@@ -342,9 +345,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                      [](ServiceRegistry& registry, boost::program_options::variables_map const& vm) {
                        auto config = new RateLimitConfig{};
                        int readers = std::stoll(vm["readers"].as<std::string>());
-                       long long int minReaderMemory = readers * 500;
                        if (vm.count("aod-memory-rate-limit")) {
-                         config->maxMemory = std::max(minReaderMemory, std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000);
+                         config->maxMemory = std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000;
+                       } else {
+                         config->maxMemory = readers * 400;
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...
