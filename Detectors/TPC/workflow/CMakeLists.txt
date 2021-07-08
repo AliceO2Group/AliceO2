@@ -64,6 +64,11 @@ o2_add_executable(calib-pedestal
                   SOURCES src/tpc-calib-pedestal.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
+o2_add_executable(calib-raw
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-calib-raw.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
 o2_add_executable(calib-laser-tracks
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-calib-laser-tracks.cxx
