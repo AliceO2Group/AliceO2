@@ -46,6 +46,7 @@ struct benchmarkOpts {
   benchmarkOpts() = default;
 
   float chunkReservedGB = 1.f;
+  int nRegions = 2;
   float freeMemoryFractionToAllocate = 0.95f;
   int kernelLaunches = 1;
   int nTests = 1;
@@ -112,6 +113,7 @@ class ResultStreamer
   explicit ResultStreamer(const std::string debugTreeFileName = "benchmark_results.root");
   ~ResultStreamer();
   void storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry);
+  void storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry);
 
  private:
   std::string mDebugTreeFileName = "benchmark_results.root"; // output filename
@@ -133,6 +135,14 @@ inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::
 {
   (*mTreeStream)
     << (benchmarkName + "_" + type + "_" + chunk).data()
+    << "elapsed=" << entry
+    << "\n";
+}
+
+inline void ResultStreamer::storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry)
+{
+  (*mTreeStream)
+    << (benchmarkName + "_" + type + "_region_" + region).data()
     << "elapsed=" << entry
     << "\n";
 }

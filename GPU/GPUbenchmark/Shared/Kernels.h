@@ -50,10 +50,6 @@ class GPUbenchmark final
   std::vector<float> benchmarkAsync(void (*kernel)(int, T...),
                                     int nStreams, int nLaunches, int blocks, int threads, T&... args);
 
-  // Per-memory region benchmarking
-  template <typename... T>
-  std::vector<float> benchmarkAsyncVsRegion(void (*kernel)(int, int, T...),
-                                            int nRegions, int nStreams, int nLaunches, int blocks, int threads, T&... args);
   // Main interface
   void globalInit(const int deviceId); // Allocate scratch buffers and compute runtime parameters
   void run();                          // Execute all specified callbacks

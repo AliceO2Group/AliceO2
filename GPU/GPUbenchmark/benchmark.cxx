@@ -22,8 +22,9 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   options.add_options()(
     "help,h", "Print help message.")(
     "chunkSize,c", bpo::value<float>()->default_value(1.f), "Size of scratch partitions (GB).")(
+    "regions,r", bpo::value<int>()->default_value(2), "Number of memory regions to partition RAM in.")(
     "freeMemFraction,f", bpo::value<float>()->default_value(0.95f), "Fraction of free memory to be allocated (min: 0.f, max: 1.f).")(
-    "launches,l", bpo::value<int>()->default_value(50), "Number of iterations in reading kernels.")(
+    "launches,l", bpo::value<int>()->default_value(10), "Number of iterations in reading kernels.")(
     "ntests,n", bpo::value<int>()->default_value(1), "Number of times each test is run.");
   try {
     bpo::store(parse_command_line(argc, argv, options), vm);
@@ -43,6 +44,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
 
   conf.freeMemoryFractionToAllocate = vm["freeMemFraction"].as<float>();
   conf.chunkReservedGB = vm["chunkSize"].as<float>();
+  conf.nRegions = vm["regions"].as<int>();
   conf.kernelLaunches = vm["launches"].as<int>();
   conf.nTests = vm["ntests"].as<int>();
 
