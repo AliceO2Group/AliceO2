@@ -19,8 +19,20 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/Digit.h"
-#include "DataFormatsTRD/EventRecord.h"
+#include "TRDReconstruction/EventRecord.h"
 #include "DataFormatsTRD/Constants.h"
+
+#include "Framework/Output.h"
+#include "Framework/ProcessingContext.h"
+#include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/InputRecordWalker.h"
+
+#include "DataFormatsTRD/Constants.h"
+
 #include <cassert>
 #include <array>
 #include <string>
@@ -109,7 +121,6 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& 
     if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addTracklets(tracklets); //mTracklets.insert(mTracklets.back(),start,end);
-                                                    // LOG(info) << "adding " << tracklets.size()  << " tracklets and tracklet sum:  " << sumTracklets() << " IR count : "<< mEventRecords.size();;
       added = true;
     }
   }
@@ -117,7 +128,6 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>& 
     // unseen ir so add it
     mEventRecords.push_back(ir);
     mEventRecords.back().addTracklets(tracklets);
-    // hLOG(info) << "unknown ir adding " << tracklets.size()  << " tracklets and sum of : "<< sumTracklets() << " IR count : "<< mEventRecords.size();
   }
 }
 void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::iterator& start, std::vector<Tracklet64>::iterator& end)
@@ -127,7 +137,6 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::
     if (ir == mEventRecords[count].getBCData()) {
       //TODO replace this with a hash/map not a vector
       mEventRecords[count].addTracklets(start, end); //mTracklets.insert(mTracklets.back(),start,end);
-      //  LOG(info) << "x iknown ir adding " << std::distance(start,end)<< " tracklets";
       added = true;
     }
   }
@@ -138,11 +147,11 @@ void EventStorage::addTracklets(InteractionRecord& ir, std::vector<Tracklet64>::
     //  LOG(info) << "x unknown ir adding " << std::distance(start,end)<< " tracklets";
   }
 }
-void EventStorage::unpackDataForSending(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits)
+void EventStorage::unpackData(std::vector<TriggerRecord>& triggers, std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits)
 {
   int digitcount = 0;
   int trackletcount = 0;
-  for (auto event : mEventRecords) {
+  for (auto& event : mEventRecords) {
     tracklets.insert(std::end(tracklets), std::begin(event.getTracklets()), std::end(event.getTracklets()));
     digits.insert(std::end(digits), std::begin(event.getDigits()), std::end(event.getDigits()));
     triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());
@@ -150,6 +159,33 @@ void EventStorage::unpackDataForSending(std::vector<TriggerRecord>& triggers, st
     trackletcount += event.getTracklets().size();
   }
 }
+
+void EventStorage::sendData(o2::framework::ProcessingContext& pc)
+{
+  //at this point we know the total number of tracklets and digits and triggers.
+  uint64_t trackletcount = 0;
+  uint64_t digitcount = 0;
+  uint64_t triggercount = 0;
+  sumTrackletsDigitsTriggers(trackletcount, digitcount, triggercount);
+  std::vector<Tracklet64> tracklets;
+  tracklets.reserve(trackletcount);
+  std::vector<Digit> digits;
+  digits.reserve(digitcount);
+  std::vector<TriggerRecord> triggers;
+  triggers.reserve(triggercount);
+  for (auto& event : mEventRecords) {
+    tracklets.insert(std::end(tracklets), std::begin(event.getTracklets()), std::end(event.getTracklets()));
+    digits.insert(std::end(digits), std::begin(event.getDigits()), std::end(event.getDigits()));
+    triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());
+    digitcount += event.getDigits().size();
+    trackletcount += event.getTracklets().size();
+  }
+  LOG(info) << "Sending data onwards with " << digits.size() << " Digits and " << tracklets.size() << " Tracklets and " << triggers.size() << " Triggers";
+  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "DIGITS", 0, o2::framework::Lifetime::Timeframe}, digits);
+  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRACKLETS", 0, o2::framework::Lifetime::Timeframe}, tracklets);
+  pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, o2::framework::Lifetime::Timeframe}, triggers);
+}
+
 int EventStorage::sumTracklets()
 {
   int sum = 0;
@@ -166,6 +202,18 @@ int EventStorage::sumDigits()
   }
   return sum;
 }
+void EventStorage::sumTrackletsDigitsTriggers(uint64_t& tracklets, uint64_t& digits, uint64_t& triggers)
+{
+  int digitsum = 0;
+  int trackletsum = 0;
+  int triggersum = 0;
+  for (auto event : mEventRecords) {
+    digitsum += event.getDigits().size();
+    trackletsum += event.getTracklets().size();
+    triggersum++;
+  }
+}
+
 std::vector<Tracklet64>& EventStorage::getTracklets(InteractionRecord& ir)
 {
   bool found = false;

@@ -9,7 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_TEST_FILE_V0_H
+#define O2_MCH_DEVIO_DIGITS_TEST_FILE_V0_H
+
 #include <array>
 
 extern std::array<uint8_t, 1276> v0_buffer;
+
+#endif

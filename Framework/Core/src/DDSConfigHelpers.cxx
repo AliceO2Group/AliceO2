@@ -50,6 +50,13 @@ void dumpDeviceSpec2DDS(std::ostream& out,
     out << "       "
         << R"(<exe reachable="true">)";
     out << replaceFirstOccurrence(commandInfo.command, "--dds", "--dump") << " | ";
+    for (size_t ei = 0; ei < execution.environ.size(); ++ei) {
+      out << fmt::format(execution.environ[ei],
+                         fmt::arg("timeslice0", spec.inputTimesliceId),
+                         fmt::arg("timeslice1", spec.inputTimesliceId + 1),
+                         fmt::arg("timeslice4", spec.inputTimesliceId + 4))
+          << " ";
+    }
     std::string accumulatedChannelPrefix;
     char* s = strdup(execution.args[0]);
     out << basename(s) << " ";

@@ -9,9 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/AnalysisDataModel.h"
+
+#include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/Centrality.h"
 
 #include "AnalysisDataModel/StrangenessTables.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h" // for BigTracks
@@ -29,9 +31,17 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-using tracksAndTPCInfo = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi, aod::McTrackLabels>;
+using collisionEvSelIt = soa::Join<aod::Collisions, aod::EvSels>::iterator;
+using tracksAndTPCInfoMC = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi, aod::McTrackLabels>;
 
-struct GammaConversionsMc {
+#include "Framework/runDataProcessing.h"
+
+struct GammaConversionsmc {
+
+  Configurable<bool> fDoEventSel{"fDoEventSel", 0, "demand sel7 for events"};
+
+  Configurable<float> fCentMin{"fCentMin", 0.0, "lower bound of centrality selection"};
+  Configurable<float> fCentMax{"fCentMax", 100.0, "upper bound of centrality selection"};
 
   Configurable<float> fSinglePtCut{"fSinglePtCut", 0.04, "minimum daughter track pt"};
 
@@ -67,6 +77,7 @@ struct GammaConversionsMc {
   HistogramRegistry registry{
     "registry",
     {
+      {"hEvents", "hEvents", {HistType::kTH1F, {{13, -0.5f, 11.5f}}}},
       {"IsPhotonSelected", "IsPhotonSelected", {HistType::kTH1F, {{13, -0.5f, 11.5f}}}},
 
       {"beforeCuts/hPtRec", "hPtRec_before", {HistType::kTH1F, {{100, 0.0f, 25.0f}}}},
@@ -83,21 +94,21 @@ struct GammaConversionsMc {
       {"hTPCdEdxSigPi", "hTPCdEdxSigPi", {HistType::kTH2F, {{150, 0.03f, 20.f}, {400, -10.f, 10.f}}}},
       {"hTPCdEdx", "hTPCdEdx", {HistType::kTH2F, {{150, 0.03f, 20.f}, {800, 0.f, 200.f}}}},
 
-      {"hTPCFoundOverFindableCls", "hTPCFoundOverFindableCls", {HistType::kTH1F, {{100, 0.f, 1.f}}}},
+      {"hTPCFoundOverFindableCls", "hTPCFoundOverFindableCls", {HistType::kTH1F, {{100, 0.f, 1.2f}}}},
       {"hTPCCrossedRowsOverFindableCls", "hTPCCrossedRowsOverFindableCls", {HistType::kTH1F, {{100, 0.f, 1.5f}}}},
 
       {"hArmenteros", "hArmenteros", {HistType::kTH2F, {{200, -1.f, 1.f}, {250, 0.f, 25.f}}}},
       {"hPsiPtRec", "hPsiPtRec", {HistType::kTH2F, {{500, -2.f, 2.f}, {100, 0.f, 25.f}}}},
 
-      {"hCosPAngle", "hCosPAngle", {HistType::kTH1F, {{1000, -1.f, 1.f}}}},
+      {"hCosPAngle", "hCosPAngle", {HistType::kTH1F, {{1000, -1.f, 1.2f}}}},
 
       // resolution histos
-      {"resolutions/hPtRes", "hPtRes_Rec-MC", {HistType::kTH1F, {{100, -0.5f, 0.5f}}}},
-      {"resolutions/hEtaRes", "hEtaRes_Rec-MC", {HistType::kTH1F, {{100, -2.f, 2.f}}}},
-      {"resolutions/hPhiRes", "hPhiRes_Rec-MC", {HistType::kTH1F, {{100, -M_PI, M_PI}}}},
+      {"resolutions/hPtRes", "hPtRes_Rec-MC", {HistType::kTH1F, {{1000, -0.5f, 0.5f}}}},
+      {"resolutions/hEtaRes", "hEtaRes_Rec-MC", {HistType::kTH1F, {{1000, -2.f, 2.f}}}},
+      {"resolutions/hPhiRes", "hPhiRes_Rec-MC", {HistType::kTH1F, {{1000, -M_PI, M_PI}}}},
 
-      {"resolutions/hConvPointRRes", "hConvPointRRes_Rec-MC", {HistType::kTH1F, {{100, -200.f, 200.f}}}},
-      {"resolutions/hConvPointAbsoluteDistanceRes", "hConvPointAbsoluteDistanceRes", {HistType::kTH1F, {{100, -0.0f, 200.f}}}},
+      {"resolutions/hConvPointRRes", "hConvPointRRes_Rec-MC", {HistType::kTH1F, {{1000, -200.f, 200.f}}}},
+      {"resolutions/hConvPointAbsoluteDistanceRes", "hConvPointAbsoluteDistanceRes", {HistType::kTH1F, {{1000, -0.0f, 200.f}}}},
     },
   };
 
@@ -138,35 +149,84 @@ struct GammaConversionsMc {
     for (size_t i = 0; i < fPhotCutsLabels.size(); ++i) {
       lXaxis->SetBinLabel(i + 1, fPhotCutsLabels[i]);
     }
+
+    lXaxis = registry.get<TH1>(HIST("hEvents"))->GetXaxis();
+    lXaxis->SetBinLabel(1, "in");
+    lXaxis->SetBinLabel(2, "int7||sel7");
+    lXaxis->SetBinLabel(3, "cent");
+    lXaxis->SetBinLabel(4, "out");
   }
 
-  void process(aod::Collision const& theCollision,
-               aod::V0Datas const& theV0s,
-               tracksAndTPCInfo const& theTracks,
-               aod::McParticles const& theMcParticles)
+  template <typename TTRACKS, typename TCOLL, typename TV0>
+  bool processPhoton(TCOLL const& theCollision, const TV0& theV0)
   {
+    fillHistogramsBeforeCuts(theV0);
+
+    auto lTrackPos = theV0.template posTrack_as<TTRACKS>(); //positive daughter
+    auto lTrackNeg = theV0.template negTrack_as<TTRACKS>(); //negative daughter
+
+    // apply track cuts
+    if (!(trackPassesCuts(lTrackPos) && trackPassesCuts(lTrackNeg))) {
+      return kFALSE;
+    }
+
+    float lV0CosinePA = theV0.v0cosPA(theCollision.posX(), theCollision.posY(), theCollision.posZ());
+
+    // apply photon cuts
+    if (!passesPhotonCuts(theV0, lV0CosinePA)) {
+      return kFALSE;
+    }
+
+    fillHistogramsAfterCuts(theV0, lTrackPos, lTrackNeg, lV0CosinePA);
+
+    return kTRUE;
+  }
+
+  template <typename TV0, typename TMC>
+  void processTruePhoton(const TV0& theV0, const TMC& theMcParticles)
+  {
+    auto lTrackPos = theV0.template posTrack_as<tracksAndTPCInfoMC>(); //positive daughter
+    auto lTrackNeg = theV0.template negTrack_as<tracksAndTPCInfoMC>(); //negative daughter
+
+    // todo: verify it is enough to check only mother0 being equal
+    if (lTrackPos.mcParticle().mother0() > -1 &&
+        lTrackPos.mcParticle().mother0() == lTrackNeg.mcParticle().mother0()) {
+      auto lMother = theMcParticles.iteratorAt(lTrackPos.mcParticle().mother0());
+
+      if (lMother.pdgCode() == 22) {
+
+        registry.fill(HIST("resolutions/hPtRes"), theV0.pt() - lMother.pt());
+        registry.fill(HIST("resolutions/hEtaRes"), theV0.eta() - lMother.eta());
+        registry.fill(HIST("resolutions/hPhiRes"), theV0.phi() - lMother.phi());
+
+        TVector3 lConvPointRec(theV0.x(), theV0.y(), theV0.z());
+        TVector3 lPosTrackVtxMC(lTrackPos.mcParticle().vx(), lTrackPos.mcParticle().vy(), lTrackPos.mcParticle().vz());
+        // take the origin of the positive mc track as conversion point (should be identical with negative, verified this on a few photons)
+        TVector3 lConvPointMC(lPosTrackVtxMC);
+
+        registry.fill(HIST("resolutions/hConvPointRRes"), lConvPointRec.Perp() - lConvPointMC.Perp());
+        registry.fill(HIST("resolutions/hConvPointAbsoluteDistanceRes"), TVector3(lConvPointRec - lConvPointMC).Mag());
+      }
+    }
+  }
+
+  void processMC(collisionEvSelIt const& theCollision,
+                 aod::V0Datas const& theV0s,
+                 tracksAndTPCInfoMC const& theTracks,
+                 aod::McParticles const& theMcParticles)
+  {
+    registry.fill(HIST("hEvents"), 0);
+    if (fDoEventSel && !theCollision.sel7()) {
+      registry.fill(HIST("hEvents"), 1);
+      return;
+    }
+    registry.fill(HIST("hEvents"), 3);
+
     for (auto& lV0 : theV0s) {
-
-      fillHistogramsBeforeCuts(lV0);
-
-      auto lTrackPos = lV0.template posTrack_as<tracksAndTPCInfo>(); //positive daughter
-      auto lTrackNeg = lV0.template negTrack_as<tracksAndTPCInfo>(); //negative daughter
-
-      // apply track cuts
-      if (!(trackPassesCuts(lTrackPos) && trackPassesCuts(lTrackNeg))) {
+      if (!processPhoton<tracksAndTPCInfoMC>(theCollision, lV0)) {
         continue;
       }
-
-      float lV0CosinePA = RecoDecay::CPA(array{theCollision.posX(), theCollision.posY(), theCollision.posZ()}, array{lV0.x(), lV0.y(), lV0.z()}, array{lV0.px(), lV0.py(), lV0.pz()});
-
-      // apply photon cuts
-      if (!passesPhotonCuts(lV0, lV0CosinePA)) {
-        continue;
-      }
-
-      fillHistogramsAfterCuts(lV0, lTrackPos, lTrackNeg, lV0CosinePA);
-
-      processTruePhotons(lV0, lTrackPos, lTrackNeg, theMcParticles);
+      processTruePhoton(lV0, theMcParticles);
     }
   }
 
@@ -270,31 +330,6 @@ struct GammaConversionsMc {
     registry.fill(HIST("hCosPAngle"), theV0CosinePA);
   }
 
-  template <typename TV0, typename TTRACK, typename TMC>
-  void processTruePhotons(const TV0& theV0, const TTRACK& theTrackPos, const TTRACK& theTrackNeg, const TMC& theMcParticles)
-  {
-    // todo: verify it is enough to check only mother0 being equal
-    if (theTrackPos.mcParticle().mother0() > -1 &&
-        theTrackPos.mcParticle().mother0() == theTrackNeg.mcParticle().mother0()) {
-      auto lMother = theMcParticles.iteratorAt(theTrackPos.mcParticle().mother0());
-
-      if (lMother.pdgCode() == 22) {
-
-        registry.fill(HIST("resolutions/hPtRes"), theV0.pt() - lMother.pt());
-        registry.fill(HIST("resolutions/hEtaRes"), theV0.eta() - lMother.eta());
-        registry.fill(HIST("resolutions/hPhiRes"), theV0.phi() - lMother.phi());
-
-        TVector3 lConvPointRec(theV0.x(), theV0.y(), theV0.z());
-        TVector3 lPosTrackVtxMC(theTrackPos.mcParticle().vx(), theTrackPos.mcParticle().vy(), theTrackPos.mcParticle().vz());
-        // take the origin of the positive mc track as conversion point (should be identical with negative, verified this on a few photons)
-        TVector3 lConvPointMC(lPosTrackVtxMC);
-
-        registry.fill(HIST("resolutions/hConvPointRRes"), lConvPointRec.Perp() - lConvPointMC.Perp());
-        registry.fill(HIST("resolutions/hConvPointAbsoluteDistanceRes"), TVector3(lConvPointRec - lConvPointMC).Mag());
-      }
-    }
-  }
-
   Bool_t ArmenterosQtCut(Double_t theAlpha, Double_t theQt, Double_t thePt)
   {
     // in AliPhysics this is the cut for if fDo2DQt && fDoQtGammaSelection == 2
@@ -340,6 +375,5 @@ struct GammaConversionsMc {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  return WorkflowSpec{
-    adaptAnalysisTask<GammaConversionsMc>(cfgc)};
+  return WorkflowSpec{adaptAnalysisTask<GammaConversionsmc>(cfgc, Processes{&GammaConversionsmc::processMC})};
 }

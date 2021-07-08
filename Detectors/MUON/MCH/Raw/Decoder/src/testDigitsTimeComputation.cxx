@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTime)
 
   DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStart, false);
+  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing);
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover)
 
   DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStart, false);
+  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing) + BCROLLOVER;
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(ComputeDigitsTimeWithRollover2)
 
   DataDecoder::SampaTimeFrameStart sampaTimeFrameStart{tfOrbit, tfBunchCrossing};
 
-  DataDecoder::computeDigitsTime_(digits, sampaTimeFrameStart, false);
+  DataDecoder::computeDigitsTime(digits, sampaTimeFrameStart, false);
 
   int32_t digitTime = static_cast<int32_t>(bunchCrossing) + static_cast<int32_t>(sampaTime * 4) -
                       static_cast<int32_t>(tfBunchCrossing) - BCROLLOVER;

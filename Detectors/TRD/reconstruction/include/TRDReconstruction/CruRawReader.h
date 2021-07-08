@@ -33,7 +33,7 @@
 #include "DataFormatsTRD/Constants.h"
 #include "TRDBase/Digit.h"
 #include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsTRD/EventRecord.h"
+#include "TRDReconstruction/EventRecord.h"
 
 namespace o2::trd
 {
@@ -92,6 +92,8 @@ class CruRawReader
   std::vector<Digit>& getDigits(InteractionRecord& ir) { return mEventRecords.getDigits(ir); };
   //  std::vector<o2::trd::TriggerRecord> getIR() { return mEventTriggers; }
   void getParsedObjects(std::vector<Tracklet64>& tracklets, std::vector<Digit>& cdigits, std::vector<TriggerRecord>& triggers);
+  void getParsedObjectsandClear(std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits, std::vector<TriggerRecord>& triggers);
+  void buildDPLOutputs(o2::framework::ProcessingContext& outputs);
   int getDigitsFound() { return mTotalDigitsFound; }
   int getTrackletsFound() { return mTotalTrackletsFound; }
   int sumTrackletsFound() { return mEventRecords.sumTracklets(); }

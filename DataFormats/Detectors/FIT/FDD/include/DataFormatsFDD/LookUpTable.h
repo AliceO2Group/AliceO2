@@ -87,16 +87,11 @@ class LookUpTable
   {
     LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      std::cout << "  " << std::right << std::setw(2) << channel << "  ";
-      std::cout << std::right << std::setw(2) << mTopoVector[channel].modLink << "  ";
-      std::cout << std::right << std::setw(3) << mTopoVector[channel].modCh << std::endl;
+      LOG(INFO) << "  " << channel << "  " << mTopoVector[channel].modLink << "  " << mTopoVector[channel].modCh;
     }
     LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
-      std::cout << "  " << std::right << std::setw(3) << idx << "  ";
-      std::cout << std::right << std::setw(3) << mInvTopo[idx] << "    ";
-      std::cout << std::right << std::setw(2) << getLinkFromIdx(mInvTopo[idx]) << "  ";
-      std::cout << std::right << std::setw(2) << getModChannelFromIdx(mInvTopo[idx]) << std::endl;
+      LOG(INFO) << "  " << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getModChannelFromIdx(mInvTopo[idx]);
     }
   }
 

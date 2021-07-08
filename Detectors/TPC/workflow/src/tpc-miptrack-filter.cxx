@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test TPC QC
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-#include "TPCQC/TrackCuts.h"
+#include "TPCWorkflow/MIPTrackFilterSpec.h"
+#include "Framework/runDataProcessing.h"
 
-BOOST_AUTO_TEST_CASE(ReadWriteROOTFile)
+using namespace o2::framework;
+
+WorkflowSpec defineDataProcessing(ConfigContext const&)
 {
-  o2::tpc::qc::TrackCuts trackcuts;
+  using namespace o2::tpc;
+  return WorkflowSpec{getMIPTrackFilterSpec()};
 }

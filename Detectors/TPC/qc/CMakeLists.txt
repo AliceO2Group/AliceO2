@@ -13,7 +13,6 @@ o2_add_library(TPCQC
                SOURCES src/PID.cxx
                        src/Tracking.cxx
                        src/Helpers.cxx
-                       src/TrackCuts.cxx
                        src/Clusters.cxx
                        src/Tracks.cxx
                PUBLIC_LINK_LIBRARIES O2::TPCBase
@@ -25,7 +24,6 @@ o2_target_root_dictionary(TPCQC
                           HEADERS include/TPCQC/PID.h
                                   include/TPCQC/Tracking.h
                                   include/TPCQC/Helpers.h
-                                  include/TPCQC/TrackCuts.h
                                   include/TPCQC/Clusters.h
                                   include/TPCQC/Tracks.h
                                   include/TPCQC/CalPadWrapper.h)
@@ -34,12 +32,6 @@ o2_add_test(PID
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCQC
             SOURCES test/test_PID.cxx
-            LABELS tpc)
-
-o2_add_test(TrackCuts
-            COMPONENT_NAME tpc
-            PUBLIC_LINK_LIBRARIES O2::TPCQC
-            SOURCES test/test_TrackCuts.cxx
             LABELS tpc)
 
 o2_add_test(Clusters

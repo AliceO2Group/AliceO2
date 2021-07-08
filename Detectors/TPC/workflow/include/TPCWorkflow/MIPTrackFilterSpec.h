@@ -9,24 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file CTPDigitWriterSpec.h
-/// \author Roman Lietava
+/// \file MIPTrackFilterSpec.h
+/// \brief Workflow to filter MIP tracks and streams them to other devices.
+/// \author Thiago Badaró <thiago.saramela@usp.br>
 
-#ifndef O2_CTPDIGITWRITERSPEC_H
-#define O2_CTPDIGITWRITERSPEC_H
+#ifndef O2_TPC_MIPTRACKFILTERSPEC_H_
+#define O2_TPC_MIPTRACKFILTERSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
-#include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "Framework/InputSpec.h"
-#include "DataFormatsCTP/Digits.h"
 
 using namespace o2::framework;
-namespace o2
-{
-namespace ctp
-{
-framework::DataProcessorSpec getCTPDigitWriterSpec(bool raw = true);
-}
-} // namespace o2
 
-#endif //O2_CTPDIGITWRITERSPEC_H
+namespace o2::tpc
+{
+
+/// create a processor spec
+o2::framework::DataProcessorSpec getMIPTrackFilterSpec();
+
+} // namespace o2::tpc
+
+#endif // O2_TPC_MIPTRACKFILTERSPEC_H_

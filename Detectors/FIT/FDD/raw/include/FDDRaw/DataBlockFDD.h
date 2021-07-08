@@ -29,10 +29,12 @@ using RawHeaderPM = o2::fdd::EventHeader;
 using RawDataPM = o2::fdd::EventData;
 using RawHeaderTCM = o2::fdd::EventHeader;
 using RawDataTCM = o2::fdd::TCMdata;
+using RawHeaderTCMext = o2::fdd::EventHeader;
+using RawDataTCMext = o2::fdd::TCMdataExtended;
 //Data block for FDD modules
 using DataBlockPM = o2::fit::DataBlockPM<RawHeaderPM, RawDataPM>;
 using DataBlockTCM = o2::fit::DataBlockTCM<RawHeaderTCM, RawDataTCM>;
-//using DataBlockTCMext = o2::fit::DataBlockTCMext<RawHeaderTCMext,RawDataTCM,RawDataTCMext>;
+using DataBlockTCMext = o2::fit::DataBlockTCMext<RawHeaderTCMext, RawDataTCM, RawDataTCMext>;
 } // namespace fdd
 } // namespace o2
 #endif

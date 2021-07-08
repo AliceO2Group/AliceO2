@@ -9,7 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_IO_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_IO_H
 
 #include "DigitReaderImpl.h"
 #include "DigitWriterImpl.h"
@@ -57,3 +58,5 @@ struct DigitWriterV0 : public DigitWriterImpl {
 };
 
 } // namespace o2::mch::io::impl
+
+#endif

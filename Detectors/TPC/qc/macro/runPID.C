@@ -17,10 +17,10 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTPC/TrackCuts.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "TPCQC/PID.h"
 #include "TPCQC/Helpers.h"
-#include "TPCQC/TrackCuts.h"
 #endif
 
 using namespace o2::tpc;

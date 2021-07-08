@@ -11,30 +11,29 @@
 
 o2_add_library(FDDWorkflow
                SOURCES src/DigitReaderSpec.cxx
-	               src/EntropyEncoderSpec.cxx
-		       src/EntropyDecoderSpec.cxx
-	       	       src/RecoWorkflow.cxx 
-                       src/ReconstructorSpec.cxx 
-		       src/RecPointWriterSpec.cxx
+                       src/EntropyEncoderSpec.cxx
+                       src/EntropyDecoderSpec.cxx
+                       src/RecoWorkflow.cxx
+                       src/ReconstructorSpec.cxx
+                       src/RecPointWriterSpec.cxx
                        src/RecPointReaderSpec.cxx
-
                        src/RawDataProcessSpec.cxx
                        src/RawDataReaderSpec.cxx
                        src/RawReaderFDD.cxx
-		       src/RawWorkflow.cxx
-		       
+                       src/RawWorkflow.cxx
+
                PUBLIC_LINK_LIBRARIES O2::DataFormatsFDD
-	       			     O2::FDDReconstruction 
-	       			     O2::Framework 
-				     O2::DPLUtils
-				     O2::FDDRaw)
+                                     O2::FDDReconstruction
+                                     O2::Framework
+                                     O2::DPLUtils
+                                     O2::FDDRaw)
 
 o2_add_executable(reco-workflow
                   COMPONENT_NAME fdd
                   SOURCES src/fdd-reco-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::FDDWorkflow
                   TARGETVARNAME fddrecoexe)
-		  
+
 o2_add_executable(entropy-encoder-workflow
                   SOURCES src/entropy-encoder-workflow.cxx
                   COMPONENT_NAME fdd
@@ -48,7 +47,7 @@ o2_add_executable(digit-reader-workflow
 o2_add_executable(flp-dpl-workflow
                   COMPONENT_NAME fdd
                   SOURCES src/fdd-flp-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow O2::FDDRaw O2::FITWorkflow
                   TARGETVARNAME fddflpexe)
 
 if(NOT APPLE)

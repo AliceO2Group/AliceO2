@@ -153,6 +153,7 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
       std::cout << orbit << " ";
     }
     std::cout << "\n"
+              << "    firstOrbit: " << event.getFirstOrbit() << "\n"
               << "    Is complete: " << isComplete << "\n";
 
     // cru loop

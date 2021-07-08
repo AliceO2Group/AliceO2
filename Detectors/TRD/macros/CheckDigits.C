@@ -68,14 +68,13 @@ void CheckDigits(std::string digifile = "trddigits.root",
   for (int iev = 0; iev < nev; ++iev) {
     digitTree->GetEvent(iev);
     for (const auto& digit : *digitCont) {
-      // loop over det, pad, row?
       auto adcs = digit.getADC();
-      int det = digit.getDetector();
-      int row = digit.getRow();
-      int pad = digit.getPad();
+      int det = digit.getDetector(); // chamber
+      int row = digit.getPadRow();   // pad row
+      int col = digit.getPadCol();   // pad column
       hDet->Fill(det);
       hRow->Fill(row);
-      hPad->Fill(pad);
+      hPad->Fill(col);
       for (int tb = 0; tb < o2::trd::constants::TIMEBINS; ++tb) {
         ADC_t adc = adcs[tb];
         if (adc == (ADC_t)SimParam::instance()->getADCoutRange()) {
