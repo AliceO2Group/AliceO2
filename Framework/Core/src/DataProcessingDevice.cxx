@@ -551,6 +551,17 @@ bool DataProcessingDevice::ConditionalRun()
     }
   }
 
+  // Notify on the main thread the new region callbacks, making sure
+  // no callback is issued if there is something still processing.
+  // Notice that we still need to perform callbacks also after
+  // the socket epolled, because otherwise we would end up serving
+  // the callback after the first data arrives is the system is too
+  // fast to transition from Init to Run.
+  {
+    std::lock_guard<std::mutex> lock(mRegionInfoMutex);
+    handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
+  }
+
   assert(mStreams.size() == mHandles.size());
   /// Decide which task to use
   TaskStreamRef streamRef{-1};
