@@ -434,7 +434,7 @@ void GPUbenchmark<chunk_type>::readingConcurrent(SplitLevel sl, int nRegions)
                                       capacity,
                                       mState.chunkReservedGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          auto region = getCorrespondingRegionId(iResult, mState.getMaxChunks(), nRegions);
+          auto region = getCorrespondingRegionId(iResult, nBlocks, nRegions);
           mStreamer.get()->storeEntryForRegion("conc_R_MB", std::to_string(region), getType<chunk_type>(), results[iResult]);
         }
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
