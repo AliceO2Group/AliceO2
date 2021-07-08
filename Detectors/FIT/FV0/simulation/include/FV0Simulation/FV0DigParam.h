@@ -56,9 +56,9 @@ struct FV0DigParam : public o2::conf::ConfigurableParamHelper<FV0DigParam> {
   float mCFDdeadTime = 15.6;                                                  // ns
   float mCFD_trsh = 3.;                                                       // [mV]
   ///Parameters for trigger simulation
-  bool useMaxChInAdc = true; // default = true
-  int adcChargeHighMultTh = 3 * 498;
-  int maxCountInAdc = 4095; // threshold value of ADC charge for high multiplicity trigger
+  bool useMaxChInAdc = true;         // default = true
+  int adcChargeHighMultTh = 3 * 498; // threshold value of ADC charge for high multiplicity trigger
+  int maxCountInAdc = 4095;          // to take care adc ADC overflow
   O2ParamDef(FV0DigParam, "FV0DigParam");
 };
 } // namespace fv0
