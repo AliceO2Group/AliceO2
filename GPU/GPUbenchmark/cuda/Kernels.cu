@@ -423,7 +423,7 @@ void GPUbenchmark<chunk_type>::readingConcurrent(SplitLevel sl, int nRegions)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << ">>> Concurrent read, one block per chunk (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << ">>> Concurrent read, split on threads (" << measurement + 1 << "/" << mOptions.nTests << "):";
         auto results = benchmarkAsync(&gpu::readChunkMBKernel<chunk_type>,
                                       mState.getMaxChunks(), // nStreams
                                       mState.getNKernelLaunches(),
@@ -464,11 +464,12 @@ void GPUbenchmark<chunk_type>::run()
   // Test calls go here:
   readingInit();
   // - Reading whole memory
-  // readingSequential(SplitLevel::Threads);
-  // readingSequential(SplitLevel::Blocks);
+  readingSequential(SplitLevel::Threads);
+  readingSequential(SplitLevel::Blocks);
 
   // - Reading memory partitions
   readingConcurrent(SplitLevel::Blocks);
+  readingConcurrent(SplitLevel::Threads);
   readingFinalize();
 
   GPUbenchmark<chunk_type>::globalFinalize();

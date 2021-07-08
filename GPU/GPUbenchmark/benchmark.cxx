@@ -66,10 +66,10 @@ int main(int argc, const char* argv[])
 
   o2::benchmark::GPUbenchmark<char> bm_char{opts, streamer};
   bm_char.run();
-  // o2::benchmark::GPUbenchmark<int> bm_int{opts, streamer};
-  // bm_int.run();
-  // o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, streamer};
-  // bm_size_t.run();
+  o2::benchmark::GPUbenchmark<int> bm_int{opts, streamer};
+  bm_int.run();
+  o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, streamer};
+  bm_size_t.run();
 
   return 0;
 }
