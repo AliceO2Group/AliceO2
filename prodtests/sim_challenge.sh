@@ -152,9 +152,11 @@ if [ "$doreco" == "1" ]; then
   echo "Return status of itstpcMatch: $?"
 
   echo "Running TRD matching to ITS-TPC and TPC"
-  #needs results of o2-tpc-reco-workflow and o2-tpcits-match-workflow
+  #needs results of o2-tpc-reco-workflow, o2-tpcits-match-workflow and o2-trd-tracklet-transformer
+  taskwrapper trdTrkltTransf.log o2-trd-tracklet-transformer $gloOpt
+  echo "Return status of trdTrkltTransf: $?"
   taskwrapper trdMatch.log o2-trd-global-tracking $gloOpt
-  echo "Return status of itstpcMatch: $?"
+  echo "Return status of trdTracker: $?"
 
   echo "Running TOF reco flow to produce clusters"
   #needs results of TOF digitized data and results of o2-tpcits-match-workflow

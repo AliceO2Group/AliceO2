@@ -137,6 +137,19 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mRec->PrepareEvent();
   mRec->SetupGPUProcessor(mTracker, true);
 
+  // check trigger record filter setting
+  bool foundFilteredTrigger = false;
+  for (int iTrig = 0; iTrig < mChainTracking->mIOPtrs.nTRDTriggerRecords; ++iTrig) {
+    if (mChainTracking->mIOPtrs.trdTrigRecMask[iTrig] == 0) {
+      foundFilteredTrigger = true;
+    }
+  }
+  if (!foundFilteredTrigger && mTrigRecFilter) {
+    LOG(WARNING) << "Trigger filtering requested, but no TRD trigger is actually masked. Can be that none needed to be masked or that the setting was not active for the tracklet transformer";
+  } else if (foundFilteredTrigger && !mTrigRecFilter) {
+    LOG(ERROR) << "Trigger filtering is not requested, but masked TRD triggers are found. Rerun tracklet transformer without trigger filtering";
+  }
+
   // load input tracks
   LOG(DEBUG) << "Start loading input seeds into TRD tracker";
   int nTracksLoadedITSTPC = 0;
@@ -272,7 +285,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, src)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, src, trigRecFilterActive)},
     Options{}};
 }
 

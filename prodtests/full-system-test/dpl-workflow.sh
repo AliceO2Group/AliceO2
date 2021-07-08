@@ -44,10 +44,12 @@ TOF_OUTPUT=clusters
 ITS_CONFIG=
 ITS_CONFIG_KEY=
 TRD_CONFIG=
+TRD_TRANSFORMER_CONFIG=
 if [ $SYNCMODE == 1 ]; then
   ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
-  TRD_CONFIG+=" --tracking-sources ITS-TPC --configKeyValues 'GPU_proc.ompThreads=1;'"
+  TRD_CONFIG+=" --tracking-sources ITS-TPC --filter-trigrec --configKeyValues 'GPU_proc.ompThreads=1;'"
+  TRD_TRANSFORMER_CONFIG+=" --filter-trigrec"
 else
   TRD_CONFIG+=" --tracking-sources TPC,ITS-TPC"
 fi
@@ -128,7 +130,7 @@ WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVE
 WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS | "
 WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
 WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC | "
-WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --root-in 0 --root-out 0 | "
+WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --disable-root-input --disable-root-output $TRD_TRANSFORMER_CONFIG | "
 WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --disable-root-input --disable-root-output $TRD_CONFIG | "
 
 # Workflows disabled in sync mode
