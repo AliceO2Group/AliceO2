@@ -123,8 +123,8 @@ namespace mft
       LOG(INFO) << "mDPsUpdateInterval " <<mDPsUpdateInterval << "[sec.]";
       
       if (elapsedTime.count() >= mDPsUpdateInterval) {
-	//sendDPsoutput(pc.outputs());
-	sendCurrentAnalogDPoutput(pc.outputs());
+	sendDPsoutput(pc.outputs());
+	//sendCurrentAnalogDPoutput(pc.outputs());
 	mTimer = timeNow;
       }
       
@@ -134,8 +134,8 @@ namespace mft
     //________________________________________________________________
     void endOfStream(o2::framework::EndOfStreamContext& ec) final
     {
-      //sendDPsoutput(ec.outputs());
-      sendCurrentAnalogDPoutput(ec.outputs());
+      sendDPsoutput(ec.outputs());
+      //sendCurrentAnalogDPoutput(ec.outputs());
       //sendLVandHVoutput(ec.outputs());
     }
 
@@ -158,26 +158,28 @@ namespace mft
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_DCSDPs", 0}, info);
       mProcessor->clearDPsinfo();
     }
-
+    
     //________________________________________________________________
+    /*
     void sendCurrentAnalogDPoutput(DataAllocator& output)
     {
 
       // extract CCDB infos and calibration object for DPs
-      mProcessor->updateCurrentAnalogCCDB();
+      //mProcessor->updateCurrentAnalogCCDB();
+      mProcessor->updateDPsCCDB();
       const auto& payload = mProcessor->getMFTDPsInfo();
       auto& info = mProcessor->getccdbDPsInfo();
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
       LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
 		<< " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
             
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "CurrentAnalog", 0}, *image.get());
-      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "CurrentAnalog", 0}, info);
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_DCSDPs", 0}, *image.get());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_DCSDPs", 0}, info);
       
       mProcessor->clearDPsinfo();
 
     }
-
+    */
     //________________________________________________________________
     void sendLVandHVoutput(DataAllocator& output)
     {
@@ -218,26 +220,26 @@ namespace framework
     
 
     std::vector<OutputSpec> outputs;
-
+    /*
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CurrentAnalog"});
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CurrentAnalog"});
-
+    
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CurrentDigital"});
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CurrentDigital"});
 
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CurrentBackBias"});
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "CurrentBackBias"});
 
-    /*  
+
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_LVStatus"});
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_LVStatus"});
 
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_HVStatus"});
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_HVStatus"});
-
+    */
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "MFT_DCSDPs"});
     outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "MFT_DCSDPs"});
-    */    
+
 
     return DataProcessorSpec{
       "mft-dcs-data-processor",

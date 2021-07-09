@@ -13,7 +13,7 @@
     "mft-dcs-data-processor": {
         "ccdb-path": "http:\/\/localhost:8080",
         "use-ccdb-to-configure": "false",
-        "use-verbose-mode": "true",
+        "use-verbose-mode": "false",
         "DPs-update-interval": "600"
     },
     "ccdb-populator": {

@@ -1,0 +1,429 @@
+[INFO] Initialising O2 Data Processing Layer. Driver PID: 5478.
+[INFO] Rate limiting set up at 500MB distributed over 1 readers
+[INFO] O2 Data Processing Layer initialised. We brake for nobody.
+[INFO] Optimised build. O2DEBUG / LOG(DEBUG) / LOGF(DEBUG) / assert statement will not be shown.
+[INFO] Redeployment of configuration asked.
+[INFO] Starting internal-dpl-clock on pid 5479
+[INFO] Starting dcs-random-data-generator on pid 5480
+[INFO] Starting mft-dcs-data-processor on pid 5481
+[INFO] Starting internal-dpl-injected-dummy-sink on pid 5482
+[INFO] Redeployment of configuration done.
+[5481:mft-dcs-data-processor]: [INFO] Spawing new device mft-dcs-data-processor in process with pid 5481
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] 
+[5481:mft-dcs-data-processor]:       ______      _    _______  _________ 
+[5481:mft-dcs-data-processor]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.4.38
+[5481:mft-dcs-data-processor]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[5481:mft-dcs-data-processor]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[5481:mft-dcs-data-processor]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2021 GSI
+[5481:mft-dcs-data-processor]: 
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] Starting FairMQ state machine --> IDLE
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] IDLE ---> INITIALIZING DEVICE
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] Configuring via hardcoded strings
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] Listing Data Points for MFT:
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D0F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D1F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D2F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D3F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H0D4F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D0F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D1F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D2F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D3F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F0Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z0.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z0.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z0.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z1.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z1.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z1.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z2.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z2.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z2.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z3.Monitoirng.Current.Analog;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z3.Monitoirng.Current.BackBias;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] mft_main:MFT_PSU_Zone/H1D4F1Z3.Monitoirng.Current.Digital;Raw/Double
+[5481:mft-dcs-data-processor]: [11:53:30][INFO]  ************************* Verbose?0
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] INITIALIZING DEVICE ---> INITIALIZED
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] INITIALIZED ---> BINDING
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] BINDING ---> BOUND
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] BOUND ---> CONNECTING
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] CONNECTING ---> DEVICE READY
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] DEVICE READY ---> INITIALIZING TASK
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] INITIALIZING TASK ---> READY
+[5481:mft-dcs-data-processor]: [11:53:30][STATE] READY ---> RUNNING
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] DEVICE: Running...
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] No expired offers
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] Correctly handshaken websocket connection.
+[5479:internal-dpl-clock]: [INFO] Spawing new device internal-dpl-clock in process with pid 5479
+[5479:internal-dpl-clock]: [11:53:30][INFO] 
+[5479:internal-dpl-clock]:       ______      _    _______  _________ 
+[5479:internal-dpl-clock]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.4.38
+[5479:internal-dpl-clock]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[5479:internal-dpl-clock]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[5479:internal-dpl-clock]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2021 GSI
+[5479:internal-dpl-clock]: 
+[5479:internal-dpl-clock]: [11:53:30][STATE] Starting FairMQ state machine --> IDLE
+[5479:internal-dpl-clock]: [11:53:30][STATE] IDLE ---> INITIALIZING DEVICE
+[5480:dcs-random-data-generator]: [INFO] Spawing new device dcs-random-data-generator in process with pid 5480
+[5480:dcs-random-data-generator]: [11:53:30][INFO] 
+[5480:dcs-random-data-generator]:       ______      _    _______  _________ 
+[5480:dcs-random-data-generator]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.4.38
+[5480:dcs-random-data-generator]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[5480:dcs-random-data-generator]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[5480:dcs-random-data-generator]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2021 GSI
+[5480:dcs-random-data-generator]: 
+[5480:dcs-random-data-generator]: [11:53:30][STATE] Starting FairMQ state machine --> IDLE
+[5480:dcs-random-data-generator]: [11:53:30][STATE] IDLE ---> INITIALIZING DEVICE
+[5479:internal-dpl-clock]: [11:53:30][STATE] INITIALIZING DEVICE ---> INITIALIZED
+[5479:internal-dpl-clock]: [11:53:30][STATE] INITIALIZED ---> BINDING
+[5480:dcs-random-data-generator]: [11:53:30][STATE] INITIALIZING DEVICE ---> INITIALIZED
+[5480:dcs-random-data-generator]: [11:53:30][STATE] INITIALIZED ---> BINDING
+[5480:dcs-random-data-generator]: [11:53:30][STATE] BINDING ---> BOUND
+[5480:dcs-random-data-generator]: [11:53:30][STATE] BOUND ---> CONNECTING
+[5480:dcs-random-data-generator]: [11:53:30][STATE] CONNECTING ---> DEVICE READY
+[5480:dcs-random-data-generator]: [11:53:30][STATE] DEVICE READY ---> INITIALIZING TASK
+[5479:internal-dpl-clock]: [11:53:30][STATE] BINDING ---> BOUND
+[5479:internal-dpl-clock]: [11:53:30][STATE] BOUND ---> CONNECTING
+[5479:internal-dpl-clock]: [11:53:30][STATE] CONNECTING ---> DEVICE READY
+[5479:internal-dpl-clock]: [11:53:30][STATE] DEVICE READY ---> INITIALIZING TASK
+[5480:dcs-random-data-generator]: [11:53:30][STATE] INITIALIZING TASK ---> READY
+[5480:dcs-random-data-generator]: [11:53:30][STATE] READY ---> RUNNING
+[5480:dcs-random-data-generator]: [11:53:30][INFO] DEVICE: Running...
+[5479:internal-dpl-clock]: [11:53:30][STATE] INITIALIZING TASK ---> READY
+[5479:internal-dpl-clock]: [11:53:30][STATE] READY ---> RUNNING
+[5479:internal-dpl-clock]: [11:53:30][INFO] DEVICE: Running...
+[5479:internal-dpl-clock]: [11:53:30][INFO] No expired offers
+[5479:internal-dpl-clock]: [11:53:30][INFO] Correctly handshaken websocket connection.
+[5480:dcs-random-data-generator]: [11:53:30][INFO] ***************** TF 0 has generated 240 DPs
+[5482:internal-dpl-injected-dummy-sink]: [INFO] Spawing new device internal-dpl-injected-dummy-sink in process with pid 5482
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][INFO] 
+[5482:internal-dpl-injected-dummy-sink]:       ______      _    _______  _________ 
+[5482:internal-dpl-injected-dummy-sink]:      / ____/___ _(_)_______   |/  /_  __ \    version 1.4.38
+[5482:internal-dpl-injected-dummy-sink]:     / /_  / __ `/ / ___/__  /|_/ /_  / / /    build RELWITHDEBINFO
+[5482:internal-dpl-injected-dummy-sink]:    / __/ / /_/ / / /    _  /  / / / /_/ /     https://github.com/FairRootGroup/FairMQ
+[5482:internal-dpl-injected-dummy-sink]:   /_/    \__,_/_/_/     /_/  /_/  \___\_\     LGPL-3.0  © 2012-2021 GSI
+[5482:internal-dpl-injected-dummy-sink]: 
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] Starting FairMQ state machine --> IDLE
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] IDLE ---> INITIALIZING DEVICE
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] INITIALIZING DEVICE ---> INITIALIZED
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] INITIALIZED ---> BINDING
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] BINDING ---> BOUND
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] BOUND ---> CONNECTING
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] CONNECTING ---> DEVICE READY
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] DEVICE READY ---> INITIALIZING TASK
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] INITIALIZING TASK ---> READY
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][STATE] READY ---> RUNNING
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][INFO] DEVICE: Running...
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][INFO] No expired offers
+[5482:internal-dpl-injected-dummy-sink]: [11:53:30][INFO] Correctly handshaken websocket connection.
+[5480:dcs-random-data-generator]: [11:53:30][INFO] Message DPL/ENUM is not of kind arrow, therefore we are not accounting its shared memory
+[5480:dcs-random-data-generator]: [11:53:30][INFO] 0MB bytes being given back to reader, totaling 0MB
+[5480:dcs-random-data-generator]: [11:53:30][INFO] No expired offers
+[5480:dcs-random-data-generator]: [11:53:30][INFO] Correctly handshaken websocket connection.
+[5480:dcs-random-data-generator]: [11:53:30][INFO] ***************** TF 1 has generated 120 DPs
+[5480:dcs-random-data-generator]: [11:53:30][INFO] Message DPL/ENUM is not of kind arrow, therefore we are not accounting its shared memory
+[5480:dcs-random-data-generator]: [11:53:30][INFO] 0MB bytes being given back to reader, totaling 0MB
+[5480:dcs-random-data-generator]: [11:53:30][INFO] ***************** TF 2 has generated 120 DPs
+[5480:dcs-random-data-generator]: [11:53:30][INFO] Message DPL/ENUM is not of kind arrow, therefore we are not accounting its shared memory
+[5480:dcs-random-data-generator]: [11:53:30][INFO] 0MB bytes being given back to reader, totaling 0MB
+[5480:dcs-random-data-generator]: [11:53:30][INFO] Data generator reached TF 3, stopping
+[5480:dcs-random-data-generator]: [11:53:30][INFO] ***************** TF 3 has generated 120 DPs
+[5480:dcs-random-data-generator]: [11:53:30][INFO] Message DPL/ENUM is not of kind arrow, therefore we are not accounting its shared memory
+[5480:dcs-random-data-generator]: [11:53:30][INFO] 0MB bytes being given back to reader, totaling 0MB
+[5481:mft-dcs-data-processor]: [11:53:30][INFO] Finalizing
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] mDPsUpdateInterval 600[sec.]
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Message DCS/MFTDATAPOINTS is not of kind arrow, therefore we are not accounting its shared memory
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] 0MB bytes being given back to reader, totaling 0MB
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Finalizing
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] mDPsUpdateInterval 600[sec.]
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Message DCS/MFTDATAPOINTS is not of kind arrow, therefore we are not accounting its shared memory
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] 0MB bytes being given back to reader, totaling 0MB
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Finalizing
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] mDPsUpdateInterval 600[sec.]
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Message DCS/MFTDATAPOINTS is not of kind arrow, therefore we are not accounting its shared memory
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] 0MB bytes being given back to reader, totaling 0MB
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Finalizing
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] mDPsUpdateInterval 600[sec.]
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Message DCS/MFTDATAPOINTS is not of kind arrow, therefore we are not accounting its shared memory
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] 0MB bytes being given back to reader, totaling 0MB
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Finalizing
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Sending object MFT/Condition/DCSDPs/unordered_map<o2::dcs::DataPointIdentifier,o2::mft::MFTDCSinfo>_1625799211024.root of size 9216 bytes, valid for 3 : 99999999999999
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Message CLP/MFT_DCSDPs is not of kind arrow, therefore we are not accounting its shared memory
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Message CLW/MFT_DCSDPs is not of kind arrow, therefore we are not accounting its shared memory
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] 0MB bytes being given back to reader, totaling 0MB
+[INFO] Quitting
+[INFO] QUIT_REQUESTED
+[5480:dcs-random-data-generator]: [11:53:31][INFO] Offer 1 expired since 937795607 milliseconds and holds 1000MB
+[5480:dcs-random-data-generator]: [11:53:31][INFO] Handling 1 expired offers
+[5480:dcs-random-data-generator]: [11:53:31][INFO] Offer 1 expired. Giving back 1000MB and 0 cores
+[5480:dcs-random-data-generator]: [11:53:31][INFO] No expired offers
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Offer 1 expired since 937795607 milliseconds and holds 1000MB
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Offer 1 expired since 937795607 milliseconds and holds 1000MB
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Handling 1 expired offers
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Handling 1 expired offers
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Offer 1 expired. Giving back 1000MB and 0 cores
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Offer 1 expired. Giving back 1000MB and 0 cores
+[5479:internal-dpl-clock]: [11:53:31][INFO] Offer 1 expired since 937795607 milliseconds and holds 1000MB
+[5479:internal-dpl-clock]: [11:53:31][INFO] Handling 1 expired offers
+[5479:internal-dpl-clock]: [11:53:31][INFO] Offer 1 expired. Giving back 1000MB and 0 cores
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Received device shutdown request (signal 15).
+[5481:mft-dcs-data-processor]: [11:53:31][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[5481:mft-dcs-data-processor]: [11:53:31][STATE] RUNNING ---> READY
+[5481:mft-dcs-data-processor]: [11:53:31][STATE] READY ---> RESETTING TASK
+[5481:mft-dcs-data-processor]: [11:53:31][STATE] RESETTING TASK ---> DEVICE READY
+[5481:mft-dcs-data-processor]: [11:53:31][STATE] DEVICE READY ---> RESETTING DEVICE
+[5481:mft-dcs-data-processor]: [11:53:31][STATE] RESETTING DEVICE ---> IDLE
+[5481:mft-dcs-data-processor]: [11:53:31][STATE] IDLE ---> EXITING
+[5481:mft-dcs-data-processor]: [11:53:31][STATE] Exiting FairMQ state machine
+[5479:internal-dpl-clock]: [11:53:31][INFO] Received device shutdown request (signal 15).
+[5479:internal-dpl-clock]: [11:53:31][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[5480:dcs-random-data-generator]: [11:53:31][INFO] Received device shutdown request (signal 15).
+[5480:dcs-random-data-generator]: [11:53:31][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[5479:internal-dpl-clock]: [11:53:31][STATE] RUNNING ---> READY
+[5480:dcs-random-data-generator]: [11:53:31][STATE] RUNNING ---> READY
+[5479:internal-dpl-clock]: [11:53:31][STATE] READY ---> RESETTING TASK
+[5479:internal-dpl-clock]: [11:53:31][STATE] RESETTING TASK ---> DEVICE READY
+[5480:dcs-random-data-generator]: [11:53:31][STATE] READY ---> RESETTING TASK
+[5480:dcs-random-data-generator]: [11:53:31][STATE] RESETTING TASK ---> DEVICE READY
+[5479:internal-dpl-clock]: [11:53:31][STATE] DEVICE READY ---> RESETTING DEVICE
+[5480:dcs-random-data-generator]: [11:53:31][STATE] DEVICE READY ---> RESETTING DEVICE
+[5480:dcs-random-data-generator]: [11:53:31][STATE] RESETTING DEVICE ---> IDLE
+[5480:dcs-random-data-generator]: [11:53:31][STATE] IDLE ---> EXITING
+[5480:dcs-random-data-generator]: [11:53:31][STATE] Exiting FairMQ state machine
+[5479:internal-dpl-clock]: [11:53:31][STATE] RESETTING DEVICE ---> IDLE
+[5479:internal-dpl-clock]: [11:53:31][STATE] IDLE ---> EXITING
+[5479:internal-dpl-clock]: [11:53:31][STATE] Exiting FairMQ state machine
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Received device shutdown request (signal 15).
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Waiting for graceful device shutdown. Hit Ctrl-C again to abort immediately.
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][STATE] RUNNING ---> READY
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][STATE] READY ---> RESETTING TASK
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][STATE] RESETTING TASK ---> DEVICE READY
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][STATE] DEVICE READY ---> RESETTING DEVICE
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Cleaning up for shared memory id 'c1b8fa33'...
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] No region counter found. No regions to cleanup.
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Successfully removed 'fmq_c1b8fa33_m_0'.
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Successfully removed 'fmq_c1b8fa33_mng'.
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Successfully removed 'fmq_c1b8fa33_mtx'.
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][INFO] Successfully removed 'fmq_c1b8fa33_cv'.
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][STATE] RESETTING DEVICE ---> IDLE
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][STATE] IDLE ---> EXITING
+[5482:internal-dpl-injected-dummy-sink]: [11:53:31][STATE] Exiting FairMQ state machine
+[INFO] Dumping used configuration in dpl-config.json

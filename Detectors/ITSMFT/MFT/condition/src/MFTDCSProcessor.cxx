@@ -101,8 +101,9 @@ int MFTDCSProcessor::process(const gsl::span<const DPCOM> dps)
     mPids[it.id] = true;
   }
 
-  updateCurrentAnalogCCDB();
-  
+  //updateCurrentAnalogCCDB();
+  updateDPsCCDB();
+
   /*
   if (mUpdateFeacStatus) {
     updateFEACCCDB();
@@ -402,12 +403,11 @@ void MFTDCSProcessor::updateDPsCCDB()
   }
   std::map<std::string, std::string> md;
   md["responsible"] = "Chiara Zampolli";
-  prepareCCDBobjectInfo(mMFTDCS, mccdbDPsInfo, "MFT/Calib/DCSDPs", mTF, md);
+  prepareCCDBobjectInfo(mMFTDCS, mccdbDPsInfo, "MFT/Condition/DCSDPs", mTF, md);
 
   return;
 }
-
-
+/*
 void MFTDCSProcessor::updateCurrentAnalogCCDB()
 {
 
@@ -483,7 +483,7 @@ void MFTDCSProcessor::updateCurrentAnalogCCDB()
 
   return;
 }
-
+*/
 /*
 //______________________________________________________________________
 

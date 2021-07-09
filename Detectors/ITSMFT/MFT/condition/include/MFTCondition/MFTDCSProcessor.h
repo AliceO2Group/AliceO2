@@ -58,6 +58,7 @@ struct MFTDCSinfo {
 
   ClassDefNV(MFTDCSinfo, 1);
 };
+
 /*
 struct MFTFEACinfo {
   std::array<int32_t, 6> stripInSM = {-1, -1, -1, -1, -1, -1};
@@ -65,6 +66,7 @@ struct MFTFEACinfo {
   int32_t lastPadX = -1;
 };
 */
+
 class MFTDCSProcessor
 {
 
@@ -92,7 +94,7 @@ class MFTDCSProcessor
   //void updateFEACCCDB();
   //void updateHVCCDB();
   
-  void updateCurrentAnalogCCDB();
+  //void updateCurrentAnalogCCDB();
 
   const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
   CcdbObjectInfo& getccdbDPsInfo() { return mccdbDPsInfo; }
