@@ -277,6 +277,12 @@ Operations createOperations(Filter const& expression)
       if (t2 == atype::DOUBLE) {
         return atype::DOUBLE;
       }
+      if (isIntType(t2)) {
+        if (t1 > t2) {
+          return t1;
+        }
+        return t2;
+      }
     }
     if (t1 == atype::FLOAT) {
       if (isIntType(t2)) {
