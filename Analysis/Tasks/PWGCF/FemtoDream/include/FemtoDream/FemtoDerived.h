@@ -38,13 +38,13 @@ using FemtoDreamCollision = FemtoDreamCollisions::iterator;
 
 namespace femtodreamparticle
 {
-  enum ParticleType {
-    kTrack,
-    kV0,
-    kV0Child,
-    kCascade,
-    kCascadeBachelor
-  };
+enum ParticleType {
+  kTrack,
+  kV0,
+  kV0Child,
+  kCascade,
+  kCascadeBachelor
+};
 
 DECLARE_SOA_INDEX_COLUMN(FemtoDreamCollision, femtoDreamCollision);
 DECLARE_SOA_COLUMN(Pt, pt, float);

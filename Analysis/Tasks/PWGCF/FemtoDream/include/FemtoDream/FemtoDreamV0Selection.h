@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -52,15 +53,6 @@ class FemtoDreamV0Selection : public FemtoDreamObjectSelection<float, femtoDream
   /// Initializes histograms for the task
   void init(HistogramRegistry* registry);
 
-  template <typename T>
-  void setPIDSpecies(T& pids) ///K0s,Λ and antiΛ
-  {
-    std::vector<int> tmpPids = pids; // necessary due to some features of the configurable
-    for (const o2::track::PID& pid : tmpPids) {
-      mPIDspecies.push_back(pid);
-    }
-  }
-
   template <typename C, typename V, typename T>
   bool isSelectedMinimal(C const& col, V const& v0, T const& posTrack, T const& negTrack);
 
@@ -73,16 +65,16 @@ class FemtoDreamV0Selection : public FemtoDreamObjectSelection<float, femtoDream
   template <typename T1, typename T2>
   void setChildCuts(femtoDreamV0Selection::ChildTrackType child, T1 selVal, T2 selVar, femtoDreamSelection::SelectionType selType)
   {
-    if (child == femtoDreamV0Selection::kPosTrack)
+    if (child == femtoDreamV0Selection::kPosTrack) {
       PosDaughTrack.setSelection(selVal, selVar, selType);
-    else if (child == femtoDreamV0Selection::kNegTrack)
+    } else if (child == femtoDreamV0Selection::kNegTrack) {
       NegDaughTrack.setSelection(selVal, selVar, selType);
+    }
   }
 
  private:
   FemtoDreamTrackSelection PosDaughTrack;
   FemtoDreamTrackSelection NegDaughTrack;
-  std::vector<o2::track::PID> mPIDspecies;
 
   ClassDefNV(FemtoDreamV0Selection, 1);
 }; // namespace femtoDream
@@ -91,10 +83,10 @@ void FemtoDreamV0Selection::init(HistogramRegistry* registry)
 {
   if (registry) {
     mHistogramRegistry = registry;
-    fillSelectionHistogram("V0Cuts/cuthist"); ///For now empty since I need to understand the next nSelections
+    fillSelectionHistogram("V0Cuts/cuthist");
 
     /// \todo this should be an automatic check in the parent class, and the return type should be templated
-    int nSelections = 2 + getNSelections(); /// the 2 still holds for the first two bits???
+    int nSelections = getNSelections();
     if (8 * sizeof(uint64_t) < nSelections) {
       LOGF(error, "Number of selections to large for your container - quitting!");
     }

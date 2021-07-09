@@ -238,7 +238,7 @@ bool FemtoDreamTrackSelection::isSelectedMinimal(T const& track)
   const auto tpcNClsS = track.tpcNClsShared();
   const auto dcaXY = track.dcaXY();
   const auto dcaZ = track.dcaZ();
-  const auto dcaXYZ = std::sqrt(pow(dcaXY, 2.) + pow(dcaZ, 2.));
+  const auto dca = std::sqrt(pow(dcaXY, 2.) + pow(dcaZ, 2.));
   /// check whether the most open cuts are fulfilled - most of this should have already be done by the filters
 
   const static int nPtMinSel = getNSelections(femtoDreamTrackSelection::kpTMin);
@@ -290,7 +290,7 @@ bool FemtoDreamTrackSelection::isSelectedMinimal(T const& track)
   if (nDCAzMaxSel > 0 && std::abs(dcaZ) > dcaZMax) {
     return false;
   }
-  if (nDCAMinSel > 0 && std::abs(dcaXYZ) < dcaMin) {
+  if (nDCAMinSel > 0 && std::abs(dca) < dcaMin) {
     return false;
   }
   return true;
@@ -310,7 +310,7 @@ uint64_t FemtoDreamTrackSelection::getCutContainer(T const& track)
   const auto tpcNClsS = track.tpcNClsShared();
   const auto dcaXY = track.dcaXY();
   const auto dcaZ = track.dcaZ();
-  const auto dcaXYZ = std::sqrt(pow(dcaXY, 2.) + pow(dcaZ, 2.));
+  const auto dca = std::sqrt(pow(dcaXY, 2.) + pow(dcaZ, 2.));
 
   std::vector<float> pidTPC, pidTOF;
   for (auto it : mPIDspecies) {
@@ -363,7 +363,7 @@ uint64_t FemtoDreamTrackSelection::getCutContainer(T const& track)
           observable = dcaZ;
           break;
         case (femtoDreamTrackSelection::kDCAMin):
-          observable = dcaXYZ;
+          observable = dca;
           break;
         case (femtoDreamTrackSelection::kPIDnSigmaMax):
           break;
@@ -407,7 +407,7 @@ void FemtoDreamTrackSelection::fillCutQA(T const& track, uint64_t cutContainer)
     const auto tpcNClsS = track.tpcNClsShared();
     const auto dcaXY = track.dcaXY();
     const auto dcaZ = track.dcaZ();
-    const auto dcaXYZ = std::sqrt(pow(dcaXY, 2.) + pow(dcaZ, 2.));
+    const auto dca = std::sqrt(pow(dcaXY, 2.) + pow(dcaZ, 2.));
 
     std::vector<float> pidTPC, pidTOF;
     for (auto it : mPIDspecies) {
@@ -499,7 +499,7 @@ void FemtoDreamTrackSelection::fillCutQA(T const& track, uint64_t cutContainer)
             break;
           case (femtoDreamTrackSelection::kDCAMin):
             if (isTrue) {
-              mHistogramRegistry->fill(HIST("TrackCutsQA/dcaMin"), currentTrackSelCounter, dcaXYZ);
+              mHistogramRegistry->fill(HIST("TrackCutsQA/dcaMin"), currentTrackSelCounter, dca);
             }
             break;
           case (femtoDreamTrackSelection::kPIDnSigmaMax):

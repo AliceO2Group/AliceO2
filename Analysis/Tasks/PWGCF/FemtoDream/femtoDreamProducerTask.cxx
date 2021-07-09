@@ -56,6 +56,19 @@ using FilteredFullV0s = soa::Filtered<aod::V0Datas>; /// predefined Join table f
 // unsigned int rows = sizeof(arrayV0Sel) / sizeof(arrayV0Sel[0]);
 // unsigned int columns = sizeof(arrayV0Sel[0]) / sizeof(arrayV0Sel[0][0]);
 
+template <typename T>
+int getRowDaughters(int daughID, T const& vecID)
+{
+  int rowInPrimaryTrackTableDaugh = -1;
+  for (size_t i = 0; i < vecID.size(); i++) {
+    if (vecID.at(i) == daughID) {
+      rowInPrimaryTrackTableDaugh = i;
+      break;
+    }
+  }
+  return rowInPrimaryTrackTableDaugh;
+}
+
 struct femtoDreamProducerTask {
 
   Produces<aod::FemtoDreamCollisions> outputCollision;
@@ -173,7 +186,7 @@ struct femtoDreamProducerTask {
     colCuts.fillQA(col);
     outputCollision(vtxZ, mult, spher);
 
-    int childIDs[2] = {0,0};
+    int childIDs[2] = {0, 0};
     std::vector<int> tmpIDtrack;
     float temptrack[2];
     std::vector<float> temptrackPt;
@@ -188,12 +201,10 @@ struct femtoDreamProducerTask {
       if (cutContainer > 0) {
         trackCuts.fillCutQA(track, cutContainer);
         outputTracks(outputCollision.lastIndex(), track.pt(), track.eta(), track.phi(), aod::femtodreamparticle::ParticleType::kTrack, cutContainer, track.dcaXY(), childIDs);
-
         tmpIDtrack.push_back(track.globalIndex());
         temptrackPt.push_back(track.pt());
         temptrack[0] = outputTracks.lastIndex();
         temptrack[1] = track.pt();
-
         if (ConfDebugOutput) {
           outputDebugTracks(outputCollision.lastIndex(),
                             track.sign(), track.tpcNClsFound(),
@@ -203,7 +214,7 @@ struct femtoDreamProducerTask {
                             track.tofNSigmaEl(), track.tofNSigmaPi(), track.tofNSigmaKa(), track.tofNSigmaPr(), track.tofNSigmaDe());
         }
       }
-    } //end tracks loop
+    }
 
     for (auto& v0 : fullV0s) {
       auto postrack = v0.posTrack_as<aod::FilteredFullTracks>();
@@ -216,44 +227,25 @@ struct femtoDreamProducerTask {
       if ((cutContainerV0.at(0) > 0) && (cutContainerV0.at(1) > 0) && (cutContainerV0.at(2) > 0)) {
         int postrackID = v0.posTrackId();
         int rowInPrimaryTrackTablePos = -1;
-        for (size_t i = 0; i < tmpIDtrack.size(); i++) {
-          if (tmpIDtrack.at(i) == postrackID) {
-            printf("++++++++++++Equal ID tracks and positive daughter++++++++++++++++++++\n");
-            printf("i= %i --- tmpIDtrack.at(i) = %i --- postrackID = %i\n", i, tmpIDtrack.at(i), postrackID);
-            printf("ptTracks in Femtotable at i= %.2f\n", temptrackPt.at(i));
-            printf("++++++++++++++++++++++++++++++++\n");
-            rowInPrimaryTrackTablePos = i;
-            break;
-          }
-        }
+        rowInPrimaryTrackTablePos = getRowDaughters(postrackID, tmpIDtrack);
         childIDs[0] = rowInPrimaryTrackTablePos;
         childIDs[1] = 0;
         ROOT::Math::PxPyPzMVector postrackVec(v0.pxpos(), v0.pypos(), v0.pzpos(), 0.);
         ROOT::Math::PxPyPzMVector negtrackVec(v0.pxneg(), v0.pyneg(), v0.pzneg(), 0.);
         outputTracks(outputCollision.lastIndex(), postrackVec.Pt(), postrackVec.Eta(), postrackVec.Phi(), aod::femtodreamparticle::ParticleType::kV0Child, cutContainerV0.at(1), 0., childIDs);
         const int rowOfPosTrack = outputTracks.lastIndex();
-        tempPostrackPt.push_back(postrackVec.Pt());
-        printf("childIDs[0] = %i -- postrackVec.Pt() = %.4f -- temptrackPt = %.4f\n",
-               childIDs[0], static_cast<int>(temptrack[0]), postrackVec.Pt(), temptrackPt.at(childIDs[0]));
-
         int negtrackID = v0.negTrackId();
         int rowInPrimaryTrackTableNeg = -1;
-        for (size_t i = 0; i < tmpIDtrack.size(); i++) {
-          if (tmpIDtrack.at(i) == negtrackID) {
-            rowInPrimaryTrackTableNeg = i;
-            break;
-          }
-        }
-        childIDs[0] = rowInPrimaryTrackTablePos;
+        rowInPrimaryTrackTableNeg = getRowDaughters(negtrackID, tmpIDtrack);
+        childIDs[0] = 0;
         childIDs[1] = rowInPrimaryTrackTableNeg;
         outputTracks(outputCollision.lastIndex(), negtrackVec.Pt(), negtrackVec.Eta(), negtrackVec.Phi(), aod::femtodreamparticle::ParticleType::kV0Child, cutContainerV0.at(2), 0., childIDs);
         const int rowOfNegTrack = outputTracks.lastIndex();
-
-        int indexChildID[2] = {postrackID, negtrackID};
+        int indexChildID[2] = {rowOfPosTrack, rowOfNegTrack};
         outputTracks(outputCollision.lastIndex(), v0.pt(), v0.eta(), v0.phi(), aod::femtodreamparticle::ParticleType::kV0, cutContainerV0.at(0), v0.v0cosPA(col.posX(), col.posY(), col.posZ()), indexChildID);
-      } //end cutContainer loop
-    }   // end V0 loop
-  }     //end process
+      }
+    }
+  }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
