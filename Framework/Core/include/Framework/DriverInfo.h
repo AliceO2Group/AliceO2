@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -142,7 +143,9 @@ struct DriverInfo {
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
   /// Metrics gathering interval
-  unsigned short resourcesMonitoringInterval;
+  unsigned short resourcesMonitoringInterval = 0;
+  /// Metrics gathering dump to disk interval
+  unsigned short resourcesMonitoringDumpInterval = 0;
   /// Port used by the websocket control. 0 means not initialised.
   unsigned short port = 0;
   /// Last port used for tracy

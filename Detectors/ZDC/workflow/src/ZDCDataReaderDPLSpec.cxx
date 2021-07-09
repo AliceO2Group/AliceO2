@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,13 +20,14 @@ namespace o2
 namespace zdc
 {
 
-ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger)
-  : mRawReader(rawReader), mccdbHost(ccdbURL), mVerifyTrigger(verifyTrigger)
+ZDCDataReaderDPLSpec::ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger)
+  : mRawReader(rawReader), mVerifyTrigger(verifyTrigger)
 {
 }
 
 void ZDCDataReaderDPLSpec::init(InitContext& ic)
 {
+  mccdbHost = ic.options().get<std::string>("ccdb-url");
   o2::ccdb::BasicCCDBManager::instance().setURL(mccdbHost);
 }
 
@@ -64,7 +66,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   mRawReader.makeSnapshot(pc);
 }
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const std::string& ccdbURL, const bool verifyTrigger)
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger)
 {
   LOG(INFO) << "DataProcessorSpec initDataProcSpec() for RawReaderZDC";
   std::vector<OutputSpec> outputSpec;
@@ -73,8 +75,8 @@ framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawRead
     "zdc-datareader-dpl",
     o2::framework::select("TF:ZDC/RAWDATA"),
     outputSpec,
-    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, ccdbURL, verifyTrigger),
-    Options{}};
+    adaptFromTask<ZDCDataReaderDPLSpec>(rawReader, verifyTrigger),
+    Options{{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}}}};
 }
 } // namespace zdc
 } // namespace o2

@@ -1,14 +1,16 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_DIGIT_WRITER_H
+#define O2_MCH_DEVIO_DIGITS_DIGIT_WRITER_H
 
 #include <iosfwd>
 #include <gsl/span>
@@ -31,14 +33,14 @@ class DigitWriter
 {
  public:
   /** Create a text digit writer
-  * @param os output stream to write to 
+  * @param os output stream to write to
   */
   DigitWriter(std::ostream& os);
 
   /** Create a binary digit writer
-  * @param os output stream to write to 
+  * @param os output stream to write to
   * @param dff the digit file format to be used
-  * @param maxSize if not zero indicate that writing should stop past 
+  * @param maxSize if not zero indicate that writing should stop past
   * this size, expressed in KB.
   */
   DigitWriter(std::ostream& os, DigitFileFormat format,
@@ -64,3 +66,5 @@ class DigitWriter
 };
 } // namespace io
 } // namespace o2::mch
+
+#endif

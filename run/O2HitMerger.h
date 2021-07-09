@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -385,6 +386,7 @@ class O2HitMerger : public FairMQDevice
     auto memfile = mEventToTMemFileMap[info.eventID];
     tree->SetEntries(tree->GetEntries() + 1);
     LOG(INFO) << "tree has file " << tree->GetDirectory()->GetFile()->GetName();
+    memfile->Write("", TObject::kOverwrite);
     mEntries++;
 
     if (isDataComplete<uint32_t>(accum, info.nparts)) {
@@ -428,6 +430,7 @@ class O2HitMerger : public FairMQDevice
   {
     // remove tree for that eventID
     const std::lock_guard<std::mutex> lock(mMapsMtx);
+    // mEventToTMemFileMap[eventID]->Close();
     delete mEventToTTreeMap[eventID];
     delete mEventToTMemFileMap[eventID];
     mEventToTTreeMap.erase(eventID);
@@ -645,110 +648,128 @@ class O2HitMerger : public FairMQDevice
   // The method can be called asynchronously to data collection
   bool mergeAndFlushData(int eventID)
   {
-    LOG(INFO) << "ENTERING MERGING/FLUSHING HITS STAGE FOR EVENT " << eventID;
+    auto checkIfNextFlushable = [this]() -> bool {
+      mNextFlushID++;
+      return mFlushableEvents.find(mNextFlushID) != mFlushableEvents.end() && mFlushableEvents[mNextFlushID] == true;
+    };
 
-    auto tree = mEventToTTreeMap[eventID];
-    if (!tree) {
-      LOG(INFO) << "NO TTREE FOUND FOR EVENT " << eventID;
-      return false;
-    }
+    LOG(INFO) << "Marking event " << eventID << " as flushable";
+    mFlushableEvents[eventID] = true;
 
-    if (tree->GetEntries() == 0 || mNExpectedEvents == 0) {
-      LOG(INFO) << "NO ENTRY IN TTREE FOUND FOR EVENT " << eventID;
-      return false;
-    }
-
-    TStopwatch timer;
-    timer.Start();
-
-    // calculate trackoffsets
-    auto infobr = tree->GetBranch("SubEventInfo");
-
-    auto& confref = o2::conf::SimConfig::Instance();
-
-    std::vector<int> trackoffsets; // collecting trackoffsets to be applied to correct
-    std::vector<int> nprimaries;   // collecting primary particles in each subevent
-    std::vector<int> nsubevents;   // collecting of subevent numbers
-
-    o2::dataformats::MCEventHeader* eventheader = nullptr; // The event header
-
-    // the MC labels (trackID) for hits
-    o2::data::SubEventInfo* info = nullptr;
-    infobr->SetAddress(&info);
-    for (int i = 0; i < infobr->GetEntries(); ++i) {
-      infobr->GetEntry(i);
-      assert(info->npersistenttracks >= 0);
-      trackoffsets.emplace_back(info->npersistenttracks);
-      nprimaries.emplace_back(info->nprimarytracks);
-      nsubevents.emplace_back(info->part);
-      info->mMCEventHeader.printInfo();
-      if (eventheader == nullptr) {
-        eventheader = &info->mMCEventHeader;
-      } else {
-        eventheader->getMCEventStats().add(info->mMCEventHeader.getMCEventStats());
+    bool canflush = mFlushableEvents.find(mNextFlushID) != mFlushableEvents.end() && mFlushableEvents[mNextFlushID] == true;
+    while (canflush == true) {
+      auto flusheventID = mNextFlushID;
+      LOG(INFO) << "Merge and flush event " << flusheventID;
+      auto tree = mEventToTTreeMap[flusheventID];
+      if (!tree) {
+        LOG(INFO) << "NO TTREE FOUND FOR EVENT " << flusheventID;
+        if (!checkIfNextFlushable()) {
+          return false;
+        }
       }
-    }
 
-    // now see which events can be discarded in any case due to no hits
-    if (confref.isFilterOutNoHitEvents()) {
-      if (eventheader && eventheader->getMCEventStats().getNHits() == 0) {
-        LOG(INFO) << " Taking out event " << eventID << " due to no hits ";
-        cleanEvent(eventID);
-        return false;
+      if (tree->GetEntries() == 0 || mNExpectedEvents == 0) {
+        LOG(INFO) << "NO ENTRY IN TTREE FOUND FOR EVENT " << flusheventID;
+        if (!checkIfNextFlushable()) {
+          return false;
+        }
       }
-    }
 
-    // put the event headers into the new TTree
-    eventheader->printInfo();
-    auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
-    headerbr->SetAddress(&eventheader);
-    headerbr->Fill();
-    headerbr->ResetAddress();
+      TStopwatch timer;
+      timer.Start();
 
-    // attention: We need to make sure that we write everything in the same event order
-    // but iteration over keys of a standard map in C++ is ordered
+      // calculate trackoffsets
+      auto infobr = tree->GetBranch("SubEventInfo");
 
-    // b) merge the general data
-    //
-    // for MCTrack remap the motherIds and merge at the same go
-    const auto entries = tree->GetEntries();
-    std::vector<int> subevOrdered((int)(nsubevents.size()));
-    for (auto entry = entries - 1; entry >= 0; --entry) {
-      subevOrdered[nsubevents[entry] - 1] = entry;
-      printf("HitMerger entry: %lld nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
-    }
+      auto& confref = o2::conf::SimConfig::Instance();
 
-    reorderAndMergeMCTRacks(*tree, *mOutTree, nprimaries, subevOrdered);
-    Int_t ioffset = 0;
-    remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets, nprimaries, subevOrdered);
+      std::vector<int> trackoffsets; // collecting trackoffsets to be applied to correct
+      std::vector<int> nprimaries;   // collecting primary particles in each subevent
+      std::vector<int> nsubevents;   // collecting of subevent numbers
 
-    // c) do the merge procedure for all hits ... delegate this to detector specific functions
-    // since they know about types; number of branches; etc.
-    // this will also fix the trackIDs inside the hits
-    for (int id = 0; id < mDetectorInstances.size(); ++id) {
-      auto& det = mDetectorInstances[id];
-      if (det) {
-        auto hittree = mDetectorToTTreeMap[id];
-        det->mergeHitEntries(*tree, *hittree, trackoffsets, nprimaries, subevOrdered);
-        hittree->SetEntries(hittree->GetEntries() + 1);
-        LOG(INFO) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
-        mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
+      o2::dataformats::MCEventHeader* eventheader = nullptr; // The event header
+
+      // the MC labels (trackID) for hits
+      o2::data::SubEventInfo* info = nullptr;
+      infobr->SetAddress(&info);
+      for (int i = 0; i < infobr->GetEntries(); ++i) {
+        infobr->GetEntry(i);
+        assert(info->npersistenttracks >= 0);
+        trackoffsets.emplace_back(info->npersistenttracks);
+        nprimaries.emplace_back(info->nprimarytracks);
+        nsubevents.emplace_back(info->part);
+        info->mMCEventHeader.printInfo();
+        if (eventheader == nullptr) {
+          eventheader = &info->mMCEventHeader;
+        } else {
+          eventheader->getMCEventStats().add(info->mMCEventHeader.getMCEventStats());
+        }
       }
-    }
 
-    // increase the entry count in the tree
-    mOutTree->SetEntries(mOutTree->GetEntries() + 1);
-    LOG(INFO) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
-    mOutFile->Write("", TObject::kOverwrite);
+      // now see which events can be discarded in any case due to no hits
+      if (confref.isFilterOutNoHitEvents()) {
+        if (eventheader && eventheader->getMCEventStats().getNHits() == 0) {
+          LOG(INFO) << " Taking out event " << flusheventID << " due to no hits ";
+          cleanEvent(flusheventID);
+          if (!checkIfNextFlushable()) {
+            return true;
+          }
+        }
+      }
 
-    cleanEvent(eventID);
+      // put the event headers into the new TTree
+      eventheader->printInfo();
+      auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
+      headerbr->SetAddress(&eventheader);
+      headerbr->Fill();
+      headerbr->ResetAddress();
 
-    LOG(INFO) << "MERGING HITS TOOK " << timer.RealTime();
+      // attention: We need to make sure that we write everything in the same event order
+      // but iteration over keys of a standard map in C++ is ordered
+
+      // b) merge the general data
+      //
+      // for MCTrack remap the motherIds and merge at the same go
+      const auto entries = tree->GetEntries();
+      std::vector<int> subevOrdered((int)(nsubevents.size()));
+      for (auto entry = entries - 1; entry >= 0; --entry) {
+        subevOrdered[nsubevents[entry] - 1] = entry;
+        printf("HitMerger entry: %lld nprimry: %5d trackoffset: %5d \n", entry, nprimaries[entry], trackoffsets[entry]);
+      }
+
+      reorderAndMergeMCTRacks(*tree, *mOutTree, nprimaries, subevOrdered);
+      Int_t ioffset = 0;
+      remapTrackIdsAndMerge<std::vector<o2::TrackReference>>("TrackRefs", *tree, *mOutTree, trackoffsets, nprimaries, subevOrdered);
+
+      // c) do the merge procedure for all hits ... delegate this to detector specific functions
+      // since they know about types; number of branches; etc.
+      // this will also fix the trackIDs inside the hits
+      for (int id = 0; id < mDetectorInstances.size(); ++id) {
+        auto& det = mDetectorInstances[id];
+        if (det) {
+          auto hittree = mDetectorToTTreeMap[id];
+          det->mergeHitEntries(*tree, *hittree, trackoffsets, nprimaries, subevOrdered);
+          hittree->SetEntries(hittree->GetEntries() + 1);
+          LOG(INFO) << "flushing tree to file " << hittree->GetDirectory()->GetFile()->GetName();
+          mDetectorOutFiles[id]->Write("", TObject::kOverwrite);
+        }
+      }
+
+      // increase the entry count in the tree
+      mOutTree->SetEntries(mOutTree->GetEntries() + 1);
+      LOG(INFO) << "outtree has file " << mOutTree->GetDirectory()->GetFile()->GetName();
+      mOutFile->Write("", TObject::kOverwrite);
+
+      cleanEvent(flusheventID);
+      LOG(INFO) << "Merge/flush for event " << flusheventID << " took " << timer.RealTime();
+      if (!checkIfNextFlushable()) {
+        return true;
+      }
+    } // end while
     return true;
   }
 
   std::map<uint32_t, uint32_t> mPartsCheckSum; //! mapping event id -> part checksum used to detect when all info
-
   std::string mOutFileName; //!
 
   // structures for the final flush
@@ -765,6 +786,8 @@ class O2HitMerger : public FairMQDevice
   int mEntries = 0;         //! counts the number of entries in the branches
   int mEventChecksum = 0;   //! checksum for events
   int mNExpectedEvents = 0; //! number of events that we expect to receive
+  std::unordered_map<int, bool> mFlushableEvents; //! collection of events which has completely arrived
+  int mNextFlushID = 1;                           //! EventID to be flushed next
   TStopwatch mTimer;
 
   bool mAsService = false; //! if run in deamonized mode

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -261,23 +262,6 @@ struct AnalysisDataProcessorBuilder {
         }
       }
 
-      template <typename Z>
-      auto changeShifts()
-      {
-        constexpr auto index = framework::has_type_at_v<Z>(associated_pack_t{});
-        if (unassignedGroups[index] > 0) {
-          uint64_t pos;
-          if constexpr (soa::is_soa_filtered_t<std::decay_t<G>>::value) {
-            pos = (*groupSelection)[position];
-          } else {
-            pos = position;
-          }
-          if ((idValues[index])[pos] < 0) {
-            ++shifts[index];
-          }
-        }
-      }
-
       GroupSlicerIterator(G& gt, std::tuple<A...>& at)
         : mAt{&at},
           mGroupingElement{gt.begin()},
@@ -298,14 +282,13 @@ struct AnalysisDataProcessorBuilder {
                                                        x.asArrowTable(),
                                                        static_cast<int32_t>(gt.tableSize()),
                                                        &groups[index],
-                                                       &idValues[index],
-                                                       &offsets[index]);
+                                                       &offsets[index],
+                                                       &sizes[index]);
             if (result.ok() == false) {
               throw runtime_error("Cannot split collection");
             }
-            unassignedGroups[index] = std::count_if(idValues[index].begin(), idValues[index].end(), [](auto&& x) { return x < 0; });
-            if ((groups[index].size() - unassignedGroups[index]) > gt.tableSize()) {
-              throw runtime_error_f("Splitting collection resulted in a larger group number (%d, %d of them unassigned) than there is rows in the grouping table (%d).", groups[index].size(), unassignedGroups[index], gt.tableSize());
+            if (groups[index].size() > gt.tableSize()) {
+              throw runtime_error_f("Splitting collection resulted in a larger group number (%d) than there is rows in the grouping table (%d).", groups[index].size(), gt.tableSize());
             };
           }
         };
@@ -330,8 +313,6 @@ struct AnalysisDataProcessorBuilder {
             (extractor(x), ...);
           },
           at);
-
-        (changeShifts<A>(), ...);
       }
 
       template <typename B, typename... C>
@@ -409,18 +390,12 @@ struct AnalysisDataProcessorBuilder {
           } else {
             pos = position;
           }
-          if (unassignedGroups[index] > 0) {
-            if ((idValues[index])[pos + shifts[index]] < 0) {
-              ++shifts[index];
-            }
-            pos += shifts[index];
-          }
           if constexpr (soa::is_soa_filtered_t<std::decay_t<A1>>::value) {
             auto groupedElementsTable = arrow::util::get<std::shared_ptr<arrow::Table>>(((groups[index])[pos]).value);
 
             // for each grouping element we need to slice the selection vector
             auto start_iterator = std::lower_bound(starts[index], selections[index]->end(), (offsets[index])[pos]);
-            auto stop_iterator = std::lower_bound(start_iterator, selections[index]->end(), (offsets[index])[pos + 1]);
+            auto stop_iterator = std::lower_bound(start_iterator, selections[index]->end(), (offsets[index])[pos] + (sizes[index])[pos]);
             starts[index] = stop_iterator;
             soa::SelectionVector slicedSelection{start_iterator, stop_iterator};
             std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
@@ -445,14 +420,11 @@ struct AnalysisDataProcessorBuilder {
       typename grouping_t::iterator mGroupingElement;
       uint64_t position = 0;
       soa::SelectionVector const* groupSelection = nullptr;
-
       std::array<std::vector<arrow::Datum>, sizeof...(A)> groups;
-      std::array<std::vector<int32_t>, sizeof...(A)> idValues;
       std::array<std::vector<uint64_t>, sizeof...(A)> offsets;
+      std::array<std::vector<int>, sizeof...(A)> sizes;
       std::array<soa::SelectionVector const*, sizeof...(A)> selections;
       std::array<soa::SelectionVector::const_iterator, sizeof...(A)> starts;
-      std::array<int, sizeof...(A)> unassignedGroups{0};
-      std::array<int, sizeof...(A)> shifts{0};
     };
 
     GroupSlicerIterator& begin()

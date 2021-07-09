@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -26,7 +27,8 @@ namespace o2
 namespace track
 {
 
-using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+using SMatrix55Std = ROOT::Math::SMatrix<double, 5>;
 using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
 class TrackParFwd
@@ -60,16 +62,9 @@ class TrackParFwd
   Double_t getInvQPt() const { return mParameters(4); } // return Inverse charged pt
   Double_t getPt() const { return TMath::Abs(1.f / mParameters(4)); }
   Double_t getInvPt() const { return TMath::Abs(mParameters(4)); }
-
   Double_t getPx() const { return TMath::Cos(getPhi()) * getPt(); } // return px
-  Double_t getInvPx() const { return 1. / getPx(); }                // return invpx
-
   Double_t getPy() const { return TMath::Sin(getPhi()) * getPt(); } // return py
-  Double_t getInvPy() const { return 1. / getPx(); }                // return invpy
-
   Double_t getPz() const { return getTanl() * getPt(); } // return pz
-  Double_t getInvPz() const { return 1. / getPz(); }     // return invpz
-
   Double_t getP() const { return getPt() * TMath::Sqrt(1. + getTanl() * getTanl()); } // return total momentum
   Double_t getInverseMomentum() const { return 1.f / getP(); }
 
@@ -125,11 +120,11 @@ class TrackParCovFwd : public TrackParFwd
   TrackParCovFwd() = default;
   ~TrackParCovFwd() = default;
   TrackParCovFwd& operator=(const TrackParCovFwd& tpf) = default;
-  TrackParCovFwd(const Double_t z, const SMatrix5 parameters, const SMatrix55 covariances, const Double_t chi2);
+  TrackParCovFwd(const Double_t z, const SMatrix5& parameters, const SMatrix55Sym& covariances, const Double_t chi2);
 
-  const SMatrix55& getCovariances() const { return mCovariances; }
-  void setCovariances(const SMatrix55& covariances) { mCovariances = covariances; }
-  void deleteCovariances() { mCovariances = SMatrix55(); }
+  const SMatrix55Sym& getCovariances() const { return mCovariances; }
+  void setCovariances(const SMatrix55Sym& covariances) { mCovariances = covariances; }
+  void deleteCovariances() { mCovariances = SMatrix55Sym(); }
 
   Double_t getSigma2X() const { return mCovariances(0, 0); }
   Double_t getSigma2Y() const { return mCovariances(1, 1); }
@@ -141,9 +136,10 @@ class TrackParCovFwd : public TrackParFwd
   void propagateToZlinear(double zEnd);
   void propagateToZquadratic(double zEnd, double zField);
   void propagateToZhelix(double zEnd, double zField);
+  void propagateToZ(double zEnd, double zField); // Parameters: helix; errors: quadratic
 
   // Add Multiple Coulomb Scattering effects
-  void addMCSEffect(double dZ, double x2X0);
+  void addMCSEffect(double x2X0);
 
   // Kalman filter/fitting
   bool update(const std::array<float, 2>& p, const std::array<float, 2>& cov);
@@ -155,7 +151,7 @@ class TrackParCovFwd : public TrackParFwd
   /// <X,PHI>       <Y,PHI>         <PHI,PHI>     <TANL,PHI>      <INVQPT,PHI>
   /// <X,TANL>      <Y,TANL>       <PHI,TANL>     <TANL,TANL>     <INVQPT,TANL>
   /// <X,INVQPT>   <Y,INVQPT>     <PHI,INVQPT>   <TANL,INVQPT>   <INVQPT,INVQPT>  </pre>
-  SMatrix55 mCovariances{}; ///< \brief Covariance matrix of track parameters
+  SMatrix55Sym mCovariances{}; ///< \brief Covariance matrix of track parameters
   ClassDefNV(TrackParCovFwd, 1);
 };
 

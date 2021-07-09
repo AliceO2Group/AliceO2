@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -37,66 +38,32 @@ void KrBoxClusterFinder::loadGainMapFromFile(const std::string_view calDetFileNa
   LOGP(info, "Loaded gain map object '{}' from file '{}'", calDetFileName, gainMapName);
 }
 
-void KrBoxClusterFinder::resetADCMap()
+void KrBoxClusterFinder::createInitialMap(std::vector<o2::tpc::Digit>& eventSector)
 {
-  // Reset whole map:
-  for (int iTime = 0; iTime < MaxTimes; iTime++) {
-    for (int iRow = 0; iRow < MaxRows; iRow++) {
-      std::fill(mMapOfAllDigits[iTime][iRow].begin(), mMapOfAllDigits[iTime][iRow].end(), 0.);
-      //for (int iPad = 0; iPad < MaxPads; iPad++) {
-      //mMapOfAllDigits[iTime][iRow][iPad] = 0;
-      //}
-    }
+  mSetOfTimeSlices.clear();
+
+  for (int iTimeSlice = 0; iTimeSlice <= 2 * mMaxClusterSizeTime; ++iTimeSlice) {
+    addTimeSlice(eventSector, iTimeSlice);
   }
 }
 
-// Fill the map with all digits.
-// You can pass a CalDet file to it so that the cluster finder can already correct for gain inhomogeneities
-// The CalDet File should contain the relative Gain of each Pad.
-void KrBoxClusterFinder::fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSector, const int sector)
+void KrBoxClusterFinder::popFirstTimeSliceFromMap()
 {
-  mSector = sector;
-  resetADCMap();
-
-  if (eventSector.size() == 0) {
-    // prevents a segementation fault if the envent contains no data
-    // segementation fault would occure later when trying to dereference the
-    // max/min pointer (which are nullptr if data is empty) empty events should
-    // be catched in the main function, hence, this "if" is no longer necessary
-    LOGP(warning, "Sector size (amount of data points) in current run is 0!");
-    LOGP(warning, "mMapOfAllDigits with 0's is generated in order to prevent a segementation fault.");
-
-    return;
-  }
-
-  // Fill digits map
-  for (const auto& digit : eventSector) {
-    const int cru = digit.getCRU();
-    const int time = digit.getTimeStamp();
-    const int row = digit.getRow();
-    const int pad = digit.getPad();
-    const float adcValue = digit.getChargeFloat();
-
-    fillADCValue(cru, row, pad, time, adcValue);
-  }
+  mSetOfTimeSlices.pop_front();
 }
 
-void KrBoxClusterFinder::fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue)
+void KrBoxClusterFinder::fillADCValueInLastSlice(int cru, int rowInSector, int padInRow, float adcValue)
 {
-  if (timeBin >= MaxTimes) {
-    return;
-  }
+  auto& timeSlice = mSetOfTimeSlices.back();
 
-  // Every row starts at pad zero. But the number of pads in a row is not a constant.
-  // If we would just fill the map naively, we would put pads next to each other, which are not neighbours on the pad plane.
-  // Hence, we need to correct for this:
-  mSector = cru / CRU::CRUperSector;
-  const int pads = mMapperInstance.getNumberOfPadsInRowSector(rowInSector);
-  const int corPad = padInRow - (pads / 2) + (MaxPads / 2);
+  // Correct for pad offset:
+  const int padsInRow = mMapperInstance.getNumberOfPadsInRowSector(rowInSector);
+  const int corPad = padInRow - (padsInRow / 2) + (MaxPads / 2);
 
+  // Get correction factor from gain map:
   const auto correctionFactorCalDet = mGainMap.get();
   if (!correctionFactorCalDet) {
-    mMapOfAllDigits[timeBin][rowInSector][corPad] = adcValue;
+    timeSlice[rowInSector][corPad] = adcValue;
     return;
   }
 
@@ -111,7 +78,54 @@ void KrBoxClusterFinder::fillADCValue(int cru, int rowInSector, int padInRow, in
     adcValue /= correctionFactor;
   }
 
-  mMapOfAllDigits[timeBin][rowInSector][corPad] = adcValue;
+  timeSlice[rowInSector][corPad] = adcValue;
+}
+
+void KrBoxClusterFinder::addTimeSlice(std::vector<o2::tpc::Digit>& eventSector, const int timeSlice)
+{
+  mSetOfTimeSlices.emplace_back();
+
+  for (; mFirstDigit < eventSector.size(); ++mFirstDigit) {
+    const auto& digit = eventSector[mFirstDigit];
+    const int time = digit.getTimeStamp();
+    if (time != timeSlice) {
+      return;
+    }
+
+    const int cru = digit.getCRU();
+    mSector = cru / CRU::CRUperSector;
+
+    const int rowInSector = digit.getRow();
+    const int padInRow = digit.getPad();
+    float adcValue = digit.getChargeFloat();
+
+    fillADCValueInLastSlice(cru, rowInSector, padInRow, adcValue);
+  }
+}
+
+void KrBoxClusterFinder::loopOverSector(std::vector<o2::tpc::Digit>& eventSector, const int sector)
+{
+  mFirstDigit = 0;
+  mSector = sector;
+
+  createInitialMap(eventSector);
+  for (int iTimeSlice = mMaxClusterSizeTime; iTimeSlice < mMaxTimes - mMaxClusterSizeTime; ++iTimeSlice) {
+    findLocalMaxima(true, iTimeSlice);
+    popFirstTimeSliceFromMap();
+    addTimeSlice(eventSector, iTimeSlice + mMaxClusterSizeTime + 1);
+  }
+}
+
+void KrBoxClusterFinder::resetADCMap()
+{
+  // Has to be reimplemented!
+  return;
+}
+
+void KrBoxClusterFinder::fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue)
+{
+  // Has to be reimplemented!
+  return;
 }
 
 void KrBoxClusterFinder::init()
@@ -138,7 +152,7 @@ void KrBoxClusterFinder::init()
 //#################################################
 
 // Function to update the temporal cluster
-void KrBoxClusterFinder::updateTempClusterFinal()
+void KrBoxClusterFinder::updateTempClusterFinal(const int timeOffset)
 {
   if (mTempCluster.totCharge == 0) {
     mTempCluster.reset();
@@ -161,6 +175,8 @@ void KrBoxClusterFinder::updateTempClusterFinal()
     mTempCluster.meanPad = mTempCluster.meanPad + (corPadsMean / 2.0) - (MaxPads / 2.0);
     mTempCluster.maxChargePad = mTempCluster.maxChargePad + (corPadsMaxCharge / 2.0) - (MaxPads / 2.0);
     mTempCluster.sector = (decltype(mTempCluster.sector))mSector;
+
+    mTempCluster.meanTime += timeOffset;
   }
 }
 
@@ -196,128 +212,133 @@ void KrBoxClusterFinder::updateTempCluster(float tempCharge, int tempPad, int te
   }
 }
 
-// This function finds and evaluates all clusters in a 3D mMapOfAllDigits generated by the
-// mMapOfAllDigitsCreator function, this function also updates the cluster tree
-std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima(bool directFilling)
+// This function finds and evaluates all clusters in a 3D mSetOfTimeSlices generated by the
+// mSetOfTimeSlicesCreator function, this function also updates the cluster tree
+std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima(bool directFilling, const int timeOffset)
 {
   std::vector<std::tuple<int, int, int>> localMaximaCoords;
-  // loop over whole mMapOfAllDigits the find clusters
-  for (int iTime = 0; iTime < MaxTimes; iTime++) { //mMapOfAllDigits.size()
-    const auto& mapRow = mMapOfAllDigits[iTime];
-    for (int iRow = 0; iRow < MaxRows; iRow++) { // mapRow.size()
-      // Since pad size is different for each ROC, we take this into account while looking for maxima:
-      // setMaxClusterSize(iRow);
-      if (iRow == 0) {
-        mMaxClusterSizePad = mMaxClusterSizePadIROC;
-        mMaxClusterSizeRow = mMaxClusterSizeRowIROC;
-      } else if (iRow == MaxRowsIROC) {
-        mMaxClusterSizePad = mMaxClusterSizePadOROC1;
-        mMaxClusterSizeRow = mMaxClusterSizeRowOROC1;
-      } else if (iRow == MaxRowsIROC + MaxRowsOROC1) {
-        mMaxClusterSizePad = mMaxClusterSizePadOROC2;
-        mMaxClusterSizeRow = mMaxClusterSizeRowOROC2;
-      } else if (iRow == MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2) {
-        mMaxClusterSizePad = mMaxClusterSizePadOROC3;
-        mMaxClusterSizeRow = mMaxClusterSizeRowOROC3;
+
+  const int iTime = mMaxClusterSizeTime;
+  const auto& mapRow = mSetOfTimeSlices[iTime];
+  for (int iRow = 0; iRow < MaxRows; iRow++) { // mapRow.size()
+    // Since pad size is different for each ROC, we take this into account while looking for maxima:
+    // setMaxClusterSize(iRow);
+    if (iRow == 0) {
+      mMaxClusterSizePad = mMaxClusterSizePadIROC;
+      mMaxClusterSizeRow = mMaxClusterSizeRowIROC;
+    } else if (iRow == MaxRowsIROC) {
+      mMaxClusterSizePad = mMaxClusterSizePadOROC1;
+      mMaxClusterSizeRow = mMaxClusterSizeRowOROC1;
+    } else if (iRow == MaxRowsIROC + MaxRowsOROC1) {
+      mMaxClusterSizePad = mMaxClusterSizePadOROC2;
+      mMaxClusterSizeRow = mMaxClusterSizeRowOROC2;
+    } else if (iRow == MaxRowsIROC + MaxRowsOROC1 + MaxRowsOROC2) {
+      mMaxClusterSizePad = mMaxClusterSizePadOROC3;
+      mMaxClusterSizeRow = mMaxClusterSizeRowOROC3;
+    }
+
+    const auto& mapPad = mapRow[iRow];
+    const int padsInRow = mMapperInstance.getNumberOfPadsInRowSector(iRow);
+
+    // Only loop over existing pads:
+    for (int iPad = MaxPads / 2 - padsInRow / 2; iPad < MaxPads / 2 + padsInRow / 2; iPad++) { // mapPad.size()
+
+      const float qMax = mapPad[iPad];
+
+      // cluster Maximum must at least be larger than Threshold
+      if (qMax <= mQThresholdMax) {
+        continue;
       }
 
-      const auto& mapPad = mapRow[iRow];
-      const int padsInRow = mMapperInstance.getNumberOfPadsInRowSector(iRow);
-
-      // Only loop over existing pads:
-      for (int iPad = MaxPads / 2 - padsInRow / 2; iPad < MaxPads / 2 + padsInRow / 2; iPad++) { // mapPad.size()
-
-        const float qMax = mapPad[iPad];
-
-        // cluster Maximum must at least be larger than Threshold
-        if (qMax <= mQThresholdMax) {
+      // Acceptance condition: Require at least mMinNumberOfNeighbours neigbours
+      // with signal in any direction!
+      int noNeighbours = 0;
+      if ((iPad + 1 < MaxPads) && (mSetOfTimeSlices[iTime][iRow][iPad + 1] > mQThreshold)) {
+        if (mSetOfTimeSlices[iTime][iRow][iPad + 1] > qMax) {
           continue;
         }
+        noNeighbours++;
+      }
 
-        // Acceptance condition: Require at least mMinNumberOfNeighbours neigbours
-        // with signal in any direction!
-        int noNeighbours = 0;
-        if ((iPad + 1 < MaxPads) && (mMapOfAllDigits[iTime][iRow][iPad + 1] > mQThreshold)) {
-          if (mMapOfAllDigits[iTime][iRow][iPad + 1] > qMax) {
-            continue;
-          }
-          noNeighbours++;
-        }
-        if ((iPad - 1 >= 0) && (mMapOfAllDigits[iTime][iRow][iPad - 1] > mQThreshold)) {
-          if (mMapOfAllDigits[iTime][iRow][iPad - 1] > qMax) {
-            continue;
-          }
-          noNeighbours++;
-        }
-        if ((iRow + 1 < MaxRows) && (mMapOfAllDigits[iTime][iRow + 1][iPad] > mQThreshold)) {
-          if (mMapOfAllDigits[iTime][iRow + 1][iPad] > qMax) {
-            continue;
-          }
-          noNeighbours++;
-        }
-        if ((iRow - 1 >= 0) && (mMapOfAllDigits[iTime][iRow - 1][iPad] > mQThreshold)) {
-          if (mMapOfAllDigits[iTime][iRow - 1][iPad] > qMax) {
-            continue;
-          }
-          noNeighbours++;
-        }
-        if ((iTime + 1 < MaxTimes) && (mMapOfAllDigits[iTime + 1][iRow][iPad] > mQThreshold)) {
-          if (mMapOfAllDigits[iTime + 1][iRow][iPad] > qMax) {
-            continue;
-          }
-          noNeighbours++;
-        }
-        if ((iTime - 1 >= 0) && (mMapOfAllDigits[iTime - 1][iRow][iPad] > mQThreshold)) {
-          if (mMapOfAllDigits[iTime - 1][iRow][iPad] > qMax) {
-            continue;
-          }
-          noNeighbours++;
-        }
-        if (noNeighbours < mMinNumberOfNeighbours) {
+      if ((iPad - 1 >= 0) && (mSetOfTimeSlices[iTime][iRow][iPad - 1] > mQThreshold)) {
+        if (mSetOfTimeSlices[iTime][iRow][iPad - 1] > qMax) {
           continue;
         }
+        noNeighbours++;
+      }
 
-        // Check that this is a local maximum
-        // Note that the checking is done so that if 2 charges have the same
-        // qMax then only 1 cluster is generated
-        // (that is why there is BOTH > and >=)
-        // -> only the maximum with the smalest indices will be accepted
-        bool thisIsMax = true;
+      if ((iRow + 1 < MaxRows) && (mSetOfTimeSlices[iTime][iRow + 1][iPad] > mQThreshold)) {
+        if (mSetOfTimeSlices[iTime][iRow + 1][iPad] > qMax) {
+          continue;
+        }
+        noNeighbours++;
+      }
 
-        for (int j = -mMaxClusterSizeTime; (j <= mMaxClusterSizeTime) && thisIsMax; j++) {
-          if ((iTime + j >= MaxTimes) || (iTime + j < 0)) {
+      if ((iRow - 1 >= 0) && (mSetOfTimeSlices[iTime][iRow - 1][iPad] > mQThreshold)) {
+        if (mSetOfTimeSlices[iTime][iRow - 1][iPad] > qMax) {
+          continue;
+        }
+        noNeighbours++;
+      }
+
+      if ((iTime + 1 < mMaxTimes) && (mSetOfTimeSlices[iTime + 1][iRow][iPad] > mQThreshold)) {
+        if (mSetOfTimeSlices[iTime + 1][iRow][iPad] > qMax) {
+          continue;
+        }
+        noNeighbours++;
+      }
+
+      if ((iTime - 1 >= 0) && (mSetOfTimeSlices[iTime - 1][iRow][iPad] > mQThreshold)) {
+        if (mSetOfTimeSlices[iTime - 1][iRow][iPad] > qMax) {
+          continue;
+        }
+        noNeighbours++;
+      }
+      if (noNeighbours < mMinNumberOfNeighbours) {
+        continue;
+      }
+
+      // Check that this is a local maximum
+      // Note that the checking is done so that if 2 charges have the same
+      // qMax then only 1 cluster is generated
+      // (that is why there is BOTH > and >=)
+      // -> only the maximum with the smalest indices will be accepted
+      bool thisIsMax = true;
+
+      for (int j = -mMaxClusterSizeTime; (j <= mMaxClusterSizeTime) && thisIsMax; j++) {
+        if ((iTime + j >= mMaxTimes) || (iTime + j < 0)) {
+          continue;
+        }
+        for (int k = -mMaxClusterSizeRow; (k <= mMaxClusterSizeRow) && thisIsMax; k++) {
+          if ((iRow + k >= MaxRows) || (iRow + k < 0)) {
             continue;
           }
-          for (int k = -mMaxClusterSizeRow; (k <= mMaxClusterSizeRow) && thisIsMax; k++) {
-            if ((iRow + k >= MaxRows) || (iRow + k < 0)) {
+          for (int i = -mMaxClusterSizePad; (i <= mMaxClusterSizePad) && thisIsMax; i++) {
+            if ((iPad + i >= MaxPads) || (iPad + i < 0)) {
               continue;
             }
-            for (int i = -mMaxClusterSizePad; (i <= mMaxClusterSizePad) && thisIsMax; i++) {
-              if ((iPad + i >= MaxPads) || (iPad + i < 0)) {
-                continue;
-              }
-              if (mMapOfAllDigits[iTime + j][iRow + k][iPad + i] > qMax) {
-                thisIsMax = false;
-              }
+            if (mSetOfTimeSlices[iTime + j][iRow + k][iPad + i] > qMax) {
+              thisIsMax = false;
             }
           }
         }
+      }
+      if (!thisIsMax) {
+        continue;
+      } else {
+        if (directFilling) {
 
-        if (!thisIsMax) {
-          continue;
+          buildCluster(iPad, iRow, iTime, directFilling, timeOffset);
         } else {
-          if (directFilling) {
-            buildCluster(iPad, iRow, iTime, directFilling);
-          } else {
-            localMaximaCoords.emplace_back(std::make_tuple(iPad, iRow, iTime));
-          }
-
-          // If we have found a local maximum, we can also skip the next few entries:
-          iPad += mMaxClusterSizePad;
+          localMaximaCoords.emplace_back(std::make_tuple(iPad, iRow, iTime));
         }
+
+        // If we have found a local maximum, we can also skip the next few entries:
+        iPad += mMaxClusterSizePad;
       }
     }
   }
+  // }
   return localMaximaCoords;
 }
 
@@ -338,24 +359,17 @@ std::vector<std::tuple<int, int, int>> KrBoxClusterFinder::findLocalMaxima(bool 
 // for loop over whole cluster, to determine if a charge should be added
 // conditions are extrapolation of the 5x5 cluster case to arbitrary
 // cluster sizes in 3 dimensions
-KrCluster KrBoxClusterFinder::buildCluster(int clusterCenterPad, int clusterCenterRow, int clusterCenterTime, bool directFilling)
+KrCluster KrBoxClusterFinder::buildCluster(int clusterCenterPad, int clusterCenterRow, int clusterCenterTime, bool directFilling, const int timeOffset)
 {
   mTempCluster.reset();
-
   setMaxClusterSize(clusterCenterRow);
 
   // Loop over all neighbouring time bins:
   for (int iTime = -mMaxClusterSizeTime; iTime <= mMaxClusterSizeTime; iTime++) {
-    // If we would look out of range, we skip
-    if (clusterCenterTime + iTime < 0) {
-      continue;
-    } else if (clusterCenterTime + iTime >= MaxTimes) {
-      break;
-    }
-
     // Loop over all neighbouring row bins:
+
     for (int iRow = -mMaxClusterSizeRow; iRow <= mMaxClusterSizeRow; iRow++) {
-      // First: Check again if we look over array boundaries:
+      // First: Check if we look over array boundaries:
       if (clusterCenterRow + iRow < 0) {
         continue;
       } else if (clusterCenterRow + iRow >= MaxRows) {
@@ -391,42 +405,42 @@ KrCluster KrBoxClusterFinder::buildCluster(int clusterCenterPad, int clusterCent
 
         // Second: Check if charge is above threshold
         // Might be not necessary since we deal with pedestal subtracted data
-        if (mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad] <= mQThreshold) {
+        if (mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad] <= mQThreshold) {
           continue;
         }
         // If not, there are several cases which were explained (for 2D) in the header of the code.
         // The first one is for the diagonal. So, the digit we are investigating here is on the diagonal:
         if (std::abs(iTime) == std::abs(iPad) && std::abs(iTime) == std::abs(iRow)) {
           // Now we check, if the next inner digit has a signal above threshold:
-          if (mMapOfAllDigits[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
+          if (mSetOfTimeSlices[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
             // If yes, the cluster gets updated with the digit on the diagonal.
-            updateTempCluster(mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
+            updateTempCluster(mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
           }
         }
         // Basically, we go through every possible case in the next few if-else conditions:
         else if (std::abs(iTime) == std::abs(iPad)) {
-          if (mMapOfAllDigits[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
-            updateTempCluster(mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
+          if (mSetOfTimeSlices[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
+            updateTempCluster(mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
           }
         } else if (std::abs(iTime) == std::abs(iRow)) {
-          if (mMapOfAllDigits[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad] > mQThreshold) {
-            updateTempCluster(mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
+          if (mSetOfTimeSlices[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad] > mQThreshold) {
+            updateTempCluster(mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
           }
         } else if (std::abs(iPad) == std::abs(iRow)) {
-          if (mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
-            updateTempCluster(mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
+          if (mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
+            updateTempCluster(mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
           }
         } else if (std::abs(iTime) > std::abs(iPad) && std::abs(iTime) > std::abs(iRow)) {
-          if (mMapOfAllDigits[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow][clusterCenterPad + iPad] > mQThreshold) {
-            updateTempCluster(mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
+          if (mSetOfTimeSlices[clusterCenterTime + iTime - signnum(iTime)][clusterCenterRow + iRow][clusterCenterPad + iPad] > mQThreshold) {
+            updateTempCluster(mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
           }
         } else if (std::abs(iTime) < std::abs(iPad) && std::abs(iPad) > std::abs(iRow)) {
-          if (mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
-            updateTempCluster(mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
+          if (mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad - signnum(iPad)] > mQThreshold) {
+            updateTempCluster(mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
           }
         } else if (std::abs(iTime) < std::abs(iRow) && std::abs(iPad) < std::abs(iRow)) {
-          if (mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad] > mQThreshold) {
-            updateTempCluster(mMapOfAllDigits[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
+          if (mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow - signnum(iRow)][clusterCenterPad + iPad] > mQThreshold) {
+            updateTempCluster(mSetOfTimeSlices[clusterCenterTime + iTime][clusterCenterRow + iRow][clusterCenterPad + iPad], clusterCenterPad + iPad, clusterCenterRow + iRow, clusterCenterTime + iTime);
           }
         }
       }
@@ -434,7 +448,8 @@ KrCluster KrBoxClusterFinder::buildCluster(int clusterCenterPad, int clusterCent
   }
   // At the end, out mTempCluster should contain all digits that were assigned to the cluster.
   // So before returning it, we update it one last time to calculate the correct means and sigmas.
-  updateTempClusterFinal();
+
+  updateTempClusterFinal(timeOffset);
 
   if (directFilling) {
     mClusters.emplace_back(mTempCluster);

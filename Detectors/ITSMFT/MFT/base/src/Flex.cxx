@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -350,11 +351,11 @@ TGeoVolume* Flex::makeLines(Int_t nbsensors, Double_t length, Double_t widthflex
     length_line = length - Geometry::sConnectorOffset -
                   TMath::Nint((iline - 6) / 3) * SegmentationAlpide::SensorSizeCols -
                   SegmentationAlpide::SensorSizeCols / 2;
-    ts[iline] = new TGeoTranslation(Form("t%d", iline), length / 2 - length_line / 2 - Geometry::sConnectorOffset,
-                                    -2 * (iline - 6) * Geometry::sLineWidth + 0.5 - widthflex / 2, 0.);
+    ts[iline - 6] = new TGeoTranslation(Form("t%d", iline), length / 2 - length_line / 2 - Geometry::sConnectorOffset,
+                                        -2 * (iline - 6) * Geometry::sLineWidth + 0.5 - widthflex / 2, 0.);
     line[iline] = new TGeoBBox(Form("line%d", iline), length_line / 2, Geometry::sLineWidth / 2,
                                thickness / 2 + Geometry::sEpsilon);
-    layerl[iline] = new TGeoSubtraction(layern[iline - 1], line[iline], nullptr, ts[iline]);
+    layerl[iline] = new TGeoSubtraction(layern[iline - 1], line[iline], nullptr, ts[iline - 6]);
     layern[iline] = new TGeoCompositeShape(Form("layer%d", iline), layerl[iline]);
     kTotalLinesNb++;
   }

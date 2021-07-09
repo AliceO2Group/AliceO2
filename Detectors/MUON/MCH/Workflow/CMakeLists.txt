@@ -1,21 +1,35 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
+# MCHWorkflow library is (at least) needed by Detectors/CTF/workflow
 o2_add_library(MCHWorkflow
-               SOURCES src/DataDecoderSpec.cxx src/PreClusterFinderSpec.cxx src/ClusterFinderOriginalSpec.cxx
-               src/EntropyDecoderSpec.cxx
-               TARGETVARNAME targetName
-               PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::MCHRawDecoder Boost::program_options
-                                     O2::MCHRawImplHelpers RapidJSON::RapidJSON O2::MCHMappingInterface
-                                     O2::MCHPreClustering O2::MCHMappingImpl4 O2::MCHRawElecMap O2::MCHBase
-                                     O2::DataFormatsMCH O2::MCHClustering O2::MCHCTF O2::SimulationDataFormat)
+               SOURCES
+                   src/ClusterFinderOriginalSpec.cxx
+                   src/DataDecoderSpec.cxx
+                   src/EntropyDecoderSpec.cxx
+                   src/PreClusterFinderSpec.cxx
+                   src/TrackReaderSpec.cxx
+                   src/TrackTreeReader.cxx
+                   src/TrackWriterSpec.cxx
+               PUBLIC_LINK_LIBRARIES
+                   O2::CommonUtils
+                   O2::DPLUtils
+                   O2::DataFormatsParameters
+                   O2::DetectorsRaw
+                   O2::MCHCTF
+                   O2::MCHClustering
+                   O2::MCHPreClustering
+                   O2::MCHRawCommon
+                   O2::MCHRawDecoder
+               )
 
 o2_add_executable(
         cru-page-reader-workflow
@@ -23,6 +37,7 @@ o2_add_executable(
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DetectorsRaw O2::DPLUtils Boost::program_options)
 
+# to be deprecated : use DevIO/digits-writer instead
 o2_add_executable(
         digits-sink-workflow
         SOURCES src/digits-sink-workflow.cxx
@@ -100,7 +115,18 @@ o2_add_executable(
         clusters-to-tracks-workflow
         SOURCES src/TrackFinderSpec.cxx src/clusters-to-tracks-workflow.cxx
         COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)
+        PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Framework O2::DataFormatsMCH O2::MCHTracking O2::DataFormatsParameters)
+
+o2_add_executable(
+        clusters-transformer-workflow
+        SOURCES src/clusters-transformer-workflow.cxx src/ClusterTransformerSpec.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES
+           O2::DetectorsBase
+           O2::Framework
+           O2::MCHBase
+           O2::MCHGeometryTransformer
+        )
 
 o2_add_executable(
         vertex-sampler-workflow
@@ -121,6 +147,18 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHBase)
 
 o2_add_executable(
+        tracks-writer-workflow
+        SOURCES src/tracks-writer-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        tracks-reader-workflow
+        SOURCES src/tracks-reader-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
         tracks-sampler-workflow
         SOURCES src/TrackSamplerSpec.cxx src/tracks-sampler-workflow.cxx
         COMPONENT_NAME mch
@@ -133,13 +171,27 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsMCH O2::MCHTracking)
 
 o2_add_executable(
-        clusters-transformer-workflow
-        SOURCES src/clusters-transformer-workflow.cxx
-        COMPONENT_NAME mch
-        PUBLIC_LINK_LIBRARIES O2::MCHWorkflow O2::MCHGeometryTransformer)
-
-o2_add_executable(
         entropy-encoder-workflow
         SOURCES src/entropy-encoder-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
+
+o2_add_executable(
+        reco-workflow
+        SOURCES
+            src/ClusterTransformerSpec.cxx
+            src/TrackAtVertexSpec.cxx
+            src/TrackFinderSpec.cxx
+            src/VertexSamplerSpec.cxx
+            src/reco-workflow.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES
+            O2::MCHGeometryTransformer
+            O2::MCHTracking
+            O2::MCHWorkflow
+        )
+
+o2_add_executable(tracks-file-dumper
+        SOURCES src/tracks-file-dumper.cxx
+        COMPONENT_NAME mch
+        PUBLIC_LINK_LIBRARIES Boost::program_options O2::MCHWorkflow)

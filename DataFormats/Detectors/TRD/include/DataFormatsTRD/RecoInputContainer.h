@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -40,6 +41,7 @@ struct RecoInputContainer {
   gsl::span<const o2::trd::Tracklet64> mTracklets;
   gsl::span<const o2::trd::CalibratedTracklet> mSpacePoints;
   gsl::span<const o2::trd::TriggerRecord> mTriggerRecords;
+  gsl::span<const char> mTrigRecMask;
   unsigned int mNTracklets;
   unsigned int mNSpacePoints;
   unsigned int mNTriggerRecords;
@@ -57,6 +59,7 @@ inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu:
   retVal->mTracklets = pc.inputs().get<gsl::span<o2::trd::Tracklet64>>("trdtracklets");
   retVal->mSpacePoints = pc.inputs().get<gsl::span<CalibratedTracklet>>("trdctracklets");
   retVal->mTriggerRecords = pc.inputs().get<gsl::span<o2::trd::TriggerRecord>>("trdtriggerrec");
+  retVal->mTrigRecMask = pc.inputs().get<gsl::span<char>>("trdtrigrecmask");
 
   retVal->mNTracklets = retVal->mTracklets.size();
   retVal->mNSpacePoints = retVal->mSpacePoints.size();
@@ -85,6 +88,7 @@ inline void RecoInputContainer::fillGPUIOPtr(o2::gpu::GPUTrackingInOutPointers* 
   ptrs->nTRDTriggerRecords = mNTriggerRecords;
   ptrs->trdTriggerTimes = &(trdTriggerTimes[0]);
   ptrs->trdTrackletIdxFirst = &(trdTriggerIndices[0]);
+  ptrs->trdTrigRecMask = reinterpret_cast<const char*>(mTrigRecMask.data());
   ptrs->nTRDTracklets = mNTracklets;
   ptrs->trdTracklets = reinterpret_cast<const o2::gpu::GPUTRDTrackletWord*>(mTracklets.data());
   ptrs->trdSpacePoints = reinterpret_cast<const o2::gpu::GPUTRDSpacePoint*>(mSpacePoints.data());

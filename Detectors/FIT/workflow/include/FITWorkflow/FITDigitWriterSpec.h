@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -59,7 +60,8 @@ struct FITDigitWriterSpecHelper {
     auto dplName = T::sChannelNameDPL;
     auto dplLabel = std::string{dplName};
     std::for_each(dplLabel.begin(), dplLabel.end(), [](char& c) { c = ::tolower(c); });
-    auto branchName = std::string{detName + dplName};
+    //auto branchName = std::string{detName + dplName};
+    auto branchName = std::string{T::sDigitBranchName};
     auto optionStr = std::string{detNameLower + "-" + dplName + "-branch-name"};
     //LOG(INFO)<<"Branch: "<<dplLabel.c_str()<< "|" <<detName<<" | "<<T::sChannelNameDPL<<" | "<<branchName<<" | "<<optionStr<<" | "<<(detName+dplName);
     return BranchDefinition<std::vector<T>>{InputSpec{dplLabel.c_str(), dataOrigin, T::sChannelNameDPL}, branchName.c_str(), optionStr.c_str(), std::forward<Args>(args)...};

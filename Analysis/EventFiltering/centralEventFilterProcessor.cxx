@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,6 +15,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
+#include <Framework/Logger.h>
 #include "Framework/TableConsumer.h"
 
 #include <TFile.h>
@@ -32,12 +34,16 @@ namespace
 {
 Document readJsonFile(std::string& config)
 {
+  Document d;
   FILE* fp = fopen(config.data(), "rb");
+  if (!fp) {
+    LOG(ERROR) << "Missing configuration json file: " << config;
+    return d;
+  }
 
   char readBuffer[65536];
   FileReadStream is(fp, readBuffer, sizeof(readBuffer));
 
-  Document d;
   d.ParseStream(is);
   fclose(fp);
   return d;
@@ -61,7 +67,7 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
   //     }
   //   }
   // }
-  std::cout << "Start init" << std::endl;
+  LOG(INFO) << "Start init";
   Document d = readJsonFile(mConfigFile);
   int nCols{0};
   for (auto& workflow : d["workflows"].GetArray()) {
@@ -69,19 +75,20 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
       auto& config = workflow["configuration"];
       for (auto& filter : AvailableFilters) {
         auto& filterConfig = config[filter];
-        if (config.IsObject()) {
+        if (filterConfig.IsObject()) {
           std::unordered_map<std::string, float> tableMap;
           for (auto& node : filterConfig.GetObject()) {
             tableMap[node.name.GetString()] = node.value.GetDouble();
             nCols++;
           }
+          LOG(INFO) << "Enabling downscaling map for filter: " << filter;
           mDownscaling[filter] = tableMap;
         }
       }
       break;
     }
   }
-  std::cout << "Middle init" << std::endl;
+  LOG(INFO) << "Middle init" << std::endl;
   mScalers = new TH1D("mScalers", ";;Number of events", nCols + 1, -0.5, 0.5 + nCols);
   mScalers->GetXaxis()->SetBinLabel(1, "Total number of events");
 
@@ -111,7 +118,7 @@ void CentralEventFilterProcessor::run(ProcessingContext& pc)
     int64_t nRows{tablePtr->num_rows()};
     nEvents = nEvents < 0 ? nRows : nEvents;
     if (nEvents != nRows) {
-      std::cerr << "Inconsistent number of rows across trigger tables, fatal" << std::endl; ///TODO: move it to real fatal
+      LOG(FATAL) << "Inconsistent number of rows across trigger tables, fatal" << std::endl; ///TODO: move it to real fatal
     }
 
     auto schema{tablePtr->schema()};
@@ -166,7 +173,7 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
     for (unsigned int iFilter{0}; iFilter < AvailableFilters.size(); ++iFilter) {
       if (std::string_view(workflow["subwagon_name"].GetString()) == std::string_view(AvailableFilters[iFilter])) {
         inputs.emplace_back(std::string(AvailableFilters[iFilter]), "AOD", FilterDescriptions[iFilter], 0, Lifetime::Timeframe);
-        std::cout << "Adding input " << std::string_view(AvailableFilters[iFilter]) << std::endl;
+        LOG(INFO) << "Adding input " << std::string_view(AvailableFilters[iFilter]) << std::endl;
         break;
       }
     }
@@ -185,5 +192,3 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
 }
 
 } // namespace o2::aod::filtering
-
-/// o2-analysis-cefp --config  /Users/stefano.trogolo/alice/run3/O2/Analysis/EventFiltering/sample.json | o2-analysis-nuclei-filter --aod-file @listOfFiles.txt | o2-analysis-trackselection  | o2-analysis-trackextension  | o2-analysis-pid-tpc | o2-analysis-pid-tof | o2-analysis-event-selection | o2-analysis

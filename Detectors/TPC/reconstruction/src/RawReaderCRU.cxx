@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -17,6 +18,7 @@
 #include "TSystem.h"
 #include "TObjArray.h"
 
+#include "Headers/DataHeader.h"
 #include "TPCReconstruction/RawReaderCRU.h"
 #include "TPCBase/Mapper.h"
 #include "Framework/Logger.h"
@@ -27,7 +29,10 @@
 using namespace o2::tpc::rawreader;
 
 std::ostream& operator<<(std::ostream& output, const RDH& rdh);
-std::istream& operator>>(std::istream& input, RDH& rdh);
+
+template <typename DataType>
+std::istream& operator>>(std::istream& input, DataType& data);
+
 void printHeader();
 void printHorizontal(const RDH& rdh);
 
@@ -41,10 +46,8 @@ RawReaderCRUEventSync::LinkInfo& RawReaderCRUEventSync::getLinkInfo(uint32_t hea
 }
 */
 
-RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const RDH& rdh, DataType dataType)
+RawReaderCRUEventSync::EventInfo& RawReaderCRUEventSync::createEvent(const uint32_t heartbeatOrbit, DataType dataType)
 {
-  const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
-
   // TODO: might be that reversing the loop below has the same effect as using mLastEvent
   if (mLastEvent && mLastEvent->hasHearbeatOrbit(heartbeatOrbit)) {
     return *mLastEvent;
@@ -150,6 +153,7 @@ void RawReaderCRUEventSync::streamTo(std::ostream& output) const
       std::cout << orbit << " ";
     }
     std::cout << "\n"
+              << "    firstOrbit: " << event.getFirstOrbit() << "\n"
               << "    Is complete: " << isComplete << "\n";
 
     // cru loop
@@ -217,6 +221,8 @@ int RawReaderCRU::scanFile()
   mFileSize = file.tellg();
   file.seekg(0, file.beg);
 
+  const bool isTFfile = (mInputFileName.rfind(".tf") == mInputFileName.size() - 3);
+
   // the file is supposed to contain N x 8kB packets. So the number of packets
   // can be determined by the file-size. Ideally, this is not required but the
   // information is derived directly from the header size and payload size.
@@ -225,11 +231,30 @@ int RawReaderCRU::scanFile()
 
   // read in the RDH, then jump to the next RDH position
   RDH rdh;
+  o2::header::DataHeader dh;
   uint32_t currentPacket = 0;
   uint32_t lastHeartbeatOrbit = 0;
-  size_t currentPos = 0;
+
+  if (isTFfile) {
+    // skip the StfBuilder meta data information
+    file >> dh;
+    file.seekg(dh.payloadSize, std::ios::cur);
+    file >> dh;
+    file.seekg(dh.payloadSize, std::ios::cur);
+  }
+
+  size_t currentPos = file.tellg();
+  size_t dhPayloadSize{};
+  size_t dhPayloadSizeSeen{};
 
   while ((currentPos < mFileSize) && !file.eof()) {
+    // ===| in case of TF data file read data header |===
+    if (isTFfile && (!dhPayloadSize || (dhPayloadSizeSeen == dhPayloadSize))) {
+      file >> dh;
+      dhPayloadSize = dh.payloadSize;
+      dhPayloadSizeSeen = 0;
+      currentPos = file.tellg();
+    }
 
     // ===| read in the RawDataHeader at the current position |=================
     file >> rdh;
@@ -238,6 +263,7 @@ int RawReaderCRU::scanFile()
     const size_t offset = packetSize - RDHUtils::getHeaderSize(rdh);
     const auto memorySize = RDHUtils::getMemorySize(rdh);
     const auto payloadSize = memorySize - RDHUtils::getHeaderSize(rdh);
+    dhPayloadSizeSeen += packetSize;
 
     // ===| check for truncated file |==========================================
     const size_t curPos = file.tellg();
@@ -301,7 +327,7 @@ int RawReaderCRU::scanFile()
 
       RDHUtils::setFEEID(rdh, feeId);
     }
-    const auto heartbeatOrbit = RDHUtils::getHeartBeatOrbit(rdh);
+    const auto heartbeatOrbit = isTFfile ? dh.firstTForbit : RDHUtils::getHeartBeatOrbit(rdh);
     const auto endPoint = rdh_utils::getEndPoint(feeId);
     const auto linkID = rdh_utils::getLink(feeId);
     const auto globalLinkID = linkID + endPoint * 12;
@@ -320,7 +346,7 @@ int RawReaderCRU::scanFile()
     if (mManager) {
       // in case of triggered mode, we use the first heartbeat orbit as event identifier
       if ((lastHeartbeatOrbit == 0) || (heartbeatOrbit != lastHeartbeatOrbit)) {
-        mManager->mEventSync.createEvent(rdh, mManager->getDataType());
+        mManager->mEventSync.createEvent(heartbeatOrbit, mManager->getDataType());
         lastHeartbeatOrbit = heartbeatOrbit;
       }
       linkInfo = &mManager->mEventSync.getLinkInfo(rdh, mManager->getDataType());
@@ -1092,11 +1118,12 @@ void printHorizontal(const RDH& rdh)
              (uint64_t)RDHUtils::getStop(rdh));
 }
 
-std::istream& operator>>(std::istream& input, RDH& rdh)
+template <typename DataType>
+std::istream& operator>>(std::istream& input, DataType& data)
 {
-  const int headerSize = sizeof(rdh);
-  auto charPtr = reinterpret_cast<char*>(&rdh);
-  input.read(charPtr, headerSize);
+  const int dataTypeSize = sizeof(data);
+  auto charPtr = reinterpret_cast<char*>(&data);
+  input.read(charPtr, dataTypeSize);
   return input;
 }
 

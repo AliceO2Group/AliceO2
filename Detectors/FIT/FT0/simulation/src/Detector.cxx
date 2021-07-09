@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -46,7 +47,6 @@ Detector::Detector(Bool_t Active)
 
 {
   // Gegeo  = GetGeometry() ;
-
   //  TString gn(geo->GetName());
 }
 
@@ -67,7 +67,6 @@ void Detector::InitializeO2Detector()
   if (v == nullptr) {
     LOG(WARN) << "@@@@ Sensitive volume 0REG not found!!!!!!!!";
   } else {
-
     AddSensitiveVolume(v);
   }
 
@@ -90,123 +89,60 @@ void Detector::ConstructGeometry()
   LOG(DEBUG) << "Creating FT0 geometry\n";
   CreateMaterials();
 
-  Float_t zdetA = Geometry::ZdetA;
-  Float_t zdetC = Geometry::ZdetC;
-
-  Int_t idrotm[999];
-  Double_t x, y, z;
-
-  int nCellsA = Geometry::NCellsA;
-  int nCellsC = Geometry::NCellsC;
+  TGeoVolumeAssembly* stlinA = new TGeoVolumeAssembly("FT0A"); // A side mother
+  TGeoVolumeAssembly* stlinC = new TGeoVolumeAssembly("FT0C"); // C side mother
 
   Geometry geometry;
-  TVector3 centerMCP = geometry.centerMCP(2);
-  Matrix(idrotm[901], 90., 0., 90., 90., 180., 0.);
+  Float_t zdetA = geometry.ZdetA;
+  Float_t zdetC = geometry.ZdetC;
+  int nCellsA = geometry.NCellsA;
+  int nCellsC = geometry.NCellsC;
 
-  // C side Concave Geometry
-
-  Double_t crad = Geometry::ZdetC; // define concave c-side radius here
-
-  Double_t dP = mInStart[0]; // side length of mcp divided by 2
-
-  // uniform angle between detector faces==
-  Double_t btta = 2 * TMath::ATan(dP / crad);
-
-  // get noncompensated translation data
-  Double_t grdin[6] = {-3, -2, -1, 1, 2, 3};
-  Double_t gridpoints[6];
-  for (Int_t i = 0; i < 6; i++) {
-    gridpoints[i] = crad * TMath::Sin((1 - 1 / (2 * TMath::Abs(grdin[i]))) * grdin[i] * btta);
+  for (int ipos = 0; ipos < nCellsA; ipos++) {
+    mPosModuleAx[ipos] = geometry.centerMCP(ipos).X();
+    mPosModuleAy[ipos] = geometry.centerMCP(ipos).Y();
   }
-
-  Double_t xi[Geometry::NCellsC] = {gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0],
-                                    gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
-                                    gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0],
-                                    gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
-                                    gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[1],
-                                    gridpoints[2], gridpoints[3], gridpoints[4]};
-  Double_t yi[Geometry::NCellsC] = {gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4],
-                                    gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4],
-                                    gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[2],
-                                    gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[1], gridpoints[1],
-                                    gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[0],
-                                    gridpoints[0], gridpoints[0], gridpoints[0]};
-  Double_t zi[Geometry::NCellsC];
-  for (Int_t i = 0; i < Geometry::NCellsC; i++) {
-    zi[i] = TMath::Sqrt(TMath::Power(crad, 2) - TMath::Power(xi[i], 2) - TMath::Power(yi[i], 2));
-  }
-
-  // get rotation data
-  Double_t ac[Geometry::NCellsC], bc[Geometry::NCellsC], gc[Geometry::NCellsC];
-  for (Int_t i = 0; i < Geometry::NCellsC; i++) {
-    ac[i] = TMath::ATan(yi[i] / xi[i]) - TMath::Pi() / 2 + 2 * TMath::Pi();
-    if (xi[i] < 0) {
-      bc[i] = TMath::ACos(zi[i] / crad);
-    } else {
-      bc[i] = -1 * TMath::ACos(zi[i] / crad);
-    }
-  }
-  Double_t xc2[Geometry::NCellsC], yc2[Geometry::NCellsC], zc2[Geometry::NCellsC];
-
-  // compensation based on node position within individual detector geometries
-  // determine compensated radius
-  Double_t rcomp = crad + mStartC[2] / 2.0; //
-  for (Int_t i = 0; i < Geometry::NCellsC; i++) {
-    // Get compensated translation data
-    xc2[i] = rcomp * TMath::Cos(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
-    yc2[i] = rcomp * TMath::Sin(ac[i] + TMath::Pi() / 2) * TMath::Sin(-1 * bc[i]);
-    zc2[i] = rcomp * TMath::Cos(bc[i]);
-
-    // Convert angles to degrees
-    ac[i] *= 180 / TMath::Pi();
-    bc[i] *= 180 / TMath::Pi();
-    gc[i] = -1 * ac[i];
-  }
-  // A Side
-  TGeoVolumeAssembly* stlinA = new TGeoVolumeAssembly("0STL"); // A side mother
-  TGeoVolumeAssembly* stlinC = new TGeoVolumeAssembly("0STR"); // C side mother
 
   // FIT interior
-  TVirtualMC::GetMC()->Gsvolu("0INS", "BOX", getMediumID(kAir), mInStart, 3);
-  TGeoVolume* ins = gGeoManager->GetVolume("0INS");
+  TVirtualMC::GetMC()->Gsvolu("0MOD", "BOX", getMediumID(kAir), mInStart, 3);
+  TGeoVolume* ins = gGeoManager->GetVolume("0MOD");
   //
-  TGeoTranslation* tr[Geometry::NCellsA + Geometry::NCellsC];
+  TGeoTranslation* tr[nCellsA + nCellsC];
   TString nameTr;
-
   // A side Translations
   for (Int_t itr = 0; itr < Geometry::NCellsA; itr++) {
     nameTr = Form("0TR%i", itr + 1);
-    z = -mStartA[2] + mInStart[2];
+    float z = -mStartA[2] + mInStart[2];
     tr[itr] = new TGeoTranslation(nameTr.Data(), mPosModuleAx[itr], mPosModuleAy[itr], z);
     tr[itr]->RegisterYourself();
     stlinA->AddNode(ins, itr, tr[itr]);
+    LOG(INFO) << " A geom " << itr << " " << mPosModuleAx[itr] << " " << mPosModuleAy[itr];
   }
   SetCablesA(stlinA);
+  //Add FT0-A support Structure to the geometry
+  stlinA->AddNode(constructFrameGeometry(), 1, new TGeoTranslation(0, 0, -mStartA[2] + mInStart[2]));
 
-  TGeoRotation* rot[Geometry::NCellsC];
+  // C Side
+  TGeoRotation* rot[nCellsC];
   TString nameRot;
-
-  TGeoCombiTrans* com[Geometry::NCellsC];
-  TGeoCombiTrans* comCable[Geometry::NCellsC];
+  TGeoCombiTrans* com[nCellsC];
+  TGeoCombiTrans* comCable[nCellsC];
   TString nameCom;
 
-  // C Side Transformations
-  for (Int_t itr = Geometry::NCellsA; itr < Geometry::NCellsA + Geometry::NCellsC; itr++) {
+  for (Int_t itr = Geometry::NCellsA; itr < Geometry::NCellsA + nCellsC; itr++) {
     nameTr = Form("0TR%i", itr + 1);
     nameRot = Form("0Rot%i", itr + 1);
     int ic = itr - Geometry::NCellsA;
-    // nameCom = Form("0Com%i",itr+1);
-    rot[ic] = new TGeoRotation(nameRot.Data(), ac[ic], bc[ic], gc[ic]);
+    float ac1 = geometry.tiltMCP(ic).X();
+    float bc1 = geometry.tiltMCP(ic).Y();
+    float gc1 = geometry.tiltMCP(ic).Z();
+    rot[ic] = new TGeoRotation(nameRot.Data(), ac1, bc1, gc1);
+    LOG(INFO) << " rot geom " << ic << " " << ac1 << " " << bc1 << " " << gc1;
     rot[ic]->RegisterYourself();
-
-    //    tr[itr] = new TGeoTranslation(nameTr.Data(), xc2[ic], yc2[ic], (zc2[ic] - 80.));
-    // tr[itr]->RegisterYourself();
-    com[ic] = new TGeoCombiTrans(xc2[ic], yc2[ic], (zc2[ic] - 80), rot[ic]);
-    //    com[ic] = new TGeoCombiTrans(tr[itr], rot[ic]);
-    mPosModuleCx[ic] = xc2[ic];
-    mPosModuleCy[ic] = yc2[ic];
-    mPosModuleCz[ic] = zc2[ic] - 80;
-
+    mPosModuleCx[ic] = geometry.centerMCP(ic + nCellsA).X();
+    mPosModuleCy[ic] = geometry.centerMCP(ic + nCellsA).Y();
+    mPosModuleCz[ic] = geometry.centerMCP(ic + nCellsA).Z() - 80; // !!! fix later
+    com[ic] = new TGeoCombiTrans(mPosModuleCx[ic], mPosModuleCy[ic], mPosModuleCz[ic], rot[ic]);
     TGeoHMatrix hm = *com[ic];
     TGeoHMatrix* ph = new TGeoHMatrix(hm);
     stlinC->AddNode(ins, itr, ph);
@@ -217,9 +153,6 @@ void Detector::ConstructGeometry()
     TGeoHMatrix* phCable = new TGeoHMatrix(hmCable);
     stlinC->AddNode(cables, itr, comCable[ic]);
   }
-
-  //Add FT0-A support Structure to the geometry
-  stlinA->AddNode(constructFrameGeometry(), 1, new TGeoTranslation(0, 0, -mStartA[2] + mInStart[2]));
 
   TGeoVolume* alice = gGeoManager->GetVolume("barrel");
   alice->AddNode(stlinA, 1, new TGeoTranslation(0, 30., zdetA));
@@ -345,9 +278,7 @@ void Detector::SetCablesA(TGeoVolume* stl)
   TGeoVolume* cableplane = gGeoManager->GetVolume("0CAA");
   //  float zcableplane = -mStartA[2] + 2 * mInStart[2] + pcableplane[2];
   int na = 0;
-
   double xcell[24], ycell[24];
-
   for (int imcp = 0; imcp < 24; imcp++) {
     xcell[na] = mPosModuleAx[imcp];
     ycell[na] = mPosModuleAy[imcp];
@@ -410,6 +341,48 @@ TGeoVolume* Detector::SetCablesSize(int mod)
   //  vol->Print();
   //  vol->Weight();
   return vol;
+}
+
+void Detector::addAlignableVolumes() const
+{
+  //
+  // Creates entries for alignable volumes associating the symbolic volume
+  // name with the corresponding volume path.
+  //
+  //  First version (mainly ported from AliRoot)
+  //
+
+  LOG(INFO) << "Add FT0 alignable volumes";
+
+  if (!gGeoManager) {
+    LOG(FATAL) << "TGeoManager doesn't exist !";
+    return;
+  }
+
+  TString volPath = Form("/cave_1/barrel_1");
+  //set A side
+  TString volPathA = volPath + Form("/FT0A_1");
+  TString symNameA = "FT0A";
+  LOG(INFO) << symNameA << " <-> " << volPathA;
+  if (!gGeoManager->SetAlignableEntry(symNameA.Data(), volPathA.Data())) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
+  }
+  //set C side
+  TString volPathC = volPath + Form("/FT0C_1");
+  TString symNameC = "FT0C";
+  LOG(INFO) << symNameC << " <-> " << volPathC;
+  if (!gGeoManager->SetAlignableEntry(symNameC.Data(), volPathC.Data())) {
+    LOG(FATAL) << "Unable to set alignable entry ! " << symNameA << " : " << volPathA;
+  }
+  TString volPathMod, symNameMod;
+  for (Int_t imod = 0; imod < Geometry::NCellsA + Geometry::NCellsC; imod++) {
+    TString volPath = (imod < Geometry::NCellsA) ? volPathA : volPathC;
+    volPathMod = volPath + Form("/0MOD_%d", imod);
+    symNameMod = Form("0MOD_%d", imod);
+    if (!gGeoManager->SetAlignableEntry(symNameMod.Data(), volPathMod.Data())) {
+      LOG(FATAL) << (Form("Alignable entry %s not created. Volume path %s not valid", symNameMod.Data(), volPathMod.Data()));
+    }
+  }
 }
 
 // Class wrapper for construction of FT0-A support structure

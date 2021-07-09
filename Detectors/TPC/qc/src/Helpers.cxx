@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -16,6 +17,8 @@
 
 //o2 includes
 #include "TPCQC/Helpers.h"
+#include "TPCBase/Mapper.h"
+#include "TPCBase/ROC.h"
 
 using namespace o2::tpc::qc;
 
@@ -68,4 +71,27 @@ void helpers::setStyleHistogram2D(std::vector<TH2F>& histos)
   for (auto& hist : histos) {
     helpers::setStyleHistogram2D(hist);
   }
+}
+
+//______________________________________________________________________________
+bool helpers::newZSCalib(const o2::tpc::CalDet<float>& refPedestal, const o2::tpc::CalDet<float>& refNoise, const o2::tpc::CalDet<float>& pedestal)
+{
+  static const o2::tpc::Mapper& mapper = o2::tpc::Mapper::instance();
+
+  o2::tpc::CalDet<float> diffCalDet = refPedestal - pedestal;
+
+  for (o2::tpc::ROC roc; !roc.looped(); ++roc) {
+    const int nrows = mapper.getNumberOfRowsROC(roc);
+    for (int irow = 0; irow < nrows; ++irow) {
+      const int npads = mapper.getNumberOfPadsInRowROC(roc, irow);
+      for (int ipad = 0; ipad < npads; ++ipad) {
+        const auto val = diffCalDet.getValue(roc, irow, ipad);
+        if (std::abs(val) > 3 * refNoise.getValue(roc, irow, ipad)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
 }

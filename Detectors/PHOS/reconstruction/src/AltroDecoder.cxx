@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -64,9 +65,11 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
       if (currentword != 0) {
         LOG(ERROR) << "Channel header mark not found, header word " << currentword;
         short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
-        if (fec < 0 || fec > 13) {
+        short branch = header.mHardwareAddress >> 11 & 0x1;
+        if (fec > 14) {
           fec = kGeneralSRUErr;
         }
+        fec += kGeneralTRUErr * branch;
         mOutputHWErrors.emplace_back(mddl, fec, 5); //5: channel header error
       }
       continue;
@@ -76,9 +79,11 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
     if (numberofwords > payloadend - currentpos) {
       LOG(ERROR) << "Channel payload " << numberofwords << " larger than left in total " << payloadend - currentpos;
       short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
-      if (fec < 0 || fec > 13) {
+      short branch = header.mHardwareAddress >> 11 & 0x1;
+      if (fec > 14) {
         fec = kGeneralSRUErr;
       }
+      fec += kGeneralTRUErr * branch;
       mOutputHWErrors.emplace_back(mddl, fec, 6); //6: channel payload error
       continue;
     }
@@ -91,9 +96,11 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
                    << ", Address=0x" << std::hex << header.mHardwareAddress << ", word=0x" << currentword << std::dec;
         currentpos--;
         short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
-        if (fec < 0 || fec > 13) {
+        short branch = header.mHardwareAddress >> 11 & 0x1;
+        if (fec > 14) {
           fec = kGeneralSRUErr;
         }
+        fec += kGeneralTRUErr * branch;
         mOutputHWErrors.emplace_back(mddl, fec, 6); //6: channel payload error
         break;
       }
@@ -117,9 +124,11 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
     if (!hwToAbsAddress(header.mHardwareAddress, absId, caloFlag)) {
       // do not decode, skip to hext channel
       short fec = header.mHardwareAddress >> 7 & 0xf; //try to extract FEE number from header
-      if (fec < 0 || fec > 13) {
+      short branch = header.mHardwareAddress >> 11 & 0x1;
+      if (fec > 14) {
         fec = kGeneralSRUErr;
       }
+      fec += kGeneralTRUErr * branch;
       mOutputHWErrors.emplace_back(mddl, fec, 7); //7: wrong hw address
       continue;
     }
@@ -137,9 +146,11 @@ void AltroDecoder::readChannels(const std::vector<uint32_t>& buffer, CaloRawFitt
         //set output cell
         if (fitResult == CaloRawFitter::FitStatus::kNoTime) { //Time evaluation error occured: should we add this err to list?
           short fec = header.mHardwareAddress >> 7 & 0xf;     //try to extract FEE number from header
-          if (fec < 0 || fec > 13) {
+          short branch = header.mHardwareAddress >> 11 & 0x1;
+          if (fec > 14) {
             fec = kGeneralSRUErr;
           }
+          fec += kGeneralTRUErr * branch;
           mOutputHWErrors.emplace_back(mddl, fec, 8); //8: time calculation failed
         }
         if (!rawFitter->isOverflow()) { //Overflow is will show wrong chi2
@@ -208,28 +219,25 @@ bool AltroDecoder::hwToAbsAddress(short hwAddr, short& absId, Mapping::CaloFlag&
   short branch = hwAddr >> 11 & 0x1;
 
   short e2 = 0;
-  if (branch < 0 || branch > 1) {
-    e2 = 1;
+  if (fec > 14) {
+    e2 = 2;
+    fec = kGeneralSRUErr;
+    mOutputHWErrors.emplace_back(mddl, fec + branch * kGeneralTRUErr, 2);
   } else {
-    if (fec < 0 || fec > 15) {
-      e2 = 2;
-      fec = kGeneralSRUErr;
-    } else {
-      if (fec != 0 && (chip < 0 || chip > 4 || chip == 1)) { //Do not check for TRU (fec=0)
-        e2 = 3;
-      }
+    if (fec != 0 && (chip < 0 || chip > 4 || chip == 1)) { //Do not check for TRU (fec=0)
+      e2 = 3;
+      mOutputHWErrors.emplace_back(mddl, fec + branch * kGeneralTRUErr, 3);
     }
   }
 
   if (e2) {
-    mOutputHWErrors.emplace_back(mddl, fec, e2);
     return false;
   }
 
   //correct hw address, try to convert
   Mapping::ErrorStatus s = Mapping::Instance()->hwToAbsId(mddl, hwAddr, absId, caloFlag);
   if (s != Mapping::ErrorStatus::kOK) {
-    mOutputHWErrors.emplace_back(mddl, kGeneralSRUErr, 4); //4: error in mapping
+    mOutputHWErrors.emplace_back(mddl, branch * kGeneralTRUErr + kGeneralSRUErr, 4); //4: error in mapping
     return false;
   }
   return true;
