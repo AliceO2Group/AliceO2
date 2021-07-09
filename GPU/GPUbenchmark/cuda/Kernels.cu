@@ -105,6 +105,36 @@ GPUg() void readChunkMBKernel(
     }
   }
 }
+
+// Writing
+template <class chunk_type>
+GPUg() void writeChunkSBKernel(
+  int chunkId,
+  chunk_type* results,
+  chunk_type* scratch,
+  size_t chunkSize,
+  float chunkReservedGB = 1.f)
+{
+  if (chunkId == blockIdx.x) { // runs only if blockIdx.x is allowed in given split
+    for (size_t i = threadIdx.x; i < chunkSize; i += blockDim.x) {
+      getPartPtrOnScratch(scratch, chunkReservedGB, chunkId)[i] = 1;
+    }
+  }
+}
+
+template <class chunk_type>
+GPUg() void writeChunkMBKernel(
+  int chunkId,
+  chunk_type* results,
+  chunk_type* scratch,
+  size_t chunkSize,
+  float chunkReservedGB = 1.f)
+{
+  for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < chunkSize; i += blockDim.x * gridDim.x) {
+    getPartPtrOnScratch(scratch, chunkReservedGB, chunkId)[i] = 1;
+  }
+}
+
 } // namespace gpu
 
 void printDeviceProp(int deviceId)
