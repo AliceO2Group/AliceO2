@@ -192,7 +192,7 @@ struct HfFilter {
         std::array<float, 3> pVecThird = {track.px(), track.py(), track.pz()};
 
         if (!keepEvent[kBeauty]) {
-          if (isSelectedTrack(track, kBeauty3Prong) && track.pt() >= pTMinBeautyBachelor) { // TODO: add more single track cuts
+          if (isSelectedTrack(track, kBeauty3Prong) && track.pt() >= pTMinBeautyBachelor) {               // TODO: add more single track cuts
             auto massCandB = RecoDecay::M(std::array{pVec2Prong, pVecThird}, std::array{massD0, massPi}); // TODO: retrieve D0-D0bar hypothesis to pair with proper signed track
             if (std::abs(massCandB - massBPlus) <= deltaMassBPlus) {
               keepEvent[kBeauty] = true;
