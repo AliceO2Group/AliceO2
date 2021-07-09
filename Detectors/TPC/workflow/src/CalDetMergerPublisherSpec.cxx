@@ -50,7 +50,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
  public:
   CalDetMergerPublisherSpec(uint32_t lanes, bool skipCCDB, bool dumpAfterComplete = false) : mLanesToExpect(lanes), mSkipCCDB(skipCCDB), mPublishAfterComplete(dumpAfterComplete) {}
 
-  void init(o2::framework::InitContext& ic) final 
+  void init(o2::framework::InitContext& ic) final
   {
     mForceQuit = ic.options().get<bool>("force-quit");
     mDirectFileDump = ic.options().get<bool>("direct-file-dump");
