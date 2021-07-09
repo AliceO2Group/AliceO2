@@ -50,7 +50,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
  public:
   CalDetMergerPublisherSpec(uint32_t lanes, bool skipCCDB, bool dumpAfterComplete = false) : mLanesToExpect(lanes), mSkipCCDB(skipCCDB), mPublishAfterComplete(dumpAfterComplete) {}
 
-  void init(o2::framework::InitContext& ic) final
+  void init(o2::framework::InitContext& ic) final 
   {
     mForceQuit = ic.options().get<bool>("force-quit");
     mDirectFileDump = ic.options().get<bool>("direct-file-dump");
@@ -72,26 +72,26 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
       //const auto& path = wrp->getPath();
       TMemFile f("file", (char*)&pld[0], pld.size(), "READ");
       if (!f.IsZombie()) {
-	auto calDetMap = f.Get<CalDetMap>("data");
-	if (calDetMap) {
-	  if (mMergedCalDetsMap.size() == 0) {
-	    for (auto& [key, obj] : *calDetMap ) { 
-	      mMergedCalDetsMap[key] = obj; 
-	    }
-	  } else {
-	    for (auto& [key, obj] : *calDetMap ) { 
-	      mMergedCalDetsMap[key] += obj; 
-	    }
-	  }
-	}
-	auto calDet = f.Get<o2::tpc::CalDet<float>>("data");
-	if (calDet) {
-	  if (mMergedCalDets.find(type) == mMergedCalDets.end()) {
-	    mMergedCalDets[type] = *calDet;
-	  } else {
-	    mMergedCalDets[type] += *calDet;
-	  }
-	}
+        auto calDetMap = f.Get<CalDetMap>("data");
+        if (calDetMap) {
+          if (mMergedCalDetsMap.size() == 0) {
+            for (auto& [key, obj] : *calDetMap) {
+              mMergedCalDetsMap[key] = obj;
+            }
+          } else {
+            for (auto& [key, obj] : *calDetMap) {
+              mMergedCalDetsMap[key] += obj;
+            }
+          }
+        }
+        auto calDet = f.Get<o2::tpc::CalDet<float>>("data");
+        if (calDet) {
+          if (mMergedCalDets.find(type) == mMergedCalDets.end()) {
+            mMergedCalDets[type] = *calDet;
+          } else {
+            mMergedCalDets[type] += *calDet;
+          }
+        }
       }
       f.Close();
 
@@ -109,7 +109,7 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
         dumpCalibData();
         sendOutput(pc.outputs());
         // reset calibration objects
-	mMergedCalDetsMap.clear();
+        mMergedCalDetsMap.clear();
         for (auto& [type, object] : mMergedCalDets) {
           object *= 0;
         }
@@ -152,23 +152,22 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
     const long timeEnd = 99999999999999;
 
     if (mMergedCalDetsMap.size() > 0) {
-      for (auto& [key, object] : mMergedCalDetsMap ) { 
-	o2::ccdb::CcdbObjectInfo w;
-	auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &w);
+      for (auto& [key, object] : mMergedCalDetsMap) {
+        o2::ccdb::CcdbObjectInfo w;
+        auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &w);
 
-	int type = int(CDBType::CalPulser); ///<FIXME: not a generic solution; only Pulser data with this format so far though
+        int type = int(CDBType::CalPulser); ///<FIXME: not a generic solution; only Pulser data with this format so far though
 
-	w.setPath(CDBTypeMap.at(CDBType(type)));
-	w.setStartValidityTimestamp(timeStart);
-	w.setEndValidityTimestamp(timeEnd);
+        w.setPath(CDBTypeMap.at(CDBType(type)));
+        w.setStartValidityTimestamp(timeStart);
+        w.setEndValidityTimestamp(timeEnd);
 
-	LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
-		  << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
+        LOG(INFO) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
+                  << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
 
-	o2::header::DataHeader::SubSpecificationType subSpec{(o2::header::DataHeader::SubSpecificationType)type};
-	output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "TPC_CALIB", subSpec}, *image.get());
-	output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "TPC_CALIB", subSpec}, w);
-
+        o2::header::DataHeader::SubSpecificationType subSpec{(o2::header::DataHeader::SubSpecificationType)type};
+        output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "TPC_CALIB", subSpec}, *image.get());
+        output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "TPC_CALIB", subSpec}, w);
       }
     }
 
@@ -195,8 +194,8 @@ class CalDetMergerPublisherSpec : public o2::framework::Task
     if (mDirectFileDump && !mCalibDumped) {
       LOGP(info, "Dumping output to file");
       TFile f("merged_CalDet.root", "recreate");
-      for (auto& [key, object] : mMergedCalDetsMap ) { 
-	f.WriteObject(&object, object.getName().data());
+      for (auto& [key, object] : mMergedCalDetsMap) {
+        f.WriteObject(&object, object.getName().data());
       }
       for (auto& [type, object] : mMergedCalDets) {
         f.WriteObject(&object, object.getName().data());
