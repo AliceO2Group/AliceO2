@@ -59,14 +59,6 @@ struct MFTDCSinfo {
   ClassDefNV(MFTDCSinfo, 1);
 };
 
-/*
-struct MFTFEACinfo {
-  std::array<int32_t, 6> stripInSM = {-1, -1, -1, -1, -1, -1};
-  int32_t firstPadX = -1;
-  int32_t lastPadX = -1;
-};
-*/
-
 class MFTDCSProcessor
 {
 
@@ -76,51 +68,19 @@ class MFTDCSProcessor
   using CcdbObjectInfo = o2::ccdb::CcdbObjectInfo;
   using DQDoubles = std::deque<double>;
 
-  static constexpr int NFEACS = 8;
-  static constexpr int NDDLS = 1;//Geo::kNDDL * Geo::NSECTORS;
-
   MFTDCSProcessor() = default;
   ~MFTDCSProcessor() = default;
 
   void init(const std::vector<DPID>& pids);
 
-  //int process(const std::vector<DPCOM>& dps);
   int process(const gsl::span<const DPCOM> dps);
   int processDP(const DPCOM& dpcom);
-  virtual uint64_t processFlags(uint64_t flag, const char* pid);
 
   void updateDPsCCDB();
-  //void getStripsConnectedToFEAC(int nDDL, int nFEAC, MFTFEACinfo& info) const;
-  //void updateFEACCCDB();
-  //void updateHVCCDB();
   
-  //void updateCurrentAnalogCCDB();
-
   const CcdbObjectInfo& getccdbDPsInfo() const { return mccdbDPsInfo; }
   CcdbObjectInfo& getccdbDPsInfo() { return mccdbDPsInfo; }
   const std::unordered_map<DPID, MFTDCSinfo>& getMFTDPsInfo() const { return mMFTDCS; }
-  /*
-  const CcdbObjectInfo& getccdbLVInfo() const { return mccdbLVInfo; }
-  CcdbObjectInfo& getccdbLVInfo() { return mccdbLVInfo; }
-  const std::bitset<Geo::NCHANNELS>& getLVStatus() const { return mFeac; }
-  bool isLVUpdated() const { return mUpdateFeacStatus; }
-
-  const CcdbObjectInfo& getccdbHVInfo() const { return mccdbHVInfo; }
-  CcdbObjectInfo& getccdbHVInfo() { return mccdbHVInfo; }
-  const std::bitset<Geo::NCHANNELS>& getHVStatus() const { return mHV; }
-  bool isHVUpdated() const { return mUpdateHVStatus; }
-  */
-  const CcdbObjectInfo& getccdbCurrentAnalogInfo() const { return mccdbCurrentAnalogInfo; }
-  CcdbObjectInfo& getccdbCurrentAnalogInfo() { return mccdbCurrentAnalogInfo; }
-  bool isCurrentAnalogUpdated() const { return mUpdateCurrentAnalogStatus; }
-
-  const CcdbObjectInfo& getccdbCurrentDigitalInfo() const { return mccdbCurrentDigitalInfo; }
-  CcdbObjectInfo& getccdbCurrentDigitalInfo() { return mccdbCurrentDigitalInfo; }
-  bool isCurrentDigitalUpdated() const { return mUpdateCurrentDigitalStatus; }
-
-  const CcdbObjectInfo& getccdbCurrentBackBiasalInfo() const { return mccdbCurrentBackBiasInfo; }
-  CcdbObjectInfo& getccdbCurrentBackBiasalInfo() { return mccdbCurrentBackBiasInfo; }
-  bool isCurrentBackBiasalUpdated() const { return mUpdateCurrentBackBiasStatus; }
 
   template <typename T>
     void prepareCCDBobjectInfo(T& obj, CcdbObjectInfo& info, const std::string& path, TFType tf, const std::map<std::string, std::string>& md);
@@ -141,23 +101,8 @@ class MFTDCSProcessor
                                                                // will be true if the DP was processed at least once
   std::unordered_map<DPID, std::vector<DPVAL>> mDpsdoublesmap; // this is the map that will hold the DPs for the
                                                                // double type (voltages and currents)
-
-  //std::array<std::array<MFTFEACinfo, NFEACS>, NDDLS> mFeacInfo;                       // contains the strip/pad info per FEAC
-  //std::array<std::bitset<8>, NDDLS> mPrevFEACstatus;                                  // previous FEAC status
-  //std::bitset<Geo::NCHANNELS> mFeac;                                                  // bitset with feac status per channel
-  //bool mUpdateFeacStatus = false;                                                     // whether to update the FEAC status in CCDB or not
-  //std::bitset<Geo::NCHANNELS> mHV;                                                    // bitset with HV status per channel
-  //std::array<std::array<std::bitset<19>, Geo::NSECTORS>, Geo::NPLATES> mPrevHVstatus; // previous HV status
-  //bool mUpdateHVStatus = false;                                                       // whether to update the HV status in CCDB or not
-  bool mUpdateCurrentAnalogStatus = false;                                                       // whether to update the HV status in CCDB or not
-  bool mUpdateCurrentDigitalStatus = false;                                                       // whether to update the HV status in CCDB or not
-  bool mUpdateCurrentBackBiasStatus = false;                                                       // whether to update the HV status in CCDB or not
   CcdbObjectInfo mccdbDPsInfo;
-  //CcdbObjectInfo mccdbLVInfo;
-  //CcdbObjectInfo mccdbHVInfo;
-  CcdbObjectInfo mccdbCurrentAnalogInfo;
-  CcdbObjectInfo mccdbCurrentDigitalInfo;
-  CcdbObjectInfo mccdbCurrentBackBiasInfo;
+
   TFType mStartTF; // TF index for processing of first processed TF, used to store CCDB object
   TFType mTF = 0;  // TF index for processing, used to store CCDB object
   bool mStartTFset = false;
