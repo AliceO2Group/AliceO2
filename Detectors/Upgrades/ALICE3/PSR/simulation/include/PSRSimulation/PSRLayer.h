@@ -62,7 +62,7 @@ class PSRLayer : public TObject
   //Double_t mThickness;       ///< Thickness of the Pb layer
   ClassDefOverride(PSRLayer, 0); // ALICE 3 EndCaps geometry
 };
-} // namespace preshower(psr)
+} // namespace psr
 } // namespace o2
 
 #endif

@@ -64,7 +64,7 @@ void Detector::buildBasicPSR(int nLayers, Float_t r_del, Float_t z_length, Float
 {
   // Build a basic parametrized PSR detector with nLayers equally spaced between z_first and z_first+z_length
   // Covering pseudo rapidity [etaIn,etaOut]. Passive silicon thinkness computed to match layer x/X0
-  mNumberOfLayers = nLayers;  
+  mNumberOfLayers = nLayers;
   Float_t sensorThickness = 30.e-4;
   mLayerName.resize(2);
   mLayerName[0].resize(mNumberOfLayers);
@@ -73,25 +73,25 @@ void Detector::buildBasicPSR(int nLayers, Float_t r_del, Float_t z_length, Float
   mLayerID[0].resize(mNumberOfLayers);
   mLayerID[1].resize(mNumberOfLayers);
   mLayers.resize(2);
-  
-for (Int_t direction : {1}) {
+
+  for (Int_t direction : {1}) {
     for (Int_t layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
       std::string layerName = GeometryTGeo::getPSRLayerPattern() + std::to_string(layerNumber + mNumberOfLayers * direction);
       mLayerName[direction][layerNumber] = layerName;
 
-  LOG(INFO) << "The program ran till here 1" << endl; 
+      LOG(INFO) << "The program ran till here 1" << endl;
       // Adds evenly spaced layers
-      float_t layerR = RIn +(layerNumber*r_del) ;
-//PSRLayer::PSRLayer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t Pb_t, Float_t sensorThickness, Float_t Layerx2X0 
+      float_t layerR = RIn + (layerNumber * r_del);
+      //PSRLayer::PSRLayer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t Pb_t, Float_t sensorThickness, Float_t Layerx2X0
       auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z_length, layerR, Pb_t, sensorThickness, Layerx2X0);
-	}
+    }
   }
 }
 
 //_________________________________________________________________________________________________
 void Detector::buildPSRV1()
 {
-  
+
   //Build FT3 detector according to
   //https://indico.cern.ch/event/992488/contributions/4174473/attachments/2168881/3661331/tracker_parameters_werner_jan_11_2021.pdf
 
@@ -120,7 +120,7 @@ void Detector::buildPSRV1()
   mLayerID[1].resize(mNumberOfLayers);
   mLayers.resize(2);
 
-  for (auto direction : { 1}) {
+  for (auto direction : {1}) {
     for (int layerNumber = 0; layerNumber < mNumberOfLayers; layerNumber++) {
       std::string directionName = std::to_string(direction);
       std::string layerName = GeometryTGeo::getPSRLayerPattern() + directionName + "_" + std::to_string(layerNumber);
@@ -134,11 +134,10 @@ void Detector::buildPSRV1()
 
       LOG(INFO) << "Adding Layer " << layerName << " at z = " << z;
       // Add layers
-     // auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, thickness, x0);
-        auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, thickness, x0);
+      // auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, thickness, x0);
+      auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, thickness, x0);
     }
   }
-  
 }
 
 //_________________________________________________________________________________________________
@@ -148,7 +147,7 @@ Detector::Detector(Bool_t active)
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
 
-  LOG(INFO) << "The program ran till here 2" << endl; 
+  LOG(INFO) << "The program ran till here 2" << endl;
   buildBasicPSR(); // BasicPSR = Parametrized detector equidistant layers
   //buildPSRV1(); // FT3V1 = Werner's layout
 }
@@ -161,7 +160,7 @@ Detector::Detector(const Detector& rhs)
     /// Container for data points
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
-  LOG(INFO) << "The program ran till here 3" << endl; 
+  LOG(INFO) << "The program ran till here 3" << endl;
   mLayerID = rhs.mLayerID;
   mLayerName = rhs.mLayerName;
   mNumberOfLayers = rhs.mNumberOfLayers;
@@ -172,7 +171,7 @@ Detector::~Detector()
 {
 
   if (mHits) {
-  LOG(INFO) << "The program ran till here 4" << endl; 
+    LOG(INFO) << "The program ran till here 4" << endl;
     // delete mHits;
     o2::utils::freeSimVector(mHits);
   }
@@ -206,7 +205,7 @@ Detector& Detector::operator=(const Detector& rhs)
   mHits = nullptr;
 
   return *this;
-  LOG(INFO) << "The program ran till here 5" << endl; 
+  LOG(INFO) << "The program ran till here 5" << endl;
 }
 
 //_________________________________________________________________________________________________
@@ -217,7 +216,7 @@ void Detector::InitializeO2Detector()
 
   mGeometryTGeo = GeometryTGeo::Instance();
 
-  LOG(INFO) << "The program ran till here 6" << endl; 
+  LOG(INFO) << "The program ran till here 6" << endl;
   defineSensitiveVolumes();
 }
 
@@ -294,14 +293,14 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
     stack->addHit(GetDetId());
   }
 
-  //LOG(INFO) << "The program ran till here 7" << endl; 
+  //LOG(INFO) << "The program ran till here 7" << endl;
   return kTRUE;
 }
 
 //_________________________________________________________________________________________________
 void Detector::createMaterials()
 {
-  LOG(INFO) << "The program ran till here 8" << endl; 
+  LOG(INFO) << "The program ran till here 8" << endl;
   Int_t ifield = 2;
   Float_t fieldm = 10.0;
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
@@ -318,11 +317,11 @@ void Detector::createMaterials()
   Float_t epsilAir = 1.0E-4;      // .10000E+01;
   Float_t stminAir = 0.0;         // cm "Default value used"
 
-  Float_t tmaxfdPb = -20.0;        // .10000E+01; // Degree
-  Float_t stemaxPb = -1.; // cm
-  Float_t deemaxPb = -0.3;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
-  Float_t epsilPb = .001;      // .10000E+01;
-  Float_t stminPb = -0.8;         // cm "Default value used"
+  Float_t tmaxfdPb = -20.0; // .10000E+01; // Degree
+  Float_t stemaxPb = -1.;   // cm
+  Float_t deemaxPb = -0.3;  // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
+  Float_t epsilPb = .001;   // .10000E+01;
+  Float_t stminPb = -0.8;   // cm "Default value used"
 
   // AIR
   Float_t aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
@@ -338,8 +337,6 @@ void Detector::createMaterials()
 
   o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
   o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
-
-
 }
 
 //_________________________________________________________________________________________________
@@ -366,41 +363,41 @@ void Detector::Reset()
 }
 
 //_________________________________________________________________________________________________
-void Detector::ConstructGeometry() 
+void Detector::ConstructGeometry()
 {
   // Create detector materials
   createMaterials();
-  LOG(INFO) << "The program ran till here 9" << endl; 
+  LOG(INFO) << "The program ran till here 9" << endl;
   // Construct the detector geometry
   createGeometry();
-  LOG(INFO) << "The program ran till here 10" << endl; 
- }
+  LOG(INFO) << "The program ran till here 10" << endl;
+}
 
 //_________________________________________________________________________________________________
 void Detector::createGeometry()
 {
-  LOG(INFO) << "The program ran till here 11" << endl; 
-   mGeometryTGeo = GeometryTGeo::Instance();
+  LOG(INFO) << "The program ran till here 11" << endl;
+  mGeometryTGeo = GeometryTGeo::Instance();
 
-   TGeoVolume* volPSR = new TGeoVolumeAssembly(GeometryTGeo::getPSRVolPattern());
+  TGeoVolume* volPSR = new TGeoVolumeAssembly(GeometryTGeo::getPSRVolPattern());
 
-   LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getPSRVolPattern();
+  LOG(INFO) << "GeometryBuilder::buildGeometry volume name = " << GeometryTGeo::getPSRVolPattern();
 
-   TGeoVolume* vALIC = gGeoManager->GetVolume("barrel");
-   if (!vALIC) {
-     LOG(FATAL) << "Could not find the top volume";
-   }
+  TGeoVolume* vALIC = gGeoManager->GetVolume("barrel");
+  if (!vALIC) {
+    LOG(FATAL) << "Could not find the top volume";
+  }
 
-   LOG(DEBUG) << "buildGeometry: "
+  LOG(DEBUG) << "buildGeometry: "
              << Form("gGeoManager name is %s title is %s", gGeoManager->GetName(), gGeoManager->GetTitle());
 
   for (Int_t direction : {1}) {
 
-   for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
+    for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
       mLayers[direction][iLayer].createLayer(volPSR);
     }
   }
-  vALIC->AddNode(volPSR,1 , new TGeoTranslation(0., 30., 0.));
+  vALIC->AddNode(volPSR, 1, new TGeoTranslation(0., 30., 0.));
 
   for (auto direction : {1}) {
     for (int iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
@@ -417,10 +414,10 @@ void Detector::defineSensitiveVolumes()
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v;
 
-  LOG(INFO) << "The program ran till here 12" << endl; 
+  LOG(INFO) << "The program ran till here 12" << endl;
   TString volumeName;
-  LOG(INFO) << "Adding Preshower Sensitive Volumes"; 
- // The names of the PSR sensitive volumes have the format: PSRSensor_(0,1)_(0...sNumberLayers-1)
+  LOG(INFO) << "Adding Preshower Sensitive Volumes";
+  // The names of the PSR sensitive volumes have the format: PSRSensor_(0,1)_(0...sNumberLayers-1)
   for (Int_t direction : {1}) {
     for (Int_t iLayer = 0; iLayer < mNumberOfLayers; iLayer++) {
       volumeName = o2::psr::GeometryTGeo::getPSRSensorPattern() + std::to_string(iLayer);
