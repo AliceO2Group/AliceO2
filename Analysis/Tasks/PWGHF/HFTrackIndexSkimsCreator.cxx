@@ -21,7 +21,6 @@
 #include "DetectorsVertexing/DCAFitterN.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisCore/trackUtilities.h"
-#include "AnalysisCore/HFConfigurables.h"
 #include "AnalysisDataModel/EventSelection.h"
 //#include "AnalysisDataModel/Centrality.h"
 #include "AnalysisDataModel/StrangenessTables.h"
@@ -197,8 +196,8 @@ struct HfTagSelTracks {
   {
     cutsSingleTrack = {cutsTrack2Prong, cutsTrack3Prong, cutsTrackBach};
     std::string cutNames[nCuts + 1] = {"selected", "rej pT", "rej eta", "rej track quality", "rej dca"};
-    std::string candNames[NCandidateTypes] = {"2-prong", "3-prong", "bachelor"};
-    for (int iCandType = 0; iCandType < NCandidateTypes; iCandType++) {
+    std::string candNames[CandidateType::NCandidateTypes] = {"2-prong", "3-prong", "bachelor"};
+    for (int iCandType = 0; iCandType < CandidateType::NCandidateTypes; iCandType++) {
       for (int iCut = 0; iCut < nCuts + 1; iCut++) {
         registry.get<TH1>(HIST("hRejTracks"))->GetXaxis()->SetBinLabel((nCuts + 1) * iCandType + iCut + 1, Form("%s %s", candNames[iCandType].data(), cutNames[iCut].data()));
       }
@@ -247,9 +246,9 @@ struct HfTagSelTracks {
       MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "\nWe found the proton " << indexBach);
 
       int statusProng = BIT(CandidateType::NCandidateTypes) - 1; // selection flag , all bits on
-      bool cutStatus[3][nCuts];
+      bool cutStatus[CandidateType::NCandidateTypes][nCuts];
       if (debug) {
-        for (int iCandType = 0; iCandType < NCandidateTypes; iCandType++) {
+        for (int iCandType = 0; iCandType < CandidateType::NCandidateTypes; iCandType++) {
           for (int iCut = 0; iCut < nCuts; iCut++) {
             cutStatus[iCandType][iCut] = true;
           }
@@ -259,7 +258,7 @@ struct HfTagSelTracks {
       auto trackPt = track.pt();
       auto trackEta = track.eta();
 
-      if (fillHistograms.value) {
+      if (fillHistograms) {
         registry.get<TH1>(HIST("hPtNoCuts"))->Fill(trackPt);
       }
 
@@ -268,8 +267,8 @@ struct HfTagSelTracks {
       if (trackPt < pTMinTrack2Prong) {
         CLRBIT(statusProng, CandidateType::Cand2Prong); // set the nth bit to 0
         if (debug) {
-          cutStatus[Cand2Prong][0] = false;
-          if (fillHistograms.value) {
+          cutStatus[CandidateType::Cand2Prong][0] = false;
+          if (fillHistograms) {
             registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand2Prong + iDebugCut);
           }
         }
@@ -277,8 +276,8 @@ struct HfTagSelTracks {
       if (trackPt < pTMinTrack3Prong) {
         CLRBIT(statusProng, CandidateType::Cand3Prong);
         if (debug) {
-          cutStatus[Cand3Prong][0] = false;
-          if (fillHistograms.value) {
+          cutStatus[CandidateType::Cand3Prong][0] = false;
+          if (fillHistograms) {
             registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand3Prong + iDebugCut);
           }
         }
@@ -288,8 +287,8 @@ struct HfTagSelTracks {
       if (trackPt < ptMinTrackBach) {
         CLRBIT(statusProng, CandidateType::CandV0bachelor);
         if (debug) {
-          cutStatus[CandV0bachelor][0] = false;
-          if (fillHistograms.value) {
+          cutStatus[CandidateType::CandV0bachelor][0] = false;
+          if (fillHistograms) {
             registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::CandV0bachelor + iDebugCut);
           }
         }
@@ -300,8 +299,8 @@ struct HfTagSelTracks {
       if ((debug || TESTBIT(statusProng, CandidateType::Cand2Prong)) && std::abs(trackEta) > etaMax2Prong) {
         CLRBIT(statusProng, CandidateType::Cand2Prong);
         if (debug) {
-          cutStatus[Cand2Prong][1] = false;
-          if (fillHistograms.value) {
+          cutStatus[CandidateType::Cand2Prong][1] = false;
+          if (fillHistograms) {
             registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand2Prong + iDebugCut);
           }
         }
@@ -309,8 +308,8 @@ struct HfTagSelTracks {
       if ((debug || TESTBIT(statusProng, CandidateType::Cand3Prong)) && std::abs(trackEta) > etaMax3Prong) {
         CLRBIT(statusProng, CandidateType::Cand3Prong);
         if (debug) {
-          cutStatus[Cand3Prong][1] = false;
-          if (fillHistograms.value) {
+          cutStatus[CandidateType::Cand3Prong][1] = false;
+          if (fillHistograms) {
             registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand3Prong + iDebugCut);
           }
         }
@@ -320,8 +319,8 @@ struct HfTagSelTracks {
       if ((debug || TESTBIT(statusProng, CandidateType::CandV0bachelor)) && std::abs(trackEta) > etaMaxBach) {
         CLRBIT(statusProng, CandidateType::CandV0bachelor);
         if (debug) {
-          cutStatus[CandV0bachelor][1] = false;
-          if (fillHistograms.value) {
+          cutStatus[CandidateType::CandV0bachelor][1] = false;
+          if (fillHistograms) {
             registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::CandV0bachelor + iDebugCut);
           }
         }
@@ -339,9 +338,9 @@ struct HfTagSelTracks {
           statusProng = 0;
           MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "proton " << indexBach << " did not pass clusters cut");
           if (debug) {
-            for (int iCandType = 0; iCandType < NCandidateTypes; iCandType++) {
+            for (int iCandType = 0; iCandType < CandidateType::NCandidateTypes; iCandType++) {
               cutStatus[iCandType][2] = false;
-              if (fillHistograms.value) {
+              if (fillHistograms) {
                 registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * iCandType + iDebugCut);
               }
             }
@@ -357,29 +356,29 @@ struct HfTagSelTracks {
         if (!trackparvar0.propagateParamToDCA(vtxXYZ, bz, &dca, 100.)) { // get impact parameters
           statusProng = 0;
         }
-        if ((debug || TESTBIT(statusProng, CandidateType::Cand2Prong)) && !isSelectedTrack(track, dca, Cand2Prong)) {
+        if ((debug || TESTBIT(statusProng, CandidateType::Cand2Prong)) && !isSelectedTrack(track, dca, CandidateType::Cand2Prong)) {
           CLRBIT(statusProng, CandidateType::Cand2Prong);
           if (debug) {
-            cutStatus[Cand2Prong][3] = false;
-            if (fillHistograms.value) {
+            cutStatus[CandidateType::Cand2Prong][3] = false;
+            if (fillHistograms) {
               registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand2Prong + iDebugCut);
             }
           }
         }
-        if ((debug || TESTBIT(statusProng, CandidateType::Cand3Prong)) && !isSelectedTrack(track, dca, Cand3Prong)) {
+        if ((debug || TESTBIT(statusProng, CandidateType::Cand3Prong)) && !isSelectedTrack(track, dca, CandidateType::Cand3Prong)) {
           CLRBIT(statusProng, CandidateType::Cand3Prong);
           if (debug) {
-            cutStatus[Cand3Prong][3] = false;
-            if (fillHistograms.value) {
+            cutStatus[CandidateType::Cand3Prong][3] = false;
+            if (fillHistograms) {
               registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand3Prong + iDebugCut);
             }
           }
         }
-        if ((debug || TESTBIT(statusProng, CandidateType::CandV0bachelor)) && !isSelectedTrack(track, dca, CandV0bachelor)) {
+        if ((debug || TESTBIT(statusProng, CandidateType::CandV0bachelor)) && !isSelectedTrack(track, dca, CandidateType::CandV0bachelor)) {
           CLRBIT(statusProng, CandidateType::CandV0bachelor);
           if (debug) {
-            cutStatus[CandV0bachelor][3] = false;
-            if (fillHistograms.value) {
+            cutStatus[CandidateType::CandV0bachelor][3] = false;
+            if (fillHistograms) {
               registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::CandV0bachelor + iDebugCut);
             }
           }
@@ -388,9 +387,9 @@ struct HfTagSelTracks {
       MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "statusProng = " << statusProng; printf("\n"));
 
       // fill histograms
-      if (fillHistograms.value) {
+      if (fillHistograms) {
         iDebugCut = 1;
-        if TESTBIT (statusProng, CandidateType::Cand2Prong) {
+        if (TESTBIT(statusProng, CandidateType::Cand2Prong)) {
           registry.get<TH1>(HIST("hPtCuts2Prong"))->Fill(trackPt);
           registry.get<TH1>(HIST("hEtaCuts2Prong"))->Fill(trackEta);
           registry.get<TH2>(HIST("hDCAToPrimXYVsPtCuts2Prong"))->Fill(trackPt, dca[0]);
@@ -398,7 +397,7 @@ struct HfTagSelTracks {
             registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand2Prong + iDebugCut);
           }
         }
-        if TESTBIT (statusProng, CandidateType::Cand3Prong) {
+        if (TESTBIT(statusProng, CandidateType::Cand3Prong)) {
           registry.get<TH1>(HIST("hPtCuts3Prong"))->Fill(trackPt);
           registry.get<TH1>(HIST("hEtaCuts3Prong"))->Fill(trackEta);
           registry.get<TH2>(HIST("hDCAToPrimXYVsPtCuts3Prong"))->Fill(trackPt, dca[0]);
@@ -406,7 +405,7 @@ struct HfTagSelTracks {
             registry.get<TH1>(HIST("hRejTracks"))->Fill((nCuts + 1) * CandidateType::Cand3Prong + iDebugCut);
           }
         }
-        if TESTBIT (statusProng, CandidateType::CandV0bachelor) {
+        if (TESTBIT(statusProng, CandidateType::CandV0bachelor)) {
           MY_DEBUG_MSG(isProtonFromLc, LOG(INFO) << "Will be kept: Proton from Lc " << indexBach);
           registry.get<TH1>(HIST("hPtCutsV0bachelor"))->Fill(trackPt);
           registry.get<TH1>(HIST("hEtaCutsV0bachelor"))->Fill(trackEta);
@@ -437,7 +436,7 @@ struct HfTrackIndexSkimsCreator {
   Configurable<bool> fillHistograms{"fillHistograms", true, "fill histograms"};
   Configurable<int> do3prong{"do3prong", 0, "do 3 prong"};
   // preselection parameters
-  Configurable<double> pTTolerance{"pTTolerance", 0.1, "pT tollerance in GeV/c for applying preselections before vertex reconstruction"};
+  Configurable<double> pTTolerance{"pTTolerance", 0.1, "pT tolerance in GeV/c for applying preselections before vertex reconstruction"};
   // vertexing parameters
   Configurable<double> bz{"bz", 5., "magnetic field kG"};
   Configurable<bool> propToDCA{"propToDCA", true, "create tracks version propagated to PCA"};
@@ -541,49 +540,48 @@ struct HfTrackIndexSkimsCreator {
       array{hfTracks[0].px(), hfTracks[0].py(), hfTracks[0].pz()},
       array{hfTracks[1].px(), hfTracks[1].py(), hfTracks[1].pz()}};
 
-    for (int n2 = 0; n2 < n2ProngDecays; n2++) {
+    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1]) - pTTolerance; // add tolerance because of no reco decay vertex
 
-      auto pVec = RecoDecay::PVec(arrMom[0], arrMom[1]);
-      auto pT = RecoDecay::Pt(pVec) - pTTolerance; // add tolerance because of no reco decay vertex
+    for (int iDecay2P = 0; iDecay2P < n2ProngDecays; iDecay2P++) {
 
       // pT
-      auto pTBin = findBin(&pTBins2Prong[n2], pT);
+      auto pTBin = findBin(&pTBins2Prong[iDecay2P], pT);
       // return immediately if it is outside the defined pT bins
       if (pTBin == -1) {
-        isSelected &= ~(1 << n2);
+        CLRBIT(isSelected, iDecay2P);
         if (debug) {
-          cutStatus[n2][0] = false;
+          cutStatus[iDecay2P][0] = false;
         }
         continue;
       }
 
       // invariant mass
       double massHypos[2];
-      whichHypo[n2] = 3;
-      if ((debug || (isSelected & 1 << n2)) && cut2Prong[n2].get(pTBin, "massMin") >= 0. && cut2Prong[n2].get(pTBin, "massMax") > 0.) {
-        massHypos[0] = RecoDecay::M(arrMom, arrMass2Prong[n2][0]);
-        massHypos[1] = RecoDecay::M(arrMom, arrMass2Prong[n2][1]);
-        if (massHypos[0] < cut2Prong[n2].get(pTBin, "massMin") || massHypos[0] >= cut2Prong[n2].get(pTBin, "massMax")) {
-          whichHypo[n2] -= 1;
+      whichHypo[iDecay2P] = 3;
+      if ((debug || TESTBIT(isSelected, iDecay2P)) && cut2Prong[iDecay2P].get(pTBin, "massMin") >= 0. && cut2Prong[iDecay2P].get(pTBin, "massMax") > 0.) {
+        massHypos[0] = RecoDecay::M(arrMom, arrMass2Prong[iDecay2P][0]);
+        massHypos[1] = RecoDecay::M(arrMom, arrMass2Prong[iDecay2P][1]);
+        if (massHypos[0] < cut2Prong[iDecay2P].get(pTBin, "massMin") || massHypos[0] >= cut2Prong[iDecay2P].get(pTBin, "massMax")) {
+          whichHypo[iDecay2P] -= 1;
         }
-        if (massHypos[1] < cut2Prong[n2].get(pTBin, "massMin") || massHypos[1] >= cut2Prong[n2].get(pTBin, "massMax")) {
-          whichHypo[n2] -= 2;
+        if (massHypos[1] < cut2Prong[iDecay2P].get(pTBin, "massMin") || massHypos[1] >= cut2Prong[iDecay2P].get(pTBin, "massMax")) {
+          whichHypo[iDecay2P] -= 2;
         }
-        if (whichHypo[n2] == 0) {
-          isSelected &= ~(1 << n2);
+        if (whichHypo[iDecay2P] == 0) {
+          CLRBIT(isSelected, iDecay2P);
           if (debug) {
-            cutStatus[n2][1] = false;
+            cutStatus[iDecay2P][1] = false;
           }
         }
       }
 
       // imp. par. product cut
-      if (debug || (isSelected & 1 << n2)) {
+      if (debug || TESTBIT(isSelected, iDecay2P)) {
         auto impParProduct = hfTracks[0].dcaPrim0() * hfTracks[1].dcaPrim0();
-        if (impParProduct > cut2Prong[n2].get(pTBin, "d0d0")) {
-          isSelected &= ~(1 << n2);
+        if (impParProduct > cut2Prong[iDecay2P].get(pTBin, "d0d0")) {
+          CLRBIT(isSelected, iDecay2P);
           if (debug) {
-            cutStatus[n2][2] = false;
+            cutStatus[iDecay2P][2] = false;
           }
         }
       }
@@ -603,38 +601,37 @@ struct HfTrackIndexSkimsCreator {
       array{hfTracks[1].px(), hfTracks[1].py(), hfTracks[1].pz()},
       array{hfTracks[2].px(), hfTracks[2].py(), hfTracks[2].pz()}};
 
-    for (int n3 = 0; n3 < n3ProngDecays; n3++) {
+    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1], arrMom[2]) - pTTolerance; // add tolerance because of no reco decay vertex
 
-      auto pVec = RecoDecay::PVec(arrMom[0], arrMom[1], arrMom[2]);
-      auto pT = RecoDecay::Pt(pVec) - pTTolerance; // add tolerance because of no reco decay vertex
+    for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
 
       // pT
-      auto pTBin = findBin(&pTBins3Prong[n3], pT);
+      auto pTBin = findBin(&pTBins3Prong[iDecay3P], pT);
       // return immediately if it is outside the defined pT bins
       if (pTBin == -1) {
-        isSelected &= ~(1 << n3);
+        CLRBIT(isSelected, iDecay3P);
         if (debug) {
-          cutStatus[n3][0] = false;
+          cutStatus[iDecay3P][0] = false;
         }
         continue;
       }
 
       // invariant mass
       double massHypos[2];
-      whichHypo[n3] = 3;
-      if ((debug || (isSelected & 1 << n3)) && cut3Prong[n3].get(pTBin, "massMin") >= 0. && cut3Prong[n3].get(pTBin, "massMax") > 0.) { //no need to check isSelected but to avoid mistakes
-        massHypos[0] = RecoDecay::M(arrMom, arrMass3Prong[n3][0]);
-        massHypos[1] = RecoDecay::M(arrMom, arrMass3Prong[n3][1]);
-        if (massHypos[0] < cut3Prong[n3].get(pTBin, "massMin") || massHypos[0] >= cut3Prong[n3].get(pTBin, "massMax")) {
-          whichHypo[n3] -= 1;
+      whichHypo[iDecay3P] = 3;
+      if ((debug || TESTBIT(isSelected, iDecay3P)) && cut3Prong[iDecay3P].get(pTBin, "massMin") >= 0. && cut3Prong[iDecay3P].get(pTBin, "massMax") > 0.) { //no need to check isSelected but to avoid mistakes
+        massHypos[0] = RecoDecay::M(arrMom, arrMass3Prong[iDecay3P][0]);
+        massHypos[1] = RecoDecay::M(arrMom, arrMass3Prong[iDecay3P][1]);
+        if (massHypos[0] < cut3Prong[iDecay3P].get(pTBin, "massMin") || massHypos[0] >= cut3Prong[iDecay3P].get(pTBin, "massMax")) {
+          whichHypo[iDecay3P] -= 1;
         }
-        if (massHypos[1] < cut3Prong[n3].get(pTBin, "massMin") || massHypos[1] >= cut3Prong[n3].get(pTBin, "massMax")) {
-          whichHypo[n3] -= 2;
+        if (massHypos[1] < cut3Prong[iDecay3P].get(pTBin, "massMin") || massHypos[1] >= cut3Prong[iDecay3P].get(pTBin, "massMax")) {
+          whichHypo[iDecay3P] -= 2;
         }
-        if (whichHypo[n3] == 0) {
-          isSelected = isSelected & ~(1 << n3);
+        if (whichHypo[iDecay3P] == 0) {
+          CLRBIT(isSelected, iDecay3P);
           if (debug) {
-            cutStatus[n3][1] = false;
+            cutStatus[iDecay3P][1] = false;
           }
         }
       }
@@ -651,25 +648,25 @@ struct HfTrackIndexSkimsCreator {
   void is2ProngSelected(const T1& pVecCand, const T2& secVtx, const T3& primVtx, T4& cutStatus, int& isSelected)
   {
     if (debug || isSelected > 0) {
-      for (int n2 = 0; n2 < n2ProngDecays; n2++) {
+      for (int iDecay2P = 0; iDecay2P < n2ProngDecays; iDecay2P++) {
 
         // pT
-        auto pTBin = findBin(&pTBins2Prong[n2], RecoDecay::Pt(pVecCand));
+        auto pTBin = findBin(&pTBins2Prong[iDecay2P], RecoDecay::Pt(pVecCand));
         if (pTBin == -1) { // cut if it is outside the defined pT bins
-          isSelected &= ~(1 << n2);
+          CLRBIT(isSelected, iDecay2P);
           if (debug) {
-            cutStatus[n2][0] = false;
+            cutStatus[iDecay2P][0] = false;
           }
           continue;
         }
 
         // cosp
-        if (debug || (isSelected & 1 << n2)) {
+        if (debug || TESTBIT(isSelected, iDecay2P)) {
           auto cpa = RecoDecay::CPA(primVtx, secVtx, pVecCand);
-          if (cpa < cut2Prong[n2].get("cosp")) {
-            isSelected &= ~(1 << n2);
+          if (cpa < cut2Prong[iDecay2P].get("cosp")) {
+            CLRBIT(isSelected, iDecay2P);
             if (debug) {
-              cutStatus[n2][3] = false;
+              cutStatus[iDecay2P][3] = false;
             }
           }
         }
@@ -687,36 +684,36 @@ struct HfTrackIndexSkimsCreator {
   void is3ProngSelected(const T1& pVecCand, const T2& secVtx, const T3& primVtx, T4& cutStatus, int& isSelected)
   {
     if (debug || isSelected > 0) {
-      for (int n3 = 0; n3 < n3ProngDecays; n3++) {
+      for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
 
         // pT
-        auto pTBin = findBin(&pTBins3Prong[n3], RecoDecay::Pt(pVecCand));
+        auto pTBin = findBin(&pTBins3Prong[iDecay3P], RecoDecay::Pt(pVecCand));
         if (pTBin == -1) { // cut if it is outside the defined pT bins
-          isSelected &= ~(1 << n3);
+          CLRBIT(isSelected, iDecay3P);
           if (debug) {
-            cutStatus[n3][0] = false;
+            cutStatus[iDecay3P][0] = false;
           }
           continue;
         }
 
         // cosp
-        if ((debug || (isSelected & 1 << n3))) {
+        if ((debug || TESTBIT(isSelected, iDecay3P))) {
           auto cpa = RecoDecay::CPA(primVtx, secVtx, pVecCand);
-          if (cpa < cut3Prong[n3].get("cosp")) {
-            isSelected &= ~(1 << n3);
+          if (cpa < cut3Prong[iDecay3P].get("cosp")) {
+            CLRBIT(isSelected, iDecay3P);
             if (debug) {
-              cutStatus[n3][2] = false;
+              cutStatus[iDecay3P][2] = false;
             }
           }
         }
 
         // decay length
-        if ((debug || (isSelected & 1 << n3))) {
+        if ((debug || TESTBIT(isSelected, iDecay3P))) {
           auto decayLength = RecoDecay::distance(primVtx, secVtx);
-          if (decayLength < cut3Prong[n3].get("decL")) {
-            isSelected &= ~(1 << n3);
+          if (decayLength < cut3Prong[iDecay3P].get("decL")) {
+            CLRBIT(isSelected, iDecay3P);
             if (debug) {
-              cutStatus[n3][3] = false;
+              cutStatus[iDecay3P][3] = false;
             }
           }
         }
@@ -756,13 +753,13 @@ struct HfTrackIndexSkimsCreator {
 
     //auto centrality = collision.centV0M(); //FIXME add centrality when option for variations to the process function appears
 
-    int n2ProngBit = (1 << n2ProngDecays) - 1; // bit value for 2-prong candidates where each candidiate is one bit and they are all set to 1
-    int n3ProngBit = (1 << n3ProngDecays) - 1; // bit value for 3-prong candidates where each candidiate is one bit and they are all set to 1
+    int n2ProngBit = BIT(n2ProngDecays) - 1; // bit value for 2-prong candidates where each candidiate is one bit and they are all set to 1
+    int n3ProngBit = BIT(n3ProngDecays) - 1; // bit value for 3-prong candidates where each candidiate is one bit and they are all set to 1
 
     bool cutStatus2Prong[n2ProngDecays][nCuts2Prong];
     bool cutStatus3Prong[n3ProngDecays][nCuts3Prong];
-    int nCutStatus2ProngBit = (1 << nCuts2Prong) - 1; // bit value for selection status for each 2-prong candidate where each selection is one bit and they are all set to 1
-    int nCutStatus3ProngBit = (1 << nCuts3Prong) - 1; // bit value for selection status for each 3-prong candidate where each selection is one bit and they are all set to 1
+    int nCutStatus2ProngBit = BIT(nCuts2Prong) - 1; // bit value for selection status for each 2-prong candidate where each selection is one bit and they are all set to 1
+    int nCutStatus3ProngBit = BIT(nCuts3Prong) - 1; // bit value for selection status for each 3-prong candidate where each selection is one bit and they are all set to 1
 
     int whichHypo2Prong[n2ProngDecays];
     int whichHypo3Prong[n3ProngDecays];
@@ -822,9 +819,9 @@ struct HfTrackIndexSkimsCreator {
         int isSelected2ProngCand = n2ProngBit; //bitmap for checking status of two-prong candidates (1 is true, 0 is rejected)
 
         if (debug) {
-          for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-            for (int n2cut = 0; n2cut < nCuts2Prong; n2cut++) {
-              cutStatus2Prong[n2][n2cut] = true;
+          for (int iDecay2P = 0; iDecay2P < n2ProngDecays; iDecay2P++) {
+            for (int iCut = 0; iCut < nCuts2Prong; iCut++) {
+              cutStatus2Prong[iDecay2P][iCut] = true;
             }
           }
         }
@@ -855,11 +852,11 @@ struct HfTrackIndexSkimsCreator {
                                   trackNeg1.globalIndex(), isSelected2ProngCand);
               if (debug) {
                 int Prong2CutStatus[n2ProngDecays];
-                for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-                  Prong2CutStatus[n2] = nCutStatus2ProngBit;
-                  for (int n2cut = 0; n2cut < nCuts2Prong; n2cut++) {
-                    if (!cutStatus2Prong[n2][n2cut]) {
-                      Prong2CutStatus[n2] = Prong2CutStatus[n2] & ~(1 << n2cut);
+                for (int iDecay2P = 0; iDecay2P < n2ProngDecays; iDecay2P++) {
+                  Prong2CutStatus[iDecay2P] = nCutStatus2ProngBit;
+                  for (int iCut = 0; iCut < nCuts2Prong; iCut++) {
+                    if (!cutStatus2Prong[iDecay2P][iCut]) {
+                      CLRBIT(Prong2CutStatus[iDecay2P], iCut);
                     }
                   }
                 }
@@ -872,19 +869,19 @@ struct HfTrackIndexSkimsCreator {
                 registry.get<TH1>(HIST("hVtx2ProngY"))->Fill(secondaryVertex2[1]);
                 registry.get<TH1>(HIST("hVtx2ProngZ"))->Fill(secondaryVertex2[2]);
                 array<array<float, 3>, 2> arrMom = {pvec0, pvec1};
-                for (int n2 = 0; n2 < n2ProngDecays; n2++) {
-                  if (isSelected2ProngCand & 1 << n2) {
-                    if (whichHypo2Prong[n2] == 1 || whichHypo2Prong[n2] == 3) {
-                      auto mass2Prong = RecoDecay::M(arrMom, arrMass2Prong[n2][0]);
-                      if (n2 == hf_cand_prong2::DecayType::D0ToPiK) {
+                for (int iDecay2P = 0; iDecay2P < n2ProngDecays; iDecay2P++) {
+                  if (TESTBIT(isSelected2ProngCand, iDecay2P)) {
+                    if (whichHypo2Prong[iDecay2P] == 1 || whichHypo2Prong[iDecay2P] == 3) {
+                      auto mass2Prong = RecoDecay::M(arrMom, arrMass2Prong[iDecay2P][0]);
+                      if (iDecay2P == hf_cand_prong2::DecayType::D0ToPiK) {
                         registry.get<TH1>(HIST("hmassD0ToPiK"))->Fill(mass2Prong);
-                      } else if (n2 == hf_cand_prong2::DecayType::JpsiToEE) {
+                      } else if (iDecay2P == hf_cand_prong2::DecayType::JpsiToEE) {
                         registry.get<TH1>(HIST("hmassJpsiToEE"))->Fill(mass2Prong);
                       }
                     }
-                    if (whichHypo2Prong[n2] >= 2) {
-                      auto mass2Prong = RecoDecay::M(arrMom, arrMass2Prong[n2][1]);
-                      if (n2 == hf_cand_prong2::DecayType::D0ToPiK) {
+                    if (whichHypo2Prong[iDecay2P] >= 2) {
+                      auto mass2Prong = RecoDecay::M(arrMom, arrMass2Prong[iDecay2P][1]);
+                      if (iDecay2P == hf_cand_prong2::DecayType::D0ToPiK) {
                         registry.get<TH1>(HIST("hmassD0ToPiK"))->Fill(mass2Prong);
                       }
                     }
@@ -914,9 +911,9 @@ struct HfTrackIndexSkimsCreator {
             int isSelected3ProngCand = n3ProngBit;
 
             if (debug) {
-              for (int n3 = 0; n3 < n3ProngDecays; n3++) {
-                for (int n3cut = 0; n3cut < nCuts3Prong; n3cut++) {
-                  cutStatus3Prong[n3][n3cut] = true;
+              for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
+                for (int iCut = 0; iCut < nCuts3Prong; iCut++) {
+                  cutStatus3Prong[iDecay3P][iCut] = true;
                 }
               }
             }
@@ -950,11 +947,11 @@ struct HfTrackIndexSkimsCreator {
 
             if (debug) {
               int Prong3CutStatus[n3ProngDecays];
-              for (int n3 = 0; n3 < n3ProngDecays; n3++) {
-                Prong3CutStatus[n3] = nCutStatus3ProngBit;
-                for (int n3cut = 0; n3cut < nCuts3Prong; n3cut++) {
-                  if (!cutStatus3Prong[n3][n3cut]) {
-                    Prong3CutStatus[n3] = Prong3CutStatus[n3] & ~(1 << n3cut);
+              for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
+                Prong3CutStatus[iDecay3P] = nCutStatus3ProngBit;
+                for (int iCut = 0; iCut < nCuts3Prong; iCut++) {
+                  if (!cutStatus3Prong[iDecay3P][iCut]) {
+                    CLRBIT(Prong3CutStatus[iDecay3P], iCut);
                   }
                 }
               }
@@ -967,11 +964,11 @@ struct HfTrackIndexSkimsCreator {
               registry.get<TH1>(HIST("hVtx3ProngY"))->Fill(secondaryVertex3[1]);
               registry.get<TH1>(HIST("hVtx3ProngZ"))->Fill(secondaryVertex3[2]);
               array<array<float, 3>, 3> arr3Mom = {pvec0, pvec1, pvec2};
-              for (int n3 = 0; n3 < n3ProngDecays; n3++) {
-                if (isSelected3ProngCand & 1 << n3) {
-                  if (whichHypo3Prong[n3] == 1 || whichHypo3Prong[n3] == 3) {
-                    auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[n3][0]);
-                    switch (n3) {
+              for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
+                if (TESTBIT(isSelected3ProngCand, iDecay3P)) {
+                  if (whichHypo3Prong[iDecay3P] == 1 || whichHypo3Prong[iDecay3P] == 3) {
+                    auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[iDecay3P][0]);
+                    switch (iDecay3P) {
                       case hf_cand_prong3::DecayType::DPlusToPiKPi:
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
@@ -986,9 +983,9 @@ struct HfTrackIndexSkimsCreator {
                         break;
                     }
                   }
-                  if (whichHypo3Prong[n3] >= 2) {
-                    auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[n3][1]);
-                    switch (n3) {
+                  if (whichHypo3Prong[iDecay3P] >= 2) {
+                    auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[iDecay3P][1]);
+                    switch (iDecay3P) {
                       case hf_cand_prong3::DecayType::DPlusToPiKPi:
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
@@ -1018,9 +1015,9 @@ struct HfTrackIndexSkimsCreator {
             int isSelected3ProngCand = n3ProngBit;
 
             if (debug) {
-              for (int n3 = 0; n3 < n3ProngDecays; n3++) {
-                for (int n3cut = 0; n3cut < nCuts3Prong; n3cut++) {
-                  cutStatus3Prong[n3][n3cut] = true;
+              for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
+                for (int iCut = 0; iCut < nCuts3Prong; iCut++) {
+                  cutStatus3Prong[iDecay3P][iCut] = true;
                 }
               }
             }
@@ -1059,11 +1056,11 @@ struct HfTrackIndexSkimsCreator {
 
             if (debug) {
               int Prong3CutStatus[n3ProngDecays];
-              for (int n3 = 0; n3 < n3ProngDecays; n3++) {
-                Prong3CutStatus[n3] = nCutStatus3ProngBit;
-                for (int n3cut = 0; n3cut < nCuts3Prong; n3cut++) {
-                  if (!cutStatus3Prong[n3][n3cut]) {
-                    Prong3CutStatus[n3] = Prong3CutStatus[n3] & ~(1 << n3cut);
+              for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
+                Prong3CutStatus[iDecay3P] = nCutStatus3ProngBit;
+                for (int iCut = 0; iCut < nCuts3Prong; iCut++) {
+                  if (!cutStatus3Prong[iDecay3P][iCut]) {
+                    CLRBIT(Prong3CutStatus[iDecay3P], iCut);
                   }
                 }
               }
@@ -1076,11 +1073,11 @@ struct HfTrackIndexSkimsCreator {
               registry.get<TH1>(HIST("hVtx3ProngY"))->Fill(secondaryVertex3[1]);
               registry.get<TH1>(HIST("hVtx3ProngZ"))->Fill(secondaryVertex3[2]);
               array<array<float, 3>, 3> arr3Mom = {pvec0, pvec1, pvec2};
-              for (int n3 = 0; n3 < n3ProngDecays; n3++) {
-                if (isSelected3ProngCand & 1 << n3) {
-                  if (whichHypo3Prong[n3] == 1 || whichHypo3Prong[n3] == 3) {
-                    auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[n3][0]);
-                    switch (n3) {
+              for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
+                if (TESTBIT(isSelected3ProngCand, iDecay3P)) {
+                  if (whichHypo3Prong[iDecay3P] == 1 || whichHypo3Prong[iDecay3P] == 3) {
+                    auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[iDecay3P][0]);
+                    switch (iDecay3P) {
                       case hf_cand_prong3::DecayType::DPlusToPiKPi:
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
@@ -1095,9 +1092,9 @@ struct HfTrackIndexSkimsCreator {
                         break;
                     }
                   }
-                  if (whichHypo3Prong[n3] >= 2) {
-                    auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[n3][1]);
-                    switch (n3) {
+                  if (whichHypo3Prong[iDecay3P] >= 2) {
+                    auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[iDecay3P][1]);
+                    switch (iDecay3P) {
                       case hf_cand_prong3::DecayType::DPlusToPiKPi:
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;

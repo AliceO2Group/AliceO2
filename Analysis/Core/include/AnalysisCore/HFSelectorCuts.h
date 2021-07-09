@@ -123,7 +123,7 @@ auto pTBinsVec = std::vector<double>{pTBins, pTBins + npTBins + 1};
 
 // default values for the cuts
 constexpr double cuts[npTBins][nCutVars] = {{1.75, 2.05, 0.7, 0.02},  /* 1 < pt < 5 */
-                                            {1.75, 2.05, 0.5, 0.02}}; /* 5 < pt > 1000 */
+                                            {1.75, 2.05, 0.5, 0.02}}; /* 5 < pt < 1000 */
 
 // row labels
 static const std::vector<std::string> pTBinLabels{};
