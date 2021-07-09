@@ -385,7 +385,7 @@ class O2HitMerger : public FairMQDevice
     auto memfile = mEventToTMemFileMap[info.eventID];
     tree->SetEntries(tree->GetEntries() + 1);
     LOG(INFO) << "tree has file " << tree->GetDirectory()->GetFile()->GetName();
-    memfile->Write("", TObject::kOverwrite);
+    // memfile->Write("", TObject::kOverwrite);
     mEntries++;
 
     if (isDataComplete<uint32_t>(accum, info.nparts)) {
@@ -697,7 +697,6 @@ class O2HitMerger : public FairMQDevice
         trackoffsets.emplace_back(info->npersistenttracks);
         nprimaries.emplace_back(info->nprimarytracks);
         nsubevents.emplace_back(info->part);
-        info->mMCEventHeader.printInfo();
         if (eventheader == nullptr) {
           eventheader = &info->mMCEventHeader;
         } else {
@@ -717,7 +716,6 @@ class O2HitMerger : public FairMQDevice
       }
 
       // put the event headers into the new TTree
-      eventheader->printInfo();
       auto headerbr = o2::base::getOrMakeBranch(*mOutTree, "MCEventHeader.", &eventheader);
       headerbr->SetAddress(&eventheader);
       headerbr->Fill();
