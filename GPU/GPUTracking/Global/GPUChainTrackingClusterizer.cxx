@@ -381,7 +381,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   mRec->MemoryScalers()->nTPCHits = mRec->MemoryScalers()->NTPCClusters(mRec->MemoryScalers()->nTPCdigits);
   if (mIOPtrs.settingsTF && mIOPtrs.settingsTF->hasNHBFPerTF) {
     unsigned int nHitsBase = mRec->MemoryScalers()->nTPCHits;
-    unsigned int threshold = 30000000 * mIOPtrs.settingsTF->nHBFPerTF / 256;
+    unsigned int threshold = 30000000 / 256 * mIOPtrs.settingsTF->nHBFPerTF;
     mRec->MemoryScalers()->nTPCHits = std::max<unsigned int>(nHitsBase, std::min<unsigned int>(threshold, nHitsBase * 3)); // Increase the buffer size for low occupancy data to compensate for noisy pads creating exceiive clusters
     if (nHitsBase < threshold) {
       float maxFactor = mRec->MemoryScalers()->nTPCHits < threshold ? 2.0 : 1.5;
