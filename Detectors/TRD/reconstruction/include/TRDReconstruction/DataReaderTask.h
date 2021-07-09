@@ -40,6 +40,7 @@ class DataReaderTask : public Task
   void init(InitContext& ic) final;
   void sendData(ProcessingContext& pc, bool blankframe = false);
   void run(ProcessingContext& pc) final;
+  bool isTimeFrameEmpty(ProcessingContext& pc);
 
  private:
   CruRawReader mReader;                  // this will do the parsing, of raw data passed directly through the flp(no compression)
