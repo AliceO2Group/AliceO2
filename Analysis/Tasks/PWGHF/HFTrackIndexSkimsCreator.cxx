@@ -540,7 +540,8 @@ struct HfTrackIndexSkimsCreator {
       array{hfTracks[0].px(), hfTracks[0].py(), hfTracks[0].pz()},
       array{hfTracks[1].px(), hfTracks[1].py(), hfTracks[1].pz()}};
 
-    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1]) - pTTolerance; // add tolerance because of no reco decay vertex
+    auto pVec = RecoDecay::PVec(arrMom[0], arrMom[1]);
+    auto pT = RecoDecay::Pt(pVec) - pTTolerance; // add tolerance because of no reco decay vertex
 
     for (int iDecay2P = 0; iDecay2P < n2ProngDecays; iDecay2P++) {
 
@@ -601,7 +602,8 @@ struct HfTrackIndexSkimsCreator {
       array{hfTracks[1].px(), hfTracks[1].py(), hfTracks[1].pz()},
       array{hfTracks[2].px(), hfTracks[2].py(), hfTracks[2].pz()}};
 
-    auto pT = RecoDecay::Pt(arrMom[0], arrMom[1], arrMom[2]) - pTTolerance; // add tolerance because of no reco decay vertex
+    auto pVec = RecoDecay::PVec(arrMom[0], arrMom[1], arrMom[2]);
+    auto pT = RecoDecay::Pt(pVec) - pTTolerance; // add tolerance because of no reco decay vertex
 
     for (int iDecay3P = 0; iDecay3P < n3ProngDecays; iDecay3P++) {
 
@@ -920,6 +922,9 @@ struct HfTrackIndexSkimsCreator {
 
             // 3-prong preselections
             is3ProngPreselected(array{trackPos1, trackNeg1, trackPos2}, cutStatus3Prong, whichHypo3Prong, isSelected3ProngCand);
+            if (!debug && isSelected3ProngCand == 0) {
+              continue;
+            }
 
             // reconstruct the 3-prong secondary vertex
             auto trackParVarPos2 = getTrackParCov(trackPos2);
@@ -939,6 +944,9 @@ struct HfTrackIndexSkimsCreator {
             auto pVecCandProng3Pos = RecoDecay::PVec(pvec0, pvec1, pvec2);
             // 3-prong selections after secondary vertex
             is3ProngSelected(pVecCandProng3Pos, secondaryVertex3, array{collision.posX(), collision.posY(), collision.posZ()}, cutStatus3Prong, isSelected3ProngCand);
+            if (!debug && isSelected3ProngCand == 0) {
+              continue;
+            }
 
             // fill table row
             rowTrackIndexProng3(trackPos1.globalIndex(),
@@ -973,7 +981,7 @@ struct HfTrackIndexSkimsCreator {
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
                       case hf_cand_prong3::DecayType::DsToPiKK:
-                        registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
+                        registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3Prong);
                         break;
                       case hf_cand_prong3::DecayType::LcToPKPi:
                         registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3Prong);
@@ -986,8 +994,8 @@ struct HfTrackIndexSkimsCreator {
                   if (whichHypo3Prong[iDecay3P] >= 2) {
                     auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[iDecay3P][1]);
                     switch (iDecay3P) {
-                      case hf_cand_prong3::DecayType::DPlusToPiKPi:
-                        registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
+                      case hf_cand_prong3::DecayType::DsToPiKK:
+                        registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3Prong);
                         break;
                       case hf_cand_prong3::DecayType::LcToPKPi:
                         registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3Prong);
@@ -1024,6 +1032,9 @@ struct HfTrackIndexSkimsCreator {
 
             //3-prong preselections
             is3ProngPreselected(array{trackNeg1, trackPos1, trackNeg2}, cutStatus3Prong, whichHypo3Prong, isSelected3ProngCand);
+            if (!debug && isSelected3ProngCand == 0) {
+              continue;
+            }
 
             // reconstruct the 3-prong secondary vertex
             auto trackParVarNeg2 = getTrackParCov(trackNeg2);
@@ -1082,7 +1093,7 @@ struct HfTrackIndexSkimsCreator {
                         registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
                         break;
                       case hf_cand_prong3::DecayType::DsToPiKK:
-                        registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
+                        registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3Prong);
                         break;
                       case hf_cand_prong3::DecayType::LcToPKPi:
                         registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3Prong);
@@ -1095,8 +1106,8 @@ struct HfTrackIndexSkimsCreator {
                   if (whichHypo3Prong[iDecay3P] >= 2) {
                     auto mass3Prong = RecoDecay::M(arr3Mom, arrMass3Prong[iDecay3P][1]);
                     switch (iDecay3P) {
-                      case hf_cand_prong3::DecayType::DPlusToPiKPi:
-                        registry.get<TH1>(HIST("hmassDPlusToPiKPi"))->Fill(mass3Prong);
+                      case hf_cand_prong3::DecayType::DsToPiKK:
+                        registry.get<TH1>(HIST("hmassDsToPiKK"))->Fill(mass3Prong);
                         break;
                       case hf_cand_prong3::DecayType::LcToPKPi:
                         registry.get<TH1>(HIST("hmassLcToPKPi"))->Fill(mass3Prong);
