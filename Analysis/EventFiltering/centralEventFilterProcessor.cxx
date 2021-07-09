@@ -181,6 +181,7 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("AOD", "Decision", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TFN", "TFNumber", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "o2-central-event-filter-processor",
