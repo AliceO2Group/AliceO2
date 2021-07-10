@@ -63,12 +63,18 @@ class GPUbenchmark final
   void writeInit();
   void writeFinalize();
 
+  void copyInit();
+  void copyFinalize();
+
   // Kernel calling wrappers
   void readSequential(SplitLevel sl);
   void readConcurrent(SplitLevel sl, int nRegions = 2);
 
   void writeSequential(SplitLevel sl);
   void writeConcurrent(SplitLevel sl, int nRegions = 2);
+
+  void copySequential(SplitLevel sl);
+  void copyConcurrent(SplitLevel sl, int nRegions = 2);
 
  private:
   gpuState<chunk_type> mState;

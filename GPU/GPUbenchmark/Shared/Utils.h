@@ -95,14 +95,12 @@ struct gpuState {
   size_t scratchSize;                         // Size of scratch area (B)
   std::vector<T*> partAddrOnHost;             // Pointers to scratch partitions on host vector
   std::vector<std::vector<T>> gpuBuffersHost; // Host-based vector-ized data
-
-  // Test-specific containers
-  T* deviceReadResultsPtr;              // Results of the read test (single variable) on GPU
-  std::vector<T> hostReadResultsVector; // Results of the read test (single variable) on host
-
-  // Test-specific containers
-  T* deviceWriteResultsPtr;              // Results of the write test (single variable) on GPU
-  std::vector<T> hostWriteResultsVector; // Results of the write test (single variable) on host
+  T* deviceReadResultsPtr;                    // Results of the read test (single variable) on GPU
+  std::vector<T> hostReadResultsVector;       // Results of the read test (single variable) on host
+  T* deviceWriteResultsPtr;                   // Results of the write test (single variable) on GPU
+  std::vector<T> hostWriteResultsVector;      // Results of the write test (single variable) on host
+  T* deviceCopyInputsPtr;                     // Inputs of the copy test (single variable) on GPU
+  std::vector<T> hostCopyInputsVector;        // Inputs of the copy test (single variable) on host
 
   // Static info
   size_t totalMemory;
