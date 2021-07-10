@@ -26,7 +26,7 @@ uint20_t sampaBunchCrossingCounter(uint32_t orbit, uint16_t bc,
 {
   auto offset = CoDecParam::Instance().sampaBcOffset;
   orbit -= firstOrbit;
-  auto bunchCrossingCounter = (orbit * LHCMaxBunches + bc) % ((1 << 20) - 1) + offset;
+  auto bunchCrossingCounter = (orbit * LHCMaxBunches + bc + offset) % ((1 << 20) - 1);
   impl::assertNofBits("bunchCrossingCounter", bunchCrossingCounter, 20);
   return bunchCrossingCounter;
 }
