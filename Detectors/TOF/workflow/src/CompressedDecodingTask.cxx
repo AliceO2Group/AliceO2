@@ -383,9 +383,13 @@ void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, cons
   }
 };
 
-DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet)
+DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet, bool askDISTSTF)
 {
   std::vector<InputSpec> inputs;
+  if (askDISTSTF) {
+    inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
+  }
+
   //  inputs.emplace_back(std::string("x:TOF/" + inputDesc).c_str(), 0, Lifetime::Optional);
   o2::header::DataDescription dataDesc;
   dataDesc.runtimeInit(inputDesc.c_str());
