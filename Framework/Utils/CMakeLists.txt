@@ -76,6 +76,7 @@ foreach(t
         RootTreeWriter
         RawParser
         DPLRawParser
+        DPLRawPageSequencer
         )
   o2_add_test(${t}
               SOURCES test/test_${t}.cxx
