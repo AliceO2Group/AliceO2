@@ -57,12 +57,18 @@ class GPUbenchmark final
   void printDevices();                 // Dump info
 
   // Initializations/Finalizations of tests. Not to be measured, in principle used for report
-  void readingInit();
-  void readingFinalize();
+  void readInit();
+  void readFinalize();
 
-  // Benchmark kernel callbacks
-  void readingSequential(SplitLevel sl);
-  void readingConcurrent(SplitLevel sl, int nRegions = 2);
+  void writeInit();
+  void writeFinalize();
+
+  // Kernel calling wrappers
+  void readSequential(SplitLevel sl);
+  void readConcurrent(SplitLevel sl, int nRegions = 2);
+
+  void writeSequential(SplitLevel sl);
+  void writeConcurrent(SplitLevel sl, int nRegions = 2);
 
  private:
   gpuState<chunk_type> mState;
