@@ -65,10 +65,10 @@ ClusterFinderGEM::ClusterFinderGEM()
   // init Mathieson
   initMathieson();
   nPads = 0;
-  xyDxy = 0;
-  cathode = 0;
-  saturated = 0;
-  padCharge = 0;
+  xyDxy = nullptr;
+  cathode = nullptr;
+  saturated = nullptr;
+  padCharge = nullptr;
   DEId = -1;
   currentBC = 0xFFFFFFFF;
   currentOrbit = 0xFFFFFFFF;
@@ -90,20 +90,20 @@ void ClusterFinderGEM::deinit()
 }
 
 //_________________________________________________________________________________________________
-// GG ClusterFinderGEM::~ClusterFinderGEM() = default;
+ClusterFinderGEM::~ClusterFinderGEM() = default;
+/*
 ClusterFinderGEM::~ClusterFinderGEM()
 {
   // std::cout << "  [GEM] Delete " << std::endl;
   // GG invalid
-  /*
   if ( pOriginalClusterDump != 0) {
     delete [] pOriginalClusterDump;
   }
   if ( pGEMClusterDump != 0) {
     delete [] pGEMClusterDump;
   }
-  */
 }
+*/
 
 //_________________________________________________________________________________________________
 void ClusterFinderGEM::reset()
@@ -114,21 +114,21 @@ void ClusterFinderGEM::reset()
   // GEM part
   nPads = 0;
   DEId = -1;
-  if (xyDxy != 0) {
+  if (xyDxy != nullptr) {
     delete[] xyDxy;
-    xyDxy = 0;
+    xyDxy = nullptr;
   };
-  if (cathode != 0) {
+  if (cathode != nullptr) {
     delete[] cathode;
-    cathode = 0;
+    cathode = nullptr;
   };
-  if (padCharge != 0) {
+  if (padCharge != nullptr) {
     delete[] padCharge;
-    padCharge = 0;
+    padCharge = nullptr;
   };
-  if (saturated != 0) {
+  if (saturated != nullptr) {
     delete[] saturated;
-    saturated = 0;
+    saturated = nullptr;
   };
   freeMemoryPadProcessing();
   mClusters.clear();

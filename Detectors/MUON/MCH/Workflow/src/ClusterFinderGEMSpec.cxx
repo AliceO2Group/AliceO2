@@ -173,8 +173,9 @@ class ClusterFinderGEMTask
       uint32_t iPreCluster = 0;
       auto tStart = std::chrono::high_resolution_clock::now();
       //
-      if (isOriginalActivated())
+      if (isOriginalActivated()) {
         mClusterFinderOriginal.reset();
+      }
       if (isGEMActivated()) {
         mClusterFinderGEM.reset();
       }
@@ -187,22 +188,28 @@ class ClusterFinderGEMTask
         startOriginalIdx = mClusterFinderOriginal.getClusters().size();
         // Dump preclusters
         // std::cout << "PreCluster: digit start=" << preCluster.firstDigit <<" , digit size=" << preCluster.nDigits << std::endl;
-        if (isOriginalDumped())
+        if (isOriginalDumped()) {
           mClusterFinderGEM.dumpPreCluster(mOriginalDump, digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iPreCluster);
-        if (isGEMDumped())
+        }
+        if (isGEMDumped()) {
           mClusterFinderGEM.dumpPreCluster(mGEMDump, digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iPreCluster);
+        }
         // Clusterize
-        if (isOriginalActivated())
+        if (isOriginalActivated()) {
           mClusterFinderOriginal.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits));
-        if (isGEMActivated())
+        }
+        if (isGEMActivated()) {
           mClusterFinderGEM.findClusters(digits.subspan(preCluster.firstDigit, preCluster.nDigits), bCrossing, orbit, iPreCluster);
+        }
         // Dump clusters (results)
         // std::cout << "[Original] total clusters.size=" << mClusterFinderOriginal.getClusters().size() << std::endl;
         // std::cout << "[GEM     ] total clusters.size=" << mClusterFinderGEM.getClusters().size() << std::endl;
-        if (isOriginalDumped())
+        if (isOriginalDumped()) {
           mClusterFinderGEM.dumpClusterResults(mOriginalDump, mClusterFinderOriginal.getClusters(), startOriginalIdx, bCrossing, orbit, iPreCluster);
-        if (isGEMDumped())
+        }
+        if (isGEMDumped()) {
           mClusterFinderGEM.dumpClusterResults(mGEMDump, mClusterFinderGEM.getClusters(), startGEMIdx, bCrossing, orbit, iPreCluster);
+        }
         // if ( isGEMDumped())
         iPreCluster++;
       }
@@ -210,10 +217,11 @@ class ClusterFinderGEMTask
       mTimeClusterFinder += tEnd - tStart;
 
       // fill the ouput messages
-      if (isGEMOutputStream())
+      if (isGEMOutputStream()) {
         clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinderGEM.getClusters().size());
-      else
+      } else {
         clusterROFs.emplace_back(preClusterROF.getBCData(), clusters.size(), mClusterFinderOriginal.getClusters().size());
+      }
       //
       writeClusters(clusters, usedDigits);
     }
@@ -233,10 +241,11 @@ class ClusterFinderGEMTask
       clusters.insert(clusters.end(), mClusterFinderOriginal.getClusters().begin(), mClusterFinderOriginal.getClusters().end());
     }
     auto digitOffset = usedDigits.size();
-    if (isGEMOutputStream())
+    if (isGEMOutputStream()) {
       usedDigits.insert(usedDigits.end(), mClusterFinderGEM.getUsedDigits().begin(), mClusterFinderGEM.getUsedDigits().end());
-    else
+    } else {
       usedDigits.insert(usedDigits.end(), mClusterFinderOriginal.getUsedDigits().begin(), mClusterFinderOriginal.getUsedDigits().end());
+    }
 
     for (auto itCluster = clusters.begin() + clusterOffset; itCluster < clusters.end(); ++itCluster) {
       itCluster->firstDigit += digitOffset;

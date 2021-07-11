@@ -1,5 +1,16 @@
-#include <stdio.h>
-#include <stdlib.h>
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#include <cstdio>
+#include <cstdlib>
 
 #include "MCHClustering/dataStructure.h"
 #include "MCHClustering/mathUtil.h"
@@ -48,10 +59,11 @@ void compute2DPadIntegrals(const double* xyInfSup,
   const double* yInf = getConstYInf(xyInfSup, N);
   const double* ySup = getConstYSup(xyInfSup, N);
   //
-  if (chamberId <= 2)
+  if (chamberId <= 2) {
     mathiesonType = 0;
-  else
+  } else {
     mathiesonType = 1;
+  }
   //
   // Select Mathieson coef.
   double curK2x = K2x[mathiesonType];

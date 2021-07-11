@@ -31,6 +31,7 @@
 #include "MCHBase/ClusterBlock.h"
 #include "MCHMappingInterface/Segmentation.h"
 #include "MCHPreClustering/PreClusterFinder.h"
+#include "ClusterFinderOriginal.h"
 
 // GG Added include
 #include "ClusterDump.h"
@@ -45,7 +46,8 @@ namespace mch
 {
 class PadOriginal;
 class ClusterOriginal;
-class MathiesonOriginal;
+
+// GG class MathiesonOriginal;
 
 class ClusterFinderGEM
 {

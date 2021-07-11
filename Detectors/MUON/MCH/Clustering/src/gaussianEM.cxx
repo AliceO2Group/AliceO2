@@ -1,5 +1,16 @@
-#include <math.h>
-#include <float.h>
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#include <cmath>
+#include <cfloat>
 
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_blas.h>
@@ -28,8 +39,9 @@ void printArrayState(const char* str, const double* array, int K, int N)
 double crossEntropy(const double* zObs, const double* zPredicted, int N)
 {
   double cross = 0.0;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     cross += (zObs[i] * log(zPredicted[i]));
+  }
   return cross;
 }
 
@@ -406,8 +418,9 @@ double weightedEMLoop(const double* xyDxy, const Mask_t* saturated, const double
     }
   }
   double logL = computeWeightedLogLikelihood(xyInfSup, theta0, zObsNorm, K, N);
-  if (verbose >= 1)
+  if (verbose >= 1) {
     printEMState(-1, logL, 0.0);
+  }
   //
   // EM Loop
   //
@@ -417,17 +430,19 @@ double weightedEMLoop(const double* xyDxy, const Mask_t* saturated, const double
   int it = 0;
   // for( ; (( fabs((logL - prevLogL)/logL) > LConvergence) || (it < nIterMin)) && ( it < nIterMax ); ) {
   for (; ((fabs((logL - prevLogL) / logL) > LConvergence)) && (it < nIterMax);) {
-    if (verbose >= 1)
+    if (verbose >= 1) {
       printEMState(it, logL, logL - prevLogL);
+    }
     prevLogL = logL;
     //
     // EM Step
     //
     // E-Step
-    if (maskTheta == 0)
+    if (maskTheta == nullptr) {
       EStep(xyInfSup, theta, K, N, verbose, eta, zEval);
-    else
+    } else {
       maskedEStep(xyInfSup, theta, maskTheta, K, N, verbose, eta, zEval);
+    }
     //
     if (nbrSaturatedPads > 0) {
       // Set (or update) saturated pads to the estimate
@@ -443,15 +458,17 @@ double weightedEMLoop(const double* xyDxy, const Mask_t* saturated, const double
     // Log-Lilelihood
     logL = computeWeightedLogLikelihood(xyInfSup, theta, zObsNorm, K, N);
 
-    if (verbose >= 2)
+    if (verbose >= 2) {
       printTheta("  EM new theta", theta, K);
+    }
     it += 1;
   }
-  if (verbose >= 1)
+  if (verbose >= 1) {
     printEMState(it, logL, logL - prevLogL);
-  if (verbose >= 2)
+  }
+  if (verbose >= 2) {
     printf("End GaussianEM\n");
-
+  }
   // Return BIC criterion
   int kSignificant = vectorSumOfGreater(w, 10.e-5, K);
   // printf("EMLoop # parameters %d, log( N -saturated)= %f \n", (3*kSignificant-1), log(N - nbrSaturatedPads) );

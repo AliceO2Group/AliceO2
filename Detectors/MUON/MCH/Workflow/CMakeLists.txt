@@ -102,7 +102,7 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::MCHWorkflow)
 
 o2_add_executable(
-        preclusters-to-clusters-GEM-workflow
+        preclusters-to-clusters-gem-workflow
         SOURCES src/preclusters-to-clusters-GEM-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHGEMWorkflow)
