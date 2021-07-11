@@ -366,7 +366,8 @@ int buildProjectedPads(
   if (includeAlonePads) {
     ij_ptr = JInterI;
     for (PadIdx_t j = 0; j < N1; j++) {
-      for (countJInterI = 0; *ij_ptr != -1; countJInterI++, ij_ptr++) {};
+      for (countJInterI = 0; *ij_ptr != -1; countJInterI++, ij_ptr++) {
+      };
       if (countJInterI == 0) {
         l = x1Inf[j];
         r = x1Sup[j];
@@ -669,7 +670,8 @@ int getConnectedComponentsOfProjPads(short* padGrp)
   // printNeighbors();
   while (nbrOfPadSetInGrp < N) {
     // Seeking the first unclassed pad (padGrp[k]=0)
-    for (; (curPadGrp < &padGrp[N]) && *curPadGrp != 0; curPadGrp++) {};
+    for (; (curPadGrp < &padGrp[N]) && *curPadGrp != 0; curPadGrp++) {
+    };
     k = curPadGrp - padGrp;
     // printf( "\nnbrOfPadSetInGrp %d\n", nbrOfPadSetInGrp);
     //
@@ -1162,7 +1164,8 @@ int assignPadsToGroupFromProj(short* projPadGroup, int nProjPads,
     // ???? }
     // Go to the next index which have not a group
     int k;
-    for (k = iNewGroup; k < (nGrp + 1) && (grpToMergedGrp[k] > 0); k++) {};
+    for (k = iNewGroup; k < (nGrp + 1) && (grpToMergedGrp[k] > 0); k++) {
+    };
     iNewGroup = k;
   }
   // vectorPrintShort( "grpToMergedGrp", grpToMergedGrp, nGrp+1);
@@ -1287,7 +1290,8 @@ int assignCathPadsToGroup(short* matGrpGrp, int nGrp, int nCath0, int nCath1, sh
     }
     // Go to the next index which have not a group
     int k;
-    for (k = iNewGroup; k < (nGrp + 1) && (grpToGrp[k] > 0); k++) {};
+    for (k = iNewGroup; k < (nGrp + 1) && (grpToGrp[k] > 0); k++) {
+    };
     iNewGroup = k;
   }
   // vectorPrintShort( "grpToGrp", grpToGrp, nGrp+1);
