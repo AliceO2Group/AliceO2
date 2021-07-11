@@ -218,7 +218,7 @@ class RawFileWriter
   void setTriggeredReadout()
   {
     mROMode = Triggered;
-    setDontFillEmptyHBF(true);
+    setDontFillEmptyHBF(!mCRUDetector);
   }
   void setContinuousReadout(bool v)
   {
