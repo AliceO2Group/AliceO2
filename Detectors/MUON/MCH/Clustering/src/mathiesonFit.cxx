@@ -1,4 +1,15 @@
-#include <stdio.h>
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#include <cstdio>
 #include <gsl/gsl_multifit_nlin.h>
 
 #include "MCHClustering/dataStructure.h"
@@ -35,10 +46,12 @@ int f_ChargeIntegral(const gsl_vector* gslParams, void* dataFit, gsl_vector* res
   double lastW = 1.0 - vectorSum(w, K - 1);
   if (verbose > 1) {
     printf("  Function evaluation at:\n");
-    for (int k = 0; k < K; k++)
+    for (int k = 0; k < K; k++) {
       printf("    mu_k[%d] = %g %g \n", k, mu[k], mu[K + k]);
-    for (int k = 0; k < K - 1; k++)
+    }
+    for (int k = 0; k < K - 1; k++) {
       printf("    w_k[%d] = %g \n", k, w[k]);
+    }
     // Last W
     printf("    w_k[%d] = %g \n", K - 1, lastW);
   }
@@ -86,17 +99,19 @@ int f_ChargeIntegral(const gsl_vector* gslParams, void* dataFit, gsl_vector* res
   // Normalize each cathodes
   double sumNormalizedZ[2];
   for (int i = 0; i < N; i++) {
-    if (cath[i] == 0)
+    if (cath[i] == 0) {
       sumNormalizedZ[0] += notSaturated[i] * z[i];
-    else
+    } else {
       sumNormalizedZ[1] += notSaturated[i] * z[i];
+    }
   }
   double var[2] = {1.0 / sumNormalizedZ[0], 1. / sumNormalizedZ[1]};
   for (int i = 0; i < N; i++) {
-    if (cath[i] == 0)
+    if (cath[i] == 0) {
       z[i] = z[i] * var[0];
-    else
+    } else {
       z[i] = z[i] * var[1];
+    }
   }
   if (verbose > 1) {
     printf("  sum mathiesons %f %f\n", sumNormalizedZ[0], sumNormalizedZ[1]);
@@ -154,8 +169,9 @@ void printState(int iter, gsl_multifit_fdfsolver* s, int K)
   printf("  Fitting iter=%3d |f(x)|=%g\n", iter, gsl_blas_dnrm2(s->f));
   printf("    mu (x,y):");
   int k = 0;
-  for (; k < 2 * K; k++)
+  for (; k < 2 * K; k++) {
     printf(" % 7.3f", gsl_vector_get(s->x, k));
+  }
   printf("\n");
   double sumW = 0;
   printf("    w:");
@@ -170,8 +186,9 @@ void printState(int iter, gsl_multifit_fdfsolver* s, int K)
   printf("\n");
   k = 0;
   printf("    dx:");
-  for (; k < 2 * K; k++)
+  for (; k < 2 * K; k++) {
     printf(" % 7.3f", gsl_vector_get(s->dx, k));
+  }
   printf("\n");
 }
 
@@ -216,8 +233,8 @@ void fitMathieson(double* thetai,
   // Define Function, jacobian
   gsl_multifit_function_fdf f;
   f.f = &f_ChargeIntegral;
-  f.df = 0;
-  f.fdf = 0;
+  f.df = nullptr;
+  f.fdf = nullptr;
   f.n = N;
   f.p = 3 * K - 1;
 
@@ -253,25 +270,28 @@ void fitMathieson(double* thetai,
   // associate the fitting mode, the function, and the starting parameters
   gsl_multifit_fdfsolver_set(s, &f, &params0.vector);
 
-  if (verbose)
+  if (verbose) {
     printState(-1, s, K);
-
+  }
   // Fitting iteration
   status = GSL_CONTINUE;
   for (int iter = 0; (status == GSL_CONTINUE) && (iter < 500); iter++) {
     status = gsl_multifit_fdfsolver_iterate(s);
-    if (verbose >= 2)
+    if (verbose >= 2) {
       printf("  solver status = %s\n", gsl_strerror(status));
-    if (verbose)
+    }
+    if (verbose) {
       printState(iter, s, K);
+    }
     if (status) {
       printf("  End fitting \n");
       break;
     };
     // GG TODO ???: adjust error in fct of charge
     status = gsl_multifit_test_delta(s->dx, s->x, 1e-4, 1e-4);
-    if (verbose >= 2)
+    if (verbose >= 2) {
       printf("  status multifit_test_delta = %d %s\n", status, gsl_strerror(status));
+    }
     iter++;
   }
 
@@ -282,8 +302,9 @@ void fitMathieson(double* thetai,
   // Last w
   int k = 0;
   // Mu part
-  for (; k < 2 * K; k++)
+  for (; k < 2 * K; k++) {
     muAndWf[k] = gsl_vector_get(s->x, k);
+  }
   // w part
   double sumW = 0;
   for (; k < 3 * K - 1; k++) {
@@ -295,7 +316,7 @@ void fitMathieson(double* thetai,
   muAndWf[3 * K - 1] = 1.0 - sumW;
 
   // Khi2
-  if (computeKhi2 && (khi2 != 0)) {
+  if (computeKhi2 && (khi2 != nullptr)) {
     // Khi2
     double chi = gsl_blas_dnrm2(s->f);
     double dof = N - (3 * K - 1);
@@ -305,7 +326,7 @@ void fitMathieson(double* thetai,
   }
 
   // Parameter error
-  if (computeStdDev && (pError != 0)) { //
+  if (computeStdDev && (pError != nullptr)) { //
     // Covariance matrix an error
     gsl_matrix* covar = gsl_matrix_alloc(3 * K - 1, 3 * K - 1);
     gsl_multifit_covar(s->J, 0.0, covar);
@@ -314,9 +335,9 @@ void fitMathieson(double* thetai,
     }
     gsl_matrix_free(covar);
   }
-  if (verbose >= 2)
+  if (verbose >= 2) {
     printf("  status parameter error = %s\n", gsl_strerror(status));
-
+  }
   // Release memory
   gsl_multifit_fdfsolver_free(s);
   //

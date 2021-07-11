@@ -1,159 +1,189 @@
-#ifndef O2_MCH_CLUSTERING_MATHUTIL_H
-#define O2_MCH_CLUSTERING_MATHUTIL_H
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
-#include <cmath>
-#include <climits>
-#include <cfloat>
-#include <cstddef>
-#include <algorithm>
+#ifndef _MATHUTIL_H
+#define _MATHUTIL_H
+
+#include <math.h>
+#include <limits.h>
+#include <float.h>
+#include <stddef.h>
 
 typedef short Mask_t;
 
 inline static void vectorSetZero(double* u, int N)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     u[i] = 0;
+  }
   return;
 }
 
 inline static void vectorSetZeroInt(int* u, int N)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     u[i] = 0;
+  }
   return;
 }
 
 inline static void vectorSetZeroShort(short* u, int N)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     u[i] = 0;
+  }
   return;
 }
 
 inline static void vectorSet(double* u, double value, int N)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     u[i] = value;
+  }
   return;
 }
 
 inline static void vectorSetInt(int* u, int value, int N)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     u[i] = value;
+  }
   return;
 }
 
 inline static void vectorSetShort(short* u, short value, int N)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     u[i] = value;
+  }
   return;
 }
 
 inline static void vectorCopy(const double* src, int N, double* dest)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     dest[i] = src[i];
+  }
   return;
 }
 
 inline static void vectorCopyShort(const short* src, int N, short* dest)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     dest[i] = src[i];
+  }
   return;
 }
 
 inline static void vectorAddVector(const double* u, double cst, const double* v, int N, double* res)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res[i] = u[i] + cst * v[i];
+  }
   return;
 }
 
 inline static void vectorAddScalar(const double* u, double cst, int N, double* res)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res[i] = u[i] + cst;
+  }
   return;
 }
 
 inline static void vectorMultVector(const double* u, const double* v, int N, double* res)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res[i] = u[i] * v[i];
+  }
   return;
 }
 
 inline static void vectorMultScalar(const double* u, double cst, int N, double* res)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res[i] = u[i] * cst;
+  }
   return;
 }
 
 inline static double vectorSum(const double* u, int N)
 {
   double res = 0;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res += u[i];
+  }
   return res;
 }
 
 inline static int vectorSumInt(const int* u, int N)
 {
   int res = 0;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res += u[i];
+  }
   return res;
 }
 
 inline static int vectorSumShort(const short* u, int N)
 {
   int res = 0;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res += u[i];
+  }
   return res;
 }
 
 inline static int vectorSumRowInt(const int* matrix, int N, int M)
 {
   int res = 0;
-  for (int j = 0; j < M; j++)
+  for (int j = 0; j < M; j++) {
     res += matrix[j];
+  }
   return res;
 }
 
 inline static int vectorSumColumnInt(const int* matrix, int N, int M)
 {
   int res = 0;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res += matrix[i * M];
+  }
   return res;
 }
 
 inline static double vectorMin(const double* u, int N)
 {
   double res = DBL_MAX;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res = fmin(res, u[i]);
+  }
   return res;
 }
 
 inline static double vectorMax(const double* u, int N)
 {
   double res = -DBL_MAX;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res = fmax(res, u[i]);
+  }
   return res;
 }
 
 inline static short vectorMaxShort(const short* u, int N)
 {
   short res = SHRT_MIN;
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     res = std::max(res, u[i]);
+  }
   return res;
 }
 //
@@ -161,8 +191,9 @@ inline static short vectorMaxShort(const short* u, int N)
 //
 inline static void vectorNotShort(const short* src, int N, short* dest)
 {
-  for (int i = 0; i < N; i++)
+  for (int i = 0; i < N; i++) {
     dest[i] = !src[i];
+  }
   return;
 }
 
@@ -216,8 +247,9 @@ inline static int vectorGather(const double* v, const Mask_t* mask, int N, doubl
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
-    if (mask[i])
+    if (mask[i]) {
       gatherVector[k++] = v[i];
+    }
   }
   return k;
 }
@@ -226,8 +258,9 @@ inline static int vectorScatter(const double* v, const Mask_t* mask, int N, doub
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
-    if (mask[i])
+    if (mask[i]) {
       scatterVec[i] = v[k++];
+    }
   }
   return k;
 }
@@ -236,8 +269,9 @@ inline static int vectorGatherShort(const short* v, const Mask_t* mask, int N, s
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
-    if (mask[i])
+    if (mask[i]) {
       gatherVector[k++] = v[i];
+    }
   }
   return k;
 }
@@ -246,8 +280,9 @@ inline static int vectorGetIndexFromMaskShort(const Mask_t* mask, int N, short* 
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
-    if (mask[i])
+    if (mask[i]) {
       index[k++] = i;
+    }
   }
   return k;
 }
@@ -256,8 +291,9 @@ inline static int vectorGetIndexFromMask(const Mask_t* mask, int N, int* index)
 {
   int k = 0;
   for (int i = 0; i < N; i++) {
-    if (mask[i])
+    if (mask[i]) {
       index[k++] = i;
+    }
   }
   return k;
 }
