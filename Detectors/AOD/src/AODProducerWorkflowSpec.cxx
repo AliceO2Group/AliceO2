@@ -247,9 +247,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             const auto& tofInt = tofMatch.getLTIntegralOut();
             float intLen = tofInt.getL();
             extraInfoHolder.length = intLen;
+            extraInfoHolder.tofSignal = tofMatch.getSignal();
             float mass = o2::constants::physics::MassPionCharged; // default pid = pion
-            float expSig = tofMatch.getSignal();
-            extraInfoHolder.tofSignal = expSig;
+            float expSig = tofInt.getTOF(o2::track::PID::Pion);
             float expMom = 0.f;
             if (expSig > 0 && interactionTime > 0) {
               float tof = expSig - interactionTime;
