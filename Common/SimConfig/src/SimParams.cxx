@@ -13,8 +13,9 @@
  * SimCutParams.cxx
  *
  *  Created on: Feb 18, 2019
- *      Author: sandro
+ *      Author: Sandro Wenzel
  */
 
-#include "SimConfig/SimCutParams.h"
+#include "SimConfig/SimParams.h"
 O2ParamImpl(o2::conf::SimCutParams);
+O2ParamImpl(o2::conf::SimMaterialParams);

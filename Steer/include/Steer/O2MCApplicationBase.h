@@ -22,7 +22,7 @@
 #include <FairMCApplication.h>
 #include "Rtypes.h" // for Int_t, Bool_t, Double_t, etc
 #include <TVirtualMC.h>
-#include "SimConfig/SimCutParams.h"
+#include "SimConfig/SimParams.h"
 
 namespace o2
 {
