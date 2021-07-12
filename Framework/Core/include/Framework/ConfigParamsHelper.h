@@ -105,11 +105,7 @@ struct ConfigParamsHelper {
     const char* name = spec.name.c_str();
     const char* help = spec.help.c_str();
 
-    if constexpr (V == VariantType::Int ||
-                  V == VariantType::Int64 ||
-                  V == VariantType::Float ||
-                  V == VariantType::Double ||
-                  V == VariantType::Bool) {
+    if constexpr (isSimpleVariant<V>()) {
       using Type = typename variant_type<V>::type;
       using BoostType = typename std::conditional<V == VariantType::String, std::string, Type>::type;
       auto value = boost::program_options::value<BoostType>();
@@ -120,14 +116,7 @@ struct ConfigParamsHelper {
         value = value->zero_tokens();
       }
       options.add_options()(name, value, help);
-    } else if constexpr (V == VariantType::ArrayInt ||
-                         V == VariantType::ArrayFloat ||
-                         V == VariantType::ArrayDouble ||
-                         V == VariantType::ArrayBool ||
-                         V == VariantType::ArrayString ||
-                         V == VariantType::Array2DInt ||
-                         V == VariantType::Array2DFloat ||
-                         V == VariantType::Array2DDouble) {
+    } else if constexpr (isArray<V>() || isArray2D<V>()) {
       auto value = boost::program_options::value<std::string>();
       value = value->default_value(spec.defaultValue.asString());
       if constexpr (V != VariantType::String) {
