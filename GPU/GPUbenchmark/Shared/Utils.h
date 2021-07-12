@@ -19,7 +19,7 @@
 #include <iomanip>
 #include <typeinfo>
 #include <boost/program_options.hpp>
-#include "CommonUtils/TreeStreamRedirector.h"
+#include <TTree.h>
 
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
@@ -112,41 +112,41 @@ struct gpuState {
 class ResultStreamer
 {
  public:
-  explicit ResultStreamer(const std::string debugTreeFileName = "benchmark_results.root");
+  explicit ResultStreamer(const std::string resultsTreeFilename = "benchmark_results.root");
   ~ResultStreamer();
   void storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry);
   void storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry);
 
  private:
-  std::string mDebugTreeFileName = "benchmark_results.root"; // output filename
-  o2::utils::TreeStreamRedirector* mTreeStream;              // observer
+  std::string mResultsTreeFilename = "benchmark_results.root"; // output filename
+  TTree* mTree;                                                // observer
 };
 
-inline ResultStreamer::ResultStreamer(const std::string debugTreeFileName)
+inline ResultStreamer::ResultStreamer(const std::string resultsTreeFilename)
 {
-  mDebugTreeFileName = debugTreeFileName;
-  mTreeStream = new o2::utils::TreeStreamRedirector(debugTreeFileName.data(), "recreate");
+  mResultsTreeFilename = resultsTreeFilename;
+  mTree = new TTree(resultsTreeFilename.data(), resultsTreeFilename.data());
 }
 
 inline ResultStreamer::~ResultStreamer()
 {
-  delete mTreeStream;
+  delete mTree;
 }
 
 inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry)
 {
-  (*mTreeStream)
-    << (benchmarkName + "_" + type + "_" + chunk).data()
-    << "elapsed=" << entry
-    << "\n";
+  // (*mTree)
+  //   << (benchmarkName + "_" + type + "_" + chunk).data()
+  //   << "elapsed=" << entry
+  //   << "\n";
 }
 
 inline void ResultStreamer::storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry)
 {
-  (*mTreeStream)
-    << (benchmarkName + "_" + type + "_region_" + region).data()
-    << "elapsed=" << entry
-    << "\n";
+  // (*mTree)
+  //   << (benchmarkName + "_" + type + "_region_" + region).data()
+  //   << "elapsed=" << entry
+  //   << "\n";
 }
 
 } // namespace benchmark

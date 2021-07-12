@@ -50,7 +50,7 @@ if(HIP_ENABLED)
                     PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                           hip::host
                                           Boost::program_options
-                                          O2::CommonUtils
+                                          ROOT::Tree
                     TARGETVARNAME targetName)
 
   if(HIP_AMDGPUTARGET)
