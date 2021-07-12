@@ -16,7 +16,7 @@
 #if defined(__HIPCC__)
 #include "hip/hip_runtime.h"
 #endif
-#include <stdio.h>
+#include <cstdio>
 
 // Memory partitioning legend
 //

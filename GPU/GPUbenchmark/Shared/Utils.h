@@ -113,7 +113,7 @@ class ResultStreamer
 {
  public:
   explicit ResultStreamer(const std::string resultsTreeFilename = "benchmark_results.root");
-  ~ResultStreamer();
+  ~ResultStreamer() = default;
   void storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry);
   void storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry);
 
@@ -126,11 +126,6 @@ inline ResultStreamer::ResultStreamer(const std::string resultsTreeFilename)
 {
   mResultsTreeFilename = resultsTreeFilename;
   mTree = new TTree(resultsTreeFilename.data(), resultsTreeFilename.data());
-}
-
-inline ResultStreamer::~ResultStreamer()
-{
-  delete mTree;
 }
 
 inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry)
