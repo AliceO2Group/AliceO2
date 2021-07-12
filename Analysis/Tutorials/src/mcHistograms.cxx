@@ -33,7 +33,7 @@ struct VertexDistribution {
 };
 
 // Grouping between MC particles and collisions
-struct AccessMCData {
+struct AccessMcData {
   OutputObj<TH1F> phiH{TH1F("phi", "phi", 100, 0., 2. * M_PI)};
   OutputObj<TH1F> etaH{TH1F("eta", "eta", 102, -2.01, 2.01)};
 
@@ -44,10 +44,10 @@ struct AccessMCData {
     LOGF(info, "MC. vtx-z = %f", mcCollision.posZ());
     LOGF(info, "First: %d | Length: %d", mcParticles.begin().index(), mcParticles.size());
     if (mcParticles.size() > 0) {
-      LOGF(info, "Particles mother: %d", mcParticles.begin().mother0());
+      LOGF(info, "Particle's mother: %d", mcParticles.begin().mother0Id());
     }
     for (auto& mcParticle : mcParticles) {
-      if (MC::isPhysicalPrimary(mcParticles, mcParticle)) {
+      if (MC::isPhysicalPrimary<aod::McParticles>(mcParticle)) {
         phiH->Fill(mcParticle.phi());
         etaH->Fill(mcParticle.eta());
       }
@@ -56,7 +56,7 @@ struct AccessMCData {
 };
 
 // Access from tracks to MC particle
-struct AccessMCTruth {
+struct AccessMcTruth {
   OutputObj<TH1F> etaDiff{TH1F("etaDiff", ";eta_{MC} - eta_{Rec}", 100, -2, 2)};
   OutputObj<TH1F> phiDiff{TH1F("phiDiff", ";phi_{MC} - phi_{Rec}", 100, -M_PI, M_PI)};
 
@@ -88,7 +88,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   return WorkflowSpec{
     adaptAnalysisTask<VertexDistribution>(cfgc),
-    adaptAnalysisTask<AccessMCData>(cfgc),
-    adaptAnalysisTask<AccessMCTruth>(cfgc),
+    adaptAnalysisTask<AccessMcData>(cfgc),
+    adaptAnalysisTask<AccessMcTruth>(cfgc),
   };
 }

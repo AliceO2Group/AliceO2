@@ -525,6 +525,13 @@ struct Partition {
     }
   }
 
+  void bindInternalIndices()
+  {
+    if (mFiltered != nullptr) {
+      mFiltered->bindInternalIndices();
+    }
+  }
+
   template <typename T2>
   void getBoundToExternalIndices(T2& table)
   {

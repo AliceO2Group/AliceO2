@@ -768,14 +768,10 @@ DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);          //! PDG code
 DECLARE_SOA_COLUMN(StatusCode, statusCode, int);    //! Status code directly from the generator
 DECLARE_SOA_COLUMN(Flags, flags, uint8_t);          //! ALICE specific flags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
 // TODO declaration to be swapped when self-indexing columns are available
-//DECLARE_SOA_INDEX_COLUMN_FULL(Mother0, mother0, int, McParticle, "_Mother0"); //! Track index of the first mother
-DECLARE_SOA_COLUMN_FULL(Mother0, mother0, int, "fIndexMcParticles_Mother0"); //! Track index of the first mother
-//DECLARE_SOA_INDEX_COLUMN_FULL(Mother1, mother1, int, McParticle, "_Mother1"); //! Track index of the second mother
-DECLARE_SOA_COLUMN_FULL(Mother1, mother1, int, "fIndexMcParticles_Mother1"); //! Track index of the first mother
-//DECLARE_SOA_INDEX_COLUMN_FULL(Daughter0, daughter0, int, McParticle, "_Daughter0"); //! Track index of the first daugther
-DECLARE_SOA_COLUMN_FULL(Daughter0, daughter0, int, "fIndexMcParticles_Daughter0"); //! Track index of the first daugther
-//DECLARE_SOA_INDEX_COLUMN_FULL(Daughter1, daughter1, int, McParticle, "_Daughter1"); //! Track index of the first daugther
-DECLARE_SOA_COLUMN_FULL(Daughter1, daughter1, int, "fIndexMcParticles_Daughter1"); //! Track index of the first daugther
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother0, mother0, int, "McParticles_Mother0");       //! Track index of the first mother
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Mother1, mother1, int, "McParticles_Mother1");       //! Track index of the last mother
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter0, daughter0, int, "McParticles_Daughter0"); //! Track index of the first daugther
+DECLARE_SOA_SELF_INDEX_COLUMN_FULL(Daughter1, daughter1, int, "McParticles_Daughter1"); //! Track index of the last daugther
 DECLARE_SOA_COLUMN(Weight, weight, float);                                         //! MC weight
 DECLARE_SOA_COLUMN(Px, px, float);                                                 //! Momentum in x in GeV/c
 DECLARE_SOA_COLUMN(Py, py, float);                                                 //! Momentum in y in GeV/c
@@ -802,8 +798,8 @@ DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //! Particl
 DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE", //! MC particle table
                   o2::soa::Index<>, mcparticle::McCollisionId,
                   mcparticle::PdgCode, mcparticle::StatusCode, mcparticle::Flags,
-                  mcparticle::Mother0, mcparticle::Mother1,
-                  mcparticle::Daughter0, mcparticle::Daughter1, mcparticle::Weight,
+                  mcparticle::Mother0Id, mcparticle::Mother1Id,
+                  mcparticle::Daughter0Id, mcparticle::Daughter1Id, mcparticle::Weight,
                   mcparticle::Px, mcparticle::Py, mcparticle::Pz, mcparticle::E,
                   mcparticle::Vx, mcparticle::Vy, mcparticle::Vz, mcparticle::Vt,
                   mcparticle::Phi<mcparticle::Px, mcparticle::Py>,

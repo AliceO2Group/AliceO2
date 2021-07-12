@@ -690,9 +690,11 @@ namespace test
 {
 DECLARE_SOA_ARRAY_INDEX_COLUMN(Points3D, pointGroup, 3);
 DECLARE_SOA_SLICE_INDEX_COLUMN(Points3D, pointSlice);
+DECLARE_SOA_SELF_INDEX_COLUMN(OtherPoint, otherPoint);
 } // namespace test
 
 DECLARE_SOA_TABLE(PointsRef, "TST", "PTSREF", test::Points3DIdSlice, test::Points3DIds);
+DECLARE_SOA_TABLE(PointsSelfIndex, "TST", "PTSSLF", o2::soa::Index<>, test::X, test::Y, test::Z, test::OtherPointId);
 
 BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
 {
@@ -758,5 +760,23 @@ BOOST_AUTO_TEST_CASE(TestAdvancedIndices)
   aa = {12, 2, 19};
   for (int i = 0; i < 3; ++i) {
     BOOST_CHECK_EQUAL(g2f[i].globalIndex(), aa[i]);
+  }
+
+  TableBuilder b3;
+  auto pswriter = b3.cursor<PointsSelfIndex>();
+  int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
+  for (auto i = 0; i < 20; ++i) {
+    pswriter(0, -1 * i, 0.5 * i, 2 * i, references[i]);
+  }
+  auto t3 = b3.finalize();
+  auto pst = PointsSelfIndex{t3};
+  pst.bindInternalIndices();
+  auto i = 0;
+  for (auto& p : pst) {
+    auto op = p.otherPoint_as<PointsSelfIndex>();
+    auto bbb = std::is_same_v<decltype(op), PointsSelfIndex::iterator>;
+    BOOST_CHECK(bbb);
+    BOOST_CHECK_EQUAL(op.globalIndex(), references[i]);
+    ++i;
   }
 }
