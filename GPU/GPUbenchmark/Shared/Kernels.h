@@ -15,7 +15,6 @@
 #ifndef GPU_BENCHMARK_KERNELS_H
 #define GPU_BENCHMARK_KERNELS_H
 
-#include "GPUCommonDef.h"
 #include "Utils.h"
 #include <vector>
 #include <iostream>

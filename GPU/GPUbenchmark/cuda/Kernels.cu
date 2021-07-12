@@ -67,7 +67,7 @@ namespace gpu
 ///////////////////////////
 // Device functions go here
 template <class chunk_type>
-GPUhd() chunk_type* getPartPtrOnScratch(chunk_type* scratchPtr, float chunkReservedGB, size_t partNumber)
+__host__ __device__ inline chunk_type* getPartPtrOnScratch(chunk_type* scratchPtr, float chunkReservedGB, size_t partNumber)
 {
   return reinterpret_cast<chunk_type*>(reinterpret_cast<char*>(scratchPtr) + static_cast<size_t>(GB * chunkReservedGB) * partNumber);
 }
@@ -76,7 +76,7 @@ GPUhd() chunk_type* getPartPtrOnScratch(chunk_type* scratchPtr, float chunkReser
 // Kernels go here
 // Reading
 template <class chunk_type>
-GPUg() void readChunkSBKernel(
+__global__ void readChunkSBKernel(
   int chunkId,
   chunk_type* results,
   chunk_type* scratch,
@@ -96,7 +96,7 @@ GPUg() void readChunkSBKernel(
 }
 
 template <class chunk_type>
-GPUg() void readChunkMBKernel(
+__global__ void readChunkMBKernel(
   int chunkId,
   chunk_type* results,
   chunk_type* scratch,
@@ -112,7 +112,7 @@ GPUg() void readChunkMBKernel(
 
 // Writing
 template <class chunk_type>
-GPUg() void writeChunkSBKernel(
+__global__ void writeChunkSBKernel(
   int chunkId,
   chunk_type* results,
   chunk_type* scratch,
@@ -127,7 +127,7 @@ GPUg() void writeChunkSBKernel(
 }
 
 template <class chunk_type>
-GPUg() void writeChunkMBKernel(
+__global__ void writeChunkMBKernel(
   int chunkId,
   chunk_type* results,
   chunk_type* scratch,
@@ -141,7 +141,7 @@ GPUg() void writeChunkMBKernel(
 
 // Copying
 template <class chunk_type>
-GPUg() void copyChunkSBKernel(
+__global__ void copyChunkSBKernel(
   int chunkId,
   chunk_type* inputs,
   chunk_type* scratch,
@@ -156,7 +156,7 @@ GPUg() void copyChunkSBKernel(
 }
 
 template <class chunk_type>
-GPUg() void copyChunkMBKernel(
+__global__ void copyChunkMBKernel(
   int chunkId,
   chunk_type* inputs,
   chunk_type* scratch,

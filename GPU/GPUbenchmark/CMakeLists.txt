@@ -16,9 +16,8 @@ if(CUDA_ENABLED)
   o2_add_executable(gpu-memory-benchmark-cuda
                   SOURCES benchmark.cxx
                           cuda/Kernels.cu
-                  PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                        Boost::program_options
-                                        O2::CommonUtils
+                  PUBLIC_LINK_LIBRARIES Boost::program_options
+                                        ROOT::Tree
                   TARGETVARNAME targetName)
 endif()
 
@@ -47,8 +46,7 @@ if(HIP_ENABLED)
   o2_add_executable(gpu-memory-benchmark-hip
                     SOURCES benchmark.cxx
                             hip/Kernels.hip.cxx
-                    PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                          hip::host
+                    PUBLIC_LINK_LIBRARIES hip::host
                                           Boost::program_options
                                           ROOT::Tree
                     TARGETVARNAME targetName)
