@@ -23,6 +23,7 @@ typedef struct uv_loop_s uv_loop_t;
 typedef struct uv_timer_s uv_timer_t;
 typedef struct uv_poll_s uv_poll_t;
 typedef struct uv_signal_s uv_signal_t;
+typedef struct uv_async_s uv_async_t;
 
 namespace o2::framework
 {
@@ -78,6 +79,9 @@ struct DeviceState {
   std::vector<uv_poll_t*> activeOutputPollers;
   /// The list of active signal handlers
   std::vector<uv_signal_t*> activeSignals;
+
+  uv_async_t* awakeMainThread = nullptr;
+
   int loopReason = 0;
 };
 

@@ -355,8 +355,22 @@ void handleRegionCallbacks(ServiceRegistry& registry, std::vector<FairMQRegionIn
   }
 }
 
+namespace
+{
+void on_awake_main_thread(uv_async_t* handle)
+{
+  DeviceState* state = (DeviceState*)handle->data;
+  state->loopReason |= DeviceState::ASYNC_NOTIFICATION;
+}
+} // namespace
 void DataProcessingDevice::InitTask()
 {
+  if (mState.awakeMainThread == nullptr) {
+    mState.awakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
+    mState.awakeMainThread->data = &mState;
+    uv_async_init(mState.loop, mState.awakeMainThread, on_awake_main_thread);
+  }
+
   for (auto& channel : fChannels) {
     channel.second.at(0).Transport()->SubscribeToRegionEvents([this,
                                                                &registry = mServiceRegistry,
@@ -372,6 +386,8 @@ void DataProcessingDevice::InitTask()
       // When not running we can handle the callbacks synchronously.
       if (this->GetCurrentState() != fair::mq::State::Running) {
         handleRegionCallbacks(registry, pendingRegionInfos);
+      } else {
+        uv_async_send(registry.get<DeviceState>().awakeMainThread);
       }
     });
   }
