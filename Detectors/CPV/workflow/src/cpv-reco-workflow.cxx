@@ -34,9 +34,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable sending of MC information"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"pedestal", o2::framework::VariantType::Bool, false, {"pedestal run? if true then don't subtract pedestals from digits"}},
     {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
-    //{"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"path to CCDB like http://ccdb-test.cern.ch:8080"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
