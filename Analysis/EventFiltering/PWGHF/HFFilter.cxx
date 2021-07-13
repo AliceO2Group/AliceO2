@@ -20,7 +20,7 @@
 #include "Framework/ASoAHelpers.h"
 #include "Framework/HistogramRegistry.h"
 
-#include "filterTables.h"
+#include "../filterTables.h"
 
 #include "AnalysisDataModel/HFSecondaryVertex.h"
 #include "AnalysisDataModel/HFCandidateSelectionTables.h"
@@ -138,7 +138,11 @@ struct HfFilter {
   template <typename T>
   bool isSelectedTrack(const T& track, const int candType)
   {
-    auto pTBinTrack = findBin(pTBinsTrack, track.pt());
+    auto pT = track.pt();
+    if(pT < pTMinBeautyBachelor) {
+      return false;
+    }
+    auto pTBinTrack = findBin(pTBinsTrack, pT);
     if (pTBinTrack == -1) {
       return false;
     }
@@ -192,7 +196,7 @@ struct HfFilter {
         std::array<float, 3> pVecThird = {track.px(), track.py(), track.pz()};
 
         if (!keepEvent[kBeauty]) {
-          if (isSelectedTrack(track, kBeauty3Prong) && track.pt() >= pTMinBeautyBachelor) {               // TODO: add more single track cuts
+          if (isSelectedTrack(track, kBeauty3Prong)) { // TODO: add more single track cuts
             auto massCandB = RecoDecay::M(std::array{pVec2Prong, pVecThird}, std::array{massD0, massPi}); // TODO: retrieve D0-D0bar hypothesis to pair with proper signed track
             if (std::abs(massCandB - massBPlus) <= deltaMassBPlus) {
               keepEvent[kBeauty] = true;
@@ -242,7 +246,7 @@ struct HfFilter {
         float massCharmHypos[3] = {massDPlus, massDs, massLc};
         float massBeautyHypos[3] = {massB0, massBs, massLb};
         float deltaMassHypos[3] = {deltaMassB0, deltaMassBs, deltaMassLb};
-        if (track.signed1Pt() * sign3Prong < 0 && isSelectedTrack(track, kBeauty4Prong) && track.pt() >= pTMinBeautyBachelor) { // TODO: add more single track cuts
+        if (track.signed1Pt() * sign3Prong < 0 && isSelectedTrack(track, kBeauty4Prong)) { // TODO: add more single track cuts
           while (!keepEvent[kBeauty] && iHypo < 3) {
             if (specieCharmHypos[iHypo]) {
               auto massCandB = RecoDecay::M(std::array{pVec3Prong, pVecFourth}, std::array{massCharmHypos[iHypo], massPi});
