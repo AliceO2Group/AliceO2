@@ -429,11 +429,6 @@ int DigiReco::reconstruct(int ibeg, int iend)
         // Check if channel data are present in payload
         auto ref = mReco[ibun].ref[ich];
         if (ref < ZDCRefInitVal) {
-          // TODO: get failover pedestal from QC
-          bool hasQCPed = false;
-          float QCPed = std::numeric_limits<float>::infinity();
-          // Orbit pedestal
-          bool hasOrPed = pbun[ich] < std::numeric_limits<float>::infinity();
           // Compute event by event pedestal
           bool hasEvPed = false;
           float evPed = 0;
@@ -459,12 +454,10 @@ int DigiReco::reconstruct(int ibeg, int iend)
           // instead of event pedestal
           if (hasEvPed) {
             myPed = evPed;
-          } else if (hasOrPed) {
-            myPed = pbun[ich];
-            rec.ped[ich] = PedOr;
-          } else if (hasQCPed) {
-            // TODO: use QC pedestal
-            //rec.ped[ich]=PedQC;
+            rec.ped[ich] = PedEv;
+          } else if (mSource[ich] != PedND) {
+            myPed = mOffset[ich];
+            rec.ped[ich] = mSource[ich];
           } else {
             rec.ped[ich] = PedMissing;
           }
@@ -475,12 +468,12 @@ int DigiReco::reconstruct(int ibeg, int iend)
               // TODO: manage signal positioned across boundary
               sum += (myPed - float(mChData[ref].data[is]));
             }
-#ifdef O2_ZDC_DEBUG
-            printf("CH %2d %s: %8.3f %sped=%8.3f %soff=%8.3f %sQC=%8.3f\n", ich, ChannelNames[ich].data(), sum,
-                   rec.ped[ich] == PedEv ? "*" : "", evPed,
-                   rec.ped[ich] == PedOr ? "*" : "", pbun[ich],
-                   rec.ped[ich] == PedQC ? "*" : "", QCPed);
-#endif
+// #ifdef O2_ZDC_DEBUG
+//             printf("CH %2d %s: %8.3f %sped=%8.3f %soff=%8.3f %sQC=%8.3f\n", ich, ChannelNames[ich].data(), sum,
+//                    rec.ped[ich] == PedEv ? "*" : "", evPed,
+//                    rec.ped[ich] == PedOr ? "*" : "", pbun[ich],
+//                    rec.ped[ich] == PedQC ? "*" : "", QCPed);
+// #endif
             rec.ezdc[ich] = sum * ropt.energy_calib[ich];
           } else {
             LOGF(WARN, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data(), rec.ped[ich]);
@@ -502,10 +495,10 @@ int DigiReco::reconstruct(int ibeg, int iend)
 void DigiReco::updateOffsets(int ibun)
 {
   auto orbit = mBCData[ibun].ir.orbit;
-  if (orbit == mOrbit) {
+  if (orbit == mOffsetOrbit) {
     return;
   }
-  mOrbit = orbit;
+  mOffsetOrbit = orbit;
 
   // Reset information about pedestal origin
   for (int ich = 0; ich < NChannels; ich++) {
@@ -527,11 +520,15 @@ void DigiReco::updateOffsets(int ibun)
     }
   }
 
-  // TODO: use QC pedestal if available
+  // TODO: use QC pedestal if orbit pedestals are missing
 
   for (int ich = 0; ich < NChannels; ich++) {
     if(mSource[ich] == PedND){
-      LOGF(ERROR, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOrbit);
+      LOGF(ERROR, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
+    }else{
+#ifdef O2_ZDC_DEBUG
+      LOGF(ERROR, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"));
+#endif
     }
   }
 } // updateOffsets
@@ -801,7 +798,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         if(mSource[ich] != PedND){
           amp = mOffset[ich] - amp;
         }else{
-          LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
+          LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
           amp = std::numeric_limits<float>::infinity();
         }
         int tdc = isam_amp % nsbun;
@@ -829,7 +826,7 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       if(mSource[ich] != PedND){
         amp = mOffset[ich] - amp;
       }else{
-        LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
+        LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
         amp = std::numeric_limits<float>::infinity();
       }
       int tdc = isam_amp % nsbun;
