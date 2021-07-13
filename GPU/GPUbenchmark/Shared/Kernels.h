@@ -32,7 +32,7 @@ class GPUbenchmark final
 {
  public:
   GPUbenchmark() = delete; // need for a configuration
-  GPUbenchmark(benchmarkOpts& opts, std::shared_ptr<ResultStreamer> streamer) : mStreamer{streamer}, mOptions{opts}
+  GPUbenchmark(benchmarkOpts& opts, std::shared_ptr<ResultWriter> rWriter) : mResultWriter{rWriter}, mOptions{opts}
   {
   }
   virtual ~GPUbenchmark() = default;
@@ -77,7 +77,7 @@ class GPUbenchmark final
 
  private:
   gpuState<chunk_type> mState;
-  std::shared_ptr<ResultStreamer> mStreamer;
+  std::shared_ptr<ResultWriter> mResultWriter;
   benchmarkOpts mOptions;
 };
 

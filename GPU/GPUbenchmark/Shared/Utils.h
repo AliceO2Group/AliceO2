@@ -19,7 +19,9 @@
 #include <iomanip>
 #include <typeinfo>
 #include <boost/program_options.hpp>
+#include <vector>
 #include <TTree.h>
+#include <TFile.h>
 
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
@@ -109,34 +111,56 @@ struct gpuState {
 };
 
 // Interface class to stream results to root file
-class ResultStreamer
+class ResultWriter
 {
  public:
-  explicit ResultStreamer(const std::string resultsTreeFilename = "benchmark_results.root");
-  ~ResultStreamer() = default;
-  void storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry);
+  explicit ResultWriter(const std::string resultsTreeFilename = "benchmark_results.root");
+  ~ResultWriter() = default;
+  void storeBenchmarkEntry(const std::string bName, const std::string type, int chunk, float entry);
   void storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry);
+  void addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks);
+  void snapshotBenchmark(const std::string bName, const std::string type);
+  void saveToFile(std::string filename = "benchmark_results.root");
 
  private:
   std::string mResultsTreeFilename = "benchmark_results.root"; // output filename
-  TTree* mTree;                                                // observer
+  // std::unordered_map<std::string, std::vector<float>> mBenchmarksChunk;
+  // std::unordered_map<std::string, std::vector<float>> mBenchmarksRegions;
+  std::vector<float> mBenchmarkResults;
+  TBranch* mTmpBranch;
+  TTree* mTree;
 };
 
-inline ResultStreamer::ResultStreamer(const std::string resultsTreeFilename)
+inline ResultWriter::ResultWriter(const std::string resultsTreeFilename)
 {
   mResultsTreeFilename = resultsTreeFilename;
-  mTree = new TTree(resultsTreeFilename.data(), resultsTreeFilename.data());
+  mTree = new TTree("GPUbenchmarks", "GPUbenchmarks");
 }
 
-inline void ResultStreamer::storeBenchmarkEntry(std::string benchmarkName, std::string chunk, std::string type, float entry)
+inline void ResultWriter::addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks)
 {
-  // (*mTree)
-  //   << (benchmarkName + "_" + type + "_" + chunk).data()
-  //   << "elapsed=" << entry
-  //   << "\n";
+  mTmpBranch = mTree->Branch((bName + "_" + type).data(), &mBenchmarkResults);
+  mBenchmarkResults.resize(nChunks);
 }
 
-inline void ResultStreamer::storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry)
+inline void ResultWriter::storeBenchmarkEntry(const std::string bName, const std::string type, int chunk, float entry)
+{
+  mBenchmarkResults[chunk] = entry;
+}
+
+inline void ResultWriter::snapshotBenchmark(const std::string bName, const std::string type)
+{
+  mTree->Fill();
+}
+
+inline void ResultWriter::saveToFile(std::string filename)
+{
+  auto file = TFile::Open(filename.data(), "recreate");
+  mTree->Write();
+  file->Close();
+}
+
+inline void ResultWriter::storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry)
 {
   // (*mTree)
   //   << (benchmarkName + "_" + type + "_region_" + region).data()
@@ -153,5 +177,4 @@ inline void ResultStreamer::storeEntryForRegion(std::string benchmarkName, std::
   printf("\n");                           \
   printf("error: TEST FAILED\n%s", KNRM); \
   exit(EXIT_FAILURE);
-
 #endif

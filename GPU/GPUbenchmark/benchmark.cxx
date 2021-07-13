@@ -51,7 +51,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
   return true;
 }
 
-using o2::benchmark::ResultStreamer;
+using o2::benchmark::ResultWriter;
 
 int main(int argc, const char* argv[])
 {
@@ -62,12 +62,12 @@ int main(int argc, const char* argv[])
     return -1;
   }
 
-  std::shared_ptr<ResultStreamer> streamer = std::make_shared<ResultStreamer>();
+  std::shared_ptr<ResultWriter> streamer = std::make_shared<ResultWriter>();
 
-  o2::benchmark::GPUbenchmark<char> bm_char{opts, streamer};
-  bm_char.run();
-  o2::benchmark::GPUbenchmark<int> bm_int{opts, streamer};
-  bm_int.run();
+  // o2::benchmark::GPUbenchmark<char> bm_char{opts, streamer};
+  // bm_char.run();
+  // o2::benchmark::GPUbenchmark<int> bm_int{opts, streamer};
+  // bm_int.run();
   o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, streamer};
   bm_size_t.run();
 
