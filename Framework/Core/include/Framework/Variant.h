@@ -26,12 +26,9 @@
 namespace o2::framework
 {
 
+// Do NOT insert entries in this enum, only append at the end (before "Empty"). Hyperloop depends on the order.
 enum class VariantType : int { Int = 0,
                                Int64,
-                               UInt8,
-                               UInt16,
-                               UInt32,
-                               UInt64,
                                Float,
                                Double,
                                String,
@@ -47,6 +44,10 @@ enum class VariantType : int { Int = 0,
                                LabeledArrayInt,
                                LabeledArrayFloat,
                                LabeledArrayDouble,
+                               UInt8,
+                               UInt16,
+                               UInt32,
+                               UInt64,
                                Empty,
                                Unknown };
 
