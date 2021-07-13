@@ -87,7 +87,7 @@ class MFTDCSProcessor
 
   void setTF(TFType tf) { mTF = tf; }
   void useVerboseMode() { mVerbose = true; }
-
+  
   void clearDPsinfo()
   {
     mDpsdoublesmap.clear();

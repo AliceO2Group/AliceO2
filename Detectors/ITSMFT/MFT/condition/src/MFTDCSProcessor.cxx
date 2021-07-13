@@ -31,7 +31,7 @@ void MFTDCSinfo::print() const
   LOG(INFO) << "First Value: timestamp = " << firstValue.first << ", value = " << firstValue.second;
   LOG(INFO) << "Last Value:  timestamp = " << lastValue.first << ", value = " << lastValue.second;
   LOG(INFO) << "Mid Value:   timestamp = " << midValue.first << ", value = " << midValue.second;
-  LOG(INFO) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;
+  LOG(INFO) << "Max Change:  timestamp = " << maxChange.first << ", value = " << maxChange.second;  
 }
 
 //__________________________________________________________________
@@ -119,7 +119,7 @@ int MFTDCSProcessor::processDP(const DPCOM& dpcom)
   if (type == RAW_DOUBLE) {
     // for these DPs, we will store the first, last, mid value, plus the value where the maximum variation occurred
     auto& dvect = mDpsdoublesmap[dpid];
-    LOG(DEBUG) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
+    LOG(INFO) << "mDpsdoublesmap[dpid].size() = " << dvect.size();
     auto etime = val.get_epoch_time();
     if (dvect.size() == 0 ||
 	etime != dvect.back().get_epoch_time()) { // we check
@@ -148,15 +148,15 @@ void MFTDCSProcessor::updateDPsCCDB()
   for (const auto& it : mPids) {
     const auto& type = it.first.get_type();
     if (type == o2::dcs::RAW_DOUBLE) {
-      auto& tofdcs = mMFTDCS[it.first];
+      auto& mftdcs = mMFTDCS[it.first];
       if (it.second == true) { // we processed the DP at least 1x
         auto& dpvect = mDpsdoublesmap[it.first];
-        tofdcs.firstValue.first = dpvect[0].get_epoch_time();
+        mftdcs.firstValue.first = dpvect[0].get_epoch_time();
         converter0.raw_data = dpvect[0].payload_pt1;
-        tofdcs.firstValue.second = converter0.double_value;
-        tofdcs.lastValue.first = dpvect.back().get_epoch_time();
+        mftdcs.firstValue.second = converter0.double_value;
+        mftdcs.lastValue.first = dpvect.back().get_epoch_time();
         converter0.raw_data = dpvect.back().payload_pt1;
-        tofdcs.lastValue.second = converter0.double_value;
+        mftdcs.lastValue.second = converter0.double_value;
         // now I will look for the max change
         if (dpvect.size() > 1) {
           auto deltatime = dpvect.back().get_epoch_time() - dpvect[0].get_epoch_time();
@@ -166,8 +166,8 @@ void MFTDCSProcessor::updateDPsCCDB()
             converter0.raw_data = dpvect[0].payload_pt1;
             converter1.raw_data = dpvect.back().payload_pt1;
             double delta = std::abs(converter0.double_value - converter1.double_value);
-            tofdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
-            tofdcs.maxChange.second = delta;
+            mftdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
+            mftdcs.maxChange.second = delta;
           } else {
             for (auto i = 0; i < dpvect.size() - 1; ++i) {
               for (auto j = i + 1; j < dpvect.size(); ++j) {
@@ -176,9 +176,9 @@ void MFTDCSProcessor::updateDPsCCDB()
                   converter0.raw_data = dpvect[i].payload_pt1;
                   converter1.raw_data = dpvect[j].payload_pt1;
                   double delta = std::abs(converter0.double_value - converter1.double_value);
-                  if (delta > tofdcs.maxChange.second) {
-                    tofdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
-                    tofdcs.maxChange.second = delta;
+                  if (delta > mftdcs.maxChange.second) {
+                    mftdcs.maxChange.first = deltatime; // is it ok to do like this, as in Run 2?
+                    mftdcs.maxChange.second = delta;
                   }
                 }
               }
@@ -186,24 +186,25 @@ void MFTDCSProcessor::updateDPsCCDB()
           }
           // mid point
           auto midIdx = dpvect.size() / 2 - 1;
-          tofdcs.midValue.first = dpvect[midIdx].get_epoch_time();
+          mftdcs.midValue.first = dpvect[midIdx].get_epoch_time();
           converter0.raw_data = dpvect[midIdx].payload_pt1;
-          tofdcs.midValue.second = converter0.double_value;
+          mftdcs.midValue.second = converter0.double_value;
         } else {
-          tofdcs.maxChange.first = dpvect[0].get_epoch_time();
+          mftdcs.maxChange.first = dpvect[0].get_epoch_time();
           converter0.raw_data = dpvect[0].payload_pt1;
-          tofdcs.maxChange.second = converter0.double_value;
-          tofdcs.midValue.first = dpvect[0].get_epoch_time();
+          mftdcs.maxChange.second = converter0.double_value;
+          mftdcs.midValue.first = dpvect[0].get_epoch_time();
           converter0.raw_data = dpvect[0].payload_pt1;
-          tofdcs.midValue.second = converter0.double_value;
+          mftdcs.midValue.second = converter0.double_value;
         }
       }
       if (mVerbose) {
         LOG(INFO) << "PID = " << it.first.get_alias();
-        tofdcs.print();
+        mftdcs.print();
       }
     }
   }
+
   std::map<std::string, std::string> md;
   md["responsible"] = "Satoshi Yano";
   prepareCCDBobjectInfo(mMFTDCS, mccdbDPsInfo, "MFT/Condition/DCSDPs", mTF, md);

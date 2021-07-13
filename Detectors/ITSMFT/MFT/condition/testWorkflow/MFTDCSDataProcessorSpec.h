@@ -64,6 +64,10 @@ namespace mft
 	mDPsUpdateInterval = 60;
       }
       bool useCCDBtoConfigure = ic.options().get<bool>("use-ccdb-to-configure");
+
+      mStart = ic.options().get<int64_t>("tstart");
+      mEnd = ic.options().get<int64_t>("tend");
+
       if (useCCDBtoConfigure) {
 	LOG(INFO) << "Configuring via CCDB";
 	std::string ccdbpath = ic.options().get<std::string>("ccdb-path");
@@ -80,7 +84,6 @@ namespace mft
 
       else {
 	LOG(INFO) << "Configuring via hardcoded strings";
-	//std::vector<std::string> aliases = {"mft_currentBB_[00..837]","mft_currentITHR_[00..837]","mft_currentVCASN_[00..837]","mft_currentAnalog_[00..80]", "mft_currentDigit_[00..80]"};
 	std::vector<std::string> aliases = {"mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.Analog",
 					    "mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.Digital",
 					    "mft_main:MFT_PSU_Zone/H[0..1]D[0..4]F[0..1]Z[0..3].Monitoirng.Current.BackBias"};
@@ -139,13 +142,32 @@ namespace mft
     HighResClock::time_point mTimer;
     int64_t mDPsUpdateInterval;
 
+    long mStart;
+    long mEnd;
+
     //________________________________________________________________
     void sendDPsoutput(DataAllocator& output)
     {
       // extract CCDB infos and calibration object for DPs
       mProcessor->updateDPsCCDB();
-      const auto& payload = mProcessor->getMFTDPsInfo();
+      const auto& payload = mProcessor->getMFTDPsInfo();      
       auto& info = mProcessor->getccdbDPsInfo();
+      
+      long tstart = mStart;
+      long tend = mEnd;
+
+      if (tstart == -1) {
+	tstart = o2::ccdb::getCurrentTimestamp();
+      }
+
+      if (tend == -1) {
+	constexpr long SECONDSPERYEAR = 365 * 24 * 60 * 60;
+	tend = o2::ccdb::getFutureTimestamp(SECONDSPERYEAR);
+      }
+
+      info.setStartValidityTimestamp(tstart);
+      info.setEndValidityTimestamp(tend);
+
       auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
       LOG(INFO) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
 		<< " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
@@ -175,10 +197,13 @@ namespace framework
 	Inputs{{"input", "DCS", "MFTDATAPOINTS"}},
 	outputs,
 	  AlgorithmSpec{adaptFromTask<o2::mft::MFTDCSDataProcessor>()},
-	  Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
-	      {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
-		{"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
-		  {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
+	  Options{
+	    {"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
+	    {"tstart", VariantType::Int64, -1ll, {"Start of validity timestamp"}},
+	    {"tend", VariantType::Int64, -1ll, {"End of validity timestamp"}},
+	    {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
+	    {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},
+	    {"DPs-update-interval", VariantType::Int64, 600ll, {"Interval (in s) after which to update the DPs CCDB entry"}}}};
   }
 
 } // namespace framework
