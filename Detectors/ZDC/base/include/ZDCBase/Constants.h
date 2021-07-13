@@ -210,10 +210,11 @@ const std::string CCDBPathTDCCalib = "ZDC/Calib/TDCCalib";
 const std::string CCDBPathEnergyCalib = "ZDC/Calib/EnergyCalib";
 const std::string CCDBPathTowerCalib = "ZDC/Calib/TowerCalib";
 
-enum Msg { PedEv = 0,
-           PedOr = 1,
-           PedQC = 2,
-           PedMissing = 3 };
+enum Msg { PedND = 0,
+           PedEv = 1,
+           PedOr = 2,
+           PedQC = 3,
+           PedMissing = 4 };
 
 
 

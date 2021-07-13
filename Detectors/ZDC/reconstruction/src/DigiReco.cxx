@@ -204,7 +204,7 @@ void DigiReco::init()
     }
     LOG(INFO) << ChannelNames[ich] << " integration: signal=[" << ropt.beg_int[ich] << ":" << ropt.end_int[ich] << "] pedestal=[" << ropt.beg_ped_int[ich] << ":" << ropt.end_ped_int[ich] << "]";
   }
-}
+} // init
 
 int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata)
 {
@@ -294,7 +294,7 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   }
 
   return 0;
-}
+} // process
 
 int DigiReco::reconstruct(int ibeg, int iend)
 {
@@ -350,23 +350,7 @@ int DigiReco::reconstruct(int ibeg, int iend)
   // TODO: compare average pedestal with estimation from current event
   // TODO: failover in case of discrepancy
   for (int ibun = ibeg; ibun <= iend; ibun++) {
-    // Look for offset
-    float pbun[NChannels];
-    auto orbit = mBCData[ibun].ir.orbit;
-    std::map<uint32_t, int>::iterator it = mOrbit.find(orbit);
-    if (it != mOrbit.end()) {
-      // Subtract pedestal
-      auto& orbitdata = mOrbitData[it->second];
-      for (int ich = 0; ich < NChannels; ich++) {
-        pbun[ich] = orbitdata.asFloat(ich);
-      }
-    } else {
-      LOG(ERROR) << "Missing pedestal for bunch " << ibun;
-      for (int ich = 0; ich < NChannels; ich++) {
-        pbun[ich] = std::numeric_limits<float>::infinity();
-      }
-    }
-
+    updateOffsets(ibun);
     auto& rec = mReco[ibun];
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
 #ifdef O2_ZDC_DEBUG
@@ -513,7 +497,44 @@ int DigiReco::reconstruct(int ibeg, int iend)
     }
   } // Loop on bunches
   return 0;
-}
+} //reconstruct
+
+void DigiReco::updateOffsets(int ibun)
+{
+  auto orbit = mBCData[ibun].ir.orbit;
+  if (orbit == mOrbit) {
+    return;
+  }
+  mOrbit = orbit;
+
+  // Reset information about pedestal origin
+  for (int ich = 0; ich < NChannels; ich++) {
+    mSource[ich] = PedND;
+    mOffset[ich] = std::numeric_limits<float>::infinity();
+  }
+
+  // Look for pedestal offset
+  std::map<uint32_t, int>::iterator it = mOrbit.find(orbit);
+  if (it != mOrbit.end()) {
+    auto& orbitdata = mOrbitData[it->second];
+    for (int ich = 0; ich < NChannels; ich++) {
+      auto myped = orbitdata.asFloat(ich);
+      if (myped >= ADCMin && myped <= ADCMax) {
+        // Pedestal information is present for this channel
+        mOffset[ich] = myped;
+        mSource[ich] = PedOr;
+      }
+    }
+  }
+
+  // TODO: use QC pedestal if available
+
+  for (int ich = 0; ich < NChannels; ich++) {
+    if(mSource[ich] == PedND){
+      LOGF(ERROR, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOrbit);
+    }
+  }
+} // updateOffsets
 
 void DigiReco::processTrigger(int itdc, int ibeg, int iend)
 {
@@ -573,7 +594,7 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
     }
   }
   interpolate(itdc, ibeg, iend);
-}
+} // processTrigger
 
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
@@ -776,18 +797,14 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       if (amp <= ADCMax) {
         // Store identified peak
         int ibun = ibeg + isam_amp / nsbun;
-        int tdc = isam_amp % nsbun;
-        // Look for offset
-        auto orbit = mBCData[ibun].ir.orbit;
-        std::map<uint32_t, int>::iterator it = mOrbit.find(orbit);
-        if (it != mOrbit.end()) {
-          // Subtract pedestal
-          auto& orbitdata = mOrbitData[it->second];
-          amp = orbitdata.asFloat(ich) - amp;
-        } else {
-          LOG(ERROR) << "Missing pedestal";
+        updateOffsets(ibun);
+        if(mSource[ich] != PedND){
+          amp = mOffset[ich] - amp;
+        }else{
+          LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
           amp = std::numeric_limits<float>::infinity();
         }
+        int tdc = isam_amp % nsbun;
         assignTDC(ibun, ibeg, iend, itdc, tdc, amp);
       }
       amp = std::numeric_limits<float>::infinity();
@@ -808,22 +825,18 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     if (amp <= ADCMax) {
       // Store identified peak
       int ibun = ibeg + isam_amp / nsbun;
-      int tdc = isam_amp % nsbun;
-      // Look for offset
-      auto orbit = mBCData[ibun].ir.orbit;
-      std::map<uint32_t, int>::iterator it = mOrbit.find(orbit);
-      if (it != mOrbit.end()) {
-        // Subtract pedestal
-        auto& orbitdata = mOrbitData[it->second];
-        amp = orbitdata.asFloat(ich) - amp;
-      } else {
-        LOG(ERROR) << "Missing pedestal";
+      updateOffsets(ibun);
+      if(mSource[ich] != PedND){
+        amp = mOffset[ich] - amp;
+      }else{
+        LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
         amp = std::numeric_limits<float>::infinity();
       }
+      int tdc = isam_amp % nsbun;
       assignTDC(ibun, ibeg, iend, itdc, tdc, amp);
     }
   }
-}
+} // interpolate
 
 void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float amp)
 {
@@ -865,7 +878,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
                << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";
   }
-}
+} // assignTDC
 
 } // namespace zdc
 } // namespace o2

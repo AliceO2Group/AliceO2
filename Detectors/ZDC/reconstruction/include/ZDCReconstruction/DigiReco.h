@@ -81,6 +81,7 @@ class DigiReco
 
  private:
   const ModuleConfig* mModuleConfig = nullptr;                                /// Trigger/readout configuration object
+  void updateOffsets(int ibun);                                               /// Update offsets to process current bunch
   int reconstruct(int seq_beg, int seq_end);                                  /// Main method for data reconstruction
   void processTrigger(int itdc, int ibeg, int iend);                          /// Replay of trigger algorithm on acquired data
   void interpolate(int itdc, int ibeg, int iend);                             /// Interpolation of samples to evaluate signal amplitude and arrival time
@@ -102,6 +103,9 @@ class DigiReco
   gsl::span<const o2::zdc::ChannelData> mChData;    /// Payload
   std::vector<o2::zdc::RecEventAux> mReco;          /// Reconstructed data
   std::map<uint32_t, int> mOrbit;                   /// Information about orbit
+  float mOffset[NChannels];                         /// Offset in current orbit
+  uint32_t mOrbit = 0xffffffff;                     /// Current orbit
+  uint8_t mSource[NChannels];                       /// Source of pedestal
   static constexpr int mNSB = TSN * NTimeBinsPerBC; /// Total number of interpolated points per bunch crossing
   RecEventAux mRec;                                 /// Debug reconstruction event
   int mNBC = 0;
