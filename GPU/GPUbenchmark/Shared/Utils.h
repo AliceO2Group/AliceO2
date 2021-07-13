@@ -116,48 +116,48 @@ class ResultWriter
  public:
   explicit ResultWriter(const std::string resultsTreeFilename = "benchmark_results.root");
   ~ResultWriter() = default;
-  void storeBenchmarkEntry(const std::string bName, const std::string type, int chunk, float entry);
+  void storeBenchmarkEntry(int chunk, float entry);
   void storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry);
   void addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks);
-  void snapshotBenchmark(const std::string bName, const std::string type);
-  void saveToFile(std::string filename = "benchmark_results.root");
+  void snapshotBenchmark();
+  void saveToFile();
 
  private:
-  std::string mResultsTreeFilename = "benchmark_results.root"; // output filename
-  // std::unordered_map<std::string, std::vector<float>> mBenchmarksChunk;
-  // std::unordered_map<std::string, std::vector<float>> mBenchmarksRegions;
   std::vector<float> mBenchmarkResults;
-  TBranch* mTmpBranch;
-  TTree* mTree;
+  std::vector<TTree*> mBenchmarkTrees;
+  TFile* mOutfile;
 };
 
 inline ResultWriter::ResultWriter(const std::string resultsTreeFilename)
 {
-  mResultsTreeFilename = resultsTreeFilename;
-  mTree = new TTree("GPUbenchmarks", "GPUbenchmarks");
+  mOutfile = TFile::Open(resultsTreeFilename.data(), "recreate");
 }
 
 inline void ResultWriter::addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks)
 {
-  mTmpBranch = mTree->Branch((bName + "_" + type).data(), &mBenchmarkResults);
+  mBenchmarkTrees.emplace_back(new TTree((bName + "_" + type).data(), (bName + "_" + type).data()));
+  mBenchmarkResults.clear();
   mBenchmarkResults.resize(nChunks);
+  mBenchmarkTrees.back()->Branch("elapsed", &mBenchmarkResults);
 }
 
-inline void ResultWriter::storeBenchmarkEntry(const std::string bName, const std::string type, int chunk, float entry)
+inline void ResultWriter::storeBenchmarkEntry(int chunk, float entry)
 {
   mBenchmarkResults[chunk] = entry;
 }
 
-inline void ResultWriter::snapshotBenchmark(const std::string bName, const std::string type)
+inline void ResultWriter::snapshotBenchmark()
 {
-  mTree->Fill();
+  mBenchmarkTrees.back()->Fill();
 }
 
-inline void ResultWriter::saveToFile(std::string filename)
+inline void ResultWriter::saveToFile()
 {
-  auto file = TFile::Open(filename.data(), "recreate");
-  mTree->Write();
-  file->Close();
+  mOutfile->cd();
+  for (auto t : mBenchmarkTrees) {
+    t->Write();
+  }
+  mOutfile->Close();
 }
 
 inline void ResultWriter::storeEntryForRegion(std::string benchmarkName, std::string region, std::string type, float entry)

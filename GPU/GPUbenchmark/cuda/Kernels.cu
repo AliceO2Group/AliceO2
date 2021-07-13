@@ -402,7 +402,7 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
 {
   switch (sl) {
     case SplitLevel::Blocks: {
-      mResultWriter.get()->addBenchmarkEntry("seq_R_SB", getType<chunk_type>(), mState.getMaxChunks());
+      mResultWriter.get()->addBenchmarkEntry("seq_read_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getPartitionCapacity()};
@@ -419,16 +419,16 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
                                       mState.scratchPtr,
                                       capacity,
                                       mState.chunkReservedGB);
-          mResultWriter.get()->storeBenchmarkEntry("seq_R_SB", getType<chunk_type>(), iChunk, result);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
         }
-        mResultWriter.get()->snapshotBenchmark("seq_R_SB", getType<chunk_type>());
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
-      mResultWriter->saveToFile();
       break;
     }
 
     case SplitLevel::Threads: {
+      mResultWriter.get()->addBenchmarkEntry("seq_read_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getPartitionCapacity()};
@@ -445,8 +445,9 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
                                       mState.scratchPtr,
                                       capacity,
                                       mState.chunkReservedGB);
-          // mResultWriter.get()->storeBenchmarkEntry("seq_R_MB", std::to_string(iChunk), getType<chunk_type>(), result);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
@@ -459,6 +460,7 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
 {
   switch (sl) {
     case SplitLevel::Blocks: {
+      mResultWriter.get()->addBenchmarkEntry("conc_read_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
@@ -476,14 +478,15 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
                                       capacity,
                                       mState.chunkReservedGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          auto region = getCorrespondingRegionId(iResult, mState.getMaxChunks(), nRegions);
-          // mResultWriter.get()->storeEntryForRegion("conc_R_SB", std::to_string(region), getType<chunk_type>(), results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
     }
     case SplitLevel::Threads: {
+      mResultWriter.get()->addBenchmarkEntry("conc_read_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
@@ -501,9 +504,9 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
                                       capacity,
                                       mState.chunkReservedGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          auto region = getCorrespondingRegionId(iResult, nBlocks, nRegions);
-          // mResultWriter.get()->storeEntryForRegion("conc_R_MB", std::to_string(region), getType<chunk_type>(), results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
@@ -533,6 +536,7 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
 {
   switch (sl) {
     case SplitLevel::Blocks: {
+      mResultWriter.get()->addBenchmarkEntry("seq_write_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getPartitionCapacity()};
@@ -549,14 +553,16 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
                                       mState.scratchPtr,
                                       capacity,
                                       mState.chunkReservedGB);
-          // mResultWriter.get()->storeBenchmarkEntry("seq_W_SB", std::to_string(iChunk), getType<chunk_type>(), result);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
     }
 
     case SplitLevel::Threads: {
+      mResultWriter.get()->addBenchmarkEntry("seq_write_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getPartitionCapacity()};
@@ -573,8 +579,9 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
                                       mState.scratchPtr,
                                       capacity,
                                       mState.chunkReservedGB);
-          // mResultWriter.get()->storeBenchmarkEntry("seq_W_MB", std::to_string(iChunk), getType<chunk_type>(), result);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
@@ -587,6 +594,7 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
 {
   switch (sl) {
     case SplitLevel::Blocks: {
+      mResultWriter.get()->addBenchmarkEntry("conc_write_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
@@ -604,14 +612,15 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
                                       capacity,
                                       mState.chunkReservedGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          auto region = getCorrespondingRegionId(iResult, mState.getMaxChunks(), nRegions);
-          // mResultWriter.get()->storeEntryForRegion("conc_W_SB", std::to_string(region), getType<chunk_type>(), results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
     }
     case SplitLevel::Threads: {
+      mResultWriter.get()->addBenchmarkEntry("conc_write_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
@@ -629,9 +638,9 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
                                       capacity,
                                       mState.chunkReservedGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          auto region = getCorrespondingRegionId(iResult, nBlocks, nRegions);
-          // mResultWriter.get()->storeEntryForRegion("conc_W_MB", std::to_string(region), getType<chunk_type>(), results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
@@ -662,6 +671,7 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
 {
   switch (sl) {
     case SplitLevel::Blocks: {
+      mResultWriter.get()->addBenchmarkEntry("seq_copy_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getPartitionCapacity()};
@@ -678,14 +688,16 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
                                       mState.scratchPtr,
                                       capacity,
                                       mState.chunkReservedGB);
-          // mResultWriter.get()->storeBenchmarkEntry("seq_C_SB", std::to_string(iChunk), getType<chunk_type>(), result);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
     }
 
     case SplitLevel::Threads: {
+      mResultWriter.get()->addBenchmarkEntry("seq_copy_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto capacity{mState.getPartitionCapacity()};
@@ -702,8 +714,9 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
                                       mState.scratchPtr,
                                       capacity,
                                       mState.chunkReservedGB);
-          // mResultWriter.get()->storeBenchmarkEntry("seq_C_MB", std::to_string(iChunk), getType<chunk_type>(), result);
+          mResultWriter.get()->storeBenchmarkEntry(iChunk, result);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
@@ -716,6 +729,7 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
 {
   switch (sl) {
     case SplitLevel::Blocks: {
+      mResultWriter.get()->addBenchmarkEntry("conc_copy_SB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
@@ -733,14 +747,15 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
                                       capacity,
                                       mState.chunkReservedGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
-          auto region = getCorrespondingRegionId(iResult, mState.getMaxChunks(), nRegions);
-          // mResultWriter.get()->storeEntryForRegion("conc_W_SB", std::to_string(region), getType<chunk_type>(), results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
     }
     case SplitLevel::Threads: {
+            mResultWriter.get()->addBenchmarkEntry("conc_copy_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
@@ -759,8 +774,9 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
                                       mState.chunkReservedGB);
         for (auto iResult{0}; iResult < results.size(); ++iResult) {
           auto region = getCorrespondingRegionId(iResult, nBlocks, nRegions);
-          // mResultWriter.get()->storeEntryForRegion("conc_C_MB", std::to_string(region), getType<chunk_type>(), results[iResult]);
+          mResultWriter.get()->storeBenchmarkEntry(iResult, results[iResult]);
         }
+        mResultWriter.get()->snapshotBenchmark();
         std::cout << "\033[1;32m complete\033[0m" << std::endl;
       }
       break;
@@ -790,32 +806,32 @@ void GPUbenchmark<chunk_type>::run()
   readInit();
   // Reading in whole memory
   readSequential(SplitLevel::Blocks);
-  // readSequential(SplitLevel::Threads);
+  readSequential(SplitLevel::Threads);
 
-  // // Reading in memory regions
-  // readConcurrent(SplitLevel::Blocks);
-  // readConcurrent(SplitLevel::Threads);
+  // Reading in memory regions
+  readConcurrent(SplitLevel::Blocks);
+  readConcurrent(SplitLevel::Threads);
   readFinalize();
 
-  // writeInit();
-  // // Write on whole memory
-  // writeSequential(SplitLevel::Blocks);
-  // writeSequential(SplitLevel::Threads);
+  writeInit();
+  // Write on whole memory
+  writeSequential(SplitLevel::Blocks);
+  writeSequential(SplitLevel::Threads);
 
-  // // Write on memory regions
-  // writeConcurrent(SplitLevel::Blocks);
-  // writeConcurrent(SplitLevel::Threads);
-  // writeFinalize();
+  // Write on memory regions
+  writeConcurrent(SplitLevel::Blocks);
+  writeConcurrent(SplitLevel::Threads);
+  writeFinalize();
 
-  // copyInit();
-  // // Copy from input buffer (size = nChunks) on whole memory
-  // copySequential(SplitLevel::Blocks);
-  // copySequential(SplitLevel::Threads);
+  copyInit();
+  // Copy from input buffer (size = nChunks) on whole memory
+  copySequential(SplitLevel::Blocks);
+  copySequential(SplitLevel::Threads);
 
-  // // Copy from input buffer (size = nChunks) on memory regions
-  // copyConcurrent(SplitLevel::Blocks);
-  // copyConcurrent(SplitLevel::Threads);
-  // copyFinalize();
+  // Copy from input buffer (size = nChunks) on memory regions
+  copyConcurrent(SplitLevel::Blocks);
+  copyConcurrent(SplitLevel::Threads);
+  copyFinalize();
 
   GPUbenchmark<chunk_type>::globalFinalize();
 }

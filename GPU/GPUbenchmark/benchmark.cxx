@@ -62,14 +62,17 @@ int main(int argc, const char* argv[])
     return -1;
   }
 
-  std::shared_ptr<ResultWriter> streamer = std::make_shared<ResultWriter>();
+  std::shared_ptr<ResultWriter> writer = std::make_shared<ResultWriter>();
 
-  // o2::benchmark::GPUbenchmark<char> bm_char{opts, streamer};
-  // bm_char.run();
-  // o2::benchmark::GPUbenchmark<int> bm_int{opts, streamer};
-  // bm_int.run();
-  o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, streamer};
+  o2::benchmark::GPUbenchmark<char> bm_char{opts, writer};
+  bm_char.run();
+  o2::benchmark::GPUbenchmark<int> bm_int{opts, writer};
+  bm_int.run();
+  o2::benchmark::GPUbenchmark<size_t> bm_size_t{opts, writer};
   bm_size_t.run();
+
+  // save results
+  writer.get()->saveToFile();
 
   return 0;
 }

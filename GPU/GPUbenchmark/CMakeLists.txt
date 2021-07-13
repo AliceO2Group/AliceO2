@@ -33,7 +33,6 @@ if(HIP_ENABLED)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CU_KERNEL})
     message("Generating HIP kernel code ...")
     execute_process(COMMAND /bin/sh -c "${HIPIFY_EXECUTABLE} --quiet-warnings ${CU_KERNEL} | sed '1{/\\#include \"hip\\/hip_runtime.h\"/d}' > ${HIP_KERNEL_PATH}")
-# sed '1{/\#include \"hip\/hip_runtime.h\"/d}'
     elseif()
     message(STATUS "Could not generate ${HIP_KERNEL} HIP kernel, skipping...")
   endif()
