@@ -77,7 +77,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet = false);
+framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet = false, bool askDISTSTF = true);
 
 } // namespace tof
 } // namespace o2
