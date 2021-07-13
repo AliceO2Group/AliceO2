@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test TPC QC
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-#include "TPCQC/TrackCuts.h"
+/*
+ * SimCutParams.cxx
+ *
+ *  Created on: Feb 18, 2019
+ *      Author: Sandro Wenzel
+ */
 
-BOOST_AUTO_TEST_CASE(ReadWriteROOTFile)
-{
-  o2::tpc::qc::TrackCuts trackcuts;
-}
+#include "SimConfig/SimParams.h"
+O2ParamImpl(o2::conf::SimCutParams);
+O2ParamImpl(o2::conf::SimMaterialParams);

@@ -19,6 +19,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <Rtypes.h>
 
 namespace o2
 {
@@ -58,11 +59,21 @@ struct ClusterStruct {
     }
     return (((chamberId & 0xF) << 28) | ((deId & 0x7FF) << 17) | clusterIndex);
   }
+
+  ClassDefNV(ClusterStruct, 1)
 };
 
 std::ostream& operator<<(std::ostream& stream, const ClusterStruct& cluster);
-
 } // namespace mch
 } // namespace o2
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::mch::ClusterStruct> : std::true_type {
+};
+} // namespace framework
 
 #endif // ALICEO2_MCH_CLUSTERBLOCK_H_

@@ -32,7 +32,7 @@ if [ $NUMAGPUIDS != 0 ]; then
 fi
 
 # Set some individual workflow arguments depending on configuration
-CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP,FV0,TRD
+CTF_DETECTORS=ITS,MFT,TPC,TOF,FT0,MID,EMC,PHS,CPV,ZDC,FDD,HMP,FV0,TRD,MCH
 CTF_DIR=
 CTF_DICT_DIR=
 GPU_INPUT=zsraw
@@ -44,10 +44,12 @@ TOF_OUTPUT=clusters
 ITS_CONFIG=
 ITS_CONFIG_KEY=
 TRD_CONFIG=
+TRD_TRANSFORMER_CONFIG=
 if [ $SYNCMODE == 1 ]; then
   ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
   GPU_CONFIG_KEY+="GPU_global.synchronousProcessing=1;GPU_proc.clearO2OutputFromGPU=1;"
-  TRD_CONFIG+=" --tracking-sources ITS-TPC --configKeyValues 'GPU_proc.ompThreads=1;'"
+  TRD_CONFIG+=" --tracking-sources ITS-TPC --filter-trigrec --configKeyValues 'GPU_proc.ompThreads=1;'"
+  TRD_TRANSFORMER_CONFIG+=" --filter-trigrec"
 else
   TRD_CONFIG+=" --tracking-sources TPC,ITS-TPC"
 fi
@@ -87,12 +89,16 @@ if [ $EPNPIPELINES != 0 ]; then
   N_TPCENT=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_TPCITS=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
   N_ITSDEC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
-  N_EMC=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_EMC=$(($(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 7 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TRDENT=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
+  N_TRDTRK=$(($(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) > 0 ? $(expr 3 \* $EPNPIPELINES \* $NGPUS / 4) : 1))
 else
   N_TPCENT=1
   N_TPCITS=1
   N_ITSDEC=1
   N_EMC=1
+  N_TRDENT=1
+  N_TRDTRK=1
 fi
 
 # Input workflow
@@ -104,7 +110,7 @@ if [ $CTFINPUT == 1 ]; then
   if [ ! -z $CTF_DICT_DIR ] ; then CTF_DICT=" --ctf-dict ${CTF_DICT_DIR}/ctf_dictionary.root"; fi
   WORKFLOW="o2-ctf-reader-workflow --ctf-input ${CTFName}  ${CTF_DICT} --onlyDet $CTF_DETECTORS $ARGS_ALL  | "
 elif [ $EXTINPUT == 1 ]; then
-  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"FLP:FLP/DISTSUBTIMEFRAME/0;B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA;J:ZDC/RAWDATA;K:HMP/RAWDATA;L:FDD/RAWDATA;M:TRD/RAWDATA;N:FV0/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=0\" | "
+  WORKFLOW="o2-dpl-raw-proxy $ARGS_ALL --dataspec \"FLP:FLP/DISTSUBTIMEFRAME/0;B:TPC/RAWDATA;C:ITS/RAWDATA;D:TOF/RAWDATA;D:MFT/RAWDATA;E:FT0/RAWDATA;F:MID/RAWDATA;G:EMC/RAWDATA;H:PHS/RAWDATA;I:CPV/RAWDATA;J:ZDC/RAWDATA;K:HMP/RAWDATA;L:FDD/RAWDATA;M:TRD/RAWDATA;N:FV0/RAWDATA;O:MCH/RAWDATA\" --channel-config \"name=readout-proxy,type=pull,method=connect,address=ipc://@$INRAWCHANNAME,transport=shmem,rateLogging=0\" | "
 else
   WORKFLOW="o2-raw-file-reader-workflow --detect-tf0 $ARGS_ALL --configKeyValues \"HBFUtils.nHBFPerTF=$NHBPERTF;\" --delay $TFDELAY --loop $NTIMEFRAMES --max-tf 0 --input-conf rawAll.cfg | "
 fi
@@ -116,6 +122,7 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-ft0-flp-dpl-workflow $ARGS_ALL --disable-root-output | "
   WORKFLOW+="o2-fv0-flp-dpl-workflow $ARGS_ALL --disable-root-output | "
   WORKFLOW+="o2-mid-raw-to-digits-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-mch-raw-to-digits-workflow $ARGS_ALL | "
   WORKFLOW+="o2-tof-compressor $ARGS_ALL | "
   WORKFLOW+="o2-fdd-flp-dpl-workflow --disable-root-output $ARGS_ALL | "
   WORKFLOW+="o2-trd-datareader $ARGS_ALL | "
@@ -127,7 +134,7 @@ WORKFLOW+="o2-gpu-reco-workflow ${ARGS_ALL/--severity $SEVERITY/--severity $SEVE
 WORKFLOW+="o2-tpcits-match-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC --pipeline itstpc-track-matcher:$N_TPCITS | "
 WORKFLOW+="o2-ft0-reco-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
 WORKFLOW+="o2-tof-reco-workflow $ARGS_ALL --input-type $TOF_INPUT --output-type $TOF_OUTPUT --disable-root-input --disable-root-output $DISABLE_MC | "
-WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --root-in 0 --root-out 0 | "
+WORKFLOW+="o2-trd-tracklet-transformer $ARGS_ALL --disable-root-input --disable-root-output $TRD_TRANSFORMER_CONFIG --pipeline TRDTRACKLETTRANSFORMER:$N_TRDTRK | "
 WORKFLOW+="o2-trd-global-tracking $ARGS_ALL --disable-root-input --disable-root-output $TRD_CONFIG | "
 
 # Workflows disabled in sync mode
@@ -136,6 +143,7 @@ if [ $SYNCMODE == 0 ]; then
 
   WORKFLOW+="o2-tof-matcher-workflow $ARGS_ALL --disable-root-input --disable-root-output $DISABLE_MC | "
   WORKFLOW+="o2-mid-reco-workflow $ARGS_ALL --disable-root-output $DISABLE_MC | "
+  WORKFLOW+="o2-mch-reco-workflow $ARGS_ALL | "
   WORKFLOW+="o2-mft-reco-workflow $ARGS_ALL --clusters-from-upstream $DISABLE_MC --disable-root-output | "
   WORKFLOW+="o2-primary-vertexing-workflow $ARGS_ALL $DISABLE_MC --disable-root-input --disable-root-output --validate-with-ft0 | "
   WORKFLOW+="o2-secondary-vertexing-workflow $ARGS_ALL --disable-root-input --disable-root-output | "
@@ -157,13 +165,14 @@ if [ $CTFINPUT == 0 ]; then
   WORKFLOW+="o2-ft0-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-fv0-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-mid-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-mch-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-phos-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-cpv-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-emcal-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-zdc-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-fdd-entropy-encoder-workflow $ARGS_ALL | "
   WORKFLOW+="o2-hmpid-entropy-encoder-workflow $ARGS_ALL | "
-  WORKFLOW+="o2-trd-entropy-encoder-workflow $ARGS_ALL | "
+  WORKFLOW+="o2-trd-entropy-encoder-workflow $ARGS_ALL --pipeline trd-entropy-encoder:$N_TRDENT | "
   WORKFLOW+="o2-tpc-reco-workflow --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline tpc-entropy-encoder:$N_TPCENT $ARGS_ALL | "
 
   WORKFLOW+="o2-tpc-scdcalib-interpolation-workflow $ARGS_ALL --disable-root-output --disable-root-input | "

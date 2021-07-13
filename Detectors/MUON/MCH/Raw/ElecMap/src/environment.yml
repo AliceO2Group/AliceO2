@@ -1,0 +1,9 @@
+name: mch-elecmap
+channels:
+ - conda-forge
+dependencies:
+ - oauth2client
+ - gspread
+ - numpy
+ - pandas
+ - clang-tools

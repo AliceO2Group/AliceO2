@@ -25,7 +25,7 @@
 #include "DetectorsBase/Detector.h"
 #include "DetectorsPassive/Cave.h"
 #include "SimConfig/SimConfig.h"
-#include "SimConfig/SimCutParams.h"
+#include "SimConfig/SimParams.h"
 #include <TRandom.h>
 #include "FairLogger.h"
 #include "TGeoManager.h"

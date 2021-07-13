@@ -34,6 +34,7 @@
 #include "DataFormatsMCH/TrackMCH.h"
 #include "MCHBase/ClusterBlock.h"
 #include "MCHBase/TrackBlock.h"
+#include "TrackAtVtxStruct.h"
 
 namespace o2
 {
@@ -99,14 +100,6 @@ class TrackSamplerTask
       rofs.emplace_back(o2::InteractionRecord{0, event++}, tracks.size() - nTracks, nTracks);
     }
   }
-
- private:
-  struct TrackAtVtxStruct {
-    TrackParamStruct paramAtVertex{};
-    double dca = 0.;
-    double rAbs = 0.;
-    int mchTrackIdx = 0;
-  };
 
   //_________________________________________________________________________________________________
   int readOneEvent(std::vector<TrackMCH, o2::pmr::polymorphic_allocator<TrackMCH>>& tracks,

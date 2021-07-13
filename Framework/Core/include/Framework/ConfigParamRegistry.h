@@ -21,6 +21,24 @@
 #include <string>
 #include <cassert>
 
+namespace
+{
+template <typename T>
+constexpr auto isSimpleType()
+{
+  return std::is_same_v<T, int> ||
+         std::is_same_v<T, uint8_t> ||
+         std::is_same_v<T, uint16_t> ||
+         std::is_same_v<T, uint32_t> ||
+         std::is_same_v<T, uint64_t> ||
+         std::is_same_v<T, int64_t> ||
+         std::is_same_v<T, long> ||
+         std::is_same_v<T, float> ||
+         std::is_same_v<T, double> ||
+         std::is_same_v<T, bool>;
+}
+} // namespace
+
 namespace o2::framework
 {
 class ConfigParamStore;
@@ -54,12 +72,7 @@ class ConfigParamRegistry
   {
     assert(mStore.get());
     try {
-      if constexpr (std::is_same_v<T, int> ||
-                    std::is_same_v<T, int64_t> ||
-                    std::is_same_v<T, long> ||
-                    std::is_same_v<T, float> ||
-                    std::is_same_v<T, double> ||
-                    std::is_same_v<T, bool>) {
+      if constexpr (isSimpleType<T>()) {
         return mStore->store().get<T>(key);
       } else if constexpr (std::is_same_v<T, std::string>) {
         return mStore->store().get<std::string>(key);

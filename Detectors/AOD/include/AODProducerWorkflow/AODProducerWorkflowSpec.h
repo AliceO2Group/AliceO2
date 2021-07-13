@@ -29,6 +29,7 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTRD/TrackTRD.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 
 #include <string>
@@ -39,6 +40,7 @@
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
+using GIndex = o2::dataformats::VtxTrackIndex;
 using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
@@ -145,17 +147,16 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(std::shared_ptr<DataRequest> dataRequest, bool fillSVertices) : mDataRequest(dataRequest), mFillSVertices(fillSVertices) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool fillSVertices) : mInputSources(src), mDataRequest(dataRequest), mFillSVertices(fillSVertices) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  int mFillTracksITS{1};
-  int mFillTracksMFT{1};
-  int mFillTracksTPC{0};
-  int mFillTracksITSTPC{1};
+  const float cSpeed = 0.029979246f; // speed of light in TOF units
+
+  GID::mask_t mInputSources;
   int64_t mTFNumber{-1};
   int mTruncate{1};
   int mRecoOnly{0};
@@ -198,6 +199,7 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
 
+  // helper struct for extra info in fillTrackTablesPerCollision()
   struct TrackExtraInfo {
     float tpcInnerParam = 0.f;
     uint32_t flags = 0;
@@ -220,6 +222,15 @@ class AODProducerWorkflowDPL : public Task
     float trackPhiEMCAL = -999.f;
   };
 
+  // helper struct for mc track labels
+  struct MCLabels {
+    uint32_t labelID = std::numeric_limits<uint32_t>::max();
+    uint32_t labelITS = std::numeric_limits<uint32_t>::max();
+    uint32_t labelTPC = std::numeric_limits<uint32_t>::max();
+    uint16_t labelMask = 0;
+    uint8_t mftLabelMask = 0;
+  };
+
   void collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
                   gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
@@ -237,12 +248,37 @@ class AODProducerWorkflowDPL : public Task
   template <typename mftTracksCursorType>
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, const o2::mft::TrackMFT& track, int collisionID);
 
+  // helper for track tables
+  // fills tables collision by collision
+  // interaction time is for TOF information
+  template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename mftTracksCursorType>
+  void fillTrackTablesPerCollision(int collisionID,
+                                   double interactionTime,
+                                   const o2::dataformats::VtxTrackRef& trackRef,
+                                   gsl::span<const GIndex>& GIndices,
+                                   o2::globaltracking::RecoContainer& data,
+                                   TracksCursorType& tracksCursor,
+                                   TracksCovCursorType& tracksCovCursor,
+                                   TracksExtraCursorType& tracksExtraCursor,
+                                   mftTracksCursorType& mftTracksCursor);
+
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS, std::vector<bool>& isStoredITS,
-                            gsl::span<const o2::MCCompLabel>& mcTruthMFT, std::vector<bool>& isStoredMFT,
-                            gsl::span<const o2::MCCompLabel>& mcTruthTPC, std::vector<bool>& isStoredTPC,
-                            TripletsMap_t& toStore, std::vector<std::pair<int, int>> const& mccolidtoeventsource);
+                            gsl::span<const o2::MCCompLabel>& mcTruthITS,
+                            gsl::span<const o2::MCCompLabel>& mcTruthMFT,
+                            gsl::span<const o2::MCCompLabel>& mcTruthTPC,
+                            TripletsMap_t& toStore,
+                            std::vector<std::pair<int, int>> const& mccolidtoeventsource);
+
+  // helper for tpc clusters
+  void countTPCClusters(const o2::tpc::TrackTPC& track,
+                        const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
+                        const gsl::span<const unsigned char>& tpcClusShMap,
+                        const o2::tpc::ClusterNativeAccess& tpcClusAcc,
+                        uint8_t& shared, uint8_t& found, uint8_t& crossed);
+
+  // helper for trd pattern
+  uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 };
 
 /// create a processor spec

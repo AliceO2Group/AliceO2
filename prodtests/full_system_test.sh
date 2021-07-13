@@ -111,6 +111,7 @@ taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link  -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link  -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink
+taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-per-link
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link -o raw/CPV

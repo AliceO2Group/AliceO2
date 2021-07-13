@@ -17,7 +17,6 @@
 
 #pragma link C++ class o2::tpc::qc::PID+;
 #pragma link C++ class o2::tpc::qc::Tracking + ;
-#pragma link C++ class o2::tpc::qc::TrackCuts+;
 #pragma link C++ class o2::tpc::qc::Clusters+;
 #pragma link C++ class o2::tpc::qc::Tracks+;
 #pragma link C++ class o2::tpc::qc::CalPadWrapper+;

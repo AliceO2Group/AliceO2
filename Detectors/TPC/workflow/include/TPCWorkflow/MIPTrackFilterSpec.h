@@ -9,22 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRD_TRACKING_WORKFLOW_H
-#define O2_TRD_TRACKING_WORKFLOW_H
+/// \file MIPTrackFilterSpec.h
+/// \brief Workflow to filter MIP tracks and streams them to other devices.
+/// \author Thiago Badaró <thiago.saramela@usp.br>
 
-/// @file   TRDTrackingWorkflow.h
+#ifndef O2_TPC_MIPTRACKFILTERSPEC_H_
+#define O2_TPC_MIPTRACKFILTERSPEC_H_
 
-#include "Framework/WorkflowSpec.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "Framework/DataProcessorSpec.h"
 
-namespace o2
+using namespace o2::framework;
+
+namespace o2::tpc
 {
-namespace trd
-{
 
-framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, o2::dataformats::GlobalTrackID::mask_t srcTRD);
+/// create a processor spec
+o2::framework::DataProcessorSpec getMIPTrackFilterSpec();
 
-} // namespace trd
-} // namespace o2
+} // namespace o2::tpc
 
-#endif
+#endif // O2_TPC_MIPTRACKFILTERSPEC_H_

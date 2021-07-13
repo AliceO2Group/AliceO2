@@ -33,6 +33,7 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/Hit.h
                        include/DataFormatsTRD/Digit.h
                        include/DataFormatsTRD/CTF.h
+                       include/DataFormatsTRD/CalVdriftExB.h
                        include/DataFormatsTRD/SignalArray.h
                        include/DataFormatsTRD/CompressedDigit.h
                        include/DataFormatsTRD/CompressedHeader.h)

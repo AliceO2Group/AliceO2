@@ -37,6 +37,7 @@ IntegratingMerger::IntegratingMerger(const MergerConfig& config, const header::D
 
 void IntegratingMerger::init(framework::InitContext& ictx)
 {
+  mCyclesSinceReset = 0;
   mCollector = monitoring::MonitoringFactory::Get(mConfig.monitoringUrl);
   mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
 }
@@ -69,13 +70,23 @@ void IntegratingMerger::run(framework::ProcessingContext& ctx)
   }
 
   if (ctx.inputs().isValid("timer-publish")) {
-
+    mCyclesSinceReset++;
     publish(ctx.outputs());
 
-    if (mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference) {
-      mMergedObject = std::monostate{};
+    if (mConfig.mergedObjectTimespan.value == MergedObjectTimespan::LastDifference ||
+        mConfig.mergedObjectTimespan.value == MergedObjectTimespan::NCycles && mConfig.mergedObjectTimespan.param == mCyclesSinceReset) {
+      clear();
     }
   }
+}
+
+// I am not calling it reset(), because it does not have to be performed during the FairMQs reset.
+void IntegratingMerger::clear()
+{
+  mMergedObject = std::monostate{};
+  mCyclesSinceReset = 0;
+  mTotalDeltasMerged = 0;
+  mDeltasMerged = 0;
 }
 
 void IntegratingMerger::publish(framework::DataAllocator& allocator)
@@ -83,7 +94,7 @@ void IntegratingMerger::publish(framework::DataAllocator& allocator)
   mTotalDeltasMerged += mDeltasMerged;
 
   if (std::holds_alternative<std::monostate>(mMergedObject)) {
-    LOG(INFO) << "Nothing to publish yet";
+    LOG(INFO) << "No objects received since start or reset, nothing to publish";
   } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
     allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec},
                        *std::get<MergeInterfacePtr>(mMergedObject));
@@ -100,6 +111,7 @@ void IntegratingMerger::publish(framework::DataAllocator& allocator)
 
   mCollector->send({mTotalDeltasMerged, "total_deltas_merged"}, monitoring::DerivedMetricMode::RATE);
   mCollector->send({mDeltasMerged, "deltas_merged_since_last_publication"});
+  mCollector->send({mCyclesSinceReset, "cycles_since_reset"});
   mDeltasMerged = 0;
 }
 
