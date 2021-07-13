@@ -168,21 +168,23 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
   }
 
   /** loop over inputs routes **/
-  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    if (!iit.isValid()) {
-      continue;
-    }
+  std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}}};
+  for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
+    //  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+    //    if (!iit.isValid()) {
+    //      continue;
+    //    }
 
     /** loop over input parts **/
-    for (auto const& ref : iit) {
-      const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      auto payloadIn = ref.payload;
-      auto payloadInSize = headerIn->payloadSize;
+    //    for (auto const& ref : iit) {
+    const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto payloadIn = ref.payload;
+    auto payloadInSize = headerIn->payloadSize;
 
-      DecoderBase::setDecoderBuffer(payloadIn);
-      DecoderBase::setDecoderBufferSize(payloadInSize);
-      DecoderBase::run();
-    }
+    DecoderBase::setDecoderBuffer(payloadIn);
+    DecoderBase::setDecoderBufferSize(payloadInSize);
+    DecoderBase::run();
+    //    }
   }
 }
 
