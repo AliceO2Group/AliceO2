@@ -265,6 +265,9 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           }
           addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID, src);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
+          // collecting table indices of barrel tracks for V0s table
+          mV0sIndices[trackIndex.getIndex()] = mTableTrID;
+          mTableTrID++;
         }
       }
     }
@@ -532,11 +535,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto primVerGIs = recoData.getPrimaryVertexMatchedTracks();
   auto primVerLabels = recoData.getPrimaryVertexMCLabels();
 
-  // temporary placeholder
-  if (mFillSVertices) {
-    auto secVertices = recoData.getV0s();
-    auto p2secRefs = recoData.getPV2V0Refs();
-  }
+  auto secVertices = recoData.getV0s();
 
   auto ft0ChData = recoData.getFT0ChannelsData();
   auto ft0RecPoints = recoData.getFT0RecPoints();
@@ -553,36 +552,38 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
-  auto& mcColLabelsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISIONLABEL"});
+  auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
   auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
+  auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
+  auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
+  auto& mcColLabelsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISIONLABEL"});
   auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
+  auto& mcMFTTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCMFTTRACKLABEL"});
+  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
+  auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
+  auto& mftTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"});
   auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK"});
   auto& tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV"});
   auto& tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
-  auto& mftTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"});
-  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE"});
-  auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
-  auto& mcMFTTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCMFTTRACKLABEL"});
-  auto& fv0aBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0A"});
-  auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
-  auto& fv0cBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FV0C"});
+  auto& v0sBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "V0S"});
   auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
-  auto mcColLabelsCursor = mcColLabelsBuilder.cursor<o2::aod::McCollisionLabels>();
+  auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
-  auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
-  auto tracksCursor = tracksBuilder.cursor<o2::aodproducer::TracksTable>();
-  auto tracksCovCursor = tracksCovBuilder.cursor<o2::aodproducer::TracksCovTable>();
-  auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aodproducer::TracksExtraTable>();
-  auto mftTracksCursor = mftTracksBuilder.cursor<o2::aodproducer::MFTTracksTable>();
-  auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aodproducer::MCParticlesTable>();
-  auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
-  auto mcMFTTrackLabelCursor = mcMFTTrackLabelBuilder.cursor<o2::aod::McMFTTrackLabels>();
   auto fv0aCursor = fv0aBuilder.cursor<o2::aod::FV0As>();
   auto fv0cCursor = fv0cBuilder.cursor<o2::aod::FV0Cs>();
-  auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
+  auto mcColLabelsCursor = mcColLabelsBuilder.cursor<o2::aod::McCollisionLabels>();
+  auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
+  auto mcMFTTrackLabelCursor = mcMFTTrackLabelBuilder.cursor<o2::aod::McMFTTrackLabels>();
+  auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aodproducer::MCParticlesTable>();
+  auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
+  auto mftTracksCursor = mftTracksBuilder.cursor<o2::aodproducer::MFTTracksTable>();
+  auto tracksCovCursor = tracksCovBuilder.cursor<o2::aodproducer::TracksCovTable>();
+  auto tracksCursor = tracksBuilder.cursor<o2::aodproducer::TracksTable>();
+  auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aodproducer::TracksExtraTable>();
+  auto v0sCursor = v0sBuilder.cursor<o2::aod::StoredV0s>();
   auto zdcCursor = zdcBuilder.cursor<o2::aod::Zdcs>();
 
   o2::steer::MCKinematicsReader mcReader("collisioncontext.root");
@@ -749,11 +750,15 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     mcColLabelsCursor(0, mcCollisionID, mcMask);
   }
 
+  // hash map for track indices of secondary vertices
+  std::unordered_map<int, int> v0sIndices;
+
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
   // fixme: interaction time is undefined for unassigned tracks (?)
-  fillTrackTablesPerCollision(-1, -1, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
+  fillTrackTablesPerCollision(-1, -1, trackRef, primVerGIs, recoData,
+                              tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
 
   // filling collisions and tracks into tables
   int collisionID = 0;
@@ -793,9 +798,30 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                      collisionTimeMask);
     auto& trackRef = primVer2TRefs[collisionID];
     // passing interaction time in [ps]
-    fillTrackTablesPerCollision(collisionID, tsTimeStamp * 1E3, trackRef, primVerGIs, recoData, tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
+    fillTrackTablesPerCollision(collisionID, tsTimeStamp * 1E3, trackRef, primVerGIs, recoData,
+                                tracksCursor, tracksCovCursor, tracksExtraCursor, mftTracksCursor);
     collisionID++;
   }
+
+  // filling v0s table
+  for (auto& svertex : secVertices) {
+    auto trPosID = svertex.getProngID(0);
+    auto trNegID = svertex.getProngID(1);
+    int posTableIdx = -1;
+    int negTableIdx = -1;
+    LOG(DEBUG) << "V0s: " << trPosID.getIndex() << " " << trNegID.getIndex();
+    auto item = mV0sIndices.find(trPosID.getIndex());
+    if (item != mV0sIndices.end()) {
+      posTableIdx = item->second;
+    }
+    item = mV0sIndices.find(trNegID.getIndex());
+    if (item != mV0sIndices.end()) {
+      negTableIdx = item->second;
+    }
+    v0sCursor(0, posTableIdx, negTableIdx);
+  }
+
+  mV0sIndices.clear();
 
   // filling BC table
   // TODO: get real triggerMask
@@ -936,42 +962,41 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool fillSVertices)
+DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
-  if (fillSVertices) {
-    dataRequest->requestSecondaryVertertices(useMC);
-  }
+  dataRequest->requestSecondaryVertertices(useMC);
   dataRequest->requestFT0RecPoints(false);
   dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mccollisionlabel"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mcmfttracklabel"}, "AOD", "MCMFTTRACKLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2track"}, "AOD", "TRACK", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackcov"}, "AOD", "TRACKCOV", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mcparticle"}, "AOD", "MCPARTICLE", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mcmfttracklabel"}, "AOD", "MCMFTTRACKLABEL", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-  outputs.emplace_back(OutputLabel{"O2fv0a"}, "AOD", "FV0A", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2fv0c"}, "AOD", "FV0C", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2v0"}, "AOD", "V0S", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
 
   return DataProcessorSpec{
     "aod-producer-workflow",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest, fillSVertices)},
+    AlgorithmSpec{adaptFromTask<AODProducerWorkflowDPL>(src, dataRequest)},
     Options{
       ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
