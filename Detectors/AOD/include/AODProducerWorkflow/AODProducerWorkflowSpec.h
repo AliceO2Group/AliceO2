@@ -147,7 +147,7 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool fillSVertices) : mInputSources(src), mDataRequest(dataRequest), mFillSVertices(fillSVertices) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest) : mInputSources(src), mDataRequest(dataRequest) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -160,8 +160,12 @@ class AODProducerWorkflowDPL : public Task
   int64_t mTFNumber{-1};
   int mTruncate{1};
   int mRecoOnly{0};
-  bool mFillSVertices{false};
   TStopwatch mTimer;
+
+  // unordered map connects global indices and table indices of barrel tracks
+  // the map is used for V0s table filling
+  std::unordered_map<int, int> mV0sIndices;
+  int mTableTrID{0};
 
   std::shared_ptr<DataRequest> mDataRequest;
 
@@ -249,8 +253,8 @@ class AODProducerWorkflowDPL : public Task
   void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, const o2::mft::TrackMFT& track, int collisionID);
 
   // helper for track tables
-  // fills tables collision by collision
-  // interaction time is for TOF information
+  // * fills tables collision by collision
+  // * interaction time is for TOF information
   template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename mftTracksCursorType>
   void fillTrackTablesPerCollision(int collisionID,
                                    double interactionTime,
@@ -282,7 +286,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool fillSVertices);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC);
 
 } // namespace o2::aodproducer
 
