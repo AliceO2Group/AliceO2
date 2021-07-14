@@ -21,7 +21,6 @@ void RecEventFlat::init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::
   mInfo = Info;
   mEntry = 0;
   mNEntries = mRecBC->size();
-  printf("There are %u entries\n",mNEntries);
 }
 
 int RecEventFlat::next()
@@ -40,7 +39,7 @@ int RecEventFlat::next()
     auto& myenergy = mEnergy->at(i);
     ezdc[myenergy.ch()] = myenergy.energy();
   }
-
+  mEntry++;
   return mEntry;
 }
 
