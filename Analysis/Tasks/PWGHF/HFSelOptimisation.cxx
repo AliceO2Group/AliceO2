@@ -34,17 +34,17 @@ static constexpr int nCutsToTestImpParProd = 11;
 static constexpr int nCutsToTestMinDCAxy = 9;
 static constexpr int nCutsToTestMinTrackPt = 7;
 
-constexpr float cospCuts[nCutsToTestCosp] = {0.70, 0.75, 0.80, 0.85, 0.88, 0.90, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 0.995};
-constexpr float decLenCuts[nCutsToTestDecLen] = {0., 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.075, 0.1};
-constexpr float impParProdCuts[nCutsToTestImpParProd] = {-0.00005, -0.00004, -0.00003, -0.00002, -0.00001, 0., 0.00001, 0.00002, 0.00003, 0.00004, 0.00005};
-constexpr float minDCAxyCuts[nCutsToTestMinDCAxy] = {0., 0.0005, 0.001, 0.0015, 0.0020, 0.0025, 0.0030, 0.0040, 0.0050};
-constexpr float minTrackPtCuts[nCutsToTestMinTrackPt] = {0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60};
+constexpr float cutsCosp[nCutsToTestCosp] = {0.70, 0.75, 0.80, 0.85, 0.88, 0.90, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 0.995};
+constexpr float cutsDecLen[nCutsToTestDecLen] = {0., 0.005, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.075, 0.1};
+constexpr float cutsImpParProd[nCutsToTestImpParProd] = {-0.00005, -0.00004, -0.00003, -0.00002, -0.00001, 0., 0.00001, 0.00002, 0.00003, 0.00004, 0.00005};
+constexpr float cutsMinDCAxy[nCutsToTestMinDCAxy] = {0., 0.0005, 0.001, 0.0015, 0.0020, 0.0025, 0.0030, 0.0040, 0.0050};
+constexpr float cutsMinTrackPt[nCutsToTestMinTrackPt] = {0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60};
 
-auto cutsVecCosp = std::vector<float>{cospCuts, cospCuts + nCutsToTestCosp};
-auto cutsVecDecLen = std::vector<float>{decLenCuts, decLenCuts + nCutsToTestDecLen};
-auto cutsVecImpParProd = std::vector<float>{impParProdCuts, impParProdCuts + nCutsToTestImpParProd};
-auto cutsVecMinDCAxy = std::vector<float>{minDCAxyCuts, minDCAxyCuts + nCutsToTestMinDCAxy};
-auto cutsVecMinTrackPt = std::vector<float>{minTrackPtCuts, minTrackPtCuts + nCutsToTestMinTrackPt};
+auto vecCutsCosp = std::vector<float>{cutsCosp, cutsCosp + nCutsToTestCosp};
+auto vecCutsDecLen = std::vector<float>{cutsDecLen, cutsDecLen + nCutsToTestDecLen};
+auto vecCutsImpParProd = std::vector<float>{cutsImpParProd, cutsImpParProd + nCutsToTestImpParProd};
+auto vecCutsMinDCAxy = std::vector<float>{cutsMinDCAxy, cutsMinDCAxy + nCutsToTestMinDCAxy};
+auto vecCutsMinTrackPt = std::vector<float>{cutsMinTrackPt, cutsMinTrackPt + nCutsToTestMinTrackPt};
 
 static const int n2Prong = o2::aod::hf_cand_prong2::DecayType::N2ProngDecays;
 static const int n3Prong = o2::aod::hf_cand_prong3::DecayType::N3ProngDecays;
@@ -87,11 +87,11 @@ static constexpr std::array<std::array<std::string_view, n3Prong + 1>, 3> histoN
 
 struct HfSelOptimisation {
 
-  Configurable<std::vector<float>> cutsToTestCosp{"cutsToTestCosp", std::vector<float>{cutsVecCosp}, "cos(theta_P) cut values to test"};
-  Configurable<std::vector<float>> cutsToTestDecLen{"cutsToTestDecLen", std::vector<float>{cutsVecDecLen}, "decay length cut values to test"};
-  Configurable<std::vector<float>> cutsToTestImpParProd{"cutsToTestImpParProd", std::vector<float>{cutsVecImpParProd}, "impact parameter product cut values to test (2-prongs only)"};
-  Configurable<std::vector<float>> cutsToTestMinDCAxy{"cutsToTestMinDCAxy", std::vector<float>{cutsVecMinDCAxy}, "min DCA xy cut values to test"};
-  Configurable<std::vector<float>> cutsToTestMinTrackPt{"cutsToTestMinTrackPt", std::vector<float>{cutsVecMinTrackPt}, "min track pT cut values to test"};
+  Configurable<std::vector<float>> cutsToTestCosp{"cutsToTestCosp", std::vector<float>{vecCutsCosp}, "cos(theta_P) cut values to test"};
+  Configurable<std::vector<float>> cutsToTestDecLen{"cutsToTestDecLen", std::vector<float>{vecCutsDecLen}, "decay length cut values to test"};
+  Configurable<std::vector<float>> cutsToTestImpParProd{"cutsToTestImpParProd", std::vector<float>{vecCutsImpParProd}, "impact parameter product cut values to test (2-prongs only)"};
+  Configurable<std::vector<float>> cutsToTestMinDCAxy{"cutsToTestMinDCAxy", std::vector<float>{vecCutsMinDCAxy}, "min DCA xy cut values to test"};
+  Configurable<std::vector<float>> cutsToTestMinTrackPt{"cutsToTestMinTrackPt", std::vector<float>{vecCutsMinTrackPt}, "min track pT cut values to test"};
 
   ConfigurableAxis ptBinning{"ptBinning", {0, 0., 2., 5., 20.}, "pT bin limits"};
 
@@ -143,31 +143,31 @@ struct HfSelOptimisation {
     registry.get<TH1>(HIST(histoNames2Prong[candOrig][candType].data()))->Fill(pT);
 
     for (int iCospCut = 0; iCospCut < cutsToTestCosp->size(); iCospCut++) {
-      if (candidate.cpa() > cospCuts[iCospCut]) {
+      if (candidate.cpa() > cutsCosp[iCospCut]) {
         registry.get<TH2>(HIST(histoNamesCosp2Prong[candOrig][candType].data()))->Fill(pT, iCospCut + 1);
       }
     }
 
     for (int iDecLenCut = 0; iDecLenCut < cutsToTestDecLen->size(); iDecLenCut++) {
-      if (candidate.decayLength() > decLenCuts[iDecLenCut]) {
+      if (candidate.decayLength() > cutsDecLen[iDecLenCut]) {
         registry.get<TH2>(HIST(histoNamesDecLen2Prong[candOrig][candType].data()))->Fill(pT, iDecLenCut + 1);
       }
     }
 
     for (int iImpParProd = 0; iImpParProd < cutsToTestImpParProd->size(); iImpParProd++) {
-      if (candidate.impactParameterProduct() < impParProdCuts[iImpParProd]) {
+      if (candidate.impactParameterProduct() < cutsImpParProd[iImpParProd]) {
         registry.get<TH2>(HIST(histoNamesImpParProd2Prong[candOrig][candType].data()))->Fill(pT, iImpParProd + 1);
       }
     }
 
     for (int iMinDCAxy = 0; iMinDCAxy < cutsToTestMinDCAxy->size(); iMinDCAxy++) {
-      if (absDCA[0] > minDCAxyCuts[iMinDCAxy]) {
+      if (absDCA[0] > cutsMinDCAxy[iMinDCAxy]) {
         registry.get<TH2>(HIST(histoNamesMinDCAxy2Prong[candOrig][candType].data()))->Fill(pT, iMinDCAxy + 1);
       }
     }
 
     for (int iMinTrackPt = 0; iMinTrackPt < cutsToTestMinTrackPt->size(); iMinTrackPt++) {
-      if (ptTrack[0] > minTrackPtCuts[iMinTrackPt]) {
+      if (ptTrack[0] > cutsMinTrackPt[iMinTrackPt]) {
         registry.get<TH2>(HIST(histoNamesMinTrackPt2Prong[candOrig][candType].data()))->Fill(pT, iMinTrackPt + 1);
       }
     }
@@ -190,25 +190,25 @@ struct HfSelOptimisation {
     registry.get<TH1>(HIST(histoNames3Prong[candOrig][candType].data()))->Fill(pT);
 
     for (int iCospCut = 0; iCospCut < cutsToTestCosp->size(); iCospCut++) {
-      if (candidate.cpa() > cospCuts[iCospCut]) {
+      if (candidate.cpa() > cutsCosp[iCospCut]) {
         registry.get<TH2>(HIST(histoNamesCosp3Prong[candOrig][candType].data()))->Fill(pT, iCospCut + 1);
       }
     }
 
     for (int iDecLenCut = 0; iDecLenCut < cutsToTestDecLen->size(); iDecLenCut++) {
-      if (candidate.decayLength() > decLenCuts[iDecLenCut]) {
+      if (candidate.decayLength() > cutsDecLen[iDecLenCut]) {
         registry.get<TH2>(HIST(histoNamesDecLen3Prong[candOrig][candType].data()))->Fill(pT, iDecLenCut + 1);
       }
     }
 
     for (int iMinDCAxy = 0; iMinDCAxy < cutsToTestMinDCAxy->size(); iMinDCAxy++) {
-      if (absDCA[0] > minDCAxyCuts[iMinDCAxy]) {
+      if (absDCA[0] > cutsMinDCAxy[iMinDCAxy]) {
         registry.get<TH2>(HIST(histoNamesMinDCAxy3Prong[candOrig][candType].data()))->Fill(pT, iMinDCAxy + 1);
       }
     }
 
     for (int iMinTrackPt = 0; iMinTrackPt < cutsToTestMinTrackPt->size(); iMinTrackPt++) {
-      if (ptTrack[0] > minTrackPtCuts[iMinTrackPt]) {
+      if (ptTrack[0] > cutsMinTrackPt[iMinTrackPt]) {
         registry.get<TH2>(HIST(histoNamesMinTrackPt3Prong[candOrig][candType].data()))->Fill(pT, iMinTrackPt + 1);
       }
     }
