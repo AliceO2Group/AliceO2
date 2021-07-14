@@ -15,7 +15,8 @@
 #include "DataFormatsCTP/Scalers.h"
 #include <iostream>
 
-using namespace o2::ctp
+using namespace o2::ctp;
+
 void CTPScalerRaw::printStream(std::ostream& stream) const
 {
   stream << "RAW LMB:" << lmBefore << " LMA:" << lmAfter;
@@ -30,12 +31,27 @@ void CTPScalerO2::printStream(std::ostream& stream) const
 }
 void CTPScalerRecordRaw::printStream(std::ostream& stream) const
 {
-  intRecord.printStream(stream);
+  stream << "Orbit:" << intRecord.orbit << " BC:" << intRecord.bc << std::endl;
   for(auto const& cnts: scalers) {
       cnts.printStream(stream);
   }
 }
 void CTPScalerRecordO2::printStream(std::ostream& stream) const
 {
-  intRecord.printStream(stream);
+  stream << "Orbit:" << intRecord.orbit << " BC:" << intRecord.bc << std::endl;
+  for(auto const& cnts: scalers) {
+      cnts.printStream(stream);
+  }
+}
+void CTPRunScalers::printStream(std::ostream& stream) const
+{
+  stream << "CTP Scalers (version" << mVersion << ") Run:" << mRunNumber << std::endl;
+  for(auto const& rec: mScalerRecordRaw) {
+      rec.printStream(stream);
+  }
+}
+void CTPRunScalers::printClasses(std::ostream& stream) const
+{
+  for(int i=0;i<mClassMask.size(); i++) {
+  }
 }

@@ -28,6 +28,7 @@ namespace ctp
 /// - ZeroMQ published at CTP control machine
 /// - CTPreadout to FLP
 struct  CTPScalerRaw {
+  CTPScalerRaw() = default;
   uint8_t classIndex;
   uint32_t lmBefore;
   uint32_t lmAfter;
@@ -40,6 +41,7 @@ struct  CTPScalerRaw {
 };
 /// Scalers produced from raw scalers corrected for overflow
 struct  CTPScalerO2 {
+  CTPScalerO2() = default;
   uint8_t classIndex;
   uint64_t lmBefore;
   uint64_t lmAfter;
@@ -52,6 +54,7 @@ struct  CTPScalerO2 {
 };
 struct CTPScalerRecordRaw
 {
+  CTPScalerRecordRaw() = default;
   o2::InteractionRecord intRecord;
   std::vector<CTPScalerRaw> scalers;
   void printStream(std::ostream& stream) const;
@@ -59,6 +62,7 @@ struct CTPScalerRecordRaw
 };
 struct CTPScalerRecordO2
 {
+  CTPScalerRecordO2() = default;
   o2::InteractionRecord intRecord;
   std::vector<CTPScalerO2> scalers;
   void printStream(std::ostream& stream) const;
@@ -67,6 +71,9 @@ struct CTPScalerRecordO2
 class CTPRunScalers
 {
  public:
+  CTPRunScalers() = default;
+  void printStream(std::ostream& stream) const;
+  void printClasses(std::ostream& stream) const;
  private:
   uint8_t mVersion;
   uint32_t mRunNumber;
