@@ -14,29 +14,30 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
-#include "DataFormatsFT0/RecPoints.h"
-#include "Framework/AnalysisDataModel.h"
-#include "Framework/AnalysisHelpers.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-#include "TStopwatch.h"
 #include "CCDB/BasicCCDBManager.h"
-#include "Steer/MCKinematicsReader.h"
-#include "SimulationDataFormat/MCCompLabel.h"
-#include "ReconstructionDataFormats/PrimaryVertex.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsMFT/TrackMFT.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "Framework/AnalysisDataModel.h"
+#include "Framework/AnalysisHelpers.h"
+#include "Framework/DataProcessorSpec.h"
+#include "Framework/Task.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/VtxTrackIndex.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "Steer/MCKinematicsReader.h"
+#include "TStopwatch.h"
 
-#include <string>
-#include <vector>
+#include <boost/functional/hash.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/unordered_map.hpp>
-#include <boost/functional/hash.hpp>
+#include <string>
+#include <vector>
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -164,7 +165,7 @@ class AODProducerWorkflowDPL : public Task
 
   // unordered map connects global indices and table indices of barrel tracks
   // the map is used for V0s table filling
-  std::unordered_map<int, int> mV0sIndices;
+  std::unordered_map<GIndex, int> mV0sIndices;
   int mTableTrID{0};
 
   std::shared_ptr<DataRequest> mDataRequest;

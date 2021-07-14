@@ -43,6 +43,7 @@
 #include "FT0Base/Geometry.h"
 #include "TMath.h"
 #include "MathUtils/Utils.h"
+
 #include <map>
 #include <unordered_map>
 #include <vector>
@@ -266,7 +267,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID, src);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
           // collecting table indices of barrel tracks for V0s table
-          mV0sIndices[trackIndex.getIndex()] = mTableTrID;
+          mV0sIndices.emplace(trackIndex, mTableTrID);
           mTableTrID++;
         }
       }
@@ -809,18 +810,18 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto trNegID = svertex.getProngID(1);
     int posTableIdx = -1;
     int negTableIdx = -1;
-    LOG(DEBUG) << "V0s: " << trPosID.getIndex() << " " << trNegID.getIndex();
-    auto item = mV0sIndices.find(trPosID.getIndex());
+    auto item = mV0sIndices.find(trPosID);
     if (item != mV0sIndices.end()) {
       posTableIdx = item->second;
     }
-    item = mV0sIndices.find(trNegID.getIndex());
+    item = mV0sIndices.find(trNegID);
     if (item != mV0sIndices.end()) {
       negTableIdx = item->second;
     }
     v0sCursor(0, posTableIdx, negTableIdx);
   }
 
+  mTableTrID = 0;
   mV0sIndices.clear();
 
   // filling BC table
