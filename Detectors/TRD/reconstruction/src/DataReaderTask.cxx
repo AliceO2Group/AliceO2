@@ -47,7 +47,7 @@ void DataReaderTask::init(InitContext& ic)
 void DataReaderTask::sendData(ProcessingContext& pc, bool blankframe)
 {
   if (!blankframe) {
-    mReader.buildDPLOutputs(pc);
+    mReader.buildDPLOutputs(pc, mDataVerbose);
   } else {
     //ensure the objects we are sending back are indeed blank.
     //TODO maybe put this in buildDPLOutputs so sending all done in 1 place, not now though.
@@ -127,7 +127,6 @@ void DataReaderTask::run(ProcessingContext& pc)
           if (mVerbose) {
             LOG(info) << "relevant vectors to read : " << mReader.sumTrackletsFound() << " tracklets and " << mReader.sumDigitsFound() << " compressed digits";
           }
-          //  mTriggers = mReader.getIR();
         } else { // we have compressed data coming in from flp.
           mCompressedReader.setDataBuffer(payloadIn);
           mCompressedReader.setDataBufferSize(payloadInSize);
