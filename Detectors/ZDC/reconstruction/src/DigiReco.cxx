@@ -525,11 +525,10 @@ void DigiReco::updateOffsets(int ibun)
   for (int ich = 0; ich < NChannels; ich++) {
     if(mSource[ich] == PedND){
       LOGF(ERROR, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
-    }else{
-#ifdef O2_ZDC_DEBUG
-      LOGF(ERROR, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"));
-#endif
     }
+#ifdef O2_ZDC_DEBUG
+    LOGF(INFO, "Pedestal for ch %2d %s orbit %u %s: %f", ich, ChannelNames[ich], mOffsetOrbit, mSource[ich] == PedOr ? "OR" : (mSource[ich] == PedQC ? "QC" : "??"), mOffset[ich]);
+#endif
   }
 } // updateOffsets
 
