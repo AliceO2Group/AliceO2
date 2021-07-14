@@ -64,6 +64,11 @@ void EventRecord::addTracklets(std::vector<Tracklet64>& tracklets)
   //mTracklets.insert(mTracklets.back(), tracklets.begin(),tracklets.back());
 }
 
+void EventRecord::sortByHCID()
+{
+  // sort the tracklets by HCID
+  std::stable_sort(std::begin(mTracklets), std::end(mTracklets), [this](const Tracklet64& trackleta, const Tracklet64& trackletb) { return trackleta.getHCID() < trackletb.getHCID(); });
+}
 // now for event storage
 void EventStorage::addDigits(InteractionRecord& ir, Digit& digit)
 {
@@ -160,7 +165,7 @@ void EventStorage::unpackData(std::vector<TriggerRecord>& triggers, std::vector<
   }
 }
 
-void EventStorage::sendData(o2::framework::ProcessingContext& pc)
+void EventStorage::sendData(o2::framework::ProcessingContext& pc, bool displaytracklets)
 {
   //at this point we know the total number of tracklets and digits and triggers.
   uint64_t trackletcount = 0;
@@ -174,11 +179,24 @@ void EventStorage::sendData(o2::framework::ProcessingContext& pc)
   std::vector<TriggerRecord> triggers;
   triggers.reserve(triggercount);
   for (auto& event : mEventRecords) {
+    //sort tracklets
+    event.sortByHCID();
+    //TODO do this sort in parallel over the events
     tracklets.insert(std::end(tracklets), std::begin(event.getTracklets()), std::end(event.getTracklets()));
     digits.insert(std::end(digits), std::begin(event.getDigits()), std::end(event.getDigits()));
     triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());
     digitcount += event.getDigits().size();
     trackletcount += event.getTracklets().size();
+  }
+  if (displaytracklets) { // this is purely for trivial debugging purposes
+    for (auto& event : mEventRecords) {
+      LOG(info) << "***** Event : " << event.getBCData() << " digit count : " << event.getDigits().size() << " tracklet count : " << event.getTracklets().size();
+      auto& trackletv = event.getTracklets();
+      for (auto& tracklt : trackletv) {
+        LOG(info) << "        " << std::distance(trackletv.begin(), trackletv.end()) << " " << tracklt;
+      }
+      LOG(info) << "*****";
+    }
   }
   LOG(info) << "Sending data onwards with " << digits.size() << " Digits and " << tracklets.size() << " Tracklets and " << triggers.size() << " Triggers";
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "DIGITS", 0, o2::framework::Lifetime::Timeframe}, digits);
