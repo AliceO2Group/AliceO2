@@ -164,8 +164,8 @@ class AODProducerWorkflowDPL : public Task
   TStopwatch mTimer;
 
   // unordered map connects global indices and table indices of barrel tracks
-  // the map is used for V0s table filling
-  std::unordered_map<GIndex, int> mV0sIndices;
+  // the map is used for V0s and cascades
+  std::unordered_map<GIndex, int> mGIDToTableID;
   int mTableTrID{0};
 
   std::shared_ptr<DataRequest> mDataRequest;

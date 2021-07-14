@@ -30,6 +30,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/TableTreeHelpers.h"
 #include "GlobalTracking/MatchTOF.h"
+#include "ReconstructionDataFormats/Cascade.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -267,7 +268,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
           addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID, src);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
           // collecting table indices of barrel tracks for V0s table
-          mV0sIndices.emplace(trackIndex, mTableTrID);
+          mGIDToTableID.emplace(trackIndex, mTableTrID);
           mTableTrID++;
         }
       }
@@ -537,6 +538,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto primVerLabels = recoData.getPrimaryVertexMCLabels();
 
   auto secVertices = recoData.getV0s();
+  auto cascades = recoData.getCascades();
 
   auto ft0ChData = recoData.getFT0ChannelsData();
   auto ft0RecPoints = recoData.getFT0RecPoints();
@@ -552,6 +554,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   LOG(DEBUG) << "FOUND " << ft0RecPoints.size() << " FT0 rec. points";
 
   auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  auto& cascadesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CASCADE"});
   auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
   auto& fddBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "FDD"});
   auto& ft0Builder = pc.outputs().make<TableBuilder>(Output{"AOD", "FT0"});
@@ -570,6 +573,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
 
   auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
+  auto cascadesCursor = cascadesBuilder.cursor<o2::aod::StoredCascades>();
   auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
   auto fddCursor = fddBuilder.cursor<o2::aod::FDDs>();
   auto ft0Cursor = ft0Builder.cursor<o2::aod::FT0s>();
@@ -810,19 +814,30 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto trNegID = svertex.getProngID(1);
     int posTableIdx = -1;
     int negTableIdx = -1;
-    auto item = mV0sIndices.find(trPosID);
-    if (item != mV0sIndices.end()) {
+    auto item = mGIDToTableID.find(trPosID);
+    if (item != mGIDToTableID.end()) {
       posTableIdx = item->second;
     }
-    item = mV0sIndices.find(trNegID);
-    if (item != mV0sIndices.end()) {
+    item = mGIDToTableID.find(trNegID);
+    if (item != mGIDToTableID.end()) {
       negTableIdx = item->second;
     }
     v0sCursor(0, posTableIdx, negTableIdx);
   }
 
+  // filling cascades table
+  for (auto& cascade : cascades) {
+    auto bachelorID = cascade.getBachelorID();
+    int bachTableIdx = -1;
+    auto item = mGIDToTableID.find(bachelorID);
+    if (item != mGIDToTableID.end()) {
+      bachTableIdx = item->second;
+    }
+    cascadesCursor(0, cascade.getV0ID(), bachTableIdx);
+  }
+
   mTableTrID = 0;
-  mV0sIndices.clear();
+  mGIDToTableID.clear();
 
   // filling BC table
   // TODO: get real triggerMask
@@ -975,6 +990,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC)
   dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false);
 
   outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"O2cascade"}, "AOD", "CASCADE", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2collision"}, "AOD", "COLLISION", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2fdd"}, "AOD", "FDD", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ft0"}, "AOD", "FT0", 0, Lifetime::Timeframe);
