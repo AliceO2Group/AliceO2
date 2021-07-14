@@ -1,0 +1,342 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+#include <boost/program_options.hpp>
+#include <string>
+#include <iostream>
+#include <Algorithm/RangeTokenizer.h>
+#include <regex>
+#include "Steer/InteractionSampler.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "SimulationDataFormat/DigitizationContext.h"
+#include <cmath>
+#include <TRandom.h>
+#include <numeric>
+#include <FairLogger.h>
+
+//
+// Created by Sandro Wenzel on 13.07.21.
+//
+
+// A utility to create/engineer (later modify/display) collision contexts
+
+// options struct filled from command line
+struct Options {
+  std::vector<std::string> interactionRates;
+  std::string outfilename;    //
+  double timeframelengthinMS; // timeframe length in milliseconds
+  long seed;                  //
+  bool printContext = false;
+  std::string bcpatternfile;
+};
+
+enum class InteractionLockMode {
+  NOLOCK,
+  EVERYN,
+  MINTIMEDISTANCE
+};
+
+struct InteractionSpec {
+  std::string name; // name (prefix for transport simulation); may also serve as unique identifier
+  float interactionRate;
+  std::pair<int, float> synconto; // if this interaction locks on another interaction; takes precedence over interactionRate
+  InteractionLockMode syncmode = InteractionLockMode::NOLOCK;
+  int mcnumberasked = -1;      // number of MC events asked (but can be left -1) in which case it will be determined from timeframelength
+  int mcnumberavail = -1;      // number of MC events avail (but can be left -1); if avail < asked there will be reuse of events
+  bool randomizeorder = false; // whether order of events will be randomized
+};
+
+InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<InteractionSpec> const& existingPatterns)
+{
+  // An interaction specification is a command-separated string
+  // of the following form:
+  // SPEC=NAMESTRING,INTERACTIONSTRING[,MCNUMBERSTRING]
+  //
+  // where
+  //
+  // NAMESTRING : a simple named specifier for the interaction; matching to a simulation prefix used by o2-sim
+  //
+  // INTERACTIONSTRING: irate | @ID:[ed]FLOATVALUE
+  //      - either: a simple number irate specifying the interaction rate in kHz
+  //      -     or: a string such as @0:e5, saying that this interaction should match/sync
+  //                with collisions of the 0-th interaction, but inject only every 5 collisions.
+  //                Alternatively @0:d10000 means to inject but leaving a timedistance of at least 10000ns between signals
+  //
+  // MCNUMBERSTRING: NUMBER1:r?NUMBER2 can specify how many collisions NUMBER1 to produce, taking from a sample of NUMBER2 available collisions
+  //      - this option is only supported on the first interaction which is supposed to be the background interaction
+  //      - if the 'r' character is present we randomize the order of the MC events
+
+  // tokens are separated by comma
+  std::vector<std::string> tokens = o2::RangeTokenizer::tokenize<std::string>(specifier);
+
+  float rate = -1.;
+  std::pair<int, float> synconto(-1, 1);
+
+  // extract name
+  std::string name = tokens[0];
+
+  // extract the MC number spec if given
+  int collisionsasked = -1;
+  int collisionsavail = -1;
+  bool randomizeorder = false;
+  if (tokens.size() > 2) {
+    auto mctoken = tokens[2];
+    std::regex re("([0-9]*):(r?)([0-9]*)$", std::regex_constants::extended);
+
+    std::cmatch m;
+    if (std::regex_match(mctoken.c_str(), m, re)) {
+      collisionsasked = std::atoi(m[1].str().c_str());
+      if (m[2].str().compare("r") == 0) {
+        randomizeorder = true;
+      }
+      collisionsavail = std::atoi(m[3].str().c_str());
+    } else {
+      LOG(ERROR) << "Could not parse " << mctoken << " as MCNUMBERSTRING";
+      exit(1);
+    }
+  }
+
+  // extract interaction rate ... or locking
+  auto& interactionToken = tokens[1];
+  if (interactionToken[0] == '@') {
+    try {
+      // locking onto some other interaction
+      std::regex re("@([0-9]*):([ed])([0-9]*[.]?[0-9]?)$", std::regex_constants::extended);
+
+      std::cmatch m;
+      if (std::regex_match(interactionToken.c_str(), m, re)) {
+        auto crossindex = std::atoi(m[1].str().c_str());
+        auto mode = m[2].str();
+        auto modevalue = std::atof(m[3].str().c_str());
+
+        if (crossindex > existingPatterns.size()) {
+          LOG(ERROR) << "Reference to non-existent interaction spec";
+          exit(1);
+        }
+        synconto = std::pair<int, float>(crossindex, modevalue);
+
+        InteractionLockMode lockMode;
+        if (mode.compare("e") == 0) {
+          lockMode = InteractionLockMode::EVERYN;
+        }
+        if (mode.compare("d") == 0) {
+          lockMode = InteractionLockMode::MINTIMEDISTANCE;
+        }
+        return InteractionSpec{name, rate, synconto, lockMode, collisionsasked, collisionsavail, randomizeorder};
+      } else {
+        LOG(ERROR) << "Could not parse " << interactionToken << " as INTERACTIONSTRING";
+        exit(1);
+      }
+    } catch (std::regex_error e) {
+      LOG(ERROR) << "Exception during regular expression match " << e.what();
+      exit(1);
+    }
+  } else {
+    rate = std::atof(interactionToken.c_str());
+    return InteractionSpec{name, rate, synconto, InteractionLockMode::NOLOCK, collisionsasked, collisionsavail, randomizeorder};
+  }
+}
+
+bool parseOptions(int argc, char* argv[], Options& optvalues)
+{
+  namespace bpo = boost::program_options;
+  bpo::options_description options(
+    "A utility to create and manipulate digitization contexts (MC collision structure within a timeframe).\n\n"
+    "Allowed options");
+
+  options.add_options()(
+    "interactions,i", bpo::value<std::vector<std::string>>(&optvalues.interactionRates)->multitoken(), "name,IRate|LockSpecifier")(
+    "outfile,o", bpo::value<std::string>(&optvalues.outfilename)->default_value("collisioncontext.root"), "Outfile of collision context")(
+    "tflength", bpo::value<double>(&optvalues.timeframelengthinMS)->default_value(-1.),
+    "Length of timeframe to generate in ms (if given). "
+    "Otherwise, the context will be generated by using collision numbers from the interaction specification.")(
+    "seed", bpo::value<long>(&optvalues.seed)->default_value(0L), "Seed for random number generator (for time sampling etc). Default 0: Random")(
+    "show-context", "Print generated collision context to terminal.")(
+    "bcPatternFile", bpo::value<std::string>(&optvalues.bcpatternfile)->default_value(""), "Interacting BC pattern file (e.g. from CreateBCPattern.C)");
+
+  // TODO:
+  // - ADD HBFUTIL interfacing + bc pattern ?
+
+  options.add_options()("help,h", "Produce help message.");
+
+  bpo::variables_map vm;
+  try {
+    bpo::store(bpo::command_line_parser(argc, argv).options(options).run(), vm);
+    bpo::notify(vm);
+
+    // help
+    if (vm.count("help")) {
+      std::cout << options << std::endl;
+      return false;
+    }
+    if (vm.count("show-context")) {
+      optvalues.printContext = true;
+    }
+
+  } catch (const bpo::error& e) {
+    std::cerr << e.what() << "\n\n";
+    std::cerr << "Error parsing options; Available options:\n";
+    std::cerr << options << std::endl;
+    return false;
+  }
+  return true;
+}
+
+int main(int argc, char* argv[])
+{
+  Options options;
+  if (!parseOptions(argc, argv, options)) {
+    exit(1);
+  }
+
+  // init random generator
+  gRandom->SetSeed(options.seed);
+
+  std::vector<InteractionSpec> ispecs;
+  // building the interaction spec
+  for (auto& i : options.interactionRates) {
+    // this is created as output from
+    ispecs.push_back(parseInteractionSpec(i, ispecs));
+  }
+
+  // do some cross checking on this
+  std::vector<o2::steer::InteractionSampler> samplers;
+
+  std::vector<std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>>> collisions;
+
+  // now we generate the collision structure (interaction type by interaction type)
+  bool usetimeframelength = options.timeframelengthinMS > 0;
+
+  for (int id = 0; id < ispecs.size(); ++id) {
+    auto mode = ispecs[id].syncmode;
+    if (mode == InteractionLockMode::NOLOCK) {
+      o2::steer::InteractionSampler sampler;
+      sampler.setInteractionRate(ispecs[id].interactionRate);
+      if (!options.bcpatternfile.empty()) {
+        sampler.setBunchFilling(options.bcpatternfile);
+      }
+      sampler.init();
+      o2::InteractionTimeRecord record;
+      int count = 0;
+      do {
+        record = sampler.generateCollisionTime();
+        std::vector<o2::steer::EventPart> parts;
+        parts.emplace_back(id, count);
+
+        std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> insertvalue(record, parts);
+        auto iter = std::lower_bound(collisions.begin(), collisions.end(), insertvalue, [](std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> const& a, std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> const& b) { return a.first < b.first; });
+        collisions.insert(iter, insertvalue);
+        count++;
+      } while ((usetimeframelength && record.getTimeNS() < options.timeframelengthinMS * 1000 * 1000) || (ispecs[id].mcnumberasked > 0 && count < ispecs[id].mcnumberasked));
+
+      // we support randomization etc on non-injected/embedded interactions
+      // and we can apply them here
+      auto random_shuffle = [](auto first, auto last) {
+        auto n = last - first;
+        for (auto i = n - 1; i > 0; --i) {
+          using std::swap;
+          swap(first[i], first[(int)(gRandom->Rndm() * n)]);
+        }
+      };
+      std::vector<int> eventindices(count);
+      std::iota(eventindices.begin(), eventindices.end(), 0);
+      // apply randomization of order if any
+      if (ispecs[id].randomizeorder) {
+        random_shuffle(eventindices.begin(), eventindices.end());
+      }
+      if (ispecs[id].mcnumberavail > 0) {
+        // apply cutting to number of available entries
+        for (auto& e : eventindices) {
+          e = e % ispecs[id].mcnumberavail;
+        }
+      }
+      // make these transformations final:
+      for (auto& col : collisions) {
+        for (auto& part : col.second) {
+          if (part.sourceID == id) {
+            part.entryID = eventindices[part.entryID];
+          }
+        }
+      }
+
+    } else {
+      // we are in some lock/sync mode and modify existing collisions
+      int lastcol = -1;
+      double lastcoltime = -1.;
+      auto distanceval = ispecs[id].synconto.second;
+      auto lockonto = ispecs[id].synconto.first;
+      int eventcount = 0;
+
+      for (int colid = 0; colid < collisions.size(); ++colid) {
+        auto& col = collisions[colid];
+        auto coltime = col.first.getTimeNS();
+
+        bool rightinteraction = false;
+        // we are locking only on collisions which have the referenced interaction present
+        // --> there must be an EventPart with the right sourceID
+        for (auto& eventPart : col.second) {
+          if (eventPart.sourceID == lockonto) {
+            rightinteraction = true;
+            break;
+          }
+        }
+        if (!rightinteraction) {
+          continue;
+        }
+
+        bool inject = false;
+        // we always start with first one
+        if (lastcol == -1) {
+          inject = true;
+        }
+        if (mode == InteractionLockMode::EVERYN && (colid - lastcol) >= distanceval) {
+          inject = true;
+        }
+        if (mode == InteractionLockMode::MINTIMEDISTANCE && (coltime - lastcoltime) >= distanceval) {
+          inject = true;
+        }
+
+        if (inject) {
+          col.second.emplace_back(id, eventcount++);
+          lastcol = colid;
+          lastcoltime = coltime;
+        }
+      }
+    }
+  }
+
+  // create DigitizationContext
+  o2::steer::DigitizationContext digicontext;
+  // we can fill this container
+  auto& parts = digicontext.getEventParts();
+  // we can fill this container
+  auto& records = digicontext.getEventRecords();
+  // copy over information
+  size_t maxParts = 0;
+  for (auto& p : collisions) {
+    records.push_back(p.first);
+    parts.push_back(p.second);
+    maxParts = std::max(p.second.size(), maxParts);
+  }
+  digicontext.setNCollisions(collisions.size());
+  digicontext.setMaxNumberParts(maxParts);
+  std::vector<std::string> prefixes;
+  for (auto& p : ispecs) {
+    prefixes.push_back(p.name);
+  }
+  digicontext.setSimPrefixes(prefixes);
+  if (options.printContext) {
+    digicontext.printCollisionSummary();
+  }
+  digicontext.saveToFile(options.outfilename);
+
+  return 0;
+}
