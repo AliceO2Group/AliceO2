@@ -17,12 +17,12 @@ void readFT0digits()
   TDirectory* cwd = gDirectory;
   gDirectory = 0x0;
 
-  TH2F* hMultDig = new TH2F("hMultDig", "amplitude  ", 210, 0, 210, 200, 0, 1000);
-  TH2F* hTimeDig = new TH2F("hTimeDig", "Time", 210, 0, 210, 100, -100, 100);
+  TH2F* hMultDig = new TH2F("hMultDig", "amplitude  ", 220, 0, 220, 200, 0, 1000);
+  TH2F* hTimeDig = new TH2F("hTimeDig", "Time", 220, 0, 220, 100, -100, 100);
   TH2F* hTimeDigMultA = new TH2F("hTimeDigMultA", "Time vs amplitude", 200, 0, 100, 100, -100, 100);
   TH2F* hTimeDigMultC = new TH2F("hTimeDigMultC", "Time vs amplitude", 200, 0, 100, 100, -100, 100);
   TH1F* hNchA = new TH1F("hNchA", "FT0-A", 100, 0, 100);
-  TH1F* hNchC = new TH1F("hNchC", "FT0-C", 100, 0, 100);
+  TH1F* hNchC = new TH1F("hNchC", "FT0-C", 110, 0, 110);
 
   gDirectory = cwd;
 
@@ -35,7 +35,7 @@ void readFT0digits()
   digTree->SetBranchAddress("FT0DIGITSBC", &ft0BCDataPtr);
   digTree->SetBranchAddress("FT0DIGITSCH", &ft0ChDataPtr);
 
-  float cfd[208], amp[208];
+  float cfd[216], amp[216];
   for (int ient = 0; ient < digTree->GetEntries(); ient++) {
     digTree->GetEntry(ient);
 
@@ -43,7 +43,7 @@ void readFT0digits()
     std::cout << "Entry " << ient << " : " << nbc << " BCs stored" << std::endl;
     for (int ibc = 0; ibc < nbc; ibc++) {
       auto& bcd = digitsBC[ibc];
-      for (int ii = 0; ii < 208; ii++) {
+      for (int ii = 0; ii < 216; ii++) {
         cfd[ii] = amp[ii] = 0;
       }
 
