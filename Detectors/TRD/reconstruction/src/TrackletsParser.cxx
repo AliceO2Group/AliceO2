@@ -90,11 +90,10 @@ int TrackletsParser::Parse()
     if (mState == StateFinished) {
       return mWordsRead;
     }
-    //  for (uint32_t index = start; index < end; index++) { // loop over the entire cru payload.
-    //loop over all the words ... duh
+    //loop over all the words ...
     //check for tracklet end marker 0x1000 0x1000
-    int index = std::distance(mStartParse, word);  //mData->begin());
-    int indexend = std::distance(word, mEndParse); //mData->begin());
+    int index = std::distance(mStartParse, word);
+    int indexend = std::distance(word, mEndParse);
     std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>::iterator nextword = word;
     std::advance(nextword, 1);
     uint32_t nextwordcopy = *nextword;
@@ -131,8 +130,6 @@ int TrackletsParser::Parse()
         mWordsRead++;
         mState = StateTrackletEndMarker;
       }
-
-      //
       return mWordsRead;
     }
     if (*word == o2::trd::constants::CRUPADDING32) {
@@ -150,13 +147,9 @@ int TrackletsParser::Parse()
           LOG(warn) << "Something wrong with TrackletHCHeader bit 11 is set but state is not " << StateTrackletMCMHeader << " its :" << mState;
         }
         //read the header
-        //we actually have an header word.
+        //we actually have a header word.
         mTrackletHCHeader = (TrackletHCHeader*)&word;
         //sanity check of trackletheader ??
-        //if (!trackletHCHeaderSanityCheck(*mTrackletHCHeader)) {
-        //  LOG(warn) << "Sanity check Failure HCHeader : " << std::hex << *word;
-        //}
-
         mWordsRead++;
         mState = StateTrackletMCMHeader;                                // now we should read a MCMHeader next time through loop
                                                                         //    TRDStatCounters.LinkPadWordCounts[mHCID]++; // keep track off all the padding words.
@@ -177,9 +170,6 @@ int TrackletsParser::Parse()
         } else {
           mState = StateTrackletMCMData;
           //tracklet data;
-          // build tracklet.
-          //for the case of on flp build a vector of tracklets, then pack them into a data stream with a header.
-          //for dpl build a vector and connect it with a triggerrecord.
           mTrackletMCMData = (TrackletMCMData*)&(*word);
           if (mDataVerbose) {
             LOG(info) << std::hex << *word << "  read a raw tracklet from the raw stream mcmheader ";
@@ -211,6 +201,11 @@ int TrackletsParser::Parse()
           int pos = mTrackletMCMData->pos;
           int slope = mTrackletMCMData->slope;
           int hcid = mDetector * 2 + mRobSide;
+          if (mDataVerbose) {
+            LOG(info) << "Tracklet HCID : " << hcid << " mDetector:" << mDetector << " robside:" << mRobSide;
+          }
+          //TODO cross reference hcid to somewhere for a check. mDetector is assigned at the time of parser init.
+          //
           mTracklets.emplace_back(4, hcid, padrow, col, pos, slope, q0, q1, q2); // our format is always 4
           if (mDataVerbose) {
             LOG(info) << "Tracklet added:" << 4 << "-" << hcid << "-" << padrow << "-" << col << "-" << pos << "-" << slope << "-" << q0 << ":" << q1 << ":" << q2;
@@ -224,12 +219,9 @@ int TrackletsParser::Parse()
             auto nextdataword = std::next(word, 1);
             // the check is unambigous between trackletendmarker and mcmheader
             if ((*nextdataword) == constants::TRACKLETENDMARKER) {
-              //    LOG(info) << "Next up we should be finished parsing next line should say found tracklet end markers ";
-              //   LOG(info) << "changing state to Trackletendmarker from mcmdata";
               mState = StateTrackletEndMarker;
             } else {
               mState = StateTrackletMCMHeader;
-              //   LOG(info) << "changing state to TrackletMCmheader from mcmdata";
             }
           }
           if (mcmtrackletcount > 3) {
@@ -237,11 +229,6 @@ int TrackletsParser::Parse()
           }
         }
       }
-
-      //accounting ....
-      // mCurrentLinkDataPosition256++;
-      // mCurrentHalfCRUDataPosition256++;
-      // mTotalHalfCRUDataLength++;
     } // else
     trackletloopcount++;
   } //end of for loop
