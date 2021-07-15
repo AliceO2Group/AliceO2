@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,10 +15,12 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::cpv::Hit + ;
 #pragma link C++ class o2::cpv::Digit + ;
 #pragma link C++ class o2::cpv::Cluster + ;
 #pragma link C++ class o2::cpv::TriggerRecord + ;
 
+#pragma link C++ class vector < o2::cpv::Hit> + ;
 #pragma link C++ class std::vector < o2::cpv::Digit> + ;
 #pragma link C++ class std::vector < o2::cpv::Cluster> + ;
 #pragma link C++ class std::vector < o2::cpv::TriggerRecord> + ;
@@ -25,5 +28,9 @@
 #pragma link C++ struct o2::cpv::CTFHeader + ;
 #pragma link C++ struct o2::cpv::CTF + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::cpv::CTFHeader, 7, uint32_t> + ;
+
+#pragma link C++ class o2::cpv::BadChannelMap + ;
+#pragma link C++ class o2::cpv::CalibParams + ;
+#pragma link C++ class o2::cpv::Pedestals + ;
 
 #endif

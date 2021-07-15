@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -317,6 +318,18 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
           break;
         case VariantType::Int:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stoi(optionDefault, nullptr), HelpString{optionHelp}, optionKind);
+          break;
+        case VariantType::UInt8:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<uint8_t>(std::stoul(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
+          break;
+        case VariantType::UInt16:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<uint16_t>(std::stoul(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
+          break;
+        case VariantType::UInt32:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, static_cast<uint32_t>(std::stoul(optionDefault, nullptr)), HelpString{optionHelp}, optionKind);
+          break;
+        case VariantType::UInt64:
+          opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stoul(optionDefault, nullptr), HelpString{optionHelp}, optionKind);
           break;
         case VariantType::Int64:
           opt = std::make_unique<ConfigParamSpec>(optionName, optionType, std::stol(optionDefault, nullptr), HelpString{optionHelp}, optionKind);

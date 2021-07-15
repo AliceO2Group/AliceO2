@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -96,6 +97,8 @@ struct TaskStreamInfo {
   TaskStreamRef id;
   /// The context of the DataProcessor being run by this task
   DataProcessorContext* context;
+  /// The libuv task handle
+  uv_work_t task;
   /// Wether or not this task is running
   bool running = false;
 };
@@ -118,7 +121,7 @@ class DataProcessingDevice : public FairMQDevice
   // Processing functions are now renetrant
   static void doRun(DataProcessorContext& context);
   static void doPrepare(DataProcessorContext& context);
-  static void handleData(DataProcessorContext& context, FairMQParts&, InputChannelInfo&);
+  static void handleData(DataProcessorContext& context, InputChannelInfo&);
   static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
   std::vector<DataProcessorContext> mDataProcessorContexes;
 

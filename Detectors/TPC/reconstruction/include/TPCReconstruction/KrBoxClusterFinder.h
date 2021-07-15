@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -46,23 +47,29 @@
 /// At least mMinNumberOfNeighbours neighbours (= direct neighbours) has a signal.
 ///
 /// Implementation:
-/// The RAW data is "expanded" for each sector and stored in a big signal
-/// mMapOfAllDigits = 3d vector of all digits
+/// Old ansatz: Store every digit in a big 3D map
+/// Problem: Memory consumption too large if timebins > 10k
+/// New solution: Use rolling map aka "The set of timeslices"
 ///
-/// To make sure that one never has to check if one is inside the sector or not
-/// the arrays are larger than a sector. For the size in row-direction, a constant is used.
-/// For time and pad direction, a number is set (here is room for improvements).
+///      1 2 3 4 5 6 7
 ///
-/// ToDo: Find an elegant way to split the huge map into four (IROC, OROC1, OROC2 and OROC3) smaller maps. Unfortunately, this seems to interfere with the rest of the code.
+///   1  o o o x o o o
+///   2  o o o x o o o
+///      .............
+/// n-1  o o o x o o o
+///   n  o o o x o o o
 ///
-/// How to use:
-/// Load tpcdigits.root
-/// Loop over all events
+/// x-axis: timeslices
+/// y-axis: global pad number
+/// In this example, the fourth timeslice is the interesting one. Here, local maxima and clusters are found. After this slice has been processed, the first slice will be dropped and another slice will be added at the last position (seventh position).
+/// Afterwards, the algorithm looks for clusters in the middle time slice.
+///
+/// How to use (see macro: findKrBoxCluster.C):
+/// Create KrBoxClusterFinder object
+/// Load gainmap (if available)
+/// Make adjustments to clusterfinder (e.g. set min number of neighbours)
 /// Loop over all sectors
-/// Use KrBoxClusterFinder(sector) to create 3D map
-/// Use localMaxima() to find..well the local maxima
-/// localMaxima() yields a vector of a tuple with three int
-/// Loop over this vector and give the tuple to buildCluster()
+/// Use "loopOverSector" function for this
 /// Write to tree or something similar
 
 #ifndef ALICEO2_TPC_KrBoxClusterFinder_H_
@@ -79,6 +86,7 @@
 #include <tuple>
 #include <vector>
 #include <array>
+#include <deque>
 
 namespace o2
 {
@@ -95,6 +103,13 @@ namespace tpc
 
 class KrBoxClusterFinder
 {
+ private:
+  /// Maximum Map Dimensions
+  /// Here is room for improvements
+  static constexpr size_t MaxPads = 138; ///< Size of the map in pad-direction
+  static constexpr size_t MaxRows = 152; ///< Size of the map in row-direction
+  size_t mMaxTimes = 114048;             ///< Size of the map in time-direction
+
  public:
   /// Constructor:
   /// The constructor allocates a three dimensional array (Pad,Row,Time) which is
@@ -107,21 +122,12 @@ class KrBoxClusterFinder
   /// The function expects a CalDet file with a gain map (gain entry for each pad).
   void loadGainMapFromFile(const std::string_view calDetFileName, const std::string_view gainMapName = "GainMap");
 
-  /// Function used in macro to fill the map with all recorded digits
-  void fillAndCorrectMap(std::vector<o2::tpc::Digit>& eventSector, const int sector);
-
-  /// Function to fill single digi
-  void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
-
   /// After the map is created, we look for local maxima with this function:
-  std::vector<std::tuple<int, int, int>> findLocalMaxima(bool directFilling = false);
+  std::vector<std::tuple<int, int, int>> findLocalMaxima(bool directFilling = true, const int timeOffset = 0);
 
   /// After finding the local maxima, we can now build clusters around it.
   /// It works according to the explanation at the beginning of the header file.
-  KrCluster buildCluster(int clusterCenterPad, int clusterCenterRow, int clusterCenterTime, bool directFilling = false);
-
-  /// reset the ADC map
-  void resetADCMap();
+  KrCluster buildCluster(int clusterCenterPad, int clusterCenterRow, int clusterCenterTime, bool directFilling = false, const int timeOffset = 0);
 
   /// reset cluster vector
   void resetClusters() { mClusters.clear(); }
@@ -144,6 +150,9 @@ class KrBoxClusterFinder
   /// Set Function for minimal charge required for maxCharge of a cluster
   void setMinQTreshold(int minQThreshold) { mQThresholdMax = minQThreshold; }
 
+  /// Set Function for minimal charge required for maxCharge of a cluster
+  void setMaxTimes(int maxTimes) { mMaxTimes = maxTimes; }
+
   /// Set Function for maximal cluster sizes in different ROCs
   void setMaxClusterSize(int maxClusterSizeRowIROC, int maxClusterSizeRowOROC1, int maxClusterSizeRowOROC2, int maxClusterSizeRowOROC3,
                          int maxClusterSizePadIROC, int maxClusterSizePadOROC1, int maxClusterSizePadOROC2, int maxClusterSizePadOROC3,
@@ -161,6 +170,11 @@ class KrBoxClusterFinder
 
     mMaxClusterSizeTime = maxClusterSizeTime;
   }
+
+  void fillADCValue(int cru, int rowInSector, int padInRow, int timeBin, float adcValue);
+  void resetADCMap();
+
+  void loopOverSector(std::vector<o2::tpc::Digit>& eventSector, const int sector);
 
  private:
   // These variables can be varied
@@ -186,18 +200,14 @@ class KrBoxClusterFinder
   int mSector = -1;                 ///< sector being processed in this instance
   std::unique_ptr<CalPad> mGainMap; ///< Gain map object
 
-  /// Maximum Map Dimensions
-  /// Here is room for improvements
-  static constexpr size_t MaxPads = 138;    ///< Size of the map in pad-direction
-  static constexpr size_t MaxRows = 152;    ///< Size of the map in row-direction
-  static constexpr size_t MaxTimes = 20000; ///< Size of the map in time-direction
-
   /// Values to define ROC boundaries
   static constexpr size_t MaxRowsIROC = 63;  ///< Amount of rows in IROC
   static constexpr size_t MaxRowsOROC1 = 34; ///< Amount of rows in OROC1
   static constexpr size_t MaxRowsOROC2 = 30; ///< Amount of rows in OROC2
   static constexpr size_t MaxRowsOROC3 = 25; ///< Amount of rows in OROC3
 
+  /// Vector of cluster objects
+  /// Used for returning results
   std::vector<o2::tpc::KrCluster> mClusters;
 
   /// Need an instance of Mapper to know position of pads
@@ -205,8 +215,38 @@ class KrBoxClusterFinder
 
   KrCluster mTempCluster; ///< Used to save the cluster data
 
-  /// Here the map is defined where all digits are temporarily stored
-  std::array<std::array<std::array<float, MaxPads>, MaxRows>, MaxTimes> mMapOfAllDigits{};
+  using TimeSliceSector = std::array<std::array<float, MaxPads>, MaxRows>;
+
+  /// A temporary timeslice that gets filled and can be added to the set of timeslices
+  // TimeSliceSector mTempTimeSlice;
+
+  /// Used to keep track of the digit that has to be processed
+  size_t mFirstDigit = 0;
+
+  /// The set of timeslices.
+  /// It consists of 2*mMaxClusterSizeTime + 1 timeslices.
+  /// You can imagine it like this:
+  /// \verbatim
+  ///
+  ///      1 2 3 4 5 6 7
+  ///
+  ///   1  o o o x o o o
+  ///   2  o o o x o o o
+  ///      .............
+  /// n-1  o o o x o o o
+  ///   n  o o o x o o o
+  ///
+  /// \endverbatim
+  ///
+  /// x-axis: Timeslice number
+  /// y-axis: Pad number
+  /// Time slice four is the interesting one. In there, local maxima are found and clusters are built from it. After it is processed, timeslice number 1 will be dropped and another timeslice will be put at the end of the set.
+  std::deque<TimeSliceSector> mSetOfTimeSlices{};
+
+  void createInitialMap(std::vector<o2::tpc::Digit>& eventSector);
+  void popFirstTimeSliceFromMap();
+  void fillADCValueInLastSlice(int cru, int rowInSector, int padInRow, float adcValue);
+  void addTimeSlice(std::vector<o2::tpc::Digit>& eventSector, const int timeSlice);
 
   /// For each ROC, the maximum cluster size has to be chosen
   void setMaxClusterSize(int row);
@@ -214,7 +254,7 @@ class KrBoxClusterFinder
   /// To update the temporary cluster, i.e. all digits are added here
   void updateTempCluster(float tempCharge, int tempPad, int tempRow, int tempTime);
   /// After all digits are assigned to the cluster, the mean and sigmas are calculated here
-  void updateTempClusterFinal();
+  void updateTempClusterFinal(const int timeOffset = 0);
 
   /// Returns sign of val (in a crazy way)
   int signnum(int val) { return (0 < val) - (val < 0); }

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -18,6 +19,8 @@
 #include "Headers/RAWDataHeader.h"
 #include "TList.h" //temporary for QC-FT0 (ChannelTimeCalibrationCheck.cxx), should be moved
 #include "DataFormatsFIT/RawEventData.h"
+#include "FT0Base/Geometry.h"
+#include "FT0Base/Constants.h"
 #include <CommonDataFormat/InteractionRecord.h>
 #include <Framework/Logger.h>
 #include <utility>
@@ -29,9 +32,7 @@ namespace o2
 {
 namespace ft0
 {
-constexpr int Nchannels_FT0 = 208;
-constexpr int Nchannels_PM = 12;
-constexpr int NPMs = 20;
+constexpr int Nchannels_FT0 = o2::ft0::Geometry::Nchannels;
 using EventHeader = o2::fit::EventHeader;
 using EventData = o2::fit::EventData;
 using TCMdata = o2::fit::TCMdata;
@@ -94,9 +95,9 @@ class RawEventData
   }
 
  public:
-  EventHeader mEventHeader;           //!
-  EventData mEventData[Nchannels_PM]; //!
-  TCMdata mTCMdata;                   //!
+  EventHeader mEventHeader;                                    //!
+  EventData mEventData[o2::ft0::Constants::sNCHANNELS_PER_PM]; //!
+  TCMdata mTCMdata;                                            //!
   bool mIsPadded = true;
   /////////////////////////////////////////////////
   ClassDefNV(RawEventData, 2);

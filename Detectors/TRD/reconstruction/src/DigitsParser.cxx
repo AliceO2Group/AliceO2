@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,7 +16,7 @@
 #include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/CompressedDigit.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 
 #include "fairlogger/Logger.h"
 
@@ -81,7 +82,7 @@ int DigitsParser::Parse(bool verbose)
     }
     LOG(info) << "digitdata to parse end";
     if (datacopy.size() > 1024) {
-      LOG(fatal) << "some very wrong with digit parsing >1024";
+      LOG(error) << "something likely very wrong with digit parsing >1024";
     }
   }
   int mcmdatacount = 0;
@@ -138,7 +139,7 @@ int DigitsParser::Parse(bool verbose)
       if (mState == StateDigitMCMData || mState == StateDigitEndMarker || mState == StateDigitHCHeader || mState == StateDigitMCMHeader) {
       } else {
 
-        LOG(fatal) << "Digit end marker found but state is not StateDigitMCMData(" << StateDigitMCMData << ") or StateDigit but rather " << mState;
+        LOG(error) << "Digit end marker found but state is not StateDigitMCMData(" << StateDigitMCMData << ") or StateDigit but rather " << mState;
       }
       //only thing that can remain is the padding.
       //now read padding words till end.
@@ -235,9 +236,9 @@ int DigitsParser::Parse(bool verbose)
         }
         // we dont care about the year flag, we are >2007 already.
       } else {
-        if (mState == StateDigitMCMHeader) {
-          LOG(warn) << " state is MCMHeader but we have just bypassed it as the bitmask is wrong :" << std::hex << *word;
-        }
+        //if (mState == StateDigitMCMHeader && *word!=o2::trd::constants::CRUPADDING32) {
+        //  LOG(warn) << " state is MCMHeader but we have just bypassed it as the bitmask is wrong :" << std::hex << *word;
+        //}
         if (*word == o2::trd::constants::CRUPADDING32) {
           if (mVerbose) {
             LOG(info) << "state padding and word : 0x" << std::hex << *word << "  state is:" << mState;
@@ -260,9 +261,9 @@ int DigitsParser::Parse(bool verbose)
               LOG(info) << " digit end marker state ...";
             }
           } else {
-            if (mState != StateDigitMCMData) {
-              LOG(warn) << "something is wrong we are in the statement for MCMdata, but the state is : " << mState << " and MCMData state is:" << StateDigitMCMData;
-            }
+            //if (mState != StateDigitMCMData) {
+            //  LOG(warn) << "something is wrong we are in the statement for MCMdata, but the state is : " << mState << " and MCMData state is:" << StateDigitMCMData;
+            //}
             if (mVerbose || mDataVerbose) {
               //LOG(info) << "mDigitMCMData with state=" << mState << " is at " << mBufferLocation << " had value 0x" << std::hex << *word << " mcmdatacount of : " << mcmdatacount << " adc#" << mcmadccount;
             }

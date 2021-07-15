@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,6 +20,7 @@
 #include "DetectorsBase/Detector.h" // for Detector
 #include "FT0Base/Geometry.h"
 #include "DataFormatsFT0/HitType.h"
+#include <TGeoManager.h> // for gGeoManager, TGeoManager (ptr only)
 
 class FairModule;
 
@@ -104,11 +106,6 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t ReadOptProperties(const std::string inputFilePath);
   void FillOtherOptProperties();
   Bool_t RegisterPhotoE(float energy);
-
-  //  Geometry* GetGeometry();
-
-  /// Prints out the content of this class in ASCII format
-  /// \param ostream *os The output stream
   void Print(std::ostream* os) const;
 
   /// Reads in the content of this class in the format of Print
@@ -116,11 +113,14 @@ class Detector : public o2::base::DetImpl<Detector>
   void Read(std::istream* is);
 
   void DefineSim2LUTindex();
-  /// Create the shape of cables for a specified cell.
-  /// \param  shapeName   The name of the shape.
-  /// \param  cellID      The number of the cell
-  /// \return The cable pattern shape.
-  // TGeoShape* CreateCableShape(const std::string& shapeName, int cellID) const;
+  /// Add alignable  volumes
+  void addAlignableVolumes() const override;
+  // Return Chip Volume UID
+  /// \param id volume id
+  Int_t chipVolUID(Int_t id) const
+  {
+    return o2::base::GeometryManager::getSensID(o2::detectors::DetID::FT0, id);
+  }
 
  private:
   /// copy constructor (used in MT)
@@ -263,19 +263,11 @@ class Detector : public o2::base::DetImpl<Detector>
 
   int mSim2LUT[Geometry::Nchannels];
 
-  Float_t mPosModuleAx[Geometry::NCellsA] = {-12.2, -6.1, 0, 6.1, 12.2, -12.2, -6.1, 0,
-                                             6.1, 12.2, -13.3743, -7.274299999999999,
-                                             7.274299999999999, 13.3743, -12.2, -6.1, 0,
-                                             6.1, 12.2, -12.2, -6.1, 0, 6.1, 12.2};
-
-  Float_t mPosModuleAy[Geometry::NCellsA] = {12.2, 12.2, 13.53, 12.2, 12.2, 6.1, 6.1,
-                                             7.43, 6.1, 6.1, 0, 0, 0, 0, -6.1, -6.1,
-                                             -7.43, -6.1, -6.1, -12.2, -12.2, -13.53,
-                                             -12.2, -12.2};
-
-  float mPosModuleCx[Geometry::NCellsC];
-  float mPosModuleCy[Geometry::NCellsC];
-  float mPosModuleCz[Geometry::NCellsC];
+  Double_t mPosModuleAx[Geometry::NCellsA];
+  Double_t mPosModuleAy[Geometry::NCellsA];
+  Double_t mPosModuleCx[Geometry::NCellsC];
+  Double_t mPosModuleCy[Geometry::NCellsC];
+  Double_t mPosModuleCz[Geometry::NCellsC];
   Float_t mStartC[3] = {20., 20, 5.5};
   Float_t mStartA[3] = {20., 20., 5};
   Float_t mInStart[3] = {2.9491, 2.9491, 2.5};

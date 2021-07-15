@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -32,7 +33,7 @@ namespace mft
 class TrackFitter
 {
 
-  using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
+  using SMatrix55Sym = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
   using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
  public:
@@ -45,7 +46,7 @@ class TrackFitter
   TrackFitter& operator=(TrackFitter&&) = delete;
 
   void setBz(float bZ) { mBZField = bZ; }
-  void setMFTRadLength(float x2X0) { mMFTRadLength = x2X0; }
+  void setMFTRadLength(float MFT_x2X0) { mMFTDiskThicknessInX0 = MFT_x2X0 / 5.0; }
   void setVerbosity(float v) { mVerbose = v; }
   void setTrackModel(float m) { mTrackModel = m; }
 
@@ -56,17 +57,16 @@ class TrackFitter
   static constexpr double getMaxChi2() { return SMaxChi2; }
 
  private:
+  bool propagateToZ(TrackLTF& track, double z);
+  bool propagateToNextClusterWithMCS(TrackLTF& track, double z);
   bool computeCluster(TrackLTF& track, int cluster);
 
   bool mFieldON = true;
   Float_t mBZField; // kiloGauss.
-  Float_t mMFTRadLength = 0.1;
-  Int_t mTrackModel = MFTTrackModel::Helix;
+  Float_t mMFTDiskThicknessInX0 = 0.042 / 5;
+  Int_t mTrackModel = MFTTrackModel::Optimized;
 
   static constexpr double SMaxChi2 = 2.e10; ///< maximum chi2 above which the track can be considered as abnormal
-  /// default layer thickness in X0 for reconstruction  //FIXME: set values for the MFT
-  static constexpr double SLayerThicknessInX0[10] = {0.065, 0.065, 0.075, 0.075, 0.035,
-                                                     0.035, 0.035, 0.035, 0.035, 0.035};
   bool mVerbose = false;
 };
 

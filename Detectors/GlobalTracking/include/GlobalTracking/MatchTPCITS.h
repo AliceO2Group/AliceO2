@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -354,7 +355,7 @@ class MatchTPCITS
   bool getUseFT0() const { return mUseFT0; }
 
   ///< set ITS ROFrame duration in microseconds
-  void setITSROFrameLengthMUS(float fums) { mITSROFrameLengthMUS = fums; }
+  void setITSROFrameLengthMUS(float fums);
   ///< set ITS ROFrame duration in BC (continuous mode only)
   void setITSROFrameLengthInBC(int nbc);
 
@@ -475,16 +476,24 @@ class MatchTPCITS
   ///< convert time bracket to IR bracket
   BracketIR tBracket2IRBracket(const BracketF tbrange);
 
-  ///< convert time bin to ITS ROFrame units
-  int time2ITSROFrame(float t) const
+  ///< convert time to ITS ROFrame units in case of continuous ITS readout
+  int time2ITSROFrameCont(float t) const
   {
-    if (mITSTriggered) {
-      LOG(ERROR) << "FIXME";
-      //return mITSROForTime[int(t > 0 ? t : 0)];
-    }
     int rof = t > 0 ? t * mITSROFrameLengthMUSInv : 0;
     // the rof is estimated continuous counter but the actual bins might have gaps (e.g. HB rejects etc)-> use mapping
     return rof < int(mITSTrackROFContMapping.size()) ? mITSTrackROFContMapping[rof] : mITSTrackROFContMapping.back();
+  }
+
+  ///< convert time to ITS ROFrame units in case of triggered ITS readout
+  int time2ITSROFrameTrig(float t, int start) const
+  {
+    while (start < mITSROFTimes.size()) {
+      if (mITSROFTimes[start].getMax() > t) {
+        return start;
+      }
+      start++;
+    }
+    return --start;
   }
 
   ///< convert TPC time bin to microseconds
@@ -545,8 +554,6 @@ class MatchTPCITS
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
   float mTPCTBinNS = 0.;            ///< TPC time bin duration in ns
   float mTPCTBinMUSInv = 0.;        ///< inverse TPC time bin duration in microseconds
-  float mITSROFrame2TPCBin = 0.;    ///< conversion coeff from ITS ROFrame units to TPC time-bin
-  float mTPCBin2ITSROFrame = 0.;    ///< conversion coeff from TPC time-bin to ITS ROFrame units
   float mZ2TPCBin = 0.;             ///< conversion coeff from Z to TPC time-bin
   float mTPCBin2Z = 0.;             ///< conversion coeff from TPC time-bin to Z
   float mNTPCBinsFullDrift = 0.;    ///< max time bin for full drift

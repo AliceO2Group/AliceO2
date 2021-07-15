@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -25,9 +26,9 @@
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/TriggerRecord.h"
-#include "CPVCalib/CalibParams.h"
-#include "CPVCalib/Pedestals.h"
-#include "CPVCalib/BadChannelMap.h"
+#include "DataFormatsCPV/CalibParams.h"
+#include "DataFormatsCPV/Pedestals.h"
+#include "DataFormatsCPV/BadChannelMap.h"
 
 namespace o2
 {
@@ -65,6 +66,7 @@ class RawWriter
   o2::raw::RawFileWriter& getWriter() const { return *mRawWriter; }
 
   void setOutputLocation(const char* outputdir) { mOutputLocation = outputdir; }
+  void setCcdbUrl(const char* ccdbUrl) { mCcdbUrl = ccdbUrl; }
   void setFileFor(FileFor_t filefor) { mFileFor = filefor; }
 
   void init();
@@ -79,14 +81,19 @@ class RawWriter
   std::vector<padCharge> mPadCharge[kNcc][kNDilogic][kNGasiplex]; ///< list of signals per event
   FileFor_t mFileFor = FileFor_t::kFullDet;                       ///< Granularity of the output files
   std::string mOutputLocation = "./";                             ///< Rawfile name
-  std::unique_ptr<CalibParams> mCalibParams;                      ///< CPV calibration
-  std::unique_ptr<Pedestals> mPedestals;                          ///< CPV pedestals
-  std::unique_ptr<BadChannelMap> mBadMap;                         ///< CPV bad channel map
+  std::string mCcdbUrl = "http://ccdb-test.cern.ch:8080";         ///< CCDB Url
+  std::unique_ptr<CalibParams> mCalibParamsTst;                   ///< CPV calibration
+  std::unique_ptr<Pedestals> mPedestalsTst;                       ///< CPV pedestals
+  std::unique_ptr<BadChannelMap> mBadMapTst;                      ///< CPV bad channel map
+  CalibParams* mCalibParams = nullptr;                            ///< CPV calibration
+  Pedestals* mPedestals = nullptr;                                ///< CPV pedestals
+  BadChannelMap* mBadMap = nullptr;                               ///< CPV bad channel map
+
   std::vector<char> mPayload;                                     ///< Payload to be written
   gsl::span<o2::cpv::Digit> mDigits;                              ///< Digits input vector - must be in digitized format including the time response
   std::unique_ptr<o2::raw::RawFileWriter> mRawWriter;             ///< Raw writer
 
-  ClassDefNV(RawWriter, 1);
+  ClassDefNV(RawWriter, 2);
 };
 
 } // namespace cpv

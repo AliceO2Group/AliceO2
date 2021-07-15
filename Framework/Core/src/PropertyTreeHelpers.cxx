@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -34,6 +35,18 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
       switch (spec.type) {
         case VariantType::Int:
           pt.put(key, spec.defaultValue.get<int>());
+          break;
+        case VariantType::UInt8:
+          pt.put(key, spec.defaultValue.get<uint8_t>());
+          break;
+        case VariantType::UInt16:
+          pt.put(key, spec.defaultValue.get<uint16_t>());
+          break;
+        case VariantType::UInt32:
+          pt.put(key, spec.defaultValue.get<uint32_t>());
+          break;
+        case VariantType::UInt64:
+          pt.put(key, spec.defaultValue.get<uint64_t>());
           break;
         case VariantType::Int64:
           pt.put(key, spec.defaultValue.get<int64_t>());
@@ -114,6 +127,18 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
       switch (spec.type) {
         case VariantType::Int:
           pt.put(key, vmap[key].as<int>());
+          break;
+        case VariantType::UInt8:
+          pt.put(key, vmap[key].as<uint8_t>());
+          break;
+        case VariantType::UInt16:
+          pt.put(key, vmap[key].as<uint16_t>());
+          break;
+        case VariantType::UInt32:
+          pt.put(key, vmap[key].as<uint32_t>());
+          break;
+        case VariantType::UInt64:
+          pt.put(key, vmap[key].as<uint64_t>());
           break;
         case VariantType::Int64:
           pt.put(key, vmap[key].as<int64_t>());
@@ -207,6 +232,18 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
       switch (spec.type) {
         case VariantType::Int:
           pt.put(key, (*it).get_value<int>());
+          break;
+        case VariantType::UInt8:
+          pt.put(key, (*it).get_value<uint8_t>());
+          break;
+        case VariantType::UInt16:
+          pt.put(key, (*it).get_value<uint16_t>());
+          break;
+        case VariantType::UInt32:
+          pt.put(key, (*it).get_value<uint32_t>());
+          break;
+        case VariantType::UInt64:
+          pt.put(key, (*it).get_value<uint64_t>());
           break;
         case VariantType::Int64:
           pt.put(key, (*it).get_value<int64_t>());

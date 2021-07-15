@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 # setup files to be installed (only ROOT macros for the moment) NOT using GLOB,
 # as we should be mindful of what we install. if we have lot of files here, it's
@@ -46,7 +47,6 @@ install(FILES CheckDigits_mft.C
               run_cmp2digit_tof.C
               compareTOFDigits.C
               compareTOFClusters.C
-              run_match_tof.C
               run_primary_vertexer_ITS.C
               run_rawdecoding_its.C
               run_rawdecoding_mft.C
@@ -82,8 +82,8 @@ o2_add_test_root_macro(analyzeHits.C
                                              O2::FDDSimulation
                                              O2::MCHSimulation
                                              O2::MIDSimulation
-          O2::ZDCSimulation
-          O2::CPVBase)
+                                             O2::ZDCSimulation
+                                             O2::DataFormatsCPV)
 
 o2_add_test_root_macro(duplicateHits.C
   PUBLIC_LINK_LIBRARIES O2::ITSMFTSimulation
@@ -99,7 +99,7 @@ o2_add_test_root_macro(duplicateHits.C
   O2::MCHSimulation
   O2::MIDSimulation
   O2::ZDCSimulation
-  O2::CPVBase COMPILE_ONLY)
+  O2::DataFormatsCPV COMPILE_ONLY)
 
 o2_add_test_root_macro(migrateSimFiles.C
   PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats)
@@ -295,13 +295,6 @@ o2_add_test_root_macro(compareTOFDigits.C
 o2_add_test_root_macro(compareTOFClusters.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsTOF
                        LABELS tof)
-
-# FIXME: move to subsystem dir
-o2_add_test_root_macro(run_match_tof.C
-                       PUBLIC_LINK_LIBRARIES O2::Field O2::DataFormatsParameters
-                                             O2::DetectorsBase
-                                             O2::GlobalTracking
-                       LABELS tof COMPILE_ONLY)
 
 # FIXME: move to subsystem dir
 o2_add_test_root_macro(run_primary_vertexer_ITS.C

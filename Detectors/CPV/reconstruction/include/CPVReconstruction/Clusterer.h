@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,8 +16,8 @@
 #include "DataFormatsCPV/Digit.h"
 #include "DataFormatsCPV/Cluster.h"
 #include "CPVReconstruction/FullCluster.h"
-#include "CPVCalib/CalibParams.h"
-#include "CPVCalib/BadChannelMap.h"
+#include "DataFormatsCPV/CalibParams.h"
+#include "DataFormatsCPV/BadChannelMap.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 
@@ -33,13 +34,13 @@ class Clusterer
 
   void initialize();
   void process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
-               const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
+               const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
                std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
                o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC);
 
   void makeClusters(gsl::span<const Digit> digits);
   void evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
-                         const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
+                         const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
                          o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC);
 
   float responseShape(float dx, float dz); // Parameterization of EM shower

@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -39,7 +40,7 @@ ClassImp(FT3Layer);
 
 FT3Layer::~FT3Layer() = default;
 
-FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t sensorThickness, Float_t Layerx2X0)
+FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerName, Float_t z, Float_t rIn, Float_t rOut, Float_t Layerx2X0)
 {
   // Creates a simple parametrized EndCap layer covering the given
   // pseudorapidity range at the z layer position
@@ -48,18 +49,14 @@ FT3Layer::FT3Layer(Int_t layerDirection, Int_t layerNumber, std::string layerNam
   mLayerName = layerName;
   mZ = layerDirection ? std::abs(z) : -std::abs(z);
   mx2X0 = Layerx2X0;
-  mSensorThickness = sensorThickness;
   mInnerRadius = rIn;
   mOuterRadius = rOut;
+  auto Si_X0 = 9.5;
+  mChipThickness = Layerx2X0 * Si_X0;
 
-  LOG(INFO) << " Using silicon Radiation Length =  " << 9.5 << " to emulate layer radiation length.";
-
-  mChipThickness = Layerx2X0 * 9.5;
-  if (mChipThickness < mSensorThickness) {
-    LOG(INFO) << " WARNING: Chip cannot be thinner than sensor. Setting minimal chip thickness.";
-    mChipThickness = mSensorThickness;
-  }
-  LOG(INFO) << "Creating FT3 Layer " << mLayerNumber << ": z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; ChipThickness = " << mChipThickness;
+  LOG(INFO) << "Creating FT3 Layer " << mLayerNumber << " ; direction " << mDirection;
+  LOG(INFO) << "   Using silicon X0 = " << Si_X0 << " to emulate layer radiation length.";
+  LOG(INFO) << "   Layer z = " << mZ << " ; R_in = " << mInnerRadius << " ; R_out = " << mOuterRadius << " ; x2X0 = " << mx2X0 << " ; ChipThickness = " << mChipThickness;
 }
 
 void FT3Layer::createLayer(TGeoVolume* motherVolume)
@@ -69,7 +66,7 @@ void FT3Layer::createLayer(TGeoVolume* motherVolume)
 
     std::string chipName = o2::ft3::GeometryTGeo::getFT3ChipPattern() + std::to_string(mLayerNumber),
                 sensName = Form("%s_%d_%d", GeometryTGeo::getFT3SensorPattern(), mDirection, mLayerNumber);
-    TGeoTube* sensor = new TGeoTube(mInnerRadius, mOuterRadius, mSensorThickness / 2);
+    TGeoTube* sensor = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
     TGeoTube* chip = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
     TGeoTube* layer = new TGeoTube(mInnerRadius, mOuterRadius, mChipThickness / 2);
 

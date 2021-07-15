@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -35,7 +36,7 @@ void Clusterer::initialize()
 
 //____________________________________________________________________________
 void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRecord> dtr,
-                        const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
+                        const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
                         std::vector<Cluster>* clusters, std::vector<TriggerRecord>* trigRec,
                         o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC)
 {
@@ -313,7 +314,7 @@ void Clusterer::unfoldOneCluster(FullCluster& iniClu, char nMax, gsl::span<int> 
 
 //____________________________________________________________________________
 void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Cluster>* clusters,
-                                  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>& dmc,
+                                  const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* dmc,
                                   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* cluMC)
 {
 
@@ -355,7 +356,7 @@ void Clusterer::evalCluProperties(gsl::span<const Digit> digits, std::vector<Clu
             ++ll;
             continue;
           }
-          gsl::span<const o2::MCCompLabel> spDigList = dmc.getLabels(i);
+          gsl::span<const o2::MCCompLabel> spDigList = dmc->getLabels(i);
           gsl::span<o2::MCCompLabel> spCluList = cluMC->getLabels(labelIndex); //get updated list
           auto digL = spDigList.begin();
           while (digL != spDigList.end()) {

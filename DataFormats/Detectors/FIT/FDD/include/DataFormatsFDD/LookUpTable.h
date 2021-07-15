@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -86,16 +87,11 @@ class LookUpTable
   {
     LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mTopoVector: [globalCh  link  modCh]";
     for (size_t channel = 0; channel < mTopoVector.size(); ++channel) {
-      std::cout << "  " << std::right << std::setw(2) << channel << "  ";
-      std::cout << std::right << std::setw(2) << mTopoVector[channel].modLink << "  ";
-      std::cout << std::right << std::setw(3) << mTopoVector[channel].modCh << std::endl;
+      LOG(INFO) << "  " << channel << "  " << mTopoVector[channel].modLink << "  " << mTopoVector[channel].modCh;
     }
     LOG(INFO) << "o2::fdd::LookUpTable::printFullMap(): mInvTopo: [idx  globalCh    link  modCh]";
     for (size_t idx = 0; idx < mInvTopo.size(); ++idx) {
-      std::cout << "  " << std::right << std::setw(3) << idx << "  ";
-      std::cout << std::right << std::setw(3) << mInvTopo[idx] << "    ";
-      std::cout << std::right << std::setw(2) << getLinkFromIdx(mInvTopo[idx]) << "  ";
-      std::cout << std::right << std::setw(2) << getModChannelFromIdx(mInvTopo[idx]) << std::endl;
+      LOG(INFO) << "  " << idx << "  " << mInvTopo[idx] << "    " << getLinkFromIdx(mInvTopo[idx]) << "  " << getModChannelFromIdx(mInvTopo[idx]);
     }
   }
 

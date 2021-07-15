@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,6 +24,13 @@
 #include "Steer/MCKinematicsReader.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsMFT/TrackMFT.h"
+#include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTRD/TrackTRD.h"
+#include "ReconstructionDataFormats/TrackTPCITS.h"
 
 #include <string>
 #include <vector>
@@ -31,6 +39,9 @@
 #include <boost/functional/hash.hpp>
 
 using namespace o2::framework;
+using GID = o2::dataformats::GlobalTrackID;
+using GIndex = o2::dataformats::VtxTrackIndex;
+using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
@@ -136,22 +147,23 @@ typedef boost::unordered_map<Triplet_t, int, TripletHash, TripletEqualTo> Triple
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(int ignoreWriter) : mIgnoreWriter(ignoreWriter){};
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, bool fillSVertices) : mInputSources(src), mDataRequest(dataRequest), mFillSVertices(fillSVertices) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
 
  private:
-  int mFillTracksITS{1};
-  int mFillTracksMFT{1};
-  int mFillTracksTPC{0};
-  int mFillTracksITSTPC{1};
+  const float cSpeed = 0.029979246f; // speed of light in TOF units
+
+  GID::mask_t mInputSources;
   int64_t mTFNumber{-1};
   int mTruncate{1};
-  int mIgnoreWriter{0};
   int mRecoOnly{0};
+  bool mFillSVertices{false};
   TStopwatch mTimer;
+
+  std::shared_ptr<DataRequest> mDataRequest;
 
   // truncation is enabled by default
   uint32_t mCollisionPosition = 0xFFFFFFF0;    // 19 bits mantissa
@@ -187,29 +199,90 @@ class AODProducerWorkflowDPL : public Task
   uint32_t mFDDAmplitude = 0xFFFFF000;         // 11 bits
   uint32_t mT0Amplitude = 0xFFFFF000;          // 11 bits
 
-  uint64_t maxGlBC = 0;
-  uint64_t minGlBC = INT64_MAX;
+  // helper struct for extra info in fillTrackTablesPerCollision()
+  struct TrackExtraInfo {
+    float tpcInnerParam = 0.f;
+    uint32_t flags = 0;
+    uint8_t itsClusterMap = 0;
+    uint8_t tpcNClsFindable = 0;
+    int8_t tpcNClsFindableMinusFound = 0;
+    int8_t tpcNClsFindableMinusCrossedRows = 0;
+    uint8_t tpcNClsShared = 0;
+    uint8_t trdPattern = 0;
+    float itsChi2NCl = -999.f;
+    float tpcChi2NCl = -999.f;
+    float trdChi2 = -999.f;
+    float tofChi2 = -999.f;
+    float tpcSignal = -999.f;
+    float trdSignal = -999.f;
+    float tofSignal = -999.f;
+    float length = -999.f;
+    float tofExpMom = -999.f;
+    float trackEtaEMCAL = -999.f;
+    float trackPhiEMCAL = -999.f;
+  };
 
-  void findMinMaxBc(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints, gsl::span<const o2::dataformats::PrimaryVertex>& primVertices, const std::vector<o2::InteractionTimeRecord>& mcRecords);
-  uint64_t getTFNumber(uint64_t firstVtxGlBC, int runNumber);
+  // helper struct for mc track labels
+  struct MCLabels {
+    uint32_t labelID = std::numeric_limits<uint32_t>::max();
+    uint32_t labelITS = std::numeric_limits<uint32_t>::max();
+    uint32_t labelTPC = std::numeric_limits<uint32_t>::max();
+    uint16_t labelMask = 0;
+    uint8_t mftLabelMask = 0;
+  };
 
-  template <typename TTracks, typename TTracksCursor, typename TTracksCovCursor, typename TTracksExtraCursor>
-  void fillTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor,
-                       const TTracksCovCursor& tracksCovCursor, const TTracksExtraCursor& tracksExtraCursor, int trackType);
+  void collectBCs(gsl::span<const o2::ft0::RecPoints>& ft0RecPoints,
+                  gsl::span<const o2::dataformats::PrimaryVertex>& primVertices,
+                  const std::vector<o2::InteractionTimeRecord>& mcRecords,
+                  std::map<uint64_t, int>& bcsMap);
 
-  template <typename TTracks, typename TTracksCursor>
-  void fillMFTTracksTable(const TTracks& tracks, std::vector<int>& vCollRefs, const TTracksCursor& tracksCursor);
+  uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
+
+  template <typename TracksCursorType, typename TracksCovCursorType>
+  void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
+                        const o2::track::TrackParCov& track, int collisionID, int src);
+
+  template <typename TracksExtraCursorType>
+  void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder);
+
+  template <typename mftTracksCursorType>
+  void addToMFTTracksTable(mftTracksCursorType& mftTracksCursor, const o2::mft::TrackMFT& track, int collisionID);
+
+  // helper for track tables
+  // fills tables collision by collision
+  // interaction time is for TOF information
+  template <typename TracksCursorType, typename TracksCovCursorType, typename TracksExtraCursorType, typename mftTracksCursorType>
+  void fillTrackTablesPerCollision(int collisionID,
+                                   double interactionTime,
+                                   const o2::dataformats::VtxTrackRef& trackRef,
+                                   gsl::span<const GIndex>& GIndices,
+                                   o2::globaltracking::RecoContainer& data,
+                                   TracksCursorType& tracksCursor,
+                                   TracksCovCursorType& tracksCovCursor,
+                                   TracksExtraCursorType& tracksExtraCursor,
+                                   mftTracksCursorType& mftTracksCursor);
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader, const MCParticlesCursorType& mcParticlesCursor,
-                            gsl::span<const o2::MCCompLabel>& mcTruthITS, gsl::span<const o2::MCCompLabel>& mcTruthMFT,
-                            gsl::span<const o2::MCCompLabel>& mcTruthTPC, TripletsMap_t& toStore);
+                            gsl::span<const o2::MCCompLabel>& mcTruthITS,
+                            gsl::span<const o2::MCCompLabel>& mcTruthMFT,
+                            gsl::span<const o2::MCCompLabel>& mcTruthTPC,
+                            TripletsMap_t& toStore,
+                            std::vector<std::pair<int, int>> const& mccolidtoeventsource);
 
-  void writeTableToFile(TFile* outfile, std::shared_ptr<arrow::Table>& table, const std::string& tableName, uint64_t tfNumber);
+  // helper for tpc clusters
+  void countTPCClusters(const o2::tpc::TrackTPC& track,
+                        const gsl::span<const o2::tpc::TPCClRefElem>& tpcClusRefs,
+                        const gsl::span<const unsigned char>& tpcClusShMap,
+                        const o2::tpc::ClusterNativeAccess& tpcClusAcc,
+                        uint8_t& shared, uint8_t& found, uint8_t& crossed);
+
+  // helper for trd pattern
+  uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(int ignoreWriter);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool useMC, bool fillSVertices);
 
 } // namespace o2::aodproducer
 

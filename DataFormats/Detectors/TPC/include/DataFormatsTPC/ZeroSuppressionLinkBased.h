@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -27,9 +28,10 @@ namespace zerosupp_link_based
 static constexpr uint32_t DataWordSizeBits = 128;                   ///< size of header word and data words in bits
 static constexpr uint32_t DataWordSizeBytes = DataWordSizeBits / 8; ///< size of header word and data words in bytes
 
-/// header definition of the zero suppressed link based data format
-struct Header {
-  static constexpr uint32_t MagicWord = 0xFC;
+/// common header definition of the zero suppressed link based data
+struct CommonHeader {
+  static constexpr uint32_t MagicWordLinkZS = 0xFC;
+  static constexpr uint32_t MagicWordTrigger = 0xAA;
 
   union {
     uint64_t word0 = 0;                  ///< lower 64 bits
@@ -50,17 +52,21 @@ struct Header {
     };
   };
 
+  bool hasCorrectMagicWord() const { return (magicWord == MagicWordLinkZS) || (magicWord == MagicWordTrigger); }
+  bool isLinkZS() const { return (magicWord == MagicWordLinkZS); }
+  bool isTriggerInfo() const { return (magicWord == MagicWordTrigger); }
+};
+
+/// header definition of the zero suppressed link based data format
+struct Header final : public CommonHeader {
+
   std::bitset<80> getChannelBits() const
   {
     return std::bitset<80>((std::bitset<80>(bitMaskHigh) << 64) | std::bitset<80>(bitMaskLow));
   }
 
   bool isFillWord() const { return (word0 == 0xffffffffffffffff) && (word1 == 0xffffffffffffffff); }
-
-  bool hasCorrectMagicWord() const { return magicWord == MagicWord; }
 };
-
-/// empty header for
 
 /// ADC data container
 ///
@@ -211,6 +217,36 @@ struct Container {
 using ContainerZS = Container<>;
 using ContainerDecoded = Container<10, 0, false>;
 
+/// Data definition for the trigger information
+struct TriggerInfo {
+  union {
+    uint64_t word0 = 0;              ///< lower 64 bits
+    struct {                         ///
+      uint16_t bunchCrossing : 12;   ///< bunch crossing number
+      uint64_t orbit : 32;           ///< orbit number
+      uint32_t triggerTypeLow : 20;  ///< low bits of tigger type
+    };                               ///
+  };                                 ///
+                                     ///
+  union {                            ///
+    uint64_t word1 = 0;              ///< upper bits of the 80 bit bitmask
+    struct {                         ///
+      uint32_t triggerTypeHigh : 12; ///< number of 128bit words with 12bit ADC values
+      uint64_t empty : 50;           ///<
+    };
+  };
+
+  uint32_t getOrbit() const { return (uint32_t)orbit; }
+  uint32_t getTriggerType() const { return (triggerTypeHigh << 20) + triggerTypeLow; }
+};
+
+/// Container for Trigger information, header + data
+struct TriggerContainer {
+  CommonHeader header;
+  TriggerInfo triggerInfo;
+
+  uint32_t getTriggerType() const { return triggerInfo.getTriggerType(); }
+};
 } // namespace zerosupp_link_based
 } // namespace tpc
 } // namespace o2

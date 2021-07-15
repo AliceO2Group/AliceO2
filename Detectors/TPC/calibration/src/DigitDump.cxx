@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -103,8 +104,12 @@ void DigitDump::sortDigits()
       if (a.getTimeStamp() < b.getTimeStamp()) {
         return true;
       }
-      if ((a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() < b.getRow())) {
-        return true;
+      if (a.getTimeStamp() == b.getTimeStamp()) {
+        if (a.getRow() < b.getRow()) {
+          return true;
+        } else if (a.getRow() == b.getRow()) {
+          return a.getPad() < b.getPad();
+        }
       }
       return false;
     });
@@ -164,4 +169,38 @@ void DigitDump::initInputOutput()
     setupOutputTree();
   }
   mInitialized = true;
+}
+
+//______________________________________________________________________________
+void DigitDump::checkDuplicates(bool removeDuplicates)
+{
+  sortDigits();
+
+  auto isEqual = [](const Digit& a, const Digit& b) {
+    if ((a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() == b.getRow()) && (a.getPad() == b.getPad())) {
+      LOGP(debug, "digit found twice at sector {:2}, cru {:3}, row {:3}, pad {:3}, time {:6}, ADC {:.2} (other: {:.2})", b.getCRU() / 10, b.getCRU(), b.getRow(), b.getPad(), b.getTimeStamp(), b.getChargeFloat(), a.getChargeFloat());
+      return true;
+    }
+    return false;
+  };
+
+  for (size_t iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
+    auto& digits = mDigits[iSec];
+
+    size_t nDuplicates = 0;
+    if (removeDuplicates) {
+      const auto last = std::unique(digits.begin(), digits.end(), isEqual);
+      nDuplicates = std::distance(last, digits.end());
+      digits.erase(last, digits.end());
+    } else {
+      auto first = digits.begin();
+      const auto last = digits.end();
+      while (++first != last) {
+        nDuplicates += isEqual(*(first - 1), *first);
+      }
+    }
+    if (nDuplicates) {
+      LOGP(warning, "{} {} duplicate digits in sector {}", removeDuplicates ? "removed" : "found", nDuplicates, iSec);
+    }
+  }
 }

@@ -73,8 +73,8 @@ fmq-type = push
 fmq-address = ipc:///tmp/readout-to-datadist-0
 unmanagedMemorySize = 96G
 memoryBankName = bank-o2
-memoryPoolNumberOfPages = 16000
-memoryPoolPageSize = 1024k
+memoryPoolNumberOfPages = 20000
+memoryPoolPageSize = 512k
 disableSending = 0
 
 ###################################

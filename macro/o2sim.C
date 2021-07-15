@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -15,6 +16,7 @@
 #include <Generators/PDG.h>
 #include "SimulationDataFormat/MCEventHeader.h"
 #include <SimConfig/SimConfig.h>
+#include <SimConfig/SimParams.h>
 #include <CommonUtils/ConfigurableParam.h>
 #include <CommonUtils/RngHelper.h>
 #include <TStopwatch.h>
@@ -125,6 +127,10 @@ FairRunSim* o2sim_init(bool asservice)
     }
   }
 
+  // set global density scaling factor
+  auto& matmgr = o2::base::MaterialManager::Instance();
+  matmgr.setDensityScalingFactor(o2::conf::SimMaterialParams::Instance().globalDensityFactor);
+
   // run init
   run->Init();
 
@@ -180,7 +186,6 @@ FairRunSim* o2sim_init(bool asservice)
 
   // print summary about cuts and processes used
   std::ofstream cutfile(o2::base::NameConf::getCutProcFileName(confref.getOutPrefix()));
-  auto& matmgr = o2::base::MaterialManager::Instance();
   matmgr.printCuts(cutfile);
   matmgr.printProcesses(cutfile);
 

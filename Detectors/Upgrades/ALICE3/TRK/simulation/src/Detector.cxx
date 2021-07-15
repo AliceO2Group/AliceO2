@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -110,22 +111,21 @@ void Detector::configITS(Detector* its)
 
   std::vector<std::array<double, 2>> layers;
   const int nLayers{12};
-  layers.emplace_back(std::array<double, 2>{0.5f, 15.f});
-  layers.emplace_back(std::array<double, 2>{1.2f, 15.f});
-  layers.emplace_back(std::array<double, 2>{2.5f, 15.f});
-  layers.emplace_back(std::array<double, 2>{3.75f, 62.f});
-  layers.emplace_back(std::array<double, 2>{7.f, 62.f});
-  layers.emplace_back(std::array<double, 2>{12.f, 62.f});
-  layers.emplace_back(std::array<double, 2>{20.f, 62.f});
-  layers.emplace_back(std::array<double, 2>{30.f, 62.f});
-  layers.emplace_back(std::array<double, 2>{45.f, 132.f});
-  layers.emplace_back(std::array<double, 2>{60.f, 132.f});
-  layers.emplace_back(std::array<double, 2>{80.f, 132.f});
-  layers.emplace_back(std::array<double, 2>{100.f, 132.f});
+  layers.emplace_back(std::array<double, 2>{0.5f, 30.f});
+  layers.emplace_back(std::array<double, 2>{1.2f, 30.f});
+  layers.emplace_back(std::array<double, 2>{2.5f, 30.f});
+  layers.emplace_back(std::array<double, 2>{3.75f, 124.f});
+  layers.emplace_back(std::array<double, 2>{7.f, 124.f});
+  layers.emplace_back(std::array<double, 2>{12.f, 124.f});
+  layers.emplace_back(std::array<double, 2>{20.f, 124.f});
+  layers.emplace_back(std::array<double, 2>{30.f, 124.f});
+  layers.emplace_back(std::array<double, 2>{45.f, 264.f});
+  layers.emplace_back(std::array<double, 2>{60.f, 264.f});
+  layers.emplace_back(std::array<double, 2>{80.f, 264.f});
+  layers.emplace_back(std::array<double, 2>{100.f, 264.f});
 
-  std::array<float, 12> sensorThicknesses = {50.e-4, 50.e-4, 50.e-4, 50.e-4, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3, 50.e-3};
+  std::array<float, 12> sensorThicknesses = {100.e-4, 100.e-4, 100.e-4, 100.e-4, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3, 100.e-3};
   its->setStaveModelOB(o2::trk::Detector::kOBModel2);
-  // its->createOuterBarrel(false);
 
   auto idLayer{0};
   for (auto& layerData : layers) {

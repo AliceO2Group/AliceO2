@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -19,6 +20,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/InputRecordWalker.h"
 
 #include <fairmq/FairMQDevice.h>
 
@@ -67,25 +69,27 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
   std::map<int, int> subspecBufferSize;
 
   /** loop over inputs routes **/
-  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    if (!iit.isValid()) {
-      continue;
-    }
+  std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TOF", "RAWDATA"}}};
+  for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
+    //  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+    //    if (!iit.isValid()) {
+    //      continue;
+    //    }
 
     /** loop over input parts **/
-    for (auto const& ref : iit) {
+    //    for (auto const& ref : iit) {
 
-      /** store parts in map **/
-      auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      auto subspec = headerIn->subSpecification;
-      subspecPartMap[subspec].push_back(ref);
+    /** store parts in map **/
+    auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto subspec = headerIn->subSpecification;
+    subspecPartMap[subspec].push_back(ref);
 
-      /** increase subspec buffer size **/
-      if (!subspecBufferSize.count(subspec)) {
-        subspecBufferSize[subspec] = 0;
-      }
-      subspecBufferSize[subspec] += headerIn->payloadSize;
+    /** increase subspec buffer size **/
+    if (!subspecBufferSize.count(subspec)) {
+      subspecBufferSize[subspec] = 0;
     }
+    subspecBufferSize[subspec] += headerIn->payloadSize;
+    //  }
   }
 
   /** loop over subspecs **/
@@ -100,6 +104,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
     auto dataProcessingHeaderOut = *DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(firstPart);
     headerOut.dataDescription = "CRAWDATA";
     headerOut.payloadSize = 0;
+    headerOut.splitPayloadParts = 1;
 
     /** initialise output message **/
     auto bufferSize = mOutputBufferSize >= 0 ? mOutputBufferSize + subspecBufferSize[subspec] : std::abs(mOutputBufferSize);

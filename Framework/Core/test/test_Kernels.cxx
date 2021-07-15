@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -69,7 +70,7 @@ BOOST_AUTO_TEST_CASE(TestSlicingFramework)
 
   std::vector<uint64_t> offsets;
   std::vector<arrow::Datum> slices;
-  auto status = sliceByColumn<int32_t>("x", table, 12, &slices, nullptr, &offsets);
+  auto status = sliceByColumn<int32_t>("x", table, 12, &slices, &offsets);
   BOOST_REQUIRE(status.ok());
   BOOST_REQUIRE_EQUAL(slices.size(), 12);
   std::array<int, 12> sizes{0, 4, 1, 0, 1, 2, 0, 0, 0, 0, 0, 0};

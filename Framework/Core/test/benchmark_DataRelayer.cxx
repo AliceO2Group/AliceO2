@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -102,7 +103,7 @@ static void BM_RelaySingleSlot(benchmark::State& state)
     memcpy(header->GetData(), stack.data(), stack.size());
     //state.ResumeTiming();
 
-    relayer.relay(std::move(header), std::move(payload));
+    relayer.relay(header, payload);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -155,7 +156,7 @@ static void BM_RelayMultipleSlots(benchmark::State& state)
     memcpy(header->GetData(), stack.data(), stack.size());
     //state.ResumeTiming();
 
-    relayer.relay(std::move(header), std::move(payload));
+    relayer.relay(header, payload);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -223,13 +224,13 @@ static void BM_RelayMultipleRoutes(benchmark::State& state)
     memcpy(header2->GetData(), stack2.data(), stack2.size());
     //state.ResumeTiming();
 
-    relayer.relay(std::move(header1), std::move(payload1));
+    relayer.relay(header1, payload1);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
     assert(ready[0].op == CompletionPolicy::CompletionOp::Consume);
 
-    relayer.relay(std::move(header2), std::move(payload2));
+    relayer.relay(header2, payload2);
     ready.clear();
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);
@@ -291,7 +292,7 @@ static void BM_RelaySplitParts(benchmark::State& state)
     }
     state.ResumeTiming();
 
-    relayer.relay(std::move(splitParts[0]), &splitParts[1], splitParts.size() - 1);
+    relayer.relay(splitParts[0], &splitParts[1], splitParts.size() - 1);
     std::vector<RecordAction> ready;
     relayer.getReadyToProcess(ready);
     assert(ready.size() == 1);

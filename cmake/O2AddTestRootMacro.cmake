@@ -1,19 +1,22 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 include_guard()
+
+include(O2AddTestCommand)
 
 #
 # o2_add_test_root_macro generate a test for a Root macro.
 #
-# That test is trying to load the macro within a root.exe session using 
+# That test is trying to load the macro within a root.exe session using
 # ".L macro.C"
 #
 # * arg COMPILE: if present we generate, in addition to the baseline "load
@@ -94,7 +97,7 @@ function(o2_add_test_root_macro macro)
 
   # baseline test is to try and load the macro
   if (NOT A_COMPILE_ONLY)
-    o2_add_test_wrapper(COMMAND ${CMAKE_BINARY_DIR}/test-root-macro.sh
+    o2_add_test_command(COMMAND ${CMAKE_BINARY_DIR}/test-root-macro.sh
                         NAME ${testName}
                         WORKING_DIRECTORY ${CMAKE_BINARY_DIR} ${nonFatal}
                         COMMAND_LINE_ARGS ${macroFileName} 0 "${includePath}" "${libraryPath}"
@@ -109,8 +112,7 @@ function(o2_add_test_root_macro macro)
 
   # if (and only if) requested, try also to compile the macro
   if(A_COMPILE OR A_COMPILE_ONLY)
-
-    o2_add_test_wrapper(COMMAND ${CMAKE_BINARY_DIR}/test-root-macro.sh
+    o2_add_test_command(COMMAND ${CMAKE_BINARY_DIR}/test-root-macro.sh
                         NAME ${testName}_compiled
                         WORKING_DIRECTORY ${CMAKE_BINARY_DIR} ${nonFatal}
                         COMMAND_LINE_ARGS ${macroFileName} 1 "${includePath}" "${libraryPath}"

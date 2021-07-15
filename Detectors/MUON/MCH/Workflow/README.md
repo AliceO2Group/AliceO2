@@ -20,11 +20,13 @@
   * [Digit sampler](#digit-sampler)
   * [Cluster sampler](#cluster-sampler)
   * [Track sampler](#track-sampler)
+  * [Track reader](#track-reader)
   * [Vertex sampler](#vertex-sampler)
 * [Sinks](#sinks)
   * [Precluster sink](#precluster-sink)
   * [Cluster sink](#cluster-sink)
   * [Track sink](#track-sink)
+  * [Track writer](#track-writer)
 
 <!-- vim-markdown-toc -->
 
@@ -266,6 +268,15 @@ Option `--forTrackFitter` allows to send the messages with the data description 
 
 Option `--nEventsPerTF xxx` allows to set the number of events (i.e. ROF records) to send per time frame (default = 1).
 
+### Track reader
+
+```
+o2-mch-tracks-reader-workflow --infile mchtracks.root
+```
+
+Does the same work as the [Track sampler](#track-sampler) but starting from a Root file (`mchtracks.root`)  containing `TRACKS`, `TRACKROFS` and `TRACKCLUSTERS` containers written e.g. by the [o2-mch-tracks-writer-workflow](#track-writer).
+Note that a very basic utility also exists to get a textual dump of a Root tracks file : `o2-mch-tracks-file-dumper`.
+
 ### Vertex sampler
 
 ```shell
@@ -337,3 +348,11 @@ Take as input the list of all tracks at vertex ([TrackAtVtxStruct](#track-extrap
 Option `--tracksAtVertexOnly` allows to take as input and write only the tracks at vertex (number of MCH tracks and number of associated clusters = 0).
 
 Option `--mchTracksOnly` allows to take as input and write only the MCH tracks and associated clusters (number of tracks at vertex = 0).
+
+### Track writer
+
+```shell
+o2-mch-tracks-writer-workflow --outfile "mchtracks.root"
+```
+
+Does the same kind of work as the [track sink](#track-sink) but the output is in Root format instead of custom binary one. It is implemented using the generic [MakeRootTreeWriterSpec](/DPLUtils/MakeRootTreeWriterSpec.h) and thus offers the same options.

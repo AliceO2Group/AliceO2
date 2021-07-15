@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -104,9 +105,9 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
     size_t inputsPerMergerRemainder = layerInputs.size() % numberOfMergers;
 
     MergerConfig layerConfig = mConfig;
-    if (layer > 1 && mConfig.inputObjectTimespan.value == InputObjectsTimespan::LastDifference) {
-      layerConfig.inputObjectTimespan = {InputObjectsTimespan::FullHistory};     // in LastDifference mode only the first layer should integrate
-      layerConfig.mergedObjectTimespan = {MergedObjectTimespan::LastDifference}; // and objects that are merged should not be used again
+    if (layer < mergersPerLayer.size() - 1) {
+      // in intermediate layers we should reset the results, so the same data is not added many times.
+      layerConfig.mergedObjectTimespan = {MergedObjectTimespan::NCycles, 1};
     }
     mergerBuilder.setConfig(layerConfig);
 

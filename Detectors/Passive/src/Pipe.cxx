@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -2820,46 +2821,41 @@ TGeoVolume* Pipe::MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rM
   auto& matmgr = o2::base::MaterialManager::Instance();
   const TGeoMedium* kMedVac = matmgr.getTGeoMedium("PIPE_VACUUM");
   const TGeoMedium* kMedSteel = matmgr.getTGeoMedium("PIPE_INOX");
-
-  char name[64], nameA[64], nameB[64], bools[64];
   //
   //  Upper part of the undulation
   //
+  std::string name, nameA, nameB;
   TGeoTorus* shPlieTorusU = new TGeoTorus(rMax - rPlie, rPlie - dPlie, rPlie);
-  snprintf(nameA, 64, "%sTorusU", ext);
-  shPlieTorusU->SetName(nameA);
+  nameA = fmt::format("{:s}TorusU", ext);
+  shPlieTorusU->SetName(nameA.c_str());
   TGeoTube* shPlieTubeU = new TGeoTube(rMax - rPlie, rMax, rPlie);
-  snprintf(nameB, 64, "%sTubeU", ext);
-  shPlieTubeU->SetName(nameB);
-  snprintf(name, 64, "%sUpperPlie", ext);
-  snprintf(bools, 64, "%s*%s", nameA, nameB);
-  TGeoCompositeShape* shUpperPlie = new TGeoCompositeShape(name, bools);
+  nameB = fmt::format("{:s}TubeU", ext);
+  shPlieTubeU->SetName(nameB.c_str());
+  name = fmt::format("{:s}UpperPlie", ext);
+  TGeoCompositeShape* shUpperPlie = new TGeoCompositeShape(name.c_str(), fmt::format("{:s}*{:s}", nameA, nameB).c_str());
 
-  TGeoVolume* voWiggleU = new TGeoVolume(name, shUpperPlie, kMedSteel);
+  TGeoVolume* voWiggleU = new TGeoVolume(name.c_str(), shUpperPlie, kMedSteel);
   //
   // Lower part of the undulation
   TGeoTorus* shPlieTorusL = new TGeoTorus(rMin + rPlie, rPlie - dPlie, rPlie);
-  snprintf(nameA, 64, "%sTorusL", ext);
-  shPlieTorusL->SetName(nameA);
+  nameA = fmt::format("{:s}TorusL", ext);
+  shPlieTorusL->SetName(nameA.c_str());
   TGeoTube* shPlieTubeL = new TGeoTube(rMin, rMin + rPlie, rPlie);
-  snprintf(nameB, 64, "%sTubeL", ext);
-  shPlieTubeL->SetName(nameB);
-  snprintf(name, 64, "%sLowerPlie", ext);
-  snprintf(bools, 64, "%s*%s", nameA, nameB);
-  TGeoCompositeShape* shLowerPlie = new TGeoCompositeShape(name, bools);
+  nameB = fmt::format("{:s}TubeL", ext);
+  shPlieTubeL->SetName(nameB.c_str());
+  name = fmt::format("{:s}LowerPlie", ext);
+  TGeoCompositeShape* shLowerPlie = new TGeoCompositeShape(name.c_str(), fmt::format("{:s}*{:s}", nameA, nameB).c_str());
 
-  TGeoVolume* voWiggleL = new TGeoVolume(name, shLowerPlie, kMedSteel);
+  TGeoVolume* voWiggleL = new TGeoVolume(name.c_str(), shLowerPlie, kMedSteel);
 
   //
   // Connection between upper and lower part of undulation
-  snprintf(name, 64, "%sPlieConn1", ext);
-  TGeoVolume* voWiggleC1 = new TGeoVolume(name, new TGeoTube(rMin + rPlie, rMax - rPlie, dPlie / 2.), kMedSteel);
+  TGeoVolume* voWiggleC1 = new TGeoVolume(fmt::format("{:s}PlieConn1", ext).c_str(), new TGeoTube(rMin + rPlie, rMax - rPlie, dPlie / 2.), kMedSteel);
   //
   // One wiggle
   Float_t dz = rPlie - dPlie / 2.;
   Float_t z0 = -dPlie / 2.;
-  snprintf(name, 64, "%sWiggle", ext);
-  TGeoVolumeAssembly* asWiggle = new TGeoVolumeAssembly(name);
+  TGeoVolumeAssembly* asWiggle = new TGeoVolumeAssembly(fmt::format("{:s}Wiggle", ext).c_str());
   asWiggle->AddNode(voWiggleC1, 1, new TGeoTranslation(0., 0., z0));
   z0 += dz;
   asWiggle->AddNode(voWiggleU, 1, new TGeoTranslation(0., 0., z0));
@@ -2869,9 +2865,8 @@ TGeoVolume* Pipe::MakeBellow(const char* ext, Int_t nc, Float_t rMin, Float_t rM
   asWiggle->AddNode(voWiggleL, 1, new TGeoTranslation(0., 0., z0));
   asWiggle->GetShape()->ComputeBBox(); // enforce recomputing of BBox
   //
-  snprintf(name, 64, "%sBellowUS", ext);
   Float_t zBellowTot = nc * (static_cast<TGeoBBox*>(asWiggle->GetShape()))->GetDZ();
-  TGeoVolume* voBellow = new TGeoVolume(name, new TGeoTube(rMin, rMax, zBellowTot), kMedVac);
+  TGeoVolume* voBellow = new TGeoVolume(fmt::format("{:s}BellowUS", ext).c_str(), new TGeoTube(rMin, rMax, zBellowTot), kMedVac);
   // Positioning of the volumes
   z0 = -dU / 2. + rPlie;
   voBellow->AddNode(voWiggleL, 2, new TGeoTranslation(0., 0., z0));
@@ -2898,57 +2893,54 @@ TGeoVolume* Pipe::MakeBellowCside(const char* ext, Int_t nc, Float_t rMin, Float
 
   Float_t dU = nc * (4. * rPlie - 2. * dPlie);
 
-  char name[64], nameA[64], nameB[64], bools[64];
-  snprintf(name, 64, "%sBellowUS", ext);
+  std::string name, nameA, nameB;
+  name = fmt::format("{:s}BellowUS", ext);
   //  TGeoVolume* voBellow = new TGeoVolume(name, new TGeoTube(rMin, rMax, dU/2.), kMedVac);
-  TGeoVolumeAssembly* voBellow = new TGeoVolumeAssembly(name);
+  TGeoVolumeAssembly* voBellow = new TGeoVolumeAssembly(name.c_str());
   //
   //  Upper part of the undulation
   //
 
   TGeoTorus* shPlieTorusU = new TGeoTorus(rMax - rPlie, rPlie - dPlie, rPlie);
-  snprintf(nameA, 64, "%sTorusU", ext);
-  shPlieTorusU->SetName(nameA);
+  nameA = fmt::format("{:s}TorusU", ext);
+  shPlieTorusU->SetName(nameA.c_str());
   TGeoTube* shPlieTubeU = new TGeoTube(rMax - rPlie, rMax, rPlie);
-  snprintf(nameB, 64, "%sTubeU", ext);
-  shPlieTubeU->SetName(nameB);
-  snprintf(name, 64, "%sUpperPlie", ext);
-  snprintf(bools, 64, "%s*%s", nameA, nameB);
-  TGeoCompositeShape* shUpperPlie = new TGeoCompositeShape(name, bools);
+  nameB = fmt::format("{:s}TubeU", ext);
+  shPlieTubeU->SetName(nameB.c_str());
+  name = fmt::format("{:s}UpperPlie", ext);
+  TGeoCompositeShape* shUpperPlie = new TGeoCompositeShape(name.c_str(), fmt::format("{:s}*{:s}", nameA, nameB).c_str());
 
-  TGeoVolume* voWiggleU = new TGeoVolume(name, shUpperPlie, kMedAlu5083);
+  TGeoVolume* voWiggleU = new TGeoVolume(name.c_str(), shUpperPlie, kMedAlu5083);
   voWiggleU->SetLineColor(kOrange); // fm
 
   // First Lower part of the ondulation
   TGeoTorus* shPlieTorusL = new TGeoTorus(rMin + rPlie, rPlie - dPlie, rPlie);
-  snprintf(nameA, 64, "%sTorusL", ext);
-  shPlieTorusL->SetName(nameA);
+  nameA = fmt::format("{:s}TorusL", ext);
+  shPlieTorusL->SetName(nameA.c_str());
   TGeoTranslation* t1 = new TGeoTranslation("t1", 0, 0, -rPlie / 2.);
   t1->RegisterYourself();
 
   TGeoTube* shPlieTubeL = new TGeoTube(rMin, rMin + rPlie, rPlie / 2.);
-  snprintf(nameB, 64, "%sTubeL", ext);
-  shPlieTubeL->SetName(nameB);
-  snprintf(name, 64, "%sLowerPlie", ext);
-  snprintf(bools, 64, "%s*%s:t1", nameA, nameB);
-  TGeoCompositeShape* shLowerPlie1 = new TGeoCompositeShape(name, bools);
+  nameB = fmt::format("{:s}TubeL", ext);
+  shPlieTubeL->SetName(nameB.c_str());
+  name = fmt::format("{:s}LowerPlie", ext);
+  TGeoCompositeShape* shLowerPlie1 = new TGeoCompositeShape(name.c_str(), fmt::format("{:s}*{:s}:t1", nameA, nameB).c_str());
 
-  TGeoVolume* voWiggleL1 = new TGeoVolume(name, shLowerPlie1, kMedAlu5083);
+  TGeoVolume* voWiggleL1 = new TGeoVolume(name.c_str(), shLowerPlie1, kMedAlu5083);
   voWiggleL1->SetLineColor(kOrange); // fm
 
   // Second Lower part of the undulation
   TGeoTranslation* t2 = new TGeoTranslation("t2", 0, 0, rPlie / 2.);
   t2->RegisterYourself();
 
-  snprintf(bools, 64, "%s*%s:t2", nameA, nameB);
-  TGeoCompositeShape* shLowerPlie2 = new TGeoCompositeShape(name, bools);
+  TGeoCompositeShape* shLowerPlie2 = new TGeoCompositeShape(name.c_str(), fmt::format("{:s}*{:s}:t2", nameA, nameB).c_str());
 
-  TGeoVolume* voWiggleL2 = new TGeoVolume(name, shLowerPlie2, kMedAlu5083);
+  TGeoVolume* voWiggleL2 = new TGeoVolume(name.c_str(), shLowerPlie2, kMedAlu5083);
   voWiggleL2->SetLineColor(kOrange); // fm
 
   // Connection between upper and lower part of undulation
-  snprintf(name, 64, "%sPlieConn1", ext);
-  TGeoVolume* voWiggleC1 = new TGeoVolume(name, new TGeoTube(rMin + rPlie, rMax - rPlie, dPlie / 2.), kMedAlu5083);
+  name = fmt::format("{:s}PlieConn1", ext);
+  TGeoVolume* voWiggleC1 = new TGeoVolume(name.c_str(), new TGeoTube(rMin + rPlie, rMax - rPlie, dPlie / 2.), kMedAlu5083);
   voWiggleC1->SetLineColor(kOrange); // fm
 
   //
@@ -2958,45 +2950,42 @@ TGeoVolume* Pipe::MakeBellowCside(const char* ext, Int_t nc, Float_t rMin, Float
   //--Upper part of the ondulation
 
   TGeoTorus* vacPlieTorusU = new TGeoTorus(rMax - rPlie, 0., rPlie - dPlie);
-  snprintf(nameA, 64, "%svacTorusU", ext);
-  vacPlieTorusU->SetName(nameA);
+  nameA = fmt::format("{:s}vacTorusU", ext);
+  vacPlieTorusU->SetName(nameA.c_str());
   TGeoTube* vacPlieTubeU = new TGeoTube(0., rMax - rPlie, rPlie - dPlie);
-  snprintf(nameB, 64, "%svacTubeU", ext);
-  vacPlieTubeU->SetName(nameB);
-  snprintf(name, 64, "%svacUpperPlie", ext);
-  snprintf(bools, 64, "%s+%s", nameA, nameB);
-  TGeoCompositeShape* vacUpperPlie = new TGeoCompositeShape(name, bools);
+  nameB = fmt::format("{:s}vacTubeU", ext);
+  vacPlieTubeU->SetName(nameB.c_str());
+  name = fmt::format("{:s}vacUpperPlie", ext);
+  TGeoCompositeShape* vacUpperPlie = new TGeoCompositeShape(name.c_str(), fmt::format("{:s}+{:s}", nameA, nameB).c_str());
 
-  TGeoVolume* voVacWiggleU = new TGeoVolume(name, vacUpperPlie, kMedVac);
+  TGeoVolume* voVacWiggleU = new TGeoVolume(name.c_str(), vacUpperPlie, kMedVac);
   voVacWiggleU->SetVisibility(0);
 
   // First Lower part of the undulation
   TGeoTorus* vacPlieTorusL = new TGeoTorus(rMin + rPlie, 0., rPlie);
-  snprintf(nameA, 64, "%svacTorusL", ext);
-  vacPlieTorusL->SetName(nameA);
+  nameA = fmt::format("{:s}vacTorusL", ext);
+  vacPlieTorusL->SetName(nameA.c_str());
 
   TGeoTube* vacPlieTubeL = new TGeoTube(0., rMin + rPlie, rPlie / 2.);
-  snprintf(nameB, 64, "%svacTubeL", ext);
-  vacPlieTubeL->SetName(nameB);
-  snprintf(name, 64, "%svacLowerPlie", ext);
-  snprintf(bools, 64, "%s:t1-%s", nameB, nameA);
-  TGeoCompositeShape* vacLowerPlie1 = new TGeoCompositeShape(name, bools);
+  nameB = fmt::format("{:s}vacTubeL", ext);
+  vacPlieTubeL->SetName(nameB.c_str());
+  name = fmt::format("{:s}vacLowerPlie", ext);
+  TGeoCompositeShape* vacLowerPlie1 = new TGeoCompositeShape(name.c_str(), fmt::format("{:s}:t1-{:s}", nameB, nameA).c_str());
 
-  TGeoVolume* voVacWiggleL1 = new TGeoVolume(name, vacLowerPlie1, kMedVac);
+  TGeoVolume* voVacWiggleL1 = new TGeoVolume(name.c_str(), vacLowerPlie1, kMedVac);
   voVacWiggleL1->SetVisibility(0);
 
   // Second Lower part of the undulation
-  snprintf(bools, 64, "%s:t2-%s", nameB, nameA);
-  TGeoCompositeShape* vacLowerPlie2 = new TGeoCompositeShape(name, bools);
+  TGeoCompositeShape* vacLowerPlie2 = new TGeoCompositeShape(name.c_str(), fmt::format("{:s}:t2-{:s}", nameB, nameA).c_str());
 
-  TGeoVolume* voVacWiggleL2 = new TGeoVolume(name, vacLowerPlie2, kMedVac);
+  TGeoVolume* voVacWiggleL2 = new TGeoVolume(name.c_str(), vacLowerPlie2, kMedVac);
   voVacWiggleL2->SetVisibility(0);
 
   // One wiggle
   Float_t dz = rPlie - dPlie / 2.;
   Float_t z0 = 2. * rPlie;
-  snprintf(name, 64, "%sWiggle", ext);
-  TGeoVolumeAssembly* asWiggle = new TGeoVolumeAssembly(name);
+  name = fmt::format("{:s}Wiggle", ext);
+  TGeoVolumeAssembly* asWiggle = new TGeoVolumeAssembly(name.c_str());
 
   asWiggle->AddNode(voWiggleL1, 1, new TGeoTranslation(0., 0., z0));
   asWiggle->AddNode(voVacWiggleL1, 1, new TGeoTranslation(0., 0., z0));

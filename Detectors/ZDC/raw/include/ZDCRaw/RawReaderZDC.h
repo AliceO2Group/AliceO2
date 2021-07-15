@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -36,6 +37,16 @@ namespace zdc
 {
 class RawReaderZDC
 {
+  const ModuleConfig* mModuleConfig = nullptr;     // Trigger/readout configuration object
+  bool mVerifyTrigger = true;                      // Verify trigger condition during conversion to digits
+  uint32_t mTriggerMask = 0;                       // Trigger mask from ModuleConfig
+  std::map<InteractionRecord, EventData> mMapData; // Raw data cache
+  EventChData mCh;                                 // Channel data to be decoded
+  std::vector<o2::zdc::BCData> mDigitsBC;          // Digitized bunch crossing data
+  std::vector<o2::zdc::ChannelData> mDigitsCh;     // Digitized channel data
+  std::vector<o2::zdc::OrbitData> mOrbitData;      // Digitized orbit data
+  bool mDumpData;                                  // Enable printout of all data
+
  public:
   RawReaderZDC(bool dumpData) : mDumpData(dumpData) {}
   RawReaderZDC(const RawReaderZDC&) = default;
@@ -43,25 +54,17 @@ class RawReaderZDC
   RawReaderZDC() = default;
   ~RawReaderZDC() = default;
 
-  std::map<InteractionRecord, EventData> mMapData; /// Raw data cache
-  const ModuleConfig* mModuleConfig = nullptr;     /// Trigger/readout configuration object
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
-  uint32_t mTriggerMask = 0; // Trigger mask from ModuleConfig
   void setTriggerMask();
-
-  bool mVerifyTrigger = true; // Verify trigger condition during conversion to digits
-
-  std::vector<o2::zdc::BCData> mDigitsBC;
-  std::vector<o2::zdc::ChannelData> mDigitsCh;
-  std::vector<o2::zdc::OrbitData> mOrbitData;
+  void setVerifyTrigger(const bool verifyTrigger) { mVerifyTrigger = verifyTrigger; };
+  bool getVerifyTrigger() { return mVerifyTrigger; };
 
   void clear();
 
   //decoding binary data into data blocks
   void processBinaryData(gsl::span<const uint8_t> payload, int linkID); //processing data blocks into digits
   int processWord(const uint32_t* word);
-  EventChData mCh; // Channel data to be decoded
   void process(const EventChData& ch);
 
   void accumulateDigits()
@@ -86,7 +89,6 @@ class RawReaderZDC
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginZDC, "DIGITSCH", 0, o2::framework::Lifetime::Timeframe}, mDigitsCh);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginZDC, "DIGITSPD", 0, o2::framework::Lifetime::Timeframe}, mOrbitData);
   }
-  bool mDumpData;
 };
 } // namespace zdc
 } // namespace o2

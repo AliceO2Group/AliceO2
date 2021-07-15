@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(
   MIDWorkflow
@@ -20,6 +21,7 @@ o2_add_library(
           src/RawCheckerSpec.cxx
           src/RawDecoderSpec.cxx
           src/RawGBTDecoderSpec.cxx
+          src/RawInputSpecHandler.cxx
           src/RawWriterSpec.cxx
           src/TrackerMCSpec.cxx
           src/TrackerSpec.cxx
@@ -98,3 +100,9 @@ o2_add_executable(
 target_include_directories(
   ${exenamerawchecker}
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>)
+
+o2_add_executable(
+  tracks-reader-workflow
+  SOURCES src/tracks-reader-workflow.cxx
+  COMPONENT_NAME mid
+  PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils O2::DataFormatsMID)

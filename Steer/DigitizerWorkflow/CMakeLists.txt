@@ -1,19 +1,18 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 if (ENABLE_UPGRADES)
 o2_add_executable(digitizer-workflow
                   COMPONENT_NAME sim
-                  SOURCES src/EMCALDigitWriterSpec.cxx
-                          src/EMCALDigitizerSpec.cxx
-                          src/CTPDigitizerSpec.cxx
+                  SOURCES src/CTPDigitizerSpec.cxx
                           src/FT0DigitizerSpec.cxx
                           src/FV0DigitizerSpec.cxx
                           src/FDDDigitizerSpec.cxx
@@ -35,11 +34,12 @@ o2_add_executable(digitizer-workflow
                                         O2::Steer
                                         O2::CommonConstants
                                         O2::EMCALSimulation
+                                        O2::EMCALWorkflow
                                         O2::FT0Simulation
                                         O2::FV0Simulation
                                         O2::FDDSimulation
                                         O2::CTPSimulation
-                                        O2::CTPWorkflow
+                                        O2::CTPWorkflowIO
                                         O2::FDDWorkflow
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation
@@ -70,9 +70,7 @@ o2_add_executable(digitizer-workflow
 else()
 o2_add_executable(digitizer-workflow
                   COMPONENT_NAME sim
-                  SOURCES src/EMCALDigitWriterSpec.cxx
-                          src/EMCALDigitizerSpec.cxx
-                          src/CTPDigitizerSpec.cxx
+                  SOURCES src/CTPDigitizerSpec.cxx
                           src/FT0DigitizerSpec.cxx
                           src/FV0DigitizerSpec.cxx
                           src/FDDDigitizerSpec.cxx
@@ -93,11 +91,12 @@ o2_add_executable(digitizer-workflow
                                         O2::Steer
                                         O2::CommonConstants
                                         O2::EMCALSimulation
+                                        O2::EMCALWorkflow
                                         O2::FT0Simulation
                                         O2::FV0Simulation
                                         O2::FDDSimulation
                                         O2::CTPSimulation
-                                        O2::CTPWorkflow
+                                        O2::CTPWorkflowIO
                                         O2::FDDWorkflow
                                         O2::HMPIDSimulation
                                         O2::ITSMFTSimulation

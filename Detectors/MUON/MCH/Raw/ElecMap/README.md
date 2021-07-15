@@ -23,8 +23,8 @@ the 24 of a CRU).
 
 As the time of this writing the electronic mapping is still a bit in flux, as :
 
--   the detector electronic is still being (re)installed
--   the FeeId,LinkId to Solar part is still to be implemented at Pt2
+- the detector electronic is still being (re)installed
+- the FeeId,LinkId to Solar part is still to be implemented at Pt2
 
 so things might evolve...
 
@@ -36,7 +36,7 @@ The API is to be found in [Mapper.h](include/MCHRawElecMap/Mapper.h) file.
 
 ## Generation of electronic mapping
 
-The code generation uses the [gen.sh](src/gen.sh) script which basically loops 
+The code generation uses the [gen.sh](src/gen.sh) script which basically loops
 on all chambers and call `elecmap.py` for each one, e.g.
 
 ```bash
@@ -46,12 +46,24 @@ on all chambers and call `elecmap.py` for each one, e.g.
 (for the moment a credential JSON file is required, we'll try to remove that
 constraint as soon as possible)
 
-The `elecmap.py` python script requires a number of python modules to be 
-installed to be able to run : 
+The `elecmap.py` python script requires a number of python modules to be
+installed to be able to run :
 
-```
+```shell
 pip install oauth2client
 pip install gspread
 pip install numpy
 pip install pandas
 ```
+
+Or, if you use `conda` (e.g.
+ [miniforge](https://github.com/conda-forge/miniforge)),
+a [environment.yml](src/environment.yml) is provided so that :
+
+```shell
+conda env create
+conda env activate mch-elecmap
+```
+
+should bring you all you need to execute the script.
+

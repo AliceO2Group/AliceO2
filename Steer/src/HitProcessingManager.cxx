@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -55,7 +56,7 @@ bool HitProcessingManager::setupChain()
   auto& c = *mSimChains[0];
   c.Reset();
   for (auto& filename : mBackgroundFileNames) {
-    c.AddFile(o2::base::NameConf::getMCKinematicsFileName(filename.data()).c_str());
+    c.AddFile(o2::base::NameConf::getMCHeadersFileName(filename.data()).c_str());
   }
 
   for (auto& pair : mSignalFileNames) {
@@ -63,7 +64,7 @@ bool HitProcessingManager::setupChain()
     const auto& filenamevector = pair.second;
     auto& chain = *mSimChains[signalid];
     for (auto& filename : filenamevector) {
-      chain.AddFile(o2::base::NameConf::getMCKinematicsFileName(filename.data()).c_str());
+      chain.AddFile(o2::base::NameConf::getMCHeadersFileName(filename.data()).c_str());
     }
   }
 

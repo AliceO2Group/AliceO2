@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -428,11 +429,11 @@ void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
 DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet, size_t szmn, size_t szmx)
 {
   std::vector<InputSpec> inputs;
-  LOG(INFO) << "Detectors list:";
+  LOG(DEBUG) << "Detectors list:";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (dets[id]) {
       inputs.emplace_back(DetID::getName(id), DetID::getDataOrigin(id), "CTFDATA", 0, Lifetime::Timeframe);
-      LOG(INFO) << "Det " << DetID::getName(id) << " added";
+      LOG(DEBUG) << "Det " << DetID::getName(id) << " added";
     }
   }
   return DataProcessorSpec{

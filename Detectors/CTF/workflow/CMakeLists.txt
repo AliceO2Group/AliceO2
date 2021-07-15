@@ -1,12 +1,13 @@
-# Copyright CERN and copyright holders of ALICE O2. This software is distributed
-# under the terms of the GNU General Public License v3 (GPL Version 3), copied
-# verbatim in the file "COPYING".
+# Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+# See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+# All rights not expressly granted are reserved.
 #
-# See http://alice-o2.web.cern.ch/license for full licensing information.
+# This software is distributed under the terms of the GNU General Public
+# License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 #
 # In applying this license CERN does not waive the privileges and immunities
-# granted to it by virtue of its status as an Intergovernmental Organization or
-# submit itself to any jurisdiction.
+# granted to it by virtue of its status as an Intergovernmental Organization
+# or submit itself to any jurisdiction.
 
 o2_add_library(CTFWorkflow
                SOURCES src/CTFWriterSpec.cxx
@@ -24,7 +25,7 @@ o2_add_library(CTFWorkflow
                                      O2::DataFormatsPHOS
                                      O2::DataFormatsCPV
                                      O2::DataFormatsZDC
-                                     O2::DataFormatsHMP				     
+                                     O2::DataFormatsHMP
                                      O2::DataFormatsParameters
                                      O2::ITSMFTWorkflow
                                      O2::TPCWorkflow
@@ -32,14 +33,13 @@ o2_add_library(CTFWorkflow
                                      O2::FT0Workflow
                                      O2::FV0Workflow
                                      O2::FDDWorkflow
-                                     O2::TOFWorkflow
                                      O2::MCHWorkflow
                                      O2::MIDWorkflow
                                      O2::EMCALWorkflow
                                      O2::PHOSWorkflow
                                      O2::CPVWorkflow
                                      O2::ZDCWorkflow
-				     O2::HMPIDWorkflow
+                                     O2::HMPIDWorkflow
                                      O2::Algorithm
                                      O2::CommonUtils)
 

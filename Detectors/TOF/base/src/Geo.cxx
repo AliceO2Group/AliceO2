@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -11,8 +12,10 @@
 #include "TOFBase/Geo.h"
 #include "TGeoManager.h"
 #include "TMath.h"
-#include "FairLogger.h"
+#include "Framework/Logger.h"
 #include "DetectorsBase/GeometryManager.h"
+#include "CommonUtils/StringUtils.h"
+#include <string>
 
 ClassImp(o2::tof::Geo);
 
@@ -37,12 +40,11 @@ void Geo::Init()
   LOG(INFO) << "tof::Geo: Initialization of TOF rotation parameters";
 
   if (!gGeoManager) {
-    LOG(WARNING) << " no TGeo! Loading it";
+    LOG(INFO) << " no TGeo! Loading it";
     o2::base::GeometryManager::loadGeometry();
   }
 
   int det[5];
-  Char_t path[200];
   for (Int_t isector = 0; isector < NSECTORS; isector++) {
     det[0] = isector;
     for (Int_t iplate = 0; iplate < NPLATES; iplate++) {
@@ -59,8 +61,7 @@ void Geo::Init()
             det[3] = ipadz;
             for (Int_t ipadx = 0; ipadx < NPADX; ipadx++) {
               det[4] = ipadx;
-              getVolumePath(det, path);
-              gGeoManager->cd(path);
+              gGeoManager->cd(getVolumePath(det).c_str());
               TGeoHMatrix global;
               global = *gGeoManager->GetCurrentMatrix();
               const Double_t* tr = global.GetTranslation();
@@ -145,23 +146,17 @@ void Geo::Init()
   mToBeIntit = kFALSE;
 }
 
-void Geo::getVolumePath(const Int_t* ind, Char_t* path)
+std::string Geo::getVolumePath(const Int_t* ind)
 {
   //--------------------------------------------------------------------
   // This function returns the volume path of a given pad
   //--------------------------------------------------------------------
   Int_t sector = ind[0];
 
-  const Int_t kSize = 100;
-
-  Char_t string1[kSize];
-  Char_t string2[kSize];
-  Char_t string3[kSize];
-
   Int_t icopy = -1;
   icopy = sector;
 
-  snprintf(string1, kSize, "/cave_1/barrel_1/B077_1/BSEGMO%i_1/BTOF%i_1", icopy, icopy);
+  auto string1 = fmt::format("/cave_1/barrel_1/B077_1/BSEGMO{:d}_1/BTOF{:d}_1", icopy, icopy);
 
   Bool_t fgHoles = kTRUE;
 
@@ -183,20 +178,19 @@ void Geo::getVolumePath(const Int_t* ind, Char_t* path)
     icopy = istrip + NSTRIPC + 2 * NSTRIPB + NSTRIPA;
   }
   icopy++;
-  snprintf(string2, kSize, "FTOA_0/FLTA_0/FSTR_%i", icopy);
+  auto string2 = fmt::format("FTOA_0/FLTA_0/FSTR_{:d}", icopy);
   if (fgHoles && (sector == 13 || sector == 14 || sector == 15)) {
     if (iplate < 2) {
-      snprintf(string2, kSize, "FTOB_0/FLTB_0/FSTR_%i", icopy);
+      string2 = fmt::format("FTOB_0/FLTB_0/FSTR_{:d}", icopy);
     }
     if (iplate > 2) {
-      snprintf(string2, kSize, "FTOC_0/FLTC_0/FSTR_%i", icopy);
+      string2 = fmt::format("FTOC_0/FLTC_0/FSTR_{:d}", icopy);
     }
   }
 
   Int_t padz = ind[3] + 1;
   Int_t padx = ind[4] + 1;
-  snprintf(string3, kSize, "FPCB_1/FSEN_1/FSEZ_%i/FPAD_%i", padz, padx);
-  snprintf(path, 2 * kSize, "%s/%s/%s", string1, string2, string3);
+  return o2::utils::Str::concat_string(string1, '/', string2, '/', fmt::format("FPCB_1/FSEN_1/FSEZ_{:d}/FPAD_{:d}", padz, padx));
 }
 
 void Geo::getPos(Int_t* det, Float_t* pos)

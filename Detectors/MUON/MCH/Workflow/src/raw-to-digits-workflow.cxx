@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -41,6 +42,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::swap(workflowOptions, options);
   workflowOptions.push_back(ConfigParamSpec{"dataspec", VariantType::String, "TF:MCH/RAWDATA", {"selection string for the input data"}});
+  workflowOptions.push_back(o2::framework::ConfigParamSpec{"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -53,7 +55,10 @@ WorkflowSpec defineDataProcessing(const ConfigContext& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   auto inputSpec = configcontext.options().get<std::string>("dataspec");
-  WorkflowSpec wf{o2::mch::raw::getDecodingSpec(inputSpec)};
+
+  auto askSTFDist = !configcontext.options().get<bool>("ignore-dist-stf");
+
+  WorkflowSpec wf{o2::mch::raw::getDecodingSpec(inputSpec, askSTFDist)};
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);

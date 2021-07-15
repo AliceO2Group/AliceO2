@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -21,6 +22,14 @@
 #include "TRDReconstruction/DigitsParser.h"
 #include "TRDReconstruction/TrackletsParser.h"
 #include "DataFormatsTRD/Constants.h"
+
+#include "Framework/ControlService.h"
+#include "Framework/ConfigParamRegistry.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/DeviceSpec.h"
+#include "Framework/DataSpecUtils.h"
+#include "Framework/Output.h"
+#include "Framework/InputRecordWalker.h"
 
 #include <cstring>
 #include <string>
@@ -283,6 +292,14 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
         LOG(info) << "mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
       }
       digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
+      if (digitwordsread != std::distance(linkstart, linkend)) {
+        //we have the data corruption problem of a pile of stuff at the end of a link, jump over it.
+        if (mFixDigitEndCorruption) {
+          digitwordsread = std::distance(linkstart, linkend);
+        } else {
+          LOG(warn) << "read digits but data still left on the link digitwordsread:" << digitwordsread << " and link length:" << std::distance(linkstart, linkend);
+        }
+      }
       mTotalDigitsFound += mDigitsParser.getDigitsFound();
       if (mVerbose) {
         LOG(info) << "digitwordsread : " << digitwordsread << " mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
@@ -413,32 +430,21 @@ void CruRawReader::getParsedObjects(std::vector<Tracklet64>& tracklets, std::vec
 {
   int digitcountsum = 0;
   int trackletcountsum = 0;
-  mEventRecords.unpackDataForSending(triggers, tracklets, digits);
-  /*for(auto eventrecord: mEventRecords)//loop over triggers incase they have already been done.
-  {
-  int digitcount=0;
-  int trackletcount=0;
-    int start,end;
-    LOG(info) << __func__ << " " << tracklets.size() << " "
-              << cdigits.size()<< " trackletv size:"<< mEventRecords.getTracklets(ir.getBCData());
-    for(auto trackletv: mEventStores.getTracklets(ir.getBCData())){
-      //loop through the vector of ranges
-      start=trackletv.getFirstEntry();
-      end= start+trackletv.getEntries();
-      LOG(info) << "insert tracklets from " << start<< "  " << end;
-      tracklets.insert(tracklets.end(),mEventTracklets.begin()+start, mEventTracklets.begin()+end);
-      trackletcount+=trackletv.getEntries();
-    }
-    for(auto digitv: mEventStores.getDigits(ir.getBCData())){
-      start=digitv.getFirstEntry();
-      end= start+digitv.getEntries();
-      LOG(info) << "insert digits from " << start<< "  " << end;
-      cdigits.insert(cdigits.end(),mEventCompressedDigits.begin()+start , mEventCompressedDigits.begin()+end);
-      digitcount+=digitv.getEntries();
-    }
-    triggers.emplace_back(ir.getBCData(),digitcountsum,digitcount,trackletcountsum,trackletcount);
-    digitcountsum+=digitcount;
-    trackletcountsum+=trackletcount;
-  }*/
+  mEventRecords.unpackData(triggers, tracklets, digits);
 }
+
+void CruRawReader::getParsedObjectsandClear(std::vector<Tracklet64>& tracklets, std::vector<Digit>& digits, std::vector<TriggerRecord>& triggers)
+{
+  getParsedObjects(tracklets, digits, triggers);
+  clearall();
+}
+
+//write the output data directly to the given DataAllocator from the datareader task.
+void CruRawReader::buildDPLOutputs(o2::framework::ProcessingContext& pc)
+{
+  mEventRecords.sendData(pc);
+  //    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD,"STATS",0,Lifetime::Timerframe},mStats);
+  clearall(); // having now written the messages clear for next.
+}
+
 } // namespace o2::trd

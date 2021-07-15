@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -14,7 +15,7 @@
 #define O2_TOF_MATCHER_SPEC
 
 #include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/MatchInfoTOF.h"
+#include "ReconstructionDataFormats/MatchInfoTOFReco.h"
 
 using namespace o2::framework;
 
@@ -24,7 +25,7 @@ namespace globaltracking
 {
 
 /// create a processor spec
-framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT);
+framework::DataProcessorSpec getTOFMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool highpur);
 
 } // namespace globaltracking
 } // namespace o2

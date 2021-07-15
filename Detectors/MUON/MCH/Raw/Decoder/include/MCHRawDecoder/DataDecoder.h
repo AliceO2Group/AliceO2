@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -141,10 +142,10 @@ class DataDecoder
   uint32_t getSampaBcOffset() const { return mSampaTimeOffset; }
 
   static int32_t digitsTimeDiff(uint32_t orbit1, uint32_t bc1, uint32_t orbit2, uint32_t bc2);
-  static void computeDigitsTime_(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug);
+  static void computeDigitsTime(RawDigitVector& digits, SampaTimeFrameStart& sampaTimeFrameStart, bool debug);
   void computeDigitsTime()
   {
-    computeDigitsTime_(mDigits, mSampaTimeFrameStart, mDebug);
+    computeDigitsTime(mDigits, mSampaTimeFrameStart, mDebug);
   }
 
   const RawDigitVector& getDigits() const { return mDigits; }
@@ -156,6 +157,23 @@ class DataDecoder
   void init();
   void decodePage(gsl::span<const std::byte> page);
   void dumpDigits();
+  bool getPadMapping(const DsElecId& dsElecId, DualSampaChannelId channel, int& deId, int& dsIddet, int& padId);
+  bool addDigit(const DsElecId& dsElecId, DualSampaChannelId channel, const o2::mch::raw::SampaCluster& sc);
+  int32_t getMergerChannelId(const DsElecId& dsElecId, DualSampaChannelId channel);
+  void updateMergerRecord(uint32_t mergerChannelId, uint32_t digitId);
+  bool mergeDigits(uint32_t mergerChannelId, o2::mch::raw::SampaCluster& sc);
+
+  // structure that stores the index of the last decoded digit for a given readout channel,
+  // as well as the time stamp of the last ADC sample of the digit
+  struct MergerChannelRecord {
+    MergerChannelRecord() = default;
+    int32_t digitId{-1};
+    int32_t bcEnd{-1};
+  };
+  static constexpr uint32_t sMaxSolarId = 200 * 8 - 1;
+  static constexpr uint32_t sReadoutChannelsNum = (sMaxSolarId + 1) * 40 * 64;
+  // table storing the digits merging information for each readout channel in the MCH system
+  std::vector<MergerChannelRecord> mMergerRecords{sReadoutChannelsNum}; ///< merger records for all MCH readout channels
 
   Elec2DetMapper mElec2Det{nullptr};       ///< front-end electronics mapping
   FeeLink2SolarMapper mFee2Solar{nullptr}; ///< CRU electronics mapping
