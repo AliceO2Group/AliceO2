@@ -59,6 +59,7 @@ struct WSDPLHandler : public HTTPParser {
   std::unique_ptr<WebSocketHandler> mHandler;
   bool mHandshaken = false;
   uv_stream_t* mStream = nullptr;
+  bool mGUI = false;
   std::map<std::string, std::string> mHeaders;
   DriverServerContext* mServerContext;
 };
