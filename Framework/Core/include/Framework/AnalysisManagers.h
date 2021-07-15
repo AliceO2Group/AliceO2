@@ -22,7 +22,7 @@
 #include "Framework/ConfigurableHelpers.h"
 #include "Framework/InitContext.h"
 #include "Framework/RootConfigParamHelpers.h"
-#include "../src/ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 
 namespace o2::framework
 {
