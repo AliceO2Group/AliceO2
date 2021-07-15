@@ -817,10 +817,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto item = mGIDToTableID.find(trPosID);
     if (item != mGIDToTableID.end()) {
       posTableIdx = item->second;
+    } else {
+      LOG(FATAL) << "Could not find a positive track index";
     }
     item = mGIDToTableID.find(trNegID);
     if (item != mGIDToTableID.end()) {
       negTableIdx = item->second;
+    } else {
+      LOG(FATAL) << "Could not find a negative track index";
     }
     v0sCursor(0, posTableIdx, negTableIdx);
   }
