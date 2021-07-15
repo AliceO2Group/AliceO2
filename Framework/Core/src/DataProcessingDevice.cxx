@@ -723,6 +723,7 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
   };
 
   if (context.deviceContext->state->streaming == StreamingState::Idle) {
+    *context.wasActive = false;
     return;
   }
 
@@ -756,7 +757,10 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
-    while (DataProcessingDevice::tryDispatchComputation(context, *context.completed)) {
+    /// Besides flushing the queues we must make sure we do not have only
+    /// timers as they do not need to be further processed.
+    bool hasOnlyGenerated = (context.deviceContext->spec->inputChannels.size() == 1) && (context.deviceContext->spec->inputs[0].matcher.lifetime == Lifetime::Timer || context.deviceContext->spec->inputs[0].matcher.lifetime == Lifetime::Enumeration);
+    while (DataProcessingDevice::tryDispatchComputation(context, *context.completed) && hasOnlyGenerated == false) {
       context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, false);
     }
     EndOfStreamContext eosContext{*context.registry, *context.allocator};
@@ -771,8 +775,25 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     // This is needed because the transport is deleted before the device.
     context.relayer->clear();
     switchState(StreamingState::Idle);
-    *context.wasActive = true;
+    if (hasOnlyGenerated) {
+      *context.wasActive = false;
+    } else {
+      *context.wasActive = true;
+    }
+    // On end of stream we shut down all output pollers.
+    for (auto& poller : context.deviceContext->state->activeOutputPollers) {
+      uv_poll_stop(poller);
+    }
+    context.deviceContext->state->activeOutputPollers.clear();
     return;
+  }
+
+  if (context.deviceContext->state->streaming == StreamingState::Idle) {
+    // On end of stream we shut down all output pollers.
+    for (auto& poller : context.deviceContext->state->activeOutputPollers) {
+      uv_poll_stop(poller);
+    }
+    context.deviceContext->state->activeOutputPollers.clear();
   }
 
   return;
