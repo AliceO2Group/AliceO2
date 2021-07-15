@@ -105,9 +105,14 @@ void WSDPLHandler::method(std::string_view const& s)
 
 void WSDPLHandler::target(std::string_view const& s)
 {
-  if (s != "/") {
-    throw WSError{404, "Unknown"};
+  if (s == "/") {
+    return;
   }
+  if (s == "/gui") {
+    mGUI = true;
+    return;
+  }
+  throw WSError{404, "Unknown"};
 }
 
 void populateHeader(std::map<std::string, std::string>& headers, std::string_view const& k, std::string_view const& v)
