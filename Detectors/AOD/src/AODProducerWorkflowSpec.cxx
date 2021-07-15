@@ -836,6 +836,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     auto item = mGIDToTableID.find(bachelorID);
     if (item != mGIDToTableID.end()) {
       bachTableIdx = item->second;
+    } else {
+      LOG(FATAL) << "Could not find a bachelor track index";
     }
     cascadesCursor(0, cascade.getV0ID(), bachTableIdx);
   }
