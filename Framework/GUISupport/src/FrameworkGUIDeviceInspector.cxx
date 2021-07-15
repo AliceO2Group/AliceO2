@@ -145,6 +145,7 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
             break;
           case VariantType::Empty:
             ImGui::TextUnformatted(""); // no default value
+            break;
           default:
             ImGui::TextUnformatted("unknown");
         }
