@@ -32,11 +32,11 @@ namespace o2::framework
 /// device.
 enum struct StreamingState {
   /// Data is being processed
-  Streaming,
+  Streaming = 0,
   /// End of streaming requested, but not notified
-  EndOfStreaming,
+  EndOfStreaming = 1,
   /// End of streaming notified
-  Idle,
+  Idle = 2,
 };
 
 /// Running state information of a given device
