@@ -56,6 +56,10 @@ const double incrementEtaCut = 0.1;
 const double incrementPtThreshold = 0.5;
 const double epsilon = 1E-5;
 
+const int npTBinsMassAndEfficiency = o2::analysis::hf_cuts_d0_topik::npTBins;
+const double efficiencyDmesonDefault[npTBinsMassAndEfficiency] = {};
+auto efficiencyDmeson_v = std::vector<double>{efficiencyDmesonDefault, efficiencyDmesonDefault + npTBinsMassAndEfficiency};
+
 /// Dplus-Dminus correlation pair builder - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 struct HfCorrelatorDplusDminus {
   Produces<aod::DDbarPair> entryDplusDminusPair;
@@ -77,7 +81,9 @@ struct HfCorrelatorDplusDminus {
   Configurable<int> selectionFlagDplus{"selectionFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
-  Configurable<std::vector<double>> bins{"ptBinsForMass", std::vector<double>{o2::analysis::hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits for candidate mass plots"};
+  Configurable<std::vector<double>> bins{"ptBinsForMassAndEfficiency", std::vector<double>{o2::analysis::hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits for candidate mass plots and efficiency"};
+  Configurable<std::vector<double>> efficiencyDmeson{"efficiencyDmeson", std::vector<double>{efficiencyDmeson_v}, "Efficiency values for Dplus meson"};  
+  Configurable<int> flagApplyEfficiency{"efficiencyFlagD", 1, "Flag for applying D-meson efficiency weights"};  
 
   void init(o2::framework::InitContext&)
   {
@@ -101,6 +107,12 @@ struct HfCorrelatorDplusDminus {
       if (!(candidate1.hfflag() & 1 << DecayType::DPlusToPiKPi)) { //probably dummy since already selected? not sure...
         continue;
       }
+
+      double efficiencyWeight = 1.;
+      if (flagApplyEfficiency) {
+        efficiencyWeight = 1./efficiencyDmeson->at(o2::analysis::findBin(bins, candidate1.pt()));
+      }
+
       int outerParticleSign = 1; //Dplus
       auto outerSecondTrack = candidate1.index1_as<aod::BigTracks>();
       if (outerSecondTrack.sign() == 1) {
@@ -109,11 +121,11 @@ struct HfCorrelatorDplusDminus {
 
       //fill invariant mass plots and generic info from all Dplus/Dminus candidates
       if (outerParticleSign == 1) {
-        registry.fill(HIST("hMass"), InvMassDPlus(candidate1), candidate1.pt());
-        registry.fill(HIST("hMassDplus"), InvMassDPlus(candidate1), candidate1.pt());
+        registry.fill(HIST("hMass"), InvMassDPlus(candidate1), candidate1.pt(), efficiencyWeight);
+        registry.fill(HIST("hMassDplus"), InvMassDPlus(candidate1), candidate1.pt(), efficiencyWeight);
       } else {
-        registry.fill(HIST("hMass"), InvMassDPlus(candidate1), candidate1.pt());
-        registry.fill(HIST("hMassDminus"), InvMassDPlus(candidate1), candidate1.pt());
+        registry.fill(HIST("hMass"), InvMassDPlus(candidate1), candidate1.pt(), efficiencyWeight);
+        registry.fill(HIST("hMassDminus"), InvMassDPlus(candidate1), candidate1.pt(), efficiencyWeight);
       }
       registry.fill(HIST("hPtCand"), candidate1.pt());
       registry.fill(HIST("hPtProng0"), candidate1.ptProng0());
@@ -189,7 +201,9 @@ struct HfCorrelatorDplusDminusMcRec {
   Configurable<int> selectionFlagDplus{"selectionFlagDplus", 1, "Selection Flag for Dplus,Dminus"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
-  Configurable<std::vector<double>> bins{"ptBinsForMass", std::vector<double>{o2::analysis::hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits for candidate mass plots"};
+  Configurable<std::vector<double>> bins{"ptBinsForMassAndEfficiency", std::vector<double>{o2::analysis::hf_cuts_dplus_topikpi::pTBins_v}, "pT bin limits for candidate mass plots and efficiency"};
+  Configurable<std::vector<double>> efficiencyDmeson{"efficiencyDmeson", std::vector<double>{efficiencyDmeson_v}, "Efficiency values for D0 meson"};  
+  Configurable<int> flagApplyEfficiency{"efficiencyFlagD", 1, "Flag for applying D-meson efficiency weights"};
 
   void init(o2::framework::InitContext&)
   {
@@ -217,6 +231,12 @@ struct HfCorrelatorDplusDminusMcRec {
       if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
+
+      double efficiencyWeight = 1.;
+      if (flagApplyEfficiency) {
+        efficiencyWeight = 1./efficiencyDmeson->at(o2::analysis::findBin(bins, candidate1.pt()));
+      }
+
       int outerParticleSign = 1; //Dplus
       auto outerSecondTrack = candidate1.index1_as<aod::BigTracks>();
       if (outerSecondTrack.sign() == 1) {
@@ -225,9 +245,9 @@ struct HfCorrelatorDplusDminusMcRec {
       if (std::abs(candidate1.flagMCMatchRec()) == 1 << DecayType::DPlusToPiKPi) {
         //fill invariant mass plots and per-candidate distributions from Dplus/Dminus signal candidates
         if (outerParticleSign == 1) { //reco and matched as Dplus
-          registry.fill(HIST("hMassDplusMCRecSig"), InvMassDPlus(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassDplusMCRecSig"), InvMassDPlus(candidate1), candidate1.pt(), efficiencyWeight);
         } else { //reco and matched as Dminus
-          registry.fill(HIST("hMassDminusMCRecSig"), InvMassDPlus(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassDminusMCRecSig"), InvMassDPlus(candidate1), candidate1.pt(), efficiencyWeight);
         }
         registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
         registry.fill(HIST("hPtProng0MCRec"), candidate1.ptProng0());
@@ -240,9 +260,9 @@ struct HfCorrelatorDplusDminusMcRec {
       } else {
         //fill invariant mass plots from Dplus/Dminus background candidates
         if (outerParticleSign == 1) { //reco as Dplus
-          registry.fill(HIST("hMassDplusMCRecBkg"), InvMassDPlus(candidate1), candidate1.pt());
-        } else { //reco as Dminus
-          registry.fill(HIST("hMassDminusMCRecBkg"), InvMassDPlus(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassDplusMCRecBkg"), InvMassDPlus(candidate1), candidate1.pt(), efficiencyWeight);
+        } else { //matched as Dminus
+          registry.fill(HIST("hMassDminusMCRecBkg"), InvMassDPlus(candidate1), candidate1.pt(), efficiencyWeight);
         }
       }
 

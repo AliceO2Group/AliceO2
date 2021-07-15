@@ -56,6 +56,10 @@ const double incrementEtaCut = 0.1;
 const double incrementPtThreshold = 0.5;
 const double epsilon = 1E-5;
 
+const int npTBinsMassAndEfficiency = o2::analysis::hf_cuts_d0_topik::npTBins;
+const double efficiencyDmesonDefault[npTBinsMassAndEfficiency] = {};
+auto efficiencyDmeson_v = std::vector<double>{efficiencyDmesonDefault, efficiencyDmesonDefault + npTBinsMassAndEfficiency};
+
 /// D0-D0bar correlation pair builder - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 struct HfCorrelatorD0D0bar {
   Produces<aod::DDbarPair> entryD0D0barPair;
@@ -77,7 +81,9 @@ struct HfCorrelatorD0D0bar {
   Configurable<int> selectionFlagD0bar{"selectionFlagD0bar", 1, "Selection Flag for D0bar"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
-  Configurable<std::vector<double>> bins{"ptBinsForMass", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for candidate mass plots"};
+  Configurable<std::vector<double>> bins{"ptBinsForMassAndEfficiency", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for candidate mass plots and efficiency"};
+  Configurable<std::vector<double>> efficiencyDmeson{"efficiencyDmeson", std::vector<double>{efficiencyDmeson_v}, "Efficiency values for D0 meson"};  
+  Configurable<int> flagApplyEfficiency{"efficiencyFlagD", 1, "Flag for applying D-meson efficiency weights"};
 
   void init(o2::framework::InitContext&)
   {
@@ -101,14 +107,20 @@ struct HfCorrelatorD0D0bar {
       if (!(candidate1.hfflag() & 1 << DecayType::D0ToPiK)) {
         continue;
       }
+
+      double efficiencyWeight = 1.;
+      if (flagApplyEfficiency) {
+        efficiencyWeight = 1./efficiencyDmeson->at(o2::analysis::findBin(bins, candidate1.pt()));
+      }
+
       //fill invariant mass plots and generic info from all D0/D0bar candidates
       if (candidate1.isSelD0() >= selectionFlagD0) {
-        registry.fill(HIST("hMass"), InvMassD0(candidate1), candidate1.pt());
-        registry.fill(HIST("hMassD0"), InvMassD0(candidate1), candidate1.pt());
+        registry.fill(HIST("hMass"), InvMassD0(candidate1), candidate1.pt(), efficiencyWeight);
+        registry.fill(HIST("hMassD0"), InvMassD0(candidate1), candidate1.pt(), efficiencyWeight);
       }
       if (candidate1.isSelD0bar() >= selectionFlagD0bar) {
-        registry.fill(HIST("hMass"), InvMassD0bar(candidate1), candidate1.pt());
-        registry.fill(HIST("hMassD0bar"), InvMassD0bar(candidate1), candidate1.pt());
+        registry.fill(HIST("hMass"), InvMassD0bar(candidate1), candidate1.pt(), efficiencyWeight);
+        registry.fill(HIST("hMassD0bar"), InvMassD0bar(candidate1), candidate1.pt(), efficiencyWeight);
       }
       registry.fill(HIST("hPtCand"), candidate1.pt());
       registry.fill(HIST("hPtProng0"), candidate1.ptProng0());
@@ -191,7 +203,9 @@ struct HfCorrelatorD0D0barMcRec {
   Configurable<int> selectionFlagD0bar{"selectionFlagD0bar", 1, "Selection Flag for D0bar"};
   Configurable<double> cutYCandMax{"cutYCandMax", -1., "max. cand. rapidity"};
   Configurable<double> cutPtCandMin{"cutPtCandMin", -1., "min. cand. pT"};
-  Configurable<std::vector<double>> bins{"ptBinsForMass", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for candidate mass plots"};
+  Configurable<std::vector<double>> bins{"ptBinsForMassAndEfficiency", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for candidate mass plots and efficiency"};
+  Configurable<std::vector<double>> efficiencyDmeson{"efficiencyDmeson", std::vector<double>{efficiencyDmeson_v}, "Efficiency values for D0 meson"};  
+  Configurable<int> flagApplyEfficiency{"efficiencyFlagD", 1, "Flag for applying D-meson efficiency weights"};
 
   void init(o2::framework::InitContext&)
   {
@@ -223,6 +237,12 @@ struct HfCorrelatorD0D0barMcRec {
       if (cutPtCandMin >= 0. && candidate1.pt() < cutPtCandMin) {
         continue;
       }
+
+      double efficiencyWeight = 1.;
+      if (flagApplyEfficiency) {
+        efficiencyWeight = 1./efficiencyDmeson->at(o2::analysis::findBin(bins, candidate1.pt()));
+      }
+
       if (std::abs(candidate1.flagMCMatchRec()) == 1 << DecayType::D0ToPiK) {
         //fill per-candidate distributions from D0/D0bar true candidates
         registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
@@ -236,20 +256,20 @@ struct HfCorrelatorD0D0barMcRec {
       //fill invariant mass plots from D0/D0bar signal and background candidates
       if (candidate1.isSelD0() >= selectionFlagD0) {                  //only reco as D0
         if (candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) { //also matched as D0
-          registry.fill(HIST("hMassD0MCRecSig"), InvMassD0(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassD0MCRecSig"), InvMassD0(candidate1), candidate1.pt(), efficiencyWeight);
         } else if (candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) {
-          registry.fill(HIST("hMassD0MCRecRefl"), InvMassD0(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassD0MCRecRefl"), InvMassD0(candidate1), candidate1.pt(), efficiencyWeight);
         } else {
-          registry.fill(HIST("hMassD0MCRecBkg"), InvMassD0(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassD0MCRecBkg"), InvMassD0(candidate1), candidate1.pt(), efficiencyWeight);
         }
       }
       if (candidate1.isSelD0bar() >= selectionFlagD0bar) {               //only reco as D0bar
         if (candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) { //also matched as D0bar
-          registry.fill(HIST("hMassD0barMCRecSig"), InvMassD0bar(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassD0barMCRecSig"), InvMassD0bar(candidate1), candidate1.pt(), efficiencyWeight);
         } else if (candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) {
-          registry.fill(HIST("hMassD0barMCRecRefl"), InvMassD0bar(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassD0barMCRecRefl"), InvMassD0bar(candidate1), candidate1.pt(), efficiencyWeight);
         } else {
-          registry.fill(HIST("hMassD0barMCRecBkg"), InvMassD0bar(candidate1), candidate1.pt());
+          registry.fill(HIST("hMassD0barMCRecBkg"), InvMassD0bar(candidate1), candidate1.pt(), efficiencyWeight);
         }
       }
 

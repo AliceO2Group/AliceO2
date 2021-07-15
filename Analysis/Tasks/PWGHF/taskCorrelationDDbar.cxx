@@ -75,18 +75,21 @@ const TString stringMCReco = "MC reco - D,Dbar candidates ";
 const int npTBinsCorrelations = 8;
 const double pTBinsCorrelations[npTBinsCorrelations + 1] = {0., 2., 4., 6., 8., 12., 16., 24., 99.};
 auto pTBinsCorrelations_v = std::vector<double>{pTBinsCorrelations, pTBinsCorrelations + npTBinsCorrelations + 1};
-const double signalRegionInnerDefault[npTBinsCorrelations + 1] = {1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75};
-const double signalRegionOuterDefault[npTBinsCorrelations + 1] = {1.81, 1.81, 1.81, 1.81, 1.81, 1.81, 1.81, 1.81};
-const double sidebandLeftInnerDefault[npTBinsCorrelations + 1] = {1.84, 1.84, 1.84, 1.84, 1.84, 1.84, 1.84, 1.84};
-const double sidebandLeftOuterDefault[npTBinsCorrelations + 1] = {1.90, 1.90, 1.90, 1.90, 1.90, 1.90, 1.90, 1.90};
-const double sidebandRightInnerDefault[npTBinsCorrelations + 1] = {1.93, 1.93, 1.93, 1.93, 1.93, 1.93, 1.93, 1.93};
-const double sidebandRightOuterDefault[npTBinsCorrelations + 1] = {1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99};
+const double signalRegionInnerDefault[npTBinsCorrelations] = {1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75, 1.75};
+const double signalRegionOuterDefault[npTBinsCorrelations] = {1.81, 1.81, 1.81, 1.81, 1.81, 1.81, 1.81, 1.81};
+const double sidebandLeftInnerDefault[npTBinsCorrelations] = {1.84, 1.84, 1.84, 1.84, 1.84, 1.84, 1.84, 1.84};
+const double sidebandLeftOuterDefault[npTBinsCorrelations] = {1.90, 1.90, 1.90, 1.90, 1.90, 1.90, 1.90, 1.90};
+const double sidebandRightInnerDefault[npTBinsCorrelations] = {1.93, 1.93, 1.93, 1.93, 1.93, 1.93, 1.93, 1.93};
+const double sidebandRightOuterDefault[npTBinsCorrelations] = {1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99, 1.99};
 auto signalRegionInner_v = std::vector<double>{signalRegionInnerDefault, signalRegionInnerDefault + npTBinsCorrelations};
 auto signalRegionOuter_v = std::vector<double>{signalRegionOuterDefault, signalRegionOuterDefault + npTBinsCorrelations};
 auto sidebandLeftInner_v = std::vector<double>{sidebandLeftInnerDefault, sidebandLeftInnerDefault + npTBinsCorrelations};
 auto sidebandLeftOuter_v = std::vector<double>{sidebandLeftOuterDefault, sidebandLeftOuterDefault + npTBinsCorrelations};
 auto sidebandRightInner_v = std::vector<double>{sidebandRightInnerDefault, sidebandRightInnerDefault + npTBinsCorrelations};
 auto sidebandRightOuter_v = std::vector<double>{sidebandRightOuterDefault, sidebandRightOuterDefault + npTBinsCorrelations};
+const int npTBinsEfficiency = o2::analysis::hf_cuts_d0_topik::npTBins;
+const double efficiencyDmesonDefault[npTBinsEfficiency] = {};
+auto efficiencyDmeson_v = std::vector<double>{efficiencyDmesonDefault, efficiencyDmesonDefault + npTBinsEfficiency};
 
 /// D-Dbar correlation pair filling task, from pair tables - for real data and data-like analysis (i.e. reco-level w/o matching request via MC truth)
 /// Works on both USL and LS analyses pair tables
@@ -111,6 +114,8 @@ struct HfTaskCorrelationDDbar {
 
   //pT ranges for correlation plots: the default values are those embedded in hf_cuts_d0_topik (i.e. the mass pT bins), but can be redefined via json files
   Configurable<std::vector<double>> binsCorrelations{"ptBinsForCorrelations", std::vector<double>{pTBinsCorrelations_v}, "pT bin limits for correlation plots"};
+  //pT bins for effiencies: same as above
+  Configurable<std::vector<double>> binsEfficiency{"ptBinsForEfficiency", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for efficiency"};
   //signal and sideband region edges, to be defined via json file (initialised to empty)
   Configurable<std::vector<double>> signalRegionInner{"signalRegionInner", std::vector<double>{signalRegionInner_v}, "Inner values of signal region vs pT"};
   Configurable<std::vector<double>> signalRegionOuter{"signalRegionOuter", std::vector<double>{signalRegionOuter_v}, "Outer values of signal region vs pT"};
@@ -118,6 +123,8 @@ struct HfTaskCorrelationDDbar {
   Configurable<std::vector<double>> sidebandLeftOuter{"sidebandLeftOuter", std::vector<double>{sidebandLeftOuter_v}, "Outer values of left sideband vs pT"};
   Configurable<std::vector<double>> sidebandRightInner{"sidebandRightInner", std::vector<double>{sidebandRightInner_v}, "Inner values of right sideband vs pT"};
   Configurable<std::vector<double>> sidebandRightOuter{"sidebandRightOuter", std::vector<double>{sidebandRightOuter_v}, "Outer values of right sideband vs pT"};
+  Configurable<std::vector<double>> efficiencyDmeson{"efficiencyDmeson", std::vector<double>{efficiencyDmeson_v}, "Efficiency values for D meson specie under study"};
+  Configurable<int> flagApplyEfficiency{"efficiencyFlagD0", 1, "Flag for applying efficiency weights"};  
 
   void init(o2::framework::InitContext&)
   {
@@ -129,6 +136,9 @@ struct HfTaskCorrelationDDbar {
       registry.get<THnSparse>(HIST("hMass2DCorrelationPairs"))->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegion"))->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebands"))->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairs"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegion"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebands"))->Sumw2();
     }
   }
 
@@ -143,12 +153,18 @@ struct HfTaskCorrelationDDbar {
       double massD = pairEntry.mD();
       double massDbar = pairEntry.mDbar();
 
-      //fill 2D invariant mass plots
-      registry.fill(HIST("hMass2DCorrelationPairs"), massD, massDbar, ptD, ptDbar);
-
-      //reject entries outside pT ranges of interest
       int pTBinD = o2::analysis::findBin(binsCorrelations, ptD);
       int pTBinDbar = o2::analysis::findBin(binsCorrelations, ptDbar);
+
+      double efficiencyWeight = 1.;
+      if (flagApplyEfficiency) {
+        efficiencyWeight = 1./(efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptD))*efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptDbar)));
+      }
+
+      //fill 2D invariant mass plots
+      registry.fill(HIST("hMass2DCorrelationPairs"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
+
+      //reject entries outside pT ranges of interest
       if (pTBinD == -1 || pTBinDbar == -1) { //at least one particle outside accepted pT range
         continue;
       }
@@ -156,12 +172,12 @@ struct HfTaskCorrelationDDbar {
       //check if correlation entry belongs to signal region, sidebands or is outside both, and fill correlation plots
       if (massD > signalRegionInner->at(pTBinD) && massD < signalRegionOuter->at(pTBinD) && massDbar > signalRegionInner->at(pTBinDbar) && massDbar < signalRegionOuter->at(pTBinDbar)) {
         //in signal region
-        registry.fill(HIST("hCorrel2DVsPtSignalRegion"), deltaPhi, deltaEta, ptD, ptDbar);
-        registry.fill(HIST("hCorrel2DPtIntSignalRegion"), deltaPhi, deltaEta);
-        registry.fill(HIST("hDeltaEtaPtIntSignalRegion"), deltaEta);
-        registry.fill(HIST("hDeltaPhiPtIntSignalRegion"), deltaPhi);
-        registry.fill(HIST("hDeltaPtDDbarSignalRegion"), ptDbar - ptD);
-        registry.fill(HIST("hDeltaPtMaxMinSignalRegion"), std::abs(ptDbar - ptD));
+        registry.fill(HIST("hCorrel2DVsPtSignalRegion"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
+        registry.fill(HIST("hCorrel2DPtIntSignalRegion"), deltaPhi, deltaEta, efficiencyWeight);
+        registry.fill(HIST("hDeltaEtaPtIntSignalRegion"), deltaEta, efficiencyWeight);
+        registry.fill(HIST("hDeltaPhiPtIntSignalRegion"), deltaPhi, efficiencyWeight);
+        registry.fill(HIST("hDeltaPtDDbarSignalRegion"), ptDbar - ptD, efficiencyWeight);
+        registry.fill(HIST("hDeltaPtMaxMinSignalRegion"), std::abs(ptDbar - ptD), efficiencyWeight);
       }
 
       if ((massD > sidebandLeftInner->at(pTBinD) && massD < sidebandLeftOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar)) ||
@@ -169,12 +185,12 @@ struct HfTaskCorrelationDDbar {
           (massD > sidebandLeftInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandLeftOuter->at(pTBinDbar)) ||
           (massD > sidebandLeftInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandRightInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar))) {
         //in sideband region
-        registry.fill(HIST("hCorrel2DVsPtSidebands"), deltaPhi, deltaEta, ptD, ptDbar);
-        registry.fill(HIST("hCorrel2DPtIntSidebands"), deltaPhi, deltaEta);
-        registry.fill(HIST("hDeltaEtaPtIntSidebands"), deltaEta);
-        registry.fill(HIST("hDeltaPhiPtIntSidebands"), deltaPhi);
-        registry.fill(HIST("hDeltaPtDDbarSidebands"), ptDbar - ptD);
-        registry.fill(HIST("hDeltaPtMaxMinSidebands"), std::abs(ptDbar - ptD));
+        registry.fill(HIST("hCorrel2DVsPtSidebands"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
+        registry.fill(HIST("hCorrel2DPtIntSidebands"), deltaPhi, deltaEta, efficiencyWeight);
+        registry.fill(HIST("hDeltaEtaPtIntSidebands"), deltaEta, efficiencyWeight);
+        registry.fill(HIST("hDeltaPhiPtIntSidebands"), deltaPhi, efficiencyWeight);
+        registry.fill(HIST("hDeltaPtDDbarSidebands"), ptDbar - ptD, efficiencyWeight);
+        registry.fill(HIST("hDeltaPtMaxMinSidebands"), std::abs(ptDbar - ptD), efficiencyWeight);
       }
     } //end loop
   }
@@ -227,6 +243,8 @@ struct HfTaskCorrelationDDbarMcRec {
 
   //pT ranges for correlation plots: the default values are those embedded in hf_cuts_d0_topik (i.e. the mass pT bins), but can be redefined via json files
   Configurable<std::vector<double>> binsCorrelations{"ptBinsForCorrelations", std::vector<double>{pTBinsCorrelations_v}, "pT bin limits for correlation plots"};
+  //pT bins for effiencies: same as above
+  Configurable<std::vector<double>> binsEfficiency{"ptBinsForEfficiency", std::vector<double>{o2::analysis::hf_cuts_d0_topik::pTBins_v}, "pT bin limits for efficiency"};
   //signal and sideband region edges, to be defined via json file (initialised to empty)
   Configurable<std::vector<double>> signalRegionInner{"signalRegionInner", std::vector<double>{signalRegionInner_v}, "Inner values of signal region vs pT"};
   Configurable<std::vector<double>> signalRegionOuter{"signalRegionOuter", std::vector<double>{signalRegionOuter_v}, "Outer values of signal region vs pT"};
@@ -234,6 +252,8 @@ struct HfTaskCorrelationDDbarMcRec {
   Configurable<std::vector<double>> sidebandLeftOuter{"sidebandLeftOuter", std::vector<double>{sidebandLeftOuter_v}, "Outer values of left sideband vs pT"};
   Configurable<std::vector<double>> sidebandRightInner{"sidebandRightInner", std::vector<double>{sidebandRightInner_v}, "Inner values of right sideband vs pT"};
   Configurable<std::vector<double>> sidebandRightOuter{"sidebandRightOuter", std::vector<double>{sidebandRightOuter_v}, "Outer values of right sideband vs pT"};
+  Configurable<std::vector<double>> efficiencyDmeson{"efficiencyDmeson", std::vector<double>{efficiencyDmeson_v}, "Efficiency values for D meson specie under study"};
+  Configurable<int> flagApplyEfficiency{"efficiencyFlagD", 1, "Flag for applying D-meson efficiency weights"};
 
   void init(o2::framework::InitContext&)
   {
@@ -269,6 +289,33 @@ struct HfTaskCorrelationDDbarMcRec {
       registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecSigBkg"))->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecSigRef"))->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
       registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecSigSig"))->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecBkgBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecBkgRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecBkgSig"))->Sumw2();
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecRefBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecRefRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecRefSig"))->Sumw2();
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecSigBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecSigRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hMass2DCorrelationPairsMCRecSigSig"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecBkgBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecBkgRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecBkgSig"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecRefBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecRefRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecRefSig"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecSigBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecSigRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSignalRegionMCRecSigSig"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecBkgBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecBkgRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecBkgSig"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecRefBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecRefRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecRefSig"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecSigBkg"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecSigRef"))->Sumw2();
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtSidebandsMCRecSigSig"))->Sumw2();
     }
   }
 
@@ -283,81 +330,87 @@ struct HfTaskCorrelationDDbarMcRec {
       double massD = pairEntry.mD();
       double massDbar = pairEntry.mDbar();
 
-      //reject entries outside pT ranges of interest
       int pTBinD = o2::analysis::findBin(binsCorrelations, ptD);
       int pTBinDbar = o2::analysis::findBin(binsCorrelations, ptDbar);
-      if (pTBinD == -1 || pTBinDbar == -1) { //at least one particle outside accepted pT range
-        continue;
+
+      double efficiencyWeight = 1.;
+      if (flagApplyEfficiency) {
+        efficiencyWeight = 1./(efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptD))*efficiencyDmeson->at(o2::analysis::findBin(binsEfficiency, ptDbar)));
       }
 
       //fill 2D invariant mass plots
       switch (pairEntry.signalStatus()) {
         case 0: //D Bkg, Dbar Bkg
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgBkg"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgBkg"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         case 1: //D Bkg, Dbar Ref
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgRef"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgRef"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         case 2: //D Bkg, Dbar Sig
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgSig"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecBkgSig"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         case 3: //D Ref, Dbar Bkg
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecRefBkg"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecRefBkg"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         case 4: //D Ref, Dbar Ref
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecRefRef"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecRefRef"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         case 5: //D Ref, Dbar Sig
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecRefSig"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecRefSig"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         case 6: //D Sig, Dbar Bkg
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigBkg"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigBkg"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         case 7: //D Sig, Dbar Ref
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigRef"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigRef"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         case 8: //D Sig, Dbar Sig
-          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigSig"), massD, massDbar, ptD, ptDbar);
+          registry.fill(HIST("hMass2DCorrelationPairsMCRecSigSig"), massD, massDbar, ptD, ptDbar, efficiencyWeight);
           break;
         default: //should not happen for MC reco
           break;
       }
 
+      //reject entries outside pT ranges of interest
+      if (pTBinD == -1 || pTBinDbar == -1) { //at least one particle outside accepted pT range
+        continue;
+      }
+
       //check if correlation entry belongs to signal region, sidebands or is outside both, and fill correlation plots
       if (massD > signalRegionInner->at(pTBinD) && massD < signalRegionOuter->at(pTBinD) && massDbar > signalRegionInner->at(pTBinDbar) && massDbar < signalRegionOuter->at(pTBinDbar)) {
         //in signal region
-        registry.fill(HIST("hCorrel2DPtIntSignalRegionMCRec"), deltaPhi, deltaEta);
-        registry.fill(HIST("hDeltaEtaPtIntSignalRegionMCRec"), deltaEta);
-        registry.fill(HIST("hDeltaPhiPtIntSignalRegionMCRec"), deltaPhi);
-        registry.fill(HIST("hDeltaPtDDbarSignalRegionMCRec"), ptDbar - ptD);
-        registry.fill(HIST("hDeltaPtMaxMinSignalRegionMCRec"), std::abs(ptDbar - ptD));
+        registry.fill(HIST("hCorrel2DPtIntSignalRegionMCRec"), deltaPhi, deltaEta, efficiencyWeight);
+        registry.fill(HIST("hDeltaEtaPtIntSignalRegionMCRec"), deltaEta, efficiencyWeight);
+        registry.fill(HIST("hDeltaPhiPtIntSignalRegionMCRec"), deltaPhi, efficiencyWeight);
+        registry.fill(HIST("hDeltaPtDDbarSignalRegionMCRec"), ptDbar - ptD, efficiencyWeight);
+        registry.fill(HIST("hDeltaPtMaxMinSignalRegionMCRec"), std::abs(ptDbar - ptD), efficiencyWeight);
         switch (pairEntry.signalStatus()) {
           case 0: //D Bkg, Dbar Bkg
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecBkgBkg"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecBkgBkg"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 1: //D Bkg, Dbar Ref
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecBkgRef"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecBkgRef"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 2: //D Bkg, Dbar Sig
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecBkgSig"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecBkgSig"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 3: //D Ref, Dbar Bkg
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecRefBkg"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecRefBkg"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 4: //D Ref, Dbar Ref
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecRefRef"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecRefRef"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 5: //D Ref, Dbar Sig
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecRefSig"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecRefSig"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 6: //D Sig, Dbar Bkg
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecSigBkg"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecSigBkg"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 7: //D Sig, Dbar Ref
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecSigRef"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecSigRef"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 8: //D Sig, Dbar Sig
-            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecSigSig"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSignalRegionMCRecSigSig"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           default: //should not happen for MC reco
             break;
@@ -369,38 +422,38 @@ struct HfTaskCorrelationDDbarMcRec {
           (massD > sidebandLeftInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandLeftInner->at(pTBinDbar) && massDbar < sidebandLeftOuter->at(pTBinDbar)) ||
           (massD > sidebandLeftInner->at(pTBinD) && massD < sidebandRightOuter->at(pTBinD) && massDbar > sidebandRightInner->at(pTBinDbar) && massDbar < sidebandRightOuter->at(pTBinDbar))) {
         //in sideband region
-        registry.fill(HIST("hCorrel2DPtIntSidebandsMCRec"), deltaPhi, deltaEta);
-        registry.fill(HIST("hDeltaEtaPtIntSidebandsMCRec"), deltaEta);
-        registry.fill(HIST("hDeltaPhiPtIntSidebandsMCRec"), deltaPhi);
-        registry.fill(HIST("hDeltaPtDDbarSidebandsMCRec"), ptDbar - ptD);
-        registry.fill(HIST("hDeltaPtMaxMinSidebandsMCRec"), std::abs(ptDbar - ptD));
+        registry.fill(HIST("hCorrel2DPtIntSidebandsMCRec"), deltaPhi, deltaEta, efficiencyWeight);
+        registry.fill(HIST("hDeltaEtaPtIntSidebandsMCRec"), deltaEta, efficiencyWeight);
+        registry.fill(HIST("hDeltaPhiPtIntSidebandsMCRec"), deltaPhi, efficiencyWeight);
+        registry.fill(HIST("hDeltaPtDDbarSidebandsMCRec"), ptDbar - ptD, efficiencyWeight);
+        registry.fill(HIST("hDeltaPtMaxMinSidebandsMCRec"), std::abs(ptDbar - ptD), efficiencyWeight);
         switch (pairEntry.signalStatus()) {
           case 0: //D Bkg, Dbar Bkg
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecBkgBkg"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecBkgBkg"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 1: //D Bkg, Dbar Ref
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecBkgRef"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecBkgRef"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 2: //D Bkg, Dbar Sig
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecBkgSig"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecBkgSig"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 3: //D Ref, Dbar Bkg
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecRefBkg"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecRefBkg"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 4: //D Ref, Dbar Ref
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecRefRef"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecRefRef"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 5: //D Ref, Dbar Sig
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecRefSig"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecRefSig"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 6: //D Sig, Dbar Bkg
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecSigBkg"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecSigBkg"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 7: //D Sig, Dbar Ref
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecSigRef"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecSigRef"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           case 8: //D Sig, Dbar Sig
-            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecSigSig"), deltaPhi, deltaEta, ptD, ptDbar);
+            registry.fill(HIST("hCorrel2DVsPtSidebandsMCRecSigSig"), deltaPhi, deltaEta, ptD, ptDbar, efficiencyWeight);
             break;
           default: //should not happen for MC reco
             break;
@@ -434,6 +487,7 @@ struct HfTaskCorrelationDDbarMcGen {
 
     for (int i = 2; i <= 3; i++) {
       registry.get<THnSparse>(HIST("hCorrel2DVsPtMCGen"))->GetAxis(i)->Set(nBinspTaxis, valuespTaxis);
+      registry.get<THnSparse>(HIST("hCorrel2DVsPtMCGen"))->Sumw2();
     }
   }
 
