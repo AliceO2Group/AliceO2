@@ -22,7 +22,7 @@ o2-tpc-reco-workflow  --tpc-digit-reader '--infile tpcdigits.root' --input-type 
 o2-its-reco-workflow --trackerCA --tracking-mode cosmics --shm-segment-size 10000000000  --run | tee recITS.log
 o2-tpcits-match-workflow  --tpc-track-reader tpctracks.root --tpc-native-cluster-reader "--infile tpc-native-clusters.root"  --shm-segment-size 10000000000  --run | tee recTPCITS.log
 o2-tof-reco-workflow  --shm-segment-size 10000000000 --run | tee recTOF.log
-o2-tof-matcher-tpc   --shm-segment-size 10000000000 --run | tee recTOF_TPC.log
+o2-tof-matcher-workflow --shm-segment-size 10000000000 --run | tee recTOF_Tracks.log
 o2-cosmics-match-workflow --shm-segment-size 10000000000 --run | tee cosmics.log
 ```
 

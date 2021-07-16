@@ -32,4 +32,5 @@ o2_add_executable(digit2raw
                               O2::DetectorsRaw
                               O2::DetectorsCommonDataFormats
                               O2::CommonUtils
-                              Boost::program_options)
+                              Boost::program_options
+                              O2::FDDRaw)

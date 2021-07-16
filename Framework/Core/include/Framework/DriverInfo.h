@@ -143,7 +143,9 @@ struct DriverInfo {
   /// The unique id used for ipc communications
   std::string uniqueWorkflowId = "";
   /// Metrics gathering interval
-  unsigned short resourcesMonitoringInterval;
+  unsigned short resourcesMonitoringInterval = 0;
+  /// Metrics gathering dump to disk interval
+  unsigned short resourcesMonitoringDumpInterval = 0;
   /// Port used by the websocket control. 0 means not initialised.
   unsigned short port = 0;
   /// Last port used for tracy

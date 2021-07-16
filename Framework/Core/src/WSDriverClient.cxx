@@ -104,7 +104,7 @@ void on_connect(uv_connect_t* connection, int status)
     offer.cpu = 0;
     offer.memory = 0;
     offer.sharedMemory = offerSize * 1000000;
-    offer.runtime = -1;
+    offer.runtime = 60000;
     offer.user = -1;
     offer.valid = true;
 

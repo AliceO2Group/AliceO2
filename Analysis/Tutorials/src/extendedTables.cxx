@@ -108,7 +108,7 @@ struct SpawnDynamicColumns {
   Produces<aod::DynTable> dyntable;
   Spawns<aod::ExTable> extable;
 
-  void process(aod::Collision const&, aod::Tracks const& tracks)
+  void process(aod::Tracks const& tracks)
   {
     for (auto& track : tracks) {
       dyntable(track.x(), track.y(), track.p());

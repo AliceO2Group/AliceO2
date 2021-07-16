@@ -48,7 +48,7 @@ o2_add_executable(digits-reader-workflow
 o2_add_executable(flp-dpl-workflow
                   COMPONENT_NAME ft0
                   SOURCES src/ft0-flp-workflow.cxx
-                  PUBLIC_LINK_LIBRARIES O2::FT0Workflow
+                  PUBLIC_LINK_LIBRARIES O2::FT0Workflow  O2::FT0Raw O2::FITWorkflow
                   TARGETVARNAME ft0flpexe)
 
 if(NOT APPLE)

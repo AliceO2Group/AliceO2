@@ -65,7 +65,6 @@ void MaterialManager::Material(const char* modname, Int_t imat, const char* name
   TString uniquename = modname;
   uniquename.Append("_");
   uniquename.Append(name);
-
   if (TVirtualMC::GetMC()) {
     // Check this!!!
     int kmat = -1;

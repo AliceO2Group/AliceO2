@@ -26,6 +26,7 @@
 namespace o2::framework
 {
 
+// Do NOT insert entries in this enum, only append at the end (before "Empty"). Hyperloop depends on the order.
 enum class VariantType : int { Int = 0,
                                Int64,
                                Float,
@@ -43,25 +44,51 @@ enum class VariantType : int { Int = 0,
                                LabeledArrayInt,
                                LabeledArrayFloat,
                                LabeledArrayDouble,
+                               UInt8,
+                               UInt16,
+                               UInt32,
+                               UInt64,
                                Empty,
                                Unknown };
 
 template <VariantType V>
 constexpr auto isArray()
 {
-  return (V == VariantType::ArrayBool || V == VariantType::ArrayDouble || V == VariantType::ArrayFloat || V == VariantType::ArrayInt || V == VariantType::ArrayString);
+  return (V == VariantType::ArrayBool ||
+          V == VariantType::ArrayDouble ||
+          V == VariantType::ArrayFloat ||
+          V == VariantType::ArrayInt ||
+          V == VariantType::ArrayString);
 }
 
 template <VariantType V>
 constexpr auto isArray2D()
 {
-  return (V == VariantType::Array2DInt || V == VariantType::Array2DFloat || V == VariantType::Array2DDouble);
+  return (V == VariantType::Array2DInt ||
+          V == VariantType::Array2DFloat ||
+          V == VariantType::Array2DDouble);
 }
 
 template <VariantType V>
 constexpr auto isLabeledArray()
 {
-  return (V == VariantType::LabeledArrayInt || V == VariantType::LabeledArrayFloat || V == VariantType::LabeledArrayDouble);
+  return (V == VariantType::LabeledArrayInt ||
+          V == VariantType::LabeledArrayFloat ||
+          V == VariantType::LabeledArrayDouble);
+}
+
+template <VariantType V>
+constexpr auto isSimpleVariant()
+{
+  return (V == VariantType::Int) ||
+         (V == VariantType::Int64) ||
+         (V == VariantType::UInt8) ||
+         (V == VariantType::UInt16) ||
+         (V == VariantType::UInt32) ||
+         (V == VariantType::UInt64) ||
+         (V == VariantType::Float) ||
+         (V == VariantType::Double) ||
+         (V == VariantType::Bool);
 }
 
 template <typename T>
@@ -76,6 +103,11 @@ struct variant_trait : std::integral_constant<VariantType, VariantType::Unknown>
 DECLARE_VARIANT_TRAIT(int, Int);
 DECLARE_VARIANT_TRAIT(long int, Int64);
 DECLARE_VARIANT_TRAIT(long long int, Int64);
+DECLARE_VARIANT_TRAIT(uint8_t, UInt8);
+DECLARE_VARIANT_TRAIT(uint16_t, UInt16);
+DECLARE_VARIANT_TRAIT(uint32_t, UInt32);
+DECLARE_VARIANT_TRAIT(uint64_t, UInt64);
+
 DECLARE_VARIANT_TRAIT(float, Float);
 DECLARE_VARIANT_TRAIT(double, Double);
 DECLARE_VARIANT_TRAIT(bool, Bool);
@@ -152,6 +184,10 @@ struct variant_type {
 
 DECLARE_VARIANT_TYPE(int, Int);
 DECLARE_VARIANT_TYPE(int64_t, Int64);
+DECLARE_VARIANT_TYPE(uint8_t, UInt8);
+DECLARE_VARIANT_TYPE(uint16_t, UInt16);
+DECLARE_VARIANT_TYPE(uint32_t, UInt32);
+DECLARE_VARIANT_TYPE(uint64_t, UInt64);
 DECLARE_VARIANT_TYPE(float, Float);
 DECLARE_VARIANT_TYPE(double, Double);
 DECLARE_VARIANT_TYPE(const char*, String);
@@ -236,7 +272,8 @@ struct variant_helper<S, std::string> {
 /// Variant for configuration parameter storage. Owns stored data.
 class Variant
 {
-  using storage_t = std::aligned_union<8, int, int64_t, const char*, float, double, bool,
+  using storage_t = std::aligned_union<8, int, int64_t, uint8_t, uint16_t, uint32_t, uint64_t,
+                                       const char*, float, double, bool,
                                        int*, float*, double*, bool*,
                                        Array2D<int>, Array2D<float>, Array2D<double>,
                                        LabeledArray<int>, LabeledArray<float>, LabeledArray<double>>::type;
@@ -271,10 +308,10 @@ class Variant
   }
 
   Variant(const Variant& other);
-  Variant(Variant&& other);
+  Variant(Variant&& other) noexcept;
   ~Variant();
   Variant& operator=(const Variant& other);
-  Variant& operator=(Variant&& other);
+  Variant& operator=(Variant&& other) noexcept;
 
   template <typename T>
   T get() const

@@ -25,6 +25,7 @@
 #include "Framework/Output.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/SerializationMethods.h"
+#include "Framework/InputRecordWalker.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
@@ -57,7 +58,7 @@ class ZDCDataReaderDPLSpec : public Task
   RawReaderZDC mRawReader;
 };
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger);
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger, const bool askSTFDist);
 
 } // namespace zdc
 } // namespace o2

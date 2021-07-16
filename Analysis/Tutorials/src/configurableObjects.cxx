@@ -78,7 +78,10 @@ struct ConfigurableObjectDemo {
 
   void process(aod::Collision const&, aod::Tracks const& tracks)
   {
-    LOGF(INFO, "Cut1: %.3f; Cut2: %.3f", cut, mutable_cut);
+    std::stringstream tmpcut, tmpmutable_cut;
+    tmpcut << cut;
+    tmpmutable_cut << mutable_cut;
+    LOGF(INFO, "Cut1: %s; Cut2: %s", tmpcut.str(), tmpmutable_cut.str());
 
     for (auto const& track : tracks) {
       if (track.globalIndex() % 500 == 0) {

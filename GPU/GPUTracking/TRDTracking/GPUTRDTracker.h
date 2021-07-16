@@ -78,6 +78,17 @@ class GPUTRDTracker_t : public GPUProcessor
                         kNSectors = 18,
                         kNChambers = 540 };
 
+  struct HelperTrackAttributes {
+    // additional TRD track attributes which are transient
+    float mTime;       // time estimate for seeding track in us
+    float mTimeAddMax; // max. time that can be added to this track seed in us
+    float mTimeSubMax; // max. time that can be subtracted to this track seed in us
+    short mSide;       // -1 : A-side, +1 : C-side (relevant only for TPC-only tracks)
+    GPUd() float GetTimeMin() const { return mTime - mTimeSubMax; }
+    GPUd() float GetTimeMax() const { return mTime + mTimeAddMax; }
+    GPUd() HelperTrackAttributes() : mTime(-1.f), mTimeAddMax(0.f), mTimeSubMax(0.f), mSide(0) {}
+  };
+
   struct Hypothesis {
     int mLayers;      // number of layers with TRD space point
     int mCandidateId; // to which track candidate the hypothesis belongs
@@ -102,13 +113,13 @@ class GPUTRDTracker_t : public GPUProcessor
   }
   GPUd() bool PreCheckTrackTRDCandidate(const GPUTPCGMMergedTrack& trk) const { return trk.OK() && !trk.Looper(); }
   GPUd() bool CheckTrackTRDCandidate(const TRDTRK& trk) const;
-  GPUd() int LoadTrack(const TRDTRK& trk, unsigned int tpcTrackId, bool checkTrack = true);
+  GPUd() int LoadTrack(const TRDTRK& trk, unsigned int tpcTrackId, bool checkTrack = true, HelperTrackAttributes* attribs = nullptr);
 
-  GPUd() int GetCollisionIDs(TRDTRK& trk, int* collisionIds) const;
+  GPUd() int GetCollisionIDs(int iTrk, int* collisionIds) const;
   GPUd() void DoTrackingThread(int iTrk, int threadId = 0);
   static GPUd() bool ConvertTrkltToSpacePoint(const GPUTRDGeometry& geo, GPUTRDTrackletWord& trklt, GPUTRDSpacePoint& sp);
   GPUd() bool CalculateSpacePoints(int iCollision = 0);
-  GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int threadId, int collisionId);
+  GPUd() bool FollowProlongation(PROP* prop, TRDTRK* t, int iTrk, int threadId, int collisionId);
   GPUd() int GetDetectorNumber(const float zPos, const float alpha, const int layer) const;
   GPUd() bool AdjustSector(PROP* prop, TRDTRK* t) const;
   GPUd() int GetSector(float alpha) const;
@@ -118,8 +129,8 @@ class GPUTRDTracker_t : public GPUProcessor
   GPUd() float ConvertAngleToDy(float snp) const { return mAngleToDyA + mAngleToDyB * snp + mAngleToDyC * snp * snp; } // a + b*snp + c*snp^2 is more accurate than sin(phi) = (dy / xDrift) / sqrt(1+(dy/xDrift)^2)
   GPUd() float GetAngularPull(float dYtracklet, float snp) const;
   GPUd() void RecalcTrkltCov(const float tilt, const float snp, const float rowSize, My_Float (&cov)[3]);
-  GPUd() void FindChambersInRoad(const TRDTRK* t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha) const;
-  GPUd() bool IsGeoFindable(const TRDTRK* t, const int layer, const float alpha) const;
+  GPUd() void FindChambersInRoad(const TRDTRK* t, const float roadY, const float roadZ, const int iLayer, int* det, const float zMax, const float alpha, const float zShiftTrk) const;
+  GPUd() bool IsGeoFindable(const TRDTRK* t, const int layer, const float alpha, const float zShiftTrk) const;
   GPUd() void InsertHypothesis(Hypothesis hypo, int& nCurrHypothesis, int idxOffset);
 
 
@@ -161,6 +172,7 @@ class GPUTRDTracker_t : public GPUProcessor
   int mNMaxTracks;                         // max number of tracks the tracker can handle (per event)
   int mNMaxSpacePoints;                    // max number of space points hold by the tracker (per event)
   TRDTRK* mTracks;                         // array of trd-updated tracks
+  HelperTrackAttributes* mTrackAttribs;    // array with additional (transient) track attributes
   int mNCandidates;                        // max. track hypothesis per layer
   int mNTracks;                            // number of TPC tracks to be matched
   int mNEvents;                            // number of processed events

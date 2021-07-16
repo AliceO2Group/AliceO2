@@ -21,8 +21,12 @@
 #include <list>
 #include <stdexcept>
 #include <string>
+#include <filesystem>
 
 #include <gsl/span>
+
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsCommonDataFormats/NameConf.h"
 
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -60,8 +64,21 @@ class TrackFinderTask
 
     LOG(INFO) << "initializing track finder";
 
-    auto l3Current = ic.options().get<float>("l3Current");
-    auto dipoleCurrent = ic.options().get<float>("dipoleCurrent");
+    const auto& options = ic.options();
+
+    float l3Current{-3000};
+    float dipoleCurrent{-6000};
+
+    auto grpFile = ic.options().get<std::string>("grp-file");
+    if (std::filesystem::exists(grpFile)) {
+      const auto grp = o2::parameters::GRPObject::loadFrom(grpFile);
+      l3Current = grp->getL3Current();
+      dipoleCurrent = grp->getDipoleCurrent();
+    } else {
+      l3Current = ic.options().get<float>("l3Current");
+      dipoleCurrent = ic.options().get<float>("dipoleCurrent");
+    }
+
     auto config = ic.options().get<std::string>("config");
     if (!config.empty()) {
       o2::conf::ConfigurableParam::updateFromFile(config, "MCHTracking", true);
@@ -143,10 +160,10 @@ class TrackFinderTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getTrackFinderSpec()
+o2::framework::DataProcessorSpec getTrackFinderSpec(const char* name)
 {
   return DataProcessorSpec{
-    "TrackFinder",
+    name,
     Inputs{InputSpec{"clusterrofs", "MCH", "CLUSTERROFS", 0, Lifetime::Timeframe},
            InputSpec{"clusters", "MCH", "GLOBALCLUSTERS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"trackrofs"}, "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
@@ -155,6 +172,7 @@ o2::framework::DataProcessorSpec getTrackFinderSpec()
     AlgorithmSpec{adaptFromTask<TrackFinderTask>()},
     Options{{"l3Current", VariantType::Float, -30000.0f, {"L3 current"}},
             {"dipoleCurrent", VariantType::Float, -6000.0f, {"Dipole current"}},
+            {"grp-file", VariantType::String, o2::base::NameConf::getGRPFileName(), {"Name of the grp file"}},
             {"config", VariantType::String, "", {"JSON or INI file with tracking parameters"}},
             {"debug", VariantType::Int, 0, {"debug level"}}}};
 }

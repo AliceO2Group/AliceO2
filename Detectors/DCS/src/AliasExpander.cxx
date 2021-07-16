@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "DetectorsDCS/AliasExpander.h"
+#include <algorithm>
 #include <fmt/format.h>
 #include <sstream>
 

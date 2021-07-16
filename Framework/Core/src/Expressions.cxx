@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "../src/ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 #include "Framework/VariantHelpers.h"
 #include "Framework/Logger.h"
 #include "Framework/RuntimeError.h"
@@ -276,6 +276,12 @@ Operations createOperations(Filter const& expression)
       }
       if (t2 == atype::DOUBLE) {
         return atype::DOUBLE;
+      }
+      if (isIntType(t2)) {
+        if (t1 > t2) {
+          return t1;
+        }
+        return t2;
       }
     }
     if (t1 == atype::FLOAT) {

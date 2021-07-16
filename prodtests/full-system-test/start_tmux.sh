@@ -37,6 +37,6 @@ rm -f /dev/shm/*fmq*
 
 tmux \
     new-session "NUMAID=0 $MYDIR/dpl-workflow.sh; echo END; sleep 1000" \; \
-    split-window "sleep 30; NUMAID=1 $MYDIR/dpl-workflow.sh; echo END; sleep 1000" \; \
-    split-window "sleep 60; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; echo END; sleep 1000" \; \
+    split-window "sleep 45; NUMAID=1 $MYDIR/dpl-workflow.sh; echo END; sleep 1000" \; \
+    split-window "sleep 90; SEVERITY=debug numactl --interleave=all $MYDIR/$CMD; echo END; sleep 1000" \; \
     select-layout even-vertical

@@ -225,8 +225,6 @@ the the Origin and Description of the `InputSpec` to be:
 
 If the timestamp is not specified, DPL will look it up in the `DataProcessingHeader`.
 
-# Future features
-
 ## Lifetime support
 
 While initially foreseen in the design, Lifetime for Inputs / Outputs has not
@@ -241,10 +239,6 @@ to specify the following Lifetime types:
              of the Message Passing API to create
 * QA: an output which once send is also proposed as input to the subsequent computation,
       allowing for accumulating data (e.g. histograms).
-* SubTimeframe: an input which gets processed only once which has a
-                granularity of less than a timeframe. Within one computation
-                multiple of these can be created. They get sent as soon as
-                they go out of scope.
 
 ## Wildcard support for InputSpec / OutputSpec
 
@@ -465,3 +459,15 @@ some-workflow --monitoring-backend=no-op://
 ```
 
 notice that the GUI will not function properly if you do so.
+
+## Profiling
+
+The DPL GUI comes with support to run a profiler on a device for 30s. In order to do so you must click on the device you want to profile, which will show the device inspector for the selected device on the right. Then you can click on "Profile 30s" to start the profiler on the selected dataprocessor.
+
+By default results are either dumped to a `perf-$O2PROFILEDPID.data` (on linux) or displayed in Instruments (on macOS). In order to visualise the perf file you have to then convert it to a flamegraph via:
+
+```
+perf script -i perf.data > profile.linux-perf.txt
+```
+
+and then you can either upload it to https://www.speedscope.app or use chrome://tracing.

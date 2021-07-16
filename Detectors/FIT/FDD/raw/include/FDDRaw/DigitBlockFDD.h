@@ -27,6 +27,8 @@ namespace fdd
 {
 //Normal data taking mode
 using DigitBlockFDD = DigitBlockFIT<o2::fdd::SingleLUT, o2::fdd::Digit, o2::fdd::ChannelData>;
+//TCM extended data taking mode
+using DigitBlockFDDext = DigitBlockFIText<o2::fdd::SingleLUT, o2::fdd::Digit, o2::fdd::ChannelData, o2::fdd::TriggersExt>;
 } // namespace fdd
 } // namespace o2
 #endif

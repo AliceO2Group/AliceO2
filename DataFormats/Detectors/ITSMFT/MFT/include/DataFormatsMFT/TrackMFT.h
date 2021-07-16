@@ -33,8 +33,6 @@ namespace mft
 class TrackMFT : public o2::track::TrackParCovFwd
 {
   using ClusRefs = o2::dataformats::RangeRefComp<4>;
-  using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
-  using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
  public:
   TrackMFT() = default;

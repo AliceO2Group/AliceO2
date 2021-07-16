@@ -117,12 +117,6 @@ const CalPad& CDBInterface::getGainMap()
 }
 
 //______________________________________________________________________________
-const CalPad& CDBInterface::getCalPad(const std::string_view path)
-{
-  return getObjectFromCDB<CalPad>(path.data());
-}
-
-//______________________________________________________________________________
 const ParameterDetector& CDBInterface::getParameterDetector()
 {
   if (mUseDefaults) {
@@ -164,6 +158,12 @@ const ParameterGEM& CDBInterface::getParameterGEM()
 
   // return from CDB, assume that check for object existence are done there
   return getObjectFromCDB<ParameterGEM>(CDBTypeMap.at(CDBType::ParGEM));
+}
+
+//______________________________________________________________________________
+const CalPad& CDBInterface::getCalPad(const std::string_view path)
+{
+  return getSpecificObjectFromCDB<CalPad>(path);
 }
 
 //______________________________________________________________________________
@@ -365,7 +365,7 @@ void CDBStorage::uploadGainMap(std::string_view fileName, bool isFull, long firs
 }
 
 //______________________________________________________________________________
-void CDBStorage::uploadPulserData(std::string_view fileName, long first, long last)
+void CDBStorage::uploadPulserOrCEData(CDBType type, std::string_view fileName, long first, long last)
 {
   std::unique_ptr<TFile> f(TFile::Open(fileName.data()));
   CalDet<float>*t0 = nullptr, *width = nullptr, *qtot = nullptr;
@@ -382,7 +382,7 @@ void CDBStorage::uploadPulserData(std::string_view fileName, long first, long la
   pulserCalib["Width"] = *width;
   pulserCalib["Qtot"] = *qtot;
 
-  storeObject(&pulserCalib, CDBType::CalPulser, first, last);
+  storeObject(&pulserCalib, type, first, last);
 }
 
 //______________________________________________________________________________

@@ -174,30 +174,33 @@ void DigitDump::initInputOutput()
 //______________________________________________________________________________
 void DigitDump::checkDuplicates(bool removeDuplicates)
 {
+  sortDigits();
+
   auto isEqual = [](const Digit& a, const Digit& b) {
-    return (a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() == b.getRow()) && (a.getPad() == b.getPad());
+    if ((a.getTimeStamp() == b.getTimeStamp()) && (a.getRow() == b.getRow()) && (a.getPad() == b.getPad())) {
+      LOGP(debug, "digit found twice at sector {:2}, cru {:3}, row {:3}, pad {:3}, time {:6}, ADC {:.2} (other: {:.2})", b.getCRU() / 10, b.getCRU(), b.getRow(), b.getPad(), b.getTimeStamp(), b.getChargeFloat(), a.getChargeFloat());
+      return true;
+    }
+    return false;
   };
 
-  sortDigits();
   for (size_t iSec = 0; iSec < Sector::MAXSECTOR; ++iSec) {
     auto& digits = mDigits[iSec];
-    const auto nDigits = digits.size();
-    if (nDigits < 2) {
-      continue;
-    }
 
-    for (auto iDigit = nDigits - 2; iDigit--;) {
-      auto& dig = digits[iDigit];
-      auto& digPrev = digits[iDigit + 1];
-
-      if (isEqual(dig, digPrev)) {
-        if (removeDuplicates) {
-          digits.erase(digits.begin() + iDigit + 1);
-          LOGP(warning, "dig found twice at sector {:2}, cru {:3}, row {:3}, pad {:3}, time {:6}, ADC {:.2} (previous: {:.2}), removing it", iSec, dig.getCRU(), dig.getRow(), dig.getPad(), dig.getTimeStamp(), dig.getChargeFloat(), digPrev.getChargeFloat());
-        } else {
-          LOGP(warning, "dig found twice at sector {:2}, cru {:3}, row {:3}, pad {:3}, time {:6}, ADC {:.2} (previous: {:.2})", iSec, dig.getCRU(), dig.getRow(), dig.getPad(), dig.getTimeStamp(), dig.getChargeFloat(), digPrev.getChargeFloat());
-        }
+    size_t nDuplicates = 0;
+    if (removeDuplicates) {
+      const auto last = std::unique(digits.begin(), digits.end(), isEqual);
+      nDuplicates = std::distance(last, digits.end());
+      digits.erase(last, digits.end());
+    } else {
+      auto first = digits.begin();
+      const auto last = digits.end();
+      while (++first != last) {
+        nDuplicates += isEqual(*(first - 1), *first);
       }
+    }
+    if (nDuplicates) {
+      LOGP(warning, "{} {} duplicate digits in sector {}", removeDuplicates ? "removed" : "found", nDuplicates, iSec);
     }
   }
 }

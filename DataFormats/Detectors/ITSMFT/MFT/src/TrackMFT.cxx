@@ -24,8 +24,6 @@ namespace o2
 namespace mft
 {
 
-using SMatrix55 = ROOT::Math::SMatrix<double, 5, 5, ROOT::Math::MatRepSym<double, 5>>;
-using SMatrix5 = ROOT::Math::SVector<Double_t, 5>;
 
 //__________________________________________________________________________
 void TrackMFT::print() const

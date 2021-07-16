@@ -50,7 +50,7 @@ struct PayloadDecoderImpl<BareFormat, CHARGESUM, 0> {
   {
     auto solarId = fee2solar(feeLinkId);
     if (!solarId.has_value()) {
-      throw std::logic_error(fmt::format("{} could not get solarId from feelinkid={}\n", __PRETTY_FUNCTION__, feeLinkId));
+      throw std::logic_error(fmt::format("{} could not get solarId from feelinkid={}\n", __PRETTY_FUNCTION__, asString(feeLinkId)));
     }
     return std::move(BareGBTDecoder<CHARGESUM>(solarId.value(), decodedDataHandlers));
   }

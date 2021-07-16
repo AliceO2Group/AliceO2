@@ -202,6 +202,11 @@ class MaterialManager
   // print out all registered media
   void printMedia() const;
 
+  /// set the density scaling factor
+  void setDensityScalingFactor(float f) { mDensityFactor = f; }
+  /// set the density scaling factor
+  float getDensityScalingFactor() const { return mDensityFactor; }
+
   /// print all tracking media inside a logical volume (specified by name)
   /// and all of its daughters
   static void printContainingMedia(std::string const& volumename);
