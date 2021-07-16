@@ -105,7 +105,7 @@ ChamberEfficiency createDefaultChamberEfficiency()
     }
   }
 
-  return std::move(effMap);
+  return effMap;
 }
 
 } // namespace mid

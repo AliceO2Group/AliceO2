@@ -194,7 +194,7 @@ std::unique_ptr<TPCFastTransform> TPCFastTransformHelperO2::create(Long_t TimeSt
 
   updateCalibration(fastTransform, TimeStamp);
 
-  return std::move(fastTransformPtr);
+  return fastTransformPtr;
 }
 
 int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform, Long_t TimeStamp)

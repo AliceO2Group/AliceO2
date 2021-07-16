@@ -88,5 +88,5 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcL, srcL, srcL,
                                                  useMC, GID::getSourceMask(GID::ITS));
 
-  return std::move(specs);
+  return specs;
 }

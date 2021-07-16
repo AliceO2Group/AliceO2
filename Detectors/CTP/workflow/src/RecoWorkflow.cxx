@@ -89,7 +89,7 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
       specs.emplace_back(o2::ctp::getDigitsReaderSpec(propagateMC));
     }
   }
-  return std::move(specs);
+  return specs;
 }
 
 } // namespace reco_workflow

@@ -204,5 +204,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     {},
     AlgorithmSpec{adaptFromTask<O2GPUDPLDisplaySpec>(useMC, srcTrk, srcCl, dataRequest)}});
 
-  return std::move(specs);
+  return specs;
 }

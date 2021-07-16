@@ -42,5 +42,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   WorkflowSpec specs;
   specs.emplace_back(o2::vertexing::getPrimaryVertexReaderSpec(useMC));
-  return std::move(specs);
+  return specs;
 }

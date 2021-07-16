@@ -69,6 +69,8 @@ if (DPL_ENABLE_TRACING)
   add_definitions(-DDPL_ENABLE_TRACING)
 endif()
 
+add_compile_options(-Werror=pessimizing-move)
+
 # include macros and functions that are used in the following subdirectories'
 # CMakeLists.txt
 include(O2AddExecutable)

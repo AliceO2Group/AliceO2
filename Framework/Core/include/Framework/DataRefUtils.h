@@ -117,7 +117,7 @@ struct DataRefUtils {
         }
       });
 
-      return std::move(result);
+      return result;
     } else if constexpr (is_specialization<T, ROOTSerialized>::value == true) {
       // See above. SFINAE allows us to use this to extract a ROOT-serialized object
       // with a somewhat uniform API. ROOT serialization method is enforced by using
@@ -149,7 +149,7 @@ struct DataRefUtils {
           result->SetOwner(true);
         }
       });
-      return std::move(result);
+      return result;
     }
   }
 

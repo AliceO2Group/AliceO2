@@ -429,7 +429,7 @@ struct TableBuilderHelpers {
     for (size_t i = 0; i < names.size(); ++i) {
       result.emplace_back(std::make_shared<arrow::Field>(names[i], types[i], true, nullptr));
     }
-    return std::move(result);
+    return result;
   }
 
   /// Invokes the append method for each entry in the tuple

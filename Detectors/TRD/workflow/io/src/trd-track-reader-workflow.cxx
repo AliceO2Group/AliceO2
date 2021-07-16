@@ -57,5 +57,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (GTrackID::includesSource(GTrackID::Source::TPCTRD, srcTRD)) {
     specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(useMC));
   }
-  return std::move(specs);
+  return specs;
 }

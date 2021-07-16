@@ -331,7 +331,7 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                                                                                "cluster-branch-name"})());
   }
 
-  return std::move(specs);
+  return specs;
 }
 
 } // namespace reco_workflow

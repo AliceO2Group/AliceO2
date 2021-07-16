@@ -239,7 +239,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
       inputSpecs.emplace_back(InputSpec{"mclblin", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe});
     }
-    return std::move(inputSpecs);
+    return inputSpecs;
   };
 
   auto createOutputSpecs = [](bool makeMcOutput) {
@@ -252,7 +252,7 @@ DataProcessorSpec getClusterDecoderRawSpec(bool sendMC)
       constexpr o2::header::DataDescription datadesc("CLNATIVEMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
-    return std::move(outputSpecs);
+    return outputSpecs;
   };
 
   return DataProcessorSpec{processorName,

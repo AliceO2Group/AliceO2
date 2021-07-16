@@ -667,7 +667,7 @@ const auto EncodedBlocks<H, N, W>::getImage(const void* newHead)
   // we don't modify newHead, but still need to remove constness for relocation interface
   relocate(image.mRegistry.head, const_cast<char*>(reinterpret_cast<const char*>(newHead)), reinterpret_cast<char*>(&image));
 
-  return std::move(image);
+  return image;
 }
 
 ///_____________________________________________________________________________
@@ -935,7 +935,7 @@ std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vect
     }
     dictBlocks->mRegistry.nFilledBlocks++;
   }
-  return std::move(vdict);
+  return vdict;
 }
 
 } // namespace ctf

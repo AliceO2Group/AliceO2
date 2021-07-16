@@ -39,5 +39,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   WorkflowSpec specs;
   specs.emplace_back(o2::aod::filtering::getCentralEventFilterProcessorSpec(config));
-  return std::move(specs);
+  return specs;
 }

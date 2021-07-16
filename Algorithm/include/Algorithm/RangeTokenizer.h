@@ -77,7 +77,7 @@ struct RangeTokenizer {
         res.emplace_back(convert(token));
       }
     }
-    return std::move(res);
+    return res;
   }
 
   /// extract a range of an integral type from a token string and add to vector

@@ -80,5 +80,5 @@ std::string GlobalTrackID::getSourcesNames(GlobalTrackID::mask_t srcm)
     }
   }
   s += ']';
-  return std::move(s);
+  return s;
 }

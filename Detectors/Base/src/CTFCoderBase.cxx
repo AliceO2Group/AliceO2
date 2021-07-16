@@ -41,7 +41,7 @@ std::unique_ptr<TFile> CTFCoderBase::loadDictionaryTreeFile(const std::string& d
     if (mayFail) {
       LOG(INFO) << "CTF dictionary file " << dictPath << " for detector " << mDet.getName() << " is absent, will use dictionaries stored in CTF";
       fileDict.reset();
-      return std::move(fileDict);
+      return fileDict;
     }
     LOG(ERROR) << "Failed to open CTF dictionary file " << dictPath << " for detector " << mDet.getName();
     throw std::runtime_error("Failed to open dictionary file");

@@ -59,7 +59,7 @@ ContT BoostDeserialize(std::string& msgStr)
   std::istringstream buffer(msgStr);
   boost::archive::binary_iarchive inputArchive(buffer);
   inputArchive >> output;
-  return std::move(output);
+  return output;
 }
 } // namespace utils
 } // namespace o2

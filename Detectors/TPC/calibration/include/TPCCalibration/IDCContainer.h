@@ -142,7 +142,7 @@ class IDCDeltaCompressionHelper
     IDCDelta<DataT> idcCompressed{};
     compress(idcDeltaUncompressed, idcCompressed, o2::tpc::Side::A);
     compress(idcDeltaUncompressed, idcCompressed, o2::tpc::Side::C);
-    return std::move(idcCompressed);
+    return idcCompressed;
   }
 
  private:

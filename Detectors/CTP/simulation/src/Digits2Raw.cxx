@@ -151,7 +151,7 @@ std::vector<char> Digits2Raw::digits2HBTPayload(const gsl::span<std::bitset<NGBT
       }
     }
   }
-  return std::move(toAdd);
+  return toAdd;
 }
 // Adding payload of size<NGBT to GBT words of size NGBT
 // gbtsend valid only when return 1

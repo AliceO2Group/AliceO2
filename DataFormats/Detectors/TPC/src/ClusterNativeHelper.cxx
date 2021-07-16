@@ -87,7 +87,7 @@ std::unique_ptr<ClusterNativeAccess> ClusterNativeHelper::createClusterNativeInd
       }
     }
   }
-  return (std::move(retVal));
+  return retVal;
 }
 
 ClusterNativeHelper::Reader::~Reader()

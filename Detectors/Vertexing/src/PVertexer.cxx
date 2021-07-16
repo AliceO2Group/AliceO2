@@ -951,7 +951,7 @@ SeedHistoTZ PVertexer::buildHistoTZ(const VertexingInput& input)
     }
   }
 
-  return std::move(seedHistoTZ);
+  return seedHistoTZ;
 }
 
 //______________________________________________

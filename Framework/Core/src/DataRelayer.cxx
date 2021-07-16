@@ -599,7 +599,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::getInputsForTimeslice(Timesl
   }
   invalidateCacheFor(slot);
 
-  return std::move(messages);
+  return messages;
 }
 
 void DataRelayer::clear()

@@ -97,7 +97,7 @@ std::unique_ptr<TH1F> FlatHisto1D<T>::createTH1F(const std::string& name)
       h->SetBinContent(i + 1, w);
     }
   }
-  return std::move(h);
+  return h;
 }
 
 template class FlatHisto1D<float>;

@@ -228,7 +228,7 @@ DataProcessorSpec createPublisherSpec(PublisherConf const& config, bool propagat
         outputSpecs.emplace_back(OutputSpec{{"outputMC"}, mco.origin, mco.description, subSpec, Lifetime::Timeframe});
       }
     }
-    return std::move(outputSpecs);
+    return outputSpecs;
   };
 
   auto& dtb = config.databranch;

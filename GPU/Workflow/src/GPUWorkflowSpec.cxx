@@ -880,7 +880,7 @@ DataProcessorSpec getGPURecoWorkflowSpec(gpuworkflow::CompletionPolicyData* poli
     if (specconfig.outputQA) {
       outputSpecs.emplace_back(gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe);
     }
-    return std::move(outputSpecs);
+    return outputSpecs;
   };
 
   return DataProcessorSpec{processorName, // process id

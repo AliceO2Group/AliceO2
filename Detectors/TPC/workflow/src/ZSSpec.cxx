@@ -185,7 +185,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
     constexpr o2::header::DataDescription datadesc2("ZSSIZES");
     outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     outputSpecs.emplace_back(label2, gDataOriginTPC, datadesc2, 0, Lifetime::Timeframe);
-    return std::move(outputSpecs);
+    return outputSpecs;
   };
 
   return DataProcessorSpec{"tpc-zsEncoder",
@@ -293,7 +293,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
     Inputs inputs;
     inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
 
-    return std::move(inputs);
+    return inputs;
   };
 
   auto createOutputSpecs = []() {
@@ -303,7 +303,7 @@ DataProcessorSpec getZStoDigitsSpec(std::vector<int> const& tpcSectors)
     for (int i = 0; i < NSectors; i++) {
       outputSpecs.emplace_back(gDataOriginTPC, "DIGITS", i, Lifetime::Timeframe);
     }
-    return std::move(outputSpecs);
+    return outputSpecs;
   };
 
   return DataProcessorSpec{"decode-zs-to-digits",

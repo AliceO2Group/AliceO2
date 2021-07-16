@@ -64,5 +64,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!disableRootOut) {
     specs.emplace_back(o2::zdc::getZDCDigitWriterDPLSpec(false, false));
   }
-  return std::move(specs);
+  return specs;
 }

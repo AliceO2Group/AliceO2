@@ -31,7 +31,7 @@ math_utils::Point3D<float> Hit::middlePoint() const
 {
   /// Returns the point in between the entrance and exit
   math_utils::Point3D<float> middle(0.5 * (entrancePoint().x() + exitPoint().x()), 0.5 * (entrancePoint().y() + exitPoint().y()), 0.5 * (entrancePoint().z() + exitPoint().z()));
-  return std::move(middle);
+  return middle;
 }
 
 } // namespace mid

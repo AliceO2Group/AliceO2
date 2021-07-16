@@ -139,5 +139,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     specs.push_back(o2::hmpid::getEntropyDecoderSpec());
   }
 
-  return std::move(specs);
+  return specs;
 }

@@ -484,7 +484,7 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataMatch
         SubSpecificationTypeValueMatcher{concrete.subSpec},
         std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
                                                 StartTimeValueMatcher{ContextRef{0}})))};
-  return std::move(matchEverything);
+  return matchEverything;
 }
 
 DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(ConcreteDataTypeMatcher const& dataType)
@@ -514,7 +514,7 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataOrigi
         SubSpecificationTypeValueMatcher{ContextRef{2}},
         std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
                                                 StartTimeValueMatcher{ContextRef{0}})))};
-  return std::move(matchOnlyOrigin);
+  return matchOnlyOrigin;
 }
 
 DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescription const& description)
@@ -532,7 +532,7 @@ DataDescriptorMatcher DataSpecUtils::dataDescriptorMatcherFrom(header::DataDescr
         SubSpecificationTypeValueMatcher{ContextRef{2}},
         std::make_unique<DataDescriptorMatcher>(DataDescriptorMatcher::Op::Just,
                                                 StartTimeValueMatcher{ContextRef{0}})))};
-  return std::move(matchOnlyOrigin);
+  return matchOnlyOrigin;
 }
 
 InputSpec DataSpecUtils::matchingInput(OutputSpec const& spec)

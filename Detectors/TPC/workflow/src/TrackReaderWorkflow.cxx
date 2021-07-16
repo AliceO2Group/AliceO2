@@ -94,5 +94,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   specs.push_back(o2::tpc::getTPCTrackReaderSpec(doMC));
 
-  return std::move(specs);
+  return specs;
 }

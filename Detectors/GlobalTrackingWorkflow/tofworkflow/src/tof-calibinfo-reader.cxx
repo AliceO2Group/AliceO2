@@ -79,5 +79,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   LOG(INFO) << "Number of active devices = " << specs.size();
 
-  return std::move(specs);
+  return specs;
 }

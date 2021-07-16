@@ -80,7 +80,7 @@ inline auto getRecoInputContainer(o2::framework::ProcessingContext& pc, o2::gpu:
     retVal->fillGPUIOPtr(ptrs);
   }
 
-  return std::move(retVal);
+  return retVal;
 }
 
 inline void RecoInputContainer::fillGPUIOPtr(o2::gpu::GPUTrackingInOutPointers* ptrs)

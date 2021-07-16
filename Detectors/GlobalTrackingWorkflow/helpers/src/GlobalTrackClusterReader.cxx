@@ -42,5 +42,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   GlobalTrackID::mask_t srcCl = GlobalTrackID::getSourcesMask(cfgc.options().get<std::string>("cluster-types"));
   InputHelper::addInputSpecs(cfgc, specs, srcCl, srcTrk, srcTrk, useMC);
 
-  return std::move(specs);
+  return specs;
 }

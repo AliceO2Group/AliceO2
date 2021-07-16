@@ -115,7 +115,7 @@ void CTFCoder::createCoders(const std::string& dictPath, o2::ctf::CTFCoderBase::
     auto bl = ctf->getBlock(slot);
     auto md = ctf->getMetadata(slot);
     ft.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min, md.max);
-    return std::move(ft);
+    return ft;
   };
   auto getProbBits = [ctf](CTF::Slots slot) -> int {
     return ctf->getMetadata(slot).probabilityBits;

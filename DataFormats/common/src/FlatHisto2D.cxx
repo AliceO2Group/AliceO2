@@ -116,7 +116,7 @@ std::unique_ptr<TH2F> FlatHisto2D<T>::createTH2F(const std::string& name)
       }
     }
   }
-  return std::move(h);
+  return h;
 }
 
 template <typename T>

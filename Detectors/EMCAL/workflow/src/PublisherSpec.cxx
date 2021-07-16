@@ -96,7 +96,7 @@ o2::framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config
     if (propagateMC) {
       outputSpecs.emplace_back(o2::framework::OutputSpec{{"outputMC"}, mco.origin, mco.description, 0, o2::framework::Lifetime::Timeframe});
     }
-    return std::move(outputSpecs);
+    return outputSpecs;
   };
 
   auto& dtb = config.databranch;

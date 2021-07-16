@@ -64,7 +64,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
     calculateClassMask(inpmaskcoll, data.CTPClassMask);
     digits.emplace_back(data);
   }
-  return std::move(digits);
+  return digits;
 }
 void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, std::bitset<CTP_NCLASSES>& classmask)
 {

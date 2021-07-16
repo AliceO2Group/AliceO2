@@ -250,7 +250,7 @@ ChamberResponseParams createDefaultChamberResponseParams()
   params.setParB(1, 70, 2.97);
   params.setParB(1, 71, 2.97);
 
-  return std::move(params);
+  return params;
 }
 
 } // namespace mid

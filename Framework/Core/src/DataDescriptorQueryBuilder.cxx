@@ -231,7 +231,7 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
       } break;
     }
   }
-  return std::move(result);
+  return result;
 }
 
 DataDescriptorQuery DataDescriptorQueryBuilder::buildFromKeepConfig(std::string const& config)

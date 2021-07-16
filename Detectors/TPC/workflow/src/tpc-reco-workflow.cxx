@@ -166,5 +166,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
 
-  return std::move(wf);
+  return wf;
 }

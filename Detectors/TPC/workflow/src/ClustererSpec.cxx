@@ -184,7 +184,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       constexpr o2::header::DataDescription datadesc("DIGITSMCTR");
       inputSpecs.emplace_back("mclabels", gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
-    return std::move(inputSpecs);
+    return inputSpecs;
   };
 
   auto createOutputSpecs = [](bool makeMcOutput) {
@@ -197,7 +197,7 @@ DataProcessorSpec getClustererSpec(bool sendMC)
       constexpr o2::header::DataDescription datadesc("CLUSTERHWMCLBL");
       outputSpecs.emplace_back(label, gDataOriginTPC, datadesc, 0, Lifetime::Timeframe);
     }
-    return std::move(outputSpecs);
+    return outputSpecs;
   };
 
   return DataProcessorSpec{processorName,

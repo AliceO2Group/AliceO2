@@ -96,7 +96,7 @@ o2::framework::WorkflowSpec DPLOutputTest()
   // A generator of data
   lspec.emplace_back(defineTestGenerator());
   lspec.emplace_back(defineTestSink());
-  return std::move(lspec);
+  return lspec;
 }
 
 } // namespace o2::workflows

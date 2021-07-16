@@ -299,7 +299,7 @@ struct Descriptor {
       --len;
     }
     std::string ret(str, len);
-    return std::move(ret);
+    return ret;
   }
 };
 

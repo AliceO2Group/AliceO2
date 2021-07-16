@@ -94,5 +94,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     szMax = configcontext.options().get<int64_t>("max-file-size");
   }
   WorkflowSpec specs{o2::ctf::getCTFWriterSpec(dets, run, doCTF, doDict, dictPerDet, szMin, szMax)};
-  return std::move(specs);
+  return specs;
 }

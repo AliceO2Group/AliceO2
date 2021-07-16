@@ -675,7 +675,7 @@ RecoContainer::GlobalIDSet RecoContainer::getSingleDetectorRefs(GTrackID gidx) c
     table[GTrackID::ITS] = parent0.getRefITS();
     table[GTrackID::TPC] = parent0.getRefTPC();
   }
-  return std::move(table);
+  return table;
 }
 
 // get contributing TPC GTrackID to the source. If source gidx is not contributed by TPC,

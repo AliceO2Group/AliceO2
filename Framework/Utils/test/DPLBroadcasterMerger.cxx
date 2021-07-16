@@ -140,7 +140,7 @@ o2::framework::WorkflowSpec DPLBroadcasterMergerWorkflow()
 
   // A sink which dumps messages
   lspec.emplace_back(defineSink(o2f::InputSpec{"input", "TST", "ToSink", 0, o2f::Lifetime::Timeframe}));
-  return std::move(lspec);
+  return lspec;
 }
 
 } // namespace o2::workflows

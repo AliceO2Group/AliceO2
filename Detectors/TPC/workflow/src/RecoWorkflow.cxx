@@ -503,7 +503,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                            std::move(ccldef))());                                    //
   }
 
-  return std::move(specs);
+  return specs;
 }
 
 } // end namespace reco_workflow

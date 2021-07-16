@@ -103,5 +103,5 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!disableRootOutput) {
     specs.emplace_back(o2::trd::getTRDTrackletWriterSpec(useMC));
   }
-  return std::move(specs);
+  return specs;
 }

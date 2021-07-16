@@ -553,7 +553,7 @@ std::vector<o2::BaseCluster<float>> MatchCosmics::prepareITSClusters(const o2::g
     auto pattIt = patterns.begin();
     o2::its::ioutils::convertCompactClusters(clusITS, pattIt, itscl, *mITSDict);
   }
-  return std::move(itscl);
+  return itscl;
 }
 
 //______________________________________________

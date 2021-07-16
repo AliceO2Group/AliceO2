@@ -28,7 +28,7 @@ ChamberHV createDefaultChamberHV()
     hv.setHV(ide, 9800.);
   }
 
-  return std::move(hv);
+  return hv;
 }
 
 } // namespace mid
