@@ -79,7 +79,7 @@ struct PartitionManager<Partition<T>> {
   template <typename E>
   static void bindInternalIndices(Partition<T>& partition, E* table)
   {
-    if constexpr (o2::soa::is_binding_compatible_v<T, std::decay_t<E>>) {
+    if constexpr (o2::soa::is_binding_compatible_v<T, std::decay_t<E>>()) {
       partition.bindInternalIndicesTo(table);
     }
   }
