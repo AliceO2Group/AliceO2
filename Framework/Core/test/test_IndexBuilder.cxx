@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
   auto t4 = b4.finalize();
   Categorys st4{t4};
 
-  auto t5 = IndexExclusive::indexBuilder(typename IDXs::persistent_columns_t{}, st1, std::tie(st1, st2, st3, st4));
+  auto t5 = IndexExclusive::indexBuilder("test1", typename IDXs::persistent_columns_t{}, st1, std::tie(st1, st2, st3, st4));
   BOOST_REQUIRE_EQUAL(t5->num_rows(), 4);
   IDXs idxt{t5};
   idxt.bindExternalIndices(&st1, &st2, &st3, &st4);
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(TestIndexBuilder)
     BOOST_REQUIRE(row.category().pointId() == row.pointId());
   }
 
-  auto t6 = IndexSparse::indexBuilder(typename IDX2s::persistent_columns_t{}, st1, std::tie(st2, st1, st3, st4));
+  auto t6 = IndexSparse::indexBuilder("test2", typename IDX2s::persistent_columns_t{}, st1, std::tie(st2, st1, st3, st4));
   BOOST_REQUIRE_EQUAL(t6->num_rows(), st2.size());
   IDXs idxs{t6};
   std::array<int, 7> fs{0, 1, 2, -1, -1, 4, -1};
