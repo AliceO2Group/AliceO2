@@ -18,6 +18,7 @@
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
 #include <array>
+#include <vector>
 #include <map>
 
 /// \file RecEvent.h
@@ -33,13 +34,15 @@ struct RecEventAux : public RecEventFlat {
   uint32_t flags;                                        /// reconstruction flags
   int16_t tdcVal[NTDCChannels][MaxTDCValues];            /// TdcChannels
   int16_t tdcAmp[NTDCChannels][MaxTDCValues];            /// TdcAmplitudes
+  std::vector<int16_t> TDCVal[MaxTDCValues];             /// TdcChannels
+  std::vector<int16_t> TDCAmp[MaxTDCValues];             /// TdcAmplitudes
   int ntdc[NTDCChannels] = {0};                          /// Number of hits in TDC
   std::array<bool, NTDCChannels> pattern;                /// Pattern of TDC
   uint16_t fired[NTDCChannels] = {0};                    /// Position at which the trigger algorithm is fired
   float inter[NTDCChannels][NTimeBinsPerBC * TSN] = {0}; /// Interpolated samples
   uint32_t ref[NChannels];                               /// Cache of references
-  std::array<bool, NChannels> err;              /// Generic error condition
-  std::array<uint8_t, NChannels> ped;           /// Pedestal subtraction employed
+  std::array<bool, NChannels> err;                       /// Generic error condition
+  std::array<uint8_t, NChannels> ped;                    /// Pedestal subtraction employed
 
   // Functions
   RecEventAux()

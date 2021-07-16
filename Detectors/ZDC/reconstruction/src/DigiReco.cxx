@@ -865,6 +865,8 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
   if (ihit < MaxTDCValues) {
     mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
     mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp / FTDCAmp);
+    mReco[ibun].TDCVal[itdc].emplace_back(tdc_cor);
+    mReco[ibun].TDCAmp[itdc].emplace_back(std::nearbyint(amp / FTDCAmp));
     ihit++;
 #ifdef O2_ZDC_DEBUG
     LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
