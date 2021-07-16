@@ -17,7 +17,7 @@
 #include "TH1F.h"
 #include "AliTRDtrackletMCM.h"
 //#include "TRDDataFormat/TriggerRecord.h"
-#include "TRDBase/Digit.h"
+#include "DataFormatsTRD/Digit.h"
 #include "TRDBase/Tracklet.h"
 #endif
 

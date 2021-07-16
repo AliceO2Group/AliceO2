@@ -55,6 +55,7 @@ class FullHistoryMerger : public framework::Task
 
   MergerConfig mConfig;
   std::unique_ptr<monitoring::Monitoring> mCollector;
+  int mCyclesSinceReset = 0;
 
   // stats
   int mTotalObjectsMerged = 0;
@@ -66,6 +67,7 @@ class FullHistoryMerger : public framework::Task
   void updateCache(const framework::DataRef& ref);
   void mergeCache();
   void publish(framework::DataAllocator& allocator);
+  void clear();
 };
 
 } // namespace o2::mergers

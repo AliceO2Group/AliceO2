@@ -12,8 +12,10 @@
 // This file provides information about how O2 was built
 // and potentially other version information.
 
-#pragma once
+#ifndef O2_VERSION_GENERATED_H
+#define O2_VERSION_GENERATED_H
 
 #define O2_GIT_REVISION "@O2_GIT_REVISION@"
 #define ALIDIST_GIT_REVISION "@ALIDIST_GIT_REVISION@"
 
+#endif

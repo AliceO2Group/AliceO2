@@ -13,7 +13,7 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
-#include "SimConfig/SimCutParams.h"
+#include "SimConfig/SimParams.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::conf;

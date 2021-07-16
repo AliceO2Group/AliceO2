@@ -17,10 +17,10 @@
 
 #pragma link C++ class o2::tpc::CalibRawBase;
 #pragma link C++ class o2::tpc::CalibPedestal;
-#pragma link C++ class o2::tpc::CalibPedestalParam +;
+#pragma link C++ class o2::tpc::CalibPedestalParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::CalibPedestalParam> + ;
 #pragma link C++ class o2::tpc::CalibPulser;
-#pragma link C++ class o2::tpc::CalibPulserParam +;
+#pragma link C++ class o2::tpc::CalibPulserParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::CalibPulserParam> + ;
 #pragma link C++ class o2::tpc::CalibTreeDump;
 #pragma link C++ class o2::tpc::DigitDump;
@@ -62,5 +62,10 @@
 #pragma link C++ class o2::tpc::IDCCCDBHelper<float> +;
 #pragma link C++ class o2::tpc::IDCCCDBHelper<short> +;
 #pragma link C++ class o2::tpc::IDCCCDBHelper<char> +;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::tpc::TrackTPC, o2::tpc::dEdxHistos> + ;
+#pragma link C++ class o2::tpc::CalibdEdx + ;
+#pragma link C++ class o2::tpc::dEdxHistos + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::tpc::dEdxHistos> + ;
+#pragma link C++ class o2::tpc::CalibMIP + ;
 
 #endif

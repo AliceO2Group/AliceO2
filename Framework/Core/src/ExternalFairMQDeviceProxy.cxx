@@ -277,7 +277,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, boo
           break;
         }
       }
-      if (indexDone == false) {
+      if (indexDone == false && !DataSpecUtils::match(query, "DPL", "EOS", 0)) {
         unmatchedDescriptions.emplace_back(DataSpecUtils::describe(query));
       }
     }

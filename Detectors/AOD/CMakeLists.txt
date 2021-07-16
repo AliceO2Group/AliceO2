@@ -25,7 +25,6 @@ o2_add_library(
           O2::MFTWorkflow
           O2::SimulationDataFormat
           O2::Steer
-          O2::TOFWorkflow
           O2::TPCWorkflow
           O2::CCDB
           O2::MathUtils

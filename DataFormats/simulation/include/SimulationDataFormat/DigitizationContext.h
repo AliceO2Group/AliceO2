@@ -127,7 +127,7 @@ class DigitizationContext
   std::vector<o2::InteractionTimeRecord> mEventRecordsWithQED;
   std::vector<std::vector<o2::steer::EventPart>> mEventPartsWithQED;
 
-  o2::BunchFilling mBCFilling; // patter of active BCs
+  o2::BunchFilling mBCFilling; // pattern of active BCs
 
   std::vector<std::string> mSimPrefixes;             // identifiers to the hit sim products; the key corresponds to the source ID of event record
   std::string mQEDSimPrefix;                         // prefix for QED production/contribution

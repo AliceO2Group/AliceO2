@@ -63,7 +63,6 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/Calibrations.h
                                   include/TRDBase/ChamberNoise.h
                                   include/TRDBase/CalOnlineGainTables.h
-                                  include/TRDBase/Digit.h
                                   include/TRDBase/Tracklet.h
                                   include/TRDBase/TrackletTransformer.h)
 

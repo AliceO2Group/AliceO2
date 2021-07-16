@@ -79,21 +79,22 @@ auto ConvertDigit2TCMData(const DigitType& digit, TCMDataType& tcmData) -> std::
 {
   tcmData.orA = digit.mTriggers.getOrA();
   tcmData.orC = digit.mTriggers.getOrC();
-  tcmData.sCen = digit.mTriggers.getVertex();
+  tcmData.sCen = digit.mTriggers.getSCen();
   tcmData.cen = digit.mTriggers.getCen();
-  tcmData.vertex = digit.mTriggers.getSCen();
-  tcmData.laser = bool(digit.mTriggers.triggerSignals & (1 << 5));
-  tcmData.dataIsValid = bool(digit.mTriggers.triggerSignals & (1 << 6));
+  tcmData.vertex = digit.mTriggers.getVertex();
+  tcmData.laser = bool(digit.mTriggers.triggersignals & (1 << 5));
+  tcmData.dataIsValid = bool(digit.mTriggers.triggersignals & (1 << 6));
   //tcmData.laser = digit.mTriggers.getLaserBit(); //Turned off for FDD
   tcmData.nChanA = digit.mTriggers.nChanA;
   tcmData.nChanC = digit.mTriggers.nChanC;
-  if (digit.mTriggers.amplA > 131071) {
-    tcmData.amplA = 131071; //2^17
+  const int64_t thresholdSignedInt17bit = 65535; //pow(2,17)/2-1
+  if (digit.mTriggers.amplA > thresholdSignedInt17bit) {
+    tcmData.amplA = thresholdSignedInt17bit;
   } else {
     tcmData.amplA = digit.mTriggers.amplA;
   }
-  if (digit.mTriggers.amplC > 131071) {
-    tcmData.amplC = 131071; //2^17
+  if (digit.mTriggers.amplC > thresholdSignedInt17bit) {
+    tcmData.amplC = thresholdSignedInt17bit;
   } else {
     tcmData.amplC = digit.mTriggers.amplC;
   }

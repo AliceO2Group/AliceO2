@@ -240,7 +240,13 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of
                              return itsNclsInnerBarrel;
                            });
 
-DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //! Ratio of crossed rows over findable clusters
+DECLARE_SOA_DYNAMIC_COLUMN(TPCFoundOverFindableCls, tpcFoundOverFindableCls, //! Ratio of found over findable clusters
+                           [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> float {
+                             int16_t tpcNClsFound = (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound;
+                             return (float)tpcNClsFound / (float)tpcNClsFindable;
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TPCCrossedRowsOverFindableCls, tpcCrossedRowsOverFindableCls, //! Ratio  crossed rows over findable clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusCrossedRows) -> float {
                              int16_t tpcNClsCrossedRows = (int16_t)tpcNClsFindable - tpcNClsFindableMinusCrossedRows;
                              return (float)tpcNClsCrossedRows / (float)tpcNClsFindable;
@@ -304,6 +310,7 @@ DECLARE_SOA_TABLE(TracksExtra, "AOD", "TRACKEXTRA", //! Additional track informa
                   track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                   track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
                   track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
+                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                   track::TrackEtaEMCAL, track::TrackPhiEMCAL);
 
@@ -760,25 +767,34 @@ DECLARE_SOA_INDEX_COLUMN(McCollision, mcCollision); //! MC collision of this par
 DECLARE_SOA_COLUMN(PdgCode, pdgCode, int);          //! PDG code
 DECLARE_SOA_COLUMN(StatusCode, statusCode, int);    //! Status code directly from the generator
 DECLARE_SOA_COLUMN(Flags, flags, uint8_t);          //! ALICE specific flags. Do not use directly. Use the dynamic columns, e.g. producedByGenerator()
-DECLARE_SOA_COLUMN(Mother0, mother0, int);          //! Track index of the first mother
-DECLARE_SOA_COLUMN(Mother1, mother1, int);          //! Track index of the second mother
-DECLARE_SOA_COLUMN(Daughter0, daughter0, int);      //! Track index of the first daugther
-DECLARE_SOA_COLUMN(Daughter1, daughter1, int);      //! Track index of the second daugther
-DECLARE_SOA_COLUMN(Weight, weight, float);          //! MC weight
-DECLARE_SOA_COLUMN(Px, px, float);                  //! Momentum in x in GeV/c
-DECLARE_SOA_COLUMN(Py, py, float);                  //! Momentum in y in GeV/c
-DECLARE_SOA_COLUMN(Pz, pz, float);                  //! Momentum in z in GeV/c
-DECLARE_SOA_COLUMN(E, e, float);                    //! Energy
-DECLARE_SOA_COLUMN(Vx, vx, float);                  //! X production vertex in cm
-DECLARE_SOA_COLUMN(Vy, vy, float);                  //! Y production vertex in cm
-DECLARE_SOA_COLUMN(Vz, vz, float);                  //! Z production vertex in cm
-DECLARE_SOA_COLUMN(Vt, vt, float);                  //! Production time
-DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi,                //! Phi
+// TODO declaration to be swapped when self-indexing columns are available
+//DECLARE_SOA_INDEX_COLUMN_FULL(Mother0, mother0, int, McParticle, "_Mother0"); //! Track index of the first mother
+DECLARE_SOA_COLUMN_FULL(Mother0, mother0, int, "fIndexMcParticles_Mother0"); //! Track index of the first mother
+//DECLARE_SOA_INDEX_COLUMN_FULL(Mother1, mother1, int, McParticle, "_Mother1"); //! Track index of the second mother
+DECLARE_SOA_COLUMN_FULL(Mother1, mother1, int, "fIndexMcParticles_Mother1"); //! Track index of the first mother
+//DECLARE_SOA_INDEX_COLUMN_FULL(Daughter0, daughter0, int, McParticle, "_Daughter0"); //! Track index of the first daugther
+DECLARE_SOA_COLUMN_FULL(Daughter0, daughter0, int, "fIndexMcParticles_Daughter0"); //! Track index of the first daugther
+//DECLARE_SOA_INDEX_COLUMN_FULL(Daughter1, daughter1, int, McParticle, "_Daughter1"); //! Track index of the first daugther
+DECLARE_SOA_COLUMN_FULL(Daughter1, daughter1, int, "fIndexMcParticles_Daughter1"); //! Track index of the first daugther
+DECLARE_SOA_COLUMN(Weight, weight, float);                                         //! MC weight
+DECLARE_SOA_COLUMN(Px, px, float);                                                 //! Momentum in x in GeV/c
+DECLARE_SOA_COLUMN(Py, py, float);                                                 //! Momentum in y in GeV/c
+DECLARE_SOA_COLUMN(Pz, pz, float);                                                 //! Momentum in z in GeV/c
+DECLARE_SOA_COLUMN(E, e, float);                                                   //! Energy
+DECLARE_SOA_COLUMN(Vx, vx, float);                                                 //! X production vertex in cm
+DECLARE_SOA_COLUMN(Vy, vy, float);                                                 //! Y production vertex in cm
+DECLARE_SOA_COLUMN(Vz, vz, float);                                                 //! Z production vertex in cm
+DECLARE_SOA_COLUMN(Vt, vt, float);                                                 //! Production time
+DECLARE_SOA_DYNAMIC_COLUMN(Phi, phi,                                               //! Phi
                            [](float px, float py) -> float { return static_cast<float>(M_PI) + std::atan2(-py, -px); });
 DECLARE_SOA_DYNAMIC_COLUMN(Eta, eta, //! Pseudorapidity
                            [](float px, float py, float pz) -> float { return 0.5f * std::log((std::sqrt(px * px + py * py + pz * pz) + pz) / (std::sqrt(px * px + py * py + pz * pz) - pz)); });
 DECLARE_SOA_DYNAMIC_COLUMN(Pt, pt, //! Transverse momentum in GeV/c
                            [](float px, float py) -> float { return std::sqrt(px * px + py * py); });
+DECLARE_SOA_DYNAMIC_COLUMN(P, p, //! Total momentum in GeV/c
+                           [](float px, float py, float pz) -> float { return std::sqrt(px * px + py * py + pz * pz); });
+DECLARE_SOA_DYNAMIC_COLUMN(Y, y, //! Particle rapidity
+                           [](float pz, float energy) -> float { return 0.5f * std::log((energy + pz) / (energy - pz)); });
 DECLARE_SOA_DYNAMIC_COLUMN(ProducedByGenerator, producedByGenerator, //! Particle produced by the generator or by the transport code
                            [](uint8_t flags) -> bool { return (flags & 0x1) == 0x0; });
 } // namespace mcparticle
@@ -793,6 +809,8 @@ DECLARE_SOA_TABLE(McParticles, "AOD", "MCPARTICLE", //! MC particle table
                   mcparticle::Phi<mcparticle::Px, mcparticle::Py>,
                   mcparticle::Eta<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
                   mcparticle::Pt<mcparticle::Px, mcparticle::Py>,
+                  mcparticle::P<mcparticle::Px, mcparticle::Py, mcparticle::Pz>,
+                  mcparticle::Y<mcparticle::Pz, mcparticle::E>,
                   mcparticle::ProducedByGenerator<mcparticle::Flags>);
 using McParticle = McParticles::iterator;
 
@@ -805,6 +823,16 @@ DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detec
 DECLARE_SOA_TABLE(McTrackLabels, "AOD", "MCTRACKLABEL", //! Table joined to the track table containing the MC index
                   mctracklabel::McParticleId, mctracklabel::McMask);
 using McTrackLabel = McTrackLabels::iterator;
+
+namespace mcmfttracklabel
+{
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle
+DECLARE_SOA_COLUMN(McMask, mcMask, uint8_t);
+} // namespace mcmfttracklabel
+
+DECLARE_SOA_TABLE(McMFTTrackLabels, "AOD", "MCMFTTRACKLABEL", //! Table joined to the mft track table containing the MC index
+                  mcmfttracklabel::McParticleId, mcmfttracklabel::McMask);
+using McMFTTrackLabel = McMFTTrackLabels::iterator;
 
 namespace mccalolabel
 {

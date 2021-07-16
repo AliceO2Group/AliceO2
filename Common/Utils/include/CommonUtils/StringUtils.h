@@ -19,6 +19,7 @@
 
 #include <sstream>
 #include <vector>
+#include <algorithm>
 #include <fmt/format.h>
 #include <Rtypes.h>
 

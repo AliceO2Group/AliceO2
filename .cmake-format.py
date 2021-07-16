@@ -85,12 +85,9 @@ additional_commands = {
             "DESTINATION": '*',
         }
     },
-    "o2_add_test_wrapper": {
-        "flags": ["DONT_FAIL_ON_TIMEOUT"],
+    "o2_add_test_command": {
         "kwargs": {
             "COMMAND": '*',
-            "NO_BOOST_TEST": '*',
-            "MAX_ATTEMPTS": '*',
             "TIMEOUT": '*',
             "NAME": '*',
             "WORKING_DIRECTORY": '*',
@@ -105,7 +102,6 @@ additional_commands = {
             "INSTALL": '*',
             "NO_BOOST_TEST": '*',
             "COMPONENT_NAME": '*',
-            "MAX_ATTEMPTS": '*',
             "TIMEOUT": '*',
             "WORKING_DIRECTORY": '*',
             "SOURCES": '*',
@@ -116,10 +112,11 @@ additional_commands = {
         }
     },
     "o2_add_test_root_macro": {
-        "flags": ["LOAD_ONLY"],
+        "flags": ["COMPILE","COMPILE_ONLY"],
         "kwargs": {
             "ENVIRONMENT": '*',
             "PUBLIC_LINK_LIBRARIES": '*',
+            "PUBLIC_INCLUDE_DIRECTORIES": '*',
             "LABELS": '*',
         }
     },

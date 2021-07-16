@@ -629,10 +629,10 @@ void RawFileWriter::LinkData::fillEmptyHBHs(const IR& ir, bool dataAdded)
     for (const auto& irdummy : irw) {
       if (writer->mDontFillEmptyHBF &&
           writer->mHBFUtils.getTFandHBinTF(irdummy).second != 0 &&
-          (!dataAdded || irdummy < ir)) {
+          (!dataAdded || irdummy.orbit < ir.orbit)) {
         // even if requested, we skip empty HBF filling only if
         // 1) we are not at the new TF start
-        // 2) method was called from addData and the current IR is the one for which it was called (then it is not empty HB/trigger!)
+        // 2) method was called from addData and the current IR orbit is the one for which it was called (then it is not empty HB/trigger!)
         continue;
       }
       if (writer->mVerbosity > 2) {

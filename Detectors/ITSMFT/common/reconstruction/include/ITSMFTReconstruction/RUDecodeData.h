@@ -81,16 +81,19 @@ int RUDecodeData::decodeROF(const Mapping& mp)
     auto chIdGetter = [this, &mp, cabHW](int cid) {
       return mp.getGlobalChipID(cid, cabHW, *this->ruInfo);
     };
-    while (AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
+    int ret = 0;
+    while ((ret = AlpideCoder::decodeChip(*chipData, cableData[icab], chIdGetter)) || chipData->isErrorSet()) { // we register only chips with hits or errors flags set
       setROFInfo(chipData, cableLinkPtr[icab]);
-      ntot += chipData->getData().size();
 #ifdef ALPIDE_DECODING_STAT
       fillChipStatistics(icab, chipData);
 #endif
-      if (++nChipsFired < chipsData.size()) { // fetch next free chip
-        chipData = &chipsData[nChipsFired];
-      } else {
-        break; // last chip decoded
+      if (ret >= 0 && !chipData->isErrorSet()) { // make sure there was no error
+        ntot += chipData->getData().size();
+        if (++nChipsFired < chipsData.size()) { // fetch next free chip
+          chipData = &chipsData[nChipsFired];
+        } else {
+          break; // last chip decoded
+        }
       }
     }
   }

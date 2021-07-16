@@ -60,7 +60,8 @@ struct FITDigitWriterSpecHelper {
     auto dplName = T::sChannelNameDPL;
     auto dplLabel = std::string{dplName};
     std::for_each(dplLabel.begin(), dplLabel.end(), [](char& c) { c = ::tolower(c); });
-    auto branchName = std::string{detName + dplName};
+    //auto branchName = std::string{detName + dplName};
+    auto branchName = std::string{T::sDigitBranchName};
     auto optionStr = std::string{detNameLower + "-" + dplName + "-branch-name"};
     //LOG(INFO)<<"Branch: "<<dplLabel.c_str()<< "|" <<detName<<" | "<<T::sChannelNameDPL<<" | "<<branchName<<" | "<<optionStr<<" | "<<(detName+dplName);
     return BranchDefinition<std::vector<T>>{InputSpec{dplLabel.c_str(), dataOrigin, T::sChannelNameDPL}, branchName.c_str(), optionStr.c_str(), std::forward<Args>(args)...};

@@ -36,6 +36,8 @@
 
 #pragma link C++ class o2::dataformats::MatchInfoTOF + ;
 #pragma link C++ class std::vector < o2::dataformats::MatchInfoTOF> + ;
+#pragma link C++ class o2::dataformats::MatchInfoTOFReco + ;
+#pragma link C++ class std::vector < o2::dataformats::MatchInfoTOFReco> + ;
 
 #pragma link C++ class o2::dataformats::TrackTPCTOF + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCTOF> + ;

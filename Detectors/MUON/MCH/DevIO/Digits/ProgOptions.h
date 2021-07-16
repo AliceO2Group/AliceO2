@@ -9,9 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_MCH_DEVIO_DIGITS_PROG_OPTIONS_H
+#define O2_MCH_DEVIO_DIGITS_PROG_OPTIONS_H
 
-/* Command line option names that are used by at least two 
+/* Command line option names that are used by at least two
  * executables (workflow or not).
  */
 
@@ -26,3 +27,5 @@ constexpr const char* OPTHELP_PRINT_DIGITS = "print digits";
 
 constexpr const char* OPTNAME_PRINT_TFS = "print-tfs";
 constexpr const char* OPTHELP_PRINT_TFS = "print number of digits and rofs per tf";
+
+#endif

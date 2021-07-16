@@ -186,11 +186,11 @@ class PreClusterFinderTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getPreClusterFinderSpec()
+o2::framework::DataProcessorSpec getPreClusterFinderSpec(const char* name)
 {
   std::string helpstr = "[off/error/fatal] check that all digits are included in pre-clusters";
   return DataProcessorSpec{
-    "PreClusterFinder",
+    name,
     Inputs{InputSpec{"digitrofs", "MCH", "DIGITROFS", 0, Lifetime::Timeframe},
            InputSpec{"digits", "MCH", "DIGITS", 0, Lifetime::Timeframe}},
     Outputs{OutputSpec{{"preclusterrofs"}, "MCH", "PRECLUSTERROFS", 0, Lifetime::Timeframe},

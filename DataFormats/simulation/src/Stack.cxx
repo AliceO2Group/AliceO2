@@ -17,7 +17,7 @@
 #include "DetectorsBase/Detector.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTrack.h"
-#include "SimConfig/SimCutParams.h"
+#include "SimConfig/SimParams.h"
 
 #include "FairDetector.h" // for FairDetector
 #include "FairLogger.h"   // for FairLogger

@@ -25,6 +25,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"dump-blocks-reader", VariantType::Bool, false, {"enable dumping of event blocks at reader side"}},
     {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
     {"not-check-trigger", VariantType::Bool, false, {"avoid to check trigger condition during conversion"}},
+    {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -47,10 +48,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     LOG(INFO) << "Not checking trigger condition during conversion";
     checkTrigger = false;
   }
+  auto askSTFDist = true;
+  auto notaskSTFDist = configcontext.options().get<bool>("ignore-dist-stf");
+  if (notaskSTFDist) {
+    LOG(INFO) << "Not subscribing to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)";
+    askSTFDist = false;
+  }
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   WorkflowSpec specs;
-  specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(o2::zdc::RawReaderZDC{dumpReader}, checkTrigger));
+  specs.emplace_back(o2::zdc::getZDCDataReaderDPLSpec(o2::zdc::RawReaderZDC{dumpReader}, checkTrigger, askSTFDist));
   //  if (useProcess) {
   //    specs.emplace_back(o2::zdc::getZDCDataProcessDPLSpec(dumpProcessor));
   //  }

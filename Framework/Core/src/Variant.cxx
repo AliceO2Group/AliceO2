@@ -56,6 +56,18 @@ std::ostream& operator<<(std::ostream& oss, Variant const& val)
     case VariantType::Int:
       oss << val.get<int>();
       break;
+    case VariantType::UInt8:
+      oss << val.get<uint8_t>();
+      break;
+    case VariantType::UInt16:
+      oss << val.get<uint16_t>();
+      break;
+    case VariantType::UInt32:
+      oss << val.get<uint32_t>();
+      break;
+    case VariantType::UInt64:
+      oss << val.get<uint64_t>();
+      break;
     case VariantType::Int64:
       oss << val.get<int64_t>();
       break;
@@ -146,7 +158,7 @@ Variant::Variant(const Variant& other) : mType(other.mType)
   }
 }
 
-Variant::Variant(Variant&& other) : mType(other.mType)
+Variant::Variant(Variant&& other) noexcept : mType(other.mType)
 {
   mStore = other.mStore;
   mSize = other.mSize;
@@ -222,7 +234,7 @@ Variant& Variant::operator=(const Variant& other)
   }
 }
 
-Variant& Variant::operator=(Variant&& other)
+Variant& Variant::operator=(Variant&& other) noexcept
 {
   mSize = other.mSize;
   mType = other.mType;

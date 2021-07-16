@@ -26,6 +26,7 @@ o2_add_library(
           src/ClusterNativeHelper.cxx
           src/WorkflowHelper.cxx
           src/CompressedClusters.cxx
+          src/TrackCuts.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                         O2::SimulationDataFormat
                         O2::CommonDataFormat
@@ -49,7 +50,8 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/CTF.h
           include/DataFormatsTPC/IDC.h
           include/DataFormatsTPC/ZeroSuppression.h
-          include/DataFormatsTPC/ZeroSuppressionLinkBased.h)
+          include/DataFormatsTPC/ZeroSuppressionLinkBased.h
+          include/DataFormatsTPC/TrackCuts.h)
 
 o2_add_test(
   ClusterNative
@@ -68,6 +70,13 @@ o2_add_test(
 o2_add_test(
   CompressedClusters
   SOURCES test/testCompressedClusters.cxx
+  COMPONENT_NAME DataFormats-TPC
+  PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
+  LABELS tpc dataformats)
+
+o2_add_test(
+  TrackCuts
+  SOURCES test/test_TrackCuts.cxx
   COMPONENT_NAME DataFormats-TPC
   PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
   LABELS tpc dataformats)

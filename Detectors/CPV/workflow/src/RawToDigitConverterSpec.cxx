@@ -247,7 +247,7 @@ o2::framework::DataProcessorSpec o2::cpv::reco_workflow::getRawToDigitConverterS
                                           outputs,
                                           o2::framework::adaptFromTask<o2::cpv::reco_workflow::RawToDigitConverterSpec>(),
                                           o2::framework::Options{
-                                            {"pedestal", o2::framework::VariantType::Bool, false, {"If true then do not subtract pedestals from digits"}},
+                                            {"pedestal", o2::framework::VariantType::Bool, false, {"do not subtract pedestals from digits"}},
                                             {"ccdb-url", o2::framework::VariantType::String, "http://ccdb-test.cern.ch:8080", {"CCDB Url"}},
                                           }};
 }

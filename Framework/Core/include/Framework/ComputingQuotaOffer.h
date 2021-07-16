@@ -51,7 +51,8 @@ struct ComputingQuotaOffer {
   int user = -1;
   /// The score for the given offer
   OfferScore score = OfferScore::Unneeded;
-  /// Whether or not the offer is valid
+  /// Whether or not the offer is valid, invalid offers can
+  /// be reused whe we get some more quota from the system.
   bool valid = false;
 };
 
@@ -71,7 +72,7 @@ using ComputingQuotaRequest = std::function<OfferScore(ComputingQuotaOffer const
 
 /// A consumer is a function which updates a given function removing the
 /// amount of resources which are considered as consumed.
-using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&)>;
+using ComputingQuotaConsumer = std::function<void(int id, std::array<ComputingQuotaOffer, 16>&, std::function<void(ComputingQuotaOffer const&)>)>;
 
 } // namespace o2::framework
 

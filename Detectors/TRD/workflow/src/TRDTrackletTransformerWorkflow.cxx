@@ -12,6 +12,7 @@
 #include "TRDWorkflow/TRDTrackletTransformerSpec.h"
 #include "TRDWorkflowIO/TRDCalibratedTrackletWriterSpec.h"
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "Framework/CompletionPolicy.h"
@@ -20,31 +21,37 @@ using namespace o2::framework;
 
 void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
-  workflowOptions.push_back(ConfigParamSpec{
-    "root-in", VariantType::Int, 1, {"enable (1) or disable (0) input from ROOT file"}});
-  workflowOptions.push_back(ConfigParamSpec{
-    "root-out", VariantType::Int, 1, {"enable (1) or disable (0) output to ROOT file"}});
-  workflowOptions.push_back(
-    ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
+  std::vector<o2::framework::ConfigParamSpec> options{
+    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+
+  std::swap(workflowOptions, options);
 }
 
 #include "Framework/runDataProcessing.h"
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
-  int rootIn = configcontext.options().get<int>("root-in");
-  int rootOut = configcontext.options().get<int>("root-out");
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+
+  auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
 
   WorkflowSpec spec;
 
-  if (rootIn) {
+  if (!configcontext.options().get<bool>("disable-root-input")) {
+    // cannot use InputHelper here, since we have to create the calibrated tracklets first
     spec.emplace_back(o2::trd::getTRDTrackletReaderSpec(false, false));
   }
 
-  spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec());
+  if (trigRecFilterActive) {
+    o2::globaltracking::InputHelper::addInputSpecsIRFramesITS(configcontext, spec);
+  }
 
-  if (rootOut) {
+  spec.emplace_back(o2::trd::getTRDTrackletTransformerSpec(trigRecFilterActive));
+
+  if (!configcontext.options().get<bool>("disable-root-output")) {
     spec.emplace_back(o2::trd::getTRDCalibratedTrackletWriterSpec());
   }
 

@@ -133,10 +133,10 @@ class ClusterFinderOriginalTask
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getClusterFinderOriginalSpec()
+o2::framework::DataProcessorSpec getClusterFinderOriginalSpec(const char* name)
 {
   return DataProcessorSpec{
-    "ClusterFinderOriginal",
+    name,
     Inputs{InputSpec{"preclusterrofs", "MCH", "PRECLUSTERROFS", 0, Lifetime::Timeframe},
            InputSpec{"preclusters", "MCH", "PRECLUSTERS", 0, Lifetime::Timeframe},
            InputSpec{"digits", "MCH", "PRECLUSTERDIGITS", 0, Lifetime::Timeframe}},

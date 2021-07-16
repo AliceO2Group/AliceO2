@@ -50,6 +50,7 @@ class ComputingQuotaEvaluator
   std::array<ComputingQuotaInfo, MAX_INFLIGHT_OFFERS> mInfos;
   ServiceRegistry& mRegistry;
   uv_loop_t* mLoop;
+  uint64_t mTotalDisposedSharedMemory = 0;
 };
 
 } // namespace o2::framework

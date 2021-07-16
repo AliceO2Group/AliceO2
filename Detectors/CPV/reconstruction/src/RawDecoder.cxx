@@ -67,7 +67,8 @@ RawErrorType_t RawDecoder::readChannels()
       nDigitsAddedFromLastHeader = 0;
       if (currentOrbit != header.orbit()) { //bad cpvheader
         LOG(ERROR) << "RawDecoder::readChannels() : "
-                   << "currentOrbit != header.orbit()";
+                   << "currentOrbit(=" << currentOrbit
+                   << ") != header.orbit()(=" << header.orbit() << ")";
         mErrors.emplace_back(5, 0, 0, 0, kCPVHEADER_INVALID); //5 is non-existing link with general errors
         skipUntilNextHeader = true;
       }

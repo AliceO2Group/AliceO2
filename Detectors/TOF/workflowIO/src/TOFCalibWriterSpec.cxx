@@ -41,11 +41,11 @@ DataProcessorSpec getTOFCalibWriterSpec(const char* outdef, bool toftpc)
   auto logger = [](CalibInfosType const& indata) {
     LOG(INFO) << "RECEIVED MATCHED SIZE " << indata.size();
   };
-  o2::header::DataDescription ddCalib{"CALIBDATA"}, ddCalib_tpc{"CALIBDATA_TPC"};
+  o2::header::DataDescription ddCalib{"CALIBDATA"};
   return MakeRootTreeWriterSpec("TOFCalibWriter",
                                 outdef,
                                 "calibTOF",
-                                BranchDefinition<CalibInfosType>{InputSpec{"input", o2::header::gDataOriginTOF, toftpc ? ddCalib_tpc : ddCalib, 0},
+                                BranchDefinition<CalibInfosType>{InputSpec{"input", o2::header::gDataOriginTOF, ddCalib, 0},
                                                                  "TOFCalibInfo",
                                                                  "calibinfo-branch-name",
                                                                  1,

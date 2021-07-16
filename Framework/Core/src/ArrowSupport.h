@@ -19,8 +19,6 @@ namespace o2::framework
 
 /// A few ServiceSpecs data sending backends
 struct ArrowSupport {
-  // Rate limiting service
-  static ServiceSpec rateLimitingSpec();
   // Create spec for backend used to send Arrow messages
   static ServiceSpec arrowBackendSpec();
 };

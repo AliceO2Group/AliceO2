@@ -119,6 +119,7 @@ class RawReaderMemory
   bool mPayloadInitialized = false;       ///< Payload for current page initialized
   uint32_t mCurrentHBFOrbit = 0;          ///< Current orbit of HBF
   bool mStopBitWasNotFound;               ///< True if StopBit was not found but HBF orbit changed
+  bool mIsJustInited = false;             ///< True if init() was just called
 
   ClassDefNV(RawReaderMemory, 2);
 };

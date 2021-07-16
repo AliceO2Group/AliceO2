@@ -50,6 +50,18 @@ void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
       case VariantType::Int:
         options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<int>()), help);
         break;
+      case VariantType::UInt8:
+        options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<uint8_t>()), help);
+        break;
+      case VariantType::UInt16:
+        options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<uint16_t>()), help);
+        break;
+      case VariantType::UInt32:
+        options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<uint32_t>()), help);
+        break;
+      case VariantType::UInt64:
+        options = options(name, bpo::value<int>()->default_value(spec.defaultValue.get<uint64_t>()), help);
+        break;
       case VariantType::Int64:
         options = options(name, bpo::value<int64_t>()->default_value(spec.defaultValue.get<int64_t>()), help);
         break;

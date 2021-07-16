@@ -74,6 +74,15 @@ class CCDBManagerInstance
   template <typename T>
   T* getForTimeStamp(std::string const& path, long timestamp);
 
+  /// retrieve an object of type T from CCDB as stored under path, timestamp and metaData
+  template <typename T>
+  T* getSpecific(std::string const& path, long timestamp = -1, std::map<std::string, std::string> metaData = std::map<std::string, std::string>())
+  {
+    // TODO: add some error info/handling when failing
+    mMetaData = metaData;
+    return getForTimeStamp<T>(path, timestamp);
+  }
+
   /// retrieve an object of type T from CCDB as stored under path; will use the timestamp member
   template <typename T>
   T* get(std::string const& path)
@@ -167,6 +176,7 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
     ptr = reinterpret_cast<T*>(cached.objPtr.get());
   }
   mHeaders.clear();
+  mMetaData.clear();
   return ptr;
 }
 

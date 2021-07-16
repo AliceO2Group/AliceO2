@@ -28,7 +28,8 @@ namespace mch
 namespace raw
 {
 
-o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:MCH/RAWDATA");
+o2::framework::DataProcessorSpec getDecodingSpec(std::string inputSpec = "TF:MCH/RAWDATA",
+                                                 bool askDISTSTF = false);
 
 } // end namespace raw
 } // end namespace mch

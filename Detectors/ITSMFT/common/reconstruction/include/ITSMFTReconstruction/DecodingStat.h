@@ -55,7 +55,7 @@ struct ChipStat {
     "Data truncated after LongData",                // TruncatedLondData
     "LongData pattern has highest bit set",         // WrongDataLongPattern
     "Region is not followed by Short or Long data", // NoDataFound
-    "Unknow word"                                   // UnknownWord
+    "Unknown word"                                  // UnknownWord
   };
 
   uint16_t id = -1;

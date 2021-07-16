@@ -137,6 +137,19 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   mRec->PrepareEvent();
   mRec->SetupGPUProcessor(mTracker, true);
 
+  // check trigger record filter setting
+  bool foundFilteredTrigger = false;
+  for (int iTrig = 0; iTrig < mChainTracking->mIOPtrs.nTRDTriggerRecords; ++iTrig) {
+    if (mChainTracking->mIOPtrs.trdTrigRecMask[iTrig] == 0) {
+      foundFilteredTrigger = true;
+    }
+  }
+  if (!foundFilteredTrigger && mTrigRecFilter) {
+    LOG(WARNING) << "Trigger filtering requested, but no TRD trigger is actually masked. Can be that none needed to be masked or that the setting was not active for the tracklet transformer";
+  } else if (foundFilteredTrigger && !mTrigRecFilter) {
+    LOG(ERROR) << "Trigger filtering is not requested, but masked TRD triggers are found. Rerun tracklet transformer without trigger filtering";
+  }
+
   // load input tracks
   LOG(DEBUG) << "Start loading input seeds into TRD tracker";
   int nTracksLoadedITSTPC = 0;
@@ -144,13 +157,17 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   // load ITS-TPC matched tracks
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nTracksTPCITSO2; ++iTrk) {
     const auto& trkITSTPC = mChainTracking->mIOPtrs.tracksTPCITSO2[iTrk];
-    GPUTRDTrack trkLoad(trkITSTPC, mTPCVdrift);
+    GPUTRDTracker::HelperTrackAttributes trkAttribs;
+    trkAttribs.mTime = trkITSTPC.getTimeMUS().getTimeStamp();
+    trkAttribs.mTimeAddMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC;
+    trkAttribs.mTimeSubMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC;
+    GPUTRDTrack trkLoad(trkITSTPC);
     auto trackGID = GTrackID(iTrk, GTrackID::ITSTPC);
-    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
+    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw(), true, &trkAttribs)) {
       continue;
     }
     ++nTracksLoadedITSTPC;
-    LOGF(DEBUG, "Loaded ITS-TPC track %i with time %f", nTracksLoadedITSTPC, trkLoad.getTime());
+    LOGF(DEBUG, "Loaded ITS-TPC track %i with time %f", nTracksLoadedITSTPC, trkAttribs.mTime);
   }
   // load TPC-only tracks
   for (int iTrk = 0; iTrk < mChainTracking->mIOPtrs.nOutputTracksTPCO2; ++iTrk) {
@@ -159,13 +176,22 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       continue;
     }
     const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
-    GPUTRDTrack trkLoad(trkTpc, mTPCTBinMUS, mTPCVdrift, iTrk);
+    GPUTRDTracker::HelperTrackAttributes trkAttribs;
+    trkAttribs.mTime = trkTpc.getTime0() * mTPCTBinMUS;
+    trkAttribs.mTimeAddMax = trkTpc.getDeltaTFwd() * mTPCTBinMUS;
+    trkAttribs.mTimeSubMax = trkTpc.getDeltaTBwd() * mTPCTBinMUS;
+    if (trkTpc.hasASideClustersOnly()) {
+      trkAttribs.mSide = -1;
+    } else if (trkTpc.hasCSideClustersOnly()) {
+      trkAttribs.mSide = 1;
+    }
+    GPUTRDTrack trkLoad(trkTpc);
     auto trackGID = GTrackID(iTrk, GTrackID::TPC);
-    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw())) {
+    if (mTracker->LoadTrack(trkLoad, trackGID.getRaw(), true, &trkAttribs)) {
       continue;
     }
     ++nTracksLoadedTPC;
-    LOGF(DEBUG, "Loaded TPC track %i with time %f", nTracksLoadedTPC, trkLoad.getTime());
+    LOGF(DEBUG, "Loaded TPC track %i with time %f", nTracksLoadedTPC, trkAttribs.mTime);
   }
   LOGF(INFO, "%i tracks are loaded into the TRD tracker. Out of those %i ITS-TPC tracks and %i TPC tracks", nTracksLoadedITSTPC + nTracksLoadedTPC, nTracksLoadedITSTPC, nTracksLoadedTPC);
 
@@ -226,7 +252,7 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive)
 {
   std::vector<OutputSpec> outputs;
 
@@ -247,6 +273,9 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src)
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCHTRD_TPC", 0, Lifetime::Timeframe);
     outputs.emplace_back(o2::header::gDataOriginTRD, "TRKTRG_TPC", 0, Lifetime::Timeframe);
+    if (trigRecFilterActive) {
+      LOG(ERROR) << "Matching to TPC-only tracks requested, but IR without ITS contribution are filtered out. This does not lead to a crash, but it deteriorates the matching efficiency.";
+    }
   }
 
   std::string processorName = o2::utils::Str::concat_string("trd-globaltracking", GTrackID::getSourcesNames(src));
@@ -256,7 +285,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src)
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, src)},
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, src, trigRecFilterActive)},
     Options{}};
 }
 
