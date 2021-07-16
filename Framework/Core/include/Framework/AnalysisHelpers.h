@@ -371,7 +371,7 @@ struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
   template <typename... Cs, typename Key, typename T1, typename... Ts>
   auto build(framework::pack<Cs...>, Key const& key, std::tuple<T1, Ts...> tables)
   {
-    this->table = std::make_shared<T>(IP::indexBuilder(typename aod::MetadataTrait<T>::metadata::tableLabel(), framework::pack<Cs...>{}, key, tables));
+    this->table = std::make_shared<T>(IP::indexBuilder(aod::MetadataTrait<T>::metadata::tableLabel(), framework::pack<Cs...>{}, key, tables));
     return (this->table != nullptr);
   }
 };
