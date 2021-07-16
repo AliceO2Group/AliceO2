@@ -47,6 +47,7 @@ enum class SplitLevel {
 struct benchmarkOpts {
   benchmarkOpts() = default;
 
+  int deviceId = 0;
   float chunkReservedGB = 1.f;
   int nRegions = 2;
   float freeMemoryFractionToAllocate = 0.95f;
