@@ -94,10 +94,10 @@ struct Alice3SingleParticle {
     for (const auto& track : tracks) {
       const auto mcParticle = track.mcParticle();
       if (!IsStable) {
-        if (mcParticle.mother0() < 0) {
+        if (!mcParticle.has_mother0()) {
           continue;
         }
-        auto mother = mcParticles.iteratorAt(mcParticle.mother0());
+        auto mother = mcParticle.mother0_as<aod::McParticles>();
         const auto ParticleIsInteresting = std::find(ParticlesOfInterest.begin(), ParticlesOfInterest.end(), mother.globalIndex()) != ParticlesOfInterest.end();
         if (!ParticleIsInteresting) {
           continue;
@@ -111,13 +111,13 @@ struct Alice3SingleParticle {
         }
         histos.fill(HIST("trackPt"), track.pt() * charge);
         histos.fill(HIST("trackEta"), track.eta());
-        if (mcParticle.mother0() < 0) {
+        if (!mcParticle.has_mother0()) {
           if (doPrint) {
             LOG(INFO) << "Track " << track.globalIndex() << " is a " << mcParticle.pdgCode();
           }
           continue;
         }
-        auto mother = mcParticles.iteratorAt(mcParticle.mother0());
+        auto mother = mcParticle.mother0_as<aod::McParticles>();
         if (MC::isPhysicalPrimary(mcParticles, mcParticle)) {
           histos.get<TH1>(HIST("primaries"))->Fill(Form("%i", mother.pdgCode()), 1.f);
         } else {
