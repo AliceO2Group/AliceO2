@@ -3154,11 +3154,6 @@
               "edges": [
                 {
                   "node": {
-                    "path": "Analysis/Core/include/AnalysisCore/HFConfigurables.h"
-                  }
-                },
-                {
-                  "node": {
                     "path": "Analysis/DataModel/include/AnalysisDataModel/HFCandidateSelectionTables.h"
                   }
                 },
