@@ -13,7 +13,11 @@
 
 #include <memory>
 
-class FairMQMessage;
+namespace fair::mq
+{
+class Message;
+}
+using FairMQMessage = fair::mq::Message;
 
 namespace o2
 {

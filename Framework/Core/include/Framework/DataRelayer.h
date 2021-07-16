@@ -24,7 +24,11 @@
 #include <mutex>
 #include <vector>
 
-class FairMQMessage;
+namespace fair::mq
+{
+class Message;
+}
+using FairMQMessage = fair::mq::Message;
 
 namespace o2::monitoring
 {

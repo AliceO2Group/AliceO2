@@ -30,7 +30,11 @@
 #include <unordered_map>
 #include <vector>
 
-class FairMQDevice;
+namespace fair::mq
+{
+class Device;
+}
+using FairMQDevice = fair::mq::Device;
 
 namespace o2
 {
@@ -152,7 +156,7 @@ class MessageContext
   class AlignedMemoryResource : public pmr::FairMQMemoryResource
   {
    public:
-    AlignedMemoryResource(fair::mq::FairMQMemoryResource* other)
+    AlignedMemoryResource(fair::mq::MemoryResource* other)
       : mUpstream(other)
     {
     }
@@ -203,7 +207,7 @@ class MessageContext
     }
 
    private:
-    fair::mq::FairMQMemoryResource* mUpstream = nullptr;
+    fair::mq::MemoryResource* mUpstream = nullptr;
   };
 
   /// ContainerRefObject handles a message object holding an instance of type T

@@ -13,7 +13,11 @@
 
 #include "Framework/ServiceHandle.h"
 
-class FairMQDevice;
+namespace fair::mq
+{
+class Device;
+}
+using FairMQDevice = fair::mq::Device;
 
 namespace o2::framework
 {

@@ -32,7 +32,11 @@
 #include <memory>
 #include <type_traits>
 
-class FairMQMessage;
+namespace fair::mq
+{
+class Message;
+}
+using FairMQMessage = fair::mq::Message;
 
 namespace o2
 {

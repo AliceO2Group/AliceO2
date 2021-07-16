@@ -11,8 +11,13 @@
 #ifndef O2_FRAMEWORK_DATAPROCESSOR_H_
 #define O2_FRAMEWORK_DATAPROCESSOR_H_
 
-class FairMQDevice;
-class FairMQParts;
+namespace fair::mq
+{
+class Device;
+class Parts;
+}
+using FairMQDevice = fair::mq::Device;
+using FairMQParts = fair::mq::Parts;
 
 namespace o2::framework
 {

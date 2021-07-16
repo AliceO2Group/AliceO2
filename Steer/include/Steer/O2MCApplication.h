@@ -23,8 +23,13 @@
 #include <FairRootManager.h>
 #include <FairDetector.h>
 
-class FairMQParts;
-class FairMQChannel;
+namespace fair::mq
+{
+class Parts;
+class Channel;
+}
+using FairMQParts = fair::mq::Parts;
+using FairMQChannel = fair::mq::Channel;
 
 namespace o2
 {

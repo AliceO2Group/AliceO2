@@ -13,9 +13,18 @@
 
 #include <memory>
 
-class FairMQDevice;
-class FairMQMessage;
-class FairMQTransportFactory;
+namespace fair
+{
+namespace mq
+{
+class Device;
+class Message;
+class TransportFactory;
+}
+}
+using FairMQDevice = fair::mq::Device;
+using FairMQMessage = fair::mq::Message;
+using FairMQTransportFactory = fair::mq::TransportFactory;
 
 namespace o2
 {

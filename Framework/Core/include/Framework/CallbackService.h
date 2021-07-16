@@ -15,7 +15,11 @@
 #include "Framework/ServiceHandle.h"
 #include <tuple>
 
-class FairMQRegionInfo;
+namespace fair::mq
+{
+class RegionInfo;
+}
+using FairMQRegionInfo = fair::mq::RegionInfo;
 
 namespace o2
 {

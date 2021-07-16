@@ -48,7 +48,7 @@ namespace o2
 namespace pmr
 {
 
-using FairMQMemoryResource = fair::mq::FairMQMemoryResource;
+using FairMQMemoryResource = fair::mq::MemoryResource;
 using ChannelResource = fair::mq::ChannelResource;
 using namespace fair::mq::pmr;
 

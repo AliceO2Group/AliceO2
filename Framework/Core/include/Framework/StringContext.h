@@ -16,7 +16,14 @@
 #include <string>
 #include <memory>
 
-class FairMQMessage;
+namespace fair
+{
+namespace mq
+{
+class Message;
+}
+}
+using FairMQMessage = fair::mq::Message;
 
 namespace o2::framework
 {

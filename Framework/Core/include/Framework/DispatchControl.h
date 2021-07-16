@@ -15,7 +15,11 @@
 #include <functional>
 #include <string>
 
-class FairMQParts;
+namespace fair::mq
+{
+class Parts;
+}
+using FairMQParts = fair::mq::Parts;
 
 namespace o2
 {

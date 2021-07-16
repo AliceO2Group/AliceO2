@@ -41,8 +41,13 @@
 #include <cstddef>
 
 // Do not change this for a full inclusion of FairMQDevice.
-class FairMQDevice;
-class FairMQMessage;
+namespace fair::mq
+{
+class Device;
+class Message;
+}
+using FairMQDevice = fair::mq::Device;
+using FairMQMessage = fair::mq::Message;
 
 namespace arrow
 {

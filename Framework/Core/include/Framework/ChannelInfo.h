@@ -14,7 +14,11 @@
 #include <string>
 #include <FairMQParts.h>
 
-class FairMQChannel;
+namespace fair::mq
+{
+class Channel;
+}
+using FairMQChannel = fair::mq::Channel;
 
 namespace o2::framework
 {

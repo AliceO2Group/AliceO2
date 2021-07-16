@@ -25,7 +25,11 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/Task.h"
 
-class FairMQDevice;
+namespace fair::mq
+{
+class Device;
+}
+using FairMQDevice = fair::mq::Device;
 
 namespace o2::monitoring
 {
