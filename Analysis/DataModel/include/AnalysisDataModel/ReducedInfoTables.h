@@ -209,7 +209,6 @@ DECLARE_SOA_COLUMN(PIDBit, pidbit, uint8_t); //!
 
 // bit information for particle species.
 DECLARE_SOA_TABLE(V0Bits, "AOD", "V0BITS", //!
-                  //o2::soa::Index<>, v0bits::PIDBit);
                   v0bits::PIDBit);
 
 // iterators

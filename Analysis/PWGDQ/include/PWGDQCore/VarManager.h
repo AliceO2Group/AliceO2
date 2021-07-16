@@ -490,29 +490,10 @@ void VarManager::FillTrack(T const& track, float* values)
     values[kPhi] = track.phi();
     values[kCharge] = track.sign();
 
-    //if constexpr ((fillMap & Track) > 0 ) {
-    //    //printf("track.filteringFlags() = %d\n",track.filteringFlags());
-    //    //printf("track.pidbit() = %d\n",track.pidbit());
-    //    values[kIsLegFromGamma]      = track.pidbit() & (uint64_t(1) << 0);
-    //    values[kIsLegFromK0S]        = track.pidbit() & (uint64_t(1) << 1);
-    //    values[kIsLegFromLambda]     = track.pidbit() & (uint64_t(1) << 2);
-    //    values[kIsLegFromAntiLambda] = track.pidbit() & (uint64_t(1) << 3);
-    //    values[kIsLegFromOmega]      = track.pidbit() & (uint64_t(1) << 4);
-    //}
-    //if constexpr ((fillMap & ReducedTrack) > 0 ) {
-    //  //printf("track.filteringFlags() = %d\n",track.filteringFlags());
-    //  //values[kIsLegFromGamma]      = track.filteringFlags() & (uint64_t(1) << 2);
-    //  //values[kIsLegFromK0S]        = track.filteringFlags() & (uint64_t(1) << 3);
-    //  //values[kIsLegFromLambda]     = track.filteringFlags() & (uint64_t(1) << 4);
-    //  //values[kIsLegFromAntiLambda] = track.filteringFlags() & (uint64_t(1) << 5);
-    //  //values[kIsLegFromOmega]      = track.filteringFlags() & (uint64_t(1) << 6);
-    //}
-
     if constexpr ((fillMap & ReducedTrack) > 0 && !((fillMap & Pair) > 0)) {
       values[kIsGlobalTrack] = track.filteringFlags() & (uint64_t(1) << 0);
       values[kIsGlobalTrackSDD] = track.filteringFlags() & (uint64_t(1) << 1);
 
-      //printf("track.filteringFlags() = %d\n",track.filteringFlags());
       values[kIsLegFromGamma] = bool(track.filteringFlags() & (uint64_t(1) << 2));
       values[kIsLegFromK0S] = bool(track.filteringFlags() & (uint64_t(1) << 3));
       values[kIsLegFromLambda] = bool(track.filteringFlags() & (uint64_t(1) << 4));

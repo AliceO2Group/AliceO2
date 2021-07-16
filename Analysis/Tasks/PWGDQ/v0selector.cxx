@@ -72,19 +72,6 @@ DECLARE_SOA_TABLE(ReducedV0s, "AOD", "REDUCEDV0", //!
 // iterators
 using ReducedV0 = ReducedV0s::iterator;
 
-//namespace v0bits
-//{
-//DECLARE_SOA_COLUMN(PIDBit, pidbit, uint8_t); //!
-//} // namespace v0bits
-//
-//// basic track information
-//DECLARE_SOA_TABLE(V0Bits, "AOD", "V0BITS", //!
-//                  //o2::soa::Index<>, v0bits::PIDBit);
-//                  v0bits::PIDBit);
-
-//// iterators
-//using V0Bit = V0Bits::iterator;
-
 } // namespace o2::aod
 
 struct v0selector {
@@ -684,7 +671,6 @@ struct trackPIDQA {
 
   void process(soa::Join<aod::Collisions, aod::EvSels>::iterator const& collision, soa::Join<aod::V0Bits, FullTracksExt> const& tracks)
   {
-    //printf("begining of process\n");
     registry.fill(HIST("hEventCounter"), 1.0); //all
 
     if (!collision.alias()[kINT7]) {
