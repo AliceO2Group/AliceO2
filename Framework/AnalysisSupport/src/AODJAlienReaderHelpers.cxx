@@ -289,6 +289,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         // add branches to read
         // fill the table
         auto colnames = getColumnNames(dh);
+        t2t.setLabel(tr->GetName());
         if (colnames.size() == 0) {
           totalSizeCompressed += tr->GetZipBytes();
           totalSizeUncompressed += tr->GetTotBytes();

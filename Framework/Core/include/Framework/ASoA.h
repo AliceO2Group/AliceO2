@@ -833,7 +833,7 @@ template <typename T>
 constexpr bool is_type_with_policy_v<T, std::void_t<decltype(sizeof(typename T::policy_t))>> = true;
 
 struct ArrowHelpers {
-  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables, std::vector<const char*> names = {});
+  static std::shared_ptr<arrow::Table> joinTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
   static std::shared_ptr<arrow::Table> concatTables(std::vector<std::shared_ptr<arrow::Table>>&& tables);
 };
 
@@ -1743,11 +1743,6 @@ constexpr auto is_binding_compatible_v()
 #define DECLARE_SOA_INDEX_TABLE_EXCLUSIVE_USER(_Name_, _Key_, _Description_, ...) \
   DECLARE_SOA_INDEX_TABLE_FULL(_Name_, _Key_, "AOD", _Description_, true, __VA_ARGS__)
 
-namespace o2::aod
-{
-DECLARE_SOA_STORE();
-}
-
 namespace o2::soa
 {
 template <typename... Ts>
@@ -1759,17 +1754,6 @@ struct Join : JoinBase<Ts...> {
 
   using base = JoinBase<Ts...>;
   using originals = originals_pack_t<Ts...>;
-
-  template <typename... Os>
-  static auto originalNamesImpl(framework::pack<Os...>)
-  {
-    return std::vector{o2::aod::MetadataTrait<Os>::metadata::tableLabel()...};
-  }
-
-  static auto originalNames()
-  {
-    return originalNamesImpl(originals{});
-  }
 
   template <typename... TA>
   void bindExternalIndices(TA*... externals);
@@ -1784,7 +1768,7 @@ struct Join : JoinBase<Ts...> {
 
 template <typename... Ts>
 Join<Ts...>::Join(std::vector<std::shared_ptr<arrow::Table>>&& tables, uint64_t offset)
-  : JoinBase<Ts...>{ArrowHelpers::joinTables(std::move(tables), originalNames()), offset}
+  : JoinBase<Ts...>{ArrowHelpers::joinTables(std::move(tables)), offset}
 {
 }
 

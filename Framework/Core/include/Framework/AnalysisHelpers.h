@@ -61,6 +61,11 @@ struct WritingCursor<soa::Table<PC...>> {
     return true;
   }
 
+  void setLabel(const char* label)
+  {
+    mBuilder->setLabel(label);
+  }
+
   /// reserve @a size rows when filling, so that we do not
   /// spend time reallocating the buffers.
   void reserve(int64_t size)
@@ -206,7 +211,7 @@ struct Spawns : TableTransform<typename aod::MetadataTrait<framework::pack_head_
 struct IndexExclusive {
   /// Generic builder for in index table
   template <typename... Cs, typename Key, typename T1, typename... T>
-  static auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
   {
     static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
     using tables_t = framework::pack<T...>;
@@ -264,6 +269,7 @@ struct IndexExclusive {
         cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
       }
     }
+    builder.setLabel(label);
     return builder.finalize();
   }
 };
@@ -271,7 +277,7 @@ struct IndexExclusive {
 /// to T1
 struct IndexSparse {
   template <typename... Cs, typename Key, typename T1, typename... T>
-  static auto indexBuilder(framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
+  static auto indexBuilder(const char* label, framework::pack<Cs...>, Key const&, std::tuple<T1, T...> tables)
   {
     static_assert(sizeof...(Cs) == sizeof...(T) + 1, "Number of columns does not coincide with number of supplied tables");
     using tables_t = framework::pack<T...>;
@@ -329,6 +335,7 @@ struct IndexSparse {
 
       cursor(0, row.globalIndex(), values[framework::has_type_at_v<T>(tables_t{})]...);
     }
+    builder.setLabel(label);
     return builder.finalize();
   }
 };
@@ -364,7 +371,7 @@ struct Builds : TableTransform<typename aod::MetadataTrait<T>::metadata> {
   template <typename... Cs, typename Key, typename T1, typename... Ts>
   auto build(framework::pack<Cs...>, Key const& key, std::tuple<T1, Ts...> tables)
   {
-    this->table = std::make_shared<T>(IP::indexBuilder(framework::pack<Cs...>{}, key, tables));
+    this->table = std::make_shared<T>(IP::indexBuilder(typename aod::MetadataTrait<T>::metadata::tableLabel(), framework::pack<Cs...>{}, key, tables));
     return (this->table != nullptr);
   }
 };
