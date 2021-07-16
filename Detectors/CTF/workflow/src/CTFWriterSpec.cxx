@@ -43,6 +43,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <filesystem>
+#include <ctime>
 
 using namespace o2::framework;
 
@@ -155,6 +156,8 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
     }
     if (!mHeaders[det]) { // store 1st header
       mHeaders[det] = ctfImage.cloneHeader();
+      auto& hb = *static_cast<o2::ctf::CTFDictHeader*>(mHeaders[det].get());
+      hb.dictTimeStamp = uint32_t(std::time(nullptr));
     }
     for (int ib = 0; ib < C::getNBlocks(); ib++) {
       const auto& bl = ctfImage.getBlock(ib);
@@ -183,6 +186,9 @@ void CTFWriterSpec::storeDictionary(DetID det, CTFHeader& header)
   auto dictBlocks = C::createDictionaryBlocks(mFreqsAccumulation[det], mFreqsMetaData[det]);
   auto& h = C::get(dictBlocks.data())->getHeader();
   h = *reinterpret_cast<typename std::remove_reference<decltype(h)>::type*>(mHeaders[det].get());
+  auto& hb = static_cast<o2::ctf::CTFDictHeader&>(h);
+  hb = *static_cast<const o2::ctf::CTFDictHeader*>(mHeaders[det].get());
+
   C::get(dictBlocks.data())->print(o2::utils::Str::concat_string("Storing dictionary for ", det.getName(), ": "));
   C::get(dictBlocks.data())->appendToTree(*mDictTreeOut.get(), det.getName()); // cast to EncodedBlock
   //  mFreqsAccumulation[det].clear();

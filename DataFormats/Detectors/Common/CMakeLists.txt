@@ -14,6 +14,7 @@ o2_add_library(DetectorsCommonDataFormats
                        src/NameConf.cxx
                        src/EncodedBlocks.cxx
                        src/CTFHeader.cxx
+                       src/CTFDictHeader.cxx
                PUBLIC_LINK_LIBRARIES
                ROOT::Core
                ROOT::Geom
@@ -33,6 +34,7 @@ o2_target_root_dictionary(
           include/DetectorsCommonDataFormats/NameConf.h
           include/DetectorsCommonDataFormats/EncodedBlocks.h
           include/DetectorsCommonDataFormats/CTFHeader.h
+          include/DetectorsCommonDataFormats/CTFDictHeader.h
           include/DetectorsCommonDataFormats/DetMatrixCache.h)
 
 configure_file(UpgradesStatus.h.in
