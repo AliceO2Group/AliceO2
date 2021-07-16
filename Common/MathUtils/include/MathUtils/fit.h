@@ -33,7 +33,8 @@
 #include "Fit/Fitter.h"
 #include "Fit/BinData.h"
 #include "Math/WrappedMultiTF1.h"
-
+#include <Math/SMatrix.h>
+#include <Math/SVector.h>
 #include "Framework/Logger.h"
 
 namespace o2
@@ -262,6 +263,75 @@ Double_t fitGaus(const size_t nBins, const T* arr, const T xMin, const T xMax, s
     chi2 = -1.;
   }
   return chi2;
+}
+
+// more optimal implementation of guassian fit via log-normal fit, appropriate for MT calls
+template <typename T>
+double fitGaus(size_t nBins, const T* arr, const T xMin, const T xMax, std::array<double, 3>& param,
+               ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>>* covMat = nullptr)
+{
+  double binW = double(xMax - xMin) / nBins, x = xMin - 0.5 * binW, s0 = 0, s1 = 0, s2 = 0, s3 = 0, s4 = 0, sy0 = 0, sy1 = 0, sy2 = 0, syy = 0;
+  int np = 0;
+  for (size_t i = 0; i < nBins; i++) {
+    x += binW;
+    auto v = arr[i];
+    if (v < 0) {
+      throw std::runtime_error("Log-normal fit is possible only with non-negative data");
+    }
+    if (v > 0) {
+      double y = std::log(v), err2i = v, err2iX = err2i, err2iY = err2i * y;
+      s0 += err2iX;
+      s1 += (err2iX *= x);
+      s2 += (err2iX *= x);
+      s3 += (err2iX *= x);
+      s4 += (err2iX *= x);
+      sy0 += err2iY;
+      syy += err2iY * y;
+      sy1 += (err2iY *= x);
+      sy2 += (err2iY *= x);
+      np++;
+    }
+  }
+  if (np < 1) {
+    return -10;
+  }
+  if (np < 3) {
+    param[0] = std::exp(sy0 / s0); // recover center of gravity
+    param[1] = s1 / s0;            // mean x;
+    param[2] = np == 1 ? binW / std::sqrt(12) : std::sqrt(std::abs(param[1] * param[1] - s2 / s0));
+    return -np;
+  }
+  ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepSym<double, 3>> m33{};
+  ROOT::Math::SVector<double, 3> v3{sy0, sy1, sy2};
+  m33(0, 0) = s0;
+  m33(1, 0) = s1;
+  m33(1, 1) = m33(2, 0) = s2;
+  m33(2, 1) = s3;
+  m33(2, 2) = s4;
+  int res = 0;
+  auto m33i = m33.Inverse(res);
+  if (res) {
+    LOG(ERROR) << np << " points collected, matrix inversion failed " << m33;
+    return -1.;
+  }
+  auto v = m33i * v3;
+  double chi2 = v(0) * v(0) * s0 + v(1) * v(1) * s2 + v(2) * v(2) * s4 + syy +
+                2. * (v(0) * v(1) * s1 + v(0) * v(2) * s2 + v(1) * v(2) * s3 - v(0) * sy0 - v(1) * sy1 - v(2) * sy2);
+  param[1] = -0.5 * v(1) / v(2);
+  param[2] = 1. / std::sqrt(-2. * v(2));
+  param[0] = std::exp(v(0) - param[1] * param[1] * v(2));
+  if (covMat) {
+    // build jacobian of transformation from log-normal to normal params
+    ROOT::Math::SMatrix<double, 3, 3, ROOT::Math::MatRepStd<double, 3, 3>> j33{};
+    j33(0, 0) = param[0];
+    j33(0, 1) = param[0] * param[1];
+    j33(0, 2) = j33(0, 1) * param[1];
+    j33(1, 1) = -0.5 / v(2);
+    j33(1, 2) = -param[1] / v(2);
+    j33(2, 2) = param[2] * j33(1, 1);
+    *covMat = ROOT::Math::Similarity(j33, m33i);
+  }
+  return np > 3 ? chi2 / (np - 3.) : 0.;
 }
 
 /// struct for returning statistical parameters
