@@ -92,8 +92,7 @@ struct NucleiSpectraTask {
       // fill QA histograms
       //
       float nSigmaHe3 = track.tpcNSigmaHe();
-      nSigmaHe3 += 94.222101 * TMath::Exp(-0.905203 * track.tpcInnerParam()); // HERE I STOP: re-centre the dE/dx
-      // here i stop: re-center the dE/dx signal as we did all our life
+      nSigmaHe3 += 94.222101 * TMath::Exp(-0.905203 * track.tpcInnerParam());
       //
       spectra.fill(HIST("fTPCsignal"), track.tpcInnerParam() * track.sign(), track.tpcSignal());
       spectra.fill(HIST("fTPCcounts"), track.tpcInnerParam(), nSigmaHe3);
