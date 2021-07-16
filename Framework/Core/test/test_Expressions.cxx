@@ -14,7 +14,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include "Framework/Configurable.h"
-#include "../src/ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AODReaderHelpers.h"
 #include <boost/test/unit_test.hpp>

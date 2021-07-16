@@ -1,6 +1,6 @@
 # Find bad spacing in modified text files
 name: Space checker
-on: [push, pull_request]
+on: [push, pull_request_target]
 env:
   MAIN_BRANCH: dev
 jobs:

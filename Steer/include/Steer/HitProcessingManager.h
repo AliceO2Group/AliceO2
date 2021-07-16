@@ -43,10 +43,10 @@ class HitProcessingManager
   }
   ~HitProcessingManager() = default;
 
-  // add background file to chain
+  // add background file (simprefix) to chain
   void addInputFile(std::string_view simfilename);
 
-  // add a signal file to chain corresponding to signal index "signalindex"
+  // add a signal file (simprefix) to chain corresponding to signal index "signalindex"
   void addInputSignalFile(std::string_view signalfilename, int signalindex = 1);
 
   void setGeometryFile(std::string const& geomfile) { mGeometryFile = geomfile; }

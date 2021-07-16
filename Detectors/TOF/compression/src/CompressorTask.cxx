@@ -20,6 +20,7 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/InputRecordWalker.h"
 
 #include <fairmq/FairMQDevice.h>
 
@@ -68,25 +69,27 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
   std::map<int, int> subspecBufferSize;
 
   /** loop over inputs routes **/
-  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
-    if (!iit.isValid()) {
-      continue;
-    }
+  std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TOF", "RAWDATA"}}};
+  for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
+    //  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
+    //    if (!iit.isValid()) {
+    //      continue;
+    //    }
 
     /** loop over input parts **/
-    for (auto const& ref : iit) {
+    //    for (auto const& ref : iit) {
 
-      /** store parts in map **/
-      auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      auto subspec = headerIn->subSpecification;
-      subspecPartMap[subspec].push_back(ref);
+    /** store parts in map **/
+    auto headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+    auto subspec = headerIn->subSpecification;
+    subspecPartMap[subspec].push_back(ref);
 
-      /** increase subspec buffer size **/
-      if (!subspecBufferSize.count(subspec)) {
-        subspecBufferSize[subspec] = 0;
-      }
-      subspecBufferSize[subspec] += headerIn->payloadSize;
+    /** increase subspec buffer size **/
+    if (!subspecBufferSize.count(subspec)) {
+      subspecBufferSize[subspec] = 0;
     }
+    subspecBufferSize[subspec] += headerIn->payloadSize;
+    //  }
   }
 
   /** loop over subspecs **/

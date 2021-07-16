@@ -367,6 +367,8 @@ int GPUTRDTrackerComponent::DoEvent(const AliHLTComponentEventData& evtData, con
   fChain->mIOPtrs.nMergedTracks = tracksTPC.size();
   fChain->mIOPtrs.nTRDTracklets = nTrackletsTotal;
   fChain->mIOPtrs.nTRDTriggerRecords = 1;
+  char trigRecMaskDummy[1] = {1};
+  fChain->mIOPtrs.trdTrigRecMask = &(trigRecMaskDummy[0]);
   fRec->PrepareEvent();
   fRec->SetupGPUProcessor(fTracker, true);
 

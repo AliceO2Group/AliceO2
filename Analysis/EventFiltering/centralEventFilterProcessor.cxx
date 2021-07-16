@@ -32,13 +32,12 @@ using namespace rapidjson;
 
 namespace
 {
-Document readJsonFile(std::string& config)
+bool readJsonFile(std::string& config, Document& d)
 {
-  Document d;
   FILE* fp = fopen(config.data(), "rb");
   if (!fp) {
     LOG(ERROR) << "Missing configuration json file: " << config;
-    return d;
+    return false;
   }
 
   char readBuffer[65536];
@@ -46,7 +45,7 @@ Document readJsonFile(std::string& config)
 
   d.ParseStream(is);
   fclose(fp);
-  return d;
+  return true;
 }
 } // namespace
 
@@ -68,24 +67,26 @@ void CentralEventFilterProcessor::init(framework::InitContext& ic)
   //   }
   // }
   LOG(INFO) << "Start init";
-  Document d = readJsonFile(mConfigFile);
+  Document d;
   int nCols{0};
-  for (auto& workflow : d["workflows"].GetArray()) {
-    if (std::string_view(workflow["subwagon_name"].GetString()) == "CentralEventFilterProcessor") {
-      auto& config = workflow["configuration"];
-      for (auto& filter : AvailableFilters) {
-        auto& filterConfig = config[filter];
-        if (filterConfig.IsObject()) {
-          std::unordered_map<std::string, float> tableMap;
-          for (auto& node : filterConfig.GetObject()) {
-            tableMap[node.name.GetString()] = node.value.GetDouble();
-            nCols++;
+  if (readJsonFile(mConfigFile, d)) {
+    for (auto& workflow : d["workflows"].GetArray()) {
+      if (std::string_view(workflow["subwagon_name"].GetString()) == "CentralEventFilterProcessor") {
+        auto& config = workflow["configuration"];
+        for (auto& filter : AvailableFilters) {
+          auto& filterConfig = config[filter];
+          if (filterConfig.IsObject()) {
+            std::unordered_map<std::string, float> tableMap;
+            for (auto& node : filterConfig.GetObject()) {
+              tableMap[node.name.GetString()] = node.value.GetDouble();
+              nCols++;
+            }
+            LOG(INFO) << "Enabling downscaling map for filter: " << filter;
+            mDownscaling[filter] = tableMap;
           }
-          LOG(INFO) << "Enabling downscaling map for filter: " << filter;
-          mDownscaling[filter] = tableMap;
         }
+        break;
       }
-      break;
     }
   }
   LOG(INFO) << "Middle init" << std::endl;
@@ -167,20 +168,23 @@ DataProcessorSpec getCentralEventFilterProcessorSpec(std::string& config)
 {
 
   std::vector<InputSpec> inputs;
-  Document d = readJsonFile(config);
+  Document d;
 
-  for (auto& workflow : d["workflows"].GetArray()) {
-    for (unsigned int iFilter{0}; iFilter < AvailableFilters.size(); ++iFilter) {
-      if (std::string_view(workflow["subwagon_name"].GetString()) == std::string_view(AvailableFilters[iFilter])) {
-        inputs.emplace_back(std::string(AvailableFilters[iFilter]), "AOD", FilterDescriptions[iFilter], 0, Lifetime::Timeframe);
-        LOG(INFO) << "Adding input " << std::string_view(AvailableFilters[iFilter]) << std::endl;
-        break;
+  if (readJsonFile(config, d)) {
+    for (auto& workflow : d["workflows"].GetArray()) {
+      for (unsigned int iFilter{0}; iFilter < AvailableFilters.size(); ++iFilter) {
+        if (std::string_view(workflow["subwagon_name"].GetString()) == std::string_view(AvailableFilters[iFilter])) {
+          inputs.emplace_back(std::string(AvailableFilters[iFilter]), "AOD", FilterDescriptions[iFilter], 0, Lifetime::Timeframe);
+          LOG(INFO) << "Adding input " << std::string_view(AvailableFilters[iFilter]) << std::endl;
+          break;
+        }
       }
     }
   }
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("AOD", "Decision", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TFN", "TFNumber", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
     "o2-central-event-filter-processor",

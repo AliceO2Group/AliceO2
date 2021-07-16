@@ -429,11 +429,11 @@ void CTFWriterSpec::closeDictionaryTreeAndFile(CTFHeader& header)
 DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, uint64_t run, bool doCTF, bool doDict, bool dictPerDet, size_t szmn, size_t szmx)
 {
   std::vector<InputSpec> inputs;
-  LOG(INFO) << "Detectors list:";
+  LOG(DEBUG) << "Detectors list:";
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (dets[id]) {
       inputs.emplace_back(DetID::getName(id), DetID::getDataOrigin(id), "CTFDATA", 0, Lifetime::Timeframe);
-      LOG(INFO) << "Det " << DetID::getName(id) << " added";
+      LOG(DEBUG) << "Det " << DetID::getName(id) << " added";
     }
   }
   return DataProcessorSpec{

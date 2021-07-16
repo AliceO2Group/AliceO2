@@ -53,6 +53,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"disable-row-writing", o2::framework::VariantType::Bool, false, {"disable ROW in Digit writing"}},
     {"write-decoding-errors", o2::framework::VariantType::Bool, false, {"trace errors in digits output when decoding"}},
+    {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}},
     {"cosmics", VariantType::Bool, false, {"to enable cosmics utils"}}};
 
@@ -131,6 +132,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool disableROWwriting = cfgc.options().get<bool>("disable-row-writing");
   auto isCalibFromCluster = cfgc.options().get<bool>("calib-cluster");
   auto isCosmics = cfgc.options().get<bool>("cosmics");
+  auto ignoreDistStf = cfgc.options().get<bool>("ignore-dist-stf");
 
   LOG(INFO) << "TOF RECO WORKFLOW configuration";
   LOG(INFO) << "TOF input = " << cfgc.options().get<std::string>("input-type");
@@ -142,6 +144,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(INFO) << "TOF disable-root-input = " << disableRootInput;
   LOG(INFO) << "TOF disable-root-output = " << disableRootOutput;
   LOG(INFO) << "TOF conet-mode = " << conetmode;
+  LOG(INFO) << "TOF ignore Dist Stf = " << ignoreDistStf;
   LOG(INFO) << "TOF disable-row-writing = " << disableROWwriting;
   LOG(INFO) << "TOF write-decoding-errors = " << writeerr;
 
@@ -161,7 +164,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   } else if (rawinput) {
     LOG(INFO) << "Insert TOF Compressed Raw Decoder";
     auto inputDesc = cfgc.options().get<std::string>("input-desc");
-    specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc, conetmode));
+    specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc, conetmode, !ignoreDistStf));
     useMC = 0;
 
     if (writedigit && !disableRootOutput) {

@@ -9,7 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// HF Configurable Classes
-//
-// Authors: Nima Zardoshti
-#include "AnalysisCore/HFConfigurables.h"
+#ifndef O2_MCH_WORKFLOW_TRACK_WRITER_SPEC_H
+#define O2_MCH_WORKFLOW_TRACK_WRITER_SPEC_H
+
+#include "Framework/DataProcessorSpec.h"
+
+namespace o2::mch
+{
+o2::framework::DataProcessorSpec getTrackWriterSpec(bool useMC, const char* name = "mch-tracks-writer");
+}
+
+#endif

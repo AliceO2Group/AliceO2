@@ -35,8 +35,11 @@ enum class MergedObjectTimespan {
   FullHistory,
   // Merged object should be an sum of differences received after last publication.
   // Merged object is reset after published. It won't produce meaningful results
-  // when InputObjectsTimespan::FullHstory is set.
-  LastDifference
+  // when InputObjectsTimespan::FullHistory is set.
+  LastDifference,
+  // Generalisation of the two above. Resets all objects in Mergers after n cycles (0 - infinite).
+  // The the above will be removed once we switch to NCycles in QC.
+  NCycles
 };
 
 enum class PublicationDecision {
@@ -57,7 +60,7 @@ struct ConfigEntry {
 // \brief MergerAlgorithm configuration structure. Default configuration should work in most cases, out of the box.
 struct MergerConfig {
   ConfigEntry<InputObjectsTimespan> inputObjectTimespan = {InputObjectsTimespan::FullHistory};
-  ConfigEntry<MergedObjectTimespan> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
+  ConfigEntry<MergedObjectTimespan, int> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
   ConfigEntry<PublicationDecision> publicationDecision = {PublicationDecision::EachNSeconds, 10};
   ConfigEntry<TopologySize, int> topologySize = {TopologySize::NumberOfLayers, 1};
   std::string monitoringUrl = "infologger:///debug?qc";

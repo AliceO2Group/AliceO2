@@ -65,19 +65,27 @@ void Geometry::setCsideModules()
   for (Int_t i = 0; i < 6; i++) {
     gridpoints[i] = crad * TMath::Sin((1 - 1 / (2 * TMath::Abs(grdin[i]))) * grdin[i] * btta);
   }
+  Double_t xi[NCellsC] = {-15.038271418735729, 15.038271418735729,
+                          -15.003757581112167, 15.003757581112167, -9.02690018974363,
+                          9.02690018974363, -9.026897413747076, 9.026897413747076,
+                          -9.026896531935773, 9.026896531935773, -3.0004568618531313,
+                          3.0004568618531313, -3.0270795197907225, 3.0270795197907225,
+                          3.0003978432927543, -3.0003978432927543, 3.0270569670429572,
+                          -3.0270569670429572, 9.026750365564254, -9.026750365564254,
+                          9.026837450695885, -9.026837450695885, 9.026849243816981,
+                          -9.026849243816981, 15.038129472387304, -15.038129472387304,
+                          15.003621961057961, -15.003621961057961};
+  Double_t yi[NCellsC] = {3.1599494336464455, -3.1599494336464455,
+                          9.165191680982874, -9.165191680982874, 3.1383331772537426,
+                          -3.1383331772537426, 9.165226363918643, -9.165226363918643,
+                          15.141616002932361, -15.141616002932361, 9.16517861649866,
+                          -9.16517861649866, 15.188854859073416, -15.188854859073416,
+                          9.165053319552113, -9.165053319552113, 15.188703787345304,
+                          -15.188703787345304, 3.138263189805292, -3.138263189805292,
+                          9.165104089644917, -9.165104089644917, 15.141494417823818,
+                          -15.141494417823818, 3.1599158563428644, -3.1599158563428644,
+                          9.165116302773846, -9.165116302773846};
 
-  Double_t xi[NCellsC] = {gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[0],
-                          gridpoints[1], gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5],
-                          gridpoints[0], gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0],
-                          gridpoints[1], gridpoints[4], gridpoints[5], gridpoints[0], gridpoints[1],
-                          gridpoints[2], gridpoints[3], gridpoints[4], gridpoints[5], gridpoints[1],
-                          gridpoints[2], gridpoints[3], gridpoints[4]};
-  Double_t yi[NCellsC] = {gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[5], gridpoints[4],
-                          gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4], gridpoints[4],
-                          gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[3], gridpoints[2],
-                          gridpoints[2], gridpoints[2], gridpoints[2], gridpoints[1], gridpoints[1],
-                          gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[1], gridpoints[0],
-                          gridpoints[0], gridpoints[0], gridpoints[0]};
   Double_t zi[NCellsC];
   for (Int_t i = 0; i < NCellsC; i++) {
     zi[i] = TMath::Sqrt(TMath::Power(crad, 2) - TMath::Power(xi[i], 2) - TMath::Power(yi[i], 2));

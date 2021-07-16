@@ -16,6 +16,7 @@
 ////////////////////////////////////////////////
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "FT0Base/Constants.h"
 #include "Framework/Logger.h"
 #include <Rtypes.h>
 #include <TGeoPhysicalNode.h>
@@ -45,12 +46,12 @@ class Geometry
   TVector3 centerMCP(int imcp) { return mMCP[imcp]; }
   TVector3 tiltMCP(int imcp) { return mAngles[imcp]; }
 
-  static constexpr int Nchannels = 229;                     // number of LUT channels
+  static constexpr int Nchannels = o2::ft0::Constants::sNCHANNELS_PM; // number of PM channels
   static constexpr int Nsensors = 208;                      // number of channels
   static constexpr int NCellsA = 24;                        // number of radiatiors on A side
   static constexpr int NCellsC = 28;                        // number of radiatiors on C side
-  static constexpr float ZdetA = 335.5;                     // number of radiatiors on A side
-  static constexpr float ZdetC = 82;                        // number of radiatiors on C side
+  static constexpr float ZdetA = 335.5;                     // Z position of center volume  on A side
+  static constexpr float ZdetC = 82;                        //  Z position of center volume on C side
   static constexpr float ChannelWidth = 13.02;              // channel width in ps
   static constexpr float ChannelWidthInverse = 0.076804916; // channel width in ps inverse
   static constexpr o2::detectors::DetID::ID getDetID() { return o2::detectors::DetID::FT0; }

@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_SIMCONFIG_SIMCUTPARAM_H_
-#define O2_SIMCONFIG_SIMCUTPARAM_H_
+#ifndef O2_SIMCONFIG_SIMPARAM_H_
+#define O2_SIMCONFIG_SIMPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -33,8 +33,18 @@ struct SimCutParams : public o2::conf::ConfigurableParamHelper<SimCutParams> {
   float maxRTrackingZDC = 50; // R-cut applied in the tunnel leading to ZDC when z > beampipeZ (custom stepping function)
   float tunnelZ = 1900;       // Z-value from where we apply maxRTrackingZDC (default value taken from standard "hall" dimensions)
 
+  float globalDensityFactor = 1.f; // global factor that scales all material densities for systematic studies
+
   O2ParamDef(SimCutParams, "SimCutParams");
 };
+
+// parameter influencing material manager
+struct SimMaterialParams : public o2::conf::ConfigurableParamHelper<SimMaterialParams> {
+  float globalDensityFactor = 1.f;
+
+  O2ParamDef(SimMaterialParams, "SimMaterialParams");
+};
+
 } // namespace conf
 } // namespace o2
 

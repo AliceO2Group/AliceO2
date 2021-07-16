@@ -195,8 +195,12 @@ struct HfCorrelatorD0D0barMcRec {
 
   void init(o2::framework::InitContext&)
   {
-    registry.add("hMassD0MCRec", "D0,D0bar candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
-    registry.add("hMassD0barMCRec", "D0,D0bar candidates - MC reco;inv. mass D0 only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0MCRecSig", "D0 signal candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0MCRecRefl", "D0 reflection candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0MCRecBkg", "D0 background candidates - MC reco;inv. mass (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0barMCRecSig", "D0bar signal candidates - MC reco;inv. mass D0bar only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0barMCRecRefl", "D0bar reflection candidates - MC reco;inv. mass D0bar only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
+    registry.add("hMassD0barMCRecBkg", "D0bar background candidates - MC reco;inv. mass D0bar only (#pi K) (GeV/#it{c}^{2});entries", {HistType::kTH2F, {{120, 1.5848, 2.1848}, {(std::vector<double>)bins, "#it{p}_{T} (GeV/#it{c})"}}});
   }
 
   Filter filterSelectCandidates = (aod::hf_selcandidate_d0::isSelD0 >= selectionFlagD0 || aod::hf_selcandidate_d0::isSelD0bar >= selectionFlagD0bar);
@@ -205,7 +209,9 @@ struct HfCorrelatorD0D0barMcRec {
   {
     //MC reco level
     bool flagD0Signal = false;
+    bool flagD0Reflection = false;
     bool flagD0barSignal = false;
+    bool flagD0barReflection = false;
     for (auto& candidate1 : candidates) {
       //check decay channel flag for candidate1
       if (!(candidate1.hfflag() & 1 << DecayType::D0ToPiK)) {
@@ -218,13 +224,7 @@ struct HfCorrelatorD0D0barMcRec {
         continue;
       }
       if (std::abs(candidate1.flagMCMatchRec()) == 1 << DecayType::D0ToPiK) {
-        //fill invariant mass plots and generic info from all D0/D0bar candidates
-        if (candidate1.isSelD0() >= selectionFlagD0 && candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) { //only reco and matched as D0
-          registry.fill(HIST("hMassD0MCRec"), InvMassD0(candidate1), candidate1.pt());
-        }
-        if (candidate1.isSelD0bar() >= selectionFlagD0bar && candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) { //only reco and matched as D0bar
-          registry.fill(HIST("hMassD0barMCRec"), InvMassD0bar(candidate1), candidate1.pt());
-        }
+        //fill per-candidate distributions from D0/D0bar true candidates
         registry.fill(HIST("hPtCandMCRec"), candidate1.pt());
         registry.fill(HIST("hPtProng0MCRec"), candidate1.ptProng0());
         registry.fill(HIST("hPtProng1MCRec"), candidate1.ptProng1());
@@ -233,13 +233,33 @@ struct HfCorrelatorD0D0barMcRec {
         registry.fill(HIST("hYMCRec"), YD0(candidate1));
         registry.fill(HIST("hSelectionStatusMCRec"), candidate1.isSelD0bar() + (candidate1.isSelD0() * 2));
       }
+      //fill invariant mass plots from D0/D0bar signal and background candidates
+      if (candidate1.isSelD0() >= selectionFlagD0) {                  //only reco as D0
+        if (candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) { //also matched as D0
+          registry.fill(HIST("hMassD0MCRecSig"), InvMassD0(candidate1), candidate1.pt());
+        } else if (candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) {
+          registry.fill(HIST("hMassD0MCRecRefl"), InvMassD0(candidate1), candidate1.pt());
+        } else {
+          registry.fill(HIST("hMassD0MCRecBkg"), InvMassD0(candidate1), candidate1.pt());
+        }
+      }
+      if (candidate1.isSelD0bar() >= selectionFlagD0bar) {               //only reco as D0bar
+        if (candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK)) { //also matched as D0bar
+          registry.fill(HIST("hMassD0barMCRecSig"), InvMassD0bar(candidate1), candidate1.pt());
+        } else if (candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK) {
+          registry.fill(HIST("hMassD0barMCRecRefl"), InvMassD0bar(candidate1), candidate1.pt());
+        } else {
+          registry.fill(HIST("hMassD0barMCRecBkg"), InvMassD0bar(candidate1), candidate1.pt());
+        }
+      }
 
       //D-Dbar correlation dedicated section
       //if the candidate is selected ad D0, search for D0bar and evaluate correlations
       if (candidate1.isSelD0() < selectionFlagD0) { //discard candidates not selected as D0 in outer loop
         continue;
       }
-      flagD0Signal = candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK; //flagD0Signal 'true' if candidate1 matched to D0 (particle)
+      flagD0Signal = candidate1.flagMCMatchRec() == 1 << DecayType::D0ToPiK;        //flagD0Signal 'true' if candidate1 matched to D0 (particle)
+      flagD0Reflection = candidate1.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0Reflection 'true' if candidate1, selected as D0 (particle), is matched to D0bar (antiparticle)
       for (auto& candidate2 : candidates) {
         if (!(candidate2.hfflag() & 1 << DecayType::D0ToPiK)) { //check decay channel flag for candidate2
           continue;
@@ -247,7 +267,8 @@ struct HfCorrelatorD0D0barMcRec {
         if (candidate2.isSelD0bar() < selectionFlagD0bar) { //discard candidates not selected as D0bar in inner loop
           continue;
         }
-        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK); //flagD0barSignal 'true' if candidate2 matched to D0bar (antiparticle)
+        flagD0barSignal = candidate2.flagMCMatchRec() == -(1 << DecayType::D0ToPiK);  //flagD0barSignal 'true' if candidate2 matched to D0bar (antiparticle)
+        flagD0barReflection = candidate2.flagMCMatchRec() == 1 << DecayType::D0ToPiK; //flagD0barReflection 'true' if candidate2, selected as D0bar (antiparticle), is matched to D0 (particle)
         if (cutYCandMax >= 0. && std::abs(YD0(candidate2)) > cutYCandMax) {
           continue;
         }
@@ -259,11 +280,17 @@ struct HfCorrelatorD0D0barMcRec {
           continue;
         }
         //choice of options (D0/D0bar signal/bkg)
-        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/sig, 2 = sig/bkg, 3 = sig/sig
+        int pairSignalStatus = 0; //0 = bkg/bkg, 1 = bkg/ref, 2 = bkg/sig, 3 = ref/bkg, 4 = ref/ref, 5 = ref/sig, 6 = sig/bkg, 7 = sig/ref, 8 = sig/sig
         if (flagD0Signal) {
-          pairSignalStatus += 2;
+          pairSignalStatus += 6;
+        }
+        if (flagD0Reflection) {
+          pairSignalStatus += 3;
         }
         if (flagD0barSignal) {
+          pairSignalStatus += 2;
+        }
+        if (flagD0barReflection) {
           pairSignalStatus += 1;
         }
         entryD0D0barPair(getDeltaPhi(candidate2.phi(), candidate1.phi()),

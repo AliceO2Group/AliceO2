@@ -9,22 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRD_TRACKING_WORKFLOW_H
-#define O2_TRD_TRACKING_WORKFLOW_H
+/*
+ * SimCutParams.cxx
+ *
+ *  Created on: Feb 18, 2019
+ *      Author: Sandro Wenzel
+ */
 
-/// @file   TRDTrackingWorkflow.h
-
-#include "Framework/WorkflowSpec.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-
-namespace o2
-{
-namespace trd
-{
-
-framework::WorkflowSpec getTRDTrackingWorkflow(bool disableRootInp, bool disableRootOut, o2::dataformats::GlobalTrackID::mask_t srcTRD);
-
-} // namespace trd
-} // namespace o2
-
-#endif
+#include "SimConfig/SimParams.h"
+O2ParamImpl(o2::conf::SimCutParams);
+O2ParamImpl(o2::conf::SimMaterialParams);

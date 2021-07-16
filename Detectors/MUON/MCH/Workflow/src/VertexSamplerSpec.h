@@ -24,8 +24,7 @@ namespace o2
 namespace mch
 {
 
-o2::framework::DataProcessorSpec getVertexSamplerSpec();
-
+o2::framework::DataProcessorSpec getVertexSamplerSpec(const char* name = "VertexSampler");
 } // end namespace mch
 } // end namespace o2
 
