@@ -24,6 +24,7 @@
 #include "TTree.h"
 #include "CommonUtils/StringUtils.h"
 #include "Framework/Logger.h"
+#include "DetectorsCommonDataFormats/CTFDictHeader.h"
 
 namespace o2
 {

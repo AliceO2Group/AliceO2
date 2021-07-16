@@ -24,11 +24,11 @@ namespace o2
 namespace tpc
 {
 
-struct CTFHeader : public CompressedClustersCounters {
+struct CTFHeader : public ctf::CTFDictHeader, public CompressedClustersCounters {
   enum : uint32_t { CombinedColumns = 0x1 };
   uint32_t flags = 0;
 
-  ClassDefNV(CTFHeader, 1);
+  ClassDefNV(CTFHeader, 2);
 };
 
 /// wrapper for the Entropy-encoded clusters of the TF

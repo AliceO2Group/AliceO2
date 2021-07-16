@@ -21,6 +21,7 @@
 #include <TTree.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsCommonDataFormats/NameConf.h"
+#include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "rANS/rans.h"
 
 namespace o2
@@ -53,6 +54,10 @@ class CTFCoderBase
     if (fileDict) {
       std::unique_ptr<TTree> tree((TTree*)fileDict->Get(std::string(o2::base::NameConf::CTFDICT).c_str()));
       CTF::readFromTree(bufVec, *tree.get(), mDet.getName());
+      if (bufVec.size()) {
+        mExtHeader = static_cast<CTFDictHeader&>(CTF::get(bufVec.data())->getHeader());
+        LOGP(INFO, "Found {} {} in {}", mDet.getName(), mExtHeader.asString(), dictPath);
+      }
     }
     return bufVec;
   }
@@ -83,9 +88,17 @@ class CTFCoderBase
 
  protected:
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
+  void assignDictVersion(CTFDictHeader& h) const
+  {
+    if (mExtHeader.isValidDictTimeStamp()) {
+      h = mExtHeader;
+    }
+  }
+  void checkDictVersion(const CTFDictHeader& h) const;
 
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
+  CTFDictHeader mExtHeader; // external dictionary header
 
   ClassDefNV(CTFCoderBase, 1);
 };

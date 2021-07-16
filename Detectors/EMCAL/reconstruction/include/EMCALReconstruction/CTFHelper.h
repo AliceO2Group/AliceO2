@@ -33,7 +33,8 @@ class CTFHelper
 
   CTFHeader createHeader()
   {
-    CTFHeader h{uint32_t(mTrigData.size()), uint32_t(mCellData.size()), 0, 0};
+    CTFHeader h{0, 1, 0, // dummy timestamp, version 1.0
+                uint32_t(mTrigData.size()), uint32_t(mCellData.size()), 0, 0};
     if (mTrigData.size()) {
       h.firstOrbit = mTrigData[0].getBCData().orbit;
       h.firstBC = mTrigData[0].getBCData().bc;

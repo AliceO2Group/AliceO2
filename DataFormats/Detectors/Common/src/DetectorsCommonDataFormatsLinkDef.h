@@ -31,6 +31,7 @@
 
 #pragma link C++ class o2::ctf::CTFHeader + ;
 #pragma link C++ class o2::ctf::Registry + ;
+#pragma link C++ class o2::ctf::CTFDictHeader + ;
 #pragma link C++ class o2::ctf::Block < uint32_t> + ;
 #pragma link C++ class o2::ctf::Block < uint16_t> + ;
 #pragma link C++ class o2::ctf::Block < uint8_t> + ;
