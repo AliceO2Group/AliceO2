@@ -154,7 +154,7 @@ struct OutputManager<Produces<TABLE>> {
   }
   static bool finalize(ProcessingContext&, Produces<TABLE>& what)
   {
-    what.setLabel(typename o2::aod::MetadataTrait<TABLE>::metadata::tableLabel());
+    what.setLabel(o2::aod::MetadataTrait<TABLE>::metadata::tableLabel());
     return true;
   }
   static bool postRun(EndOfStreamContext&, Produces<TABLE>&)
