@@ -385,9 +385,7 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
 #endif
 
     LOG(INFO) << "Processing sector " << sector << " with thread " << ithread;
-    double xp[NCOMBINSTRIP], exp[NCOMBINSTRIP], deltat[NCOMBINSTRIP], edeltat[NCOMBINSTRIP], fracUnderPeak[Geo::NPADS];
-
-    bool isChON[96];
+    double xp[NCOMBINSTRIP], exp[NCOMBINSTRIP], deltat[NCOMBINSTRIP], edeltat[NCOMBINSTRIP];
 
     std::vector<float> fitValues;
     std::vector<float> histoValues;
@@ -398,13 +396,12 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
     int offsetsector = sector * Geo::NSTRIPXSECTOR * Geo::NPADS;
     for (int istrip = 0; istrip < Geo::NSTRIPXSECTOR; istrip++) {
       LOG(INFO) << "Processing strip " << istrip;
+      double fracUnderPeak[Geo::NPADS] = {0.};
+      bool isChON[96] = {false};
       int offsetstrip = istrip * Geo::NPADS + offsetsector;
       int goodpoints = 0;
 
       TLinearFitter localFitter(1, mStripOffsetFunction.c_str());
-
-      memset(&fracUnderPeak[0], 0, sizeof(fracUnderPeak));
-      memset(isChON, 0, 96);
 
       int offsetPairInStrip = istrip * NCOMBINSTRIP;
 
@@ -520,12 +517,10 @@ void TOFChannelCalibrator<T>::finalizeSlotWithCosmics(Slot& slot)
       }
 
       LOG(DEBUG) << "N real params = " << nparams << ", fitter has " << localFitter.GetNumberFreeParameters() << " free parameters, " << localFitter.GetNumberTotalParameters() << " total parameters, " << localFitter.GetNpoints() << " points";
-      //LOG(INFO) << "Sector = " << sector << ", strip = " << istrip << " fitted by thread = " << ithread << ": ready to fit";
-      printf("Sector = %d, strip = %d, fitted by thread = %d: ready to fit\n", sector, istrip, ithread);
+      LOG(INFO) << "Sector = " << sector << ", strip = " << istrip << " fitted by thread = " << ithread << ": ready to fit";
       localFitter.Eval();
 
-      //LOG(INFO) << "Sector = " << sector << ", strip = " << istrip << " fitted by thread = " << ithread << " with Chi/NDF " << localFitter.GetChisquare() << "/" << goodpoints - localFitter.GetNumberFreeParameters();
-      printf("Sector = %d, strip = %d, fitted by thread = %d: chi2/NDF = %f / %d\n", sector, istrip, ithread, localFitter.GetChisquare(), goodpoints - localFitter.GetNumberFreeParameters());
+      LOG(INFO) << "Sector = " << sector << ", strip = " << istrip << " fitted by thread = " << ithread << " with Chi/NDF " << localFitter.GetChisquare() << "/" << goodpoints - localFitter.GetNumberFreeParameters();
       LOG(DEBUG) << "Strip = " << istrip << " fitted by thread = " << ithread << " with Chi/NDF " << localFitter.GetChisquare() << "/" << goodpoints - localFitter.GetNumberFreeParameters();
 
       //update calibrations

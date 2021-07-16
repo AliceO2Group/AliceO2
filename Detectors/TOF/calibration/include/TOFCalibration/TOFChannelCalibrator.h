@@ -145,7 +145,9 @@ class TOFChannelCalibrator final : public o2::calibration::TimeSlotCalibration<T
   }
 
   static constexpr int NCOMBINSTRIP = o2::tof::Geo::NPADX + o2::tof::Geo::NPADS;
-  static constexpr int NMAXTHREADS = 20; // number of max threads that we allow OpenMP to use
+  static constexpr int NMAXTHREADS = o2::tof::Geo::NSECTORS; // number of max threads that we allow OpenMP to use;
+                                                             // since at max we parallelize the processing of the sectors,
+                                                             // the number if sectors is what we use
 
   TOFChannelCalibrator(int minEnt = 500, int nb = 1000, float r = 24400) : mMinEntries(minEnt), mNBins(nb), mRange(r)
   {
