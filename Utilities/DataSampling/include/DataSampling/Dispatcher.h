@@ -25,7 +25,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/Task.h"
 
-class FairMQDevice;
+#include <fairmq/FwdDecls.h>
 
 namespace o2::monitoring
 {

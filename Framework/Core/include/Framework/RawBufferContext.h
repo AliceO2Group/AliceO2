@@ -18,7 +18,7 @@
 #include <string>
 #include <memory>
 
-class FairMQMessage;
+#include <fairmq/FwdDecls.h>
 
 namespace o2::framework
 {

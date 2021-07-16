@@ -32,7 +32,7 @@
 #include <memory>
 #include <type_traits>
 
-class FairMQMessage;
+#include <fairmq/FwdDecls.h>
 
 namespace o2
 {

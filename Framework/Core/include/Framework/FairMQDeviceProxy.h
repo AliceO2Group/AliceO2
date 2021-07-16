@@ -13,9 +13,7 @@
 
 #include <memory>
 
-class FairMQDevice;
-class FairMQMessage;
-class FairMQTransportFactory;
+#include <fairmq/FwdDecls.h>
 
 namespace o2
 {
