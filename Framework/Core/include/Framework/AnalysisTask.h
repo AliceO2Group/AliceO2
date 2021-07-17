@@ -31,7 +31,6 @@
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
-#include <arrow/util/key_value_metadata.h>
 #include <gandiva/node.h>
 #include <type_traits>
 #include <utility>

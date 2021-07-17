@@ -96,6 +96,8 @@ O2_ARROW_STL_CONVERSION(double, DoubleType)
 O2_ARROW_STL_CONVERSION(std::string, StringType)
 } // namespace detail
 
+void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label);
+
 struct BuilderUtils {
   template <typename T>
   static arrow::Status appendToList(std::unique_ptr<arrow::FixedSizeListBuilder>& builder, T* data, int size = 1)
@@ -835,7 +837,7 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* na
   for (auto i = 0u; i < sizeof...(C); ++i) {
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
-  new_schema = new_schema->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{name}}));
+  addLabelToSchema(new_schema, name);
   return arrow::Table::Make(new_schema, arrays);
 }
 
