@@ -122,8 +122,12 @@ class TreeToTable
  private:
   std::shared_ptr<arrow::Table> mTable;
   std::vector<std::string> mColumnNames;
+  std::string mTableLabel;
 
  public:
+  // set table label to be added into schema metadata
+  void setLabel(const char* label);
+
   // add a column to be included in the arrow::table
   void addColumn(const char* colname);
 

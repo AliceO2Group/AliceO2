@@ -22,6 +22,7 @@
 #include "arrow/status.h"
 #include "gandiva/filter.h"
 #include <boost/test/unit_test.hpp>
+#include <arrow/util/key_value_metadata.h>
 
 using namespace o2::framework;
 using namespace arrow;
