@@ -180,6 +180,11 @@ class VarManager : public TObject
     kTOFnSigmaPi,
     kTOFnSigmaKa,
     kTOFnSigmaPr,
+    kIsLegFromGamma,
+    kIsLegFromK0S,
+    kIsLegFromLambda,
+    kIsLegFromAntiLambda,
+    kIsLegFromOmega,
     kNBarrelTrackVariables,
 
     // Muon track variables
@@ -488,6 +493,12 @@ void VarManager::FillTrack(T const& track, float* values)
     if constexpr ((fillMap & ReducedTrack) > 0 && !((fillMap & Pair) > 0)) {
       values[kIsGlobalTrack] = track.filteringFlags() & (uint64_t(1) << 0);
       values[kIsGlobalTrackSDD] = track.filteringFlags() & (uint64_t(1) << 1);
+
+      values[kIsLegFromGamma] = bool(track.filteringFlags() & (uint64_t(1) << 2));
+      values[kIsLegFromK0S] = bool(track.filteringFlags() & (uint64_t(1) << 3));
+      values[kIsLegFromLambda] = bool(track.filteringFlags() & (uint64_t(1) << 4));
+      values[kIsLegFromAntiLambda] = bool(track.filteringFlags() & (uint64_t(1) << 5));
+      values[kIsLegFromOmega] = bool(track.filteringFlags() & (uint64_t(1) << 6));
     }
   }
 

@@ -216,6 +216,16 @@ void VarManager::SetDefaultVarNames()
   fgVariableUnits[kTOFnSigmaKa] = "";
   fgVariableNames[kTOFnSigmaPr] = "n #sigma_{p}^{TOF}";
   fgVariableUnits[kTOFnSigmaPr] = "";
+  fgVariableNames[kIsLegFromGamma] = "is leg from #gamma #rightarror e^{+}e^{-}";
+  fgVariableUnits[kIsLegFromGamma] = "";
+  fgVariableNames[kIsLegFromK0S] = "is leg from K_{S}^{0} #rightarror #pi^{+}#pi^{-}";
+  fgVariableUnits[kIsLegFromK0S] = "";
+  fgVariableNames[kIsLegFromLambda] = "is leg from #Lambda #rightarror p#pi^{-}";
+  fgVariableUnits[kIsLegFromLambda] = "";
+  fgVariableNames[kIsLegFromAntiLambda] = "is leg from #bar{#Lambda} #rightarrow #bar{p}#pi^{+}";
+  fgVariableUnits[kIsLegFromAntiLambda] = "";
+  fgVariableNames[kIsLegFromOmega] = "is leg from #Omega^{#mp} #rightarrow #LambdaKi^{#pm}";
+  fgVariableUnits[kIsLegFromOmega] = "";
   fgVariableNames[kMuonNClusters] = "muon n-clusters";
   fgVariableUnits[kMuonNClusters] = "";
   fgVariableNames[kMuonRAtAbsorberEnd] = "R at the end of the absorber";
