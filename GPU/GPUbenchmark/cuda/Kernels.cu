@@ -761,7 +761,7 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
       break;
     }
     case SplitLevel::Threads: {
-            mResultWriter.get()->addBenchmarkEntry("conc_copy_MB", getType<chunk_type>(), mState.getMaxChunks());
+      mResultWriter.get()->addBenchmarkEntry("conc_copy_MB", getType<chunk_type>(), mState.getMaxChunks());
       auto nBlocks{mState.nMultiprocessors};
       auto nThreads{std::min(mState.nMaxThreadsPerDimension, mState.nMaxThreadsPerBlock)};
       auto chunks{mState.getMaxChunks()};
@@ -811,35 +811,49 @@ void GPUbenchmark<chunk_type>::run()
 {
   globalInit();
 
-  readInit();
-  // Reading in whole memory
-  readSequential(SplitLevel::Blocks);
-  readSequential(SplitLevel::Threads);
+  for (auto& test : mOptions.tests) {
+    switch (test) {
+      case Test::Read: {
+        readInit();
+        // Reading in whole memory
+        readSequential(SplitLevel::Blocks);
+        readSequential(SplitLevel::Threads);
 
-  // Reading in memory regions
-  readConcurrent(SplitLevel::Blocks);
-  readConcurrent(SplitLevel::Threads);
-  readFinalize();
+        // Reading in memory regions
+        readConcurrent(SplitLevel::Blocks);
+        readConcurrent(SplitLevel::Threads);
+        readFinalize();
 
-  writeInit();
-  // Write on whole memory
-  writeSequential(SplitLevel::Blocks);
-  writeSequential(SplitLevel::Threads);
+        break;
+      }
+      case Test::Write: {
+        writeInit();
+        // Write on whole memory
+        writeSequential(SplitLevel::Blocks);
+        writeSequential(SplitLevel::Threads);
 
-  // Write on memory regions
-  writeConcurrent(SplitLevel::Blocks);
-  writeConcurrent(SplitLevel::Threads);
-  writeFinalize();
+        // Write on memory regions
+        writeConcurrent(SplitLevel::Blocks);
+        writeConcurrent(SplitLevel::Threads);
+        writeFinalize();
 
-  copyInit();
-  // Copy from input buffer (size = nChunks) on whole memory
-  copySequential(SplitLevel::Blocks);
-  copySequential(SplitLevel::Threads);
+        break;
+      }
+      case Test::Copy: {
+        copyInit();
+        // Copy from input buffer (size = nChunks) on whole memory
+        copySequential(SplitLevel::Blocks);
+        copySequential(SplitLevel::Threads);
 
-  // Copy from input buffer (size = nChunks) on memory regions
-  copyConcurrent(SplitLevel::Blocks);
-  copyConcurrent(SplitLevel::Threads);
-  copyFinalize();
+        // Copy from input buffer (size = nChunks) on memory regions
+        copyConcurrent(SplitLevel::Blocks);
+        copyConcurrent(SplitLevel::Threads);
+        copyFinalize();
+
+        break;
+      }
+    }
+  }
 
   GPUbenchmark<chunk_type>::globalFinalize();
 }
