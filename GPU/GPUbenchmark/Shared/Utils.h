@@ -34,6 +34,12 @@
 
 #define GB (1024 * 1024 * 1024)
 
+enum class Test {
+  Read,
+  Write,
+  Copy
+};
+
 namespace o2
 {
 namespace benchmark
@@ -48,6 +54,7 @@ struct benchmarkOpts {
   benchmarkOpts() = default;
 
   int deviceId = 0;
+  std::vector<Test> tests = {Test::Read, Test::Write, Test::Copy};
   float chunkReservedGB = 1.f;
   int nRegions = 2;
   float freeMemoryFractionToAllocate = 0.95f;
