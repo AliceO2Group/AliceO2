@@ -411,7 +411,7 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << std::setw(2) << "    ├ Sequential read, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq read, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::readChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
@@ -437,7 +437,7 @@ void GPUbenchmark<chunk_type>::readSequential(SplitLevel sl)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << std::setw(2) << "    ├ Sequential read, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq read, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::readChunkMBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
@@ -470,7 +470,7 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent read, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << "    ├ (" << getType<chunk_type>() << ") Conc read, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         auto results = benchmarkAsync(&gpu::readChunkSBKernel<chunk_type>,
                                       mState.getMaxChunks(), // nStreams
                                       mState.getNKernelLaunches(),
@@ -496,7 +496,7 @@ void GPUbenchmark<chunk_type>::readConcurrent(SplitLevel sl, int nRegions)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent read, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << "    ├ (" << getType<chunk_type>() << ") Conc read, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         auto results = benchmarkAsync(&gpu::readChunkMBKernel<chunk_type>,
                                       mState.getMaxChunks(), // nStreams
                                       mState.getNKernelLaunches(),
@@ -546,7 +546,7 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << std::setw(2) << "    ├ Sequential write, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq write, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::writeChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
@@ -572,7 +572,7 @@ void GPUbenchmark<chunk_type>::writeSequential(SplitLevel sl)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << std::setw(2) << "    ├ Sequential write, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq write, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::writeChunkMBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
@@ -605,7 +605,7 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent write, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << "    ├ (" << getType<chunk_type>() << ") Conc write, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         auto results = benchmarkAsync(&gpu::writeChunkSBKernel<chunk_type>,
                                       mState.getMaxChunks(), // nStreams
                                       mState.getNKernelLaunches(),
@@ -631,7 +631,7 @@ void GPUbenchmark<chunk_type>::writeConcurrent(SplitLevel sl, int nRegions)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent write, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << "    ├ (" << getType<chunk_type>() << ") Conc write, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         auto results = benchmarkAsync(&gpu::writeChunkMBKernel<chunk_type>,
                                       mState.getMaxChunks(), // nStreams
                                       mState.getNKernelLaunches(),
@@ -683,7 +683,7 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << std::setw(2) << "    ├ Sequential copy, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq copy, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::copyChunkSBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
@@ -709,7 +709,7 @@ void GPUbenchmark<chunk_type>::copySequential(SplitLevel sl)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) { // loop on the number of times we perform same measurement
-        std::cout << std::setw(2) << "    ├ Sequential copy, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << std::setw(2) << "    ├ (" << getType<chunk_type>() << ") Seq copy, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         for (auto iChunk{0}; iChunk < mState.getMaxChunks(); ++iChunk) { // loop over single chunks separately
           auto result = benchmarkSync(&gpu::copyChunkMBKernel<chunk_type>,
                                       mState.getNKernelLaunches(),
@@ -742,7 +742,7 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent copy, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << "    ├ (" << getType<chunk_type>() << ") Conc copy, sing block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         auto results = benchmarkAsync(&gpu::copyChunkSBKernel<chunk_type>,
                                       mState.getMaxChunks(), // nStreams
                                       mState.getNKernelLaunches(),
@@ -768,7 +768,7 @@ void GPUbenchmark<chunk_type>::copyConcurrent(SplitLevel sl, int nRegions)
       auto capacity{mState.getPartitionCapacity()};
 
       for (auto measurement{0}; measurement < mOptions.nTests; ++measurement) {
-        std::cout << "    ├ Concurrent copy, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
+        std::cout << "    ├ (" << getType<chunk_type>() << ") Conc copy, mult block (" << measurement + 1 << "/" << mOptions.nTests << "):";
         auto results = benchmarkAsync(&gpu::copyChunkMBKernel<chunk_type>,
                                       mState.getMaxChunks(), // nStreams
                                       mState.getNKernelLaunches(),
