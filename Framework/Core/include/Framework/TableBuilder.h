@@ -789,10 +789,11 @@ class TableBuilder
 };
 
 template <typename T>
-auto makeEmptyTable()
+auto makeEmptyTable(const char* name)
 {
   TableBuilder b;
   [[maybe_unused]] auto writer = b.cursor<T>();
+  b.setLabel(name);
   return b.finalize();
 }
 
@@ -800,8 +801,9 @@ auto makeEmptyTable()
 template <typename... C>
 auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* name)
 {
+  std::string s = std::string{name} + "Extension";
   if (atable->num_rows() == 0) {
-    return makeEmptyTable<soa::Table<C...>>();
+    return makeEmptyTable<soa::Table<C...>>(s.c_str());
   }
   static auto new_schema = o2::soa::createSchemaFromColumns(columns);
   static auto projectors = framework::expressions::createProjectors(columns, atable->schema());
@@ -837,7 +839,8 @@ auto spawner(framework::pack<C...> columns, arrow::Table* atable, const char* na
   for (auto i = 0u; i < sizeof...(C); ++i) {
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
-  addLabelToSchema(new_schema, name);
+
+  addLabelToSchema(new_schema, s.c_str());
   return arrow::Table::Make(new_schema, arrays);
 }
 
