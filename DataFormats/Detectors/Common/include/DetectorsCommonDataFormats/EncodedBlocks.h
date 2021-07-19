@@ -24,6 +24,7 @@
 #include "TTree.h"
 #include "CommonUtils/StringUtils.h"
 #include "Framework/Logger.h"
+#include "DetectorsCommonDataFormats/CTFDictHeader.h"
 
 namespace o2
 {
@@ -871,8 +872,8 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
       const size_t nSymbols = literals.size();
       if (!literals.empty()) {
         // introduce padding in case literals don't align;
-        const size_t nSourceElemsPadded = calculatePaddedSize<input_t, storageBuffer_t>(literals.size());
-        literals.resize(nSourceElemsPadded, {});
+        const size_t nLiteralSymbolsPadded = calculatePaddedSize<input_t, storageBuffer_t>(nSymbols);
+        literals.resize(nLiteralSymbolsPadded, {});
 
         const size_t nLiteralStorageElems = calculateNDestTElements<input_t, storageBuffer_t>(nSymbols);
         expandStorage(nLiteralStorageElems);
@@ -882,7 +883,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
     }();
 
     *thisMetadata = Metadata{messageLength,
-                             literals.size(),
+                             nLiteralSymbols,
                              sizeof(ransState_t),
                              sizeof(ransStream_t),
                              static_cast<uint8_t>(encoder->getSymbolTablePrecision()),
@@ -891,7 +892,7 @@ void EncodedBlocks<H, N, W>::encode(const input_IT srcBegin,      // iterator be
                              encoder->getMaxSymbol(),
                              static_cast<int32_t>(frequencyTable.size()),
                              dataSize,
-                             static_cast<int32_t>(nLiteralSymbols)};
+                             static_cast<int32_t>(literals.size())};
   } else { // store original data w/o EEncoding
     //FIXME(milettri): we should be able to do without an intermediate vector;
     // provided iterator is not necessarily pointer, need to use intermediate vector!!!

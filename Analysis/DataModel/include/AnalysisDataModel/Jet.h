@@ -13,7 +13,8 @@
 //
 // Author: Jochen Klein, Nima Zardoshti
 
-#pragma once
+#ifndef O2_ANALYSIS_DATAMODEL_JET_H
+#define O2_ANALYSIS_DATAMODEL_JET_H
 
 #include "Framework/AnalysisDataModel.h"
 #include <cmath>
@@ -100,3 +101,5 @@ DECLARE_SOA_TABLE(JetConstituentsSub, "AOD", "CONSTITUENTSSUB", //!
 using JetConstituentSub = JetConstituentsSub::iterator;
 
 } // namespace o2::aod
+
+#endif

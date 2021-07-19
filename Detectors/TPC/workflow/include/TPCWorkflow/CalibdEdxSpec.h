@@ -9,13 +9,23 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test TPC QC
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
-#include "TPCQC/TrackCuts.h"
+/// \file CalibdEdxSpec.h
+/// \brief Workflow for time based dE/dx calibration.
+/// \author Thiago Badaró <thiago.saramela@usp.br>
 
-BOOST_AUTO_TEST_CASE(ReadWriteROOTFile)
+#ifndef O2_TPC_TPCCALIBDEDXSPEC_H_
+#define O2_TPC_TPCCALIBDEDXSPEC_H_
+
+#include "Framework/DataProcessorSpec.h"
+
+using namespace o2::framework;
+
+namespace o2::tpc
 {
-  o2::tpc::qc::TrackCuts trackcuts;
-}
+
+/// create a processor spec
+o2::framework::DataProcessorSpec getCalibdEdxSpec();
+
+} // namespace o2::tpc
+
+#endif // O2_TPC_TPCCALIBDEDXSPEC_H_

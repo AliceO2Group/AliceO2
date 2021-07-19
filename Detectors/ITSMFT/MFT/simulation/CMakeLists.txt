@@ -10,12 +10,13 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(MFTSimulation
-               SOURCES src/Detector.cxx src/DigitizerTask.cxx
-               PUBLIC_LINK_LIBRARIES O2::MFTBase ROOT::Physics)
+               SOURCES src/Detector.cxx src/DigitizerTask.cxx src/GeometryMisAligner.cxx
+               PUBLIC_LINK_LIBRARIES O2::MFTBase O2::CCDB ROOT::Physics)
 
 o2_target_root_dictionary(MFTSimulation
                           HEADERS include/MFTSimulation/Detector.h
-                                  include/MFTSimulation/DigitizerTask.h)
+                                  include/MFTSimulation/DigitizerTask.h
+                                  include/MFTSimulation/GeometryMisAligner.h)
 
 
 o2_data_file(COPY data  DESTINATION Detectors/MFT/simulation)

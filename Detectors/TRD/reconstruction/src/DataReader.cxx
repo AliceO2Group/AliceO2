@@ -35,6 +35,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"trd-datareader-dataverbose", VariantType::Bool, false, {"Enable verbose data info"}},
     {"trd-datareader-compresseddata", VariantType::Bool, false, {"The incoming data is compressed or not"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
+    {"trd-datareader-fixdigitcorruptdata", VariantType::Bool, false, {"Fix the erroneous data at the end of digits"}},
     {"trd-datareader-enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}}};
 
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -50,10 +51,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
 
   //  auto config = cfgc.options().get<std::string>("trd-datareader-config");
-  //
-  //
-  //  o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  // o2::conf::ConfigurableParam::writeINI("o2trdrawreader-workflow_configuration.ini");
 
   //auto outputspec = cfgc.options().get<std::string>("trd-datareader-outputspec");
   auto verbose = cfgc.options().get<bool>("trd-datareader-verbose");
@@ -62,6 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto headerverbose = cfgc.options().get<bool>("trd-datareader-headerverbose");
   auto dataverbose = cfgc.options().get<bool>("trd-datareader-dataverbose");
   auto askSTFDist = !cfgc.options().get<bool>("ignore-dist-stf");
+  auto fixdigitcorruption = cfgc.options().get<bool>("trd-datareader-fixdigitcorruptdata");
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
@@ -69,7 +67,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   //outputs.emplace_back("TRD", "FLPSTAT", 0, Lifetime::Timeframe);
   LOG(info) << "enablebyteswap :" << byteswap;
   AlgorithmSpec algoSpec;
-  algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(compresseddata, byteswap, verbose, headerverbose, dataverbose)};
+  algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(compresseddata, byteswap, fixdigitcorruption, verbose, headerverbose, dataverbose)};
 
   WorkflowSpec workflow;
 

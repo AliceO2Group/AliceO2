@@ -277,6 +277,32 @@ void Detector::ConstructGeometry()
   // mGeometry->enableComponent(Geometry::eAluminiumContainer, false);
   mGeometry->buildGeometry();
 }
+void Detector::addAlignableVolumes() const
+{
+  //
+  // Creates entries for alignable volumes associating the symbolic volume
+  // name with the corresponding volume path.
+  //
+  //  First version (mainly ported from AliRoot)
+  //
+
+  LOG(INFO) << "Add FV0 alignable volumes";
+
+  if (!gGeoManager) {
+    LOG(FATAL) << "TGeoManager doesn't exist !";
+    return;
+  }
+
+  TString volPath, symName;
+  for (int ihalf = 1; ihalf < 3; ihalf++) {
+    volPath = Form("/cave_1/barrel_1/FV0_1/FV0CONTAINER_%i", ihalf);
+    symName = Form("FV0half_%i", ihalf);
+    LOG(INFO) << symName << " <-> " << volPath;
+    if (!gGeoManager->SetAlignableEntry(symName.Data(), volPath.Data())) {
+      LOG(FATAL) << "Unable to set alignable entry ! " << symName << " : " << volPath;
+    }
+  }
+}
 
 o2::fv0::Hit* Detector::addHit(Int_t trackId, Int_t cellId,
                                const math_utils::Point3D<float>& startPos, const math_utils::Point3D<float>& endPos,

@@ -13,6 +13,7 @@
 #include "Framework/AnalysisDataModel.h"
 
 #include "AnalysisDataModel/EventSelection.h"
+#include "AnalysisDataModel/Centrality.h"
 
 #include "AnalysisDataModel/StrangenessTables.h"
 #include "AnalysisDataModel/HFSecondaryVertex.h" // for BigTracks
@@ -30,20 +31,17 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
-using collisionIt = aod::Collisions::iterator;
 using collisionEvSelIt = soa::Join<aod::Collisions, aod::EvSels>::iterator;
-
 using tracksAndTPCInfo = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi>;
-using tracksAndTPCInfoMC = soa::Join<aod::Tracks, aod::TracksExtra, aod::pidTPCEl, aod::pidTPCPi, aod::McTrackLabels>;
 
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-  ConfigParamSpec optionDoMC{"doMC", VariantType::Bool, false, {"Use MC info"}};
-  workflowOptions.push_back(optionDoMC);
-}
 #include "Framework/runDataProcessing.h"
 
 struct GammaConversions {
+
+  Configurable<bool> fDoEventSel{"fDoEventSel", 0, "demand kINT7 and sel7 for events"};
+
+  Configurable<float> fCentMin{"fCentMin", 0.0, "lower bound of centrality selection"};
+  Configurable<float> fCentMax{"fCentMax", 100.0, "upper bound of centrality selection"};
 
   Configurable<float> fSinglePtCut{"fSinglePtCut", 0.04, "minimum daughter track pt"};
 
@@ -79,6 +77,7 @@ struct GammaConversions {
   HistogramRegistry registry{
     "registry",
     {
+      {"hEvents", "hEvents", {HistType::kTH1F, {{13, -0.5f, 11.5f}}}},
       {"IsPhotonSelected", "IsPhotonSelected", {HistType::kTH1F, {{13, -0.5f, 11.5f}}}},
 
       {"beforeCuts/hPtRec", "hPtRec_before", {HistType::kTH1F, {{100, 0.0f, 25.0f}}}},
@@ -95,7 +94,7 @@ struct GammaConversions {
       {"hTPCdEdxSigPi", "hTPCdEdxSigPi", {HistType::kTH2F, {{150, 0.03f, 20.f}, {400, -10.f, 10.f}}}},
       {"hTPCdEdx", "hTPCdEdx", {HistType::kTH2F, {{150, 0.03f, 20.f}, {800, 0.f, 200.f}}}},
 
-      {"hTPCFoundOverFindableCls", "hTPCFoundOverFindableCls", {HistType::kTH1F, {{100, 0.f, 1.f}}}},
+      {"hTPCFoundOverFindableCls", "hTPCFoundOverFindableCls", {HistType::kTH1F, {{100, 0.f, 1.2f}}}},
       {"hTPCCrossedRowsOverFindableCls", "hTPCCrossedRowsOverFindableCls", {HistType::kTH1F, {{100, 0.f, 1.5f}}}},
 
       {"hArmenteros", "hArmenteros", {HistType::kTH2F, {{200, -1.f, 1.f}, {250, 0.f, 25.f}}}},
@@ -150,6 +149,12 @@ struct GammaConversions {
     for (size_t i = 0; i < fPhotCutsLabels.size(); ++i) {
       lXaxis->SetBinLabel(i + 1, fPhotCutsLabels[i]);
     }
+
+    lXaxis = registry.get<TH1>(HIST("hEvents"))->GetXaxis();
+    lXaxis->SetBinLabel(1, "in");
+    lXaxis->SetBinLabel(2, "int7||sel7");
+    lXaxis->SetBinLabel(3, "cent");
+    lXaxis->SetBinLabel(4, "out");
   }
 
   template <typename TTRACKS, typename TCOLL, typename TV0>
@@ -177,63 +182,21 @@ struct GammaConversions {
     return kTRUE;
   }
 
-  template <typename TV0, typename TMC>
-  void processTruePhoton(const TV0& theV0, const TMC& theMcParticles)
-  {
-    auto lTrackPos = theV0.template posTrack_as<tracksAndTPCInfoMC>(); //positive daughter
-    auto lTrackNeg = theV0.template negTrack_as<tracksAndTPCInfoMC>(); //negative daughter
-
-    // todo: verify it is enough to check only mother0 being equal
-    if (lTrackPos.mcParticle().mother0() > -1 &&
-        lTrackPos.mcParticle().mother0() == lTrackNeg.mcParticle().mother0()) {
-      auto lMother = theMcParticles.iteratorAt(lTrackPos.mcParticle().mother0());
-
-      if (lMother.pdgCode() == 22) {
-
-        registry.fill(HIST("resolutions/hPtRes"), theV0.pt() - lMother.pt());
-        registry.fill(HIST("resolutions/hEtaRes"), theV0.eta() - lMother.eta());
-        registry.fill(HIST("resolutions/hPhiRes"), theV0.phi() - lMother.phi());
-
-        TVector3 lConvPointRec(theV0.x(), theV0.y(), theV0.z());
-        TVector3 lPosTrackVtxMC(lTrackPos.mcParticle().vx(), lTrackPos.mcParticle().vy(), lTrackPos.mcParticle().vz());
-        // take the origin of the positive mc track as conversion point (should be identical with negative, verified this on a few photons)
-        TVector3 lConvPointMC(lPosTrackVtxMC);
-
-        registry.fill(HIST("resolutions/hConvPointRRes"), lConvPointRec.Perp() - lConvPointMC.Perp());
-        registry.fill(HIST("resolutions/hConvPointAbsoluteDistanceRes"), TVector3(lConvPointRec - lConvPointMC).Mag());
-      }
-    }
-  }
-
   void processData(collisionEvSelIt const& theCollision,
                    aod::V0Datas const& theV0s,
                    tracksAndTPCInfo const& theTracks)
   {
-    if (!theCollision.alias()[kINT7] || !theCollision.sel7()) {
+    registry.fill(HIST("hEvents"), 0);
+    if (fDoEventSel && (!theCollision.alias()[kINT7] || !theCollision.sel7())) {
+      registry.fill(HIST("hEvents"), 1);
       return;
     }
+    registry.fill(HIST("hEvents"), 3);
 
     for (auto& lV0 : theV0s) {
       if (!processPhoton<tracksAndTPCInfo>(theCollision, lV0)) {
         continue;
       }
-    }
-  }
-
-  void processMC(collisionIt const& theCollision,
-                 aod::V0Datas const& theV0s,
-                 tracksAndTPCInfoMC const& theTracks,
-                 aod::McParticles const& theMcParticles)
-  {
-    //~ if (!theCollision.sel7()) {
-    //~ return;
-    //~ }
-
-    for (auto& lV0 : theV0s) {
-      if (!processPhoton<tracksAndTPCInfoMC>(theCollision, lV0)) {
-        continue;
-      }
-      processTruePhoton(lV0, theMcParticles);
     }
   }
 
@@ -382,12 +345,5 @@ struct GammaConversions {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  if (!cfgc.options().get<bool>("doMC")) {
-    return WorkflowSpec{
-      adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processData}),
-    };
-  }
-  return WorkflowSpec{
-    adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processMC}),
-  };
+  return WorkflowSpec{adaptAnalysisTask<GammaConversions>(cfgc, Processes{&GammaConversions::processData})};
 }

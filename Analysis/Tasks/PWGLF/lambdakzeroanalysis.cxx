@@ -86,18 +86,30 @@ struct lambdakzeroQA {
 };
 
 struct lambdakzeroanalysis {
+
   HistogramRegistry registry{
     "registry",
     {
       {"h3dMassK0Short", "h3dMassK0Short", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 0.450f, 0.550f}}}},
       {"h3dMassLambda", "h3dMassLambda", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
       {"h3dMassAntiLambda", "h3dMassAntiLambda", {HistType::kTH3F, {{20, 0.0f, 100.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
-
-      {"h3dMassK0ShortDca", "h3dMassK0ShortDca", {HistType::kTH3F, {{200, 0.0f, 1.0f}, {200, 0.0f, 10.0f}, {200, 0.450f, 0.550f}}}},
-      {"h3dMassLambdaDca", "h3dMassLambdaDca", {HistType::kTH3F, {{200, 0.0f, 1.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
-      {"h3dMassAntiLambdaDca", "h3dMassAntiLambdaDca", {HistType::kTH3F, {{200, 0.0f, 1.0f}, {200, 0.0f, 10.0f}, {200, 1.015f, 1.215f}}}},
     },
   };
+
+  ConfigurableAxis dcaBinning{"dca-binning", {200, 0.0f, 1.0f}, ""};
+  ConfigurableAxis ptBinning{"pt-binning", {200, 0.0f, 10.0f}, ""};
+
+  void init(InitContext const&)
+  {
+    AxisSpec dcaAxis = {dcaBinning, "DCA (cm)"};
+    AxisSpec ptAxis = {ptBinning, "#it{p}_{T} (GeV/c)"};
+    AxisSpec massAxisK0Short = {200, 0.450f, 0.550f, "Inv. Mass (GeV)"};
+    AxisSpec massAxisLambda = {200, 1.015f, 1.215f, "Inv. Mass (GeV)"};
+
+    registry.add("h3dMassK0ShortDca", "h3dMassK0ShortDca", {HistType::kTH3F, {dcaAxis, ptAxis, massAxisK0Short}});
+    registry.add("h3dMassLambdaDca", "h3dMassLambdaDca", {HistType::kTH3F, {dcaAxis, ptAxis, massAxisLambda}});
+    registry.add("h3dMassAntiLambdaDca", "h3dMassAntiLambdaDca", {HistType::kTH3F, {dcaAxis, ptAxis, massAxisLambda}});
+  }
 
   //Selection criteria
   Configurable<double> v0cospa{"v0cospa", 0.995, "V0 CosPA"}; //double -> N.B. dcos(x)/dx = 0 at x=0)

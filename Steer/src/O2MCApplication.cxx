@@ -96,13 +96,18 @@ void O2MCApplicationBase::ConstructGeometry()
 {
   // fill the mapping
   mModIdToName.clear();
+  o2::detectors::DetID::mask_t dmask{};
   for (int i = 0; i < fModules->GetEntries(); ++i) {
     auto mod = static_cast<FairModule*>(fModules->At(i));
     if (mod) {
       mModIdToName[mod->GetModId()] = mod->GetName();
+      int did = o2::detectors::DetID::nameToID(mod->GetName());
+      if (did >= 0) {
+        dmask |= o2::detectors::DetID::getMask(did);
+      }
     }
   }
-
+  gGeoManager->SetUniqueID(dmask.to_ulong());
   FairMCApplication::ConstructGeometry();
 
   std::ofstream voltomodulefile("MCStepLoggerVolMap.dat");

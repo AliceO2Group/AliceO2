@@ -56,7 +56,7 @@ bool HitProcessingManager::setupChain()
   auto& c = *mSimChains[0];
   c.Reset();
   for (auto& filename : mBackgroundFileNames) {
-    c.AddFile(o2::base::NameConf::getMCKinematicsFileName(filename.data()).c_str());
+    c.AddFile(o2::base::NameConf::getMCHeadersFileName(filename.data()).c_str());
   }
 
   for (auto& pair : mSignalFileNames) {
@@ -64,7 +64,7 @@ bool HitProcessingManager::setupChain()
     const auto& filenamevector = pair.second;
     auto& chain = *mSimChains[signalid];
     for (auto& filename : filenamevector) {
-      chain.AddFile(o2::base::NameConf::getMCKinematicsFileName(filename.data()).c_str());
+      chain.AddFile(o2::base::NameConf::getMCHeadersFileName(filename.data()).c_str());
     }
   }
 

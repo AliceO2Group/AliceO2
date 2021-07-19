@@ -111,6 +111,7 @@ taskwrapper fddraw.log o2-fdd-digit2raw --file-per-link  -o raw/FDD
 taskwrapper tpcraw.log o2-tpc-digits-to-rawzs  --file-for link  -i tpcdigits.root -o raw/TPC
 taskwrapper tofraw.log o2-tof-reco-workflow ${GLOBALDPLOPT} --tof-raw-file-for link --output-type raw --tof-raw-outdir raw/TOF
 taskwrapper midraw.log o2-mid-digits-to-raw-workflow ${GLOBALDPLOPT} --mid-raw-outdir raw/MID --mid-raw-perlink
+taskwrapper mchraw.log o2-mch-digits-to-raw --input-file mchdigits.root --output-dir raw/MCH --file-per-link
 taskwrapper emcraw.log o2-emcal-rawcreator --file-for link -o raw/EMC
 taskwrapper phsraw.log o2-phos-digi2raw  --file-for link -o raw/PHS
 taskwrapper cpvraw.log o2-cpv-digi2raw  --file-for link -o raw/CPV
@@ -130,6 +131,10 @@ if [ $ENABLE_GPU_TEST != "0" ]; then
   STAGES+=" WITHGPU"
 fi
 STAGES+=" ASYNC"
+
+# give a possibility to run the FST with external existing dictionary (i.e. with CREATECTFDICT=0 full_system_test.sh)
+[ ! -z "$CREATECTFDICT" ] && SYNCMODEDOCTFDICT="$CREATECTFDICT" || SYNCMODEDOCTFDICT=1
+
 for STAGE in $STAGES; do
   logfile=reco_${STAGE}.log
 
@@ -150,7 +155,7 @@ for STAGE in $STAGES; do
     export CTFINPUT=1
     export SAVECTF=0
   else
-    export CREATECTFDICT=1
+    export CREATECTFDICT=$SYNCMODEDOCTFDICT
     export GPUTYPE=CPU
     export SYNCMODE=1
     export HOSTMEMSIZE=$TPCTRACKERSCRATCHMEMORY

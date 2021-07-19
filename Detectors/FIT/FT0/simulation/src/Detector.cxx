@@ -47,7 +47,6 @@ Detector::Detector(Bool_t Active)
 
 {
   // Gegeo  = GetGeometry() ;
-
   //  TString gn(geo->GetName());
 }
 

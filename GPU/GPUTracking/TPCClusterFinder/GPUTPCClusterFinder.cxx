@@ -120,6 +120,9 @@ void GPUTPCClusterFinder::SetMaxData(const GPUTrackingInOutPointers& io)
     mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, std::min<unsigned int>(threshold, mNMaxClusterPerRow * 10)); // Relative increased value up until a threshold, for noisy pads
     mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, io.settingsTF->nHBFPerTF * 20000 / 256);                     // Absolute increased value, to have a minimum for noisy pads
   }
+  if (mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow) {
+    mNMaxClusterPerRow = std::max<unsigned int>(mNMaxClusterPerRow, mRec->GetProcessingSettings().tpcIncreasedMinClustersPerRow);
+  }
 
   mBufSize = nextMultipleOf<std::max<int>(GPUCA_MEMALIGN, mScanWorkGroupSize)>(mNMaxDigitsFragment);
   mNBufs = getNSteps(mBufSize);

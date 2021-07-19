@@ -50,5 +50,6 @@
 #pragma link C++ class o2::tpc::CTFHeader + ;
 #pragma link C++ class o2::ctf::EncodedBlocks < o2::tpc::CTFHeader, 23, uint32_t> + ;
 #pragma link C++ enum o2::tpc::StatisticsType;
+#pragma link C++ class o2::tpc::TrackCuts + ;
 
 #endif

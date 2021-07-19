@@ -22,6 +22,7 @@
 #include "DataFormatsTRD/AngularResidHistos.h"
 
 #include "Rtypes.h"
+#include "TProfile.h"
 
 #include <array>
 #include <cstdlib>
@@ -31,11 +32,26 @@ namespace o2
 namespace trd
 {
 
+struct FitFunctor {
+  double operator()(const double* par) const;
+  double calculateDeltaAlphaSim(double vdFit, double laFit, double impactAng) const;
+  std::array<std::unique_ptr<TProfile>, constants::MAXCHAMBER> profiles; ///< profile histograms for each TRD chamber
+  double vdPreCorr;                                                      // TODO: these values should eventually be taken from CCDB
+  double laPreCorr;                                                      // TODO: these values should eventually be taken from CCDB
+  int currDet;                                                           ///< the current TRD chamber number
+  float lowerBoundAngleFit;
+  float upperBoundAngleFit;
+};
+
 class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::trd::AngularResidHistos, o2::trd::AngularResidHistos>
 {
   using Slot = o2::calibration::TimeSlot<o2::trd::AngularResidHistos>;
 
  public:
+  enum ParamIndex : int {
+    LA,
+    VD
+  };
   CalibratorVdExB(size_t nMin = 40'000) : mMinEntries(nMin) {}
   ~CalibratorVdExB() final = default;
 
@@ -44,10 +60,12 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, uint64_t tStart, uint64_t tEnd) final;
 
-  // TODO add calibration objects (vDrift and ExB values for each chamber) to this class and implement calibration in finalizeSlot()
+  void initProcessing();
 
  private:
+  bool mInitDone{false}; ///< flag to avoid creating the TProfiles multiple times
   size_t mMinEntries; ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
+  FitFunctor mFitFunctor; ///< used for minimization procedure
   ClassDefOverride(CalibratorVdExB, 1);
 };
 

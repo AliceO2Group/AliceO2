@@ -9,12 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/*
- * SimCutParams.cxx
- *
- *  Created on: Feb 18, 2019
- *      Author: sandro
- */
+#include "TPCWorkflow/MIPTrackFilterSpec.h"
+#include "Framework/runDataProcessing.h"
 
-#include "SimConfig/SimCutParams.h"
-O2ParamImpl(o2::conf::SimCutParams);
+using namespace o2::framework;
+
+WorkflowSpec defineDataProcessing(ConfigContext const&)
+{
+  using namespace o2::tpc;
+  return WorkflowSpec{getMIPTrackFilterSpec()};
+}

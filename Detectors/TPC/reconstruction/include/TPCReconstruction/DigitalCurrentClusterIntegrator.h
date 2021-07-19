@@ -44,7 +44,7 @@ class DigitalCurrentClusterIntegrator
   }
   void integrateCluster(int sector, int row, float pad, unsigned int charge)
   {
-    int ipad = ipad + 0.5;
+    int ipad = pad + 0.5;
     if (ipad < 0) {
       ipad = 0;
     }

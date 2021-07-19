@@ -18,6 +18,7 @@
 #include "FairMQResizableBuffer.h"
 #include "CommonUtils/BoostSerializer.h"
 #include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include <Monitoring/Monitoring.h>
 #include <fairmq/FairMQParts.h>
@@ -98,6 +99,7 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     dh->payloadSize = payload->GetSize();
     dh->serialization = o2::header::gSerializationMethodArrow;
     monitoring.send(Metric{(uint64_t)payload->GetSize(), fmt::format("table-bytes-{}-{}-created", dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>())}.addTag(Key::Subsystem, Value::DPL));
+    LOGP(INFO, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
@@ -105,7 +107,9 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
     device.Send(parts, messageRef.channel, 0);
   }
   static int64_t previousBytesSent = 0;
-  auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId, std::array<ComputingQuotaOffer, 16>& offers) {
+  auto disposeResources = [bs = context.bytesSent() - previousBytesSent](int taskId, std::array<ComputingQuotaOffer, 16>& offers, std::function<void(ComputingQuotaOffer&)> accountDisposed) {
+    ComputingQuotaOffer disposed;
+    disposed.sharedMemory = 0;
     int64_t bytesSent = bs;
     for (size_t oi = 0; oi < offers.size(); oi++) {
       auto& offer = offers[oi];
@@ -116,9 +120,10 @@ void DataProcessor::doSend(FairMQDevice& device, ArrowContext& context, ServiceR
       offer.sharedMemory -= toRemove;
       bytesSent -= toRemove;
       if (bytesSent <= 0) {
-        return;
+        break;
       }
     }
+    return accountDisposed(disposed);
   };
   registry.get<DeviceState>().offerConsumers.push_back(disposeResources);
   previousBytesSent = context.bytesSent();

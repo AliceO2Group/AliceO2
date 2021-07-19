@@ -13,7 +13,8 @@
 //
 // Author: Raymond Ehlers
 
-#pragma once
+#ifndef O2_ANALYSIS_DATAMODEL_EMCALCLUSTERS
+#define O2_ANALYSIS_DATAMODEL_EMCALCLUSTERS
 
 #include "Framework/AnalysisDataModel.h"
 
@@ -36,3 +37,5 @@ DECLARE_SOA_TABLE(EMCALClusters, "AOD", "EMCALCLUSTERS", //!
 using EMCALCluster = EMCALClusters::iterator;
 
 } // namespace o2::aod
+
+#endif

@@ -130,10 +130,11 @@ int checkresult()
     errors++;
   } else {
     if (!conf.isFilterOutNoHitEvents()) {
-      errors += tr->GetEntries() != conf.getNEvents();
+      if (tr->GetEntries() != conf.getNEvents()) {
+        LOG(WARN) << "There are fewer events in the output than asked";
+      }
     }
   }
-
   // add more simple checks
 
   return errors;

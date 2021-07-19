@@ -15,4 +15,4 @@ jobs:
     - name: Run pragma check
       id: pragma_check
       run: |
-        git grep -l '#pragma once' -- '*.h' && exit 1
+        git --no-pager grep -l '#pragma once' -- '*.h' && exit 1 || exit 0

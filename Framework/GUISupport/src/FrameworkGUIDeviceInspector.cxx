@@ -21,6 +21,7 @@
 #include "Framework/DeviceController.h"
 
 #include "DebugGUI/imgui.h"
+#include <cinttypes>
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
@@ -122,6 +123,21 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
           case VariantType::Int:
             ImGui::Text("%d (default)", option.defaultValue.get<int>());
             break;
+          case VariantType::Int64:
+            ImGui::Text("%" PRId64 " (default)", option.defaultValue.get<int64_t>());
+            break;
+          case VariantType::UInt8:
+            ImGui::Text("%d (default)", option.defaultValue.get<uint8_t>());
+            break;
+          case VariantType::UInt16:
+            ImGui::Text("%d (default)", option.defaultValue.get<uint16_t>());
+            break;
+          case VariantType::UInt32:
+            ImGui::Text("%d (default)", option.defaultValue.get<uint32_t>());
+            break;
+          case VariantType::UInt64:
+            ImGui::Text("%" PRIu64 " (default)", option.defaultValue.get<uint64_t>());
+            break;
           case VariantType::Float:
             ImGui::Text("%f (default)", option.defaultValue.get<float>());
             break;
@@ -130,6 +146,7 @@ void optionsTable(const char* label, std::vector<ConfigParamSpec> const& options
             break;
           case VariantType::Empty:
             ImGui::TextUnformatted(""); // no default value
+            break;
           default:
             ImGui::TextUnformatted("unknown");
         }

@@ -264,6 +264,6 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
                                           outputs,
                                           o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(),
                                           o2::framework::Options{
-                                            {"fitmethod", o2::framework::VariantType::String, "standard", {"Fit method (standard or gamma2)"}},
+                                            {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
                                             {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}}}};
 }

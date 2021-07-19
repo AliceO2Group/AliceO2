@@ -421,12 +421,6 @@ void MatchTPCITS::updateTimeDependentParams()
   mTPCZMax = detParam.TPClength;
   mTPCTBinMUSInv = 1. / mTPCTBinMUS;
   assert(mITSROFrameLengthMUS > 0.0f);
-  if (mITSTriggered) {
-    mITSROFrame2TPCBin = mITSROFrameLengthMUS * mTPCTBinMUSInv;
-  } else {
-    mITSROFrame2TPCBin = mITSROFrameLengthMUS * mTPCTBinMUSInv; // RSTODO use both ITS and TPC times BCs once will be available for TPC also
-  }
-  mTPCBin2ITSROFrame = 1. / mITSROFrame2TPCBin;
   mTPCBin2Z = mTPCTBinMUS * mTPCVDrift0;
   mZ2TPCBin = 1. / mTPCBin2Z;
   mTPCVDrift0Inv = 1. / mTPCVDrift0;
@@ -657,7 +651,7 @@ bool MatchTPCITS::prepareTPCData()
     if (maxTime < tmax) {
       maxTime = tmax;
     }
-    int nbins = 1 + time2ITSROFrame(tmax);
+    int nbins = 1 + (mITSTriggered ? time2ITSROFrameTrig(tmax, 0) : time2ITSROFrameCont(tmax));
     auto& timeStart = mTPCTimeStart[sec];
     timeStart.resize(nbins, -1);
     int itsROF = 0;
@@ -680,14 +674,12 @@ bool MatchTPCITS::prepareTPCData()
     }
   } // loop over tracks of single sector
 
-  // create mapping from TPC time-bins to ITS ROFs
-
+  // FIXME
+  /*
+  // create mapping from TPC time to ITS ROFs
   if (mITSROFTimes.back() < maxTime) {
     maxTime = mITSROFTimes.back().getMax();
   }
-
-  // FIXME
-  /*
   int nb = int(maxTime) + 1;
   mITSROFofTPCBin.resize(nb, -1);
   int itsROF = 0;
@@ -893,11 +885,13 @@ void MatchTPCITS::doMatching(int sec)
   auto t2nbs = tpcTimeBin2MUS(mZ2TPCBin * mParams->tpcTimeICMatchingNSigma); // FIXME work directly with time in \mus
   bool checkInteractionCandidates = mUseFT0 && mParams->validateMatchByFIT != MatchTPCITSParams::Disable;
 
+  int itsROBin = 0;
   for (int itpc = idxMinTPC; itpc < nTracksTPC; itpc++) {
     auto& trefTPC = mTPCWork[cacheTPC[itpc]];
     // estimate ITS 1st ROframe bin this track may match to: TPC track are sorted according to their
     // timeMax, hence the timeMax - MaxmNTPCBinsFullDrift are non-decreasing
-    int itsROBin = time2ITSROFrame(trefTPC.tBracket.getMax() - maxTDriftSafe);
+    auto tmn = trefTPC.tBracket.getMax() - maxTDriftSafe;
+    itsROBin = mITSTriggered ? time2ITSROFrameTrig(tmn, itsROBin) : time2ITSROFrameCont(tmn);
 
     if (itsROBin >= int(timeStartITS.size())) { // time of TPC track exceeds the max time of ITS in the cache
       break;
@@ -2447,6 +2441,14 @@ void MatchTPCITS::refitABTrack(int ibest) const
     }
     ibest = lnk.parentID;
   }
+}
+
+//______________________________________________
+void MatchTPCITS::setITSROFrameLengthMUS(float fums)
+{
+  mITSROFrameLengthMUS = fums;
+  mITSROFrameLengthMUSInv = 1. / mITSROFrameLengthMUS;
+  mITSROFrameLengthInBC = std::max(1, int(mITSROFrameLengthMUS / (o2::constants::lhc::LHCBunchSpacingNS * 1e-3)));
 }
 
 //______________________________________________

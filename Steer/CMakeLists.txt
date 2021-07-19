@@ -17,6 +17,11 @@ o2_add_library(Steer
                                      O2::SimulationDataFormat
                                      O2::DetectorsCommonDataFormats)
 
+o2_add_executable(colcontexttool
+                  COMPONENT_NAME steer
+                  SOURCES src/CollisionContextTool.cxx
+                  PUBLIC_LINK_LIBRARIES Boost::program_options O2::Algorithm O2::Steer O2::SimulationDataFormat)
+
 o2_target_root_dictionary(Steer
                           HEADERS include/Steer/InteractionSampler.h
                                   include/Steer/HitProcessingManager.h

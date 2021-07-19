@@ -292,6 +292,14 @@ int CruRawReader::processHalfCRU(int cruhbfstartoffset)
         LOG(info) << "mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;
       }
       digitwordsread = mDigitsParser.Parse(&mHBFPayload, linkstart, linkend, currentdetector, cleardigits, mByteSwap, mVerbose, mHeaderVerbose, mDataVerbose);
+      if (digitwordsread != std::distance(linkstart, linkend)) {
+        //we have the data corruption problem of a pile of stuff at the end of a link, jump over it.
+        if (mFixDigitEndCorruption) {
+          digitwordsread = std::distance(linkstart, linkend);
+        } else {
+          LOG(warn) << "read digits but data still left on the link digitwordsread:" << digitwordsread << " and link length:" << std::distance(linkstart, linkend);
+        }
+      }
       mTotalDigitsFound += mDigitsParser.getDigitsFound();
       if (mVerbose) {
         LOG(info) << "digitwordsread : " << digitwordsread << " mem copy with offset of : " << cruhbfstartoffset << " parsing digits with linkstart: " << linkstart << " ending at : " << linkend;

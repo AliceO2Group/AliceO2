@@ -41,6 +41,10 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
     ("aFloat", bpo::value<float>()->default_value(10.f))                  //
     ("aDouble", bpo::value<double>()->default_value(20.))                 //
     ("anInt", bpo::value<int>()->default_value(1))                        //
+    ("anUInt8", bpo::value<uint8_t>()->default_value(1))                  //
+    ("anUInt16", bpo::value<uint16_t>()->default_value(1))                //
+    ("anUInt32", bpo::value<uint32_t>()->default_value(1))                //
+    ("anUInt64", bpo::value<uint64_t>()->default_value(1))                //
     ("anInt64", bpo::value<int64_t>()->default_value(1ll))                //
     ("aBoolean", bpo::value<bool>()->zero_tokens()->default_value(false)) //
     ("aString,s", bpo::value<std::string>()->default_value("something"))  //
@@ -52,6 +56,10 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
   options->ParseAll({"cmd", "--aFloat", "1.0",
                      "--aDouble", "2.0",
                      "--anInt", "10",
+                     "--anUInt8", "2",
+                     "--anUInt16", "10",
+                     "--anUInt32", "10",
+                     "--anUInt64", "10",
                      "--anInt64", "50000000000000",
                      "--aBoolean",
                      "-s", "somethingelse",
@@ -60,6 +68,10 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
                     true);
   std::vector<ConfigParamSpec> specs{
     ConfigParamSpec{"anInt", VariantType::Int, 1, {"an int option"}},
+    ConfigParamSpec{"anUInt8", VariantType::UInt8, static_cast<uint8_t>(1u), {"an uint8 option"}},
+    ConfigParamSpec{"anUInt16", VariantType::UInt16, static_cast<uint16_t>(1u), {"an uint16 option"}},
+    ConfigParamSpec{"anUInt32", VariantType::UInt32, 1u, {"an uint32 option"}},
+    ConfigParamSpec{"anUInt64", VariantType::UInt64, static_cast<uint64_t>(1ul), {"an uint64 option"}},
     ConfigParamSpec{"anInt64", VariantType::Int64, 1ll, {"an int64_t option"}},
     ConfigParamSpec{"aFloat", VariantType::Float, 2.0f, {"a float option"}},
     ConfigParamSpec{"aDouble", VariantType::Double, 3., {"a double option"}},
@@ -82,6 +94,10 @@ BOOST_AUTO_TEST_CASE(TestConfigParamRegistry)
   BOOST_CHECK_EQUAL(registry.get<float>("aFloat"), 1.0);
   BOOST_CHECK_EQUAL(registry.get<double>("aDouble"), 2.0);
   BOOST_CHECK_EQUAL(registry.get<int>("anInt"), 10);
+  BOOST_CHECK_EQUAL(registry.get<uint8_t>("anUInt8"), '2');
+  BOOST_CHECK_EQUAL(registry.get<uint16_t>("anUInt16"), 10);
+  BOOST_CHECK_EQUAL(registry.get<uint32_t>("anUInt32"), 10);
+  BOOST_CHECK_EQUAL(registry.get<uint64_t>("anUInt64"), 10);
   BOOST_CHECK_EQUAL(registry.get<int64_t>("anInt64"), 50000000000000ll);
   BOOST_CHECK_EQUAL(registry.get<bool>("aBoolean"), true);
   BOOST_CHECK_EQUAL(registry.get<std::string>("aString"), "somethingelse");

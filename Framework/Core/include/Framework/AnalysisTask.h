@@ -12,14 +12,14 @@
 #ifndef FRAMEWORK_ANALYSIS_TASK_H_
 #define FRAMEWORK_ANALYSIS_TASK_H_
 
-#include "../../src/AnalysisManagers.h"
+#include "Framework/AnalysisManagers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Expressions.h"
-#include "../src/ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 #include "Framework/EndOfStreamContext.h"
 #include "Framework/Logger.h"
 #include "Framework/StructToTuple.h"
@@ -31,6 +31,7 @@
 
 #include <arrow/compute/kernel.h>
 #include <arrow/table.h>
+#include <arrow/util/key_value_metadata.h>
 #include <gandiva/node.h>
 #include <type_traits>
 #include <utility>

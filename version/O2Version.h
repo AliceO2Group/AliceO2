@@ -9,7 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#pragma once
+#ifndef O2_VERSION_H
+#define O2_VERSION_H
 
 #include <string>
 
@@ -24,3 +25,5 @@ std::string gitRevision();
 /// get information about build platform (for example OS and alidist release when used)
 std::string getBuildInfo();
 } // namespace o2
+
+#endif

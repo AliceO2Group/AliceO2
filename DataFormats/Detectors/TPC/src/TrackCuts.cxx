@@ -11,12 +11,12 @@
 
 #include "FairLogger.h"
 
-#include "TPCQC/TrackCuts.h"
+#include "DataFormatsTPC/TrackCuts.h"
 #include "DataFormatsTPC/TrackTPC.h"
 
-ClassImp(o2::tpc::qc::TrackCuts);
+ClassImp(o2::tpc::TrackCuts);
 
-using namespace o2::tpc::qc;
+using namespace o2::tpc;
 
 TrackCuts::TrackCuts(float PMin, float PMax, float NClusMin) : mPMin(PMin),
                                                                mPMax(PMax),

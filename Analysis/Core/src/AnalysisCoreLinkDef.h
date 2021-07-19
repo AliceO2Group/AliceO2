@@ -16,5 +16,3 @@
 #pragma link C++ class CorrelationContainer + ;
 #pragma link C++ class TrackSelection + ;
 #pragma link C++ class TriggerAliases + ;
-
-#pragma link C++ class HFTrackIndexSkimsCreatorConfigs + ;

@@ -626,7 +626,7 @@ void MatchTOF::doMatching(int sec)
           // set event indexes (to be checked)
           evIdx eventIndexTOFCluster(trefTOF.getEntryInTree(), mTOFClusSectIndexCache[indices[0]][itof]);
           evGIdx eventIndexTracks(mCurrTracksTreeEntry, {uint32_t(mTracksSectIndexCache[type][indices[0]][itrk]), o2::dataformats::GlobalTrackID::ITSTPC});
-          mMatchedTracksPairs.emplace_back(eventIndexTOFCluster, chi2, trkLTInt[iPropagation], eventIndexTracks, type); // TODO: check if this is correct!
+          mMatchedTracksPairs.emplace_back(eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[iPropagation], eventIndexTracks, type); // TODO: check if this is correct!
         }
       }
     }
@@ -939,7 +939,7 @@ void MatchTOF::doMatchingForTPC(int sec)
             // set event indexes (to be checked)
             evIdx eventIndexTOFCluster(trefTOF.getEntryInTree(), mTOFClusSectIndexCache[indices[0]][itof]);
             evGIdx eventIndexTracks(mCurrTracksTreeEntry, {uint32_t(mTracksSectIndexCache[trkType::UNCONS][indices[0]][itrk]), o2::dataformats::GlobalTrackID::TPC});
-            mMatchedTracksPairs.emplace_back(eventIndexTOFCluster, chi2, trkLTInt[ibc][iPropagation], eventIndexTracks, trkType::UNCONS, resZ / vdrift * side, trefTOF.getZ()); // TODO: check if this is correct!
+            mMatchedTracksPairs.emplace_back(eventIndexTOFCluster, mTOFClusWork[cacheTOF[itof]].getTime(), chi2, trkLTInt[ibc][iPropagation], eventIndexTracks, trkType::UNCONS, resZ / vdrift * side, trefTOF.getZ()); // TODO: check if this is correct!
           }
         }
       }

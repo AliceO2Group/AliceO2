@@ -110,10 +110,10 @@ class VertexSamplerSpec
 };
 
 //_________________________________________________________________________________________________
-o2::framework::DataProcessorSpec getVertexSamplerSpec()
+o2::framework::DataProcessorSpec getVertexSamplerSpec(const char* name)
 {
   return DataProcessorSpec{
-    "VertexSampler",
+    name,
     Inputs{InputSpec{"rofs", "MCH", "TRACKROFS", 0, Lifetime::Timeframe},
            // track and cluster messages are there just to keep things synchronized
            InputSpec{"tracks", "MCH", "TRACKS", 0, Lifetime::Timeframe},

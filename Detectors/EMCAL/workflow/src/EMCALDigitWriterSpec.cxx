@@ -11,7 +11,7 @@
 
 /// @brief  Processor spec for a ROOT file writer for EMCAL digits
 
-#include "EMCALDigitWriterSpec.h"
+#include "EMCALWorkflow/EMCALDigitWriterSpec.h"
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include <SimulationDataFormat/MCTruthContainer.h>
 #include "DataFormatsEMCAL/Digit.h"

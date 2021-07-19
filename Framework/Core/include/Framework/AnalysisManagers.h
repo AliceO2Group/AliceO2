@@ -22,7 +22,7 @@
 #include "Framework/ConfigurableHelpers.h"
 #include "Framework/InitContext.h"
 #include "Framework/RootConfigParamHelpers.h"
-#include "../src/ExpressionHelpers.h"
+#include "Framework/ExpressionHelpers.h"
 
 namespace o2::framework
 {
@@ -152,8 +152,9 @@ struct OutputManager<Produces<TABLE>> {
     what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
     return true;
   }
-  static bool finalize(ProcessingContext&, Produces<TABLE>&)
+  static bool finalize(ProcessingContext&, Produces<TABLE>& what)
   {
+    what.setLabel(o2::aod::MetadataTrait<TABLE>::metadata::tableLabel());
     return true;
   }
   static bool postRun(EndOfStreamContext&, Produces<TABLE>&)

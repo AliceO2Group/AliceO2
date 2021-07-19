@@ -21,6 +21,7 @@
 #include <arrow/table.h>
 #include <arrow/type_traits.h>
 #include <arrow/status.h>
+#include <arrow/util/key_value_metadata.h>
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
@@ -72,6 +73,11 @@ void TableBuilder::validate(const int nColumns, std::vector<std::string> const& 
   if (mHolders != nullptr) {
     throwError(runtime_error("TableBuilder::persist can only be invoked once per instance"));
   }
+}
+
+void TableBuilder::setLabel(const char* label)
+{
+  mSchema = mSchema->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{label}}));
 }
 
 } // namespace o2::framework

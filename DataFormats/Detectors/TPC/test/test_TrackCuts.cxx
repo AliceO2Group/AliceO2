@@ -9,9 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_TRD_DIGIT_BACKCOMPAT_H_
-#define ALICEO2_TRD_DIGIT_BACKCOMPAT_H_
+#define BOOST_TEST_MODULE Test TPC QC
+#define BOOST_TEST_MAIN
+#define BOOST_TEST_DYN_LINK
+#include <boost/test/unit_test.hpp>
+#include "DataFormatsTPC/TrackCuts.h"
 
-#include "DataFormatsTRD/Digit.h"
-
-#endif
+BOOST_AUTO_TEST_CASE(ReadWriteROOTFile)
+{
+  o2::tpc::TrackCuts trackcuts;
+}

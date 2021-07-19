@@ -22,7 +22,8 @@
 
 #include "CommonMessageBackendsHelpers.h"
 #include <Monitoring/Monitoring.h>
-#include <Headers/DataHeader.h>
+#include "Headers/DataHeader.h"
+#include "Headers/DataHeaderHelpers.h"
 
 #include <options/FairMQProgOptions.h>
 
@@ -54,7 +55,7 @@ static int64_t memLimit = 0;
 
 struct MetricIndices {
   size_t arrowBytesCreated = 0;
-  size_t readerBytesCreated = 0;
+  size_t shmOfferConsumed = 0;
   size_t arrowBytesDestroyed = 0;
   size_t arrowMessagesCreated = 0;
   size_t arrowMessagesDestroyed = 0;
@@ -110,7 +111,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                         DeviceMetricsInfo& driverMetrics,
                         size_t timestamp) {
                        int64_t totalBytesCreated = 0;
-                       int64_t readerBytesCreated = 0;
+                       int64_t shmOfferConsumed = 0;
                        int64_t totalBytesDestroyed = 0;
                        int64_t totalBytesExpired = 0;
                        int64_t totalMessagesCreated = 0;
@@ -118,7 +119,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        static RateLimitingState currentState = RateLimitingState::UNKNOWN;
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
-                       static auto readerBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "reader-arrow-bytes-created");
+                       static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "shm-offer-bytes-consumed");
                        static auto unusedOfferedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "unusedOfferedMemory");
                        static auto availableSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "available-shared-memory");
                        static auto offeredSharedMemoryMetric = DeviceMetricsHelper::createNumericMetric<int>(driverMetrics, "offered-shared-memory");
@@ -157,9 +158,19 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                              auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
                              auto value = (int64_t)data.at((info.pos - 1) % data.size());
                              totalBytesCreated += value;
-                             if (specs[mi].name == "internal-dpl-aod-reader") {
-                               readerBytesCreated += value;
-                             }
+                             lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
+                             firstTimestamp = std::min(lastTimestamp, firstTimestamp);
+                           }
+                         }
+                         {
+                           size_t index = indices.shmOfferConsumed;
+                           if (index < deviceMetrics.metrics.size()) {
+                             hasMetrics = true;
+                             changed |= deviceMetrics.changed.at(index);
+                             MetricInfo info = deviceMetrics.metrics.at(index);
+                             auto& data = deviceMetrics.uint64Metrics.at(info.storeIdx);
+                             auto value = (int64_t)data.at((info.pos - 1) % data.size());
+                             shmOfferConsumed += value;
                              lastTimestamp = std::max(lastTimestamp, deviceMetrics.timestamps[index][(info.pos - 1) % data.size()]);
                              firstTimestamp = std::min(lastTimestamp, firstTimestamp);
                            }
@@ -207,7 +218,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          totalBytesCreatedMetric(driverMetrics, totalBytesCreated, timestamp);
                          totalBytesDestroyedMetric(driverMetrics, totalBytesDestroyed, timestamp);
                          totalBytesExpiredMetric(driverMetrics, totalBytesExpired, timestamp);
-                         readerBytesCreatedMetric(driverMetrics, readerBytesCreated, timestamp);
+                         shmOfferConsumedMetric(driverMetrics, shmOfferConsumed, timestamp);
                          totalMessagesCreatedMetric(driverMetrics, totalMessagesCreated, timestamp);
                          totalMessagesDestroyedMetric(driverMetrics, totalMessagesDestroyed, timestamp);
                          totalBytesDeltaMetric(driverMetrics, totalBytesCreated - totalBytesExpired - totalBytesDestroyed, timestamp);
@@ -253,7 +264,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            continue;
                          }
                          possibleOffer = std::min(MAX_QUANTUM_SHARED_MEMORY, availableSharedMemory);
-                         LOGP(info, "Offering {}MB to {}", possibleOffer, availableSharedMemory, specs[candidate].id);
+                         LOGP(info, "Offering {}MB out of {} to {}", possibleOffer, availableSharedMemory, specs[candidate].id);
                          manager.queueMessage(specs[candidate].id.c_str(), fmt::format("/shm-offer {}", possibleOffer).data());
                          availableSharedMemory -= possibleOffer;
                          offeredSharedMemory += possibleOffer;
@@ -265,8 +276,24 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          lastDeviceOffered = lastCandidate + 1;
                        }
 
-                       int unusedOfferedMemory = (offeredSharedMemory - readerBytesCreated / 1000000);
-                       availableSharedMemory = MAX_SHARED_MEMORY + ((totalBytesDestroyed + totalBytesExpired - totalBytesCreated) / 1000000) - unusedOfferedMemory;
+                       // unusedOfferedMemory is the amount of memory which was offered and which we know it was
+                       // not used so far. So we need to account for the amount which got actually read (readerBytesCreated)
+                       // and the amount which we know was given back.
+                       static int64_t lastShmOfferConsumed = 0;
+                       static int64_t lastUnusedOfferedMemory = 0;
+                       if (shmOfferConsumed != lastShmOfferConsumed) {
+                         LOGP(INFO, "Offer consumed so far {}", shmOfferConsumed);
+                         lastShmOfferConsumed = shmOfferConsumed;
+                       }
+                       int unusedOfferedMemory = (offeredSharedMemory - (totalBytesExpired + shmOfferConsumed) / 1000000);
+                       if (lastUnusedOfferedMemory != unusedOfferedMemory) {
+                         LOGP(INFO, "Unused offer {}", unusedOfferedMemory);
+                         lastUnusedOfferedMemory = unusedOfferedMemory;
+                       }
+                       // availableSharedMemory is the amount of memory which we know is available to be offered.
+                       // We subtract the amount which we know was already offered but it's unused and we then balance how
+                       // much was created with how much was destroyed.
+                       availableSharedMemory = MAX_SHARED_MEMORY + ((totalBytesDestroyed - totalBytesCreated) / 1000000) - unusedOfferedMemory;
                        availableSharedMemoryMetric(driverMetrics, availableSharedMemory, timestamp);
                        unusedOfferedMemoryMetric(driverMetrics, unusedOfferedMemory, timestamp);
 
@@ -283,6 +310,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          }
                          auto dh = o2::header::get<DataHeader*>(input.header);
                          if (dh->serialization != o2::header::gSerializationMethodArrow) {
+                           LOGP(DEBUG, "Message {}/{} is not of kind arrow, therefore we are not accounting its shared memory", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
                          auto dph = o2::header::get<DataProcessingHeader*>(input.header);
@@ -294,12 +322,15 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                            }
                          }
                          if (forwarded) {
+                           LOGP(DEBUG, "Message {}/{} is forwarded so we are not returning its memory.", dh->dataOrigin, dh->dataDescription);
                            continue;
                          }
+                         LOGP(DEBUG, "Message {}/{} is being deleted. We will return {}MB.", dh->dataOrigin, dh->dataDescription, dh->payloadSize / 1000000.);
                          totalBytes += dh->payloadSize;
                          totalMessages += 1;
                        }
                        arrow->updateBytesDestroyed(totalBytes);
+                       LOGP(DEBUG, "{}MB bytes being given back to reader, totaling {}MB", totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& monitoring = ctx.services().get<Monitoring>();
                        monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
@@ -311,9 +342,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                      [](ServiceRegistry& registry, boost::program_options::variables_map const& vm) {
                        auto config = new RateLimitConfig{};
                        int readers = std::stoll(vm["readers"].as<std::string>());
-                       long long int minReaderMemory = readers * 500;
                        if (vm.count("aod-memory-rate-limit")) {
-                         config->maxMemory = std::max(minReaderMemory, std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000);
+                         config->maxMemory = std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000;
+                       } else {
+                         config->maxMemory = readers * 400;
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...

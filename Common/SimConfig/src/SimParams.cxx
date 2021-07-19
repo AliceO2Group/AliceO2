@@ -9,7 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// HF Configurable Classes
-//
-// Authors: Nima Zardoshti
-#include "AnalysisCore/HFConfigurables.h"
+/*
+ * SimCutParams.cxx
+ *
+ *  Created on: Feb 18, 2019
+ *      Author: Sandro Wenzel
+ */
+
+#include "SimConfig/SimParams.h"
+O2ParamImpl(o2::conf::SimCutParams);
+O2ParamImpl(o2::conf::SimMaterialParams);

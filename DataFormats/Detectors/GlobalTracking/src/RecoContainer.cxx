@@ -170,6 +170,7 @@ void DataRequest::requestTRDTracklets(bool mc)
 {
   addInput({"trdtracklets", o2::header::gDataOriginTRD, "TRACKLETS", 0, Lifetime::Timeframe});
   addInput({"trdctracklets", o2::header::gDataOriginTRD, "CTRACKLETS", 0, Lifetime::Timeframe});
+  addInput({"trdtrigrecmask", o2::header::gDataOriginTRD, "TRIGRECMASK", 0, Lifetime::Timeframe});
   addInput({"trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"trdtrackletlabels", o2::header::gDataOriginTRD, "TRKLABELS", 0, Lifetime::Timeframe});
@@ -220,7 +221,7 @@ void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices befo
 
 void DataRequest::requestSecondaryVertertices(bool)
 {
-  addInput({"v0s", "GLO", "V0s", 0, Lifetime::Timeframe});
+  addInput({"v0s", "GLO", "V0S", 0, Lifetime::Timeframe});
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
   addInput({"cascs", "GLO", "CASCS", 0, Lifetime::Timeframe});
   addInput({"p2cascs", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
