@@ -18,6 +18,7 @@
 #include "AnalysisDataModel/PID/PIDTOF.h"
 #include "AnalysisDataModel/PID/TOFResoALICE3.h"
 #include "AnalysisDataModel/TrackSelectionTables.h"
+#include "ALICE3Analysis/OuterTOF.h"
 
 using namespace o2;
 using namespace o2::framework;
@@ -34,9 +35,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h"
 
 struct ALICE3pidTOFTask {
-  using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov>;
+  using Trks = soa::Join<aod::Tracks, aod::TracksExtra, aod::TracksCov, aod::OBTOFs>;
   using Coll = aod::Collisions;
   // Tables to produce
+
+  // Inner TOF
   Produces<o2::aod::pidTOFFullEl> tablePIDEl;
   Produces<o2::aod::pidTOFFullMu> tablePIDMu;
   Produces<o2::aod::pidTOFFullPi> tablePIDPi;
@@ -46,6 +49,18 @@ struct ALICE3pidTOFTask {
   Produces<o2::aod::pidTOFFullTr> tablePIDTr;
   Produces<o2::aod::pidTOFFullHe> tablePIDHe;
   Produces<o2::aod::pidTOFFullAl> tablePIDAl;
+
+  // Outer TOF
+  Produces<aod::pidOBTOFFullEl> tableOBPIDEl;
+  Produces<aod::pidOBTOFFullMu> tableOBPIDMu;
+  Produces<aod::pidOBTOFFullPi> tableOBPIDPi;
+  Produces<aod::pidOBTOFFullKa> tableOBPIDKa;
+  Produces<aod::pidOBTOFFullPr> tableOBPIDPr;
+  Produces<aod::pidOBTOFFullDe> tableOBPIDDe;
+  Produces<aod::pidOBTOFFullTr> tableOBPIDTr;
+  Produces<aod::pidOBTOFFullHe> tableOBPIDHe;
+  Produces<aod::pidOBTOFFullAl> tableOBPIDAl;
+
   Parameters resoParameters{1};
   Service<o2::ccdb::BasicCCDBManager> ccdb;
   Configurable<std::string> paramfile{"param-file", "", "Path to the parametrization object, if emtpy the parametrization is not taken from file"};
@@ -85,8 +100,16 @@ struct ALICE3pidTOFTask {
     // return (track.tofSignal() - tof::ExpTimes<Coll::iterator, Trks::iterator, id>::GetExpectedSignal(track.collision(), track)) / sigma<id>(track);
     return (track.tofSignal() - track.collision().collisionTime() * 1000.f - tof::ExpTimes<Coll::iterator, Trks::iterator, id>::GetExpectedSignal(track.collision(), track)) / sigma<id>(track);
   }
+  template <o2::track::PID::ID id>
+  float nsigmaOB(Trks::iterator track)
+  {
+    // return (track.tofSignal() - tof::ExpTimes<Coll::iterator, Trks::iterator, id>::GetExpectedSignal(track.collision(), track)) / sigma<id>(track);
+    return (track.obtofSignal() - track.collision().collisionTime() * 1000.f - tof::ExpTimes<Coll::iterator, Trks::iterator, id>::GetExpectedSignal(track.collision(), track)) / sigma<id>(track);
+  }
   void process(Coll const& collisions, Trks const& tracks)
   {
+
+    // Inner TOF
     tablePIDEl.reserve(tracks.size());
     tablePIDMu.reserve(tracks.size());
     tablePIDPi.reserve(tracks.size());
@@ -96,6 +119,18 @@ struct ALICE3pidTOFTask {
     tablePIDTr.reserve(tracks.size());
     tablePIDHe.reserve(tracks.size());
     tablePIDAl.reserve(tracks.size());
+
+    // Outer TOF
+    tableOBPIDEl.reserve(tracks.size());
+    tableOBPIDMu.reserve(tracks.size());
+    tableOBPIDPi.reserve(tracks.size());
+    tableOBPIDKa.reserve(tracks.size());
+    tableOBPIDPr.reserve(tracks.size());
+    tableOBPIDDe.reserve(tracks.size());
+    tableOBPIDTr.reserve(tracks.size());
+    tableOBPIDHe.reserve(tracks.size());
+    tableOBPIDAl.reserve(tracks.size());
+
     for (auto const& trk : tracks) {
       tablePIDEl(sigma<PID::Electron>(trk), nsigma<PID::Electron>(trk));
       tablePIDMu(sigma<PID::Muon>(trk), nsigma<PID::Muon>(trk));
@@ -106,6 +141,16 @@ struct ALICE3pidTOFTask {
       tablePIDTr(sigma<PID::Triton>(trk), nsigma<PID::Triton>(trk));
       tablePIDHe(sigma<PID::Helium3>(trk), nsigma<PID::Helium3>(trk));
       tablePIDAl(sigma<PID::Alpha>(trk), nsigma<PID::Alpha>(trk));
+
+      tableOBPIDEl(sigma<PID::Electron>(trk), nsigmaOB<PID::Electron>(trk));
+      tableOBPIDMu(sigma<PID::Muon>(trk), nsigmaOB<PID::Muon>(trk));
+      tableOBPIDPi(sigma<PID::Pion>(trk), nsigmaOB<PID::Pion>(trk));
+      tableOBPIDKa(sigma<PID::Kaon>(trk), nsigmaOB<PID::Kaon>(trk));
+      tableOBPIDPr(sigma<PID::Proton>(trk), nsigmaOB<PID::Proton>(trk));
+      tableOBPIDDe(sigma<PID::Deuteron>(trk), nsigmaOB<PID::Deuteron>(trk));
+      tableOBPIDTr(sigma<PID::Triton>(trk), nsigmaOB<PID::Triton>(trk));
+      tableOBPIDHe(sigma<PID::Helium3>(trk), nsigmaOB<PID::Helium3>(trk));
+      tableOBPIDAl(sigma<PID::Alpha>(trk), nsigmaOB<PID::Alpha>(trk));
     }
   }
 };
