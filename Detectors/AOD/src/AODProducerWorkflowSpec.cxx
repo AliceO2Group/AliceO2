@@ -249,16 +249,14 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
             const auto& tofInt = tofMatch.getLTIntegralOut();
             float intLen = tofInt.getL();
             extraInfoHolder.length = intLen;
-            extraInfoHolder.tofSignal = tofMatch.getSignal();
-            float mass = o2::constants::physics::MassPionCharged; // default pid = pion
-            float expSig = tofInt.getTOF(o2::track::PID::Pion);
-            float expMom = 0.f;
-            if (expSig > 0 && interactionTime > 0) {
-              float tof = expSig - interactionTime;
-              float expBeta = (intLen / tof / cSpeed);
-              expMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
+            if (interactionTime > 0) {
+              extraInfoHolder.tofSignal = static_cast<float>(tofMatch.getSignal() - interactionTime);
             }
-            extraInfoHolder.tofExpMom = expMom;
+            const float mass = o2::constants::physics::MassPionCharged; // default pid = pion
+            if (tofInt.getTOF(o2::track::PID::Pion) > 0.f) {
+              const float expBeta = (intLen / tofInt.getTOF(o2::track::PID::Pion) / cSpeed);
+              extraInfoHolder.tofExpMom = mass * expBeta / std::sqrt(1.f - expBeta * expBeta);
+            }
           }
           if (src == GIndex::Source::TPCTRD || src == GIndex::Source::ITSTPCTRD) {
             const auto& trdOrig = data.getTrack<o2::trd::TrackTRD>(src, contributorsGID[src].getIndex());
