@@ -62,6 +62,7 @@ RuntimeErrorRef runtime_error_f(const char* format, ...)
   va_list args;
   va_start(args, format);
   vsnprintf(gError[i].what, RuntimeError::MAX_RUNTIME_ERROR_SIZE, format, args);
+  va_end(args);
   gError[i].maxBacktrace = canDumpBacktrace() ? backtrace(gError[i].backtrace, RuntimeError::MAX_BACKTRACE_SIZE) : 0;
   return RuntimeErrorRef{i};
 }
