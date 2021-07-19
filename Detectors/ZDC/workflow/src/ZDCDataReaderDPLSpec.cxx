@@ -50,7 +50,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
     }
   }
 
-  DPLRawParser parser(pc.inputs());
+  DPLRawParser parser(pc.inputs(), o2::framework::select("zdc:ZDC/RAWDATA"));
 
   //>> update Time-dependent CCDB stuff, at the moment set the moduleconfig only once
   if (!mRawReader.getModuleConfig()) {
