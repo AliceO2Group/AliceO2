@@ -181,7 +181,7 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
     }
   } else {
     // check if some slots are done
-    for (auto slot = mSlots.begin(); slot != mSlots.end(); slot++) {
+    for (auto slot = mSlots.begin(); slot != mSlots.end();) {
       //if (maxDelay == 0 || (slot->getTFEnd() + maxDelay) < tf) {
       if ((slot->getTFEnd() + maxDelay) < tf) {
         if (hasEnoughData(*slot)) {
@@ -197,12 +197,9 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
         }
         mLastClosedTF = slot->getTFEnd() + 1; // will not accept any TF below this
         LOG(INFO) << "closing slot " << slot->getTFStart() << " <= TF <= " << slot->getTFEnd();
-        mSlots.erase(slot);
+        slot = mSlots.erase(slot);
       } else {
-        break;
-      }
-      if (mSlots.empty()) { // since erasing the very last entry may invalidate mSlots.end()
-        break;
+        break; // all following slots will be even closer to the new TF
       }
     }
   }
