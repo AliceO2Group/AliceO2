@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
   }
 
   std::string ext = fs::path(inputFile).extension();
-  std::transform(ext.begin(), ext.begin(), ext.end(), [](unsigned char c) { return std::tolower(c); });
+  std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c) { return std::tolower(c); });
 
   if (ext == ".root") {
     return dumpRoot(inputFile);
