@@ -210,7 +210,7 @@ struct QaTrackingEfficiency {
       histos.fill(h, 5 + selBinOffset);
 
       // Selecting PDG code
-      switch (pdgSign) {
+      switch ((int)pdgSign) {
         case 0:
           if (abs(p.pdgCode()) != pdg) {
             return true;
