@@ -228,12 +228,14 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
   // Initialization of reco structure
   for (int ibc = 0; ibc < mNBC; ibc++) {
     auto& bcr = mReco[ibc];
+#ifdef O2_ZDC_TDC_C_ARRAY
     for (int itdc = 0; itdc < NTDCChannels; itdc++) {
       for (int i = 0; i < MaxTDCValues; i++) {
         bcr.tdcVal[itdc][i] = kMinShort;
         bcr.tdcAmp[itdc][i] = kMinShort;
       }
     }
+#endif
     auto& bcd = mBCData[ibc];
     bcr.ir = bcd.ir;
     int chEnt = bcd.ref.getFirstEntry();
@@ -365,15 +367,15 @@ int DigiReco::reconstruct(int ibeg, int iend)
       rec.pattern[itdc] = 0;
       for (int32_t i = 0; i < rec.ntdc[itdc]; i++) {
 #ifdef O2_ZDC_DEBUG
-        LOG(INFO) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.tdcAmp[itdc][i] << " @ " << rec.tdcVal[itdc][i];
+        LOG(INFO) << "tdc " << i << " [" << ChannelNames[TDCSignal[itdc]] << "] " << rec.TDCAmp[itdc][i] << " @ " << rec.TDCVal[itdc][i];
 #endif
         // There is a TDC value in the search zone around main-main position
-        if (std::abs(rec.tdcVal[itdc][i]) < ropt.tdc_search[itdc]) {
+        if (std::abs(rec.TDCVal[itdc][i]) < ropt.tdc_search[itdc]) {
           rec.pattern[itdc] = 1;
         }
 #ifdef O2_ZDC_DEBUG
         else {
-          LOG(INFO) << rec.tdcVal[itdc][i] << " " << ropt.tdc_search[itdc];
+          LOG(INFO) << rec.TDCVal[itdc][i] << " " << ropt.tdc_search[itdc];
         }
 #endif
       }
@@ -468,12 +470,12 @@ int DigiReco::reconstruct(int ibeg, int iend)
               // TODO: manage signal positioned across boundary
               sum += (myPed - float(mChData[ref].data[is]));
             }
-// #ifdef O2_ZDC_DEBUG
-//             printf("CH %2d %s: %8.3f %sped=%8.3f %soff=%8.3f %sQC=%8.3f\n", ich, ChannelNames[ich].data(), sum,
-//                    rec.ped[ich] == PedEv ? "*" : "", evPed,
-//                    rec.ped[ich] == PedOr ? "*" : "", pbun[ich],
-//                    rec.ped[ich] == PedQC ? "*" : "", QCPed);
-// #endif
+            // #ifdef O2_ZDC_DEBUG
+            //             printf("CH %2d %s: %8.3f %sped=%8.3f %soff=%8.3f %sQC=%8.3f\n", ich, ChannelNames[ich].data(), sum,
+            //                    rec.ped[ich] == PedEv ? "*" : "", evPed,
+            //                    rec.ped[ich] == PedOr ? "*" : "", pbun[ich],
+            //                    rec.ped[ich] == PedQC ? "*" : "", QCPed);
+            // #endif
             rec.ezdc[ich] = sum * ropt.energy_calib[ich];
           } else {
             LOGF(WARN, "%d.%-4d CH %2d %s missing pedestal", rec.ir.orbit, rec.ir.bc, ich, ChannelNames[ich].data(), rec.ped[ich]);
@@ -523,7 +525,7 @@ void DigiReco::updateOffsets(int ibun)
   // TODO: use QC pedestal if orbit pedestals are missing
 
   for (int ich = 0; ich < NChannels; ich++) {
-    if(mSource[ich] == PedND){
+    if (mSource[ich] == PedND) {
       LOGF(ERROR, "Missing pedestal for ch %2d %s orbit %u ", ich, ChannelNames[ich], mOffsetOrbit);
     }
 #ifdef O2_ZDC_DEBUG
@@ -794,9 +796,9 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
         // Store identified peak
         int ibun = ibeg + isam_amp / nsbun;
         updateOffsets(ibun);
-        if(mSource[ich] != PedND){
+        if (mSource[ich] != PedND) {
           amp = mOffset[ich] - amp;
-        }else{
+        } else {
           LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
           amp = std::numeric_limits<float>::infinity();
         }
@@ -822,9 +824,9 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
       // Store identified peak
       int ibun = ibeg + isam_amp / nsbun;
       updateOffsets(ibun);
-      if(mSource[ich] != PedND){
+      if (mSource[ich] != PedND) {
         amp = mOffset[ich] - amp;
-      }else{
+      } else {
         LOGF(ERROR, "%u.%-4d Missing pedestal for TDC %d %s ", mBCData[ibun].ir.orbit, mBCData[ibun].ir.bc, itdc, ChannelNames[TDCSignal[itdc]]);
         amp = std::numeric_limits<float>::infinity();
       }
@@ -861,21 +863,24 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
     tdc_cor = kMaxShort;
   }
   // Assign to correct bunch
+  auto myamp = std::nearbyint(amp / FTDCAmp);
+#ifdef O2_ZDC_DEBUG
+  LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
+            << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp << " -> " << myamp;
+#endif
+  mReco[ibun].TDCVal[itdc].push_back(tdc_cor);
+  mReco[ibun].TDCAmp[itdc].push_back(myamp);
   int& ihit = mReco[ibun].ntdc[itdc];
+#ifdef O2_ZDC_TDC_C_ARRAY
   if (ihit < MaxTDCValues) {
     mReco[ibun].tdcVal[itdc][ihit] = tdc_cor;
-    mReco[ibun].tdcAmp[itdc][ihit] = std::nearbyint(amp / FTDCAmp);
-    mReco[ibun].TDCVal[itdc].emplace_back(tdc_cor);
-    mReco[ibun].TDCAmp[itdc].emplace_back(std::nearbyint(amp / FTDCAmp));
-    ihit++;
-#ifdef O2_ZDC_DEBUG
-    LOG(INFO) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
-              << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp;
-#endif
+    mReco[ibun].tdcAmp[itdc][ihit] = myamp;
   } else {
     LOG(ERROR) << mReco[ibun].ir.orbit << "." << mReco[ibun].ir.bc << " "
                << "ibun=" << ibun << " itdc=" << itdc << " tdc=" << tdc << " tdc_cor=" << tdc_cor * FTDCVal << " amp=" << amp * FTDCAmp << " OVERFLOW";
   }
+#endif
+  ihit++;
 } // assignTDC
 
 } // namespace zdc

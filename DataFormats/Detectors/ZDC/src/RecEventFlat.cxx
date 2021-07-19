@@ -29,16 +29,34 @@ int RecEventFlat::next()
     return 0;
   }
   ezdc.clear();
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    TDCVal[itdc].clear();
+    TDCAmp[itdc].clear();
+  }
   auto& curb = mRecBC->at(mEntry);
   ir = curb.ir;
   channels = curb.channels;
   triggers = curb.triggers;
+  // Decode energy
   int istart = curb.refe.getFirstEntry();
   int istop = istart + curb.refe.getEntries();
   for (int i = istart; i < istop; i++) {
-    auto& myenergy = mEnergy->at(i);
+    auto myenergy = mEnergy->at(i);
     ezdc[myenergy.ch()] = myenergy.energy();
   }
+  // Decode TDCs
+  istart = curb.reft.getFirstEntry();
+  istop = istart + curb.reft.getEntries();
+  for (int i = istart; i < istop; i++) {
+    auto mytdc = mTDCData->at(i);
+    auto ch = mytdc.ch();
+    if (ch < NTDCChannels) {
+      TDCVal[ch].push_back(mytdc.val);
+      TDCAmp[ch].push_back(mytdc.amp);
+    }
+  }
+  // Decode event info
+  // TODO
   mEntry++;
   return mEntry;
 }

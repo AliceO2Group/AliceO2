@@ -31,11 +31,11 @@ namespace zdc
 {
 
 struct RecEventAux : public RecEventFlat {
-  uint32_t flags;                                        /// reconstruction flags
-  int16_t tdcVal[NTDCChannels][MaxTDCValues];            /// TdcChannels
-  int16_t tdcAmp[NTDCChannels][MaxTDCValues];            /// TdcAmplitudes
-  std::vector<int16_t> TDCVal[MaxTDCValues];             /// TdcChannels
-  std::vector<int16_t> TDCAmp[MaxTDCValues];             /// TdcAmplitudes
+  uint32_t flags; /// reconstruction flags
+#ifdef O2_ZDC_TDC_C_ARRAY
+  int16_t tdcVal[NTDCChannels][MaxTDCValues]; /// TdcChannels
+  int16_t tdcAmp[NTDCChannels][MaxTDCValues]; /// TdcAmplitudes
+#endif
   int ntdc[NTDCChannels] = {0};                          /// Number of hits in TDC
   std::array<bool, NTDCChannels> pattern;                /// Pattern of TDC
   uint16_t fired[NTDCChannels] = {0};                    /// Position at which the trigger algorithm is fired

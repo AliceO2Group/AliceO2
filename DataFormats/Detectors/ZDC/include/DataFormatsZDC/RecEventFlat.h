@@ -33,20 +33,59 @@ namespace zdc
 {
 struct RecEventFlat {
   o2::InteractionRecord ir;
-  uint32_t channels = 0;         /// pattern of channels acquired
-  uint32_t triggers = 0;         /// pattern of channels with autotrigger bit
-  std::map<uint8_t, float> ezdc; /// signal in ZDCs
-
-  std::vector<o2::zdc::BCRecData>* mRecBC;    /// Interaction record and references to data
-  std::vector<o2::zdc::ZDCEnergy>* mEnergy;   /// ZDC energy
-  std::vector<o2::zdc::ZDCTDCData>* mTDCData; /// ZDC TDC
-  std::vector<uint16_t>* mInfo;               /// Event quality information
-  uint64_t mEntry = 0;                        /// Current entry
-  uint64_t mNEntries = 0;                     /// Number of entries
+  uint32_t channels = 0;                      /// pattern of channels acquired
+  uint32_t triggers = 0;                      /// pattern of channels with autotrigger bit
+  std::map<uint8_t, float> ezdc;              /// signal in ZDCs
+  std::vector<int16_t> TDCVal[NTDCChannels];  /// TdcChannels
+  std::vector<int16_t> TDCAmp[NTDCChannels];  /// TdcAmplitudes
+  std::vector<o2::zdc::BCRecData>* mRecBC;    //! Interaction record and references to data
+  std::vector<o2::zdc::ZDCEnergy>* mEnergy;   //! ZDC energy
+  std::vector<o2::zdc::ZDCTDCData>* mTDCData; //! ZDC TDC
+  std::vector<uint16_t>* mInfo;               //! Event quality information
+  uint64_t mEntry = 0;                        //! Current entry
+  uint64_t mNEntries = 0;                     //! Number of entries
 
   void init(std::vector<o2::zdc::BCRecData>* RecBC, std::vector<o2::zdc::ZDCEnergy>* Energy, std::vector<o2::zdc::ZDCTDCData>* TDCData, std::vector<uint16_t>* Info);
 
   int next();
+
+  float tdcV(uint8_t ich, uint64_t ipos)
+  {
+    if (ich < NTDCChannels) {
+      if (ipos < TDCVal[ich].size()) {
+        return FTDCVal * TDCVal[ich][ipos];
+      }
+    }
+    return -std::numeric_limits<float>::infinity();
+  }
+
+  float tdcA(uint8_t ich, int ipos)
+  {
+    if (ich < NTDCChannels) {
+      if (ipos < TDCAmp[ich].size()) {
+        return FTDCAmp * TDCAmp[ich][ipos];
+      }
+    }
+    return -std::numeric_limits<float>::infinity();
+  }
+
+  int NtdcV(uint8_t ich)
+  {
+    if (ich < NTDCChannels) {
+      return TDCVal[ich].size();
+    } else {
+      return 0;
+    }
+  }
+
+  int NtdcA(uint8_t ich)
+  {
+    if (ich < NTDCChannels) {
+      return TDCAmp[ich].size();
+    } else {
+      return 0;
+    }
+  }
 
   float EZDC(uint8_t ich)
   {
