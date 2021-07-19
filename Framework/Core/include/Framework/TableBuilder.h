@@ -790,7 +790,7 @@ template <typename T>
 auto makeEmptyTable()
 {
   TableBuilder b;
-  auto writer = b.cursor<T>();
+  [[maybe_unused]] auto writer = b.cursor<T>();
   return b.finalize();
 }
 
