@@ -416,5 +416,23 @@ void TrackParCovFwd::addMCSEffect(double x_over_X0)
   setCovariances(newParamCov);
 }
 
+//_______________________________________________________
+void TrackParFwd::getCircleParams(float bz, o2::math_utils::CircleXY<float>& c, float& sna, float& csa) const
+{
+  c.rC = getCurvature(bz);
+  constexpr double MinCurv = 1e-6;
+  if (std::abs(c.rC) > MinCurv) {
+    c.rC = 1.f / getCurvature(bz);
+    double sn = getSnp(), cs = std::sqrt((1.f - sn) * (1.f + sn));
+    c.xC = getX() - sn * c.rC; // center in tracking
+    c.yC = getY() + cs * c.rC; // frame. Note: r is signed!!!
+    c.rC = std::abs(c.rC);
+  } else {
+    c.rC = 0.f; // signal straight line
+    c.xC = getX();
+    c.yC = getY();
+  }
+}
+
 } // namespace track
 } // namespace o2

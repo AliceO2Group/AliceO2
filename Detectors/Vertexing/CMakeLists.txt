@@ -19,6 +19,7 @@ o2_add_library(DetectorsVertexing
                        src/SVertexer.cxx
                        src/SVertexerParams.cxx
                        src/SVertexHypothesis.cxx
+                       src/FwdDCAFitterN.cxx
                PUBLIC_LINK_LIBRARIES ROOT::Core
                                      O2::CommonUtils
                                      O2::ReconstructionDataFormats
@@ -37,6 +38,7 @@ o2_target_root_dictionary(DetectorsVertexing
                                   include/DetectorsVertexing/PVertexerHelpers.h
                                   include/DetectorsVertexing/PVertexerParams.h
                                   include/DetectorsVertexing/DCAFitterN.h
+                                  include/DetectorsVertexing/FwdDCAFitterN.h
                                   include/DetectorsVertexing/SVertexerParams.h
                                   include/DetectorsVertexing/SVertexHypothesis.h)
 
