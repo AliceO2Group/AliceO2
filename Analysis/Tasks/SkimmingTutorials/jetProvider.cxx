@@ -45,12 +45,12 @@ struct JetProviderTask {
     if (keepConstituents) {
       if (DoConstSub) {
         outputConstituents.reserve(constituentsSub.size());
-        for (const auto constituent : constituentsSub) {
+        for (const auto& constituent : constituentsSub) {
           outputConstituents(outputJets.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi());
         }
       } else {
         outputConstituents.reserve(constituents.size());
-        for (const auto constituentIndex : constituents) {
+        for (const auto& constituentIndex : constituents) {
           auto constituent = constituentIndex.track();
           outputConstituents(outputJets.lastIndex(), constituent.pt(), constituent.eta(), constituent.phi());
         }
