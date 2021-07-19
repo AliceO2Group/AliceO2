@@ -591,12 +591,12 @@ void Digits2Raw::emptyBunches(std::bitset<3564>& bunchPattern)
   const int LHCMaxBunches = o2::constants::lhc::LHCMaxBunches;
   mNEmpty = 0;
   for (int32_t ib = 0; ib < LHCMaxBunches; ib++) {
-    int32_t mb = (ib + 31) % LHCMaxBunches; // beam gas from back of calorimeter
-    int32_t m1 = (ib + 1) % LHCMaxBunches;  // is the previous bunch of a colliding
+    int32_t mb = (ib + 31) % LHCMaxBunches; // beam gas from back of calorimeter (31 bc earlier than a colliding bunch)
+    int32_t m1 = (ib + 1) % LHCMaxBunches;  // next bunch is colliding
     int32_t cb = ib;                        // current bunch crossing
-    int32_t p1 = (ib - 1) % LHCMaxBunches;  // colliding + 1
-    int32_t p2 = (ib - 2) % LHCMaxBunches;  // colliding + 2
-    int32_t p3 = (ib - 3) % LHCMaxBunches;  // colliding + 3
+    int32_t p1 = (ib - 1) % LHCMaxBunches;  // previous bc is colliding (position +1)
+    int32_t p2 = (ib - 2) % LHCMaxBunches;  // 2 bc after collision
+    int32_t p3 = (ib - 3) % LHCMaxBunches;  // 3 bc after collision
     if (bunchPattern[mb] || bunchPattern[m1] || bunchPattern[cb] || bunchPattern[p1] || bunchPattern[p2] || bunchPattern[p3]) {
       mEmpty[ib] = mNEmpty;
     } else {
