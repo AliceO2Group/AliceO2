@@ -59,7 +59,7 @@ struct RecEventFlat {
     return -std::numeric_limits<float>::infinity();
   }
 
-  float tdcA(uint8_t ich, int ipos)
+  float tdcA(uint8_t ich, uint64_t ipos)
   {
     if (ich < NTDCChannels) {
       if (ipos < TDCAmp[ich].size()) {

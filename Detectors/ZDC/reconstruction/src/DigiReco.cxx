@@ -14,11 +14,12 @@
 #include "ZDCReconstruction/DigiReco.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 
+//#define O2_ZDC_FULL_INTERPOLATION
+
 namespace o2
 {
 namespace zdc
 {
-using O2_ZDC_DIGIRECO_FLT = float;
 
 void DigiReco::init()
 {
@@ -594,6 +595,64 @@ void DigiReco::processTrigger(int itdc, int ibeg, int iend)
   interpolate(itdc, ibeg, iend);
 } // processTrigger
 
+void DigiReco::setPoint(int itdc, int ibeg, int iend, int i)
+{
+  constexpr int nsbun = TSN * NTimeBinsPerBC; // Total number of interpolated points per bunch crossing
+  if (i >= mNtot || i < 0) {
+    LOG(FATAL) << "Error addressing TDC itdc=" << itdc << " i=" << i << " mNtot=" << mNtot;
+    return;
+  }
+  // Constant extrapolation at the beginning and at the end of the array
+  if (i < TSNH) {
+    // Assign value of first sample
+    mReco[ibeg].inter[itdc][i] = mFirstSample;
+  } else if (i >= mIlast) {
+    // Assign value of last sample
+    int isam = i % nsbun;
+    mReco[iend].inter[itdc][isam] = mLastSample;
+  } else {
+    // Identification of the point to be assigned
+    int ibun = ibeg + i / nsbun;
+    int isam = i % nsbun;
+    // Interpolation between acquired points (N.B. from 0 to mNint)
+    i = i - TSNH;
+    int im = i % TSN;
+    if (im == 0) {
+      // This is an acquired point
+      int ip = (i / TSN) % NTimeBinsPerBC;
+      int ib = ibeg + (i / TSN) / NTimeBinsPerBC;
+      if (ib != ibun) {
+        LOG(FATAL) << "ib=" << ib << " ibun=" << ibun;
+        return;
+      }
+      mReco[ibun].inter[itdc][isam] = mChData[mReco[ibun].ref[TDCSignal[itdc]]].data[ip];
+    } else {
+      // Do the actual interpolation
+      O2_ZDC_DIGIRECO_FLT y = 0;
+      int ip = i / TSN;
+      O2_ZDC_DIGIRECO_FLT sum = 0;
+      for (int is = TSN - im, ii = ip - TSL + 1; is < NTS; is += TSN, ii++) {
+        // Default is first point in the array
+        O2_ZDC_DIGIRECO_FLT yy = mFirstSample;
+        if (ii > 0) {
+          if (ii < mNsam) {
+            int ip = ii % NTimeBinsPerBC;
+            int ib = ibeg + ii / NTimeBinsPerBC;
+            yy = mChData[mReco[ib].ref[TDCSignal[itdc]]].data[ip];
+          } else {
+            // Last acquired point
+            yy = mLastSample;
+          }
+        }
+        sum += mTS[is];
+        y += yy * mTS[is];
+      }
+      y = y / sum;
+      mReco[ibun].inter[itdc][isam] = y;
+    }
+  }
+}
+
 void DigiReco::interpolate(int itdc, int ibeg, int iend)
 {
 #ifdef O2_ZDC_DEBUG
@@ -601,13 +660,15 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
 #endif
   // TODO: get data from preceding time frame
   constexpr int MaxTimeBin = NTimeBinsPerBC - 1; //< number of samples per BC
-  constexpr int tsnh = TSN / 2;                  // Half number of points in interpolation
   constexpr int nsbun = TSN * NTimeBinsPerBC;    // Total number of interpolated points per bunch crossing
-  int nbun = iend - ibeg + 1;                    // Number of adjacent bunches
-  int nsam = nbun * NTimeBinsPerBC;              // Number of acquired samples
-  int ntot = nsam * TSN;                         // Total number of points in the interpolated arrays
-  int nint = (nbun * NTimeBinsPerBC - 1) * TSN;  // Total points in the interpolation region (-1)
-  constexpr int nsp = 5;                         // Number of points to be searched
+  // Set data members for interpolation of the current TDC
+  mNbun = iend - ibeg + 1;                    // Number of adjacent bunches
+  mNsam = mNbun * NTimeBinsPerBC;             // Number of acquired samples
+  mNtot = mNsam * TSN;                        // Total number of points in the interpolated arrays
+  mNint = (mNbun * NTimeBinsPerBC - 1) * TSN; // Total points in the interpolation region (-1)
+  mIlast = mNtot - TSNH;                      // Index of last acquired sample
+
+  constexpr int nsp = 5; // Number of points to be searched
 
   // At this level there should be no need to check if the TDC channel is connected
   // since a fatal should have been raised already
@@ -627,60 +688,17 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   auto ref_beg = mReco[ibeg].ref[TDCSignal[itdc]];
   auto ref_end = mReco[iend].ref[TDCSignal[itdc]];
 
-  O2_ZDC_DIGIRECO_FLT first_sample = mChData[ref_beg].data[0];
-  O2_ZDC_DIGIRECO_FLT last_sample = mChData[ref_end].data[NTimeBinsPerBC - 1];
+  mFirstSample = mChData[ref_beg].data[0];
+  mLastSample = mChData[ref_end].data[NTimeBinsPerBC - 1];
 
-  // Constant extrapolation at the beginning and at the end of the array
-  // Assign value of first sample
-  for (int i = 0; i < tsnh; i++) {
-    mReco[ibeg].inter[itdc][i] = first_sample;
+  // Full interpolation
+#ifdef O2_ZDC_FULL_INTERPOLATION
+  for (int i = 0; i < mNtot; i++) {
+    setPoint(itdc, ibeg, iend, i);
   }
-  // Assign value of last sample
-  for (int i = ntot - tsnh; i < ntot; i++) {
-    int isam = i % nsbun;
-    mReco[iend].inter[itdc][isam] = last_sample;
-  }
-  // Interpolation between acquired points (n.b. loop from 0 to nint)
-  for (int i = 0; i < nint; i++) {
-    // Identification of the point to be assigned (need to add tsnh to identify the point)
-    int ibun = ibeg + (i + tsnh) / nsbun;
-    int isam = (i + tsnh) % nsbun;
-    int im = i % TSN;
-    if (im == 0) {
-      // This is an acquired point
-      int ip = (i / TSN) % NTimeBinsPerBC;
-      int ib = ibeg + (i / TSN) / NTimeBinsPerBC;
-      if (ib != ibun) {
-        LOG(FATAL) << "ib=" << ib << " ibun=" << ibun;
-        return;
-      }
-      mReco[ibun].inter[itdc][isam] = mChData[mReco[ibun].ref[TDCSignal[itdc]]].data[ip];
-    } else {
-      // Do the actual interpolation
-      O2_ZDC_DIGIRECO_FLT y = 0;
-      int ip = i / TSN;
-      O2_ZDC_DIGIRECO_FLT sum = 0;
-      for (int is = TSN - im, ii = ip - TSL + 1; is < NTS; is += TSN, ii++) {
-        // Default is first point in the array
-        O2_ZDC_DIGIRECO_FLT yy = first_sample;
-        if (ii > 0) {
-          if (ii < nsam) {
-            int ip = ii % NTimeBinsPerBC;
-            int ib = ibeg + ii / NTimeBinsPerBC;
-            yy = mChData[mReco[ib].ref[TDCSignal[itdc]]].data[ip];
-          } else {
-            // Last acquired point
-            yy = last_sample;
-          }
-        }
-        sum += mTS[is];
-        y += yy * mTS[is];
-      }
-      y = y / sum;
-      mReco[ibun].inter[itdc][isam] = y;
-    }
-  }
-  // Looking for a local maximum in a searching zone
+#endif
+
+  // Looking for a local maximum in a search zone
   float amp = std::numeric_limits<float>::infinity(); // Amplitude to be stored
   int isam_amp = 0;                                   // Sample at maximum amplitude (relative to beginning of group)
   int ip_old = -1, ip_cur = -1, ib_cur = -1;          // Current and old points
@@ -690,8 +708,8 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
   int ip[nsp] = {-1, -1, -1, -1, -1};
   // N.B. Points at the extremes are constant therefore no local maximum
   // can occur in these two regions
-  for (int i = 0; i < nint; i++) {
-    int isam = i + tsnh;
+  for (int i = 0; i < mNint; i++) {
+    int isam = i + TSNH;
     // Check if trigger is fired for this point
     // For the moment we don't take into account possible extensions of the search zone
     // ip_cur can span several bunches and is used just to identify transitions
@@ -811,6 +829,10 @@ void DigiReco::interpolate(int itdc, int ibeg, int iend)
     }
     if (is_searchable) {
       int mysam = isam % nsbun;
+#ifndef O2_ZDC_FULL_INTERPOLATION
+      // Perform interpolation for the searched point
+      setPoint(itdc, ibeg, iend, isam);
+#endif
       if (mReco[ib_cur].inter[itdc][mysam] < amp) {
         amp = mReco[ib_cur].inter[itdc][mysam];
         isam_amp = isam;
