@@ -260,7 +260,7 @@ bool GeometryTGeo::getChipId(int index, int& lay, int& hba, int& sta, int& hsta,
 {
   lay = getLayer(index);
   index -= getFirstChipIndex(lay);
-  hba = mNumberOfHalfBarrels > 0 ? index / mNumberOfChipsPerHalfBarrel[lay] : -1;
+  hba = mNumberOfHalfBarrels[lay] > 0 ? index / mNumberOfChipsPerHalfBarrel[lay] : -1;
   index %= mNumberOfChipsPerHalfBarrel[lay];
   sta = index / mNumberOfChipsPerStave[lay];
   index %= mNumberOfChipsPerStave[lay];
@@ -335,7 +335,7 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   path +=
     Form("%s%d_1/", GeometryTGeo::getITSLayerPattern(), lay);
 
-  if (mNumberOfHalfBarrels > 0) {
+  if (mNumberOfHalfBarrels[lay] > 0) {
     path += Form("%s%d_%d/", GeometryTGeo::getITSHalfBarrelPattern(), lay, hba);
   }
   path +=
@@ -393,6 +393,7 @@ void GeometryTGeo::Build(int loadTrans)
   }
 
   mNumberOfStaves.resize(mNumberOfLayers);
+  mNumberOfHalfBarrels.resize(mNumberOfLayers);
   mNumberOfHalfStaves.resize(mNumberOfLayers);
   mNumberOfModules.resize(mNumberOfLayers);
   mNumberOfChipsPerModule.resize(mNumberOfLayers);
@@ -404,8 +405,8 @@ void GeometryTGeo::Build(int loadTrans)
   mLastChipIndex.resize(mNumberOfLayers);
   int numberOfChips = 0;
 
-  mNumberOfHalfBarrels = 2;
   for (int i = 0; i < mNumberOfLayers; i++) {
+    mNumberOfHalfBarrels[i] = extractNumberOfHalfBarrels(i);
     mNumberOfStaves[i] = extractNumberOfStaves(i);
     mNumberOfHalfStaves[i] = extractNumberOfHalfStaves(i);
     mNumberOfModules[i] = extractNumberOfModules(i);
@@ -413,7 +414,7 @@ void GeometryTGeo::Build(int loadTrans)
     mNumberOfChipsPerHalfStave[i] = mNumberOfChipsPerModule[i] * Max(1, mNumberOfModules[i]);
     mNumberOfChipsPerStave[i] = mNumberOfChipsPerHalfStave[i] * Max(1, mNumberOfHalfStaves[i]);
     mNumberOfChipsPerLayer[i] = mNumberOfChipsPerStave[i] * mNumberOfStaves[i];
-    mNumberOfChipsPerHalfBarrel[i] = mNumberOfChipsPerLayer[i] / Max(1, mNumberOfHalfBarrels);
+    mNumberOfChipsPerHalfBarrel[i] = mNumberOfChipsPerLayer[i] / Max(1, mNumberOfHalfBarrels[i]);
     numberOfChips += mNumberOfChipsPerLayer[i];
     mLastChipIndex[i] = numberOfChips - 1;
   }
@@ -552,11 +553,36 @@ int GeometryTGeo::extractNumberOfLayers()
 }
 
 //__________________________________________________________________________
+int GeometryTGeo::extractNumberOfHalfBarrels(int lay) const
+{
+  int numberOfHalfBarrels = 0;
+  char laynam[30];
+  snprintf(laynam, 30, "%s%d", getITSLayerPattern(), lay);
+  TGeoVolume* volLr = gGeoManager->GetVolume(laynam);
+  if (!volLr) {
+    LOG(FATAL) << "can't find " << laynam << " volume";
+    return -1;
+  }
+
+  // Loop on all layer nodes, count HalfBarrel volumes by checking names
+  int nNodes = volLr->GetNodes()->GetEntries();
+  for (int j = 0; j < nNodes; j++) {
+    // LOG(INFO) << "L" << lay << " " << j << " of " << nNodes << " "
+    //           << volLr->GetNodes()->At(j)->GetName() << " "
+    //           << getITSHalfBarrelPattern() << " -> " << numberOfHalfBarrels;
+    if (strstr(volLr->GetNodes()->At(j)->GetName(), getITSHalfBarrelPattern())) {
+      numberOfHalfBarrels++;
+    }
+  }
+  return numberOfHalfBarrels;
+}
+
+//__________________________________________________________________________
 int GeometryTGeo::extractNumberOfStaves(int lay) const
 {
   int numberOfStaves = 0;
   char hbarnam[30];
-  if (mNumberOfHalfBarrels == 0) {
+  if (mNumberOfHalfBarrels[lay] == 0) {
     snprintf(hbarnam, 30, "%s%d", getITSLayerPattern(), lay);
   } else {
     snprintf(hbarnam, 30, "%s%d", getITSHalfBarrelPattern(), lay);
@@ -577,7 +603,7 @@ int GeometryTGeo::extractNumberOfStaves(int lay) const
       numberOfStaves++;
     }
   }
-  return mNumberOfHalfBarrels > 0 ? (numberOfStaves * mNumberOfHalfBarrels) : numberOfStaves;
+  return mNumberOfHalfBarrels[lay] > 0 ? (numberOfStaves * mNumberOfHalfBarrels[lay]) : numberOfStaves;
 }
 
 //__________________________________________________________________________
